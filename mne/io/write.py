@@ -1,8 +1,9 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+from contextlib import contextmanager
 from gzip import GzipFile
 import os.path as op
 import re
@@ -10,7 +11,6 @@ import time
 import uuid
 
 import numpy as np
-from scipy import linalg, sparse
 
 from .constants import FIFF
 from ..utils import logger, _file_like
@@ -64,10 +64,22 @@ def write_nop(fid, last=False):
     fid.write(np.array(next_, dtype='>i4').tobytes())
 
 
+INT32_MAX = 2147483647
+
+
 def write_int(fid, kind, data):
     """Write a 32-bit integer tag to a fif file."""
     data_size = 4
-    data = np.array(data, dtype='>i4').T
+    data = np.asarray(data)
+    if data.dtype.kind not in 'uib' and data.size > 0:
+        raise TypeError(
+            f'Cannot safely write data with dtype {data.dtype} as int')
+    max_val = data.max() if data.size > 0 else 0
+    if max_val > INT32_MAX:
+        raise TypeError(
+            f'Value {max_val} exceeds maximum allowed ({INT32_MAX}) for '
+            f'tag {kind}')
+    data = data.astype('>i4').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_INT, '>i4')
 
 
@@ -322,13 +334,22 @@ def start_file(fname, id_=None):
     return fid
 
 
+@contextmanager
+def start_and_end_file(fname, id_=None):
+    """Start and (if successfully written) close the file."""
+    with start_file(fname, id_=id_) as fid:
+        yield fid
+        end_file(fid)  # we only hit this line if the yield does not err
+
+
 def check_fiff_length(fid, close=True):
     """Ensure our file hasn't grown too large to work properly."""
     if fid.tell() > 2147483648:  # 2 ** 31, FIFF uses signed 32-bit locations
         if close:
             fid.close()
-        raise IOError('FIFF file exceeded 2GB limit, please split file or '
-                      'save to a different format')
+        raise IOError('FIFF file exceeded 2GB limit, please split file, reduce'
+                      ' split_size (if possible), or save to a different '
+                      'format')
 
 
 def end_file(fid):
@@ -355,7 +376,7 @@ def write_coord_trans(fid, trans):
     fid.write(np.array(move, dtype='>f4').tobytes())
 
     #   ...and its inverse
-    trans_inv = linalg.inv(trans['trans'])
+    trans_inv = np.linalg.inv(trans['trans'])
     rot = trans_inv[:3, :3]
     move = trans_inv[:3, 3]
     fid.write(np.array(rot, dtype='>f4').tobytes())
@@ -423,6 +444,7 @@ def write_float_sparse_ccs(fid, kind, mat):
 
 def write_float_sparse(fid, kind, mat, fmt='auto'):
     """Write a single-precision floating-point sparse matrix tag."""
+    from scipy import sparse
     from .tag import _matrix_coding_CCS, _matrix_coding_RCS
     if fmt == 'auto':
         fmt = 'csr' if isinstance(mat, sparse.csr_matrix) else 'csc'

@@ -19,8 +19,6 @@ need to install ``tcsh`` for FreeSurfer to work; ``tcsh`` is usually
 pre-installed with macOS, and is available in the package repositories for
 Linux-based systems (e.g., ``sudo apt install tcsh`` on Ubuntu-like systems).
 
-**Next:** :doc:`advanced`
-
 .. LINKS
 
 .. _fs-wiki: https://surfer.nmr.mgh.harvard.edu/fswiki/

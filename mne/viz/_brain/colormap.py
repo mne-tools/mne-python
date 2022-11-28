@@ -10,8 +10,9 @@ import numpy as np
 
 def create_lut(cmap, n_colors=256, center=None):
     """Return a colormap suitable for setting as a LUT."""
-    from matplotlib import cm
-    cmap = cm.get_cmap(cmap)
+    from .._3d import _get_cmap
+    assert not (isinstance(cmap, str) and cmap == 'auto')
+    cmap = _get_cmap(cmap)
     lut = np.round(cmap(np.linspace(0, 1, n_colors)) * 255.0).astype(np.int64)
     return lut
 
@@ -51,9 +52,9 @@ def get_fill_colors(cols, n_fill):
     if ind.size > 0:
         # choose the two colors between which there is the large step
         ind = ind[0] + 1
-        fillcols = np.r_[np.tile(cols[ind, :], (n_fill / 2, 1)),
+        fillcols = np.r_[np.tile(cols[ind, :], (n_fill // 2, 1)),
                          np.tile(cols[ind + 1, :],
-                                 (n_fill - n_fill / 2, 1))]
+                                 (n_fill - n_fill // 2, 1))]
     else:
         # choose a color from the middle of the colormap
         fillcols = np.tile(cols[int(cols.shape[0] / 2), :], (n_fill, 1))
@@ -139,7 +140,7 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
         lut_table[:, -1] = np.round(lut_table[:, -1] * alpha)
 
     if divergent:
-        if fmax == fmin:
+        if np.isclose(fmax, fmin, rtol=1e-6, atol=0):
             lut_table = np.r_[
                 lut_table[:1],
                 get_fill_colors(

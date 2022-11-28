@@ -1,8 +1,9 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy
+from datetime import datetime, timezone
 import os
 from os import path as op
 import shutil
@@ -13,20 +14,22 @@ from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
 import mne
+import mne.io.ctf.info
 from mne import (pick_types, read_annotations, create_info,
                  events_from_annotations, make_forward_solution)
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.io.compensator import get_current_comp
 from mne.io.ctf.constants import CTF
+from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.utils import (run_tests_if_main, _clean_names, catch_logging,
-                       _stamp_to_dt)
+from mne.utils import (_clean_names, catch_logging, _stamp_to_dt,
+                       _record_warnings)
 from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
-ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+ctf_dir = testing.data_path(download=False) / 'CTF'
 ctf_fname_continuous = 'testdata_ctf.ds'
 ctf_fname_1_trial = 'testdata_ctf_short.ds'
 ctf_fname_2_trials = 'testdata_ctf_pseudocontinuous.ds'
@@ -37,6 +40,7 @@ somato_fname = op.join(
     brainstorm.bst_raw.data_path(download=False), 'MEG', 'bst_raw',
     'subj001_somatosensory_20111109_01_AUX-f.ds'
 )
+spm_path = spm_face.data_path(download=False)
 
 block_sizes = {
     ctf_fname_continuous: 12000,
@@ -56,9 +60,9 @@ ctf_fnames = tuple(sorted(block_sizes.keys()))
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_read_ctf(tmpdir):
+def test_read_ctf(tmp_path):
     """Test CTF reader."""
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
 
     # Create a dummy .eeg file so we can test our reading/application of it
@@ -106,7 +110,8 @@ def test_read_ctf(tmpdir):
     use_fnames = [op.join(ctf_dir, c) for c in ctf_fnames]
     for fname in use_fnames:
         raw_c = read_raw_fif(fname + '_raw.fif', preload=True)
-        with pytest.warns(None):  # sometimes matches "MISC channel"
+        # sometimes matches "MISC channel"
+        with _record_warnings():
             raw = read_raw_ctf(fname)
 
         # check info match
@@ -185,7 +190,8 @@ def test_read_ctf(tmpdir):
                 'dig points must be in FIFF.FIFFV_COORD_HEAD'
 
         if fname.endswith('catch-alp-good-f.ds'):  # omit points from .pos file
-            raw.info['dig'] = raw.info['dig'][:-10]
+            with raw.info._unlock():
+                raw.info['dig'] = raw.info['dig'][:-10]
 
         # XXX: Next test would fail because c-tools assign the fiducials from
         # CTF data as HPI. Should eventually clarify/unify with Matti.
@@ -212,8 +218,7 @@ def test_read_ctf(tmpdir):
             assert_allclose(raw_read[pick_ch, sl_time][0],
                             raw_c[pick_ch, sl_time][0])
         # all data / preload
-        with pytest.warns(None):  # sometimes MISC
-            raw = read_raw_ctf(fname, preload=True)
+        raw.load_data()
         assert_allclose(raw[:][0], raw_c[:][0], atol=1e-15)
         # test bad segment annotations
         if 'testdata_ctf_short.ds' in fname:
@@ -221,12 +226,14 @@ def test_read_ctf(tmpdir):
             assert_allclose(raw.annotations.onset, [2.15])
             assert_allclose(raw.annotations.duration, [0.0225])
 
-    pytest.raises(TypeError, read_raw_ctf, 1)
-    pytest.raises(ValueError, read_raw_ctf, ctf_fname_continuous + 'foo.ds')
+    with pytest.raises(TypeError, match='path-like'):
+        read_raw_ctf(1)
+    with pytest.raises(FileNotFoundError, match='does not exist'):
+        read_raw_ctf(ctf_fname_continuous + 'foo.ds')
     # test ignoring of system clock
     read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'ignore')
-    pytest.raises(ValueError, read_raw_ctf,
-                  op.join(ctf_dir, ctf_fname_continuous), 'foo')
+    with pytest.raises(ValueError, match='system_clock'):
+        read_raw_ctf(op.join(ctf_dir, ctf_fname_continuous), 'foo')
 
 
 @testing.requires_testing_data
@@ -266,8 +273,7 @@ def test_rawctf_clean_names():
 @spm_face.requires_spm_data
 def test_read_spm_ctf():
     """Test CTF reader with omitted samples."""
-    data_path = spm_face.data_path()
-    raw_fname = op.join(data_path, 'MEG', 'spm',
+    raw_fname = op.join(spm_path, 'MEG', 'spm',
                         'SPM_CTF_MEG_example_faces1_3D.ds')
     raw = read_raw_ctf(raw_fname)
     extras = raw._raw_extras[0]
@@ -287,9 +293,9 @@ def test_read_spm_ctf():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('comp_grade', [0, 1])
-def test_saving_picked(tmpdir, comp_grade):
+def test_saving_picked(tmp_path, comp_grade):
     """Test saving picked CTF instances."""
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
     assert raw.info['meas_date'] == _stamp_to_dt((1367228160, 0))
@@ -403,7 +409,19 @@ def _bad_res4_grad_comp(dsdir):
 
 
 @testing.requires_testing_data
-def test_read_ctf_mag_bad_comp(tmpdir, monkeypatch):
+def test_missing_res4(tmp_path):
+    """Test that res4 missing is handled gracefully."""
+    use_ds = tmp_path / ctf_fname_continuous
+    shutil.copytree(ctf_dir / ctf_fname_continuous,
+                    tmp_path / ctf_fname_continuous)
+    read_raw_ctf(use_ds)
+    os.remove(use_ds / (ctf_fname_continuous[:-2] + 'meg4'))
+    with pytest.raises(IOError, match='could not find the following'):
+        read_raw_ctf(use_ds)
+
+
+@testing.requires_testing_data
+def test_read_ctf_mag_bad_comp(tmp_path, monkeypatch):
     """Test CTF reader with mag comps and bad comps."""
     path = op.join(ctf_dir, ctf_fname_continuous)
     raw_orig = read_raw_ctf(path)
@@ -426,4 +444,15 @@ def test_read_ctf_mag_bad_comp(tmpdir, monkeypatch):
         read_raw_ctf(path)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_invalid_meas_date(monkeypatch):
+    """Test handling of invalid meas_date."""
+    def _convert_time_bad(date_str, time_str):
+        return _convert_time('', '')
+    monkeypatch.setattr(mne.io.ctf.info, '_convert_time', _convert_time_bad)
+
+    with catch_logging() as log:
+        raw = read_raw_ctf(ctf_dir / ctf_fname_continuous, verbose=True)
+    log = log.getvalue()
+    assert 'No date or time found' in log
+    assert raw.info['meas_date'] == datetime.fromtimestamp(0, tz=timezone.utc)

@@ -1,6 +1,6 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # Parts of this code are taken from scikit-learn
 
@@ -13,7 +13,7 @@ from scipy import stats
 from scipy import linalg
 
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import requires_sklearn, run_tests_if_main, check_version
+from mne.utils import requires_sklearn
 
 
 def center_and_norm(x, axis=-1):
@@ -196,14 +196,6 @@ def test_infomax_n_iter(return_n_iter):
 
 
 def _get_pca(rng=None):
-    if not check_version('sklearn', '0.18'):
-        from sklearn.decomposition import RandomizedPCA
-        return RandomizedPCA(n_components=2, whiten=True,
-                             random_state=rng)
-    else:
-        from sklearn.decomposition import PCA
-        return PCA(n_components=2, whiten=True, svd_solver='randomized',
-                   random_state=rng)
-
-
-run_tests_if_main()
+    from sklearn.decomposition import PCA
+    return PCA(n_components=2, whiten=True, svd_solver='randomized',
+               random_state=rng)

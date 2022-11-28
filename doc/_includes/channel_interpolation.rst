@@ -68,10 +68,4 @@ and the bad channel will be fixed.
 
 .. topic:: Examples:
 
-	* :ref:`sphx_glr_auto_examples_preprocessing_plot_interpolate_bad_channels.py`
-
-
-References
-~~~~~~~~~~
-
-.. footbibliography::
+	* :ref:`ex-interpolate-bad-channels`

@@ -1,41 +1,52 @@
 name: mne
 channels:
-- defaults
+- conda-forge
 dependencies:
-- python>=3.6
+- python>=3.8
 - pip
 - numpy
 - scipy
 - matplotlib
+- tqdm
+- pooch>=1.5
+- decorator
+- h5io
+- packaging
 - numba
-- pandas>=0.18
+- pandas
 - xlrd
 - scikit-learn
 - h5py
+- jinja2
 - pillow
 - statsmodels
 - jupyter
 - joblib
 - psutil
 - numexpr
-- traits>=4.6.0
-- pyface>=6
-- traitsui>=6
-- imageio>=2.6.1
-- pip:
-  - mne
-  - https://github.com/numpy/numpydoc/archive/master.zip
-  - imageio-ffmpeg>=0.4.1
-  - vtk>=9.0.1
-  - pyvista>=0.24
-  - pyvistaqt
-  - https://github.com/enthought/mayavi/archive/master.zip
-  - PySurfer[save_movie]
-  - dipy --only-binary dipy
-  - nibabel
-  - nilearn
-  - neo
-  - python-picard
-  - tqdm
-  - PyQt5>=5.10
-  - spyder-kernels
+- imageio
+- spyder-kernels>=1.10.0
+- imageio-ffmpeg>=0.4.1
+- vtk>=9.0.1
+- traitlets
+- pyvista>=0.32,!=0.35.2
+- pyvistaqt>=0.4
+- qdarkstyle
+- darkdetect
+- dipy
+- nibabel
+- openmeeg>=2.5.5
+- nilearn
+- python-picard
+- qtpy
+- pyqt!=5.15.3,!=5.15.4
+- mne
+- mffpy>=0.5.7
+- ipywidgets
+- ipympl
+- ipyvtklink
+- mne-qt-browser
+- pymatreader
+- eeglabio
+- edflib-python
+- pybv

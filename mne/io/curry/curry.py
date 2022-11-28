@@ -3,13 +3,15 @@
 # Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 from collections import namedtuple
 import re
 import numpy as np
+from datetime import datetime, timezone
 
+from .._digitization import _make_dig_points
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ..tag import _coil_trans_to_loc
@@ -20,8 +22,7 @@ from ...surface import _normal_orth
 from ...transforms import (apply_trans, Transform, get_ras_to_neuromag_trans,
                            combine_transforms, invert_transform,
                            _angle_between_quats, rot_to_quat)
-from ...utils import (check_fname, check_version, logger, verbose, warn,
-                      _check_fname)
+from ...utils import check_fname, logger, verbose, _check_fname
 from ...annotations import Annotations
 
 FILE_EXTENSIONS = {
@@ -29,14 +30,16 @@ FILE_EXTENSIONS = {
         "info": ".dap",
         "data": ".dat",
         "labels": ".rs3",
-        "events": ".cef",
+        "events_cef": ".cef",
+        "events_ceo": ".ceo",
         "hpi": ".hpi",
     },
     "Curry 8": {
         "info": ".cdt.dpa",
         "data": ".cdt",
         "labels": ".cdt.dpa",
-        "events": ".cdt.cef",
+        "events_cef": ".cdt.cef",
+        "events_ceo": ".cdt.ceo",
         "hpi": ".cdt.hpi",
     }
 }
@@ -49,7 +52,8 @@ SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, µ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
 CurryParameters = namedtuple('CurryParameters',
-                             'n_samples, sfreq, is_ascii, unit_dict')
+                             'n_samples, sfreq, is_ascii, unit_dict, '
+                             'n_chans, dt_start, chanidx_in_file')
 
 
 def _get_curry_version(file_extension):
@@ -61,16 +65,17 @@ def _get_curry_file_structure(fname, required=()):
     """Store paths to a dict and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory as {1}."
-    _check_fname(fname, overwrite='read', must_exist=True)
+    fname = _check_fname(fname, 'read', True, 'fname')
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = fname.split(".", maxsplit=1)
     version = _get_curry_version(ext)
     my_curry = dict()
-    for key in ('info', 'data', 'labels', 'events', 'hpi'):
+    for key in ('info', 'data', 'labels', 'events_cef', 'events_ceo', 'hpi'):
         fname = fname_base + FILE_EXTENSIONS[version][key]
         if op.isfile(fname):
-            my_curry[key] = fname
+            _key = 'events' if key.startswith('events') else key
+            my_curry[_key] = fname
 
     missing = [field for field in required if field not in my_curry]
     if missing:
@@ -133,11 +138,18 @@ def _read_curry_parameters(fname):
 
     var_names = ['NumSamples', 'SampleFreqHz',
                  'DataFormat', 'SampleTimeUsec',
+                 'NumChannels',
+                 'StartYear', 'StartMonth', 'StartDay', 'StartHour',
+                 'StartMin', 'StartSec', 'StartMillisec',
                  'NUM_SAMPLES', 'SAMPLE_FREQ_HZ',
-                 'DATA_FORMAT', 'SAMPLE_TIME_USEC']
+                 'DATA_FORMAT', 'SAMPLE_TIME_USEC',
+                 'NUM_CHANNELS',
+                 'START_YEAR', 'START_MONTH', 'START_DAY', 'START_HOUR',
+                 'START_MIN', 'START_SEC', 'START_MILLISEC']
 
     param_dict = dict()
     unit_dict = dict()
+
     with open(fname) as fid:
         for line in iter(fid):
             if any(var_name in line for var_name in var_names):
@@ -149,10 +161,34 @@ def _read_curry_parameters(fname):
                     unit_dict[type] = data_unit.replace(" ", "") \
                         .replace("\n", "").split("=")[-1]
 
+    # look for CHAN_IN_FILE sections, which may or may not exist; issue #8391
+    types = ["meg", "eeg", "misc"]
+    chanidx_in_file = _read_curry_lines(fname,
+                                        ["CHAN_IN_FILE" +
+                                         CHANTYPES[key] for key in types])
+
     n_samples = int(param_dict["numsamples"])
     sfreq = float(param_dict["samplefreqhz"])
     time_step = float(param_dict["sampletimeusec"]) * 1e-6
     is_ascii = param_dict["dataformat"] == "ASCII"
+    n_channels = int(param_dict["numchannels"])
+    try:
+        dt_start = datetime(int(param_dict["startyear"]),
+                            int(param_dict["startmonth"]),
+                            int(param_dict["startday"]),
+                            int(param_dict["starthour"]),
+                            int(param_dict["startmin"]),
+                            int(param_dict["startsec"]),
+                            int(param_dict["startmillisec"]) * 1000,
+                            timezone.utc)
+        # Note that the time zone information is not stored in the Curry info
+        # file, and it seems the start time info is in the local timezone
+        # of the acquisition system (which is unknown); therefore, just set
+        # the timezone to be UTC.  If the user knows otherwise, they can
+        # change it later.  (Some Curry files might include StartOffsetUTCMin,
+        # but its presence is unpredictable, so we won't rely on it.)
+    except (ValueError, KeyError):
+        dt_start = None  # if missing keywords or illegal values, don't set
 
     if time_step == 0:
         true_sfreq = sfreq
@@ -165,7 +201,8 @@ def _read_curry_parameters(fname):
     if true_sfreq <= 0:
         raise ValueError(_msg_invalid.format(true_sfreq))
 
-    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict)
+    return CurryParameters(n_samples, true_sfreq, is_ascii, unit_dict,
+                           n_channels, dt_start, chanidx_in_file)
 
 
 def _read_curry_info(curry_paths):
@@ -190,12 +227,30 @@ def _read_curry_info(curry_paths):
     assert len(labels) == len(sensors) == len(normals)
 
     all_chans = list()
+    dig_ch_pos = dict()
     for key in ["meg", "eeg", "misc"]:
+        chanidx_is_explicit = (len(curry_params.chanidx_in_file["CHAN_IN_FILE"
+                                   + CHANTYPES[key]]) > 0)    # channel index
+        # position in the datafile may or may not be explicitly declared,
+        # based on the CHAN_IN_FILE section in info file
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
+            chanidx = len(all_chans) + 1    # by default, just assume the
+            # channel index in the datafile is in order of the channel
+            # names as we found them in the labels file
+            if chanidx_is_explicit:  # but, if explicitly declared, use
+                # that index number
+                chanidx = int(curry_params.chanidx_in_file["CHAN_IN_FILE"
+                              + CHANTYPES[key]][ind])
+            if chanidx <= 0:   # if chanidx was explicitly declared to be ' 0',
+                # it means the channel is not actually saved in the data file
+                # (e.g. the "Ref" channel), so don't add it to our list.
+                # Git issue #8391
+                continue
             ch = {"ch_name": chan,
                   "unit": curry_params.unit_dict[key],
                   "kind": FIFFV_CHANTYPES[key],
                   "coil_type": FIFFV_COILTYPES[key],
+                  "ch_idx": chanidx
                   }
             if key == "eeg":
                 loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
@@ -206,6 +261,7 @@ def _read_curry_info(curry_paths):
                 ch['loc'] = loc
                 # XXX need to check/ensure this
                 ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                dig_ch_pos[chan] = loc[:3]
             elif key == 'meg':
                 pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
                 pos /= 1000.  # to meters
@@ -221,12 +277,30 @@ def _read_curry_info(curry_paths):
                 ch['loc'] = _coil_trans_to_loc(trans)
                 ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
             all_chans.append(ch)
+    dig = _make_dig_points(
+        dig_ch_pos=dig_ch_pos, coord_frame='head', add_missing_fiducials=True)
+    del dig_ch_pos
+
+    ch_count = len(all_chans)
+    assert (ch_count == curry_params.n_chans)  # ensure that we have assembled
+    # the same number of channels as declared in the info (.DAP) file in the
+    # DATA_PARAMETERS section. Git issue #8391
+
+    # sort the channels to assure they are in the order that matches how
+    # recorded in the datafile.  In general they most likely are already in
+    # the correct order, but if the channel index in the data file was
+    # explicitly declared we might as well use it.
+    all_chans = sorted(all_chans, key=lambda ch: ch['ch_idx'])
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
+    with info._unlock():
+        info['meas_date'] = curry_params.dt_start  # for Git issue #8398
+        info['dig'] = dig
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
+        all_chans[ind].pop('ch_idx')
         ch_dict.update(all_chans[ind])
         assert ch_dict['loc'].shape == (12,)
         ch_dict['unit'] = SI_UNITS[all_chans[ind]['unit'][1]]
@@ -257,7 +331,8 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
     key = 'LM_REMARKS' + CHANTYPES['meg']
     remarks = _read_curry_lines(label_fname, [key])[key]
     assert len(remarks) == len(lm)
-    info['dig'] = list()
+    with info._unlock():
+        info['dig'] = list()
     cards = dict()
     for remark, r in zip(remarks, lm):
         kind = ident = None
@@ -272,7 +347,8 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
             info['dig'].append(dict(
                 kind=kind, ident=ident, r=r,
                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN))
-    info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
+    with info._unlock():
+        info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
     has_cards = len(cards) == 3
     has_hpi = 'hpi' in curry_paths
     if has_cards and has_hpi:  # have all three
@@ -296,11 +372,12 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
                 *(cards[key] for key in (FIFF.FIFFV_POINT_NASION,
                                          FIFF.FIFFV_POINT_LPA,
                                          FIFF.FIFFV_POINT_RPA))))
-        info['dev_head_t'] = combine_transforms(
-            invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
-        for d in info['dig']:
-            d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
-                     r=apply_trans(unknown_head_t, d['r']))
+        with info._unlock():
+            info['dev_head_t'] = combine_transforms(
+                invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
+            for d in info['dig']:
+                d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
+                         r=apply_trans(unknown_head_t, d['r']))
     else:
         if has_cards:
             no_msg += ' (no .hpi file found)'
@@ -322,7 +399,7 @@ def _first_hpi(fname):
             break
         else:
             raise RuntimeError('Could not find valid HPI in %s' % (fname,))
-    # t is the first enttry
+    # t is the first entry
     assert hpi.ndim == 1
     hpi = hpi[1:]
     hpi.shape = (-1, 5)
@@ -344,8 +421,8 @@ def _read_events_curry(fname):
     events : ndarray, shape (n_events, 3)
         The array of events.
     """
-    check_fname(fname, 'curry event', ('.cef', '.cdt.cef'),
-                endings_err=('.cef', '.cdt.cef'))
+    check_fname(fname, 'curry event', ('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'),
+                endings_err=('.cef', '.ceo', '.cdt.cef', '.cdt.ceo'))
 
     events_dict = _read_curry_lines(fname, ["NUMBER_LIST"])
     # The first 3 column seem to contain the event information
@@ -454,16 +531,10 @@ class RawCurry(BaseRaw):
         if self._raw_extras[fi]['is_ascii']:
             if isinstance(idx, slice):
                 idx = np.arange(idx.start, idx.stop)
-            kwargs = dict(skiprows=start, usecols=idx)
-            if check_version("numpy", "1.16.0"):
-                kwargs['max_rows'] = stop - start
-            else:
-                warn("Data reading might take longer for ASCII files. Update "
-                     "numpy to version 1.16.0 or greater for more efficient "
-                     "data reading.")
-            block = np.loadtxt(self._filenames[0], **kwargs)[:stop - start].T
-            data_view = data[:, :block.shape[1]]
-            _mult_cal_one(data_view, block, idx, cals, mult)
+            block = np.loadtxt(
+                self._filenames[0], skiprows=start, max_rows=stop - start,
+                ndmin=2).T
+            _mult_cal_one(data, block, idx, cals, mult)
 
         else:
             _read_segments_file(

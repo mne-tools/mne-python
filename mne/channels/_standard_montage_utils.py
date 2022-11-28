@@ -1,7 +1,10 @@
 # Authors: Joan Massich <mailsik@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+from collections import OrderedDict
+import csv
+
 import os.path as op
 import numpy as np
 
@@ -9,7 +12,9 @@ from functools import partial
 import xml.etree.ElementTree as ElementTree
 
 from .montage import make_dig_montage
+from .._freesurfer import get_mni_fiducials
 from ..transforms import _sph_to_cart
+from ..utils import warn, _pl
 from . import __file__ as _CHANNELS_INIT_FILE
 
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
@@ -69,7 +74,7 @@ def _biosemi(basename, head_size):
     return _read_theta_phi_in_degrees(fname, head_size, fid_names)
 
 
-def _mgh_or_standard(basename, head_size):
+def _mgh_or_standard(basename, head_size, coord_frame='unknown'):
     fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
 
@@ -89,17 +94,25 @@ def _mgh_or_standard(basename, head_size):
                 break
             ch_names_.append(line.strip(' ').strip('\n'))
 
-    pos = np.array(pos)
-    ch_pos = dict(zip(ch_names_, pos))
+    pos = np.array(pos) / 1000.
+    ch_pos = _check_dupes_odict(ch_names_, pos)
     nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
-    scale = head_size / np.median(np.linalg.norm(pos, axis=1))
+    if head_size is None:
+        scale = 1.
+    else:
+        scale = head_size / np.median(np.linalg.norm(pos, axis=1))
     for value in ch_pos.values():
         value *= scale
+    # if we are in MRI/MNI coordinates, we need to replace nasion, LPA, and RPA
+    # with those of fsaverage for ``trans='fsaverage'`` to work
+    if coord_frame == 'mri':
+        lpa, nasion, rpa = [
+            x['r'].copy() for x in get_mni_fiducials('fsaverage')]
     nasion *= scale
     lpa *= scale
     rpa *= scale
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+    return make_dig_montage(ch_pos=ch_pos, coord_frame=coord_frame,
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
 
@@ -126,20 +139,32 @@ standard_montage_look_up_table = {
     'biosemi32': partial(_biosemi, basename='biosemi32.txt'),
     'biosemi64': partial(_biosemi, basename='biosemi64.txt'),
 
-    'mgh60': partial(_mgh_or_standard, basename='mgh60.elc'),
-    'mgh70': partial(_mgh_or_standard, basename='mgh70.elc'),
+    'mgh60': partial(_mgh_or_standard, basename='mgh60.elc',
+                     coord_frame='mri'),
+    'mgh70': partial(_mgh_or_standard, basename='mgh70.elc',
+                     coord_frame='mri'),
     'standard_1005': partial(_mgh_or_standard,
-                             basename='standard_1005.elc'),
+                             basename='standard_1005.elc', coord_frame='mri'),
     'standard_1020': partial(_mgh_or_standard,
-                             basename='standard_1020.elc'),
+                             basename='standard_1020.elc', coord_frame='mri'),
     'standard_alphabetic': partial(_mgh_or_standard,
-                                   basename='standard_alphabetic.elc'),
+                                   basename='standard_alphabetic.elc',
+                                   coord_frame='mri'),
     'standard_postfixed': partial(_mgh_or_standard,
-                                  basename='standard_postfixed.elc'),
+                                  basename='standard_postfixed.elc',
+                                  coord_frame='mri'),
     'standard_prefixed': partial(_mgh_or_standard,
-                                 basename='standard_prefixed.elc'),
+                                 basename='standard_prefixed.elc',
+                                 coord_frame='mri'),
     'standard_primed': partial(_mgh_or_standard,
-                               basename='standard_primed.elc'),
+                               basename='standard_primed.elc',
+                               coord_frame='mri'),
+    'artinis-octamon': partial(_mgh_or_standard, coord_frame='mri',
+                               basename='artinis-octamon.elc'),
+    'artinis-brite23': partial(_mgh_or_standard, coord_frame='mri',
+                               basename='artinis-brite23.elc'),
+    'brainproducts-RNP-BA-128': partial(
+        _easycap, basename='brainproducts-RNP-BA-128.txt')
 }
 
 
@@ -149,9 +174,14 @@ def _read_sfp(fname, head_size):
     fid_names = ('FidNz', 'FidT9', 'FidT10')
     options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
-
-    pos = np.stack([xs, ys, zs], axis=-1)
-    ch_pos = dict(zip(ch_names, pos))
+    # deal with "headshape"
+    mask = np.array([ch_name == 'headshape' for ch_name in ch_names], bool)
+    hsp = np.stack([xs[mask], ys[mask], zs[mask]], axis=-1)
+    mask = ~mask
+    pos = np.stack([xs[mask], ys[mask], zs[mask]], axis=-1)
+    ch_names = [ch_name for ch_name, m in zip(ch_names, mask) if m]
+    ch_pos = _check_dupes_odict(ch_names, pos)
+    del xs, ys, zs, ch_names
     # no one grants that fid names are there.
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
@@ -164,7 +194,7 @@ def _read_sfp(fname, head_size):
         rpa = rpa * scale if rpa is not None else None
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
-                            nasion=nasion, rpa=rpa, lpa=lpa)
+                            nasion=nasion, rpa=rpa, lpa=lpa, hsp=hsp)
 
 
 def _read_csd(fname, head_size):
@@ -177,7 +207,23 @@ def _read_csd(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
+    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
+
+
+def _check_dupes_odict(ch_names, pos):
+    """Warn if there are duplicates, then turn to ordered dict."""
+    ch_names = list(ch_names)
+    dups = OrderedDict((ch_name, ch_names.count(ch_name))
+                       for ch_name in ch_names)
+    dups = OrderedDict((ch_name, count) for ch_name, count in dups.items()
+                       if count > 1)
+    n = len(dups)
+    if n:
+        dups = ', '.join(
+            f'{ch_name} ({count})' for ch_name, count in dups.items())
+        warn(f'Duplicate channel position{_pl(n)} found, the last will be '
+             f'used for {dups}')
+    return OrderedDict(zip(ch_names, pos))
 
 
 def _read_elc(fname, head_size):
@@ -225,7 +271,7 @@ def _read_elc(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    ch_pos = dict(zip(ch_names_, pos))
+    ch_pos = _check_dupes_odict(ch_names_, pos)
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
@@ -251,7 +297,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
 
     radii = np.full(len(phi), head_size)
     pos = _sph_to_cart(np.array([radii, np.deg2rad(phi), np.deg2rad(theta)]).T)
-    ch_pos = dict(zip(ch_names, pos))
+    ch_pos = _check_dupes_odict(ch_names, pos)
 
     nasion, lpa, rpa = None, None, None
     if fid_names is not None:
@@ -264,10 +310,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
 def _read_elp_besa(fname, head_size):
     # This .elp is not the same as polhemus elp. see _read_isotrak_elp_points
     dtype = np.dtype('S8, S8, f8, f8, f8')
-    try:
-        data = np.loadtxt(fname, dtype=dtype, skip_header=1)
-    except TypeError:
-        data = np.loadtxt(fname, dtype=dtype, skiprows=1)
+    data = np.loadtxt(fname, dtype=dtype)
 
     ch_names = data['f1'].astype(str).tolist()
     az = data['f2']
@@ -282,7 +325,7 @@ def _read_elp_besa(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    ch_pos = dict(zip(ch_names, pos))
+    ch_pos = _check_dupes_odict(ch_names, pos)
 
     fid_names = ('Nz', 'LPA', 'RPA')
     # No one grants that the fid names actually exist.
@@ -310,4 +353,43 @@ def _read_brainvision(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
+    return make_dig_montage(ch_pos=_check_dupes_odict(ch_names, pos))
+
+
+def _read_xyz(fname):
+    """Import EEG channel locations from CSV, TSV, or XYZ files.
+
+    CSV and TSV files should have columns 4 columns containing
+    ch_name, x, y, and z. Each row represents one channel.
+    XYZ files should have 5 columns containing
+    count, x, y, z, and ch_name. Each row represents one channel
+    CSV files should be separated by commas, TSV and XYZ files should be
+    separated by tabs.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the file to read channel locations from.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+    """
+    ch_names = []
+    pos = []
+    file_format = op.splitext(fname)[1].lower()
+    with open(fname, "r") as f:
+        if file_format != ".xyz":
+            f.readline()  # skip header
+        delimiter = "," if file_format == ".csv" else "\t"
+        for row in csv.reader(f, delimiter=delimiter):
+            if file_format == ".xyz":
+                _, x, y, z, ch_name, *_ = row
+                ch_name = ch_name.strip()  # deals with variable tab size
+            else:
+                ch_name, x, y, z, *_ = row
+            ch_names.append(ch_name)
+            pos.append((x, y, z))
+    d = _check_dupes_odict(ch_names, np.array(pos, dtype=float))
+    return make_dig_montage(ch_pos=d)

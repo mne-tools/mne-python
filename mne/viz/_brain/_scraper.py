@@ -1,8 +1,8 @@
+import os
 import os.path as op
 
-import numpy as np
-
-from ._brain import _Brain
+from ...fixes import _compare_version
+from ._brain import Brain
 
 
 class _BrainScraper(object):
@@ -13,51 +13,82 @@ class _BrainScraper(object):
 
     def __call__(self, block, block_vars, gallery_conf):
         rst = ''
-        for brain in block_vars['example_globals'].values():
+        for brain in list(block_vars['example_globals'].values()):
             # Only need to process if it's a brain with a time_viewer
             # with traces on and shown in the same window, otherwise
             # PyVista and matplotlib scrapers can just do the work
-            if (not isinstance(brain, _Brain)) or brain._closed:
+            if (not isinstance(brain, Brain)) or brain._closed:
                 continue
-            from matplotlib.image import imsave
-            from sphinx_gallery.scrapers import figure_rst
-            img_fname = next(block_vars['image_path_iterator'])
-            img = brain.screenshot()
-            assert img.size > 0
-            if getattr(brain, 'time_viewer', None) is not None and \
-                    brain.time_viewer.show_traces and \
-                    not brain.time_viewer.separate_canvas:
-                canvas = brain.time_viewer.mpl_canvas.fig.canvas
-                canvas.draw_idle()
-                # In theory, one of these should work:
+            import matplotlib
+            from matplotlib import animation, pyplot as plt
+            from sphinx_gallery.scrapers import matplotlib_scraper
+            img = brain.screenshot(time_viewer=True)
+            dpi = 100.
+            figsize = (img.shape[1] / dpi, img.shape[0] / dpi)
+            fig = plt.figure(figsize=figsize, dpi=dpi)
+            ax = plt.Axes(fig, [0, 0, 1, 1])
+            fig.add_axes(ax)
+            img = ax.imshow(img)
+            movie_key = '# brain.save_movie'
+            if movie_key in block[1]:
+                kwargs = dict()
+                # Parse our parameters
+                lines = block[1].splitlines()
+                for li, line in enumerate(block[1].splitlines()):
+                    if line.startswith(movie_key):
+                        line = line[len(movie_key):].replace('..., ', '')
+                        for ni in range(1, 5):  # should be enough
+                            if len(lines) > li + ni and \
+                                    lines[li + ni].startswith('#  '):
+                                line = line + lines[li + ni][1:].strip()
+                            else:
+                                break
+                        assert line.startswith('(') and line.endswith(')')
+                        kwargs.update(eval(f'dict{line}'))
+                for key, default in [('time_dilation', 4),
+                                     ('framerate', 24),
+                                     ('tmin', None),
+                                     ('tmax', None),
+                                     ('interpolation', None),
+                                     ('time_viewer', False)]:
+                    if key not in kwargs:
+                        kwargs[key] = default
+                kwargs.pop('filename', None)  # always omit this one
+                if brain.time_viewer:
+                    assert kwargs['time_viewer'], 'Must use time_viewer=True'
+                frames = brain._make_movie_frames(callback=None, **kwargs)
+
+                # Turn them into an animation
+                def func(frame):
+                    img.set_data(frame)
+                    return [img]
+
+                anim = animation.FuncAnimation(
+                    fig, func=func, frames=frames, blit=True,
+                    interval=1000. / kwargs['framerate'])
+
+                # Out to sphinx-gallery:
                 #
-                # trace_img = np.frombuffer(
-                #     canvas.tostring_rgb(), dtype=np.uint8)
-                # trace_img.shape = canvas.get_width_height()[::-1] + (3,)
-                #
-                # or
-                #
-                # trace_img = np.frombuffer(
-                #     canvas.tostring_rgb(), dtype=np.uint8)
-                # size = time_viewer.mpl_canvas.getSize()
-                # trace_img.shape = (size.height(), size.width(), 3)
-                #
-                # But in practice, sometimes the sizes does not match the
-                # renderer tostring_rgb() size. So let's directly use what
-                # matplotlib does in lib/matplotlib/backends/backend_agg.py
-                # before calling tobytes():
-                trace_img = np.asarray(
-                    canvas.renderer._renderer).take([0, 1, 2], axis=2)
-                # need to slice into trace_img because generally it's a bit
-                # smaller
-                delta = trace_img.shape[1] - img.shape[1]
-                if delta > 0:
-                    start = delta // 2
-                    trace_img = trace_img[:, start:start + img.shape[1]]
-                img = np.concatenate([img, trace_img], axis=0)
-            imsave(img_fname, img)
-            assert op.isfile(img_fname)
-            rst += figure_rst(
-                [img_fname], gallery_conf['src_dir'], brain._title)
+                # 1. A static image but hide it (useful for carousel)
+                if (
+                    _compare_version(matplotlib.__version__, '>=', '3.3.1') and
+                    animation.FFMpegWriter.isAvailable()
+                ):
+                    writer = 'ffmpeg'
+                elif animation.ImageMagickWriter.isAvailable():
+                    writer = 'imagemagick'
+                else:
+                    writer = None
+                static_fname = next(block_vars['image_path_iterator'])
+                static_fname = static_fname[:-4] + '.gif'
+                anim.save(static_fname, writer=writer, dpi=dpi)
+                rel_fname = op.relpath(static_fname, gallery_conf['src_dir'])
+                rel_fname = rel_fname.replace(os.sep, '/').lstrip('/')
+                rst += f'\n.. image:: /{rel_fname}\n    :class: hidden\n'
+
+                # 2. An animation that will be embedded and visible
+                block_vars['example_globals']['_brain_anim_'] = anim
+
             brain.close()
+            rst += matplotlib_scraper(block, block_vars, gallery_conf)
         return rst

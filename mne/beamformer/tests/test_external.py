@@ -1,6 +1,6 @@
 # Authors: Britta Westner <britta.wstnr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -10,12 +10,10 @@ from numpy.testing import assert_array_equal, assert_allclose
 from scipy.io import savemat
 
 import mne
-from mne.datasets import testing
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
-from mne.externals.pymatreader import read_mat
-from mne.utils import run_tests_if_main
-
+from mne.datasets import testing
+from mne.utils import requires_version
 
 data_path = testing.data_path(download=False)
 ft_data_path = op.join(data_path, 'fieldtrip', 'beamformer')
@@ -69,6 +67,7 @@ def _get_bf_data(save_fieldtrip=False):
 
 # beamformer types to be tested: unit-gain (vector and scalar) and
 # unit-noise-gain (time series and power output [apply_lcmv_cov])
+@requires_version('pymatreader')
 @pytest.mark.parametrize('bf_type, weight_norm, pick_ori, pwr', [
     ['ug_scal', None, 'max-power', False],
     ['ung', 'unit-noise-gain', 'max-power', False],
@@ -78,6 +77,7 @@ def _get_bf_data(save_fieldtrip=False):
 ])
 def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     """Test LCMV vs fieldtrip output."""
+    from pymatreader import read_mat
     evoked, data_cov, fwd = _get_bf_data
 
     # run the MNE-Python beamformer
@@ -106,6 +106,3 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
         assert_allclose(np.linalg.norm(stc_mne.data, axis=1),
                         np.linalg.norm(stc_ft_data, axis=1), rtol=1e-6)
     assert_allclose(stc_mne.data, stc_ft_data, rtol=1e-6)
-
-
-run_tests_if_main()

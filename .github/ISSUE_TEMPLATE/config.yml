@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 MNE-Python forum
+    url: https://mne.discourse.group/
+    about: Use the [MNE-Python forum](https://mne.discourse.group/) to ask (and answer) concrete technical questions or about usage of MNE-Python

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-from ..fixes import _get_args
+from collections import OrderedDict
+from inspect import signature
+
 from ..utils import _check_fname, logger
 
 
@@ -38,7 +40,7 @@ def what(fname):
     from ..proj import read_proj
     from .meas_info import read_fiducials
     _check_fname(fname, overwrite='read', must_exist=True)
-    checks = dict()
+    checks = OrderedDict()
     checks['raw'] = read_raw_fif
     checks['ica'] = read_ica
     checks['epochs'] = read_epochs
@@ -51,15 +53,14 @@ def what(fname):
     checks['cov'] = read_cov
     checks['transform'] = read_trans
     checks['events'] = read_events
-    checks['proj'] = read_proj
     checks['fiducials'] = read_fiducials
+    checks['proj'] = read_proj
     for what, func in checks.items():
-        args = _get_args(func)
-        kwargs = dict()
+        args = signature(func).parameters
+        assert 'verbose' in args, func
+        kwargs = dict(verbose='error')
         if 'preload' in args:
             kwargs['preload'] = False
-        if 'verbose' in args:
-            kwargs['verbose'] = 'error'
         try:
             func(fname, **kwargs)
         except Exception as exp:

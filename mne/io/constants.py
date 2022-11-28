@@ -1,7 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from ..utils._bunch import BunchConstNamed
 
@@ -31,6 +31,7 @@ FIFF.FIFFB_HPI_RESULT         = 109  # Result of a HPI fitting procedure
 FIFF.FIFFB_HPI_COIL           = 110  # Data acquired from one HPI coil
 FIFF.FIFFB_PROJECT            = 111
 FIFF.FIFFB_CONTINUOUS_DATA    = 112
+FIFF.FIFFB_CH_INFO            = 113  # Extra channel information
 FIFF.FIFFB_VOID               = 114
 FIFF.FIFFB_EVENTS             = 115
 FIFF.FIFFB_INDEX              = 116
@@ -156,6 +157,23 @@ FIFF.FIFF_HPI_FIT_DIST_LIMIT     = 244   # Limit for the coil distance differenc
 FIFF.FIFF_HPI_COIL_NO            = 245   # Coil number listed by HPI measurement
 FIFF.FIFF_HPI_COILS_USED         = 246   # List of coils finally used when the transformation was computed
 FIFF.FIFF_HPI_DIGITIZATION_ORDER = 247   # Which Isotrak digitization point corresponds to each of the coils energized
+
+
+#
+# Tags used for storing channel info
+#
+FIFF.FIFF_CH_SCAN_NO             = 250   # Channel scan number. Corresponds to fiffChInfoRec.scanNo field
+FIFF.FIFF_CH_LOGICAL_NO          = 251   # Channel logical number. Corresponds to fiffChInfoRec.logNo field
+FIFF.FIFF_CH_KIND                = 252   # Channel type. Corresponds to fiffChInfoRec.kind field"
+FIFF.FIFF_CH_RANGE               = 253   # Conversion from recorded number to (possibly virtual) voltage at the output"
+FIFF.FIFF_CH_CAL                 = 254   # Calibration coefficient from output voltage to some real units
+FIFF.FIFF_CH_LOC                 = 255   # Channel loc
+FIFF.FIFF_CH_UNIT                = 256   # Unit of the data
+FIFF.FIFF_CH_UNIT_MUL            = 257   # Unit multiplier exponent
+FIFF.FIFF_CH_DACQ_NAME           = 258   # Name of the channel in the data acquisition system. Corresponds to fiffChInfoRec.name.
+FIFF.FIFF_CH_COIL_TYPE           = 350   # Coil type in coil_def.dat
+FIFF.FIFF_CH_COORD_FRAME         = 351   # Coordinate frame (integer)
+
 #
 # Pointers
 #
@@ -176,6 +194,7 @@ FIFF.FIFFV_ECG_CH       = 402
 FIFF.FIFFV_MISC_CH      = 502
 FIFF.FIFFV_RESP_CH      = 602  # Respiration monitoring
 FIFF.FIFFV_SEEG_CH      = 802  # stereotactic EEG
+FIFF.FIFFV_DBS_CH       = 803  # deep brain stimulation
 FIFF.FIFFV_SYST_CH      = 900  # some system status information (on Triux systems only)
 FIFF.FIFFV_ECOG_CH      = 902
 FIFF.FIFFV_IAS_CH       = 910  # Internal Active Shielding data (maybe on Triux only)
@@ -183,6 +202,8 @@ FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus c
 FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
 FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 FIFF.FIFFV_FNIRS_CH     = 1100  # Functional near-infrared spectroscopy
+FIFF.FIFFV_TEMPERATURE_CH = 1200  # Functional near-infrared spectroscopy
+FIFF.FIFFV_GALVANIC_CH  = 1300  # Galvanic skin response
 _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_BIO_CH,
     FIFF.FIFFV_MEG_CH,
@@ -196,6 +217,7 @@ _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_MISC_CH,
     FIFF.FIFFV_RESP_CH,
     FIFF.FIFFV_SEEG_CH,
+    FIFF.FIFFV_DBS_CH,
     FIFF.FIFFV_SYST_CH,
     FIFF.FIFFV_ECOG_CH,
     FIFF.FIFFV_IAS_CH,
@@ -203,6 +225,8 @@ _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_DIPOLE_WAVE,
     FIFF.FIFFV_GOODNESS_FIT,
     FIFF.FIFFV_FNIRS_CH,
+    FIFF.FIFFV_GALVANIC_CH,
+    FIFF.FIFFV_TEMPERATURE_CH,
 )}
 
 #
@@ -292,7 +316,7 @@ FIFF.FIFF_SQUID_BIAS        = 701
 FIFF.FIFF_SQUID_OFFSET      = 702
 FIFF.FIFF_SQUID_GATE        = 703
 #
-# Aspect values used to save charactersitic curves of SQUIDs. (mjk)
+# Aspect values used to save characteristic curves of SQUIDs. (mjk)
 #
 FIFF.FIFFV_ASPECT_IFII_LOW  = 1100
 FIFF.FIFFV_ASPECT_IFII_HIGH = 1101
@@ -744,10 +768,6 @@ FWD.COIL_ACCURACY_POINT          = 0
 FWD.COIL_ACCURACY_NORMAL         = 1
 FWD.COIL_ACCURACY_ACCURATE       = 2
 
-FWD.BEM_UNKNOWN                  = -1
-FWD.BEM_CONSTANT_COLL            = 1
-FWD.BEM_LINEAR_COLL              = 2
-
 FWD.BEM_IP_APPROACH_LIMIT        = 0.1
 
 FWD.BEM_LIN_FIELD_SIMPLE         = 1
@@ -819,7 +839,7 @@ FIFF.FIFF_UNIT_C   = 106  # coulomb
 FIFF.FIFF_UNIT_V   = 107  # volt
 FIFF.FIFF_UNIT_F   = 108  # farad
 FIFF.FIFF_UNIT_OHM = 109  # ohm
-FIFF.FIFF_UNIT_MHO = 110  # one per ohm
+FIFF.FIFF_UNIT_S   = 110  # Siemens (same as Moh, what fiff-constants calls it)
 FIFF.FIFF_UNIT_WB  = 111  # weber
 FIFF.FIFF_UNIT_T   = 112  # tesla
 FIFF.FIFF_UNIT_H   = 113  # Henry
@@ -841,7 +861,7 @@ _ch_unit_named = {key: key for key in(
     FIFF.FIFF_UNIT_CD, FIFF.FIFF_UNIT_MOL_M3, FIFF.FIFF_UNIT_HZ,
     FIFF.FIFF_UNIT_N, FIFF.FIFF_UNIT_PA, FIFF.FIFF_UNIT_J, FIFF.FIFF_UNIT_W,
     FIFF.FIFF_UNIT_C, FIFF.FIFF_UNIT_V, FIFF.FIFF_UNIT_F, FIFF.FIFF_UNIT_OHM,
-    FIFF.FIFF_UNIT_MHO, FIFF.FIFF_UNIT_WB, FIFF.FIFF_UNIT_T, FIFF.FIFF_UNIT_H,
+    FIFF.FIFF_UNIT_S, FIFF.FIFF_UNIT_WB, FIFF.FIFF_UNIT_T, FIFF.FIFF_UNIT_H,
     FIFF.FIFF_UNIT_CEL, FIFF.FIFF_UNIT_LM, FIFF.FIFF_UNIT_LX,
     FIFF.FIFF_UNIT_V_M2, FIFF.FIFF_UNIT_T_M, FIFF.FIFF_UNIT_AM,
     FIFF.FIFF_UNIT_AM_M2, FIFF.FIFF_UNIT_AM_M3,
@@ -959,6 +979,14 @@ FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD     = 7503
 FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG   = 8001
 FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2  = 8002
 #
+# FieldLine sensors
+#
+FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1    = 8101
+#
+# Kernel sensors
+#
+FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1    = 8201
+#
 # KRISS sensors
 #
 FIFF.FIFFV_COIL_KRISS_GRAD         = 9001
@@ -991,6 +1019,8 @@ _ch_coil_type_named = {key: key for key in (
     FIFF.FIFFV_COIL_BABY_REF_MAG2, FIFF.FIFFV_COIL_ARTEMIS123_GRAD,
     FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG, FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
+    FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
+    FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
     FIFF.FIFFV_COIL_KRISS_GRAD, FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD,
     FIFF.FIFFV_COIL_COMPUMEDICS_PEDIATRIC_GRAD,
 )}
@@ -1003,9 +1033,34 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
 FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
 FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT   = 3802  # rejection and flat params
+FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ     = 3803  # original raw sfreq
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block
 
 # MNE Metadata Dataframes
 FIFF.FIFFB_MNE_METADATA            = 3811  # metadata dataframes block
+
+# Table to match unrecognized channel location names to their known aliases
+CHANNEL_LOC_ALIASES = {
+    # this set of aliases are published in doi:10.1097/WNP.0000000000000316 and
+    # doi:10.1016/S1388-2457(00)00527-7.
+    'Cb1': 'POO7',
+    'Cb2': 'POO8',
+    'CB1': 'POO7',
+    'CB2': 'POO8',
+    'T1': 'T9',
+    'T2': 'T10',
+    'T3': 'T7',
+    'T4': 'T8',
+    'T5': 'T9',
+    'T6': 'T10',
+    'M1': 'TP9',
+    'M2': 'TP10',
+    # EGI ref chan is named VREF/Vertex Ref.
+    # In the standard montages for EGI, the ref is named Cz
+    'VREF': 'Cz',
+    'Vertex Reference': 'Cz'
+    # add a comment here (with doi of a published source) above any new
+    # aliases, as they are added
+}

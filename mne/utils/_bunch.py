@@ -4,7 +4,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 
@@ -26,10 +26,10 @@ class Bunch(dict):
 class BunchConst(Bunch):
     """Class to prevent us from re-defining constants (DRY)."""
 
-    def __setattr__(self, attr, val):  # noqa: D105
-        if attr != '__dict__' and hasattr(self, attr):
-            raise AttributeError('Attribute "%s" already set' % attr)
-        super().__setattr__(attr, val)
+    def __setitem__(self, key, val):  # noqa: D105
+        if key != '__dict__' and key in self:
+            raise AttributeError(f'Attribute {repr(key)} already set')
+        super().__setitem__(key, val)
 
 
 ###############################################################################

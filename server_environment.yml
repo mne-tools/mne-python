@@ -1,24 +1,28 @@
-name: base
+name: mne
 channels:
 - conda-forge/label/vtk_dev
 - conda-forge
-- defaults
 dependencies:
-- python>=3.7
+- python ==3.8
 - pip
 - mesalib
 - ffmpeg
 - vtk
-- traits
+- scipy
+- numpy
+- matplotlib-base
+- pyvista>=0.32,!=0.35.2
+- nilearn
+- nibabel
+- nbformat
+- nbclient
+- mffpy>=0.5.7
+- pooch
 - pip:
   - mne
-  - scipy
-  - numpy<1.19.0
-  - matplotlib
-  - ipympl
   - jupyter
-  - pyvista
+  - ipympl
   - ipywidgets
-  - nbformat
-  - nbclient
+  - ipyevents
+  - ipyvtklink
   - jupyter_client!=6.1.5

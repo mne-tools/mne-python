@@ -14,7 +14,8 @@ render follow the filename conventions defined by MNE:
 ============ ==============================================================
 Data object  Filename convention (ends with)
 ============ ==============================================================
-raw          -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
+raw          -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz),
+             _meg.fif(.gz), _eeg.fif(.gz), _ieeg.fif(.gz)
 events       -eve.fif(.gz)
 epochs       -epo.fif(.gz)
 evoked       -ave.fif(.gz)

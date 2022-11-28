@@ -1,0 +1,8 @@
+# requirements for full testing (on top of environment.yml/requirements.txt)
+nitime
+nbclient
+sphinx-gallery
+eeglabio
+EDFlib-Python
+pybv
+imageio-ffmpeg

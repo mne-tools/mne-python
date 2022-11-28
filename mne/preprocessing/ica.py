@@ -4,20 +4,22 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-from inspect import isfunction
+from inspect import isfunction, signature, Parameter
 from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
 from numbers import Integral
 from time import time
+from dataclasses import dataclass
+from typing import Optional, List
+import warnings
 
 import math
-import os
 import json
 
 import numpy as np
-from scipy import linalg
 
 from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
                   create_ecg_epochs)
@@ -26,15 +28,18 @@ from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
+from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _INTERPOLATION_DEFAULT)
 from ..io.pick import (pick_types, pick_channels, pick_info,
                        _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
+from ..io.proj import make_projector
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
 from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
-from ..io.meas_info import write_meas_info, read_meas_info
+from ..io.meas_info import write_meas_info, read_meas_info, ContainsMixin
 from ..io.constants import FIFF
 from ..io.base import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
@@ -45,21 +50,24 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import _contains_ch_type, ContainsMixin
-from ..io.write import start_file, end_file, write_id
-from ..utils import (check_version, logger, check_fname, verbose,
+from ..channels.channels import _contains_ch_type
+from ..channels.layout import _find_topomap_coords
+from ..io.write import start_and_end_file, write_id
+from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
-                     compute_corr, _get_inst_data, _ensure_int,
+                     compute_corr, _get_inst_data, _ensure_int, repr_html,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option, _PCA)
-from ..utils.check import _check_all_same_channel_names
+                     _check_option, _PCA, int_like, _require_version,
+                     _check_all_same_channel_names, _check_on_missing,
+                     _on_missing)
 
-from ..fixes import _get_args, _safe_svd
+from ..fixes import _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
-from ..io.pick import pick_channels_regexp
+from ..io.pick import pick_channels_regexp, _picks_by_type
+
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'read_ica_eeglab')
@@ -78,6 +86,12 @@ def _make_xy_sfunc(func, ndim_output=False):
     return sfunc
 
 
+# Violate our assumption that the output is 1D so can't be used.
+# Could eventually be added but probably not worth the effort unless someone
+# requests it.
+_BLOCKLIST = {'somersd'}
+
+
 # makes score funcs attr accessible for users
 def get_score_funcs():
     """Get the score functions.
@@ -91,15 +105,23 @@ def get_score_funcs():
     from scipy.spatial import distance
     score_funcs = Bunch()
     xy_arg_dist_funcs = [(n, f) for n, f in vars(distance).items()
-                         if isfunction(f) and not n.startswith('_')]
+                         if isfunction(f) and not n.startswith('_') and
+                         n not in _BLOCKLIST]
     xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
-                          if isfunction(f) and not n.startswith('_')]
+                          if isfunction(f) and not n.startswith('_') and
+                          n not in _BLOCKLIST]
     score_funcs.update({n: _make_xy_sfunc(f)
                         for n, f in xy_arg_dist_funcs
-                        if _get_args(f) == ['u', 'v']})
-    score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
-                        for n, f in xy_arg_stats_funcs
-                        if _get_args(f) == ['x', 'y']})
+                        if signature(f).parameters == ['u', 'v']})
+    # In SciPy 1.9+, pearsonr has (x, y, *, alternative='two-sided'), so we
+    # should just look at the positional_only and positional_or_keyword entries
+    for n, f in xy_arg_stats_funcs:
+        params = [name for name, param in signature(f).parameters.items()
+                  if param.kind in
+                  (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)]
+        if params == ['x', 'y']:
+            score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)})
+    assert 'pearsonr' in score_funcs
     return score_funcs
 
 
@@ -107,7 +129,8 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """Check for channels in picks that are not considered valid channels.
 
     Accepted channels are the data channels
-    ('seeg','ecog','eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog' and 'ref_meg'
+    ('seeg', 'dbs', 'ecog', 'eeg', 'hbo', 'hbr', 'mag', and 'grad'), 'eog'
+    and 'ref_meg'.
     This prevents the program from crashing without
     feedback when a bad channel is provided to ICA whitening.
     """
@@ -121,9 +144,12 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
                          % (_pl(chs), chs, types))
 
 
+_KNOWN_ICA_METHODS = ('fastica', 'infomax', 'picard')
+
+
 @fill_doc
 class ICA(ContainsMixin):
-    u"""M/EEG signal decomposition using Independent Component Analysis (ICA).
+    u"""Data decomposition using Independent Component Analysis (ICA).
 
     This object estimates independent components from :class:`mne.io.Raw`,
     :class:`mne.Epochs`, or :class:`mne.Evoked` objects. Components can
@@ -137,54 +163,57 @@ class ICA(ContainsMixin):
     ----------
     n_components : int | float | None
         Number of principal components (from the pre-whitening PCA step) that
-        are passed to the ICA algorithm during fitting. If :class:`int`, must
-        not be larger than ``max_pca_components``. If :class:`float` between 0
-        and 1, the number of components with cumulative explained variance less
-        than ``n_components`` will be used. If ``None``, ``max_pca_components``
-        will be used. Defaults to ``None``; the actual number used when
-        executing the :meth:`ICA.fit` method will be stored in the attribute
+        are passed to the ICA algorithm during fitting:
+
+        - :class:`int`
+            Must be greater than 1 and less than or equal to the number of
+            channels.
+        - :class:`float` between 0 and 1 (exclusive)
+            Will select the smallest number of components required to explain
+            the cumulative variance of the data greater than ``n_components``.
+            Consider this hypothetical example: we have 3 components, the first
+            explaining 70%%, the second 20%%, and the third the remaining 10%%
+            of the variance. Passing 0.8 here (corresponding to 80%% of
+            explained variance) would yield the first two components,
+            explaining 90%% of the variance: only by using both components the
+            requested threshold of 80%% explained variance can be exceeded. The
+            third component, on the other hand, would be excluded.
+        - ``None``
+            ``0.999999`` will be used. This is done to avoid numerical
+            stability problems when whitening, particularly when working with
+            rank-deficient data.
+
+        Defaults to ``None``. The actual number used when executing the
+        :meth:`ICA.fit` method will be stored in the attribute
         ``n_components_`` (note the trailing underscore).
-    max_pca_components : int | None
-        Number of principal components (from the pre-whitening PCA step) that
-        are retained for later use (i.e., for signal reconstruction in
-        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). Use this
-        parameter to reduce the dimensionality of the input data via PCA before
-        any further processing is performed. If ``None``, no  dimensionality
-        reduction occurs and ``max_pca_components`` will equal the number of
-        channels in the :class:`mne.io.Raw`, :class:`mne.Epochs`, or
-        :class:`mne.Evoked` object passed to :meth:`ICA.fit`. Defaults to
-        ``None``.
-    n_pca_components : int | float | None
-        Total number of components (ICA + PCA) used for signal reconstruction
-        in :meth:`ICA.apply`. At minimum, at least ``n_components`` will be
-        used (unless modified by ``ICA.include`` or ``ICA.exclude``). If
-        ``n_pca_components > n_components``, additional PCA components will be
-        incorporated. If :class:`float` between 0 and 1, the number is chosen
-        as the number of *PCA* components with cumulative explained variance
-        less than ``n_components`` (without accounting for ``ICA.include`` or
-        ``ICA.exclude``). If :class:`int` or :class:`float`, ``n_components_ ≤
-        n_pca_components ≤ max_pca_components`` must hold. If ``None``,
-        ``max_pca_components`` will be used. Defaults to ``None``.
+
+        .. versionchanged:: 0.22
+           For a :class:`python:float`, the number of components will account
+           for *greater than* the given variance level instead of *less than or
+           equal to* it. The default (None) will also take into account the
+           rank deficiency of the data.
     noise_cov : None | instance of Covariance
         Noise covariance used for pre-whitening. If None (default), channels
-        are scaled to unit variance ("z-standardized") prior to the whitening
-        by PCA.
+        are scaled to unit variance ("z-standardized") as a group by channel
+        type prior to the whitening by PCA.
     %(random_state)s
-        As estimation can be non-deterministic it can be useful to fix the
-        random state to have reproducible results.
-    method : {'fastica', 'infomax', 'picard'}
-        The ICA method to use in the fit method. Use the fit_params argument to
-        set additional parameters. Specifically, if you want Extended Infomax,
-        set method='infomax' and fit_params=dict(extended=True) (this also
-        works for method='picard'). Defaults to 'fastica'. For reference, see
-        [1]_, [2]_, [3]_ and [4]_.
+    method : 'fastica' | 'infomax' | 'picard'
+        The ICA method to use in the fit method. Use the ``fit_params`` argument
+        to set additional parameters. Specifically, if you want Extended
+        Infomax, set ``method='infomax'`` and ``fit_params=dict(extended=True)``
+        (this also works for ``method='picard'``). Defaults to ``'fastica'``.
+        For reference, see :footcite:`Hyvarinen1999,BellSejnowski1995,LeeEtAl1999,AblinEtAl2018`.
     fit_params : dict | None
         Additional parameters passed to the ICA estimator as specified by
-        ``method``.
-    max_iter : int
-        Maximum number of iterations during fit. Defaults to 200. The actual
-        number of iterations it took :meth:`ICA.fit` to complete will be stored
-        in the ``n_iter_`` attribute.
+        ``method``. Allowed entries are determined by the various algorithm
+        implementations: see :class:`~sklearn.decomposition.FastICA`,
+        :func:`~picard.picard`, :func:`~mne.preprocessing.infomax`.
+    max_iter : int | 'auto'
+        Maximum number of iterations during fit. If ``'auto'``, it
+        will set maximum iterations to ``1000`` for ``'fastica'``
+        and to ``500`` for ``'infomax'`` or ``'picard'``. The actual number of
+        iterations it took :meth:`ICA.fit` to complete will be stored in the
+        ``n_iter_`` attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -193,20 +222,19 @@ class ICA(ContainsMixin):
 
     Attributes
     ----------
-    current_fit : str
-        Flag informing about which data type (raw or epochs) was used for the
-        fit.
+    current_fit : 'unfitted' | 'raw' | 'epochs'
+        Which data type was used for the fit.
     ch_names : list-like
         Channel names resulting from initial picking.
     n_components_ : int
         If fit, the actual number of PCA components used for ICA decomposition.
     pre_whitener_ : ndarray, shape (n_channels, 1) or (n_channels, n_channels)
         If fit, array used to pre-whiten the data prior to PCA.
-    pca_components_ : ndarray, shape ``(max_pca_components, n_channels)``
+    pca_components_ : ndarray, shape ``(n_channels, n_channels)``
         If fit, the PCA components.
     pca_mean_ : ndarray, shape (n_channels,)
         If fit, the mean vector used to center the data before doing the PCA.
-    pca_explained_variance_ : ndarray, shape ``(max_pca_components,)``
+    pca_explained_variance_ : ndarray, shape ``(n_channels,)``
         If fit, the variance explained by each PCA component.
     mixing_matrix_ : ndarray, shape ``(n_components_, n_components_)``
         If fit, the whitened mixing matrix to go back from ICA space to PCA
@@ -230,8 +258,7 @@ class ICA(ContainsMixin):
         (There is also an ``exclude`` parameter in the :meth:`ICA.apply`
         method.) To scrap all marked components, set this attribute to an empty
         list.
-    info : None | instance of Info
-        The measurement info copied from the object fitted.
+    %(info)s
     n_samples_ : int
         The number of samples used on fit.
     labels_ : dict
@@ -243,29 +270,70 @@ class ICA(ContainsMixin):
 
     Notes
     -----
+    .. versionchanged:: 0.23
+        Version 0.23 introduced the ``max_iter='auto'`` settings for maximum
+        iterations. With version 0.24 ``'auto'`` will be the new
+        default, replacing the current ``max_iter=200``.
+
+    .. versionchanged:: 0.23
+        Warn if `~mne.Epochs` were baseline-corrected.
+
+    .. note:: If you intend to fit ICA on `~mne.Epochs`, it is  recommended to
+              high-pass filter, but **not** baseline correct the data for good
+              ICA performance. A warning will be emitted otherwise.
+
     A trailing ``_`` in an attribute name signifies that the attribute was
     added to the object during fitting, consistent with standard scikit-learn
     practice.
 
-    Prior to fitting and applying the ICA, data is whitened (de-correlated and
-    scaled to unit variance, also called sphering transformation) by means of
-    a Principal Component Analysis (PCA). In addition to the whitening, this
-    step introduces the option to reduce the dimensionality of the data, both
-    prior to fitting the ICA (with the ``max_pca_components`` parameter) and
-    prior to reconstructing the sensor signals (with the ``n_pca_components``
-    parameter). In this way, we separate the question of how many ICA
-    components to estimate from the question of how much to reduce the
-    dimensionality of the signal. For example: by setting high values for
-    ``max_pca_components`` and ``n_pca_components``, relatively little
-    dimensionality reduction will occur when the signal is reconstructed,
-    regardless of the value of ``n_components`` (the number of ICA components
-    estimated).
+    ICA :meth:`fit` in MNE proceeds in two steps:
+
+    1. :term:`Whitening <whitening>` the data by means of a pre-whitening step
+       (using ``noise_cov`` if provided, or the standard deviation of each
+       channel type) and then principal component analysis (PCA).
+    2. Passing the ``n_components`` largest-variance components to the ICA
+       algorithm to obtain the unmixing matrix (and by pseudoinversion, the
+       mixing matrix).
+
+    ICA :meth:`apply` then:
+
+    1. Unmixes the data with the ``unmixing_matrix_``.
+    2. Includes ICA components based on ``ica.include`` and ``ica.exclude``.
+    3. Re-mixes the data with ``mixing_matrix_``.
+    4. Restores any data not passed to the ICA algorithm, i.e., the PCA
+       components between ``n_components`` and ``n_pca_components``.
+
+    ``n_pca_components`` determines how many PCA components will be kept when
+    reconstructing the data when calling :meth:`apply`. This parameter can be
+    used for dimensionality reduction of the data, or dealing with low-rank
+    data (such as those with projections, or MEG data processed by SSS). It is
+    important to remove any numerically-zero-variance components in the data,
+    otherwise numerical instability causes problems when computing the mixing
+    matrix. Alternatively, using ``n_components`` as a float will also avoid
+    numerical stability problems.
+
+    The ``n_components`` parameter determines how many components out of
+    the ``n_channels`` PCA components the ICA algorithm will actually fit.
+    This is not typically used for EEG data, but for MEG data, it's common to
+    use ``n_components < n_channels``. For example, full-rank
+    306-channel MEG data might use ``n_components=40`` to find (and
+    later exclude) only large, dominating artifacts in the data, but still
+    reconstruct the data using all 306 PCA components. Setting
+    ``n_pca_components=40``, on the other hand, would actually reduce the
+    rank of the reconstructed data to 40, which is typically undesirable.
+
+    If you are migrating from EEGLAB and intend to reduce dimensionality via
+    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality,
+    pass ``n_components=n`` during initialization and then
+    ``n_pca_components=n`` during :meth:`apply`. The resulting reconstructed
+    data after :meth:`apply` will have rank ``n``.
 
     .. note:: Commonly used for reasons of i) computational efficiency and
               ii) additional noise reduction, it is a matter of current debate
               whether pre-ICA dimensionality reduction could decrease the
               reliability and stability of the ICA, at least for EEG data and
-              especially during preprocessing [5]_. (But see also [6]_ for a
+              especially during preprocessing :footcite:`ArtoniEtAl2018`.
+              (But see also :footcite:`Montoya-MartinezEtAl2017` for a
               possibly confounding effect of the different whitening/sphering
               methods used in this paper (ZCA vs. PCA).)
               On the other hand, for rank-deficient data such as EEG data after
@@ -273,11 +341,6 @@ class ICA(ContainsMixin):
               the dimensionality (by 1 for average reference and 1 for each
               interpolated channel) for optimal ICA performance (see the
               `EEGLAB wiki <eeglab_wiki_>`_).
-
-    If you are migrating from EEGLAB and intend to reduce dimensionality via
-    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
-    pass ``max_pca_components=n``, while leaving ``n_components`` and
-    ``n_pca_components`` at their respective default values.
 
     Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
@@ -297,75 +360,58 @@ class ICA(ContainsMixin):
     see :class:`~sklearn.decomposition.FastICA`, :func:`~picard.picard`,
     :func:`~mne.preprocessing.infomax`.
 
+    .. note:: Picard can be used to solve the same problems as FastICA,
+              Infomax, and extended Infomax, but typically converges faster
+              than either of those methods. To make use of Picard's speed while
+              still obtaining the same solution as with other algorithms, you
+              need to specify ``method='picard'`` and ``fit_params`` as a
+              dictionary with the following combination of keys:
+
+              - ``dict(ortho=False, extended=False)`` for Infomax
+              - ``dict(ortho=False, extended=True)`` for extended Infomax
+              - ``dict(ortho=True, extended=True)`` for FastICA
+
     Reducing the tolerance (set in ``fit_params``) speeds up estimation at the
     cost of consistency of the obtained results. It is difficult to directly
     compare tolerance levels between Infomax and Picard, but for Picard and
     FastICA a good rule of thumb is ``tol_fastica == tol_picard ** 2``.
 
-    .. _eeglab_wiki: https://sccn.ucsd.edu/wiki/Chapter_09:_Decomposing_Data_Using_ICA#Issue:_ICA_returns_near-identical_components_with_opposite_polarities
+    .. _eeglab_wiki: https://eeglab.org/tutorials/06_RejectArtifacts/RunICA.html#how-to-deal-with-corrupted-ica-decompositions
 
     References
     ----------
-    .. [1] Hyvärinen, A., 1999. Fast and robust fixed-point algorithms for
-           independent component analysis. IEEE transactions on Neural
-           Networks, 10(3), pp.626-634.
-
-    .. [2] Bell, A.J., Sejnowski, T.J., 1995. An information-maximization
-           approach to blind separation and blind deconvolution. Neural
-           computation, 7(6), pp.1129-1159.
-
-    .. [3] Lee, T.W., Girolami, M., Sejnowski, T.J., 1999. Independent
-           component analysis using an extended infomax algorithm for mixed
-           subgaussian and supergaussian sources. Neural computation, 11(2),
-           pp.417-441.
-
-    .. [4] Ablin P, Cardoso J, Gramfort A, 2018. Faster Independent Component
-           Analysis by Preconditioning With Hessian Approximations.
-           IEEE Transactions on Signal Processing 66:4040–4049
-
-    .. [5] Artoni, F., Delorme, A., und Makeig, S, 2018. Applying Dimension
-           Reduction to EEG Data by Principal Component Analysis Reduces the
-           Quality of Its Subsequent Independent Component Decomposition.
-           NeuroImage 175, pp.176–187.
-
-    .. [6] Montoya-Martínez, J., Cardoso, J.-F., Gramfort, A, 2017. Caveats
-           with stochastic gradient and maximum likelihood based ICA for EEG.
-           LVA-ICA International Conference, Feb 2017, Grenoble, France.
-           `〈hal-01451432〉 <hal-01451432_>`_
-
-    .. _hal-01451432: https://hal.archives-ouvertes.fr/hal-01451432/document
+    .. footbibliography::
     """  # noqa: E501
 
     @verbose
-    def __init__(self, n_components=None, max_pca_components=None,
-                 n_pca_components=None, noise_cov=None, random_state=None,
-                 method='fastica', fit_params=None, max_iter=200,
-                 allow_ref_meg=False, verbose=None):  # noqa: D102
+    def __init__(self, n_components=None, *, noise_cov=None,
+                 random_state=None, method='fastica', fit_params=None,
+                 max_iter='auto', allow_ref_meg=False,
+                 verbose=None):  # noqa: D102
         _validate_type(method, str, 'method')
+        _validate_type(n_components, (float, 'int-like', None))
+
         if method != 'imported_eeglab':  # internal use only
-            _check_option('method', method, ['fastica', 'infomax', 'picard'])
-        if method == 'fastica' and not check_version('sklearn'):
-            raise RuntimeError(
-                'The scikit-learn package is required for FastICA.')
+            _check_option('method', method, _KNOWN_ICA_METHODS)
 
         self.noise_cov = noise_cov
 
-        if (n_components is not None and
-                max_pca_components is not None and
-                n_components > max_pca_components):
-            raise ValueError('n_components must be smaller than '
-                             'max_pca_components')
-
-        if isinstance(n_components, float) \
-                and not 0 < n_components <= 1:
-            raise ValueError('Selecting ICA components by explained variance '
-                             'needs values between 0.0 and 1.0 ')
+        for (kind, val) in [('n_components', n_components)]:
+            if isinstance(val, float) and not 0 < val < 1:
+                raise ValueError('Selecting ICA components by explained '
+                                 'variance needs values between 0.0 and 1.0 '
+                                 f'(exclusive), got {kind}={val}')
+            if isinstance(val, int_like) and val == 1:
+                raise ValueError(
+                    f'Selecting one component with {kind}={val} is not '
+                    'supported')
 
         self.current_fit = 'unfitted'
-        self.verbose = verbose
         self.n_components = n_components
-        self.max_pca_components = max_pca_components
-        self.n_pca_components = n_pca_components
+        # In newer ICAs this should always be None, but keep it for
+        # backward compat with older versions of MNE that used it
+        self._max_pca_components = None
+        self.n_pca_components = None
         self.ch_names = None
         self.random_state = random_state
 
@@ -382,6 +428,13 @@ class ICA(ContainsMixin):
             # extended=True is default in underlying function, but we want
             # default False here unless user specified True:
             fit_params.setdefault('extended', False)
+        _validate_type(max_iter, (str, 'int-like'), 'max_iter')
+        if isinstance(max_iter, str):
+            _check_option('max_iter', max_iter, ('auto',), 'when str')
+            if method == 'fastica':
+                max_iter = 1000
+            elif method in ['infomax', 'picard']:
+                max_iter = 500
         fit_params.setdefault('max_iter', max_iter)
         self.max_iter = max_iter
         self.fit_params = fit_params
@@ -392,27 +445,94 @@ class ICA(ContainsMixin):
         self.labels_ = dict()
         self.allow_ref_meg = allow_ref_meg
 
+    def _get_infos_for_repr(self):
+        @dataclass
+        class _InfosForRepr:
+            # XXX replace with Optional[Literal['raw data', 'epochs'] once we
+            # drop support for Py 3.7
+            fit_on: Optional[str]
+            # XXX replace with fit_method: Literal['fastica', 'infomax',
+            # 'extended-infomax', 'picard'] once we drop support for Py 3.7
+            fit_method: str
+            fit_n_iter: Optional[int]
+            fit_n_samples: Optional[int]
+            fit_n_components: Optional[int]
+            fit_n_pca_components: Optional[int]
+            ch_types: List[str]
+            excludes: List[str]
+
+        if self.current_fit == 'unfitted':
+            fit_on = None
+        elif self.current_fit == 'raw':
+            fit_on = 'raw data'
+        else:
+            fit_on = 'epochs'
+
+        fit_method = self.method
+        fit_n_iter = getattr(self, 'n_iter_', None)
+        fit_n_samples = getattr(self, 'n_samples_', None)
+        fit_n_components = getattr(self, 'n_components_', None)
+        fit_n_pca_components = getattr(self, 'pca_components_', None)
+        if fit_n_pca_components is not None:
+            fit_n_pca_components = len(self.pca_components_)
+
+        if self.info is not None:
+            ch_types = [c for c in _DATA_CH_TYPES_SPLIT if c in self]
+        else:
+            ch_types = []
+
+        if self.exclude:
+            excludes = [self._ica_names[i] for i in self.exclude]
+        else:
+            excludes = []
+
+        infos_for_repr = _InfosForRepr(
+            fit_on=fit_on,
+            fit_method=fit_method,
+            fit_n_iter=fit_n_iter,
+            fit_n_samples=fit_n_samples,
+            fit_n_components=fit_n_components,
+            fit_n_pca_components=fit_n_pca_components,
+            ch_types=ch_types,
+            excludes=excludes
+        )
+        return infos_for_repr
+
     def __repr__(self):
         """ICA fit information."""
-        if self.current_fit == 'unfitted':
-            s = 'no'
-        elif self.current_fit == 'raw':
-            s = 'raw data'
-        else:
-            s = 'epochs'
-        s += ' decomposition, '
-        s += 'fit (%s): %s samples, ' % (self.method,
-                                         str(getattr(self, 'n_samples_', '')))
-        s += ('%s components' % str(self.n_components_) if
-              hasattr(self, 'n_components_') else
-              'no dimension reduction')
-        if self.info is not None:
-            ch_fit = ['"%s"' % c for c in _DATA_CH_TYPES_SPLIT if c in self]
-            s += ', channels used: {}'.format('; '.join(ch_fit))
-        if self.exclude:
-            s += ', %i sources marked for exclusion' % len(self.exclude)
+        infos = self._get_infos_for_repr()
 
-        return '<ICA | %s>' % s
+        s = (f'{infos.fit_on or "no"} decomposition, '
+             f'method: {infos.fit_method}')
+
+        if infos.fit_on is not None:
+            s += (
+                f' (fit in {infos.fit_n_iter} iterations on '
+                f'{infos.fit_n_samples} samples), '
+                f'{infos.fit_n_components} ICA components '
+                f'({infos.fit_n_pca_components} PCA components available), '
+                f'channel types: {", ".join(infos.ch_types)}, '
+                f'{len(infos.excludes) or "no"} sources marked for exclusion'
+            )
+
+        return f'<ICA | {s}>'
+
+    @repr_html
+    def _repr_html_(self):
+        from ..html_templates import repr_templates_env
+        infos = self._get_infos_for_repr()
+        t = repr_templates_env.get_template('ica.html.jinja')
+        html = t.render(
+            fit_on=infos.fit_on,
+            method=infos.fit_method,
+            n_iter=infos.fit_n_iter,
+            n_samples=infos.fit_n_samples,
+            n_components=infos.fit_n_components,
+            n_pca_components=infos.fit_n_pca_components,
+            ch_types=infos.ch_types,
+            excludes=infos.excludes
+        )
+        return html
 
     @verbose
     def fit(self, inst, picks=None, start=None, stop=None, decim=None,
@@ -427,57 +547,87 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
-        inst : instance of Raw, Epochs or Evoked
-            Raw measurements to be decomposed.
+        inst : instance of Raw or Epochs
+            The data to be decomposed.
         %(picks_good_data_noref)s
             This selection remains throughout the initialized ICA solution.
-        start : int | float | None
-            First sample to include. If float, data will be interpreted as
-            time in seconds. If None, data will be used from the first sample.
-        stop : int | float | None
-            Last sample to not include. If float, data will be interpreted as
-            time in seconds. If None, data will be used to the last sample.
+        start, stop : int | float | None
+            First and last sample to include. If float, data will be
+            interpreted as time in seconds. If ``None``, data will be used from
+            the first sample and to the last sample, respectively.
+
+            .. note:: These parameters only have an effect if ``inst`` is
+                      `~mne.io.Raw` data.
         decim : int | None
-            Increment for selecting each nth time slice. If None, all samples
-            within ``start`` and ``stop`` are used.
-        reject : dict | None
-            Rejection parameters based on peak-to-peak amplitude.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
-            If reject is None then no rejection is done. Example::
+            Increment for selecting only each n-th sampling point. If ``None``,
+            all samples  between ``start`` and ``stop`` (inclusive) are used.
+        reject, flat : dict | None
+            Rejection parameters based on peak-to-peak amplitude (PTP)
+            in the continuous data. Signal periods exceeding the thresholds
+            in ``reject`` or less than the thresholds in ``flat`` will be
+            removed before fitting the ICA.
 
-                reject = dict(grad=4000e-13, # T / m (gradiometers)
-                              mag=4e-12, # T (magnetometers)
-                              eeg=40e-6, # V (EEG channels)
-                              eog=250e-6 # V (EOG channels)
-                              )
+            .. note:: These parameters only have an effect if ``inst`` is
+                      `~mne.io.Raw` data. For `~mne.Epochs`, perform PTP
+                      rejection via :meth:`~mne.Epochs.drop_bad`.
 
-            It only applies if ``inst`` is of type Raw.
-        flat : dict | None
-            Rejection parameters based on flatness of signal.
-            Valid keys are 'grad', 'mag', 'eeg', 'seeg', 'ecog', 'eog', 'ecg',
-            'hbo', 'hbr'.
-            Values are floats that set the minimum acceptable peak-to-peak
-            amplitude. If flat is None then no rejection is done.
-            It only applies if ``inst`` is of type Raw.
+            Valid keys are all channel types present in the data. Values must
+            be integers or floats.
+
+            If ``None``, no PTP-based rejection will be performed. Example::
+
+                reject = dict(
+                    grad=4000e-13, # T / m (gradiometers)
+                    mag=4e-12, # T (magnetometers)
+                    eeg=40e-6, # V (EEG channels)
+                    eog=250e-6 # V (EOG channels)
+                )
+                flat = None  # no rejection based on flatness
         tstep : float
             Length of data chunks for artifact rejection in seconds.
-            It only applies if ``inst`` is of type Raw.
-        reject_by_annotation : bool
-            Whether to omit bad segments from the data before fitting. If True,
-            annotated segments with a description that starts with 'bad' are
-            omitted. Has no effect if ``inst`` is an Epochs or Evoked object.
-            Defaults to True.
+
+            .. note:: This parameter only has an effect if ``inst`` is
+                      `~mne.io.Raw` data.
+        %(reject_by_annotation_raw)s
 
             .. versionadded:: 0.14.0
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
         self : instance of ICA
             Returns the modified instance.
         """
+        req_map = dict(fastica='sklearn', picard='picard')
+        for method, mod in req_map.items():
+            if self.method == method:
+                _require_version(mod, f'use method={repr(method)}')
+
         _validate_type(inst, (BaseRaw, BaseEpochs), 'inst', 'Raw or Epochs')
+
+        if np.isclose(inst.info['highpass'], 0.):
+            warn('The data has not been high-pass filtered. For good ICA '
+                 'performance, it should be high-pass filtered (e.g., with a '
+                 '1.0 Hz lower bound) before fitting ICA.')
+
+        if isinstance(inst, BaseEpochs) and inst.baseline is not None:
+            warn('The epochs you passed to ICA.fit() were baseline-corrected. '
+                 'However, we suggest to fit ICA only on data that has been '
+                 'high-pass filtered, but NOT baseline-corrected.')
+
+        if not isinstance(inst, BaseRaw):
+            ignored_params = [
+                param_name for param_name, param_val in zip(
+                    ('start', 'stop', 'reject', 'flat'),
+                    (start, stop, reject, flat)
+                )
+                if param_val is not None
+            ]
+            if ignored_params:
+                warn(f'The following parameters passed to ICA.fit() will be '
+                     f'ignored, as they only affect raw data (and it appears '
+                     f'you passed epochs): {", ".join(ignored_params)}')
+
         picks = _picks_to_idx(inst.info, picks, allow_empty=False,
                               with_ref_meg=self.allow_ref_meg)
         _check_for_unsupported_ica_channels(
@@ -491,14 +641,7 @@ class ICA(ContainsMixin):
         logger.info('Fitting ICA to data using %i channels '
                     '(please be patient, this may take a while)' % len(picks))
 
-        if self.max_pca_components is None:
-            self.max_pca_components = len(picks)
-            logger.info('Inferring max_pca_components from picks')
-        elif self.max_pca_components > len(picks):
-            raise ValueError(
-                f'ica.max_pca_components ({self.max_pca_components}) cannot '
-                f'be greater than len(picks) ({len(picks)})')
-        # n_components could be float 0 < x <= 1, but that's okay here
+        # n_components could be float 0 < x < 1, but that's okay here
         if self.n_components is not None and self.n_components > len(picks):
             raise ValueError(
                 f'ica.n_components ({self.n_components}) cannot '
@@ -508,7 +651,8 @@ class ICA(ContainsMixin):
         self.info = pick_info(inst.info, picks)
 
         if self.info['comps']:
-            self.info['comps'] = []
+            with self.info._unlock():
+                self.info['comps'] = []
         self.ch_names = self.info['ch_names']
 
         if isinstance(inst, BaseRaw):
@@ -530,10 +674,11 @@ class ICA(ContainsMixin):
         """Aux method."""
         for key in ('pre_whitener_', 'unmixing_matrix_', 'mixing_matrix_',
                     'n_components_', 'n_samples_', 'pca_components_',
-                    'pca_explained_variance_', 'pca_mean_', 'n_iter_',
-                    'drop_inds_', 'reject_'):
+                    'pca_explained_variance_',
+                    'pca_mean_', 'n_iter_', 'drop_inds_', 'reject_'):
             if hasattr(self, key):
                 delattr(self, key)
+        self.current_fit = 'unfitted'
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):
@@ -554,12 +699,11 @@ class ICA(ContainsMixin):
             data, self.drop_inds_ = _reject_data_segments(data, reject, flat,
                                                           decim, self.info,
                                                           tstep)
+        else:
+            self.reject_ = None
 
         self.n_samples_ = data.shape[1]
-        # this may operate inplace or make a copy
-        data, self.pre_whitener_ = self._pre_whiten(data, raw.info, picks)
-
-        self._fit(data, self.max_pca_components, 'raw')
+        self._fit(data, 'raw')
 
         return self
 
@@ -576,84 +720,108 @@ class ICA(ContainsMixin):
         if decim is not None:
             data = data[:, :, ::decim]
 
-        self.n_samples_ = np.prod(data[:, 0, :].shape)
+        self.n_samples_ = data.shape[0] * data.shape[2]
 
         # This will make at least one copy (one from hstack, maybe one
         # more from _pre_whiten)
-        data, self.pre_whitener_ = \
-            self._pre_whiten(np.hstack(data), epochs.info, picks)
-
-        self._fit(data, self.max_pca_components, 'epochs')
+        data = np.hstack(data)
+        self._fit(data, 'epochs')
+        self.reject_ = deepcopy(epochs.reject)
 
         return self
 
-    def _pre_whiten(self, data, info, picks):
+    def _compute_pre_whitener(self, data):
         """Aux function."""
-        has_pre_whitener = hasattr(self, 'pre_whitener_')
-        if not has_pre_whitener and self.noise_cov is None:
+        data = self._do_proj(data, log_suffix='(pre-whitener computation)')
+
+        if self.noise_cov is None:
             # use standardization as whitener
             # Scale (z-score) the data by channel type
-            info = pick_info(info, picks)
+            info = self.info
             pre_whitener = np.empty([len(data), 1])
-            for ch_type in _DATA_CH_TYPES_SPLIT + ('eog', "ref_meg"):
-                if _contains_ch_type(info, ch_type):
-                    if ch_type == 'seeg':
-                        this_picks = pick_types(info, meg=False, seeg=True)
-                    elif ch_type == 'ecog':
-                        this_picks = pick_types(info, meg=False, ecog=True)
-                    elif ch_type == 'eeg':
-                        this_picks = pick_types(info, meg=False, eeg=True)
-                    elif ch_type in ('mag', 'grad'):
-                        this_picks = pick_types(info, meg=ch_type)
-                    elif ch_type == 'eog':
-                        this_picks = pick_types(info, meg=False, eog=True)
-                    elif ch_type in ('hbo', 'hbr'):
-                        this_picks = pick_types(info, meg=False, fnirs=ch_type)
-                    elif ch_type == 'ref_meg':
-                        this_picks = pick_types(info, meg=False, ref_meg=True)
-                    else:
-                        raise RuntimeError('Should not be reached.'
-                                           'Unsupported channel {}'
-                                           .format(ch_type))
-                    pre_whitener[this_picks] = np.std(data[this_picks])
-            data /= pre_whitener
-        elif not has_pre_whitener and self.noise_cov is not None:
-            pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
-            assert data.shape[0] == pre_whitener.shape[1]
-            data = np.dot(pre_whitener, data)
-        elif has_pre_whitener and self.noise_cov is None:
-            data /= self.pre_whitener_
-            pre_whitener = self.pre_whitener_
+            for _, picks_ in _picks_by_type(info, ref_meg=False, exclude=[]):
+                pre_whitener[picks_] = np.std(data[picks_])
+            if _contains_ch_type(info, "ref_meg"):
+                picks_ = pick_types(info, ref_meg=True, exclude=[])
+                pre_whitener[picks_] = np.std(data[picks_])
+            if _contains_ch_type(info, "eog"):
+                picks_ = pick_types(info, eog=True, exclude=[])
+                pre_whitener[picks_] = np.std(data[picks_])
         else:
-            data = np.dot(self.pre_whitener_, data)
-            pre_whitener = self.pre_whitener_
+            pre_whitener, _ = compute_whitener(
+                self.noise_cov, self.info, picks=self.info.ch_names)
+            assert data.shape[0] == pre_whitener.shape[1]
+        self.pre_whitener_ = pre_whitener
 
-        return data, pre_whitener
+    def _do_proj(self, data, log_suffix=''):
+        if self.info is not None and self.info['projs']:
+            proj, nproj, _ = make_projector(
+                [p for p in self.info['projs'] if p['active']],
+                self.info['ch_names'], include_active=True)
+            if nproj:
+                logger.info(
+                    f'    Applying projection operator with {nproj} '
+                    f'vector{_pl(nproj)}'
+                    f'{" " if log_suffix else ""}{log_suffix}')
+                if self.noise_cov is None:  # otherwise it's in pre_whitener_
+                    data = proj @ data
+        return data
 
-    def _fit(self, data, max_pca_components, fit_type):
+    def _pre_whiten(self, data):
+        data = self._do_proj(data, log_suffix='(pre-whitener application)')
+        if self.noise_cov is None:
+            data /= self.pre_whitener_
+        else:
+            data = self.pre_whitener_ @ data
+        return data
+
+    def _fit(self, data, fit_type):
         """Aux function."""
         random_state = check_random_state(self.random_state)
-        pca = _PCA(n_components=max_pca_components, whiten=True)
         n_channels, n_samples = data.shape
-        data = pca.fit_transform(data.T)
-        assert data.shape == (n_samples, max_pca_components or n_channels)
+        self._compute_pre_whitener(data)
+        data = self._pre_whiten(data)
 
-        if isinstance(self.n_components, float):
-            self.n_components_ = np.sum(
-                pca.explained_variance_ratio_.cumsum() <= self.n_components)
-            if self.n_components_ < 1:
-                raise RuntimeError('One PCA component captures most of the '
-                                   'explained variance, your threshold resu'
-                                   'lts in 0 components. You should select '
-                                   'a higher value.')
+        pca = _PCA(n_components=self._max_pca_components, whiten=True)
+        data = pca.fit_transform(data.T)
+        use_ev = pca.explained_variance_ratio_
+        n_pca = self.n_pca_components
+        if isinstance(n_pca, float):
+            n_pca = int(_exp_var_ncomp(use_ev, n_pca)[0])
+        elif n_pca is None:
+            n_pca = len(use_ev)
+        assert isinstance(n_pca, (int, np.int_))
+
+        # If user passed a float, select the PCA components explaining the
+        # given cumulative variance. This information will later be used to
+        # only submit the corresponding parts of the data to ICA.
+        if self.n_components is None:
+            # None case: check if n_pca_components or 0.999999 yields smaller
+            msg = 'Selecting by non-zero PCA components'
+            self.n_components_ = min(
+                n_pca, _exp_var_ncomp(use_ev, 0.999999)[0])
+        elif isinstance(self.n_components, float):
+            self.n_components_, ev = _exp_var_ncomp(use_ev, self.n_components)
+            if self.n_components_ == 1:
+                raise RuntimeError(
+                    'One PCA component captures most of the '
+                    f'explained variance ({100 * ev}%), your threshold '
+                    'results in 1 component. You should select '
+                    'a higher value.')
             msg = 'Selecting by explained variance'
         else:
-            if self.n_components is not None:  # normal n case
-                self.n_components_ = _ensure_int(self.n_components)
-                msg = 'Selecting by number'
-            else:  # None case
-                self.n_components_ = len(pca.components_)
-                msg = 'Selecting all PCA components'
+            msg = 'Selecting by number'
+            self.n_components_ = _ensure_int(self.n_components)
+        # check to make sure something okay happened
+        if self.n_components_ > n_pca:
+            ev = np.cumsum(use_ev)
+            ev /= ev[-1]
+            evs = 100 * ev[[self.n_components_ - 1, n_pca - 1]]
+            raise RuntimeError(
+                f'n_components={self.n_components} requires '
+                f'{self.n_components_} PCA values (EV={evs[0]:0.1f}%) but '
+                f'n_pca_components ({self.n_pca_components}) results in '
+                f'only {n_pca} components (EV={evs[1]:0.1f}%)')
         logger.info('%s: %s components' % (msg, self.n_components_))
 
         # the things to store for PCA
@@ -663,43 +831,57 @@ class ICA(ContainsMixin):
         del pca
         # update number of components
         self._update_ica_names()
-        if self.n_pca_components is not None:
-            if self.n_pca_components > len(self.pca_components_):
-                self.n_pca_components = len(self.pca_components_)
+        if self.n_pca_components is not None and \
+                self.n_pca_components > len(self.pca_components_):
+            raise ValueError(
+                f'n_pca_components ({self.n_pca_components}) is greater than '
+                f'the number of PCA components ({len(self.pca_components_)})')
 
         # take care of ICA
         sel = slice(0, self.n_components_)
         if self.method == 'fastica':
             from sklearn.decomposition import FastICA
-            ica = FastICA(whiten=False, random_state=random_state,
-                          **self.fit_params)
+            ica = FastICA(
+                whiten=False, random_state=random_state, **self.fit_params)
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
             self.n_iter_ = ica.n_iter_
         elif self.method in ('infomax', 'extended-infomax'):
-            unmixing_matrix, n_iter = infomax(data[:, sel],
-                                              random_state=random_state,
-                                              return_n_iter=True,
-                                              **self.fit_params)
+            unmixing_matrix, n_iter = infomax(
+                data[:, sel], random_state=random_state, return_n_iter=True,
+                **self.fit_params)
             self.unmixing_matrix_ = unmixing_matrix
             self.n_iter_ = n_iter
             del unmixing_matrix, n_iter
         elif self.method == 'picard':
             from picard import picard
-            _, W, _, n_iter = picard(data[:, sel].T, whiten=False,
-                                     return_n_iter=True,
-                                     random_state=random_state,
-                                     **self.fit_params)
+            _, W, _, n_iter = picard(
+                data[:, sel].T, whiten=False, return_n_iter=True,
+                random_state=random_state, **self.fit_params)
             self.unmixing_matrix_ = W
             self.n_iter_ = n_iter + 1  # picard() starts counting at 0
             del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
-        self.unmixing_matrix_ /= np.sqrt(
-            self.pca_explained_variance_[sel])[None, :]  # whitening
+        norms = self.pca_explained_variance_
+        stable = norms / norms[0] > 1e-6  # to be stable during pinv
+        norms = norms[:self.n_components_]
+        if not stable[self.n_components_ - 1]:
+            max_int = np.where(stable)[0][-1] + 1
+            warn(f'Using n_components={self.n_components} (resulting in '
+                 f'n_components_={self.n_components_}) may lead to an '
+                 f'unstable mixing matrix estimation because the ratio '
+                 f'between the largest ({norms[0]:0.2g}) and smallest '
+                 f'({norms[-1]:0.2g}) variances is too large (> 1e6); '
+                 f'consider setting n_components=0.999999 or an '
+                 f'integer <= {max_int}')
+        norms = np.sqrt(norms)
+        norms[norms == 0] = 1.
+        self.unmixing_matrix_ /= norms  # whitening
         self._update_mixing_matrix()
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
+        from scipy import linalg
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
@@ -708,13 +890,15 @@ class ICA(ContainsMixin):
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)."""
+        data = self._pre_whiten(data)
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
-        # Apply first PCA
-        pca_data = np.dot(self.pca_components_[:self.n_components_], data)
-        # Apply unmixing to low dimension PCA
-        sources = np.dot(self.unmixing_matrix_, pca_data)
+        # Apply unmixing
+        pca_data = np.dot(self.unmixing_matrix_,
+                          self.pca_components_[:self.n_components_])
+        # Apply PCA
+        sources = np.dot(pca_data, data)
         return sources
 
     def _transform_raw(self, raw, start, stop, reject_by_annotation=False):
@@ -722,67 +906,50 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
         start, stop = _check_start_stop(raw, start, stop)
-
-        picks = pick_types(raw.info, include=self.ch_names, exclude='bads',
-                           meg=False, ref_meg=False)
-        if len(picks) != len(self.ch_names):
-            raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Raw compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
-        if reject_by_annotation:
-            data = raw.get_data(picks, start, stop, 'omit')
-        else:
-            data = raw[picks, start:stop][0]
-        data, _ = self._pre_whiten(data, raw.info, picks)
+        picks = self._get_picks(raw)
+        reject = 'omit' if reject_by_annotation else None
+        data = raw.get_data(picks, start, stop, reject)
         return self._transform(data)
 
     def _transform_epochs(self, epochs, concatenate):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
-
-        picks = pick_types(epochs.info, include=self.ch_names, exclude='bads',
-                           meg=False, ref_meg=False)
-        # special case where epochs come picked but fit was 'unpicked'.
-        if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
+        picks = self._get_picks(epochs)
         data = np.hstack(epochs.get_data()[:, picks])
-        data, _ = self._pre_whiten(data, epochs.info, picks)
         sources = self._transform(data)
-
         if not concatenate:
             # Put the data back in 3D
             sources = np.array(np.split(sources, len(epochs.events), 1))
-
         return sources
 
     def _transform_evoked(self, evoked):
         """Aux method."""
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA.')
+        picks = self._get_picks(evoked)
+        return self._transform(evoked.data[picks])
 
-        picks = pick_types(evoked.info, include=self.ch_names, exclude='bads',
-                           meg=False, ref_meg=False)
-
+    def _get_picks(self, inst):
+        """Pick logic for _transform method."""
+        picks = _picks_to_idx(
+            inst.info, self.ch_names, exclude=[], allow_empty=True)
         if len(picks) != len(self.ch_names):
-            raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
-                               ' fitted but %i channels supplied. \nPlease '
-                               'provide Evoked compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
-
-        data, _ = self._pre_whiten(evoked.data[picks], evoked.info, picks)
-        sources = self._transform(data)
-
-        return sources
+            if isinstance(inst, BaseRaw):
+                kind, do = 'Raw', "doesn't"
+            elif isinstance(inst, BaseEpochs):
+                kind, do = 'Epochs', "don't"
+            elif isinstance(inst, Evoked):
+                kind, do = 'Evoked', "doesn't"
+            else:
+                raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                                 'type')
+            raise RuntimeError("%s %s match fitted data: %i channels "
+                               "fitted but %i channels supplied. \nPlease "
+                               "provide %s compatible with ica.ch_names"
+                               % (kind, do, len(self.ch_names), len(picks),
+                                  kind))
+        return picks
 
     def get_components(self):
         """Get ICA topomap for components as numpy arrays.
@@ -794,6 +961,141 @@ class ICA(ContainsMixin):
         """
         return np.dot(self.mixing_matrix_[:, :self.n_components_].T,
                       self.pca_components_[:self.n_components_]).T
+
+    def get_explained_variance_ratio(
+        self, inst, *, components=None, ch_type=None
+    ):
+        """Get the proportion of data variance explained by ICA components.
+
+        Parameters
+        ----------
+        inst : mne.io.BaseRaw | mne.BaseEpochs | mne.Evoked
+            The uncleaned data.
+        components : array-like of int | int | None
+            The component(s) for which to do the calculation. If more than one
+            component is specified, explained variance will be calculated
+            jointly across all supplied components. If ``None`` (default), uses
+            all available components.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | array-like of str | None
+            The channel type(s) to include in the calculation. If ``None``, all
+            available channel types will be used.
+
+        Returns
+        -------
+        dict (str, float)
+            The fraction of variance in ``inst`` that can be explained by the
+            ICA components, calculated separately for each channel type.
+            Dictionary keys are the channel types, and corresponding explained
+            variance ratios are the values.
+
+        Notes
+        -----
+        A value similar to EEGLAB's ``pvaf`` (percent variance accounted for)
+        will be calculated for the specified component(s).
+
+        Since ICA components cannot be assumed to be aligned orthogonally, the
+        sum of the proportion of variance explained by all components may not
+        be equal to 1. In certain situations, the proportion of variance
+        explained by a component may even be negative.
+
+        .. versionadded:: 1.2
+        """  # noqa: E501
+        if self.current_fit == 'unfitted':
+            raise ValueError('ICA must be fitted first.')
+
+        _validate_type(
+            item=inst, types=(BaseRaw, BaseEpochs, Evoked),
+            item_name='inst'
+        )
+        _validate_type(
+            item=components, types=(None, 'int-like', Sequence, np.ndarray),
+            item_name='components', type_name='int, array-like of int, or None'
+        )
+        if isinstance(components, (Sequence, np.ndarray)):
+            for item in components:
+                _validate_type(
+                    item=item, types='int-like',
+                    item_name='Elements of "components"'
+                )
+
+        _validate_type(
+            item=ch_type, types=(Sequence, np.ndarray, str, None),
+            item_name='ch_type', type_name='str, array-like of str, or None'
+        )
+        if isinstance(ch_type, str):
+            ch_types = [ch_type]
+        elif ch_type is None:
+            ch_types = inst.get_channel_types(unique=True, only_data_chs=True)
+        else:
+            assert isinstance(ch_type, (Sequence, np.ndarray))
+            ch_types = ch_type
+
+        assert len(ch_types) >= 1
+        allowed_ch_types = ('mag', 'grad', 'planar1', 'planar2', 'eeg')
+        for ch_type in ch_types:
+            if ch_type not in allowed_ch_types:
+                raise ValueError(
+                    f'You requested operation on the channel type '
+                    f'"{ch_type}", but only the following channel types are '
+                    f'supported: {", ".join(allowed_ch_types)}'
+                )
+        del ch_type
+
+        # Input data validation ends here
+        if components is None:
+            components = range(self.n_components_)
+
+        explained_var_ratios = [
+            self._get_explained_variance_ratio_one_ch_type(
+                inst=inst, components=components, ch_type=ch_type
+            ) for ch_type in ch_types
+        ]
+        result = dict(zip(ch_types, explained_var_ratios))
+        return result
+
+    def _get_explained_variance_ratio_one_ch_type(
+        self, *, inst, components, ch_type
+    ):
+        # The algorithm implemented below should be equivalent to
+        # https://sccn.ucsd.edu/pipermail/eeglablist/2014/009134.html
+        #
+        # Reconstruct ("back-project") the data using only the specified ICA
+        # components. Don't make use of potential "spare" PCA components in
+        # this process – we're only interested in the contribution of the ICA
+        # components!
+        kwargs = dict(
+            inst=inst.copy(),
+            include=[components],
+            exclude=[],
+            n_pca_components=0,
+            verbose=False,
+        )
+        if (
+            isinstance(inst, (BaseEpochs, Evoked)) and
+            inst.baseline is not None
+        ):
+            # Don't warn if data was baseline-corrected.
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='The data.*was baseline-corrected',
+                    category=RuntimeWarning
+                )
+                inst_recon = self.apply(**kwargs)
+        else:
+            inst_recon = self.apply(**kwargs)
+
+        data_recon = inst_recon.get_data(picks=ch_type)
+        data_orig = inst.get_data(picks=ch_type)
+        data_diff = data_orig - data_recon
+
+        # To estimate the data variance, we first compute the variance across
+        # channels at each time point, and then we average these variances.
+        mean_var_diff = data_diff.var(axis=0).mean()
+        mean_var_orig = data_orig.var(axis=0).mean()
+
+        var_explained_ratio = 1 - mean_var_diff / mean_var_orig
+        return var_explained_ratio
 
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
         """Estimate sources given the unmixing matrix.
@@ -844,38 +1146,39 @@ class ICA(ContainsMixin):
     def _sources_as_raw(self, raw, add_channels, start, stop):
         """Aux method."""
         # merge copied instance and picked data with sources
-        sources = self._transform_raw(raw, start=start, stop=stop)
-        if raw.preload:  # get data and temporarily delete
-            data = raw._data
-            del raw._data
+        start, stop = _check_start_stop(raw, start, stop)
+        data_ = self._transform_raw(raw, start=start, stop=stop)
+        assert data_.shape[1] == stop - start
 
-        out = raw.copy()  # copy and reappend
+        preloaded = raw.preload
         if raw.preload:
-            raw._data = data
+            # get data and temporarily delete
+            data = raw._data
+            raw.preload = False
+            del raw._data
+        # copy and crop here so that things like annotations are adjusted
+        try:
+            out = raw.copy().crop(
+                start / raw.info['sfreq'],
+                (stop - 1) / raw.info['sfreq'])
+        finally:
+            # put the data back (always)
+            if preloaded:
+                raw.preload = True
+                raw._data = data
 
         # populate copied raw.
-        start, stop = _check_start_stop(raw, start, stop)
-        if add_channels is not None:
-            raw_picked = raw.copy().pick_channels(add_channels)
-            data_, times_ = raw_picked[:, start:stop]
-            data_ = np.r_[sources, data_]
-        else:
-            data_ = sources
-            _, times_ = raw[0, start:stop]
+        if add_channels is not None and len(add_channels):
+            picks = pick_channels(raw.ch_names, add_channels)
+            data_ = np.concatenate([
+                data_, raw.get_data(picks, start=start, stop=stop)])
         out._data = data_
-        out._times = times_
+        out._first_samps = [out.first_samp]
+        out._last_samps = [out.last_samp]
         out._filenames = [None]
         out.preload = True
-
-        # update first and last samples
-        out._first_samps = np.array([raw.first_samp +
-                                     (start if start else 0)])
-        out._last_samps = np.array([out.first_samp + stop
-                                    if stop else raw.last_samp])
-
         out._projector = None
         self._export_info(out.info, raw, add_channels)
-        out._update_times()
 
         return out
 
@@ -919,14 +1222,16 @@ class ICA(ContainsMixin):
         """Aux method."""
         # set channel names and info
         ch_names = []
-        ch_info = info['chs'] = []
+        ch_info = []
         for ii, name in enumerate(self._ica_names):
             ch_names.append(name)
             ch_info.append(dict(
                 ch_name=name, cal=1, logno=ii + 1,
-                coil_type=FIFF.FIFFV_COIL_NONE, kind=FIFF.FIFFV_MISC_CH,
-                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN, unit=FIFF.FIFF_UNIT_NONE,
-                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
+                coil_type=FIFF.FIFFV_COIL_NONE,
+                kind=FIFF.FIFFV_MISC_CH,
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                unit=FIFF.FIFF_UNIT_NONE,
+                loc=np.zeros(12, dtype='f4'),
                 range=1.0, scanno=ii + 1, unit_mul=0))
 
         if add_channels is not None:
@@ -935,10 +1240,10 @@ class ICA(ContainsMixin):
             # re-append additionally picked ch_info
             ch_info += [k for k in container.info['chs'] if k['ch_name'] in
                         add_channels]
-        info['bads'] = [ch_names[k] for k in self.exclude]
-        info['projs'] = []  # make sure projections are removed.
-        info._update_redundant()
-        info._check_consistency()
+        with info._unlock(update_redundant=True, check_after=True):
+            info['chs'] = ch_info
+            info['bads'] = [ch_names[k] for k in self.exclude]
+            info['projs'] = []  # make sure projections are removed.
 
     @verbose
     def score_sources(self, inst, target=None, score_func='pearsonr',
@@ -975,11 +1280,10 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1052,11 +1356,11 @@ class ICA(ContainsMixin):
 
     def _find_bads_ch(self, inst, chs, threshold=3.0, start=None,
                       stop=None, l_freq=None, h_freq=None,
-                      reject_by_annotation=True, prefix="chs",
-                      measure="zscore"):
+                      reject_by_annotation=True, prefix='chs',
+                      measure='zscore'):
         """Compute ExG/ref components.
 
-        See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
+        See find_bads_ecg, find_bads_eog, and find_bads_ref for details.
         """
         scores, idx = [], []
         # some magic we need inevitably ...
@@ -1082,7 +1386,7 @@ class ICA(ContainsMixin):
             # pick last scores
             if measure == "zscore":
                 this_idx = _find_outliers(scores[-1], threshold=threshold)
-            elif measure == "cor":
+            elif measure == "correlation":
                 this_idx = np.where(abs(scores[-1]) > threshold)[0]
             else:
                 raise ValueError("Unknown measure {}".format(measure))
@@ -1112,18 +1416,14 @@ class ICA(ContainsMixin):
 
         This function finds the threshold of Kuiper index based on the
         threshold of pk. Kuiper statistic that minimizes the difference between
-        pk and the pk threshold (defaults to 20 [1]) is returned. It is assumed
-        that the data are appropriately filtered and bad data are rejected at
-        least based on peak-to-peak amplitude when/before running the ICA
-        decomposition on data.
+        pk and the pk threshold (defaults to 20 :footcite:`DammersEtAl2008`)
+        is returned. It is assumed that the data are appropriately filtered and
+        bad data are rejected at least based on peak-to-peak amplitude
+        when/before running the ICA decomposition on data.
 
         References
         ----------
-        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
-            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
-            and phase statistics for complete artifact removal in independent
-            components of neuromagnetic recordings. Biomedical
-            Engineering, IEEE Transactions on 55 (10), pp.2356.
+        .. footbibliography::
         """
         N = self.info['sfreq']
         Vs = np.arange(1, 100) / 100
@@ -1136,14 +1436,14 @@ class ICA(ContainsMixin):
         return Vs[np.argmin(np.abs(Pks - 10**(-pk_threshold)))]
 
     @verbose
-    def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
+    def find_bads_ecg(self, inst, ch_name=None, threshold='auto', start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
-                      reject_by_annotation=True, measure="zscore",
+                      reject_by_annotation=True, measure='zscore',
                       verbose=None):
         """Detect ECG related components.
 
-        Cross-trial phase statistics (default) or Pearson correlation can be
-        used for detection.
+        Cross-trial phase statistics :footcite:`DammersEtAl2008` or Pearson
+        correlation can be used for detection.
 
         .. note:: If no ECG channel is available, routine attempts to create
                   an artificial ECG based on cross-channel averaging.
@@ -1156,67 +1456,72 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
-        threshold : float | str
-            The value above which a feature is classified as outlier. If 'auto'
-            and method is 'ctps', automatically compute the threshold. If
-            'auto' and method is 'correlation', defaults to 3.0. The default
-            translates to 0.25 for 'ctps' and 3.0 for 'correlation' in version
-            0.21 but will change to 'auto' in version 0.22.
+        threshold : float | 'auto'
+            Value above which a feature is classified as outlier. See Notes.
 
             .. versionchanged:: 0.21
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
+            When working with Epochs or Evoked objects, must be float or None.
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+            When working with Epochs or Evoked objects, must be float or None.
         l_freq : float
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        method : {'ctps', 'correlation'}
-            The method used for detection. If 'ctps', cross-trial phase
-            statistics [1] are used to detect ECG related components.
-            Thresholding is then based on the significance value of a Kuiper
-            statistic.
-            If 'correlation', detection is based on Pearson correlation
-            between the filtered data and the filtered ECG channel.
-            Thresholding is based on iterative z-scoring. The above
-            threshold components will be masked and the z-score will
-            be recomputed until no supra-threshold component remains.
-            Defaults to 'ctps'.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        method : 'ctps' | 'correlation'
+            The method used for detection. If ``'ctps'``, cross-trial phase
+            statistics :footcite:`DammersEtAl2008` are used to detect
+            ECG-related components. See Notes.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : {'zscore', "cor"}
-            Which method to use for finding outliers. 'zscore' (default) is
-            the iterated Z-scoring method, and 'cor' is an absolute raw
-            correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
-        %(verbose_meth)s
+        %(measure)s
+        %(verbose)s
 
         Returns
         -------
         ecg_idx : list of int
-            The indices of ECG related components.
+            The indices of ECG-related components.
         scores : np.ndarray of float, shape (``n_components_``)
             If method is 'ctps', the normalized Kuiper index scores. If method
             is 'correlation', the correlation scores.
 
         See Also
         --------
-        find_bads_eog, find_bads_ref
+        find_bads_eog, find_bads_ref, find_bads_muscle
+
+        Notes
+        -----
+        The ``threshold``, ``method``, and ``measure`` parameters interact in
+        the following ways:
+
+        - If ``method='ctps'``, ``threshold`` refers to the significance value
+          of a Kuiper statistic, and ``threshold='auto'`` will compute the
+          threshold automatically based on the sampling frequency.
+        - If ``method='correlation'`` and ``measure='correlation'``,
+          ``threshold`` refers to the Pearson correlation value, and
+          ``threshold='auto'`` sets the threshold to 0.9.
+        - If ``method='correlation'`` and ``measure='zscore'``, ``threshold``
+          refers to the z-score value (i.e., standard deviations) used in the
+          iterative z-scoring method, and ``threshold='auto'`` sets the
+          threshold to 3.0.
 
         References
         ----------
-        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
-            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
-            and phase statistics for complete artifact removal in independent
-            components of neuromagnetic recordings. Biomedical
-            Engineering, IEEE Transactions on 55 (10), 2353-2362.
+        .. footbibliography::
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(method, str, 'method')
+        _check_option('method', method, ('ctps', 'correlation'))
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
         idx_ecg = _get_ecg_channel_index(ch_name, inst)
 
         if idx_ecg is None:
@@ -1226,14 +1531,7 @@ class ICA(ContainsMixin):
             ecg = inst.ch_names[idx_ecg]
 
         if method == 'ctps':
-            if threshold is None:
-                warn('The default for "threshold" will change from None to'
-                     '"auto" in version 0.22. To avoid this warning, '
-                     'explicitly set threshold to "auto".',
-                     DeprecationWarning)
-                threshold = 0.25
-            elif threshold == 'auto':
-                # TODO: defaults to 'auto' in v0.22
+            if threshold == 'auto':
                 threshold = self._get_ctps_threshold()
                 logger.info('Using threshold: %.2f for CTPS ECG detection'
                             % threshold)
@@ -1262,20 +1560,15 @@ class ICA(ContainsMixin):
                 ch_name = 'ECG-MAG'
             self.labels_['ecg/%s' % ch_name] = list(ecg_idx)
         elif method == 'correlation':
-            if threshold is None:
-                warn('The default for "threshold" will change from None to'
-                     '"auto" in version 0.22. To avoid this warning, '
-                     'explicitly set threshold to "auto".',
-                     DeprecationWarning)
+            if threshold == 'auto' and measure == 'zscore':
                 threshold = 3.0
-            elif threshold == 'auto':
-                threshold = 3.0
+            elif threshold == 'auto' and measure == 'correlation':
+                threshold = 0.9
             self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
                 reject_by_annotation=reject_by_annotation, measure=measure)
-        else:
-            raise ValueError('Method "%s" not supported.' % method)
+
         return self.labels_['ecg'], scores
 
     @verbose
@@ -1293,8 +1586,19 @@ class ICA(ContainsMixin):
         ch_name : list of str
             Which MEG reference components to use. If None, then all channels
             that begin with REF_ICA.
-        threshold : int | float
-            The value above which a feature is classified as outlier.
+        threshold : float | str
+            Value above which a feature is classified as outlier.
+
+            - If ``measure`` is ``'zscore'``, defines the threshold on the
+              z-score used in the iterative z-scoring method.
+            - If ``measure`` is ``'correlation'``, defines the absolute
+              threshold on the correlation between 0 and 1.
+            - If ``'auto'``, defaults to 3.0 if ``measure`` is ``'zscore'`` and
+              0.9 if ``measure`` is ``'correlation'``.
+
+             .. warning::
+                 If ``method`` is ``'together'``, the iterative z-score method
+                 is always used.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -1305,20 +1609,14 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
-        method : {'together', 'separate'}
+        %(reject_by_annotation_all)s
+        method : 'together' | 'separate'
             Method to use to identify reference channel related components.
-            Defaults to "together." See notes.
+            Defaults to ``'together'``. See notes.
 
             .. versionadded:: 0.21
-        measure : {'zscore', "cor"}
-            Which method to use for finding outliers. "zscore" (default) is
-            the iterated Z-scoring method, and "cor" is an absolute raw
-            correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
-        %(verbose_meth)s
+        %(measure)s
+        %(verbose)s
 
         Returns
         -------
@@ -1329,31 +1627,36 @@ class ICA(ContainsMixin):
 
         See Also
         --------
-        find_bads_ecg, find_bads_eog
+        find_bads_ecg, find_bads_eog, find_bads_muscle
 
         Notes
         -----
         ICA decomposition on MEG reference channels is used to assess external
         magnetic noise and remove it from the MEG. Two methods are supported:
 
-        With the "together" method, only one ICA fit is used, which
+        With the ``'together'`` method, only one ICA fit is used, which
         encompasses both MEG and reference channels together. Components which
         have particularly strong weights on the reference channels may be
         thresholded and marked for removal.
 
-        With "separate," selected components from a separate ICA decomposition
-        on the reference channels are used as a ground truth for identifying
-        bad components in an ICA fit done on MEG channels only. The logic here
-        is similar to an EOG/ECG, with reference components replacing the
-        EOG/ECG channels. Recommended procedure is to perform ICA separately
-        on reference channels, extract them using .get_sources(), and then
-        append them to the inst using :meth:`~mne.io.Raw.add_channels`,
-        preferably with the prefix ``REF_ICA`` so that they can be
-        automatically detected.
+        With ``'separate'`` selected components from a separate ICA
+        decomposition on the reference channels are used as a ground truth for
+        identifying bad components in an ICA fit done on MEG channels only. The
+        logic here is similar to an EOG/ECG, with reference components
+        replacing the EOG/ECG channels. Recommended procedure is to perform ICA
+        separately on reference channels, extract them using
+        :meth:`~mne.preprocessing.ICA.get_sources`, and then append them to the
+        inst using :meth:`~mne.io.Raw.add_channels`, preferably with the prefix
+        ``REF_ICA`` so that they can be automatically detected.
 
-        Thresholding in both cases is based on adaptive z-scoring:
-        The above-threshold components will be masked and the z-score will be
-        recomputed until no supra-threshold component remains.
+        With ``'together'``, thresholding is based on adaptative z-scoring.
+
+        With ``'separate'``:
+
+        - If ``measure`` is ``'zscore'``, thresholding is based on adaptative
+          z-scoring.
+        - If ``measure`` is ``'correlation'``, threshold defines the absolute
+          threshold on the correlation between 0 and 1.
 
         Validation and further documentation for this technique can be found
         in :footcite:`HannaEtAl2020`.
@@ -1364,7 +1667,20 @@ class ICA(ContainsMixin):
         ----------
         .. footbibliography::
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(method, str, 'method')
+        _check_option('method', method, ('together', 'separate'))
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
         if method == "separate":
+            if threshold == 'auto' and measure == 'zscore':
+                threshold = 3.0
+            elif threshold == 'auto' and measure == 'correlation':
+                threshold = 0.9
+
             if not ch_name:
                 inds = pick_channels_regexp(inst.ch_names, 'REF_ICA*')
             else:
@@ -1381,31 +1697,139 @@ class ICA(ContainsMixin):
                 reject_by_annotation=reject_by_annotation,
                 measure=measure)
         elif method == 'together':
+            if threshold == 'auto':
+                threshold = 3.0
+            if measure != 'zscore':
+                logger.info(
+                    "With method 'together', only 'zscore' measure is"
+                    f"supported. Using 'zscore' instead of '{measure}'.")
+
             meg_picks = pick_types(self.info, meg=True, ref_meg=False)
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
             if not any(meg_picks) or not any(ref_picks):
-                raise ValueError('ICA solution must contain both reference and\
-                                  MEG channels.')
+                raise ValueError('ICA solution must contain both reference and'
+                                 ' MEG channels.')
             weights = self.get_components()
             # take norm of component weights on reference channels for each
             # component, divide them by the norm on the standard channels,
             # log transform to approximate normal distribution
-            normrats = np.linalg.norm(weights[ref_picks],
-                                      axis=0) / np.linalg.norm(weights[meg_picks],    # noqa
-                                                               axis=0)
+            normrats = np.linalg.norm(weights[ref_picks], axis=0) \
+                / np.linalg.norm(weights[meg_picks], axis=0)
             scores = np.log(normrats)
-            self.labels_['ref_meg'] = list(_find_outliers(scores,
-                                           threshold=threshold,
-                                           tail=1))
-        else:
-            raise ValueError('Method "%s" not supported.' % method)
+            self.labels_['ref_meg'] = list(_find_outliers(
+                scores, threshold=threshold, tail=1))
 
         return self.labels_['ref_meg'], scores
 
     @verbose
+    def find_bads_muscle(self, inst, threshold=0.5, start=None,
+                         stop=None, l_freq=7, h_freq=45, sphere=None,
+                         verbose=None):
+        """Detect muscle related components.
+
+        Detection is based on :footcite:`DharmapraniEtAl2016` which uses
+        data from a subject who has been temporarily paralyzed
+        :footcite:`WhithamEtAl2007`. The criteria are threefold:
+        1) Positive log-log spectral slope from 7 to 45 Hz
+        2) Peripheral component power (farthest away from the vertex)
+        3) A single focal point measured by low spatial smoothness
+
+        The threshold is relative to the slope, focal point and smoothness
+        of a typical muscle-related ICA component. Note the high frequency
+        of the power spectral density slope was 75 Hz in the reference but
+        has been modified to 45 Hz as a default based on the criteria being
+        more accurate in practice.
+
+        Parameters
+        ----------
+        inst : instance of Raw, Epochs or Evoked
+            Object to compute sources from.
+        threshold : float | str
+            Value above which a component should be marked as muscle-related,
+            relative to a typical muscle component.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
+        l_freq : float
+            Low frequency for muscle-related power.
+        h_freq : float
+            High frequency for msucle related power.
+        %(sphere_topomap_auto)s
+        %(verbose)s
+
+        Returns
+        -------
+        muscle_idx : list of int
+            The indices of EOG related components, sorted by score.
+        scores : np.ndarray of float, shape (``n_components_``) | list of array
+            The correlation scores.
+
+        See Also
+        --------
+        find_bads_ecg, find_bads_eog, find_bads_ref
+
+        Notes
+        -----
+        .. versionadded:: 1.1
+        """
+        from scipy.spatial.distance import pdist, squareform
+        _validate_type(threshold, 'numeric', 'threshold')
+
+        sources = self.get_sources(inst, start=start, stop=stop)
+        components = self.get_components()
+
+        # compute metric #1: slope of the log-log psd
+        spectrum = sources.compute_psd(fmin=l_freq, fmax=h_freq, picks='misc')
+        psds, freqs = spectrum.get_data(return_freqs=True)
+        if psds.ndim > 2:
+            psds = psds.mean(axis=0)
+        slopes = np.polyfit(np.log10(freqs), np.log10(psds).T, 1)[0]
+
+        # compute metric #2: distance from the vertex of focus
+        components_norm = abs(components) / np.max(abs(components), axis=0)
+        # we need to retrieve the position from the channels that were used to
+        # fit the ICA. N.B: picks in _find_topomap_coords includes bad channels
+        # even if they are not provided explicitly.
+        pos = _find_topomap_coords(
+            inst.info, picks=self.ch_names, sphere=sphere, ignore_overlap=True
+        )
+        assert pos.shape[0] == components.shape[0]  # pos for each sensor
+        pos -= pos.mean(axis=0)  # center
+        dists = np.linalg.norm(pos, axis=1)
+        dists /= dists.max()
+        focus_dists = np.dot(dists, components_norm)
+
+        # compute metric #3: smoothness
+        smoothnesses = np.zeros((components.shape[1],))
+        dists = squareform(pdist(pos))
+        dists = 1 - (dists / dists.max())  # invert
+        for idx, comp in enumerate(components.T):
+            comp_dists = squareform(pdist(comp[:, np.newaxis]))
+            comp_dists /= comp_dists.max()
+            smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
+
+        # typical muscle slope is ~0.15, non-muscle components negative
+        # so logistic with shift -0.5 and slope 0.25 so -0.5 -> 0.5 and 0->1
+        # focus distance is ~65% of max electrode distance with 10% slope
+        # (assumes typical head size)
+        # smoothnessness is around 150 for muscle and 450 otherwise
+        # so use reversed logistic centered at 300 with 100 slope
+        # multiply so that all three components must be present
+        scores = (1 / (1 + np.exp(-(slopes + 0.5) / 0.25))) * \
+            (1 / (1 + np.exp(-(focus_dists - 0.65) / 0.1))) * \
+            (1 - (1 / (1 + np.exp(-(smoothnesses - 300) / 100))))
+        # scale the threshold by the use of three metrics
+        self.labels_['muscle'] = [idx for idx, score in enumerate(scores)
+                                  if score > threshold**3]
+        return self.labels_['muscle'], scores
+
+    @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
                       stop=None, l_freq=1, h_freq=10,
-                      reject_by_annotation=True, measure="zscore",
+                      reject_by_annotation=True, measure='zscore',
                       verbose=None):
         """Detect EOG related components using correlation.
 
@@ -1423,8 +1847,15 @@ class ICA(ContainsMixin):
             The name of the channel to use for EOG peak detection.
             The argument is mandatory if the dataset contains no EOG
             channels.
-        threshold : int | float
-            The value above which a feature is classified as outlier.
+        threshold : float | str
+            Value above which a feature is classified as outlier.
+
+            - If ``measure`` is ``'zscore'``, defines the threshold on the
+              z-score used in the iterative z-scoring method.
+            - If ``measure`` is ``'correlation'``, defines the absolute
+              threshold on the correlation between 0 and 1.
+            - If ``'auto'``, defaults to 3.0 if ``measure`` is ``'zscore'`` and
+              0.9 if ``measure`` is ``'correlation'``.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -1435,17 +1866,11 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
+        %(reject_by_annotation_all)s
 
             .. versionadded:: 0.14.0
-        measure : 'zscore' | 'cor'
-            Which method to use for finding outliers. "zscore" (default) is
-            the iterated Z-scoring method, and "cor" is an absolute raw
-            correlation threshold with a range of 0 to 1.
-
-            .. versionadded:: 0.21
-        %(verbose_meth)s
+        %(measure)s
+        %(verbose)s
 
         Returns
         -------
@@ -1458,8 +1883,19 @@ class ICA(ContainsMixin):
         --------
         find_bads_ecg, find_bads_ref
         """
+        _validate_type(threshold, (str, 'numeric'), 'threshold')
+        if isinstance(threshold, str):
+            _check_option('threshold', threshold, ('auto',), extra='when str')
+        _validate_type(measure, str, 'measure')
+        _check_option('measure', measure, ('zscore', 'correlation'))
+
         eog_inds = _get_eog_channel_index(ch_name, inst)
         eog_chs = [inst.ch_names[k] for k in eog_inds]
+
+        if threshold == 'auto' and measure == 'zscore':
+            threshold = 3.0
+        elif threshold == 'auto' and measure == 'correlation':
+            threshold = 0.9
 
         self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,
@@ -1467,41 +1903,59 @@ class ICA(ContainsMixin):
             reject_by_annotation=reject_by_annotation, measure=measure)
         return self.labels_['eog'], scores
 
+    @verbose
     def apply(self, inst, include=None, exclude=None, n_pca_components=None,
-              start=None, stop=None):
+              start=None, stop=None, *, on_baseline='warn', verbose=None):
         """Remove selected components from the signal.
 
-        Given the unmixing matrix, transform data,
-        zero out components, and inverse transform the data.
+        Given the unmixing matrix, transform the data,
+        zero out all excluded components, and inverse-transform the data.
         This procedure will reconstruct M/EEG signals from which
         the dynamics described by the excluded components is subtracted.
-        The data is processed in place.
 
         Parameters
         ----------
         inst : instance of Raw, Epochs or Evoked
-            The data to be processed. The instance is modified inplace.
+            The data to be processed (i.e., cleaned). It will be modified
+            in-place.
         include : array_like of int
             The indices referring to columns in the ummixing matrix. The
-            components to be kept.
+            components to be kept. If ``None`` (default), all components
+            will be included (minus those defined in ``ica.exclude``
+            and the ``exclude`` parameter, see below).
         exclude : array_like of int
             The indices referring to columns in the ummixing matrix. The
-            components to be zeroed out.
-        n_pca_components : int | float | None
-            The number of PCA components to be kept, either absolute (int)
-            or percentage of the explained variance (float). If None (default),
-            all PCA components will be used.
+            components to be zeroed out. If ``None`` (default) or an
+            empty list, only components from ``ica.exclude`` will be
+            excluded. Else, the union of ``exclude`` and ``ica.exclude``
+            will be excluded.
+        %(n_pca_components_apply)s
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+        %(on_baseline_ica)s
+        %(verbose)s
 
         Returns
         -------
         out : instance of Raw, Epochs or Evoked
             The processed data.
+
+        Notes
+        -----
+        .. note:: Applying ICA may introduce a DC shift. If you pass
+                  baseline-corrected `~mne.Epochs` or `~mne.Evoked` data,
+                  the baseline period of the cleaned data may not be of
+                  zero mean anymore. If you require baseline-corrected
+                  data, apply baseline correction again after cleaning
+                  via ICA. A warning will be emitted to remind you of this
+                  fact if you pass baseline-corrected data.
+
+        .. versionchanged:: 0.23
+            Warn if instance was baseline-corrected.
         """
         _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst',
                        'Raw, Epochs, or Evoked')
@@ -1518,7 +1972,27 @@ class ICA(ContainsMixin):
             kwargs.update(evoked=inst)
         _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
-        return meth(**kwargs)
+
+        _check_on_missing(on_baseline, 'on_baseline', extras=('reapply',))
+        reapply_baseline = False
+        if isinstance(inst, (BaseEpochs, Evoked)):
+            if getattr(inst, 'baseline', None) is not None:
+                if on_baseline == 'reapply':
+                    reapply_baseline = True
+                else:
+                    msg = (
+                        'The data you passed to ICA.apply() was '
+                        'baseline-corrected. Please note that ICA can '
+                        'introduce DC shifts, therefore you may wish to '
+                        'consider baseline-correcting the cleaned data again.'
+                    )
+                    _on_missing(on_baseline, msg, 'on_baseline')
+
+        logger.info(f'Applying ICA to {kind} instance')
+        out = meth(**kwargs)
+        if reapply_baseline:
+            out.apply_baseline(inst.baseline)
+        return out
 
     def _check_exclude(self, exclude):
         if exclude is None:
@@ -1531,18 +2005,13 @@ class ICA(ContainsMixin):
         """Aux method."""
         _check_preload(raw, "ica.apply")
 
-        if n_pca_components is not None:
-            self.n_pca_components = n_pca_components
-
         start, stop = _check_start_stop(raw, start, stop)
 
         picks = pick_types(raw.info, meg=False, include=self.ch_names,
                            exclude='bads', ref_meg=False)
 
         data = raw[picks, start:stop][0]
-        data, _ = self._pre_whiten(data, raw.info, picks)
-
-        data = self._pick_sources(data, include, exclude)
+        data = self._pick_sources(data, include, exclude, n_pca_components)
 
         raw[picks, start:stop] = data
         return raw
@@ -1563,12 +2032,8 @@ class ICA(ContainsMixin):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        if n_pca_components is not None:
-            self.n_pca_components = n_pca_components
-
-        data = np.hstack(epochs.get_data()[:, picks])
-        data, _ = self._pre_whiten(data, epochs.info, picks)
-        data = self._pick_sources(data, include=include, exclude=exclude)
+        data = np.hstack(epochs.get_data(picks))
+        data = self._pick_sources(data, include, exclude, n_pca_components)
 
         # restore epochs, channels, tsl order
         epochs._data[:, picks] = np.array(
@@ -1591,31 +2056,33 @@ class ICA(ContainsMixin):
                                'with ica.ch_names' % (len(self.ch_names),
                                                       len(picks)))
 
-        if n_pca_components is not None:
-            self.n_pca_components = n_pca_components
-
         data = evoked.data[picks]
-        data, _ = self._pre_whiten(data, evoked.info, picks)
-        data = self._pick_sources(data, include=include,
-                                  exclude=exclude)
+        data = self._pick_sources(data, include, exclude, n_pca_components)
 
         # restore evoked
         evoked.data[picks] = data
 
         return evoked
 
-    def _pick_sources(self, data, include, exclude):
+    def _pick_sources(self, data, include, exclude, n_pca_components):
         """Aux function."""
+        if n_pca_components is None:
+            n_pca_components = self.n_pca_components
+        data = self._pre_whiten(data)
         exclude = self._check_exclude(exclude)
-        _n_pca_comp = self._check_n_pca_components(self.n_pca_components)
+        _n_pca_comp = self._check_n_pca_components(n_pca_components)
         n_ch, _ = data.shape
 
-        if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
-            raise ValueError('n_pca_components must be >= '
-                             'n_components and <= max_pca_components.')
+        max_pca_components = self.pca_components_.shape[0]
+        if not self.n_components_ <= _n_pca_comp <= max_pca_components:
+            raise ValueError(
+                f'n_pca_components ({_n_pca_comp}) must be >= '
+                f'n_components_ ({self.n_components_}) and <= '
+                'the total number of PCA components '
+                f'({max_pca_components}).')
 
-        logger.info('Transforming to ICA space (%i components)'
-                    % self.n_components_)
+        logger.info(f'    Transforming to ICA space ({self.n_components_} '
+                    f'component{_pl(self.n_components_)})')
 
         # Apply first PCA
         if self.pca_mean_ is not None:
@@ -1628,7 +2095,7 @@ class ICA(ContainsMixin):
             sel_keep = np.setdiff1d(np.arange(self.n_components_), exclude)
 
         n_zero = self.n_components_ - len(sel_keep)
-        logger.info('Zeroing out %i ICA component%s' % (n_zero, _pl(n_zero)))
+        logger.info(f'    Zeroing out {n_zero} ICA component{_pl(n_zero)}')
 
         # Mixing and unmixing should both be shape (self.n_components_, 2),
         # and we need to put these into the upper left part of larger mixing
@@ -1643,6 +2110,8 @@ class ICA(ContainsMixin):
             self.unmixing_matrix_
         unmixing = np.dot(unmixing, pca_components)
 
+        logger.info(f'    Projecting back using {_n_pca_comp} '
+                    f'PCA component{_pl(_n_pca_comp)}')
         mixing = np.eye(_n_pca_comp)
         mixing[:self.n_components_, :self.n_components_] = \
             self.mixing_matrix_
@@ -1663,12 +2132,12 @@ class ICA(ContainsMixin):
         if self.noise_cov is None:  # revert standardization
             data *= self.pre_whitener_
         else:
-            data = np.dot(linalg.pinv(self.pre_whitener_, cond=1e-14), data)
+            data = np.linalg.pinv(self.pre_whitener_, rcond=1e-14) @ data
 
         return data
 
     @verbose
-    def save(self, fname, verbose=None):
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Store ICA solution into a fiff file.
 
         Parameters
@@ -1676,7 +2145,10 @@ class ICA(ContainsMixin):
         fname : str
             The absolute path of the file name to save the ICA solution into.
             The file name should end with -ica.fif or -ica.fif.gz.
-        %(verbose_meth)s
+        %(overwrite)s
+
+            .. versionadded:: 1.0
+        %(verbose)s
 
         Returns
         -------
@@ -1692,18 +2164,11 @@ class ICA(ContainsMixin):
 
         check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz',
                                    '_ica.fif', '_ica.fif.gz'))
+        fname = _check_fname(fname, overwrite=overwrite)
 
         logger.info('Writing ICA solution to %s...' % fname)
-        fid = start_file(fname)
-
-        try:
+        with start_and_end_file(fname) as fid:
             _write_ica(fid, self)
-            end_file(fid)
-        except Exception:
-            end_file(fid)
-            os.remove(fname)
-            raise
-
         return self
 
     def copy(self):
@@ -1720,10 +2185,10 @@ class ICA(ContainsMixin):
     def plot_components(self, picks=None, ch_type=None, res=64,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp='bilinear',
-                        inst=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, reject='auto',
-                        sphere=None):
+                        contours=6, image_interp=_INTERPOLATION_DEFAULT,
+                        inst=None, plot_std=True,
+                        topomap_args=None, image_args=None, psd_args=None,
+                        reject='auto', sphere=None, verbose=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
@@ -1733,26 +2198,37 @@ class ICA(ContainsMixin):
                                    inst=inst, plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   reject=reject, sphere=sphere)
+                                   reject=reject, sphere=sphere,
+                                   verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
-                        plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto'):
+                        plot_std=True, log_scale=False, topomap_args=None,
+                        image_args=None, psd_args=None, figsize=None,
+                        show=True, reject='auto', reject_by_annotation=True,
+                        *, verbose=None):
         return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
+                                   log_scale=log_scale,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   figsize=figsize, show=show, reject=reject)
+                                   figsize=figsize, show=show, reject=reject,
+                                   reject_by_annotation=reject_by_annotation,
+                                   verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
     def plot_sources(self, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False, show_scrollbars=True):
+                     show_first_samp=False, show_scrollbars=True,
+                     time_format='float', precompute=None,
+                     use_opengl=None, *, theme=None, overview_mode=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,
-                                show_scrollbars=show_scrollbars)
+                                show_scrollbars=show_scrollbars,
+                                time_format=time_format,
+                                precompute=precompute, use_opengl=use_opengl,
+                                theme=theme, overview_mode=overview_mode)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
@@ -1765,151 +2241,47 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_overlay)
     def plot_overlay(self, inst, exclude=None, picks=None, start=None,
-                     stop=None, title=None, show=True):
+                     stop=None, title=None, show=True, n_pca_components=None,
+                     *, on_baseline='warn', verbose=None):
         return plot_ica_overlay(self, inst=inst, exclude=exclude, picks=picks,
-                                start=start, stop=stop, title=title, show=show)
-
-    def detect_artifacts(self, raw, start_find=None, stop_find=None,
-                         ecg_ch=None, ecg_score_func='pearsonr',
-                         ecg_criterion=0.1, eog_ch=None,
-                         eog_score_func='pearsonr',
-                         eog_criterion=0.1, skew_criterion=0,
-                         kurt_criterion=0, var_criterion=-1,
-                         add_nodes=None):
-        """Run ICA artifacts detection workflow.
-
-        Note. This is still experimental and will most likely change over
-        the next releases. For maximum control use the workflow exposed in
-        the examples.
-
-        Hints and caveats:
-        - It is highly recommended to bandpass filter ECG and EOG
-        data and pass them instead of the channel names as ecg_ch and eog_ch
-        arguments.
-        - please check your results. Detection by kurtosis and variance
-        may be powerful but misclassification of brain signals as
-        noise cannot be precluded.
-        - Consider using shorter times for start_find and stop_find than
-        for start and stop. It can save you much time.
-
-        Example invocation (taking advantage of the defaults)::
-
-            ica.detect_artifacts(ecg_channel='MEG 1531', eog_channel='EOG 061')
-
-        Parameters
-        ----------
-        raw : instance of Raw
-            Raw object to draw sources from. No components are actually removed
-            here, i.e. ica is not applied to raw in this function. Use
-            `ica.apply() <ICA.apply>` for this after inspection of the
-            identified components.
-        start_find : int | float | None
-            First sample to include for artifact search. If float, data will be
-            interpreted as time in seconds. If None, data will be used from the
-            first sample.
-        stop_find : int | float | None
-            Last sample to not include for artifact search. If float, data will
-            be interpreted as time in seconds. If None, data will be used to
-            the last sample.
-        ecg_ch : str | ndarray | None
-            The ``target`` argument passed to ica.find_sources_raw. Either the
-            name of the ECG channel or the ECG time series. If None, this step
-            will be skipped.
-        ecg_score_func : str | callable
-            The ``score_func`` argument passed to ica.find_sources_raw. Either
-            the name of function supported by ICA or a custom function.
-        ecg_criterion : float | int | list-like | slice
-            The indices of the sorted ecg scores. If float, sources with
-            absolute scores greater than the criterion will be dropped. Else,
-            the absolute scores sorted in descending order will be indexed
-            accordingly. E.g. range(2) would return the two sources with the
-            highest absolute score. If None, this step will be skipped.
-        eog_ch : list | str | ndarray | None
-            The ``target`` argument or the list of target arguments
-            subsequently passed to ica.find_sources_raw. Either the name of the
-            vertical EOG channel or the corresponding EOG time series. If None,
-            this step will be skipped.
-        eog_score_func : str | callable
-            The ``score_func`` argument passed to ica.find_sources_raw. Either
-            the name of function supported by ICA or a custom function.
-        eog_criterion : float | int | list-like | slice
-            The indices of the sorted eog scores. If float, sources with
-            absolute scores greater than the criterion will be dropped. Else,
-            the absolute scores sorted in descending order will be indexed
-            accordingly. E.g. range(2) would return the two sources with the
-            highest absolute score. If None, this step will be skipped.
-        skew_criterion : float | int | list-like | slice
-            The indices of the sorted skewness scores. If float, sources with
-            absolute scores greater than the criterion will be dropped. Else,
-            the absolute scores sorted in descending order will be indexed
-            accordingly. E.g. range(2) would return the two sources with the
-            highest absolute score. If None, this step will be skipped.
-        kurt_criterion : float | int | list-like | slice
-            The indices of the sorted kurtosis scores. If float, sources with
-            absolute scores greater than the criterion will be dropped. Else,
-            the absolute scores sorted in descending order will be indexed
-            accordingly. E.g. range(2) would return the two sources with the
-            highest absolute score. If None, this step will be skipped.
-        var_criterion : float | int | list-like | slice
-            The indices of the sorted variance scores. If float, sources with
-            absolute scores greater than the criterion will be dropped. Else,
-            the absolute scores sorted in descending order will be indexed
-            accordingly. E.g. range(2) would return the two sources with the
-            highest absolute score. If None, this step will be skipped.
-        add_nodes : list of tuple
-            Additional list if tuples carrying the following parameters
-            of ica nodes:
-            (name : str, target : str | array, score_func : callable,
-            criterion : float | int | list-like | slice). This parameter is a
-            generalization of the artifact specific parameters above and has
-            the same structure. Example::
-
-                add_nodes=('ECG phase lock', ECG 01',
-                           my_phase_lock_function, 0.5)
-
-        Returns
-        -------
-        self : instance of ICA
-            The ICA object with the detected artifact indices marked for
-            exclusion.
-        """
-        logger.info('    Searching for artifacts...')
-        _detect_artifacts(self, raw=raw, start_find=start_find,
-                          stop_find=stop_find, ecg_ch=ecg_ch,
-                          ecg_score_func=ecg_score_func,
-                          ecg_criterion=ecg_criterion,
-                          eog_ch=eog_ch, eog_score_func=eog_score_func,
-                          eog_criterion=eog_criterion,
-                          skew_criterion=skew_criterion,
-                          kurt_criterion=kurt_criterion,
-                          var_criterion=var_criterion,
-                          add_nodes=add_nodes)
-
-        return self
+                                start=start, stop=stop, title=title, show=show,
+                                n_pca_components=n_pca_components,
+                                on_baseline=on_baseline, verbose=verbose)
 
     @verbose
     def _check_n_pca_components(self, _n_pca_comp, verbose=None):
         """Aux function."""
         if isinstance(_n_pca_comp, float):
-            _n_pca_comp = ((self.pca_explained_variance_ /
-                            self.pca_explained_variance_.sum()).cumsum() <=
-                           _n_pca_comp).sum()
-            logger.info('Selected %i PCA components by explained '
-                        'variance' % _n_pca_comp)
+            n, ev = _exp_var_ncomp(
+                self.pca_explained_variance_, _n_pca_comp)
+            logger.info(f'    Selected {n} PCA components by explained '
+                        f'variance ({100 * ev}≥{100 * _n_pca_comp}%)')
+            _n_pca_comp = n
         elif _n_pca_comp is None:
-            _n_pca_comp = self.max_pca_components
+            _n_pca_comp = self._max_pca_components
+            if _n_pca_comp is None:
+                _n_pca_comp = self.pca_components_.shape[0]
         elif _n_pca_comp < self.n_components_:
             _n_pca_comp = self.n_components_
 
         return _n_pca_comp
 
 
+def _exp_var_ncomp(var, n):
+    cvar = np.asarray(var, dtype=np.float64)
+    cvar = cvar.cumsum()
+    cvar /= cvar[-1]
+    # We allow 1., which would give us N+1
+    n = min((cvar <= n).sum() + 1, len(cvar))
+    return n, cvar[n - 1]
+
+
 def _check_start_stop(raw, start, stop):
     """Aux function."""
     out = list()
-    for st in (start, stop):
+    for st, none_ in ((start, 0), (stop, raw.n_times)):
         if st is None:
-            out.append(st)
+            out.append(none_)
         else:
             try:
                 out.append(_ensure_int(st))
@@ -2031,6 +2403,8 @@ def _find_sources(sources, target, score_func):
 def _ica_explained_variance(ica, inst, normalize=False):
     """Check variance accounted for by each component in supplied data.
 
+    This function is only used for sorting the components.
+
     Parameters
     ----------
     ica : ICA
@@ -2136,7 +2510,7 @@ def _write_ica(fid, ica):
     ica_init = dict(noise_cov=ica.noise_cov,
                     n_components=ica.n_components,
                     n_pca_components=ica.n_pca_components,
-                    max_pca_components=ica.max_pca_components,
+                    max_pca_components=ica._max_pca_components,
                     current_fit=ica.current_fit,
                     allow_ref_meg=ica.allow_ref_meg)
 
@@ -2192,6 +2566,11 @@ def _write_ica(fid, ica):
     #   Write bad components
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, list(ica.exclude))
 
+    #   Write reject_
+    if ica.reject_ is not None:
+        write_string(fid, FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT,
+                     json.dumps(dict(reject=ica.reject_)))
+
     # Done!
     end_block(fid, FIFF.FIFFB_MNE_ICA)
 
@@ -2235,6 +2614,7 @@ def read_ica(fname, verbose=None):
             raise ValueError('Could not find ICA data')
 
     my_ica_data = ica_data[0]
+    ica_reject = None
     for d in my_ica_data['directory']:
         kind = d.kind
         pos = d.pos
@@ -2265,11 +2645,19 @@ def read_ica(fname, verbose=None):
         elif kind == FIFF.FIFF_MNE_ICA_MISC_PARAMS:
             tag = read_tag(fid, pos)
             ica_misc = tag.data
+        elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
+            tag = read_tag(fid, pos)
+            ica_reject = json.loads(tag.data)['reject']
 
     fid.close()
 
     ica_init, ica_misc = [_deserialize(k) for k in (ica_init, ica_misc)]
+    n_pca_components = ica_init.pop('n_pca_components')
     current_fit = ica_init.pop('current_fit')
+    max_pca_components = ica_init.pop('max_pca_components')
+    method = ica_misc.get('method', 'fastica')
+    if method in _KNOWN_ICA_METHODS:
+        ica_init['method'] = method
     if ica_init['noise_cov'] == Covariance.__name__:
         logger.info('Reading whitener drawn from noise covariance ...')
 
@@ -2280,14 +2668,19 @@ def read_ica(fname, verbose=None):
         return x.astype(np.float64)
 
     ica_init = {k: v for k, v in ica_init.items()
-                if k in _get_args(ICA.__init__)}
+                if k in signature(ICA.__init__).parameters}
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
+    if n_pca_components is not None and \
+            not isinstance(n_pca_components, int_like):
+        n_pca_components = np.float64(n_pca_components)
+    ica.n_pca_components = n_pca_components
     ica.pre_whitener_ = f(pre_whitener)
     ica.pca_mean_ = f(pca_mean)
     ica.pca_components_ = f(pca_components)
     ica.n_components_ = unmixing_matrix.shape[0]
+    ica._max_pca_components = max_pca_components
     ica._update_ica_names()
     ica.pca_explained_variance_ = f(pca_explained_variance)
     ica.unmixing_matrix_ = f(unmixing_matrix)
@@ -2306,6 +2699,7 @@ def read_ica(fname, verbose=None):
         ica.n_iter_ = ica_misc['n_iter_']
     if 'fit_params' in ica_misc:
         ica.fit_params = ica_misc['fit_params']
+    ica.reject_ = ica_reject
 
     logger.info('Ready.')
 
@@ -2313,61 +2707,6 @@ def read_ica(fname, verbose=None):
 
 
 _ica_node = namedtuple('Node', 'name target score_func criterion')
-
-
-def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
-                      ecg_criterion, eog_ch, eog_score_func, eog_criterion,
-                      skew_criterion, kurt_criterion, var_criterion,
-                      add_nodes):
-    """Aux Function."""
-    from scipy import stats
-
-    nodes = []
-    if ecg_ch is not None:
-        nodes += [_ica_node('ECG', ecg_ch, ecg_score_func, ecg_criterion)]
-
-    if eog_ch not in [None, []]:
-        if not isinstance(eog_ch, list):
-            eog_ch = [eog_ch]
-        for idx, ch in enumerate(eog_ch):
-            nodes += [_ica_node('EOG %02d' % idx, ch, eog_score_func,
-                                eog_criterion)]
-
-    if skew_criterion is not None:
-        nodes += [_ica_node('skewness', None, stats.skew, skew_criterion)]
-
-    if kurt_criterion is not None:
-        nodes += [_ica_node('kurtosis', None, stats.kurtosis, kurt_criterion)]
-
-    if var_criterion is not None:
-        nodes += [_ica_node('variance', None, np.var, var_criterion)]
-
-    if add_nodes is not None:
-        nodes.extend(add_nodes)
-
-    for node in nodes:
-        scores = ica.score_sources(raw, start=start_find, stop=stop_find,
-                                   target=node.target,
-                                   score_func=node.score_func)
-        if isinstance(node.criterion, float):
-            found = list(np.where(np.abs(scores) > node.criterion)[0])
-        else:
-            # Sort in descending order; use (-abs()), rather than [::-1] to
-            # keep any NaN values in the end (and also keep the order of same
-            # values):
-            found = list(np.atleast_1d((-np.abs(scores)).argsort()
-                         [node.criterion]))
-
-        case = (len(found), _pl(found), node.name)
-        logger.info('    found %s artifact%s by %s' % case)
-        ica.exclude = list(ica.exclude) + found
-
-    logger.info('Artifact indices found:\n    ' + str(ica.exclude).strip('[]'))
-    if len(set(ica.exclude)) != len(ica.exclude):
-        logger.info('    Removing duplicate indices...')
-        ica.exclude = list(set(ica.exclude))
-
-    logger.info('Ready.')
 
 
 @verbose
@@ -2431,12 +2770,14 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 @verbose
-def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
-            plot=True, show=True, outlines='head',
-            sensors=True, contours=6, cmap=None, sphere=None, verbose=None):
+def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
+            sensors=True, show_names=False, contours=6, outlines='head',
+            sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
+            cmap=None, plot=True, show=True, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
-    Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
+    Corrmap :footcite:p:`CamposViolaEtAl2009` identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
     a template IC, for example, the blink for the first subject, to identify
     specific ICs across subjects.
@@ -2485,26 +2826,25 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         and the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. Defaults to 'eeg'.
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
+    %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+
+        .. versionadded:: 1.2
+    %(extrapolate_topomap)s
+
+        .. versionadded:: 1.2
+    %(border_topomap)s
+
+        .. versionadded:: 1.2
+    %(cmap_topomap_simple)s
     plot : bool
         Should constructed template and selected maps be plotted? Defaults
         to True.
-    show : bool
-        Show figures if True.
-    %(topomap_outlines)s
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
-    cmap : None | matplotlib colormap
-        Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
-        otherwise to 'RdBu_r'.
-    %(topomap_sphere_auto)s
+    %(show)s
     %(verbose)s
 
     Returns
@@ -2513,6 +2853,10 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         Figure showing the template.
     labelled_ics : Figure
         Figure showing the labelled ICs in all ICA decompositions.
+
+    References
+    ----------
+    .. footbibliography::
     """
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
@@ -2551,12 +2895,11 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                 outlines=outlines, cmap=cmap, contours=contours,
                 show=show, topomap_args=dict(sphere=sphere))
         else:  # plotting an array
-            template_fig = _plot_corrmap([template], [0], [0], ch_type,
-                                         icas[0].copy(), "Template",
-                                         outlines=outlines, cmap=cmap,
-                                         contours=contours,
-                                         show=show, template=True,
-                                         sphere=sphere)
+            template_fig = _plot_corrmap(
+                [template], [0], [0], ch_type, icas[0].copy(), "Template",
+                outlines=outlines, cmap=cmap, contours=contours,
+                image_interp=image_interp, extrapolate=extrapolate,
+                border=border, show=show, template=True, sphere=sphere)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
@@ -2605,37 +2948,42 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if len(nones) == 0:
         logger.info('At least 1 IC detected for each subject.')
     else:
-        logger.info('No maps selected for subject%s %s, '
-                    'consider a more liberal threshold.'
-                    % (_pl(nones), nones))
+        logger.info(f'No maps selected for subject{_pl(nones)} {nones}, '
+                    'consider a more liberal threshold.')
 
     if plot is True:
-        labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
-                                     label, outlines=outlines, cmap=cmap,
-                                     contours=contours,
-                                     show=show, sphere=sphere)
+        labelled_ics = _plot_corrmap(
+            allmaps, subjs, indices, ch_type, ica, label, outlines=outlines,
+            cmap=cmap, sensors=sensors, contours=contours, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate,
+            border=border, show=show, show_names=show_names)
         return template_fig, labelled_ics
     else:
         return None
 
 
-def read_ica_eeglab(fname):
+@verbose
+def read_ica_eeglab(fname, *, verbose=None):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
     fname : str
         Complete path to a .set EEGLAB file that contains an ICA object.
+    %(verbose)s
 
     Returns
     -------
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
+    from scipy import linalg
     eeg = _check_load_mat(fname, None)
-    info = _get_info(eeg)[0]
+    info, eeg_montage, _ = _get_info(eeg)
+    info.set_montage(eeg_montage)
     pick_info(info, np.round(eeg['icachansind']).astype(int) - 1, copy=False)
 
+    rank = eeg.icasphere.shape[0]
     n_components = eeg.icaweights.shape[0]
 
     ica = ICA(method='imported_eeglab', n_components=n_components)
@@ -2643,24 +2991,38 @@ def read_ica_eeglab(fname):
     ica.current_fit = "eeglab"
     ica.ch_names = info["ch_names"]
     ica.n_pca_components = None
-    ica.max_pca_components = n_components
     ica.n_components_ = n_components
 
-    ica.pre_whitener_ = np.ones((len(eeg.icachansind), 1))
-    ica.pca_mean_ = np.zeros(len(eeg.icachansind))
-
     n_ch = len(ica.ch_names)
-    assert eeg.icaweights.shape == (n_components, n_ch)
-    if n_components < n_ch:
-        # When PCA reduction is used in EEGLAB, runica returns
-        # weights= weights*sphere*eigenvectors(:,1:ncomps)';
-        # sphere = eye(urchans), so let's use SVD to get our square
-        # weights matrix (u * s) and our PCA vectors (v) back
-        u, s, v = _safe_svd(eeg.icaweights, full_matrices=False)
-        ica.unmixing_matrix_ = u * s
-        ica.pca_components_ = v
-    else:
-        ica.unmixing_matrix_ = eeg.icaweights
-        ica.pca_components_ = eeg.icasphere
+    assert len(eeg.icachansind) == n_ch
+
+    ica.pre_whitener_ = np.ones((n_ch, 1))
+    ica.pca_mean_ = np.zeros(n_ch)
+
+    assert eeg.icasphere.shape[1] == n_ch
+    assert eeg.icaweights.shape == (n_components, rank)
+
+    # When PCA reduction is used in EEGLAB, runica returns
+    # weights= weights*sphere*eigenvectors(:,1:ncomps)';
+    # sphere = eye(urchans). When PCA reduction is not used, we have:
+    #
+    #     eeg.icawinv == pinv(eeg.icaweights @ eeg.icasphere)
+    #
+    # So in either case, we can use SVD to get our square whitened
+    # weights matrix (u * s) and our PCA vectors (v) back:
+    use = eeg.icaweights @ eeg.icasphere
+    use_check = linalg.pinv(eeg.icawinv)
+    if not np.allclose(use, use_check, rtol=1e-6):
+        warn('Mismatch between icawinv and icaweights @ icasphere from EEGLAB '
+             'possibly due to ICA component removal, assuming icawinv is '
+             'correct')
+        use = use_check
+    u, s, v = _safe_svd(use, full_matrices=False)
+    ica.unmixing_matrix_ = u * s
+    ica.pca_components_ = v
+    ica.pca_explained_variance_ = s * s
+    ica.info = info
     ica._update_mixing_matrix()
+    ica._update_ica_names()
+    ica.reject_ = None
     return ica

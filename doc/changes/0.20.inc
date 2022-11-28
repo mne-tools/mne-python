@@ -9,8 +9,8 @@
 
 .. _changes_0_20:
 
-Version 0.20
-------------
+Version 0.20 (2020-03-27)
+-------------------------
 
 Changelog
 ~~~~~~~~~
@@ -65,7 +65,7 @@ Changelog
 
 - Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
 
-- Add option to :func:`mne.connectivity.spectral_connectivity` to compute corrected imaginary PLV by `Adonay Nunes`_
+- Add option to ``mne.connectivity.spectral_connectivity`` to compute corrected imaginary PLV by `Adonay Nunes`_
 
 - Add :func:`mne.SourceEstimate.estimate_snr` to estimate source-space SNR, by `Kaisu Lankinen`_ and `Padma Sundaram`_
 
@@ -154,7 +154,7 @@ Bug
 
 - Allow :func:`mne.channels.read_dig_hpts` to accept point categories (eg. EEG) to be specified in upper case by `Alex Gramfort`_.
 
-- Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
+- Fix a bug in ``mne.MixedSourceEstimate.plot_surface`` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
 
 - Fix ``method='eLORETA'`` in :func:`mne.minimum_norm.apply_inverse`, by `Eric Larson`_:
 
@@ -171,7 +171,7 @@ Bug
 
 - Fix bug in :func:`mne.compute_covariance` and :func:`mne.compute_raw_covariance` where biased normalization (based on degrees of freedom) was used and ``cov.nfree`` was not set properly by `Eric Larson`_
 
-- Fix :func:`mne.VectorSourceEstimate.normal` to account for cortical patch statistics using ``use_cps=True`` by `Eric Larson`_
+- Fix ``mne.VectorSourceEstimate.normal`` to account for cortical patch statistics using ``use_cps=True`` by `Eric Larson`_
 
 - Fix ``pick_ori='normal'`` for :func:`mne.minimum_norm.apply_inverse` when the inverse was computed with ``loose=1.`` and the forward solution was not in surface orientation, by `Eric Larson`_
 
@@ -233,7 +233,7 @@ Bug
 
 - Fix bug in :func:`mne.write_evokeds` where ``evoked.nave`` was not saved properly when multiple :class:`~mne.Evoked` instances were written to a single file, by `Eric Larson`_
 
-- Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled properly, by `Eric Larson`_
+- Fix bug in ``mne.preprocessing.mark_flat`` where acquisition skips were not handled properly, by `Eric Larson`_
 
 - Fix bug in :func:`mne.viz.plot_bem` where some sources were not plotted by `Jean-Remi King`_ and `Eric Larson`_
 
@@ -263,7 +263,7 @@ Bug
 
 - Fix the automatic scaling of the glyphs in :func:`mne.viz.plot_vector_source_estimates` by using 10% of the brain width, by `Guillaume Favelier`_
 
-- Fix handling of missing values (NaNs) in :func:`mne.time_frequency.psd_welch` by `Clemens Brunner`_
+- Fix handling of missing values (NaNs) in ``mne.time_frequency.psd_welch`` by `Clemens Brunner`_
 
 - Fix :class:`mne.decoding.LinearModel` to support the refitted estimator of ``GridSearchCV`` in ``sklearn`` by `Chun-Hui Li`_
 
@@ -348,7 +348,7 @@ API
 
 - :meth:`mne.io.Raw.pick_channels`, :meth:`mne.Epochs.pick_channels` and :meth:`mne.Evoked.pick_channels` now have an ``ordered`` parameter to enforce the ordering of the picked channels by `Marijn van Vliet`_
 
-- New methods :meth:`mne.Forward.pick_channels`, :meth:`mne.Covariance.pick_channels`, :meth:`mne.Info.pick_channels`, :meth:`mne.time_frequency.CrossSpectralDensity.pick_channels` by `Marijn van Vliet`_
+- New methods :meth:`mne.Forward.pick_channels`, :meth:`mne.Covariance.pick_channels`, ``mne.Info.pick_channels``, :meth:`mne.time_frequency.CrossSpectralDensity.pick_channels` by `Marijn van Vliet`_
 
 - New attributes ``mne.Forward.ch_names`` and ``mne.Info.ch_names`` by `Marijn van Vliet`_
 
@@ -356,7 +356,7 @@ API
 
 - Drop ``unit`` keyword argument from :func:`mne.channels.read_custom_montage`, as it was unused by `Richard Höchenberger`_
 
-- Deprecate ``mne.preprocessing.run_ica``, use :meth:`mne.preprocessing.ICA.detect_artifacts` instead by `Richard Höchenberger`_
+- Deprecate ``mne.preprocessing.run_ica``, use ``mne.preprocessing.ICA.detect_artifacts`` instead by `Richard Höchenberger`_
 
 Authors
 ~~~~~~~

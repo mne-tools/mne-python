@@ -8,10 +8,11 @@
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os
+import os.path as op
 
 from .constants import FIFF
 from .meas_info import _get_valid_units
@@ -52,6 +53,7 @@ def _check_orig_units(orig_units):
         remap_dict = dict()
         remap_dict['uv'] = 'µV'
         remap_dict['μv'] = 'µV'  # greek letter mu vs micro sign. use micro
+        remap_dict['\x83\xeav'] = 'µV'  # for shift-jis mu, use micro
         if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue
@@ -76,17 +78,18 @@ def _find_channels(ch_names, ch_type='EOG'):
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store."""
     one = np.asarray(one, dtype=data_view.dtype)
-    assert data_view.shape[1] == one.shape[1]
+    assert data_view.shape[1] == one.shape[1], (data_view.shape[1], one.shape[1])  # noqa: E501
     if mult is not None:
-        data_view[:] = np.dot(mult, one)
+        mult.ndim == one.ndim == 2
+        data_view[:] = mult @ one[idx]
     else:
+        assert cals is not None
         if isinstance(idx, slice):
             data_view[:] = one[idx]
         else:
             # faster than doing one = one[idx]
             np.take(one, idx, axis=0, out=data_view)
-        if cals is not None:
-            data_view *= cals
+        data_view *= cals
 
 
 def _blk_read_lims(start, stop, buf_len):
@@ -266,6 +269,8 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
                      'ch_name': ch_name, 'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
+        if coil_type == FIFF.FIFFV_COIL_EEG:
+            chan_info['loc'][:3] = np.nan
         chs.append(chan_info)
     return chs
 
@@ -295,16 +300,18 @@ def _synthesize_stim_channel(events, n_samples):
     return stim_channel
 
 
-def _construct_bids_filename(base, ext, part_idx):
+def _construct_bids_filename(base, ext, part_idx, validate=True):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
+    dirname = op.dirname(base)
+    base = op.basename(base)
     deconstructed_base = base.split('_')
-    bids_supported = ['meg', 'eeg', 'ieeg']
-    for mod in bids_supported:
-        if mod in deconstructed_base:
-            idx = deconstructed_base.index(mod)
-            modality = deconstructed_base.pop(idx)
-    base = '_'.join(deconstructed_base)
-    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, modality, ext)
-
+    if len(deconstructed_base) < 2 and validate:
+        raise ValueError('Filename base must end with an underscore followed '
+                         f'by the modality (e.g., _eeg or _meg), got {base}')
+    suffix = deconstructed_base[-1]
+    base = '_'.join(deconstructed_base[:-1])
+    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, suffix, ext)
+    if dirname:
+        use_fname = op.join(dirname, use_fname)
     return use_fname

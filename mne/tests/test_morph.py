@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 # Author: Tommy Clausner <Tommy.Clausner@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
+from inspect import signature
 
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_less, assert_allclose,
                            assert_array_equal)
 from scipy.spatial.distance import cdist
+from scipy.sparse import csr_matrix, eye as speye
 
 import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
@@ -17,16 +19,16 @@ from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
                  read_forward_solution, grade_to_vertices,
                  setup_volume_source_space, make_forward_solution,
                  make_sphere_model, make_ad_hoc_cov, VolVectorSourceEstimate,
-                 read_freesurfer_lut)
+                 get_volume_labels_from_aseg, read_freesurfer_lut)
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
+from mne._freesurfer import _get_mri_info_data, _get_atlas_values
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
-from mne.source_space import (get_volume_labels_from_aseg, _get_mri_info_data,
-                              _get_atlas_values, _add_interpolator)
-from mne.utils import (run_tests_if_main, requires_nibabel, check_version,
-                       requires_dipy, requires_h5py)
-from mne.fixes import _get_args
+from mne.source_space import _add_interpolator, _grid_interp
+from mne.transforms import quat_to_rot
+from mne.utils import (requires_nibabel, check_version, requires_version,
+                       requires_dipy, catch_logging, _record_warnings)
 
 # Setup paths
 
@@ -43,6 +45,7 @@ fname_vol_w = op.join(sample_dir,
                       'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_inv_surf = op.join(sample_dir,
                          'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 fname_fmorph = op.join(data_path, 'MEG', 'sample',
                        'fsaverage_audvis_trunc-meg')
 fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
@@ -64,7 +67,7 @@ def _real_vec_stc():
 
 def test_sourcemorph_consistency():
     """Test SourceMorph class consistency."""
-    assert _get_args(SourceMorph.__init__)[1:] == \
+    assert list(signature(SourceMorph.__init__).parameters)[1:-1] == \
         mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 
@@ -174,20 +177,23 @@ def test_xhemi_morph():
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('smooth, lower, upper, n_warn', [
-    (None, 0.959, 0.963, 0),
-    (3, 0.968, 0.971, 2),
-    ('nearest', 0.98, 0.99, 0),
+@pytest.mark.parametrize('smooth, lower, upper, n_warn, dtype', [
+    (None, 0.959, 0.963, 0, float),
+    (3, 0.968, 0.971, 2, complex),
+    ('nearest', 0.98, 0.99, 0, float),
 ])
-def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn):
+def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     """Test round-trip morphing yields similar STCs."""
     kwargs = dict(smooth=smooth, warn=True, subjects_dir=subjects_dir)
     stc = mne.read_source_estimate(fname_smorph)
+    if dtype is complex:
+        stc.data = 1j * stc.data
+        assert_array_equal(stc.data.real, 0.)
     if smooth == 'nearest' and not check_version('scipy', '1.3'):
         with pytest.raises(ValueError, match='required to use nearest'):
             morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
         return
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
     w = [ww for ww in w if 'vertices not included' in str(ww.message)]
     assert len(w) == n_warn
@@ -203,17 +209,36 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn):
     assert_power_preserved(stc, stc_back)
 
 
+@testing.requires_testing_data
+def test_surface_source_morph_shortcut():
+    """Test that our shortcut for smooth=0 works."""
+    stc = mne.read_source_estimate(fname_smorph)
+    morph_identity = compute_source_morph(
+        stc, 'sample', 'sample', spacing=stc.vertices, smooth=0,
+        subjects_dir=subjects_dir)
+    stc_back = morph_identity.apply(stc)
+    assert_allclose(stc_back.data, stc.data, rtol=1e-4)
+    abs_sum = morph_identity.morph_mat - speye(len(stc.data), format='csc')
+    abs_sum = np.abs(abs_sum.data).sum()
+    assert abs_sum < 1e-4
+
+
 def assert_power_preserved(orig, new, limits=(1., 1.05)):
     """Assert that the power is preserved during a round-trip morph."""
     __tracebackhide__ = True
-    power_ratio = np.linalg.norm(orig.data) / np.linalg.norm(new.data)
-    min_, max_ = limits
-    assert min_ < power_ratio < max_, 'Power ratio'
+    for kind in ('real', 'imag'):
+        numer = np.linalg.norm(getattr(orig.data, kind))
+        denom = np.linalg.norm(getattr(new.data, kind))
+        if numer == denom == 0.:  # no data of this type
+            continue
+        power_ratio = numer / denom
+        min_, max_ = limits
+        assert min_ < power_ratio < max_, f'Power ratio {kind} = {power_ratio}'
 
 
-@requires_h5py
+@requires_version('h5io')
 @testing.requires_testing_data
-def test_surface_vector_source_morph(tmpdir):
+def test_surface_vector_source_morph(tmp_path):
     """Test surface and vector source estimate morph."""
     inverse_operator_surf = read_inverse_operator(fname_inv_surf)
 
@@ -245,9 +270,9 @@ def test_surface_vector_source_morph(tmpdir):
     assert 'surface' in repr(source_morph_surf)
 
     # check loading and saving for surf
-    source_morph_surf.save(tmpdir.join('42.h5'))
+    source_morph_surf.save(tmp_path / '42.h5')
 
-    source_morph_surf_r = read_source_morph(tmpdir.join('42.h5'))
+    source_morph_surf_r = read_source_morph(tmp_path / '42.h5')
 
     assert (all([read == saved for read, saved in
                  zip(sorted(source_morph_surf_r.__dict__),
@@ -263,12 +288,12 @@ def test_surface_vector_source_morph(tmpdir):
         source_morph_surf.apply(stc_vol)
 
 
-@requires_h5py
+@requires_version('h5io')
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_volume_source_morph(tmpdir):
+def test_volume_source_morph_basic(tmp_path):
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
@@ -331,14 +356,14 @@ def test_volume_source_morph(tmpdir):
                              subjects_dir=subjects_dir)
 
     # two different ways of saving
-    source_morph_vol.save(tmpdir.join('vol'))
+    source_morph_vol.save(tmp_path / 'vol')
 
     # check loading
-    source_morph_vol_r = read_source_morph(tmpdir.join('vol-morph.h5'))
+    source_morph_vol_r = read_source_morph(tmp_path / 'vol-morph.h5')
 
     # check for invalid file name handling ()
     with pytest.raises(IOError, match='not found'):
-        read_source_morph(tmpdir.join('42'))
+        read_source_morph(tmp_path / '42')
 
     # check morph
     stc_vol_morphed = source_morph_vol.apply(stc_vol)
@@ -422,13 +447,6 @@ def test_volume_source_morph(tmpdir):
         source_morph_vol.apply(stc_surf)
 
     # src_to
-    # zooms=20 does not match src_to zooms (7)
-    with pytest.raises(ValueError, match='If src_to is provided, zooms shoul'):
-        source_morph_vol = compute_source_morph(
-            fwd['src'], subject_from='sample', src_to=fwd['src'],
-            subject_to='sample', subjects_dir=subjects_dir, **kwargs)
-    # hack the src_to "zooms" to make it seem like a pos=20. source space
-    fwd['src'][0]['src_mri_t']['trans'][:3, :3] = 0.02 * np.eye(3)
     source_morph_vol = compute_source_morph(
         fwd['src'], subject_from='sample', src_to=fwd['src'],
         subject_to='sample', subjects_dir=subjects_dir, **kwargs)
@@ -445,43 +463,73 @@ def test_volume_source_morph(tmpdir):
     with pytest.raises(ValueError, match=match):
         source_morph_vol.apply(stc_vol_bad)
 
+    # nifti outputs and stc equiv
+    img_vol = source_morph_vol.apply(stc_vol, output='nifti1')
+    img_vol_2 = stc_vol_2.as_volume(src=fwd['src'], mri_resolution=False)
+    assert_allclose(img_vol.affine, img_vol_2.affine)
+    img_vol = img_vol.get_fdata()
+    img_vol_2 = img_vol_2.get_fdata()
+    assert img_vol.shape == img_vol_2.shape
+    assert_allclose(img_vol, img_vol_2)
 
-@requires_h5py
+
+@requires_version('h5io')
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.parametrize('subject_from, subject_to, lower, upper', [
-    ('sample', 'fsaverage', 8.5, 9),
-    ('fsaverage', 'fsaverage', 7, 7.5),
-    ('sample', 'sample', 6, 7),
-])
+@pytest.mark.parametrize(
+    'subject_from, subject_to, lower, upper, dtype, morph_mat', [
+        ('sample', 'fsaverage', 5.9, 6.1, float, False),
+        ('fsaverage', 'fsaverage', 0., 0.1, float, False),
+        ('sample', 'sample', 0., 0.1, complex, False),
+        ('sample', 'sample', 0., 0.1, float, True),  # morph_mat
+        ('sample', 'fsaverage', 10, 12, float, True),  # morph_mat
+    ])
 def test_volume_source_morph_round_trip(
-        tmpdir, subject_from, subject_to, lower, upper):
+        tmp_path, subject_from, subject_to, lower, upper, dtype, morph_mat,
+        monkeypatch):
     """Test volume source estimate morph round-trips well."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
     src = dict()
-    if 'sample' in (subject_from, subject_to):
-        src['sample'] = mne.read_source_spaces(fname_vol)
-        src['sample'][0]['subject_his_id'] = 'sample'
-        assert src['sample'][0]['nuse'] == 4157
-    if 'fsaverage' in (subject_from, subject_to):
-        # Created to save space with:
-        #
-        # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
-        #               'fsaverage-inner_skull-bem.fif')
-        # src_fsaverage = mne.setup_volume_source_space(
-        #     'fsaverage', pos=7., bem=bem, mindist=0,
-        #     subjects_dir=subjects_dir, add_interpolator=False)
-        # mne.write_source_spaces(fname_fs_vol, src_fsaverage, overwrite=True)
-        #
-        # For speed we do it without the interpolator because it's huge.
-        src['fsaverage'] = mne.read_source_spaces(fname_fs_vol)
-        src['fsaverage'][0].update(
-            vol_dims=np.array([23, 29, 25]), seg_name='brain')
-        _add_interpolator(src['fsaverage'], True)
-        assert src['fsaverage'][0]['nuse'] == 6379
+    if morph_mat:
+        # ~1.5 minutes with pos=7. (4157 morphs!) for sample, so only test
+        # morph_mat computation mode with a few labels
+        label_names = sorted(get_volume_labels_from_aseg(fname_aseg))[1:2]
+        if 'sample' in (subject_from, subject_to):
+            src['sample'] = setup_volume_source_space(
+                'sample', subjects_dir=subjects_dir,
+                volume_label=label_names, mri=fname_aseg)
+            assert sum(s['nuse'] for s in src['sample']) == 12
+        if 'fsaverage' in (subject_from, subject_to):
+            src['fsaverage'] = setup_volume_source_space(
+                'fsaverage', subjects_dir=subjects_dir,
+                volume_label=label_names[:3], mri=fname_aseg_fs)
+            assert sum(s['nuse'] for s in src['fsaverage']) == 16
+    else:
+        assert not morph_mat
+        if 'sample' in (subject_from, subject_to):
+            src['sample'] = mne.read_source_spaces(fname_vol)
+            src['sample'][0]['subject_his_id'] = 'sample'
+            assert src['sample'][0]['nuse'] == 4157
+        if 'fsaverage' in (subject_from, subject_to):
+            # Created to save space with:
+            #
+            # bem = op.join(op.dirname(mne.__file__), 'data', 'fsaverage',
+            #               'fsaverage-inner_skull-bem.fif')
+            # src_fsaverage = mne.setup_volume_source_space(
+            #     'fsaverage', pos=7., bem=bem, mindist=0,
+            #     subjects_dir=subjects_dir, add_interpolator=False)
+            # mne.write_source_spaces(fname_fs_vol, src_fsaverage,
+            #                         overwrite=True)
+            #
+            # For speed we do it without the interpolator because it's huge.
+            src['fsaverage'] = mne.read_source_spaces(fname_fs_vol)
+            src['fsaverage'][0].update(
+                vol_dims=np.array([23, 29, 25]), seg_name='brain')
+            _add_interpolator(src['fsaverage'])
+            assert src['fsaverage'][0]['nuse'] == 6379
     src_to, src_from = src[subject_to], src[subject_from]
     del src
     # No SDR just for speed once everything works
@@ -491,40 +539,90 @@ def test_volume_source_morph_round_trip(
         src=src_from, src_to=src_to, subject_to=subject_to, **kwargs)
     morph_to_from = compute_source_morph(
         src=src_to, src_to=src_from, subject_to=subject_from, **kwargs)
-    use = np.linspace(0, src_from[0]['nuse'] - 1, 10).round().astype(int)
-    stc_from = VolSourceEstimate(
-        np.eye(src_from[0]['nuse'])[:, use], [src_from[0]['vertno']], 0, 1)
-    stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
+    nuse = sum(s['nuse'] for s in src_from)
+    assert nuse > 10
+    use = np.linspace(0, nuse - 1, 10).round().astype(int)
+    data = np.eye(nuse)[:, use]
+    if dtype is complex:
+        data = data * 1j
+    vertices = [s['vertno'] for s in src_from]
+    stc_from = VolSourceEstimate(data, vertices, 0, 1)
+    with catch_logging() as log:
+        stc_from_rt = morph_to_from.apply(
+            morph_from_to.apply(stc_from, verbose='debug'))
+    log = log.getvalue()
+    assert 'individual volume morph' in log
     maxs = np.argmax(stc_from_rt.data, axis=0)
-    src_rr = src_from[0]['rr'][src_from[0]['vertno']]
+    src_rr = np.concatenate([s['rr'][s['vertno']] for s in src_from])
     dists = 1000 * np.linalg.norm(src_rr[use] - src_rr[maxs], axis=1)
     mu = np.mean(dists)
-    assert lower <= mu < upper  # fsaverage=7.97; 25.4 without src_ras_t fix
+    # fsaverage=5.99; 7.97 without additional src_ras_t fix
+    # fsaverage=7.97; 25.4 without src_ras_t fix
+    assert lower <= mu < upper, f'round-trip distance {mu}'
     # check that pre_affine is close to identity when subject_to==subject_from
     if subject_to == subject_from:
         for morph in (morph_to_from, morph_from_to):
             assert_allclose(
                 morph.pre_affine.affine, np.eye(4), atol=1e-2)
-    # check that power is more or less preserved
-    ratio = stc_from.data.size / stc_from_rt.data.size
-    limits = ratio * np.array([1, 1.2])
-    stc_from.crop(0, 0)._data.fill(1.)
-    stc_from_rt = morph_to_from.apply(morph_from_to.apply(stc_from))
-    assert_power_preserved(stc_from, stc_from_rt, limits=limits)
+    # check that power is more or less preserved (labelizing messes with this)
+    if morph_mat:
+        if subject_to == 'fsaverage':
+            limits = (18, 18.5)
+        else:
+            limits = (7, 7.5)
+    else:
+        limits = (1, 1.2)
+    stc_from_unit = stc_from.copy().crop(0, 0)
+    stc_from_unit._data.fill(1.)
+    stc_from_unit_rt = morph_to_from.apply(morph_from_to.apply(stc_from_unit))
+    assert_power_preserved(stc_from_unit, stc_from_unit_rt, limits=limits)
+    if morph_mat:
+        fname = tmp_path / 'temp-morph.h5'
+        morph_to_from.save(fname)
+        morph_to_from = read_source_morph(fname)
+        assert morph_to_from.vol_morph_mat is None
+        morph_to_from.compute_vol_morph_mat(verbose=True)
+        morph_to_from.save(fname, overwrite=True)
+        morph_to_from = read_source_morph(fname)
+        assert isinstance(morph_to_from.vol_morph_mat, csr_matrix), 'csr'
+        # equivalence (plus automatic calling)
+        assert morph_from_to.vol_morph_mat is None
+        monkeypatch.setattr(mne.morph, '_VOL_MAT_CHECK_RATIO', 0.)
+        with catch_logging() as log:
+            with pytest.warns(RuntimeWarning, match=r'calling morph\.compute'):
+                stc_from_rt_lin = morph_to_from.apply(
+                    morph_from_to.apply(stc_from, verbose='debug'))
+        assert isinstance(morph_from_to.vol_morph_mat, csr_matrix), 'csr'
+        log = log.getvalue()
+        assert 'sparse volume morph matrix' in log
+        assert_allclose(stc_from_rt.data, stc_from_rt_lin.data)
+        del stc_from_rt_lin
+        stc_from_unit_rt_lin = morph_to_from.apply(
+            morph_from_to.apply(stc_from_unit))
+        assert_allclose(stc_from_unit_rt.data, stc_from_unit_rt_lin.data)
+        del stc_from_unit_rt_lin
+    del stc_from, stc_from_rt
     # before and after morph, check the proportion of vertices
     # that are inside and outside the brainmask.mgz
     brain = nib.load(op.join(subjects_dir, subject_from, 'mri', 'brain.mgz'))
     mask = _get_img_fdata(brain) > 0
     if subject_from == subject_to == 'sample':
-        for stc in [stc_from, stc_from_rt]:
+        for stc in [stc_from_unit, stc_from_unit_rt]:
             img = stc.as_volume(src_from, mri_resolution=True)
-            img = nib.Nifti1Image(_get_img_fdata(img)[:, :, :, 0], img.affine)
+            img = nib.Nifti1Image(  # abs to convert complex
+                np.abs(_get_img_fdata(img)[:, :, :, 0]), img.affine)
             img = _get_img_fdata(resample_from_to(img, brain, order=1))
             assert img.shape == mask.shape
             in_ = img[mask].astype(bool).mean()
             out = img[~mask].astype(bool).mean()
-            assert 0.97 < in_ < 0.98
-            assert out < 0.02
+            if morph_mat:
+                out_max = 0.001
+                in_min, in_max = 0.005, 0.007
+            else:
+                out_max = 0.02
+                in_min, in_max = 0.97, 0.98
+            assert out < out_max, f'proportion out of volume {out}'
+            assert in_min < in_ < in_max, f'proportion inside volume {in_}'
 
 
 @pytest.mark.slowtest
@@ -542,9 +640,11 @@ def test_morph_stc_dense():
                        [0, len(stc_to.times) - 1])
 
     # After dep change this to:
-    stc_to1 = compute_source_morph(
+    morph = compute_source_morph(
         subject_to=subject_to, spacing=3, smooth=12, src=stc_from,
-        subjects_dir=subjects_dir).apply(stc_from)
+        subjects_dir=subjects_dir, precompute=True)
+    assert morph.vol_morph_mat is None  # a no-op for surface
+    stc_to1 = morph.apply(stc_from)
     assert_allclose(stc_to.data, stc_to1.data, atol=1e-5)
 
     mean_from = stc_from.data.mean(axis=0)
@@ -584,7 +684,7 @@ def test_morph_stc_dense():
             spacing=6, subjects_dir=subjects_dir)
     del stc_to1
 
-    with pytest.raises(ValueError, match='smooth.* has to be at least 1'):
+    with pytest.raises(ValueError, match='smooth.* has to be at least 0'):
         compute_source_morph(
             stc_from, subject_from, subject_to, spacing=5, smooth=-1,
             subjects_dir=subjects_dir)
@@ -655,11 +755,11 @@ def test_morph_stc_sparse():
 @testing.requires_testing_data
 @pytest.mark.parametrize('sl, n_real, n_mri, n_orig', [
     # First and last should add up, middle can have overlap should be <= sum
-    (slice(0, 1), 37, 123, 8),
-    (slice(1, 2), 51, 225, 12),
-    (slice(0, 2), 88, 330, 20),
+    (slice(0, 1), 37, 138, 8),
+    (slice(1, 2), 51, 204, 12),
+    (slice(0, 2), 88, 324, 20),
 ])
-def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
+def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     """Test generating a source space from volume label."""
     import nibabel as nib
     n_use = (sl.stop - sl.start) // (sl.step or 1)
@@ -668,13 +768,12 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     evoked.pick_channels(evoked.ch_names[:306:8])
     evoked.info.normalize_proj()
     n_ch = len(evoked.ch_names)
-    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     lut, _ = read_freesurfer_lut()
-    label_names = sorted(get_volume_labels_from_aseg(aseg_fname))
+    label_names = sorted(get_volume_labels_from_aseg(fname_aseg))
     use_label_names = label_names[sl]
     src = setup_volume_source_space(
         'sample', subjects_dir=subjects_dir, volume_label=use_label_names,
-        mri=aseg_fname)
+        mri=fname_aseg)
     assert len(src) == n_use
     assert src.kind == 'volume'
     n_src = sum(s['nuse'] for s in src)
@@ -692,7 +791,7 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
     n_got_real = np.in1d(
         aseg_img.ravel(), [lut[name] for name in use_label_names]).sum()
     assert n_got_real == n_real
-    # - This was 291 on `master` before gh-5590
+    # - This was 291 on `main` before gh-5590
     # - Refactoring transforms it became 279 with a < 1e-8 change in vox_mri_t
     # - Dropped to 123 once nearest-voxel was used in gh-7653
     # - Jumped back up to 330 with morphing fixes actually correctly
@@ -705,7 +804,7 @@ def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
             src[0]['interpolator'] = None
         img = stc.as_volume(src, mri_resolution=False)
         n_on = np.array(img.dataobj).astype(bool).sum()
-        # was 20 on `master` before gh-5590
+        # was 20 on `main` before gh-5590
         # then 44 before gh-7653, which took it back to 20
         assert n_on == n_orig
     # without the interpolator, this should fail
@@ -747,6 +846,7 @@ def _mixed_morph_srcs():
 
 @requires_nibabel()
 @requires_dipy()
+@pytest.mark.slowtest
 @pytest.mark.parametrize('vector', (False, True))
 def test_mixed_source_morph(_mixed_morph_srcs, vector):
     """Test mixed source space morphing."""
@@ -780,7 +880,6 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
 
     # Now actually morph
     stc_fs = morph.apply(stc)
-    img = stc_fs.volume().as_volume(src_fs, mri_resolution=False)
     vol_info = _get_mri_info_data(fname_aseg_fs, data=True)
     rrs = np.concatenate([src_fs[2]['rr'][sp['vertno']] for sp in src_fs[2:]])
     n_want = np.in1d(_get_atlas_values(vol_info, rrs), ids).sum()
@@ -800,4 +899,102 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
     assert_allclose(stc_fs.data, stc_fs_2.data)
 
 
-run_tests_if_main()
+def _rand_affine(rng):
+    quat = rng.randn(3)
+    quat /= 5 * np.linalg.norm(quat)
+    affine = np.eye(4)
+    affine[:3, 3] = rng.randn(3) / 5.
+    affine[:3, :3] = quat_to_rot(quat)
+    return affine
+
+
+_shapes = (
+    (10, 10, 10),
+    (20, 5, 10),
+    (5, 10, 20),
+)
+_affines = (
+    [[2, 0, 0, 1],
+     [0, 0, 1, -1],
+     [0, -1, 0, 2],
+     [0, 0, 0, 1]],
+    np.eye(4),
+    np.eye(4)[[0, 2, 1, 3]],
+    'rand',
+)
+
+
+@requires_nibabel()
+@requires_version('dipy', '1.3')
+@pytest.mark.parametrize('from_shape', _shapes)
+@pytest.mark.parametrize('from_affine', _affines)
+@pytest.mark.parametrize('to_shape', _shapes)
+@pytest.mark.parametrize('to_affine', _affines)
+@pytest.mark.parametrize('order', [0, 1])
+@pytest.mark.parametrize('seed', [0, 1])
+def test_resample_equiv(from_shape, from_affine, to_shape, to_affine,
+                        order, seed):
+    """Test resampling equivalences."""
+    rng = np.random.RandomState(seed)
+    from_data = rng.randn(*from_shape)
+    is_rand = False
+    if isinstance(to_affine, str):
+        assert to_affine == 'rand'
+        to_affine = _rand_affine(rng)
+        is_rand = True
+    if isinstance(from_affine, str):
+        assert from_affine == 'rand'
+        from_affine = _rand_affine(rng)
+        is_rand = True
+    to_affine = np.array(to_affine, float)
+    assert to_affine.shape == (4, 4)
+    from_affine = np.array(from_affine, float)
+    assert from_affine.shape == (4, 4)
+    #
+    # 1. nibabel.processing.resample_from_to
+    #
+    # for a 1mm iso / 256 -> 5mm / 51 one sample takes ~486 ms
+    from nibabel.processing import resample_from_to
+    from nibabel.spatialimages import SpatialImage
+    start = np.linalg.norm(from_data)
+    got_nibabel = resample_from_to(
+        SpatialImage(from_data, from_affine),
+        (to_shape, to_affine), order=order).get_fdata()
+    end = np.linalg.norm(got_nibabel)
+    assert end > 0.05 * start  # not too much power lost
+    #
+    # 2. dipy.align.imaffine
+    #
+    # ~366 ms
+    import dipy.align.imaffine
+    interp = 'linear' if order == 1 else 'nearest'
+    got_dipy = dipy.align.imaffine.AffineMap(
+        None, to_shape, to_affine,
+        from_shape, from_affine).transform(
+            from_data, interpolation=interp, resample_only=True)
+    # XXX possibly some error in dipy or nibabel (/SciPy), or some boundary
+    # condition?
+    nib_different = (
+        (is_rand and order == 1) or
+        (from_affine[0, 0] == 2. and not
+         np.allclose(from_affine, to_affine))
+    )
+    nib_different = nib_different and not (
+        is_rand and from_affine[0, 0] == 2 and order == 0)
+    if nib_different:
+        assert not np.allclose(got_dipy, got_nibabel), 'nibabel fixed'
+    else:
+        assert_allclose(got_dipy, got_nibabel, err_msg='dipy<->nibabel')
+    #
+    # 3. mne.source_space._grid_interp
+    #
+    # ~339 ms
+    trans = np.linalg.inv(from_affine) @ to_affine  # to -> from
+    interp = _grid_interp(from_shape, to_shape, trans, order=order)
+    got_mne = np.asarray(
+        interp @ from_data.ravel(order='F')).reshape(to_shape, order='F')
+    if order == 1:
+        assert_allclose(got_mne, got_dipy, err_msg='MNE<->dipy')
+    else:
+        perc = 100 * np.isclose(got_mne, got_dipy).mean()
+        assert 83 < perc <= 100

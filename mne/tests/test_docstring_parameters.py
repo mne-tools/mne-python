@@ -1,22 +1,28 @@
+# -*- coding: utf-8 -*-
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
+
+import importlib
 import inspect
 from inspect import getsource
 import os.path as op
+from pathlib import Path
 from pkgutil import walk_packages
 import re
-import sys
-from unittest import SkipTest
 
 import pytest
 
 import mne
-from mne.utils import run_tests_if_main, requires_numpydoc, _pl
+from mne.utils import requires_numpydoc, _pl, _record_warnings
 
 public_modules = [
     # the list of modules users need to access for all functionality
     'mne',
+    'mne.baseline',
     'mne.beamformer',
+    'mne.channels',
     'mne.chpi',
-    'mne.connectivity',
     'mne.cov',
     'mne.cuda',
     'mne.datasets',
@@ -25,8 +31,10 @@ public_modules = [
     'mne.datasets.sample',
     'mne.decoding',
     'mne.dipole',
+    'mne.export',
     'mne.filter',
     'mne.forward',
+    'mne.gui',
     'mne.inverse_sparse',
     'mne.io',
     'mne.io.kit',
@@ -61,11 +69,9 @@ def _func_name(func, cls=None):
 
 # functions to ignore args / docstring of
 docstring_ignores = {
-    'mne.externals',
     'mne.fixes',
     'mne.io.write',
     'mne.io.meas_info.Info',
-    'mne.utils.docs.deprecated',
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
@@ -85,6 +91,9 @@ error_ignores = {
     # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
 }
+error_ignores_specific = {  # specific instances to skip
+    ('regress_artifact', 'SS05'),  # "Regress" is actually imperative
+}
 subclass_name_ignores = (
     (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
             'copy', 'popitem', 'get', 'items', 'fromkeys', 'clear'}),
@@ -99,9 +108,7 @@ def check_parameters_match(func, cls=None):
     from numpydoc.validate import validate
     name = _func_name(func, cls)
     skip = (not name.startswith('mne.') or
-            any(re.match(d, name) for d in docstring_ignores) or
-            'deprecation_wrapped' in getattr(
-                getattr(func, '__code__', None), 'co_name', ''))
+            any(re.match(d, name) for d in docstring_ignores))
     if skip:
         return list()
     if cls is not None:
@@ -110,7 +117,33 @@ def check_parameters_match(func, cls=None):
                 return list()
     incorrect = ['%s : %s : %s' % (name, err[0], err[1])
                  for err in validate(name)['errors']
-                 if err[0] not in error_ignores]
+                 if err[0] not in error_ignores and
+                 (name.split('.')[-1], err[0]) not in error_ignores_specific]
+    # Add a check that all public functions and methods that have "verbose"
+    # set the default verbose=None
+    if cls is None:
+        mod_or_class = importlib.import_module('.'.join(name.split('.')[:-1]))
+    else:
+        mod_or_class = importlib.import_module('.'.join(name.split('.')[:-2]))
+        mod_or_class = getattr(mod_or_class, cls.__name__.split('.')[-1])
+    callable_ = getattr(mod_or_class, name.split('.')[-1])
+    try:
+        sig = inspect.signature(callable_)
+    except ValueError as exc:
+        msg = str(exc)
+        # E   ValueError: no signature found for builtin type
+        #     <class 'mne.forward.forward.Forward'>
+        if inspect.isclass(callable_) and 'no signature found for buil' in msg:
+            pass
+        else:
+            raise
+    else:
+        if 'verbose' in sig.parameters:
+            verbose_default = sig.parameters['verbose'].default
+            if verbose_default is not None:
+                incorrect += [
+                    f'{name} : verbose default is not None, '
+                    f'got: {verbose_default}']
     return incorrect
 
 
@@ -119,21 +152,14 @@ def check_parameters_match(func, cls=None):
 def test_docstring_parameters():
     """Test module docstring formatting."""
     from numpydoc import docscrape
-    # skip modules that require mayavi if mayavi is not installed
-    public_modules_ = public_modules[:]
-    try:
-        import mayavi  # noqa: F401 analysis:ignore
-        public_modules_.append('mne.gui')
-    except ImportError:
-        pass
 
     incorrect = []
-    for name in public_modules_:
+    for name in public_modules:
         # Assert that by default we import all public names with `import mne`
         if name not in ('mne', 'mne.gui'):
             extra = name.split('.')[1]
             assert hasattr(mne, extra)
-        with pytest.warns(None):  # traits warnings
+        with _record_warnings():  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
@@ -147,7 +173,8 @@ def test_docstring_parameters():
                 method = getattr(cls, method_name)
                 incorrect += check_parameters_match(method, cls=cls)
             if hasattr(cls, '__call__') and \
-                    'of type object' not in str(cls.__call__):
+                    'of type object' not in str(cls.__call__) and \
+                    'of ABCMeta object' not in str(cls.__call__):
                 incorrect += check_parameters_match(cls.__call__, cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
@@ -163,29 +190,14 @@ def test_docstring_parameters():
 
 def test_tabs():
     """Test that there are no tabs in our source files."""
-    # avoid importing modules that require mayavi if mayavi is not installed
-    ignore = tab_ignores[:]
-    try:
-        import mayavi  # noqa: F401 analysis:ignore
-    except ImportError:
-        ignore.extend('mne.gui.' + name for name in
-                      ('_coreg_gui', '_fiducials_gui', '_file_traits', '_help',
-                       '_kit2fiff_gui', '_marker_gui', '_viewer'))
-
-    for importer, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
+    for _, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         # because we don't import e.g. mne.tests w/mne
-        if not ispkg and modname not in ignore:
-            # mod = importlib.import_module(modname)  # not py26 compatible!
+        if not ispkg and modname not in tab_ignores:
             try:
-                with pytest.warns(None):
-                    __import__(modname)
-            except Exception:  # can't import properly
+                mod = importlib.import_module(modname)
+            except Exception:  # e.g., mne.export not having pybv
                 continue
-            mod = sys.modules[modname]
-            try:
-                source = getsource(mod)
-            except IOError:  # user probably should have run "make clean"
-                continue
+            source = getsource(mod)
             assert '\t' not in source, ('"%s" has tabs, please remove them '
                                         'or add it to the ignore list'
                                         % modname)
@@ -213,7 +225,6 @@ adjust_axes
 apply_maxfilter
 apply_trans
 channel_type
-check_n_jobs
 combine_kit_markers
 combine_tfr
 combine_transforms
@@ -243,7 +254,6 @@ plot_epochs_psd_topomap
 plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
-read_bad_channels
 read_fiducials
 read_tag
 rescale
@@ -258,33 +268,31 @@ write_info
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    # skip modules that require mayavi if mayavi is not installed
-    public_modules_ = public_modules[:]
-    try:
-        import mayavi  # noqa: F401, analysis:ignore
-    except ImportError:
-        pass
-    else:
-        public_modules_.append('mne.gui')
-
-    doc_file = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc',
-                                  'python_reference.rst'))
+    doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
+    doc_file = op.join(doc_dir, 'python_reference.rst')
     if not op.isfile(doc_file):
-        raise SkipTest('Documentation file not found: %s' % doc_file)
+        pytest.skip('Documentation file not found: %s' % doc_file)
+    api_files = (
+        'covariance', 'creating_from_arrays', 'datasets',
+        'decoding', 'events', 'file_io', 'forward', 'inverse', 'logging',
+        'most_used_classes', 'mri', 'preprocessing', 'reading_raw_data',
+        'realtime', 'report', 'sensor_space', 'simulation', 'source_space',
+        'statistics', 'time_frequency', 'visualization', 'export')
     known_names = list()
-    with open(doc_file, 'rb') as fid:
-        for line in fid:
-            line = line.decode('utf-8')
-            if not line.startswith('  '):  # at least two spaces
-                continue
-            line = line.split()
-            if len(line) == 1 and line[0] != ':':
-                known_names.append(line[0].split('.')[-1])
+    for api_file in api_files:
+        with open(op.join(doc_dir, f'{api_file}.rst'), 'rb') as fid:
+            for line in fid:
+                line = line.decode('utf-8')
+                if not line.startswith('  '):  # at least two spaces
+                    continue
+                line = line.split()
+                if len(line) == 1 and line[0] != ':':
+                    known_names.append(line[0].split('.')[-1])
     known_names = set(known_names)
 
     missing = []
-    for name in public_modules_:
-        with pytest.warns(None):  # traits warnings
+    for name in public_modules:
+        with _record_warnings():  # traits warnings
             module = __import__(name, globals())
         for submod in name.split('.')[1:]:
             module = getattr(module, submod)
@@ -295,10 +303,10 @@ def test_documented():
             if not name.startswith('_') and name not in known_names:
                 from_mod = inspect.getmodule(cf).__name__
                 if (from_mod.startswith('mne') and
-                        not from_mod.startswith('mne.externals') and
                         not any(from_mod.startswith(x)
                                 for x in documented_ignored_mods) and
-                        name not in documented_ignored_names):
+                        name not in documented_ignored_names and
+                        not hasattr(cf, '_deprecated_original')):
                     missing.append('%s (%s.%s)' % (name, from_mod, name))
     if len(missing) > 0:
         raise AssertionError('\n\nFound new public members missing from '
@@ -306,4 +314,17 @@ def test_documented():
                              '\n* '.join(sorted(set(missing))))
 
 
-run_tests_if_main()
+def test_docdict_order():
+    """Test that docdict is alphabetical."""
+    from mne.utils.docs import docdict
+
+    # read the file as text, and get entries via regex
+    docs_path = Path(__file__).parent.parent / 'utils' / 'docs.py'
+    assert docs_path.is_file(), docs_path
+    with open(docs_path, 'r', encoding='UTF-8') as fid:
+        docs = fid.read()
+    entries = re.findall(r'docdict\[["\'](.+)["\']\] = ', docs)
+    # test length & uniqueness
+    assert len(docdict) == len(entries)
+    # test order
+    assert sorted(entries) == entries

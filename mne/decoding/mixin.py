@@ -6,17 +6,17 @@ class TransformerMixin(object):
     def fit_transform(self, X, y=None, **fit_params):
         """Fit to data, then transform it.
 
-        Fits transformer to X and y with optional parameters fit_params
-        and returns a transformed version of X.
+        Fits transformer to ``X`` and ``y`` with optional parameters
+        ``fit_params``, and returns a transformed version of ``X``.
 
         Parameters
         ----------
         X : array, shape (n_samples, n_features)
             Training set.
         y : array, shape (n_samples,)
-            Target values.
+            Target values or class labels.
         **fit_params : dict
-            Additional fitting parameters passed to ``self.fit``.
+            Additional fitting parameters passed to the ``fit`` method..
 
         Returns
         -------

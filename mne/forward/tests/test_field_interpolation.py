@@ -1,4 +1,5 @@
 from os import path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.polynomial import legendre
@@ -18,7 +19,6 @@ from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import testing
 from mne import read_evokeds, pick_types, make_fixed_length_events, Epochs
 from mne.io import read_raw_fif
-from mne.utils import run_tests_if_main
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -40,8 +40,8 @@ def test_field_map_ctf():
     events = make_fixed_length_events(raw, duration=0.5)
     evoked = Epochs(raw, events).average()
     evoked.pick_channels(evoked.ch_names[:50])  # crappy mapping but faster
-    # smoke test
-    make_field_map(evoked, trans=trans_fname, subject='sample',
+    # smoke test - passing trans_fname as pathlib.Path as additional check
+    make_field_map(evoked, trans=Path(trans_fname), subject='sample',
                    subjects_dir=subjects_dir)
 
 
@@ -193,7 +193,7 @@ def test_make_field_map_meeg():
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     maps = make_field_map(evoked, trans_fname, subject='sample',
-                          subjects_dir=subjects_dir, n_jobs=1, verbose='debug')
+                          subjects_dir=subjects_dir, verbose='debug')
     assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]['data'].shape, (304, 31))  # MEG->Helmet
     # reasonable ranges
@@ -213,7 +213,7 @@ def test_make_field_map_meeg():
 def _setup_args(info):
     """Configure args for test_as_meg_type_evoked."""
     coils = _create_meg_coils(info['chs'], 'normal', info['dev_head_t'])
-    int_rad, noise, lut_fun, n_fact = _setup_dots('fast', coils, 'meg')
+    int_rad, _, lut_fun, n_fact = _setup_dots('fast', info, coils, 'meg')
     my_origin = np.array([0., 0., 0.04])
     args_dict = dict(intrad=int_rad, volume=False, coils1=coils, r0=my_origin,
                      ch_type='meg', lut=lut_fun, n_fact=n_fact)
@@ -274,6 +274,3 @@ def test_as_meg_type_evoked():
     virt_epochs = virt_epochs.as_type('mag')
     assert (all(ch.endswith('_v') for ch in virt_epochs.info['ch_names']))
     assert_allclose(virt_epochs.get_data().mean(0), virt_evoked.data)
-
-
-run_tests_if_main()

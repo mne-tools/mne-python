@@ -1,6 +1,6 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -17,7 +17,7 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
 from mne.io.pick import pick_channels_cov
 from mne.cov import regularize, whiten_evoked
-from mne.utils import run_tests_if_main, catch_logging, check_version
+from mne.utils import catch_logging, check_version
 
 data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
@@ -58,7 +58,8 @@ def test_simulate_evoked():
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
     evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                             iir_filter=iir_filter, nave=nave)
+                             iir_filter=iir_filter, nave=nave,
+                             random_state=0)
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd['sol']['data'])
     assert_equal(evoked.nave, nave)
@@ -71,7 +72,7 @@ def test_simulate_evoked():
     mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
     stc_bad.vertices[0][0] = mv + 1
 
-    pytest.raises(RuntimeError, simulate_evoked, fwd, stc_bad,
+    pytest.raises(ValueError, simulate_evoked, fwd, stc_bad,
                   evoked_template.info, cov)
     evoked_1 = simulate_evoked(fwd, stc, evoked_template.info, cov,
                                nave=np.inf)
@@ -142,7 +143,8 @@ def test_rank_deficiency():
     # See gh-5940
     evoked = read_evokeds(ave_fname, 0, baseline=(None, 0))
     evoked.info['bads'] = ['MEG 2443']
-    evoked.info['lowpass'] = 20  # fake for decim
+    with evoked.info._unlock():
+        evoked.info['lowpass'] = 20  # fake for decim
     picks = pick_types(evoked.info, meg=True, eeg=False)
     picks = picks[::16]
     evoked.pick_channels([evoked.ch_names[pick] for pick in picks])
@@ -152,7 +154,7 @@ def test_rank_deficiency():
     cov = regularize(cov, evoked.info, rank=None)
     cov = pick_channels_cov(cov, evoked.ch_names)
     evoked.data[:] = 0
-    add_noise(evoked, cov)
+    add_noise(evoked, cov, random_state=0)
     cov_new = compute_covariance(
         EpochsArray(evoked.data[np.newaxis], evoked.info), verbose='error')
     assert cov['names'] == cov_new['names']
@@ -160,4 +162,23 @@ def test_rank_deficiency():
     assert r > 0.98
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_order():
+    """Test that order does not matter."""
+    fwd = read_forward_solution(fwd_fname)
+    fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=False)
+    evoked = read_evokeds(ave_fname)[0].pick_types(meg=True, eeg=True)
+    assert 'meg' in evoked
+    assert 'eeg' in evoked
+    meg_picks = pick_types(evoked.info, meg=True)
+    eeg_picks = pick_types(evoked.info, eeg=True)
+    # MEG then EEG
+    assert (eeg_picks > meg_picks.max()).all()
+    times = np.arange(10) / 1000.
+    stc = simulate_sparse_stc(fwd['src'], 1, times=times, random_state=0)
+    evoked_sim = simulate_evoked(fwd, stc, evoked.info, nave=np.inf)
+    reorder = np.concatenate([eeg_picks, meg_picks])
+    evoked.reorder_channels([evoked.ch_names[pick] for pick in reorder])
+    evoked_sim_2 = simulate_evoked(fwd, stc, evoked.info, nave=np.inf)
+    want_data = evoked_sim.data[reorder]
+    assert_allclose(evoked_sim_2.data, want_data)

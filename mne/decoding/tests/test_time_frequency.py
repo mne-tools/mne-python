@@ -1,6 +1,6 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 import numpy as np
@@ -22,6 +22,11 @@ def test_timefrequency():
     for output in ['avg_power', 'foo', None]:
         pytest.raises(ValueError, TimeFrequency, freqs, output=output)
     tf = clone(tf)
+
+    # Clone estimator
+    freqs_array = np.array(np.asarray(freqs))
+    tf = TimeFrequency(freqs_array, 100, "morlet", freqs_array / 5.)
+    clone(tf)
 
     # Fit
     n_epochs, n_chans, n_times = 10, 2, 100

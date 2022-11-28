@@ -3,7 +3,7 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #         Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 from os import path
 
 import numpy as np
@@ -11,6 +11,7 @@ import numpy as np
 from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
+from .._digitization import _make_dig_points
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
 from ..meas_info import _empty_info
 from ..base import BaseRaw
@@ -167,8 +168,6 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
 
 def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     """Read the cnt header."""
-    # XXX stim_channel_toggle is used because stim_channel was in use already
-
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -300,10 +299,13 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                       FIFF.FIFFV_EEG_CH, eog, ecg, emg, misc)
     eegs = [idx for idx, ch in enumerate(chs) if
             ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
-    # XXX this should probably use mne.transforms._topo_to_sph and _sph_to_cart
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords
+    dig = _make_dig_points(
+        dig_ch_pos=dict(zip(ch_names, coords)),
+        coord_frame="head", add_missing_fiducials=True,
+    )
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
 
@@ -311,9 +313,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                     n_bytes=n_bytes)
 
     session_label = None if str(session_label) == '' else str(session_label)
-    info.update(meas_date=meas_date,
+    info.update(meas_date=meas_date, dig=dig,
                 description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
+    info._unlocked = False
     info._update_redundant()
     return info, cnt_info
 
@@ -402,36 +405,35 @@ class RawCNT(BaseRaw):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
         n_channels = self._raw_extras[fi]['orig_nchan']
         if 'stim_channel' in self._raw_extras[fi]:
-            n_channels = n_channels - 1  # Stim channel already read.
+            f_channels = n_channels - 1  # Stim channel already read.
             stim_ch = self._raw_extras[fi]['stim_channel']
+        else:
+            f_channels = n_channels
+            stim_ch = None
 
         channel_offset = self._raw_extras[fi]['channel_offset']
         baselines = self._raw_extras[fi]['baselines']
         n_bytes = self._raw_extras[fi]['n_bytes']
         dtype = '<i4' if n_bytes == 4 else '<i2'
-        chunk_size = channel_offset * n_channels  # Size of chunks in file.
+        chunk_size = channel_offset * f_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
         # channel_offset determines the amount of successive samples.
         # Here we use sample offset to align the data because start can be in
         # the middle of these blocks.
-        data_left = (stop - start) * n_channels
+        data_left = (stop - start) * f_channels
         # Read up to 100 MB of data at a time, block_size is in data samples
         block_size = ((int(100e6) // n_bytes) // chunk_size) * chunk_size
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            fid.seek(900 + n_channels * (75 + (start - s_offset) * n_bytes))
+            fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left,
-                                          block_size) // n_channels:
-                sample_stop = sample_start + min((block_size // n_channels,
-                                                  data_left // n_channels -
+                                          block_size) // f_channels:
+                sample_stop = sample_start + min((block_size // f_channels,
+                                                  data_left // f_channels -
                                                   sample_start))
                 n_samps = sample_stop - sample_start
-
-                if 'stim_channel' in self._raw_extras[fi]:
-                    data_ = np.empty((n_channels + 1, n_samps))
-                else:
-                    data_ = np.empty((n_channels, n_samps))
+                one = np.zeros((n_channels, n_samps))
 
                 # In case channel offset and start time do not align perfectly,
                 # extra sample sets are read here to cover the desired time
@@ -444,31 +446,21 @@ class RawCNT(BaseRaw):
                 count = n_samps // channel_offset * chunk_size + extra_samps
                 n_chunks = count // chunk_size
                 samps = np.fromfile(fid, dtype=dtype, count=count)
-                samps = samps.reshape((n_chunks, n_channels, channel_offset),
+                samps = samps.reshape((n_chunks, f_channels, channel_offset),
                                       order='C')
 
                 # Intermediate shaping to chunk sizes.
-                if 'stim_channel' in self._raw_extras[fi]:
-                    block = np.zeros((n_channels + 1,
-                                      channel_offset * n_chunks))
-                else:
-                    block = np.zeros((n_channels, channel_offset * n_chunks))
-
+                block = np.zeros((n_channels, channel_offset * n_chunks))
                 for set_idx, row in enumerate(samps):  # Final shape.
                     block_slice = slice(set_idx * channel_offset,
                                         (set_idx + 1) * channel_offset)
-                    if 'stim_channel' in self._raw_extras[fi]:
-                        block[:-1, block_slice] = row
-                    else:
-                        block[:, block_slice] = row
-
-                block = block[idx, s_offset:n_samps + s_offset]
-                data_[idx] = block
+                    block[:f_channels, block_slice] = row
                 if 'stim_channel' in self._raw_extras[fi]:
                     _data_start = start + sample_start
                     _data_stop = start + sample_stop
-                    data_[-1] = stim_ch[_data_start:_data_stop]
+                    block[-1] = stim_ch[_data_start:_data_stop]
+                one[idx] = block[idx, s_offset:n_samps + s_offset]
 
-                data_[idx] -= baselines[idx][:, None]
-                _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
-                              cals, mult=None)
+                one[idx] -= baselines[idx][:, None]
+                _mult_cal_one(data[:, sample_start:sample_stop], one, idx,
+                              cals, mult)

@@ -1,14 +1,12 @@
-pytest!=4.6.0,<5.4
+# requirements for running tests (on top of environment.yml/requirements.txt)
+pytest
 pytest-cov
-pytest-mock
-pytest-sugar
 pytest-timeout
-pytest-xdist
+pytest-harvest
 flake8
-https://github.com/larsoner/flake8-array-spacing/archive/master.zip
-https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
-https://github.com/numpy/numpydoc/archive/master.zip
-https://github.com/codespell-project/codespell/archive/master.zip
+flake8-array-spacing
+numpydoc
+codespell
 pydocstyle
 check-manifest
 twine

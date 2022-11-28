@@ -1,7 +1,11 @@
 include *.rst
 include LICENSE.txt
+include SECURITY.md
 include requirements.txt
+include requirements_base.txt
+include requirements_hdf5.txt
 include requirements_testing.txt
+include requirements_testing_extra.txt
 include requirements_doc.txt
 include mne/__init__.py
 
@@ -18,6 +22,12 @@ recursive-include mne/data/image *
 recursive-include mne/data/fsaverage *
 include mne/datasets/_fsaverage/root.txt
 include mne/datasets/_fsaverage/bem.txt
+include mne/datasets/_infant/*.txt
+include mne/datasets/_phantom/*.txt
+include mne/data/dataset_checksums.txt
+include mne/data/eegbci_checksums.txt
+
+recursive-include mne/html_templates *.html.jinja
 
 recursive-include mne/channels/data/layouts *
 recursive-include mne/channels/data/montages *
@@ -28,13 +38,13 @@ recursive-include mne/gui/help *.json
 recursive-include mne/html *.js
 recursive-include mne/html *.css
 
+recursive-include mne/report *
+
 recursive-include mne/io/artemis123/resources *
 
 recursive-include mne mne/datasets *.csv
 include mne/io/edf/gdf_encodes.txt
 include mne/datasets/sleep_physionet/SHA1SUMS
-include mne/externals/tqdm/_tqdm/tqdm.1
-include mne/viz/_brain/tests/test.ipynb
 
 ### Exclude
 
@@ -49,11 +59,14 @@ exclude .coveragerc
 exclude *.yml
 exclude ignore_words.txt
 exclude .mailmap
+exclude codemeta.json
+exclude CITATION.cff
 recursive-exclude mne *.pyc
 
 recursive-exclude doc *
 recursive-exclude logo *
 
+exclude CONTRIBUTING.md
 exclude CODE_OF_CONDUCT.md
 exclude .github
 exclude .github/CONTRIBUTING.md
@@ -66,6 +79,7 @@ exclude .github/PULL_REQUEST_TEMPLATE.md
 # Test files
 
 recursive-exclude mne/io/tests/data *
+recursive-exclude mne/io/besa/tests/data *
 recursive-exclude mne/io/bti/tests/data *
 recursive-exclude mne/io/edf/tests/data *
 recursive-exclude mne/io/kit/tests/data *

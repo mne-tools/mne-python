@@ -1,7 +1,7 @@
 .. _changes_0_9:
 
-Version 0.9
------------
+Version 0.9 (2015-05-22)
+------------------------
 
 Changelog
 ~~~~~~~~~
@@ -88,7 +88,7 @@ Changelog
 
 - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
-- Add :meth:`mne.Report.add_bem_to_section`, :meth:`mne.Report.add_htmls_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
+- Add ``mne.Report.add_bem_to_section``, ``mne.Report.add_htmls_to_section`` methods to :class:`mne.Report` by `Teon Brooks`_
 
 - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 
@@ -180,7 +180,7 @@ API
 
 - Deprecated ``fmin, fmid, fmax`` in stc.plot and added ``clim`` by `Mark Wronkiewicz`_
 
-- Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_ `Eric Larson`_ and `Denis Engemann`_. As a consquence, ``Raw.plot_raw_psds`` has been deprecated.
+- Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_ `Eric Larson`_ and `Denis Engemann`_. As a consequence, ``Raw.plot_raw_psds`` has been deprecated.
 
 - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
   zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,

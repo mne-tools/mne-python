@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Test the compute_current_source_density function.
+"""Test the current source density and related functions.
 
 For each supported file format, implement a test.
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -17,13 +17,15 @@ from scipy.io import loadmat
 from scipy import linalg
 
 from mne.channels import make_dig_montage
-from mne import create_info, EvokedArray, pick_types
-from mne.io import read_raw_fif
+from mne import (create_info, EvokedArray, pick_types, Epochs, find_events,
+                 read_epochs)
+from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
-from mne.utils import object_diff, run_tests_if_main
+from mne.utils import object_diff
 from mne.datasets import testing
 
-from mne.preprocessing import compute_current_source_density
+from mne.preprocessing import (compute_current_source_density,
+                               compute_bridged_electrodes)
 
 data_path = op.join(testing.data_path(download=False), 'preprocessing')
 eeg_fname = op.join(data_path, 'test_eeg.mat')
@@ -140,6 +142,24 @@ def test_csd_degenerate(evoked_csd_sphere):
     with pytest.raises(TypeError):
         compute_current_source_density(evoked, copy=2, sphere=sphere)
 
+    # gh-7859
+    raw = RawArray(evoked.data, evoked.info)
+    epochs = Epochs(
+        raw, [[0, 0, 1]], tmin=0, tmax=evoked.times[-1] - evoked.times[0],
+        baseline=None, preload=False, proj=False)
+    epochs.drop_bad()
+    assert len(epochs) == 1
+    assert_allclose(epochs.get_data()[0], evoked.data)
+    with pytest.raises(RuntimeError, match='Computing CSD requires.*preload'):
+        compute_current_source_density(epochs)
+    epochs.load_data()
+    raw = compute_current_source_density(raw)
+    assert not np.allclose(raw.get_data(), evoked.data)
+    evoked = compute_current_source_density(evoked)
+    assert_allclose(raw.get_data(), evoked.data)
+    epochs = compute_current_source_density(epochs)
+    assert_allclose(epochs.get_data()[0], evoked.data)
+
 
 def test_csd_fif():
     """Test applying CSD to FIF data."""
@@ -156,7 +176,8 @@ def test_csd_fif():
 
     # reset the only things that should change, and assert objects are the same
     assert raw_csd.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_CSD
-    raw_csd.info['custom_ref_applied'] = 0
+    with raw_csd.info._unlock():
+        raw_csd.info['custom_ref_applied'] = 0
     for pick in picks:
         ch = raw_csd.info['chs'][pick]
         assert ch['coil_type'] == FIFF.FIFFV_COIL_EEG_CSD
@@ -166,4 +187,40 @@ def test_csd_fif():
     assert object_diff(raw.info, raw_csd.info) == ''
 
 
-run_tests_if_main()
+def test_csd_epochs(tmp_path):
+    """Test making epochs, saving to disk and loading."""
+    raw = read_raw_fif(raw_fname)
+    raw.pick_types(eeg=True, stim=True).load_data()
+    events = find_events(raw)
+    epochs = Epochs(raw, events, reject=dict(eeg=1e-4), preload=True)
+    epochs = compute_current_source_density(epochs)
+    epo_fname = tmp_path / 'test_csd_epo.fif'
+    epochs.save(epo_fname)
+    epochs2 = read_epochs(epo_fname, preload=True)
+    assert_allclose(epochs._data, epochs2._data)
+
+
+def test_compute_bridged_electrodes():
+    """Test computing bridged electrodes."""
+    # test I/O
+    raw = read_raw_fif(raw_fname).load_data()
+    raw.pick_types(meg=True)
+    with pytest.raises(RuntimeError, match='No EEG channels found'):
+        bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
+
+    # test output
+    epoch_duration = 3
+    raw = read_raw_fif(raw_fname).load_data()
+    idx0 = raw.ch_names.index('EEG 001')
+    idx1 = raw.ch_names.index('EEG 002')
+    raw._data[idx1] = raw._data[idx0]
+    bridged_idx, ed_matrix = compute_bridged_electrodes(
+        raw, epoch_duration=epoch_duration)
+    assert bridged_idx == [(idx0, idx1)]
+    picks = pick_types(raw.info, meg=False, eeg=True)
+    assert ed_matrix.shape == \
+        (raw.times.size // (epoch_duration * raw.info['sfreq']),
+         picks.size, picks.size)
+    picks = list(picks)
+    assert np.all(ed_matrix[:, picks.index(idx0), picks.index(idx1)] == 0)
+    assert np.all(np.isnan(ed_matrix[0][np.tril_indices(len(picks), -1)]))

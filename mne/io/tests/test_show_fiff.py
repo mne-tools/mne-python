@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 

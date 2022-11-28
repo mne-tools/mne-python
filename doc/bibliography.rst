@@ -1,3 +1,7 @@
+:orphan:
+
+.. _general_bibliography:
+
 General bibliography
 ====================
 

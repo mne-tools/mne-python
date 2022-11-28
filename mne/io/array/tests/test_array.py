@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -14,8 +14,8 @@ from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import run_tests_if_main
+from mne.io.meas_info import create_info
+from mne.io.pick import get_channel_type_constants
 from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
@@ -25,19 +25,23 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 def test_long_names():
     """Test long name support."""
     info = create_info(['a' * 15 + 'b', 'a' * 16], 1000., verbose='error')
-    data = np.empty((2, 1000))
+    data = np.zeros((2, 1000))
     raw = RawArray(data, info)
+    assert raw.ch_names == ['a' * 15 + 'b', 'a' * 16]
+    # and a way to get the old behavior
+    raw.rename_channels({k: k[:13] for k in raw.ch_names},
+                        allow_duplicates=True, verbose='error')
     assert raw.ch_names == ['a' * 13 + '-0', 'a' * 13 + '-1']
     info = create_info(['a' * 16] * 11, 1000., verbose='error')
-    data = np.empty((11, 1000))
+    data = np.zeros((11, 1000))
     raw = RawArray(data, info)
-    assert raw.ch_names == ['a' * 12 + '-%s' % ii for ii in range(11)]
+    assert raw.ch_names == ['a' * 16 + '-%s' % ii for ii in range(11)]
 
 
 def test_array_copy():
     """Test copying during construction."""
     info = create_info(1, 1000.)
-    data = np.empty((1, 1000))
+    data = np.zeros((1, 1000))
     # 'auto' (default)
     raw = RawArray(data, info)
     assert raw._data is data
@@ -82,8 +86,9 @@ def test_array_raw():
     types = list()
     for ci in range(101):
         types.extend(('grad', 'grad', 'mag'))
-    types.extend(['ecog', 'seeg', 'hbo'])  # really 3 meg channels
+    types.extend(['ecog', 'seeg', 'hbo'])  # really 4 meg channels
     types.extend(['stim'] * 9)
+    types.extend(['dbs'])  # really eeg channel
     types.extend(['eeg'] * 60)
     picks = np.concatenate([pick_types(raw.info, meg=True)[::20],
                             pick_types(raw.info, meg=False, stim=True),
@@ -101,7 +106,8 @@ def test_array_raw():
     types[-1] = 'eog'
     # default type
     info = create_info(ch_names, sfreq)
-    assert_equal(info['chs'][0]['kind'], _kind_dict['misc'][0])
+    assert_equal(info['chs'][0]['kind'],
+                 get_channel_type_constants()['misc']['kind'])
     # use real types
     info = create_info(ch_names, sfreq, types)
     raw2 = _test_raw_reader(RawArray, test_preloading=False,
@@ -137,7 +143,8 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(tmax=2., average=True, n_fft=1024, spatial_colors=False)
+    raw2.plot_psd(tmax=2., average=True, n_fft=1024,
+                  spatial_colors=False)
     plt.close('all')
 
     # epoching
@@ -172,6 +179,3 @@ def test_array_raw():
     raw.set_montage(montage)
     raw.plot_psd(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
-
-
-run_tests_if_main()

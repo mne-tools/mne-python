@@ -6,31 +6,27 @@
 # License: Simplified BSD
 
 import os
+import sys
 
 import pytest
 import numpy as np
 
-from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
-                                           skips_if_not_pyvista)
-
-
-@pytest.fixture
-def backend_mocker():
-    """Help to test set up 3d backend."""
-    from mne.viz.backends import renderer
-    del renderer.MNE_3D_BACKEND
-    yield
-    renderer.MNE_3D_BACKEND = None
+from mne.utils import run_subprocess
+from mne.viz import set_3d_backend, get_3d_backend, Figure3D
+from mne.viz.backends.renderer import _get_renderer
+from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
+from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 
 
 @pytest.mark.parametrize('backend', [
-    pytest.param('mayavi', marks=skips_if_not_mayavi),
-    pytest.param('pyvista', marks=skips_if_not_pyvista),
+    pytest.param('pyvistaqt', marks=skips_if_not_pyvistaqt),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
-def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
+def test_backend_environment_setup(backend, monkeypatch):
     """Test set up 3d backend based on env."""
     monkeypatch.setenv("MNE_3D_BACKEND", backend)
+    monkeypatch.setattr(
+        'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
     assert os.environ['MNE_3D_BACKEND'] == backend  # just double-check
 
     # reload the renderer to check if the 3d backend selection by
@@ -44,15 +40,16 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
 def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
-    # Mayavi actually needs something in the display to set the title
+    assert isinstance(fig, Figure3D)
     wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer.backend._check_3d_figure(fig)
-    renderer.backend._set_3d_view(figure=fig, azimuth=None, elevation=None,
-                                  focalpoint=(0., 0., 0.), distance=None)
-    renderer.backend._set_3d_title(figure=fig, title='foo')
+    renderer.set_3d_view(figure=fig, azimuth=None, elevation=None,
+                         focalpoint=(0., 0., 0.), distance=None)
+    renderer.set_3d_title(figure=fig, title='foo')
     renderer.backend._take_3d_screenshot(figure=fig)
-    renderer.backend._close_all()
+    renderer.close_3d_figure(fig)
+    renderer.close_all_3d_figures()
 
 
 def test_3d_backend(renderer):
@@ -82,7 +79,6 @@ def test_3d_backend(renderer):
         "tris": tet_indices
     }
 
-    qv_mode = "arrow"
     qv_color = 'blue'
     qv_scale = tet_size / 2.0
     qv_center = np.array([np.mean((sph_center[va, :],
@@ -102,8 +98,14 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer.backend._Renderer(size=win_size, bgcolor=win_color)
-    rend.set_interactive()
+    rend = renderer.create_3d_figure(
+        size=win_size,
+        bgcolor=win_color,
+        smooth_shading=True,
+        scene=False,
+    )
+    for interaction in ('terrain', 'trackball'):
+        rend.set_interaction(interaction)
 
     # use mesh
     mesh_data = rend.mesh(
@@ -126,27 +128,33 @@ def test_3d_backend(renderer):
                 scale=sph_scale, radius=1.0)
 
     # use quiver3d
-    rend.quiver3d(x=qv_center[:, 0],
-                  y=qv_center[:, 1],
-                  z=qv_center[:, 2],
-                  u=qv_dir[:, 0],
-                  v=qv_dir[:, 1],
-                  w=qv_dir[:, 2],
-                  color=qv_color,
-                  scale=qv_scale,
-                  scale_mode=qv_scale_mode,
-                  scalars=qv_scalars,
-                  mode=qv_mode)
+    kwargs = dict(
+        x=qv_center[:, 0],
+        y=qv_center[:, 1],
+        z=qv_center[:, 2],
+        u=qv_dir[:, 0],
+        v=qv_dir[:, 1],
+        w=qv_dir[:, 2],
+        color=qv_color,
+        scale=qv_scale,
+        scale_mode=qv_scale_mode,
+        scalars=qv_scalars,
+    )
+    for mode in ALLOWED_QUIVER_MODES:
+        rend.quiver3d(mode=mode, **kwargs)
+    with pytest.raises(ValueError, match='Invalid value'):
+        rend.quiver3d(mode='foo', **kwargs)
 
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]),
               destination=np.array([[0, 1, 0]]))
-    tube = rend.tube(origin=np.array([[1, 0, 0]]),
-                     destination=np.array([[1, 1, 0]]),
-                     scalars=np.array([[1.0, 1.0]]))
+    _, tube = rend.tube(origin=np.array([[1, 0, 0]]),
+                        destination=np.array([[1, 1, 0]]),
+                        scalars=np.array([[1.0, 1.0]]))
 
     # scalar bar
-    rend.scalarbar(source=tube, title="Scalar Bar")
+    rend.scalarbar(source=tube, title="Scalar Bar",
+                   bgcolor=[1, 1, 1])
 
     # use text
     rend.text2d(x_window=txt_x, y_window=txt_y, text=txt_text,
@@ -165,3 +173,49 @@ def test_get_3d_backend(renderer):
     orig_backend = renderer.MNE_3D_BACKEND
     assert renderer.get_3d_backend() == orig_backend
     assert renderer.get_3d_backend() == orig_backend
+
+
+def test_renderer(renderer, monkeypatch):
+    """Test that renderers are available on demand."""
+    backend = renderer.get_3d_backend()
+    cmd = [sys.executable, '-uc',
+           'import mne; mne.viz.create_3d_figure((800, 600), show=True); '
+           'backend = mne.viz.get_3d_backend(); '
+           'assert backend == %r, backend' % (backend,)]
+    monkeypatch.setenv('MNE_3D_BACKEND', backend)
+    run_subprocess(cmd)
+
+
+def test_set_3d_backend_bad(monkeypatch, tmp_path):
+    """Test that the error emitted when a bad backend name is used."""
+    match = "Allowed values are 'pyvistaqt' and 'notebook'"
+    with pytest.raises(ValueError, match=match):
+        set_3d_backend('invalid')
+
+    # gh-9607
+    def fail(x):
+        raise ModuleNotFoundError(x)
+    monkeypatch.setattr('mne.viz.backends.renderer._reload_backend', fail)
+    monkeypatch.setattr(
+        'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
+    match = 'Could not load any valid 3D.*\npyvistaqt: .*'
+    assert get_3d_backend() is None
+    with pytest.raises(RuntimeError, match=match):
+        _get_renderer()
+
+
+def test_3d_warning(renderer_pyvistaqt, monkeypatch):
+    """Test that warnings are emitted for old Mesa."""
+    fig = renderer_pyvistaqt.create_3d_figure((800, 600))
+    _is_mesa = renderer_pyvistaqt.backend._is_mesa
+    plotter = fig.plotter
+    good = 'OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)\n'  # noqa
+    bad = 'OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n'  # noqa
+    monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: good)
+    assert _is_mesa(plotter)
+    monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: bad)
+    with pytest.warns(RuntimeWarning, match=r'18\.3\.4 is too old'):
+        assert _is_mesa(plotter)
+    non = 'OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n'
+    monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: non)
+    assert not _is_mesa(plotter)

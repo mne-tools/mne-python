@@ -2,18 +2,17 @@
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
-from distutils.version import LooseVersion
 import itertools as itt
 from math import log
-import os
 
 import numpy as np
-from scipy import linalg, sparse
 
-from .io.write import start_file, end_file
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT, DEFAULTS)
+from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj, _read_proj, _write_proj)
@@ -24,7 +23,7 @@ from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
-from .io.meas_info import read_bad_channels, create_info
+from .io.meas_info import _read_bad_channels, create_info
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
@@ -32,11 +31,13 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
+from .evoked import EvokedArray
 from .rank import compute_rank
 from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
-                    _check_option, eigh)
+                    _check_option, eigh, fill_doc, _on_missing,
+                    _check_on_missing, _check_fname, _verbose_safe_false)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -63,12 +64,14 @@ def _get_tslice(epochs, tmin, tmax):
     return tslice
 
 
+@fill_doc
 class Covariance(dict):
     """Noise covariance matrix.
 
-    .. warning:: This class should not be instantiated directly, but
-                 instead should be created using a covariance reading or
-                 computation function.
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.Covariance(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Parameters
     ----------
@@ -90,6 +93,7 @@ class Covariance(dict):
         The method used to compute the covariance.
     loglik : float
         The log likelihood.
+    %(verbose)s
 
     Attributes
     ----------
@@ -110,8 +114,9 @@ class Covariance(dict):
     read_cov
     """
 
+    @verbose
     def __init__(self, data, names, bads, projs, nfree, eig=None, eigvec=None,
-                 method=None, loglik=None):
+                 method=None, loglik=None, *, verbose=None):
         """Init of covariance."""
         diag = (data.ndim == 1)
         projs = _check_projs(projs)
@@ -138,27 +143,24 @@ class Covariance(dict):
         """Number of degrees of freedom."""
         return self['nfree']
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save covariance matrix in a FIF file.
 
         Parameters
         ----------
         fname : str
             Output filename.
+        %(overwrite)s
+
+            .. versionadded:: 1.0
+        %(verbose)s
         """
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                           '_cov.fif', '_cov.fif.gz'))
-
-        fid = start_file(fname)
-
-        try:
+        fname = _check_fname(fname=fname, overwrite=overwrite)
+        with start_and_end_file(fname) as fid:
             _write_cov(fid, self)
-        except Exception:
-            fid.close()
-            os.remove(fname)
-            raise
-
-        end_file(fid)
 
     def copy(self):
         """Copy the Covariance object.
@@ -191,6 +193,14 @@ class Covariance(dict):
         self['data'] = np.diag(self['data'])
         self['eig'] = None
         self['eigvec'] = None
+        return self
+
+    def _as_square(self):
+        # This is a hack but it works because np.diag() behaves nicely
+        if self['diag']:
+            self['diag'] = False
+            self.as_diag()
+            self['diag'] = False
         return self
 
     def _get_square(self):
@@ -241,6 +251,89 @@ class Covariance(dict):
              show=True, verbose=None):
         return viz.misc.plot_cov(self, info, exclude, colorbar, proj, show_svd,
                                  show, verbose)
+
+    @verbose
+    def plot_topomap(
+            self, info, ch_type=None, *, scalings=None, proj=False,
+            noise_cov=None, sensors=True, show_names=False, mask=None,
+            mask_params=None, contours=6, outlines='head', sphere=None,
+            image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=True,
+            cbar_fmt='%3.1f', units=None, axes=None, show=True, verbose=None):
+        """Plot a topomap of the covariance diagonal.
+
+        Parameters
+        ----------
+        %(info_not_none)s
+        %(ch_type_topomap)s
+
+            .. versionadded:: 0.21
+        %(scalings_topomap)s
+        %(proj_plot)s
+        noise_cov : instance of Covariance | None
+            If not None, whiten the instance with ``noise_cov`` before
+            plotting.
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap)s
+
+            .. versionadded:: 1.2
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+        %(units_topomap_evoked)s
+        %(axes_cov_plot_topomap)s
+        %(show)s
+        %(verbose)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            The matplotlib figure.
+
+        Notes
+        -----
+        .. versionadded:: 0.21
+        """
+        from .viz.misc import _index_info_cov
+
+        info, C, _, _ = _index_info_cov(info, self, exclude=())
+        evoked = EvokedArray(np.diag(C)[:, np.newaxis], info)
+        if noise_cov is not None:
+            # need to left and right multiply whitener, which for the diagonal
+            # entries is the same as multiplying twice
+            evoked = whiten_evoked(whiten_evoked(evoked, noise_cov), noise_cov)
+            if units is None:
+                units = 'AU'
+            if scalings is None:
+                scalings = 1.
+        if units is None:
+            units = {k: f'({v})²' for k, v in DEFAULTS['units'].items()}
+        if scalings is None:
+            scalings = {k: v * v for k, v in DEFAULTS['scalings'].items()}
+        return evoked.plot_topomap(
+            times=[0], ch_type=ch_type, vlim=vlim, cmap=cmap,
+            sensors=sensors, cnorm=cnorm, colorbar=colorbar, scalings=scalings,
+            units=units, res=res, size=size, cbar_fmt=cbar_fmt,
+            proj=proj, show=show, show_names=show_names,
+            mask=mask, mask_params=mask_params, outlines=outlines,
+            contours=contours, image_interp=image_interp, axes=axes,
+            extrapolate=extrapolate, sphere=sphere, border=border,
+            time_format='')
 
     def pick_channels(self, ch_names, ordered=False):
         """Pick channels from this covariance matrix.
@@ -293,6 +386,7 @@ def read_cov(fname, verbose=None):
     """
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                       '_cov.fif', '_cov.fif.gz'))
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     f, tree = fiff_open(fname)[:2]
     with f as fid:
         return Covariance(**_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV,
@@ -303,13 +397,12 @@ def read_cov(fname, verbose=None):
 # Estimate from data
 
 @verbose
-def make_ad_hoc_cov(info, std=None, verbose=None):
+def make_ad_hoc_cov(info, std=None, *, verbose=None):
     """Create an ad hoc noise covariance.
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     std : dict of float | None
         Standard_deviation of the diagonal elements. If dict, keys should be
         ``'grad'`` for gradiometers, ``'mag'`` for magnetometers and ``'eeg'``
@@ -353,9 +446,9 @@ def _check_n_samples(n_samples, n_chan):
 @verbose
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
-                           method_params=None, cv=3, scalings=None, n_jobs=1,
-                           return_estimators=False, reject_by_annotation=True,
-                           rank=None, verbose=None):
+                           method_params=None, cv=3, scalings=None,
+                           n_jobs=None, return_estimators=False,
+                           reject_by_annotation=True, rank=None, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -425,13 +518,10 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         method equals 'auto' or is a list of str. Defaults to False.
 
         .. versionadded:: 0.12
-    reject_by_annotation : bool
-        Whether to reject based on annotations. If True (default), epochs
-        overlapping with segments whose description begins with ``'bad'`` are
-        rejected. If False, no rejection based on annotations is performed.
+    %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -484,7 +574,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
         picks = _picks_to_idx(raw.info, picks)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
-                    picks=picks, reject=reject, flat=flat, verbose=False,
+                    picks=picks, reject=reject, flat=flat,
+                    verbose=_verbose_safe_false(),
                     preload=False, proj=False,
                     reject_by_annotation=reject_by_annotation)
     if method is None:
@@ -595,8 +686,9 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
-                       cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       on_mismatch='raise', rank=None, verbose=None):
+                       cv=3, scalings=None, n_jobs=None,
+                       return_estimators=False, on_mismatch='raise',
+                       rank=None, verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
@@ -638,9 +730,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         perform estimates using multiple methods.
         If 'auto' or a list of methods, the best estimator will be determined
         based on log-likelihood and cross-validation on unseen data as
-        described in [1]_. Valid methods are 'empirical', 'diagonal_fixed',
-        'shrunk', 'oas', 'ledoit_wolf', 'factor_analysis', 'shrinkage',
-        and 'pca' (see Notes). If ``'auto'``, it expands to::
+        described in :footcite:`EngemannGramfort2015`. Valid methods are
+        'empirical', 'diagonal_fixed', 'shrunk', 'oas', 'ledoit_wolf',
+        'factor_analysis', 'shrinkage', and 'pca' (see Notes). If ``'auto'``,
+        it expands to::
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
@@ -682,7 +775,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         unstable results in covariance calculation, e.g. when data
         have been processed with Maxwell filtering but not transformed
         to the same head position.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -722,9 +815,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
       .. versionadded:: 0.16
     * ``'ledoit_wolf'``
         The Ledoit-Wolf estimator, which uses an
-        empirical formula for the optimal shrinkage value [2]_.
+        empirical formula for the optimal shrinkage value
+        :footcite:`LedoitWolf2004`.
     * ``'oas'``
-        The OAS estimator [5]_, which uses a different
+        The OAS estimator :footcite:`ChenEtAl2010`, which uses a different
         empricial formula for the optimal shrinkage value.
 
       .. versionadded:: 0.16
@@ -732,9 +826,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         Like 'ledoit_wolf', but with cross-validation
         for optimal alpha.
     * ``'pca'``
-        Probabilistic PCA with low rank [3]_.
+        Probabilistic PCA with low rank :footcite:`TippingBishop1999`.
     * ``'factor_analysis'``
-        Factor analysis with low rank [4]_.
+        Factor analysis with low rank :footcite:`Barber2012`.
 
     ``'ledoit_wolf'`` and ``'pca'`` are similar to ``'shrunk'`` and
     ``'factor_analysis'``, respectively, except that they use
@@ -752,27 +846,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     The ``method`` parameter allows to regularize the covariance in an
     automated way. It also allows to select between different alternative
     estimation algorithms which themselves achieve regularization.
-    Details are described in [1]_.
+    Details are described in :footcite:`EngemannGramfort2015`.
 
     For more information on the advanced estimation methods, see
     :ref:`the sklearn manual <sklearn:covariance>`.
 
     References
     ----------
-    .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-           covariance estimation and spatial whitening of MEG and EEG
-           signals, vol. 108, 328-342, NeuroImage.
-    .. [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
-           large-dimensional covariance matrices. Journal of Multivariate
-           Analysis 88 (2), 365 - 411.
-    .. [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
-           component analysis. Journal of the Royal Statistical Society:
-           Series B (Statistical Methodology) 61 (3), 611 - 622.
-    .. [4] Barber, D., (2012). Bayesian reasoning and machine learning.
-           Cambridge University Press., Algorithm 21.1
-    .. [5] Chen et al. (2010). Shrinkage Algorithms for MMSE Covariance
-           Estimation. IEEE Trans. on Sign. Proc., Volume 58, Issue 10,
-           October 2010.
+    .. footbibliography::
     """
     # scale to natural unit for best stability with MEG/EEG
     scalings = _check_scalings_user(scalings)
@@ -802,7 +883,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
              'matrix may be inaccurate')
 
     orig = epochs[0].info['dev_head_t']
-    _check_option('on_mismatch', on_mismatch, ['raise', 'warn', 'ignore'])
+    _check_on_missing(on_mismatch, 'on_mismatch')
     for ei, epoch in enumerate(epochs):
         epoch.info._check_consistency()
         if (orig is None) != (epoch.info['dev_head_t'] is None) or \
@@ -812,10 +893,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             msg = ('MEG<->Head transform mismatch between epochs[0]:\n%s\n\n'
                    'and epochs[%s]:\n%s'
                    % (orig, ei, epoch.info['dev_head_t']))
-            if on_mismatch == 'raise':
-                raise ValueError(msg)
-            elif on_mismatch == 'warn':
-                warn(msg)
+            _on_missing(on_mismatch, msg, 'on_mismatch')
 
     bads = epochs[0].info['bads']
     if projs is None:
@@ -942,21 +1020,14 @@ def _eigvec_subspace(eig, eigvec, mask):
     return eig, eigvec
 
 
-def _get_iid_kwargs():
-    import sklearn
-    kwargs = dict()
-    if LooseVersion(sklearn.__version__) < LooseVersion('0.22'):
-        kwargs['iid'] = False
-    return kwargs
-
-
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
     orig_rank = rank
-    rank = compute_rank(RawArray(data.T, info, copy=None, verbose=False),
-                        rank, scalings, info)
+    rank = compute_rank(
+        RawArray(data.T, info, copy=None, verbose=_verbose_safe_false()),
+        rank, scalings, info)
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
         _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True,
@@ -1029,16 +1100,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 del sc
 
             elif method_ == 'shrunk':
-                try:
-                    from sklearn.model_selection import GridSearchCV
-                except Exception:  # support sklearn < 0.18
-                    from sklearn.grid_search import GridSearchCV
+                from sklearn.model_selection import GridSearchCV
                 from sklearn.covariance import ShrunkCovariance
                 shrinkage = mp.pop('shrinkage')
                 tuned_parameters = [{'shrinkage': shrinkage}]
                 shrinkages = []
                 gs = GridSearchCV(ShrunkCovariance(**mp),
-                                  tuned_parameters, cv=cv, **_get_iid_kwargs())
+                                  tuned_parameters, cv=cv)
                 for ch_type, picks in sub_picks_list:
                     gs.fit(data_[:, picks])
                     shrinkages.append((ch_type, gs.best_estimator_.shrinkage,
@@ -1108,11 +1176,7 @@ def _gaussian_loglik_scorer(est, X, y=None):
 
 def _cross_val(data, est, cv, n_jobs):
     """Compute cross validation."""
-    try:
-        from sklearn.model_selection import cross_val_score
-    except ImportError:
-        # XXX support sklearn < 0.18
-        from sklearn.cross_validation import cross_val_score
+    from sklearn.model_selection import cross_val_score
     return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
                                    scoring=_gaussian_loglik_scorer))
 
@@ -1182,9 +1246,11 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
-                 hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1, fnirs_od=0.1,
-                 csd=0.1, store_precision=False, assume_centered=False):
+    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1,
+                 ecog=0.1, hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1,
+                 fnirs_fd_ac_amplitude=0.1, fnirs_fd_phase=0.1, fnirs_od=0.1,
+                 csd=0.1, dbs=0.1, store_precision=False,
+                 assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
         # a single dictionary
@@ -1192,10 +1258,13 @@ class _RegCovariance(BaseEstimator):
         self.mag = mag
         self.eeg = eeg
         self.seeg = seeg
+        self.dbs = dbs
         self.ecog = ecog
         self.hbo = hbo
         self.hbr = hbr
         self.fnirs_cw_amplitude = fnirs_cw_amplitude
+        self.fnirs_fd_ac_amplitude = fnirs_fd_ac_amplitude
+        self.fnirs_fd_phase = fnirs_fd_phase
         self.fnirs_od = fnirs_od
         self.csd = csd
         self.store_precision = store_precision
@@ -1216,7 +1285,7 @@ class _RegCovariance(BaseEstimator):
         cov_ = regularize(
             cov_, self.info, proj=False, exclude='bads',
             grad=self.grad, mag=self.mag, eeg=self.eeg,
-            ecog=self.ecog, seeg=self.seeg,
+            ecog=self.ecog, seeg=self.seeg, dbs=self.dbs,
             hbo=self.hbo, hbr=self.hbr, rank='full')
         self.estimator_.covariance_ = self.covariance_ = cov_.data
         return self
@@ -1303,7 +1372,8 @@ class _ShrunkCovariance(BaseEstimator):
 ###############################################################################
 # Writing
 
-def write_cov(fname, cov):
+@verbose
+def write_cov(fname, cov, *, overwrite=False, verbose=None):
     """Write a noise covariance matrix.
 
     Parameters
@@ -1312,12 +1382,16 @@ def write_cov(fname, cov):
         The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
         The noise covariance matrix.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
+    %(verbose)s
 
     See Also
     --------
     read_cov
     """
-    cov.save(fname)
+    cov.save(fname, overwrite=overwrite, verbose=verbose)
 
 
 ###############################################################################
@@ -1353,19 +1427,18 @@ def _get_ch_whitener(A, pca, ch_type, rank):
 
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
-                      scalings=None, verbose=None):
+                      scalings=None, on_rank_mismatch='ignore', verbose=None):
     """Prepare noise covariance matrix.
 
     Parameters
     ----------
     noise_cov : instance of Covariance
         The noise covariance to process.
-    info : dict
-        The measurement info (used to get channel types and bad channels).
+    %(info_not_none)s (Used to get channel types and bad channels).
     ch_names : list | None
         The channel names to be considered. Can be None to use
         ``info['ch_names']``.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -1374,6 +1447,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
+    %(on_rank_mismatch)s
     %(verbose)s
 
     Returns
@@ -1405,7 +1479,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         loglik=noise_cov.get('loglik', None))
 
     eig, eigvec, _ = _smart_eigh(noise_cov, info, rank, scalings, projs,
-                                 ch_names)
+                                 ch_names, on_rank_mismatch=on_rank_mismatch)
     noise_cov.update(eig=eig, eigvec=eigvec)
     return noise_cov
 
@@ -1413,7 +1487,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
 @verbose
 def _smart_eigh(C, info, rank, scalings=None, projs=None,
                 ch_names=None, proj_subspace=False, do_compute_rank=True,
-                verbose=None):
+                on_rank_mismatch='ignore', verbose=None):
     """Compute eigh of C taking into account rank and ch_type scalings."""
     scalings = _handle_default('scalings_cov_rank', scalings)
     projs = info['projs'] if projs is None else projs
@@ -1435,7 +1509,8 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 
     noise_cov = Covariance(C, ch_names, [], projs, 0)
     if do_compute_rank:  # if necessary
-        rank = compute_rank(noise_cov, rank, scalings, info)
+        rank = compute_rank(
+            noise_cov, rank, scalings, info, on_rank_mismatch=on_rank_mismatch)
     assert C.ndim == 2 and C.shape[0] == C.shape[1]
 
     # time saving short-circuit
@@ -1447,7 +1522,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
     eigvec = np.zeros((n_chan, n_chan), dtype)
     mask = np.zeros(n_chan, bool)
     for ch_type, picks in _picks_by_type(info, meg_combined=True,
-                                         ref_meg=False, exclude='bads'):
+                                         ref_meg=False, exclude=[]):
         if len(picks) == 0:
             continue
         this_C = C[np.ix_(picks, picks)]
@@ -1464,7 +1539,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
         # XXX : also handle ref for sEEG and ECoG
         if ch_type == 'eeg' and _needs_eeg_average_ref_proj(info) and not \
-                _has_eeg_average_ref_proj(projs):
+                _has_eeg_average_ref_proj(info, projs=projs):
             warn('No average EEG reference present in info["projs"], '
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '
@@ -1475,7 +1550,8 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
-               fnirs_cw_amplitude=0.1, fnirs_od=0.1, csd=0.1,
+               fnirs_cw_amplitude=0.1, fnirs_fd_ac_amplitude=0.1,
+               fnirs_fd_phase=0.1, fnirs_od=0.1, csd=0.1, dbs=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1494,8 +1570,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     ----------
     cov : Covariance
         The noise covariance matrix.
-    info : dict
-        The measurement info (used to get channel types and bad channels).
+    %(info_not_none)s (Used to get channel types and bad channels).
     mag : float (default 0.1)
         Regularization factor for MEG magnetometers.
     grad : float (default 0.1)
@@ -1517,12 +1592,18 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
     fnirs_cw_amplitude : float (default 0.1)
-        Regularization factor for fNIRS raw signals.
+        Regularization factor for fNIRS CW raw signals.
+    fnirs_fd_ac_amplitude : float (default 0.1)
+        Regularization factor for fNIRS FD AC raw signals.
+    fnirs_fd_phase : float (default 0.1)
+        Regularization factor for fNIRS raw phase signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
     csd : float (default 0.1)
         Regularization factor for EEG-CSD signals.
-    %(rank_None)s
+    dbs : float (default 0.1)
+        Regularization factor for DBS signals.
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -1544,12 +1625,14 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     --------
     mne.compute_covariance
     """  # noqa: E501
+    from scipy import linalg
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default('scalings_cov_rank', scalings)
-    regs = dict(eeg=eeg, seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr,
+    regs = dict(eeg=eeg, seeg=seeg, dbs=dbs, ecog=ecog, hbo=hbo, hbr=hbr,
                 fnirs_cw_amplitude=fnirs_cw_amplitude,
-                fnirs_od=fnirs_od, csd=csd)
+                fnirs_fd_ac_amplitude=fnirs_fd_ac_amplitude,
+                fnirs_fd_phase=fnirs_fd_phase, fnirs_od=fnirs_od, csd=csd)
 
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
@@ -1675,7 +1758,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     scalings = _handle_default('scalings_cov_rank', None)
     cov = _compute_covariance_auto(
         data.T, method=method, method_params=method_params,
-        info=info, cv=None, n_jobs=1, stop_early=True,
+        info=info, cv=None, n_jobs=None, stop_early=True,
         picks_list=picks_list, scalings=scalings,
         rank=rank)[reg]['data']
     return cov
@@ -1684,18 +1767,18 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
 @verbose
 def compute_whitener(noise_cov, info=None, picks=None, rank=None,
                      scalings=None, return_rank=False, pca=False,
-                     return_colorer=False, verbose=None):
+                     return_colorer=False, on_rank_mismatch='warn',
+                     verbose=None):
     """Compute whitening matrix.
 
     Parameters
     ----------
     noise_cov : Covariance
         The noise covariance.
-    info : dict | None
-        The measurement info. Can be None if ``noise_cov`` has already been
+    %(info)s Can be None if ``noise_cov`` has already been
         prepared with :func:`prepare_noise_cov`.
     %(picks_good_data_noref)s
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -1722,6 +1805,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         .. versionadded:: 0.18
     return_colorer : bool
         If True, return the colorer as well.
+    %(on_rank_mismatch)s
     %(verbose)s
 
     Returns
@@ -1750,7 +1834,8 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
         ch_names = [info['ch_names'][k] for k in picks]
         del picks
         noise_cov = prepare_noise_cov(
-            noise_cov, info, ch_names, rank, scalings)
+            noise_cov, info, ch_names, rank, scalings,
+            on_rank_mismatch=on_rank_mismatch)
 
     n_chan = len(ch_names)
     assert n_chan == len(noise_cov['eig'])
@@ -1805,7 +1890,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -1840,6 +1925,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
+    from scipy import sparse
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
         raise ValueError('No covariance matrices found')
@@ -1927,7 +2013,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
             projs = _read_proj(fid, this)
 
             #   Read the bad channel list
-            bads = read_bad_channels(fid, this)
+            bads = _read_bad_channels(fid, this, None)
 
             #   Put it together
             assert dim == len(data)
@@ -2000,3 +2086,12 @@ def _write_cov(fid, cov):
 
     #   Done!
     end_block(fid, FIFF.FIFFB_MNE_COV)
+
+
+@verbose
+def _ensure_cov(cov, name='cov', *, verbose=None):
+    _validate_type(cov, ('path-like', Covariance), name)
+    logger.info('Noise covariance  : %s' % (cov,))
+    if not isinstance(cov, Covariance):
+        cov = read_cov(cov, verbose=_verbose_safe_false())
+    return cov

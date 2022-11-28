@@ -2,7 +2,7 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 """
 Test the following properties for resolution metrics.
 
@@ -22,7 +22,6 @@ from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix
 from mne.minimum_norm.spatial_resolution import (resolution_metrics,
                                                  _rectify_resolution_matrix)
-from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -36,18 +35,15 @@ fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 
 
 @testing.requires_testing_data
-def test_resolution_metrics():
-    """Test resolution metrics."""
-    # read forward solution
+def test_resolution_metrics_surface():
+    """Test resolution metrics on surfaces."""
     fwd = mne.read_forward_solution(fname_fwd)
-
     # forward operator with fixed source orientations
     fwd = mne.convert_forward_solution(fwd, surf_ori=True,
-                                       force_fixed=True)
+                                       force_fixed=True, copy=False)
 
     # noise covariance matrix
     noise_cov = mne.read_cov(fname_cov)
-
     # evoked data for info
     evoked = mne.read_evokeds(fname_evoked, 0)
 
@@ -59,19 +55,13 @@ def test_resolution_metrics():
     # regularisation parameter based on SNR
     snr = 3.0
     lambda2 = 1.0 / snr ** 2
-
-    print('###\nComputing resolution matrices.\n###')
-
     # resolution matrices for fixed source orientation
-
     # compute resolution matrix for MNE
     rm_mne = make_inverse_resolution_matrix(fwd, inv,
                                             method='MNE', lambda2=lambda2)
-
     # compute very smooth MNE
     rm_mne_smooth = make_inverse_resolution_matrix(fwd, inv,
                                                    method='MNE', lambda2=100.)
-
     # compute resolution matrix for sLORETA
     rm_lor = make_inverse_resolution_matrix(fwd, inv,
                                             method='sLORETA', lambda2=lambda2)
@@ -124,7 +114,6 @@ def test_resolution_metrics():
                                     metric='peak_amp')
 
     # Tests
-
     with pytest.raises(ValueError, match='is not a recognized metric'):
         resolution_metrics(rm_mne, fwd['src'], function='psf', metric='foo')
     with pytest.raises(ValueError, match='a recognised resolution function'):
@@ -154,6 +143,3 @@ def test_resolution_metrics():
     r2 = _rectify_resolution_matrix(r1)
 
     assert_array_equal(r2, np.sqrt(2) * np.ones((4, 4)))
-
-
-run_tests_if_main()

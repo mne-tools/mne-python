@@ -2,7 +2,7 @@
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #          Denis A. Engeman <denis.engemann@gemail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import math
 
@@ -101,6 +101,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
     from scipy.stats import kurtosis
+    from scipy.special import expit
+
     rng = check_random_state(random_state)
 
     # define some default parameters
@@ -189,7 +191,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
             else:
                 # logistic ICA weights update
-                y = 1.0 / (1.0 + np.exp(-u))
+                y = expit(u)
                 weights += l_rate * np.dot(weights,
                                            BI + np.dot(u.T, (1.0 - 2.0 * y)))
 

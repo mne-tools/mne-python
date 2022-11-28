@@ -12,26 +12,26 @@ import warnings
 
 import numpy as np
 
-from .utils import (tight_layout, _prepare_trellis, _select_bads,
-                    _plot_raw_onscroll, _mouse_click, _plot_annotations,
-                    _plot_raw_onkey, plt_show, _convert_psds)
-from .topomap import (_prepare_topomap_plot, plot_topomap, _hide_frame,
-                      _plot_ica_topomap, _make_head_outlines)
-from .raw import _prepare_mne_browse_raw, _plot_raw_traces
-from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
+from .utils import (tight_layout, _make_event_color_dict, _get_cmap,
+                    plt_show, _convert_psds, _compute_scalings,
+                    _handle_precompute)
+from .topomap import _plot_ica_topomap
+from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..utils import warn, _validate_type, fill_doc
+from ..channels.channels import _get_ch_type
+from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import (pick_types, _picks_to_idx, _DATA_CH_TYPES_ORDER_DEFAULT)
-from ..time_frequency.psd import psd_multitaper
-from ..utils import _reject_data_segments
+from ..io.pick import pick_types, _picks_to_idx
+from ..utils import _reject_data_segments, verbose
 
 
 @fill_doc
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False, show_scrollbars=True):
+                     show_first_samp=False, show_scrollbars=True,
+                     time_format='float', precompute=None,
+                     use_opengl=None, *, theme=None, overview_mode=None):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -46,12 +46,15 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    %(picks_base)s all sources in the order as fitted.
-    start : int
-        X-axis start index. If None, from the beginning.
-    stop : int
-        X-axis stop index. If None, next 20 are shown, in case of evoked to the
-        end.
+    %(picks_ica)s
+    start, stop : float | int | None
+       If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
+       last time point (in seconds) of the data to plot. If ``inst`` is a
+       `~mne.io.Raw` object, ``start=None`` and ``stop=None`` will be
+       translated into ``start=0.`` and ``stop=3.``, respectively. For
+       `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+       signal. If ``inst`` is an `~mne.Epochs` object, specifies the index of
+       the first and last epoch to show.
     title : str | None
         The window title. If None a default is provided.
     show : bool
@@ -63,17 +66,27 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
+    %(time_format)s
+    %(precompute)s
+    %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
+    %(overview_mode)s
+
+        .. versionadded:: 1.1
 
     Returns
     -------
-    fig : instance of Figure
-        The figure.
+    %(browser)s
 
     Notes
     -----
     For raw and epoch instances, it is possible to select components for
     exclusion by clicking on the line. The selected components are added to
     ``ica.exclude`` on close.
+
+    %(notes_2d_backend)s
 
     .. versionadded:: 0.10.0
     """
@@ -84,16 +97,14 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, 'all')
 
-    if isinstance(inst, BaseRaw):
-        fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
-                                stop=stop, show=show, title=title,
-                                block=block, show_first_samp=show_first_samp,
-                                show_scrollbars=show_scrollbars)
-    elif isinstance(inst, BaseEpochs):
-        fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
-                                   stop=stop, show=show, title=title,
-                                   block=block,
-                                   show_scrollbars=show_scrollbars)
+    if isinstance(inst, (BaseRaw, BaseEpochs)):
+        fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
+                            show=show, title=title, block=block,
+                            show_first_samp=show_first_samp,
+                            show_scrollbars=show_scrollbars,
+                            time_format=time_format, precompute=precompute,
+                            use_opengl=use_opengl, theme=theme,
+                            overview_mode=overview_mode)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -107,12 +118,15 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     return fig
 
 
-def _create_properties_layout(figsize=None):
+def _create_properties_layout(figsize=None, fig=None):
     """Create main figure and axes layout used by plot_ica_properties."""
     import matplotlib.pyplot as plt
+    if fig is not None and figsize is not None:
+        raise ValueError('Cannot specify both fig and figsize.')
     if figsize is None:
         figsize = [7., 6.]
-    fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
+    if fig is None:
+        fig = plt.figure(figsize=figsize, facecolor=[0.95] * 3)
 
     axes_params = (('topomap', [0.08, 0.5, 0.3, 0.45]),
                    ('image', [0.5, 0.6, 0.45, 0.35]),
@@ -127,8 +141,8 @@ def _create_properties_layout(figsize=None):
 def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          epoch_var, plot_lowpass_edge, epochs_src,
                          set_title_and_labels, plot_std, psd_ylabel,
-                         spectrum_std, topomap_args, image_args, fig, axes,
-                         kind, dropped_indices):
+                         spectrum_std, log_scale, topomap_args, image_args,
+                         fig, axes, kind, dropped_indices):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
     from scipy.stats import gaussian_kde
@@ -139,6 +153,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # --------
     # component topomap
     _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
+    topo_ax._ch_type = _get_ch_type(ica, ch_type=None,
+                                    allow_ref_meg=ica.allow_ref_meg)
 
     # image and erp
     # we create a new epoch with dropped rows
@@ -190,15 +206,13 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     else:
         x = np.linspace(ymin, ymax, 50)
         kde_ = kde(x)
-        kde_ /= kde_.max()
+        kde_ /= kde_.max() or 1.
         kde_ *= hist_ax.get_xlim()[-1] * .9
         hist_ax.plot(kde_, x, color="k")
         hist_ax.set_ylim(ymin, ymax)
 
     # aesthetics
     # ----------
-    topo_ax.set_title(ica._ica_names[pick])
-
     set_title_and_labels(image_ax, kind + ' image and ERP/ERF', [], kind)
 
     # erp
@@ -216,6 +230,13 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.yaxis.set_ticks(yt[1:])
     image_ax.set_ylim([-0.5, n_trials + 0.5])
 
+    def _set_scale(ax, scale):
+        """Set the scale of a matplotlib axis."""
+        ax.set_xscale(scale)
+        ax.set_yscale(scale)
+        ax.relim()
+        ax.autoscale()
+
     # spectrum
     set_title_and_labels(spec_ax, 'Spectrum', 'Frequency (Hz)', psd_ylabel)
     spec_ax.yaxis.labelpad = 0
@@ -224,6 +245,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     air = np.diff(ylim)[0] * 0.1
     spec_ax.set_ylim(ylim[0] - air, ylim[1] + air)
     image_ax.axhline(0, color='k', linewidth=.5)
+    if log_scale:
+        _set_scale(spec_ax, 'log')
 
     # epoch variance
     var_ax_title = 'Dropped segments: %.2f %%' % var_percent
@@ -232,6 +255,34 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
     set_title_and_labels(hist_ax, None, None, None)
+
+    def _plot_ica_properties_on_press(event, ica, pick, topomap_args):
+        """Handle keypress events for ica properties plot."""
+        import matplotlib.pyplot as plt
+        fig = event.canvas.figure
+        if event.key == 'escape':
+            plt.close(fig)
+        if event.key in ('t', 'l'):
+            ax_labels = [ax.get_label() for ax in fig.axes]
+            if event.key == 't':
+                ax = fig.axes[ax_labels.index('topomap')]
+                ax.clear()
+                ch_types = list(set(ica.get_channel_types()))
+                ch_type = \
+                    ch_types[(ch_types.index(ax._ch_type) + 1) % len(ch_types)]
+                _plot_ica_topomap(ica, pick, ch_type=ch_type, show=False,
+                                  axes=ax, **topomap_args)
+                ax._ch_type = ch_type
+            elif event.key == 'l':
+                ax = fig.axes[ax_labels.index('spectrum')]
+                _set_scale(ax, 'linear' if ax.get_xscale() == 'log' else 'log')
+            del ax
+            fig.canvas.draw()
+
+    # add keypress event handler
+    fig.canvas.mpl_connect(
+        'key_press_event', lambda event: _plot_ica_properties_on_press(
+            event, ica, pick, topomap_args))
 
     return fig
 
@@ -255,10 +306,12 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     return psd_ylabel, psds_mean, spectrum_std
 
 
-@fill_doc
+@verbose
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
-                        plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto'):
+                        plot_std=True, log_scale=False, topomap_args=None,
+                        image_args=None, psd_args=None, figsize=None,
+                        show=True, reject='auto', reject_by_annotation=True,
+                        *, verbose=None):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -270,9 +323,14 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         The ICA solution.
     inst : instance of Epochs or Raw
         The data to use in plotting properties.
-    %(picks_base)s the first five sources.
-        If more than one components were chosen in the picks,
-        each one will be plotted in a separate figure.
+
+        .. note::
+           You can interactively cycle through topographic maps for different
+           channel types by pressing :kbd:`T`.
+    picks : str | list | slice | None
+        Components to include. Slices and lists of integers will be interpreted
+        as component indices. ``None`` (default) will use the first five
+        components. Each component will be plotted in a separate figure.
     axes : list of Axes | None
         List of five matplotlib axes to use in plotting: [topomap_axis,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
@@ -289,6 +347,14 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         For the ERP/ERF, by default, plot the 95 percent parametric confidence
         interval is calculated. To change this, use ``ci`` in ``ts_args`` in
         ``image_args`` (see below).
+    log_scale : bool
+        Whether to use a logarithmic frequency axis to plot the spectrum.
+        Defaults to ``False``.
+
+        .. note::
+           You can interactively toggle this setting by pressing :kbd:`L`.
+
+        .. versionadded:: 1.1
     topomap_args : dict | None
         Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.
@@ -296,8 +362,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
         any additional arguments. Defaults to None.
     psd_args : dict | None
-        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
-        any additional arguments. Defaults to None.
+        Dictionary of arguments to :meth:`~mne.Epochs.compute_psd`. If
+        ``None``, doesn't pass any additional arguments. Defaults to ``None``.
     figsize : array-like, shape (2,) | None
         Allows to control size of the figure. If None, the figure size
         defaults to [7., 6.].
@@ -309,6 +375,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
+    %(reject_by_annotation_raw)s
+
+        .. versionadded:: 0.21.0
+    %(verbose)s
 
     Returns
     -------
@@ -319,23 +389,34 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     -----
     .. versionadded:: 0.13
     """
-    from ..io.base import BaseRaw
-    from ..epochs import BaseEpochs
+    return _fast_plot_ica_properties(ica, inst, picks=picks, axes=axes, dB=dB,
+                                     plot_std=plot_std, log_scale=log_scale,
+                                     topomap_args=topomap_args,
+                                     image_args=image_args, psd_args=psd_args,
+                                     figsize=figsize, show=show,
+                                     reject=reject,
+                                     reject_by_annotation=reject_by_annotation,
+                                     verbose=verbose, precomputed_data=None)
+
+
+def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
+                              plot_std=True, log_scale=False,
+                              topomap_args=None, image_args=None,
+                              psd_args=None, figsize=None, show=True,
+                              reject='auto', precomputed_data=None,
+                              reject_by_annotation=True, *, verbose=None):
+    """Display component properties."""
     from ..preprocessing import ICA
-    from ..io import RawArray
 
     # input checks and defaults
     # -------------------------
-    _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
     _validate_type(ica, ICA, "ica", "ICA")
+    _validate_type(plot_std, (bool, 'numeric'), 'plot_std')
     if isinstance(plot_std, bool):
         num_std = 1. if plot_std else 0.
-    elif isinstance(plot_std, (float, int)):
-        num_std = plot_std
-        plot_std = True
     else:
-        raise ValueError('plot_std has to be a bool, int or float, '
-                         'got %s instead' % type(plot_std))
+        plot_std = True
+    num_std = float(plot_std)
 
     # if no picks given - plot the first 5 components
     limit = min(5, ica.n_components_) if picks is None else len(ica.ch_names)
@@ -364,59 +445,19 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                             ("topomap_args", topomap_args),
                             ("image_args", image_args)):
         _validate_type(item, dict, item_name, "dictionary")
-    if dB is not None:
-        _validate_type(dB, bool, "dB", "bool")
+    _validate_type(dB, (bool, None), "dB")
+    _validate_type(log_scale, (bool, None), "log_scale")
 
     # calculations
     # ------------
-
-    if isinstance(inst, BaseRaw):
-        # when auto, delegate reject to the ica
-        if reject == 'auto':
-            reject = getattr(ica, 'reject_', None)
-        else:
-            pass
-
-        if reject is None:
-            inst_rejected = inst
-            drop_inds = None
-        else:
-            data = inst.get_data()
-            data, drop_inds = _reject_data_segments(data, ica.reject_,
-                                                    flat=None, decim=None,
-                                                    info=inst.info,
-                                                    tstep=2.0)
-            inst_rejected = RawArray(data, inst.info)
-
-        # break up continuous signal into segments
-        from ..epochs import make_fixed_length_epochs
-        inst_rejected = make_fixed_length_epochs(inst_rejected,
-                                                 duration=2.,
-                                                 verbose=False,
-                                                 preload=True)
-        inst = make_fixed_length_epochs(inst, duration=2., verbose=False,
-                                        preload=True)
-        kind = "Segment"
+    if isinstance(precomputed_data, tuple):
+        kind, dropped_indices, epochs_src, data = precomputed_data
     else:
-        drop_inds = None
-        inst_rejected = inst
-        kind = "Epochs"
-
-    epochs_src = ica.get_sources(inst_rejected)
-    data = epochs_src.get_data()
-
+        kind, dropped_indices, epochs_src, data = _prepare_data_ica_properties(
+            inst, ica, reject_by_annotation, reject)
+    del reject
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
-
-    # getting dropped epochs indexes
-    if drop_inds is not None:
-        dropped_indices = [(d[0] // len(inst.times)) + 1
-                           for d in drop_inds]
-    else:
-        dropped_indices = []
-
-    # getting ica sources from inst
-    dropped_src = ica.get_sources(inst).get_data()
-    dropped_src = np.swapaxes(dropped_src[:, picks, :], 0, 1)
+    dropped_src = ica_data
 
     # spectrum
     Nyquist = inst.info['sfreq'] / 2.
@@ -424,7 +465,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     if 'fmax' not in psd_args:
         psd_args['fmax'] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args['fmax'] > lp)
-    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
+    spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
+    # we've already restricted picks  ↑↑↑↑↑↑↑↑↑↑↑
+    # in the spectrum object, so here we do picks=all  ↓↓↓↓↓↓↓↓↓↓↓
+    psds, freqs = spectrum.get_data(return_freqs=True, picks='all', exclude=[])
+    # we also pass exclude=[] so that when this is called by right-clicking in
+    # a plot_sources() window on an ICA component name that has been marked as
+    # bad, we can still get a plot of it.
 
     def set_title_and_labels(ax, title, xlab, ylab):
         if title:
@@ -464,14 +511,88 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # the actual plot
         fig = _plot_ica_properties(
             pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
-            epoch_var, plot_lowpass_edge,
-            epochs_src, set_title_and_labels, plot_std, psd_ylabel,
-            spectrum_std, topomap_args, image_args, fig, axes, kind,
+            epoch_var, plot_lowpass_edge, epochs_src,
+            set_title_and_labels, plot_std, psd_ylabel, spectrum_std,
+            log_scale, topomap_args, image_args, fig, axes, kind,
             dropped_indices)
         all_fig.append(fig)
 
     plt_show(show)
     return all_fig
+
+
+def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True,
+                                 reject='auto'):
+    """Prepare Epochs sources to plot ICA properties.
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA solution.
+    inst : instance of Epochs or Raw
+        The data to use in plotting properties.
+    reject_by_annotation : bool, optional
+        [description], by default True
+    reject : str, optional
+        [description], by default 'auto'
+
+    Returns
+    -------
+    kind : str
+        "Segment" for BaseRaw and "Epochs" for BaseEpochs
+    dropped_indices : list
+        Dropped epochs indexes.
+    epochs_src : instance of Epochs
+        Segmented data of ICA sources.
+    data : array of shape (n_epochs, n_ica_sources, n_times)
+        A view on epochs ICA sources data.
+    """
+    from ..io.base import BaseRaw
+    from ..io import RawArray
+    from ..epochs import BaseEpochs
+
+    _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
+    if isinstance(inst, BaseRaw):
+        # when auto, delegate reject to the ica
+        from ..epochs import make_fixed_length_epochs
+        if reject == 'auto':
+            reject = ica.reject_
+        if reject is None:
+            drop_inds = None
+            dropped_indices = []
+            # break up continuous signal into segments
+            epochs_src = make_fixed_length_epochs(
+                ica.get_sources(inst),
+                duration=2,
+                preload=True,
+                reject_by_annotation=reject_by_annotation,
+                proj=False,
+                verbose=False)
+        else:
+            data = inst.get_data()
+            data, drop_inds = _reject_data_segments(data, reject,
+                                                    flat=None, decim=None,
+                                                    info=inst.info,
+                                                    tstep=2.0)
+            inst_rejected = RawArray(data, inst.info)
+            # break up continuous signal into segments
+            epochs_src = make_fixed_length_epochs(
+                ica.get_sources(inst_rejected),
+                duration=2,
+                preload=True,
+                reject_by_annotation=reject_by_annotation,
+                proj=False,
+                verbose=False)
+            # getting dropped epochs indexes
+            dropped_indices = [(d[0] // len(epochs_src.times)) + 1
+                               for d in drop_inds]
+        kind = "Segment"
+    else:
+        drop_inds = None
+        epochs_src = ica.get_sources(inst)
+        dropped_indices = []
+        kind = "Epochs"
+    return kind, dropped_indices, epochs_src, epochs_src.get_data()
 
 
 def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
@@ -524,33 +645,49 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
                     if ii in indices:
                         annot.append(this_label)
 
-                line_label += (' - ' + ', '.join(annot))
+                if annot:
+                    line_label += (' – ' + ', '.join(annot))  # Unicode en-dash
             exclude_labels.append(line_label)
         else:
             exclude_labels.append(None)
-
+    label_props = [('k', '-') if lb is None else ('r', '-') for lb in
+                   exclude_labels]
+    styles = ['-', '--', ':', '-.']
     if labels is not None:
-        # compute colors only based on label categories
-        unique_labels = {k.split(' - ')[1] for k in exclude_labels if k}
-        label_colors = plt.cm.rainbow(np.linspace(0, 1, len(unique_labels)))
-        label_colors = dict(zip(unique_labels, label_colors))
-    else:
-        label_colors = {k: 'red' for k in exclude_labels}
+        # differentiate categories by linestyle and components by color
+        col_lbs = [it for it in exclude_labels if it is not None]
+        cmap = _get_cmap('tab10', len(col_lbs))
+
+        unique_labels = set()
+        for label in exclude_labels:
+            if label is None:
+                continue
+            elif ' – ' in label:
+                unique_labels.add(label.split(' – ')[1])
+            else:
+                unique_labels.add('')
+
+        # Determine up to 4 different styles for n categories
+        cat_styles = dict(zip(unique_labels,
+                              map(lambda ux: styles[int(ux % len(styles))],
+                                  range(len(unique_labels)))))
+        for label_idx, label in enumerate(exclude_labels):
+            if label is not None:
+                color = cmap(col_lbs.index(label))
+                if ' – ' in label:
+                    label_name = label.split(' – ')[1]
+                else:
+                    label_name = ''
+                style = cat_styles[label_name]
+                label_props[label_idx] = (color, style)
 
     for exc_label, ii in zip(exclude_labels, picks):
-        if exc_label is not None:
-            # create look up for color ...
-            if ' - ' in exc_label:
-                key = exc_label.split(' - ')[1]
-            else:
-                key = exc_label
-            color = label_colors[key]
-            # ... but display component number too
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                                 zorder=2, color=color, label=exc_label))
-        else:
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
-                                 color='k', zorder=1))
+        color, style = label_props[ii]
+        # ensure traces of excluded components are plotted on top
+        zorder = 2 if exc_label is None else 10
+        lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
+                             zorder=zorder, color=color, linestyle=style,
+                             label=exc_label))
         lines[-1].set_pickradius(3.)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel='Time (ms)', ylabel='(NA)')
@@ -558,10 +695,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
         plt.legend(loc='best')
     tight_layout(fig=fig)
 
-    # for old matplotlib, we actually need this to have a bounding
-    # box (!), so we have to put some valid text here, change
-    # alpha and  path effects later
-    texts.append(ax.text(0, 0, 'blank', zorder=3,
+    texts.append(ax.text(0, 0, '', zorder=3,
                          verticalalignment='baseline',
                          horizontalalignment='left',
                          fontweight='bold', alpha=0))
@@ -657,13 +791,13 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
 
     if labels == 'ecg':
         labels = [label for label in ica.labels_ if label.startswith('ecg/')]
-        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        labels.sort(key=lambda label: label.split('/')[1])  # sort by index
         if len(labels) == 0:
             labels = [label for label in ica.labels_ if
                       label.startswith('ecg')]
     elif labels == 'eog':
         labels = [label for label in ica.labels_ if label.startswith('eog/')]
-        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        labels.sort(key=lambda label: label.split('/')[1])  # sort by index
         if len(labels) == 0:
             labels = [label for label in ica.labels_ if
                       label.startswith('eog')]
@@ -701,15 +835,18 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
         ax.set_xlim(-0.6, len(this_scores) - 0.4)
 
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.90)
+
+    adjust_top = 0.8 if len(fig.axes) == 1 else 0.9
+    fig.subplots_adjust(top=adjust_top)
     fig.canvas.draw()
     plt_show(show)
     return fig
 
 
-@fill_doc
+@verbose
 def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
-                     stop=None, title=None, show=True):
+                     stop=None, title=None, show=True, n_pca_components=None,
+                     *, on_baseline='warn', verbose=None):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
     This method helps visualizing signal quality and artifact rejection.
@@ -719,24 +856,28 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     ica : instance of mne.preprocessing.ICA
         The ICA object.
     inst : instance of mne.io.Raw or mne.Evoked
-        The signals to be compared given the ICA solution. If Raw input,
-        The raw data are displayed before and after cleaning. In a second
-        panel the cross channel average will be displayed. Since dipolar
-        sources will be canceled out this display is sensitive to
-        artifacts. If evoked input, butterfly plots for clean and raw
-        signals will be superimposed.
+        The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
+        and after cleaning. In a second panel, the cross-channel average will
+        be displayed. Since dipolar sources will be canceled out, this
+        representation is sensitive to artifacts. If `~mne.Evoked`, butterfly
+        traces for signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
-        The components marked for exclusion. If None (default), ICA.exclude
+        The components marked for exclusion. If ``None`` (default), ICA.exclude
         will be used.
     %(picks_base)s all channels that were included during fitting.
-    start : int
-        X-axis start index. If None from the beginning.
-    stop : int
-        X-axis stop index. If None to the end.
-    title : str
-        The figure title.
-    show : bool
-        Show figure if True.
+    start, stop : float | None
+       The first and last time point (in seconds) of the data to plot. If
+       ``inst`` is a `~mne.io.Raw` object, ``start=None`` and ``stop=None``
+       will be translated into ``start=0.`` and ``stop=3.``, respectively. For
+       `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
+       signal.
+    %(title_none)s
+    %(show)s
+    %(n_pca_components_apply)s
+
+        .. versionadded:: 0.22
+    %(on_baseline_ica)s
+    %(verbose)s
 
     Returns
     -------
@@ -747,6 +888,9 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     from ..io.base import BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
+
+    if ica.current_fit == 'unfitted':
+        raise RuntimeError('You need to fit the ICA first')
 
     _validate_type(inst, (BaseRaw, Evoked), "inst", "Raw or Evoked")
     if title is None:
@@ -768,17 +912,22 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         data, times = inst[picks, start_compare:stop_compare]
 
         raw_cln = ica.apply(inst.copy(), exclude=exclude,
-                            start=start, stop=stop)
+                            start=start, stop=stop,
+                            n_pca_components=n_pca_components)
         data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
                                     times=times, title=title,
                                     ch_types_used=ch_types_used, show=show)
-    elif isinstance(inst, Evoked):
+    else:
+        assert isinstance(inst, Evoked)
         inst = inst.copy().crop(start, stop)
         if picks is not None:
-            inst.info['comps'] = []  # can be safely disabled
+            with inst.info._unlock():
+                inst.info['comps'] = []  # can be safely disabled
             inst.pick_channels([inst.ch_names[p] for p in picks])
-        evoked_cln = ica.apply(inst.copy(), exclude=exclude)
+        evoked_cln = ica.apply(inst.copy(), exclude=exclude,
+                               n_pca_components=n_pca_components,
+                               on_baseline=on_baseline)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
                                        title=title, show=show)
 
@@ -833,10 +982,12 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
     Parameters
     ----------
-    ica : instance of mne.preprocessing.ICA
-        The ICA object.
-    epochs : instance of mne.Epochs
-        The Epochs to be regarded.
+    evoked : instance of mne.Evoked
+        The Evoked before IC rejection.
+    evoked_cln : instance of mne.Evoked
+        The Evoked after IC rejection.
+    title : str | None
+        The title of the figure.
     show : bool
         If True, all open plots will be shown.
 
@@ -855,15 +1006,17 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
                          'Found different channels.')
 
     fig, axes = plt.subplots(n_rows, 1)
-    fig.suptitle('Average signal before (red) and after (black) ICA')
+    if title is None:
+        title = 'Average signal before (red) and after (black) ICA'
+    fig.suptitle(title)
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
-    evoked.plot(axes=axes, show=show, time_unit='s')
+    evoked.plot(axes=axes, show=False, time_unit='s', spatial_colors=False)
     for ax in fig.axes:
         for line in ax.get_lines():
             line.set_color('r')
     fig.canvas.draw()
-    evoked_cln.plot(axes=axes, show=show, time_unit='s')
+    evoked_cln.plot(axes=axes, show=False, time_unit='s', spatial_colors=False)
     tight_layout(fig=fig)
 
     fig.subplots_adjust(top=0.90)
@@ -872,248 +1025,160 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     return fig
 
 
-def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
-                      block, show_first_samp, show_scrollbars):
-    """Plot the ICA components as raw array."""
+def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
+                  show_scrollbars, show_first_samp, time_format,
+                  precompute, use_opengl, *, theme=None, overview_mode=None):
+    """Plot the ICA components as a RawArray or EpochsArray."""
+    from ._figure import _get_browser
+    from .. import EpochsArray, BaseEpochs
+    from ..io import RawArray, BaseRaw
+
+    # handle defaults / check arg validity
+    is_raw = isinstance(inst, BaseRaw)
+    is_epo = isinstance(inst, BaseEpochs)
+    sfreq = inst.info['sfreq']
     color = _handle_default('color', (0., 0., 0.))
-    orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
-    types = ['misc' for _ in picks]
-    eog_chs = pick_types(raw.info, meg=False, eog=True, ref_meg=False)
-    ecg_chs = pick_types(raw.info, meg=False, ecg=True, ref_meg=False)
-    data = [orig_data[pick] for pick in picks]
-    c_names = list(ica._ica_names)  # new list
+    units = _handle_default('units', None)
+    scalings = (_compute_scalings(None, inst) if is_raw else
+                _handle_default('scalings_plot_raw'))
+    scalings['misc'] = 5.
+    scalings['whitened'] = 1.
+    unit_scalings = _handle_default('scalings', None)
+
+    # data
+    if is_raw:
+        data = ica._transform_raw(inst, 0, len(inst.times))[picks]
+    else:
+        data = ica._transform_epochs(inst, concatenate=True)[picks]
+
+    # events
+    if is_epo:
+        event_id_rev = {v: k for k, v in inst.event_id.items()}
+        event_nums = inst.events[:, 2]
+        event_color_dict = _make_event_color_dict(None, inst.events,
+                                                  inst.event_id)
+
+    # channel properties / trace order / picks
+    ch_names = list(ica._ica_names)  # copy
+    ch_types = ['misc' for _ in picks]
+
+    # add EOG/ECG channels if present
+    eog_chs = pick_types(inst.info, meg=False, eog=True, ref_meg=False)
+    ecg_chs = pick_types(inst.info, meg=False, ecg=True, ref_meg=False)
     for eog_idx in eog_chs:
-        c_names.append(raw.ch_names[eog_idx])
-        types.append('eog')
+        ch_names.append(inst.ch_names[eog_idx])
+        ch_types.append('eog')
     for ecg_idx in ecg_chs:
-        c_names.append(raw.ch_names[ecg_idx])
-        types.append('ecg')
-    extra_picks = np.append(eog_chs, ecg_chs).astype(int)
-    if len(extra_picks) > 0:
-        eog_ecg_data, _ = raw[extra_picks, :]
-        for idx in range(len(eog_ecg_data)):
-            if idx < len(eog_chs):
-                eog_ecg_data[idx] /= 150e-6  # scaling for eog
-            else:
-                eog_ecg_data[idx] /= 5e-4  # scaling for ecg
+        ch_names.append(inst.ch_names[ecg_idx])
+        ch_types.append('ecg')
+    extra_picks = np.concatenate((eog_chs, ecg_chs)).astype(int)
+    if len(extra_picks):
+        if is_raw:
+            eog_ecg_data, _ = inst[extra_picks, :]
+        else:
+            eog_ecg_data = np.concatenate(inst.get_data(extra_picks), axis=1)
         data = np.append(data, eog_ecg_data, axis=0)
+    picks = np.concatenate(
+        (picks, ica.n_components_ + np.arange(len(extra_picks))))
+    ch_order = np.arange(len(picks))
+    n_channels = min([20, len(picks)])
+    ch_names_picked = [ch_names[x] for x in picks]
 
-    for idx in range(len(extra_picks)):
-        picks = np.append(picks, ica.n_components_ + idx)
-    if title is None:
-        title = 'ICA components'
-    info = create_info([c_names[x] for x in picks], raw.info['sfreq'])
+    # create info
+    info = create_info(ch_names_picked, sfreq, ch_types=ch_types)
+    with info._unlock():
+        info['meas_date'] = inst.info['meas_date']
+    info['bads'] = [ch_names[x] for x in exclude if x in picks]
+    if is_raw:
+        inst_array = RawArray(data, info, inst.first_samp)
+        inst_array.set_annotations(inst.annotations)
+    else:
+        data = data.reshape(-1, len(inst), len(inst.times)).swapaxes(0, 1)
+        inst_array = EpochsArray(data, info)
 
-    info['bads'] = [c_names[x] for x in exclude]
-    if start is None:
-        start = 0
-    if stop is None:
-        stop = start + 20
-        stop = min(stop, raw.times[-1])
-    duration = stop - start
+    # handle time dimension
+    start = 0 if start is None else start
+    _last = inst.times[-1] if is_raw else len(inst.events)
+    stop = min(start + 20, _last) if stop is None else stop
+    first_time = inst._first_time if show_first_samp else 0
+    if is_raw:
+        duration = stop - start
+        start += first_time
+    else:
+        n_epochs = stop - start
+        total_epochs = len(inst)
+        epoch_n_times = len(inst.times)
+        n_epochs = min(n_epochs, total_epochs)
+        n_times = total_epochs * epoch_n_times
+        duration = n_epochs * epoch_n_times / sfreq
+        event_times = (np.arange(total_epochs) * epoch_n_times
+                       + inst.time_as_index(0)) / sfreq
+        # NB: this includes start and end of data:
+        boundary_times = np.arange(total_epochs + 1) * epoch_n_times / sfreq
     if duration <= 0:
         raise RuntimeError('Stop must be larger than start.')
-    t_end = int(duration * raw.info['sfreq'])
-    times = raw.times[0:t_end]
-    bad_color = (1., 0., 0.)
-    inds = list(range(len(picks)))
-    data = np.array(data)
-    n_channels = min([20, len(picks)])
-    first_time = raw._first_time if show_first_samp else 0
-    start += first_time
-    params = dict(raw=raw, orig_data=data, data=data[:, 0:t_end], inds=inds,
-                  ch_start=0, t_start=start, info=info, duration=duration,
-                  ica=ica, n_channels=n_channels, times=times, types=types,
-                  n_times=raw.n_times, bad_color=bad_color, picks=picks,
-                  first_time=first_time, data_picks=[], decim=1,
-                  noise_cov=None, whitened_ch_names=(), clipping=None,
-                  added_label=list(), show_scrollbars=show_scrollbars,
-                  show_scalebars=False)
-    _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
-                            n_channels)
-    params['scale_factor'] = 1.0
-    params['plot_fun'] = partial(_plot_raw_traces, params=params, color=color,
-                                 bad_color=bad_color)
-    _plot_annotations(raw, params)
-    params['update_fun'] = partial(_update_data, params)
-    params['pick_bads_fun'] = partial(_pick_bads, params=params)
-    params['label_click_fun'] = partial(_label_clicked, params=params)
-    # callbacks
-    callback_key = partial(_plot_raw_onkey, params=params)
-    params['fig'].canvas.mpl_connect('key_press_event', callback_key)
-    callback_scroll = partial(_plot_raw_onscroll, params=params)
-    params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
-    callback_pick = partial(_mouse_click, params=params)
-    params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    callback_close = partial(_close_event, params=params)
-    params['fig'].canvas.mpl_connect('close_event', callback_close)
-    params['fig_proj'] = None
-    params['event_times'] = None
-    params['butterfly'] = False
-    params['update_fun']()
-    params['plot_fun']()
-    try:
-        plt_show(show, block=block)
-    except TypeError:  # not all versions have this
-        plt_show(show)
-    return params['fig']
 
+    # misc
+    bad_color = 'lightgray'
+    title = 'ICA components' if title is None else title
+    precompute = _handle_precompute(precompute)
 
-def _update_data(params):
-    """Prepare the data on horizontal shift of the viewport."""
-    sfreq = params['info']['sfreq']
-    start = int((params['t_start'] - params['first_time']) * sfreq)
-    end = int((params['t_start'] + params['duration']) * sfreq)
-    params['data'] = params['orig_data'][:, start:end]
-    params['times'] = params['raw'].times[start:end]
+    params = dict(inst=inst_array,
+                  ica=ica,
+                  ica_inst=inst,
+                  info=info,
+                  # channels and channel order
+                  ch_names=np.array(ch_names_picked),
+                  ch_types=np.array(ch_types),
+                  ch_order=ch_order,
+                  picks=picks,
+                  n_channels=n_channels,
+                  picks_data=list(),
+                  # time
+                  t_start=start if is_raw else boundary_times[start],
+                  duration=duration,
+                  n_times=inst.n_times if is_raw else n_times,
+                  first_time=first_time,
+                  time_format=time_format,
+                  decim=1,
+                  # events
+                  event_times=None if is_raw else event_times,
+                  # preprocessing
+                  projs=list(),
+                  projs_on=np.array([], dtype=bool),
+                  apply_proj=False,
+                  remove_dc=True,  # for EOG/ECG
+                  filter_coefs=None,
+                  filter_bounds=None,
+                  noise_cov=None,
+                  # scalings
+                  scalings=scalings,
+                  units=units,
+                  unit_scalings=unit_scalings,
+                  # colors
+                  ch_color_bad=bad_color,
+                  ch_color_dict=color,
+                  # display
+                  butterfly=False,
+                  clipping=None,
+                  scrollbars_visible=show_scrollbars,
+                  scalebars_visible=False,
+                  window_title=title,
+                  precompute=precompute,
+                  use_opengl=use_opengl,
+                  theme=theme,
+                  overview_mode=overview_mode,
+                  )
+    if is_epo:
+        params.update(n_epochs=n_epochs,
+                      boundary_times=boundary_times,
+                      event_id_rev=event_id_rev,
+                      event_color_dict=event_color_dict,
+                      event_nums=event_nums,
+                      epoch_color_bad=(1, 0, 0),
+                      epoch_colors=None,
+                      xlabel='Epoch number')
 
+    fig = _get_browser(show=show, block=block, **params)
 
-def _pick_bads(event, params):
-    """Select components on click."""
-    bads = params['info']['bads']
-    params['info']['bads'] = _select_bads(event, params, bads)
-    params['update_fun']()
-    params['plot_fun']()
-
-
-def _close_event(events, params):
-    """Exclude the selected components on close."""
-    info = params['info']
-    exclude = [params['ica']._ica_names.index(x)
-               for x in info['bads'] if x.startswith('ICA')]
-    params['ica'].exclude = exclude
-
-
-def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
-                         title, block, show_scrollbars):
-    """Plot the components as epochs."""
-    data = ica._transform_epochs(epochs, concatenate=True)
-    eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
-    ecg_chs = pick_types(epochs.info, meg=False, ecg=True, ref_meg=False)
-    c_names = list(ica._ica_names)
-    ch_types = np.repeat('misc', ica.n_components_)
-    for eog_idx in eog_chs:
-        c_names.append(epochs.ch_names[eog_idx])
-        ch_types = np.append(ch_types, 'eog')
-    for ecg_idx in ecg_chs:
-        c_names.append(epochs.ch_names[ecg_idx])
-        ch_types = np.append(ch_types, 'ecg')
-    extra_picks = np.append(eog_chs, ecg_chs).astype(int)
-    if len(extra_picks) > 0:
-        eog_ecg_data = np.concatenate(epochs.get_data()[:, extra_picks],
-                                      axis=1)
-        data = np.append(data, eog_ecg_data, axis=0)
-    scalings = _handle_default('scalings_plot_raw')
-    scalings['misc'] = 5.0
-    info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'],
-                       ch_types=ch_types)
-    info['projs'] = list()
-    info['bads'] = [c_names[x] for x in exclude]
-    if title is None:
-        title = 'ICA components'
-    if start is None:
-        start = 0
-    if stop is None:
-        stop = start + 20
-        stop = min(stop, len(epochs.events))
-    for idx in range(len(extra_picks)):
-        picks = np.append(picks, ica.n_components_ + idx)
-    n_epochs = stop - start
-    if n_epochs <= 0:
-        raise RuntimeError('Stop must be larger than start.')
-    params = dict(ica=ica, epochs=epochs, info=info, orig_data=data,
-                  bads=list(), bad_color=(1., 0., 0.),
-                  t_start=start * len(epochs.times),
-                  data_picks=list(), decim=1, whitened_ch_names=(),
-                  noise_cov=None, show_scrollbars=show_scrollbars,
-                  epoch_colors=None)
-    params['label_click_fun'] = partial(_label_clicked, params=params)
-    # changing the order to 'misc' before 'eog' and 'ecg'
-    order = list(_DATA_CH_TYPES_ORDER_DEFAULT)
-    order.pop(order.index('misc'))
-    order.insert(order.index('eog'), 'misc')
-    _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
-                               n_epochs=n_epochs, scalings=scalings,
-                               title=title, picks=picks,
-                               order=order, info=info)
-    params['plot_update_proj_callback'] = _update_epoch_data
-    _update_epoch_data(params)
-    params['hsel_patch'].set_x(params['t_start'])
-    callback_close = partial(_close_epochs_event, params=params)
-    params['fig'].canvas.mpl_connect('close_event', callback_close)
-    try:
-        plt_show(show, block=block)
-    except TypeError:  # not all versions have this
-        plt_show(show)
-    return params['fig']
-
-
-def _update_epoch_data(params):
-    """Prepare the data on horizontal shift."""
-    start = params['t_start']
-    n_epochs = params['n_epochs']
-    end = start + n_epochs * len(params['epochs'].times)
-    data = params['orig_data'][:, start:end]
-    types = params['types']
-    for pick, ind in enumerate(params['inds']):
-        params['data'][pick] = data[ind] / params['scalings'][types[pick]]
-    params['plot_fun']()
-
-
-def _close_epochs_event(events, params):
-    """Exclude the selected components on close."""
-    info = params['info']
-    exclude = [info['ch_names'].index(x) for x in info['bads']
-               if x.startswith('IC')]
-    params['ica'].exclude = exclude
-
-
-def _label_clicked(pos, params):
-    """Plot independent components on click to label."""
-    import matplotlib.pyplot as plt
-    offsets = np.array(params['offsets']) + params['offsets'][0]
-    line_idx = np.searchsorted(offsets, pos[1]) + params['ch_start']
-    if line_idx >= len(params['picks']):
-        return
-    ic_idx = [params['picks'][line_idx]]
-    if params['types'][line_idx] != 'misc':
-        warn('Can only plot ICA components.')
-        return
-    types = list()
-    info = params['ica'].info
-    if len(pick_types(info, meg=False, eeg=True, ref_meg=False)) > 0:
-        types.append('eeg')
-    if len(pick_types(info, meg='mag', ref_meg=False)) > 0:
-        types.append('mag')
-    if len(pick_types(info, meg='grad', ref_meg=False)) > 0:
-        types.append('grad')
-
-    ica = params['ica']
-    data = np.dot(ica.mixing_matrix_[:, ic_idx].T,
-                  ica.pca_components_[:ica.n_components_])
-    data = np.atleast_2d(data)
-    fig, axes, _, _ = _prepare_trellis(len(types), ncols=3)
-    for ch_idx, ch_type in enumerate(types):
-        try:
-            data_picks, pos, merge_channels, _, _, this_sphere, clip_origin = \
-                _prepare_topomap_plot(ica, ch_type)
-        except Exception as exc:
-            warn(str(exc))
-            plt.close(fig)
-            return
-        outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
-        this_data = data[:, data_picks]
-        ax = axes[ch_idx]
-        if merge_channels:
-            from ..channels.layout import _merge_ch_data
-        for ii, data_ in zip(ic_idx, this_data):
-            ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
-            if merge_channels:
-                data_, _ = _merge_ch_data(data_, 'grad', [])
-            plot_topomap(data_.flatten(), pos, axes=ax, show=False,
-                         sphere=this_sphere, outlines=outlines)
-            _hide_frame(ax)
-    tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.88, bottom=0.)
-    fig.canvas.draw()
-    plt_show(True)
+    return fig

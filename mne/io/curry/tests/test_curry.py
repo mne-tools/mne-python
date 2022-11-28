@@ -3,13 +3,14 @@
 # Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+from datetime import datetime, timezone
 import os.path as op
-import numpy as np
 from shutil import copyfile
 
 import pytest
+import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.annotations import events_from_annotations
@@ -21,7 +22,8 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
-from mne.utils import check_version, run_tests_if_main, catch_logging
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import check_version, catch_logging, _record_warnings
 from mne.annotations import read_annotations
 from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
                                 _read_events_curry, FILE_EXTENSIONS)
@@ -47,6 +49,10 @@ curry8_bdf_ascii_file = op.join(curry_dir,
 
 missing_event_file = op.join(curry_dir, "test_sfreq_0.dat")
 
+Ref_chan_omitted_file = op.join(curry_dir, 'Ref_channel_omitted Curry7.dat')
+Ref_chan_omitted_reordered_file = op.join(curry_dir, 'Ref_channel_omitted '
+                                          'reordered Curry7.dat')
+
 
 @pytest.fixture(scope='session')
 def bdf_curry_ref():
@@ -65,7 +71,7 @@ def bdf_curry_ref():
 @pytest.mark.parametrize('preload', [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
-    with pytest.warns(None) as wrn:
+    with _record_warnings() as wrn:
         raw = read_raw_curry(fname, preload=preload)
 
     if not check_version('numpy', '1.16') and preload and fname.endswith(
@@ -82,15 +88,27 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         assert_array_equal([ch[field] for ch in raw.info['chs']],
                            [ch[field] for ch in bdf_curry_ref.info['chs']])
 
-    raw.verbose = 'error'  # don't emit warnings about slow reading
-    assert_allclose(raw.get_data(), bdf_curry_ref.get_data(), atol=tol)
+    assert_allclose(raw.get_data(verbose='error'),
+                    bdf_curry_ref.get_data(), atol=tol)
 
     picks, start, stop = ["C3", "C4"], 200, 800
     assert_allclose(
-        raw.get_data(picks=picks, start=start, stop=stop),
+        raw.get_data(picks=picks, start=start, stop=stop, verbose='error'),
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol)
     assert raw.info['dev_head_t'] is None
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname', [
+    pytest.param(curry7_bdf_file, id='curry 7'),
+    pytest.param(curry8_bdf_file, id='curry 8'),
+    pytest.param(curry7_bdf_ascii_file, id='curry 7 ascii'),
+    pytest.param(curry8_bdf_ascii_file, id='curry 8 ascii'),
+])
+def test_read_raw_curry_test_raw(fname):
+    """Test read_raw_curry with _test_raw_reader."""
+    _test_raw_reader(read_raw_curry, fname=fname)
 
 
 # These values taken from a different recording but allow us to test
@@ -200,21 +218,21 @@ WANT_TRANS = np.array(
     pytest.param(curry8_rfDC_file, 1e-3, id='curry 8'),
 ])
 @pytest.mark.parametrize('mock_dev_head_t', [True, False])
-def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmpdir):
+def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmp_path):
     """Test reading CURRY files."""
     if mock_dev_head_t:
         if 'Curry 7' in fname:  # not supported yet
             return
-        # copy files to tmpdir
+        # copy files to tmp_path
         base = op.splitext(fname)[0]
         for ext in ('.cdt', '.cdt.dpa'):
             src = base + ext
-            dst = op.join(tmpdir, op.basename(base) + ext)
+            dst = op.join(tmp_path, op.basename(base) + ext)
             copyfile(src, dst)
             if ext == '.cdt.dpa':
                 with open(dst, 'a') as fid:
                     fid.write(LM_CONTENT)
-        fname = op.join(tmpdir, op.basename(fname))
+        fname = op.join(tmp_path, op.basename(fname))
         with open(fname + '.hpi', 'w') as fid:
             fid.write(HPI_CONTENT)
 
@@ -290,6 +308,7 @@ def test_read_events_curry_are_same_as_bdf(fname):
     assert raw.info['dev_head_t'] is None
 
 
+@testing.requires_testing_data
 def test_check_missing_files():
     """Test checking for missing curry files (smoke test)."""
     invalid_fname = "/invalid/path/name.xy"
@@ -325,12 +344,12 @@ def _mock_info_file(src, dst, sfreq, time_step):
     pytest.param(dict(sfreq=500, time_step=42), id='mismatch',
                  marks=pytest.mark.xfail(raises=ValueError)),
 ])
-def sfreq_testing_data(tmpdir, request):
+def sfreq_testing_data(tmp_path, request):
     """Generate different sfreq, time_step scenarios to be tested."""
     sfreq, time_step = request.param['sfreq'], request.param['time_step']
 
     in_base_name = curry7_bdf_file.strip('dat')
-    out_base_name = str(tmpdir.join('curry.'))
+    out_base_name = str(tmp_path / 'curry.')
 
     # create dummy empty files for 'dat' and 'rs3'
     for fname in [out_base_name + ext for ext in ['dat', 'rs3']]:
@@ -338,7 +357,8 @@ def sfreq_testing_data(tmpdir, request):
 
     _mock_info_file(src=in_base_name + 'dap', dst=out_base_name + 'dap',
                     sfreq=sfreq, time_step=time_step)
-
+    _mock_info_file(src=in_base_name + 'rs3', dst=out_base_name + 'rs3',
+                    sfreq=sfreq, time_step=time_step)
     return out_base_name + 'dat'
 
 
@@ -384,8 +404,9 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     version = _get_curry_version(ext)
     original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
 
-    modified['base'] = str(mock_dir.join('curry'))
-    modified['event'] = modified['base'] + FILE_EXTENSIONS[version]["events"]
+    modified['base'] = str(mock_dir / 'curry')
+    modified['event'] = (modified['base'] +
+                         FILE_EXTENSIONS[version]["events_cef"])
     modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]
 
     return original, modified
@@ -398,7 +419,7 @@ def _get_read_annotations_mock_info(name_part, mock_dir):
     pytest.param('7 ASCII.cef', id='7 (ascii)'),
     pytest.param('8 ASCII.cdt.cef', id='8 (ascii)'),
 ])
-def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
+def test_read_curry_annotations_using_mocked_info(tmp_path, name_part):
     """Test reading for Curry events file."""
     EXPECTED_ONSET = [0.484, 0.486, 0.62, 0.622, 1.904, 1.906, 3.212, 3.214,
                       4.498, 4.5, 5.8, 5.802, 7.074, 7.076, 8.324, 8.326, 9.58,
@@ -409,7 +430,7 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
                             '1', '50000', '1', '50000']
 
     original, fname = _get_read_annotations_mock_info("Curry " + name_part,
-                                                      tmpdir)
+                                                      tmp_path)
     copyfile(src=original['event'], dst=fname['event'])
 
     _msg = 'required files cannot be found'
@@ -427,4 +448,46 @@ def test_read_curry_annotations_using_mocked_info(tmpdir, name_part):
     assert_array_equal(annot.description, EXPECTED_DESCRIPTION)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname,expected_channel_list', [
+    pytest.param(Ref_chan_omitted_file,
+                 ['FP1', 'FPZ', 'FP2', 'VEO', 'EKG', 'Trigger'],
+                 id='Ref omitted, normal order'),
+    pytest.param(Ref_chan_omitted_reordered_file,
+                 ['FP2', 'FPZ', 'FP1', 'VEO', 'EKG', 'Trigger'],
+                 id='Ref omitted, reordered')
+])
+def test_read_files_missing_channel(fname, expected_channel_list):
+    """Test reading data files that has an omitted channel."""
+    # This for Git issue #8391.  In some cases, the 'labels' (.rs3 file will
+    # list channels that are not actually saved in the datafile (such as the
+    # 'Ref' channel).  These channels are denoted in the 'info' (.dap) file
+    # in the CHAN_IN_FILE section with a '0' as their index.
+    # If the CHAN_IN_FILE section is present, the code also assures that the
+    # channels are sorted in the prescribed order.
+    # This test makes sure the data load correctly, and that we end up with
+    # the proper channel list.
+    raw = read_raw_curry(fname, preload=True)
+    assert raw.ch_names == expected_channel_list
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname,expected_meas_date', [
+    pytest.param(Ref_chan_omitted_file,
+                 datetime(2018, 11, 21, 12, 53, 48,
+                          525000, tzinfo=timezone.utc),
+                 id='valid start date'),
+    pytest.param(curry7_rfDC_file,
+                 None,
+                 id='start date year is 0'),
+    pytest.param(curry7_bdf_file,
+                 None,
+                 id='start date seconds invalid')
+])
+def test_meas_date(fname, expected_meas_date):
+    """Test reading acquisition start datetime info info['meas_date']."""
+    # This for Git issue #8398.  The 'info' (.dap) file includes acquisition
+    # start date & time.  Test that this goes into raw.info['meas_date'].
+    # If the information is not valid, raw.info['meas_date'] should be None
+    raw = read_raw_curry(fname, preload=False)
+    assert raw.info['meas_date'] == expected_meas_date

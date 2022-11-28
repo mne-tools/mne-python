@@ -1,7 +1,7 @@
 .. _changes_0_18:
 
-Version 0.18
-------------
+Version 0.18 (2019-05-19)
+-------------------------
 
 Changelog
 ~~~~~~~~~
@@ -48,7 +48,7 @@ Changelog
 
 - Add data fetchers for polysomnography (PSG) recordings from Physionet (:func:`mne.datasets.sleep_physionet.age.fetch_data` and :func:`mne.datasets.sleep_physionet.temazepam.fetch_data`) by `Alex Gramfort`_ and `Joan Massich`_
 
-- Add envelope correlation code in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
+- Add envelope correlation code in ``mne.connectivity.envelope_correlation`` by `Denis Engemann`_, `Sheraz Khan`_, and `Eric Larson`_
 
 - Add option to toggle all projectors in :meth:`mne.io.Raw.plot` and related functions by `Eric Larson`_
 
@@ -68,7 +68,7 @@ Changelog
 
 - Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
 
-- Add processing of reference MEG channels to :class:`mne.preprocessing.ICA` by `Jeff Hanna`_
+- Add processing of reference MEG channels to :class:`mne.preprocessing.ICA` by `Jevri Hanna`_
 
 - Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
 
@@ -90,7 +90,7 @@ Changelog
 
 - Add option to improve rendering in :ref:`mne coreg` for modern graphics cards by `Eric Larson`_
 
-- Add :func:`mne.preprocessing.mark_flat` to automate marking of flat channels and segments of raw data by `Eric Larson`_
+- Add ``mne.preprocessing.mark_flat`` to automate marking of flat channels and segments of raw data by `Eric Larson`_
 
 - Add support for CUDA-based correlation computations and progress bars in :class:`mne.decoding.ReceptiveField` by `Eric Larson`_
 
@@ -145,7 +145,7 @@ Bug
 
 - Fix :func:`mne.gui.coregistration` and :ref:`mne coreg` crashing with segmentation fault when switching subjects by `Eric Larson`_
 
-- Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by `Alexander Kovrig`_
+- Fix :func:`mne.io.read_raw_brainvision` to accommodate vmrk files which do not have any annotations by Alexander Kovrig
 
 - Fix :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` to auto-scale ``misc`` channel types by default by `Eric Larson`_
 
@@ -161,7 +161,7 @@ Bug
 
 - Fix :func:`mne.events_from_annotations` to ignore ``'BAD_'` and ``'EDGE_'`` annotations by default using a new default ``regexp`` by `Eric Larson`_
 
-- Fix bug in :func:`mne.preprocessing.mark_flat` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
+- Fix bug in ``mne.preprocessing.mark_flat`` where ``raw.first_samp`` was not taken into account by `kalenkovich`_
 
 - Fix date parsing in :func:`mne.io.read_raw_cnt` by `Joan Massich`_
 
@@ -230,7 +230,7 @@ Bug
 
 - Fix a bug in :class:`mne.preprocessing.ICA`, where manually setting the attribute ``ICA.exclude`` to an np.array resulted in the removal of random components when later also providing the ``exclude`` argument to any ``apply...``-method, by `jeythekey`_
 
-- Ascending changed to descending sorting of scores for integer ``..._criterion`` arguments in :func:`mne.preprocessing.ICA.detect_artifacts` and ``mne.preprocessing.run_ica``, as it used to  be documented; the docstring in these functions was corrected for float ``..._criterion`` arguments, by `jeythekey`_
+- Ascending changed to descending sorting of scores for integer ``..._criterion`` arguments in ``mne.preprocessing.ICA.detect_artifacts`` and ``mne.preprocessing.run_ica``, as it used to  be documented; the docstring in these functions was corrected for float ``..._criterion`` arguments, by `jeythekey`_
 
 API
 ~~~

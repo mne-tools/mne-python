@@ -36,6 +36,8 @@ ecg            Electrocardiography (ECG)                 Volts
 
 seeg           Stereotactic EEG channels                 Volts
 
+dbs            Deep brain stimulation (DBS)              Volts
+
 ecog           Electrocorticography (ECoG)               Volts
 
 fnirs (hbo)    Functional near-infrared spectroscopy     Moles/liter
@@ -51,7 +53,7 @@ bio            Miscellaneous biological channels (e.g.,  Arbitrary units
 
 stim           stimulus (a.k.a. trigger) channels        Arbitrary units
 
-resp           response-trigger channel                  Arbitrary units
+resp           respiration monitoring channel            Volts
 
 chpi           continuous head position indicator        Teslas
                (HPI) coil channels
@@ -63,4 +65,8 @@ ias            Internal Active Shielding data
 
 syst           System status channel information
                (Triux systems only)
+
+temperature    Temperature                               Degrees Celsius
+
+gsr            Galvanic skin response                    Siemens
 =============  ========================================= =================

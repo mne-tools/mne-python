@@ -12,7 +12,7 @@ Examples
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import sys
 
@@ -30,7 +30,7 @@ def run():
     parser.add_option("-f", "--fif", dest="fif",
                       help="FIF file produced", metavar="FILE")
     parser.add_option("-i", "--id", dest="id", default=4,
-                      help=("Surface Id (e.g. 4 sur head surface)"))
+                      help=("Surface Id (e.g. 4 for head surface)"))
 
     options, args = parser.parse_args()
 

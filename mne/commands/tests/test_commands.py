@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
+import glob
 import os
 from os import path as op
 import shutil
-import glob
+from pathlib import Path
 
 import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
+import mne
 from mne import (concatenate_raws, read_bem_surfaces, read_surface,
                  read_source_spaces, read_bem_solution)
-from mne.bem import ConductorModel
+from mne.bem import ConductorModel, convert_flash_mris
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -22,15 +24,17 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
-from mne.utils import (run_tests_if_main, requires_mne,
-                       requires_mayavi, requires_vtk, requires_freesurfer,
-                       requires_nibabel, traits_test, ArgvSetter, modified_env,
-                       _stamp_to_dt)
+from mne.utils import (requires_mne, requires_freesurfer,
+                       requires_nibabel, ArgvSetter,
+                       _stamp_to_dt, _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+testing_path = testing.data_path(download=False)
+subjects_dir = op.join(testing_path, 'subjects')
+bem_model_fname = op.join(testing_path, 'subjects',
+                          'sample', 'bem', 'sample-320-320-320-bem.fif')
 
 
 def check_usage(module, force_help=False):
@@ -49,7 +53,7 @@ def test_browse_raw():
     """Test mne browse_raw."""
     check_usage(mne_browse_raw)
     with ArgvSetter(('--raw', raw_fname)):
-        with pytest.warns(None):  # mpl show warning sometimes
+        with _record_warnings():  # mpl show warning
             mne_browse_raw.run()
 
 
@@ -81,10 +85,10 @@ def test_show_fiff():
 
 
 @requires_mne
-def test_clean_eog_ecg(tmpdir):
+def test_clean_eog_ecg(tmp_path):
     """Test mne clean_eog_ecg."""
     check_usage(mne_clean_eog_ecg)
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     raw = concatenate_raws([read_raw_fif(f)
                             for f in [raw_fname, raw_fname, raw_fname]])
     raw.info['bads'] = ['MEG 2443']
@@ -99,10 +103,10 @@ def test_clean_eog_ecg(tmpdir):
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('fun', (mne_compute_proj_ecg, mne_compute_proj_eog))
-def test_compute_proj_exg(tmpdir, fun):
+def test_compute_proj_exg(tmp_path, fun):
     """Test mne compute_proj_ecg/eog."""
     check_usage(fun)
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     use_fname = op.join(tempdir, op.basename(raw_fname))
     bad_fname = op.join(tempdir, 'bads.txt')
     with open(bad_fname, 'w') as fid:
@@ -110,7 +114,7 @@ def test_compute_proj_exg(tmpdir, fun):
     shutil.copyfile(raw_fname, use_fname)
     with ArgvSetter(('-i', use_fname, '--bad=' + bad_fname,
                      '--rej-eeg', '150')):
-        with pytest.warns(None):  # samples, sometimes
+        with _record_warnings():  # samples, sometimes
             fun.run()
     fnames = glob.glob(op.join(tempdir, '*proj.fif'))
     assert len(fnames) == 1
@@ -129,36 +133,41 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@pytest.mark.slowtest  # slow on Travis OSX
-@requires_vtk
+@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @testing.requires_testing_data
-def test_make_scalp_surfaces(tmpdir):
+def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
+    pytest.importorskip('nibabel')
+    pytest.importorskip('pyvista')
     check_usage(mne_make_scalp_surfaces)
     has = 'SUBJECTS_DIR' in os.environ
     # Copy necessary files to avoid FreeSurfer call
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     surf_path = op.join(subjects_dir, 'sample', 'surf')
     surf_path_new = op.join(tempdir, 'sample', 'surf')
     os.mkdir(op.join(tempdir, 'sample'))
     os.mkdir(surf_path_new)
     subj_dir = op.join(tempdir, 'sample', 'bem')
     os.mkdir(subj_dir)
-    shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
-    with modified_env(**{'_MNE_TESTING_SCALP': 'true'}):
-        dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
-        medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
-        with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-            with modified_env(FREESURFER_HOME=None):
-                pytest.raises(RuntimeError, mne_make_scalp_surfaces.run)
-            with modified_env(FREESURFER_HOME=tempdir):
-                mne_make_scalp_surfaces.run()
-                assert op.isfile(dense_fname)
-                assert op.isfile(medium_fname)
-                with pytest.raises(IOError, match='overwrite'):
-                    mne_make_scalp_surfaces.run()
+    monkeypatch.setattr(
+        mne.bem, 'decimate_surface',
+        lambda points, triangles, n_triangles: (points, triangles))
+    dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
+    medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        monkeypatch.delenv('FREESURFER_HOME')
+        with pytest.raises(RuntimeError, match='The FreeSurfer environ'):
+            mne_make_scalp_surfaces.run()
+        shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
+        monkeypatch.setenv('FREESURFER_HOME', tempdir)
+        mne_make_scalp_surfaces.run()
+        assert op.isfile(dense_fname)
+        assert op.isfile(medium_fname)
+        with pytest.raises(IOError, match='overwrite'):
+            mne_make_scalp_surfaces.run()
     # actually check the outputs
     head_py = read_bem_surfaces(dense_fname)
     assert_equal(len(head_py), 1)
@@ -181,23 +190,23 @@ def test_maxfilter():
                 mne_maxfilter.run()
             finally:
                 del os.environ['_MNE_MAXFILTER_TEST']
+        out = out.stdout.getvalue()
         for check in ('maxfilter', '-trans', '-movecomp'):
-            assert check in out.stdout.getvalue(), check
+            assert check in out, check
 
 
 @pytest.mark.slowtest
-@requires_mayavi
-@traits_test
 @testing.requires_testing_data
-def test_report(tmpdir):
+def test_report(tmp_path):
     """Test mne report."""
+    pytest.importorskip('nibabel')
     check_usage(mne_report)
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     use_fname = op.join(tempdir, op.basename(raw_fname))
     shutil.copyfile(raw_fname, use_fname)
     with ArgvSetter(('-p', tempdir, '-i', use_fname, '-d', subjects_dir,
                      '-s', 'sample', '--no-browser', '-m', '30')):
-        with pytest.warns(None):  # contour levels
+        with _record_warnings():  # contour levels
             mne_report.run()
     fnames = glob.glob(op.join(tempdir, '*.html'))
     assert len(fnames) == 1
@@ -214,14 +223,14 @@ def test_surf2bem():
 @requires_nibabel()
 @requires_freesurfer('mri_watershed')
 @testing.requires_testing_data
-def test_watershed_bem(tmpdir):
+def test_watershed_bem(tmp_path):
     """Test mne watershed bem."""
     check_usage(mne_watershed_bem)
     # from T1.mgz
     Mdc = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
     Pxyz_c = np.array([-5.273613, 9.039085, -27.287964])
     # Copy necessary files to tempdir
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
     subject_path_new = op.join(tempdir, 'sample')
     mridata_path_new = op.join(subject_path_new, 'mri')
@@ -255,35 +264,60 @@ def test_watershed_bem(tmpdir):
         assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
-@pytest.mark.timeout(120)  # took ~70 sec locally
+@pytest.mark.timeout(180)  # took ~70 sec locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer
 @testing.requires_testing_data
-def test_flash_bem(tmpdir):
+def test_flash_bem(tmp_path):
     """Test mne flash_bem."""
     check_usage(mne_flash_bem, force_help=True)
     # Copy necessary files to tempdir
-    tempdir = str(tmpdir)
-    mridata_path = op.join(subjects_dir, 'sample', 'mri')
-    subject_path_new = op.join(tempdir, 'sample')
-    mridata_path_new = op.join(subject_path_new, 'mri')
-    os.makedirs(op.join(mridata_path_new, 'flash'))
-    os.makedirs(op.join(subject_path_new, 'bem'))
+    tempdir = Path(str(tmp_path))
+    mridata_path = Path(subjects_dir) / 'sample' / 'mri'
+    subject_path_new = tempdir / 'sample'
+    mridata_path_new = subject_path_new / 'mri'
+    flash_path = mridata_path_new / 'flash'
+    flash_path.mkdir(parents=True, exist_ok=True)
+    bem_path = mridata_path_new / 'bem'
+    bem_path.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
                     op.join(mridata_path_new, 'T1.mgz'))
     shutil.copyfile(op.join(mridata_path, 'brain.mgz'),
                     op.join(mridata_path_new, 'brain.mgz'))
     # Copy the available mri/flash/mef*.mgz files from the dataset
-    flash_path = op.join(mridata_path_new, 'flash')
     for kind in (5, 30):
-        in_fname = op.join(mridata_path, 'flash', 'mef%02d.mgz' % kind)
-        shutil.copyfile(in_fname, op.join(flash_path, op.basename(in_fname)))
+        in_fname = mridata_path / "flash" / f'mef{kind:02d}.mgz'
+        in_fname_echo = flash_path / f'mef{kind:02d}_001.mgz'
+        shutil.copyfile(in_fname, flash_path / in_fname_echo.name)
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
     for s in ('outer_skin', 'outer_skull', 'inner_skull'):
-        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
-    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
+        assert not op.isfile(subject_path_new / 'bem' / f'{s}.surf')
+
+    # First test without flash30
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n', '-r', '-3'),
+                    disable_stdout=False, disable_stderr=False):
+        mne_flash_bem.run()
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        surf_path = subject_path_new / 'bem' / f'{s}.surf'
+        assert surf_path.exists()
+        surf_path.unlink()  # cleanup
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
+
+    # Test synthesize flash5 with MEF flash5 and flash30 default locations
+    flash5_img = convert_flash_mris(
+        subject="sample", subjects_dir=tempdir, unwarp=False
+    )
+    assert flash5_img == (flash_path / "parameter_maps" / "flash5.mgz")
+    assert flash5_img.exists()
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
+
+    # Test with flash5 and flash30
+    shutil.rmtree(flash_path)  # first remove old files
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n',
+                     '-3', str(mridata_path / "flash" / 'mef30.mgz'),
+                     '-5', str(mridata_path / "flash" / 'mef05.mgz')),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
 
@@ -302,12 +336,11 @@ def test_flash_bem(tmpdir):
 
 
 @testing.requires_testing_data
-def test_setup_source_space(tmpdir):
+def test_setup_source_space(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_setup_source_space, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
-    use_fname = op.join(tmpdir, "sources-src.fif")
+    use_fname = op.join(tmp_path, "sources-src.fif")
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
                      '-s', 'sample', '--morph', 'sample',
@@ -330,13 +363,13 @@ def test_setup_source_space(tmpdir):
             assert mne_setup_source_space.run()
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
-def test_setup_forward_model(tmpdir):
+def test_setup_forward_model(tmp_path):
     """Test mne setup_forward_model."""
     check_usage(mne_setup_forward_model, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
-    use_fname = op.join(tmpdir, "model-bem.fif")
+    use_fname = op.join(tmp_path, "model-bem.fif")
     # Test  command
     with ArgvSetter(('--model', use_fname, '-d', subjects_dir, '--homog',
                      '-s', 'sample', '--ico', '3', '--verbose')):
@@ -349,13 +382,11 @@ def test_setup_forward_model(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_mne_prepare_bem_model(tmpdir):
+def test_mne_prepare_bem_model(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_prepare_bem_model, force_help=True)
     # Using the sample dataset
-    bem_model_fname = op.join(testing.data_path(download=False), 'subjects',
-                              'sample', 'bem', 'sample-320-320-320-bem.fif')
-    bem_solution_fname = op.join(tmpdir, "bem_solution-bem-sol.fif")
+    bem_solution_fname = op.join(tmp_path, "bem_solution-bem-sol.fif")
     # Test  command
     with ArgvSetter(('--bem', bem_model_fname, '--sol', bem_solution_fname,
                      '--verbose')):
@@ -382,15 +413,12 @@ def test_sys_info():
     assert 'numpy' in out.stdout.getvalue()
 
 
-def test_anonymize(tmpdir):
+def test_anonymize(tmp_path):
     """Test mne anonymize."""
     check_usage(mne_anonymize)
-    out_fname = op.join(tmpdir, 'anon_test_raw.fif')
+    out_fname = op.join(tmp_path, 'anon_test_raw.fif')
     with ArgvSetter(('-f', raw_fname, '-o', out_fname)):
         mne_anonymize.run()
     info = read_info(out_fname)
-    assert(op.exists(out_fname))
+    assert op.exists(out_fname)
     assert info['meas_date'] == _stamp_to_dt((946684800, 0))
-
-
-run_tests_if_main()

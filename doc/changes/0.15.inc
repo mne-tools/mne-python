@@ -1,7 +1,7 @@
 .. _changes_0_15:
 
-Version 0.15
-------------
+Version 0.15 (2017-10-20)
+-------------------------
 
 Changelog
 ~~~~~~~~~
@@ -152,7 +152,7 @@ BUG
 
 - Fix :func:`mne.io.read_raw_brainvision` to read vectorized data correctly by `Jaakko Leppakangas`_ and `Phillip Alday`_
 
-- Fix :func:`mne.connectivity.spectral_connectivity` so that if ``n_jobs > 1`` it does not ignore last ``n_epochs % n_jobs`` epochs by `Mikołaj Magnuski`_
+- Fix ``mne.connectivity.spectral_connectivity`` so that if ``n_jobs > 1`` it does not ignore last ``n_epochs % n_jobs`` epochs by `Mikołaj Magnuski`_
 
 - Fix :func:`mne.io.read_raw_edf` to infer sampling rate correctly when reading EDF+ files where tal-channel has a higher sampling frequency by `Jaakko Leppakangas`_
 
@@ -180,7 +180,7 @@ BUG
 
 - Fix :class:`mne.preprocessing.Xdawn` to give verbose error messages about rank deficiency and handle transforming :class:`mne.Evoked`, by `Eric Larson`_
 
-- Fix bug in DC and Nyquist frequency multitaper PSD computations, e.g. in :func:`mne.time_frequency.psd_multitaper`, by `Eric Larson`_
+- Fix bug in DC and Nyquist frequency multitaper PSD computations, e.g. in ``mne.time_frequency.psd_multitaper``, by `Eric Larson`_
 
 - Fix default padding type for :meth:`mne.Epochs.resample` and :meth:`mne.Evoked.resample` to be ``'edge'`` by default, by `Eric Larson`_
 
@@ -244,11 +244,11 @@ API
 
 - Deprecate ``plot_trans`` in favor of :func:`mne.viz.plot_alignment` and add ``bem`` parameter for plotting conductor model by `Jaakko Leppakangas`_
 
-- :func:`mne.beamformer.tf_lcmv` now has a ``raw`` parameter to accommodate epochs objects that already have data loaded with ``preload=True``, with :meth:`mne.Epochs.load_data`, or that are read from disk, by `Eric Larson`_
+- ``mne.beamformer.tf_lcmv`` now has a ``raw`` parameter to accommodate epochs objects that already have data loaded with ``preload=True``, with :meth:`mne.Epochs.load_data`, or that are read from disk, by `Eric Larson`_
 
-- :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
+- ``mne.time_frequency.psd_welch`` and :func:`mne.time_frequency.psd_array_welch` now use a Hamming window (instead of a Hann window) by `Clemens Brunner`_
 
-- ``picks`` parameter in ``mne.beamformer.lcmv``, ``mne.beamformer.lcmv_epochs``, ``mne.beamformer.lcmv_raw``, :func:`mne.beamformer.tf_lcmv` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
+- ``picks`` parameter in ``mne.beamformer.lcmv``, ``mne.beamformer.lcmv_epochs``, ``mne.beamformer.lcmv_raw``, ``mne.beamformer.tf_lcmv`` and :func:`mne.beamformer.rap_music` is now deprecated and will be removed in 0.16, by `Britta Westner`_, `Alex Gramfort`_, and `Denis Engemann`_.
 
 - The keyword argument ``frequencies`` has been deprecated in favor of ``freqs`` in various time-frequency functions, e.g. :func:`mne.time_frequency.tfr_array_morlet`, by `Eric Larson`_
 

@@ -8,13 +8,14 @@
 #
 #          simplified BSD-3 license
 
+import functools
 import os.path as op
 from io import BytesIO
 from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, _stamp_to_dt
+from ...utils import logger, verbose, _stamp_to_dt, path_like
 from ...transforms import (combine_transforms, invert_transform,
                            Transform)
 from .._digitization import _make_bti_dig_points
@@ -27,18 +28,6 @@ from .read import (read_int32, read_int16, read_float, read_double,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix, read_dev_header)
 
-FIFF_INFO_CHS_FIELDS = ('loc',
-                        'ch_name', 'unit_mul', 'coord_frame',
-                        'coil_type',
-                        'range', 'unit', 'cal',
-                        'scanno', 'kind', 'logno')
-
-FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
-                          None, FIFF.FIFF_UNITM_NONE, FIFF.FIFFV_COORD_UNKNOWN,
-                          FIFF.FIFFV_COIL_NONE,
-                          1.0, FIFF.FIFF_UNIT_V, 1.0,
-                          None, FIFF.FIFFV_ECG_CH, None)
-
 FIFF_INFO_DIG_FIELDS = ('kind', 'ident', 'r', 'coord_frame')
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
@@ -47,6 +36,21 @@ BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = {i: np.dtype(t) for i, t in dtypes}
+
+
+def _instantiate_default_info_chs():
+    """Populate entries in info['chs'] with default values."""
+    return dict(loc=np.array([0, 0, 0, 1] * 3, dtype='f4'),
+                ch_name=None,
+                unit_mul=FIFF.FIFF_UNITM_NONE,
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                coil_type=FIFF.FIFFV_COIL_NONE,
+                range=1.0,
+                unit=FIFF.FIFF_UNIT_V,
+                cal=1.0,
+                scanno=None,
+                kind=FIFF.FIFFV_MISC_CH,
+                logno=None)
 
 
 class _bytes_io_mock_context():
@@ -64,7 +68,7 @@ class _bytes_io_mock_context():
 
 def _bti_open(fname, *args, **kwargs):
     """Handle BytesIO."""
-    if isinstance(fname, str):
+    if isinstance(fname, path_like):
         return open(fname, *args, **kwargs)
     elif isinstance(fname, BytesIO):
         return _bytes_io_mock_context(fname)
@@ -144,7 +148,7 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
     return new
 
 
-# XXX: This is the guy reading the points
+# read the points
 def _read_head_shape(fname):
     """Read the head shape."""
     with _bti_open(fname, 'rb') as fid:
@@ -153,7 +157,7 @@ def _read_head_shape(fname):
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
-    # XXX : reorder to lpa, rpa, nasion so = is direct.
+    # reorder to lpa, rpa, nasion so = is direct.
     nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
     hpi = idx_points[3:len(idx_points), :]
 
@@ -852,7 +856,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         if ch_cfg.get('dev', dict()).get('transform', None) is not None:
             ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
         else:
-            ch['loc'] = None
+            ch['loc'] = np.full(12, np.nan)
         if pdf_fname is not None:
             if info['data_format'] <= 2:  # see DTYPES, implies integer
                 ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
@@ -994,21 +998,40 @@ class RawBTi(BaseRaw):
                 _mult_cal_one(data_view, one, idx, cals, mult)
 
 
+@functools.lru_cache(1)
+def _1020_names():
+    from mne.channels import make_standard_montage
+    return set(ch_name.lower()
+               for ch_name in make_standard_montage('standard_1005').ch_names)
+
+
+def _eeg_like(ch_name):
+    # Some bti recordigs look like "F4-POz", so let's at least mark them
+    # as EEG
+    if ch_name.count('-') != 1:
+        return
+    ch, ref = ch_name.split('-')
+    eeg_names = _1020_names()
+    return ch.lower() in eeg_names and ref.lower() in eeg_names
+
+
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
-    if head_shape_fname:
-        logger.info('... Reading digitization points from %s' %
-                    head_shape_fname)
+    with info._unlock():
+        if head_shape_fname:
+            logger.info('... Reading digitization points from %s' %
+                        head_shape_fname)
 
-        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
-        info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
-            nasion, lpa, rpa, hpi, dig_points,
-            convert, use_hpi, bti_dev_t, dev_ctf_t)
-    else:
-        logger.info('... no headshape file supplied, doing nothing.')
-        info['dig'] = None
-        dev_head_t = Transform('meg', 'head', trans=None)
-        ctf_head_t = Transform('ctf_head', 'head', trans=None)
+            nasion, lpa, rpa, hpi, dig_points = _read_head_shape(
+                head_shape_fname)
+            info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
+                nasion, lpa, rpa, hpi, dig_points,
+                convert, use_hpi, bti_dev_t, dev_ctf_t)
+        else:
+            logger.info('... no headshape file supplied, doing nothing.')
+            info['dig'] = None
+            dev_head_t = Transform('meg', 'head', trans=None)
+            ctf_head_t = Transform('ctf_head', 'head', trans=None)
 
     info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                 ctf_head_t=ctf_head_t)
@@ -1134,7 +1157,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     logger.info('... Setting channel info structure.')
     for idx, (chan_4d, chan_neuromag) in enumerate(ch_mapping):
-        chan_info = dict(zip(FIFF_INFO_CHS_FIELDS, FIFF_INFO_CHS_DEFAULTS))
+        chan_info = _instantiate_default_info_chs()
         chan_info['ch_name'] = chan_neuromag if rename_channels else chan_4d
         chan_info['logno'] = idx + BTI.FIFF_LOGNO
         chan_info['scanno'] = idx + 1
@@ -1179,24 +1202,30 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                 chan_info['coil_type'] = \
                     FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD
 
-        elif chan_4d.startswith('EEG'):
+        elif chan_4d.startswith('EEG') or _eeg_like(chan_4d):
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
             chan_info['coord_frame'] = eeg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_V
+            # TODO: We should use 'electrodes' to fill this in, and make sure
+            # we turn them into dig as well
+            chan_info['loc'][:3] = np.nan
 
         elif chan_4d == 'RESPONSE':
-            chan_info['kind'] = FIFF.FIFFV_RESP_CH
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d == 'TRIGGER':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
-        elif chan_4d.startswith('EOG'):
+        elif chan_4d.startswith('EOG') or \
+                chan_4d[:4] in ('HEOG', 'VEOG') or chan_4d in eog_ch:
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
-        elif chan_4d == ecg_ch:
+        elif chan_4d.startswith('EMG'):
+            chan_info['kind'] = FIFF.FIFFV_EMG_CH
+        elif chan_4d == ecg_ch or chan_4d.startswith('ECG'):
             chan_info['kind'] = FIFF.FIFFV_ECG_CH
-        elif chan_4d.startswith('X'):
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
-        elif chan_4d == 'UACurrent':
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        # Our default is now misc, but if we ever change that,
+        # we'll need this:
+        # elif chan_4d.startswith('X') or chan_4d == 'UACurrent':
+        #     chan_info['kind'] = FIFF.FIFFV_MISC_CH
 
         chs.append(chan_info)
 
@@ -1213,6 +1242,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         'the 4D "print_table" routine.')
 
     # check that the info is complete
+    info._unlocked = False
     info._update_redundant()
     info._check_consistency()
     return info, bti_info

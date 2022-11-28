@@ -42,6 +42,7 @@ physionet-sleep-data*
 MEGSIM*
 build
 coverage
+htmlcov
 .cache/
 .pytest_cache/
 __pycache__/
@@ -55,11 +56,19 @@ doc/auto_examples/
 doc/auto_tutorials/
 doc/modules/generated/
 doc/sphinxext/cachedir
+tutorials/intro/report.h5
+tutorials/intro/report_partial.hdf5
+tutorials/misc/report.h5
+tutorials/io/fnirs.csv
 pip-log.txt
 .coverage*
+coverage.xml
 tags
 doc/coverages
 doc/samples
+doc/*.dat
+doc/fil-result
+doc/optipng.exe
 cover
 *.html
 
@@ -81,3 +90,6 @@ cover
 .venv/
 venv/
 *.json
+.hypothesis/
+
+.ipynb_checkpoints/

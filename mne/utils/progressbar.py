@@ -2,7 +2,7 @@
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections.abc import Iterable
 import os
@@ -14,6 +14,8 @@ import time
 
 import numpy as np
 
+from .check import _check_option
+from .config import get_config
 from ._logging import logger
 
 
@@ -42,8 +44,22 @@ class ProgressBar(object):
     def __init__(self, iterable=None, initial_value=0, mesg=None,
                  max_total_width='auto', max_value=None,
                  **kwargs):  # noqa: D102
-        from ..externals.tqdm import auto
-        tqdm = auto.tqdm
+        # The following mimics this, but with configurable module to use
+        # from ..externals.tqdm import auto
+        import tqdm
+        which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
+        _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.', 'off'),
+                      extra='beginning')
+        logger.debug(f'Using ProgressBar with {which_tqdm}')
+        if which_tqdm not in ('tqdm', 'off'):
+            try:
+                __import__(which_tqdm)
+            except Exception as exc:
+                raise ValueError(
+                    f'Unknown tqdm backend {repr(which_tqdm)}, got: {exc}'
+                ) from None
+            tqdm = getattr(tqdm, which_tqdm.split('.', 1)[1])
+        tqdm = tqdm.tqdm
         defaults = dict(
             leave=True, mininterval=0.016, miniters=1, smoothing=0.05,
             bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
@@ -66,7 +82,7 @@ class ProgressBar(object):
             self._mmap_fname = tf.name
         del tf  # should remove the file
         self._mmap = None
-        disable = logger.level > logging.INFO
+        disable = logger.level > logging.INFO or which_tqdm == 'off'
         self._tqdm = tqdm(
             iterable=self.iterable, desc=mesg, total=self.max_value,
             initial=initial_value, ncols=max_total_width,
@@ -142,7 +158,7 @@ class ProgressBar(object):
 
     def __del__(self):
         """Ensure output completes."""
-        if getattr(self, '_tqdm') is not None:
+        if getattr(self, '_tqdm', None) is not None:
             self._tqdm.close()
 
 

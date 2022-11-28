@@ -1,11 +1,9 @@
-:orphan:
-
 .. _cited:
 
-Publications by users
-=====================
+Papers citing MNE-Python
+========================
 
-Estimates provided by Google Scholar as of July 9th 2020:
+Estimates provided by Google Scholar as of 11 Oct 2022:
 
-- `MNE (791) <https://scholar.google.de/scholar?cites=12188330066413208874&as_sdt=2005&sciodt=0,5&hl=en>`_
-- `MNE-Python (604) <https://scholar.google.de/scholar?cites=1521584321377182930&as_sdt=2005&sciodt=0,5&hl=en>`_
+- `MNE (1320) <https://scholar.google.com/scholar?cites=12188330066413208874&as_ylo=2014>`_
+- `MNE-Python (1530) <https://scholar.google.com/scholar?cites=1521584321377182930&as_ylo=2013>`_

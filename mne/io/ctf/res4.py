@@ -1,9 +1,9 @@
 """Read .res4 files."""
 
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larsoner@uw.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -16,12 +16,12 @@ from .constants import CTF
 def _make_ctf_name(directory, extra, raise_error=True):
     """Make a CTF name."""
     fname = op.join(directory, op.basename(directory)[:-3] + '.' + extra)
+    found = True
     if not op.isfile(fname):
         if raise_error:
             raise IOError('Standard file %s not found' % fname)
-        else:
-            return None
-    return fname
+        found = False
+    return fname, found
 
 
 def _read_double(fid, n=1):
@@ -99,7 +99,7 @@ def _read_comp_coeff(fid, d):
 def _read_res4(dsdir):
     """Read the magical res4 file."""
     # adapted from read_res4.c
-    name = _make_ctf_name(dsdir, 'res4')
+    name, _ = _make_ctf_name(dsdir, 'res4')
     res = dict()
     with open(name, 'rb') as fid:
         # Read the fields
