@@ -24,10 +24,10 @@ from mne.forward import use_coil_def
 from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
-from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
-                               annotate_amplitude, compute_maxwell_basis,
-                               maxwell_filter_prepare_emptyroom,
-                               annotate_movement)
+from mne.preprocessing import (
+    maxwell_filter as _maxwell_filter_ola,
+    find_bad_channels_maxwell, annotate_amplitude, compute_maxwell_basis,
+    maxwell_filter_prepare_emptyroom, annotate_movement)
 from mne.preprocessing.maxwell import (
     _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -143,7 +143,8 @@ def read_crop(fname, lims=(0, None)):
 # For backward compat and to be most like MaxFilter, we make "maxwell_filter"
 # the one that behaves like MaxFilter. _maxwell_filter is left to
 # be the advanced/better one.
-maxwell_filter = partial(_maxwell_filter, st_overlap=False, mc_interp='zero')
+maxwell_filter = partial(
+    _maxwell_filter_ola, st_overlap=False, mc_interp='zero')
 
 
 @pytest.mark.slowtest
@@ -251,9 +252,10 @@ def test_movement_compensation_smooth():
                    3.9, 10.8, chpi_med_tol=58)
     # MC increases noise
     _assert_shielding(raw_sss, power, 0.25, max_factor=0.26)
-    raw_sss = _maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
-                              regularize=None, bad_condition='ignore',
-                              st_overlap=False, mc_interp='hann')
+    raw_sss = _maxwell_filter_ola(
+        raw, head_pos=head_pos, origin=mf_head_origin,
+        regularize=None, bad_condition='ignore',
+        st_overlap=False, mc_interp='hann')
     assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
                    2.49, 9.8, chpi_med_tol=58)
     _assert_shielding(raw_sss, power, 0.26, max_factor=0.27)
@@ -629,7 +631,7 @@ def test_st_overlap():
     raw_tsss = maxwell_filter(raw, **kwargs)
     assert _compute_rank_int(raw_tsss, proj=False) == 140
     _assert_shielding(raw_tsss, power, 35.8, max_factor=35.9)
-    raw_tsss = _maxwell_filter(raw, st_overlap=True, **kwargs)
+    raw_tsss = _maxwell_filter_ola(raw, st_overlap=True, **kwargs)
     assert _compute_rank_int(raw_tsss, proj=False) == 140
     _assert_shielding(raw_tsss, power, 35.6, max_factor=35.7)
 
@@ -1501,7 +1503,7 @@ def test_compute_maxwell_basis(regularize, n):
     assert n_use_in == len(reg_moments) - 15  # no externals removed
     xform = S[:, :n_use_in] @ pS[:n_use_in]
     got = xform @ raw.pick_types(meg=True, exclude='bads').get_data()
-    assert_allclose(got, want)
+    assert_allclose(got, want, atol=1e-16)
 
 
 @testing.requires_testing_data
