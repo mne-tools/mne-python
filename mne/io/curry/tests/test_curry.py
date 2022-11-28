@@ -7,6 +7,7 @@
 
 from datetime import datetime, timezone
 import os.path as op
+from pathlib import Path
 from shutil import copyfile
 
 import pytest
@@ -491,3 +492,22 @@ def test_meas_date(fname, expected_meas_date):
     # If the information is not valid, raw.info['meas_date'] should be None
     raw = read_raw_curry(fname, preload=False)
     assert raw.info['meas_date'] == expected_meas_date
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname, others', [
+    pytest.param(curry7_rfDC_file, ('.dap', '.rs3'), id='curry7'),
+    pytest.param(curry8_rfDC_file, ('.cdt.dpa',), id='curry8'),
+])
+def test_dot_names(fname, others, tmp_path):
+    """Test that dots are parsed properly (e.g., in paths)."""
+    my_path = tmp_path / 'dot.dot.dot'
+    my_path.mkdir()
+    my_path = my_path / Path(fname).parts[-1]
+    fname = Path(fname)
+    copyfile(fname, my_path)
+    for ext in others:
+        this_fname = fname.with_suffix(ext)
+        to_fname = my_path.with_suffix(ext)
+        copyfile(this_fname, to_fname)
+    read_raw_curry(my_path)
