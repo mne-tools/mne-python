@@ -5,11 +5,13 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 from collections import namedtuple
-import re
-import numpy as np
 from datetime import datetime, timezone
+import os.path as op
+from pathlib import Path
+import re
+
+import numpy as np
 
 from .._digitization import _make_dig_points
 from ..base import BaseRaw
@@ -65,10 +67,16 @@ def _get_curry_file_structure(fname, required=()):
     """Store paths to a dict and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory as {1}."
-    fname = _check_fname(fname, 'read', True, 'fname')
+    fname = Path(_check_fname(fname, 'read', True, 'fname'))
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
-    fname_base, ext = fname.split(".", maxsplit=1)
+    # this won't handle a dot in the filename, but it should handle it in
+    # the parent directories
+    fname_base = fname.name.split('.', maxsplit=1)[0]
+    ext = fname.name[len(fname_base):]
+    fname_base = str(fname)
+    fname_base = fname_base[:len(fname_base) - len(ext)]
+    del fname
     version = _get_curry_version(ext)
     my_curry = dict()
     for key in ('info', 'data', 'labels', 'events_cef', 'events_ceo', 'hpi'):
@@ -470,7 +478,7 @@ def read_raw_curry(fname, preload=False, verbose=None):
     Parameters
     ----------
     fname : str
-        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
+        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, .cdt.dpa,
         .cdt.cef or .cef.
     %(preload)s
     %(verbose)s
@@ -489,7 +497,7 @@ class RawCurry(BaseRaw):
     Parameters
     ----------
     fname : str
-        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
+        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, .cdt.dpa,
         .cdt.cef or .cef.
     %(preload)s
     %(verbose)s

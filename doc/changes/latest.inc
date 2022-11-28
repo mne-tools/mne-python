@@ -47,6 +47,7 @@ Bugs
 - Fix bug where computing PSD with welch's method with more jobs than channels would fail (:gh:`11298` by `Mathieu Scheltienne`_)
 - Fix bug with :func:`mne.decoding.cross_val_multiscore` where progress bars were not displayed correctly (:gh:`11311` by `Eric Larson`_)
 - Fix channel selection edge-cases in `~mne.preprocessing.ICA.find_bads_muscle` (:gh:`11300` by `Mathieu Scheltienne`_)
+- Fix bug with :func:`mne.io.read_raw_curry` where a dot in the parent folders prevented files from being read (:gh:`11340` by `Eric Larson`_)
 - Fix bug with :class:`mne.Report` with ``replace=True`` where the wrong content was replaced (:gh:`11318` by `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
