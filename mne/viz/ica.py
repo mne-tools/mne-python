@@ -790,13 +790,13 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
 
     if labels == 'ecg':
         labels = [label for label in ica.labels_ if label.startswith('ecg/')]
-        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        labels.sort(key=lambda label: label.split('/')[1])  # sort by index
         if len(labels) == 0:
             labels = [label for label in ica.labels_ if
                       label.startswith('ecg')]
     elif labels == 'eog':
         labels = [label for label in ica.labels_ if label.startswith('eog/')]
-        labels.sort(key=lambda l: l.split('/')[1])  # sort by index
+        labels.sort(key=lambda label: label.split('/')[1])  # sort by index
         if len(labels) == 0:
             labels = [label for label in ica.labels_ if
                       label.startswith('eog')]
