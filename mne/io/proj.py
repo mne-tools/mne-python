@@ -1006,7 +1006,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, *, eeg_ref_ch_type='eeg',
     # Add EEG ref reference proj if necessary
     if add_eeg_ref and _needs_eeg_average_ref_proj(info):
         eeg_proj = make_eeg_average_ref_proj(
-            info, activate=activate, eeg_ref_ch_type=eeg_ref_ch_type)
+            info, activate=activate, ch_type=eeg_ref_ch_type)
         info['projs'].append(eeg_proj)
 
     # Create the projector
