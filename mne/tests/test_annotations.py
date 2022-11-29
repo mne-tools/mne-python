@@ -1440,6 +1440,117 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa", 2.2})
 
 
+@pytest.fixture(scope='function', params=('data_duration',))
+def dummy_raw(data_duration):
+    """Create dummy Raw instance for testing"""
+    n_channels = 2
+    sampling_freq = 100
+    duration_in_seconds = data_duration
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg', 'eeg'])
+    data = np.random.randn(n_channels, sampling_freq * duration_in_seconds)
+    yield mne.io.RawArray(data, info)
+
+
+@pytest.mark.parametrize('data_duration', (40,))
+def test_cropping_annotations_with_orig_time(dummy_raw, data_duration):
+    """Test cropping raw with anntations with orig_time"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 10, 20, 30],
+                                  duration=[0, 0, 0, 0],
+                                  description=['test'] * 4,
+                                  orig_time="2022-01-01 01:02:00")
+    raw.set_annotations(annotations)
+    cropped = raw.copy().crop(tmin=0, tmax=20, include_tmax=False)
+    assert_equal(len(cropped.annotations), 2)
+
+
+@pytest.mark.parametrize('data_duration', (20,))
+def test_setting_annotations_outside_range(dummy_raw, data_duration):
+    """Test Raw with anntations set outside the data range"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 10, 20],
+                                  duration=[0, 0, 0],
+                                  description=['test'] * 3)
+    # the onset 20 exceeds the last time stamp of the raw
+    with pytest.raises(RuntimeWarning, match="outside data range"):
+        raw.set_annotations(annotations)
+
+
+@pytest.mark.parametrize('data_duration', (20,))
+def test_setting_annotations_zero_duration(dummy_raw, data_duration):
+    """Test Raw with anntations set on the boundaries with zero duration"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 19.990],
+                                  duration=[1, 0],
+                                  description=['test'] * 2)
+    raw.set_annotations(annotations)
+    assert_equal(len(raw.annotations), 2)
+
+
+@pytest.mark.parametrize('data_duration', (20,))
+def test_setting_annotations_nonzero_duration(dummy_raw, data_duration):
+    """Test Raw with anntations set on the boundaries"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 19.990],
+                                  duration=[1, 1],
+                                  description=['test'] * 2)
+    with pytest.raises(RuntimeWarning, match="outside the data range"):
+        raw.set_annotations(annotations)
+
+
+@pytest.mark.parametrize('data_duration', (30,))
+def test_cropping_annotations_include_tmax(dummy_raw, data_duration):
+    """Test cropping raw with anntations, including tmax"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 20],
+                                  duration=[0, 0],
+                                  description=['test'] * 2)
+    raw.set_annotations(annotations)
+    cropped = raw.copy().crop(tmin=0, tmax=20, include_tmax=True)
+    assert_equal(len(cropped.annotations), 2)
+
+
+@pytest.mark.parametrize('data_duration', (20,))
+def test_cropping_annotations_not_include_tmax(dummy_raw, data_duration):
+    """Test cropping raw with anntations, not including tmax"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 19.990],
+                                  duration=[0, 0],
+                                  description=['test'] * 2)
+    raw.set_annotations(annotations)
+    # issue #9383, final timestamp is 19.990, which is correct
+    # we wanted up to but not including 20 seconds),but the
+    # annotation that occurs at the 20 second point is retained
+    cropped = raw.copy().crop(tmin=0, tmax=19.99, include_tmax=False)
+    assert_equal(len(cropped.annotations), 1)
+
+
+@pytest.mark.parametrize('data_duration', (20,))
+def test_cropping_annotations_outside_data_range(dummy_raw, data_duration):
+    """Test cropping raw with anntations outside range"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 10],
+                                  duration=[0, 0],
+                                  description=['test'] * 2)
+    raw.set_annotations(annotations)
+    with pytest.raises(ValueError, match="must be less than or equal to"):
+        raw.copy().crop(tmin=0, tmax=20, include_tmax=False)
+
+
+@pytest.mark.parametrize('data_duration', (20,))
+def test_cropping_annotations_on_boundaries(dummy_raw, data_duration):
+    """Test cropping raw with anntations on boundaries"""
+    raw = dummy_raw
+    annotations = mne.Annotations(onset=[0, 10, 19.990],
+                                  duration=[0, 1, 0],
+                                  description=['test'] * 3)
+    raw.set_annotations(annotations)
+    cropped = raw.copy().crop(tmin=0, tmax=19.99)
+    assert_equal(len(cropped.annotations), 3)
+
+
 @pytest.mark.parametrize('meas_date', (None, 1))
 @pytest.mark.parametrize('set_meas_date', ('before', 'after'))
 @pytest.mark.parametrize('first_samp', (0, 100, 3000))
