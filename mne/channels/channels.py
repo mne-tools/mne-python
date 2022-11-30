@@ -192,7 +192,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     return equalized_instances
 
 
-channel_type_constants = get_channel_type_constants()
+channel_type_constants = get_channel_type_constants(include_defaults=True)
 _human2fiff = {k: v.get('kind', FIFF.FIFFV_COIL_NONE) for k, v in
                channel_type_constants.items()}
 _human2unit = {k: v.get('unit', FIFF.FIFF_UNIT_NONE) for k, v in

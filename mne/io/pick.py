@@ -33,17 +33,16 @@ def get_channel_type_constants(include_defaults=False):
 
     Notes
     -----
-        Values which might vary within a channel type across real data
-        recordings are excluded unless ``include_defaults=True``. For example,
-        "ref_meg" channels may have coil type
-        ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
-        (depending on the recording system), so no "coil_type" entry is given
-        for "ref_meg" unless ``include_defaults`` is requested.
+    Values which might vary within a channel type across real data
+    recordings are excluded unless ``include_defaults=True``. For example,
+    "ref_meg" channels may have coil type
+    ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
+    (depending on the recording system), so no "coil_type" entry is given
+    for "ref_meg" unless ``include_defaults`` is requested.
     """
     base = dict(grad=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T_M),
                 mag=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T),
-                ref_meg=dict(kind=FIFF.FIFFV_REF_MEG_CH,
-                             unit=FIFF.FIFF_UNIT_T),
+                ref_meg=dict(kind=FIFF.FIFFV_REF_MEG_CH),
                 eeg=dict(kind=FIFF.FIFFV_EEG_CH,
                          unit=FIFF.FIFF_UNIT_V,
                          coil_type=FIFF.FIFFV_COIL_EEG),
