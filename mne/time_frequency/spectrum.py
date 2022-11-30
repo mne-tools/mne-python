@@ -1192,6 +1192,6 @@ def _compute_n_welch_segments(n_times, method_kw):
 def _validate_method(method, instance_type):
     """Convert 'auto' to a real method name, and validate."""
     if method == 'auto':
-        method = 'welch' if instance_type == 'Raw' else 'multitaper'
+        method = 'welch' if instance_type.startswith('Raw') else 'multitaper'
     _check_option('method', method, ('welch', 'multitaper'))
     return method
