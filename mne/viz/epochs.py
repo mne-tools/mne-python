@@ -232,7 +232,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             # one fig per ch_type
             group_by = {ch_type: picks[np.array(ch_types) == ch_type]
                         for ch_type in set(ch_types)
-                        if ch_type in _DATA_CH_TYPES_SPLIT}
+                        if ch_type in _DATA_CH_TYPES_SPLIT + ('ref_meg',)}
         elif combine is None:
             # one fig per pick
             group_by = {epochs.ch_names[pick]: [pick] for pick in picks}
