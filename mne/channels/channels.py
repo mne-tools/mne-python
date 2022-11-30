@@ -1606,7 +1606,6 @@ def find_ch_adjacency(info, ch_type):
         between non-adjacent sensors). Therefore, it is recommended to check
         (and, if necessary, manually modify) the result by inspecting it
         via :func:`mne.viz.plot_ch_adjacency`.
-        Delete this line @eort...
 
     Note that depending on your use case, you may need to additionally use
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
