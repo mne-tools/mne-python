@@ -302,6 +302,10 @@ def test_plot_epochs_image(epochs):
     # mismatched picks and order
     with pytest.raises(ValueError, match='must match the length of the data'):
         epochs.plot_image(picks=[1], order=[0, 1])
+    # with a ref MEG channel (that we "convert" from a grad channel)
+    with pytest.warns(RuntimeWarning, match='.* from T/m to T.$'):
+        epochs.set_channel_types({epochs.ch_names[0]: 'ref_meg'})
+    epochs.plot_image()
     plt.close('all')
 
 

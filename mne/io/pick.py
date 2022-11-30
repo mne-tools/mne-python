@@ -42,7 +42,8 @@ def get_channel_type_constants(include_defaults=False):
     """
     base = dict(grad=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T_M),
                 mag=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T),
-                ref_meg=dict(kind=FIFF.FIFFV_REF_MEG_CH),
+                ref_meg=dict(kind=FIFF.FIFFV_REF_MEG_CH,
+                             unit=FIFF.FIFF_UNIT_T),
                 eeg=dict(kind=FIFF.FIFFV_EEG_CH,
                          unit=FIFF.FIFF_UNIT_V,
                          coil_type=FIFF.FIFFV_COIL_EEG),
