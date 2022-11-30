@@ -1298,9 +1298,11 @@ def test_set_montage_with_mismatching_ch_names():
     assert 'EEG 001' in raw.ch_names and 'eeg 001' not in raw.ch_names
     raw.rename_channels({'EEG 002': 'eeg 001'})
     assert 'EEG 001' in raw.ch_names and 'eeg 001' in raw.ch_names
-    raw.set_channel_types({'eeg 001': 'misc'})
+    with pytest.warns(RuntimeWarning, match='changed from V to NA'):
+        raw.set_channel_types({'eeg 001': 'misc'})
     raw.set_montage(montage)
-    raw.set_channel_types({'eeg 001': 'eeg'})
+    with pytest.warns(RuntimeWarning, match='changed from NA to V'):
+        raw.set_channel_types({'eeg 001': 'eeg'})
     with pytest.raises(ValueError, match='1 channel position not present'):
         raw.set_montage(montage)
     with pytest.raises(ValueError, match='match_case=False as 1 channel name'):
@@ -1456,7 +1458,8 @@ def test_montage_head_frame(ch_type):
 
     # Also test that including channels in the montage that will not have their
     # positions set will emit a warning
-    raw.set_channel_types(dict(a='misc'))
+    with pytest.warns(RuntimeWarning, match='changed from V to NA'):
+        raw.set_channel_types(dict(a='misc'))
     with pytest.warns(RuntimeWarning, match='Not setting .*of 1 misc channel'):
         raw.set_montage(montage)
 
