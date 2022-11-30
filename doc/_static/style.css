@@ -183,10 +183,10 @@ aside.footnote:last-child {
 }
 
 /* ******************************************************* navbar icon links */
-#navbar-icon-links i.fa-github-square::before {
+#navbar-icon-links i.fa-square-github::before {
     color: var(--mne-color-github);
 }
-#navbar-icon-links i.fa-twitter-square::before {
+#navbar-icon-links i.fa-square-twitter::before {
     color: var(--mne-color-twitter);
 }
 #navbar-icon-links i.fa-discourse::before {
