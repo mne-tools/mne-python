@@ -249,11 +249,6 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     return gui
 
 
-# constants for casting to integers in view volume stc
-COMPLEX_DTYPE = np.dtype([('re', np.int16), ('im', np.int16)])
-RANGE_VALUE = 2**15
-
-
 @verbose
 def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
                  src=None, inst=None, show=True, block=False, verbose=None):
@@ -295,7 +290,7 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
         The graphical user interface (GUI) window.
     """
     from ..viz.backends._utils import _qt_app_exec
-    from ._vol_stc import VolSourceEstimateViewer
+    from ._vol_stc import VolSourceEstimateViewer, COMPLEX_DTYPE, RANGE_VALUE
     from qtpy.QtWidgets import QApplication
     # get application
     app = QApplication.instance()
