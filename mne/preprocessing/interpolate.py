@@ -5,6 +5,7 @@
 from itertools import chain
 
 import numpy as np
+import pandas as pd
 
 from ..utils import _validate_type, _ensure_int
 from ..io import BaseRaw, RawArray
@@ -235,3 +236,41 @@ def _find_centroid_sphere(ch_pos, group_names):
     # convert back to cartesian
     pos_centroid = _sph_to_cart(sphere_pos_centroid)[0, :]
     return pos_centroid
+
+
+def interpolate_nan(inst, method='linear', limit=100):
+    """ Interpolate missing (NaN) samples
+
+    Using pandas' interpolate method.
+
+    Parameters
+    ----------
+    inst : instance of Epochs, Evoked, or Raw
+        The data object with samples that are to be interpolated.
+    method : str
+        Interpolation technique to use.
+        see https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.
+        interpolate.html
+    limit : int
+        Maximum number of consecutive NaN to fill. Must be greater than 0.
+
+
+    Returns
+    -------
+    inst : instance of Epochs, Evoked, or Raw
+        The modified data object.
+
+    See Also
+    --------
+    -
+
+    """
+    data = inst.get_data()
+    if len(data.shape) < 3:
+        data = pd.DataFrame(data)
+        data.interpolate(method=method, limit=limit, axis=1, inplace=True)
+        inst._data = data.to_numpy()
+    else:
+        raise NotImplementedError("nan interpolation only implemented for 2-"
+                                  "dimensional data, so far.")
+    return inst

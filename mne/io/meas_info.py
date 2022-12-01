@@ -2413,7 +2413,8 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
         :term:`data channel <data channels>`.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'dbs', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr'
-        or 'hbo'. If str, then all channels are assumed to be of the same type.
+        'eyetrack' or 'hbo'.
+        If str, then all channels are assumed to be of the same type.
     %(verbose)s
 
     Returns

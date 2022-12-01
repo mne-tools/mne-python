@@ -20,8 +20,13 @@ from mne.utils import requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-REPO = 'mne-tools'
-COMMIT = '6d9ca9ce7fb44c63d429c2986a953500743dfb22'
+# <<<<<<< HEAD
+# REPO = 'mne-tools'
+# COMMIT = '6d9ca9ce7fb44c63d429c2986a953500743dfb22'
+# =======
+REPO = 'dominikwelke'
+COMMIT = '2019d4d564eac3313d906c4d8dc77c4c6a06a6df'
+# TODO complete Dominiks fiff-constants PR and set REPO back to mne-tools
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -55,6 +60,8 @@ _missing_coil_def = (
     303,    # fNIRS optical density
     304,    # fNIRS frequency domain AC amplitude
     305,    # fNIRS frequency domain phase
+    400,    # Eye-tracking gaze position
+    401,    # Eye-tracking pupil size
     1000,   # For testing the MCG software
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
