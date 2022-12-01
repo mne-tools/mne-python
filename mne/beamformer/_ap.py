@@ -683,7 +683,7 @@ def ap(evoked,forward,nsources,noise_cov=None,max_iter=6,
         Brain Signals by Alternating Projection. doi: 10.48550/ARXIV.1908.11416
         https://doi.org/10.48550/arxiv.1908.11416
 
-    .. versionadded:: 1.3.0
+    .. versionadded:: 1.3.dev0
     """
     info     = evoked.info
     data     = evoked.data
