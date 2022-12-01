@@ -64,10 +64,10 @@ subjects_dir = sample_path / 'subjects'
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
                      task='ictal', datatype='ieeg', extension='.vhdr')
 
-# then we'll use it to load in the sample dataset
-# Here we use a format (iEEG) that is only available in MNE-BIDS 0.7+, so it
-# will emit a warning on versions <= 0.6
-raw = read_raw_bids(bids_path=bids_path, verbose=False)
+# Then we'll use it to load in the sample dataset. This function changes the
+# units of some channels, so we suppress a related warning here by using
+# verbose='error'.
+raw = read_raw_bids(bids_path=bids_path, verbose='error')
 
 # Pick only the ECoG channels, removing the EKG channels
 raw.pick_types(ecog=True)
