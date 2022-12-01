@@ -25,6 +25,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     %(base_estimator)s
     %(scoring)s
     %(n_jobs)s
+    %(position)s
     %(verbose)s
 
     Attributes
@@ -35,12 +36,13 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     @verbose
     def __init__(self, base_estimator, scoring=None, n_jobs=None, *,
-                 verbose=None):  # noqa: D102
+                 position=0, verbose=None):  # noqa: D102
         _check_estimator(base_estimator)
         self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         self.scoring = scoring
+        self.position = position
 
     def __repr__(self):  # noqa: D105
         repr_str = '<' + super(SlidingEstimator, self).__repr__()
@@ -76,7 +78,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.fit_params = fit_params
         # For fitting, the parallelization is across estimators.
         mesg = 'Fitting %s' % (self.__class__.__name__,)
-        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1], mesg=mesg, position=self.position) as pb:
             estimators = parallel(
                 p_func(self.base_estimator, split, y, pb.subset(pb_idx),
                        **fit_params)
@@ -130,7 +132,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         mesg = 'Transforming %s' % (self.__class__.__name__,)
         X_splits = np.array_split(X, n_jobs, axis=-1)
         idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
-        with ProgressBar(X.shape[-1], mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1], mesg=mesg, position=self.position) as pb:
             y_pred = parallel(p_func(est, x, method, pb.subset(pb_idx))
                               for pb_idx, est, x in zip(
                                   idx, est_splits, X_splits))
@@ -415,6 +417,7 @@ class GeneralizingEstimator(SlidingEstimator):
     %(base_estimator)s
     %(scoring)s
     %(n_jobs)s
+    %(position)s
     %(verbose)s
     """
 
@@ -432,7 +435,8 @@ class GeneralizingEstimator(SlidingEstimator):
         mesg = 'Transforming %s' % (self.__class__.__name__,)
         parallel, p_func, n_jobs = parallel_func(
             _gl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
-        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg,
+                         position=self.position) as pb:
             y_pred = parallel(
                 p_func(self.estimators_, x_split, method, pb.subset(pb_idx))
                 for pb_idx, x_split in array_split_idx(
@@ -551,7 +555,8 @@ class GeneralizingEstimator(SlidingEstimator):
             _gl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
-        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
+        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg,
+                         position=self.position) as pb:
             score = parallel(p_func(self.estimators_, scoring, x, y,
                                     pb.subset(pb_idx))
                              for pb_idx, x in array_split_idx(

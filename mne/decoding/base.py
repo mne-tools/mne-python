@@ -432,19 +432,25 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     # Note: this parallelization is implemented using MNE Parallel
     parallel, p_func, n_jobs = parallel_func(_fit_and_score, n_jobs,
                                              pre_dispatch=pre_dispatch)
+    position = hasattr(estimator, 'position')
     scores = parallel(
         p_func(
             estimator=clone(estimator), X=X, y=y, scorer=scorer, train=train,
-            test=test, parameters=None, fit_params=fit_params
-        ) for train, test in cv_iter
+            test=test, fit_params=fit_params, verbose=verbose,
+            parameters=dict(position=ii % n_jobs) if position else None,
+        ) for ii, (train, test) in enumerate(cv_iter)
     )
     return np.array(scores)[:, 0, ...]  # flatten over joblib output.
 
 
+# This verbose is necessary to properly set the verbosity level
+# during parallelization
+@verbose
 def _fit_and_score(estimator, X, y, scorer, train, test,
                    parameters, fit_params, return_train_score=False,
                    return_parameters=False, return_n_test_samples=False,
-                   return_times=False, error_score='raise'):
+                   return_times=False, error_score='raise', *, verbose=None,
+                   position=0):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
     from ..fixes import _check_fit_params

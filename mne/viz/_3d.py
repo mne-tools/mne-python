@@ -451,7 +451,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
-                   fig=None, interaction='terrain', verbose=None):
+                   fig=None, interaction='terrain',
+                   sensor_colors=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -537,6 +538,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
+    sensor_colors : array-like | None
+        Colors to use for the sensor glyphs. Can be list-like of color strings
+        (length ``n_sensors``) or array-like of RGB(A) values (shape
+        ``(n_sensors, 3)`` or ``(n_sensors, 4)``). ``None`` (the default) uses
+        the default sensor colors for the :func:`~mne.viz.plot_alignment` GUI.
     %(verbose)s
 
     Returns
@@ -783,7 +789,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # plotted being the sensors, so we need to do this after the surfaces)
     if picks.size > 0:
         _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
-                      warn_meg, head_surf, 'm')
+                      warn_meg, head_surf, 'm', sensor_colors=sensor_colors)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -1178,7 +1184,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                   warn_meg, head_surf, units, sensor_opacity=0.8,
                   orient_glyphs=False, scale_by_distance=False,
                   project_points=False, surf=None, check_inside=None,
-                  nearest=None):
+                  nearest=None, sensor_colors=None):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1227,19 +1233,53 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
         if len(locs[sensor_type]) > 0:
             sens_loc = np.array(locs[sensor_type])
             sens_loc = sens_loc[~np.isnan(sens_loc).any(axis=1)]
-            color = defaults[sensor_type + '_color']
             scale = defaults[sensor_type + '_scale']
-            actor, _ = _plot_glyphs(renderer=renderer, loc=sens_loc * scalar,
-                                    color=color, scale=scale * scalar,
-                                    opacity=sensor_opacity,
-                                    orient_glyphs=orient_glyphs,
-                                    scale_by_distance=scale_by_distance,
-                                    project_points=project_points,
-                                    surf=surf, check_inside=check_inside,
-                                    nearest=nearest)
-            if sensor_type in ('source', 'detector'):
-                sensor_type = 'fnirs'
-            actors[sensor_type].append(actor)
+            if sensor_colors is None:
+                color = defaults[sensor_type + '_color']
+                actor, _ = _plot_glyphs(
+                    renderer=renderer,
+                    loc=sens_loc * scalar,
+                    color=color,
+                    scale=scale * scalar,
+                    opacity=sensor_opacity,
+                    orient_glyphs=orient_glyphs,
+                    scale_by_distance=scale_by_distance,
+                    project_points=project_points,
+                    surf=surf, check_inside=check_inside,
+                    nearest=nearest
+                )
+                if sensor_type in ('source', 'detector'):
+                    sensor_type = 'fnirs'
+                actors[sensor_type].append(actor)
+            else:
+                actor_list = []
+                for idx_sen in range(sens_loc.shape[0]):
+                    sensor_colors = np.asarray(sensor_colors)
+                    if (sensor_colors.ndim not in (1, 2) or
+                            sensor_colors.shape[0] != sens_loc.shape[0]):
+                        raise ValueError(
+                            'sensor_colors should either be None or be '
+                            'array-like with shape (n_sensors,) or '
+                            '(n_sensors, 3) or (n_sensors, 4). Got shape '
+                            f'{sensor_colors.shape}.'
+                        )
+                    color = sensor_colors[idx_sen]
+
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=(sens_loc * scalar)[idx_sen, :],
+                        color=color, scale=scale * scalar,
+                        opacity=sensor_opacity,
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf, check_inside=check_inside,
+                        nearest=nearest
+                    )
+                    actor_list.append(actor)
+                if sensor_type in ('source', 'detector'):
+                    sensor_type = 'fnirs'
+                actors[sensor_type].append(actor_list)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)

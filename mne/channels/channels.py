@@ -192,7 +192,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     return equalized_instances
 
 
-channel_type_constants = get_channel_type_constants()
+channel_type_constants = get_channel_type_constants(include_defaults=True)
 _human2fiff = {k: v.get('kind', FIFF.FIFFV_COIL_NONE) for k, v in
                channel_type_constants.items()}
 _human2unit = {k: v.get('unit', FIFF.FIFF_UNIT_NONE) for k, v in
@@ -1599,6 +1599,13 @@ def find_ch_adjacency(info, ch_type):
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
     :func:`read_ch_adjacency` directly.
+
+    .. warning::
+        If Delaunay triangulation is used to calculate the adjacency matrix it
+        may yield partially unexpected results (e.g., include unwanted edges
+        between non-adjacent sensors). Therefore, it is recommended to check
+        (and, if necessary, manually modify) the result by inspecting it
+        via :func:`mne.viz.plot_ch_adjacency`.
 
     Note that depending on your use case, you may need to additionally use
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"

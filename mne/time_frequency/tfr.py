@@ -1279,9 +1279,14 @@ class AverageTFR(_BaseTFR):
             Defaults to 0.1.
 
             .. versionadded:: 0.16.0
-        combine : 'mean' | 'rms' | None
+        combine : 'mean' | 'rms' | callable | None
             Type of aggregation to perform across selected channels. If
-            None, plot one figure per selected channel.
+            None, plot one figure per selected channel. If a function, it must
+            operate on an array of shape ``(n_channels, n_freqs, n_times)`` and
+            return an array of shape ``(n_freqs, n_times)``.
+
+            .. versionchanged:: 1.3
+               Added support for ``callable``.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
@@ -1331,12 +1336,34 @@ class AverageTFR(_BaseTFR):
         n_picks = len(tfr.ch_names) if combine is None else 1
 
         # combine picks
-        if combine == 'mean':
-            data = data.mean(axis=0, keepdims=True)
-        elif combine == 'rms':
-            data = np.sqrt((data ** 2).mean(axis=0, keepdims=True))
-        elif combine is not None:
-            raise ValueError('combine must be None, mean or rms.')
+        _validate_type(combine, (None, str, "callable"))
+        if isinstance(combine, str):
+            _check_option("combine", combine, ("mean", "rms"))
+            if combine == 'mean':
+                data = data.mean(axis=0, keepdims=True)
+            elif combine == 'rms':
+                data = np.sqrt((data ** 2).mean(axis=0, keepdims=True))
+        elif combine is not None:  # callable
+            # It must operate on (n_channels, n_freqs, n_times) and return
+            # (n_freqs, n_times). Operates on a copy in-case 'combine' does
+            # some in-place operations.
+            try:
+                data = combine(data.copy())
+            except TypeError:
+                raise RuntimeError(
+                    "A callable 'combine' must operate on a single argument, "
+                    "a numpy array of shape (n_channels, n_freqs, n_times)."
+                )
+            if (
+                not isinstance(data, np.ndarray)
+                or data.shape != tfr.data.shape[1:]
+            ):
+                raise RuntimeError(
+                    "A callable 'combine' must return a numpy array of shape "
+                    "(n_freqs, n_times)."
+                )
+            # keep initial dimensions
+            data = data[np.newaxis]
 
         # figure overhead
         # set plot dimension
@@ -1383,7 +1410,7 @@ class AverageTFR(_BaseTFR):
                     subtitle = tfr.info['ch_names'][idx]
                 else:
                     subtitle = _set_title_multiple_electrodes(
-                        None, combine, tfr.info["ch_names"], all=True,
+                        None, combine, tfr.info["ch_names"], all_=True,
                         ch_type=ch_type)
             else:
                 subtitle = title
@@ -1453,8 +1480,14 @@ class AverageTFR(_BaseTFR):
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
             are log-spaced and only then sets the y axis to 'log'.
-        combine : 'mean' | 'rms'
-            Type of aggregation to perform across selected channels.
+        combine : 'mean' | 'rms' | callable
+            Type of aggregation to perform across selected channels. If a
+            function, it must operate on an array of shape
+            ``(n_channels, n_freqs, n_times)`` and return an array of shape
+            ``(n_freqs, n_times)``.
+
+            .. versionchanged:: 1.3
+               Added support for ``callable``.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list, i.e., ``[]``.
@@ -1637,7 +1670,7 @@ class AverageTFR(_BaseTFR):
                 picks = _pair_grad_sensors(tfr.info, topomap_coords=False)
                 pos = _find_topomap_coords(
                     tfr.info, picks=picks[::2], sphere=sphere)
-                method = combine or 'rms'
+                method = combine if isinstance(combine, str) else "rms"
                 data, _ = _merge_ch_data(data[picks], ch_type, [],
                                          method=method)
                 del picks, method

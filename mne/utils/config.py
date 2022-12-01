@@ -454,10 +454,7 @@ def _get_numpy_libs():
         from threadpoolctl import threadpool_info
     except Exception as exc:
         return bad_lib + f' (threadpoolctl module not found: {exc})'
-    try:
-        pools = threadpool_info()
-    except Exception as exc:
-        return bad_lib + f' (threadpoolctl failed to get info: {exc})'
+    pools = threadpool_info()
     rename = dict(
         openblas='OpenBLAS',
         mkl='MKL',

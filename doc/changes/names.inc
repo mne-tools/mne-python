@@ -424,6 +424,8 @@
 
 .. _Samuel Powell: https://github.com/samuelpowell
 
+.. _Santeri Ruuskanen: https://github.com/ruuskas
+
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
@@ -489,6 +491,8 @@
 .. _Tod Flak: https://github.com/todflak
 
 .. _Tommy Clausner: https://github.com/TommyClausner
+
+.. _Toomas Erik Anijärv: http://www.toomaserikanijarv.com/
 
 .. _Tristan Stenner: https://github.com/tstenner/
 
