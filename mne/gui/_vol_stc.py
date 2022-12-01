@@ -7,20 +7,26 @@
 
 import os.path as op
 import numpy as np
+from functools import partial
 
 from qtpy import QtCore
 from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
                             QMessageBox, QWidget, QSlider, QPushButton,
-                            QComboBox)
+                            QComboBox, QLineEdit)
 
 from ._core import SliceBrowser
+from .. import BaseEpochs
+from ..baseline import rescale, _check_baseline
+from ..time_frequency import EpochsTFR
 from ..io.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import (_require_version, _validate_type, _check_range, fill_doc,
                      _check_option)
 from ..viz.utils import _get_cmap
 
-COMPLEX_DTYPE = np.dtype([('re', np.int16), ('im', np.int16)])
+BASE_INT_DTYPE = np.int16
+COMPLEX_DTYPE = np.dtype([('re', BASE_INT_DTYPE),
+                          ('im', BASE_INT_DTYPE)])
 RANGE_VALUE = 2**15
 RANGE_SQRT = 2**8  # round up so no overflow
 
@@ -95,6 +101,30 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def __init__(self, data, subject=None, subjects_dir=None, src=None,
                  inst=None, show=True, verbose=None):
+        """View a volume time and/or frequency source time course estimate.
+
+        Parameters
+        ----------
+        data : array-like
+            An array of shape (``n_epochs``, ``n_sources``, ``n_ori``,
+            ``n_freqs``, ``n_times``). ``n_epochs`` may be 1 for data
+            averaged across epochs and ``n_freqs`` may be 1 for data
+            that is in time only and is not time-frequency decomposed. For
+            faster performance, data can be cast to integers or a
+            custom complex data type that uses integers as done by
+            :func:`mne.gui.view_vol_stc`.
+        %(subject)s
+        %(subjects_dir)s
+        src : instance of SourceSpaces
+            The volume source space for the ``stc``.
+        inst : EpochsTFR | AverageTFR | None
+            The time-frequency or data object to use to plot topography.
+        show : bool
+            Show the GUI if True.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+        %(verbose)s
+        """
         _require_version('dipy', 'VolSourceEstimateViewer', '0.10.1')
         if src is None:
             raise NotImplementedError('`src` is required, surface source '
@@ -106,8 +136,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         if not isinstance(data, np.ndarray) or data.ndim != 5:
             raise ValueError('`data` must be an array of dimensions '
                              '(n_epochs, n_sources, n_ori, n_freqs, n_times)')
-        if 'Epochs' in str(type(inst)) and data.shape[0] > 1 and \
-                data.shape[0] != len(inst):
+        if isinstance(inst, (BaseEpochs, EpochsTFR)) and \
+                data.shape[0] > 1 and data.shape[0] != len(inst):
             raise ValueError(
                 'Number of epochs in `inst` does not match with `data`, '
                 f'expected {data.shape[0]}, got {len(inst)}')
@@ -139,7 +169,11 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._src_scan_ras_vox_t = np.linalg.inv(self._src_vox_scan_ras_t)
         self._is_complex = np.iscomplexobj(self._data) or \
             self._data.dtype == COMPLEX_DTYPE
-        self._baseline = 'None'
+        self._baseline = 'none'
+        self._bl_tmin = self._inst.times[0]
+        self._bl_tmax = self._inst.times[-1]
+        self._update = True  # can be set to False to prevent double updates
+        # for time and frequency
         # check if only positive values will be used
         pos_support = self._is_complex or self._data.shape[2] > 1 or \
             (self._data >= 0).all()
@@ -252,8 +286,8 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _pick_stc_epoch(self):
         """Select the source time course epoch based on the parameters."""
         if self._epoch_idx == 'Average':
-            if self._data.dtype == np.int16:
-                stc_data = self._data.mean(axis=0).astype(np.int16)
+            if self._data.dtype == BASE_INT_DTYPE:
+                stc_data = self._data.mean(axis=0).astype(BASE_INT_DTYPE)
             else:
                 stc_data = self._data.mean(axis=0)
         elif self._epoch_idx == 'Average Power':
@@ -278,26 +312,13 @@ class VolSourceEstimateViewer(SliceBrowser):
             elif self._is_complex:
                 stc_data = (stc_data * stc_data.conj()).real
         # do baseline correction
-        if self._baseline != 'None' and self._epoch_idx != 'ITC':
-            if self._data.dtype in (COMPLEX_DTYPE, np.int16):
-                stc_mean = np.sum(stc_data // stc_data.shape[0], axis=0)
-            else:
-                stc_mean = stc_data.mean(axis=-1, keepdims=True)
-            if self._baseline == 'Gain':
-                if self._data.dtype in (COMPLEX_DTYPE, np.int16):
-                    stc_data = stc_data // stc_mean
-                else:
-                    stc_data = stc_data / stc_mean
-            else:
-                assert self._baseline == 'Subtraction'
-                if self._data.dtype in (COMPLEX_DTYPE, np.int16):
-                    neg_mask = stc_data < (-RANGE_VALUE + stc_mean)
-                    pos_mask = stc_data > (RANGE_VALUE + 1 + stc_mean)
-                    stc_data -= stc_mean
-                    stc_data[neg_mask] = -RANGE_VALUE
-                    stc_data[pos_mask] = RANGE_VALUE - 1
-                else:
-                    stc_data -= stc_mean
+        if self._baseline != 'none' and self._epoch_idx != 'ITC':
+            stc_data = rescale(
+                stc_data.astype(float), times=self._inst.times,
+                baseline=(float(self._bl_tmin), float(self._bl_tmax)),
+                mode=self._baseline, copy=True)
+            if self._data.dtype in (COMPLEX_DTYPE, BASE_INT_DTYPE):
+                stc_data = stc_data.astype(BASE_INT_DTYPE)
         return stc_data
 
     def _pick_stc_vertex(self, stc_data):
@@ -452,12 +473,29 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         hbox.addWidget(QLabel('Baseline'))
         self._baseline_selector = QComboBox()
-        self._baseline_selector.addItems(['None', 'Gain', 'Subtraction'])
-        self._baseline_selector.setCurrentText('None')
+        self._baseline_selector.addItems(['none', 'mean', 'ratio', 'logratio',
+                                          'percent', 'zscore', 'zlogratio'])
+        self._baseline_selector.setCurrentText('none')
         self._baseline_selector.currentTextChanged.connect(
             self._update_baseline)
         self._baseline_selector.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         hbox.addWidget(self._baseline_selector)
+
+        hbox.addWidget(QLabel('tmin ='))
+        self._bl_tmin_textbox = QLineEdit(str(self._bl_tmin.round(2)))
+        self._bl_tmin_textbox.focusOutEvent = self._update_baseline_tmin
+        self._bl_tmin_textbox.textChanged.connect(partial(
+            self._check_update_text, text=self._bl_tmin_textbox,
+            callback=self._update_baseline_tmin))
+        hbox.addWidget(self._bl_tmin_textbox)
+
+        hbox.addWidget(QLabel('tmax ='))
+        self._bl_tmax_textbox = QLineEdit(str(self._bl_tmax.round(2)))
+        self._bl_tmax_textbox.focusOutEvent = self._update_baseline_tmax
+        self._bl_tmax_textbox.textChanged.connect(partial(
+            self._check_update_text, text=self._bl_tmax_textbox,
+            callback=self._update_baseline_tmax))
+        hbox.addWidget(self._bl_tmax_textbox)
 
         hbox.addStretch(3)
 
@@ -520,27 +558,92 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _on_data_plot_click(self, event):
         """Update viewer when the data plot is clicked on."""
         if event.inaxes is self._fig.axes[0]:
-            self.set_time(self._inst.times[int(round(event.xdata))])
             if self._f_idx is not None:
+                self._update = False
                 self.set_freq(self._inst.freqs[int(round(event.ydata))])
+                self._update = True
+            self.set_time(self._inst.times[int(round(event.xdata))])
 
-    def set_baseline(self, mode):
+    def set_baseline(self, baseline=None, mode=None):
         """Set the baseline.
 
         Parameters
         ----------
-        mode : 'gain' | 'subtraction' | 'none' | None
-        """
-        _check_option('mode', mode, ('gain', 'subtraction', 'none', None))
-        self._update_baseline('None' if mode is None else mode.capitalize())
+        baseline : array-like, shape (2,) | None
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
+            Perform baseline correction by
+
+            - subtracting the mean of baseline values ('mean')
+            - dividing by the mean of baseline values ('ratio')
+            - dividing by the mean of baseline values and taking the log
+              ('logratio')
+            - subtracting the mean of baseline values followed by dividing by
+              the mean of baseline values ('percent')
+            - subtracting the mean of baseline values and dividing by the
+              standard deviation of baseline values ('zscore')
+            - dividing by the mean of baseline values, taking the log, and
+              dividing by the standard deviation of log baseline values
+              ('zlogratio')
+        tmin : float
+            The minimum baseline time
+        """  # noqa E501
+        if self._epoch_idx == 'ITC':
+            raise ValueError('Baseline correction cannot be performed for ITC')
+        _check_option('mode', mode, ('mean', 'ratio', 'logratio', 'percent',
+                                     'zscore', 'zlogratio', 'none', None))
+        self._update = False
+        self._baseline_selector.setCurrentText(
+            'none' if mode is None else mode)
+        if baseline is not None:
+            baseline = _check_baseline(baseline, times=self._inst.times,
+                                       sfreq=self._inst.info['sfreq'])
+            tmin, tmax = baseline
+            self._bl_tmin_textbox.setText(str(tmin))
+            self._bl_tmax_textbox.setText(str(tmax))
+        self._update = True
+        self._update_stc_image()
 
     def _update_baseline(self, name):
         """Update the chosen baseline normalization method."""
-        if (name is not None or name != 'None') and self._epoch_idx == 'ITC':
-            self._baseline_selector.setCurrentText('None')
+        if (name is not None or name != 'none') and self._epoch_idx == 'ITC':
+            self._baseline_selector.setCurrentText('none')
             return
         self._baseline = name
-        self._update_stc_image()
+        if self._update:
+            self._update_stc_image()
+
+    def _update_baseline_tmin(self, event):
+        """Update tmin for the baseline."""
+        try:
+            tmin = float(self._bl_tmin_textbox.text())
+        except ValueError:
+            self._bl_tmin_textbox.setText(str(self._bl_tmin.round(2)))
+        if tmin < self._inst.times[0]:
+            self._bl_tmin_textbox.setText(str(self._bl_tmin.round(2)))
+            return
+        self._bl_tmin = tmin
+        if self._update:
+            self._update_stc_image()
+
+    def _update_baseline_tmax(self, event):
+        """Update tmax for the baseline."""
+        try:
+            tmax = float(self._bl_tmax_textbox.text())
+        except ValueError:
+            self._bl_tmax_textbox.setText(str(self._bl_tmax.round(2)))
+            return
+        if tmax > self._inst.times[-1]:
+            self._bl_tmax_textbox.setText(str(self._bl_tmax.round(2)))
+        self._bl_tmax = tmax
+        if self._update:
+            self._update_stc_image()
 
     def _update_epoch(self, name):
         """Change which epoch is viewed."""
@@ -557,7 +660,8 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._cmap_sliders[0].setValue(0)
             self._cmap_sliders[1].setValue(500)
             self._cmap_sliders[2].setValue(1000)
-        self._update_stc_image()
+        if self._update:
+            self._update_stc_image()
 
     def set_freq(self, freq):
         """Set the frequency to display (in Hz).
@@ -576,7 +680,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._f_idx = self._freq_slider.value()
         self._freq_label.setText(
             f'Freq = {self._inst.freqs[self._f_idx].round(2)} Hz')
-        self._update_stc_image()
+        if self._update:
+            self._update_stc_image()
         self._stc_hline.set_ydata(self._f_idx)
         self._fig.canvas.draw()
 
@@ -595,7 +700,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._t_idx = self._time_slider.value()
         self._time_label.setText(
             f'Time = {self._inst.times[self._t_idx].round(2)} s')
-        self._update_stc_image()
+        if self._update:
+            self._update_stc_image()
         self._stc_vline.set_xdata(self._t_idx)
         self._fig.canvas.draw()
 

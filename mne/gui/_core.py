@@ -14,7 +14,7 @@ from qtpy import QtCore
 from qtpy.QtCore import Slot, Qt
 from qtpy.QtWidgets import (QMainWindow, QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
-                            QMessageBox, QWidget, QPlainTextEdit)
+                            QMessageBox, QWidget, QLineEdit)
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -265,20 +265,24 @@ class SliceBrowser(QMainWindow):
         hbox.addWidget(self._intensity_label)
 
         VOX_label = QLabel('VOX =')
-        self._VOX_textbox = QPlainTextEdit('')  # update later
+        self._VOX_textbox = QLineEdit('')  # update later
         self._VOX_textbox.setMaximumHeight(25)
-        self._VOX_textbox.setMaximumWidth(125)
+        self._VOX_textbox.setMinimumWidth(75)
         self._VOX_textbox.focusOutEvent = self._update_VOX
-        self._VOX_textbox.textChanged.connect(self._check_update_VOX)
+        self._VOX_textbox.textChanged.connect(partial(
+            self._check_update_text, text=self._VOX_textbox,
+            callback=self._update_VOX))
         hbox.addWidget(VOX_label)
         hbox.addWidget(self._VOX_textbox)
 
         RAS_label = QLabel('RAS =')
-        self._RAS_textbox = QPlainTextEdit('')  # update later
+        self._RAS_textbox = QLineEdit('')  # update later
         self._RAS_textbox.setMaximumHeight(25)
-        self._RAS_textbox.setMaximumWidth(200)
+        self._RAS_textbox.setMinimumWidth(150)
         self._RAS_textbox.focusOutEvent = self._update_RAS
-        self._RAS_textbox.textChanged.connect(self._check_update_RAS)
+        self._RAS_textbox.textChanged.connect(partial(
+            self._check_update_text, text=self._RAS_textbox,
+            callback=self._update_RAS))
         hbox.addWidget(RAS_label)
         hbox.addWidget(self._RAS_textbox)
         self._update_moved()  # update text now
@@ -316,16 +320,14 @@ class SliceBrowser(QMainWindow):
     @Slot()
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._RAS_textbox.toPlainText()
-        ras = self._convert_text(text, 'ras')
+        ras = self._convert_text(self._RAS_textbox.text(), 'ras')
         if ras is not None:
             self._set_ras(ras)
 
     @Slot()
     def _update_VOX(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._VOX_textbox.toPlainText()
-        ras = self._convert_text(text, 'vox')
+        ras = self._convert_text(self._VOX_textbox.text(), 'vox')
         if ras is not None:
             self._set_ras(ras)
 
@@ -385,16 +387,10 @@ class SliceBrowser(QMainWindow):
         return self._vox.round().astype(int)
 
     @Slot()
-    def _check_update_RAS(self):
-        """Check whether the RAS textbox is done being edited."""
-        if '\n' in self._RAS_textbox.toPlainText():
-            self._update_RAS(event=None)
-
-    @Slot()
-    def _check_update_VOX(self):
-        """Check whether the VOX textbox is done being edited."""
-        if '\n' in self._VOX_textbox.toPlainText():
-            self._update_VOX(event=None)
+    def _check_update_text(self, text, callback):
+        """Check whether a textbox is done being edited."""
+        if '\n' in text.text():
+            callback(event=None)
 
     def _draw(self, axis=None):
         """Update the figures with a draw call."""
@@ -474,9 +470,9 @@ class SliceBrowser(QMainWindow):
 
     def _update_moved(self):
         """Update when cursor position changes."""
-        self._RAS_textbox.setPlainText('{:.2f}, {:.2f}, {:.2f}'.format(
+        self._RAS_textbox.setText('{:.2f}, {:.2f}, {:.2f}'.format(
             *self._ras))
-        self._VOX_textbox.setPlainText('{:3d}, {:3d}, {:3d}'.format(
+        self._VOX_textbox.setText('{:3d}, {:3d}, {:3d}'.format(
             *self._current_slice))
         self._intensity_label.setText('intensity = {:.2f}'.format(
             self._base_data[tuple(self._current_slice)]))

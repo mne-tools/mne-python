@@ -161,8 +161,8 @@ def test_stc_viewer_display(_stc_viewer):
     assert viewer._f_idx == 0
 
     # test baseline
-    for baseline in ('Gain', 'Subtraction'):
-        viewer._baseline_selector.setCurrentText(baseline)
+    for mode in ('zscore', 'ratio'):
+        viewer.set_baseline((0.1, None), mode)
 
     # test time only, not frequencies
     epochs = mne.EpochsArray(epochs_tfr.data[:, :, 0], epochs_tfr.info,
