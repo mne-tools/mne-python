@@ -4,5 +4,4 @@
 #
 # License: BSD-3-Clause
 
-from .eyetrack import read_raw_eyelink
-from .ParseEyeLinkAscFiles_ import ParseEyeLinkAsc_
+from .eyelink import read_raw_eyelink
