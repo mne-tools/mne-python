@@ -16,11 +16,23 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. _changes_1_2_3:
+
+Version 1.2.3 (2022-12-02)
+--------------------------
+
+Bugs
+~~~~
+- Fix bug where the default FFT length changed for spectrum plots (:gh:`11345` by `Daniel McCloy`_)
+
+
+.. _changes_1_2_2:
+
 Version 1.2.2 (2022-11-11)
 --------------------------
 
 Bugs
-----
+~~~~
 - Fix bug in :func:`mne.head_to_mri` when ``unscale=True`` (:gh:`11303` by `Eric Larson`_)
 - Fix bug with :class:`mne.Report` with ``replace=True`` where the wrong content was replaced (:gh:`11318` by `Eric Larson`_)
 
@@ -30,7 +42,7 @@ Version 1.2.1 (2022-10-19)
 --------------------------
 
 Bugs
-----
+~~~~
 - Fix bug in the ``.compute_psd()`` methods where the number of unaggregated Welch segments was wrongly computed for some inputs, leading to an assertion error when computing the PSD (:gh:`11248` by `Daniel McCloy`_)
 
 
