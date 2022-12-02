@@ -34,6 +34,5 @@ Step by step instructions for using :func:`gui.coregistration`:
    transforms.apply_volume_registration
    transforms.compute_volume_registration
    vertex_to_mni
-   gui.view_vol_stc
    warp_montage_volume
    coreg.Coregistration

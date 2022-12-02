@@ -1,11 +1,9 @@
 """Convenience functions for opening GUIs."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
 
-import numpy as np
 from ..utils import verbose, get_config, warn
 
 
@@ -249,97 +247,6 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     return gui
 
 
-@verbose
-def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
-                 src=None, inst=None, show=True, block=False, verbose=None):
-    """View a volume time and/or frequency source time course estimate.
-
-    Parameters
-    ----------
-    stcs : list of list | generator
-        The source estimates. List of lists or generators for epochs
-        and frequencies (i.e. using
-        :func:`mne.minimum_norm.apply_inverse_tfr_epochs` or
-        :func:`mne.beamformer.apply_dics_tfr_epochs`-- in this case
-        use ``freq_first=False``). Lists of source estimates across
-        frequencies (e.g. :func::func:`mne.beamformer.apply_dics_csd`)
-        and lists of source estimates across epochs
-        (e.g. :func:`mne.minimum_norm.apply_inverse_epochs` and
-        :func:`mne.beamformer.apply_dics_epochs`--in these
-        case use ``freq_first=False``) are also allowed. Single
-        source estimates (e.g. :func:`mne.minimum_norm.apply_inverse`
-        and :func:`mne.beamformer.apply_dics`) are also allowed
-        (``freq_first`` will not be used in this case).
-    freq_first : bool
-        If frequencies are the outer list of ``stcs`` use ``True``.
-    %(subject)s
-    %(subjects_dir)s
-    src : instance of SourceSpaces
-        The volume source space for the ``stc``.
-    inst : EpochsTFR | AverageTFR | None
-        The time-frequency or data object to use to plot topography.
-    show : bool
-        Show the GUI if True.
-    block : bool
-        Whether to halt program execution until the figure is closed.
-    %(verbose)s
-
-    Returns
-    -------
-    gui : instance of VolSourceEstimateViewer
-        The graphical user interface (GUI) window.
-    """
-    from ..viz.backends._utils import _qt_app_exec
-    from ._vol_stc import VolSourceEstimateViewer, COMPLEX_DTYPE, RANGE_VALUE
-    from qtpy.QtWidgets import QApplication
-    # get application
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(['Source Estimate Viewer'])
-
-    # cast to integers to lower memory usage, use custom complex data
-    # type if necessary
-    data = list()
-    # can be generator, compute using first stc object, just a general
-    # rescaling of data, does not need to be precise
-    scalar = None
-    for inner_stcs in (stcs if np.iterable(stcs) else [stcs]):
-        inner_data = list()
-        for stc in (inner_stcs if np.iterable(inner_stcs) else [inner_stcs]):
-            if np.iscomplexobj(stc.data):
-                if scalar is None:
-                    # this is an order of magnitude approximation,
-                    # larger stcs will have some clipping
-                    scalar = (RANGE_VALUE - 1) / stc.data.real.max()
-                stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
-                stc_data['re'] = np.clip(stc.data.real * scalar,
-                                         -RANGE_VALUE, RANGE_VALUE - 1)
-                stc_data['im'] = np.clip(stc.data.imag * scalar,
-                                         -RANGE_VALUE, RANGE_VALUE - 1)
-                inner_data.append(stc_data)
-            else:
-                if scalar is None:
-                    scalar = (RANGE_VALUE - 1) / stc.data.max() / 10
-                inner_data.append(np.clip(stc.data * scalar,
-                                          -RANGE_VALUE, RANGE_VALUE - 1
-                                          ).astype(np.int16))
-        data.append(inner_data)
-    data = np.array(data)
-    if data.ndim == 4:  # scalar solution, add dimension at the end
-        data = data[:, :, :, None]
-
-    # move frequencies to penultimate
-    data = data.transpose((1, 2, 3, 0, 4) if freq_first else (0, 2, 3, 1, 4))
-
-    gui = VolSourceEstimateViewer(
-        data, subject=subject, subjects_dir=subjects_dir,
-        src=src, inst=inst, show=show,
-        verbose=verbose)
-    if block:
-        _qt_app_exec(app)
-    return gui
-
-
 class _GUIScraper(object):
     """Scrape GUI outputs."""
 
@@ -349,13 +256,11 @@ class _GUIScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
-        from ._vol_stc import VolSourceEstimateViewer
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
             if (isinstance(gui, (IntracranialElectrodeLocator,
-                                 CoregistrationUI,
-                                 VolSourceEstimateViewer)) and
+                                 CoregistrationUI)) and
                     not getattr(gui, '_scraped', False) and
                     gallery_conf['builder_name'] == 'html'):
                 gui._scraped = True  # monkey-patch but it's easy enough

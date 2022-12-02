@@ -545,37 +545,6 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *,
             f"got {type(item)} instead.")
 
 
-def _check_range(val, min_val, max_val, name, min_inclusive=True,
-                 max_inclusive=True):
-    """Check that item is within range.
-
-    Parameters
-    ----------
-    val : int | float
-        The value to be checked.
-    min_val : int | float
-        The minimum value allowed.
-    max_val : int | float
-        The maximum value allowed.
-    name : str
-        The name of the value.
-    min_inclusive : bool
-        Whether ``val`` is allowed to be ``min_val``.
-    max_inclusive : bool
-        Whether ``val`` is allowed to be ``max_val``.
-    """
-    below_min = val < min_val if min_inclusive else val <= min_val
-    above_max = val > max_val if max_inclusive else val >= max_val
-    if below_min or above_max:
-        error_str = f'The value of {name} must be between {min_val} '
-        if min_inclusive:
-            error_str += 'inclusive '
-        error_str += f'and {max_val}'
-        if max_inclusive:
-            error_str += 'inclusive '
-        raise ValueError(error_str)
-
-
 def _path_like(item):
     """Validate that `item` is `path-like`.
 
