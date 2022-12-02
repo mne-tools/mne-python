@@ -270,8 +270,8 @@ class SliceBrowser(QMainWindow):
         self._VOX_textbox.setMinimumWidth(75)
         self._VOX_textbox.focusOutEvent = self._update_VOX
         self._VOX_textbox.textChanged.connect(partial(
-            self._check_update_textbox, self._VOX_textbox,
-            self._update_VOX))
+            self._check_update_textbox, textbox=self._VOX_textbox,
+            callback=self._update_VOX))
         hbox.addWidget(VOX_label)
         hbox.addWidget(self._VOX_textbox)
 
@@ -281,8 +281,8 @@ class SliceBrowser(QMainWindow):
         self._RAS_textbox.setMinimumWidth(150)
         self._RAS_textbox.focusOutEvent = self._update_RAS
         self._RAS_textbox.textChanged.connect(partial(
-            self._check_update_textbox, self._RAS_textbox,
-            self._update_RAS))
+            self._check_update_textbox, textbox=self._RAS_textbox,
+            callback=self._update_RAS))
         hbox.addWidget(RAS_label)
         hbox.addWidget(self._RAS_textbox)
         self._update_moved()  # update text now
@@ -387,10 +387,10 @@ class SliceBrowser(QMainWindow):
         return self._vox.round().astype(int)
 
     @Slot()
-    def _check_update_textbox(self, textbox, callback):
+    def _check_update_textbox(self, event, textbox, callback):
         """Check whether a textbox is done being edited."""
         if '\n' in textbox.text():
-            callback(event=None)
+            callback(event)
 
     def _draw(self, axis=None):
         """Update the figures with a draw call."""
