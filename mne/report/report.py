@@ -13,7 +13,6 @@ from typing import Tuple, Optional
 from collections.abc import Sequence
 import base64
 from io import BytesIO, StringIO
-import contextlib
 import os
 import os.path as op
 from pathlib import Path
@@ -1893,11 +1892,9 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-
-        with contextlib.redirect_stdout(StringIO()) as f:
-            sys_info()
-
-        info = f.getvalue()
+        with StringIO() as f:
+            sys_info(f)
+            info = f.getvalue()
         self.add_code(
             code=info, title=title, language='shell', tags=tags,
             replace=replace
