@@ -94,6 +94,7 @@ class SpectrumMixin():
         """
         from ..io import BaseRaw
 
+        method = _validate_method(method, type(self).__name__)
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
         # triage reject_by_annotation
         rba = dict()
@@ -149,6 +150,7 @@ class SpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
+        method = _validate_method(method, type(self).__name__)
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
 
         spectrum = self.compute_psd(
@@ -253,10 +255,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                 f'frequency of the data ({0.5 * inst.info["sfreq"]} Hz).')
         # method
         self._inst_type = type(inst)
-        if method == 'auto':
-            method = ('welch' if self._get_instance_type_string() == 'Raw'
-                      else 'multitaper')
-        _check_option('method', method, ('welch', 'multitaper'))
+        method = _validate_method(method, self._get_instance_type_string())
 
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
@@ -1188,3 +1187,11 @@ def _compute_n_welch_segments(n_times, method_kw):
     # compute expected number of segments
     step = n_per_seg - n_overlap
     return (n_times - n_overlap) // step
+
+
+def _validate_method(method, instance_type):
+    """Convert 'auto' to a real method name, and validate."""
+    if method == 'auto':
+        method = 'welch' if instance_type.startswith('Raw') else 'multitaper'
+    _check_option('method', method, ('welch', 'multitaper'))
+    return method
