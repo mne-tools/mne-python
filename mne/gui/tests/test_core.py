@@ -69,11 +69,11 @@ def test_slice_browser_display(_slice_browser):
         gui = _slice_browser(subject=subject, subjects_dir=subjects_dir)
 
     # test RAS
-    gui._RAS_textbox.setPlainText('10 10 10\n')
+    gui._RAS_textbox.setText('10 10 10\n')
     assert_allclose(gui._ras, [10, 10, 10])
 
     # test vox
-    gui._VOX_textbox.setPlainText('150, 150, 150\n')
+    gui._VOX_textbox.setText('150, 150, 150\n')
     assert_allclose(gui._ras, [23, 22, 23])
 
     # test click

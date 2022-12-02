@@ -14,7 +14,7 @@ from qtpy import QtCore
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import (QMainWindow, QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
-                            QMessageBox, QWidget, QPlainTextEdit)
+                            QMessageBox, QWidget, QLineEdit)
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -51,19 +51,23 @@ def _load_image(img, verbose=None):
     orig_mgh = nib.MGHImage(orig_data, img.affine)
     aff_trans = nib.orientations.inv_ornt_aff(ornt_trans, img.shape)
     vox_ras_t = np.dot(orig_mgh.header.get_vox2ras_tkr(), aff_trans)
-    return img_data, vox_ras_t
+    vox_scan_ras_t = np.dot(orig_mgh.header.get_vox2ras(), aff_trans)
+    return img_data, vox_ras_t, vox_scan_ras_t
 
 
-def _make_slice_plot(width=4, height=4, dpi=300):
+def _make_mpl_plot(width=4, height=4, dpi=300, tight=True, hide_axes=True):
     fig = Figure(figsize=(width, height), dpi=dpi)
     canvas = FigureCanvas(fig)
     ax = fig.subplots()
-    fig.subplots_adjust(bottom=0, left=0, right=1, top=1, wspace=0, hspace=0)
+    if tight:
+        fig.subplots_adjust(bottom=0, left=0, right=1, top=1,
+                            wspace=0, hspace=0)
     ax.set_facecolor('k')
     # clean up excess plot text, invert
     ax.invert_yaxis()
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if hide_axes:
+        ax.set_xticks([])
+        ax.set_yticks([])
     return canvas, fig
 
 
@@ -95,7 +99,7 @@ class SliceBrowser(QMainWindow):
         self._plt_grid = QGridLayout()
         self._figs = list()
         for i in range(3):
-            canvas, fig = _make_slice_plot()
+            canvas, fig = _make_mpl_plot()
             self._plt_grid.addWidget(canvas, i // 2, i % 2)
             self._figs.append(fig)
         self._renderer = _get_renderer(
@@ -128,9 +132,10 @@ class SliceBrowser(QMainWindow):
         # allows recon-all not to be finished (T1 made in a few minutes)
         mri_img = 'brain' if op.isfile(op.join(
             self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
-        self._mri_data, self._vox_ras_t = _load_image(
+        self._mri_data, self._vox_ras_t, self._vox_scan_ras_t = _load_image(
             op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'))
-        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
+        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)  # surface RAS
+        self._scan_ras_vox_t = np.linalg.inv(self._vox_scan_ras_t)
 
         self._voxel_sizes = np.array(self._mri_data.shape)
 
@@ -146,7 +151,7 @@ class SliceBrowser(QMainWindow):
         if base_image is None:
             self._base_data = self._mri_data
         else:
-            self._base_data, vox_ras_t = _load_image(base_image)
+            self._base_data, vox_ras_t, _ = _load_image(base_image)
             if self._mri_data.shape != self._base_data.shape or \
                     not np.allclose(self._vox_ras_t, vox_ras_t, rtol=1e-6):
                 raise ValueError('Base image is not aligned to MRI, got '
@@ -259,20 +264,24 @@ class SliceBrowser(QMainWindow):
         hbox.addWidget(self._intensity_label)
 
         VOX_label = QLabel('VOX =')
-        self._VOX_textbox = QPlainTextEdit('')  # update later
+        self._VOX_textbox = QLineEdit('')  # update later
         self._VOX_textbox.setMaximumHeight(25)
-        self._VOX_textbox.setMaximumWidth(125)
+        self._VOX_textbox.setMinimumWidth(75)
         self._VOX_textbox.focusOutEvent = self._update_VOX
-        self._VOX_textbox.textChanged.connect(self._check_update_VOX)
+        self._VOX_textbox.textChanged.connect(partial(
+            self._check_update_textbox, textbox=self._VOX_textbox,
+            callback=self._update_VOX))
         hbox.addWidget(VOX_label)
         hbox.addWidget(self._VOX_textbox)
 
         RAS_label = QLabel('RAS =')
-        self._RAS_textbox = QPlainTextEdit('')  # update later
+        self._RAS_textbox = QLineEdit('')  # update later
         self._RAS_textbox.setMaximumHeight(25)
-        self._RAS_textbox.setMaximumWidth(200)
+        self._RAS_textbox.setMinimumWidth(150)
         self._RAS_textbox.focusOutEvent = self._update_RAS
-        self._RAS_textbox.textChanged.connect(self._check_update_RAS)
+        self._RAS_textbox.textChanged.connect(partial(
+            self._check_update_textbox, textbox=self._RAS_textbox,
+            callback=self._update_RAS))
         hbox.addWidget(RAS_label)
         hbox.addWidget(self._RAS_textbox)
         self._update_moved()  # update text now
@@ -310,16 +319,14 @@ class SliceBrowser(QMainWindow):
     @Slot()
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._RAS_textbox.toPlainText()
-        ras = self._convert_text(text, 'ras')
+        ras = self._convert_text(self._RAS_textbox.text(), 'ras')
         if ras is not None:
             self._set_ras(ras)
 
     @Slot()
     def _update_VOX(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._VOX_textbox.toPlainText()
-        ras = self._convert_text(text, 'vox')
+        ras = self._convert_text(self._VOX_textbox.text(), 'vox')
         if ras is not None:
             self._set_ras(ras)
 
@@ -379,16 +386,10 @@ class SliceBrowser(QMainWindow):
         return self._vox.round().astype(int)
 
     @Slot()
-    def _check_update_RAS(self):
-        """Check whether the RAS textbox is done being edited."""
-        if '\n' in self._RAS_textbox.toPlainText():
-            self._update_RAS(event=None)
-
-    @Slot()
-    def _check_update_VOX(self):
-        """Check whether the VOX textbox is done being edited."""
-        if '\n' in self._VOX_textbox.toPlainText():
-            self._update_VOX(event=None)
+    def _check_update_textbox(self, event, textbox, callback):
+        """Check whether a textbox is done being edited."""
+        if '\n' in textbox.text():
+            callback(event)
 
     def _draw(self, axis=None):
         """Update the figures with a draw call."""
@@ -416,7 +417,6 @@ class SliceBrowser(QMainWindow):
             x, y = self._vox[list(self._xy_idx[axis])]
             self._images['cursor_v'][axis].set_xdata([x, x])
             self._images['cursor_h'][axis].set_ydata([y, y])
-        self._zoom(0)  # doesn't actually zoom just resets view to center
         self._update_images(draw=True)
         self._update_moved()
 
@@ -469,9 +469,9 @@ class SliceBrowser(QMainWindow):
 
     def _update_moved(self):
         """Update when cursor position changes."""
-        self._RAS_textbox.setPlainText('{:.2f}, {:.2f}, {:.2f}'.format(
+        self._RAS_textbox.setText('{:.2f}, {:.2f}, {:.2f}'.format(
             *self._ras))
-        self._VOX_textbox.setPlainText('{:3d}, {:3d}, {:3d}'.format(
+        self._VOX_textbox.setText('{:3d}, {:3d}, {:3d}'.format(
             *self._current_slice))
         self._intensity_label.setText('intensity = {:.2f}'.format(
             self._base_data[tuple(self._current_slice)]))
