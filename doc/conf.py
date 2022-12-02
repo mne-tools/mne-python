@@ -272,7 +272,6 @@ numpydoc_xref_ignore = {
     # unlinkable
     'CoregistrationUI',
     'IntracranialElectrodeLocator',
-    'VolSourceEstimateViewer',
     'mne_qt_browser.figure.MNEQtBrowser',
 }
 numpydoc_validate = True
