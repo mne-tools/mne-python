@@ -485,16 +485,16 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._bl_tmin_textbox = QLineEdit(str(self._bl_tmin.round(2)))
         self._bl_tmin_textbox.focusOutEvent = self._update_baseline_tmin
         self._bl_tmin_textbox.textChanged.connect(partial(
-            self._check_update_text, text=self._bl_tmin_textbox,
-            callback=self._update_baseline_tmin))
+            self._check_update_textbox, self._bl_tmin_textbox,
+            self._update_baseline_tmin))
         hbox.addWidget(self._bl_tmin_textbox)
 
         hbox.addWidget(QLabel('tmax ='))
         self._bl_tmax_textbox = QLineEdit(str(self._bl_tmax.round(2)))
         self._bl_tmax_textbox.focusOutEvent = self._update_baseline_tmax
         self._bl_tmax_textbox.textChanged.connect(partial(
-            self._check_update_text, text=self._bl_tmax_textbox,
-            callback=self._update_baseline_tmax))
+            self._check_update_textbox, self._bl_tmax_textbox,
+            self._update_baseline_tmax))
         hbox.addWidget(self._bl_tmax_textbox)
 
         hbox.addStretch(3)
