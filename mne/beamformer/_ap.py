@@ -1,4 +1,4 @@
-'''compute an Alternating Projection (AP).'''
+"""compute an Alternating Projection (AP)."""
 
 # Authors: Yuval Realpe <yuval.realpe@gmail.com>
 #
@@ -18,12 +18,12 @@ from ..minimum_norm.inverse import _log_exp_var
 
 
 def matmul_transpose(mat):
-    """ dot product of array with its transpose  """
+    """Dot product of array with its transpose."""
     return np.matmul(mat, mat.transpose())
 
 
 def _produce_data_cov(data_arr, attr_dict):
-    """ calculate data covarience """
+    """Calculate data covarience."""
     nsources = attr_dict['nsources']
     data_cov = matmul_transpose(data_arr) + matmul_transpose(data_arr).trace()\
         * np.eye(data_arr.shape[0])  # Array Covarience Matrix
@@ -33,9 +33,9 @@ def _produce_data_cov(data_arr, attr_dict):
 
 
 def _fixed_phase1a(attr_dict, data_cov, gain):
-    """
-    calculate phase 1a of fixed oriented AP = Initialization:
-    search the 1st source location over the entire dipoles topographies space
+    """Calculate phase 1a of fixed oriented AP.
+
+    Initialization: search the 1st source location over the entire dipoles topographies space.
 
     Parameters
     ----------
@@ -64,9 +64,9 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
 
 
 def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
-    """
-    calculate phase 1b of fixed oriented AP =
-    adding one source at a time
+    """Calculate phase 1b of fixed oriented AP.
+
+    Adding one source at a time.
 
     Parameters
     ----------
@@ -108,9 +108,9 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
 
 
 def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
-    """
-    calculate phase 2 of fixed oriented AP =
-    altering the projection of current estimated dipoles
+    """Calculate phase 2 of fixed oriented AP.
+
+    Altering the projection of current estimated dipoles.
 
     Parameters
     ----------
@@ -166,8 +166,7 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
 def _calculate_fixed_alternating_projections(data_arr, gain,
                                              nsources,
                                              max_iter):
-    """
-    calculating fixed-orientation alternating projection
+    """Calculate fixed-orientation alternating projection.
 
     Parameters
     ----------
@@ -223,9 +222,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
 
 def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
-    """ eigen values and vector of the projection of dipole 'ind'
-    on channels space """
-
+    """Eigen values and vector of the projection of dipole 'ind' on channels space."""
     gain_idx = list(range(ind * 3, ind * 3 + 3))
     l_p = gain[:, gain_idx]
     eig_a = multi_dot([l_p.transpose(),
@@ -244,9 +241,9 @@ def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
 
 
 def _free_phase1a(attr_dict, gain, data_cov):
-    """
-    calculate phase 1a of free oriented AP = Initialization:
-    search the 1st source location over the entire dipoles topographies space
+    """Calculate phase 1a of free oriented AP.
+
+    Initialization: search the 1st source location over the entire dipoles topographies space.
 
     Parameters
     ----------
@@ -296,9 +293,9 @@ def _free_phase1a(attr_dict, gain, data_cov):
 
 
 def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
-    """
-    calculate phase 1b of free oriented AP =
-    adding one source at a time
+    """Calculate phase 1b of free oriented AP.
+    
+    Adding one source at a time
 
     Parameters
     ----------
@@ -355,8 +352,8 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
 
 
 def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
-    """
-    calculate phase 2 of free oriented AP =
+    """Calculate phase 2 of free oriented AP.
+
     altering the projection of current estimated dipoles
 
     Parameters
@@ -423,8 +420,7 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
 
 def _calculate_free_alternating_projections(data_arr, gain,
                                             nsources, max_iter):
-    """
-    calculating free-orientation alternating projection
+    """Calculate free-orientation alternating projection.
 
     Parameters
     ----------
@@ -480,7 +476,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
 
 
 def free_ori_ap(wh_data, gain, nsources, forward, max_iter):
-    """ branch of calculations dedicated to freely oriented dipoles """
+    """Branch of calculations dedicated to freely oriented dipoles."""
     sol_tuple = \
         _calculate_free_alternating_projections(wh_data, gain,
                                                 nsources, max_iter)
@@ -506,7 +502,7 @@ def free_ori_ap(wh_data, gain, nsources, forward, max_iter):
 
 
 def fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
-    """ branch of calculations dedicated to fixed oriented dipoles """
+    """Branch of calculations dedicated to fixed oriented dipoles."""
     idx = _calculate_fixed_alternating_projections(wh_data, gain,
                                                    nsources=nsources,
                                                    max_iter=max_iter)
@@ -530,7 +526,7 @@ def fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
 @fill_doc
 def _apply_ap(data, info, times, forward, noise_cov,
               nsources, picks, max_iter):
-    """AP for evoked data
+    """AP for evoked data.
 
     Parameters
     ----------
@@ -611,7 +607,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
 
 
 def _residual_packing(evoked, picks, explained_data_mat, info):
-    """ pack the residual data into an mne.Evoked object """
+    """Pack the residual data into an mne.Evoked object."""
     residual = evoked.copy()
     selection = [info['ch_names'][pick] for pick in picks]
 
@@ -627,7 +623,7 @@ def _residual_packing(evoked, picks, explained_data_mat, info):
 
 
 def _explained_data_packing(evoked, picks, explained_data_mat, info):
-    """ pack the explained data into an mne.Evoked object """
+    """Pack the explained data into an mne.Evoked object."""
     info = evoked.info
     explained_data = evoked.copy()
     selection = [info['ch_names'][pick] for pick in picks]
@@ -647,7 +643,7 @@ def _explained_data_packing(evoked, picks, explained_data_mat, info):
 @verbose
 def ap(evoked, forward, nsources, noise_cov=None, max_iter=6,
        return_residual=True, return_active_info=False, verbose=None):
-    """AP sources localization method
+    """AP sources localization method.
 
     Compute Alternating Projection (AP) on evoked data.
 
@@ -695,7 +691,6 @@ def ap(evoked, forward, nsources, noise_cov=None, max_iter=6,
 
     Notes
     -----
-
     The references are:
 
         A. Amir, M. Wax and P. Dimitrios. 2022. Brain Source Localization by
