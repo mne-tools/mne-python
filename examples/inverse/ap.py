@@ -6,8 +6,9 @@
 Compute Alternating Projections on evoked data
 ==============================================
 
-Compute an Alternating Projections (AP) :footcite:`AdlerEtAl2022` :footcite:'AdlerEtAl2019' on :class:'mne.Evoked' data,
+Compute an Alternating Projections (AP)  on :class:'mne.Evoked' data,
 on both free-oriented dipoles and fixed-oriented dipoles.
+:footcite:`AdlerEtAl2022` :footcite:'AdlerEtAl2019'
 """
 
 # Author: Yuval Realpe <yuval.realpe@gmail.com>
@@ -56,7 +57,8 @@ noise_cov = mne.read_cov(cov_fname)
 # Applied on free-oriented dipoles
 # --------------------------------
 
-dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2, noise_cov=noise_cov, return_residual=True)
+dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2,
+                                   noise_cov=noise_cov, return_residual=True)
 
 trans = forward['mri_head_t']
 plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
@@ -71,10 +73,11 @@ residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]),
 
 # %%
 # Applied on fixed-oriented dipoles
-#----------------------------------
+# ----------------------------------
 
 forward = mne.convert_forward_solution(forward, force_fixed=True)
-dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2, noise_cov=noise_cov, return_residual=True)
+dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2,
+                                   noise_cov=noise_cov, return_residual=True)
 
 trans = forward['mri_head_t']
 plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
@@ -91,4 +94,3 @@ residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
 # ----------
 # .. footbibliography::
 # -*- coding: utf-8 -*-
-
