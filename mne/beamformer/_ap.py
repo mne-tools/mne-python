@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from numpy.linalg import pinv, multi_dot, lstsq
 
-from ..utils import _check_info_inv, verbose, fill_doc
+from ..utils import _check_info_inv, fill_doc
 from ._compute_beamformer import _prepare_beamformer_input
 from ..io.pick import pick_channels_forward, pick_channels_evoked, pick_info
 from ..forward.forward import convert_forward_solution, is_fixed_orient
@@ -35,7 +35,8 @@ def _produce_data_cov(data_arr, attr_dict):
 def _fixed_phase1a(attr_dict, data_cov, gain):
     """Calculate phase 1a of fixed oriented AP.
 
-    Initialization: search the 1st source location over the entire dipoles topographies space.
+    Initialization: search the 1st source location over the entire
+    dipoles topographies space.
 
     Parameters
     ----------
@@ -222,7 +223,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
 
 def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
-    """Eigen values and vector of the projection of dipole 'ind' on channels space."""
+    """Eigen values and vector of the projection."""
     gain_idx = list(range(ind * 3, ind * 3 + 3))
     l_p = gain[:, gain_idx]
     eig_a = multi_dot([l_p.transpose(),
@@ -243,7 +244,8 @@ def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
 def _free_phase1a(attr_dict, gain, data_cov):
     """Calculate phase 1a of free oriented AP.
 
-    Initialization: search the 1st source location over the entire dipoles topographies space.
+    Initialization: search the 1st source location over
+    the entire dipoles topographies space.
 
     Parameters
     ----------
@@ -294,8 +296,8 @@ def _free_phase1a(attr_dict, gain, data_cov):
 
 def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
     """Calculate phase 1b of free oriented AP.
-    
-    Adding one source at a time
+
+    Adding one source at a time.
 
     Parameters
     ----------
