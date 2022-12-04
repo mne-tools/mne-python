@@ -261,7 +261,7 @@ def _free_phase1a(attr_dict, gain, data_cov):
     s_ap : list of int
         List of dipole indices.
     oris : array, shape (nsources, 3)
-        Orientations array of estimated sources (sorted by s_ap appearence).
+        Orientations array of estimated sources (sorted by s_ap).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
 
@@ -315,7 +315,7 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
     s_ap : list of int
         List of dipole indices.
     oris : array, shape (nsources, 3)
-        Orientations array of estimated sources (sorted by s_ap appearence).
+        Orientations array of estimated sources (sorted by s_ap).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
 
@@ -374,7 +374,7 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
     s_ap_2 : list of int
         List of dipole indices.
     oris : array, shape (nsources, 3)
-        Orientations array of estimated sources (sorted by s_ap_2 appearence).
+        Orientations array of estimated sources (sorted by s_ap_2).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
 
@@ -556,13 +556,13 @@ def _apply_ap(data, info, times, forward, noise_cov,
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
     var_exp : float
-        Precentile of data variation explained (see: _log_exp_var).
+        Percentile of data variation explained (see: _log_exp_var).
     dip_ind : List of int
         List of indices of dipole source estimated.
     oris : array, shape (nsources, 3)
-        Orientations array of estimated sources (sorted by dip_ind appearence).
+        Orientations array of estimated sources (sorted by dip_ind).
     poss : array, shape (nsources, 3)
-        Coordinates array of estimated sources (sorted by dip_ind appearence).
+        Coordinates array of estimated sources (sorted by dip_ind).
 
     """
     info = pick_info(info, picks)
@@ -681,16 +681,14 @@ def ap(evoked, forward, nsources, noise_cov=None, max_iter=6,
             explained_data : instance of Evoked
                 Data explained by the dipoles.
             var_exp : float
-                Precentile of data variation explained (see: _log_exp_var).
+                Percentile of data variation explained (see: _log_exp_var).
         If return_active_info :
             idx : list of int
                 List of indices of dipole source estimated.
             poss : array, shape (nsources, 3)
-                Coordinates array of estimated sources (sorted by idx
-                Appearence).
+                Coordinates array of estimated sources (sorted by idx).
             oris : array, shape (nsources, 3)
-                Orientations array of estimated sources (sorted by idx
-                Appearence).
+                Orientations array of estimated sources (sorted by idx).
 
     Notes
     -----
