@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from numpy.linalg import pinv, multi_dot, lstsq
 
-from ..utils import _check_info_inv, fill_doc
+from ..utils import _check_info_inv, verbose, fill_doc
 from ._compute_beamformer import _prepare_beamformer_input
 from ..io.pick import pick_channels_forward, pick_channels_evoked, pick_info
 from ..forward.forward import convert_forward_solution, is_fixed_orient
@@ -642,8 +642,9 @@ def _explained_data_packing(evoked, picks, explained_data_mat, info):
     return explained_data
 
 
+@verbose
 def ap(evoked, forward, nsources, noise_cov=None, max_iter=6,
-       return_residual=True, return_active_info=False):
+       return_residual=True, return_active_info=False, verbose=None):
     """AP sources localization method.
 
     Compute Alternating Projection (AP) on evoked data.
@@ -666,29 +667,30 @@ def ap(evoked, forward, nsources, noise_cov=None, max_iter=6,
     return_active_info : bool, optional
         If True, appends estimated source's information
         (indices,coordinates,orientation). The default is False.
+    %(verbose)s
 
     Returns
     -------
     output : list
-        default:
+        Default:
             dipoles : list of instance of Dipole
                 The dipole fits.
-        if return_residual:
+        If return_residual:
             residual : instance of Evoked
                 Data not explained by the dipoles.
             explained_data : instance of Evoked
                 Data explained by the dipoles.
             var_exp : float
                 Precentile of data variation explained (see: _log_exp_var).
-        if return_active_info :
+        If return_active_info :
             idx : list of int
                 List of indices of dipole source estimated.
             poss : array, shape (nsources, 3)
                 Coordinates array of estimated sources (sorted by idx
-                appearence).
+                Appearence).
             oris : array, shape (nsources, 3)
                 Orientations array of estimated sources (sorted by idx
-                appearence).
+                Appearence).
 
     Notes
     -----
