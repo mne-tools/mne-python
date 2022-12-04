@@ -16,7 +16,7 @@ from mne.datasets import testing
 from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
 from mne.utils import catch_logging
 
-#%%
+# %%
 data_path = testing.data_path(download=False)
 fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
@@ -27,7 +27,10 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 def _get_data(ch_decim=1):
     """Read in data used in tests."""
     # Read evoked
-    condition = choice(['Left Auditory','Right Auditory','Left visual','Right visual'])
+    condition = choice(['Left Auditory',
+                        'Right Auditory',
+                        'Left visual',
+                        'Right visual'])
     evoked = mne.read_evokeds(fname_ave, condition=condition,
                               baseline=(None, 0))
     evoked.crop(tmin=0.05, tmax=0.15)
@@ -125,11 +128,11 @@ def test_ap_simulated():
 
     nsources = 2
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
-                                evoked.times, nave=evoked.nave)
+                                     evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
     with catch_logging() as log:
         dipoles = ap(sim_evoked, forward_fixed, nsources,
-                                     noise_cov, return_residual=False)
+                     noise_cov, return_residual=False)
     assert_var_exp_log(log.getvalue(), 92, 96)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
     assert 97 < dipoles[0].gof.max() < 100
@@ -139,7 +142,7 @@ def test_ap_simulated():
 
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
-                                evoked.times, nave=nave)
+                                     evoked.times, nave=nave)
     dipoles, residual, _, _ = ap(sim_evoked, forward_fixed, nsources,
                                  noise_cov)
 
