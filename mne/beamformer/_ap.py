@@ -657,7 +657,7 @@ def ap(evoked, forward, nsources, noise_cov=None, max_iter=6,
         Forward operator.
     nsources : int
         The number of dipoles to estimate.
-    noise_cov : instance of Covarience, optinal
+    noise_cov : instance of Covarience, optional
         The noise covarience. The default is None.
     max_iter : int, optional
         Maximal iteration number of AP. The default is 6.
