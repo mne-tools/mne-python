@@ -4,7 +4,6 @@
 
 import os.path as op
 
-import pytest
 import numpy as np
 from scipy import linalg
 from random import choice

@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from numpy.linalg import pinv, multi_dot, lstsq
 
-from ..utils import _check_info_inv, logger, verbose, fill_doc
+from ..utils import _check_info_inv, verbose, fill_doc
 from ._compute_beamformer import _prepare_beamformer_input
 from ..io.pick import pick_channels_forward, pick_channels_evoked, pick_info
 from ..forward.forward import convert_forward_solution, is_fixed_orient
