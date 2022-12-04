@@ -261,7 +261,7 @@ def _free_phase1a(attr_dict, gain, data_cov):
     s_ap : list of int
         List of dipole indices.
     oris : array, shape (nsources, 3)
-        Orientations array of estimated sources (sorted by s_ap_2 appearence).
+        Orientations array of estimated sources (sorted by s_ap appearence).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
 
@@ -315,7 +315,7 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
     s_ap : list of int
         List of dipole indices.
     oris : array, shape (nsources, 3)
-        Orientations array of estimated sources (sorted by s_ap_2 appearence).
+        Orientations array of estimated sources (sorted by s_ap appearence).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
 
