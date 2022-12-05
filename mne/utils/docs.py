@@ -1417,6 +1417,23 @@ fwd : instance of Forward
     present in the forward solution are displayed.
 """
 
+docdict['fwhm_morlet_notes'] = r"""
+In wavelet analysis, the oscillation that is defined by ``n_cycles`` is tapered
+by a Gaussian taper, i.e., the edges of the wavelet are dampened. This means
+that reporting the number of cycles is not necessarily helpful for
+understanding the amount of temporal smoothing that has been applied (see
+:footcite:`Cohen2019`). Instead, the full width at half-maximum (FWHM) of the
+wavelet can be reported.
+
+The FWHM of the wavelet at a specific frequency is defined as:
+:math:`FWHM = \frac{n\_cycles \sqrt{2 \ln{2}}}{\pi freq}` (cf. eq. 4 in
+:footcite:`Cohen2019`).
+
+References
+----------
+.. footbibliography::
+"""
+
 # %%
 # G
 
