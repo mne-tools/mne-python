@@ -106,21 +106,19 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         >>> lw = dict(MNE=2, SciPy=4)
         >>> zorder = dict(MNE=5, SciPy=4)
         >>> t = np.arange(-M // 2 + 1, M // 2 + 1) / sfreq
-        >>> for name, w in (('MNE', wavelet), ('SciPy', wavelet_sp)):
+        >>> for name, w in (('MNE', wavelet), ('SciPy', wavelet_sp)):  # doctest:+SKIP
         ...     for kind in ('real', 'imag'):
         ...         ax.plot(t, getattr(w, kind), label=f'{name} {kind}',
         ...                 lw=lw[name], color=colors[(name, kind)],
         ...                 zorder=zorder[name])
-        >>> ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1.,
-        ...         zorder=6)
+        >>> ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1., zorder=6)  # doctest:+SKIP
         >>> half_max = np.max(np.abs(wavelet)) / 2.
-        >>> ax.plot([-fwhm_formula / 2., fwhm_formula / 2.],
-        ...         [half_max, half_max],
-        >>>         color='k', linestyle='-', label='FWHM', zorder=6)
-        >>> ax.legend()
-        >>> ax.set(xlabel='Time (s)', ylabel='Amplitude')
+        >>> ax.plot([-fwhm_formula / 2., fwhm_formula / 2.], [half_max, half_max],  # doctest:+SKIP
+        ...         color='k', linestyle='-', label='FWHM', zorder=6)
+        >>> ax.legend()  # doctest:+SKIP
+        >>> ax.set(xlabel='Time (s)', ylabel='Amplitude')  # doctest:+SKIP
         >>> plt.show()
-    """
+    """  # noqa: E501
     Ws = list()
     n_cycles = np.array(n_cycles, float).ravel()
 
