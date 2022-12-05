@@ -128,7 +128,7 @@ def test_ap_simulated():
     nsources = 2
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
                                      evoked.times, nave=evoked.nave)
-    print("Check dipoles for fixed ori")
+    # Check dipoles for fixed ori
     with catch_logging() as log:
         dipoles = ap(sim_evoked, forward_fixed, nsources,
                      noise_cov, return_residual=False)
@@ -139,8 +139,7 @@ def test_ap_simulated():
     assert dipoles[0].gof.min() >= 0.
     assert dipoles[1].gof.min() >= 0.
 
-    nave = 100000  
-    print("add a tiny amount of noise to the simulated evokeds")
+    nave = 100000  # add a tiny amount of noise to the simulated evokeds
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
                                      evoked.times, nave=nave)
     dipoles, residual, _, _ = ap(sim_evoked, forward_fixed, nsources,
@@ -148,12 +147,12 @@ def test_ap_simulated():
 
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
-    print("Check dipoles for free ori")
+    # Check dipoles for free ori
     dipoles, residual, _, _ = ap(sim_evoked, forward, nsources,
                                  noise_cov)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
-    print("Check dipoles for free surface ori")
+    # Check dipoles for free surface ori
     dipoles, residual, _, _ = ap(sim_evoked, forward_surf_ori, nsources,
                                  noise_cov)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
