@@ -745,6 +745,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     Notes
     -----
     %(temporal-window_tfr_notes)s
+    %(fwhm_morlet_notes)s
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean, output=output)
