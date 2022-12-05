@@ -47,10 +47,11 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     ----------
     sfreq : float
         The sampling Frequency.
-    freqs : array
-        Frequency range of interest (1 x Frequencies).
-    n_cycles : float | array of float, default 7.0
-        Number of cycles. Fixed number or one per frequency.
+    freqs : float | array-like, shape (n_freqs,)
+        Frequencies to compute Morlet wavelets for.
+    n_cycles : float | array-like, shape (n_freqs,)
+        Number of cycles. Can be a fixed number (float) or one per frequency
+        (array-like).
     sigma : float, default None
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
@@ -64,8 +65,9 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     Returns
     -------
-    Ws : list of array
-        The wavelets time series.
+    Ws : list of ndarray | ndarray
+        The wavelets time series. If ``freqs`` was a float, a single
+        ndarray is returned instead of a list of ndarray.
 
     Notes
     -----
@@ -78,7 +80,8 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     Examples
     --------
     Let's show a simple example of the relationship between ``n_cycles`` and
-    the FWHM, as well as the equivalent call using :func:`scipy.signal.morlet`:
+    the FWHM, as well as the equivalent call using
+    :func:`scipy.signal.morlet2`:
 
     .. plot::
         :format: doctest
@@ -91,10 +94,9 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         >>> sfreq, freq, n_cycles = 1000., 10, 7  # i.e., 700 ms
         >>> fwhm_formula = n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
         >>> wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
-        >>> M = len(wavelet)
-        >>> w = n_cycles
+        >>> M, w = len(wavelet), n_cycles # convert to SciPy convention
         >>> s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
-        >>> wavelet_sp = sp_morlet(M, s, n_cycles)
+        >>> wavelet_sp = sp_morlet(M, s, w)
         >>> wavelet_sp *= np.sqrt(2)  # match MNE's normalization
         >>> _, ax = plt.subplots(constrained_layout=True)
         >>> colors = {
