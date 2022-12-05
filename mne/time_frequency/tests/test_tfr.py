@@ -53,13 +53,13 @@ def test_morlet(sfreq, freq, n_cycles):
     else:
         assert np.abs(np.mean(np.real(W))) < 1e-5
 
-    assert_allclose(np.linalg.norm(W), np.sqrt(2))  # different norm!
+    assert_allclose(np.linalg.norm(W), 1., atol=1e-6)
 
     # Convert to SciPy nomenclature and compare
     M = len(W)
     w = n_cycles
     s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
-    Ws = morlet2(M, s, w) * np.sqrt(2)
+    Ws = morlet2(M, s, w)
     assert_allclose(W, Ws)
 
     # Check FWHM
@@ -124,7 +124,8 @@ def test_time_frequency():
                    freqs=freqs, n_cycles=n_cycles, use_fft=True,
                    return_itc=False, picks=picks, average=False)
     assert_allclose(
-        epochs_power_picks.data[0, 0, 0, 0], 9.130315e-23, rtol=1e-4)
+        epochs_power_picks.data[0, 0, 0, 0], 9.130315e-23 / 2.,
+        rtol=1e-4)
     power_picks_avg = epochs_power_picks.average()
     # the actual data arrays here are equivalent, too...
     assert_allclose(power.data, power_picks.data)

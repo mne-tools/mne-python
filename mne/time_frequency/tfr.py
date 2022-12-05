@@ -97,7 +97,6 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         >>> M, w = len(wavelet), n_cycles # convert to SciPy convention
         >>> s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
         >>> wavelet_sp = sp_morlet(M, s, w)
-        >>> wavelet_sp *= np.sqrt(2)  # match MNE's normalization
         >>> _, ax = plt.subplots(constrained_layout=True)
         >>> colors = {
         ...     ('MNE', 'real'): '#66CCEE',
@@ -156,7 +155,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
-        W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
+        W /= np.linalg.norm(W.ravel())
         Ws.append(W)
     if singleton:
         Ws = Ws[0]

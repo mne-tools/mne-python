@@ -357,9 +357,9 @@ def _test_csd_matrix(csd):
     assert np.all(np.tril(csd_22).T.conj() == np.triu(csd_22))
 
     # Off-diagonals show phase difference
-    assert np.abs(csd_10[0, 1].imag) > 0.4
-    assert np.abs(csd_10[0, 2].imag) > 0.4
-    assert np.abs(csd_10[1, 2].imag) > 0.4
+    assert np.abs(csd_10[0, 1].imag) > 0.2
+    assert np.abs(csd_10[0, 2].imag) > 0.2
+    assert np.abs(csd_10[1, 2].imag) > 0.2
 
     # No phase differences at 22 Hz
     assert np.all(np.abs(csd_22[0, 2].imag) < 1E-3)
