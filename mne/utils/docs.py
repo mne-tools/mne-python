@@ -1428,10 +1428,6 @@ wavelet can be reported.
 The FWHM of the wavelet at a specific frequency is defined as:
 :math:`FWHM = \frac{n\_cycles \sqrt{2 \ln{2}}}{\pi freq}` (cf. eq. 4 in
 :footcite:`Cohen2019`).
-
-References
-----------
-.. footbibliography::
 """
 
 # %%

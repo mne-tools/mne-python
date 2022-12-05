@@ -39,6 +39,7 @@ from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 
 
+@fill_doc
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     """Compute Morlet wavelets for the given frequency range.
 
@@ -65,11 +66,65 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     -------
     Ws : list of array
         The wavelets time series.
+
+    Notes
+    -----
+    %(fwhm_morlet_notes)s
+
+    References
+    ----------
+    .. footbibliography::
+
+    Examples
+    --------
+    Let's show a simple example of the relationship between ``n_cycles`` and
+    the FWHM, as well as the equivalent call using :func:`scipy.signal.morlet`:
+
+    .. plot::
+        :format: doctest
+        :include-source: true
+
+        >>> import numpy as np
+        >>> from scipy.signal import morlet2 as sp_morlet
+        >>> import matplotlib.pyplot as plt
+        >>> from mne.time_frequency import morlet
+        >>> sfreq, freq, n_cycles = 1000., 10, 7  # i.e., 700 ms
+        >>> fwhm_formula = n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
+        >>> wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
+        >>> M = len(wavelet)
+        >>> w = n_cycles
+        >>> s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
+        >>> wavelet_sp = sp_morlet(M, s, n_cycles)
+        >>> wavelet_sp *= np.sqrt(2)  # match MNE's normalization
+        >>> _, ax = plt.subplots(constrained_layout=True)
+        >>> colors = {
+        ...     ('MNE', 'real'): '#66CCEE',
+        ...     ('SciPy', 'real'): '#4477AA',
+        ...     ('MNE', 'imag'): '#EE6677',
+        ...     ('SciPy', 'imag'): '#AA3377',
+        ... }
+        >>> lw = dict(MNE=2, SciPy=4)
+        >>> zorder = dict(MNE=5, SciPy=4)
+        >>> t = np.arange(-M // 2 + 1, M // 2 + 1) / sfreq
+        >>> for name, w in (('MNE', wavelet), ('SciPy', wavelet_sp)):
+        ...     for kind in ('real', 'imag'):
+        ...         ax.plot(t, getattr(w, kind), label=f'{name} {kind}',
+        ...                 lw=lw[name], color=colors[(name, kind)],
+        ...                 zorder=zorder[name])
+        >>> ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1.,
+        ...         zorder=6)
+        >>> half_max = np.max(np.abs(wavelet)) / 2.
+        >>> ax.plot([-fwhm_formula / 2., fwhm_formula / 2.],
+        ...         [half_max, half_max],
+        >>>         color='k', linestyle='-', label='FWHM', zorder=6)
+        >>> ax.legend()
+        >>> ax.set(xlabel='Time (s)', ylabel='Amplitude')
+        >>> plt.show()
     """
     Ws = list()
-    n_cycles = np.atleast_1d(n_cycles)
+    n_cycles = np.array(n_cycles, float).ravel()
 
-    freqs = np.array(freqs)
+    freqs = np.array(freqs, float)
     if np.any(freqs <= 0):
         raise ValueError("all frequencies in 'freqs' must be "
                          "greater than 0.")
@@ -77,6 +132,10 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
         raise ValueError("n_cycles should be fixed or defined for "
                          "each frequency.")
+    _check_option('freqs.ndim', freqs.ndim, [0, 1])
+    singleton = freqs.ndim == 0
+    if singleton:
+        freqs = freqs[np.newaxis]
     for k, f in enumerate(freqs):
         if len(n_cycles) != 1:
             this_n_cycles = n_cycles[k]
@@ -99,6 +158,8 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         W = oscillation * gaussian_enveloppe
         W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
+    if singleton:
+        Ws = Ws[0]
     return Ws
 
 
@@ -746,6 +807,13 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     -----
     %(temporal-window_tfr_notes)s
     %(fwhm_morlet_notes)s
+
+    See :func:`mne.time_frequency.morlet` for more information about the
+    Morlet wavelet.
+
+    References
+    ----------
+    .. footbibliography::
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean, output=output)

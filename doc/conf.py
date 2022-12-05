@@ -92,6 +92,7 @@ extensions = [
     'mne_substitutions',
     'newcontrib_substitutions',
     'gen_names',
+    'matplotlib.sphinxext.plot_directive',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
     'sphinx_design',

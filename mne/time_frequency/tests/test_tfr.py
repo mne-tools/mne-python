@@ -7,6 +7,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
+from scipy.signal import morlet2
 
 import mne
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
@@ -38,13 +39,35 @@ def test_tfr_ctf():
         method(epochs, [10], 1)  # smoke test
 
 
-def test_morlet():
+@pytest.mark.parametrize('sfreq', [1000., 100 + np.pi])
+@pytest.mark.parametrize('freq', [10., np.pi])
+@pytest.mark.parametrize('n_cycles', [7, 2])
+def test_morlet(sfreq, freq, n_cycles):
     """Test morlet with and without zero mean."""
-    Wz = morlet(1000, [10], 2., zero_mean=True)
-    W = morlet(1000, [10], 2., zero_mean=False)
+    Wz = morlet(sfreq, freq, n_cycles, zero_mean=True)
+    W = morlet(sfreq, freq, n_cycles, zero_mean=False)
 
-    assert (np.abs(np.mean(np.real(Wz[0]))) < 1e-5)
-    assert (np.abs(np.mean(np.real(W[0]))) > 1e-3)
+    assert np.abs(np.mean(np.real(Wz))) < 1e-5
+    if n_cycles == 2:
+        assert np.abs(np.mean(np.real(W))) > 1e-3
+    else:
+        assert np.abs(np.mean(np.real(W))) < 1e-5
+
+    assert_allclose(np.linalg.norm(W), np.sqrt(2))  # different norm!
+
+    # Convert to SciPy nomenclature and compare
+    M = len(W)
+    w = n_cycles
+    s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
+    Ws = morlet2(M, s, w) * np.sqrt(2)
+    assert_allclose(W, Ws)
+
+    # Check FWHM
+    fwhm_formula = n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
+    half_max = np.abs(W).max() / 2.
+    fwhm_empircal = (np.abs(W) >= half_max).sum() / sfreq
+    # Could be off by a few samples
+    assert_allclose(fwhm_formula, fwhm_empircal, atol=3 / sfreq)
 
 
 def test_time_frequency():
