@@ -43,6 +43,14 @@ FILE_EXTENSIONS = {
         "events_cef": ".cdt.cef",
         "events_ceo": ".cdt.ceo",
         "hpi": ".cdt.hpi",
+   },
+    "Curry 9": {
+        "info": ".cdt.dpo",
+        "data": ".cdt",
+        "labels": ".cdt.dpo",
+        "events_cef": ".cdt.cef",
+        "events_ceo": ".cdt.ceo",
+        "hpi": ".cdt.hpi",
     }
 }
 CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
@@ -60,7 +68,7 @@ CurryParameters = namedtuple('CurryParameters',
 
 def _get_curry_version(file_extension):
     """Check out the curry file version."""
-    return "Curry 8" if "cdt" in file_extension else "Curry 7"
+    return "Curry 9" if "cdt" in file_extension else "Curry 7"
 
 
 def _get_curry_file_structure(fname, required=()):
