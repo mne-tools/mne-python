@@ -455,6 +455,13 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # for the original sfreq
     if method == 'morlet':
         W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
+        # TODO: This makes us consistent with _make_dpss internally and
+        # FieldTrip in terms of our output amplitude, but makes us inconsistent
+        # with SciPy. See
+        # https://github.com/mne-tools/mne-python/pull/11353
+        # If it is fixed here, it should also be fixed in csd.py
+        for ww in W:
+            ww *= np.sqrt(2)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
 
     elif method == 'multitaper':
