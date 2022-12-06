@@ -18,7 +18,7 @@ from mne.utils import (requires_version, requires_pandas, grand_average,
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
-                                    EpochsTFR)
+                                    EpochsTFR, fwhm)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 from mne.tests.test_epochs import assert_metadata_equal
@@ -63,7 +63,7 @@ def test_morlet(sfreq, freq, n_cycles):
     assert_allclose(W, Ws)
 
     # Check FWHM
-    fwhm_formula = n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
+    fwhm_formula = fwhm(freq, n_cycles)
     half_max = np.abs(W).max() / 2.
     fwhm_empirical = (np.abs(W) >= half_max).sum() / sfreq
     # Could be off by a few samples

@@ -92,7 +92,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         >>> import matplotlib.pyplot as plt
         >>> from mne.time_frequency import morlet
         >>> sfreq, freq, n_cycles = 1000., 10, 7  # i.e., 700 ms
-        >>> fwhm_formula = n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
+        >>> this_fwhm = fwhm(freq, n_cycles)
         >>> wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
         >>> M, w = len(wavelet), n_cycles # convert to SciPy convention
         >>> s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
@@ -114,7 +114,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         ...                 zorder=zorder[name])
         >>> ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1., zorder=6)  # doctest:+SKIP
         >>> half_max = np.max(np.abs(wavelet)) / 2.
-        >>> ax.plot([-fwhm_formula / 2., fwhm_formula / 2.], [half_max, half_max],  # doctest:+SKIP
+        >>> ax.plot([-this_fwhm / 2., this_fwhm / 2.], [half_max, half_max],  # doctest:+SKIP
         ...         color='k', linestyle='-', label='FWHM', zorder=6)
         >>> ax.legend()  # doctest:+SKIP
         >>> ax.set(xlabel='Time (s)', ylabel='Amplitude')  # doctest:+SKIP
@@ -160,6 +160,25 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     if singleton:
         Ws = Ws[0]
     return Ws
+
+
+def fwhm(freq, n_cycles):
+    """Compute the full-width half maximum of a Morlet wavelet.
+
+    Parameters
+    ----------
+    freq : float
+        The oscillation frequency of the wavelet.
+    n_cycles : float
+        The duration of the wavelet, expressed as the number of oscillation
+        cycles.
+
+    Returns
+    -------
+    fwhm : float
+        The full-width half maximum of the wavelet.
+    """
+    return n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
 
 
 def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
