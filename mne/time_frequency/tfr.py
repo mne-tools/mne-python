@@ -90,7 +90,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         >>> import numpy as np
         >>> from scipy.signal import morlet2 as sp_morlet
         >>> import matplotlib.pyplot as plt
-        >>> from mne.time_frequency import morlet
+        >>> from mne.time_frequency import morlet, fwhm
         >>> sfreq, freq, n_cycles = 1000., 10, 7  # i.e., 700 ms
         >>> this_fwhm = fwhm(freq, n_cycles)
         >>> wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
@@ -177,6 +177,10 @@ def fwhm(freq, n_cycles):
     -------
     fwhm : float
         The full-width half maximum of the wavelet.
+
+    Notes
+    -----
+     .. versionadded:: 1.3
     """
     return n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
 
