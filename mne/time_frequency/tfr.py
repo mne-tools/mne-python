@@ -71,7 +71,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     See Also
     --------
-    fwhm
+    mne.time_frequency.fwhm
 
     Notes
     -----
