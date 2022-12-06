@@ -823,6 +823,7 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
 
 def _check_qt_version(*, return_api=False):
     """Check if Qt is installed."""
+    from ..viz.backends._utils import _init_mne_qtapp
     try:
         from qtpy import QtCore, API_NAME as api
     except Exception:

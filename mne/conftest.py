@@ -541,8 +541,10 @@ def _check_skip_backend(name):
 def pixel_ratio():
     """Get the pixel ratio."""
     from mne.viz.backends.tests._utils import has_pyvista
+    # _check_qt_version will init an app for us, so no need for us to do it
     if not has_pyvista() or not _check_qt_version():
         return 1.
+    from qtpy.QtWidgets import QMainWindow
     window = QMainWindow()
     ratio = float(window.devicePixelRatio())
     window.close()

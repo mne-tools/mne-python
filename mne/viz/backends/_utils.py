@@ -203,7 +203,8 @@ def _display_is_valid():
     if os.getenv('WAYLAND_DISPLAY'):
         libwayland = cdll.LoadLibrary('libwayland-client.so.0')
         if libwayland is not None:
-            if all(hasattr(libwayland, f'wl_display_{kind}connect') for kind in ('', 'dis')):
+            if all(hasattr(libwayland, f'wl_display_{kind}connect')
+                   for kind in ('', 'dis')):
                 libwayland.wl_display_connect.restype = c_void_p
                 libwayland.wl_display_connect.argtypes = [c_char_p]
                 display = libwayland.wl_display_connect(None)
