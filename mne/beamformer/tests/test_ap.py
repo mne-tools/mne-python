@@ -12,8 +12,6 @@ import mne
 from mne.beamformer import ap
 from mne.cov import regularize
 from mne.datasets import testing
-from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
-from mne.utils import catch_logging
 
 
 data_path = testing.data_path(download=False)
@@ -129,8 +127,8 @@ def test_ap_simulated():
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
                                      evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
-    dipoles,_,_,var_exp = ap(sim_evoked, forward_fixed, nsources,
-                             noise_cov, verbose=True)
+    dipoles, _, _, var_exp = ap(sim_evoked, forward_fixed, nsources,
+                                noise_cov, verbose=True)
     assert 92 < var_exp < 96
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
     assert 97 < dipoles[0].gof.max() < 100
