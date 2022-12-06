@@ -1427,7 +1427,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             raise RuntimeError(
                 'Using the notebook backend on Linux requires a compatible '
                 'VTK setup. Consider using Xfvb or xvfb-run to set up a '
-                'working virtual diplay, or install VTK with OSMesa enabled.'
+                'working virtual display, or install VTK with OSMesa enabled.'
             )
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
