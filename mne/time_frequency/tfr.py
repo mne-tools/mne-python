@@ -73,6 +73,10 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     -----
     %(fwhm_morlet_notes)s
 
+    See Also
+    --------
+    fwhm
+
     References
     ----------
     .. footbibliography::
@@ -80,8 +84,8 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     Examples
     --------
     Let's show a simple example of the relationship between ``n_cycles`` and
-    the FWHM, as well as the equivalent call using
-    :func:`scipy.signal.morlet2`:
+    the FWHM using :func:`mne.time_frequency.fwhm`, as well as the equivalent
+    call using :func:`scipy.signal.morlet2`:
 
     .. plot::
         :format: doctest
