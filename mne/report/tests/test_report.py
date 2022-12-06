@@ -625,7 +625,7 @@ def test_add_or_replace(tags):
 
     old_r = copy.deepcopy(r)
 
-    # Replace last occurrence of `fig1` tagges as `foo`
+    # Replace our last occurrence of title='duplicate'
     r.add_figure(
         fig=fig2, title='duplicate', tags=('bar',) if tags else (),
         replace=True,
@@ -637,6 +637,42 @@ def test_add_or_replace(tags):
     assert r.html[0] == old_r.html[0]
     assert r.html[1] == old_r.html[1]
     assert r.html[3] == old_r.html[3]
+
+
+def test_add_or_replace_section():
+    """Test that sections are respected when adding or replacing."""
+    r = Report()
+    fig1, fig2 = _get_example_figures()
+    r.add_figure(fig=fig1, title='a', section='A')
+    r.add_figure(fig=fig1, title='a', section='B')
+    r.add_figure(fig=fig1, title='a', section='C')
+    # By default, replace=False, so all figures should be there
+    assert len(r.html) == 3
+    assert len(r._content) == 3
+
+    old_r = copy.deepcopy(r)
+    assert r.html[0] == old_r.html[0]
+    assert r.html[1] == old_r.html[1]
+    assert r.html[2] == old_r.html[2]
+
+    # Replace our one occurrence of title 'a' in section 'B'
+    r.add_figure(fig=fig2, title='a', section='B', replace=True)
+    r._dom_id = 3  # help out the .html property
+    assert len(r._content) == 3
+    assert len(r.html) == 3
+    assert r.html[0] == old_r.html[0]
+    assert r.html[1] != old_r.html[1]
+    assert r.html[2] == old_r.html[2]
+    r.add_figure(fig=fig1, title='a', section='B', replace=True)
+    r._dom_id = 3
+    assert r.html[0] == old_r.html[0]
+    assert r.html[1].replace('global-4', 'global-2') == old_r.html[1]
+    assert r.html[2] == old_r.html[2]
+    r.add_figure(fig=fig1, title='a', section='C', replace=True)
+    r._dom_id = 3
+    assert r.html[0] == old_r.html[0]
+    assert r.html[1].replace('global-4', 'global-2') == old_r.html[1]
+    assert r.html[2] != old_r.html[2]
 
 
 def test_scraper(tmp_path):

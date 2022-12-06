@@ -13,7 +13,6 @@ from typing import Tuple, Optional
 from collections.abc import Sequence
 import base64
 from io import BytesIO, StringIO
-import contextlib
 import os
 import os.path as op
 from pathlib import Path
@@ -1778,16 +1777,14 @@ class Report:
 
     @fill_doc
     def _add_or_replace(
-        self, *, name, section, dom_id, tags, html, replace=False
+        self, *, title, section, dom_id, tags, html, replace=False
     ):
         """Append HTML content report, or replace it if it already exists.
 
         Parameters
         ----------
-        name : str
-            The entry under which the content shall be listed in the table of
-            contents. If it already exists, the content will be replaced if
-            ``replace`` is ``True``
+        title : str
+            The title entry.
         %(section_report)s
         dom_id : str
             A unique element ``id`` in the DOM.
@@ -1796,25 +1793,29 @@ class Report:
         html : str
             The HTML.
         replace : bool
-            Whether to replace existing content.
+            Whether to replace existing content if the title and section match.
         """
         assert isinstance(html, str)  # otherwise later will break
 
         new_content = _ContentElement(
-            name=name,
+            name=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
             html=html
         )
 
-        existing_names = [element.name for element in self._content]
-        if name in existing_names and replace:
-            # Find and replace last existing element with the same name
-            idx = [ii for ii, element_name in enumerate(existing_names)
-                   if element_name == name][-1]
-            self._content[idx] = new_content
-        else:
+        append = True
+        if replace:
+            matches = [
+                ii
+                for ii, element in enumerate(self._content)
+                if (element.name, element.section) == (title, section)
+            ]
+            if matches:
+                self._content[matches[-1]] = new_content
+                append = False
+        if append:
             self._content.append(new_content)
 
     def _add_code(self, *, code, title, language, section, tags, replace):
@@ -1831,7 +1832,7 @@ class Report:
         )
         self._add_or_replace(
             dom_id=dom_id,
-            name=title,
+            title=title,
             section=section,
             tags=tags,
             html=html,
@@ -1891,11 +1892,9 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-
-        with contextlib.redirect_stdout(StringIO()) as f:
-            sys_info()
-
-        info = f.getvalue()
+        with StringIO() as f:
+            sys_info(f)
+            info = f.getvalue()
         self.add_code(
             code=info, title=title, language='shell', tags=tags,
             replace=replace
@@ -1912,7 +1911,7 @@ class Report:
         )
         self._add_or_replace(
             dom_id=dom_id,
-            name=title,
+            title=title,
             section=section,
             tags=tags,
             html=html,
@@ -2047,7 +2046,8 @@ class Report:
 
     @fill_doc
     def add_html(
-        self, html, title, *, tags=('custom-html',), replace=False
+        self, html, title, *, tags=('custom-html',), section=None,
+        replace=False
     ):
         """Add HTML content to the report.
 
@@ -2058,6 +2058,9 @@ class Report:
         title : str
             The title corresponding to ``html``.
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.3
         %(replace_report)s
 
         Notes
@@ -2072,7 +2075,7 @@ class Report:
         )
         self._add_or_replace(
             dom_id=dom_id,
-            name=title,
+            title=title,
             section=None,
             tags=tags,
             html=html_element,
@@ -2114,7 +2117,7 @@ class Report:
         self._add_bem(
             subject=subject, subjects_dir=subjects_dir,
             decim=decim, n_jobs=n_jobs, width=width,
-            image_format=self.image_format, section=title, tags=tags,
+            image_format=self.image_format, title=title, tags=tags,
             replace=replace
         )
 
@@ -2163,7 +2166,7 @@ class Report:
             klass=klass, own_figure=own_figure
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -2882,7 +2885,7 @@ class Report:
             tags=tags
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -2941,7 +2944,7 @@ class Report:
             tags=tags,
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -3325,7 +3328,7 @@ class Report:
             html=html
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -3714,7 +3717,7 @@ class Report:
 
     def _add_bem(
         self, *, subject, subjects_dir, decim, n_jobs, width=512,
-        image_format, section, tags, replace
+        image_format, title, tags, replace
     ):
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
@@ -3756,11 +3759,11 @@ class Report:
             html_slider_sagittal=html_slider_sagittal,
             html_slider_coronal=html_slider_coronal,
             tags=tags,
-            title=section,
+            title=title,
         )
         self._add_or_replace(
-            name=section,
-            section=None,  # avoid nesting
+            title=title,
+            section=None,  # no nesting
             dom_id=dom_id,
             tags=tags,
             html=html,
