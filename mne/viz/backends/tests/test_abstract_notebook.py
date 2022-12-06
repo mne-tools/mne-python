@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(
     reason='need ipympl and nbexec does not work on Windows')
 
 
-def test_widget_abstraction_notebook(nbexec):
+def test_widget_abstraction_notebook(renderer_notebook, nbexec):
     """Test the GUI widgets abstraction in notebook."""
     from mne.viz import set_3d_backend
     from mne.viz.backends.renderer import _get_backend
