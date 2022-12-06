@@ -65,9 +65,9 @@ def test_morlet(sfreq, freq, n_cycles):
     # Check FWHM
     fwhm_formula = n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
     half_max = np.abs(W).max() / 2.
-    fwhm_empircal = (np.abs(W) >= half_max).sum() / sfreq
+    fwhm_empirical = (np.abs(W) >= half_max).sum() / sfreq
     # Could be off by a few samples
-    assert_allclose(fwhm_formula, fwhm_empircal, atol=3 / sfreq)
+    assert_allclose(fwhm_formula, fwhm_empirical, atol=3 / sfreq)
 
 
 def test_time_frequency():
