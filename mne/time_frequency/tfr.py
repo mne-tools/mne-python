@@ -69,13 +69,13 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         The wavelets time series. If ``freqs`` was a float, a single
         ndarray is returned instead of a list of ndarray.
 
-    Notes
-    -----
-    %(fwhm_morlet_notes)s
-
     See Also
     --------
     fwhm
+
+    Notes
+    -----
+    %(fwhm_morlet_notes)s
 
     References
     ----------
