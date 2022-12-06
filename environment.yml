@@ -42,9 +42,13 @@ dependencies:
 - pyqt!=5.15.3,!=5.15.4
 - mne
 - mffpy>=0.5.7
+- ipyevents
 - ipywidgets
 - ipympl
 - ipyvtklink
+- jupyter_client
+- nbformat
+- nbclient
 - mne-qt-browser
 - pymatreader
 - eeglabio
