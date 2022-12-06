@@ -1110,7 +1110,7 @@ needed_plot_redirects = {
     'morph_surface_stc.py', 'morph_volume_stc.py', 'movement_compensation.py',
     'movement_detection.py', 'multidict_reweighted_tfmxne.py',
     'muscle_detection.py', 'opm_data.py', 'otp.py', 'parcellation.py',
-    'psf_ctf_label_leakage.py', 'psf_ctf_vertices.py',
+    'psf_ctf_label_leakage.py', 'psf_ctf_vertices.py', 'ap.py',
     'psf_ctf_vertices_lcmv.py', 'publication_figure.py', 'rap_music.py',
     'read_inverse.py', 'read_neo_format.py', 'read_noise_covariance_matrix.py',
     'read_stc.py', 'receptive_field_mtrf.py', 'resolution_metrics.py',

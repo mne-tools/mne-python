@@ -58,7 +58,7 @@ noise_cov = mne.read_cov(cov_fname)
 # --------------------------------
 
 dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2,
-                                   noise_cov=noise_cov, return_residual=True)
+                                   noise_cov=noise_cov, return_residual=True, verbose=True)
 
 trans = forward['mri_head_t']
 plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
@@ -77,7 +77,7 @@ residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]),
 
 forward = mne.convert_forward_solution(forward, force_fixed=True)
 dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2,
-                                   noise_cov=noise_cov, return_residual=True)
+                                   noise_cov=noise_cov, return_residual=True, verbose=True)
 
 trans = forward['mri_head_t']
 plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
@@ -93,4 +93,3 @@ residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
 # References
 # ----------
 # .. footbibliography::
-# -*- coding: utf-8 -*-

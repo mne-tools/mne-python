@@ -129,10 +129,9 @@ def test_ap_simulated():
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
                                      evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
-    with catch_logging() as log:
-        dipoles = ap(sim_evoked, forward_fixed, nsources,
-                     noise_cov, return_residual=False)
-    assert_var_exp_log(log.getvalue(), 92, 96)
+    dipoles,_,_,var_exp = ap(sim_evoked, forward_fixed, nsources,
+                             noise_cov, verbose=True)
+    assert 92 < var_exp < 96
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
     assert 97 < dipoles[0].gof.max() < 100
     assert 97 < dipoles[1].gof.max() < 100

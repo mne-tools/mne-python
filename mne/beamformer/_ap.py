@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from numpy.linalg import pinv, multi_dot, lstsq
 
-from ..utils import _check_info_inv, verbose, fill_doc
+from ..utils import _check_info_inv, verbose, fill_doc, logger
 from ._compute_beamformer import _prepare_beamformer_input
 from ..io.pick import pick_channels_forward, pick_channels_evoked, pick_info
 from ..forward.forward import convert_forward_solution, is_fixed_orient
@@ -154,13 +154,13 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
                        perpend_spc, l_p]))[0, 0])
             s2_idx = np.argmax(ap_val2)
             s_ap_2[src] = s2_idx
-        print('current s_ap_2 = {}'.format(s_ap_2))
+        logger.info('current s_ap_2 = {}'.format(s_ap_2))
         if (itr > 0) & (s_ap_2_prev == s_ap_2):
             # No improvement vs. previous iteration
-            print('Done (optimally)')
+            logger.info('Done (optimally)')
             break
         if itr == attr_dict['max_iter']:
-            print('Done (max iteration)')
+            logger.info('Done (max iteration)')
     return s_ap_2
 
 
@@ -409,13 +409,13 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
                                                     in sol_tuple[0]])]][:, 0]
             sub_g_proj[:, src] = np.dot(sol_tuple[2], oris[src])
 
-        print('current s_ap_2 = {}'.format(s_ap_2))
+        logger.info('current s_ap_2 = {}'.format(s_ap_2))
         if (itr > 0) & (s_ap_2_prev == s_ap_2):
             # No improvement vs. previous iteration
-            print('Done (optimally)')
+            logger.info('Done (optimally)')
             break
         if itr == attr_dict['max_iter']:
-            print('Done (max iteration)')
+            logger.info('Done (max iteration)')
 
     return s_ap_2, oris, sub_g_proj
 
@@ -604,6 +604,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
         signs = np.sign((dipole.ori * ori).sum(-1, keepdims=True))
         dipole.ori *= signs
         dipole.amplitude *= signs[:, 0]
+    logger.info('[done]')
 
     return dipoles, explained_data, var_exp, dip_ind, oris, poss
 
