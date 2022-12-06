@@ -80,8 +80,8 @@ jobs:
       run:
         shell: bash
     env:
-      CONDA_ENV: 'environment.yml'
-      PYTHON_VERSION: '3.10'
+      CONDA_ENV: 'server_environment.yml'
+      PYTHON_VERSION: '3.8'
     steps:
       - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
@@ -90,10 +90,6 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
         name: 'Setup conda'
-      - shell: bash -el {0}
-        run: |
-          conda install -c conda-forge "vtk>=9.2=*osmesa*"
-        name: 'Install OSMesa VTK variant'
       - shell: bash -el {0}
         run: |
           pip uninstall -yq mne

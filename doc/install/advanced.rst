@@ -86,14 +86,14 @@ please follow :ref:`standard-instructions`.
 Installing to a headless Linux server
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-First, follow the standard installation instructions. Next, you can choose
-to install the ``osmesa`` (off-screen MESA) VTK variant, which avoids the need
-to use Xvfb to start a virtual display (and have a sufficiently updated
-MESA to render properly):
+With `pyvista`_:
+Download the `server environment file`_ and use it to create the conda
+environment
 
 .. code-block:: console
 
-    $ conda install -c conda-forge "vtk>=9.2=*osmesa*"
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
+    $ conda env create -f server_environment.yml
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -277,6 +277,7 @@ line for ``pip uninstall -y vtk``.
 .. LINKS
 
 .. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
