@@ -625,7 +625,7 @@ def test_add_or_replace(tags):
 
     old_r = copy.deepcopy(r)
 
-    # Replace last occurrence of `fig1` tagges as `foo`
+    # Replace our last occurrence of title='duplicate'
     r.add_figure(
         fig=fig2, title='duplicate', tags=('bar',) if tags else (),
         replace=True,
@@ -655,7 +655,7 @@ def test_add_or_replace_section():
     assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
 
-    # Replace last occurrence of `fig1` tagges as `foo`
+    # Replace our one occurrence of title 'a' in section 'B'
     r.add_figure(fig=fig2, title='a', section='B', replace=True)
     r._dom_id = 3  # help out the .html property
     assert len(r._content) == 3
