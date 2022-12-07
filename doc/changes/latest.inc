@@ -28,6 +28,7 @@ Enhancements
 - Add a warning to the docstring of :func:`mne.channels.find_ch_adjacency` to encourage users to validate their outputs (:gh:`11236` by `Felix Klotzsche`_ and `Eric Larson`_)
 - Mixed, cortical + discrete source spaces with fixed orientations are now allowed. (:gh:`11241` by `Jevri Hanna`_)
 - Add size information to the ``repr`` of :class:`mne.Report` (:gh:`11357` by `Eric Larson`_)
+- Add support for ``image_format='webp'`` to :class:`mne.Report` when using Matplotlib 3.6+, which can reduce file sizes by up to 50% compared to ``'png'``. The new default ``image_format='auto'`` will automatically use this format if it's available on the system (:gh:`11359` by `Eric Larson`_)
 - Add :func:`mne.beamformer.apply_dics_tfr_epochs` to apply a DICS beamformer to time-frequency resolved epochs (:gh:`11096` by `Alex Rockhill`_)
 - Check whether head radius (estimated from channel positions) is correct when reading EEGLAB data with :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab`. If head radius is not within likely values, warn informing about possible units mismatch and the new ``montage_units`` argument (:gh:`11283` by `Mikołaj Magnuski`_).
 - Add support for a callable passed in ``combine`` for `mne.time_frequency.AverageTFR.plot` and `mne.time_frequency.AverageTFR.plot_joint` (:gh:`11329` by `Mathieu Scheltienne`_)
@@ -55,6 +56,7 @@ Bugs
 - Fix bug with :class:`mne.Report` with ``replace=True`` where the wrong content was replaced and ``section`` was not respected (:gh:`11318`, :gh:`11346` by `Eric Larson`_)
 - Fix bug with unit conversion when setting reference MEG as the channel type in :meth:`mne.io.Raw.set_channel_types` and related methods (:gh:`11344` by `Eric Larson`_)
 - Fix bug where reference MEG channels could not be plotted using :func:`mne.viz.plot_epochs_image` (:gh:`11344` by `Eric Larson`_)
+- Fix bug where ``image_format='gif'`` was errantly documented as being supported by :class:`mne.Report`, it is now only supported in :meth:`mne.Report.add_image` (:gh:`11347` by `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
 

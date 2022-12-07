@@ -22,7 +22,9 @@ from matplotlib import pyplot as plt
 from mne import (Epochs, read_events, read_evokeds, read_cov,
                  pick_channels_cov, create_info)
 from mne.report import report as report_mod
-from mne.report.report import CONTENT_ORDER
+from mne.report.report import (
+    CONTENT_ORDER, _ALLOWED_IMAGE_FORMATS, _webp_supported,
+)
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
@@ -394,7 +396,7 @@ def test_render_add_sections(renderer, tmp_path):
     fig.savefig(img_fname)
     report.add_image(image=img_fname, title='evoked response')
 
-    with pytest.raises(FileNotFoundError, match='No such file or directory'):
+    with pytest.raises(FileNotFoundError, match='does not exist'):
         report.add_image(image='foobar.xxx', title='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -452,7 +454,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
         use_subjects_dir = None
     else:
         use_subjects_dir = subjects_dir
-    report = Report(subjects_dir=use_subjects_dir)
+    report = Report(subjects_dir=use_subjects_dir, image_format='png')
     # implicitly test that subjects_dir is correctly preserved here
     monkeypatch.setattr(report_mod, '_BEM_VIEWS', ('axial',))
     if use_subjects_dir is not None:
@@ -996,3 +998,40 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
             r.add_code(code='foo', title='bar', tags=tags)
     else:
         r.add_code(code='foo', title='bar', tags=tags)
+
+
+# These are all the ones we claim to support
+@pytest.mark.parametrize('image_format', _ALLOWED_IMAGE_FORMATS)
+def test_image_format(image_format):
+    """Test image format support."""
+    if image_format == 'webp':
+        if not _webp_supported():
+            with pytest.raises(ValueError, match='matplotlib'):
+                Report(image_format='webp')
+            return
+    r = Report(image_format=image_format)
+    fig1, _ = _get_example_figures()
+    r.add_figure(fig1, 'fig1')
+    assert image_format in r.html[0]
+
+
+def test_gif(tmp_path):
+    """Test that GIFs can be embedded using add_image."""
+    pytest.importorskip('PIL')
+    from PIL import Image
+    sequence = [
+        Image.fromarray(frame.astype(np.uint8))
+        for frame in _get_example_figures()
+    ]
+    fname = tmp_path / 'test.gif'
+    sequence[0].save(str(fname), save_all=True, append_images=sequence[1:])
+    assert fname.is_file()
+    with pytest.raises(ValueError, match='Allowed values'):
+        Report(image_format='gif')
+    r = Report()
+    r.add_image(fname, 'fname')
+    assert 'image/gif' in r.html[0]
+    bad_name = fname.with_suffix('.foo')
+    bad_name.write_bytes(b'')
+    with pytest.raises(ValueError, match='Allowed values'):
+        r.add_image(bad_name, 'fname')

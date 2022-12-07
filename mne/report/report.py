@@ -26,7 +26,6 @@ import webbrowser
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
@@ -40,7 +39,8 @@ from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
                      _path_like, use_log_level, _check_fname, _pl,
-                     _check_ch_locs, _import_h5io_funcs, _verbose_safe_false)
+                     _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
+                     check_version)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
                    Figure3D, use_browser_backend)
@@ -345,21 +345,46 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
         own_figure = True  # close the fig we just created
 
     output = BytesIO()
+    dpi = fig.get_dpi()
     logger.debug(
         f'Saving figure with dimension {fig.get_size_inches()} inches with '
-        f'{fig.get_dpi()} dpi'
+        f'{{dpi}} dpi'
     )
 
+    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+    mpl_kwargs = dict()
+    pil_kwargs = dict()
+    has_pillow = check_version('PIL')
+    if has_pillow:
+        if image_format == 'webp':
+            pil_kwargs.update(lossless=True, method=6)
+        elif image_format == 'png':
+            pil_kwargs.update(optimize=True, compress_level=9)
+    if pil_kwargs:
+        # matplotlib modifies the passed dict, which is a bug
+        mpl_kwargs['pil_kwargs'] = pil_kwargs.copy()
     with warnings.catch_warnings():
         warnings.filterwarnings(
             action='ignore',
             message='.*Axes that are not compatible with tight_layout.*',
             category=UserWarning
         )
-        fig.savefig(output, format=image_format, dpi=fig.get_dpi())
+        fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
         plt.close(fig)
+
+    # Remove alpha
+    if image_format != 'svg' and has_pillow:
+        from PIL import Image
+        output.seek(0)
+        orig = Image.open(output)
+        if orig.mode == 'RGBA':
+            background = Image.new('RGBA', orig.size, (255, 255, 255))
+            new = Image.alpha_composite(background, orig).convert('RGB')
+            output = BytesIO()
+            new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
+
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
@@ -405,9 +430,8 @@ def _get_bem_contour_figs_as_arrays(
         A list of NumPy arrays that represent the generated Matplotlib figures.
     """
     # Matplotlib <3.2 doesn't work nicely with process-based parallelization
-    from matplotlib import __version__ as MPL_VERSION
     kwargs = dict()
-    if _compare_version(MPL_VERSION, '<', '3.2'):
+    if not check_version('matplotilb', '3.2'):
         kwargs['prefer'] = 'threads'
 
     parallel, p_fun, n_jobs = parallel_func(
@@ -598,6 +622,16 @@ def open_report(fname, **params):
 mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
 
+_ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'webp')
+
+
+def _webp_supported():
+    good = check_version('matplotlib', '3.6') and check_version('PIL')
+    if good:
+        from PIL import features
+        good = features.check('webp')
+    return good
+
 
 def _check_scale(scale):
     """Ensure valid scale value is passed."""
@@ -608,10 +642,17 @@ def _check_scale(scale):
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
-        _check_option('image_format', image_format,
-                      allowed_values=('png', 'svg', 'gif'))
+        allowed = list(_ALLOWED_IMAGE_FORMATS) + ['auto']
+        extra = ''
+        if not _webp_supported():
+            allowed.pop(allowed.index('webp'))
+            extra = '("webp" supported on matplotlib 3.6+ with PIL installed)'
+        _check_option(
+            'image_format', image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
+    if image_format == 'auto':
+        image_format = 'webp' if _webp_supported() else 'png'
     return image_format
 
 
@@ -632,13 +673,17 @@ class Report:
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'gif'
-        Default image format to use (default is ``'png'``).
+    image_format : 'png' | 'svg' | 'webp' | 'auto'
+        Default image format to use (default is ``'auto'``, which will use
+        ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
+        ``'webp'`` format requires matplotlib >= 3.6.
 
         .. versionadded:: 0.15
-
+        .. versionchanged:: 1.3
+           Added support for ``'webp'`` format, removed support for GIF, and
+           set the default to ``'auto'``.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -669,7 +714,6 @@ class Report:
         Default image format to use.
 
         .. versionadded:: 0.15
-
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -703,7 +747,7 @@ class Report:
     @verbose
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', raw_psd=False, projs=False, *,
+                 image_format='auto', raw_psd=False, projs=False, *,
                  verbose=None):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
@@ -2039,14 +2083,11 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        img_bytes = Path(image).expanduser().read_bytes()
-        img_base64 = base64.b64encode(img_bytes).decode('ascii')
-        del img_bytes  # Free memory
-
+        image = Path(_check_fname(image, overwrite='read', must_exist=True))
         img_format = Path(image).suffix.lower()[1:]  # omit leading period
         _check_option('Image format', value=img_format,
-                      allowed_values=('png', 'gif', 'svg'))
-
+                      allowed_values=list(_ALLOWED_IMAGE_FORMATS) + ['gif'])
+        img_base64 = base64.b64encode(image.read_bytes()).decode('ascii')
         self._add_image(
             img=img_base64,
             title=title,
@@ -2156,6 +2197,7 @@ class Report:
             imgs = [_fig_to_img(fig=fig, image_format=image_format,
                                 own_figure=own_figure)
                     for fig in figs]
+
         dom_id = self._get_dom_id()
         html = _html_slider_element(
             id=dom_id,
