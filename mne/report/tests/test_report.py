@@ -22,12 +22,14 @@ from matplotlib import pyplot as plt
 from mne import (Epochs, read_events, read_evokeds, read_cov,
                  pick_channels_cov, create_info)
 from mne.report import report as report_mod
-from mne.report.report import CONTENT_ORDER, _ALLOWED_IMAGE_FORMATS
+from mne.report.report import (
+    CONTENT_ORDER, _ALLOWED_IMAGE_FORMATS, _webp_supported,
+)
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import (requires_nibabel, Bunch, requires_version,
-                       requires_sklearn, check_version)
+                       requires_sklearn)
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -394,7 +396,7 @@ def test_render_add_sections(renderer, tmp_path):
     fig.savefig(img_fname)
     report.add_image(image=img_fname, title='evoked response')
 
-    with pytest.raises(FileNotFoundError, match='No such file or directory'):
+    with pytest.raises(FileNotFoundError, match='does not exist'):
         report.add_image(image='foobar.xxx', title='H')
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -452,7 +454,7 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
         use_subjects_dir = None
     else:
         use_subjects_dir = subjects_dir
-    report = Report(subjects_dir=use_subjects_dir)
+    report = Report(subjects_dir=use_subjects_dir, image_format='png')
     # implicitly test that subjects_dir is correctly preserved here
     monkeypatch.setattr(report_mod, '_BEM_VIEWS', ('axial',))
     if use_subjects_dir is not None:
@@ -1003,8 +1005,7 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
 def test_image_format(image_format):
     """Test image format support."""
     if image_format == 'webp':
-        has_webp = check_version('matplotlib', '3.6')
-        if not has_webp:
+        if not _webp_supported():
             with pytest.raises(ValueError, match='matplotlib'):
                 Report(image_format='webp')
             return

@@ -354,10 +354,11 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
     mpl_kwargs = dict()
     pil_kwargs = dict()
-    if image_format == 'webp':
-        pil_kwargs.update(lossless=True, method=6)
-    elif image_format == 'png':
-        pil_kwargs.update(optimize=True, compress_level=9)
+    if check_version('PIL'):
+        if image_format == 'webp':
+            pil_kwargs.update(lossless=True, method=6)
+        elif image_format == 'png':
+            pil_kwargs.update(optimize=True, compress_level=9)
     if pil_kwargs:
         # matplotlib modifies the passed dict, which is a bug
         mpl_kwargs['pil_kwargs'] = pil_kwargs.copy()
@@ -623,6 +624,10 @@ mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
 _ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'webp')
 
 
+def _webp_supported():
+    return check_version('matplotlib', '3.6') and check_version('PIL')
+
+
 def _check_scale(scale):
     """Ensure valid scale value is passed."""
     if np.isscalar(scale) and scale <= 0:
@@ -632,15 +637,17 @@ def _check_scale(scale):
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
-        allowed = list(_ALLOWED_IMAGE_FORMATS)
+        allowed = list(_ALLOWED_IMAGE_FORMATS) + ['auto']
         extra = ''
-        if not check_version('matplotlib', '3.6'):
+        if not _webp_supported():
             allowed.pop(allowed.index('webp'))
-            extra = '("webp" supported on matplotlib 3.6+)'
+            extra = '("webp" supported on matplotlib 3.6+ with PIL installed)'
         _check_option(
             'image_format', image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
+    if image_format == 'auto':
+        image_format = 'webp' if _webp_supported() else 'png'
     return image_format
 
 
@@ -661,15 +668,17 @@ class Report:
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'webp'
-        Default image format to use (default is ``'png'``).
+    image_format : 'png' | 'svg' | 'webp' | 'auto'
+        Default image format to use (default is ``'auto'``, which will use
+        ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
         ``'webp'`` format requires matplotlib >= 3.6.
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
-           Added support for ``'webp'`` format, and removed support for GIF.
+           Added support for ``'webp'`` format, removed support for GIF, and
+           set the default to ``'auto'``.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -733,7 +742,7 @@ class Report:
     @verbose
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', raw_psd=False, projs=False, *,
+                 image_format='auto', raw_psd=False, projs=False, *,
                  verbose=None):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
