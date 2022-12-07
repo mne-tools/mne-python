@@ -625,7 +625,11 @@ _ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'webp')
 
 
 def _webp_supported():
-    return check_version('matplotlib', '3.6') and check_version('PIL')
+    good = check_version('matplotlib', '3.6') and check_version('PIL')
+    if good:
+        from PIL import features
+        good = features.check('webp')
+    return good
 
 
 def _check_scale(scale):
