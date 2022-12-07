@@ -39,7 +39,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname,
+                     _path_like, use_log_level, _check_fname, _pl,
                      _check_ch_locs, _import_h5io_funcs, _verbose_safe_false)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
@@ -731,20 +731,33 @@ class Report:
 
     def __repr__(self):
         """Print useful info about report."""
-        s = f'<Report | {len(self._content)} items'
+        htmls, _, titles, _ = self._content_as_html()
+        items = self._content
+        s = '<Report'
+        s += f' | {len(titles)} title{_pl(titles)}'
+        s += f' | {len(items)} item{_pl(items)}'
         if self.title is not None:
             s += f' | {self.title}'
-        content_element_names = [element.name for element in self._content]
-        if len(content_element_names) > 4:
-            first_entries = '\n'.join(content_element_names[:2])
-            last_entries = '\n'.join(content_element_names[-2:])
-            s += f'\n{first_entries}'
-            s += '\n ...\n'
-            s += last_entries
-        elif len(content_element_names) > 0:
-            entries = '\n'.join(content_element_names)
-            s += f'\n{entries}'
-        s += '\n>'
+        if len(titles) > 0:
+            titles = [f' {t}' for t in titles]  # indent
+            tr = max(len(s), 50)  # trim to larger of opening str and 50
+            titles = [f'{t[:tr - 2]} …' if len(t) > tr else t for t in titles]
+            # then trim to the max length of all of these
+            tr = max(len(title) for title in titles)
+            tr = max(tr, len(s))
+            b_to_mb = 1. / (1024. ** 2)
+            content_element_mb = [len(html) * b_to_mb for html in htmls]
+            total_mb = f'{sum(content_element_mb):0.1f}'
+            content_element_mb = [
+                f'{sz:0.1f}'.rjust(len(total_mb))
+                for sz in content_element_mb
+            ]
+            s = f'{s.ljust(tr + 1)} | {total_mb} MB'
+            s += '\n' + '\n'.join(
+                f'{title[:tr].ljust(tr + 1)} | {sz} MB'
+                for title, sz in zip(titles, content_element_mb))
+            s += '\n'
+        s += '>'
         return s
 
     def __len__(self):
