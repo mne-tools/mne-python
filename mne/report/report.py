@@ -353,7 +353,7 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
-    kwargs = dict()
+    mpl_kwargs = dict()
     pil_kwargs = dict()
     if image_format == 'webp':
         pil_kwargs.update(lossless=True, method=6)
@@ -361,14 +361,14 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
         pil_kwargs.update(optimize=True, compress_level=9)
     if pil_kwargs:
         # matplotlib modifies the passed dict, which is a bug
-        kwargs['pil_kwargs'] = pil_kwargs.copy()
+        mpl_kwargs['pil_kwargs'] = pil_kwargs.copy()
     with warnings.catch_warnings():
         warnings.filterwarnings(
             action='ignore',
             message='.*Axes that are not compatible with tight_layout.*',
             category=UserWarning
         )
-        fig.savefig(output, format=image_format, dpi=dpi, **kwargs)
+        fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
         plt.close(fig)
