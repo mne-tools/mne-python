@@ -354,7 +354,8 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
     mpl_kwargs = dict()
     pil_kwargs = dict()
-    if check_version('PIL'):
+    has_pillow = check_version('PIL')
+    if has_pillow:
         if image_format == 'webp':
             pil_kwargs.update(lossless=True, method=6)
         elif image_format == 'png':
@@ -374,7 +375,7 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
         plt.close(fig)
 
     # Remove alpha
-    if image_format != 'svg':
+    if image_format != 'svg' and has_pillow:
         from PIL import Image
         output.seek(0)
         orig = Image.open(output)
