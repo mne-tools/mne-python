@@ -56,6 +56,7 @@ Bugs
 - Fix bug with :class:`mne.Report` with ``replace=True`` where the wrong content was replaced and ``section`` was not respected (:gh:`11318`, :gh:`11346` by `Eric Larson`_)
 - Fix bug with unit conversion when setting reference MEG as the channel type in :meth:`mne.io.Raw.set_channel_types` and related methods (:gh:`11344` by `Eric Larson`_)
 - Fix bug where reference MEG channels could not be plotted using :func:`mne.viz.plot_epochs_image` (:gh:`11344` by `Eric Larson`_)
+- Fix bug where ``image_format='gif'`` was errantly documented as being supported by :class:`mne.Report`, it is now only supported in :meth:`mne.Report.add_image` (:gh:`11347` by `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
 

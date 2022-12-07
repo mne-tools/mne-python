@@ -620,7 +620,7 @@ def open_report(fname, **params):
 mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
 
-_ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'gif', 'webp')
+_ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'webp')
 
 
 def _check_scale(scale):
@@ -661,7 +661,7 @@ class Report:
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'gif' | 'webp'
+    image_format : 'png' | 'svg' | 'webp'
         Default image format to use (default is ``'png'``).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
@@ -669,7 +669,7 @@ class Report:
 
         .. versionadded:: 0.15
         .. versionchanged:: 1.3
-           Added support for ``'webp'`` format.
+           Added support for ``'webp'`` format, and removed support for GIF.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -2069,14 +2069,11 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        img_bytes = Path(image).expanduser().read_bytes()
-        img_base64 = base64.b64encode(img_bytes).decode('ascii')
-        del img_bytes  # Free memory
-
+        image = Path(_check_fname(image, overwrite='read', must_exist=True))
         img_format = Path(image).suffix.lower()[1:]  # omit leading period
         _check_option('Image format', value=img_format,
-                      allowed_values=_ALLOWED_IMAGE_FORMATS)
-
+                      allowed_values=list(_ALLOWED_IMAGE_FORMATS) + ['gif'])
+        img_base64 = base64.b64encode(image.read_bytes()).decode('ascii')
         self._add_image(
             img=img_base64,
             title=title,
@@ -2186,6 +2183,7 @@ class Report:
             imgs = [_fig_to_img(fig=fig, image_format=image_format,
                                 own_figure=own_figure)
                     for fig in figs]
+
         dom_id = self._get_dom_id()
         html = _html_slider_element(
             id=dom_id,

@@ -22,7 +22,7 @@ from matplotlib import pyplot as plt
 from mne import (Epochs, read_events, read_evokeds, read_cov,
                  pick_channels_cov, create_info)
 from mne.report import report as report_mod
-from mne.report.report import CONTENT_ORDER
+from mne.report.report import CONTENT_ORDER, _ALLOWED_IMAGE_FORMATS
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
@@ -999,7 +999,7 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
 
 
 # These are all the ones we claim to support
-@pytest.mark.parametrize('image_format', ('svg', 'png', 'webp', 'gif'))
+@pytest.mark.parametrize('image_format', _ALLOWED_IMAGE_FORMATS)
 def test_image_format(image_format):
     """Test image format support."""
     if image_format == 'webp':
@@ -1010,10 +1010,27 @@ def test_image_format(image_format):
             return
     r = Report(image_format=image_format)
     fig1, _ = _get_example_figures()
-    # TODO: This is broken!
-    if image_format == 'gif':
-        with pytest.raises(Exception):  # raised by mpl, should fix soon
-            r.add_figure(fig1, 'fig1')
-        return
     r.add_figure(fig1, 'fig1')
     assert image_format in r.html[0]
+
+
+def test_gif(tmp_path):
+    """Test that GIFs can be embedded using add_image."""
+    pytest.importorskip('PIL')
+    from PIL import Image
+    sequence = [
+        Image.fromarray(frame.astype(np.uint8))
+        for frame in _get_example_figures()
+    ]
+    fname = tmp_path / 'test.gif'
+    sequence[0].save(str(fname), save_all=True, append_images=sequence[1:])
+    assert fname.is_file()
+    with pytest.raises(ValueError, match='Allowed values'):
+        Report(image_format='gif')
+    r = Report()
+    r.add_image(fname, 'fname')
+    assert 'image/gif' in r.html[0]
+    bad_name = fname.with_suffix('.foo')
+    bad_name.write_bytes(b'')
+    with pytest.raises(ValueError, match='Allowed values'):
+        r.add_image(bad_name, 'fname')
