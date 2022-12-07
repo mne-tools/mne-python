@@ -39,8 +39,9 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname, _pl,
-                     _check_ch_locs, _import_h5io_funcs, _verbose_safe_false)
+                     _path_like, use_log_level, _check_fname, _pl, _pl,
+                     _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
+                     check_version)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
                    Figure3D, use_browser_backend)
@@ -345,21 +346,40 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
         own_figure = True  # close the fig we just created
 
     output = BytesIO()
+    dpi = fig.get_dpi()
     logger.debug(
         f'Saving figure with dimension {fig.get_size_inches()} inches with '
-        f'{fig.get_dpi()} dpi'
+        f'{{dpi}} dpi'
     )
 
+    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+    kwargs = dict()
+    if image_format == 'webp':
+        kwargs['pil_kwargs'] = dict(lossless=True, method=6)
+    elif image_format == 'png':
+        kwargs['pil_kwargs'] = dict(optimize=True, compress_level=9)
     with warnings.catch_warnings():
         warnings.filterwarnings(
             action='ignore',
             message='.*Axes that are not compatible with tight_layout.*',
             category=UserWarning
         )
-        fig.savefig(output, format=image_format, dpi=fig.get_dpi())
+        fig.savefig(output, format=image_format, dpi=dpi, **kwargs)
 
     if own_figure:
         plt.close(fig)
+
+    # Remove alpha
+    if image_format != 'svg':
+        from PIL import Image
+        output.seek(0)
+        orig = Image.open(output)
+        if orig.mode == 'RGBA':
+            background = Image.new('RGBA', orig.size, (255, 255, 255))
+            new = Image.alpha_composite(background, orig).convert('RGB')
+            output = BytesIO()
+            new.save(output, format=image_format, dpi=(dpi, dpi), **kwargs)
+
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
@@ -598,6 +618,8 @@ def open_report(fname, **params):
 mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
 
+_ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'gif', 'webp')
+
 
 def _check_scale(scale):
     """Ensure valid scale value is passed."""
@@ -608,8 +630,13 @@ def _check_scale(scale):
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
-        _check_option('image_format', image_format,
-                      allowed_values=('png', 'svg', 'gif'))
+        allowed = list(_ALLOWED_IMAGE_FORMATS)
+        extra = ''
+        if not check_version('matplotlib', '3.6'):
+            allowed.pop(allowed.index('webp'))
+            extra = '("webp" supported on Matplotlib 3.6+)'
+        _check_option(
+            'image_format', image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
     return image_format
@@ -632,13 +659,15 @@ class Report:
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'gif'
+    image_format : 'png' | 'svg' | 'gif' | 'webp'
         Default image format to use (default is ``'png'``).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
+        ``'webp'`` format requires matplotlib >= 3.6.
 
         .. versionadded:: 0.15
-
+        .. versionchanged:: 1.3
+           Added support for ``'webp'`` format.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -669,7 +698,6 @@ class Report:
         Default image format to use.
 
         .. versionadded:: 0.15
-
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
@@ -2045,7 +2073,7 @@ class Report:
 
         img_format = Path(image).suffix.lower()[1:]  # omit leading period
         _check_option('Image format', value=img_format,
-                      allowed_values=('png', 'gif', 'svg'))
+                      allowed_values=_ALLOWED_IMAGE_FORMATS)
 
         self._add_image(
             img=img_base64,

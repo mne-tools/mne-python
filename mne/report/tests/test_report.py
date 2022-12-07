@@ -27,7 +27,7 @@ from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import (requires_nibabel, Bunch, requires_version,
-                       requires_sklearn)
+                       requires_sklearn, check_version)
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -996,3 +996,24 @@ def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
             r.add_code(code='foo', title='bar', tags=tags)
     else:
         r.add_code(code='foo', title='bar', tags=tags)
+
+
+# These are all the ones we claim to support
+@pytest.mark.parametrize('image_format', ('svg', 'png', 'webp', 'gif'))
+def test_image_format(image_format):
+    """Test image format support."""
+    if image_format == 'webp':
+        has_webp = check_version('matplotlib', '3.6')
+        if not has_webp:
+            with pytest.raises(ValueError, match='matplotlib'):
+                Report(image_format='webp')
+            return
+    r = Report(image_format=image_format)
+    fig1, _ = _get_example_figures()
+    # TODO: This is broken!
+    if image_format == 'gif':
+        with pytest.raises(Exception):  # raised by mpl, should fix soon
+            r.add_figure(fig1, 'fig1')
+        return
+    r.add_figure(fig1, 'fig1')
+    assert image_format in r.html[0]
