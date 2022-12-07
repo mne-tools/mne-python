@@ -748,9 +748,14 @@ class Report:
             tr = max(tr, len(s))
             b_to_mb = 1. / (1024. ** 2)
             content_element_mb = [len(html) * b_to_mb for html in htmls]
-            s = f'{s.ljust(tr + 1)} | {sum(content_element_mb):0.1f} MB'
+            total_mb = f'{sum(content_element_mb):0.1f}'
+            content_element_mb = [
+                f'{sz:0.1f}'.rjust(len(total_mb))
+                for sz in content_element_mb
+            ]
+            s = f'{s.ljust(tr + 1)} | {total_mb} MB'
             s += '\n' + '\n'.join(
-                f'{title[:tr].ljust(tr + 1)} | {sz:0.1f} MB'
+                f'{title[:tr].ljust(tr + 1)} | {sz} MB'
                 for title, sz in zip(titles, content_element_mb))
             s += '\n'
         s += '>'
