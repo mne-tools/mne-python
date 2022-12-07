@@ -429,9 +429,8 @@ def _get_bem_contour_figs_as_arrays(
         A list of NumPy arrays that represent the generated Matplotlib figures.
     """
     # Matplotlib <3.2 doesn't work nicely with process-based parallelization
-    from matplotlib import __version__ as MPL_VERSION
     kwargs = dict()
-    if _compare_version(MPL_VERSION, '<', '3.2'):
+    if not check_version('matplotilb', '3.2'):
         kwargs['prefer'] = 'threads'
 
     parallel, p_fun, n_jobs = parallel_func(
@@ -638,7 +637,7 @@ def _check_image_format(rep, image_format):
         extra = ''
         if not check_version('matplotlib', '3.6'):
             allowed.pop(allowed.index('webp'))
-            extra = '("webp" supported on Matplotlib 3.6+)'
+            extra = '("webp" supported on matplotlib 3.6+)'
         _check_option(
             'image_format', image_format, allowed_values=allowed, extra=extra)
     else:
