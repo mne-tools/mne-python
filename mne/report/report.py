@@ -39,7 +39,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname, _pl, _pl,
+                     _path_like, use_log_level, _check_fname, _pl,
                      _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
                      check_version)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
@@ -354,10 +354,14 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
     kwargs = dict()
+    pil_kwargs = dict()
     if image_format == 'webp':
-        kwargs['pil_kwargs'] = dict(lossless=True, method=6)
+        pil_kwargs.update(lossless=True, method=6)
     elif image_format == 'png':
-        kwargs['pil_kwargs'] = dict(optimize=True, compress_level=9)
+        pil_kwargs.update(optimize=True, compress_level=9)
+    if pil_kwargs:
+        # matplotlib modifies the passed dict, which is a bug
+        kwargs['pil_kwargs'] = pil_kwargs.copy()
     with warnings.catch_warnings():
         warnings.filterwarnings(
             action='ignore',
@@ -378,7 +382,7 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
             background = Image.new('RGBA', orig.size, (255, 255, 255))
             new = Image.alpha_composite(background, orig).convert('RGB')
             output = BytesIO()
-            new.save(output, format=image_format, dpi=(dpi, dpi), **kwargs)
+            new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
 
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
