@@ -28,6 +28,7 @@ Enhancements
 - Add a warning to the docstring of :func:`mne.channels.find_ch_adjacency` to encourage users to validate their outputs (:gh:`11236` by `Felix Klotzsche`_ and `Eric Larson`_)
 - Mixed, cortical + discrete source spaces with fixed orientations are now allowed. (:gh:`11241` by `Jevri Hanna`_)
 - Add :func:`mne.beamformer.apply_dics_tfr_epochs` to apply a DICS beamformer to time-frequency resolved epochs (:gh:`11096` by `Alex Rockhill`_)
+- Add :func:`mne.time_frequency.fwhm` to determine the full-width half maximum for :func:`mne.time_frequency.morlet` (:gh:`11353` by `Britta Westner`_, `Daniel McCloy`_, and `Eric Larson`_)
 - Check whether head radius (estimated from channel positions) is correct when reading EEGLAB data with :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab`. If head radius is not within likely values, warn informing about possible units mismatch and the new ``montage_units`` argument (:gh:`11283` by `Mikołaj Magnuski`_).
 - Add support for a callable passed in ``combine`` for `mne.time_frequency.AverageTFR.plot` and `mne.time_frequency.AverageTFR.plot_joint` (:gh:`11329` by `Mathieu Scheltienne`_)
 
@@ -54,7 +55,6 @@ Bugs
 - Fix bug with :class:`mne.Report` with ``replace=True`` where the wrong content was replaced (:gh:`11318` by `Eric Larson`_)
 - Fix bug with unit conversion when setting reference MEG as the channel type in :meth:`mne.io.Raw.set_channel_types` and related methods (:gh:`11344` by `Eric Larson`_)
 - Fix bug where reference MEG channels could not be plotted using :func:`mne.viz.plot_epochs_image` (:gh:`11344` by `Eric Larson`_)
-- Fix bug with :func:`mne.time_frequency.morlet` normalization (:gh:`11353` by `Britta Westner`_, `Daniel McCloy`_, and `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
 

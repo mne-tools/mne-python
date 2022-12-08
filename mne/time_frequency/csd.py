@@ -1020,10 +1020,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     n_times = len(times)
 
     # Construct the appropriate Morlet wavelets
-    frequencies = np.atleast_1d(frequencies)
     wavelets = morlet(sfreq, frequencies, n_cycles)
-    for w in wavelets:
-        w *= np.sqrt(2)
 
     # Slice X to the requested time window + half the length of the longest
     # wavelet.

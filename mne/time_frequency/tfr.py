@@ -88,41 +88,40 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     call using :func:`scipy.signal.morlet2`:
 
     .. plot::
-        :format: doctest
-        :include-source: true
 
-        >>> import numpy as np
-        >>> from scipy.signal import morlet2 as sp_morlet
-        >>> import matplotlib.pyplot as plt
-        >>> from mne.time_frequency import morlet, fwhm
-        >>> sfreq, freq, n_cycles = 1000., 10, 7  # i.e., 700 ms
-        >>> this_fwhm = fwhm(freq, n_cycles)
-        >>> wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
-        >>> M, w = len(wavelet), n_cycles # convert to SciPy convention
-        >>> s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
-        >>> wavelet_sp = sp_morlet(M, s, w)
-        >>> _, ax = plt.subplots(constrained_layout=True)
-        >>> colors = {
-        ...     ('MNE', 'real'): '#66CCEE',
-        ...     ('SciPy', 'real'): '#4477AA',
-        ...     ('MNE', 'imag'): '#EE6677',
-        ...     ('SciPy', 'imag'): '#AA3377',
-        ... }
-        >>> lw = dict(MNE=2, SciPy=4)
-        >>> zorder = dict(MNE=5, SciPy=4)
-        >>> t = np.arange(-M // 2 + 1, M // 2 + 1) / sfreq
-        >>> for name, w in (('MNE', wavelet), ('SciPy', wavelet_sp)):  # doctest:+SKIP
-        ...     for kind in ('real', 'imag'):
-        ...         ax.plot(t, getattr(w, kind), label=f'{name} {kind}',
-        ...                 lw=lw[name], color=colors[(name, kind)],
-        ...                 zorder=zorder[name])
-        >>> ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1., zorder=6)  # doctest:+SKIP
-        >>> half_max = np.max(np.abs(wavelet)) / 2.
-        >>> ax.plot([-this_fwhm / 2., this_fwhm / 2.], [half_max, half_max],  # doctest:+SKIP
-        ...         color='k', linestyle='-', label='FWHM', zorder=6)
-        >>> ax.legend()  # doctest:+SKIP
-        >>> ax.set(xlabel='Time (s)', ylabel='Amplitude')  # doctest:+SKIP
-        >>> plt.show()
+        import numpy as np
+        from scipy.signal import morlet2 as sp_morlet
+        import matplotlib.pyplot as plt
+        from mne.time_frequency import morlet, fwhm
+
+        sfreq, freq, n_cycles = 1000., 10, 7  # i.e., 700 ms
+        this_fwhm = fwhm(freq, n_cycles)
+        wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
+        M, w = len(wavelet), n_cycles # convert to SciPy convention
+        s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
+        wavelet_sp = sp_morlet(M, s, w) * np.sqrt(2)  # match our normalization
+
+        _, ax = plt.subplots(constrained_layout=True)
+        colors = {
+            ('MNE', 'real'): '#66CCEE',
+            ('SciPy', 'real'): '#4477AA',
+            ('MNE', 'imag'): '#EE6677',
+            ('SciPy', 'imag'): '#AA3377',
+        }
+        lw = dict(MNE=2, SciPy=4)
+        zorder = dict(MNE=5, SciPy=4)
+        t = np.arange(-M // 2 + 1, M // 2 + 1) / sfreq
+        for name, w in (('MNE', wavelet), ('SciPy', wavelet_sp)):
+            for kind in ('real', 'imag'):
+                ax.plot(t, getattr(w, kind), label=f'{name} {kind}',
+                        lw=lw[name], color=colors[(name, kind)],
+                        zorder=zorder[name])
+        ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1., zorder=6)
+        half_max = np.max(np.abs(wavelet)) / 2.
+        ax.plot([-this_fwhm / 2., this_fwhm / 2.], [half_max, half_max],
+                color='k', linestyle='-', label='FWHM', zorder=6)
+        ax.legend(loc='upper right')
+        ax.set(xlabel='Time (s)', ylabel='Amplitude')
     """  # noqa: E501
     Ws = list()
     n_cycles = np.array(n_cycles, float).ravel()
@@ -159,7 +158,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
-        W /= np.linalg.norm(W.ravel())
+        W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
     if singleton:
         Ws = Ws[0]
@@ -455,13 +454,6 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # for the original sfreq
     if method == 'morlet':
         W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
-        # TODO: This makes us consistent with _make_dpss internally and
-        # FieldTrip in terms of our output amplitude, but makes us inconsistent
-        # with SciPy. See
-        # https://github.com/mne-tools/mne-python/pull/11353
-        # If it is fixed here, it should also be fixed in csd.py
-        for ww in W:
-            ww *= np.sqrt(2)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
 
     elif method == 'multitaper':

@@ -53,13 +53,13 @@ def test_morlet(sfreq, freq, n_cycles):
     else:
         assert np.abs(np.mean(np.real(W))) < 1e-5
 
-    assert_allclose(np.linalg.norm(W), 1., atol=1e-6)
+    assert_allclose(np.linalg.norm(W), np.sqrt(2), atol=1e-6)
 
     # Convert to SciPy nomenclature and compare
     M = len(W)
     w = n_cycles
     s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
-    Ws = morlet2(M, s, w)
+    Ws = morlet2(M, s, w) * np.sqrt(2)
     assert_allclose(W, Ws)
 
     # Check FWHM
