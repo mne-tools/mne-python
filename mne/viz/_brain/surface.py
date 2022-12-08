@@ -123,10 +123,9 @@ class _Surface(object):
         else:
             # allow ?h.pial.T1 if ?h.pial doesn't exist for instance
             # end with '' for better file not found error
-            for img in ('', 'T1', 'T2', ''):
+            for img in ('', '.T1', '.T2', ''):
                 surf_fname = path.join(self.data_path, 'surf',
-                                       '.'.join((self.hemi, self.surf, img)
-                                                ).strip('.'))
+                                       f'{self.hemi}.{self.surf}{img}')
                 if path.isfile(surf_fname):
                     break
             coords, faces = read_surface(surf_fname)
