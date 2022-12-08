@@ -545,37 +545,6 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *,
             f"got {type(item)} instead.")
 
 
-def _check_range(val, min_val, max_val, name, min_inclusive=True,
-                 max_inclusive=True):
-    """Check that item is within range.
-
-    Parameters
-    ----------
-    val : int | float
-        The value to be checked.
-    min_val : int | float
-        The minimum value allowed.
-    max_val : int | float
-        The maximum value allowed.
-    name : str
-        The name of the value.
-    min_inclusive : bool
-        Whether ``val`` is allowed to be ``min_val``.
-    max_inclusive : bool
-        Whether ``val`` is allowed to be ``max_val``.
-    """
-    below_min = val < min_val if min_inclusive else val <= min_val
-    above_max = val > max_val if max_inclusive else val >= max_val
-    if below_min or above_max:
-        error_str = f'The value of {name} must be between {min_val} '
-        if min_inclusive:
-            error_str += 'inclusive '
-        error_str += f'and {max_val}'
-        if max_inclusive:
-            error_str += 'inclusive '
-        raise ValueError(error_str)
-
-
 def _path_like(item):
     """Validate that `item` is `path-like`.
 
@@ -854,6 +823,7 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
 
 def _check_qt_version(*, return_api=False):
     """Check if Qt is installed."""
+    from ..viz.backends._utils import _init_mne_qtapp
     try:
         from qtpy import QtCore, API_NAME as api
     except Exception:
@@ -868,6 +838,13 @@ def _check_qt_version(*, return_api=False):
                 warn(f'macOS users should use {api} >= 5.10 for GUIs, '
                      f'got {version}. Please upgrade e.g. with:\n\n'
                      f'    pip install "{api}>=5.10"\n')
+        # Having Qt installed is not enough -- sometimes the app is unusable
+        # for example because there is no usable display (e.g., on a server),
+        # so we have to try instatiating one to actually know.
+        try:
+            _init_mne_qtapp()
+        except Exception:
+            api = version = None
     if return_api:
         return version, api
     else:

@@ -2938,9 +2938,10 @@ reject : dict | None
 
 docdict['replace_report'] = """
 replace : bool
-    If ``True``, content already present that has the same ``title`` will be
-    replaced. Defaults to ``False``, which will cause duplicate entries in the
-    table of contents if an entry for ``title`` already exists.
+    If ``True``, content already present that has the same ``title`` and
+    ``section`` will be replaced. Defaults to ``False``, which will cause
+    duplicate entries in the table of contents if an entry for ``title``
+    already exists.
 """
 
 docdict['res_topomap'] = """

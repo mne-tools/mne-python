@@ -36,6 +36,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
 from ._pyvista import _PyVistaRenderer, Plotter
 from ._pyvista import (_close_3d_figure, _check_3d_figure, _close_all,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
+from ._utils import _notebook_vtk_works
 
 
 # dict values are icon names from: https://fontawesome.com/icons
@@ -1422,6 +1423,12 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         self._file_picker = _FilePckr(rows=10)
         kwargs["notebook"] = True
         fullscreen = kwargs.pop('fullscreen', False)
+        if not _notebook_vtk_works():
+            raise RuntimeError(
+                'Using the notebook backend on Linux requires a compatible '
+                'VTK setup. Consider using Xfvb or xvfb-run to set up a '
+                'working virtual display, or install VTK with OSMesa enabled.'
+            )
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
