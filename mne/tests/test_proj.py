@@ -14,7 +14,7 @@ from mne import (compute_proj_epochs, compute_proj_evoked, compute_proj_raw,
 from mne.cov import regularize, compute_whitener
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
-from mne.io.proj import (make_projector, activate_proj,
+from mne.io.proj import (make_projector, activate_proj, setup_proj,
                          _needs_eeg_average_ref_proj, _EEG_AVREF_PICK_DICT)
 from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
@@ -496,3 +496,29 @@ def test_sss_proj():
         else:
             mag_names = ch_names[2::3]
             assert this_raw.info['projs'][3]['data']['col_names'] == mag_names
+
+
+def test_eq_ne():
+    """Test == and != between projectors."""
+    raw = read_raw_fif(raw_fname, preload=False)
+    assert len(raw.info["projs"]) == 3
+    raw.set_eeg_reference(projection=True)
+
+    pca1 = cp.deepcopy(raw.info["projs"][0])
+    pca2 = cp.deepcopy(raw.info["projs"][1])
+    car = cp.deepcopy(raw.info["projs"][3])
+
+    assert pca1 != pca2
+    assert pca1 != car
+    assert pca2 != car
+    assert pca1 == raw.info["projs"][0]
+    assert pca2 == raw.info["projs"][1]
+    assert car == raw.info["projs"][3]
+
+
+def test_setup_proj():
+    """Test setup_proj."""
+    raw = read_raw_fif(raw_fname)
+    assert _needs_eeg_average_ref_proj(raw.info)
+    raw.del_proj()
+    setup_proj(raw.info)
