@@ -2064,7 +2064,7 @@ def test_epoch_eq():
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'])
     # undo the eq logging
-    drop_log2 = tuple(() if log == ('EQUALIZED_COUNT',) else log
+    drop_log2 = tuple(log[:-1] if 'EQUALIZED_COUNT' in log else log
                       for log in epochs.drop_log)
     assert_equal(drop_log1, drop_log2)
 
@@ -2458,6 +2458,9 @@ def test_drop_epochs():
     assert_array_equal(events[epochs.selection], events1[[0, 1, 3, 5, 6]])
     assert_array_equal(events[epochs[3:].selection], events1[[5, 6]])
     assert_array_equal(events[epochs['1'].selection], events1[[0, 1, 3, 5, 6]])
+
+    # After subset selection, drop log should be 0
+    assert_equal(epochs[0:1].drop_log_stats(), 0)
 
 
 @pytest.mark.parametrize('preload', (True, False))

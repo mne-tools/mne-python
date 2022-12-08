@@ -198,8 +198,10 @@ class GetEpochsMixin(object):
             key_selection = inst.selection[select]
             drop_log = list(inst.drop_log)
             if reason is not None:
-                for k in np.setdiff1d(inst.selection, key_selection):
-                    drop_log[k] = (reason,)
+                select_all = list(range(len(inst.drop_log)))
+                for k in np.setdiff1d(select_all, key_selection):
+                    if reason not in drop_log[k]:
+                        drop_log[k] += (reason,)
             inst.drop_log = tuple(drop_log)
             inst.selection = key_selection
             del drop_log
