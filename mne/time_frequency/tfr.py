@@ -148,8 +148,6 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             sigma_t = this_n_cycles / (2.0 * np.pi * f)
         else:
             sigma_t = this_n_cycles / (2.0 * np.pi * sigma)
-        # this scaling factor is proportional to (Tallon-Baudry 98):
-        # (sigma_t*sqrt(pi))^(-1/2);
         t = np.arange(0., 5. * sigma_t, 1.0 / sfreq)
         t = np.r_[-t[::-1], t[1:]]
         oscillation = np.exp(2.0 * 1j * np.pi * f * t)
@@ -158,6 +156,8 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
+        # the scaling factor here is proportional to (Tallon-Baudry 97):
+        # (sigma_t*sqrt(pi))^(-1/2);
         W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
     if singleton:
