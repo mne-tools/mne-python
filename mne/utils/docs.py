@@ -2058,7 +2058,8 @@ montage_units : str
 """
 
 docdict['morlet_notes'] = """
-The Morlet wavelets follow the formulation in :footcite:`Tallon-BaudryEtAl1997`.
+The Morlet wavelets follow the formulation in
+:footcite:`Tallon-BaudryEtAl1997`.
 """
 
 docdict['moving'] = """
