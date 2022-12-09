@@ -144,21 +144,28 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
             this_n_cycles = n_cycles[k]
         else:
             this_n_cycles = n_cycles[0]
-        # fixed or scale-dependent window
+        # sigma_t is the stddev of gaussian window in the time domain; can be
+        # scale-dependent or fixed across freqs
         if sigma is None:
             sigma_t = this_n_cycles / (2.0 * np.pi * f)
         else:
             sigma_t = this_n_cycles / (2.0 * np.pi * sigma)
+        # time vector. We go 5 standard deviations out to make sure we're
+        # *very* close to zero at the ends. We also make sure that there's a
+        # sample at exactly t=0
         t = np.arange(0., 5. * sigma_t, 1.0 / sfreq)
         t = np.r_[-t[::-1], t[1:]]
         oscillation = np.exp(2.0 * 1j * np.pi * f * t)
-        gaussian_enveloppe = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
-        if zero_mean:  # to make it zero mean
+        if zero_mean:
+            # this offset is equivalent to the κ_σ term in Wikipedia's
+            # equations, and satisfies the "admissability criterion" for CWTs
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
-        W = oscillation * gaussian_enveloppe
-        # the scaling factor here is proportional to (Tallon-Baudry 97):
-        # (sigma_t*sqrt(pi))^(-1/2);
+        gaussian_envelope = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
+        W = oscillation * gaussian_envelope
+        # the scaling factor here is proportional to what is used in
+        # Tallon-Baudry 1997: (sigma_t*sqrt(pi))^(-1/2).  It yields a wavelet
+        # with norm sqrt(2) for the full wavelet / norm 1 for the real part
         W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
     if singleton:
@@ -168,6 +175,8 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
 def fwhm(freq, n_cycles):
     """Compute the full-width half maximum of a Morlet wavelet.
+
+    Uses the formula from :footcite:t:`Cohen2019`.
 
     Parameters
     ----------
@@ -185,6 +194,10 @@ def fwhm(freq, n_cycles):
     Notes
     -----
      .. versionadded:: 1.3
+
+    References
+    ----------
+    .. footbibliography::
     """
     return n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
 
