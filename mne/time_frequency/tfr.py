@@ -158,7 +158,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         oscillation = np.exp(2.0 * 1j * np.pi * f * t)
         if zero_mean:
             # this offset is equivalent to the κ_σ term in Wikipedia's
-            # equations, and satisfies the "admissability criterion" for CWTs
+            # equations, and satisfies the "admissibility criterion" for CWTs
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         gaussian_envelope = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
