@@ -75,6 +75,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     Notes
     -----
+    %(morlet_notes)s
     %(fwhm_morlet_notes)s
 
     References
@@ -830,6 +831,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
     Notes
     -----
+    %(morlet_notes)s
     %(temporal-window_tfr_notes)s
     %(fwhm_morlet_notes)s
 
@@ -905,9 +907,14 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
+    %(morlet_notes)s
     %(temporal-window_tfr_notes)s
 
     .. versionadded:: 0.14.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     return _compute_tfr(epoch_data=epoch_data, freqs=freqs,
                         sfreq=sfreq, method='morlet', n_cycles=n_cycles,

@@ -2057,6 +2057,10 @@ montage_units : str
     .. versionadded:: 1.3
 """
 
+docdict['morlet_notes'] = """
+The Morlet wavelets follow the formulation in :footcite:`Tallon-BaudryEtAl1997`.
+"""
+
 docdict['moving'] = """
 moving : instance of SpatialImage
     The image to morph ("from" volume).
