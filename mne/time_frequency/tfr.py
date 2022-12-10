@@ -39,6 +39,7 @@ from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
 
 
+@fill_doc
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     """Compute Morlet wavelets for the given frequency range.
 
@@ -46,10 +47,11 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     ----------
     sfreq : float
         The sampling Frequency.
-    freqs : array
-        Frequency range of interest (1 x Frequencies).
-    n_cycles : float | array of float, default 7.0
-        Number of cycles. Fixed number or one per frequency.
+    freqs : float | array-like, shape (n_freqs,)
+        Frequencies to compute Morlet wavelets for.
+    n_cycles : float | array-like, shape (n_freqs,)
+        Number of cycles. Can be a fixed number (float) or one per frequency
+        (array-like).
     sigma : float, default None
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
@@ -63,13 +65,69 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
 
     Returns
     -------
-    Ws : list of array
-        The wavelets time series.
-    """
-    Ws = list()
-    n_cycles = np.atleast_1d(n_cycles)
+    Ws : list of ndarray | ndarray
+        The wavelets time series. If ``freqs`` was a float, a single
+        ndarray is returned instead of a list of ndarray.
 
-    freqs = np.array(freqs)
+    See Also
+    --------
+    mne.time_frequency.fwhm
+
+    Notes
+    -----
+    %(morlet_notes)s
+    %(fwhm_morlet_notes)s
+
+    References
+    ----------
+    .. footbibliography::
+
+    Examples
+    --------
+    Let's show a simple example of the relationship between ``n_cycles`` and
+    the FWHM using :func:`mne.time_frequency.fwhm`, as well as the equivalent
+    call using :func:`scipy.signal.morlet2`:
+
+    .. plot::
+
+        import numpy as np
+        from scipy.signal import morlet2 as sp_morlet
+        import matplotlib.pyplot as plt
+        from mne.time_frequency import morlet, fwhm
+
+        sfreq, freq, n_cycles = 1000., 10, 7  # i.e., 700 ms
+        this_fwhm = fwhm(freq, n_cycles)
+        wavelet = morlet(sfreq=sfreq, freqs=freq, n_cycles=n_cycles)
+        M, w = len(wavelet), n_cycles # convert to SciPy convention
+        s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
+        wavelet_sp = sp_morlet(M, s, w) * np.sqrt(2)  # match our normalization
+
+        _, ax = plt.subplots(constrained_layout=True)
+        colors = {
+            ('MNE', 'real'): '#66CCEE',
+            ('SciPy', 'real'): '#4477AA',
+            ('MNE', 'imag'): '#EE6677',
+            ('SciPy', 'imag'): '#AA3377',
+        }
+        lw = dict(MNE=2, SciPy=4)
+        zorder = dict(MNE=5, SciPy=4)
+        t = np.arange(-M // 2 + 1, M // 2 + 1) / sfreq
+        for name, w in (('MNE', wavelet), ('SciPy', wavelet_sp)):
+            for kind in ('real', 'imag'):
+                ax.plot(t, getattr(w, kind), label=f'{name} {kind}',
+                        lw=lw[name], color=colors[(name, kind)],
+                        zorder=zorder[name])
+        ax.plot(t, np.abs(wavelet), label=f'MNE abs', color='k', lw=1., zorder=6)
+        half_max = np.max(np.abs(wavelet)) / 2.
+        ax.plot([-this_fwhm / 2., this_fwhm / 2.], [half_max, half_max],
+                color='k', linestyle='-', label='FWHM', zorder=6)
+        ax.legend(loc='upper right')
+        ax.set(xlabel='Time (s)', ylabel='Amplitude')
+    """  # noqa: E501
+    Ws = list()
+    n_cycles = np.array(n_cycles, float).ravel()
+
+    freqs = np.array(freqs, float)
     if np.any(freqs <= 0):
         raise ValueError("all frequencies in 'freqs' must be "
                          "greater than 0.")
@@ -77,29 +135,71 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
         raise ValueError("n_cycles should be fixed or defined for "
                          "each frequency.")
+    _check_option('freqs.ndim', freqs.ndim, [0, 1])
+    singleton = freqs.ndim == 0
+    if singleton:
+        freqs = freqs[np.newaxis]
     for k, f in enumerate(freqs):
         if len(n_cycles) != 1:
             this_n_cycles = n_cycles[k]
         else:
             this_n_cycles = n_cycles[0]
-        # fixed or scale-dependent window
+        # sigma_t is the stddev of gaussian window in the time domain; can be
+        # scale-dependent or fixed across freqs
         if sigma is None:
             sigma_t = this_n_cycles / (2.0 * np.pi * f)
         else:
             sigma_t = this_n_cycles / (2.0 * np.pi * sigma)
-        # this scaling factor is proportional to (Tallon-Baudry 98):
-        # (sigma_t*sqrt(pi))^(-1/2);
+        # time vector. We go 5 standard deviations out to make sure we're
+        # *very* close to zero at the ends. We also make sure that there's a
+        # sample at exactly t=0
         t = np.arange(0., 5. * sigma_t, 1.0 / sfreq)
         t = np.r_[-t[::-1], t[1:]]
         oscillation = np.exp(2.0 * 1j * np.pi * f * t)
-        gaussian_enveloppe = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
-        if zero_mean:  # to make it zero mean
+        if zero_mean:
+            # this offset is equivalent to the κ_σ term in Wikipedia's
+            # equations, and satisfies the "admissibility criterion" for CWTs
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
-        W = oscillation * gaussian_enveloppe
+        gaussian_envelope = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
+        W = oscillation * gaussian_envelope
+        # the scaling factor here is proportional to what is used in
+        # Tallon-Baudry 1997: (sigma_t*sqrt(pi))^(-1/2).  It yields a wavelet
+        # with norm sqrt(2) for the full wavelet / norm 1 for the real part
         W /= np.sqrt(0.5) * np.linalg.norm(W.ravel())
         Ws.append(W)
+    if singleton:
+        Ws = Ws[0]
     return Ws
+
+
+def fwhm(freq, n_cycles):
+    """Compute the full-width half maximum of a Morlet wavelet.
+
+    Uses the formula from :footcite:t:`Cohen2019`.
+
+    Parameters
+    ----------
+    freq : float
+        The oscillation frequency of the wavelet.
+    n_cycles : float
+        The duration of the wavelet, expressed as the number of oscillation
+        cycles.
+
+    Returns
+    -------
+    fwhm : float
+        The full-width half maximum of the wavelet.
+
+    Notes
+    -----
+     .. versionadded:: 1.3
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    return n_cycles * np.sqrt(2 * np.log(2)) / (np.pi * freq)
 
 
 def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
@@ -744,7 +844,16 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
     Notes
     -----
+    %(morlet_notes)s
     %(temporal-window_tfr_notes)s
+    %(fwhm_morlet_notes)s
+
+    See :func:`mne.time_frequency.morlet` for more information about the
+    Morlet wavelet.
+
+    References
+    ----------
+    .. footbibliography::
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean, output=output)
@@ -811,9 +920,14 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
+    %(morlet_notes)s
     %(temporal-window_tfr_notes)s
 
     .. versionadded:: 0.14.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     return _compute_tfr(epoch_data=epoch_data, freqs=freqs,
                         sfreq=sfreq, method='morlet', n_cycles=n_cycles,

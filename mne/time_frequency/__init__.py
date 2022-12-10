@@ -1,7 +1,7 @@
 """Time frequency analysis tools."""
 
 from .tfr import (morlet, tfr_morlet, AverageTFR, tfr_multitaper, _BaseTFR,
-                  read_tfrs, write_tfrs, EpochsTFR, tfr_array_morlet)
+                  read_tfrs, write_tfrs, EpochsTFR, tfr_array_morlet, fwhm)
 from .psd import psd_array_welch
 from .csd import (CrossSpectralDensity, csd_fourier, csd_multitaper,
                   csd_morlet, csd_array_fourier, csd_array_multitaper,
