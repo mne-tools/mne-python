@@ -127,8 +127,7 @@ def pytest_configure(config):
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
-    ignore:Widget\._active_widgets is deprecated:DeprecationWarning
-    ignore:Widget\._widget_types is deprecated:DeprecationWarning
+    ignore:Widget\..* is deprecated\.:DeprecationWarning
     # hopefully temporary https://github.com/matplotlib/matplotlib/pull/24455#issuecomment-1319318629
     ignore:The circles attribute was deprecated in Matplotlib.*:
     # PySide6
