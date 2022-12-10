@@ -30,6 +30,7 @@ Enhancements
 - Add size information to the ``repr`` of :class:`mne.Report` (:gh:`11357` by `Eric Larson`_)
 - Add support for ``image_format='webp'`` to :class:`mne.Report` when using Matplotlib 3.6+, which can reduce file sizes by up to 50% compared to ``'png'``. The new default ``image_format='auto'`` will automatically use this format if it's available on the system (:gh:`11359` by `Eric Larson`_)
 - Add :func:`mne.beamformer.apply_dics_tfr_epochs` to apply a DICS beamformer to time-frequency resolved epochs (:gh:`11096` by `Alex Rockhill`_)
+- Add :func:`mne.time_frequency.fwhm` to determine the full-width half maximum for :func:`mne.time_frequency.morlet` (:gh:`11353` by `Britta Westner`_, `Daniel McCloy`_, and `Eric Larson`_)
 - Check whether head radius (estimated from channel positions) is correct when reading EEGLAB data with :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab`. If head radius is not within likely values, warn informing about possible units mismatch and the new ``montage_units`` argument (:gh:`11283` by `Mikołaj Magnuski`_).
 - Add support for a callable passed in ``combine`` for `mne.time_frequency.AverageTFR.plot` and `mne.time_frequency.AverageTFR.plot_joint` (:gh:`11329` by `Mathieu Scheltienne`_)
 
