@@ -582,13 +582,13 @@ def _apply_ap(data, info, times, forward, noise_cov,
     if is_free_ori:
         idx, oris, poss, gain_active, gain_dip, sol, dip_ind = \
             _free_ori_ap(wh_data, gain, nsources, forward,
-                        max_iter=max_iter)
+                         max_iter=max_iter)
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
         X.shape = (-1, len(times))
     else:
         idx, oris, poss, gain_active, gain_dip, sol = \
             _fixed_ori_ap(wh_data, gain, nsources, forward,
-                         max_iter=max_iter)
+                          max_iter=max_iter)
         X = sol
         dip_ind = idx
 
@@ -645,8 +645,8 @@ def _explained_data_packing(evoked, picks, explained_data_mat, info):
 
 @verbose
 def alternating_projections(evoked, forward, nsources, noise_cov=None,
-                           max_iter=6, return_residual=True,
-                           return_active_info=False, verbose=None):
+                            max_iter=6, return_residual=True,
+                            return_active_info=False, verbose=None):
     """AP sources localization method.
 
     Compute Alternating Projections (AP) on evoked data.
