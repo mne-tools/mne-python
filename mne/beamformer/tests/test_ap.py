@@ -9,7 +9,7 @@ from scipy import linalg
 from random import choice
 
 import mne
-from mne.beamformer import ap
+from mne.beamformer import alternating_projection
 from mne.cov import regularize
 from mne.datasets import testing
 
@@ -127,7 +127,7 @@ def test_ap_simulated():
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
                                      evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
-    dipoles, _, _, var_exp = ap(sim_evoked, forward_fixed, nsources,
+    dipoles, _, _, var_exp = alternating_projection(sim_evoked, forward_fixed, nsources,
                                 noise_cov, verbose=True)
     assert 92 < var_exp < 96
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
@@ -139,18 +139,18 @@ def test_ap_simulated():
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
     sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
                                      evoked.times, nave=nave)
-    dipoles, residual, _, _ = ap(sim_evoked, forward_fixed, nsources,
+    dipoles, residual, _, _ = alternating_projection(sim_evoked, forward_fixed, nsources,
                                  noise_cov)
 
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
     # Check dipoles for free ori
-    dipoles, residual, _, _ = ap(sim_evoked, forward, nsources,
+    dipoles, residual, _, _ = alternating_projection(sim_evoked, forward, nsources,
                                  noise_cov)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
     # Check dipoles for free surface ori
-    dipoles, residual, _, _ = ap(sim_evoked, forward_surf_ori, nsources,
+    dipoles, residual, _, _ = alternating_projection(sim_evoked, forward_surf_ori, nsources,
                                  noise_cov)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
@@ -165,5 +165,5 @@ def test_ap_picks():
     forward = mne.read_forward_solution(fname_fwd)
     noise_cov = mne.read_cov(fname_cov)
     nsources = 2
-    dipoles = ap(evoked, forward, nsources, noise_cov, return_residual=False)
+    dipoles = alternating_projection(evoked, forward, nsources, noise_cov, return_residual=False)
     assert len(dipoles) == 2

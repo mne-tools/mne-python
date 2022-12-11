@@ -20,7 +20,7 @@ on both free-oriented dipoles and fixed-oriented dipoles.
 import mne
 
 from mne.datasets import sample
-from mne.beamformer import ap
+from mne.beamformer import alternating_projection
 from mne.viz import plot_dipole_locations, plot_dipole_amplitudes
 
 print(__doc__)
@@ -57,7 +57,7 @@ noise_cov = mne.read_cov(cov_fname)
 # Applied on free-oriented dipoles
 # --------------------------------
 
-dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2,
+dipoles, residual, _, var_exp = alternating_projection(evoked, forward, nsources=2,
                                    noise_cov=noise_cov, return_residual=True,
                                    verbose=True)
 
@@ -77,7 +77,7 @@ residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]),
 # ----------------------------------
 
 forward = mne.convert_forward_solution(forward, force_fixed=True)
-dipoles, residual, _, var_exp = ap(evoked, forward, nsources=2,
+dipoles, residual, _, var_exp = alternating_projection(evoked, forward, nsources=2,
                                    noise_cov=noise_cov, return_residual=True,
                                    verbose=True)
 
