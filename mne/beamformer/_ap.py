@@ -644,8 +644,9 @@ def _explained_data_packing(evoked, picks, explained_data_mat, info):
 
 
 @verbose
-def alternating_projection(evoked, forward, nsources, noise_cov=None, max_iter=6,
-       return_residual=True, return_active_info=False, verbose=None):
+def alternating_projection(evoked, forward, nsources, noise_cov=None,
+                           max_iter=6, return_residual=True,
+                           return_active_info=False, verbose=None):
     """AP sources localization method.
 
     Compute Alternating Projection (AP) on evoked data.
