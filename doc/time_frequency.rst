@@ -47,6 +47,7 @@ Functions that operate on ``np.ndarray`` objects:
    csd_array_multitaper
    csd_array_morlet
    dpss_windows
+   fwhm
    morlet
    stft
    istft

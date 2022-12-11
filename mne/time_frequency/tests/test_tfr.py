@@ -7,6 +7,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
+from scipy.signal import morlet2
 
 import mne
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
@@ -17,7 +18,7 @@ from mne.utils import (requires_version, requires_pandas, grand_average,
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
-                                    EpochsTFR)
+                                    EpochsTFR, fwhm)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 from mne.tests.test_epochs import assert_metadata_equal
@@ -38,13 +39,35 @@ def test_tfr_ctf():
         method(epochs, [10], 1)  # smoke test
 
 
-def test_morlet():
+@pytest.mark.parametrize('sfreq', [1000., 100 + np.pi])
+@pytest.mark.parametrize('freq', [10., np.pi])
+@pytest.mark.parametrize('n_cycles', [7, 2])
+def test_morlet(sfreq, freq, n_cycles):
     """Test morlet with and without zero mean."""
-    Wz = morlet(1000, [10], 2., zero_mean=True)
-    W = morlet(1000, [10], 2., zero_mean=False)
+    Wz = morlet(sfreq, freq, n_cycles, zero_mean=True)
+    W = morlet(sfreq, freq, n_cycles, zero_mean=False)
 
-    assert (np.abs(np.mean(np.real(Wz[0]))) < 1e-5)
-    assert (np.abs(np.mean(np.real(W[0]))) > 1e-3)
+    assert np.abs(np.mean(np.real(Wz))) < 1e-5
+    if n_cycles == 2:
+        assert np.abs(np.mean(np.real(W))) > 1e-3
+    else:
+        assert np.abs(np.mean(np.real(W))) < 1e-5
+
+    assert_allclose(np.linalg.norm(W), np.sqrt(2), atol=1e-6)
+
+    # Convert to SciPy nomenclature and compare
+    M = len(W)
+    w = n_cycles
+    s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
+    Ws = morlet2(M, s, w) * np.sqrt(2)
+    assert_allclose(W, Ws)
+
+    # Check FWHM
+    fwhm_formula = fwhm(freq, n_cycles)
+    half_max = np.abs(W).max() / 2.
+    fwhm_empirical = (np.abs(W) >= half_max).sum() / sfreq
+    # Could be off by a few samples
+    assert_allclose(fwhm_formula, fwhm_empirical, atol=3 / sfreq)
 
 
 def test_time_frequency():
@@ -101,7 +124,8 @@ def test_time_frequency():
                    freqs=freqs, n_cycles=n_cycles, use_fft=True,
                    return_itc=False, picks=picks, average=False)
     assert_allclose(
-        epochs_power_picks.data[0, 0, 0, 0], 9.130315e-23, rtol=1e-4)
+        epochs_power_picks.data[0, 0, 0, 0], 9.130315e-23,
+        rtol=1e-4)
     power_picks_avg = epochs_power_picks.average()
     # the actual data arrays here are equivalent, too...
     assert_allclose(power.data, power_picks.data)
