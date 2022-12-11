@@ -23,10 +23,10 @@ def matmul_transpose(mat):
 
 
 def _produce_data_cov(data_arr, attr_dict):
-    """Calculate data covarience."""
+    """Calculate data Covariance."""
     nsources = attr_dict['nsources']
     data_cov = matmul_transpose(data_arr) + matmul_transpose(data_arr).trace()\
-        * np.eye(data_arr.shape[0])  # Array Covarience Matrix
+        * np.eye(data_arr.shape[0])  # Array Covariance Matrix
     print(' alternating projection ; nsources = {}:'.format(nsources))
 
     return data_cov
@@ -43,7 +43,7 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
     attr_dict : dict
         See: _calculate_fixed_alternating_projections.
     data_cov : array
-        Data covarience.
+        Data Covariance.
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
 
@@ -76,7 +76,7 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
     s_ap : list of int
         List of dipole indices.
     data_cov : array
-        Data covarience.
+        Data Covariance.
     attr_dict : dict
         See: _calculate_fixed_alternating_projections.
 
@@ -122,7 +122,7 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
     data_cov : array
-        Data covarience.
+        Data Covariance.
 
     Returns
     -------
@@ -252,7 +252,7 @@ def _free_phase1a(attr_dict, gain, data_cov):
     attr_dict : dict
         See: _calculate_free_alternating_projections.
     data_cov : array
-        Data covarience.
+        Data Covariance.
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
 
@@ -306,7 +306,7 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
     attr_dict : dict
         See: _calculate_free_alternating_projections.
     data_cov : array
-        Data covarience.
+        Data Covariance.
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
 
@@ -365,7 +365,7 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
     attr_dict : dict
         See: _calculate_free_alternating_projections.
     data_cov : array
-        Data covarience.
+        Data Covariance.
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
 
@@ -477,7 +477,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
     return ap_temp_tuple
 
 
-def free_ori_ap(wh_data, gain, nsources, forward, max_iter):
+def _free_ori_ap(wh_data, gain, nsources, forward, max_iter):
     """Branch of calculations dedicated to freely oriented dipoles."""
     sol_tuple = \
         _calculate_free_alternating_projections(wh_data, gain,
@@ -503,7 +503,7 @@ def free_ori_ap(wh_data, gain, nsources, forward, max_iter):
     )
 
 
-def fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
+def _fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
     """Branch of calculations dedicated to fixed oriented dipoles."""
     idx = _calculate_fixed_alternating_projections(wh_data, gain,
                                                    nsources=nsources,
@@ -539,8 +539,8 @@ def _apply_ap(data, info, times, forward, noise_cov,
         Time sampling values.
     forward : instance of Forward
         Forward operator.
-    noise_cov : instance of Covarience
-        The noise covarience.
+    noise_cov : instance of Covariance
+        The noise Covariance.
     nsources : int
         The number of dipoles to estimate.
     picks : List of int
@@ -581,13 +581,13 @@ def _apply_ap(data, info, times, forward, noise_cov,
 
     if is_free_ori:
         idx, oris, poss, gain_active, gain_dip, sol, dip_ind = \
-            free_ori_ap(wh_data, gain, nsources, forward,
+            _free_ori_ap(wh_data, gain, nsources, forward,
                         max_iter=max_iter)
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
         X.shape = (-1, len(times))
     else:
         idx, oris, poss, gain_active, gain_dip, sol = \
-            fixed_ori_ap(wh_data, gain, nsources, forward,
+            _fixed_ori_ap(wh_data, gain, nsources, forward,
                          max_iter=max_iter)
         X = sol
         dip_ind = idx
@@ -644,12 +644,12 @@ def _explained_data_packing(evoked, picks, explained_data_mat, info):
 
 
 @verbose
-def alternating_projection(evoked, forward, nsources, noise_cov=None,
+def alternating_projections(evoked, forward, nsources, noise_cov=None,
                            max_iter=6, return_residual=True,
                            return_active_info=False, verbose=None):
     """AP sources localization method.
 
-    Compute Alternating Projection (AP) on evoked data.
+    Compute Alternating Projections (AP) on evoked data.
 
     Parameters
     ----------
@@ -659,8 +659,8 @@ def alternating_projection(evoked, forward, nsources, noise_cov=None,
         Forward operator.
     nsources : int
         The number of dipoles to estimate.
-    noise_cov : instance of Covarience, optional
-        The noise covarience. The default is None.
+    noise_cov : instance of Covariance, optional
+        The noise Covariance. The default is None.
     max_iter : int, optional
         Maximal iteration number of AP. The default is 6.
     return_residual : bool, optional
@@ -701,7 +701,7 @@ def alternating_projection(evoked, forward, nsources, noise_cov=None,
         Imaging (ISBI). doi: 10.48550/ARXIV.2202.01120
         https://doi.org/10.48550/arxiv.2202.01120
 
-        A. Amir, M. Wax and P. Dimitrios. 2020. Localization of MEG and EEG
+        A. Amir, M. Wax and P. Dimitrios. 2019. Localization of MEG and EEG
         Brain Signals by Alternating Projection. doi: 10.48550/ARXIV.1908.11416
         https://doi.org/10.48550/arxiv.1908.11416
 
