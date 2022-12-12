@@ -1,0 +1,119 @@
+# Authors: George O'Neill <g.o'neill@ucl.ac.uk>
+#
+# License: BSD-3-Clause
+
+import os.path as op
+
+from numpy import isnan, empty
+from numpy.testing import assert_array_equal, assert_array_almost_equal
+
+from mne.datasets import testing
+from mne.io import read_raw_ucl
+from mne.io.ucl.sensors import _get_pos_units
+from mne.io.pick import pick_types
+
+import scipy.io
+
+
+fil_path = testing.data_path(download=False) / 'FIL'
+
+
+def _match_str(A_list, B_list):
+    '''locate where in a list matches another'''
+    B_inds = list()
+    for ii in A_list:
+        if ii in B_list:
+            B_inds.append(B_list.index(ii))
+    return B_inds
+
+
+def _get_channels_with_positions(info):
+    '''parse channel orientation/position'''
+    ch_list = list()
+    ch_inds = list()
+    for ii, ch in enumerate(info["chs"]):
+        if not (any(isnan(ch["loc"]))):
+            ch_inds.append(ii)
+            ch_list.append(ch["ch_name"])
+    return ch_list, ch_inds
+
+
+def _ucl_megmag(raw_test, raw_mat):
+    '''check the megmag'''
+    test_inds = pick_types(raw_test.info, meg="mag",
+                           ref_meg=False, exclude="bads")
+    test_list = list(raw_test.info["ch_names"][i] for i in test_inds)
+    mat_list = list(raw_mat["data"]["label"])
+    mat_inds = _match_str(test_list, mat_list)
+
+    assert len(mat_inds) == len(
+        test_inds
+    ), "Number of magnetometer channels in RAW does not match .mat file!"
+
+    a = raw_test._data[test_inds, :]
+    b = raw_mat["data"]["trial"][mat_inds, :] * 1e-15  # fT to T
+
+    assert_array_equal(a, b)
+
+
+def _ucl_stim(raw_test, raw_mat):
+    # check the triggers
+    test_inds = pick_types(
+        raw_test.info, meg=False, ref_meg=False, stim=True, exclude="bads"
+    )
+    test_list = list(raw_test.info["ch_names"][i] for i in test_inds)
+    mat_list = list(raw_mat["data"]["label"])
+    mat_inds = _match_str(test_list, mat_list)
+
+    assert len(mat_inds) == len(
+        test_inds
+    ), "Number of stim channels in RAW does not match .mat file!"
+
+    a = raw_test._data[test_inds, :]
+    b = raw_mat["data"]["trial"][mat_inds, :]  # fT to T
+
+    assert_array_equal(a, b)
+
+
+def _ucl_sensorpos(raw_test, raw_mat):
+    '''check coil positions/orientations'''
+    test_list, test_inds = _get_channels_with_positions(raw_test.info)
+    grad_list = list(raw_mat["data"]["grad"]["label"])
+    grad_inds = _match_str(test_list, grad_list)
+
+    assert len(grad_inds) == len(
+        test_inds
+    ), "Number of channels with position data in RAW does not match .mat file!"
+
+    mat_pos = raw_mat["data"]["grad"]["coilpos"][grad_inds, :]
+    mat_ori = raw_mat["data"]["grad"]["coilori"][grad_inds, :]
+    _, sf1 = _get_pos_units(mat_pos)
+
+    test_pos = empty((len(test_inds), 3))
+    test_ori = empty((len(test_inds), 3))
+    for i, ind in enumerate(test_inds):
+        test_pos[i, :] = raw_test.info["chs"][ind]["loc"][0:3]
+        test_ori[i, :] = raw_test.info["chs"][ind]["loc"][-3:]
+    _, sf2 = _get_pos_units(test_pos)
+
+    assert_array_almost_equal(test_pos / sf2, mat_pos / sf1)
+    assert_array_almost_equal(test_ori, mat_ori)
+
+
+@testing.requires_testing_data
+def test_ucl_all():
+    '''Test UCL/FIL reader, match to known answers from .mat file'''
+
+    binname = op.join(fil_path,
+                      "sub-noise_ses-001_task-noise220622_run-001_meg.bin")
+    matname = op.join(fil_path,
+                      "sub-noise_ses-001_task-noise220622_run-001" +
+                      "_fieldtrip.mat")
+
+    raw = read_raw_ucl(binname)
+    raw.load_data(verbose=False)
+    mat = scipy.io.loadmat(matname, simplify_cells=True)
+
+    _ucl_megmag(raw, mat)
+    _ucl_stim(raw, mat)
+    _ucl_sensorpos(raw, mat)

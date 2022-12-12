@@ -27,6 +27,7 @@ from . import fiff
 from . import kit
 from . import nicolet
 from . import nirx
+from . import ucl
 from . import boxy
 from . import persyst
 from . import eeglab
@@ -57,7 +58,9 @@ from .persyst import read_raw_persyst
 from .fieldtrip import (read_raw_fieldtrip, read_epochs_fieldtrip,
                         read_evoked_fieldtrip)
 from .nihon import read_raw_nihon
+from .ucl import read_raw_ucl
 from ._read_raw import read_raw
+
 
 # for backward compatibility
 from .fiff import Raw
