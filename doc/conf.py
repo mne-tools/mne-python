@@ -1002,6 +1002,7 @@ def reset_warnings(gallery_conf, fname):
         'distutils package is deprecated',
         # jupyter
         'Jupyter is migrating its paths to use standard',
+        r'Widget\..* is deprecated\.',
         # PyQt6
         'Enum value .* is marked as deprecated',
         # matplotlib PDF output
