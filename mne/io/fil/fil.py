@@ -35,7 +35,7 @@ def read_raw_fil(binfile, precision='single', preload=False):
 
     Returns
     -------
-    raw : instance of RawUCL
+    raw : instance of RawFIL
         The raw data.
 
     See Also
@@ -60,7 +60,7 @@ class RawFIL(BaseRaw):
 
     Returns
     -------
-    raw : instance of RawUCL
+    raw : instance of RawFIL
         The raw data.
 
     See Also
