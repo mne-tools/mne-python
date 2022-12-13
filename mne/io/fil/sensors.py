@@ -7,7 +7,9 @@ import numpy as np
 
 
 def _refine_sensor_orientation(chanin):
-    """the ex and ey elements from _convert_channel_info were oriented not
+    """Improve orientation matrices based on multiaxis measures.
+
+    The ex and ey elements from _convert_channel_info were oriented not
     based on the physical orientation of the sensor.
     It doesn't have to be this way, we can use (if available) the orientation
     information from mulit-axis recordings to refine these elements.
@@ -36,7 +38,7 @@ def _refine_sensor_orientation(chanin):
 
 
 def _guess_other_chan_axis(tmpname, seedID):
-    """Try to guess the name of another axis of a multiaxis sensor"""
+    """Try to guess the name of another axis of a multiaxis sensor."""
     targetID = np.NAN
 
     # see if its using the old RAD/TAN convention first, otherwise use XYZ
@@ -80,7 +82,9 @@ def _guess_other_chan_axis(tmpname, seedID):
 
 
 def _get_pos_units(pos):
-    """Determines the units a point cloud of sensor positions, provides the
+    """Get the units of a point cloud.
+
+    Determines the units a point cloud of sensor positions, provides the
     scale factor required to ensure the units can be converted to meters.
     """
     # get rid of None elements
@@ -102,7 +106,7 @@ def _get_pos_units(pos):
 
 
 def _size2units(size):
-    """Convert the size returned from _get_pos_units into a physical unit"""
+    """Convert the size returned from _get_pos_units into a physical unit."""
     if size >= 0.050 and size < 0.500:
         unit = "m"
         sf = 1
@@ -124,6 +128,7 @@ def _size2units(size):
 
 def _get_plane_vectors(ez):
     """Get two orthogonal vectors orthogonal to ez (ez will be modified).
+
     Note: the ex and ey positions will not be realistic, this can be fixed
     using _refine_sensor_orientation.
     """

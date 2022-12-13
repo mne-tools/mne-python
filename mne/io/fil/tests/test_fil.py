@@ -8,8 +8,8 @@ from numpy import isnan, empty
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne.datasets import testing
-from mne.io import read_raw_ucl
-from mne.io.ucl.sensors import _get_pos_units
+from mne.io import read_raw_fil
+from mne.io.fil.sensors import _get_pos_units
 from mne.io.pick import pick_types
 
 import scipy.io
@@ -19,7 +19,7 @@ fil_path = testing.data_path(download=False) / 'FIL'
 
 
 def _match_str(A_list, B_list):
-    '''locate where in a list matches another'''
+    """Locate where in a list matches another."""
     B_inds = list()
     for ii in A_list:
         if ii in B_list:
@@ -28,7 +28,7 @@ def _match_str(A_list, B_list):
 
 
 def _get_channels_with_positions(info):
-    '''parse channel orientation/position'''
+    """Parse channel orientation/position."""
     ch_list = list()
     ch_inds = list()
     for ii, ch in enumerate(info["chs"]):
@@ -38,8 +38,8 @@ def _get_channels_with_positions(info):
     return ch_list, ch_inds
 
 
-def _ucl_megmag(raw_test, raw_mat):
-    '''check the megmag'''
+def _fil_megmag(raw_test, raw_mat):
+    """Test the magnetometer channels."""
     test_inds = pick_types(raw_test.info, meg="mag",
                            ref_meg=False, exclude="bads")
     test_list = list(raw_test.info["ch_names"][i] for i in test_inds)
@@ -56,8 +56,8 @@ def _ucl_megmag(raw_test, raw_mat):
     assert_array_equal(a, b)
 
 
-def _ucl_stim(raw_test, raw_mat):
-    # check the triggers
+def _fil_stim(raw_test, raw_mat):
+    """Test the trigger channels."""
     test_inds = pick_types(
         raw_test.info, meg=False, ref_meg=False, stim=True, exclude="bads"
     )
@@ -75,8 +75,8 @@ def _ucl_stim(raw_test, raw_mat):
     assert_array_equal(a, b)
 
 
-def _ucl_sensorpos(raw_test, raw_mat):
-    '''check coil positions/orientations'''
+def _fil_sensorpos(raw_test, raw_mat):
+    """Test the sensor positions/orientations."""
     test_list, test_inds = _get_channels_with_positions(raw_test.info)
     grad_list = list(raw_mat["data"]["grad"]["label"])
     grad_inds = _match_str(test_list, grad_list)
@@ -101,19 +101,18 @@ def _ucl_sensorpos(raw_test, raw_mat):
 
 
 @testing.requires_testing_data
-def test_ucl_all():
-    '''Test UCL/FIL reader, match to known answers from .mat file'''
-
+def test_fil_all():
+    """Test FIL reader, match to known answers from .mat file."""
     binname = op.join(fil_path,
                       "sub-noise_ses-001_task-noise220622_run-001_meg.bin")
     matname = op.join(fil_path,
                       "sub-noise_ses-001_task-noise220622_run-001" +
                       "_fieldtrip.mat")
 
-    raw = read_raw_ucl(binname)
+    raw = read_raw_fil(binname)
     raw.load_data(verbose=False)
     mat = scipy.io.loadmat(matname, simplify_cells=True)
 
-    _ucl_megmag(raw, mat)
-    _ucl_stim(raw, mat)
-    _ucl_sensorpos(raw, mat)
+    _fil_megmag(raw, mat)
+    _fil_stim(raw, mat)
+    _fil_sensorpos(raw, mat)

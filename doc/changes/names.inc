@@ -166,6 +166,8 @@
 
 .. _Geoff Brookshire: https://github.com/gbrookshire
 
+.. _George O'Neill: https://georgeoneill.github.io
+
 .. _Guillaume Dumas: http://www.extrospection.eu
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier

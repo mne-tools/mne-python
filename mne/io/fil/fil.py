@@ -14,22 +14,23 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file
 from .._digitization import _make_dig_points
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
-from ...utils import warn
+from ...utils import warn, fill_doc
 
 from .sensors import (_refine_sensor_orientation, _get_pos_units,
                       _size2units, _get_plane_vectors)
 
 
-def read_raw_ucl(binfile, precision='single', preload=False):
-    """Raw object from FIL/UCL formatted files.
+@fill_doc
+def read_raw_fil(binfile, precision='single', preload=False):
+    """Raw object from FIL-OPMEG formatted data.
 
     Parameters
     ----------
     binfile : str
-        Path to the MEG data (ending in ``'_meg.bin'``).
+        Path to the MEG data binary (ending in ``'_meg.bin'``).
     precision : str, optional
         How is the data represented? ``'single'`` if 32-bit or ``'double'`` if
-        64-bit (default is single)
+        64-bit (default is single).
     %(preload)s
 
     Returns
@@ -37,29 +38,37 @@ def read_raw_ucl(binfile, precision='single', preload=False):
     raw : instance of RawUCL
         The raw data.
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawUCL(binfile, precision=precision, preload=preload)
+    return RawFIL(binfile, precision=precision, preload=preload)
 
 
-class RawUCL(BaseRaw):
+@fill_doc
+class RawFIL(BaseRaw):
+    """Raw object from FIL-OPMEG formatted data.
+
+    Parameters
+    ----------
+    binfile : str
+        Path to the MEG data binary (ending in ``'_meg.bin'``).
+    precision : str, optional
+        How is the data represented? ``'single'`` if 32-bit or
+        ``'double'`` if 64-bit (default is single).
+    %(preload)s
+
+    Returns
+    -------
+    raw : instance of RawUCL
+        The raw data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+    """
+
     def __init__(self, binfile, precision='single', preload=False):
-        """Raw object from FIL/UCL formatted files.
-
-        Parameters
-        ----------
-        binfile : str
-            Path to the MEG data (ending in ``'_meg.bin'``).
-        precision : str, optional
-            How is the data represented? ``'single'`` if 32-bit or
-            ``'double'`` if 64-bit (default is single)
-        %(preload)s
-
-        Returns
-        -------
-        raw : instance of RawUCL
-            The raw data.
-
-        """
 
         if precision == 'single':
             dt = np.dtype('>f')
@@ -103,7 +112,7 @@ class RawUCL(BaseRaw):
         fid.close()
         info = _compose_meas_info(meg, chans)
 
-        super(RawUCL, self).__init__(
+        super(RawFIL, self).__init__(
             info, preload, filenames=[files['bin']], raw_extras=raw_extras,
             last_samps=[nsamples], orig_format=precision)
 
@@ -160,7 +169,7 @@ class RawUCL(BaseRaw):
 
 
 def _convert_channel_info(chans):
-    """convert the imported _channels.tsv into the chs element of raw.info"""
+    """Convert the imported _channels.tsv into the chs element of raw.info."""
     nmeg = nstim = nmisc = nref = 0
 
     units, sf = _get_pos_units(chans['pos'])
@@ -216,7 +225,7 @@ def _convert_channel_info(chans):
 
 
 def _compose_meas_info(meg, chans):
-    """Create info structure"""
+    """Create info structure."""
     info = _empty_info(meg['SamplingFrequency'])
 
     # Collect all the necessary data from the structures read
@@ -232,8 +241,7 @@ def _compose_meas_info(meg, chans):
 
 
 def _determine_nsamples(bin_fname, nchans, precision):
-    """Identify how many temporal samples in a dataset based on
-    size of file, number of channels and bitdepth"""
+    """Identify how many temporal samples in a dataset."""
     bsize = op.getsize(bin_fname)
     if precision == 'single':
         bps = 4
@@ -244,7 +252,7 @@ def _determine_nsamples(bin_fname, nchans, precision):
 
 
 def _read_bad_channels(chans):
-    """Check _channels.tsv file to look for premarked bad channels"""
+    """Check _channels.tsv file to look for premarked bad channels."""
     bads = list()
     for ii in range(0, len(chans['status'])):
         if chans['status'][ii] == 'bad':
@@ -253,20 +261,7 @@ def _read_bad_channels(chans):
 
 
 def _from_tsv(fname, dtypes=None):
-    """Read a tsv file into an OrderedDict.
-    Parameters
-    ----------
-    fname : str
-        Path to the file being loaded.
-    dtypes : list, optional
-        List of types to cast the values loaded as. This is specified column by
-        column.
-        Defaults to None. In this case all the data is loaded as strings.
-    Returns
-    -------
-    data_dict : collections.OrderedDict
-        Keys are the column names, and values are the column data.
-    """
+    """Read a tsv file into an OrderedDict."""
     data = np.loadtxt(fname, dtype=str, delimiter='\t', ndmin=2,
                       comments=None, encoding='utf-8-sig')
     column_names = data[0, :]
@@ -285,7 +280,7 @@ def _from_tsv(fname, dtypes=None):
 
 
 def _get_file_names(binfile):
-    """guess the filenames based on predicted suffixes"""
+    """Guess the filenames based on predicted suffixes."""
     files = dict()
     files['dir'] = op.dirname(binfile)
 
