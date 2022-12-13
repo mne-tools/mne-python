@@ -12,7 +12,7 @@ from mne.io import read_raw_fil
 from mne.io.fil.sensors import _get_pos_units
 from mne.io.pick import pick_types
 
-import scipy.io
+from pymatreader import read_mat
 
 
 fil_path = testing.data_path(download=False) / 'FIL'
@@ -111,7 +111,7 @@ def test_fil_all():
 
     raw = read_raw_fil(binname)
     raw.load_data(verbose=False)
-    mat = scipy.io.loadmat(matname, simplify_cells=True)
+    mat = read_mat(matname)
 
     _fil_megmag(raw, mat)
     _fil_stim(raw, mat)
