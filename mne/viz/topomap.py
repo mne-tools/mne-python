@@ -35,7 +35,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs, _format_units_psd,
-                    _prepare_sensor_names)
+                    _prepare_sensor_names, _warn_deprecated_vmin_vmax)
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
@@ -1229,6 +1229,8 @@ def plot_ica_components(
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
 
+    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
+
     topomap_args = dict() if topomap_args is None else topomap_args
     topomap_args = copy.copy(topomap_args)
     if 'sphere' not in topomap_args:
@@ -1241,7 +1243,7 @@ def plot_ica_components(
         for k in range(0, n_components, p):
             picks = range(k, min(k + p, n_components))
             fig = plot_ica_components(
-                ica, picks=picks, ch_type=ch_type, res=res, vmax=vmax,
+                ica, picks=picks, ch_type=ch_type, res=res, vlim=vlim,
                 cmap=cmap, sensors=sensors, colorbar=colorbar, title=title,
                 show=show, outlines=outlines, contours=contours,
                 image_interp=image_interp, inst=inst, plot_std=plot_std,
@@ -1279,7 +1281,7 @@ def plot_ica_components(
         titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
             data_, names_ = _merge_ch_data(data_, ch_type, names.copy())
-        vlim = _setup_vmin_vmax(data_, vmin, vmax)
+        vlim = _setup_vmin_vmax(data_, *vlim)
         im = plot_topomap(
             data_.flatten(), pos, vlim=vlim, res=res, axes=ax,
             cmap=cmap[0], outlines=outlines, contours=contours,
