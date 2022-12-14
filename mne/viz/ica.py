@@ -23,7 +23,6 @@ from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
-from ..utils.check import _check_pick_components
 from ..utils import _reject_data_segments, verbose
 
 
@@ -96,7 +95,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     from ..epochs import BaseEpochs
 
     exclude = ica.exclude
-    picks = _check_pick_components(ica, picks)
+    picks = _picks_to_idx(ica.n_components_, picks)
 
     if isinstance(inst, (BaseRaw, BaseEpochs)):
         fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
@@ -328,7 +327,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         .. note::
            You can interactively cycle through topographic maps for different
            channel types by pressing :kbd:`T`.
-    %(picks_ica)s
+    picks : int | list of int | slice | None
+        Indices of the independent components (ICs) to visualize.
+        If an integer, represents the index of the IC to pick.
+        Multiple ICs can be selected using a list of int or a slice.
+        The indices are 0-indexed, so ``picks=1`` will pick the second
+        IC: ``ICA001``. ``None`` will pick the first 5 components.
     axes : list of Axes | None
         List of five matplotlib axes to use in plotting: [topomap_axis,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
@@ -417,7 +421,7 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     num_std = float(plot_std)
 
     limit = 5 if picks is None else ica.n_components_
-    picks = _check_pick_components(ica, picks)[:limit]
+    picks = _picks_to_idx(ica.n_components_, picks)[:limit]
 
     if axes is None:
         fig, axes = _create_properties_layout(figsize=figsize)
