@@ -33,7 +33,6 @@ Enhancements
 - Add :func:`mne.time_frequency.fwhm` to determine the full-width half maximum for :func:`mne.time_frequency.morlet` (:gh:`11353` by `Britta Westner`_, `Daniel McCloy`_, and `Eric Larson`_)
 - Check whether head radius (estimated from channel positions) is correct when reading EEGLAB data with :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab`. If head radius is not within likely values, warn informing about possible units mismatch and the new ``montage_units`` argument (:gh:`11283` by `Mikołaj Magnuski`_).
 - Add support for a callable passed in ``combine`` for `mne.time_frequency.AverageTFR.plot` and `mne.time_frequency.AverageTFR.plot_joint` (:gh:`11329` by `Mathieu Scheltienne`_)
-- Improve selection of ICA components and the error messages raised when an invalid ``picks`` is provided (:gh:`11369` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
@@ -62,6 +61,7 @@ Bugs
 - Fix bug where ``image_format='gif'`` was errantly documented as being supported by :class:`mne.Report`, it is now only supported in :meth:`mne.Report.add_image` (:gh:`11347` by `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
+- Fix selection of ICA components (:gh:`11369` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
