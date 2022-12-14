@@ -312,8 +312,7 @@ class CSP(TransformerMixin, BaseEstimator):
         %(nrows_ncols_topomap)s
 
             .. versionadded:: 1.3
-        show : bool
-            Show figure if True.
+        %(show)s
 
         Returns
         -------
@@ -418,8 +417,7 @@ class CSP(TransformerMixin, BaseEstimator):
         %(nrows_ncols_topomap)s
 
             .. versionadded:: 1.3
-        show : bool
-            Show figure if True.
+        %(show)s
 
         Returns
         -------
