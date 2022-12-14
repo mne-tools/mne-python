@@ -1121,9 +1121,9 @@ def _check_pick_components(ica, picks):
         except ValueError:  # zero-size array
             raise_ = True
     else:  # int
+        picks = _ensure_int(picks)
         if picks < 0 or ica.n_components_ <= picks:
             raise_ = True
-        picks = _ensure_int(picks)
         picks = np.array([picks])
 
     if raise_:
