@@ -420,7 +420,7 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         plot_std = True
     num_std = float(plot_std)
 
-    limit = 5 if picks is None else ica.n_components_
+    limit = min(5, ica.n_components_) if picks is None else ica.n_components_
     picks = _picks_to_idx(ica.n_components_, picks)[:limit]
 
     if axes is None:
