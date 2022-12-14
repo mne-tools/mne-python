@@ -219,6 +219,20 @@ aseg : str
     Freesurfer subject directory.
 """
 
+docdict['average_plot_evoked_topomap'] = """
+average : float | array-like of float, shape (n_times,) | None
+    The time window (in seconds) around a given time point to be used for
+    averaging. For example, 0.2 would translate into a time window that
+    starts 0.1 s before and ends 0.1 s after the given time point. If the
+    time window exceeds the duration of the data, it will be clipped.
+    Different time windows (one per time point) can be provided by
+    passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
+    ``None`` (default), no averaging will take place.
+
+    .. versionchanged:: 1.1
+       Support for ``array-like`` input.
+"""
+
 docdict['average_plot_psd'] = """\
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
@@ -2239,6 +2253,13 @@ npad : int | str
     Amount to pad the start and end of the data.
     Can also be "auto" to use a padding that will result in
     a power-of-two size (can be much faster).
+"""
+
+docdict['nrows_ncols_topomap'] = """
+nrows, ncols : int | 'auto'
+    The number of rows and columns of topographies to plot. If either ``nrows``
+    or ``ncols`` is ``'auto'``, the necessary number will be inferred. Defaults
+    to ``nrows=1, ncols='auto'``.\
 """
 
 # %%

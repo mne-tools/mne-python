@@ -1472,17 +1472,7 @@ def plot_evoked_topomap(
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    average : float | array-like of float, shape (n_times,) | None
-        The time window (in seconds) around a given time point to be used for
-        averaging. For example, 0.2 would translate into a time window that
-        starts 0.1 s before and ends 0.1 s after the given time point. If the
-        time window exceeds the duration of the data, it will be clipped.
-        Different time windows (one per time point) can be provided by
-        passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
-        ``None`` (default), no averaging will take place.
-
-        .. versionchanged:: 1.1
-           Support for ``array-like`` input.
+    %(average_plot_evoked_topomap)s
     %(ch_type_topomap)s
     %(scalings_topomap)s
     %(proj_plot)s
@@ -1519,16 +1509,7 @@ def plot_evoked_topomap(
         String format for topomap values. Defaults (None) to "%%01d ms" if
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
         "%%g" otherwise. Can be an empty string to omit the time label.
-    nrows : int | 'auto'
-        The number of rows of topographies to plot. Defaults to 1. If 'auto',
-        obtains the number of rows depending on the amount of times to plot
-        and the number of cols. Not valid when times == 'interactive'.
-
-        .. versionadded:: 0.20
-    ncols : int | 'auto'
-        The number of columns of topographies to plot. If 'auto' (default),
-        obtains the number of columns depending on the amount of times to plot
-        and the number of rows. Not valid when times == 'interactive'.
+    %(nrows_ncols_topomap)s Ignored when times == 'interactive'.
 
         .. versionadded:: 0.20
     %(show)s
