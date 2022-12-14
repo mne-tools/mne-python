@@ -33,6 +33,7 @@ Enhancements
 - Add :func:`mne.time_frequency.fwhm` to determine the full-width half maximum for :func:`mne.time_frequency.morlet` (:gh:`11353` by `Britta Westner`_, `Daniel McCloy`_, and `Eric Larson`_)
 - Check whether head radius (estimated from channel positions) is correct when reading EEGLAB data with :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab`. If head radius is not within likely values, warn informing about possible units mismatch and the new ``montage_units`` argument (:gh:`11283` by `Mikołaj Magnuski`_).
 - Add support for a callable passed in ``combine`` for `mne.time_frequency.AverageTFR.plot` and `mne.time_frequency.AverageTFR.plot_joint` (:gh:`11329` by `Mathieu Scheltienne`_)
+- Improve selection of ICA components and the error messages raised when an invalid ``picks`` is provided (:gh:`11369` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
