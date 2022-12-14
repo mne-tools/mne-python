@@ -2188,17 +2188,17 @@ class ICA(ContainsMixin):
             outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=False, cbar_fmt='%3.1f', units=None,
-            axes=None, title=None, nrows=1, ncols='auto', show=True,
-            topomap_args=None, image_args=None, psd_args=None, verbose=None):
+            cnorm=None, colorbar=False, cbar_fmt='%3.1f', axes=None,
+            title=None, nrows=1, ncols='auto', show=True, topomap_args=None,
+            image_args=None, psd_args=None, verbose=None):
         return plot_ica_components(
             self, picks=picks, ch_type=ch_type, inst=inst, plot_std=plot_std,
             reject=reject, sensors=sensors, show_names=show_names,
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
             res=res, size=size, cmap=cmap, vlim=vlim, vmin=vmin, vmax=vmax,
-            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, units=units,
-            axes=axes, title=title, nrows=nrows, ncols=ncols, show=show,
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, axes=axes,
+            title=title, nrows=nrows, ncols=ncols, show=show,
             topomap_args=topomap_args, image_args=image_args,
             psd_args=psd_args, verbose=verbose)
 

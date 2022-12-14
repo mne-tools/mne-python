@@ -1117,9 +1117,9 @@ def plot_ica_components(
         outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
         size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-        cnorm=None, colorbar=False, cbar_fmt='%3.1f', units=None, axes=None,
-        title=None, nrows=1, ncols='auto', show=True, topomap_args=None,
-        image_args=None, psd_args=None, verbose=None):
+        cnorm=None, colorbar=False, cbar_fmt='%3.1f', axes=None, title=None,
+        nrows=1, ncols='auto', show=True, topomap_args=None, image_args=None,
+        psd_args=None, verbose=None):
     """Project mixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1174,7 +1174,6 @@ def plot_ica_components(
         .. versionadded:: 1.3
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
-    %(units_topomap_evoked)s
     %(axes_evoked_plot_topomap)s
     %(title_none)s
 
