@@ -37,6 +37,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _set_3d_axes_equal, _check_type_projs, _format_units_psd,
                     _prepare_sensor_names)
 from ..defaults import _handle_default
+from ..preprocessing.ica import _pick_components
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
 
@@ -1213,7 +1214,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             figs.append(fig)
         return figs
     else:
-        picks = _picks_to_idx(ica.info, picks)
+        picks = _pick_components(ica, picks)
     ch_type = _get_ch_type(ica, ch_type)
 
     cmap = _setup_cmap(cmap, n_axes=len(picks))

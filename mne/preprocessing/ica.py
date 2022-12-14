@@ -3026,3 +3026,50 @@ def read_ica_eeglab(fname, *, verbose=None):
     ica._update_ica_names()
     ica.reject_ = None
     return ica
+
+
+def _pick_components(ica, picks):
+    """Validate picks for the given ICA and convert to an idx array."""
+    if ica.current_fit == "unfitted":
+        raise ValueError("The ICA must be fitted before selecting components.")
+
+    _validate_type(
+        picks, (None, slice, tuple, list, np.ndarray, "int-like"), "picks"
+    )
+
+    original_picks = picks
+    raise_ = False
+    if picks is None:
+        return np.arange(ica.n_components_)
+    elif isinstance(picks, slice):
+        if picks.start < 0 or ica.n_components_ < picks.stop:
+            raise_ = True
+        if picks.stop <= picks.start:
+            raise_ = True
+        picks = np.arange(ica.n_compoents_)[picks]
+    elif isinstance(picks, (tuple, list, np.ndarray)):
+        if isinstance(picks, np.ndarray):
+            if picks.ndim != 1:
+                raise_ = True
+            elif picks.size != np.unique(picks).size:
+                raise_ = True
+        picks = np.array(picks)
+        try:
+            if np.min(picks) < 0 or ica.n_components_ <= np.max_:
+                raise_ = True
+        except ValueError:  # zero-size array
+            raise_ = True
+    else:  # int
+        if picks < 0 or ica.n_compoents_ <= picks:
+            raise_ = True
+        picks = _ensure_int(picks)
+        picks = np.array([picks])
+
+    if raise_:
+        raise ValueError(
+            f"Selecting ICA components with {original_picks} is invalid. "
+            f"The fitted ICA has {ica.n_components_} components thus the "
+            f"valid selection range is 0 to {ica.n_components_ - 1}."
+        )
+
+    return picks
