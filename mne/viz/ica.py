@@ -23,7 +23,7 @@ from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
-from ..preprocessing.ica import _pick_components
+from ..utils.check import _check_pick_components
 from ..utils import _reject_data_segments, verbose
 
 
@@ -96,7 +96,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     from ..epochs import BaseEpochs
 
     exclude = ica.exclude
-    picks = _pick_components(ica, picks)
+    picks = _check_pick_components(ica, picks)
 
     if isinstance(inst, (BaseRaw, BaseEpochs)):
         fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
@@ -417,7 +417,7 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     num_std = float(plot_std)
 
     limit = 5 if picks is None else ica.n_components_
-    picks = _pick_components(ica, picks)[:limit]
+    picks = _check_pick_components(ica, picks)[:limit]
 
     if axes is None:
         fig, axes = _create_properties_layout(figsize=figsize)

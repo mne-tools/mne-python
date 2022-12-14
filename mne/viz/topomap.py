@@ -30,6 +30,7 @@ from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
 from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
                      _validate_type, _check_sphere, _check_option, _is_numeric,
                      warn, legacy)
+from ..utils.check import _check_pick_components
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
@@ -37,7 +38,6 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _set_3d_axes_equal, _check_type_projs, _format_units_psd,
                     _prepare_sensor_names)
 from ..defaults import _handle_default
-from ..preprocessing.ica import _pick_components
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
 
@@ -1214,7 +1214,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             figs.append(fig)
         return figs
     else:
-        picks = _pick_components(ica, picks)
+        picks = _check_pick_components(ica, picks)
     ch_type = _get_ch_type(ica, ch_type)
 
     cmap = _setup_cmap(cmap, n_axes=len(picks))
