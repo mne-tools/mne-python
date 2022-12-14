@@ -1111,15 +1111,15 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
 
 
 @verbose
-def plot_ica_components(ica, picks=None, ch_type=None, res=64,
-                        vmin=None, vmax=None, cmap='RdBu_r',
-                        sensors=True, colorbar=False, title=None,
-                        show=True, outlines='head', contours=6,
-                        image_interp=_INTERPOLATION_DEFAULT,
-                        inst=None, plot_std=True,
-                        topomap_args=None, image_args=None,
-                        psd_args=None, reject='auto',
-                        sphere=None, *, verbose=None):
+def plot_ica_components(
+        ica, picks=None, ch_type=None, *, inst=None, plot_std=True,
+        reject='auto', sensors=True, show_names=False, contours=6,
+        outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+        size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
+        cnorm=None, colorbar=False, cbar_fmt='%3.1f', units=None, axes=None,
+        title=None, nrows=1, ncols='auto', show=True, topomap_args=None,
+        image_args=None, psd_args=None, verbose=None):
     """Project mixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1128,17 +1128,6 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         The ICA solution.
     %(picks_ica)s
     %(ch_type_topomap)s
-    %(res_topomap)s
-    %(vmin_vmax_topomap)s
-    %(cmap_topomap)s
-    %(sensors_topomap)s
-    %(colorbar_topomap)s
-    title : str | None
-        Title to use.
-    %(show)s
-    %(outlines_topomap)s
-    %(contours_topomap)s
-    %(image_interp_topomap)s
     inst : Raw | Epochs | None
         To be able to see component properties after clicking on component
         topomap you need to pass relevant data - instances of Raw or Epochs
@@ -1149,22 +1138,71 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
         plotted. For example 2.5 will plot 2.5 standard deviation above/below.
-    topomap_args : dict | None
-        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
-        additional arguments. Defaults to None.
-    image_args : dict | None
-        Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
-        any additional arguments. Defaults to None.
-    psd_args : dict | None
-        Dictionary of arguments to :meth:`~mne.Epochs.compute_psd`. If
-        ``None``, doesn't pass any additional arguments. Defaults to ``None``.
     reject : 'auto' | dict | None
         Allows to specify rejection parameters used to drop epochs
         (or segments if continuous signal is passed as inst).
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
     %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+    %(extrapolate_topomap)s
+
+        .. versionadded:: 1.3
+    %(border_topomap)s
+
+        .. versionadded:: 1.3
+    %(res_topomap)s
+    %(size_topomap)s
+
+        .. versionadded:: 1.3
+    %(cmap_topomap)s
+    %(vlim_plot_topomap_psd)s
+
+        .. versionadded:: 1.3
+    %(vmin_vmax_topomap)s
+
+        .. deprecated:: v1.4
+           The ``vmin`` and ``vmax`` parameters will be removed in version
+           1.4. Please use the ``vlim`` parameter instead.
+    %(cnorm)s
+
+        .. versionadded:: 1.3
+    %(colorbar_topomap)s
+    %(cbar_fmt_topomap)s
+    %(units_topomap_evoked)s
+    %(axes_evoked_plot_topomap)s
+    %(title_none)s
+
+        .. deprecated:: v1.4
+           The ``title`` parameter will be removed in version 1.4. Please
+           use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
+           instead.
+    %(nrows_ncols_topomap)s
+
+        .. versionadded:: 1.3
+    %(show)s
+    topomap_args : dict | None
+        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
+        additional arguments. Defaults to None.
+
+        .. deprecated:: v1.4
+           The ``topomap_args`` parameter will be removed in version 1.4. All
+           relevant topomap parameters (e.g., ``show_names``, ``extrapolate``,
+           ``border``, ``size``, etc) are now directly exposed in this
+           function's signature.
+    image_args : dict | None
+        Dictionary of arguments to pass to :func:`~mne.viz.plot_epochs_image`
+        in interactive mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.
+    psd_args : dict | None
+        Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.
     %(verbose)s
 
     Returns
