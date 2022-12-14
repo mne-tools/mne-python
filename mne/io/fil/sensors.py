@@ -5,6 +5,8 @@
 from copy import deepcopy
 import numpy as np
 
+from ...utils import logger
+
 
 def _refine_sensor_orientation(chanin):
     """Improve orientation matrices based on multiaxis measures.
@@ -14,7 +16,7 @@ def _refine_sensor_orientation(chanin):
     It doesn't have to be this way, we can use (if available) the orientation
     information from mulit-axis recordings to refine these elements.
     """
-    print("refining sensor orientations")
+    logger.info("Refining sensor orientations...")
     chanout = deepcopy(chanin)
     tmpname = list()
     for ii in range(len(chanin)):
@@ -33,14 +35,12 @@ def _refine_sensor_orientation(chanin):
                     tmploc[:, 1] = flipFlag * np.cross(tmploc[:, 2],
                                                        tmploc[:, 3])
                     chanout[ii]["loc"] = tmploc.reshape(12, order="F")
-
+    logger.info('[done]')
     return chanout
 
 
 def _guess_other_chan_axis(tmpname, seedID):
     """Try to guess the name of another axis of a multiaxis sensor."""
-    targetID = np.NAN
-
     # see if its using the old RAD/TAN convention first, otherwise use XYZ
     if tmpname[seedID][-3:] == "RAD":
         prefix1 = "RAD"
@@ -67,18 +67,12 @@ def _guess_other_chan_axis(tmpname, seedID):
         prefix2 = "?"
         flipflag = 1.0
 
-    targetName = tmpname[seedID][: -len(prefix1)] + prefix2
+    target_name = tmpname[seedID][: -len(prefix1)] + prefix2
 
-    # iterate through loop to find target, stop when found
-    hit = False
-    ii = 0
-    while (ii < len(tmpname)) and (hit is False):
-        if targetName == tmpname[ii]:
-            targetID = ii
-            hit = True
-        ii += 1
+    target_id = np.where([t == target_name for t in tmpname])[0]
+    target_id = target_id[0] if len(target_id) else np.nan
 
-    return targetID, flipflag
+    return target_id, flipflag
 
 
 def _get_pos_units(pos):

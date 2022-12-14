@@ -7,6 +7,8 @@ import os.path as op
 from numpy import isnan, empty
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
+import pytest
+
 from mne.datasets import testing
 from mne.io import read_raw_fil
 from mne.io.fil.sensors import _get_pos_units
@@ -16,6 +18,12 @@ import scipy.io
 
 
 fil_path = testing.data_path(download=False) / 'FIL'
+
+
+# TODO: Ignore this warning in all these tests until we deal with this properly
+pytestmark = pytest.mark.filterwarnings(
+    'ignore:.*problems later!:RuntimeWarning',
+)
 
 
 def unpack_mat(matin):

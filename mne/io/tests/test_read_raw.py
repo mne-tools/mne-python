@@ -30,13 +30,26 @@ def test_read_raw_suggested(fname):
         read_raw(fname)
 
 
+_testing_mark = testing._pytest_mark()
+
+
 @pytest.mark.parametrize('fname', [
     base / 'edf/tests/data/test.edf',
     base / 'edf/tests/data/test.bdf',
     base / 'brainvision/tests/data/test.vhdr',
     base / 'kit/tests/data/test.sqd',
-    pytest.param(test_base / 'KIT/data_berlin.con',
-                 marks=testing._pytest_mark()),
+    pytest.param(test_base / 'KIT' / 'data_berlin.con', marks=_testing_mark),
+    pytest.param(
+        test_base / 'ARTEMIS123' /
+        'Artemis_Data_2017-04-14-10h-38m-59s_Phantom_1k_HPI_1s.bin',
+        marks=_testing_mark),
+    pytest.param(
+        test_base / 'FIL' /
+        'sub-noise_ses-001_task-noise220622_run-001_meg.bin',
+        marks=(
+            _testing_mark,
+            pytest.mark.filterwarnings(
+                'ignore:.*problems later!:RuntimeWarning'))),
 ])
 def test_read_raw_supported(fname):
     """Test supported file types."""

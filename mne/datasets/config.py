@@ -138,6 +138,14 @@ MNE_DATASETS['fnirs_motor'] = dict(
     config_key='MNE_DATASETS_FNIRS_MOTOR_PATH',
 )
 
+MNE_DATASETS['ucl_opm_auditory'] = dict(
+    archive_name='auditory_OPM_stationary.zip',
+    hash='md5:9ed0d8d554894542b56f8e7c4c0041fe',
+    url='https://osf.io/download/mwrt3/?version=1',
+    folder_name='auditory_OPM_stationary',
+    config_key='MNE_DATASETS_UCL_OPM_AUDITORY_PATH',
+)
+
 MNE_DATASETS['kiloword'] = dict(
     archive_name='MNE-kiloword-data.tar.gz',
     hash='md5:3a124170795abbd2e48aae8727e719a8',

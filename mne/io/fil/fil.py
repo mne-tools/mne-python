@@ -2,10 +2,10 @@
 #
 # License: BSD-3-Clause
 
+import pathlib
 import json
+
 import numpy as np
-import os.path as op
-from collections import OrderedDict
 
 from ..constants import FIFF
 from ..meas_info import _empty_info
@@ -14,14 +14,14 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file
 from .._digitization import _make_dig_points
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
-from ...utils import warn, fill_doc
+from ...utils import warn, fill_doc, verbose, _check_fname
 
 from .sensors import (_refine_sensor_orientation, _get_pos_units,
                       _size2units, _get_plane_vectors)
 
 
-@fill_doc
-def read_raw_fil(binfile, precision='single', preload=False):
+@verbose
+def read_raw_fil(binfile, precision='single', preload=False, *, verbose=None):
     """Raw object from FIL-OPMEG formatted data.
 
     Parameters
@@ -32,6 +32,7 @@ def read_raw_fil(binfile, precision='single', preload=False):
         How is the data represented? ``'single'`` if 32-bit or ``'double'`` if
         64-bit (default is single).
     %(preload)s
+    %(verbose)s
 
     Returns
     -------
@@ -107,33 +108,33 @@ class RawFIL(BaseRaw):
                             chanpos['Oz'][ii]])
             chans['ori'][idx] = tmp.astype(np.float64)
 
-        fid = open(files['meg'], 'r')
-        meg = json.load(fid)
-        fid.close()
+        with open(files['meg'], 'r') as fid:
+            meg = json.load(fid)
         info = _compose_meas_info(meg, chans)
 
         super(RawFIL, self).__init__(
             info, preload, filenames=[files['bin']], raw_extras=raw_extras,
             last_samps=[nsamples], orig_format=precision)
 
-        if op.exists(files['coordsystem']):
-            fid = open(files['coordsystem'], 'r')
-            csys = json.load(fid)
-            fid.close()
+        if files['coordsystem'].is_file():
+            with open(files['coordsystem'], 'r') as fid:
+                csys = json.load(fid)
             hc = csys['HeadCoilCoordinates']
 
             for key in hc:
-                if key == 'lpa' or key == 'LPA':
+                if key.lower() == 'lpa':
                     lpa = np.asarray(hc[key])
-                elif key == 'rpa' or key == 'RPA':
+                elif key.lower() == 'rpa':
                     rpa = np.asarray(hc[key])
-                elif key == 'nas' or key == 'NAS' or key == 'nasion':
+                elif key.lower().startswith('nas'):
                     nas = np.asarray(hc[key])
                 else:
-                    warn(key + ' is not a valid fiducial name!')
+                    warn(f'{key} is not a valid fiducial name!')
 
             size = np.linalg.norm(nas - rpa)
             unit, sf = _size2units(size)
+            # TODO: These are not guaranteed to exist and could lead to a
+            # confusing error message, should fix later
             lpa /= sf
             rpa /= sf
             nas /= sf
@@ -151,9 +152,9 @@ class RawFIL(BaseRaw):
                                                     rpa=rpa,
                                                     coord_frame='meg')
         else:
-            print('No fiducials found in files,',
-                  'defaulting sensor array to FIFFV_COORD_DEVICE,.',
-                  ' May cause problems later!')
+            warn(
+                'No fiducials found in files, defaulting sensor array to '
+                'FIFFV_COORD_DEVICE, this may cause problems later!')
             t = np.eye(4)
 
         with self.info._unlock():
@@ -175,7 +176,7 @@ def _convert_channel_info(chans):
     units, sf = _get_pos_units(chans['pos'])
 
     chs = list()
-    for ii in range(0, len(chans['name'])):
+    for ii in range(len(chans['name'])):
         ch = dict(scanno=ii + 1, range=1., cal=1., loc=np.full(12, np.nan),
                   unit_mul=FIFF.FIFF_UNITM_NONE, ch_name=chans['name'][ii],
                   coil_type=FIFF.FIFFV_COIL_NONE)
@@ -242,7 +243,7 @@ def _compose_meas_info(meg, chans):
 
 def _determine_nsamples(bin_fname, nchans, precision):
     """Identify how many temporal samples in a dataset."""
-    bsize = op.getsize(bin_fname)
+    bsize = bin_fname.stat().st_size
     if precision == 'single':
         bps = 4
     else:
@@ -261,12 +262,12 @@ def _read_bad_channels(chans):
 
 
 def _from_tsv(fname, dtypes=None):
-    """Read a tsv file into an OrderedDict."""
+    """Read a tsv file into a dict (which we know is ordered)."""
     data = np.loadtxt(fname, dtype=str, delimiter='\t', ndmin=2,
                       comments=None, encoding='utf-8-sig')
     column_names = data[0, :]
     info = data[1:, :]
-    data_dict = OrderedDict()
+    data_dict = dict()
     if dtypes is None:
         dtypes = [str] * info.shape[1]
     if not isinstance(dtypes, (list, tuple)):
@@ -281,19 +282,17 @@ def _from_tsv(fname, dtypes=None):
 
 def _get_file_names(binfile):
     """Guess the filenames based on predicted suffixes."""
+    binfile = pathlib.Path(
+        _check_fname(binfile, overwrite='read', must_exist=True, name='fname'))
+    if not (binfile.suffix == '.bin' and binfile.stem.endswith('_meg')):
+        raise ValueError(
+            f'File must be a filename ending in _meg.bin, got {binfile}')
     files = dict()
-    files['dir'] = op.dirname(binfile)
-
-    tmp = op.basename(binfile)
-    tmp = str.split(tmp, '_meg.bin')
-
-    files['root'] = tmp[0]
-    files['bin'] = op.join(files['dir'], files['root'] + '_meg.bin')
-    files['meg'] = op.join(files['dir'], files['root'] + '_meg.json')
-    files['chans'] = op.join(files['dir'], files['root'] + '_channels.tsv')
-    files['positions'] = op.join(files['dir'],
-                                 files['root'] + '_positions.tsv')
-    files['coordsystem'] = op.join(files['dir'],
-                                   files['root'] + '_coordsystem.json')
-
+    dir_ = binfile.parent
+    root = binfile.stem[:-4]  # no _meg
+    files['bin'] = dir_ / (root + '_meg.bin')
+    files['meg'] = dir_ / (root + '_meg.json')
+    files['chans'] = dir_ / (root + '_channels.tsv')
+    files['positions'] = dir_ / (root + '_positions.tsv')
+    files['coordsystem'] = dir_ / (root + '_coordsystem.json')
     return files
