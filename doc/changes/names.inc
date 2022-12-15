@@ -132,6 +132,8 @@
 
 .. _Enrico Varano: https://github.com/enricovara/
 
+.. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
+
 .. _Eric Larson: http://larsoner.com
 
 .. _Erica Peterson: https://github.com/nordme
