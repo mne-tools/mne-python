@@ -61,6 +61,7 @@ Bugs
 - Fix bug where ``image_format='gif'`` was errantly documented as being supported by :class:`mne.Report`, it is now only supported in :meth:`mne.Report.add_image` (:gh:`11347` by `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
+- Fix selection of ICA components in :func:`mne.viz.plot_ica_components` and :meth:`mne.preprocessing.ICA.plot_components` (:gh:`11369` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
