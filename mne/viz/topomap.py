@@ -1117,9 +1117,9 @@ def plot_ica_components(
         outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
         size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-        cnorm=None, colorbar=False, cbar_fmt='%3.1f', axes=None, title=None,
-        nrows=1, ncols='auto', show=True, topomap_args=None, image_args=None,
-        psd_args=None, verbose=None):
+        cnorm=None, colorbar=False, cbar_fmt='%3.2f', axes=None, title=None,
+        nrows='auto', ncols='auto', show=True, topomap_args=None,
+        image_args=None, psd_args=None, verbose=None):
     """Project mixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1175,13 +1175,15 @@ def plot_ica_components(
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
     %(axes_evoked_plot_topomap)s
-    %(title_none)s
+    title : str | None
+        The title of the generated figure. If ``None`` (default) and
+        ``axes=None``, a default title of "ICA Components" will be used.
 
         .. deprecated:: v1.4
            The ``title`` parameter will be removed in version 1.4. Please
            use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-           instead.
-    %(nrows_ncols_topomap)s
+           instead to set the title after the figure is created.
+    %(nrows_ncols_ica_components)s
 
         .. versionadded:: 1.3
     %(show)s
@@ -1228,79 +1230,104 @@ def plot_ica_components(
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
-
+    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
     vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
 
-    topomap_args = dict() if topomap_args is None else topomap_args
-    topomap_args = copy.copy(topomap_args)
-    if 'sphere' not in topomap_args:
-        topomap_args['sphere'] = sphere
-    if picks is None:  # plot components by sets of 20
-        ch_type = _get_ch_type(ica, ch_type)
-        n_components = ica.mixing_matrix_.shape[1]
-        p = 20
+    if topomap_args:  # not None, not empty dict
+        warn('The "topomap_args" parameter is deprecated and will be '
+             'removed in version 1.4. All relevant topomap parameters are now '
+             'directly exposed in this function\'s signature.', FutureWarning)
+        topomap_args = copy.copy(topomap_args)
+    else:
+        topomap_args = dict()
+    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
+
+    n_components = ica.mixing_matrix_.shape[1]
+
+    # for backward compat, nrow='auto' ncol='auto' should yield 4 rows 5 cols
+    # and create multiple figures if more than 20 components requested
+    if nrows == 'auto' and ncols == 'auto':
+        ncols = 5
+        max_subplots_per_fig = 20
+    elif nrows == 'auto' or ncols == 'auto':
+        # user provided incomplete row/col spec; put all in one figure
+        max_subplots_per_fig = n_components
+    else:
+        max_subplots_per_fig = nrows * ncols
+
+    # handle ch_type=None
+    ch_type = _get_ch_type(ica, ch_type)
+
+    if picks is None:
         figs = []
-        for k in range(0, n_components, p):
-            picks = range(k, min(k + p, n_components))
+        for k in range(0, n_components, max_subplots_per_fig):
+            picks = range(k, min(k + max_subplots_per_fig, n_components))
             fig = plot_ica_components(
-                ica, picks=picks, ch_type=ch_type, res=res, vlim=vlim,
-                cmap=cmap, sensors=sensors, colorbar=colorbar, title=title,
-                show=show, outlines=outlines, contours=contours,
-                image_interp=image_interp, inst=inst, plot_std=plot_std,
-                topomap_args=topomap_args, image_args=image_args,
-                psd_args=psd_args, reject=reject, sphere=sphere)
+                ica, picks=picks, ch_type=ch_type, inst=inst,
+                plot_std=plot_std, reject=reject, sensors=sensors,
+                show_names=show_names, contours=contours, outlines=outlines,
+                sphere=sphere, image_interp=image_interp,
+                extrapolate=extrapolate, border=border, res=res, size=size,
+                cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
+                cbar_fmt=cbar_fmt, axes=axes, title=title, nrows=nrows,
+                ncols=ncols, show=show, topomap_args=topomap_args,
+                image_args=image_args, psd_args=psd_args, verbose=verbose)
             figs.append(fig)
         return figs
     else:
         picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
-    ch_type = _get_ch_type(ica, ch_type)
-
-    cmap = _setup_cmap(cmap, n_axes=len(picks))
-    data = np.dot(ica.mixing_matrix_[:, picks].T,
-                  ica.pca_components_[:ica.n_components_])
 
     data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(ica, ch_type, sphere=sphere)
+
+    cmap = _setup_cmap(cmap, n_axes=len(picks))
+    names = _prepare_sensor_names(names, show_names)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
+    data = np.dot(ica.mixing_matrix_[:, picks].T,
+                  ica.pca_components_[:ica.n_components_])
     data = np.atleast_2d(data)
     data = data[:, data_picks]
 
-    # prepare data for iteration
-    fig, axes, _, _ = _prepare_trellis(len(data), ncols=5)
     if title is None:
         title = 'ICA components'
-    fig.suptitle(title)
+    user_passed_axes = axes is not None
+    if not user_passed_axes:
+        fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
+        fig.suptitle(title)
 
-    titles = list()
+    subplot_titles = list()
     for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
         comp_title = ica._ica_names[ii]
         if len(set(ica.get_channel_types())) > 1:
             comp_title += f' ({ch_type})'
-        titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
+        subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
             data_, names_ = _merge_ch_data(data_, ch_type, names.copy())
         vlim = _setup_vmin_vmax(data_, *vlim)
         im = plot_topomap(
-            data_.flatten(), pos, vlim=vlim, res=res, axes=ax,
-            cmap=cmap[0], outlines=outlines, contours=contours,
-            image_interp=image_interp, show=False, sensors=sensors,
-            ch_type=ch_type, **topomap_args)[0]
+            data_.flatten(), pos, ch_type=ch_type, sensors=sensors,
+            names=names, contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap[0], vlim=vlim, cnorm=cnorm,
+            axes=ax, show=False, **topomap_args)[0]
+
         im.axes.set_label(ica._ica_names[ii])
         if colorbar:
             cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
-                                      side="right", pad=.05, format='%3.2f')
+                                      side="right", pad=.05, format=cbar_fmt)
             cbar.ax.tick_params(labelsize=12)
             cbar.set_ticks(vlim)
         _hide_frame(ax)
     del pos
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.88, bottom=0.)
+    if not user_passed_axes:
+        fig.subplots_adjust(top=0.88, bottom=0.)
     fig.canvas.draw()
 
     # add title selection interactivity
-    def onclick_title(event, ica=ica, titles=titles):
+    def onclick_title(event, ica=ica, titles=subplot_titles):
         # check if any title was pressed
         title_pressed = None
         for title in titles:

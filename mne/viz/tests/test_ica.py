@@ -147,7 +147,7 @@ def test_plot_ica_properties():
     assert 'extrapolation mode local to mean' in log, log
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     fig = ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
-                              topomap_args={'res': 4, 'colorbar': True},
+                              res=4, colorbar=True,
                               psd_args={'fmax': 65.}, plot_std=False,
                               log_scale=True, figsize=[4.5, 4.5],
                               reject=reject)[0]

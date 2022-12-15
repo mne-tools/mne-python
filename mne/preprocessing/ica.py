@@ -2188,9 +2188,9 @@ class ICA(ContainsMixin):
             outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=False, cbar_fmt='%3.1f', axes=None,
-            title=None, nrows=1, ncols='auto', show=True, topomap_args=None,
-            image_args=None, psd_args=None, verbose=None):
+            cnorm=None, colorbar=False, cbar_fmt='%3.2f', axes=None,
+            title=None, nrows='auto', ncols='auto', show=True,
+            topomap_args=None, image_args=None, psd_args=None, verbose=None):
         return plot_ica_components(
             self, picks=picks, ch_type=ch_type, inst=inst, plot_std=plot_std,
             reject=reject, sensors=sensors, show_names=show_names,
@@ -2894,7 +2894,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours,
-                show=show, topomap_args=dict(sphere=sphere))
+                show=show, sphere=sphere)
         else:  # plotting an array
             template_fig = _plot_corrmap(
                 [template], [0], [0], ch_type, icas[0].copy(), "Template",

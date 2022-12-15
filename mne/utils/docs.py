@@ -2255,11 +2255,22 @@ npad : int | str
     a power-of-two size (can be much faster).
 """
 
+docdict['nrows_ncols_ica_components'] = """
+nrows, ncols : int | 'auto'
+    The number of rows and columns of topographies to plot. If both ``nrows``
+    and ``ncols`` are ``'auto'``, will plot up to 20 components in a 5×4 grid,
+    and return multiple figures if more than 20 components are requested.
+    If only one of ``nrows`` or ``ncols`` is ``'auto'``, the other is inferred
+    and a single figure is generated. If scalars are provided for both
+    arguments, will plot up to ``nrows*ncols`` components in a grid and return
+    multiple figures as needed. Defaults to ``nrows='auto', ncols='auto'``.
+"""
+
 docdict['nrows_ncols_topomap'] = """
 nrows, ncols : int | 'auto'
     The number of rows and columns of topographies to plot. If either ``nrows``
     or ``ncols`` is ``'auto'``, the necessary number will be inferred. Defaults
-    to ``nrows=1, ncols='auto'``.\
+    to ``nrows=1, ncols='auto'``.
 """
 
 # %%
