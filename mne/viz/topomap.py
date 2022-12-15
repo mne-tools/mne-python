@@ -1296,11 +1296,12 @@ def plot_ica_components(
         subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
             data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
+        _vlim = _setup_vmin_vmax(data_, *vlim)
         im = plot_topomap(
             data_.flatten(), pos, ch_type=ch_type, sensors=sensors,
             names=names, contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
-            res=res, size=size, cmap=cmap[0], vlim=vlim, cnorm=cnorm,
+            res=res, size=size, cmap=cmap[0], vlim=_vlim, cnorm=cnorm,
             axes=ax, show=False, **topomap_args)[0]
 
         im.axes.set_label(ica._ica_names[ii])
