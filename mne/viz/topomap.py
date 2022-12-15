@@ -1620,7 +1620,10 @@ def plot_evoked_topomap(
                          "times='interactive'.")
     # units, scalings
     key = 'grad' if ch_type.startswith('planar') else ch_type
+    default_scaling = _handle_default('scalings', None)[key]
     scaling = _handle_default('scalings', scalings)[key]
+    # if non-default scaling, fall back to "AU" if unit wasn't given by user
+    key = 'misc' if scaling != default_scaling else key
     unit = _handle_default('units', units)[key]
     # ch_names (required for NIRS)
     ch_names = names
