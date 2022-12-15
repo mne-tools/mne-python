@@ -12,7 +12,7 @@ import mne
 from mne.beamformer import alternating_projections
 from mne.cov import regularize
 from mne.datasets import testing
-
+from mne.beamformer.tests.test_rap_music import simu_data
 
 data_path = testing.data_path(download=False)
 fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -42,41 +42,6 @@ def _get_data(ch_decim=1):
     noise_cov = regularize(noise_cov, evoked.info, rank='full', proj=False)
 
     return evoked, noise_cov
-
-
-def simu_data_2src(evoked, forward, noise_cov, times, nave=1):
-    """Simulate an evoked dataset with 2 sources.
-
-    One source is put in each hemisphere.
-    """
-    # Generate the two dipoles data
-    mu, sigma = 0.1, 0.005
-    s1 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
-                                                   (2 * sigma ** 2))
-
-    mu, sigma = 0.075, 0.008
-    s2 = -1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
-                                                    (2 * sigma ** 2))
-    data = np.array([s1, s2]) * 1e-9
-
-    src = forward['src']
-    rng = np.random.RandomState(42)
-
-    rndi = rng.randint(len(src[0]['vertno']))
-    lh_vertno = src[0]['vertno'][[rndi]]
-
-    rndi = rng.randint(len(src[1]['vertno']))
-    rh_vertno = src[1]['vertno'][[rndi]]
-
-    vertices = [lh_vertno, rh_vertno]
-    tmin, tstep = times.min(), 1 / evoked.info['sfreq']
-    stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
-
-    sim_evoked = mne.simulation.simulate_evoked(forward, stc, evoked.info,
-                                                noise_cov, nave=nave,
-                                                random_state=rng)
-
-    return sim_evoked, stc
 
 
 def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
@@ -124,8 +89,8 @@ def test_ap_simulated():
                                                  surf_ori=True, use_cps=True)
 
     nsources = 2
-    sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
-                                     evoked.times, nave=evoked.nave)
+    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
+                                evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
     dipoles, _, _, var_exp = alternating_projections(sim_evoked,
                                                      forward_fixed,
@@ -140,8 +105,8 @@ def test_ap_simulated():
     assert dipoles[1].gof.min() >= 0.
 
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
-    sim_evoked, stc = simu_data_2src(evoked, forward_fixed, noise_cov,
-                                     evoked.times, nave=nave)
+    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
+                                evoked.times, nave=nave)
     dipoles, residual, _, _ = alternating_projections(sim_evoked,
                                                       forward_fixed,
                                                       nsources,
