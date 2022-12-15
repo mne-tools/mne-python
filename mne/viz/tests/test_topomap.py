@@ -229,6 +229,21 @@ def test_plot_evoked_topomap_errors(evoked, monkeypatch):
         evoked.plot_topomap()
 
 
+@pytest.mark.parametrize('units, scalings, expected_unit', [
+    (None, None, 'µV'),
+    ('foo', None, 'foo'),
+    (None, 7., 'AU'),  # non-default scaling → "AU"
+])
+def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
+    evoked.pick(['EEG 001', 'EEG 002', 'EEG 003'])
+    fig = evoked.plot_topomap(times=0.1, res=8, contours=0, sensors=False,
+                              units=units, scalings=scalings)
+    cbar = [ax for ax in fig.axes if hasattr(ax, '_colorbar')]
+    assert len(cbar) == 1
+    cbar = cbar[0]
+    assert cbar.get_title() == expected_unit
+
+
 @pytest.mark.parametrize('extrapolate', ('box', 'local', 'head'))
 def test_plot_evoked_topomap_extrapolation(evoked, extrapolate):
     """Test topomap extrapolation options."""
