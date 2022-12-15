@@ -1289,11 +1289,14 @@ def plot_ica_components(
     data = np.atleast_2d(data)
     data = data[:, data_picks]
 
+    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
     if title is None:
         title = 'ICA components'
+    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
     user_passed_axes = axes is not None
     if not user_passed_axes:
         fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
+        # TODO ↓↓↓↓↓ remove after 1.3 release
         fig.suptitle(title)
 
     subplot_titles = list()
@@ -1322,8 +1325,10 @@ def plot_ica_components(
         _hide_frame(ax)
     del pos
     tight_layout(fig=fig)
+    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
     if not user_passed_axes:
         fig.subplots_adjust(top=0.88, bottom=0.)
+    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
     fig.canvas.draw()
 
     # add title selection interactivity
