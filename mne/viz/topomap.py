@@ -1161,7 +1161,7 @@ def plot_ica_components(
 
         .. versionadded:: 1.3
     %(cmap_topomap)s
-    %(vlim_plot_topomap_psd)s
+    %(vlim_plot_topomap)s
 
         .. versionadded:: 1.3
     %(vmin_vmax_topomap)s
@@ -1204,11 +1204,7 @@ def plot_ica_components(
     Returns
     -------
     fig : instance of matplotlib.figure.Figure | list of matplotlib.figure.Figure
-
-        The figure object(s). Components are plotted on a grid with maximum
-        dimensions of 5⨉4. If more than 20 components are plotted, a new figure
-        will be created for each batch of 20, and a list of those figures
-        will be returned.
+        The figure object(s).
 
     Notes
     -----

@@ -2260,10 +2260,10 @@ nrows, ncols : int | 'auto'
     The number of rows and columns of topographies to plot. If both ``nrows``
     and ``ncols`` are ``'auto'``, will plot up to 20 components in a 5×4 grid,
     and return multiple figures if more than 20 components are requested.
-    If only one of ``nrows`` or ``ncols`` is ``'auto'``, the other is inferred
-    and a single figure is generated. If scalars are provided for both
-    arguments, will plot up to ``nrows*ncols`` components in a grid and return
-    multiple figures as needed. Defaults to ``nrows='auto', ncols='auto'``.
+    If one is ``'auto'`` and the other a scalar, a single figure is generated.
+    If scalars are provided for both arguments, will plot up to ``nrows*ncols``
+    components in a grid and return multiple figures as needed. Default is
+    ``nrows='auto', ncols='auto'``.
 """
 
 docdict['nrows_ncols_topomap'] = """
