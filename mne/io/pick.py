@@ -970,8 +970,15 @@ def _pick_data_or_ica(info, exclude=()):
 
 
 def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
-                  with_ref_meg=True, return_kind=False):
-    """Convert and check pick validity."""
+                  with_ref_meg=True, return_kind=False, picks_on="channels"):
+    """Convert and check pick validity.
+
+    Parameters
+    ----------
+    picks_on : str
+        'channels' (default) for error messages about selection of channels.
+        'components' for error messages about selection of components.
+    """
     from .meas_info import Info
     picked_ch_type_or_generic = False
     #
@@ -1017,8 +1024,12 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
     if picks.dtype.kind not in ['i', 'u']:
-        raise TypeError('picks must be a list of int or list of str, got '
-                        'a data type of %s' % (picks.dtype,))
+        extra_ch = " or list of str (names)" if picks_on == "channels" else ""
+        msg = (
+            f"picks must be a list of int (indices){extra_ch}. "
+            f"The provided data type {picks.dtype} is invalid."
+        )
+        raise TypeError(msg)
     del extra_repr
     picks = picks.astype(int)
 
@@ -1026,14 +1037,14 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     # ensure we have (optionally non-empty) ndarray of valid int
     #
     if len(picks) == 0 and not allow_empty:
-        raise ValueError('No appropriate channels found for the given picks '
-                         '(%r)' % (orig_picks,))
+        raise ValueError('No appropriate %s found for the given picks '
+                         '(%r)' % (picks_on, orig_picks))
     if (picks < -n_chan).any():
         raise ValueError('All picks must be >= %d, got %r'
                          % (-n_chan, orig_picks))
     if (picks >= n_chan).any():
-        raise ValueError('All picks must be < n_channels (%d), got %r'
-                         % (n_chan, orig_picks))
+        raise ValueError('All picks must be < n_%s (%d), got %r'
+                         % (picks_on, n_chan, orig_picks))
     picks %= n_chan  # ensure positive
     if return_kind:
         return picks, picked_ch_type_or_generic

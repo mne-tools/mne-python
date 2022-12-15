@@ -1213,7 +1213,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             figs.append(fig)
         return figs
     else:
-        picks = _picks_to_idx(ica.n_components_, picks)
+        picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
     ch_type = _get_ch_type(ica, ch_type)
 
     cmap = _setup_cmap(cmap, n_axes=len(picks))

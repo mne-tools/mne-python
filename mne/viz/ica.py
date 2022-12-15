@@ -95,7 +95,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     from ..epochs import BaseEpochs
 
     exclude = ica.exclude
-    picks = _picks_to_idx(ica.n_components_, picks)
+    picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
 
     if isinstance(inst, (BaseRaw, BaseEpochs)):
         fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
@@ -421,7 +421,9 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     num_std = float(plot_std)
 
     limit = min(5, ica.n_components_) if picks is None else ica.n_components_
-    picks = _picks_to_idx(ica.n_components_, picks)[:limit]
+    picks = _picks_to_idx(
+        ica.n_components_, picks, picks_on="components"
+    )[:limit]
 
     if axes is None:
         fig, axes = _create_properties_layout(figsize=figsize)
