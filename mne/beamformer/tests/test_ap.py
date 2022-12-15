@@ -4,15 +4,13 @@
 
 import os.path as op
 
-import numpy as np
-from scipy import linalg
 from random import choice
 
 import mne
 from mne.beamformer import alternating_projections
 from mne.cov import regularize
 from mne.datasets import testing
-from mne.beamformer.tests.test_rap_music import simu_data
+from mne.beamformer.tests.test_rap_music import simu_data, _check_dipoles
 
 data_path = testing.data_path(download=False)
 fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -44,40 +42,6 @@ def _get_data(ch_decim=1):
     return evoked, noise_cov
 
 
-def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
-    src = fwd['src']
-    pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
-                                     stc.vertices[0])]
-    pos2 = fwd['source_rr'][np.where(src[1]['vertno'] ==
-                                     stc.vertices[1])[0] +
-                            len(src[0]['vertno'])]
-
-    # Check the position of the two dipoles
-    assert (dipoles[0].pos[0] in np.array([pos1, pos2]))
-    assert (dipoles[1].pos[0] in np.array([pos1, pos2]))
-
-    ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
-                                     stc.vertices[0])[0]][0]
-    ori2 = fwd['source_nn'][np.where(src[1]['vertno'] ==
-                                     stc.vertices[1])[0] +
-                            len(src[0]['vertno'])][0]
-
-    # Check the orientation of the dipoles
-    assert (np.max(np.abs(np.dot(dipoles[0].ori[0],
-                                 np.array([ori1, ori2]).T))) > 0.9)
-
-    assert (np.max(np.abs(np.dot(dipoles[1].ori[0],
-                                 np.array([ori1, ori2]).T))) > 0.9)
-
-    if residual is not None:
-        picks_grad = mne.pick_types(residual.info, meg='grad')
-        picks_mag = mne.pick_types(residual.info, meg='mag')
-        rel_tol = 0.15
-        for picks in [picks_grad, picks_mag]:
-            assert (linalg.norm(residual.data[picks], ord='fro') <
-                    rel_tol * linalg.norm(evoked.data[picks], ord='fro'))
-
-
 @testing.requires_testing_data
 def test_ap_simulated():
     """Test AP with simulated evoked."""
@@ -98,7 +62,8 @@ def test_ap_simulated():
                                                      noise_cov,
                                                      verbose=True)
     assert 92 < var_exp < 96
-    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked,
+                   rel_tol=0.15)
     assert 97 < dipoles[0].gof.max() < 100
     assert 97 < dipoles[1].gof.max() < 100
     assert dipoles[0].gof.min() >= 0.
@@ -112,21 +77,24 @@ def test_ap_simulated():
                                                       nsources,
                                                       noise_cov)
 
-    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual,
+                   rel_tol=0.15)
 
     # Check dipoles for free ori
     dipoles, residual, _, _ = alternating_projections(sim_evoked,
                                                       forward,
                                                       nsources,
                                                       noise_cov)
-    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual,
+                   rel_tol=0.15)
 
     # Check dipoles for free surface ori
     dipoles, residual, _, _ = alternating_projections(sim_evoked,
                                                       forward_surf_ori,
                                                       nsources,
                                                       noise_cov)
-    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual,
+                   rel_tol=0.15)
 
 
 @testing.requires_testing_data
