@@ -484,7 +484,7 @@ def test_picks_to_idx():
     # Array and list
     assert_array_equal(picks, _picks_to_idx(info, picks))
     assert_array_equal(picks, _picks_to_idx(info, list(picks)))
-    with pytest.raises(TypeError, match='data type of float64'):
+    with pytest.raises(TypeError, match='data type float64 is invalid'):
         _picks_to_idx(info, 1.)
     # None
     assert_array_equal(picks, _picks_to_idx(info, None))
