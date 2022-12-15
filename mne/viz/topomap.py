@@ -35,8 +35,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs, _format_units_psd,
-                    _prepare_sensor_names, _warn_deprecated_vmin_vmax,
-                    _TITLE_WARNING_MSG)
+                    _prepare_sensor_names, _warn_deprecated_vmin_vmax)
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
@@ -1179,11 +1178,6 @@ def plot_ica_components(
     title : str | None
         The title of the generated figure. If ``None`` (default) and
         ``axes=None``, a default title of "ICA Components" will be used.
-
-        .. deprecated:: v1.4
-           The ``title`` parameter will be removed in version 1.4. Please
-           use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-           instead to set the title after the figure is created.
     %(nrows_ncols_ica_components)s
 
         .. versionadded:: 1.3
@@ -1290,16 +1284,11 @@ def plot_ica_components(
     data = np.atleast_2d(data)
     data = data[:, data_picks]
 
-    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
     if title is None:
         title = 'ICA components'
-    else:
-        warn(_TITLE_WARNING_MSG, FutureWarning)
-    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
     user_passed_axes = axes is not None
     if not user_passed_axes:
         fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
-        # TODO ↓↓↓↓↓ remove after 1.3 release
         fig.suptitle(title)
 
     subplot_titles = list()

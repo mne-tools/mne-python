@@ -18,7 +18,12 @@ from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
                         _INTERPOLATION_DEFAULT)
 from ..fixes import pinv
 from ..utils import fill_doc, _check_option, _validate_type, copy_doc, warn
-from ..viz.utils import _warn_deprecated_vmin_vmax, _TITLE_WARNING_MSG
+from ..viz.utils import _warn_deprecated_vmin_vmax
+
+# TODO ↓↓↓↓↓ remove after 1.3 release
+_TITLE_WARNING_MSG = (
+    'The "title" parameter is deprecated and will be removed in version 1.4. '
+    'Use "fig.suptitle()" instead.')
 
 
 @fill_doc
