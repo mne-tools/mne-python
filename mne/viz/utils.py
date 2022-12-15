@@ -51,6 +51,11 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
 
+# TODO ↓↓↓↓↓ remove after 1.3 release
+_TITLE_WARNING_MSG = (
+    'The "title" parameter is deprecated and will be removed in version 1.4. '
+    'Use "fig.suptitle()" instead.')
+
 
 @decorator
 def safe_event(fun, *args, **kwargs):

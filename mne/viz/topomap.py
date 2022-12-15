@@ -35,7 +35,8 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs, _format_units_psd,
-                    _prepare_sensor_names, _warn_deprecated_vmin_vmax)
+                    _prepare_sensor_names, _warn_deprecated_vmin_vmax,
+                    _TITLE_WARNING_MSG)
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
@@ -1292,6 +1293,8 @@ def plot_ica_components(
     # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
     if title is None:
         title = 'ICA components'
+    else:
+        warn(_TITLE_WARNING_MSG, FutureWarning)
     # TODO ↑↑↑↑↑ remove after 1.3 release (end)
     user_passed_axes = axes is not None
     if not user_passed_axes:
