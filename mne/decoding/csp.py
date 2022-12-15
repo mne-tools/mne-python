@@ -300,7 +300,7 @@ class CSP(TransformerMixin, BaseEstimator):
             .. versionadded:: 1.3
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
-        %(units_topomap_evoked)s
+        %(units_topomap)s
         %(axes_evoked_plot_topomap)s
         name_format : str
             String format for topomap values. Defaults to "CSP%%01d".
@@ -321,10 +321,13 @@ class CSP(TransformerMixin, BaseEstimator):
            The figure.
         """
         from .. import EvokedArray
-        if components is None:
-            components = np.arange(self.n_components)
 
         vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
+
+        if units is None:
+            units = 'AU'
+        if components is None:
+            components = np.arange(self.n_components)
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
@@ -405,7 +408,7 @@ class CSP(TransformerMixin, BaseEstimator):
             .. versionadded:: 1.3
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
-        %(units_topomap_evoked)s
+        %(units_topomap)s
         %(axes_evoked_plot_topomap)s
         name_format : str
             String format for topomap values. Defaults to "CSP%%01d".
@@ -429,6 +432,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
 
+        if units is None:
+            units = 'AU'
         if components is None:
             components = np.arange(self.n_components)
 
