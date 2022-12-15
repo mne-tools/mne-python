@@ -45,7 +45,7 @@ def _get_data(ch_decim=1):
     return evoked, noise_cov
 
 
-def simu_data(evoked, forward, noise_cov, n_dipoles, times, nave=1):
+def simu_data(evoked, forward, noise_cov, times, nave=1):
     """Simulate an evoked dataset with 2 sources.
 
     One source is put in each hemisphere.
