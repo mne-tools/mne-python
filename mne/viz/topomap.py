@@ -1299,7 +1299,7 @@ def plot_ica_components(
             comp_title += f' ({ch_type})'
         subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
-            data_, names_ = _merge_ch_data(data_, ch_type, names.copy())
+            data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
         vlim = _setup_vmin_vmax(data_, *vlim)
         im = plot_topomap(
             data_.flatten(), pos, ch_type=ch_type, sensors=sensors,
