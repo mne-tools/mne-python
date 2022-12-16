@@ -1309,7 +1309,7 @@ def plot_ica_components(
             cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
                                       side="right", pad=.05, format=cbar_fmt)
             cbar.ax.tick_params(labelsize=12)
-            cbar.set_ticks(vlim)
+            cbar.set_ticks(_vlim)
         _hide_frame(ax)
     del pos
     tight_layout(fig=fig)
