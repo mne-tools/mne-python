@@ -1296,6 +1296,9 @@ def plot_ica_components(
         subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
             data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
+        # ↓↓↓ NOTE: we intentionally use the default norm=False here, so that
+        # ↓↓↓ we get vlims that are symmetric-about-zero, even if the data for
+        # ↓↓↓ a given component happens to be one-sided.
         _vlim = _setup_vmin_vmax(data_, *vlim)
         im = plot_topomap(
             data_.flatten(), pos, ch_type=ch_type, sensors=sensors,
