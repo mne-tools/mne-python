@@ -3801,9 +3801,9 @@ units : dict | str
 
 _units = """
 units : {}str | None
-    The units of the channel type; used for the colorbar label. Ignored if
-    ``colorbar=False``. If ``None`` {}the label will be "AU" indicating
-    arbitrary units. Default is ``None``.
+    The units to use for the colorbar label. Ignored if ``colorbar=False``.
+    If ``None`` {}the label will be "AU" indicating arbitrary units.
+    Default is ``None``.
 """
 docdict['units_topomap'] = _units.format('', '')
 docdict['units_topomap_evoked'] = _units.format(
