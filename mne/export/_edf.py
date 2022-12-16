@@ -2,6 +2,7 @@
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
+from collections import defaultdict
 
 from contextlib import contextmanager
 import numpy as np
@@ -17,6 +18,24 @@ def _try_to_set_value(header, key, value, channel_index=None):
     # for example "setPatientName()"
     func_name = f'set{key}'
     func = getattr(header, func_name)
+
+    # The EDFwriter.setPatientGender method only accepts sex specification by
+    # integer options of 0 (f), 1 (m), 2 (NA / other / unk.).
+    # If sex is specified as strings, convert them from BIDS compatible
+    # options to their respective integer encoding.
+    if func_name == "setPatientGender":
+        if isinstance(value, str):
+            sex_translation_table = {
+                "f": 0, "F": 0, "female": 0, "Female": 0, "FEMALE": 0,
+                "m": 1, "M": 1, "male": 1, "Male": 1, "MALE": 1,
+                "o": 2, "O": 2, "other": 2, "Other": 2, "OTHER": 2,
+            }
+            # If sex definition is not from the set of BIDS-compatible
+            # options, raise a KeyError with this detail.
+            try:
+                value = sex_translation_table[value]
+            except KeyError:
+                raise KeyError(f"Provided perticipant sex information, '{value}', not a BIDS-compitible option.\n")
 
     # some setter functions are indexed by channels
     if channel_index is None:
