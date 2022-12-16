@@ -25,11 +25,11 @@ def _try_to_set_value(header, key, value, channel_index=None):
     # options to their respective integer encoding.
     if func_name == "setPatientGender":
         if isinstance(value, str):
-            sex_translation_table = {
+            sex_translation_table = dict({
                 "f": 0, "F": 0, "female": 0, "Female": 0, "FEMALE": 0,
                 "m": 1, "M": 1, "male": 1, "Male": 1, "MALE": 1,
                 "o": 2, "O": 2, "other": 2, "Other": 2, "OTHER": 2,
-            }
+            })
             # If sex definition is not from the set of BIDS-compatible
             # options, raise a KeyError with this detail.
             try:
