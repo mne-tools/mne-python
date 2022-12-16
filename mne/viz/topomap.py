@@ -1239,22 +1239,23 @@ def plot_ica_components(
     # and create multiple figures if more than 20 components requested
     if nrows == 'auto' and ncols == 'auto':
         ncols = 5
-        max_subplots_per_fig = 20
+        max_subplots = 20
     elif nrows == 'auto' or ncols == 'auto':
         # user provided incomplete row/col spec; put all in one figure
-        max_subplots_per_fig = n_components
+        max_subplots = n_components
     else:
-        max_subplots_per_fig = nrows * ncols
+        max_subplots = nrows * ncols
 
     # handle ch_type=None
     ch_type = _get_ch_type(ica, ch_type)
 
     if picks is None:
         figs = []
-        for k in range(0, n_components, max_subplots_per_fig):
-            picks = range(k, min(k + max_subplots_per_fig, n_components))
+        cut_points = range(max_subplots, n_components, max_subplots)
+        pick_groups = np.split(range(n_components), cut_points)
+        for _picks in pick_groups:
             fig = plot_ica_components(
-                ica, picks=picks, ch_type=ch_type, inst=inst,
+                ica, picks=_picks, ch_type=ch_type, inst=inst,
                 plot_std=plot_std, reject=reject, sensors=sensors,
                 show_names=show_names, contours=contours, outlines=outlines,
                 sphere=sphere, image_interp=image_interp,
