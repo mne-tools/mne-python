@@ -17,7 +17,7 @@ def _try_to_set_value(header, key, value, channel_index=None):
     # for example "setPatientName()"
     func_name = f'set{key}'
     func = getattr(header, func_name)
-    
+
     # some setter functions are indexed by channels
     if channel_index is None:
         return_val = func(value)
