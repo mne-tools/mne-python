@@ -203,9 +203,9 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             # raise a TypeError if 'sex' is not in 'subject_info'
             # as subj_info.get('sex') in this case return None
             if sex is None:
-                warning_message = f"'sex' not specified in \
-                    raw.info.subject_info. Encoding as n/a: 2 \
-                    for EDFwriter."
+                warning_message = "'sex' not specified in " + \
+                    "raw.info.subject_info. Encoding as n/a: 2 " + \
+                    "for EDFwriter."
                 warn(message=warning_message)
                 sex = 2
 
