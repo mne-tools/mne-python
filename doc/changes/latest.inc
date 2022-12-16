@@ -36,7 +36,6 @@ Enhancements
 
 Bugs
 ~~~~
-- Add handling of sex/gender format discrepency between :func:`mne.export._edf._try_to_set_value` and :func:`EDFlib.edfwriter.EDFwriter.setPatientGender` (:gh:`XXX` by :newcontrib:`Mark Henney`)
 - Fix bugs in documentation of :func:`mne.time_frequency.tfr_array_multitaper` and related functions/methods (:gh:`11310` by :newcontrib:`Santeri Ruuskanen`)
 - Fix bug to be able to customize legends when using :meth:`mne.viz.Brain.add_volume_labels` (:gh:`11289` by :newcontrib:`Mauricio Cespedes Tenorio`)
 - Fix bug in documentation of :func:`mne.channels.make_dig_montage` (:gh:`11235` by :newcontrib:`Daniel Hasegan`)
