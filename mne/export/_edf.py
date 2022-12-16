@@ -207,7 +207,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                     "raw.info.subject_info. Encoding as n/a: 2 " + \
                     "for EDFwriter."
                 warn(message=warning_message)
-                sex = 2
+                sex = 0
 
             for key, val in [('PatientName', name),
                              ('PatientGender', sex),
