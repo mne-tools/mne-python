@@ -6,9 +6,10 @@
 Compute Alternating Projections on evoked data
 ==============================================
 
-Compute an Alternating Projections (AP)  on :class:'mne.Evoked' data,
+Compute an Alternating Projections (AP)  on :class:'~mne.Evoked' data,
 on both free-oriented dipoles and fixed-oriented dipoles.
-:footcite:`AdlerEtAl2022` :footcite:'AdlerEtAl2019'
+:footcite:`AdlerEtAl2022`
+:footcite:'AdlerEtAl2019'
 """
 
 # Author: Yuval Realpe <yuval.realpe@gmail.com>
