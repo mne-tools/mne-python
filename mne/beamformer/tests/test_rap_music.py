@@ -81,7 +81,7 @@ def simu_data(evoked, forward, noise_cov, times, nave=1):
 
 
 def _check_dipoles(dipoles, fwd, stc, evoked, residual=None,
-                   rel_tol=0.02):
+                   rel_tol=0.02, ori_check=0.99):
     src = fwd['src']
     pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
                                      stc.vertices[0])]
@@ -101,10 +101,10 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None,
 
     # Check the orientation of the dipoles
     assert (np.max(np.abs(np.dot(dipoles[0].ori[0],
-                                 np.array([ori1, ori2]).T))) > 0.99)
+                                 np.array([ori1, ori2]).T))) > ori_check)
 
     assert (np.max(np.abs(np.dot(dipoles[1].ori[0],
-                                 np.array([ori1, ori2]).T))) > 0.99)
+                                 np.array([ori1, ori2]).T))) > ori_check)
 
     if residual is not None:
         picks_grad = mne.pick_types(residual.info, meg='grad')
