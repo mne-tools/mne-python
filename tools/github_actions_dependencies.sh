@@ -5,7 +5,7 @@ EXTRA_ARGS=""
 if [ ! -z "$CONDA_ENV" ]; then
 	pip uninstall -yq mne
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
-	mamba install -y $CONDA_DEPENDENCIES
+	conda install -y $CONDA_DEPENDENCIES
 else
 	# Changes here should also go in the interactive_test CircleCI job
 	python -m pip install $STD_ARGS pip setuptools wheel

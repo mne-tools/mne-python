@@ -32,7 +32,6 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          mamba-version: "*"
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
