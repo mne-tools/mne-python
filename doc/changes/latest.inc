@@ -36,7 +36,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug in :func:`mne.io._edf._export_raw` when exporting raw to EDF with EDFLib when subject `sex` is missing (:gh:`11375` by :newcontrib:`Mark Alexander Henney`)
+- Fix bug in :func:`mne.export.export_raw` when exporting raw to EDF with EDFLib when subject ``sex`` is missing (:gh:`11375` by :newcontrib:`Mark Alexander Henney`)
 - Fix bugs in documentation of :func:`mne.time_frequency.tfr_array_multitaper` and related functions/methods (:gh:`11310` by :newcontrib:`Santeri Ruuskanen`)
 - Fix bug to be able to customize legends when using :meth:`mne.viz.Brain.add_volume_labels` (:gh:`11289` by :newcontrib:`Mauricio Cespedes Tenorio`)
 - Fix bug in documentation of :func:`mne.channels.make_dig_montage` (:gh:`11235` by :newcontrib:`Daniel Hasegan`)
