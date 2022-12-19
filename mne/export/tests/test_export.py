@@ -156,6 +156,10 @@ def test_double_export_edf(tmp_path):
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
 
+    # check handling of missing subject metadata
+    del info['subject_info']['sex']
+    raw_2 = RawArray(data, info)
+    raw_2.export(temp_fname, add_ch_type=True, overwrite=True)
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
