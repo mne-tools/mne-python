@@ -294,6 +294,8 @@
 
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 
+.. _Mark Alexander Henney: https://github.com/henneysq
+
 .. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
 
 .. _Marmaduke Woodman: https://github.com/maedoc
