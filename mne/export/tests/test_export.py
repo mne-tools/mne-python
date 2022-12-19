@@ -161,6 +161,7 @@ def test_double_export_edf(tmp_path):
     raw_2 = RawArray(data, info)
     raw_2.export(temp_fname, add_ch_type=True, overwrite=True)
 
+
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
 def test_export_edf_annotations(tmp_path):
