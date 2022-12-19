@@ -198,7 +198,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                     raise RuntimeError(
                         f"Setting patient birth date to {birthday} "
                         f"returned an error")
-
             for key, val in [('PatientName', name),
                              ('PatientGender', sex),
                              ('AdditionalPatientInfo', f'hand={hand}')]:
