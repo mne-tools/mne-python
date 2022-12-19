@@ -306,7 +306,7 @@ stages:
     # with basic matplotlib functionality so it must be uninstalled until fixed
     - bash: |
         set -e
-        conda remove -c conda-forge --force -yq mne ipympl
+        mamba remove -c conda-forge --force -yq mne ipympl
         rm /c/Miniconda/Scripts/mne.exe
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
@@ -363,13 +363,13 @@ stages:
       displayName: Add conda to PATH, deal with Qt linking bug
     - script: conda update -n base -c defaults conda
       displayName: Update conda
-    - script: conda env update --name base --file environment.yml
-      displayName: Setup MNE environment
-    - script: conda install -c conda-forge graphviz
+    - script: conda install -c conda-forge graphviz mamba
       displayName: Add graphviz dot
+    - script: mamba env update --name base --file environment.yml
+      displayName: Setup MNE environment
     - bash: |
         set -e
-        conda remove -c conda-forge --force -yq mne
+        mamba remove -c conda-forge --force -yq mne
         rm /c/Miniconda/Scripts/mne.exe
       displayName: Remove old MNE
     - script: pip install -e .
