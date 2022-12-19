@@ -261,10 +261,10 @@ stages:
     strategy:
       maxParallel: 4
       matrix:
-        3.9 conda:
+        3.10 conda:
           PLATFORM: 'x86-64'
           TEST_MODE: 'conda'
-          PYTHON_VERSION: '3.9'
+          PYTHON_VERSION: '3.10'
         3.9 pip:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.9'
