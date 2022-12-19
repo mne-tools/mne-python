@@ -201,7 +201,11 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             for key, val in [('PatientName', name),
                              ('PatientGender', sex),
                              ('AdditionalPatientInfo', f'hand={hand}')]:
-                _try_to_set_value(hdl, key, val)
+                # EDFwriter compares integer encodings of sex and will
+                # raise a TypeError if value is None as returned by
+                # subj_info.get(key) if key is missing.
+                if val is not None:
+                    _try_to_set_value(hdl, key, val)
 
         # set measurement date
         meas_date = raw.info['meas_date']
