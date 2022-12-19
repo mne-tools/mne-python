@@ -92,8 +92,8 @@ del raw  # save memory
 # includes the brain signal of interest,
 # and incorporate enough samples for a stable estimate. A rule of thumb is to
 # use more samples than there are channels in the data set; see
-# :footcite:`BrookesEtAl2008` for more detailed advice on covariance estimation
-# for beamformers. Here, we use a time
+# :footcite:`BrookesEtAl2008,WestnerEtAl2022` for more detailed advice on
+# covariance estimation for beamformers. Here, we use a time
 # window incorporating the expected auditory response at around 100 ms post
 # stimulus and extend the period to account for a low number of trials (72) and
 # low sampling rate of 150 Hz.
@@ -108,11 +108,13 @@ del epochs
 # %%
 # When looking at the covariance matrix plots, we can see that our data is
 # slightly rank-deficient as the rank is not equal to the number of channels.
-# Thus, we will have to regularize the covariance matrix before inverting it
+# Thus, we choose to regularize the covariance matrix before inverting it
 # in the beamformer calculation. This can be achieved by setting the parameter
 # ``reg=0.05`` when calculating the spatial filter with
 # :func:`~mne.beamformer.make_lcmv`. This corresponds to loading the diagonal
-# of the covariance matrix with 5% of the sensor power.
+# of the covariance matrix with 5% of the sensor power. Other ways to deal with
+# rank-deficient covariance matrices are discussed in
+# :footcite:`WestnerEtAl2022`.
 
 # %%
 # The forward model
@@ -173,12 +175,15 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 # estimates per voxel, corresponding to the three direction components of the
 # source. This can be achieved by setting
 # ``pick_ori='vector'`` and will yield a :class:`volume vector source estimate
-# <mne.VolVectorSourceEstimate>`. So we will compute another set of filters
-# using the vector beamformer approach:
+# <mne.VolVectorSourceEstimate>`. Note that we switch the ``weight_norm``
+# parameter to ``'unit-noise-gain-invariant'``, which is only necessary for the
+# vector unit-noise-gain beamformer. For more in-depth detail, see
+# :footcite:`WestnerEtAl2022`.
+# We will compute another set of filters using the vector beamformer approach:
 
 filters_vec = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                         noise_cov=noise_cov, pick_ori='vector',
-                        weight_norm='unit-noise-gain', rank=None)
+                        weight_norm='unit-noise-gain-invariant', rank=None)
 # save a bit of memory
 src = forward['src']
 del forward

@@ -219,6 +219,20 @@ aseg : str
     Freesurfer subject directory.
 """
 
+docdict['average_plot_evoked_topomap'] = """
+average : float | array-like of float, shape (n_times,) | None
+    The time window (in seconds) around a given time point to be used for
+    averaging. For example, 0.2 would translate into a time window that
+    starts 0.1 s before and ends 0.1 s after the given time point. If the
+    time window exceeds the duration of the data, it will be clipped.
+    Different time windows (one per time point) can be provided by
+    passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
+    ``None`` (default), no averaging will take place.
+
+    .. versionchanged:: 1.1
+       Support for ``array-like`` input.
+"""
+
 docdict['average_plot_psd'] = """\
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
@@ -2241,6 +2255,24 @@ npad : int | str
     a power-of-two size (can be much faster).
 """
 
+docdict['nrows_ncols_ica_components'] = """
+nrows, ncols : int | 'auto'
+    The number of rows and columns of topographies to plot. If both ``nrows``
+    and ``ncols`` are ``'auto'``, will plot up to 20 components in a 5×4 grid,
+    and return multiple figures if more than 20 components are requested.
+    If one is ``'auto'`` and the other a scalar, a single figure is generated.
+    If scalars are provided for both arguments, will plot up to ``nrows*ncols``
+    components in a grid and return multiple figures as needed. Default is
+    ``nrows='auto', ncols='auto'``.
+"""
+
+docdict['nrows_ncols_topomap'] = """
+nrows, ncols : int | 'auto'
+    The number of rows and columns of topographies to plot. If either ``nrows``
+    or ``ncols`` is ``'auto'``, the necessary number will be inferred. Defaults
+    to ``nrows=1, ncols='auto'``.
+"""
+
 # %%
 # O
 
@@ -3769,9 +3801,9 @@ units : dict | str
 
 _units = """
 units : {}str | None
-    The units of the channel type; used for the colorbar label. Ignored if
-    ``colorbar=False``. If ``None`` {}the label will be "AU" indicating
-    arbitrary units. Default is ``None``.
+    The units to use for the colorbar label. Ignored if ``colorbar=False``.
+    If ``None`` {}the label will be "AU" indicating arbitrary units.
+    Default is ``None``.
 """
 docdict['units_topomap'] = _units.format('', '')
 docdict['units_topomap_evoked'] = _units.format(

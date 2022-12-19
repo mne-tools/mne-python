@@ -10,8 +10,8 @@ Decoding (MVPA)
 
 Design philosophy
 =================
-Decoding (a.k.a. MVPA) in MNE largely follows the machine
-learning API of the scikit-learn package.
+Decoding (a.k.a. MVPA) in MNE largely follows the machine learning API of the
+scikit-learn package.
 Each estimator implements ``fit``, ``transform``, ``fit_transform``, and
 (optionally) ``inverse_transform`` methods. For more details on this design,
 visit scikit-learn_. For additional theoretical insights into the decoding
