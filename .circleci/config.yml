@@ -512,7 +512,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/1.2
+                - maint/1.3
 
   main:
     jobs:
