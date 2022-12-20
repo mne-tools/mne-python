@@ -331,7 +331,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if weight_norm is not None:
         # Three different ways to calculate the normalization factors here.
         # Only matters when in vector mode, as otherwise n_orient == 1 and
-        # they are all equivalent. Sekihara 2008 says to use
+        # they are all equivalent.
         #
         # In MNE < 0.21, we just used the Frobenius matrix norm:
         #
