@@ -958,7 +958,7 @@ try:
             **kwargs):  # noqa
         return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
                          cache=cache, **kwargs)
-except ImportError:
+except Exception:  # could be ImportError, SystemError, etc.
     has_numba = False
 else:
     has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
