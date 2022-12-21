@@ -17,15 +17,12 @@ from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
 
 
-def matmul_transpose(mat):
-    """Dot product of array with its transpose."""
-    return np.matmul(mat, mat.transpose())
-
-
 def _produce_data_cov(data_arr, attr_dict):
     """Calculate data Covariance."""
     nsources = attr_dict['nsources']
-    data_cov = matmul_transpose(data_arr) + matmul_transpose(data_arr).trace()\
+    data_tr = data_arr.transpose()
+    data_norm = np.matmul(data_arr, data_tr)
+    data_cov = data_norm + data_norm.trace()\
         * np.eye(data_arr.shape[0])  # Array Covariance Matrix
     print(' alternating projection ; nsources = {}:'.format(nsources))
 
@@ -58,7 +55,7 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
     for dip in range(attr_dict['ndipoles']):
         l_p = np.expand_dims(gain[:, dip], axis=1)
         ap_val1[dip] = multi_dot([l_p.transpose(), data_cov, l_p]) \
-            / (matmul_transpose(l_p.transpose())[0, 0])
+            / (np.matmul(l_p.transpose(),l_p)[0, 0])
     s1_idx = np.argmax(ap_val1)
     s_ap.append(s1_idx)
     return s_ap
@@ -89,7 +86,9 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
     for _ in range(1, attr_dict['nsources']):
         ap_val2 = np.zeros(attr_dict['ndipoles'])
         sub_g = gain[:, s_ap]
-        act_spc = multi_dot([sub_g, pinv(matmul_transpose(sub_g.transpose())),
+        act_spc = multi_dot([sub_g, pinv(np.matmul(sub_g.transpose(),
+                                                   sub_g)
+                                        ),
                              sub_g.transpose()])
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
         for dip in range(attr_dict['ndipoles']):
@@ -140,7 +139,9 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
             s_ap_temp.pop(src)
             sub_g = gain[:, s_ap_temp]
             act_spc = multi_dot([sub_g,
-                                 pinv(matmul_transpose(sub_g.transpose())),
+                                 pinv(np.matmul(sub_g.transpose(),
+                                                sub_g)
+                                     ),
                                  sub_g.transpose()])
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
@@ -327,7 +328,9 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
     for src in range(1, attr_dict['nsources']):
         ap_val2 = np.zeros(attr_dict['ndipoles'])
         act_spc = multi_dot([sub_g_proj,
-                            pinv(matmul_transpose(sub_g_proj.transpose())),
+                            pinv(np.matmul(sub_g_proj.transpose(),
+                                           sub_g_proj)
+                                ),
                             sub_g_proj.transpose()])
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
         for dip in range(attr_dict['ndipoles']):
@@ -393,7 +396,9 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
             a_tmp = copy(ap_temp_tuple[2])
             a_tmp = np.delete(a_tmp, src, 1)
             act_spc = multi_dot([a_tmp,
-                                 pinv(matmul_transpose(a_tmp.transpose())),
+                                 pinv(np.matmul(a_tmp.transpose(),
+                                                a_tmp)
+                                     ),
                                  a_tmp.transpose()])
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
