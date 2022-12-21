@@ -63,6 +63,7 @@ Bugs
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
 - Fix selection of ICA components in :func:`mne.viz.plot_ica_components` and :meth:`mne.preprocessing.ICA.plot_components` (:gh:`11369` by `Mathieu Scheltienne`_)
+- Fix bug where a Freesurfer reconstruction run with both a T1 and a T2 caused :class:`mne.viz.Brain` not to initialize pial surfaces properly (:gh:`11361` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
