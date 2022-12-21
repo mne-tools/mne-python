@@ -173,7 +173,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
     Parameters
     ----------
     data_arr : array, shape (nchannels, times)
-        Filttered evoked data array.
+        Filtered evoked data array.
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
     nsources : int
@@ -432,7 +432,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
     Parameters
     ----------
     data_arr : array, shape (nchannels, times)
-        Filttered evoked data array.
+        Filtered evoked data array.
     gain : array, shape (nchannels, ndipoles)
         Gain array.
     nsources : int
@@ -652,7 +652,7 @@ def _explained_data_packing(evoked, picks, explained_data_mat, info):
 def alternating_projections(evoked, forward, nsources, noise_cov=None,
                             max_iter=6, return_residual=True,
                             return_active_info=False, verbose=None):
-    """AP sources localization method.
+    """Alternating Projections sources localization method.
 
     Compute Alternating Projections (AP) on evoked data.
 
@@ -665,7 +665,9 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     nsources : int
         The number of dipoles to estimate.
     noise_cov : instance of Covariance, optional
-        The noise Covariance. The default is None.
+        The noise covariance matrix, used for whitening the evoked signal.
+        The default is None. If None is given, the noise covariance matrix
+        is craeted ad-hoc, See: mne.cov.make_ad_hoc_cov
     max_iter : int, optional
         Maximal iteration number of AP. The default is 6.
     return_residual : bool, optional
