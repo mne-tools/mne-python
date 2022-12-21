@@ -35,7 +35,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs, _format_units_psd,
-                    _prepare_sensor_names)
+                    _prepare_sensor_names, _warn_deprecated_vmin_vmax)
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
@@ -1111,15 +1111,15 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
 
 
 @verbose
-def plot_ica_components(ica, picks=None, ch_type=None, res=64,
-                        vmin=None, vmax=None, cmap='RdBu_r',
-                        sensors=True, colorbar=False, title=None,
-                        show=True, outlines='head', contours=6,
-                        image_interp=_INTERPOLATION_DEFAULT,
-                        inst=None, plot_std=True,
-                        topomap_args=None, image_args=None,
-                        psd_args=None, reject='auto',
-                        sphere=None, *, verbose=None):
+def plot_ica_components(
+        ica, picks=None, ch_type=None, *, inst=None, plot_std=True,
+        reject='auto', sensors=True, show_names=False, contours=6,
+        outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+        size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
+        cnorm=None, colorbar=False, cbar_fmt='%3.2f', axes=None, title=None,
+        nrows='auto', ncols='auto', show=True, topomap_args=None,
+        image_args=None, psd_args=None, verbose=None):
     """Project mixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1128,17 +1128,6 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         The ICA solution.
     %(picks_ica)s
     %(ch_type_topomap)s
-    %(res_topomap)s
-    %(vmin_vmax_topomap)s
-    %(cmap_topomap)s
-    %(sensors_topomap)s
-    %(colorbar_topomap)s
-    title : str | None
-        Title to use.
-    %(show)s
-    %(outlines_topomap)s
-    %(contours_topomap)s
-    %(image_interp_topomap)s
     inst : Raw | Epochs | None
         To be able to see component properties after clicking on component
         topomap you need to pass relevant data - instances of Raw or Epochs
@@ -1149,32 +1138,73 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
         plotted. For example 2.5 will plot 2.5 standard deviation above/below.
-    topomap_args : dict | None
-        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
-        additional arguments. Defaults to None.
-    image_args : dict | None
-        Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
-        any additional arguments. Defaults to None.
-    psd_args : dict | None
-        Dictionary of arguments to :meth:`~mne.Epochs.compute_psd`. If
-        ``None``, doesn't pass any additional arguments. Defaults to ``None``.
     reject : 'auto' | dict | None
         Allows to specify rejection parameters used to drop epochs
         (or segments if continuous signal is passed as inst).
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
     %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+    %(extrapolate_topomap)s
+
+        .. versionadded:: 1.3
+    %(border_topomap)s
+
+        .. versionadded:: 1.3
+    %(res_topomap)s
+    %(size_topomap)s
+
+        .. versionadded:: 1.3
+    %(cmap_topomap)s
+    %(vlim_plot_topomap)s
+
+        .. versionadded:: 1.3
+    %(vmin_vmax_topomap)s
+
+        .. deprecated:: v1.4
+           The ``vmin`` and ``vmax`` parameters will be removed in version
+           1.4. Please use the ``vlim`` parameter instead.
+    %(cnorm)s
+
+        .. versionadded:: 1.3
+    %(colorbar_topomap)s
+    %(cbar_fmt_topomap)s
+    %(axes_evoked_plot_topomap)s
+    title : str | None
+        The title of the generated figure. If ``None`` (default) and
+        ``axes=None``, a default title of "ICA Components" will be used.
+    %(nrows_ncols_ica_components)s
+
+        .. versionadded:: 1.3
+    %(show)s
+    topomap_args : dict | None
+        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
+        additional arguments. Defaults to None.
+
+        .. deprecated:: v1.4
+           The ``topomap_args`` parameter will be removed in version 1.4. All
+           relevant topomap parameters (e.g., ``show_names``, ``extrapolate``,
+           ``border``, ``size``, etc) are now directly exposed in this
+           function's signature.
+    image_args : dict | None
+        Dictionary of arguments to pass to :func:`~mne.viz.plot_epochs_image`
+        in interactive mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.
+    psd_args : dict | None
+        Dictionary of arguments to pass to :meth:`~mne.Epochs.compute_psd` in
+        interactive  mode. Ignored if ``inst`` is not supplied. If ``None``,
+        nothing is passed. Defaults to ``None``.
     %(verbose)s
 
     Returns
     -------
     fig : instance of matplotlib.figure.Figure | list of matplotlib.figure.Figure
-
-        The figure object(s). Components are plotted on a grid with maximum
-        dimensions of 5⨉4. If more than 20 components are plotted, a new figure
-        will be created for each batch of 20, and a list of those figures
-        will be returned.
+        The figure object(s).
 
     Notes
     -----
@@ -1191,77 +1221,110 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
+    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
+    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
 
-    topomap_args = dict() if topomap_args is None else topomap_args
-    topomap_args = copy.copy(topomap_args)
-    if 'sphere' not in topomap_args:
-        topomap_args['sphere'] = sphere
-    if picks is None:  # plot components by sets of 20
-        ch_type = _get_ch_type(ica, ch_type)
-        n_components = ica.mixing_matrix_.shape[1]
-        p = 20
+    if topomap_args:  # not None, not empty dict
+        warn('The "topomap_args" parameter is deprecated and will be '
+             'removed in version 1.4. All relevant topomap parameters are now '
+             'directly exposed in this function\'s signature.', FutureWarning)
+        topomap_args = copy.copy(topomap_args)
+    else:
+        topomap_args = dict()
+    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
+
+    n_components = ica.mixing_matrix_.shape[1]
+
+    # for backward compat, nrow='auto' ncol='auto' should yield 4 rows 5 cols
+    # and create multiple figures if more than 20 components requested
+    if nrows == 'auto' and ncols == 'auto':
+        ncols = 5
+        max_subplots = 20
+    elif nrows == 'auto' or ncols == 'auto':
+        # user provided incomplete row/col spec; put all in one figure
+        max_subplots = n_components
+    else:
+        max_subplots = nrows * ncols
+
+    # handle ch_type=None
+    ch_type = _get_ch_type(ica, ch_type)
+
+    if picks is None:
         figs = []
-        for k in range(0, n_components, p):
-            picks = range(k, min(k + p, n_components))
+        cut_points = range(max_subplots, n_components, max_subplots)
+        pick_groups = np.split(range(n_components), cut_points)
+        for _picks in pick_groups:
             fig = plot_ica_components(
-                ica, picks=picks, ch_type=ch_type, res=res, vmax=vmax,
-                cmap=cmap, sensors=sensors, colorbar=colorbar, title=title,
-                show=show, outlines=outlines, contours=contours,
-                image_interp=image_interp, inst=inst, plot_std=plot_std,
-                topomap_args=topomap_args, image_args=image_args,
-                psd_args=psd_args, reject=reject, sphere=sphere)
+                ica, picks=_picks, ch_type=ch_type, inst=inst,
+                plot_std=plot_std, reject=reject, sensors=sensors,
+                show_names=show_names, contours=contours, outlines=outlines,
+                sphere=sphere, image_interp=image_interp,
+                extrapolate=extrapolate, border=border, res=res, size=size,
+                cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
+                cbar_fmt=cbar_fmt, axes=axes, title=title, nrows=nrows,
+                ncols=ncols, show=show, topomap_args=topomap_args,
+                image_args=image_args, psd_args=psd_args, verbose=verbose)
             figs.append(fig)
         return figs
     else:
-        picks = _picks_to_idx(ica.info, picks)
-    ch_type = _get_ch_type(ica, ch_type)
-
-    cmap = _setup_cmap(cmap, n_axes=len(picks))
-    data = np.dot(ica.mixing_matrix_[:, picks].T,
-                  ica.pca_components_[:ica.n_components_])
+        picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
 
     data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(ica, ch_type, sphere=sphere)
+
+    cmap = _setup_cmap(cmap, n_axes=len(picks))
+    names = _prepare_sensor_names(names, show_names)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
+    data = np.dot(ica.mixing_matrix_[:, picks].T,
+                  ica.pca_components_[:ica.n_components_])
     data = np.atleast_2d(data)
     data = data[:, data_picks]
 
-    # prepare data for iteration
-    fig, axes, _, _ = _prepare_trellis(len(data), ncols=5)
     if title is None:
         title = 'ICA components'
-    fig.suptitle(title)
+    user_passed_axes = axes is not None
+    if not user_passed_axes:
+        fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
+        fig.suptitle(title)
 
-    titles = list()
+    subplot_titles = list()
     for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
         comp_title = ica._ica_names[ii]
         if len(set(ica.get_channel_types())) > 1:
             comp_title += f' ({ch_type})'
-        titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
+        subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
-            data_, names_ = _merge_ch_data(data_, ch_type, names.copy())
-        vlim = _setup_vmin_vmax(data_, vmin, vmax)
+            data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
+        # ↓↓↓ NOTE: we intentionally use the default norm=False here, so that
+        # ↓↓↓ we get vlims that are symmetric-about-zero, even if the data for
+        # ↓↓↓ a given component happens to be one-sided.
+        _vlim = _setup_vmin_vmax(data_, *vlim)
         im = plot_topomap(
-            data_.flatten(), pos, vlim=vlim, res=res, axes=ax,
-            cmap=cmap[0], outlines=outlines, contours=contours,
-            image_interp=image_interp, show=False, sensors=sensors,
-            ch_type=ch_type, **topomap_args)[0]
+            data_.flatten(), pos, ch_type=ch_type, sensors=sensors,
+            names=names, contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap[0], vlim=_vlim, cnorm=cnorm,
+            axes=ax, show=False, **topomap_args)[0]
+
         im.axes.set_label(ica._ica_names[ii])
         if colorbar:
             cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
-                                      side="right", pad=.05, format='%3.2f')
+                                      side="right", pad=.05, format=cbar_fmt)
             cbar.ax.tick_params(labelsize=12)
-            cbar.set_ticks(vlim)
+            cbar.set_ticks(_vlim)
         _hide_frame(ax)
     del pos
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.88, bottom=0.)
+    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
+    if not user_passed_axes:
+        fig.subplots_adjust(top=0.88, bottom=0.)
+    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
     fig.canvas.draw()
 
     # add title selection interactivity
-    def onclick_title(event, ica=ica, titles=titles):
+    def onclick_title(event, ica=ica, titles=subplot_titles):
         # check if any title was pressed
         title_pressed = None
         for title in titles:
@@ -1472,17 +1535,7 @@ def plot_evoked_topomap(
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    average : float | array-like of float, shape (n_times,) | None
-        The time window (in seconds) around a given time point to be used for
-        averaging. For example, 0.2 would translate into a time window that
-        starts 0.1 s before and ends 0.1 s after the given time point. If the
-        time window exceeds the duration of the data, it will be clipped.
-        Different time windows (one per time point) can be provided by
-        passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
-        ``None`` (default), no averaging will take place.
-
-        .. versionchanged:: 1.1
-           Support for ``array-like`` input.
+    %(average_plot_evoked_topomap)s
     %(ch_type_topomap)s
     %(scalings_topomap)s
     %(proj_plot)s
@@ -1519,16 +1572,7 @@ def plot_evoked_topomap(
         String format for topomap values. Defaults (None) to "%%01d ms" if
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
         "%%g" otherwise. Can be an empty string to omit the time label.
-    nrows : int | 'auto'
-        The number of rows of topographies to plot. Defaults to 1. If 'auto',
-        obtains the number of rows depending on the amount of times to plot
-        and the number of cols. Not valid when times == 'interactive'.
-
-        .. versionadded:: 0.20
-    ncols : int | 'auto'
-        The number of columns of topographies to plot. If 'auto' (default),
-        obtains the number of columns depending on the amount of times to plot
-        and the number of rows. Not valid when times == 'interactive'.
+    %(nrows_ncols_topomap)s Ignored when times == 'interactive'.
 
         .. versionadded:: 0.20
     %(show)s
@@ -1580,7 +1624,10 @@ def plot_evoked_topomap(
                          "times='interactive'.")
     # units, scalings
     key = 'grad' if ch_type.startswith('planar') else ch_type
+    default_scaling = _handle_default('scalings', None)[key]
     scaling = _handle_default('scalings', scalings)[key]
+    # if non-default scaling, fall back to "AU" if unit wasn't given by user
+    key = 'misc' if scaling != default_scaling else key
     unit = _handle_default('units', units)[key]
     # ch_names (required for NIRS)
     ch_names = names

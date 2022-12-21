@@ -36,6 +36,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug in :func:`mne.export.export_raw` when exporting raw to EDF with EDFLib when subject ``sex`` is missing (:gh:`11375` by :newcontrib:`Mark Alexander Henney`)
 - Fix bugs in documentation of :func:`mne.time_frequency.tfr_array_multitaper` and related functions/methods (:gh:`11310` by :newcontrib:`Santeri Ruuskanen`)
 - Fix bug to be able to customize legends when using :meth:`mne.viz.Brain.add_volume_labels` (:gh:`11289` by :newcontrib:`Mauricio Cespedes Tenorio`)
 - Fix bug in documentation of :func:`mne.channels.make_dig_montage` (:gh:`11235` by :newcontrib:`Daniel Hasegan`)
@@ -61,8 +62,13 @@ Bugs
 - Fix bug where ``image_format='gif'`` was errantly documented as being supported by :class:`mne.Report`, it is now only supported in :meth:`mne.Report.add_image` (:gh:`11347` by `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 - Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
+- Fix selection of ICA components in :func:`mne.viz.plot_ica_components` and :meth:`mne.preprocessing.ICA.plot_components` (:gh:`11369` by `Mathieu Scheltienne`_)
 - Fix bug where a Freesurfer reconstruction run with both a T1 and a T2 caused :class:`mne.viz.Brain` not to initialize pial surfaces properly (:gh:`11361` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
 - In :func:`mne.time_frequency.dpss_windows`, interpolating is deprecated (nowadays SciPy's computations are fast enough for large ``N`` without interpolation). This affects parameters ``interp_from`` and ``interp_kind``. Two new parameters of the underlying SciPy :func:`~scipy.signal.windows.dpss` function are also exposed: ``sym`` (for choosing symmetric vs. periodic windows) and ``norm`` (window normalization method). (:gh:`11293` by `Daniel McCloy`_)
+- In :meth:`mne.decoding.CSP.plot_patterns`, :meth:`mne.decoding.CSP.plot_filters`, :meth:`mne.preprocessing.ICA.plot_components`, and :func:`mne.viz.plot_ica_components`, the parameters ``vmin`` and ``vmax`` are deprecated in favor of ``vlim``, for consistency with other topomap-plotting functions and methods (:gh:`11371` by `Daniel McCloy`_)
+- In :meth:`mne.decoding.CSP.plot_patterns` and :meth:`mne.decoding.CSP.plot_filters` the ``title`` parameter is deprecated and will be removed in version 1.4 (:gh:`11371` by `Daniel McCloy`_)
+- The APIs of :meth:`mne.preprocessing.ICA.plot_components` and :func:`mne.viz.plot_ica_components` gained new parameters ``show_names``, ``extrapolate``, ``border``, ``size``, ``cnorm``, ``cbar_fmt``, ``axes``, ``nrows``, ``ncols``, for consistency with other topomap-plotting functions and methods (:gh:`11371` by `Daniel McCloy`_)
+- The APIs of :meth:`mne.decoding.CSP.plot_patterns` and :meth:`mne.decoding.CSP.plot_filters` gained new parameters ``extrapolate``, ``border``, ``cnorm``, ``axes``, ``nrows``, ``ncols``, for consistency with other topomap-plotting functions and methods (:gh:`11371` by `Daniel McCloy`_)

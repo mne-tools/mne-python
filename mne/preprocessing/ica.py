@@ -2182,24 +2182,25 @@ class ICA(ContainsMixin):
         return deepcopy(self)
 
     @copy_function_doc_to_method_doc(plot_ica_components)
-    def plot_components(self, picks=None, ch_type=None, res=64,
-                        vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                        colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp=_INTERPOLATION_DEFAULT,
-                        inst=None, plot_std=True,
-                        topomap_args=None, image_args=None, psd_args=None,
-                        reject='auto', sphere=None, verbose=None):
-        return plot_ica_components(self, picks=picks, ch_type=ch_type,
-                                   res=res, vmin=vmin,
-                                   vmax=vmax, cmap=cmap, sensors=sensors,
-                                   colorbar=colorbar, title=title, show=show,
-                                   outlines=outlines, contours=contours,
-                                   image_interp=image_interp,
-                                   inst=inst, plot_std=plot_std,
-                                   topomap_args=topomap_args,
-                                   image_args=image_args, psd_args=psd_args,
-                                   reject=reject, sphere=sphere,
-                                   verbose=verbose)
+    def plot_components(
+            self, picks=None, ch_type=None, *, inst=None, plot_std=True,
+            reject='auto', sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
+            cnorm=None, colorbar=False, cbar_fmt='%3.2f', axes=None,
+            title=None, nrows='auto', ncols='auto', show=True,
+            topomap_args=None, image_args=None, psd_args=None, verbose=None):
+        return plot_ica_components(
+            self, picks=picks, ch_type=ch_type, inst=inst, plot_std=plot_std,
+            reject=reject, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, vmin=vmin, vmax=vmax,
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, axes=axes,
+            title=title, nrows=nrows, ncols=ncols, show=show,
+            topomap_args=topomap_args, image_args=image_args,
+            psd_args=psd_args, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
@@ -2893,7 +2894,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours,
-                show=show, topomap_args=dict(sphere=sphere))
+                show=show, sphere=sphere)
         else:  # plotting an array
             template_fig = _plot_corrmap(
                 [template], [0], [0], ch_type, icas[0].copy(), "Template",

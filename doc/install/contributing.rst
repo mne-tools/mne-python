@@ -927,9 +927,12 @@ you expect).
    commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
-locally-rendered documentation site in your browser. Additional ``make``
-recipes are available; run ``make help`` from the :file:`doc` directory or
-consult the `Sphinx-Gallery`_ documentation for additional details.
+locally-rendered documentation site in your browser. If you see many warnings
+that seem unrelated to your contributions, it might be that your output folder
+for the documentation build contains old, now irrelevant, files. Running
+``make clean`` will clean those up. Additional ``make`` recipes are available;
+run ``make help`` from the :file:`doc` directory or consult the
+`Sphinx-Gallery`_ documentation for additional details.
 
 
 Modifying command-line tools
