@@ -16,10 +16,10 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. _current:
+.. _changes_1_3_0:
 
-Current (1.3.dev0)
-------------------
+Version 1.3.0 (2022-12-21)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -72,3 +72,36 @@ API changes
 - In :meth:`mne.decoding.CSP.plot_patterns` and :meth:`mne.decoding.CSP.plot_filters` the ``title`` parameter is deprecated and will be removed in version 1.4 (:gh:`11371` by `Daniel McCloy`_)
 - The APIs of :meth:`mne.preprocessing.ICA.plot_components` and :func:`mne.viz.plot_ica_components` gained new parameters ``show_names``, ``extrapolate``, ``border``, ``size``, ``cnorm``, ``cbar_fmt``, ``axes``, ``nrows``, ``ncols``, for consistency with other topomap-plotting functions and methods (:gh:`11371` by `Daniel McCloy`_)
 - The APIs of :meth:`mne.decoding.CSP.plot_patterns` and :meth:`mne.decoding.CSP.plot_filters` gained new parameters ``extrapolate``, ``border``, ``cnorm``, ``axes``, ``nrows``, ``ncols``, for consistency with other topomap-plotting functions and methods (:gh:`11371` by `Daniel McCloy`_)
+
+Authors
+~~~~~~~
+
+* Alex Rockhill
+* Alexandre Gramfort
+* Britta Westner
+* Carlos de la Torre+
+* Daniel Hasegan+
+* Daniel McCloy
+* Dinara Issagaliyeva+
+* Enzo Altamiranda+
+* Eric Brayet+
+* Eric Larson
+* Erkka Heinila
+* Felix Klotzsche
+* Hakimeh Aslsardroud+
+* Jennifer Behnke+
+* Jevri Hanna
+* Lukas Hecker
+* Mark Alexander Henney+
+* Mathieu Scheltienne
+* Mauricio Cespedes+
+* Mikołaj Magnuski
+* Moritz Gerster
+* Omer Shubi+
+* Pavel Navratil+
+* Richard Höchenberger
+* Santeri Ruuskanen+
+* Stefan Appelhoff
+* Timon Merk
+* Tom Ma+
+* Toomas Erik Anijärv+

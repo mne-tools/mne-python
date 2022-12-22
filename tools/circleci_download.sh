@@ -6,7 +6,7 @@ if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]
     echo "Doing a full dev build";
     echo html_dev-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
-elif [ "$CIRCLE_BRANCH" == "maint/1.2" ]; then
+elif [ "$CIRCLE_BRANCH" == "maint/1.3" ]; then
     echo "Doing a full stable build";
     echo html_stable-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
