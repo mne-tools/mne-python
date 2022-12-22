@@ -61,7 +61,7 @@ noise_cov = mne.read_cov(cov_fname)
 # are characterized by 2 symmetrically opposed activation zones,
 # one on each lobe.
 # Thus we will be looking for 2 sources,
-# representing each of the activations occuring throughout the sample.
+# representing each of the activations occurring throughout the sample.
 # The extent to which the estimated dipoles
 # (and their estimated orientations) are able to explain the evoked data
 # is represented by the var_exp variable.

@@ -656,6 +656,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
 
     Compute Alternating Projections (AP) on evoked data.
 
+    The implementation follows :footcite:t:`AdlerEtAl2019,AdlerEtAl2022`.
     Parameters
     ----------
     evoked : instance of Evoked
@@ -667,7 +668,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     noise_cov : instance of Covariance, optional
         The noise covariance matrix, used for whitening the evoked signal.
         The default is None. If None is given, the noise covariance matrix
-        is craeted ad-hoc, See: mne.cov.make_ad_hoc_cov
+        is created ad-hoc, See: mne.cov.make_ad_hoc_cov .
     max_iter : int, optional
         Maximal iteration number of AP. The default is 6.
     return_residual : bool, optional
@@ -699,18 +700,9 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
             oris : array, shape (nsources, 3)
                 Orientations array of estimated sources (sorted by idx).
 
-    Notes
-    -----
-    The references are:
-
-        A. Amir, M. Wax and P. Dimitrios. 2022. Brain Source Localization by
-        Alternating Projection. IEEE International Symposium on Biomedical
-        Imaging (ISBI). doi: 10.48550/ARXIV.2202.01120
-        https://doi.org/10.48550/arxiv.2202.01120
-
-        A. Amir, M. Wax and P. Dimitrios. 2019. Localization of MEG and EEG
-        Brain Signals by Alternating Projection. doi: 10.48550/ARXIV.1908.11416
-        https://doi.org/10.48550/arxiv.1908.11416
+    References
+    ----------
+    .. footbibliography::
 
     .. versionadded:: 1.3.dev0
     """
