@@ -55,7 +55,7 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
     for dip in range(attr_dict['ndipoles']):
         l_p = np.expand_dims(gain[:, dip], axis=1)
         ap_val1[dip] = multi_dot([l_p.transpose(), data_cov, l_p]) \
-            / (np.matmul(l_p.transpose(),l_p)[0, 0])
+            / (np.matmul(l_p.transpose(), l_p)[0, 0])
     s1_idx = np.argmax(ap_val1)
     s_ap.append(s1_idx)
     return s_ap
@@ -88,7 +88,7 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
         sub_g = gain[:, s_ap]
         act_spc = multi_dot([sub_g, pinv(np.matmul(sub_g.transpose(),
                                                    sub_g)
-                                        ),
+                                         ),
                              sub_g.transpose()])
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
         for dip in range(attr_dict['ndipoles']):
@@ -141,7 +141,7 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
             act_spc = multi_dot([sub_g,
                                  pinv(np.matmul(sub_g.transpose(),
                                                 sub_g)
-                                     ),
+                                      ),
                                  sub_g.transpose()])
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
@@ -330,7 +330,7 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
         act_spc = multi_dot([sub_g_proj,
                             pinv(np.matmul(sub_g_proj.transpose(),
                                            sub_g_proj)
-                                ),
+                                 ),
                             sub_g_proj.transpose()])
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
         for dip in range(attr_dict['ndipoles']):
@@ -398,7 +398,7 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
             act_spc = multi_dot([a_tmp,
                                  pinv(np.matmul(a_tmp.transpose(),
                                                 a_tmp)
-                                     ),
+                                      ),
                                  a_tmp.transpose()])
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
