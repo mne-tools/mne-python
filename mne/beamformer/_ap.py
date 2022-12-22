@@ -657,7 +657,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     Compute Alternating Projections (AP) on evoked data.
 
     The implementation follows :footcite:t:`AdlerEtAl2019,AdlerEtAl2022`.
-    
+
     Parameters
     ----------
     evoked : instance of Evoked
