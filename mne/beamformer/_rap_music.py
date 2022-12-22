@@ -214,7 +214,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
-    (RAP-MUSIC) on evoked data. 
+    (RAP-MUSIC) on evoked data.
     follows :footcite:t:`MosherLeahy1999,MosherLeahy1996`.
 
     .. note:: The goodness of fit (GOF) of all the returned dipoles is the
