@@ -514,15 +514,15 @@ workflows:
                 - main
                 - maint/1.3
 
-  main:
+  stable:
     jobs:
       - build_docs:
           scheduled: "true"
-          name: build_docs_main
+          name: build_docs_stable
       - deploy:
-          name: deploy_main
+          name: deploy_stable
           requires:
-            - build_docs_main
+            - build_docs_stable
     triggers:
       - schedule:
           # "At 6:00 AM GMT every day"
