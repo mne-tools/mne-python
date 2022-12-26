@@ -461,6 +461,16 @@ def test_annotation_filtering(first_samp):
     raws_concat_stop = raws_concat.copy().filter(skip_by_annotation='edge',
                                                  **kwargs_stop)
     assert_allclose(raws_zero[0][0], raws_concat_stop[0][0], atol=1e-14)
+
+    # test notch_filtering
+    raw_notch = concatenate_raws([raws_concat.copy(), raws_concat.copy()])
+    raw_notch.annotations.append(7. + raw_notch._first_time, 1., 'foo_notch')
+    with catch_logging() as log:
+        raw_notch.notch_filter(60., fir_design='firwin',
+                               skip_by_annotation='foo_notch', verbose='info')
+    log = log.getvalue()
+    assert '1 contiguous segment' in log
+
     # one last test: let's cut out a section entirely:
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
