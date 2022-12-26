@@ -23,7 +23,7 @@ def _produce_data_cov(data_arr, attr_dict):
     data_tr = data_arr.transpose()
     data_norm = np.matmul(data_arr, data_tr)
     data_cov = data_norm + data_norm.trace()\
-        * np.eye(data_arr.shape[0])  # Array Covariance Matrix
+        * np.eye(data_arr.shape[0]) * 0.001  # Array Covariance Matrix
     print(' alternating projection ; nsources = {}:'.format(nsources))
 
     return data_cov
