@@ -1320,10 +1320,9 @@ def plot_ica_components(
     # add plot_properties interactivity only if inst was passed
     if isinstance(inst, (BaseRaw, BaseEpochs)):
         topomap_args = dict(
-            sensors=sensors, show_names=show_names, contours=contours,
-            outlines=outlines, sphere=sphere, image_interp=image_interp,
-            extrapolate=extrapolate, border=border, res=res, size=size,
-            cmap=cmap, vlim=vlim, cnorm=cnorm)
+            sensors=sensors, contours=contours, outlines=outlines,
+            sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
+            border=border, res=res, cmap=cmap[0], vmin=vlim[0], vmax=vlim[1])
 
         def onclick_topo(event, ica=ica, inst=inst):
             # check which component to plot
