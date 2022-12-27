@@ -35,7 +35,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs, _format_units_psd,
-                    _prepare_sensor_names, _warn_deprecated_vmin_vmax)
+                    _prepare_sensor_names)
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
@@ -1116,10 +1116,9 @@ def plot_ica_components(
         reject='auto', sensors=True, show_names=False, contours=6,
         outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-        size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-        cnorm=None, colorbar=False, cbar_fmt='%3.2f', axes=None, title=None,
-        nrows='auto', ncols='auto', show=True, topomap_args=None,
-        image_args=None, psd_args=None, verbose=None):
+        size=1, cmap='RdBu_r', vlim=(None, None), cnorm=None, colorbar=False,
+        cbar_fmt='%3.2f', axes=None, title=None, nrows='auto', ncols='auto',
+        show=True, image_args=None, psd_args=None, verbose=None):
     """Project mixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1164,11 +1163,6 @@ def plot_ica_components(
     %(vlim_plot_topomap)s
 
         .. versionadded:: 1.3
-    %(vmin_vmax_topomap)s
-
-        .. deprecated:: v1.4
-           The ``vmin`` and ``vmax`` parameters will be removed in version
-           1.4. Please use the ``vlim`` parameter instead.
     %(cnorm)s
 
         .. versionadded:: 1.3
@@ -1182,15 +1176,6 @@ def plot_ica_components(
 
         .. versionadded:: 1.3
     %(show)s
-    topomap_args : dict | None
-        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
-        additional arguments. Defaults to None.
-
-        .. deprecated:: v1.4
-           The ``topomap_args`` parameter will be removed in version 1.4. All
-           relevant topomap parameters (e.g., ``show_names``, ``extrapolate``,
-           ``border``, ``size``, etc) are now directly exposed in this
-           function's signature.
     image_args : dict | None
         Dictionary of arguments to pass to :func:`~mne.viz.plot_epochs_image`
         in interactive mode. Ignored if ``inst`` is not supplied. If ``None``,
@@ -1221,17 +1206,6 @@ def plot_ica_components(
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
-    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
-    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
-
-    if topomap_args:  # not None, not empty dict
-        warn('The "topomap_args" parameter is deprecated and will be '
-             'removed in version 1.4. All relevant topomap parameters are now '
-             'directly exposed in this function\'s signature.', FutureWarning)
-        topomap_args = copy.copy(topomap_args)
-    else:
-        topomap_args = dict()
-    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
 
     n_components = ica.mixing_matrix_.shape[1]
 
@@ -1262,8 +1236,8 @@ def plot_ica_components(
                 extrapolate=extrapolate, border=border, res=res, size=size,
                 cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
                 cbar_fmt=cbar_fmt, axes=axes, title=title, nrows=nrows,
-                ncols=ncols, show=show, topomap_args=topomap_args,
-                image_args=image_args, psd_args=psd_args, verbose=verbose)
+                ncols=ncols, show=show, image_args=image_args,
+                psd_args=psd_args, verbose=verbose)
             figs.append(fig)
         return figs
     else:
@@ -1306,7 +1280,7 @@ def plot_ica_components(
             names=names, contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
             res=res, size=size, cmap=cmap[0], vlim=_vlim, cnorm=cnorm,
-            axes=ax, show=False, **topomap_args)[0]
+            axes=ax, show=False)[0]
 
         im.axes.set_label(ica._ica_names[ii])
         if colorbar:
@@ -1316,11 +1290,9 @@ def plot_ica_components(
             cbar.set_ticks(_vlim)
         _hide_frame(ax)
     del pos
-    tight_layout(fig=fig)
-    # TODO ↓↓↓↓↓ remove after 1.3 release (begin)
     if not user_passed_axes:
+        tight_layout(fig=fig)
         fig.subplots_adjust(top=0.88, bottom=0.)
-    # TODO ↑↑↑↑↑ remove after 1.3 release (end)
     fig.canvas.draw()
 
     # add title selection interactivity
@@ -1347,6 +1319,12 @@ def plot_ica_components(
 
     # add plot_properties interactivity only if inst was passed
     if isinstance(inst, (BaseRaw, BaseEpochs)):
+        topomap_args = dict(
+            sensors=sensors, show_names=show_names, contours=contours,
+            outlines=outlines, sphere=sphere, image_interp=image_interp,
+            extrapolate=extrapolate, border=border, res=res, size=size,
+            cmap=cmap, vlim=vlim, cnorm=cnorm)
+
         def onclick_topo(event, ica=ica, inst=inst):
             # check which component to plot
             if event.inaxes is not None:
@@ -2105,7 +2083,8 @@ def plot_psds_topomap(
         unit = _format_units_psd(unit, dB=_dB)
     # set up figure / axes
     n_axes = len(bands)
-    if axes is not None:
+    user_passed_axes = axes is not None
+    if user_passed_axes:
         if isinstance(axes, Axes):
             axes = [axes]
         _validate_if_list_of_axes(axes, n_axes)
@@ -2126,10 +2105,10 @@ def plot_psds_topomap(
             image_interp=image_interp, extrapolate=extrapolate, border=border,
             res=res, size=size, cnorm=cnorm)
 
-    # TODO avoid tight_layout and draw() if possible
-    tight_layout(fig=fig)
-    fig.canvas.draw()
-    plt_show(show)
+    if not user_passed_axes:
+        tight_layout(fig=fig)
+        fig.canvas.draw()
+        plt_show(show)
     return fig
 
 

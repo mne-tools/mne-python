@@ -9,8 +9,7 @@ from ..parallel import parallel_func
 from ..utils import warn, verbose, logger, _check_option
 
 
-def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
-                 interp_from=None, interp_kind=None):
+def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     """Compute Discrete Prolate Spheroidal Sequences.
 
     Will give of orders [0,Kmax-1] for a given frequency-spacing multiple
@@ -44,27 +43,6 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
         .. versionadded:: 1.3
     low_bias : bool
         Keep only tapers with eigenvalues > 0.9.
-    interp_from : int | None
-        The dpss can be calculated using interpolation from a set of dpss
-        with the same NW and Kmax, but shorter N. This is the length of this
-        shorter set of dpss windows.
-
-        .. deprecated:: 1.3
-           The ``interp_from`` option is deprecated and will be
-           removed in version 1.4. Modern implementations can handle large
-           values of ``N`` so interpolation is no longer necessary; any value
-           passed here will be ignored.
-    interp_kind : str | None
-        This input variable is passed to scipy.interpolate.interp1d and
-        specifies the kind of interpolation as a string ('linear', 'nearest',
-        'zero', 'slinear', 'quadratic, 'cubic') or as an integer specifying the
-        order of the spline interpolator to use.
-
-        .. deprecated:: 1.3
-           The ``interp_kind`` option is deprecated and will be
-           removed in version 1.4. Modern implementations can handle large
-           values of ``N`` so interpolation is no longer necessary; any value
-           passed here will be ignored.
 
     Returns
     -------
@@ -81,13 +59,6 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
     .. footbibliography::
     """
     from scipy.signal.windows import dpss as sp_dpss
-
-    if interp_from is not None:
-        warn('The ``interp_from`` option is deprecated and will be removed in '
-             'version 1.4.', FutureWarning)
-    if interp_kind is not None:
-        warn('The ``interp_kind`` option is deprecated and will be removed in '
-             'version 1.4.', FutureWarning)
 
     dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm,
                             return_ratios=True)
