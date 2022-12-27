@@ -242,7 +242,7 @@ def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
     return eig_val, eig_vec, l_p
 
 
-def _free_phase1a(attr_dict, gain, data_cov):
+def _free_phase1a(attr_dict, gain, data_cov, align):
     """Calculate phase 1a of free oriented AP.
 
     Initialization: search the 1st source location over
@@ -291,11 +291,15 @@ def _free_phase1a(attr_dict, gain, data_cov):
                            [np.argmax([x.real for x
                                       in sol_tuple[0]])]
                            ][:, 0]
+    if align is not None:
+        oris[0] *= np.sign(oris[0]\
+                           @ align[3 * s1_idx + 2]) or 1.
     sub_g_proj = np.dot(sol_tuple[2], oris[0])[:, np.newaxis]
     return s_ap, oris, sub_g_proj
 
 
-def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
+def _free_phase1b(attr_dict, gain, data_cov,
+                  ap_temp_tuple, align):
     """Calculate phase 1b of free oriented AP.
 
     Adding one source at a time.
@@ -348,6 +352,9 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
                                  [np.argmax([x.real for x
                                             in sol_tuple[0]])]
                                  ][:, 0]
+        if align is not None:
+            oris[src] *= np.sign(oris[src]\
+                                 @ align[3 * s2_idx + 2]) or 1.
         sub_g_proj = np.concatenate([sub_g_proj,
                                      np.dot(sol_tuple[2],
                                             oris[src])[:, np.newaxis]
@@ -356,7 +363,8 @@ def _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple):
     return s_ap, oris, sub_g_proj
 
 
-def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
+def _free_phase2(ap_temp_tuple, attr_dict,
+                 data_cov, gain, align):
     """Calculate phase 2 of free oriented AP.
 
     altering the projection of current estimated dipoles
@@ -412,6 +420,10 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
                                                eig, perpend_spc)
             oris[src] = sol_tuple[1][:, [np.argmax([x.real for x
                                                     in sol_tuple[0]])]][:, 0]
+            if align is not None:
+                logger.info("align checkpoint")
+                oris[src] *= np.sign(oris[src]\
+                                     @ align[3 * sq_idx + 2]) or 1.
             sub_g_proj[:, src] = np.dot(sol_tuple[2], oris[src])
 
         logger.info('current s_ap_2 = {}'.format(s_ap_2))
@@ -426,7 +438,8 @@ def _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain):
 
 
 def _calculate_free_alternating_projections(data_arr, gain,
-                                            nsources, max_iter):
+                                            nsources, max_iter,
+                                            align):
     """Calculate free-orientation alternating projection.
 
     Parameters
@@ -462,14 +475,15 @@ def _calculate_free_alternating_projections(data_arr, gain,
     # ######################################
 
     print(' 1st phase : ')
-    ap_temp_tuple = _free_phase1a(attr_dict, gain, data_cov)
+    ap_temp_tuple = _free_phase1a(attr_dict, gain, data_cov, align)
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
 
     # ######################################
     # (b) Now, add one source at a time
     # ######################################
 
-    ap_temp_tuple = _free_phase1b(attr_dict, gain, data_cov, ap_temp_tuple)
+    ap_temp_tuple = _free_phase1b(attr_dict, gain, data_cov,
+                                  ap_temp_tuple, align)
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
     print('current s_ap = {}'.format(ap_temp_tuple[0]))
 
@@ -477,16 +491,19 @@ def _calculate_free_alternating_projections(data_arr, gain,
     # 2nd phase
     # #####################################
 
-    ap_temp_tuple = _free_phase2(ap_temp_tuple, attr_dict, data_cov, gain)
+    ap_temp_tuple = _free_phase2(ap_temp_tuple, attr_dict,
+                                 data_cov, gain, align)
 
     return ap_temp_tuple
 
 
 def _free_ori_ap(wh_data, gain, nsources, forward, max_iter):
     """Branch of calculations dedicated to freely oriented dipoles."""
+    align = forward['source_nn'].copy()
     sol_tuple = \
         _calculate_free_alternating_projections(wh_data, gain,
-                                                nsources, max_iter)
+                                                nsources, max_iter,
+                                                align)
     # sol_tuple = active_idx, active_orientations, active_idx_gain
 
     sol = lstsq(sol_tuple[2], wh_data, rcond=None)[0]
