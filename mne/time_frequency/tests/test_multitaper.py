@@ -30,11 +30,6 @@ def test_dpss_windows():
     assert_array_almost_equal(dpss, dpss_ni)
     assert_array_almost_equal(eigs, eigs_ni)
 
-    with pytest.warns(FutureWarning, match='``interp_from`` option is deprec'):
-        dpss_windows(N, half_nbw, Kmax, interp_from=200)
-    with pytest.warns(FutureWarning, match='``interp_kind`` option is deprec'):
-        dpss_windows(N, half_nbw, Kmax, interp_kind='linear')
-
 
 @requires_nitime
 @pytest.mark.parametrize('n_times', (100, 101))
