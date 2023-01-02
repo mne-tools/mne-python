@@ -1227,21 +1227,15 @@ class Info(dict, MontageMixin, ContainsMixin):
             experimenter=self.get('experimenter'),
         )
 
-    def save(self, fname, data_type=None, reset_range=True):
+    def save(self, fname):
         """Write measurement info in fif file.
 
         Parameters
         ----------
         fname : str
             The name of the file. Should end by -info.fif.
-        data_type : int
-            The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
-            5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
-            raw data.
-        reset_range : bool
-            If True, info['chs'][k]['range'] will be set to unity.
         """
-        write_info(fname, self, data_type=data_type, reset_range=reset_range)
+        write_info(fname, self)
 
 
 def _simplify_info(info):
