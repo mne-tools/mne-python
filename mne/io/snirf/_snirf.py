@@ -403,6 +403,7 @@ class RawSNIRF(BaseRaw):
                                            verbose=verbose)
 
             # Extract annotations
+            # As described at https://github.com/fNIRS/snirf/blob/master/snirf_specification.md#nirsistimjdata
             annot = Annotations([], [], [])
             for key in dat['nirs']:
                 if 'stim' in key:
@@ -411,7 +412,7 @@ class RawSNIRF(BaseRaw):
                     if data.size > 0:
                         desc = _correct_shape(np.array(dat.get(
                             '/nirs/' + key + '/name')))[0]
-                        annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
+                        annot.append(data[:, 0], data[:, 1], desc.decode('UTF-8'))
             self.set_annotations(annot, emit_warning=False)
 
         # Validate that the fNIRS info is correctly formatted

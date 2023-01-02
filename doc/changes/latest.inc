@@ -23,7 +23,7 @@ Current (1.4.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- None yet
+- Added ability to read stimulus durations from SNIRF files when using :func:`mne.io.read_raw_snirf` (:gh:`TBC` by `Robert Luke`_)
 
 Bugs
 ~~~~
