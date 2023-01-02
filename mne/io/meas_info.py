@@ -1233,7 +1233,7 @@ class Info(dict, MontageMixin, ContainsMixin):
         Parameters
         ----------
         fname : str
-            The name of the file. Should end by -info.fif.
+            The name of the file. Should end by `'-info.fif'`.
         """
         write_info(fname, self)
 
