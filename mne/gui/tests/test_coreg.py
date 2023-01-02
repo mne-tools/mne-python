@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 
 from contextlib import nullcontext
-import gc
 import os.path as op
 import os
 
