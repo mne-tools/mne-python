@@ -137,7 +137,7 @@ class CoregistrationUI(HasTraits):
     _icp_fid_match = Unicode()
 
     @_qt_safe_window(splash='_renderer.figure.splash',
-                     window='_renderer.figure.plotter.app_window')
+                     window='_renderer.figure.plotter')
     @verbose
     def __init__(self, info_file, *, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,

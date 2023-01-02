@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 
 from contextlib import nullcontext
+import gc
 import os.path as op
 import os
 
@@ -333,4 +334,4 @@ def test_splash_closed(tmp_path, renderer_interactive_pyvistaqt):
     QApplication.instance().processEvents()
     widgets = QApplication.topLevelWidgets()
     n_after = len(widgets)
-    assert n_before == n_after, widgets
+    assert n_before == n_after, widgets[-2:]
