@@ -504,8 +504,15 @@ def read_lta(fname, verbose=None):
     _validate_type(fname, ('path-like', None), 'fname')
     _check_fname(fname, 'read', must_exist=True)
     with open(fname, 'r') as fid:
-        affine = np.loadtxt(fid.readlines()[5:9])
-    return affine
+        lines = fid.readlines()
+    affine = np.loadtxt(lines[5:9])
+    fro_affine = np.eye(4)
+    fro_affine[:3, :3] = np.loadtxt(
+        [line.split('=')[1] for line in lines[14:17]])
+    to_affine = np.eye(4)
+    to_affine[:3, :3] = np.loadtxt(
+        [line.split('=')[1] for line in lines[23:26]])
+    return fro_affine @ affine @ np.linalg.inv(to_affine)
 
 
 @verbose
