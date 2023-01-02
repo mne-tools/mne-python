@@ -403,5 +403,5 @@ def test_annotation_duration_from_stim_groups():
     # which represents duration, will be all 10s.
     # from snirf import Snirf
     # a = Snirf(snirf_nirsport2_20219, "r+"); print(a.nirs[0].stim[0].data)
-    expected_durations = np.ones((10)) * 10
+    expected_durations = np.full((10,), 10.)
     assert_equal(expected_durations, raw.annotations.duration)
