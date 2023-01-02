@@ -450,7 +450,7 @@ in the pull request you should describe how the tests are failing and ask for
 advice about how to fix them.
 
 To learn more about git, check out the `GitHub help`_ website, the `GitHub
-Learning Lab`_ tutorial series, and the `pro git book`_.
+skills`_ tutorial series, and the `pro git book`_.
 
 
 .. _github-ssh:
