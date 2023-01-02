@@ -368,7 +368,7 @@ stages:
     - bash: |
         set -e
         mamba remove -c conda-forge --force -yq mne
-        rm -f /c/Miniconda/Scripts/mne.exe /c/Miniconda/Scripts/ipython.exe
+        rm /c/Miniconda/Scripts/mne.exe
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: Install dev MNE
