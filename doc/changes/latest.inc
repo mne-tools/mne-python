@@ -27,7 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
