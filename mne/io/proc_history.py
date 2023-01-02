@@ -226,8 +226,10 @@ def _read_maxfilter_record(fid, tree):
             else:
                 if kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
                     tag = read_tag(fid, pos)
-                    tag.data = tag.data.rstrip('\x00')
                     chs = _safe_name_list(tag.data, 'read', 'proj_items_chs')
+                    # This list can null chars in the last entry, e.g.:
+                    # [..., u'MEG2642', u'MEG2643', u'MEG2641\x00 ... \x00']
+                    chs[-1] = chs[-1].split('\x00')[0]
                     sss_ctc['proj_items_chs'] = chs
 
     sss_cal_block = dir_tree_find(tree, FIFF.FIFFB_SSS_CAL)  # 503
