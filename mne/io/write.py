@@ -147,6 +147,7 @@ def write_name_list(fid, kind, data):
 
 
 def write_name_list_sanitized(fid, kind, lst, name):
+    """Write a sanitized, colon-separated list of names."""
     write_string(fid, kind, _safe_name_list(lst, 'write', name))
 
 
