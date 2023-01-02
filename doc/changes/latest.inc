@@ -27,7 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~

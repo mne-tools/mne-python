@@ -387,3 +387,44 @@ def _notebook_vtk_works():
     if _display_is_valid():
         return True
     return False
+
+
+def _qt_safe_window(
+    *,
+    splash='figure.splash',
+    window='figure.plotter.app_window',
+    always_close=True
+):
+    def dec(meth, splash=splash, always_close=always_close):
+        @functools.wraps(meth)
+        def func(self, *args, **kwargs):
+            close_splash = always_close
+            error = False
+            try:
+                meth(self, *args, **kwargs)
+            except Exception:
+                close_splash = error = True
+                raise
+            finally:
+                for attr, do_close in ((splash, close_splash),
+                                       (window, error)):
+                    if not do_close:
+                        continue
+                    parent = self
+                    name = attr.split('.')[-1]
+                    try:
+                        for n in attr.split('.')[:-1]:
+                            parent = getattr(parent, n)
+                        widget = getattr(parent, name, False)
+                        if widget:
+                            widget.close()
+                        del widget
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            delattr(parent, name)
+                        except Exception:
+                            pass
+        return func
+    return dec

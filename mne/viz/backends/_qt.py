@@ -51,7 +51,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractKeyPress)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
                      _qt_detect_theme, _qt_raise_window, _init_mne_qtapp,
-                     _qt_app_exec)
+                     _qt_app_exec, _qt_safe_window)
 from ..utils import safe_event
 from ...utils import _check_option, get_config
 from ...fixes import _compare_version
@@ -634,6 +634,7 @@ class _MNEMainWindow(MainWindow):
     def __init__(self, parent=None, title=None, size=None):
         MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
 
 class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
@@ -669,6 +670,7 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
                 self._clean()
                 event.accept()
             else:
+                print('ignorin')
                 event.ignore()
 
             # functions to call after closing
@@ -724,9 +726,11 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
 class _3DRenderer(_PyVistaRenderer):
     _kind = 'qt'
 
+    @_qt_safe_window(always_close=False)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    @_qt_safe_window()
     def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
@@ -742,9 +746,6 @@ class _3DRenderer(_PyVistaRenderer):
         # GUI. Therefore, we close after all these events have been processed
         # here.
         self._process_events()
-        splash = getattr(self.figure, 'splash', False)
-        if splash:
-            splash.close()
         _qt_raise_window(self.plotter.app_window)
 
     def _clean(self):
@@ -1350,6 +1351,7 @@ class _QtWindow(_AbstractWindow):
                 self._window.signal_close.emit()
                 event.accept()
             else:
+                print('ignorin')
                 event.ignore()
 
             # functions to call after closing
@@ -1621,11 +1623,13 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtKeyPress):
     _kind = 'qt'
 
+    @_qt_safe_window(always_close=False)
     def __init__(self, *args, **kwargs):
         fullscreen = kwargs.pop('fullscreen', False)
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
+    @_qt_safe_window()
     def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
@@ -1642,9 +1646,6 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         # GUI. Therefore, we close after all these events have been processed
         # here.
         self._process_events()
-        splash = getattr(self.figure, 'splash', False)
-        if splash:
-            splash.close()
         _qt_raise_window(self.plotter.app_window)
 
 
