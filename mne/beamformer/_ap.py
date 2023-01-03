@@ -410,7 +410,7 @@ def _free_phase2(ap_temp_tuple, attr_dict,
                                  a_tmp.transpose()])
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
-                if force_no_rep and (dip in np.delete(s_ap_2,src,0)):
+                if force_no_rep and (dip in np.delete(s_ap_2, src, 0)):
                     continue
                 sol_tuple = _solve_active_gain_eig(dip, gain, data_cov,
                                                    eig, perpend_spc)
