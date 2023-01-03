@@ -1228,6 +1228,16 @@ class Info(dict, MontageMixin, ContainsMixin):
             experimenter=self.get('experimenter'),
         )
 
+    def save(self, fname):
+        """Write measurement info in fif file.
+
+        Parameters
+        ----------
+        fname : str
+            The name of the file. Should end by ``'-info.fif'``.
+        """
+        write_info(fname, self)
+
 
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
