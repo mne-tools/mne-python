@@ -436,7 +436,8 @@ def _free_phase2(ap_temp_tuple, attr_dict,
 
 
 def _calculate_free_alternating_projections(data_arr, gain,
-                                            nsources, max_iter):
+                                            nsources, max_iter,
+                                            force_no_rep):
     """Calculate free-orientation alternating projection.
 
     Parameters
@@ -480,7 +481,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
     # ######################################
 
     ap_temp_tuple = _free_phase1b(attr_dict, gain, data_cov,
-                                  ap_temp_tuple)
+                                  ap_temp_tuple, force_no_rep)
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
     print('current s_ap = {}'.format(ap_temp_tuple[0]))
 
@@ -489,16 +490,18 @@ def _calculate_free_alternating_projections(data_arr, gain,
     # #####################################
 
     ap_temp_tuple = _free_phase2(ap_temp_tuple, attr_dict,
-                                 data_cov, gain)
+                                 data_cov, gain, force_no_rep)
 
     return ap_temp_tuple
 
 
-def _free_ori_ap(wh_data, gain, nsources, forward, max_iter):
+def _free_ori_ap(wh_data, gain, nsources,
+                 forward, max_iter, force_no_rep):
     """Branch of calculations dedicated to freely oriented dipoles."""
     sol_tuple = \
         _calculate_free_alternating_projections(wh_data, gain,
-                                                nsources, max_iter)
+                                                nsources, max_iter,
+                                                force_no_rep)
     # sol_tuple = active_idx, active_orientations, active_idx_gain
 
     sol = lstsq(sol_tuple[2], wh_data, rcond=None)[0]
@@ -544,7 +547,7 @@ def _fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
 
 @fill_doc
 def _apply_ap(data, info, times, forward, noise_cov,
-              nsources, picks, max_iter):
+              nsources, picks, max_iter, force_no_rep):
     """AP for evoked data.
 
     Parameters
@@ -564,6 +567,8 @@ def _apply_ap(data, info, times, forward, noise_cov,
         Channel indiecs for filtering.
     max_iter : int
         Maximal iteration number of AP.
+    force_no_rep : bool
+        Forces no repetition of estinated dipoles.
 
     Returns
     -------
@@ -599,7 +604,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
     if is_free_ori:
         idx, oris, poss, gain_active, gain_dip, sol, dip_ind = \
             _free_ori_ap(wh_data, gain, nsources, forward,
-                         max_iter=max_iter)
+                         max_iter=max_iter, force_no_rep=force_no_rep)
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
         X.shape = (-1, len(times))
     else:
@@ -663,7 +668,8 @@ def _explained_data_packing(evoked, picks, explained_data_mat, info):
 @verbose
 def alternating_projections(evoked, forward, nsources, noise_cov=None,
                             max_iter=6, return_residual=True,
-                            return_active_info=False, verbose=None):
+                            return_active_info=False, verbose=None,
+                            force_no_rep=False):
     """Alternating Projections sources localization method.
 
     Compute Alternating Projections (AP) on evoked data.
@@ -690,6 +696,8 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     return_active_info : bool, optional
         If True, appends estimated source's information
         (indices,coordinates,orientation). The default is False.
+    force_no_rep : bool, optional
+        Forces no repetition of estinated dipoles.
     %(verbose)s
 
     Returns
@@ -730,7 +738,8 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
 
     dipoles, explained_data_mat, var_exp, idx, oris, poss = \
         _apply_ap(data, info, times, forward, noise_cov,
-                  nsources, picks, max_iter=max_iter)
+                  nsources, picks, max_iter=max_iter,
+                  force_no_rep=force_no_rep)
 
     output = [dipoles]
     if return_residual:
