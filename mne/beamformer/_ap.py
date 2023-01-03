@@ -296,7 +296,7 @@ def _free_phase1a(attr_dict, gain, data_cov):
 
 
 def _free_phase1b(attr_dict, gain, data_cov,
-                  ap_temp_tuple):
+                  ap_temp_tuple, force_no_rep):
     """Calculate phase 1b of free oriented AP.
 
     Adding one source at a time.
@@ -311,6 +311,8 @@ def _free_phase1b(attr_dict, gain, data_cov,
         Data Covariance.
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
+    force_no_rep : bool
+        Forces no repetition of estinated dipoles.
 
     Returns
     -------
@@ -335,6 +337,8 @@ def _free_phase1b(attr_dict, gain, data_cov,
                             sub_g_proj.transpose()])
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
         for dip in range(attr_dict['ndipoles']):
+            if force_no_rep and (dip in s_ap):
+                continue
             sol_tuple = _solve_active_gain_eig(dip, gain,
                                                data_cov, eig,
                                                perpend_spc)
@@ -358,7 +362,7 @@ def _free_phase1b(attr_dict, gain, data_cov,
 
 
 def _free_phase2(ap_temp_tuple, attr_dict,
-                 data_cov, gain):
+                 data_cov, gain, force_no_rep):
     """Calculate phase 2 of free oriented AP.
 
     altering the projection of current estimated dipoles
@@ -373,6 +377,8 @@ def _free_phase2(ap_temp_tuple, attr_dict,
         Data Covariance.
     gain : array, shape (nchannels, ndipoles)
         Gain matrix.
+    force_no_rep : bool
+        Forces no repetition of estinated dipoles.
 
     Returns
     -------
@@ -404,6 +410,8 @@ def _free_phase2(ap_temp_tuple, attr_dict,
                                  a_tmp.transpose()])
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
+                if force_no_rep and (dip in np.delete(s_ap_2,src,0)):
+                    continue
                 sol_tuple = _solve_active_gain_eig(dip, gain, data_cov,
                                                    eig, perpend_spc)
                 ap_val2[dip] = np.max([x.real for x in sol_tuple[0]])
