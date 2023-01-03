@@ -21,6 +21,7 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
+- ipython !=8.7.0
 - joblib
 - psutil
 - numexpr

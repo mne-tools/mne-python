@@ -17,13 +17,7 @@ from ..cov import _regularized_covariance
 from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
                         _INTERPOLATION_DEFAULT)
 from ..fixes import pinv
-from ..utils import fill_doc, _check_option, _validate_type, copy_doc, warn
-from ..viz.utils import _warn_deprecated_vmin_vmax
-
-# TODO ↓↓↓↓↓ remove after 1.3 release
-_TITLE_WARNING_MSG = (
-    'The "title" parameter is deprecated and will be removed in version 1.4. '
-    'Use "fig.suptitle()" instead.')
+from ..utils import fill_doc, _check_option, _validate_type, copy_doc
 
 
 @fill_doc
@@ -250,10 +244,9 @@ class CSP(TransformerMixin, BaseEstimator):
             mask_params=None, contours=6, outlines='head', sphere=None,
             image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=True, cbar_fmt='%3.1f', units=None,
-            axes=None, name_format='CSP%01d', title=None, nrows=1,
-            ncols='auto', show=True):
+            size=1, cmap='RdBu_r', vlim=(None, None), cnorm=None,
+            colorbar=True, cbar_fmt='%3.1f', units=None, axes=None,
+            name_format='CSP%01d', nrows=1, ncols='auto', show=True):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the
@@ -290,11 +283,6 @@ class CSP(TransformerMixin, BaseEstimator):
         %(vlim_plot_topomap)s
 
             .. versionadded:: 1.3
-        %(vmin_vmax_topomap)s
-
-            .. deprecated:: v1.4
-               The ``vmin`` and ``vmax`` parameters will be removed in version
-               1.4. Please use the ``vlim`` parameter instead.
         %(cnorm)s
 
             .. versionadded:: 1.3
@@ -304,12 +292,6 @@ class CSP(TransformerMixin, BaseEstimator):
         %(axes_evoked_plot_topomap)s
         name_format : str
             String format for topomap values. Defaults to "CSP%%01d".
-        %(title_none)s
-
-            .. deprecated:: v1.4
-               The ``title`` parameter will be removed in version 1.4. Please
-               use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-               instead.
         %(nrows_ncols_topomap)s
 
             .. versionadded:: 1.3
@@ -321,8 +303,6 @@ class CSP(TransformerMixin, BaseEstimator):
            The figure.
         """
         from .. import EvokedArray
-
-        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
 
         if units is None:
             units = 'AU'
@@ -345,10 +325,6 @@ class CSP(TransformerMixin, BaseEstimator):
             cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
             cbar_fmt=cbar_fmt, units=units, axes=axes, time_format=name_format,
             nrows=nrows, ncols=ncols, show=show)
-
-        if title is not None:
-            warn(_TITLE_WARNING_MSG, FutureWarning)
-            fig.suptitle(title)
         return fig
 
     @fill_doc
@@ -358,10 +334,9 @@ class CSP(TransformerMixin, BaseEstimator):
             mask_params=None, contours=6, outlines='head', sphere=None,
             image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=True, cbar_fmt='%3.1f', units=None,
-            axes=None, name_format='CSP%01d', title=None, nrows=1,
-            ncols='auto', show=True):
+            size=1, cmap='RdBu_r', vlim=(None, None), cnorm=None,
+            colorbar=True, cbar_fmt='%3.1f', units=None, axes=None,
+            name_format='CSP%01d', nrows=1, ncols='auto', show=True):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -398,11 +373,6 @@ class CSP(TransformerMixin, BaseEstimator):
         %(vlim_plot_topomap_psd)s
 
             .. versionadded:: 1.3
-        %(vmin_vmax_topomap)s
-
-            .. deprecated:: v1.4
-               The ``vmin`` and ``vmax`` parameters will be removed in version
-               1.4. Please use the ``vlim`` parameter instead.
         %(cnorm)s
 
             .. versionadded:: 1.3
@@ -412,12 +382,6 @@ class CSP(TransformerMixin, BaseEstimator):
         %(axes_evoked_plot_topomap)s
         name_format : str
             String format for topomap values. Defaults to "CSP%%01d".
-        %(title_none)s
-
-            .. deprecated:: v1.4
-               The ``title`` parameter will be removed in version 1.4. Please
-               use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-               instead.
         %(nrows_ncols_topomap)s
 
             .. versionadded:: 1.3
@@ -429,8 +393,6 @@ class CSP(TransformerMixin, BaseEstimator):
            The figure.
         """
         from .. import EvokedArray
-
-        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax, '1.4')
 
         if units is None:
             units = 'AU'
@@ -453,9 +415,6 @@ class CSP(TransformerMixin, BaseEstimator):
             cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
             cbar_fmt=cbar_fmt, units=units, axes=axes, time_format=name_format,
             nrows=nrows, ncols=ncols, show=show)
-        if title is not None:
-            warn(_TITLE_WARNING_MSG, FutureWarning)
-            fig.suptitle(title)
         return fig
 
     def _compute_covariance_matrices(self, X, y):

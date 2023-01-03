@@ -153,29 +153,31 @@ def test_snirf_basic():
 
 @requires_testing_data
 def test_snirf_against_nirx():
-    """Test against file snirf was created from."""
-    raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
-    _reorder_nirx(raw)
+    """Test Homer generated against file snirf was created from."""
+    raw_homer = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    _reorder_nirx(raw_homer)
     raw_orig = read_raw_nirx(sfnirs_homer_103_wShort_original, preload=True)
 
     # Check annotations are the same
-    assert_allclose(raw.annotations.onset, raw_orig.annotations.onset)
-    assert_allclose([float(d) for d in raw.annotations.description],
+    assert_allclose(raw_homer.annotations.onset, raw_orig.annotations.onset)
+    assert_allclose([float(d) for d in raw_homer.annotations.description],
                     [float(d) for d in raw_orig.annotations.description])
-    assert_allclose(raw.annotations.duration, raw_orig.annotations.duration)
+    # Homer writes durations as 5s regardless of the true duration.
+    # So we will not test that the nirx file stim durations equal
+    # the homer file stim durations.
 
     # Check names are the same
-    assert raw.info['ch_names'] == raw_orig.info['ch_names']
+    assert raw_homer.info['ch_names'] == raw_orig.info['ch_names']
 
     # Check frequencies are the same
-    num_chans = len(raw.ch_names)
-    new_chs = raw.info['chs']
+    num_chans = len(raw_homer.ch_names)
+    new_chs = raw_homer.info['chs']
     ori_chs = raw_orig.info['chs']
     assert_allclose([new_chs[idx]['loc'][9] for idx in range(num_chans)],
                     [ori_chs[idx]['loc'][9] for idx in range(num_chans)])
 
     # Check data is the same
-    assert_allclose(raw.get_data(), raw_orig.get_data())
+    assert_allclose(raw_homer.get_data(), raw_orig.get_data())
 
 
 @requires_testing_data
@@ -388,3 +390,18 @@ def test_annotation_description_from_stim_groups():
     raw = read_raw_snirf(nirx_nirsport2_103_2, preload=True)
     expected_descriptions = ['1', '2', '6']
     assert_equal(expected_descriptions, raw.annotations.description)
+
+
+@requires_testing_data
+def test_annotation_duration_from_stim_groups():
+    """Test annotation durations extracted correctly from stim group."""
+    raw = read_raw_snirf(snirf_nirsport2_20219, preload=True)
+    # Specify the expected SNIRF stim durations.
+    # We can verify these values should be 10 by using the official
+    # SNIRF package pysnirf2 and running the following script.
+    # You will see that the print statement shows the middle column,
+    # which represents duration, will be all 10s.
+    # from snirf import Snirf
+    # a = Snirf(snirf_nirsport2_20219, "r+"); print(a.nirs[0].stim[0].data)
+    expected_durations = np.full((10,), 10.)
+    assert_equal(expected_durations, raw.annotations.duration)
