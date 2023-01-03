@@ -2,7 +2,7 @@ import os.path as op
 import numpy as np
 
 import pytest
-from numpy.testing import assert_allclose, assert_array_equal, assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 import mne
 from mne import (vertex_to_mni, head_to_mni,
