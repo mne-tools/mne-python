@@ -486,6 +486,26 @@ def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
     return image  # returns MGH image for header
 
 
+def _get_affine_from_lta_info(lines):
+    """Get the vox2ras affine from lta file info."""
+    # get the size of the volume (number of voxels)
+    dims = np.loadtxt([lines[0].split('=')[1]])
+    # get slice resolution
+    deltas = np.loadtxt([lines[1].split('=')[1]])
+    # get matrix of directional cosines
+    # see nibabel/freesurfer/mghformat->MGHHeader.get_affine
+    Mdc = np.loadtxt(
+        [line.split('=')[1] for line in lines[2:5]])
+    # get the RAS at the center of the volume
+    cras = np.loadtxt([lines[5].split('=')[1]])
+    MdcD = Mdc.T * deltas
+    vol_center = MdcD.dot(dims[:3]) / 2
+    affine = np.eye(4)
+    affine[:3, :3] = MdcD
+    affine[:3, 3] = cras - vol_center
+    return affine
+
+
 @verbose
 def read_lta(fname, verbose=None):
     """Read a Freesurfer linear transform array file.
@@ -505,14 +525,23 @@ def read_lta(fname, verbose=None):
     _check_fname(fname, 'read', must_exist=True)
     with open(fname, 'r') as fid:
         lines = fid.readlines()
+    # 0 is linear vox2vox, 1 is linear ras2ras
+    trans_type = int(lines[0].split('=')[1].strip()[0])
+    assert trans_type in (0, 1)
     affine = np.loadtxt(lines[5:9])
-    fro_affine = np.eye(4)
-    fro_affine[:3, :3] = np.loadtxt(
-        [line.split('=')[1] for line in lines[14:17]])
-    to_affine = np.eye(4)
-    to_affine[:3, :3] = np.loadtxt(
-        [line.split('=')[1] for line in lines[23:26]])
-    return fro_affine @ affine @ np.linalg.inv(to_affine)
+    if trans_type == 1:
+        return affine
+
+    src_affine = _get_affine_from_lta_info(lines[12:18])
+    dst_affine = _get_affine_from_lta_info(lines[21:27])
+
+    # don't compute if src and dst are already identical
+    if np.allclose(src_affine, dst_affine):
+        return affine
+
+    ras2ras = src_affine @ np.linalg.inv(affine) @ np.linalg.inv(dst_affine)
+    affine = np.linalg.inv(np.linalg.inv(src_affine) @ ras2ras @ src_affine)
+    return affine
 
 
 @verbose

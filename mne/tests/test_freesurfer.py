@@ -2,7 +2,7 @@ import os.path as op
 import numpy as np
 
 import pytest
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal, assert_allclose
 
 import mne
 from mne import (vertex_to_mni, head_to_mni,
@@ -127,13 +127,49 @@ def test_read_lta(tmp_path):
                      xras   = -1 0 0
                      yras   = 0 0 -1
                      zras   = 0 1 0
-                     cras   = -1.19374 -3.31686 3.25835)""")
+                     cras   = -1.19374 -3.31686 3.25835""")
     assert_array_equal(
         read_lta(op.join(tmp_path, 'test.lta')),
         np.array([[0.99221027, -0.05494503, 0.11180324, -3.84350586],
                   [0.05233596, 0.99828744, 0.02614108, -9.77523804],
                   [-0.11304809, -0.02008611, 0.99338663, 15.25457001],
                   [0., 0., 0., 1.]]))
+
+    # test when dst volume != src_volume
+    with open(op.join(tmp_path, 'test2.lta'), 'w') as fid:
+        fid.write("""type      = 0 # LINEAR_VOX_TO_VOX
+                     nxforms   = 1
+                     mean      = 0.0000 0.0000 0.0000
+                     sigma     = 1.0000
+                     1 4 4
+                     0.41397345  -0.02919456  -0.00069703  26.37020874
+                     -0.02894894 -0.40985453  -0.06119149 212.38204956
+                     0.00361269   0.0611503   -0.41046342 203.33338928
+                     0 0 0 1
+                     src volume info
+                     valid = 1  # volume info valid
+                     filename = tmp2.mgz
+                     volume = 512 385 512
+                     voxelsize = 0.41499999 0.41541821 0.41499999
+                     xras   = -1 0 0
+                     yras   = 0 0 1
+                     zras   = 0 -1 0
+                     cras   = -106.23999786 105.82500458 -79.55259705
+                     dst volume info
+                     valid = 1  # volume info valid
+                     filename = tmp.mgz
+                     volume = 256 256 256
+                     voxelsize = 1 1 1
+                     xras   = -1 0 0
+                     yras   = 0 0 -1
+                     zras   = 0 1 0
+                     cras   = -3.68961334 -0.12011719 3.4160614""")
+    assert_allclose(
+        read_lta(op.join(tmp_path, 'test2.lta')),
+        np.array([[0.99752641, -0.07034834, -0.00167959, -236.00043542],
+                  [0.06968626, 0.98660704, 0.14730093, 189.09766694],
+                  [-0.00870528, -0.14735012, 0.98906851, 329.7632126],
+                  [0., 0., 0., 1.]]), atol=1e-8)
 
 
 @testing.requires_testing_data
