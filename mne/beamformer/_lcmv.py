@@ -142,7 +142,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     .. footbibliography::
     """
     # check number of sensor types present in the data and ensure a noise cov
-    info = _simplify_info(info)
     noise_cov, _, allow_mismatch = _check_one_ch_type(
         'lcmv', info, forward, data_cov, noise_cov)
     # XXX we need this extra picking step (can't just rely on minimum norm's
