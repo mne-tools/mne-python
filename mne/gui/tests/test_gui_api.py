@@ -268,6 +268,10 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         shortcut=None,
     )
     renderer.actions['help'].trigger()
+    if renderer._kind == 'qt':
+        dialog = renderer._window.children()[-1]
+        assert 'QFileDialog' in repr(dialog)
+        dialog.close()
 
     # play button
     assert 'play' not in renderer.actions
@@ -346,6 +350,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
             with _check_widget_trigger(None, mock, '', '', get_value=False):
                 widget.trigger(button=button)
             assert mock.call_args.args == (button,)
+        assert not widget._widget.isVisible()
 
         # buttons list empty means OK button (default)
         button = 'Ok'
@@ -361,6 +366,8 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         with _check_widget_trigger(None, mock, '', '', get_value=False):
             widget.trigger(button=button)
         assert mock.call_args.args == (button,)
+        widget.trigger(button='Ok')
+
     # --- END: dialog ---
 
     # --- BEGIN: keypress ---

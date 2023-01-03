@@ -253,7 +253,16 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     # first, disable auto cleanup
     coreg._renderer._window_close_disconnect(after=True)
     # test _close_callback()
+    coreg._renderer._process_events()
+    assert coreg._mri_fids_modified  # should prompt
+    assert coreg._renderer.plotter.app_window.children() is not None
+    assert 'close_dialog' not in coreg._widgets
+    assert not coreg._renderer.plotter._closed
+    assert coreg._accept_close_event
+    # make sure it's ignored (PySide6 causes problems here and doesn't wait)
+    coreg._accept_close_event = False
     coreg.close()
+    assert not coreg._renderer.plotter._closed
     coreg._widgets['close_dialog'].trigger('Discard')  # do not save
     coreg._clean()  # finally, cleanup internal structures
 

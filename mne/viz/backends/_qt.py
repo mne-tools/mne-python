@@ -670,7 +670,6 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
                 self._clean()
                 event.accept()
             else:
-                print('ignorin')
                 event.ignore()
 
             # functions to call after closing
@@ -1080,15 +1079,18 @@ class _QtDock(_AbstractDock, _QtLayout):
         def callback():
             if is_directory:
                 name = QFileDialog.getExistingDirectory(
+                    parent=self._window,
                     directory=initial_directory
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
+                    parent=self._window,
                     directory=initial_directory,
                     filter=filter
                 )
             else:
                 name = QFileDialog.getOpenFileName(
+                    parent=self._window,
                     directory=initial_directory,
                     filter=filter
                 )
@@ -1351,7 +1353,6 @@ class _QtWindow(_AbstractWindow):
                 self._window.signal_close.emit()
                 event.accept()
             else:
-                print('ignorin')
                 event.ignore()
 
             # functions to call after closing
@@ -1590,12 +1591,14 @@ class _QtDialogWidget(_QtWidget):
         self._modal = modal
         self._communicator = _QtDialogCommunicator()
         self._communicator.signal_show.connect(self.show)
+        self._widget.setAttribute(Qt.WA_DeleteOnClose, True)
 
     def trigger(self, button):
         button_id = getattr(QMessageBox, button)
         for current_button in self._widget.buttons():
             if self._widget.standardButton(current_button) == button_id:
                 current_button.click()
+                break
 
     def show(self, thread=False):
         if thread:
