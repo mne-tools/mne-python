@@ -95,7 +95,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     from ..epochs import BaseEpochs
 
     exclude = ica.exclude
-    picks = _picks_to_idx(ica.n_components_, picks, 'all')
+    picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
 
     if isinstance(inst, (BaseRaw, BaseEpochs)):
         fig = _plot_sources(ica, inst, picks, exclude, start=start, stop=stop,
@@ -327,10 +327,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         .. note::
            You can interactively cycle through topographic maps for different
            channel types by pressing :kbd:`T`.
-    picks : str | list | slice | None
-        Components to include. Slices and lists of integers will be interpreted
-        as component indices. ``None`` (default) will use the first five
-        components. Each component will be plotted in a separate figure.
+    picks : int | list of int | slice | None
+        Indices of the independent components (ICs) to visualize.
+        If an integer, represents the index of the IC to pick.
+        Multiple ICs can be selected using a list of int or a slice.
+        The indices are 0-indexed, so ``picks=1`` will pick the second
+        IC: ``ICA001``. ``None`` will pick the first 5 components.
     axes : list of Axes | None
         List of five matplotlib axes to use in plotting: [topomap_axis,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
@@ -418,9 +420,11 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         plot_std = True
     num_std = float(plot_std)
 
-    # if no picks given - plot the first 5 components
-    limit = min(5, ica.n_components_) if picks is None else len(ica.ch_names)
-    picks = _picks_to_idx(ica.info, picks, 'all')[:limit]
+    limit = min(5, ica.n_components_) if picks is None else ica.n_components_
+    picks = _picks_to_idx(
+        ica.n_components_, picks, picks_on="components"
+    )[:limit]
+
     if axes is None:
         fig, axes = _create_properties_layout(figsize=figsize)
     else:

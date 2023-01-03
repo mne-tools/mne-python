@@ -296,6 +296,8 @@
 
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 
+.. _Mark Alexander Henney: https://github.com/henneysq
+
 .. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
 
 .. _Marmaduke Woodman: https://github.com/maedoc
@@ -396,7 +398,7 @@
 
 .. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
 
-.. _Reza Nasri: https://github.com/0reza
+.. _Reza Nasri: https://github.com/rznas
 
 .. _Reza Shoorangiz: https://github.com/rezashr
 

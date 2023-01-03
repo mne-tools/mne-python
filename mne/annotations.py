@@ -22,7 +22,8 @@ from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_fname, int_like, _check_option, fill_doc,
                     _on_missing, _is_numeric, _check_dict_keys)
 
-from .io.write import (start_block, end_block, write_float, write_name_list,
+from .io.write import (start_block, end_block, write_float,
+                       write_name_list_sanitized, _safe_name_list,
                        write_double, start_file, write_string)
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -53,7 +54,7 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
     if description.ndim != 1:
         raise ValueError('Description must be a one dimensional array, '
                          'got %d.' % (description.ndim,))
-    _prep_name_list(description, 'check', 'description')
+    _safe_name_list(description, 'write', 'description')
 
     # ch_names: convert to ndarray of tuples
     _validate_type(ch_names, (None, tuple, list, np.ndarray), 'ch_names')
@@ -986,31 +987,14 @@ def _annotations_starts_stops(raw, kinds, name='skip_by_annotation',
     return onsets, ends
 
 
-def _prep_name_list(lst, operation, name='description'):
-    if operation == 'check':
-        if any(['{COLON}' in val for val in lst]):
-            raise ValueError(
-                f'The substring "{{COLON}}" in {name} not supported.')
-    elif operation == 'write':
-        # take a list of strings and return a sanitized string
-        return ':'.join(val.replace(':', '{COLON}') for val in lst)
-    else:
-        # take a sanitized string and return a list of strings
-        assert operation == 'read'
-        assert isinstance(lst, str)
-        if not len(lst):
-            return []
-        return [val.replace('{COLON}', ':') for val in lst.split(':')]
-
-
 def _write_annotations(fid, annotations):
     """Write annotations."""
     start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
     write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
     write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
                 annotations.duration + annotations.onset)
-    write_name_list(fid, FIFF.FIFF_COMMENT, _prep_name_list(
-        annotations.description, 'write').split(':'))
+    write_name_list_sanitized(
+        fid, FIFF.FIFF_COMMENT, annotations.description, name='description')
     if annotations.orig_time is not None:
         write_double(fid, FIFF.FIFF_MEAS_DATE,
                      _dt_to_stamp(annotations.orig_time))
@@ -1024,7 +1008,8 @@ def _write_annotations_csv(fname, annot):
     annot = annot.to_data_frame()
     if 'ch_names' in annot:
         annot['ch_names'] = [
-            _prep_name_list(ch, 'write') for ch in annot['ch_names']]
+            _safe_name_list(ch, 'write', name=f'annot["ch_names"][{ci}')
+            for ci, ch in enumerate(annot['ch_names'])]
     annot.to_csv(fname, index=False)
 
 
@@ -1037,7 +1022,9 @@ def _write_annotations_txt(fname, annot):
     data = [annot.onset, annot.duration, annot.description]
     if annot._any_ch_names():
         content += ', ch_names'
-        data.append([_prep_name_list(ch, 'write') for ch in annot.ch_names])
+        data.append([
+            _safe_name_list(ch, 'write', f'annot.ch_names[{ci}]')
+            for ci, ch in enumerate(annot.ch_names)])
     content += '\n'
     data = np.array(data, dtype=str).T
     assert data.ndim == 2
@@ -1178,7 +1165,7 @@ def _read_annotations_csv(fname):
     description = df['description'].values
     ch_names = None
     if 'ch_names' in df.columns:
-        ch_names = [_prep_name_list(val, 'read')
+        ch_names = [_safe_name_list(val, 'read', 'annotation channel name')
                     for val in df['ch_names'].values]
     return Annotations(onset, duration, description, orig_time, ch_names)
 
@@ -1261,8 +1248,9 @@ def _read_annotations_txt(fname):
     duration = [float(d.decode()) for d in np.atleast_1d(duration)]
     desc = [str(d.decode()).strip() for d in np.atleast_1d(desc)]
     if ch_names is not None:
-        ch_names = [_prep_name_list(ch.decode().strip(), 'read')
-                    for ch in ch_names]
+        ch_names = [
+            _safe_name_list(ch.decode().strip(), 'read', f'ch_names[{ci}]')
+            for ci, ch in enumerate(ch_names)]
     return onset, duration, desc, ch_names
 
 
@@ -1286,7 +1274,7 @@ def _read_annotations_fif(fid, tree):
                 duration = tag.data
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
-                description = _prep_name_list(tag.data, 'read')
+                description = _safe_name_list(tag.data, 'read', 'description')
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
                 try:

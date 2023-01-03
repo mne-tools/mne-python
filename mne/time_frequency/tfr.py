@@ -2100,8 +2100,6 @@ class AverageTFR(_BaseTFR):
         """  # noqa: E501
         from ..viz import plot_tfr_topomap
 
-        # TODO units => unit
-
         return plot_tfr_topomap(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, ch_type=ch_type,
             baseline=baseline, mode=mode, sensors=sensors,

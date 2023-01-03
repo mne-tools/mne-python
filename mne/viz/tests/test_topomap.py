@@ -38,7 +38,6 @@ from mne.viz.utils import (_find_peaks, _fake_click, _fake_keypress,
                            _fake_scroll)
 from mne.utils import requires_sklearn, check_version
 
-
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg-proj.fif')
@@ -227,6 +226,30 @@ def test_plot_evoked_topomap_errors(evoked, monkeypatch):
         evoked.info['dig'] = None
     with pytest.raises(RuntimeError, match='No digitization points found.'):
         evoked.plot_topomap()
+
+
+@pytest.mark.parametrize('units, scalings, expected_unit', [
+    (None, None, 'µV'),
+    ('foo', None, 'foo'),
+    (None, 7., 'AU'),  # non-default scaling → "AU"
+])
+def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
+    """Test that colorbar units respect scalings correctly."""
+    evoked.pick(['EEG 001', 'EEG 002', 'EEG 003'])
+    fig = evoked.plot_topomap(times=0.1, res=8, contours=0, sensors=False,
+                              units=units, scalings=scalings)
+    # ideally we'd do this:
+    #     cbar = [ax for ax in fig.axes if hasattr(ax, '_colorbar')]
+    #     assert len(cbar) == 1
+    #     cbar = cbar[0]
+    #     assert cbar.get_title() == expected_unit
+    # ...but not all matplotlib versions support it, and we can't use
+    # @requires_version because it's hard figure out exactly which MPL version
+    # is the cutoff since it relies on a private attribute. So for now we just
+    # do this:
+    for ax in fig.axes:
+        if hasattr(ax, '_colorbar'):
+            assert ax.get_title() == expected_unit
 
 
 @pytest.mark.parametrize('extrapolate', ('box', 'local', 'head'))
