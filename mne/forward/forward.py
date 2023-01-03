@@ -27,11 +27,10 @@ from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.meas_info import (_read_bad_channels, write_info, _write_ch_infos,
                             _read_extended_ch_info, _make_ch_names_mapping,
-                            _rename_list)
+                            _write_bad_channels)
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
-from ..io.write import (write_int, start_block, end_block,
-                        write_coord_trans, write_name_list,
+from ..io.write import (write_int, start_block, end_block, write_coord_trans,
                         write_string, start_and_end_file, write_id)
 from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
@@ -1030,10 +1029,7 @@ def write_forward_meas_info(fid, info):
         _write_ch_infos(fid, info['chs'], False, ch_names_mapping)
     if 'bads' in info and len(info['bads']) > 0:
         #   Bad channels
-        bads = _rename_list(info['bads'], ch_names_mapping)
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        _write_bad_channels(fid, info['bads'], ch_names_mapping)
 
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
