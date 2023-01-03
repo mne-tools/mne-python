@@ -396,7 +396,7 @@
 
 .. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
 
-.. _Reza Nasri: https://github.com/0reza
+.. _Reza Nasri: https://github.com/rznas
 
 .. _Reza Shoorangiz: https://github.com/rezashr
 

@@ -27,6 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
 - Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)
 
 API changes
