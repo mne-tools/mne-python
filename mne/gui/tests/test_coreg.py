@@ -15,7 +15,7 @@ from mne.datasets import testing
 from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.constants import FIFF
-from mne.utils import get_config, catch_logging
+from mne.utils import get_config, catch_logging, requires_version
 from mne.channels import DigMontage
 from mne.coreg import Coregistration
 from mne.viz import _3d
@@ -97,14 +97,16 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
     else:
         ctx = nullcontext()
     with ctx:
-        coregistration(inst=inst_path, subject='sample',
-                       subjects_dir=subjects_dir)
+        coreg = coregistration(
+            inst=inst_path, subject='sample', subjects_dir=subjects_dir)
+    coreg._accept_close_event = True
+    coreg.close()
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
-                                 monkeypatch):
+def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch,
+                                 renderer_interactive_pyvistaqt):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
     config = get_config()
@@ -264,23 +266,34 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     coreg.close()
     assert not coreg._renderer.plotter._closed
     coreg._widgets['close_dialog'].trigger('Discard')  # do not save
+    coreg.close()
+    assert coreg._renderer.plotter._closed
     coreg._clean()  # finally, cleanup internal structures
+    assert coreg._renderer is None
 
     # Coregistration instance should survive
     assert isinstance(coreg.coreg, Coregistration)
 
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_fullscreen(renderer_interactive_pyvistaqt):
+    """Test fullscreen mode."""
+    from mne.gui import coregistration
     # Fullscreen mode
     coreg = coregistration(
         subject='sample', subjects_dir=subjects_dir, fullscreen=True
     )
+    coreg._accept_close_event = True
+    coreg.close()
 
 
 @pytest.mark.slowtest
+@requires_version('sphinx_gallery')
 @testing.requires_testing_data
 def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
     """Test the scrapper for the coregistration GUI."""
     from mne.gui import coregistration
-    pytest.importorskip('sphinx_gallery')
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     (tmp_path / '_images').mkdir()
@@ -333,8 +346,7 @@ def test_no_sparse_head(subjects_dir_tmp, renderer_interactive_pyvistaqt,
     coreg.close()
 
 
-def test_splash_closed(tmp_path, renderer_interactive_pyvistaqt,
-                       qt_windows_closed):
+def test_splash_closed(tmp_path, renderer_interactive_pyvistaqt):
     """Test that the splash closes on error."""
     from mne.gui import coregistration
     with pytest.raises(RuntimeError, match='No standard head model'):

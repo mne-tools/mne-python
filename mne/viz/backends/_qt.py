@@ -469,7 +469,7 @@ class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
             self, title=title, text=text, info_text=info_text,
             callback=callback, icon=icon, buttons=buttons, window=window)
         _Widget.__init__(self)
-        QMessageBox.__init__(self)
+        QMessageBox.__init__(self, parent=window)
         self.setWindowTitle(title)
         self.setText(text)
         # icon is one of _Dialog.supported_icon_names
@@ -1075,8 +1075,12 @@ class _QtDock(_AbstractDock, _QtLayout):
         save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
+        weakself = weakref.ref(self)
 
         def callback():
+            self = weakself()
+            if not self:
+                return
             if is_directory:
                 name = QFileDialog.getExistingDirectory(
                     parent=self._window,
@@ -1245,7 +1249,6 @@ class _QtMenuBar(_AbstractMenuBar):
         self._menu_actions = dict()
         self._menu_bar = QMenuBar(window)
         self._menu_bar.setNativeMenuBar(False)
-        window.setMenuBar(self._menu_bar)
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self._menu_bar.addMenu(desc)

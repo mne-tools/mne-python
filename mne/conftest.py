@@ -123,6 +123,7 @@ def pytest_configure(config):
     ignore:.*cmap function will be deprecated.*:
     # joblib hasn't updated to avoid distutils
     ignore:.*distutils package is deprecated.*:DeprecationWarning
+    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     # nbclient
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
@@ -494,14 +495,14 @@ def renderer_notebook(request, options_3d):
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive_pyvistaqt(request, options_3d):
+@pytest.fixture(params=["pyvistaqt"])
+def renderer_interactive_pyvistaqt(request, options_3d, qt_windows_closed):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt"])
+@pytest.fixture(params=["pyvistaqt"])
 def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
