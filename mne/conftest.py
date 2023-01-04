@@ -133,8 +133,6 @@ def pytest_configure(config):
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
-    # PyVistaQt
-    ignore:Exception ignored in.*function BackgroundPlotter.*:
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -957,14 +955,12 @@ def nirx_snirf(request):
 @pytest.fixture
 def qt_windows_closed():
     """Ensure that no new Qt windows are open after a test."""
-    from qtpy.QtWidgets import QApplication
     from mne.viz.backends._utils import _init_mne_qtapp
     app = _init_mne_qtapp()
-    n_before = len(QApplication.topLevelWidgets())
-    app.processEvents()
+    gc.collect()
+    n_before = len(app.topLevelWidgets())
     yield
-    app.processEvents()
-    app.processEvents()
-    widgets = QApplication.topLevelWidgets()
+    gc.collect()
+    widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]

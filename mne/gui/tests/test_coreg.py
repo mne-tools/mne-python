@@ -280,6 +280,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
 def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
     """Test the scrapper for the coregistration GUI."""
     from mne.gui import coregistration
+    pytest.importorskip('sphinx_gallery')
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     (tmp_path / '_images').mkdir()

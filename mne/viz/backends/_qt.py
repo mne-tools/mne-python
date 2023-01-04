@@ -1240,11 +1240,11 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
 
 class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
+        window = self._window if window is None else window
         self._menus = dict()
         self._menu_actions = dict()
-        self._menu_bar = QMenuBar()
+        self._menu_bar = QMenuBar(window)
         self._menu_bar.setNativeMenuBar(False)
-        window = self._window if window is None else window
         window.setMenuBar(self._menu_bar)
 
     def _menu_add_submenu(self, name, desc):

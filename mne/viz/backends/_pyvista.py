@@ -33,10 +33,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
     from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
-    try:
-        from pyvistaqt import BackgroundPlotter  # noqa
-    except ImportError:
-        from pyvista import BackgroundPlotter
+    from pyvistaqt import BackgroundPlotter
     from pyvista.plotting.plotting import _ALL_PLOTTERS
 
 from vtkmodules.vtkCommonCore import (
@@ -56,13 +53,6 @@ from vtkmodules.vtkRenderingCore import (
     vtkPolyDataMapper, vtkVolume, vtkCoordinate, vtkDataSetMapper)
 from vtkmodules.vtkRenderingVolumeOpenGL2 import vtkSmartVolumeMapper
 from vtkmodules.util.numpy_support import numpy_to_vtk
-try:
-    from vtkmodules.vtkCommonCore import VTK_VERSION
-except Exception:  # some bad versions of VTK
-    VTK_VERSION = '9.0'
-
-VTK9 = _compare_version(VTK_VERSION, '>=', '9.0')
-
 
 _FIGURES = dict()
 
@@ -108,7 +98,7 @@ class PyVistaFigure(Figure3D):
             self.store['menu_bar'] = False
             self.store['toolbar'] = False
             self.store['update_app_icon'] = False
-            self._plotter_class = BackgroundPlotter
+            self._plotter_class = _SafeBackgroundPlotter
             if 'app_window_class' in signature(BackgroundPlotter).parameters:
                 from ._qt import _MNEMainWindow
                 self.store['app_window_class'] = _MNEMainWindow
@@ -122,7 +112,7 @@ class PyVistaFigure(Figure3D):
         if self.plotter is None:
             if not self.notebook:
                 out = _init_mne_qtapp(
-                    enable_icon=hasattr(self._plotter_class, 'set_icon'),
+                    enable_icon=True,
                     splash=self.splash)
                 # replace it with the Qt object
                 if self.splash:
@@ -302,13 +292,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         if interaction == "rubber_band_2d":
             for renderer in self._all_renderers:
                 renderer.enable_parallel_projection()
-            if hasattr(self.plotter, 'enable_rubber_band_2d_style'):
-                self.plotter.enable_rubber_band_2d_style()
-            else:
-                from vtkmodules.vtkInteractionStyle import\
-                    vtkInteractorStyleRubberBand2D
-                style = vtkInteractorStyleRubberBand2D()
-                self.plotter.interactor.SetInteractorStyle(style)
+            self.plotter.enable_rubber_band_2d_style()
         else:
             for renderer in self._all_renderers:
                 renderer.disable_parallel_projection()
@@ -533,8 +517,6 @@ class _PyVistaRenderer(_AbstractRenderer):
             cell_type = np.full(n_points, VTK_VERTEX)
             cells = np.c_[np.full(n_points, 1), range(n_points)]
             args = (cells, cell_type, points)
-            if not VTK9:
-                args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
             if scalars is None:
                 scalars = np.ones((n_points,))
@@ -1222,3 +1204,10 @@ def _is_mesa(plotter):
         else:
             raise RuntimeError
     return is_mesa
+
+
+class _SafeBackgroundPlotter(BackgroundPlotter):
+    # https://github.com/pyvista/pyvistaqt/pull/258
+    def __del__(self) -> None:  # pragma: no cover
+        """Delete the qt plotter."""
+        self.close()

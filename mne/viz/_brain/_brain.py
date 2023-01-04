@@ -1376,16 +1376,9 @@ class Brain(object):
         if hemi == 'vol':
             ijk = np.unravel_index(
                 vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
-            # should just be GetCentroid(center), but apparently it's VTK9+:
-            # center = np.empty(3)
-            # voxel.GetCentroid(center)
             voxel = mesh.GetCell(*ijk)
-            pts = voxel.GetPoints()
-            n_pts = pts.GetNumberOfPoints()
-            center = np.empty((n_pts, 3))
-            for ii in range(pts.GetNumberOfPoints()):
-                pts.GetPoint(ii, center[ii])
-            center = np.mean(center, axis=0)
+            center = np.empty(3)
+            voxel.GetCentroid(center)
         else:
             center = mesh.GetPoints().GetPoint(vertex_id)
         del mesh
