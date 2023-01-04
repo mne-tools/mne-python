@@ -284,6 +284,15 @@ def test_io_evoked(tmp_path):
     aves = read_evokeds(fname_ms, allow_maxshield='yes')
     assert (all(ave.info['maxshield'] is True for ave in aves))
 
+    # Channel names
+    with ave.info._unlock():
+        ave.info['maxshield'] = False
+    ave.rename_channels(lambda ch_name: ch_name.replace(' ', ':'))
+    assert ':' in ave.ch_names[0]
+    ave.save(fname_ms, overwrite=True)
+    ave6 = read_evokeds(fname_ms)[0]
+    assert ave.ch_names == ave6.ch_names
+
 
 def test_shift_time_evoked(tmp_path):
     """Test for shifting of time scale."""
