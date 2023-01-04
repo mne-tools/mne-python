@@ -23,7 +23,6 @@ from matplotlib.patches import Rectangle
 
 from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
-from ..viz.backends._utils import _qt_safe_window
 from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _marching_cubes
 from ..transforms import apply_trans, _frame_to_str
@@ -77,7 +76,6 @@ class SliceBrowser(QMainWindow):
         (0, 1),
     )
 
-    @_qt_safe_window(splash=None, window='')
     def __init__(self, base_image=None, subject=None, subjects_dir=None,
                  verbose=None):
         """GUI for browsing slices of anatomical images."""
