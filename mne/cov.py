@@ -23,11 +23,12 @@ from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
-from .io.meas_info import _read_bad_channels, create_info
+from .io.meas_info import _read_bad_channels, create_info, _write_bad_channels
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
-from .io.write import (start_block, end_block, write_int, write_name_list,
-                       write_double, write_float_matrix, write_string)
+from .io.write import (start_block, end_block, write_int, write_double,
+                       write_float_matrix, write_string, _safe_name_list,
+                       write_name_list_sanitized)
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
@@ -1965,7 +1966,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
             if tag is None:
                 names = []
             else:
-                names = tag.data.split(':')
+                names = _safe_name_list(tag.data, 'read', 'names')
                 if len(names) != dim:
                     raise ValueError('Number of names does not match '
                                      'covariance matrix dimension')
@@ -2048,7 +2049,8 @@ def _write_cov(fid, cov):
 
     #   Channel names
     if cov['names'] is not None and len(cov['names']) > 0:
-        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, cov['names'])
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_MNE_ROW_NAMES, cov['names'], 'cov["names"]')
 
     #   Data
     if cov['diag']:
@@ -2070,10 +2072,7 @@ def _write_cov(fid, cov):
         _write_proj(fid, cov['projs'])
 
     #   Bad channels
-    if cov['bads'] is not None and len(cov['bads']) > 0:
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, cov['bads'])
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    _write_bad_channels(fid, cov['bads'], None)
 
     # estimator method
     if 'method' in cov:

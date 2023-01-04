@@ -146,6 +146,27 @@ def write_name_list(fid, kind, data):
     write_string(fid, kind, ':'.join(data))
 
 
+def write_name_list_sanitized(fid, kind, lst, name):
+    """Write a sanitized, colon-separated list of names."""
+    write_string(fid, kind, _safe_name_list(lst, 'write', name))
+
+
+def _safe_name_list(lst, operation, name):
+    if operation == 'write':
+        assert isinstance(lst, (list, tuple, np.ndarray)), type(lst)
+        if any('{COLON}' in val for val in lst):
+            raise ValueError(
+                f'The substring "{{COLON}}" in {name} not supported.')
+        return ':'.join(val.replace(':', '{COLON}') for val in lst)
+    else:
+        # take a sanitized string and return a list of strings
+        assert operation == 'read'
+        assert lst is None or isinstance(lst, str)
+        if not lst:  # None or empty string
+            return []
+        return [val.replace('{COLON}', ':') for val in lst.split(':')]
+
+
 def write_float_matrix(fid, kind, mat):
     """Write a single-precision floating-point matrix tag."""
     FIFFT_MATRIX = 1 << 30
