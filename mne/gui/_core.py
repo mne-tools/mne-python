@@ -11,7 +11,7 @@ import numpy as np
 from functools import partial
 
 from qtpy import QtCore
-from qtpy.QtCore import Slot
+from qtpy.QtCore import Slot, Qt
 from qtpy.QtWidgets import (QMainWindow, QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
                             QMessageBox, QWidget, QPlainTextEdit)
@@ -23,6 +23,7 @@ from matplotlib.patches import Rectangle
 
 from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
+from ..viz.backends._utils import _qt_safe_window
 from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _marching_cubes
 from ..transforms import apply_trans, _frame_to_str
@@ -76,11 +77,13 @@ class SliceBrowser(QMainWindow):
         (0, 1),
     )
 
+    @_qt_safe_window(splash=None, window='')
     def __init__(self, base_image=None, subject=None, subjects_dir=None,
                  verbose=None):
         """GUI for browsing slices of anatomical images."""
         # initialize QMainWindow class
         super(SliceBrowser, self).__init__()
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         self._verbose = verbose
         # if bad/None subject, will raise an informative error when loading MRI

@@ -408,7 +408,7 @@ def _qt_safe_window(
             finally:
                 for attr, do_close in ((splash, close_splash),
                                        (window, error)):
-                    if not do_close:
+                    if attr is None or not do_close:
                         continue
                     parent = self
                     name = attr.split('.')[-1]

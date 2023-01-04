@@ -332,14 +332,9 @@ def test_no_sparse_head(subjects_dir_tmp, renderer_interactive_pyvistaqt,
     coreg.close()
 
 
-def test_splash_closed(tmp_path, renderer_interactive_pyvistaqt):
+def test_splash_closed(tmp_path, renderer_interactive_pyvistaqt,
+                       qt_windows_closed):
     """Test that the splash closes on error."""
-    from qtpy.QtWidgets import QApplication
     from mne.gui import coregistration
-    n_before = len(QApplication.topLevelWidgets())
     with pytest.raises(RuntimeError, match='No standard head model'):
         coregistration(subjects_dir=tmp_path, subject='fsaverage')
-    QApplication.instance().processEvents()
-    widgets = QApplication.topLevelWidgets()
-    n_after = len(widgets)
-    assert n_before == n_after, widgets[-2:]

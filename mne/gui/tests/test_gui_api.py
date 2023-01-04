@@ -270,7 +270,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     renderer.actions['help'].trigger()
     if renderer._kind == 'qt':
         dialog = renderer._window.children()[-1]
-        assert 'QFileDialog' in repr(dialog)
+        assert 'FileDialog' in repr(dialog)
         dialog.close()
 
     # play button
