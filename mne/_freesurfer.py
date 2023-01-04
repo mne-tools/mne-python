@@ -488,21 +488,17 @@ def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
 
 def _get_affine_from_lta_info(lines):
     """Get the vox2ras affine from lta file info."""
-    # get the size of the volume (number of voxels)
-    dims = np.loadtxt([lines[0].split('=')[1]])
-    # get slice resolution
-    deltas = np.loadtxt([lines[1].split('=')[1]])
-    # get matrix of directional cosines
-    # see nibabel/freesurfer/mghformat->MGHHeader.get_affine
-    Mdc = np.loadtxt(
-        [line.split('=')[1] for line in lines[2:5]])
-    # get the RAS at the center of the volume
-    cras = np.loadtxt([lines[5].split('=')[1]])
-    MdcD = Mdc.T * deltas
-    vol_center = MdcD.dot(dims[:3]) / 2
+    volume_data = np.loadtxt(
+        [line.split('=')[1] for line in lines])
+    # get the size of the volume (number of voxels), slice resolution.
+    # the matrix of directional cosines and the ras at the center of the bore
+    dims, deltas, dir_cos, center_ras = \
+        volume_data[0], volume_data[1], volume_data[2:5], volume_data[5]
+    dir_cos_delta = dir_cos.T * deltas
+    vol_center = (dir_cos_delta @ dims[:3]) / 2
     affine = np.eye(4)
-    affine[:3, :3] = MdcD
-    affine[:3, 3] = cras - vol_center
+    affine[:3, :3] = dir_cos_delta
+    affine[:3, 3] = center_ras - vol_center
     return affine
 
 

@@ -29,7 +29,7 @@ Enhancements
 Bugs
 ~~~~
 - Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
-- Fix bug where loading different combinations of volumes were in ``freeview`` when rotating and translating a volume to make a linear transformation array (LTA), different ``dst`` (destination) volumes were used in the LTA file, resulting in different affines for :func:`mne.read_lta` when the rotation and translations were the same (:gh:`11402` by `Alex Rockhill`_)
+- Fix bug where having a different combination of volumes loaded into ``freeview`` caused different affines to be returned by :func:`mne.read_lta` for the same Linear Transform Array (LTA) (:gh:`11402` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
