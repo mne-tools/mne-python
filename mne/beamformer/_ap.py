@@ -568,7 +568,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
     max_iter : int
         Maximal iteration number of AP.
     force_no_rep : bool
-        Forces no repetition of estinated dipoles.
+        Forces no repetition of estimated dipoles.
 
     Returns
     -------

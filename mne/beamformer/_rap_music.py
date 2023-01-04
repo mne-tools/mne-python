@@ -18,7 +18,7 @@ from ._compute_beamformer import _prepare_beamformer_input
 
 @fill_doc
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
-                     picks=None):
+                     picks=None, force_no_rep=False):
     """RAP-MUSIC for evoked data.
 
     Parameters
@@ -36,6 +36,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         The number of dipoles to estimate. The default value is 2.
     picks : list of int
         Caller ensures this is a list of int.
+    force_no_rep : bool, optional
+        Forces no repetition of estinated dipoles.
 
     Returns
     -------
@@ -83,6 +85,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         subcorr_max = -1.
         source_idx, source_ori, source_pos = 0, [0, 0, 0], [0, 0, 0]
         for i_source in range(G.shape[1]):
+            if force_no_rep and (i_source in idxs):
+                continue
             Gk = G_proj[:, i_source]
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
             if subcorr > subcorr_max:
@@ -210,7 +214,7 @@ def _compute_proj(A):
 
 @verbose
 def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
-              verbose=None):
+              force_no_rep=False, verbose=None):
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
@@ -232,6 +236,8 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
+    force_no_rep : bool, optional
+        Forces no repetition of estinated dipoles.
     %(verbose)s
 
     Returns
@@ -262,7 +268,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     dipoles, explained_data = _apply_rap_music(data, info, times, forward,
                                                noise_cov, n_dipoles,
-                                               picks)
+                                               picks, force_no_rep)
 
     if return_residual:
         residual = evoked.copy()
