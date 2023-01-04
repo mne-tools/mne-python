@@ -1935,15 +1935,7 @@ class FilterMixin(object):
         %(phase)s
         %(fir_window)s
         %(fir_design)s
-        skip_by_annotation : str | list of str
-            If a string (or list of str), any annotation segment that begins
-            with the given string will not be included in filtering, and
-            segments on either side of the given excluded annotated segment
-            will be filtered separately (i.e., as independent signals).
-            The default (``('edge', 'bad_acq_skip')`` will separately filter
-            any segments that were concatenated by :func:`mne.concatenate_raws`
-            or :meth:`mne.io.Raw.append`, or separated during acquisition.
-            To disable, provide an empty list. Only used if ``inst`` is raw.
+        %(skip_by_annotation)s
 
             .. versionadded:: 0.16.
         %(pad_fir)s
