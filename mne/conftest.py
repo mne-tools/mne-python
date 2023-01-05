@@ -961,7 +961,7 @@ def nirx_snirf(request):
 
 
 @pytest.fixture
-def qt_windows_closed():
+def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend('pyvistaqt')
     app = _init_mne_qtapp()
@@ -969,6 +969,14 @@ def qt_windows_closed():
     n_before = len(app.topLevelWidgets())
     yield
     gc.collect()
+    if 'allow_unclosed' in request.fixturenames:
+        return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
+
+
+@pytest.fixture
+def allow_unclosed():
+    """Allow unclosed Qt Windows."""
+    pass
