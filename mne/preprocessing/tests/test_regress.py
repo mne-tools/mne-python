@@ -140,6 +140,7 @@ def test_read_eog_regression(tmp_path):
     assert model.info_.keys() == model2.info_.keys()
 
 
+@testing.requires_testing_data
 def test_regress_artifact_bads():
     """Test that bad channels are handled properly."""
     # Pick the first few EEG channels
