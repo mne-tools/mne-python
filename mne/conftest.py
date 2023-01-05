@@ -31,6 +31,7 @@ from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
+from mne.viz.backends._utils import _init_mne_qtapp
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -956,7 +957,7 @@ def nirx_snirf(request):
 @pytest.fixture
 def qt_windows_closed():
     """Ensure that no new Qt windows are open after a test."""
-    from mne.viz.backends._utils import _init_mne_qtapp
+    _check_skip_backend('qt')
     app = _init_mne_qtapp()
     gc.collect()
     n_before = len(app.topLevelWidgets())

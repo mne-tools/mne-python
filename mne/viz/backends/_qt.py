@@ -1690,17 +1690,13 @@ def _testing_context(interactive):
     from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
-    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
     renderer.MNE_3D_BACKEND_TESTING = True
     if interactive:
         pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_INTERACTIVE = True
     else:
         pyvista.OFF_SCREEN = True
-        renderer.MNE_3D_BACKEND_INTERACTIVE = False
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
-        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive

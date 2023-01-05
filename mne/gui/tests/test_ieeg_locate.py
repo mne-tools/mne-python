@@ -60,6 +60,7 @@ def _fake_CT_coords(skull_size=5, contact_size=2):
     return ct, coords
 
 
+@requires_nibabel()
 def test_ieeg_elec_locate_io():
     """Test the input/output of the intracranial location GUI."""
     import nibabel as nib
