@@ -61,7 +61,7 @@ def _fake_CT_coords(skull_size=5, contact_size=2):
 
 
 @requires_nibabel()
-def test_ieeg_elec_locate_io():
+def test_ieeg_elec_locate_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the intracranial location GUI."""
     import nibabel as nib
     import mne.gui
@@ -76,7 +76,8 @@ def test_ieeg_elec_locate_io():
 
 @requires_version('sphinx_gallery')
 @testing.requires_testing_data
-def test_locate_scraper(_fake_CT_coords, tmp_path):
+def test_locate_scraper(renderer_interactive_pyvistaqt, _fake_CT_coords,
+                        tmp_path):
     """Test sphinx-gallery scraping of the GUI."""
     import mne.gui
     raw = mne.io.read_raw_fif(raw_path)
@@ -107,7 +108,8 @@ def test_locate_scraper(_fake_CT_coords, tmp_path):
 
 
 @testing.requires_testing_data
-def test_ieeg_elec_locate_display(_fake_CT_coords):
+def test_ieeg_elec_locate_display(renderer_interactive_pyvistaqt,
+                                  _fake_CT_coords):
     """Test that the intracranial location GUI displays properly."""
     raw = mne.io.read_raw_fif(raw_path, preload=True)
     raw.pick_types(eeg=True)
