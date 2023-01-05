@@ -131,6 +131,22 @@ def test_downloads(tmp_path, monkeypatch, capsys):
     out, _ = capsys.readouterr()
     assert re.match(r'.* 0\.1 .*out of date.* 0\.2.*', out, re.MULTILINE), out
 
+    # Hash mismatch suggestion
+    # https://mne.discourse.group/t/fsaverage-hash-value-mismatch/4663/3
+    want_msg = 'MD5 hash of downloaded file (MNE-sample-data-processed.tar.gz) does not match the known hash: expected md5:e8f30c4516abdc12a0c08e6bae57409c but got a9dfc7e8843fd7f8a928901e12fb3d25. Deleted download for safety. The downloaded file may have been corrupted or the known hash may be outdated.'  # noqa: E501
+
+    def _error_download_2(self, fname, downloader, processor):
+        url = self.get_url(fname)
+        full_path = self.abspath / fname
+        assert 'foo.tgz' in url
+        assert str(tmp_path) in str(full_path)
+        raise ValueError(want_msg)
+
+    shutil.rmtree(tmp_path / 'foo')
+    monkeypatch.setattr(pooch.Pooch, 'fetch', _error_download_2)
+    with pytest.raises(ValueError, match='.*known hash.*force_update=True.*'):
+        datasets._fake.data_path(download=True, force_update=True, **kwargs)
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
