@@ -8,7 +8,7 @@ import numpy as np
 from ..defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
                         _BORDER_DEFAULT)
 from ..epochs import BaseEpochs
-from ..io.pick import _picks_to_idx, pick_info
+from ..io.pick import _picks_to_idx
 from ..io.base import BaseRaw
 from ..utils import (_check_preload, _validate_type, _check_option, verbose,
                      fill_doc, copy_function_doc_to_method_doc, _check_fname,
@@ -81,8 +81,7 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
         want_betas_shape = (len(picks), len(picks_artifact))
         _check_option('betas.shape', betas.shape, (want_betas_shape,))
         model = EOGRegression(picks, picks_artifact, proj=proj)
-        all_picks = np.unique(np.hstack((picks, picks_artifact)))
-        model.info_ = pick_info(inst.info, all_picks)
+        model.info_ = inst.info.copy()
         model.coef_ = betas
     return model.apply(inst, copy=copy), model.coef_
 
@@ -191,8 +190,7 @@ class EOGRegression():
 
         # Store relevant parameters in the object.
         self.coef_ = coef
-        all_picks = np.unique(np.hstack((picks, picks_artifact)))
-        self.info_ = pick_info(inst.info, all_picks)
+        self.info_ = inst.info.copy()
         return self
 
     @fill_doc

@@ -24,10 +24,10 @@ We will cover some of these considerations here by processing the
 
 # %%
 
-import mne
 import matplotlib.pyplot as plt
+import numpy as np
 
-from numpy import log10, sqrt
+import mne
 
 opm_data_folder = mne.datasets.ucl_opm_auditory.data_path()
 opm_file = (opm_data_folder / 'sub-001' / 'ses-001' / 'meg' /
@@ -35,6 +35,7 @@ opm_file = (opm_data_folder / 'sub-001' / 'ses-001' / 'meg' /
 # For now we are going to assume the device and head coordinate frames are
 # identical (even though this is incorrect), so we pass verbose='error' for now
 raw = mne.io.read_raw_fil(opm_file, verbose='error')
+raw.crop(120, 240).load_data()  # crop for speed
 
 # %%
 # Examining raw data
@@ -46,17 +47,19 @@ raw = mne.io.read_raw_fil(opm_file, verbose='error')
 
 picks = mne.pick_types(raw.info, meg=True)
 
-data, time = raw[picks, :]
-dataDS = data[:, :-300:300]
-timeDS = time[:-300:300]
+amp_scale = 1e12  # T->pT
+stop = len(raw.times) - 300
+step = 300
+data_ds, time_ds = raw[picks, :stop]
+data_ds, time_ds = data_ds[:, ::step] * amp_scale, time_ds[::step]
 
-plt.figure()
-plt.plot(timeDS, dataDS.T - dataDS.mean(axis=1))
-plt.grid()
-plt.ylim((-5e-10, 5e-10))
-plt.xlim((0, 400))
-plt.title('No Preprocessing')
-
+fig, ax = plt.subplots(constrained_layout=True)
+plot_kwargs = dict(lw=1, alpha=0.5)
+ax.plot(time_ds, data_ds.T, **plot_kwargs)
+ax.grid(True)
+set_kwargs = dict(ylim=(-500, 500), xlim=time_ds[[0, -1]],
+                  xlabel='Time (s)', ylabel='Amplitude (pT)')
+ax.set(title='No preprocessing', **set_kwargs)
 
 # %%
 # Denoising: Regressing via reference sensors
@@ -83,26 +86,27 @@ plt.title('No Preprocessing')
 # experiment is not the most effective approach.
 
 # set flux channels to bad
-raw2 = raw.copy()
-bads = mne.pick_channels_regexp(raw2.ch_names, regexp='Flux.')
-raw2.info['bads'].extend([raw2.info['chs'][ii]['ch_name'] for ii in bads])
+bad_picks = mne.pick_channels_regexp(raw.ch_names, regexp='Flux.')
+raw.info['bads'].extend([raw.ch_names[ii] for ii in bad_picks])
+
+# compute the PSD for later using 1 Hz resolution
+psd_kwargs = dict(fmax=20, n_fft=int(round(raw.info['sfreq'])))
+psd_pre = raw.compute_psd(**psd_kwargs)
 
 # filter and regress
-raw2.load_data()
-raw2.filter(None, 5, picks='ref_meg', method='iir')
-raw2, _ = mne.preprocessing.regress_artifact(raw2,
-                                             picks='meg',
-                                             picks_artifact='ref_meg'
-                                             )
+raw.filter(None, 5, picks='ref_meg')
+regress = mne.preprocessing.EOGRegression(picks, picks_artifact='ref_meg')
+regress.fit(raw)
+regress.apply(raw, copy=False)
+
 # plot
-data, _ = raw2[picks, :]
-dataDS = data[:, :-300:300]
-plt.figure()
-plt.plot(timeDS, dataDS.T - dataDS.mean(axis=1))
-plt.grid()
-plt.ylim((-5e-10, 5e-10))
-plt.xlim((0, 400))
-plt.title('After Reference Regression')
+data_ds, _ = raw[picks, :stop]
+data_ds = data_ds[:, ::step] * amp_scale
+
+fig, ax = plt.subplots(constrained_layout=True)
+ax.plot(time_ds, data_ds.T, **plot_kwargs)
+ax.grid(True, ls=':')
+ax.set(title='After reference regression', **set_kwargs)
 
 # %%
 # Comparing denoising methods
@@ -115,20 +119,16 @@ plt.title('After Reference Regression')
 # the values. Positive shielding factors indicate a reduction in power, whilst
 # negative means in increase.
 
-spec_pre = raw.compute_psd(fmax=20, n_fft=10000, average='median')
-spec_post = raw2.compute_psd(fmax=20, n_fft=10000, average='median')
+# psd_pre was computed above before regression
+psd_post = raw.compute_psd(**psd_kwargs)
+shielding = 10 * np.log10(psd_pre[:] / psd_post[:])
 
-psd_pre = sqrt(spec_pre[:])
-psd_post = sqrt(spec_post[:])
-
-shielding = 20 * log10(psd_pre / psd_post)
-
-plt.figure()
-plt.plot(spec_post.freqs, shielding.T)
-plt.grid()
-plt.xlim((0, 20))
-plt.title('Reference Regression: Shielding')
-
+fig, ax = plt.subplots(constrained_layout=True)
+ax.plot(psd_post.freqs, shielding.T, **plot_kwargs)
+ax.grid(True, ls=':')
+ax.set(xticks=psd_post.freqs)
+ax.set(xlim=(0, 20), title='Reference regression shielding',
+       xlabel='Frequency (Hz)', ylabel='Shielding (dB)')
 
 # %%
 # References
