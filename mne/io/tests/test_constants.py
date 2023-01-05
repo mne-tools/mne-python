@@ -21,7 +21,7 @@ from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
 REPO = 'dominikwelke'
-COMMIT = '2019d4d564eac3313d906c4d8dc77c4c6a06a6df'
+COMMIT = '9734da982c2ae3aaf04da589e37e37215d688ecd'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
