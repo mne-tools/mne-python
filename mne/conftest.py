@@ -527,17 +527,19 @@ def _check_skip_backend(name):
                                                has_imageio_ffmpeg,
                                                has_pyvistaqt)
     from mne.viz.backends._utils import _notebook_vtk_works
-    if name in ('pyvistaqt', 'notebook'):
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
-        if not has_imageio_ffmpeg():
-            pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not _check_qt_version():
-        pytest.skip("Test skipped, requires Qt.")
-    if name == 'pyvistaqt' and not has_pyvistaqt():
-        pytest.skip("Test skipped, requires pyvistaqt")
-    if name == 'notebook' and not _notebook_vtk_works():
-        pytest.skip("Test skipped, requires working notebook vtk")
+    if not has_pyvista():
+        pytest.skip("Test skipped, requires pyvista.")
+    if not has_imageio_ffmpeg():
+        pytest.skip("Test skipped, requires imageio-ffmpeg")
+    if name == 'pyvistaqt':
+        if not _check_qt_version():
+            pytest.skip("Test skipped, requires Qt.")
+        if not has_pyvistaqt():
+            pytest.skip("Test skipped, requires pyvistaqt")
+    else:
+        assert name == 'notebook', name
+        if not _notebook_vtk_works():
+            pytest.skip("Test skipped, requires working notebook vtk")
 
 
 @pytest.fixture(scope='session')
@@ -957,7 +959,7 @@ def nirx_snirf(request):
 @pytest.fixture
 def qt_windows_closed():
     """Ensure that no new Qt windows are open after a test."""
-    _check_skip_backend('qt')
+    _check_skip_backend('pyvistaqt')
     app = _init_mne_qtapp()
     gc.collect()
     n_before = len(app.topLevelWidgets())
