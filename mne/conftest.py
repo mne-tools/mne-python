@@ -550,7 +550,11 @@ def pixel_ratio():
     if not has_pyvista() or not _check_qt_version():
         return 1.
     from qtpy.QtWidgets import QMainWindow
+    from qtpy.QtCore import Qt
+    app = _init_mne_qtapp()
+    app.processEvents()
     window = QMainWindow()
+    window.setAttribute(Qt.WA_DeleteOnClose, True)
     ratio = float(window.devicePixelRatio())
     window.close()
     return ratio
