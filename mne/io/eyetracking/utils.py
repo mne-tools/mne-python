@@ -135,18 +135,18 @@ def _set_fiff_channelinfo_eyetrack(info, channel_dict=None):
         ch_type, ch_unit, ch_eye, ch_xy = _eyetrack_channelinfo_from_chname(ch_name)
         if type(channel_dict) == dict:  # if there is user input, overwrite guesses
             if ch_name not in channel_dict.keys():
-                Warning("'channel_dict' was provided, but contains no info "
+                warn("'channel_dict' was provided, but contains no info "
                         "on channel '{}'".format(ch_name) )
             else:
                 keys = channel_dict[ch_name].keys()
-                ch_type = channel_dict[ch_name]['ch_type'] if 'ch_type' in keys else 'unknown'
-                ch_unit = channel_dict[ch_name]['ch_unit'] if 'ch_unit' in keys else 'unknown'
-                ch_eye = channel_dict[ch_name]['ch_eye'] if 'ch_eye' in keys else 'unknown'
-                ch_xy = channel_dict[ch_name]['ch_xy'] if 'ch_xy' in keys else 'unknown'
+                ch_type = channel_dict[ch_name]['ch_type'] if 'ch_type' in keys else ch_type
+                ch_unit = channel_dict[ch_name]['ch_unit'] if 'ch_unit' in keys else ch_unit
+                ch_eye = channel_dict[ch_name]['ch_eye'] if 'ch_eye' in keys else ch_eye
+                ch_xy = channel_dict[ch_name]['ch_xy'] if 'ch_xy' in keys else ch_xy
 
         # set coil type
         if ch_type not in ['pupil', 'gaze']:
-            Warning("couldn't determine channel type for channel {}."
+            warn("couldn't determine channel type for channel {}."
                     "defaults to 'gaze'.".format(ch_name))
         coil_type = (
             FIFF.FIFFV_COIL_EYETRACK_PUPIL if (ch_type == 'PUPIL') else
@@ -155,24 +155,24 @@ def _set_fiff_channelinfo_eyetrack(info, channel_dict=None):
 
         # set unit
         if ch_unit not in ['PIX', 'AU']:  # add DEG, MM2 later
-            Warning("couldn't determine unit for channel {}."
+            warn("couldn't determine unit for channel {}."
                     "defaults to 'arbitrary units'.".format(ch_name))
         unit = (FIFF.FIFF_UNIT_PX if (ch_unit == 'PIX') else
                 FIFF.FIFF_UNIT_DEG if (ch_unit == 'DEG') else
                 FIFF.FIFF_UNIT_MM if (ch_unit == 'MM') else
-                FIFF.FIFF_UNIT_UNITLESS)
+                FIFF.FIFF_UNIT_NONE)
         info['chs'][i_ch]['unit'] = unit
 
         # set eye and x/y coordinate
         if ch_eye not in ['L', 'R']:
-            Warning("couldn't determine eye for channel {}."
+            warn("couldn't determine eye for channel {}."
                     "defaults to 'NaN'.".format(ch_name))
         loc[3] = (-1 if (ch_eye == 'L') else
                   1 if (ch_eye == 'R') else
                   np.nan)
 
         if (ch_xy not in ['X', 'Y']) and (ch_type == 'GAZE'):
-            Warning("couldn't determine X/Y for channel {}."
+            warn("couldn't determine X/Y for channel {}."
                     "defaults to 'NaN'.".format(ch_name))
         loc[4] = (-1 if (ch_xy == 'X') else
                   1 if (ch_xy == 'Y') else
