@@ -1,42 +1,108 @@
+import numpy as np
+
 from ..annotations import Annotations
 
 
-def find_blinks(inst, pad=.01, min_overlap=.02, max_dur=5.):
+def find_blinks(inst, pad=.01, min_overlap=.03, min_dur=.05, max_dur=2., verbose=True):
+    """
+    this function detects blinks from gaze postion data.
+    all values equal to either [nan, 0, -1] will be interpreted as missing.
+
+    """
+
     from ..preprocessing import annotate_nan
+    from ..utils import warn
+    from ..io.constants import FIFF
 
     # find eyetrack channels
-    et_data = inst.copy().pick_types(eyetrack=True)
+    try:
+        et_data = inst.copy().pick_types(eyetrack=True)
+    except ValueError:
+        raise ValueError('no eyetrack channels present in the data. '
+                         'if this is wrong, label the channels using '
+                         '"mne.channels.set_channel_types()" ')
     et_info = et_data.info
 
-    # make sure there's only annotations for channels in the data
+    # find names of relevant channels
+    Xids, Yids = [], []
+    for ch in et_info['chs']:
+        if (ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_POS):
+            if (ch['loc'][4] == -1):  # X
+                Xids.append(ch['ch_name'])
+                if (ch['loc'][3] == -1):  # L
+                    LXid = ch['ch_name']
+                elif (ch['loc'][3] == 1):  # R
+                    RXid = ch['ch_name']
+            elif (ch['loc'][4] == 1):  # Y
+                Yids.append(ch['ch_name'])
+                if (ch['loc'][3] == -1):  # L
+                    LYid = ch['ch_name']
+                elif (ch['loc'][3] == 1):  # R
+                    RYid = ch['ch_name']
+    if len(Xids) == len(Yids) == 0:
+        warn('no information on eyetrack channels was found '
+             '(l/r, x/y). if you have binocular recordings consider providing '
+             'this information using "set_channelinfo_eyetrack()" as the '
+             'detection method is more sensitive then.')
+    if verbose:
+        print('X position channels: {}'.format(Xids))
+        print('Y position channels: {}'.format(Yids))
 
 
     # check if data is binocular
-    loc_eye = [ch['loc'][3] for ch in et_info['chs']]
-    is_bino = True if (-1 and 1 in loc_eye) else False
+    if len(Xids) > 2 or len(Yids) > 2:
+        raise ValueError('more then 2 channels detected for X or Y gaze '
+                         'position. check your info structure and consider '
+                         'fixing it using "set_channelinfo_eyetrack()"')
+    is_bino = True if (len(Xids) == len(Yids) == 2) else False
+    if verbose:
+        print('binocular data: {}'.format(is_bino))
 
-    # find blinks -
+    # assert that we have correct ids
+    id_detection = ['RYid' not in locals(), 'LYid' not in locals(),
+            'RXid' not in locals(), 'LXid' not in locals()]
+    Xids.sort()
+    Yids.sort()
+    if is_bino and (sum(id_detection) != 0):
+        RXid, LXid = Xids
+        RYid, LYid = Yids
+    elif (not is_bino) and (sum(id_detection) > 2):
+        RXid, RYid = Xids[0], Yids[0]
+        del LXid, LYid
+
+    # transcribe zeros and -1 to nan, as
+    et_data.apply_function(lambda arr: np.where(arr == 0., np.nan, arr))
+    et_data.apply_function(lambda arr: np.where(arr == -1., np.nan, arr))
+
+    # find nan periods (blinks) -
     # if binocular, use 2-step procedure (find overlap btw eyes first,
     # then btw gaze directions
     nan_annot = annotate_nan(et_data)
+    # filter annotations
+    mask = (nan_annot.duration < max_dur) & (nan_annot.duration > min_dur)
+    nan_annot = nan_annot[mask]
+
     if is_bino:
         blink_annot_X = overlapping_annotations(
             nan_annot, nan_annot, 'BLINK_X',
             min_overlap=min_overlap, pad=pad,
-            max_dur=max_dur, ch_set=('LX', 'RX'))
+            max_dur=max_dur, ch_set=(LXid, RXid))
         blink_annot_Y = overlapping_annotations(
             nan_annot, nan_annot, 'BLINK_Y',
             min_overlap=min_overlap, pad=pad,
-            max_dur=max_dur, ch_set=(['LY', 'RY']))
+            max_dur=max_dur, ch_set=([LYid, RYid]))
         blink_annot = overlapping_annotations(
             blink_annot_X, blink_annot_Y, 'BLINK',
             min_overlap=min_overlap, pad=0,
-            max_dur=max_dur, ch_set=('LX', 'LY'))
+            max_dur=max_dur, ch_set=(LXid, LYid))
     else:
         blink_annot = overlapping_annotations(
             nan_annot, nan_annot, 'BLINK',
             min_overlap=min_overlap, pad=pad,
-            max_dur=max_dur, ch_set=(['LX', 'RX', 'LY', 'RY']))
+            max_dur=max_dur, ch_set=([LXid, RXid, LYid, RYid]))
+
+    if verbose:
+        print('identified {} data segments as blinks.'.format(len(blink_annot)))
 
     return blink_annot
 
