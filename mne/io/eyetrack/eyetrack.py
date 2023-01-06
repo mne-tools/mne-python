@@ -65,7 +65,8 @@ def set_channelinfo_eyetrack(inst, channel_dict=None):
             }
         }
     """
-    inst.info = _set_fiff_channelinfo_eyetrack(inst.info, channel_dict=None)
+    inst.info = _set_fiff_channelinfo_eyetrack(
+        inst.info, channel_dict=channel_dict)
     return inst
 
 
@@ -360,7 +361,7 @@ def _set_fiff_channelinfo_eyetrack(info, channel_dict=None):
                 ch_xy = channel_dict[ch_name]['ch_xy'] if 'ch_xy' in keys else ch_xy
 
         # set coil type
-        if ch_type not in ['pupil', 'gaze']:
+        if ch_type not in ['PUPIL', 'GAZE']:
             warn("couldn't determine channel type for channel {}."
                     "defaults to 'gaze'.".format(ch_name))
         coil_type = (
@@ -369,7 +370,7 @@ def _set_fiff_channelinfo_eyetrack(info, channel_dict=None):
         info['chs'][i_ch]['coil_type'] = coil_type
 
         # set unit
-        if ch_unit not in ['PIX', 'AU']:  # add DEG, MM2 later
+        if ch_unit not in ['PIX', 'AU', 'DEG', 'MM']:
             warn("couldn't determine unit for channel {}."
                     "defaults to 'arbitrary units'.".format(ch_name))
         unit = (FIFF.FIFF_UNIT_PX if (ch_unit == 'PIX') else
