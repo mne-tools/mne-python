@@ -86,7 +86,7 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*fnirs_motor.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.fnirs_motor.data_path(update_path=True))";
             fi;
-            if [[ $(cat $FNAME | grep -x ".*datasets.*opm.*" | wc -l) -gt 0 ]]; then
+            if [[ $(cat $FNAME | grep -x ".*datasets[^_]*opm.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.opm.data_path(update_path=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_4dbti.*" | wc -l) -gt 0 ]]; then
@@ -106,6 +106,9 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*erp_core.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.erp_core.data_path(update_path=True))";
+            fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*ucl_opm_auditory.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.ucl_opm_auditory.data_path(update_path=True))";
             fi;
         fi;
     done;

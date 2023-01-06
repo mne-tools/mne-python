@@ -37,6 +37,7 @@ Reading raw data
    read_raw_boxy
    read_raw_persyst
    read_raw_nihon
+   read_raw_fil
 
 Base class:
 

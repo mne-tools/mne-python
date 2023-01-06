@@ -98,6 +98,19 @@ in the sample data set:
 
 The **sample** dataset is distributed with :ref:`fsaverage` for convenience.
 
+.. _ucl-opm-auditory-dataset:
+
+UCL OPM Auditory
+================
+:func:`mne.datasets.ucl_opm_auditory.data_path`.
+
+A basic auditory evoked field experiment using an OPM setup from FIL at UCL.
+See :footcite:`SeymourEtAl2022` for details.
+
+.. topic:: Examples
+
+    * :ref:`tut-opm-processing`
+
 Brainstorm
 ==========
 Dataset fetchers for three Brainstorm tutorials are available. Users must agree to the

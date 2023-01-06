@@ -303,7 +303,7 @@ def _download_all_example_data(verbose=True):
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor, refmeg_noise, fetch_infant_template,
                    fetch_fsaverage, ssvep, erp_core, epilepsy_ecog,
-                   fetch_phantom)
+                   fetch_phantom, ucl_opm_auditory)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -320,6 +320,7 @@ def _download_all_example_data(verbose=True):
     refmeg_noise.data_path()
     ssvep.data_path()
     epilepsy_ecog.data_path()
+    ucl_opm_auditory.data_path()
     brainstorm.bst_raw.data_path(accept=True)
     brainstorm.bst_auditory.data_path(accept=True)
     brainstorm.bst_resting.data_path(accept=True)
