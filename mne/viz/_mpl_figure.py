@@ -212,7 +212,8 @@ class MNEAnnotationFigure(MNEFigure):
         idx = labels.index(buttons.value_selected)
         self._set_active_button(idx)
         # update click-drag rectangle color
-        color = buttons.circles[idx].get_edgecolor()
+        # color = buttons.circles[idx].get_edgecolor()
+        color = '#ff0000'
         selector = self.mne.parent_fig.mne.ax_main.selector
         # https://github.com/matplotlib/matplotlib/issues/20618
         # https://github.com/matplotlib/matplotlib/pull/20693
@@ -226,31 +227,36 @@ class MNEAnnotationFigure(MNEFigure):
 
     def _click_override(self, event):
         """Override MPL radiobutton click detector to use transData."""
-        ax = self.mne.radio_ax
-        buttons = ax.buttons
-        if (buttons.ignore(event) or event.button != 1 or event.inaxes != ax):
-            return
-        pclicked = ax.transData.inverted().transform((event.x, event.y))
-        distances = {}
-        for i, (p, t) in enumerate(zip(buttons.circles, buttons.labels)):
-            if (t.get_window_extent().contains(event.x, event.y)
-                    or np.linalg.norm(pclicked - p.center) < p.radius):
-                distances[i] = np.linalg.norm(pclicked - p.center)
-        if len(distances) > 0:
-            closest = min(distances, key=distances.get)
-            buttons.set_active(closest)
+        pass
+        # ax = self.mne.radio_ax
+        # buttons = ax.buttons
+        # if (buttons.ignore(event) or event.button != 1 or event.inaxes != ax):
+        #     return
+        # pclicked = ax.transData.inverted().transform((event.x, event.y))
+        # distances = {}
+        # for i, (p, t) in enumerate(zip(buttons.circles, buttons.labels)):
+        #     if (t.get_window_extent().contains(event.x, event.y)
+        #             or np.linalg.norm(pclicked - p.center) < p.radius):
+        #         distances[i] = np.linalg.norm(pclicked - p.center)
+        # if len(distances) > 0:
+        #     closest = min(distances, key=distances.get)
+        #     buttons.set_active(closest)
 
     def _set_active_button(self, idx):
         """Set active button in annotation dialog figure."""
         buttons = self.mne.radio_ax.buttons
+        # logger.debug(f'buttons: {buttons}')
+        # logger.debug(f'active idx: {idx}')
         with _events_off(buttons):
             buttons.set_active(idx)
-        for circle in buttons.circles:
-            circle.set_facecolor(self.mne.parent_fig.mne.bgcolor)
+        # logger.debug(f'circles: {buttons.circles}')
+        # for circle in buttons.circles:
+        #     circle.set_facecolor(self.mne.parent_fig.mne.bgcolor)
         # active circle gets filled in, partially transparent
-        color = list(buttons.circles[idx].get_edgecolor())
-        color[-1] = 0.5
-        buttons.circles[idx].set_facecolor(color)
+        # color = list(buttons.circles[idx].get_edgecolor())
+        # logger.debug(f'color: {color}')
+        # color[-1] = 0.5
+        # buttons.circles[idx].set_facecolor(color)
         self.canvas.draw()
 
 
@@ -308,8 +314,8 @@ class MNESelectionFigure(MNEFigure):
         buttons = self.mne.radio_ax.buttons
         color = (buttons.activecolor if parent.mne.butterfly else
                  parent.mne.bgcolor)
-        for circle in buttons.circles:
-            circle.set_facecolor(color)
+        # for circle in buttons.circles:
+        #     circle.set_facecolor(color)
         # when leaving butterfly mode, make most-recently-used selection active
         if not parent.mne.butterfly:
             with _events_off(buttons):
@@ -1001,8 +1007,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         for artist in lines + (rect, text):
             artist.set_transform(drag_ax.transData)
         # setup interactivity in plot window
-        col = ('#ff0000' if len(fig.mne.radio_ax.buttons.circles) < 1 else
-               fig.mne.radio_ax.buttons.circles[0].get_edgecolor())
+        col = '#ff0000'
+        # col = ('#ff0000' if fig.mne.radio_ax.buttons is None else
+        #        fig.mne.radio_ax.buttons.circles[0].get_edgecolor())
         # TODO: we would like useblit=True here, but it behaves oddly when the
         # first span is dragged (subsequent spans seem to work OK)
         rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
@@ -1027,6 +1034,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
+        from matplotlib.colors import to_rgba
         from matplotlib.widgets import CheckButtons, RadioButtons
 
         # define shorthand variables
@@ -1042,30 +1050,41 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         ax.clear()
         title = 'Existing labels:' if len(labels) else 'No existing labels'
         ax.set_title(title, size=None, loc='left')
-        ax.buttons = RadioButtons(ax, labels)
+        edgecolors = [
+            self.mne.annotation_segment_colors[label] for label in labels]
+        facecolors = [
+            to_rgba(col)[:3] + (0.5,) for col in edgecolors
+        ]
+        radio_props = dict(s=144, linewidth=4, edgecolor=edgecolors,
+                           facecolor=facecolors)
+        if len(labels):
+            ax.buttons = RadioButtons(ax, labels, radio_props=radio_props)
+        else:
+            ax.buttons = None
         # adjust xlim to keep equal aspect & full width (keep circles round)
         aspect = (ANNOTATION_FIG_W - ANNOTATION_FIG_CHECKBOX_COLUMN_W
                   - 3 * ANNOTATION_FIG_PAD) / radio_button_h
         ax.set_xlim((0, aspect))
         # style the buttons & adjust spacing
-        radius = 0.15
-        circles = ax.buttons.circles
-        for circle, label in zip(circles, ax.buttons.labels):
-            circle.set_transform(ax.transData)
-            center = ax.transData.inverted().transform(
-                ax.transAxes.transform((0.1, 0)))
-            circle.set_center((center[0], circle.center[1]))
-            circle.set_edgecolor(
-                self.mne.annotation_segment_colors[label.get_text()])
-            circle.set_linewidth(4)
-            circle.set_radius(radius / len(labels))
+        # radius = 0.15
+        # circles = ax.buttons.circles
+        # for circle, label in zip(circles, ax.buttons.labels):
+        #     circle.set_transform(ax.transData)
+        #     center = ax.transData.inverted().transform(
+        #         ax.transAxes.transform((0.1, 0)))
+        #     circle.set_center((center[0], circle.center[1]))
+        #     circle.set_edgecolor(
+        #         self.mne.annotation_segment_colors[label.get_text()])
+        #     circle.set_linewidth(4)
+        #     circle.set_radius(radius / len(labels))
         # style the selected button
         if len(labels):
             fig._set_active_button(0)
         # add event listeners
-        ax.buttons.disconnect_events()  # clear MPL default listeners
-        ax.buttons.on_clicked(fig._radiopress)
-        ax.buttons.connect_event('button_press_event', fig._click_override)
+        if ax.buttons is not None:
+            # ax.buttons.disconnect_events()  # clear MPL default listeners
+            ax.buttons.on_clicked(fig._radiopress)
+            # ax.buttons.connect_event('button_press_event', fig._click_override)
 
         # now do the show/hide checkboxes
         show_hide_ax = fig.mne.show_hide_ax
@@ -1283,10 +1302,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         radio_ax.buttons = RadioButtons(radio_ax, labels,
                                         activecolor=activecolor)
         fig.mne.old_selection = 0
-        for circle in radio_ax.buttons.circles:
-            circle.set_radius(0.25 / len(labels))
-            circle.set_linewidth(2)
-            circle.set_edgecolor(self.mne.fgcolor)
+        # for circle in radio_ax.buttons.circles:
+        #     circle.set_radius(0.25 / len(labels))
+        #     circle.set_linewidth(2)
+        #     circle.set_edgecolor(self.mne.fgcolor)
         fig._style_radio_buttons_butterfly()
         # add instructions at bottom
         instructions = (
