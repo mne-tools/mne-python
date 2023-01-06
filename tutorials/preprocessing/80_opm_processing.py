@@ -133,7 +133,7 @@ ax.set(xlim=(0, 20), title='Reference regression shielding',
 
 # %%
 # Filtering nuisance signals
-# ---------------------------------
+# --------------------------
 #
 # Having regressed much of the high-amplitude, low-frequency interference, we
 # can now look to filtering the remnant nuisance signals. The motivation for
@@ -163,7 +163,7 @@ ax.set(title='After regression and filtering', **set_kwargs)
 
 # %%
 # Generating an evoked response
-# ----------------------------
+# -----------------------------
 #
 # With the data preprocessed, it is now possible to see an auditory evoked
 # response at the sensor level.
