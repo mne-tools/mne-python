@@ -168,6 +168,8 @@ ax.set(title='After regression and filtering', **set_kwargs)
 # With the data preprocessed, it is now possible to see an auditory evoked
 # response at the sensor level.
 
+# sphinx_gallery_thumbnail_number = 5
+
 events = mne.find_events(raw, min_duration=0.1)
 epochs = mne.Epochs(raw, events, tmin=-0.1, tmax=0.4, baseline=(-0.1, 0.))
 evoked = epochs.average()
