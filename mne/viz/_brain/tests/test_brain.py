@@ -105,7 +105,9 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-def test_layered_mesh(renderer_interactive_pyvistaqt):
+# TODO: allow_unclosed for macOS here as the conda and M1 builds show some
+# windows stay open afterward
+def test_layered_mesh(renderer_interactive_pyvistaqt, allow_unclosed):
     """Test management of scalars/colormap overlay."""
     mesh = _LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
