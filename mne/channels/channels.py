@@ -203,7 +203,10 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_MOL: 'M',
                FIFF.FIFF_UNIT_NONE: 'NA',
                FIFF.FIFF_UNIT_CEL: 'C',
-               FIFF.FIFF_UNIT_S: 'S'}
+               FIFF.FIFF_UNIT_S: 'S',
+               FIFF.FIFF_UNIT_PX: 'px',
+               FIFF.FIFF_UNIT_DEG: 'deg',
+               FIFF.FIFF_UNIT_MM: 'mm'}
 
 
 def _check_set(ch, projs, ch_type):
@@ -354,7 +357,17 @@ class SetChannelsMixin(MontageMixin):
             # Set sensor type
             _check_set(self.info['chs'][c_ind], self.info['projs'], ch_type)
             unit_old = self.info['chs'][c_ind]['unit']
-            unit_new = _human2unit[ch_type]
+            if ch_type == 'eyetrack':
+                from ..io.eyetrack.eyetrack import \
+                    _eyetrack_channelinfo_from_chname
+                _,unit_new,_,_ = _eyetrack_channelinfo_from_chname(ch_name)
+                unit_new = (
+                    FIFF.FIFF_UNIT_PX if (unit_new == 'PIX') else
+                    FIFF.FIFF_UNIT_DEG if (unit_new == 'DEG') else
+                    FIFF.FIFF_UNIT_MM if (unit_new == 'MM') else
+                    FIFF.FIFF_UNIT_NONE)
+            else:
+                unit_new = _human2unit[ch_type]
             if unit_old not in _unit2human:
                 raise ValueError("Channel '%s' has unknown unit (%s). Please "
                                  "fix the measurement info of your data."
@@ -379,6 +392,11 @@ class SetChannelsMixin(MontageMixin):
                 coil_type = FIFF.FIFFV_COIL_FNIRS_FD_PHASE
             elif ch_type == 'fnirs_od':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_OD
+            elif ch_type == 'eyetrack':
+                coil_type,_,_,_ = _eyetrack_channelinfo_from_chname(ch_name)
+                coil_type = (
+                    FIFF.FIFFV_COIL_EYETRACK_PUPIL if (coil_type == 'PUPIL')
+                    else FIFF.FIFFV_COIL_EYETRACK_POS)  # defaults to gaze pos
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
