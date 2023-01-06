@@ -44,7 +44,7 @@ DEFAULTS = dict(
                            fnirs_fd_ac_amplitude=2e-2, fnirs_fd_phase=2e-1,
                            fnirs_od=2e-2, csd=200e-4,
                            dipole=1e-7, gof=1e2,
-                           eyetrack=1e3),
+                           eyetrack='auto'),
     scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5,  # ~100x scalings
                            seeg=1e1, dbs=1e4, ecog=1e4, hbo=1e4, hbr=1e4),
     ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
