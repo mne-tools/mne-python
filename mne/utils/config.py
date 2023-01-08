@@ -25,6 +25,9 @@ from ._logging import warn, logger
 
 _temp_home_dir = None
 
+_UNICODE_TERMINAL = sys.stdout.encoding.lower().startswith('utf')
+
+
 
 def set_cache_dir(cache_dir):
     """Set the directory to be used for temporary file storage.
@@ -553,10 +556,30 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         del macos_ver, macos_architecture
 
     out = partial(print, end='', file=fid)
-    out('Platform:'.ljust(ljust) + platform_str + '\n')
-    out('Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
-    out('Executable:'.ljust(ljust) + sys.executable + '\n')
-    out('CPU:'.ljust(ljust) + f'{platform.processor()}: ')
+
+    if _UNICODE_TERMINAL:
+        icon = '\N{personal computer}'
+    else:
+        icon = ''
+    out(f'{icon} Platform:'.ljust(ljust) + platform_str + '\n')
+
+    if _UNICODE_TERMINAL:
+        icon = '\N{snake}'
+    else:
+        icon = ''
+    out(f'{icon} Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
+
+    if _UNICODE_TERMINAL:
+        icon = '\N{runner}'
+    else:
+        icon = ''
+    out(f'{icon} Executable:'.ljust(ljust) + sys.executable + '\n')
+
+    if _UNICODE_TERMINAL:
+        icon = '\N{automobile}'
+    else:
+        icon = ''
+    out(f'{icon} CPU:'.ljust(ljust) + f'{platform.processor()}: ')
     try:
         import multiprocessing
     except ImportError:
@@ -564,7 +587,12 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             '(requires "multiprocessing" package)\n')
     else:
         out(f'{multiprocessing.cpu_count()} cores\n')
-    out('Memory:'.ljust(ljust))
+
+    if _UNICODE_TERMINAL:
+        icon = '\N{thought balloon}'
+    else:
+        icon = ''
+    out(f'{icon} Memory:'.ljust(ljust))
     try:
         import psutil
     except ImportError:
@@ -591,21 +619,36 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         try:
             mod = __import__(mod_name)
         except Exception:
-            out('Not found\n')
+            if _UNICODE_TERMINAL:
+                icon = '\N{cross mark}'
+            else:
+                icon = '×'
+
+            out(f'{icon} Not found\n')
         else:
             if mod_name == 'vtk':
+                if _UNICODE_TERMINAL:
+                    icon = '\N{check mark}'
+                else:
+                    icon = ''
+                out(f'{icon} {mod.__version__}')
+
                 vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
                 for attr in ('GetVTKVersionFull', 'GetVTKVersion'):
                     if hasattr(vtk_version, attr):
                         version = getattr(vtk_version, attr)()
                         if version != '':
-                            out(version)
+                            out(f'{icon} {version}')
                             break
                 else:
-                    out('unknown')
+                    out(f'{icon} unknown')
             else:
-                out(mod.__version__)
+                if _UNICODE_TERMINAL:
+                    icon = '\N{check mark}'
+                else:
+                    icon = ''
+                out(f'{icon} {mod.__version__}')
             if mod_name == 'numpy':
                 out(f' {{{libs}}}')
             elif mod_name == 'qtpy':
@@ -619,6 +662,10 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                     out(' {OpenGL could not be initialized}')
                 else:
                     out(f' {{OpenGL {version} via {renderer}}}')
-            if show_paths:
-                out(f'\n{" " * ljust}•{op.dirname(mod.__file__)}')
+            if show_paths or mod_name == 'mne':  # always show path to mne
+                if _UNICODE_TERMINAL:
+                    folder_icon = '\N{open file folder}'
+                else:
+                    folder_icon = '»'
+                out(f'\n{" " * ljust}{folder_icon} {op.dirname(mod.__file__)}')
             out('\n')
