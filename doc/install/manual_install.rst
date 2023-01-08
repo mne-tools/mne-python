@@ -13,6 +13,7 @@ Install via :code:`pip` or :code:`conda`
 MNE-Python requires Python version |min_python_version| or higher. If you
 need to install Python, please see :ref:`install-python`.
 
+.. _install-with-all-deps:
 Installing MNE-Python with all dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We suggest to install MNE-Python into its own ``conda`` environment.
@@ -28,14 +29,23 @@ Run in your terminal:
 
     $ conda install --channel=conda-forge --name=base mamba
     $ mamba create --override-channels --channel=conda-forge --name=mne mne
+    $ mamba activate mne
+    $ mamba env config vars set PYTHONNOUSERSITE=1
 
-This will create a new ``conda`` environment called ``mne`` (you can adjust
-this by passing a different name via ``--name``) and install all
-dependencies into it.
+The first two commands will create a new ``conda`` environment called ``mne``
+(you can adjust this by passing a different name via ``--name``) and install
+all dependencies into it. The third and fourth command activate the
+newly-created environment and make it such that during future environment
+activation, the environment variable ``PYTHONNOUSERSITE`` will be set
+automatically. This is to ensure that Python will only look for packages
+installed in this very environment, and not in the
+`user site <https://docs.python.org/3/library/site.html#site.USER_SITE>`__
+directory, which may contain older versions of packages from previous
+installation attempts through ``pip install --user``.
 
 If you need to convert structural MRI scans into models
 of the scalp, inner/outer skull, and cortical surfaces, you will also need
-:doc:`FreeSurfer <freesurfer>`.
+to install :doc:`FreeSurfer <freesurfer>`.
 
 Installing a minimal MNE-Python with core functionality only
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -50,10 +60,14 @@ or via :code:`conda`:
 
 .. code-block:: console
 
-   $ conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base
+   $ conda create --override-channels --channel=conda-forge --name=mne mne-base
+   $ conda activate mne
+   $ conda env config vars set PYTHONNOUSERSITE=1
 
-This will create a new ``conda`` environment called ``mne`` (you can adjust
-this by passing a different name via ``--name``).
+The first command will create a new ``conda`` environment called ``mne``
+(you can adjust this by passing a different name via ``--name``). The last two
+commands set the environment variable ``PYTHONNOUSERSITE``. Please see
+:ref:`tut-freesurfer-mne` for details.
 
 Installing a minimal MNE-Python with EEGLAB I/O support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -69,10 +83,14 @@ or via :code:`conda`
 
 .. code-block:: console
 
-   $ conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
+   $ conda create --override-channels --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
+   $ conda activate mne
+   $ conda env config vars set PYTHONNOUSERSITE=1
 
-This will create a new ``conda`` environment called ``mne`` (you can adjust
-this by passing a different name via ``--name``).
+The first command will create a new ``conda`` environment called ``mne``
+(you can adjust this by passing a different name via ``--name``). The last two
+commands set the environment variable ``PYTHONNOUSERSITE``. Please see
+:ref:`tut-freesurfer-mne` for details.
 
 Installing MNE-Python for other scenarios
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,7 +143,7 @@ Python development are:
   .. code-block:: console
 
       $ conda activate mne
-      $ conda install --strict-channel-priority --channel=conda-forge spyder-kernels=...
+      $ conda install --override-channels --channel=conda-forge spyder-kernels=...
 
   Refer to the `Spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
   for more information about ``spyder-kernels`` and the version matching.
