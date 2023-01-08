@@ -36,7 +36,7 @@ The first two commands will create a new ``conda`` environment called ``mne``
 (you can adjust this by passing a different name via ``--name``) and install
 all dependencies into it. The third and fourth command activate the
 newly-created environment and make it such that during future environment
-activation, the environment variable ``PYTHONNOUSERSITE`` will be set
+activations, the environment variable ``PYTHONNOUSERSITE`` will be set
 automatically. This is to ensure that Python will only look for packages
 installed in this very environment, and not in the
 `user site <https://docs.python.org/3/library/site.html#site.USER_SITE>`__
