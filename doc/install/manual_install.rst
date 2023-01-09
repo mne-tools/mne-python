@@ -68,7 +68,7 @@ or via :code:`conda`:
 The first command will create a new ``conda`` environment called ``mne``
 (you can adjust this by passing a different name via ``--name``). The last two
 commands set the environment variable ``PYTHONNOUSERSITE``. Please see
-:ref:`tut-freesurfer-mne` for details.
+:ref:`install-with-all-deps` for details.
 
 Installing a minimal MNE-Python with EEGLAB I/O support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -91,7 +91,7 @@ or via :code:`conda`
 The first command will create a new ``conda`` environment called ``mne``
 (you can adjust this by passing a different name via ``--name``). The last two
 commands set the environment variable ``PYTHONNOUSERSITE``. Please see
-:ref:`tut-freesurfer-mne` for details.
+:ref:`install-with-all-deps` for details.
 
 Installing MNE-Python for other scenarios
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
