@@ -1007,16 +1007,17 @@ class InterpolationMixin(object):
             .. versionadded:: 0.17
         method : dict
             Method to use for each channel type.
-            Currently only the key "eeg" has multiple options:
+            Currently only the key ``"eeg"`` has multiple options:
 
-            - ``"spline"`` (default)
-                Use spherical spline interpolation.
-            - ``"MNE"``
-                Use minimum-norm projection to a sphere and back.
-                This is the method used for MEG channels.
+            * ``"spline"`` (default)
+              Use spherical spline interpolation.
+            * ``"MNE"``
+              Use minimum-norm projection to a sphere and back.
+              This is the method used for MEG channels.
 
-            The value for "meg" is "MNE", and the value for
-            "fnirs" is "nearest". The default (None) is thus an alias for::
+            The value for ``"meg"`` is ``"MNE"``, and the value for
+            ``"fnirs"`` is ``"nearest"``. The default (None) is thus an alias
+            for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
