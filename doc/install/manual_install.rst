@@ -14,6 +14,7 @@ MNE-Python requires Python version |min_python_version| or higher. If you
 need to install Python, please see :ref:`install-python`.
 
 .. _install-with-all-deps:
+
 Installing MNE-Python with all dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We suggest to install MNE-Python into its own ``conda`` environment.
@@ -39,9 +40,9 @@ newly-created environment and make it such that during future environment
 activations, the environment variable ``PYTHONNOUSERSITE`` will be set
 automatically. This is to ensure that Python will only look for packages
 installed in this very environment, and not in the
-`user site <https://docs.python.org/3/library/site.html#site.USER_SITE>`__
-directory, which may contain older versions of packages from previous
-installation attempts through ``pip install --user``.
+:data:`user site <python:site.USER_SITE>` directory, which may contain older
+versions of packages from previous installation attempts through
+``pip install --user``.
 
 If you need to convert structural MRI scans into models
 of the scalp, inner/outer skull, and cortical surfaces, you will also need
