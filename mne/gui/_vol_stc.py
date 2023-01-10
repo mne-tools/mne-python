@@ -13,6 +13,7 @@ from qtpy import QtCore
 from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
                             QMessageBox, QWidget, QSlider, QPushButton,
                             QComboBox, QLineEdit)
+from matplotlib.colors import LinearSegmentedColormap
 
 from ._core import SliceBrowser
 from .. import BaseEpochs
@@ -77,12 +78,6 @@ def _make_vol(lut, stc_data):
 
 def _coord_to_coord(coord, vox_ras_t, ras_vox_t):
     return apply_trans(ras_vox_t, apply_trans(vox_ras_t, coord))
-
-
-def _min_range(data):
-    this_min = np.nanmin(data)
-    this_range = np.nanmax(data) - this_min
-    return this_range, this_min
 
 
 def _int_complex_conj(data):
@@ -216,18 +211,13 @@ class VolSourceEstimateViewer(SliceBrowser):
                 src_shape - 1, self._src_vox_scan_ras_t, self._scan_ras_vox_t)
         ]
         src_coord = self._get_src_coord()
-        min_val, max_val = [self._cmap_sliders[i].value() /
-                            1000 * self._stc_range + self._stc_min
-                            for i in (0, 2)]
         for axis in range(3):
             stc_slice = np.take(self._stc_img, src_coord[axis], axis=axis).T
-            stc_slice[stc_slice < min_val] = np.nan
-            stc_slice[stc_slice > max_val] = np.nan
             x_idx, y_idx = self._xy_idx[axis]
             extent = [corners[0][x_idx], corners[1][x_idx],
                       corners[1][y_idx], corners[0][y_idx]]
             self._images['stc'].append(self._figs[axis].axes[0].imshow(
-                stc_slice, cmap=self._cmap, aspect='auto', extent=extent,
+                stc_slice, aspect='auto', extent=extent,
                 alpha=self._alpha, zorder=2))
 
         # plot vectors if vector stc
@@ -704,6 +694,7 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_min_range(self):
         """Update the minimum and range when a new epoch is selected."""
         stc_data = self._pick_stc_epoch(self._data)
+        stc_data = self._apply_vector_norm(stc_data)
         stc_data = self._apply_baseline_correction(stc_data)
         self._stc_min = np.nanmin(stc_data)
         self._stc_range = np.nanmax(stc_data) - self._stc_min
@@ -821,28 +812,31 @@ class VolSourceEstimateViewer(SliceBrowser):
         vmin, vmid, vmax = [val / 1000 * self._stc_range + self._stc_min
                             for val in (self._cmap_sliders[i].value()
                                         for i in range(3))]
-        for axis in range(3):
-            self._images['stc'][axis].set_clim(vmin, vmax)
-            stc_slice = self._images['stc'][axis].get_array()
-            stc_slice[stc_slice < vmin] = np.nan
-            self._images['stc'][axis].set_data(stc_slice)
-            self._figs[axis].canvas.draw()
-        if self._f_idx is None:
-            self._fig.axes[0].set_ylim([vmin, vmax])
-        else:
-            self._stc_plot.set_clim(vmin, vmax)
-        self._fig.canvas.draw()
-
         mid_pt = vmid / (vmax + vmin)
-        ctable = np.round(self._cmap(np.concatenate([
-            np.linspace(0, mid_pt, 128),
-            np.linspace(mid_pt, 1, 128)])) * 255.0).astype(np.uint8)
+        ctable = self._cmap(np.concatenate([
+            np.linspace(0, mid_pt, 128), np.linspace(mid_pt, 1, 128)]))
+        cmap = LinearSegmentedColormap.from_list('stc', ctable.tolist(), N=256)
+        ctable = np.round(ctable * 255.0).astype(np.uint8)
         if self._stc_min < 0:  # make center values transparent
             zero_pt = np.argmin(abs(np.linspace(vmin, vmax, 256)))
             # 31 on either side of the zero point are made transparent
             ctable[max([zero_pt - 31, 0]):min([zero_pt + 32, 255]), 3] = 0
         else:  # make low values transparent
             ctable[:25, 3] = np.linspace(0, 255, 25)
+
+        self._update_stc_images()
+        for axis in range(3):
+            self._images['stc'][axis].set_clim(vmin, vmax)
+            self._images['stc'][axis].set_cmap(cmap)
+            self._figs[axis].canvas.draw()
+
+        self._update_data_plot()  # ensure no nans yet
+        if self._f_idx is None:
+            self._fig.axes[0].set_ylim([vmin, vmax])
+        else:
+            self._stc_plot.set_clim(vmin, vmax)
+            self._stc_plot.set_cmap(cmap)
+        self._fig.canvas.draw()
 
         if self._data.shape[2] > 1:
             self._renderer._set_colormap_range(
