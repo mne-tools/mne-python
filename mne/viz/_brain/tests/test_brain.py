@@ -25,7 +25,7 @@ from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
 from mne.datasets import testing
 from mne.io import read_info
-from mne.utils import check_version
+from mne.utils import check_version, requires_version
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
@@ -105,7 +105,9 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-def test_layered_mesh(renderer_interactive_pyvistaqt):
+# TODO: allow_unclosed for macOS here as the conda and M1 builds show some
+# windows stay open afterward
+def test_layered_mesh(renderer_interactive_pyvistaqt, allow_unclosed):
     """Test management of scalars/colormap overlay."""
     mesh = _LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
@@ -864,10 +866,10 @@ something
 # https://github.com/mne-tools/mne-python/pull/10935
 # for some reason there is a dependency issue with ipympl even using pyvista
 @pytest.mark.skipif(sys.platform == 'win32', reason='ipympl issue on Windows')
+@requires_version('sphinx_gallery')
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
-    pytest.importorskip('sphinx_gallery')
     stc = read_source_estimate(fname_stc, subject='sample')
     size = (600, 300)
     brain = stc.plot(subjects_dir=subjects_dir,

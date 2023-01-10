@@ -11,7 +11,7 @@ import numpy as np
 from functools import partial
 
 from qtpy import QtCore
-from qtpy.QtCore import Slot
+from qtpy.QtCore import Slot, Qt
 from qtpy.QtWidgets import (QMainWindow, QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
                             QMessageBox, QWidget, QPlainTextEdit)
@@ -81,6 +81,7 @@ class SliceBrowser(QMainWindow):
         """GUI for browsing slices of anatomical images."""
         # initialize QMainWindow class
         super(SliceBrowser, self).__init__()
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         self._verbose = verbose
         # if bad/None subject, will raise an informative error when loading MRI

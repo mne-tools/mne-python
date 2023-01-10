@@ -27,6 +27,7 @@ from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
+from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
 from ..viz.utils import safe_event
 from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
@@ -135,6 +136,8 @@ class CoregistrationUI(HasTraits):
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
+    @_qt_safe_window(splash='_renderer.figure.splash',
+                     window='_renderer.figure.plotter')
     @verbose
     def __init__(self, info_file, *, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
@@ -145,7 +148,6 @@ class CoregistrationUI(HasTraits):
                  show=True, block=False, fullscreen=False,
                  interaction='terrain', verbose=None):
         from ..viz.backends.renderer import _get_renderer
-        from ..viz.backends._utils import _qt_app_exec
 
         def _get_default(var, val):
             return var if var is not None else val
