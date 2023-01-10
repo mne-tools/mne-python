@@ -480,7 +480,5 @@ class SliceBrowser(QMainWindow):
     @safe_event
     def close(self):
         """Close interface and cleanup data structure."""
-        self._renderer.plotter.close()
         if self._renderer is not None:
             self._renderer.close()
-        super(SliceBrowser, self).close()
