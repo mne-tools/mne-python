@@ -1005,7 +1005,7 @@ class InterpolationMixin(object):
             origin fit.
 
             .. versionadded:: 0.17
-        method : dict
+        method : dict | None
             Method to use for each channel type.
             Currently only the key ``"eeg"`` has multiple options:
 
