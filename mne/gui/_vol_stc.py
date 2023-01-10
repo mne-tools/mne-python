@@ -812,7 +812,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         vmin, vmid, vmax = [val / 1000 * self._stc_range + self._stc_min
                             for val in (self._cmap_sliders[i].value()
                                         for i in range(3))]
-        mid_pt = vmid / (vmax + vmin)
+        mid_pt = (vmid - vmin) / (vmax - vmin)
         ctable = self._cmap(np.concatenate([
             np.linspace(0, mid_pt, 128), np.linspace(mid_pt, 1, 128)]))
         cmap = LinearSegmentedColormap.from_list('stc', ctable.tolist(), N=256)
