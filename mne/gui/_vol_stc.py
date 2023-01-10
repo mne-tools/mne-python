@@ -833,15 +833,10 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._stc_plot.set_clim(vmin, vmax)
         self._fig.canvas.draw()
 
-        mid_pt = vmid / (vmax + vmin)
-        crange = np.concatenate([np.linspace(0, mid_pt, 128),
-                                 np.linspace(mid_pt, 1, 128)])
-        ctable = np.round(self._cmap(crange) * 255.0).astype(np.uint8)
+        ctable = np.round(self._cmap(
+            np.linspace(0, 1, 256)) * 255.0).astype(np.uint8)
         if self._stc_min < 0:  # make center values transparent
-            zero_pt = np.argmin(abs(np.concatenate([
-                np.linspace(vmin, vmid, 256), np.linspace(vmid, vmax, 128)])))
-            # 31 on either side of center
-            ctable[max([zero_pt - 31, 0]):min([zero_pt + 32, 255]), 3] = 0
+            ctable[97:159, 3] = 0  # 31 on either side of center (128)
         else:  # make low values transparent
             ctable[:25, 3] = np.linspace(0, 255, 25)
 

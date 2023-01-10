@@ -14,6 +14,7 @@ from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.utils import requires_dipy, requires_nibabel
 from mne.viz.utils import _fake_click
+from mne.gui._vol_stc import VolSourceEstimateViewer
 
 data_path = testing.data_path(download=False)
 subject = 'sample'
@@ -61,80 +62,64 @@ def _fake_stc(src_type='vol'):
     return stc_data, src, epochs_tfr
 
 
-@pytest.fixture
-def _stc_viewer(renderer_interactive_pyvistaqt):
-    from qtpy.QtWidgets import QApplication
-    from mne.gui._vol_stc import VolSourceEstimateViewer
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(["Source Estimate Viewer"])
-    # Use a fixture to create these classes so we can ensure that they
-    # are closed at the end of the test
-    guis = list()
-
-    def fun(*args, **kwargs):
-        with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
-            guis.append(VolSourceEstimateViewer(*args, **kwargs))
-        return guis[-1]
-
-    yield fun
-
-    for gui in guis:
-        try:
-            gui.close()
-        except Exception:
-            pass
-
-
 @requires_nibabel()
 @requires_dipy()
-def test_stc_viewer_io(_stc_viewer):
+def test_stc_viewer_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the stc viewer GUI."""
     stc_data, src, epochs_tfr = _fake_stc()
     with pytest.raises(NotImplementedError,
                        match='surface source estimate '
                              'viewing is not yet supported'):
-        _stc_viewer(stc_data, inst=epochs_tfr)
+        VolSourceEstimateViewer(stc_data, inst=epochs_tfr)
     with pytest.raises(NotImplementedError, match='source estimate object'):
-        _stc_viewer(stc_data, src=src)
+        VolSourceEstimateViewer(stc_data, src=src)
     with pytest.raises(ValueError, match='`data` must be an array'):
-        _stc_viewer('foo', subject='sample', subjects_dir=subjects_dir,
-                    src=src, inst=epochs_tfr)
+        VolSourceEstimateViewer('foo', subject='sample',
+                                subjects_dir=subjects_dir,
+                                src=src, inst=epochs_tfr)
     with pytest.raises(ValueError,
                        match='Number of epochs in `inst` does not match'):
-        _stc_viewer(stc_data[1:], src=src, inst=epochs_tfr)
+        VolSourceEstimateViewer(stc_data[1:], src=src, inst=epochs_tfr)
     with pytest.raises(RuntimeError,
                        match='ource vertices in `data` do not match '):
-        _stc_viewer(stc_data[:, :1], subject='sample',
-                    subjects_dir=subjects_dir, src=src, inst=epochs_tfr)
+        VolSourceEstimateViewer(stc_data[:, :1], subject='sample',
+                                subjects_dir=subjects_dir,
+                                src=src, inst=epochs_tfr)
     src[0]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
     with pytest.raises(RuntimeError, match='must be in the `mri`'):
-        _stc_viewer(stc_data, subject='sample',
-                    subjects_dir=subjects_dir, src=src, inst=epochs_tfr)
+        VolSourceEstimateViewer(stc_data, subject='sample',
+                                subjects_dir=subjects_dir,
+                                src=src, inst=epochs_tfr)
     src[0]['coord_frame'] = FIFF.FIFFV_COORD_MRI
 
     src[0]['subject_his_id'] = 'foo'
     with pytest.raises(RuntimeError, match='Source space subject'):
-        _stc_viewer(stc_data, subject='sample',
-                    subjects_dir=subjects_dir, src=src, inst=epochs_tfr)
+        with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
+            VolSourceEstimateViewer(stc_data, subject='sample',
+                                    subjects_dir=subjects_dir,
+                                    src=src, inst=epochs_tfr)
 
     with pytest.raises(ValueError,
                        match='Frequencies in `inst` do not match'):
-        _stc_viewer(stc_data[:, :, :, 1:], src=src, inst=epochs_tfr)
+        VolSourceEstimateViewer(
+            stc_data[:, :, :, 1:], src=src, inst=epochs_tfr)
 
     with pytest.raises(ValueError,
                        match='Times in `inst` do not match'):
-        _stc_viewer(stc_data[:, :, :, :, 1:], src=src, inst=epochs_tfr)
+        VolSourceEstimateViewer(
+            stc_data[:, :, :, :, 1:], src=src, inst=epochs_tfr)
 
 
 @requires_nibabel()
 @requires_dipy()
 @testing.requires_testing_data
-def test_stc_viewer_display(_stc_viewer):
+def test_stc_viewer_display(renderer_interactive_pyvistaqt):
     """Test that the stc viewer GUI displays properly."""
     stc_data, src, epochs_tfr = _fake_stc()
-    viewer = _stc_viewer(stc_data, subject='sample',
-                         subjects_dir=subjects_dir, src=src, inst=epochs_tfr)
+    with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
+        viewer = VolSourceEstimateViewer(
+            stc_data, subject='sample', subjects_dir=subjects_dir,
+            src=src, inst=epochs_tfr)
     # test go to max
     viewer._go_to_max_button.click()
     assert_allclose(viewer._ras, [-40, -40, -20], atol=0.01)
@@ -164,11 +149,16 @@ def test_stc_viewer_display(_stc_viewer):
     for mode in ('zscore', 'ratio'):
         viewer.set_baseline((0.1, None), mode)
 
+    # done with time-frequency, close
+    viewer.close()
+
     # test time only, not frequencies
     epochs = mne.EpochsArray(epochs_tfr.data[:, :, 0], epochs_tfr.info,
                              tmin=epochs_tfr.tmin)
-    viewer = _stc_viewer(stc_data[:, :, :, 0:1], subject='sample',
-                         subjects_dir=subjects_dir, src=src, inst=epochs)
+    with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
+        viewer = VolSourceEstimateViewer(
+            stc_data[:, :, :, 0:1], subject='sample',
+            subjects_dir=subjects_dir, src=src, inst=epochs)
 
     # test go to max
     viewer._go_to_max_button.click()
@@ -189,14 +179,16 @@ def test_stc_viewer_display(_stc_viewer):
 
     assert_allclose(np.linalg.norm(stc_data[0], axis=1)[stc_idx][0],
                     viewer._stc_plot.get_data()[1])
+    viewer.close()
 
 
 @requires_nibabel()
 @requires_dipy()
 @testing.requires_testing_data
-def test_stc_viewer_surface(_stc_viewer):
+def test_stc_viewer_surface(renderer_interactive_pyvistaqt):
     """Test the stc viewer with a surface source space."""
     stc_data, src, epochs_tfr = _fake_stc(src_type='surf')
     with pytest.raises(RuntimeError, match='not implemented yet'):
-        _stc_viewer(stc_data, subject='sample',
-                    subjects_dir=subjects_dir, src=src, inst=epochs_tfr)
+        VolSourceEstimateViewer(
+            stc_data, subject='sample',
+            subjects_dir=subjects_dir, src=src, inst=epochs_tfr)
