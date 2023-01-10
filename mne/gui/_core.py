@@ -430,7 +430,7 @@ class SliceBrowser(QMainWindow):
             "up/down arrow: superior/inferior\n"
             "left angle bracket/right angle bracket: anterior/posterior")
 
-    def _key_press_event(self, event):
+    def keyPressEvent(self, event):
         """Execute functions when the user presses a key."""
         if event.key() == 'escape':
             self.close()

@@ -274,8 +274,8 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._scalar_bar.SetPosition(0.02, 0.2)
 
         self._update_cmap()  # must be called for volume to render properly
-        # keep focus on this so that keypress events work
-        self._go_to_max_button.setFocus()
+        # keep focus on main window so that keypress events work
+        self.setFocus()
         if show:
             self.show()
 
@@ -368,7 +368,7 @@ class VolSourceEstimateViewer(SliceBrowser):
                 self._src_lut[src_coord] >= 0:
             stc_data = stc_data[:, self._src_lut[src_coord]]
         else:  # out-of-bounds or unused vertex
-            stc_data = stc_data[:, 0] * np.nan  # pick the first one, make nan
+            stc_data = np.zeros(stc_data[:, 0].shape) * np.nan
         return stc_data
 
     def _pick_stc_tfr(self, stc_data):
@@ -425,7 +425,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._epoch_selector.currentTextChanged.connect(self._update_epoch)
             self._epoch_selector.setSizeAdjustPolicy(
                 QComboBox.AdjustToContents)
-            self._epoch_selector.keyPressEvent = self._key_press_event
+            self._epoch_selector.keyPressEvent = self.keyPressEvent
             hbox.addWidget(self._epoch_selector)
 
         return hbox
@@ -455,7 +455,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             slider.setTracking(False)  # only update on release
             if sfun is not None:
                 slider.valueChanged.connect(sfun)
-            slider.keyPressEvent = self._key_press_event
+            slider.keyPressEvent = self.keyPressEvent
             slider.setMinimumWidth(300)
             return slider
 
@@ -521,7 +521,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._baseline_selector.currentTextChanged.connect(
             self._update_baseline)
         self._baseline_selector.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self._baseline_selector.keyPressEvent = self._key_press_event
+        self._baseline_selector.keyPressEvent = self.keyPressEvent
         hbox.addWidget(self._baseline_selector)
 
         hbox.addWidget(QLabel('tmin ='))
@@ -592,7 +592,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._fig.canvas.mpl_connect(
             'button_release_event', self._on_data_plot_click)
         canvas.setMinimumHeight(int(self.size().height() * 0.4))
-        canvas.keyPressEvent = self._key_press_event
+        canvas.keyPressEvent = self.keyPressEvent
         return canvas
 
     def _on_data_plot_click(self, event):
@@ -680,7 +680,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             return
         self._bl_tmin = tmin
         self._bl_tmin_textbox.clearFocus()
-        self._go_to_max_button.setFocus()
+        self.setFocus()  # remove focus from textbox
         if self._update:
             self._update_stc_image()
 
@@ -697,7 +697,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             return
         self._bl_tmax = tmax
         self._bl_tmax_textbox.clearFocus()
-        self._go_to_max_button.setFocus()
+        self.setFocus()  # remove focus from textbox
         if self._update:
             self._update_stc_image()
 
