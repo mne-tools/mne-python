@@ -836,7 +836,9 @@ class VolSourceEstimateViewer(SliceBrowser):
         ctable = np.round(self._cmap(
             np.linspace(0, 1, 256)) * 255.0).astype(np.uint8)
         if self._stc_min < 0:  # make center values transparent
-            ctable[97:159, 3] = 0  # 31 on either side of center (128)
+            zero_pt = np.argmin(abs(np.linspace(vmin, vmax, 256)))
+            # 31 on either side of the zero point are made transparent
+            ctable[max([zero_pt - 31, 0]):min([zero_pt + 32, 255]), 3] = 0
         else:  # make low values transparent
             ctable[:25, 3] = np.linspace(0, 255, 25)
 
