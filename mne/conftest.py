@@ -965,9 +965,11 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend('pyvistaqt')
     app = _init_mne_qtapp()
+    app.processEvents()
     gc.collect()
     n_before = len(app.topLevelWidgets())
     yield
+    app.processEvents()
     gc.collect()
     if 'allow_unclosed' in request.fixturenames:
         return
