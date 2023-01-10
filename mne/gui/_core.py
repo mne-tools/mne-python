@@ -482,3 +482,4 @@ class SliceBrowser(QMainWindow):
         """Close interface and cleanup data structure."""
         if self._renderer is not None:
             self._renderer.close()
+        super(SliceBrowser, self).close()
