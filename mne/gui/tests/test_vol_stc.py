@@ -14,7 +14,6 @@ from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.utils import requires_dipy, requires_nibabel
 from mne.viz.utils import _fake_click
-from mne.gui._vol_stc import VolSourceEstimateViewer
 
 data_path = testing.data_path(download=False)
 subject = 'sample'
@@ -66,6 +65,7 @@ def _fake_stc(src_type='vol'):
 @requires_dipy()
 def test_stc_viewer_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the stc viewer GUI."""
+    from mne.gui._vol_stc import VolSourceEstimateViewer
     stc_data, src, epochs_tfr = _fake_stc()
     with pytest.raises(NotImplementedError,
                        match='surface source estimate '
@@ -115,6 +115,7 @@ def test_stc_viewer_io(renderer_interactive_pyvistaqt):
 @testing.requires_testing_data
 def test_stc_viewer_display(renderer_interactive_pyvistaqt):
     """Test that the stc viewer GUI displays properly."""
+    from mne.gui._vol_stc import VolSourceEstimateViewer
     stc_data, src, epochs_tfr = _fake_stc()
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         viewer = VolSourceEstimateViewer(
@@ -187,6 +188,7 @@ def test_stc_viewer_display(renderer_interactive_pyvistaqt):
 @testing.requires_testing_data
 def test_stc_viewer_surface(renderer_interactive_pyvistaqt):
     """Test the stc viewer with a surface source space."""
+    from mne.gui._vol_stc import VolSourceEstimateViewer
     stc_data, src, epochs_tfr = _fake_stc(src_type='surf')
     with pytest.raises(RuntimeError, match='not implemented yet'):
         VolSourceEstimateViewer(

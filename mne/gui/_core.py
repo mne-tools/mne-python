@@ -478,7 +478,9 @@ class SliceBrowser(QMainWindow):
             self._base_data[tuple(self._current_slice)]))
 
     @safe_event
-    def closeEvent(self, event):
-        """Clean up upon closing the window."""
+    def close(self):
+        """Close interface and cleanup data structure."""
         self._renderer.plotter.close()
-        self.close()
+        if self._renderer is not None:
+            self._renderer.close()
+        super(SliceBrowser, self).close()
