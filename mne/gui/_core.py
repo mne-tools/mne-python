@@ -482,5 +482,8 @@ class SliceBrowser(QMainWindow):
     @safe_event
     def closeEvent(self, event):
         """Clean up upon closing the window."""
-        self._renderer.plotter.close()
+        try:
+            self._renderer.plotter.close()
+        except AttributeError:
+            pass
         self.close()

@@ -74,6 +74,7 @@ def test_ieeg_elec_locate_io(renderer_interactive_pyvistaqt):
         mne.gui.locate_ieeg(info, trans, aligned_ct, subject, subjects_dir)
 
 
+@pytest.mark.allow_unclosed_pyside2
 @requires_version('sphinx_gallery')
 @testing.requires_testing_data
 def test_locate_scraper(renderer_interactive_pyvistaqt, _fake_CT_coords,
@@ -107,6 +108,7 @@ def test_locate_scraper(renderer_interactive_pyvistaqt, _fake_CT_coords,
     # no need to call .close
 
 
+@pytest.mark.allow_unclosed_pyside2
 @testing.requires_testing_data
 def test_ieeg_elec_locate_display(renderer_interactive_pyvistaqt,
                                   _fake_CT_coords):
