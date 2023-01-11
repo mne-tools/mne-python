@@ -107,7 +107,8 @@ class TstVTKPicker(object):
 
 # TODO: allow_unclosed for macOS here as the conda and M1 builds show some
 # windows stay open afterward
-def test_layered_mesh(renderer_interactive_pyvistaqt, allow_unclosed):
+@pytest.mark.allow_unclosed
+def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
     mesh = _LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),

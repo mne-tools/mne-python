@@ -61,11 +61,9 @@ def _fake_stc(src_type='vol'):
     return stc_data, src, epochs_tfr
 
 
-# allow_unclosed for now because of M1 and Windows issues resolving
-# references, remove when resolved in the future, see #11352, #11398
 @requires_nibabel()
 @requires_dipy()
-def test_stc_viewer_io(renderer_interactive_pyvistaqt, allow_unclosed):
+def test_stc_viewer_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the stc viewer GUI."""
     from mne.gui._vol_stc import VolSourceEstimateViewer
     stc_data, src, epochs_tfr = _fake_stc()
@@ -112,12 +110,10 @@ def test_stc_viewer_io(renderer_interactive_pyvistaqt, allow_unclosed):
             stc_data[:, :, :, :, 1:], src=src, inst=epochs_tfr)
 
 
-# allow_unclosed for now because of M1 and Windows issues resolving
-# references, remove when resolved in the future, see #11352, #11398
 @requires_nibabel()
 @requires_dipy()
 @testing.requires_testing_data
-def test_stc_viewer_display(renderer_interactive_pyvistaqt, allow_unclosed):
+def test_stc_viewer_display(renderer_interactive_pyvistaqt):
     """Test that the stc viewer GUI displays properly."""
     from mne.gui._vol_stc import VolSourceEstimateViewer
     stc_data, src, epochs_tfr = _fake_stc()

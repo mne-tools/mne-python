@@ -78,7 +78,7 @@ collect_ignore = [
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers
-    for marker in ('slowtest', 'ultraslowtest', 'pgtest'):
+    for marker in ('slowtest', 'ultraslowtest', 'pgtest', 'allow_unclosed'):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
@@ -968,17 +968,12 @@ def qt_windows_closed(request):
     app.processEvents()
     gc.collect()
     n_before = len(app.topLevelWidgets())
+    marks = set(mark.name for mark in request.node.iter_markers())
     yield
     app.processEvents()
     gc.collect()
-    if 'allow_unclosed' in request.fixturenames:
+    if 'allow_unclosed' in marks:
         return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
-
-
-@pytest.fixture
-def allow_unclosed():
-    """Allow unclosed Qt Windows."""
-    pass
