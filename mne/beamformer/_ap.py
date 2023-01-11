@@ -696,10 +696,9 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     return_active_info : bool, optional
         If True, appends estimated source's information
         (indices,coordinates,orientation). The default is False.
-    force_no_rep : bool, optional
-        Forces no repetition of estinated dipoles.
     %(verbose)s
-
+    force_no_rep : bool, optional
+            Forces no repetition of estinated dipoles.
     Returns
     -------
     output : list
