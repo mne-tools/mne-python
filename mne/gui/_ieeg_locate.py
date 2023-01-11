@@ -23,6 +23,7 @@ from ._core import SliceBrowser
 from ..surface import _voxel_neighbors
 from ..transforms import apply_trans, _get_trans, invert_transform
 from ..utils import logger, _validate_type, verbose
+from ..viz.backends._utils import _qt_safe_window
 from .. import pick_types
 
 _CH_PLOT_SIZE = 1024
@@ -59,6 +60,7 @@ class ComboBox(QComboBox):
 class IntracranialElectrodeLocator(SliceBrowser):
     """Locate electrode contacts using a coregistered MRI and CT."""
 
+    @_qt_safe_window(splash='_renderer.figure.splash', window='')
     def __init__(self, info, trans, aligned_ct, subject=None,
                  subjects_dir=None, groups=None, show=True, verbose=None):
         """GUI for locating intracranial electrodes.

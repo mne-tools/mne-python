@@ -23,6 +23,7 @@ from ..io.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import (_require_version, _validate_type, _check_range, fill_doc,
                      _check_option)
+from ..viz.backends._utils import _qt_safe_window
 from ..viz.utils import _get_cmap
 
 BASE_INT_DTYPE = np.int16
@@ -94,6 +95,7 @@ def _int_complex_conj(data):
 class VolSourceEstimateViewer(SliceBrowser):
     """View a source estimate time-course time-frequency visualization."""
 
+    @_qt_safe_window(splash='_renderer.figure.splash', window='')
     def __init__(self, data, subject=None, subjects_dir=None, src=None,
                  inst=None, show=True, verbose=None):
         """View a volume time and/or frequency source time course estimate.
