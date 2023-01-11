@@ -699,6 +699,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     %(verbose)s
     force_no_rep : bool, optional
             Forces no repetition of estinated dipoles.
+
     Returns
     -------
     output : list
