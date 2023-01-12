@@ -122,6 +122,9 @@ def pytest_configure(config):
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     # matplotlib 3.6 and pyvista/nilearn
     ignore:.*cmap function will be deprecated.*:
+    # TODO: matplotlib 3.7 that needs to be fixed
+    ignore:The rectangles attribute was deprecated in Matplotlib.*:
+    ignore:The lines attribute was deprecated in Matplotlib.*:
     # joblib hasn't updated to avoid distutils
     ignore:.*distutils package is deprecated.*:DeprecationWarning
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
