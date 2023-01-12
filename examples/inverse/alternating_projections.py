@@ -69,11 +69,9 @@ noise_cov = mne.read_cov(cov_fname)
 # Applied on free-oriented dipoles
 # --------------------------------
 
-dipoles, residual, _, var_exp = alternating_projections(evoked, forward,
-                                                        nsources=2,
-                                                        noise_cov=noise_cov,
-                                                        return_residual=True,
-                                                        verbose=True)
+dipoles, residual, _, var_exp = alternating_projections(
+    evoked, forward, nsources=2, noise_cov=noise_cov, return_residual=True,
+    verbose=True)
 
 trans = forward['mri_head_t']
 plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
