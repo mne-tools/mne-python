@@ -130,6 +130,7 @@ def pytest_configure(config):
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
+    ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     # hopefully temporary https://github.com/matplotlib/matplotlib/pull/24455#issuecomment-1319318629
     ignore:The circles attribute was deprecated in Matplotlib.*:
     # PySide6
