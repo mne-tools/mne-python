@@ -37,7 +37,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     picks : list of int
         Caller ensures this is a list of int.
     force_no_rep : bool, optional
-        Forces no repetition of estinated dipoles.
+        Forces no repetition of estimated dipoles.
 
     Returns
     -------
