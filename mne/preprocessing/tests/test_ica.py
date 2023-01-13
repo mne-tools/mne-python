@@ -1426,7 +1426,7 @@ def test_ica_labels():
     scores = ica.find_bads_muscle(raw)[1]
     assert 'muscle' in ica.labels_
     assert ica.labels_['muscle'] == [0]
-    assert_allclose(scores, [0.56, 0.01, 0.03, 0.00], atol=0.03)
+    assert_allclose(scores, [0.56, 0.01, 0.03, 0.00], atol=0.03)  # FIXME
 
     events = np.array([[6000, 0, 0], [8000, 0, 0]])
     epochs = Epochs(raw, events=events, baseline=None, preload=True)
