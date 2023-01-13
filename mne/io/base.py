@@ -52,7 +52,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
-from ..time_frequency.spectrum import Spectrum, SpectrumMixin
+from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 
 @fill_doc
@@ -1853,6 +1853,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         .. footbibliography::
         """
+        method = _validate_method(method, type(self).__name__)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
         return Spectrum(
             self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
