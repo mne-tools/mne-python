@@ -495,7 +495,7 @@ def _free_ori_ap(wh_data, gain, nsources,
 def _fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
     """Branch of calculations dedicated to fixed oriented dipoles."""
     idx = _calculate_fixed_alternating_projections(
-        wh_data, gain, sources=nsources, max_iter=max_iter)
+        wh_data, gain, nsources=nsources, max_iter=max_iter)
 
     sub_g = gain[:, idx]
     sol = lstsq(sub_g, wh_data, rcond=None)[0]
