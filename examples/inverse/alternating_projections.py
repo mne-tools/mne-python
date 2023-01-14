@@ -6,7 +6,7 @@
 Compute Alternating Projections on evoked data
 ==============================================
 
-Compute an Alternating Projections (AP)  on :class:`~mne.Evoked` data,
+Compute an Alternating Projections (AP) on :class:`~mne.Evoked` data,
 on both free-oriented dipoles and fixed-oriented dipoles.
 
 The AP method addresses the problem of multiple dipole localization
