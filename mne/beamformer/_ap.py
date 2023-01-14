@@ -29,6 +29,11 @@ def _produce_data_cov(data_arr, attr_dict):
     return data_cov
 
 
+def _active_subspace(Mat):
+    """Helper function, multi_dot with pseudo-inverse"""
+    return multi_dot([Mat, pinv(Mat.T @ Mat), Mat.T])
+
+
 def _fixed_phase1a(attr_dict, data_cov, gain):
     """Calculate phase 1a of fixed oriented AP.
 
@@ -86,21 +91,13 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
     for _ in range(1, attr_dict['nsources']):
         ap_val2 = np.zeros(attr_dict['ndipoles'])
         sub_g = gain[:, s_ap]
-        act_spc = multi_dot([sub_g, pinv(np.matmul(sub_g.transpose(),
-                                                   sub_g)
-                                         ),
-                             sub_g.transpose()])
+        act_spc = _active_subspace(sub_g)
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
         for dip in range(attr_dict['ndipoles']):
             l_p = np.expand_dims(gain[:, dip], axis=1)
-            ap_val2[dip] = multi_dot([l_p.transpose(),
-                                      perpend_spc,
-                                      data_cov,
-                                      perpend_spc,
-                                      l_p])\
-                / ((multi_dot([l_p.transpose(),
-                               perpend_spc,
-                               l_p]))[0, 0])
+            ap_val2[dip] = multi_dot(
+                [l_p.T, perpend_spc, data_cov, perpend_spc, l_p])\
+                / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
         s2_idx = np.argmax(ap_val2)
         s_ap.append(s2_idx)
     print('current s_ap = {}'.format(s_ap))
@@ -138,21 +135,13 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
             s_ap_temp = copy(s_ap_2)
             s_ap_temp.pop(src)
             sub_g = gain[:, s_ap_temp]
-            act_spc = multi_dot([sub_g,
-                                 pinv(np.matmul(sub_g.transpose(),
-                                                sub_g)
-                                      ),
-                                 sub_g.transpose()])
+            act_spc = _active_subspace(sub_g)
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
                 l_p = np.expand_dims(gain[:, dip], axis=1)
-                ap_val2[dip] = multi_dot([l_p.transpose(),
-                                          perpend_spc,
-                                          data_cov,
-                                          perpend_spc,
-                                          l_p])\
-                    / ((multi_dot([l_p.transpose(),
-                       perpend_spc, l_p]))[0, 0])
+                ap_val2[dip] = multi_dot(
+                    [l_p.T, perpend_spc, data_cov, perpend_spc, l_p])\
+                    / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
             s2_idx = np.argmax(ap_val2)
             s_ap_2[src] = s2_idx
         logger.info('current s_ap_2 = {}'.format(s_ap_2))
@@ -227,15 +216,10 @@ def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
     """Eigen values and vector of the projection."""
     gain_idx = list(range(ind * 3, ind * 3 + 3))
     l_p = gain[:, gain_idx]
-    eig_a = multi_dot([l_p.transpose(),
-                       perpend_spc,
-                       data_cov,
-                       perpend_spc,
-                       l_p])
-    eig_b = multi_dot([l_p.transpose(),
-                       perpend_spc,
-                       perpend_spc,
-                       l_p])
+    eig_a = multi_dot(
+        [l_p.T, perpend_spc, data_cov, perpend_spc, l_p])
+    eig_b = multi_dot(
+        [l_p.T, perpend_spc, perpend_spc, l_p])
     eig_b = eig_b + 1e-3 * eig_b.trace() * np.eye(3)
     eig_val, eig_vec = eig(eig_a, eig_b)
 
@@ -274,9 +258,8 @@ def _free_phase1a(attr_dict, gain, data_cov):
     ap_val1 = np.zeros(attr_dict['ndipoles'])
     perpend_spc = np.eye(gain.shape[0])
     for dip in range(attr_dict['ndipoles']):
-        sol_tuple = _solve_active_gain_eig(dip, gain,
-                                           data_cov, eig,
-                                           perpend_spc)
+        sol_tuple = _solve_active_gain_eig(
+            dip, gain, data_cov, eig, perpend_spc)
         ap_val1[dip] = np.max([x.real for x in sol_tuple[0]])
 
     # obtain the 1st source location
@@ -284,14 +267,13 @@ def _free_phase1a(attr_dict, gain, data_cov):
     s_ap.append(s1_idx)
 
     # obtain the 1st source orientation
-    sol_tuple = _solve_active_gain_eig(s1_idx, gain,
-                                       data_cov, eig,
-                                       perpend_spc)
-    oris[0] = sol_tuple[1][:,
-                           [np.argmax([x.real for x
-                                      in sol_tuple[0]])]
-                           ][:, 0]
-    sub_g_proj = np.dot(sol_tuple[2], oris[0])[:, np.newaxis]
+    sol_tuple = _solve_active_gain_eig(
+        s1_idx, gain, data_cov, eig, perpend_spc)
+
+    oris[0] = (
+        sol_tuple[1][:, [np.argmax([x.real for x in sol_tuple[0]])]][:, 0])
+    sub_g_proj = sol_tuple[2] @ oris[0][:, np.newaxis]
+
     return s_ap, oris, sub_g_proj
 
 
@@ -330,34 +312,25 @@ def _free_phase1b(attr_dict, gain, data_cov,
     s_ap, oris, sub_g_proj = copy(ap_temp_tuple)
     for src in range(1, attr_dict['nsources']):
         ap_val2 = np.zeros(attr_dict['ndipoles'])
-        act_spc = multi_dot([sub_g_proj,
-                            pinv(np.matmul(sub_g_proj.transpose(),
-                                           sub_g_proj)
-                                 ),
-                            sub_g_proj.transpose()])
+        act_spc = _active_subspace(sub_g_proj)
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
         for dip in range(attr_dict['ndipoles']):
             if force_no_rep and (dip in s_ap):
                 continue
-            sol_tuple = _solve_active_gain_eig(dip, gain,
-                                               data_cov, eig,
-                                               perpend_spc)
+            sol_tuple = _solve_active_gain_eig(
+                dip, gain, data_cov, eig, perpend_spc)
             ap_val2[dip] = np.max([x.real for x in sol_tuple[0]])
 
         s2_idx = np.argmax(ap_val2)
         s_ap.append(s2_idx)
-        sol_tuple = _solve_active_gain_eig(s2_idx, gain,
-                                           data_cov, eig,
-                                           perpend_spc)
-        oris[src] = sol_tuple[1][:,
-                                 [np.argmax([x.real for x
-                                            in sol_tuple[0]])]
-                                 ][:, 0]
-        sub_g_proj = np.concatenate([sub_g_proj,
-                                     np.dot(sol_tuple[2],
-                                            oris[src])[:, np.newaxis]
-                                     ],
-                                    axis=1)
+        sol_tuple = _solve_active_gain_eig(
+            s2_idx, gain, data_cov, eig, perpend_spc)
+
+        oris[src] = (
+            sol_tuple[1][:, [np.argmax([x.real for x in sol_tuple[0]])]][:, 0])
+        sub_g_proj = np.concatenate(
+            [sub_g_proj, sol_tuple[2] @ oris[src][:, np.newaxis]], axis=1)
+
     return s_ap, oris, sub_g_proj
 
 
@@ -403,26 +376,23 @@ def _free_phase2(ap_temp_tuple, attr_dict,
             ap_val2 = np.zeros(attr_dict['ndipoles'])
             a_tmp = copy(ap_temp_tuple[2])
             a_tmp = np.delete(a_tmp, src, 1)
-            act_spc = multi_dot([a_tmp,
-                                 pinv(np.matmul(a_tmp.transpose(),
-                                                a_tmp)
-                                      ),
-                                 a_tmp.transpose()])
+            act_spc = _active_subspace(a_tmp)
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
             for dip in range(attr_dict['ndipoles']):
                 if force_no_rep and (dip in np.delete(s_ap_2, src, 0)):
                     continue
-                sol_tuple = _solve_active_gain_eig(dip, gain, data_cov,
-                                                   eig, perpend_spc)
+                sol_tuple = _solve_active_gain_eig(
+                    dip, gain, data_cov, eig, perpend_spc)
                 ap_val2[dip] = np.max([x.real for x in sol_tuple[0]])
 
             sq_idx = np.argmax(ap_val2)
             s_ap_2[src] = sq_idx
-            sol_tuple = _solve_active_gain_eig(sq_idx, gain, data_cov,
-                                               eig, perpend_spc)
+            sol_tuple = _solve_active_gain_eig(
+                sq_idx, gain, data_cov, eig, perpend_spc)
+
             oris[src] = sol_tuple[1][:, [np.argmax([x.real for x
                                                     in sol_tuple[0]])]][:, 0]
-            sub_g_proj[:, src] = np.dot(sol_tuple[2], oris[src])
+            sub_g_proj[:, src] = sol_tuple[2] @ oris[src]
 
         logger.info('current s_ap_2 = {}'.format(s_ap_2))
         if (itr > 0) & (s_ap_2_prev == s_ap_2):
@@ -499,9 +469,8 @@ def _free_ori_ap(wh_data, gain, nsources,
                  forward, max_iter, force_no_rep):
     """Branch of calculations dedicated to freely oriented dipoles."""
     sol_tuple = \
-        _calculate_free_alternating_projections(wh_data, gain,
-                                                nsources, max_iter,
-                                                force_no_rep)
+        _calculate_free_alternating_projections(
+            wh_data, gain, nsources, max_iter, force_no_rep)
     # sol_tuple = active_idx, active_orientations, active_idx_gain
 
     sol = lstsq(sol_tuple[2], wh_data, rcond=None)[0]
@@ -525,9 +494,8 @@ def _free_ori_ap(wh_data, gain, nsources,
 
 def _fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
     """Branch of calculations dedicated to fixed oriented dipoles."""
-    idx = _calculate_fixed_alternating_projections(wh_data, gain,
-                                                   nsources=nsources,
-                                                   max_iter=max_iter)
+    idx = _calculate_fixed_alternating_projections(
+        wh_data, gain, sources=nsources, max_iter=max_iter)
 
     sub_g = gain[:, idx]
     sol = lstsq(sub_g, wh_data, rcond=None)[0]
