@@ -600,7 +600,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
 
 
 def _make_explained_evoke(evoked, picks, explained_data_mat, residual=False):
-    """Create a new Evoked object containing either explained or residual data."""
+    """Create a new Evoked object containing explained/residual data."""
     n_evoked = evoked.copy()
     n_evoked = n_evoked.pick(picks)
     n_evoked.data = (
