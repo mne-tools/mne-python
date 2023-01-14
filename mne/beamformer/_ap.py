@@ -600,17 +600,18 @@ def _apply_ap(data, info, times, forward, noise_cov,
 
 
 def _make_explained_evoke(evoked, picks, explained_data_mat, residual=False):
-    """Create a new mne.Evoked object containing either 
+    """Create a new mne.Evoked object containing either
     the explained data or the residual data."""
-    new_evoked = evoked.copy()
-    new_evoked = new_evoked.pick(picks)
-    new_evoked.data = new_evoked.data-explained_data_mat if residual else explained_data_mat
-    active_projs = [proj for proj in new_evoked.info['projs'] if proj['active']]
+    n_evoked = evoked.copy()
+    n_evoked = n_evoked.pick(picks)
+    n_evoked.data = (
+        n_evoked.data - explained_data_mat if residual else explained_data_mat)
+    active_projs = [proj for proj in n_evoked.info['projs'] if proj['active']]
     for proj in active_projs:
         proj['active'] = False
-    new_evoked.add_proj(active_projs, remove_existing=True)
-    new_evoked.apply_proj()
-    return new_evoked
+    n_evoked.add_proj(active_projs, remove_existing=True)
+    n_evoked.apply_proj()
+    return n_evoked
 
 
 @verbose
