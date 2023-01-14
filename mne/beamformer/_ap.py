@@ -11,7 +11,7 @@ from numpy.linalg import pinv, multi_dot, lstsq
 
 from ..utils import _check_info_inv, verbose, fill_doc, logger
 from ._compute_beamformer import _prepare_beamformer_input
-from ..io.pick import pick_channels_forward, pick_channels_evoked, pick_info
+from ..io.pick import pick_channels_forward, pick_info
 from ..forward.forward import convert_forward_solution, is_fixed_orient
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
@@ -599,38 +599,18 @@ def _apply_ap(data, info, times, forward, noise_cov,
     return dipoles, explained_data, var_exp, dip_ind, oris, poss
 
 
-def _residual_packing(evoked, picks, explained_data_mat, info):
-    """Pack the residual data into an mne.Evoked object."""
-    residual = evoked.copy()
-    selection = [info['ch_names'][pick] for pick in picks]
-
-    residual = pick_channels_evoked(residual,
-                                    include=selection)
-    residual.data -= explained_data_mat
-    active_projs = [proj for proj in residual.info['projs'] if proj['active']]
+def _make_explained_evoke(evoked, picks, explained_data_mat, residual=False):
+    """Create a new mne.Evoked object containing either 
+    the explained data or the residual data."""
+    new_evoked = evoked.copy()
+    new_evoked = new_evoked.pick(picks)
+    new_evoked.data = new_evoked.data-explained_data_mat if residual else explained_data_mat
+    active_projs = [proj for proj in new_evoked.info['projs'] if proj['active']]
     for proj in active_projs:
         proj['active'] = False
-    residual.add_proj(active_projs, remove_existing=True)
-    residual.apply_proj()
-    return residual
-
-
-def _explained_data_packing(evoked, picks, explained_data_mat, info):
-    """Pack the explained data into an mne.Evoked object."""
-    info = evoked.info
-    explained_data = evoked.copy()
-    selection = [info['ch_names'][pick] for pick in picks]
-
-    explained_data = pick_channels_evoked(explained_data,
-                                          include=selection)
-    explained_data.data = explained_data_mat
-    active_projs = [proj for proj in
-                    explained_data.info['projs'] if proj['active']]
-    for proj in active_projs:
-        proj['active'] = False
-    explained_data.add_proj(active_projs, remove_existing=True)
-    explained_data.apply_proj()
-    return explained_data
+    new_evoked.add_proj(active_projs, remove_existing=True)
+    new_evoked.apply_proj()
+    return new_evoked
 
 
 @verbose
@@ -713,13 +693,12 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     if return_residual:
 
         # treating residual
-        residual = _residual_packing(evoked, picks,
-                                     explained_data_mat, info)
+        residual = _make_explained_evoke(
+            evoked, picks, explained_data_mat, residual=True)
 
         # treating explained data
-        info = evoked.info
-        explained_data = _explained_data_packing(evoked, picks,
-                                                 explained_data_mat, info)
+        explained_data = _make_explained_evoke(
+            evoked, picks, explained_data_mat)
 
         for item in [residual, explained_data, var_exp]:
             output.append(item)
