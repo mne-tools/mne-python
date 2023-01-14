@@ -12,7 +12,7 @@ on both free-oriented dipoles and fixed-oriented dipoles.
 The AP method addresses the problem of multiple dipole localization
 in MEG/EEG with a sequential and iterative solution,
 based on minimizing the least-squares (LS) criterion.
-:footcite:`AdlerEtAl2022`:footcite:`AdlerEtAl2019`
+:footcite:t:`AdlerEtAl2019,AdlerEtAl2022`
 """
 
 # Author: Yuval Realpe <yuval.realpe@gmail.com>
