@@ -30,7 +30,7 @@ def _produce_data_cov(data_arr, attr_dict):
 
 
 def _active_subspace(Mat):
-    """Helper function, multi_dot with pseudo-inverse"""
+    """Calculate Multi_dot with pseudo-inverse."""
     return multi_dot([Mat, pinv(Mat.T @ Mat), Mat.T])
 
 
@@ -600,8 +600,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
 
 
 def _make_explained_evoke(evoked, picks, explained_data_mat, residual=False):
-    """Create a new mne.Evoked object containing either
-    the explained data or the residual data."""
+    """Create a new Evoked object containing either explained or residual data."""
     n_evoked = evoked.copy()
     n_evoked = n_evoked.pick(picks)
     n_evoked.data = (
