@@ -670,8 +670,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     n_channels : int
         The number of channels per view. Defaults to 20.
     title : str | None
-        The title of the window. If None, epochs name will be displayed.
-        Defaults to None.
+        The title of the window. If None, the event names (from
+        ``epochs.event_id``) will be displayed. Defaults to None.
     events : None | array, shape (n_events, 3)
         Events to show with vertical bars. You can use `~mne.viz.plot_events`
         as a legend for the colors. By default, the coloring scheme is the
@@ -854,7 +854,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     # generate window title
     if title is None:
-        title = epochs._name
+        title = epochs._get_name(include_frac=False, sep='•')
         if title is None or len(title) == 0:
             title = 'Epochs'
     elif not isinstance(title, str):

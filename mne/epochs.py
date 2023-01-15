@@ -1066,15 +1066,33 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @property
     def _name(self):
         """Give a nice string representation based on event ids."""
+        return self._get_name()
+
+    def _get_name(self, include_frac=True, sep='+'):
+        """Generate human-readable name for epochs and evokeds from event_id.
+
+        Parameters
+        ----------
+        include_frac : bool, optional
+            Whether to include the fraction of epochs that each event type
+            contributes to the total number of epochs. Ignored if only one
+            event type is present.
+        sep : str, optional
+            How to separate the different events names. Ignored if only one
+            event type is present.
+        """
         if len(self.event_id) == 1:
             comment = next(iter(self.event_id.keys()))
         else:
             count = Counter(self.events[:, 2])
             comments = list()
-            for key, value in self.event_id.items():
-                comments.append('%.2f × %s' % (
-                    float(count[value]) / len(self.events), key))
-            comment = ' + '.join(comments)
+            for event_name, event_code in self.event_id.items():
+                frac = float(count[event_code]) / len(self.events)
+                if include_frac:
+                    comments.append(f'{frac:.2f} × {event_name}')
+                else:
+                    comments.append(event_name)
+            comment = f' {sep} '.join(comments)
         return comment
 
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
