@@ -41,14 +41,14 @@ cov_fname = meg_path / 'sample_audvis-cov.fif'
 
 # %%
 # Load data
-### Auditory samples, such as the one used on this example,
-### are characterized by 2 symmetrically opposed activation zones,
-### one on each lobe.
-### Thus we will be looking for 2 sources,
-### representing each of the activations occurring throughout the sample.
-### The extent to which the estimated dipoles
-### (and their estimated orientations) are able to explain the evoked data
-### is represented by the var_exp variable.
+# Auditory samples, such as the one used on this example,
+# are characterized by 2 symmetrically opposed activation zones,
+# one on each lobe.
+# Thus we will be looking for 2 sources,
+# representing each of the activations occurring throughout the sample.
+# The extent to which the estimated dipoles
+# (and their estimated orientations) are able to explain the evoked data
+# is represented by the var_exp variable.
 
 # Read the evoked response and crop it
 condition = 'Right Auditory'
