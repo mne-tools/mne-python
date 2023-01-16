@@ -96,7 +96,7 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
             l_p = np.expand_dims(gain[:, dip], axis=1)
             ap_val2[dip] = multi_dot(
                 [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
-                ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
+            ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
         s2_idx = np.argmax(ap_val2)
         s_ap.append(s2_idx)
     logger.info('current s_ap = {}'.format(s_ap))
@@ -140,7 +140,7 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
                 l_p = np.expand_dims(gain[:, dip], axis=1)
                 ap_val2[dip] = multi_dot(
                     [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
-                    ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
+                ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
             s2_idx = np.argmax(ap_val2)
             s_ap_2[src] = s2_idx
         logger.info('current s_ap_2 = {}'.format(s_ap_2))
