@@ -103,7 +103,7 @@ stages:
         versionSpec: '3.10'
     - script: pip install -e .
       displayName: Install dev MNE
-    - script: pip install --progress-bar off -r requirements_doc.txt
+    - script: pip install --progress-bar off -r requirements.txt -r requirements_doc.txt
       displayName: Install documentation dependencies
     - script: mne sys_info -pd
       displayName: Print config and test access to commands
