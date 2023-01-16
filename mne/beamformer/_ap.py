@@ -24,7 +24,7 @@ def _produce_data_cov(data_arr, attr_dict):
     data_norm = np.matmul(data_arr, data_tr)
     data_cov = data_norm + data_norm.trace()\
         * np.eye(data_arr.shape[0]) * 0.001  # Array Covariance Matrix
-    print(' alternating projection ; nsources = {}:'.format(nsources))
+    logger.info(' alternating projection ; nsources = {}:'.format(nsources))
 
     return data_cov
 
@@ -100,7 +100,7 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
                 / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
         s2_idx = np.argmax(ap_val2)
         s_ap.append(s2_idx)
-    print('current s_ap = {}'.format(s_ap))
+    logger.info('current s_ap = {}'.format(s_ap))
     return s_ap
 
 
@@ -127,7 +127,7 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
 
     """
     for itr in range(attr_dict['max_iter']):
-        print('iteration No. {}'.format(itr + 1))
+        logger.info('iteration No. {}'.format(itr + 1))
         s_ap_2_prev = copy(s_ap_2)
         for src in range(attr_dict['nsources']):
             # AP localization of src-th source
@@ -183,7 +183,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
         'nsources': nsources,
         'max_iter': max_iter
     }
-    print('calculating fixed-orientation alternating projection')
+    logger.info('calculating fixed-orientation alternating projection')
     data_cov = _produce_data_cov(data_arr, attr_dict)
 
     # ######################################
@@ -192,7 +192,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
     # dipoles topographies space
     # ######################################
 
-    print(' 1st phase : ')
+    logger.info(' 1st phase : ')
     s_ap = _fixed_phase1a(attr_dict, data_cov, gain)
 
     # ######################################
@@ -205,7 +205,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
     # 2nd phase
     # #####################################
 
-    print(' 2nd phase : ')
+    logger.info(' 2nd phase : ')
     s_ap_2 = copy(s_ap)
     s_ap_2 = _fixed_phase2(attr_dict, s_ap_2, gain, data_cov)
 
@@ -367,9 +367,9 @@ def _free_phase2(ap_temp_tuple, attr_dict,
     from scipy.linalg import eig
 
     s_ap_2, oris, sub_g_proj = copy(ap_temp_tuple)
-    print(' 2nd phase : ')
+    logger.info(' 2nd phase : ')
     for itr in range(attr_dict['max_iter']):
-        print('iteration No. {}'.format(itr + 1))
+        logger.info('iteration No. {}'.format(itr + 1))
         s_ap_2_prev = copy(s_ap_2)
         for src in range(attr_dict['nsources']):
             # AP localization of src-th source
@@ -427,7 +427,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
         See: _free_phase2.
 
     """
-    print('calculating free-orientation alternating projection')
+    logger.info('calculating free-orientation alternating projection')
     ndipoles = int(gain.shape[1] / 3)
     attr_dict = {
         'ndipoles': ndipoles,
@@ -442,7 +442,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
     # dipoles topographies space
     # ######################################
 
-    print(' 1st phase : ')
+    logger.info(' 1st phase : ')
     ap_temp_tuple = _free_phase1a(attr_dict, gain, data_cov)
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
 
@@ -453,7 +453,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
     ap_temp_tuple = _free_phase1b(attr_dict, gain, data_cov,
                                   ap_temp_tuple, force_no_rep)
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
-    print('current s_ap = {}'.format(ap_temp_tuple[0]))
+    logger.info('current s_ap = {}'.format(ap_temp_tuple[0]))
 
     # #####################################
     # 2nd phase
