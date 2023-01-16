@@ -58,9 +58,8 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
     s_ap = []
     ap_val1 = np.zeros(attr_dict['ndipoles'])
     for dip in range(attr_dict['ndipoles']):
-        l_p = np.expand_dims(gain[:, dip], axis=1)
-        ap_val1[dip] = multi_dot([l_p.transpose(), data_cov, l_p]) \
-            / (np.matmul(l_p.transpose(), l_p)[0, 0])
+        l_p = gain[:, [dip]]
+        ap_val1[dip] = multi_dot([l_p.T, data_cov, l_p]) / (l_p.T @ l_p)[0, 0]
     s1_idx = np.argmax(ap_val1)
     s_ap.append(s1_idx)
     return s_ap
@@ -96,8 +95,8 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
         for dip in range(attr_dict['ndipoles']):
             l_p = np.expand_dims(gain[:, dip], axis=1)
             ap_val2[dip] = multi_dot(
-                [l_p.T, perpend_spc, data_cov, perpend_spc, l_p])\
-                / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
+                [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
+                ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
         s2_idx = np.argmax(ap_val2)
         s_ap.append(s2_idx)
     logger.info('current s_ap = {}'.format(s_ap))
@@ -140,8 +139,8 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
             for dip in range(attr_dict['ndipoles']):
                 l_p = np.expand_dims(gain[:, dip], axis=1)
                 ap_val2[dip] = multi_dot(
-                    [l_p.T, perpend_spc, data_cov, perpend_spc, l_p])\
-                    / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
+                    [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
+                    ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
             s2_idx = np.argmax(ap_val2)
             s_ap_2[src] = s2_idx
         logger.info('current s_ap_2 = {}'.format(s_ap_2))
