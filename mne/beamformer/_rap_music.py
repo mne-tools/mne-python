@@ -219,7 +219,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
     (RAP-MUSIC) on evoked data.
-    follows :footcite:t:`MosherLeahy1999,MosherLeahy1996`.
+    Implementation follows :footcite:t:`MosherLeahy1999,MosherLeahy1996`.
 
     .. note:: The goodness of fit (GOF) of all the returned dipoles is the
               same and corresponds to the GOF of the full set of dipoles.
@@ -237,7 +237,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     force_no_rep : bool, optional
-        Forces no repetition of estinated dipoles.
+        Forces no repetition of estimated dipoles.
     %(verbose)s
 
     Returns
