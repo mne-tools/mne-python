@@ -854,7 +854,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     # generate window title
     if title is None:
-        title = epochs._get_name(include_frac=False, sep='•')
+        title = epochs._get_name(count='total', sep='•', ms=None)
         if title is None or len(title) == 0:
             title = 'Epochs'
     elif not isinstance(title, str):

@@ -1068,30 +1068,44 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Give a nice string representation based on event ids."""
         return self._get_name()
 
-    def _get_name(self, include_frac=True, sep='+'):
+    def _get_name(self, count='frac', ms='×', sep='+'):
         """Generate human-readable name for epochs and evokeds from event_id.
 
         Parameters
         ----------
-        include_frac : bool, optional
-            Whether to include the fraction of epochs that each event type
-            contributes to the total number of epochs. Ignored if only one
-            event type is present.
-        sep : str, optional
+        count : 'frac' | 'total'
+            Whether to include the fraction or total number of epochs that each
+            event type contributes to the number of all epochs.
+            Ignored if only one event type is present.
+        ms : str | None
+            The multiplication sign to use. Pass ``None`` to omit the sign.
+            Ignored if only one event type is present.
+        sep : str
             How to separate the different events names. Ignored if only one
             event type is present.
         """
+        _check_option('count', value=count, allowed_values=['frac', 'total'])
+
         if len(self.event_id) == 1:
             comment = next(iter(self.event_id.keys()))
         else:
             count = Counter(self.events[:, 2])
             comments = list()
+
+            # Take care of padding
+            if ms is None:
+                ms = ' '
+            else:
+                ms = f' {ms} '
+
             for event_name, event_code in self.event_id.items():
-                frac = float(count[event_code]) / len(self.events)
-                if include_frac:
-                    comments.append(f'{frac:.2f} × {event_name}')
-                else:
-                    comments.append(event_name)
+                if count == 'frac':
+                    frac = float(count[event_code]) / len(self.events)
+                    comment = f'{frac:.2f}{ms}{event_name}'
+                else:  # 'total'
+                    comment = f'{count[event_code]}{ms}{event_name}'
+                comments.append(comment)
+
             comment = f' {sep} '.join(comments)
         return comment
 
