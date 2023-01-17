@@ -308,8 +308,8 @@ azimuth : float
 
 docdict['bad_condition_maxwell_cond'] = """
 bad_condition : str
-    How to deal with ill-conditioned SSS matrices. Can be "error"
-    (default), "warning", "info", or "ignore".
+    How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+    (default), ``"warning"``, ``"info"``, or ``"ignore"``.
 """
 
 docdict['bands_psd_topo'] = """
@@ -2913,8 +2913,8 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict['regularize_maxwell_reg'] = """
 regularize : str | None
-    Basis regularization type, must be "in" or None.
-    "in" is the same algorithm as the "-regularize in" option in
+    Basis regularization type, must be ``"in"`` or None.
+    ``"in"`` is the same algorithm as the ``"-regularize in"`` option in
     MaxFilter™.
 """
 
