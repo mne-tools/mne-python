@@ -1089,7 +1089,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if len(self.event_id) == 1:
             comment = next(iter(self.event_id.keys()))
         else:
-            count = Counter(self.events[:, 2])
+            counter = Counter(self.events[:, 2])
             comments = list()
 
             # Take care of padding
@@ -1100,10 +1100,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             for event_name, event_code in self.event_id.items():
                 if count == 'frac':
-                    frac = float(count[event_code]) / len(self.events)
+                    frac = float(counter[event_code]) / len(self.events)
                     comment = f'{frac:.2f}{ms}{event_name}'
                 else:  # 'total'
-                    comment = f'{count[event_code]}{ms}{event_name}'
+                    comment = f'{counter[event_code]}{ms}{event_name}'
                 comments.append(comment)
 
             comment = f' {sep} '.join(comments)
