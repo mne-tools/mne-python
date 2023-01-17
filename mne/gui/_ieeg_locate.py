@@ -207,10 +207,8 @@ class IntracranialElectrodeLocator(SliceBrowser):
         if info is None:
             info = self._info
         montage = info.get_montage()
-        if montage:
-            montage_kwargs = montage.get_positions()
-        else:
-            montage_kwargs = dict(ch_pos=dict(), coord_frame='head')
+        montage_kwargs = montage.get_positions() if montage else \
+            dict(ch_pos=dict(), coord_frame='head')
         for ch in info['chs']:
             # surface RAS-> head and mm->m
             montage_kwargs['ch_pos'][ch['ch_name']] = apply_trans(
