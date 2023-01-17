@@ -19,6 +19,7 @@ from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
 
 from matplotlib.colors import LinearSegmentedColormap
 
+from ..channels import make_dig_montage
 from ._core import SliceBrowser
 from ..surface import _voxel_neighbors
 from ..transforms import apply_trans, _get_trans, invert_transform
@@ -84,6 +85,13 @@ class IntracranialElectrodeLocator(SliceBrowser):
         # load data, apply trans
         self._head_mri_t = _get_trans(trans, 'head', 'mri')[0]
         self._mri_head_t = invert_transform(self._head_mri_t)
+
+        # ensure channel positions in head
+        montage = info.get_montage()
+        if montage and montage.get_positions()['coord_frame'] != 'head':
+            raise RuntimeError('Channel positions in the ``info`` object must '
+                               'be in the "head" coordinate frame.')
+
         # load channels, convert from m to mm
         self._chs = {name: apply_trans(self._head_mri_t, ch['loc'][:3]) * 1000
                      for name, ch in zip(info.ch_names, info['chs'])}
@@ -198,12 +206,16 @@ class IntracranialElectrodeLocator(SliceBrowser):
         logger.info('Saving channel positions to `info`')
         if info is None:
             info = self._info
-        with info._unlock():
-            for name, ch in zip(info.ch_names, info['chs']):
-                loc = ch['loc'].copy()
-                loc[:3] = apply_trans(
-                    self._mri_head_t, self._chs[name] / 1000)  # mm->m
-                ch['loc'] = loc
+        montage = info.get_montage()
+        if montage:
+            montage_kwargs = montage.get_positions()
+        else:
+            montage_kwargs = dict(ch_pos=dict(), coord_frame='head')
+        for ch in info['chs']:
+            # surface RAS-> head and mm->m
+            montage_kwargs['ch_pos'][ch['ch_name']] = apply_trans(
+                self._mri_head_t, self._chs[ch['ch_name']].copy() / 1000)
+        info.set_montage(make_dig_montage(**montage_kwargs))
 
     def _plot_ch_images(self):
         img_delta = 0.5
