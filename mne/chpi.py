@@ -1296,7 +1296,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window='auto',
     -----
     cHPI signals are in general not stationary, because head movements act
     like amplitude modulators on cHPI signals. Thus it is recommended to
-    to use this procedure, which uses an iterative fitting method, to
+    use this procedure, which uses an iterative fitting method, to
     remove cHPI signals, as opposed to notch filtering.
 
     .. versionadded:: 0.12
