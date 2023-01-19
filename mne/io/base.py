@@ -1062,7 +1062,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         logger.info('Filtering raw data in %d contiguous segment%s'
                     % (len(onsets), _pl(onsets)))
         for si, (start, stop) in enumerate(zip(onsets, ends)):
-            self._data = notch_filter(
+            notch_filter(
                 self._data[:, start:stop], fs, freqs,
                 filter_length=filter_length, notch_widths=notch_widths,
                 trans_bandwidth=trans_bandwidth, method=method,
