@@ -594,8 +594,6 @@ class VolSourceEstimateViewer(SliceBrowser):
                 self._update = False
                 self.set_freq(self._inst.freqs[int(round(event.ydata))])
                 self._update = True
-            print(event.xdata, int(round(event.xdata)),
-                  self._inst.times[int(round(event.xdata))])
             self.set_time(self._inst.times[int(round(event.xdata))])
 
     def set_baseline(self, baseline=None, mode=None):
