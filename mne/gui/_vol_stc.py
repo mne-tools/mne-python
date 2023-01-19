@@ -588,11 +588,12 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _on_data_plot_click(self, event):
         """Update viewer when the data plot is clicked on."""
         if event.inaxes is self._fig.axes[0]:
-            print(event)
             if self._f_idx is not None:
                 self._update = False
                 self.set_freq(self._inst.freqs[int(round(event.ydata))])
                 self._update = True
+            print(event.xdata, int(round(event.xdata)),
+                  self._inst.times[int(round(event.xdata))])
             self.set_time(self._inst.times[int(round(event.xdata))])
 
     def set_baseline(self, baseline=None, mode=None):
@@ -749,7 +750,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         time : float
             The time to show, in seconds.
         """
-        self._time_slider.setValue(self._inst.time_as_index(time)[0])
+        self._time_slider.setValue(self._inst.time_as_index(
+            time, use_rounding=True)[0])
 
     def _update_time(self):
         """Update time slider values."""
