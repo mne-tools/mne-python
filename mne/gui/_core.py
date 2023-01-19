@@ -27,6 +27,7 @@ from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _marching_cubes
 from ..transforms import apply_trans, _frame_to_str
 from ..utils import logger, _check_fname, verbose, warn, get_subjects_dir
+from ..viz.backends._utils import _qt_safe_window
 
 _IMG_LABELS = [['I', 'P'], ['I', 'L'], ['P', 'L']]
 _ZOOM_STEP_SIZE = 5
@@ -80,6 +81,7 @@ class SliceBrowser(QMainWindow):
         (0, 1),
     )
 
+    @_qt_safe_window(splash='_renderer.figure.splash', window='')
     def __init__(self, base_image=None, subject=None, subjects_dir=None,
                  verbose=None):
         """GUI for browsing slices of anatomical images."""
@@ -478,8 +480,10 @@ class SliceBrowser(QMainWindow):
             self._base_data[tuple(self._current_slice)]))
 
     @safe_event
-    def close(self):
-        """Close interface and cleanup data structure."""
-        if self._renderer is not None:
-            self._renderer.close()
-        super(SliceBrowser, self).close()
+    def closeEvent(self, event):
+        """Clean up upon closing the window."""
+        try:
+            self._renderer.plotter.close()
+        except AttributeError:
+            pass
+        self.close()
