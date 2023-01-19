@@ -544,10 +544,7 @@ class RawEyelink(BaseRaw):
                                                       columns=columns)
                 _convert_times(self.dataframes[label], first_samp)
 
-                find_ovrlps = ((label in ['fixations', 'saccades', 'blinks'])
-                               and (find_overlaps is True)
-                               )
-                if find_ovrlps:
+                if find_overlaps is True:
                     if self._tracking_mode == 'monocular':
                         raise ValueError('`find_overlaps` is only valid with'
                                          ' binocular recordings, this file is'
