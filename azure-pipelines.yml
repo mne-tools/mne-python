@@ -372,6 +372,7 @@ stages:
     - bash: |
         set -eo pipefail
         sed -i 's/.. graphviz::/.. graphviz ::/g' doc/install/contributing.rst
+        sed -i '/sphinx\.ext\.graphviz/d' doc/conf.py
       displayName: Skip graph that we cannot render
     - bash: make -C doc html_dev-noplot
       displayName: 'Build doc'
