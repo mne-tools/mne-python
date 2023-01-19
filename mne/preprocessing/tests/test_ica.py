@@ -1423,10 +1423,10 @@ def test_ica_labels():
     for key in ('ecg', 'eog', 'ref_meg', 'ecg/ECG-MAG'):
         assert key in ica.labels_
 
-    scores = ica.find_bads_muscle(raw)[1]
+    labels, scores = ica.find_bads_muscle(raw, threshold=0.4)
     assert 'muscle' in ica.labels_
-    assert ica.labels_['muscle'] == [0]
-    assert_allclose(scores, [0.56, 0.01, 0.03, 0.00], atol=0.03)  # FIXME
+    assert labels == [0]
+    assert_allclose(scores, [0.5, 0.01, 0.02, 0.002], atol=0.001, rtol=0.1)
 
     events = np.array([[6000, 0, 0], [8000, 0, 0]])
     epochs = Epochs(raw, events=events, baseline=None, preload=True)
