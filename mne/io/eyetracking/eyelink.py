@@ -15,10 +15,6 @@ from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc
 
 
-# from ...preprocessing.interpolate import interpolate_nan
-# from mne.preprocessing import annotate_nan
-
-
 EYELINK_COLS = {'timestamp': ('time',),
                 'gaze': {'monocular': ('x', 'y', 'pupil'),
                          'binocular': ('x_left', 'y_left', 'pupil_left',
@@ -238,7 +234,6 @@ def _find_overlaps(df, max_time=0.05):
 
 @fill_doc
 def read_raw_eyelink(fname, preload=False, verbose=None,
-                     annotate_missing=False, interpolate_missing=False,
                      create_annotations=True, apply_offsets=False,
                      find_overlaps=False, overlap_threshold=0.05):
     """Reader for an Eyelink .asc file.
@@ -288,8 +283,6 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
                          ' files to .asc format.')
 
     return RawEyelink(fname, preload=preload, verbose=verbose,
-                      annotate_missing=annotate_missing,
-                      interpolate_missing=interpolate_missing,
                       create_annotations=create_annotations,
                       apply_offsets=apply_offsets,
                       find_overlaps=find_overlaps,
@@ -357,7 +350,6 @@ class RawEyelink(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None,
-                 annotate_missing=True, interpolate_missing=True,
                  create_annotations=True,
                  apply_offsets=False, find_overlaps=False,
                  overlap_threshold=0.05):
@@ -391,17 +383,6 @@ class RawEyelink(BaseRaw):
                                                create_annotations,
                                                apply_offsets)
             self.set_annotations(annots)
-
-        # TODO: pull dominiks commits on these functions
-        '''# annotate missing data
-        if annotate_missing:
-            raise NotImplementedError()
-            annot_bad = annotate_nan(self)
-            self.set_annotations(self.annotations.__add__(annot_bad))
-        # interpolate missing data
-        if interpolate_missing:  # TODO touch this block
-            raise NotImplementedError()
-            self = interpolate_nan(self)'''
 
     def _parse_recording_blocks(self):
         '''Eyelink samples occur within START and END blocks.
