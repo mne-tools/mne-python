@@ -557,29 +557,10 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
 
     out = partial(print, end='', file=fid)
 
-    if _UNICODE_TERMINAL:
-        icon = '\N{personal computer}'
-    else:
-        icon = ''
-    out(f'{icon} Platform:'.ljust(ljust) + platform_str + '\n')
-
-    if _UNICODE_TERMINAL:
-        icon = '\N{snake}'
-    else:
-        icon = ''
-    out(f'{icon} Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
-
-    if _UNICODE_TERMINAL:
-        icon = '\N{runner}'
-    else:
-        icon = ''
-    out(f'{icon} Executable:'.ljust(ljust) + sys.executable + '\n')
-
-    if _UNICODE_TERMINAL:
-        icon = '\N{automobile}'
-    else:
-        icon = ''
-    out(f'{icon} CPU:'.ljust(ljust) + f'{platform.processor()}: ')
+    out('Platform:'.ljust(ljust) + platform_str + '\n')
+    out('Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
+    out('Executable:'.ljust(ljust) + sys.executable + '\n')
+    out('CPU:'.ljust(ljust) + f'{platform.processor()}: ')
     try:
         import multiprocessing
     except ImportError:
@@ -588,11 +569,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     else:
         out(f'{multiprocessing.cpu_count()} cores\n')
 
-    if _UNICODE_TERMINAL:
-        icon = '\N{thought balloon}'
-    else:
-        icon = ''
-    out(f'{icon} Memory:'.ljust(ljust))
+    out('Memory:'.ljust(ljust))
     try:
         import psutil
     except ImportError:
@@ -619,16 +596,11 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         try:
             mod = __import__(mod_name)
         except Exception:
-            if _UNICODE_TERMINAL:
-                icon = '\N{cross mark}'
-            else:
-                icon = '×'
-
-            out(f'{icon} Not found\n')
+            out('   Not found\n')
         else:
             if mod_name == 'vtk':
                 if _UNICODE_TERMINAL:
-                    icon = '\N{check mark}'
+                    icon = '✔︎ '
                 else:
                     icon = ''
                 out(f'{icon} {mod.__version__}')
@@ -645,7 +617,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                     out(f'{icon} unknown')
             else:
                 if _UNICODE_TERMINAL:
-                    icon = '\N{check mark}'
+                    icon = '✔︎ '
                 else:
                     icon = ''
                 out(f'{icon} {mod.__version__}')
@@ -664,8 +636,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                     out(f' {{OpenGL {version} via {renderer}}}')
             if show_paths or mod_name == 'mne':  # always show path to mne
                 if _UNICODE_TERMINAL:
-                    folder_icon = '\N{open file folder}'
+                    icon = '📂'
                 else:
-                    folder_icon = '»'
-                out(f'\n{" " * ljust}{folder_icon} {op.dirname(mod.__file__)}')
+                    icon = '»'
+                out(f'\n{" " * ljust}{icon} {op.dirname(mod.__file__)}')
             out('\n')
