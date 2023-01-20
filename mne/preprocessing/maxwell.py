@@ -216,7 +216,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         buffer window will be lumped into the previous buffer.
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
-        ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
+        overlapping intersecting inner/outer signals during spatiotemporal SSS.
     %(coord_frame_maxwell)s
     %(destination_maxwell_dest)s
     %(regularize_maxwell_reg)s

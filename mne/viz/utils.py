@@ -483,6 +483,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
     proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
     # make edges around checkbox areas
+    # TODO: .rectangles deprecated in matplotlib 3.7
     for rect in proj_checks.rectangles:
         rect.set_edgecolor('0.5')
         rect.set_linewidth(1.)

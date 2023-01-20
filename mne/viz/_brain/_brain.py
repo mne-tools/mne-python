@@ -1552,7 +1552,7 @@ class Brain(object):
                     lw=1,
                     update=update,
                 )
-            self.time_line.set_xdata(current_time)
+            self.time_line.set_xdata([current_time])
             if update:
                 self.mpl_canvas.update_plot()
 

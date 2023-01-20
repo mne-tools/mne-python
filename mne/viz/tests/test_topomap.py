@@ -52,6 +52,11 @@ layout = read_layout('Vectorview-all')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
+# TODO: This is a problem on Windows at least
+@pytest.mark.xfail(
+    condition=check_version('matplotlib', '3.7'),
+    reason='Lines not visible',
+)
 @pytest.mark.parametrize('constrained_layout', (False, True))
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
