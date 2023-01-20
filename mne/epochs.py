@@ -49,7 +49,8 @@ from .parallel import parallel_func
 from .event import (_read_events_fif, make_fixed_length_events,
                     match_event_names)
 from .fixes import rng_uniform
-from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin
+from .time_frequency.spectrum import (EpochsSpectrum, SpectrumMixin,
+                                      _validate_method)
 from .viz import (plot_epochs, plot_epochs_image,
                   plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose, repr_html,
@@ -2057,6 +2058,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         .. footbibliography::
         """
+        method = _validate_method(method, type(self).__name__)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
         return EpochsSpectrum(
             self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose,

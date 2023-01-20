@@ -94,8 +94,6 @@ class SpectrumMixin():
         """
         from ..io import BaseRaw
 
-        method = _validate_method(method, type(self).__name__)
-        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
         # triage reject_by_annotation
         rba = dict()
         if isinstance(self, BaseRaw):
@@ -150,9 +148,6 @@ class SpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        method = _validate_method(method, type(self).__name__)
-        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
-
         spectrum = self.compute_psd(
             method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             proj=proj, n_jobs=n_jobs, verbose=verbose, **method_kw)

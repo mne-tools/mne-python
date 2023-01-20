@@ -464,12 +464,17 @@ def test_annotation_filtering(first_samp):
 
     # test notch_filtering
     raw_notch = concatenate_raws([raws_concat.copy(), raws_concat.copy()])
-    raw_notch.annotations.append(7. + raw_notch._first_time, 1., 'foo_notch')
+    raw_notch.annotations.append(3. + raw_notch._first_time, 0.2, 'foo_notch')
+    raw_notch.annotations.append(5. + raw_notch._first_time, 0.2, 'foo_notch')
+
+    n_times = raw_notch._data.shape[1]
     with catch_logging() as log:
-        raw_notch.notch_filter(60., fir_design='firwin',
+        raw_notch.notch_filter(60., fir_design='firwin', trans_bandwidth=5.,
                                skip_by_annotation='foo_notch', verbose='info')
     log = log.getvalue()
-    assert '1 contiguous segment' in log
+    assert '3 contiguous segment' in log
+    # check that data has same shape before/after filtering
+    assert n_times == raw_notch._data.shape[1]
 
     # one last test: let's cut out a section entirely:
     # here the 1-3 second window should be skipped
