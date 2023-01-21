@@ -5,15 +5,14 @@
 # License: BSD-3-Clause
 
 from pathlib import Path
+
 import numpy as np
-import pandas as pd
 
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ..constants import FIFF
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc
-
+from ...utils import logger, verbose, fill_doc, _check_pandas_installed
 
 EYELINK_COLS = {'timestamp': ('time',),
                 'gaze': {'monocular': ('x', 'y', 'pupil'),
@@ -168,6 +167,7 @@ def _fill_times(df, sfreq, time_col='time',):
         -------
         pandas DataFrame with previously missing timestamps included
         """
+    pd = _check_pandas_installed()
 
     first = df[time_col].iloc[0]
     last = df[time_col].iloc[-1]
@@ -202,6 +202,7 @@ def _find_overlaps(df, max_time=0.05):
     these boolean values will leave rows with no_overlap == False unchanged
     and hence the same group number.
     """
+    pd = _check_pandas_installed()
 
     df = df.copy()
     df["overlap_start"] = df.sort_values("time")["time"]\
@@ -493,6 +494,8 @@ class RawEyelink(BaseRaw):
                            threshold=0.05):
         """creates a pandas DataFrame for self._sample_lines and for each
            non-empty key in self._event_lines"""
+
+        pd = _check_pandas_installed()
 
         # First sample should be the first line of the first recording block
         first_samp = self._event_lines['START'][0][0]
