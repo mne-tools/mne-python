@@ -332,7 +332,7 @@ class RawEyelink(BaseRaw):
         List of lists, each list is one sample containing eyetracking
         X/Y and pupil channel data (+ other channels, if they exist)
     _event_lines (dict):
-        Each key contains a list of lists, for an event-type that occured
+        Each key contains a list of lists, for an event-type that occurred
         during the recording period. Events can vary, from occular events
         (blinks, saccades, fixations), to messages from the stimulus
         presentation software, or info from a response controller.
