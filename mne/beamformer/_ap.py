@@ -634,7 +634,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
     noise_cov : instance of Covariance, optional
         The noise covariance matrix, used for whitening the evoked signal.
         The default is None. If None is given, the noise covariance matrix
-        is created ad-hoc, See: :func:`mne.cov.make_ad_hoc_cov` .
+        is created ad-hoc (See: mne.cov.make_ad_hoc_cov).
     max_iter : int, optional
         Maximal iteration over estimated dipoles. The default is 6.
     return_residual : bool, optional
