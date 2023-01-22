@@ -360,7 +360,7 @@ class SetChannelsMixin(MontageMixin):
             if ch_type == 'eyetrack':
                 from ..io.eyetracking.utils import \
                     _eyetrack_channelinfo_from_chname
-                _,unit_new,_,_ = _eyetrack_channelinfo_from_chname(ch_name)
+                _, unit_new, _, _ = _eyetrack_channelinfo_from_chname(ch_name)
                 unit_new = (
                     FIFF.FIFF_UNIT_PX if (unit_new == 'PIX') else
                     FIFF.FIFF_UNIT_DEG if (unit_new == 'DEG') else
@@ -393,7 +393,7 @@ class SetChannelsMixin(MontageMixin):
             elif ch_type == 'fnirs_od':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_OD
             elif ch_type == 'eyetrack':
-                coil_type,_,_,_ = _eyetrack_channelinfo_from_chname(ch_name)
+                coil_type, _, _, _ = _eyetrack_channelinfo_from_chname(ch_name)
                 coil_type = (
                     FIFF.FIFFV_COIL_EYETRACK_PUPIL if (coil_type == 'PUPIL')
                     else FIFF.FIFFV_COIL_EYETRACK_POS)  # defaults to gaze pos
