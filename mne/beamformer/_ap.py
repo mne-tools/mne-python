@@ -660,7 +660,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
                 Data explained by the estimated dipoles.
             var_exp : float
                 Percentile of data variation explained
-                (see: :func:`minimum_norm.inverse._log_exp_var`).
+                (see: mne.minimum_norm.inverse._log_exp_var).
         If return_active_info :
             idx : list of int
                 List of indices of dipole source estimated.
