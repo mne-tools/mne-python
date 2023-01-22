@@ -358,7 +358,7 @@ class SetChannelsMixin(MontageMixin):
             _check_set(self.info['chs'][c_ind], self.info['projs'], ch_type)
             unit_old = self.info['chs'][c_ind]['unit']
             if ch_type == 'eyetrack':
-                from ..io.eyetrack.eyetrack import \
+                from ..io.eyetracking.utils import \
                     _eyetrack_channelinfo_from_chname
                 _,unit_new,_,_ = _eyetrack_channelinfo_from_chname(ch_name)
                 unit_new = (
