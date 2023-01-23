@@ -61,16 +61,14 @@ def _eyetrack_channelinfo_from_chname(ch_name):
             'pupil' in ch_name.lower() or
             'area' in ch_name.lower()
         ) else 'GAZE' if (
-            'gaze' in ch_parts or
-            'pos' in ch_parts or
-            'y' in ch_parts or
-            'x' in ch_parts or
-            'gaze' in ch_name.lower() or
-            'pos' in ch_name.lower() or
-            'y' in ch_name.lower() or
-            'x' in ch_name.lower()  # potentially problematic, can be in "px"
-            # (no prob though, as this would be pos anyway)
-        ) else 'unknown')
+            'gaze' in ch_parts or 'gaze' in ch_name.lower() or
+            'pos' in ch_parts or 'pos' in ch_name.lower() or
+            'y' in ch_parts or 'y' in ch_name.lower() or
+            'x' in ch_parts or 'x' in ch_name.lower()  # potential problem:
+            # "x" is in "px"  too (though this would be pos anyway)
+        ) else 'DIN' if (
+            'din' in ch_parts or 'din' in ch_name.lower()
+        ) else 'MISC')
 
     ch_unit = (
         'PIX' if (
@@ -144,39 +142,61 @@ def _set_fiff_channelinfo_eyetrack(info, channel_dict=None):
                 ch_xy = channel_dict[ch_name]['ch_xy'] \
                     if 'ch_xy' in keys else ch_xy
 
-        # set coil type
-        if ch_type not in ['PUPIL', 'GAZE']:
-            warn("couldn't determine channel type for channel {}."
-                 "defaults to 'gaze'.".format(ch_name))
+        # first, set coil type
+        if ch_type not in ['PUPIL', 'GAZE', 'DIN']:
+            # try to find out from other entries
+            if ch_unit in ['PIX', 'DEG']:
+                ch_type = 'GAZE'
+            elif ch_unit in ['AU', 'MM']:
+                ch_type = 'PUPIL'
+            else:  # change ch_type to "MISC"
+                info['chs'][i_ch]['kind'] = FIFF.FIFFV_MISC_CH
+                info['chs'][i_ch]['coil_type'] = FIFF.FIFFV_COIL_NONE
+                info['chs'][i_ch]['unit'] = FIFF.FIFF_UNIT_NONE
+                info['chs'][i_ch]['loc'] = loc.copy()
+                warn("couldn't determine channel type for channel '{}'. "
+                     "defaults to 'MISC'.".format(ch_name))
+                continue
+
         coil_type = (
             FIFF.FIFFV_COIL_EYETRACK_PUPIL if (ch_type == 'PUPIL') else
-            FIFF.FIFFV_COIL_EYETRACK_POS)
+            FIFF.FIFFV_COIL_EYETRACK_POS if (ch_type == 'GAZE') else
+            FIFF.FIFFV_COIL_NONE  # for "DIN"
+        )
         info['chs'][i_ch]['coil_type'] = coil_type
 
         # set unit
-        if ch_unit not in ['PIX', 'AU', 'DEG', 'MM']:
-            warn("couldn't determine unit for channel {}."
+        if ch_type == 'DIN':
+            ch_unit = 'V'
+        elif ch_unit not in ['PIX', 'AU', 'DEG', 'MM']:
+            ch_unit = 'AU'
+            warn("couldn't determine unit for channel '{}'. "
                  "defaults to 'arbitrary units'.".format(ch_name))
+
         unit = (FIFF.FIFF_UNIT_PX if (ch_unit == 'PIX') else
                 FIFF.FIFF_UNIT_DEG if (ch_unit == 'DEG') else
                 FIFF.FIFF_UNIT_MM if (ch_unit == 'MM') else
+                FIFF.FIFF_UNIT_V if (ch_unit == 'V') else
                 FIFF.FIFF_UNIT_NONE)
         info['chs'][i_ch]['unit'] = unit
 
-        # set eye and x/y coordinate
-        if ch_eye not in ['L', 'R']:
-            warn("couldn't determine eye for channel {}."
-                 "defaults to 'NaN'.".format(ch_name))
-        loc[3] = (-1 if (ch_eye == 'L') else
-                  1 if (ch_eye == 'R') else
-                  np.nan)
+        # set loc (eye and x/y coordinate)
+        if ch_type == 'DIN':
+            loc[3], loc[7], loc[11] = 1, 1, 1
+        else:
+            if ch_eye not in ['L', 'R']:
+                warn("couldn't determine eye for channel '{}'. "
+                     "defaults to 'NaN'.".format(ch_name))
+            loc[3] = (-1 if (ch_eye == 'L') else
+                      1 if (ch_eye == 'R') else
+                      np.nan)
 
-        if (ch_xy not in ['X', 'Y']) and (ch_type == 'GAZE'):
-            warn("couldn't determine X/Y for channel {}."
-                 "defaults to 'NaN'.".format(ch_name))
-        loc[4] = (-1 if (ch_xy == 'X') else
-                  1 if (ch_xy == 'Y') else
-                  np.nan)
+            if (ch_xy not in ['X', 'Y']) and (ch_type == 'GAZE'):
+                warn("couldn't determine X/Y for channel '{}'. "
+                     "defaults to 'NaN'.".format(ch_name))
+            loc[4] = (-1 if (ch_xy == 'X') else
+                      1 if (ch_xy == 'Y') else
+                      np.nan)
         info['chs'][i_ch]['loc'] = loc.copy()
 
     return info
