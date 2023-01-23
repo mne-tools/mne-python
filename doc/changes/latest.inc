@@ -29,6 +29,7 @@ Enhancements
 - Improved error message when downloads are corrupted for :func:`mne.datasets.sample.data_path` and related functions (:gh:`11407` by `Eric Larson`_)
 - Add support for ``skip_by_annotation`` in :func:`mne.io.Raw.notch_filter` (:gh:`11388` by `Mainak Jas`_)
 - Add new inverse method in :func:`mne.beamformer.alternating_projections` (:gh:'11349' by 'Yuval Realpe'_)
+- Slightly adjusted the window title for :func:`mne.Epochs.plot` (:gh:`11419` by `Richard Höchenberger`_ and `Daniel McCloy`_)
 
 Bugs
 ~~~~
