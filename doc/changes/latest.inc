@@ -28,6 +28,7 @@ Enhancements
 - Add :meth:`mne.Info.save` to save an :class:`mne.Info` object to a fif file (:gh:`11401` by `Alex Rockhill`_)
 - Improved error message when downloads are corrupted for :func:`mne.datasets.sample.data_path` and related functions (:gh:`11407` by `Eric Larson`_)
 - Add support for ``skip_by_annotation`` in :func:`mne.io.Raw.notch_filter` (:gh:`11388` by `Mainak Jas`_)
+- Slightly adjusted the window title for :func:`mne.Epochs.plot` (:gh:`11419` by `Richard Höchenberger`_ and `Daniel McCloy`_)
 - Add to :ref:`ex-source-loc-methods` how how to apply inverse methods to time-frequency resolved epochs and use :func:`mne.gui.view_vol_stc` to view the output (:gh:`10920` by `Alex Rockhill`_)
 
 Bugs
@@ -37,6 +38,7 @@ Bugs
 - Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)
 - Fix bug where having a different combination of volumes loaded into ``freeview`` caused different affines to be returned by :func:`mne.read_lta` for the same Linear Transform Array (LTA) (:gh:`11402` by `Alex Rockhill`_)
 - Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.gui.locate_ieeg` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11421` by `Alex Rockhill`_)
+- Fix :func:`mne.io.read_raw_edf` when reading EDF data with different sampling rates and a mix of data channels when using ``infer_types=True`` (:gh:`11427` by `Alex Gramfort`_)
 
 API changes
 ~~~~~~~~~~~
