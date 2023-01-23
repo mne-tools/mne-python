@@ -8,9 +8,9 @@ from pathlib import Path
 
 import numpy as np
 
+from .utils import _set_fiff_channelinfo_eyetrack
 from ..base import BaseRaw
 from ..meas_info import create_info
-from ..constants import FIFF
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, _check_pandas_installed
 
@@ -587,45 +587,15 @@ class RawEyelink(BaseRaw):
 
     def _create_info(self, ch_names, sfreq):
         # if DIN datastream is present, make it stim type
-        ch_types = ['stim' if ch == 'DIN'
-                    else 'eyetrack'
-                    for ch in ch_names]
+        ch_types = ['eyetrack' for _ in ch_names]
         assert len(ch_names) == len(ch_types)
         info = create_info(ch_names,
                            sfreq,
                            ch_types)
 
         # set correct channel type and location
-        loc = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
-                        np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+        info = _set_fiff_channelinfo_eyetrack(info)
 
-        for i, ch_name in enumerate(ch_names):
-            if 'pupil' in ch_name:
-                coil_type = FIFF.FIFFV_COIL_EYETRACK_PUPIL
-                unit = FIFF.FIFF_UNIT_UNITLESS
-            elif ch_name == 'DIN':
-                coil_type = FIFF.FIFFV_COIL_NONE
-                unit = FIFF.FIFF_UNIT_V
-                loc = np.array([0., 0., 0., 1., 0., 0.,
-                                0., 1., 0., 0., 0., 1.])
-            else:  # Position
-                coil_type = FIFF.FIFFV_COIL_EYETRACK_POS
-                unit = FIFF.FIFF_UNIT_PX
-
-            loc[3] = (-1 if ('left' in ch_name)
-                      else 1 if ('right' in ch_name)
-                      else np.nan if ('pupil' in ch_name)
-                      else loc[3]  # stim chan, don't change
-                      )
-            loc[4] = (-1 if ('x' in ch_name)
-                      else 1 if ('y' in ch_name)
-                      else np.nan if ('pupil' in ch_name)
-                      else loc[4]  # stim chan, don't change
-                      )
-
-            info['chs'][i]['coil_type'] = coil_type
-            info['chs'][i]['loc'] = loc.copy()
-            info['chs'][i]['unit'] = unit
         return info
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
