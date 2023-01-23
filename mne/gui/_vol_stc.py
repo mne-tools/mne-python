@@ -443,7 +443,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         # https://stackoverflow.com/questions/52689047/moving-qslider-to-mouse-click-position
         class Slider(QSlider):
 
-            def mousePressEvent(self, event):
+            def mouseReleaseEvent(self, event):
                 if event.button() == QtCore.Qt.LeftButton:
                     event.accept()
                     x = event.pos().x()
@@ -451,7 +451,7 @@ class VolSourceEstimateViewer(SliceBrowser):
                         self.width() + self.minimum()
                     self.setValue(int(round(value)))
                 else:
-                    return super().mousePressEvent(self, event)
+                    super(Slider, self).mouseReleaseEvent(event)
 
         def make_slider(smin, smax, sval, sfun=None):
             slider = Slider(QtCore.Qt.Horizontal)
