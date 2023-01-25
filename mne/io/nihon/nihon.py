@@ -263,7 +263,7 @@ def _read_nihon_annotations(fname):
             raise ValueError(
                 'Not a valid Nihon Kohden LOG file ({})'.format(version))
 
-        is_version_1200A = version =='EEG-1200A V01.00'
+        is_version_1200A = version == 'EEG-1200A V01.00'
         fid.seek(0x91)
         n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
         all_onsets = []
@@ -303,7 +303,7 @@ def _read_nihon_annotations(fname):
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
                            t_onset.second)
                 if is_version_1200A:
-                    t_sub_onset = float('0.'+ t_sub_log[25:30])
+                    t_sub_onset = float('0.' + t_sub_log[25:30])
                     t_onset = t_onset + t_sub_onset
                 all_onsets.append(t_onset)
                 all_descriptions.append(t_desc)
