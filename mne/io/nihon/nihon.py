@@ -277,11 +277,11 @@ def _read_nihon_annotations(fname):
             t_logs = np.fromfile(fid, '|S45', n_logs)
             if is_version_1200A:
                 fid.seek(0x92 + (t_block + 22) * 20)
-                t_sub_blk_address = np.fromfile(fid,np.uint32,1)[0]
+                t_sub_blk_address = np.fromfile(fid, np.uint32, 1)[0]
                 fid.seek(t_sub_blk_address + 0x12)
-                n_sub_logs = np.fromfile(fid, np.uint8,1)[0]
+                n_sub_logs = np.fromfile(fid, np.uint8, 1)[0]
                 fid.seek(t_sub_blk_address + 0x14)
-                t_sub_logs = np.fromfile(fid, '|S45',n_sub_logs)
+                t_sub_logs = np.fromfile(fid, '|S45', n_sub_logs)
             for i in range(len(t_logs)):
                 for enc in _encodings:
                     try:
@@ -303,7 +303,7 @@ def _read_nihon_annotations(fname):
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
                            t_onset.second)
                 if is_version_1200A:
-                    t_sub_onset = float('0.'+t_sub_log[25:30])
+                    t_sub_onset = float('0.'+ t_sub_log[25:30])
                     t_onset = t_onset + t_sub_onset
                 all_onsets.append(t_onset)
                 all_descriptions.append(t_desc)
