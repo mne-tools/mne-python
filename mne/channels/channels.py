@@ -357,11 +357,6 @@ class SetChannelsMixin(MontageMixin):
             # Set sensor type
             _check_set(self.info['chs'][c_ind], self.info['projs'], ch_type)
             unit_old = self.info['chs'][c_ind]['unit']
-            #if 'eyetrack' in ch_type:
-            #    from ..io.eyetracking.utils import \
-            #        _eyetrack_channelinfo_from_chname
-            #    _, unit_new, _, _ = _eyetrack_channelinfo_from_chname(ch_name)
-            #else:
             unit_new = _human2unit[ch_type]
             if unit_old not in _unit2human:
                 raise ValueError("Channel '%s' has unknown unit (%s). Please "

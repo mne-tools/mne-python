@@ -457,8 +457,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in ('grad', 'mag', 'ref_meg'
-                ) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
+            assert ch_type in ('grad', 'mag', 'ref_meg') + \
+                   _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
@@ -966,11 +966,12 @@ _DATA_CH_TYPES_ORDER_DEFAULT = (
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
     'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
-    'bio', 'ecog', 'dbs'
-    ) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT + ('misc', 'csd')
+    'bio', 'ecog', 'dbs') + \
+                       _FNIRS_CH_TYPES_SPLIT + \
+                       _EYETRACK_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
-    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs'
-    ) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
+    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + \
+                       _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
 # Electrode types (e.g., can be average-referenced together or separately)
 _ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
 
