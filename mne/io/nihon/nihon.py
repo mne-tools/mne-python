@@ -299,10 +299,10 @@ def _read_nihon_annotations(fname):
                     t_sub_desc = t_sub_log[:20].strip('\x00')
                     t_desc = t_desc + t_sub_desc
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
-                t_sub_onset = float('0.'+t_sub_log[25:30])
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
                            t_onset.second)
                 if version == _valid_headers[-1]:
+                    t_sub_onset = float('0.'+t_sub_log[25:30])
                     t_onset = t_onset + t_sub_onset
                 all_onsets.append(t_onset)
                 all_descriptions.append(t_desc)
