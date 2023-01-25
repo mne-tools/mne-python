@@ -420,6 +420,7 @@ class RawNihon(BaseRaw):
                 annots['duration'].append(0.0)
                 annots['description'].append('EDGE boundary')
 
+        annotations = Annotations(**annots, orig_time=info['meas_date'])
         if header['version'] == _valid_headers[-1]:
             self._annotations = annotations
         else:
