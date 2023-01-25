@@ -455,8 +455,16 @@ class RawEyelink(BaseRaw):
                         ('LEFT' in rec_info) and ('RIGHT' in rec_info)
                         else 'monocular')
         self._tracking_mode = eyes_tracked
+        # If monocular, find out which eye was tracked and append to ch_name
+        if self._tracking_mode == 'monocular':
+            assert rec_info[1] in ['LEFT', 'RIGHT']
+            mono_eye = rec_info[1].lower()
+
         ch_names = list(EYELINK_COLS['gaze'][eyes_tracked])
-        col_names['sample'].extend(EYELINK_COLS['gaze'][eyes_tracked])
+        if self._tracking_mode == 'monocular':
+            ch_names = [f'{name}_{mono_eye}'
+                        for name in ch_names]  # x_left, ... y_right
+        col_names['sample'].extend(ch_names)
 
         # The order of these if statements should not be changed.
         if 'VEL' in rec_info:  # If velocity data are reported
