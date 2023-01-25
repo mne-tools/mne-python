@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .utils import _set_fiff_channelinfo_eyetrack
+from .utils import _eyetrack_channelinfo_from_chname
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
@@ -586,15 +586,26 @@ class RawEyelink(BaseRaw):
         # TODO: Make dataframes for other eyelink events (Buttons)
 
     def _create_info(self, ch_names, sfreq):
-        # if DIN datastream is present, make it stim type
-        ch_types = ['eyetrack' for _ in ch_names]
+        # guess channel specs from ch_name
+        ch_desc = {ch: _eyetrack_channelinfo_from_chname(ch)
+                   for ch in ch_names}
+        # choose ch_type (tbd: update with user input?)
+        ch_types = [desc[0] for desc in ch_desc.values()]
         assert len(ch_names) == len(ch_types)
         info = create_info(ch_names,
                            sfreq,
                            ch_types)
-
-        # set correct channel type and location
-        info = _set_fiff_channelinfo_eyetrack(info)
+        # set correct unit and loc (for gaze and pupil channels)
+        for i_ch, (ch, desc) in enumerate(ch_desc.items()):
+            if desc[0] in ['eyetrack_pos', 'eyetrack_pupil']:
+                # update unit
+                info['chs'][i_ch]['unit'] = desc[1]
+                # update loc
+                loc = np.array(
+                    [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
+                     np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+                loc[3], loc[4] = desc[2], desc[3]
+                info['chs'][i_ch]['loc'] = loc.copy()
 
         return info
 

@@ -99,9 +99,10 @@ def get_channel_type_constants(include_defaults=False):
                                  unit=FIFF.FIFF_UNIT_CEL),
                 gsr=dict(kind=FIFF.FIFFV_GALVANIC_CH,
                          unit=FIFF.FIFF_UNIT_S),
-                eyetrack=dict(kind=FIFF.FIFFV_EYETRACK_CH,
-                              coil_types=[FIFF.FIFFV_COIL_EYETRACK_POS,
-                                          FIFF.FIFFV_COIL_EYETRACK_PUPIL])
+                eyetrack_pos=dict(kind=FIFF.FIFFV_EYETRACK_CH,
+                                  coil_type=FIFF.FIFFV_COIL_EYETRACK_POS),
+                eyetrack_pupil=dict(kind=FIFF.FIFFV_EYETRACK_CH,
+                                    coil_type=FIFF.FIFFV_COIL_EYETRACK_PUPIL)
                 )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
@@ -118,6 +119,8 @@ def get_channel_type_constants(include_defaults=False):
             emg=coil_none,
             bio=coil_none,
             fnirs_od=unit_none,
+            eyetrack_pupil=dict(unit=FIFF.FIFF_UNIT_MM),
+            eyetrack_pos=dict(unit=FIFF.FIFF_UNIT_PX),
         )
         for key, value in defaults.items():
             base[key].update(value)
@@ -176,7 +179,10 @@ _second_rules = {
                           FIFF.FIFFV_COIL_EEG_BIPOLAR: 'eeg',
                           FIFF.FIFFV_COIL_NONE: 'eeg',  # MNE-C backward compat
                           FIFF.FIFFV_COIL_EEG_CSD: 'csd',
-                          })
+                          }),
+    'eyetrack': ('coil_type', {FIFF.FIFFV_COIL_EYETRACK_POS: 'eyetrack_pos',
+                               FIFF.FIFFV_COIL_EYETRACK_PUPIL: 'eyetrack_pupil'
+                               })
 }
 
 
@@ -354,6 +360,19 @@ def _triage_fnirs_pick(ch, fnirs, warned):
     return False
 
 
+def _triage_eyetrack_pick(ch, eyetrack):
+    """Triage an eyetrack pick type."""
+    if eyetrack is True:
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_PUPIL and \
+            'eyetrack_pupil' in eyetrack:
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_POS and \
+            'eyetrack_pos' in eyetrack:
+        return True
+    return False
+
+
 def _check_meg_type(meg, allow_auto=False):
     """Ensure a valid meg type."""
     if isinstance(meg, str):
@@ -438,12 +457,14 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in (
-                'grad', 'mag', 'ref_meg') + _FNIRS_CH_TYPES_SPLIT
+            assert ch_type in ('grad', 'mag', 'ref_meg'
+                ) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
+            elif ch_type in ('eyetrack_pos', 'eyetrack_pupil'):
+                pick[k] = _triage_eyetrack_pick(info['chs'][k], eyetrack)
             else:  # ch_type in ('hbo', 'hbr')
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs, warned)
 
@@ -935,18 +956,21 @@ _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
                          'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
+_EYETRACK_CH_TYPES_SPLIT = ('eyetrack_pos', 'eyetrack_pupil')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
     'dbs', 'temperature', 'gsr', 'gof', 'dipole',
-) + _FNIRS_CH_TYPES_SPLIT + ('whitened', 'eyetrack')
+) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT + ('whitened',)
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
     'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
-    'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd', 'eyetrack')
+    'bio', 'ecog', 'dbs'
+    ) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
-    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
+    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs'
+    ) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
 # Electrode types (e.g., can be average-referenced together or separately)
 _ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
 
