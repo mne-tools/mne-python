@@ -56,7 +56,7 @@ _valid_headers = [
     'EEG-2100  V02.00',
     'DAE-2100D V01.30',
     'DAE-2100D V02.00',
-    # 'EEG-1200A V01.00',  # Not working for the moment.
+    'EEG-1200A V01.00'
 ]
 
 
@@ -64,6 +64,8 @@ def _read_nihon_metadata(fname):
     metadata = {}
     fname = _ensure_path(fname)
     pnt_fname = fname.with_suffix('.PNT')
+    if not pnt_fname.exists():
+        pnt_fname = fname.with_suffix('.pnt')
     if not pnt_fname.exists():
         warn('No PNT file exists. Metadata will be blank')
         return metadata
@@ -272,10 +274,17 @@ def _read_nihon_annotations(fname):
             n_logs = np.fromfile(fid, np.uint8, 1)[0]
             fid.seek(t_blk_address + 0x14)
             t_logs = np.fromfile(fid, '|S45', n_logs)
-            for t_log in t_logs:
+            fid.seek(0x92 + (t_block + 22) * 20)
+            t_sub_blk_address = np.fromfile(fid,np.uint32,1)[0]
+            fid.seek(t_sub_blk_address + 0x12)
+            n_sub_logs = np.fromfile(fid, np.uint8,1)[0]
+            fid.seek(t_sub_blk_address + 0x14)
+            t_sub_logs = np.fromfile(fid, '|S45',n_sub_logs)
+            for (t_log,t_sub_log) in zip(t_logs,t_sub_logs):
                 for enc in _encodings:
                     try:
                         t_log = t_log.decode(enc)
+                        t_sub_log = t_sub_log.decode(enc)
                     except UnicodeDecodeError:
                         pass
                     else:
@@ -284,9 +293,12 @@ def _read_nihon_annotations(fname):
                     warn(f'Could not decode log as one of {_encodings}')
                     continue
                 t_desc = t_log[:20].strip('\x00')
+                t_sub_desc = t_sub_log[:20].strip('\x00')
+                t_desc = t_desc + t_sub_desc
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
+                t_sub_onset = float('0.'+t_sub_log[25:30])
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
-                           t_onset.second)
+                           t_onset.second + t_sub_onset)
                 all_onsets.append(t_onset)
                 all_descriptions.append(t_desc)
 
@@ -408,8 +420,10 @@ class RawNihon(BaseRaw):
                 annots['duration'].append(0.0)
                 annots['description'].append('EDGE boundary')
 
-        annotations = Annotations(**annots, orig_time=info['meas_date'])
-        self.set_annotations(annotations)
+        if header['version'] == _valid_headers[-1]:
+            self._annotations = annotations
+        else:
+            self.set_annotations(annotations)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
