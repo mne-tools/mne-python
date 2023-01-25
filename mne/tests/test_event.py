@@ -14,7 +14,7 @@ import pytest
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
                  read_evokeds, Epochs, create_info, compute_raw_covariance,
-                 Annotations)
+                 Annotations, count_events)
 from mne.io import read_raw_fif, RawArray
 from mne.event import (define_target_events, merge_events, AcqParserFIF,
                        shift_time_events, match_event_names)
@@ -638,3 +638,11 @@ def test_match_event_names():
         event_names=event_names, keys=keys, on_missing='ignore'
     )
     assert matches == []
+
+
+def test_count_events():
+    """Test counting events."""
+    events = np.array([[0, 0, 1], [0, 0, 1], [0, 0, 5]])
+    assert count_events(events) == {1: 2, 5: 1}
+    assert count_events(events, ids=(1, 5)) == {1: 2, 5: 1}
+    assert count_events(events, ids=(1, 11)) == {1: 2, 11: 0}
