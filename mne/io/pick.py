@@ -119,7 +119,7 @@ def get_channel_type_constants(include_defaults=False):
             emg=coil_none,
             bio=coil_none,
             fnirs_od=unit_none,
-            eyetrack_pupil=dict(unit=FIFF.FIFF_UNIT_MM),
+            eyetrack_pupil=unit_none,
             eyetrack_pos=dict(unit=FIFF.FIFF_UNIT_PX),
         )
         for key, value in defaults.items():
@@ -966,12 +966,11 @@ _DATA_CH_TYPES_ORDER_DEFAULT = (
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
     'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
-    'bio', 'ecog', 'dbs') + \
-                       _FNIRS_CH_TYPES_SPLIT + \
-                       _EYETRACK_CH_TYPES_SPLIT + ('misc', 'csd')
+    'bio', 'ecog', 'dbs'
+) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
-    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + \
-                       _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
+    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs'
+) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
 # Electrode types (e.g., can be average-referenced together or separately)
 _ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
 
