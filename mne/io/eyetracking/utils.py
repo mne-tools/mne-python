@@ -64,7 +64,7 @@ def _eyetrack_channelinfo_from_chname(ch_name):
             'y' in ch_parts or 'y' in ch_name.lower() or
             'x' in ch_parts or 'x' in ch_name.lower()  # potential problem:
             # "x" is in "px"  too (though this would be pos anyway)
-        ) else 'STIM' if (
+        ) else 'stim' if (
             'din' in ch_parts or 'din' in ch_name.lower()
         ) else 'MISC')
 
