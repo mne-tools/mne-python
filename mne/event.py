@@ -1499,3 +1499,36 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
 
     matches = sorted(set(matches))  # deduplicate if necessary
     return matches
+
+
+def count_events(events, ids=None):
+    """Count events.
+
+    Parameters
+    ----------
+    events : ndarray, shape (N, 3)
+        The events array (consisting of N events).
+    ids : array-like of int | None
+        If None, count all event types present in the input. If array-like of int, count
+        only those event types given by ``ids``.
+
+    Returns
+    -------
+    counts : dict
+        A dictionary containing the event types as keys with their counts as values.
+
+    Examples
+    --------
+        >>> events = np.array([[0, 0, 1], [0, 0, 1], [0, 0, 5]])
+        >>> count_events(events)
+        {1: 2, 5: 1}
+        >>> count_events(events, ids=[1, 5])
+        {1: 2, 5: 1}
+        >>> count_events(events, ids=[1, 11])
+        {1: 2, 11: 0}
+    """
+    counts = np.bincount(events[:, 2])
+    counts = {i: count for i, count in enumerate(counts) if count > 0}
+    if ids is not None:
+        return {id: counts.get(id, 0) for id in ids}
+    return counts
