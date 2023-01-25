@@ -1509,13 +1509,14 @@ def count_events(events, ids=None):
     events : ndarray, shape (N, 3)
         The events array (consisting of N events).
     ids : array-like of int | None
-        If None, count all event types present in the input. If array-like of int, count
-        only those event types given by ``ids``.
+        If None, count all event types present in the input. If array-like of
+        int, count only those event types given by ``ids``.
 
     Returns
     -------
     counts : dict
-        A dictionary containing the event types as keys with their counts as values.
+        A dictionary containing the event types as keys with their counts as
+        values.
 
     Examples
     --------
