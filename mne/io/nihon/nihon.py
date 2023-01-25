@@ -263,6 +263,7 @@ def _read_nihon_annotations(fname):
             raise ValueError(
                 'Not a valid Nihon Kohden LOG file ({})'.format(version))
 
+        is_version_1200A = version =='EEG-1200A V01.00'
         fid.seek(0x91)
         n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
         all_onsets = []
@@ -274,7 +275,7 @@ def _read_nihon_annotations(fname):
             n_logs = np.fromfile(fid, np.uint8, 1)[0]
             fid.seek(t_blk_address + 0x14)
             t_logs = np.fromfile(fid, '|S45', n_logs)
-            if version == _valid_headers[-1]:
+            if is_version_1200A:
                 fid.seek(0x92 + (t_block + 22) * 20)
                 t_sub_blk_address = np.fromfile(fid,np.uint32,1)[0]
                 fid.seek(t_sub_blk_address + 0x12)
@@ -285,7 +286,7 @@ def _read_nihon_annotations(fname):
                 for enc in _encodings:
                     try:
                         t_log = t_logs[i].decode(enc)
-                        if version == _valid_headers[-1]:
+                        if is_version_1200A:
                             t_sub_log = t_sub_logs[i].decode(enc)
                     except UnicodeDecodeError:
                         pass
@@ -295,13 +296,13 @@ def _read_nihon_annotations(fname):
                     warn(f'Could not decode log as one of {_encodings}')
                     continue
                 t_desc = t_log[:20].strip('\x00')
-                if version == _valid_headers[-1]:
+                if is_version_1200A:
                     t_sub_desc = t_sub_log[:20].strip('\x00')
                     t_desc = t_desc + t_sub_desc
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
                            t_onset.second)
-                if version == _valid_headers[-1]:
+                if is_version_1200A:
                     t_sub_onset = float('0.'+t_sub_log[25:30])
                     t_onset = t_onset + t_sub_onset
                 all_onsets.append(t_onset)
