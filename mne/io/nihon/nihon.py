@@ -274,17 +274,19 @@ def _read_nihon_annotations(fname):
             n_logs = np.fromfile(fid, np.uint8, 1)[0]
             fid.seek(t_blk_address + 0x14)
             t_logs = np.fromfile(fid, '|S45', n_logs)
-            fid.seek(0x92 + (t_block + 22) * 20)
-            t_sub_blk_address = np.fromfile(fid,np.uint32,1)[0]
-            fid.seek(t_sub_blk_address + 0x12)
-            n_sub_logs = np.fromfile(fid, np.uint8,1)[0]
-            fid.seek(t_sub_blk_address + 0x14)
-            t_sub_logs = np.fromfile(fid, '|S45',n_sub_logs)
-            for (t_log,t_sub_log) in zip(t_logs,t_sub_logs):
+            if version == _valid_headers[-1]:
+                fid.seek(0x92 + (t_block + 22) * 20)
+                t_sub_blk_address = np.fromfile(fid,np.uint32,1)[0]
+                fid.seek(t_sub_blk_address + 0x12)
+                n_sub_logs = np.fromfile(fid, np.uint8,1)[0]
+                fid.seek(t_sub_blk_address + 0x14)
+                t_sub_logs = np.fromfile(fid, '|S45',n_sub_logs)
+            for i in range(len(t_logs)):
                 for enc in _encodings:
                     try:
-                        t_log = t_log.decode(enc)
-                        t_sub_log = t_sub_log.decode(enc)
+                        t_log = t_logs[i].decode(enc)
+                        if version == _valid_headers[-1]:
+                            t_sub_log = t_sub_logs[i].decode(enc)
                     except UnicodeDecodeError:
                         pass
                     else:
@@ -293,12 +295,15 @@ def _read_nihon_annotations(fname):
                     warn(f'Could not decode log as one of {_encodings}')
                     continue
                 t_desc = t_log[:20].strip('\x00')
-                t_sub_desc = t_sub_log[:20].strip('\x00')
-                t_desc = t_desc + t_sub_desc
+                if version == _valid_headers[-1]:
+                    t_sub_desc = t_sub_log[:20].strip('\x00')
+                    t_desc = t_desc + t_sub_desc
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
                 t_sub_onset = float('0.'+t_sub_log[25:30])
                 t_onset = (t_onset.hour * 3600 + t_onset.minute * 60 +
-                           t_onset.second + t_sub_onset)
+                           t_onset.second)
+                if version == _valid_headers[-1]:
+                    t_onset = t_onset + t_sub_onset
                 all_onsets.append(t_onset)
                 all_descriptions.append(t_desc)
 
