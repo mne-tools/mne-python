@@ -8,7 +8,6 @@ from pathlib import Path
 
 import numpy as np
 
-from .utils import _eyetrack_channelinfo_from_chname
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
@@ -594,27 +593,35 @@ class RawEyelink(BaseRaw):
         # TODO: Make dataframes for other eyelink events (Buttons)
 
     def _create_info(self, ch_names, sfreq):
-        # guess channel specs from ch_name
-        ch_desc = {ch: _eyetrack_channelinfo_from_chname(ch)
-                   for ch in ch_names}
-        # choose ch_type (tbd: update with user input?)
-        ch_types = [desc[0] for desc in ch_desc.values()]
-        assert len(ch_names) == len(ch_types)
+        # assign channel type from ch_name
+        pos_names = ('x_left', 'x_right', 'y_left', 'y_right')
+        pupil_names = ('pupil_left', 'pupil_right')
+        ch_types = ['eyetrack_pos' if ch in pos_names
+                    else 'eyetrack_pupil' if ch in pupil_names
+                    else 'stim' if ch == 'DIN'
+                    else 'misc'
+                    for ch in ch_names]
         info = create_info(ch_names,
                            sfreq,
                            ch_types)
-        # set correct unit and loc (for gaze and pupil channels)
-        for i_ch, (ch, desc) in enumerate(ch_desc.items()):
-            if desc[0] in ['eyetrack_pos', 'eyetrack_pupil']:
-                # update unit
-                info['chs'][i_ch]['unit'] = desc[1]
-                # update loc
-                loc = np.array(
-                    [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
-                     np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
-                loc[3], loc[4] = desc[2], desc[3]
-                info['chs'][i_ch]['loc'] = loc.copy()
-
+        # set correct loc for eyepos and pupil channels
+        for ch_dict in info['chs']:
+            # loc index 3 can indicate left or right eye
+            if ch_dict['ch_name'].endswith('left'):  # [x,y,pupil]_left
+                ch_dict['loc'][3] = -1  # left eye
+            elif ch_dict['ch_name'].endswith('right'):  # [x,y,pupil]_right
+                ch_dict['loc'][3] = 1  # right eye
+            else:
+                logger.debug(f"leaving index 3 of loc array as"
+                             f" {ch_dict['loc'][3]} for {ch_dict['ch_name']}")
+            # loc index 4 can indicate x/y coord
+            if ch_dict['ch_name'].startswith('x'):
+                ch_dict['loc'][4] = -1  # x-coord
+            elif ch_dict['ch_name'].startswith('y'):
+                ch_dict['loc'][4] = 1  # y-coord
+            else:
+                logger.debug(f"leaving index 4 of loc array as"
+                             f" {ch_dict['loc'][4]} for {ch_dict['ch_name']}")
         return info
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
