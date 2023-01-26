@@ -753,7 +753,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             f'Freq = {self._inst.freqs[self._f_idx].round(2)} Hz')
         if self._update:
             self._update_stc_image()
-        self._stc_hline.set_ydata(self._f_idx)
+        self._stc_hline.set_ydata([self._f_idx])
         self._fig.canvas.draw()
 
     def set_time(self, time):
