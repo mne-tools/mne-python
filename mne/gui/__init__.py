@@ -234,13 +234,11 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     gui : instance of IntracranialElectrodeLocator
         The graphical user interface (GUI) window.
     """
-    from ..viz.backends._utils import _qt_app_exec
+    from ..viz.backends._utils import _init_mne_qtapp, _qt_app_exec
     from ._ieeg_locate import IntracranialElectrodeLocator
-    from qtpy.QtWidgets import QApplication
-    # get application
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(["Intracranial Electrode Locator"])
+
+    app = _init_mne_qtapp()
+
     gui = IntracranialElectrodeLocator(
         info, trans, aligned_ct, subject=subject, subjects_dir=subjects_dir,
         groups=groups, show=show, verbose=verbose)
@@ -289,13 +287,10 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
     gui : instance of VolSourceEstimateViewer
         The graphical user interface (GUI) window.
     """
-    from ..viz.backends._utils import _qt_app_exec
+    from ..viz.backends._utils import _init_mne_qtapp, _qt_app_exec
     from ._vol_stc import VolSourceEstimateViewer, COMPLEX_DTYPE, RANGE_VALUE
-    from qtpy.QtWidgets import QApplication
-    # get application
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(['Source Estimate Viewer'])
+
+    app = _init_mne_qtapp()
 
     # cast to integers to lower memory usage, use custom complex data
     # type if necessary
