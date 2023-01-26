@@ -774,7 +774,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             f'Time = {self._inst.times[self._t_idx].round(2)} s')
         if self._update:
             self._update_stc_image()
-        self._stc_vline.set_xdata(self._t_idx)
+        self._stc_vline.set_xdata([self._t_idx])
         self._fig.canvas.draw()
 
     def set_alpha(self, alpha):
