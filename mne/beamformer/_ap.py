@@ -237,7 +237,7 @@ def _free_phase1a(attr_dict, gain, data_cov):
         See: _calculate_free_alternating_projections.
     data_cov : array
         Data Covariance.
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, 3 * ndipoles)
         Gain matrix.
 
     Returns
@@ -290,7 +290,7 @@ def _free_phase1b(attr_dict, gain, data_cov,
         See: _calculate_free_alternating_projections.
     data_cov : array
         Data Covariance.
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, 3 * ndipoles)
         Gain matrix.
     force_no_rep : bool
         Forces no repetition of estinated dipoles.
@@ -347,7 +347,7 @@ def _free_phase2(ap_temp_tuple, attr_dict,
         See: _calculate_free_alternating_projections.
     data_cov : array
         Data Covariance.
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, 3 * ndipoles)
         Gain matrix.
     force_no_rep : bool
         Forces no repetition of estinated dipoles.
@@ -413,7 +413,7 @@ def _calculate_free_alternating_projections(data_arr, gain,
     ----------
     data_arr : array, shape (nchannels, times)
         Filtered evoked data array.
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, 3 * ndipoles)
         Gain array.
     nsources : int
         The number of dipoles to estimate.
