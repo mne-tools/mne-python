@@ -61,7 +61,6 @@ def _fake_stc(src_type='vol'):
     return stc_data, src, epochs_tfr
 
 
-@pytest.mark.allow_unclosed_pyside2
 @requires_nibabel()
 @requires_dipy()
 def test_stc_viewer_io(renderer_interactive_pyvistaqt):
@@ -111,7 +110,6 @@ def test_stc_viewer_io(renderer_interactive_pyvistaqt):
             stc_data[:, :, :, :, 1:], src=src, inst=epochs_tfr)
 
 
-@pytest.mark.allow_unclosed_pyside2
 @requires_nibabel()
 @requires_dipy()
 @testing.requires_testing_data
