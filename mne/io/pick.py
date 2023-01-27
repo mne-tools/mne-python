@@ -850,8 +850,10 @@ def _contains_ch_type(info, ch_type):
 
     meg_extras = list(_MEG_CH_TYPES_SPLIT)
     fnirs_extras = list(_FNIRS_CH_TYPES_SPLIT)
+    et_extras = list(_EYETRACK_CH_TYPES_SPLIT)
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + meg_extras + fnirs_extras)
+                                  if key != 'meg']
+                                 + meg_extras + fnirs_extras + et_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
     if info is None:
         raise ValueError('Cannot check for channels of type "%s" because info '
