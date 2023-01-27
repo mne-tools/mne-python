@@ -52,7 +52,8 @@ from .. import channel_indices_by_type, pick_types
 from ..fixes import _close_event
 from ..annotations import _sync_onset
 from ..io.pick import (_DATA_CH_TYPES_ORDER_DEFAULT, _DATA_CH_TYPES_SPLIT,
-                       _FNIRS_CH_TYPES_SPLIT, _VALID_CHANNEL_TYPES)
+                       _FNIRS_CH_TYPES_SPLIT, _EYETRACK_CH_TYPES_SPLIT,
+                       _VALID_CHANNEL_TYPES)
 from ..utils import Bunch, _click_ch_name, logger
 from . import plot_sensors
 from ._figure import BrowserBase
@@ -2129,6 +2130,8 @@ def _split_picks_by_type(inst, picks, units, scalings, titles):
             pick_kwargs['meg'] = ch_type
         elif ch_type in _FNIRS_CH_TYPES_SPLIT:
             pick_kwargs['fnirs'] = ch_type
+        elif ch_type in _EYETRACK_CH_TYPES_SPLIT:
+            pick_kwargs['eyetrack'] = ch_type
         else:
             pick_kwargs[ch_type] = True
         these_picks = pick_types(inst.info, **pick_kwargs)

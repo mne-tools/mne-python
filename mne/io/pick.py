@@ -432,10 +432,11 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
                   ias, syst, seeg, dipole, gof, bio, ecog, csd, dbs,
-                  temperature, gsr, eyetrack):
+                  temperature, gsr):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception of '
-                 '"meg", "ref_meg" and "fnirs") must be of type bool, not {}.')
+                 '"meg", "ref_meg", "fnirs", and "eyetrack") must be of type '
+                 'bool, not {}.')
             raise ValueError(w.format(type(param)))
 
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
