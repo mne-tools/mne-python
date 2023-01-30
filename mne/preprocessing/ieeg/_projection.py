@@ -132,5 +132,51 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     -----
     This is useful in sEEG analysis for visualization
     """
-
+    from scipy.spatial.distance import pdist, squareform
+    n_neighbors = _ensure_int(n_neighbors, 'n_neighbors')
+    _validate_type(copy, bool, 'copy')
+    if copy:
+        info = info.copy()
+    if n_neighbors < 2:
+        raise ValueError(
+            f'n_neighbors must be 2 or greater, got {n_neighbors}')
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    try:
+        surf = _read_mri_surface(op.join(
+            subjects_dir, subject, 'bem', 'brain.surf'))
+    except FileNotFoundError as err:
+        raise RuntimeError(f'{err}\n\nThe brain surface requires generating '
+                           'a BEM using `mne flash_bem` (if you have '
+                           'the FLASH scan) or `mne watershed_bem` (to '
+                           'use the T1)') from None
+    # get channel locations
+    picks_idx = _picks_to_idx(info, 'ecog' if picks is None else picks)
+    locs = np.array([info['chs'][idx]['loc'][:3] for idx in picks_idx])
+    trans = _ensure_trans(trans, 'head', 'mri')
+    locs = apply_trans(trans, locs)
+    # compute distances for nearest neighbors
+    dists = squareform(pdist(locs))
+    # find angles for brain surface and points
+    angles = _cart_to_sph(locs)
+    surf_angles = _cart_to_sph(surf['rr'])
+    # initialize projected locs
+    proj_locs = np.zeros(locs.shape) * np.nan
+    for i, loc in enumerate(locs):
+        neighbor_pts = locs[np.argsort(dists[i])[:n_neighbors + 1]]
+        pt1, pt2, pt3 = map(np.array, zip(*combinations(neighbor_pts, 3)))
+        normals = fast_cross_3d(pt1 - pt2, pt1 - pt3)
+        normals[normals @ loc < 0] *= -1
+        normal = np.mean(normals, axis=0)
+        normal /= np.linalg.norm(normal)
+        # find the correct orientation brain surface point nearest the line
+        # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+        use_rr = surf['rr'][abs(
+            surf_angles[:, 1:] - angles[i, 1:]).sum(axis=1) < np.pi / 4]
+        surf_dists = np.linalg.norm(
+            fast_cross_3d(use_rr - loc, use_rr - loc + normal), axis=1)
+        proj_locs[i] = use_rr[np.argmin(surf_dists)]
+    # back to the "head" coordinate frame for storing in ``raw``
+    proj_locs = apply_trans(invert_transform(trans), proj_locs)
+    for idx, loc in zip(picks_idx, proj_locs):
+        info['chs'][idx]['loc'][:3] = loc
     return info
