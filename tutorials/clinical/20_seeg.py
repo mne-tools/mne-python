@@ -72,10 +72,10 @@ epochs = epochs['Response'][0]  # just process one epoch of data for speed
 this_subject_dir = misc_path / 'seeg'
 head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', this_subject_dir)
 
-view_kwargs = dict(azimuth=120, elevation=100, distance=400,
-                   focalpoint=(0, 0, -15))
+view_kwargs = dict(azimuth=120, elevation=100, focalpoint=(0, 0, -15))
 brain = mne.viz.Brain('sample_seeg', subjects_dir=this_subject_dir,
-                      cortex='low_contrast', alpha=0.2, background='white')
+                      cortex='low_contrast', alpha=0.2,
+                      distance=350, background='white')
 brain.add_sensors(epochs.info, trans=head_mri_t)
 brain.show_view(**view_kwargs)
 
@@ -84,7 +84,7 @@ proj_info = mne.preprocessing.ieeg.project_sensors_onto_inflated(
     epochs.info, head_mri_t, 'sample_seeg', subjects_dir=this_subject_dir)
 
 brain = mne.viz.Brain('sample_seeg', subjects_dir=this_subject_dir,
-                      surf='inflated', background='white')
+                      surf='inflated', background='white', distance=500)
 brain.add_sensors(proj_info, trans=head_mri_t)
 brain.show_view(**view_kwargs)
 
