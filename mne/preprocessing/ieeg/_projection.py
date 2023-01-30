@@ -134,13 +134,9 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     This is useful in sEEG analysis for visualization
     """
     from scipy.spatial.distance import pdist, squareform
-    n_neighbors = _ensure_int(n_neighbors, 'n_neighbors')
     _validate_type(copy, bool, 'copy')
     if copy:
         info = info.copy()
-    if n_neighbors < 2:
-        raise ValueError(
-            f'n_neighbors must be 2 or greater, got {n_neighbors}')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     try:
         surf = _read_mri_surface(op.join(
@@ -151,7 +147,7 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
                            'the FLASH scan) or `mne watershed_bem` (to '
                            'use the T1)') from None
     # get channel locations
-    picks_idx = _picks_to_idx(info, 'ecog' if picks is None else picks)
+    picks_idx = _picks_to_idx(info, 'seeg' if picks is None else picks)
     locs = np.array([info['chs'][idx]['loc'][:3] for idx in picks_idx])
     trans = _ensure_trans(trans, 'head', 'mri')
     locs = apply_trans(trans, locs)
