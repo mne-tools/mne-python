@@ -65,8 +65,11 @@ def test_project_sensors_onto_brain(tmp_path):
     test_locs = [[0.00149, -0.001588, 0.133029],
                  [0.004302, 0.001959, 0.133922],
                  [0.008602, 0.00116, 0.133723]]
-    for ch, test_loc in zip(raw.info['chs'][:3], test_locs):
-        assert_allclose(ch['loc'][:3], test_loc, rtol=0.01)
+    montage = raw.get_montage()
+    assert montage is not None
+    ch_pos = montage.get_positions()['ch_pos']
+    for ch, test_loc in zip(raw.ch_names[:3], test_locs):
+        assert_allclose(ch_pos[ch], test_loc, atol=0.01)
 
 
 @testing.requires_testing_data
