@@ -66,3 +66,7 @@ def test_project_sensors_onto_brain(tmp_path):
                  [0.008602, 0.00116, 0.133723]]
     for ch, test_loc in zip(raw.info['chs'][:3], test_locs):
         assert_allclose(ch['loc'][:3], test_loc, rtol=0.01)
+
+
+@testing.requires_testing_data
+def test_project_sensors_onto_inflated(tmp_path):

@@ -63,15 +63,30 @@ epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
 epochs = epochs['Response'][0]  # just process one epoch of data for speed
 
 # %%
-# Let use the Talairach transform computed in the Freesurfer recon-all
-# to apply the Freesurfer surface RAS ('mri') to MNI ('mni_tal') transform.
-
-montage = epochs.get_montage()
+# First, let's plot the sensors on the brain anatomy for the individual both
+# where the contacts were implanted without modification and projecting the
+# contacts onto the inflated brain.
 
 # first we need a head to mri transform since the data is stored in "head"
 # coordinates, let's load the mri to head transform and invert it
 this_subject_dir = misc_path / 'seeg'
 head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', this_subject_dir)
+
+brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
+view_kwargs = dict(azimuth=60, elevation=100, distance=350,
+                   focalpoint=(0, 0, -15))
+brain = mne.viz.Brain('sample_seeg', subjects_dir=this_subject_dir,
+                      **brain_kwargs)
+brain.add_sensors(epochs.info, trans=head_mri_t)
+brain.show_view(**view_kwargs)
+
+
+# %%
+# Let use the Talairach transform computed in the Freesurfer recon-all
+# to apply the Freesurfer surface RAS ('mri') to MNI ('mni_tal') transform.
+
+montage = epochs.get_montage()
+
 # apply the transform to our montage
 montage.apply_trans(head_mri_t)
 
