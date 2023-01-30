@@ -100,3 +100,37 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
     for idx, loc in zip(picks_idx, proj_locs):
         info['chs'][idx]['loc'][:3] = loc
     return info
+
+
+@verbose
+def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
+                                  picks=None, max_dist=0.006, copy=True,
+                                  verbose=None):
+    """Project sensors onto the brain surface.
+
+    Parameters
+    ----------
+    %(info_not_none)s
+    %(trans_not_none)s
+    %(subject)s
+    %(subjects_dir)s
+    %(picks_base)s only ``seeg`` channels.
+    max_dist : float
+        The maximum distance to project a sensor in meters. Sensors that
+        are greater than this distance from the pial surface will not
+        be assigned locations.
+    copy : bool
+        If ``True``, return a new instance of ``info``, if ``False``
+        ``info`` is modified in place.
+    %(verbose)s
+
+    Returns
+    -------
+    %(info_not_none)s
+
+    Notes
+    -----
+    This is useful in sEEG analysis for visualization
+    """
+
+    return info
