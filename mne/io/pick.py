@@ -974,7 +974,7 @@ _VALID_CHANNEL_TYPES = (
 ) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs'
-) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
+) + _FNIRS_CH_TYPES_SPLIT
 # Electrode types (e.g., can be average-referenced together or separately)
 _ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
 
