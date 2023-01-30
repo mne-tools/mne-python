@@ -9,7 +9,7 @@ import numpy as np
 
 from ...channels import make_dig_montage
 from ...io.pick import _picks_to_idx
-from ...surface import _read_mri_surface, fast_cross_3d
+from ...surface import _read_mri_surface, fast_cross_3d, read_surface
 from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
                            _ensure_trans)
 from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
@@ -133,45 +133,42 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     -----
     This is useful in sEEG analysis for visualization
     """
-    from scipy.spatial.distance import pdist, squareform
+    from scipy.spatial.distance import cdist
     _validate_type(copy, bool, 'copy')
     if copy:
         info = info.copy()
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    try:
-        surf = _read_mri_surface(op.join(
-            subjects_dir, subject, 'bem', 'brain.surf'))
-    except FileNotFoundError as err:
-        raise RuntimeError(f'{err}\n\nThe brain surface requires generating '
-                           'a BEM using `mne flash_bem` (if you have '
-                           'the FLASH scan) or `mne watershed_bem` (to '
-                           'use the T1)') from None
+    surf_data = dict(lh=dict(), rh=dict())
+    x_dir = np.array([1., 0., 0.])
+    for hemi in ('lh', 'rh'):
+        for surf in ('pial', 'inflated'):
+            for img in ('', '.T1', '.T2', ''):
+                surf_fname = op.join(subjects_dir, subject, 'surf',
+                                     f'{hemi}.{surf}')
+                if op.isfile(surf_fname):
+                    break
+            coords, faces = read_surface(surf_fname)
+            if surf == 'inflated':
+                x_ = coords @ x_dir
+                coords -= np.max(x_) * x_dir if hemi == 'lh' else \
+                    np.min(x_) * x_dir
+            surf_data[hemi][surf] = (coords / 1000, faces)  # mm -> m
     # get channel locations
     picks_idx = _picks_to_idx(info, 'seeg' if picks is None else picks)
     locs = np.array([info['chs'][idx]['loc'][:3] for idx in picks_idx])
     trans = _ensure_trans(trans, 'head', 'mri')
     locs = apply_trans(trans, locs)
-    # compute distances for nearest neighbors
-    dists = squareform(pdist(locs))
-    # find angles for brain surface and points
-    angles = _cart_to_sph(locs)
-    surf_angles = _cart_to_sph(surf['rr'])
     # initialize projected locs
     proj_locs = np.zeros(locs.shape) * np.nan
-    for i, loc in enumerate(locs):
-        neighbor_pts = locs[np.argsort(dists[i])[:n_neighbors + 1]]
-        pt1, pt2, pt3 = map(np.array, zip(*combinations(neighbor_pts, 3)))
-        normals = fast_cross_3d(pt1 - pt2, pt1 - pt3)
-        normals[normals @ loc < 0] *= -1
-        normal = np.mean(normals, axis=0)
-        normal /= np.linalg.norm(normal)
-        # find the correct orientation brain surface point nearest the line
-        # https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
-        use_rr = surf['rr'][abs(
-            surf_angles[:, 1:] - angles[i, 1:]).sum(axis=1) < np.pi / 4]
-        surf_dists = np.linalg.norm(
-            fast_cross_3d(use_rr - loc, use_rr - loc + normal), axis=1)
-        proj_locs[i] = use_rr[np.argmin(surf_dists)]
+    for hemi in ('lh', 'rh'):
+        hemi_picks = np.where(
+            locs[:, 0] <= 0 if hemi == 'lh' else locs[:, 0] > 0)[0]
+        # compute distances to pial vertices
+        dists = cdist(surf_data[hemi]['pial'][0], locs[hemi_picks])
+        for j, idx in enumerate(hemi_picks):
+            if dists[:, j].min() / 1000 < max_dist:
+                proj_locs[idx] = \
+                    surf_data[hemi]['inflated'][0][np.argmin(dists[:, j])]
     # back to the "head" coordinate frame for storing in ``raw``
     proj_locs = apply_trans(invert_transform(trans), proj_locs)
     montage = info.get_montage()

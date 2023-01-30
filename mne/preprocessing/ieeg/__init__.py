@@ -4,4 +4,5 @@
 #
 # License: BSD-3-Clause
 
-from ._projection import project_sensors_onto_brain
+from ._projection import (project_sensors_onto_brain,
+						  project_sensors_onto_inflated)

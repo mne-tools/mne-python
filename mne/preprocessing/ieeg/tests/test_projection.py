@@ -15,7 +15,8 @@ from numpy.testing import assert_allclose
 import pytest
 
 import mne
-from mne.preprocessing.ieeg import project_sensors_onto_brain
+from mne.preprocessing.ieeg import (project_sensors_onto_brain,
+                                    project_sensors_onto_inflated)
 from mne.datasets import testing
 from mne.transforms import _get_trans
 
@@ -70,3 +71,54 @@ def test_project_sensors_onto_brain(tmp_path):
 
 @testing.requires_testing_data
 def test_project_sensors_onto_inflated(tmp_path):
+    tempdir = str(tmp_path)
+    raw = mne.io.read_raw_fif(fname_raw)
+    trans = _get_trans(fname_trans)[0]
+    os.makedirs(op.join(tempdir, 'sample', 'surf'), exist_ok=True)
+    for hemi in ('lh', 'rh'):
+        # fake white surface for pial
+        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.white'),
+                 op.join(tempdir, 'sample', 'surf', f'{hemi}.pial'))
+        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.curv'),
+                 op.join(tempdir, 'sample', 'surf', f'{hemi}.curv'))
+        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.inflated'),
+                 op.join(tempdir, 'sample', 'surf', f'{hemi}.inflated'))
+    # now make realistic sEEG locations, picked from T1
+    raw.pick_types(meg=False, eeg=True)
+    raw.load_data()
+    raw.set_eeg_reference([])
+    raw.set_channel_types({ch: 'seeg' for ch in raw.ch_names})
+    pos = np.array([[25.85, 9.04, -5.38],
+                    [33.56, 9.04, -5.63],
+                    [40.44, 9.04, -5.06],
+                    [46.75, 9.04, -6.78],
+                    [-30.08, 9.04, 28.23],
+                    [-32.95, 9.04, 37.99],
+                    [-36.39, 9.04, 46.03]]) / 1000
+    raw.drop_channels(raw.ch_names[len(pos):])
+    raw.set_montage(mne.channels.make_dig_montage(
+        ch_pos=dict(zip(raw.ch_names, pos)), coord_frame='head'))
+    raw.info = project_sensors_onto_inflated(
+        raw.info, trans, 'sample', subjects_dir=tempdir)
+    # plot to check, should be projected down onto inner skull
+    # brain = mne.viz.Brain('sample', subjects_dir=tempdir, alpha=0.5,
+    #                       surf='inflated')
+    # brain.add_sensors(raw.info, trans=trans)
+    assert_allclose(raw.info['chs'][0]['loc'][:3],
+                    np.array([0.0555809, 0.0034069, -0.04593032]), rtol=0.01)
+    # check all on inflated surface
+    x_dir = np.array([1., 0., 0.])
+    head_mri_t = mne.transforms.invert_transform(trans)  # need head->mri
+    for hemi in ('lh', 'rh'):
+        coords, faces = mne.surface.read_surface(
+            op.join(tempdir, 'sample', 'surf', f'{hemi}.inflated'))
+        x_ = coords @ x_dir
+        coords -= np.max(x_) * x_dir if hemi == 'lh' else \
+            np.min(x_) * x_dir
+        coords /= 1000  # mm -> m
+        for ch in raw.info['chs']:
+            loc = ch['loc'][:3]
+            if not np.isnan(loc).any() and (loc[0] <= 0) == (hemi == 'lh'):
+                assert np.linalg.norm(
+                    coords - mne.transforms.apply_trans(head_mri_t, loc),
+                    axis=1).min() < 1e-16
