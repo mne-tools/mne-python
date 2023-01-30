@@ -71,6 +71,7 @@ def test_project_sensors_onto_brain(tmp_path):
 
 @testing.requires_testing_data
 def test_project_sensors_onto_inflated(tmp_path):
+    """Test projecting sEEG sensors onto an inflated brain surface."""
     tempdir = str(tmp_path)
     raw = mne.io.read_raw_fif(fname_raw)
     trans = _get_trans(fname_trans)[0]
