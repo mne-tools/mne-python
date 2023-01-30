@@ -411,7 +411,7 @@ class RawEyelink(BaseRaw):
                         continue  # system messages don't need to be parsed.
                     tokens = _parse_line(line)
                     tokens.append(block_num)  # add current block number
-                    if isinstance(tokens[0], int):  # Samples start with num.
+                    if isinstance(tokens[0], (int, float)):  # Samples
                         self._sample_lines.append(tokens)
                     elif tokens[0] in self._event_lines.keys():
                         event_key, event_info = tokens[0], tokens[1:]
@@ -419,13 +419,8 @@ class RawEyelink(BaseRaw):
                     if tokens[0] == 'END':  # end of recording block
                         is_recording_block = False
                         block_num += 1
-            no_data_cond = ((not self._sample_lines)
-                            and all(not value
-                                    for value in self._event_lines.values())
-                            )
-            if no_data_cond:
-                raise ValueError('could not find any samples or events'
-                                 f' in {self.fname}')
+            if not self._sample_lines:  # no samples parsed
+                raise ValueError(f"Couldn't find any samples in {self.fname}")
 
     def _infer_col_names(self):
         """Returns the expected column names for the sample lines and event
