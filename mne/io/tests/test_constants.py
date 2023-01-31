@@ -21,7 +21,7 @@ from mne.utils import requires_good_network
 
 # https://github.com/mne-tools/fiff-constants/commits/master
 REPO = 'dominikwelke'
-COMMIT = '9734da982c2ae3aaf04da589e37e37215d688ecd'
+COMMIT = 'e300d7a81b3b7459da8ffdcc04d96c6a95f4e841'
 # TODO complete Dominiks fiff-constants PR and set REPO back to mne-tools
 
 # These are oddities that we won't address:
