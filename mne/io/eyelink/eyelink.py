@@ -168,13 +168,13 @@ def _fill_times(df, sfreq, time_col='time',):
         """
     pd = _check_pandas_installed()
 
-    first = df[time_col].iloc[0]
-    last = df[time_col].iloc[-1]
+    first, last = df[time_col].iloc[[0, -1]]
     step = 1000 / sfreq
-    times = pd.DataFrame(np.arange(first, last + step, step),
-                         columns=[time_col])
-    times[time_col] = times[time_col].astype(int)
-    return pd.merge(times, df, on=time_col, how='left')
+    df[time_col] = df[time_col].astype(float)
+    new_times = pd.DataFrame(np.arange(first, last + step/2, step),
+                             columns=[time_col])
+    return pd.merge_asof(new_times, df, on=time_col, direction='nearest',
+                         tolerance=step/10)
 
 
 def _find_overlaps(df, max_time=0.05):
