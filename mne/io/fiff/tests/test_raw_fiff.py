@@ -621,7 +621,7 @@ def test_io_raw(tmp_path):
     # read it in, make sure the whole thing matches
     raw = read_raw_fif(fname)
     assert_allclose(data, raw[:, :][0], rtol=1e-6, atol=1e-20)
-    # let's read portions across the 1-sec tag boundary, too
+    # let's read portions across the 1-s tag boundary, too
     inds = raw.time_as_index([1.75, 2.25])
     sl = slice(inds[0], inds[1])
     assert_allclose(data[:, sl], raw[:, sl][0], rtol=1e-6, atol=1e-20)

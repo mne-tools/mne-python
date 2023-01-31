@@ -46,7 +46,7 @@ def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.):
         '%0.3f > %0.3f° rotation' % (angle, angle_tol)
 
 
-@pytest.mark.timeout(60)  # ~25 sec on Travis Linux OpenBLAS
+@pytest.mark.timeout(60)  # ~25 s on Travis Linux OpenBLAS
 @testing.requires_testing_data
 def test_artemis_reader():
     """Test reading raw Artemis123 files."""

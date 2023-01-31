@@ -2434,7 +2434,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
-        logger.info('Fixing initial time: %s sec' % (initial_time,))
+        logger.info('Fixing initial time: %s s' % (initial_time,))
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time

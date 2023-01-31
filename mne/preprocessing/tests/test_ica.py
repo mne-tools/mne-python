@@ -330,7 +330,7 @@ def test_ica_rank_reduction(method):
 
 
 # This is a lot of parameters but they interact so they matter. Also they in
-# total take < 2 sec on a workstation.
+# total take < 2 s on a workstation.
 @pytest.mark.parametrize('n_pca_components', (None, 0.999999))
 @pytest.mark.parametrize('proj', (True, False))
 @pytest.mark.parametrize('cov', (False, True))

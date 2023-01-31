@@ -324,7 +324,7 @@ class SourceSimulator(object):
     src : instance of SourceSpaces
         Source space.
     tstep : float
-        Time step between successive samples in data. Default is 0.001 sec.
+        Time step between successive samples in data. Default is 0.001 s.
     duration : float | None
         Time interval during which the simulation takes place in seconds.
         If None, it is computed using existing events and waveform lengths.

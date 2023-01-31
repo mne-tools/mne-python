@@ -59,7 +59,7 @@ class Dipole(TimeMixin):
     Parameters
     ----------
     times : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted (sec).
+        The time instants at which each dipole was fitted (s).
     pos : array, shape (n_dipoles, 3)
         The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)

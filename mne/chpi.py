@@ -918,7 +918,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
         # resulting errors in head coil positions
         d = np.linalg.norm(last['quat'][3:] - this_quat[3:])  # m
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
-        v = d / dt  # m/sec
+        v = d / dt  # m/s
         d = 100 * np.linalg.norm(this_quat[3:] - pos_0)  # dis from 1st
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
@@ -1061,7 +1061,7 @@ def _compute_chpi_amp_or_snr(raw, t_step_min=0.01, t_window='auto',
     fit_idxs = raw.time_as_index(np.arange(
         tmin + need_win, tmax, t_step_min), use_rounding=True)
     logger.info('Fitting %d HPI coil locations at up to %s time points '
-                '(%0.1f sec duration)'
+                '(%0.1f s duration)'
                 % (len(hpi['freqs']), len(fit_idxs), tmax - tmin))
     del tmin, tmax
     sin_fits = dict()
