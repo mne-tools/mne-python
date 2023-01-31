@@ -42,7 +42,7 @@ def _export_epochs(fname, epochs):
     ch_names = [ch for ch in epochs.ch_names if ch not in drop_chs]
     cart_coords = _get_als_coords_from_chs(epochs.info['chs'], drop_chs)
 
-    if (epochs.annotations is not None) and (len(epochs.annotations) > 0):
+    if epochs.annotations:
         annot = [epochs.annotations.description, epochs.annotations.onset,
                  epochs.annotations.duration]
     else:
