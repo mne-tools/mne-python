@@ -31,6 +31,7 @@ Enhancements
 - Add new inverse method in :func:`mne.beamformer.alternating_projections` (:gh:'11349' by 'Yuval Realpe'_)
 - Slightly adjusted the window title for :func:`mne.Epochs.plot` (:gh:`11419` by `Richard Höchenberger`_ and `Daniel McCloy`_)
 - Add :func:`mne.count_events` to count unique event types in a given event array (:gh:`11430` by `Clemens Brunner`_)
+- Add a video to :ref:`tut-freesurfer-mne` of a brain inflating from the pial surface to aid in understanding the inflated brain (:gh:`11440` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
@@ -40,6 +41,7 @@ Bugs
 - Fix bug where having a different combination of volumes loaded into ``freeview`` caused different affines to be returned by :func:`mne.read_lta` for the same Linear Transform Array (LTA) (:gh:`11402` by `Alex Rockhill`_)
 - Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.gui.locate_ieeg` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11421` by `Alex Rockhill`_)
 - Fix :func:`mne.io.read_raw_edf` when reading EDF data with different sampling rates and a mix of data channels when using ``infer_types=True`` (:gh:`11427` by `Alex Gramfort`_)
+- Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11436` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
