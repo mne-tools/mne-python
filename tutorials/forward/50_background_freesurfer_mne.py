@@ -478,3 +478,15 @@ brain = mne.viz.Brain('fsaverage', 'lh', 'white', subjects_dir=subjects_dir,
                       background='w')
 brain.add_foci(xyz_mni, hemi='lh', color='k')
 brain.show_view('lat')
+
+# %%
+# Understanding the inflated brain
+# --------------------------------
+# It takes a minute to interpret data displayed on an inflated brain. This
+# visualization is very helpful in showing more of a brain in one image
+# since it is difficult to visualize inside the sulci. Below is a video
+# relating the pial surface to an inflated surface. If you're interested
+# in how this was created, here is the gist used to create the video:
+# https://gist.github.com/alexrockhill/b5a1ce6c6ba363cf3f277cd321a763bf.
+#
+# .. youtube:: mOmfNX-Lkn0
