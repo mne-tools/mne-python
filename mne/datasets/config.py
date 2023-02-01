@@ -327,3 +327,13 @@ MNE_DATASETS['fake'] = dict(
     folder_name='foo',
     config_key='MNE_DATASETS_FAKE_PATH'
 )
+
+# eyelink dataset
+MNE_DATASETS['eyelink'] = dict(
+    #archive_name='bino_single-block.asc',
+    archive_name='eyelink_example_data.zip',
+    hash='md5:081950c05f35267458d9c751e178f161',
+    url=('https://osf.io/r5ndq/download?version=1'),
+    folder_name='eyelink-example-data',
+    config_key='MNE_DATASETS_EYELINK_PATH'
+)

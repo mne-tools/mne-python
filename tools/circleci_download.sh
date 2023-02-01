@@ -107,6 +107,9 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*erp_core.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.erp_core.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*eyelink.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.eyelink.data_path(update_path=True))";
+            fi;
         fi;
     done;
     echo PATTERN="$PATTERN";

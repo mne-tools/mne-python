@@ -1190,6 +1190,7 @@ custom_redirects = {
     f'{tu}/{si}/plot_creating_data_structures.html': f'{tu}/{si}/10_array_objs.html',  # noqa E501
     f'{tu}/{si}/plot_point_spread.html': f'{tu}/{si}/70_point_spread.html',
     f'{tu}/{si}/plot_dics.html': f'{tu}/{si}/80_dics.html',
+    f'{tu}/{tf}/plot_eyetracking.html': f'{tu}/preprocessing/80_eyetracking_data.html',
     f'{ex}/{co}/mne_inverse_label_connectivity.html': f'{mne_conn}/{ex}/mne_inverse_label_connectivity.html',  # noqa E501
     f'{ex}/{co}/cwt_sensor_connectivity.html': f'{mne_conn}/{ex}/cwt_sensor_connectivity.html',  # noqa E501
     f'{ex}/{co}/mixed_source_space_connectivity.html': f'{mne_conn}/{ex}/mixed_source_space_connectivity.html',  # noqa E501
