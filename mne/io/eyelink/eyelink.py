@@ -235,7 +235,8 @@ def _find_overlaps(df, max_time=0.05):
 @fill_doc
 def read_raw_eyelink(fname, preload=False, verbose=None,
                      create_annotations=True, apply_offsets=False,
-                     find_overlaps=False, overlap_threshold=0.05):
+                     find_overlaps=False, overlap_threshold=0.05,
+                     gap_description='bad_rec_gap'):
     """Reader for an Eyelink .asc file.
 
     Parameters
@@ -262,6 +263,11 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
         the `Annotations` will be kept separate (i.e. "blink_L", "blink_R"). If
         the gap is smaller than the threshold, the `Annotations` will be merged
         (i.e. "blink_both")
+    gap_description : str (Default 'bad_rec_gap')
+        If there are multiple recording blocks in the file, the description of
+        the annotation that will span across the gap period between the
+        blocks. Uses 'bad_rec_gap' by default so that these time periods will
+        be considered bad by MNE and excluded from operations like epoching.
     %(preload)s
     %(verbose)s
 
@@ -286,7 +292,8 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
                       create_annotations=create_annotations,
                       apply_offsets=apply_offsets,
                       find_overlaps=find_overlaps,
-                      overlap_threshold=overlap_threshold)
+                      overlap_threshold=overlap_threshold,
+                      gap_desc=gap_description)
 
 
 @fill_doc
@@ -317,6 +324,11 @@ class RawEyelink(BaseRaw):
         the `Annotations` will be kept separate (i.e. "blink_L", "blink_R"). If
         the gap is smaller than the threshold, the `Annotations` will be merged
         (i.e. "blink")
+    gap_desc : str (Default 'bad_rec_gap')
+        If there are multiple recording blocks in the file, the description of
+        the annotation that will span across the gap period between the
+        blocks. Uses 'bad_rec_gap' by default so that these time periods will
+        be considered bad by MNE and excluded from operations like epoching.
     %(preload)s
     %(verbose)s
 
@@ -342,6 +354,8 @@ class RawEyelink(BaseRaw):
     _tracking_mode (str):
         Whether whether a single eye was tracked ('monocular'), or both
         ('binocular').
+    _gap_desc (str):
+        The description to be used for annotations returned by _make_gap_annots
 
     See Also
     --------
@@ -352,7 +366,8 @@ class RawEyelink(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None,
                  create_annotations=True,
                  apply_offsets=False, find_overlaps=False,
-                 overlap_threshold=0.05):
+                 overlap_threshold=0.05,
+                 gap_desc='bad_rec_gap'):
 
         logger.info('Loading {}'.format(fname))
 
@@ -361,6 +376,7 @@ class RawEyelink(BaseRaw):
         self._event_lines = None
         self._system_lines = None
         self._tracking_mode = None  # assigned in self._infer_col_names
+        self._gap_desc = gap_desc
         self.dataframes = {}
 
         self._parse_recording_blocks()  # sets sample, event, & system lines
@@ -378,11 +394,23 @@ class RawEyelink(BaseRaw):
                                          filenames=[self.fname],
                                          verbose=verbose)
 
+        # Make Annotations
+        gap_annots = None
+        if len(self.dataframes['recording_blocks']) > 1:
+            gap_annots = self._make_gap_annots()
+        eye_annots = None
         if create_annotations:
-            annots = self._make_eyelink_annots(self.dataframes,
-                                               create_annotations,
-                                               apply_offsets)
-            self.set_annotations(annots)
+            eye_annots = self._make_eyelink_annots(self.dataframes,
+                                                   create_annotations,
+                                                   apply_offsets)
+        if gap_annots and eye_annots:  # set both
+            self.set_annotations(gap_annots + eye_annots)
+        elif gap_annots:
+            self.set_annotations(gap_annots)
+        elif eye_annots:
+            self.set_annotations(eye_annots)
+        else:
+            logger.info('Not creating any annotations')
 
     def _parse_recording_blocks(self):
         '''Eyelink samples occur within START and END blocks.
@@ -506,9 +534,12 @@ class RawEyelink(BaseRaw):
         self.dataframes['samples'] = pd.DataFrame(self._sample_lines,
                                                   columns=col_names['sample'])
 
-        if len(self._event_lines['START']) > 1:
-            logger.debug('There is more than one recording block in this'
-                         ' file. Accounting for times between the blocks')
+        n_block = len(self._event_lines['START'])
+        if n_block > 1:
+            logger.info(f'There are {n_block} recording blocks in this'
+                        ' file. Times between blocks will be annotated with'
+                        f" '{self._gap_desc}'. This annotation description"
+                        ' can be customized by the `gap_description` argument')
             # if there is more than 1 recording block we must account for
             # the missing timestamps and samples bt the blocks
             self.dataframes['samples'] = _fill_times(self.dataframes
@@ -541,7 +572,7 @@ class RawEyelink(BaseRaw):
 
             else:
                 logger.info(f'No {label} were found in this file. '
-                            f'Not returning any info on {label}')
+                            f'Not returning any info on {label}.')
 
         # make dataframe for experiment messages
         if self._event_lines['MSG']:
@@ -619,12 +650,24 @@ class RawEyelink(BaseRaw):
                              f" {ch_dict['loc'][4]} for {ch_dict['ch_name']}")
         return info
 
+    def _make_gap_annots(self, key='recording_blocks'):
+        """Creates Annotations for gap periods between recording blocks"""
+        df = self.dataframes[key]
+        gap_desc = self._gap_desc
+        onsets = df['end_time'].iloc[:-1]
+        diffs = df['time'].shift(-1) - df['end_time']
+        durations = diffs.iloc[:-1]
+        descriptions = [gap_desc] * len(onsets)
+        return Annotations(onset=onsets,
+                           duration=durations,
+                           description=descriptions)
+
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
         """Creates Annotations for each df in self.dataframes"""
 
         valid_descs = ['blinks', 'saccades', 'fixations', 'messages']
         msg = ("create_annotations must be `True` or a list containing one or"
-               " more of ['blinks', 'saccades', 'fixations', 'messages'].")
+               f" more of {valid_descs}.")
         wrong_type = (msg + f' Got a {type(create_annots)} instead.')
         if create_annots is True:
             descs = valid_descs
@@ -661,25 +704,14 @@ class RawEyelink(BaseRaw):
                 this_annot = Annotations(onset=onsets,
                                          duration=durations,
                                          description=descriptions)
-            elif (key in ['recording_blocks']) and ('messages' in descs):
-                start_onsets = df['time'].tolist()
-                end_onsets = df['end_time'][:-1].tolist()
-                onsets = start_onsets + end_onsets
-                durations = [0] * len(onsets)
-                blocks = (df['block']
-                          .astype(int)
-                          .astype(str)
-                          .tolist())
-                start_desc = ['start_block_' + num for num in blocks]
-                end_desc = ['end_block_' + num for num in blocks[:-1]]
-                descriptions = start_desc + end_desc
-                this_annot = Annotations(onset=onsets,
-                                         duration=durations,
-                                         description=descriptions)
             else:
                 continue  # TODO make df and annotations for Buttons
             if not annots:
                 annots = this_annot
             elif annots:
                 annots += this_annot
+        if not annots:
+            logger.warn(f'Annotations for {descs} were requested but'
+                        ' none could be made.')
+            return
         return annots
