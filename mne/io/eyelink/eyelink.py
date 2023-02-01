@@ -171,10 +171,10 @@ def _fill_times(df, sfreq, time_col='time',):
     first, last = df[time_col].iloc[[0, -1]]
     step = 1000 / sfreq
     df[time_col] = df[time_col].astype(float)
-    new_times = pd.DataFrame(np.arange(first, last + step/2, step),
+    new_times = pd.DataFrame(np.arange(first, last + step / 2, step),
                              columns=[time_col])
     return pd.merge_asof(new_times, df, on=time_col, direction='nearest',
-                         tolerance=step/10)
+                         tolerance=step / 10)
 
 
 def _find_overlaps(df, max_time=0.05):
