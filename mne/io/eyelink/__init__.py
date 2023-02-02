@@ -5,4 +5,3 @@
 # License: BSD-3-Clause
 
 from .eyelink import read_raw_eyelink
-from .utils import set_channelinfo_eyetrack
