@@ -507,14 +507,14 @@ class TimeMixin(object):
             tmin = self.tmin
         elif tmin < self.tmin:
             warn(f'tmin is not in time interval. tmin is set to '
-                 f'{type(self)}.tmin ({self.tmin:g} sec)')
+                 f'{type(self)}.tmin ({self.tmin:g} s)')
             tmin = self.tmin
 
         if tmax is None:
             tmax = self.tmax
         elif tmax > self.tmax:
             warn(f'tmax is not in time interval. tmax is set to '
-                 f'{type(self)}.tmax ({self.tmax:g} sec)')
+                 f'{type(self)}.tmax ({self.tmax:g} s)')
             tmax = self.tmax
             include_tmax = True
 

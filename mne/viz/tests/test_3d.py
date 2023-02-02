@@ -606,7 +606,7 @@ def test_stc_mpl():
 
 
 @pytest.mark.slowtest
-@pytest.mark.timeout(60)  # can sometimes take > 60 sec
+@pytest.mark.timeout(60)  # can sometimes take > 60 s
 @testing.requires_testing_data
 @requires_nibabel()
 @pytest.mark.parametrize('coord_frame, idx, show_all, title',

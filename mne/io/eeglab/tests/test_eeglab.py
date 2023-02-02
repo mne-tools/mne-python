@@ -247,7 +247,7 @@ def test_io_set_raw_more(tmp_path):
                            np.array([np.nan, np.nan, np.nan]))
 
 
-@pytest.mark.timeout(60)  # ~60 sec on Travis OSX
+@pytest.mark.timeout(60)  # ~60 s on Travis OSX
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [
     epochs_mat_fnames,

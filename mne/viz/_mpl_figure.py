@@ -1606,7 +1606,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=self.mne.zorder['scalebar'])
         if ch_type == 'time':
-            label = f'{self.mne.boundary_times[1]/2:.2f} sec'
+            label = f'{self.mne.boundary_times[1]/2:.2f} s'
             text = self.mne.ax_main.text(x[0] + .015, y[1] - .05, label,
                                          va='bottom', ha='left',
                                          size='xx-small', **kwargs)

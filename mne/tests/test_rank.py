@@ -187,7 +187,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
             assert rank[ch_type] == expected_rank
 
 
-@pytest.mark.slowtest  # ~3 sec apiece on Azure means overall it's slow
+@pytest.mark.slowtest  # ~3 s apiece on Azure means overall it's slow
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, rank_orig', ((hp_fif_fname, 120),
                                               (mf_fif_fname, 67)))
@@ -228,7 +228,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     allowed_rank = [rank_orig if meg == 'separate' else rank]
     if fname == mf_fif_fname:
         # Here we permit a -1 because for mf_fif_fname we miss by 1, which is
-        # probably acceptable. If we use the entire duration instead of 5 sec
+        # probably acceptable. If we use the entire duration instead of 5 s
         # this problem goes away, but the test is much slower.
         allowed_rank.append(allowed_rank[0] - 1)
 

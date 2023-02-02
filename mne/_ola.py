@@ -302,13 +302,13 @@ class _COLA:
         self.stops[-1] = n_total
         sfreq = float(sfreq)
         pl = 's' if len(self.starts) != 1 else ''
-        logger.info('    Processing %4d data chunk%s of (at least) %0.1f sec '
-                    'with %0.1f sec overlap and %s windowing'
+        logger.info('    Processing %4d data chunk%s of (at least) %0.1f s '
+                    'with %0.1f s overlap and %s windowing'
                     % (len(self.starts), pl, self._n_samples / sfreq,
                        self._n_overlap / sfreq, window_name))
         del window, window_name
         if delta > 0:
-            logger.info('    The final %0.3f sec will be lumped into the '
+            logger.info('    The final %0.3f s will be lumped into the '
                         'final window' % (delta / sfreq,))
 
     @property
