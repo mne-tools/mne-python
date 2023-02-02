@@ -28,7 +28,6 @@ _temp_home_dir = None
 _UNICODE_TERMINAL = sys.stdout.encoding.lower().startswith('utf')
 
 
-
 def set_cache_dir(cache_dir):
     """Set the directory to be used for temporary file storage.
 
@@ -608,14 +607,15 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         try:
             mod = __import__(mod_name)
         except Exception:
-            out('   Not found\n')
+            out('  Not found\n')
         else:
             if mod_name == 'vtk':
                 if _UNICODE_TERMINAL:
-                    icon = '✔︎ '
+                    icon = '✔︎'
                 else:
                     icon = ''
-                out(f'{icon} {mod.__version__}')
+                prefix = f'{icon} ' if icon else ''
+                out(f'{prefix}{mod.__version__}')
 
                 vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
@@ -629,10 +629,11 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                     out(f'{icon} unknown')
             else:
                 if _UNICODE_TERMINAL:
-                    icon = '✔︎ '
+                    icon = '✔︎'
                 else:
                     icon = ''
-                out(f'{icon} {mod.__version__}')
+                prefix = f'{icon} ' if icon else ''
+                out(f'{prefix}{mod.__version__}')
             if mod_name == 'numpy':
                 out(f' {{{libs}}}')
             elif mod_name == 'qtpy':
