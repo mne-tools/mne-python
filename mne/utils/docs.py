@@ -3111,6 +3111,21 @@ seeg : bool
     If True (default), show sEEG electrodes.
 """
 
+docdict['seeg_inflated'] = """
+seeg : bool | str | list
+    If True (default), show sEEG electrodes.
+    String options are:
+
+    - "original" (default; equivalent to ``True``)
+        Shows sEEG sensors using their digitized locations (after
+        transformation to the chosen ``coord_frame``)
+    - "projected"
+        The EEG locations projected onto the inflated brain
+
+    Can also be a list of these options, or an empty list (``[]``,
+    equivalent of ``False``).
+"""
+
 docdict['selection'] = """
 selection : iterable | None
     Iterable of indices of selected epochs. If ``None``, will be

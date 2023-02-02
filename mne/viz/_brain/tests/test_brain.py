@@ -349,6 +349,11 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.add_sensors(info, trans=fname_trans)
     brain.remove_sensors()
 
+    brain._surf = 'foo'
+    with pytest.raises(RuntimeError, match='surf must be "inflated"'):
+        brain.add_sensors(info, trans=fname_trans, seeg='projected')
+    brain._surf = 'inflated'
+
     info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
         brain.add_sensors(info, trans=fname_trans)

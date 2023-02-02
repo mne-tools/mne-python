@@ -15,8 +15,9 @@ from numpy.testing import assert_allclose
 import pytest
 
 import mne
-from mne.preprocessing.ieeg import (project_sensors_onto_brain,
-                                    project_sensors_onto_inflated)
+from mne.preprocessing.ieeg import project_sensors_onto_brain
+from mne.preprocessing.ieeg._projection import _project_sensors_onto_inflated
+
 from mne.datasets import testing
 from mne.transforms import _get_trans
 
@@ -102,7 +103,7 @@ def test_project_sensors_onto_inflated(tmp_path):
     raw.drop_channels(raw.ch_names[len(pos):])
     raw.set_montage(mne.channels.make_dig_montage(
         ch_pos=dict(zip(raw.ch_names, pos)), coord_frame='head'))
-    raw.info = project_sensors_onto_inflated(
+    raw.info = _project_sensors_onto_inflated(
         raw.info, trans, 'sample', subjects_dir=tempdir)
     # plot to check, should be projected down onto inner skull
     # brain = mne.viz.Brain('sample', subjects_dir=tempdir, alpha=0.5,

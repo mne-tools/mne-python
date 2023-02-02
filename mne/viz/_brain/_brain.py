@@ -267,6 +267,7 @@ class Brain(object):
             foreground = 'w' if sum(self._bg_color) < 2 else 'k'
         self._fg_color = _to_rgb(foreground, name='foreground')
         del background, foreground
+        self._surf = surf
         views = _check_views(surf, views, hemi)
         col_dict = dict(lh=1, rh=1, both=1, split=2, vol=1)
         shape = (len(views), col_dict[hemi])
@@ -2559,7 +2560,8 @@ class Brain(object):
 
     @verbose
     def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
-                    ecog=True, seeg=True, dbs=True, verbose=None):
+                    ecog=True, seeg='original', dbs=True, max_dist='auto',
+                    verbose=None):
         """Add mesh objects to represent sensor positions.
 
         Parameters
@@ -2573,12 +2575,35 @@ class Brain(object):
         %(seeg)s
         %(dbs)s
         %(verbose)s
-
+        max_dist : str | float
+            The maximum distance to project an sEEG sensor for
+            ``seeg='projected'`` in meters. Sensors that are greater
+            than this distance from the pial surface will not
+            be assigned locations. Default ``'auto'`` is 0.006.
         Notes
         -----
         .. versionadded:: 0.24
         """
+        from ...preprocessing.ieeg._projection import \
+            _project_sensors_onto_inflated
         _validate_type(info, Info, 'info')
+        if max_dist == 'auto':
+            max_dist = 0.006
+        add_proj_seeg = False
+        if seeg == 'projected' or 'projected' in seeg:
+            if self._surf != 'inflated':
+                raise RuntimeError('sEEG electrode contacts are projected '
+                                   'onto the inflated brain, so when '
+                                   'seeg="projected", surf must be "inflated"')
+            proj_info = _project_sensors_onto_inflated(
+                info, trans, self._subject, self._subjects_dir,
+                max_dist=max_dist)
+            if 'original' in seeg or True in seeg or \
+                    seeg in (True, 'original'):
+                add_proj_seeg = True
+            else:
+                info = proj_info  # overwrite, only show one
+        seeg = bool(seeg)  # all options besides False are cast to True
         meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
         picks = pick_types(info, meg=('sensors' in meg),
                            ref_meg=('ref' in meg), eeg=(len(eeg) > 0),
@@ -2604,6 +2629,13 @@ class Brain(object):
                 for item, actors in sensors_actors.items():
                     for actor in actors:
                         self._add_actor(item, actor)
+                if add_proj_seeg:
+                    sensors_actors = _plot_sensors(
+                        self._renderer, proj_info, to_cf_t, picks, False,
+                        False, False, warn_meg, head_surf, self._units)
+                    for item, actors in sensors_actors.items():
+                        for actor in actors:
+                            self._add_actor(item, actor)
 
             if 'helmet' in meg and pick_types(info, meg=True).size > 0:
                 surf = get_meg_helmet_surf(info, head_mri_t)
