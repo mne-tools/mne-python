@@ -123,6 +123,7 @@ known_config_types = (
     'MNE_DATASETS_SSVEP_PATH',
     'MNE_DATASETS_ERP_CORE_PATH',
     'MNE_DATASETS_EPILEPSY_ECOG_PATH',
+    'MNE_DATASETS_UCL_OPM_AUDITORY_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -327,10 +328,22 @@ def _get_extra_data_path(home_dir=None):
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
-            if op.isdir(op.join(os.getenv('APPDATA'), '.mne')):
-                home_dir = os.getenv('APPDATA')
+            APPDATA_DIR = os.getenv('APPDATA')
+            USERPROFILE_DIR = os.getenv('USERPROFILE')
+            if (
+                APPDATA_DIR is not None
+                and op.isdir(op.join(APPDATA_DIR, '.mne'))  # backward-compat
+            ):
+                home_dir = APPDATA_DIR
+            elif USERPROFILE_DIR is not None:
+                home_dir = USERPROFILE_DIR
             else:
-                home_dir = os.getenv('USERPROFILE')
+                raise FileNotFoundError(
+                    "The USERPROFILE environment variable is not set, cannot "
+                    "determine the location of the MNE-Python configuration "
+                    "folder"
+                )
+            del APPDATA_DIR, USERPROFILE_DIR
         else:
             # This is a more robust way of getting the user's home folder on
             # Linux platforms (not sure about OSX, Unix or BSD) than checking

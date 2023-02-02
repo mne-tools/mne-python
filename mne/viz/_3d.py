@@ -2359,8 +2359,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         params['fig'].canvas.draw()
 
     def _update_timeslice(idx, params):
-        params['lx'].set_xdata(idx / params['stc'].sfreq +
-                               params['stc'].tmin)
+        params['lx'].set_xdata([idx / params['stc'].sfreq +
+                                params['stc'].tmin])
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_func']
         # Crosshairs are the first thing plotted in stat_map, and the last
@@ -2406,7 +2406,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         if loc_idx is not None:
             ax_time.lines[0].set_ydata(ydata)
         else:
-            ax_time.lines[0].set_ydata(0.)
+            ax_time.lines[0].set_ydata([0.])
         _update_vertlabel(loc_idx)
         params['fig'].canvas.draw()
 
@@ -2434,7 +2434,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
-        logger.info('Fixing initial time: %s sec' % (initial_time,))
+        logger.info('Fixing initial time: %s s' % (initial_time,))
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time

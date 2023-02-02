@@ -15,8 +15,9 @@ from .constants import FIFF
 from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
 from .tag import find_tag, _rename_list
 from .tree import dir_tree_find
-from .write import (write_int, write_float, write_string, write_name_list,
-                    write_float_matrix, end_block, start_block)
+from .write import (write_int, write_float, write_string, write_float_matrix,
+                    end_block, start_block, write_name_list_sanitized,
+                    _safe_name_list)
 from ..defaults import (_INTERPOLATION_DEFAULT, _BORDER_DEFAULT,
                         _EXTRAPOLATE_DEFAULT)
 from ..utils import (logger, verbose, warn, fill_doc, _validate_type,
@@ -498,7 +499,7 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
         if tag is not None:
-            names = tag.data.split(':')
+            names = _safe_name_list(tag.data, 'read', 'names')
         else:
             raise ValueError('Projection item channel list missing')
 
@@ -579,7 +580,8 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
         write_int(fid, FIFF.FIFF_NCHAN, len(proj['data']['col_names']))
         names = _rename_list(proj['data']['col_names'], ch_names_mapping)
-        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names)
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names, 'col_names')
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
@@ -1006,7 +1008,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, *, eeg_ref_ch_type='eeg',
     # Add EEG ref reference proj if necessary
     if add_eeg_ref and _needs_eeg_average_ref_proj(info):
         eeg_proj = make_eeg_average_ref_proj(
-            info, activate=activate, eeg_ref_ch_type=eeg_ref_ch_type)
+            info, activate=activate, ch_type=eeg_ref_ch_type)
         info['projs'].append(eeg_proj)
 
     # Create the projector

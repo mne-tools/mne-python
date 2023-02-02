@@ -132,6 +132,8 @@
 
 .. _Enrico Varano: https://github.com/enricovara/
 
+.. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
+
 .. _Eric Larson: http://larsoner.com
 
 .. _Erica Peterson: https://github.com/nordme
@@ -163,6 +165,8 @@
 .. _Fu-Te Wong: https://github.com/zuxfoucault
 
 .. _Geoff Brookshire: https://github.com/gbrookshire
+
+.. _George O'Neill: https://georgeoneill.github.io
 
 .. _Guillaume Dumas: http://www.extrospection.eu
 
@@ -292,6 +296,8 @@
 
 .. _Marijn van Vliet: https://github.com/wmvanvliet
 
+.. _Mark Alexander Henney: https://github.com/henneysq
+
 .. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
 
 .. _Marmaduke Woodman: https://github.com/maedoc
@@ -392,7 +398,7 @@
 
 .. _Rasmus Zetter: https://people.aalto.fi/rasmus.zetter
 
-.. _Reza Nasri: https://github.com/0reza
+.. _Reza Nasri: https://github.com/rznas
 
 .. _Reza Shoorangiz: https://github.com/rezashr
 

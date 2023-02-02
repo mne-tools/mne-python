@@ -51,7 +51,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         :class:`info['bads'] <mne.Info>`.
         Defaults to ``5``, i.e. 5%%.
     min_duration : float
-        The minimum duration (sec) required by consecutives samples to be above
+        The minimum duration (s) required by consecutives samples to be above
         ``peak`` or below ``flat`` thresholds to be considered.
         to consider as above or below threshold.
         For some systems, adjacent time samples with exactly the same value are

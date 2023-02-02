@@ -1,9 +1,9 @@
 # requirements for building docs
-sphinx!=4.1.0
+sphinx!=4.1.0,<6
 https://github.com/numpy/numpydoc/archive/main.zip
-https://github.com/pydata/pydata-sphinx-theme/archive/cef3e724e15852fc2a84bee256c457c9497834b8.zip
+https://github.com/pydata/pydata-sphinx-theme/archive/f367a58af33be362351686f1e207ea099f8e529e.zip
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
-https://github.com/mcmtroffaes/sphinxcontrib-bibtex/archive/4fbda6347a76ad4cc0ea8b62e7bf325e545da291.zip
+sphinxcontrib-bibtex>=2.5
 memory_profiler
 neo
 seaborn!=0.11.2

@@ -219,6 +219,20 @@ aseg : str
     Freesurfer subject directory.
 """
 
+docdict['average_plot_evoked_topomap'] = """
+average : float | array-like of float, shape (n_times,) | None
+    The time window (in seconds) around a given time point to be used for
+    averaging. For example, 0.2 would translate into a time window that
+    starts 0.1 s before and ends 0.1 s after the given time point. If the
+    time window exceeds the duration of the data, it will be clipped.
+    Different time windows (one per time point) can be provided by
+    passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
+    ``None`` (default), no averaging will take place.
+
+    .. versionchanged:: 1.1
+       Support for ``array-like`` input.
+"""
+
 docdict['average_plot_psd'] = """\
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
@@ -294,8 +308,8 @@ azimuth : float
 
 docdict['bad_condition_maxwell_cond'] = """
 bad_condition : str
-    How to deal with ill-conditioned SSS matrices. Can be "error"
-    (default), "warning", "info", or "ignore".
+    How to deal with ill-conditioned SSS matrices. Can be ``"error"``
+    (default), ``"warning"``, ``"info"``, or ``"ignore"``.
 """
 
 docdict['bands_psd_topo'] = """
@@ -1417,6 +1431,19 @@ fwd : instance of Forward
     present in the forward solution are displayed.
 """
 
+docdict['fwhm_morlet_notes'] = r"""
+In wavelet analysis, the oscillation that is defined by ``n_cycles`` is tapered
+by a Gaussian taper, i.e., the edges of the wavelet are dampened. This means
+that reporting the number of cycles is not necessarily helpful for
+understanding the amount of temporal smoothing that has been applied (see
+:footcite:`Cohen2019`). Instead, the full width at half-maximum (FWHM) of the
+wavelet can be reported.
+
+The FWHM of the wavelet at a specific frequency is defined as:
+:math:`\mathrm{FWHM} = \frac{\mathtt{n\_cycles} \times \sqrt{2 \ln{2}}}{\pi \times \mathtt{freq}}`
+(cf. eq. 4 in :footcite:`Cohen2019`).
+"""  # noqa E501
+
 # %%
 # G
 
@@ -2044,6 +2071,11 @@ montage_units : str
     .. versionadded:: 1.3
 """
 
+docdict['morlet_notes'] = """
+The Morlet wavelets follow the formulation in
+:footcite:`Tallon-BaudryEtAl1997`.
+"""
+
 docdict['moving'] = """
 moving : instance of SpatialImage
     The image to morph ("from" volume).
@@ -2221,6 +2253,24 @@ npad : int | str
     Amount to pad the start and end of the data.
     Can also be "auto" to use a padding that will result in
     a power-of-two size (can be much faster).
+"""
+
+docdict['nrows_ncols_ica_components'] = """
+nrows, ncols : int | 'auto'
+    The number of rows and columns of topographies to plot. If both ``nrows``
+    and ``ncols`` are ``'auto'``, will plot up to 20 components in a 5×4 grid,
+    and return multiple figures if more than 20 components are requested.
+    If one is ``'auto'`` and the other a scalar, a single figure is generated.
+    If scalars are provided for both arguments, will plot up to ``nrows*ncols``
+    components in a grid and return multiple figures as needed. Default is
+    ``nrows='auto', ncols='auto'``.
+"""
+
+docdict['nrows_ncols_topomap'] = """
+nrows, ncols : int | 'auto'
+    The number of rows and columns of topographies to plot. If either ``nrows``
+    or ``ncols`` is ``'auto'``, the necessary number will be inferred. Defaults
+    to ``nrows=1, ncols='auto'``.
 """
 
 # %%
@@ -2863,8 +2913,8 @@ reg_affine : ndarray of float, shape (4, 4)
 
 docdict['regularize_maxwell_reg'] = """
 regularize : str | None
-    Basis regularization type, must be "in" or None.
-    "in" is the same algorithm as the "-regularize in" option in
+    Basis regularization type, must be ``"in"`` or None.
+    ``"in"`` is the same algorithm as the ``-regularize in`` option in
     MaxFilter™.
 """
 
@@ -2938,9 +2988,10 @@ reject : dict | None
 
 docdict['replace_report'] = """
 replace : bool
-    If ``True``, content already present that has the same ``title`` will be
-    replaced. Defaults to ``False``, which will cause duplicate entries in the
-    table of contents if an entry for ``title`` already exists.
+    If ``True``, content already present that has the same ``title`` and
+    ``section`` will be replaced. Defaults to ``False``, which will cause
+    duplicate entries in the table of contents if an entry for ``title``
+    already exists.
 """
 
 docdict['res_topomap'] = """
@@ -3171,6 +3222,18 @@ show_traces : bool | str | float
 docdict['size_topomap'] = """
 size : float
     Side length of each subplot in inches.
+"""
+
+docdict['skip_by_annotation'] = """
+skip_by_annotation : str | list of str
+    If a string (or list of str), any annotation segment that begins
+    with the given string will not be included in filtering, and
+    segments on either side of the given excluded annotated segment
+    will be filtered separately (i.e., as independent signals).
+    The default (``('edge', 'bad_acq_skip')`` will separately filter
+    any segments that were concatenated by :func:`mne.concatenate_raws`
+    or :meth:`mne.io.Raw.append`, or separated during acquisition.
+    To disable, provide an empty list. Only used if ``inst`` is raw.
 """
 
 docdict['skip_by_annotation_maxwell'] = """
@@ -3750,9 +3813,9 @@ units : dict | str
 
 _units = """
 units : {}str | None
-    The units of the channel type; used for the colorbar label. Ignored if
-    ``colorbar=False``. If ``None`` {}the label will be "AU" indicating
-    arbitrary units. Default is ``None``.
+    The units to use for the colorbar label. Ignored if ``colorbar=False``.
+    If ``None`` {}the label will be "AU" indicating arbitrary units.
+    Default is ``None``.
 """
 docdict['units_topomap'] = _units.format('', '')
 docdict['units_topomap_evoked'] = _units.format(

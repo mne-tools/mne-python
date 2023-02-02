@@ -256,9 +256,18 @@ def fetch_dataset(
     for idx in range(len(names)):
         # fetch and unpack the data
         archive_name = dataset_params[idx]["archive_name"]
-        fetcher.fetch(
-            fname=archive_name, downloader=downloader, processor=processor
-        )
+        try:
+            fetcher.fetch(
+                fname=archive_name, downloader=downloader, processor=processor
+            )
+        except ValueError as err:
+            err = str(err)
+            if 'hash of downloaded file' in str(err):
+                raise ValueError(
+                    f'{err} Consider using force_update=True to force '
+                    'the dataset to be downloaded again.') from None
+            else:
+                raise
         # after unpacking, remove the archive file
         if processor is not None:
             os.remove(op.join(path, archive_name))

@@ -660,7 +660,7 @@ def test_source_space_exclusive_complete(src_volume_labels):
     assert_array_equal(src_full[0]['vertno'], src_single[0]['vertno'])
 
 
-@pytest.mark.timeout(60)  # ~24 sec on Travis
+@pytest.mark.timeout(60)  # ~24 s on Travis
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_nibabel()

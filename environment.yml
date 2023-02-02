@@ -21,13 +21,14 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
+- ipython !=8.7.0
 - joblib
 - psutil
 - numexpr
 - imageio
 - spyder-kernels>=1.10.0
 - imageio-ffmpeg>=0.4.1
-- vtk>=9.0.1
+- vtk>=9.2
 - traitlets
 - pyvista>=0.32,!=0.35.2
 - pyvistaqt>=0.4
@@ -42,9 +43,13 @@ dependencies:
 - pyqt!=5.15.3,!=5.15.4
 - mne
 - mffpy>=0.5.7
+- ipyevents
 - ipywidgets
 - ipympl
 - ipyvtklink
+- jupyter_client
+- nbformat
+- nbclient
 - mne-qt-browser
 - pymatreader
 - eeglabio

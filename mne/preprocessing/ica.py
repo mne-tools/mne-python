@@ -1776,6 +1776,7 @@ class ICA(ContainsMixin):
         .. versionadded:: 1.1
         """
         from scipy.spatial.distance import pdist, squareform
+        from scipy.special import expit
         _validate_type(threshold, 'numeric', 'threshold')
 
         sources = self.get_sources(inst, start=start, stop=stop)
@@ -1813,14 +1814,15 @@ class ICA(ContainsMixin):
 
         # typical muscle slope is ~0.15, non-muscle components negative
         # so logistic with shift -0.5 and slope 0.25 so -0.5 -> 0.5 and 0->1
+        slope_score = expit((slopes + 0.5) / 0.25)
         # focus distance is ~65% of max electrode distance with 10% slope
         # (assumes typical head size)
+        focus_score = expit((focus_dists - 0.65) / 0.1)
         # smoothnessness is around 150 for muscle and 450 otherwise
         # so use reversed logistic centered at 300 with 100 slope
+        smoothness_score = 1 - expit((smoothnesses - 300) / 100)
         # multiply so that all three components must be present
-        scores = (1 / (1 + np.exp(-(slopes + 0.5) / 0.25))) * \
-            (1 / (1 + np.exp(-(focus_dists - 0.65) / 0.1))) * \
-            (1 - (1 / (1 + np.exp(-(smoothnesses - 300) / 100))))
+        scores = slope_score * focus_score * smoothness_score
         # scale the threshold by the use of three metrics
         self.labels_['muscle'] = [idx for idx, score in enumerate(scores)
                                   if score > threshold**3]
@@ -2182,24 +2184,24 @@ class ICA(ContainsMixin):
         return deepcopy(self)
 
     @copy_function_doc_to_method_doc(plot_ica_components)
-    def plot_components(self, picks=None, ch_type=None, res=64,
-                        vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
-                        colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp=_INTERPOLATION_DEFAULT,
-                        inst=None, plot_std=True,
-                        topomap_args=None, image_args=None, psd_args=None,
-                        reject='auto', sphere=None, verbose=None):
-        return plot_ica_components(self, picks=picks, ch_type=ch_type,
-                                   res=res, vmin=vmin,
-                                   vmax=vmax, cmap=cmap, sensors=sensors,
-                                   colorbar=colorbar, title=title, show=show,
-                                   outlines=outlines, contours=contours,
-                                   image_interp=image_interp,
-                                   inst=inst, plot_std=plot_std,
-                                   topomap_args=topomap_args,
-                                   image_args=image_args, psd_args=psd_args,
-                                   reject=reject, sphere=sphere,
-                                   verbose=verbose)
+    def plot_components(
+            self, picks=None, ch_type=None, *, inst=None, plot_std=True,
+            reject='auto', sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap='RdBu_r', vlim=(None, None), cnorm=None,
+            colorbar=False, cbar_fmt='%3.2f', axes=None, title=None,
+            nrows='auto', ncols='auto', show=True, image_args=None,
+            psd_args=None, verbose=None):
+        return plot_ica_components(
+            self, picks=picks, ch_type=ch_type, inst=inst, plot_std=plot_std,
+            reject=reject, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, axes=axes, title=title,
+            nrows=nrows, ncols=ncols, show=show, image_args=image_args,
+            psd_args=psd_args, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
@@ -2893,7 +2895,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours,
-                show=show, topomap_args=dict(sphere=sphere))
+                show=show, sphere=sphere)
         else:  # plotting an array
             template_fig = _plot_corrmap(
                 [template], [0], [0], ch_type, icas[0].copy(), "Template",

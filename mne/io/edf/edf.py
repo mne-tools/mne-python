@@ -488,7 +488,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, infer_types, preload,
             chan_info['kind'] = CH_TYPE_MAPPING.get(ch_type)
             if ch_type not in ['EEG', 'ECOG', 'SEEG', 'DBS']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-                pick_mask[idx] = False
+            pick_mask[idx] = False
         # if user passes in explicit mapping for eog, misc and stim
         # channels set them here
         if ch_name in eog or idx in eog or idx - nchan in eog:

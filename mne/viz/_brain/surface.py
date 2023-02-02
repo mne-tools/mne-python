@@ -121,9 +121,14 @@ class _Surface(object):
             coords = coords[:, [1, 0, 2]]
             coords[:, 1] *= -1
         else:
-            coords, faces = read_surface(
-                path.join(self.data_path, 'surf',
-                          '%s.%s' % (self.hemi, self.surf)))
+            # allow ?h.pial.T1 if ?h.pial doesn't exist for instance
+            # end with '' for better file not found error
+            for img in ('', '.T1', '.T2', ''):
+                surf_fname = path.join(self.data_path, 'surf',
+                                       f'{self.hemi}.{self.surf}{img}')
+                if path.isfile(surf_fname):
+                    break
+            coords, faces = read_surface(surf_fname)
             orig_faces = faces
         if self.units == 'm':
             coords /= 1000.

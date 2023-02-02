@@ -197,7 +197,7 @@ def raw_data():
 
 def _get_head_pos_sim(raw):
     head_pos_sim = dict()
-    # these will be at 1., 2., ... sec
+    # these will be at 1., 2., ... s
     shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.]]
 
     for time_key, shift in enumerate(shifts):
@@ -462,9 +462,9 @@ def test_simulate_round_trip(raw_data):
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI."""
     raw = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')
-    picks = np.arange(len(raw.ch_names))
-    picks = np.setdiff1d(picks, pick_types(raw.info, meg=True, eeg=True)[::4])
-    raw.load_data().pick_channels([raw.ch_names[pick] for pick in picks])
+    drops = pick_types(raw.info, meg=True, eeg=True)[::4]  # for speed
+    picks = np.setdiff1d(range(len(raw.ch_names)), drops)
+    raw.pick(picks).load_data()
     raw.info.normalize_proj()
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
@@ -473,7 +473,7 @@ def test_simulate_raw_chpi():
                                     sphere_units='m')
     stcs = [_make_stc(raw, src)] * 15
     # simulate data with cHPI on
-    raw_sim = simulate_raw(raw.info, stcs, None, src, sphere,
+    raw_sim = simulate_raw(raw.info, stc=stcs, trans=None, src=src, bem=sphere,
                            head_pos=pos_fname, interp='zero',
                            first_samp=raw.first_samp)
     # need to trim extra samples off this one
@@ -483,21 +483,19 @@ def test_simulate_raw_chpi():
     assert_allclose(raw_sim[hpi_pick][0], 0.)
     assert_allclose(raw_chpi[hpi_pick][0], hpi_ons.sum())
     # test that the cHPI signals make some reasonable values
-    picks_meg = pick_types(raw.info, meg=True, eeg=False)
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-
-    for picks in [picks_meg[:3], picks_eeg[:3]]:
+    picks_meg = pick_types(raw.info, meg=True)[:3]
+    picks_eeg = pick_types(raw.info, eeg=True)[:3]
+    for picks in (picks_meg, picks_eeg):
         psd_sim, freqs_sim = (
             raw_sim.compute_psd(picks=picks).get_data(return_freqs=True))
         psd_chpi, freqs_chpi = (
             raw_chpi.compute_psd(picks=picks).get_data(return_freqs=True))
-
         assert_array_equal(freqs_sim, freqs_chpi)
-        freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f))
-                            for f in hpi_freqs])
+        # bins closest to cHPI freqs should have very high energy in MEG chans
         if picks is picks_meg:
-            assert (psd_chpi[:, freq_idx] >
-                    100 * psd_sim[:, freq_idx]).all()
+            freq_idx = np.argmin(np.abs(freqs_sim - hpi_freqs[:, np.newaxis]),
+                                 axis=1)
+            assert (psd_chpi[:, freq_idx] > 100 * psd_sim[:, freq_idx]).all()
         else:
             assert_allclose(psd_sim, psd_chpi, atol=1e-20)
 

@@ -40,6 +40,8 @@ MEG           :ref:`CTF <import-ctf>`                       <dir>      :func:`mn
 
 MEG and EEG   :ref:`Elekta Neuromag <import-neuromag>`      .fif       :func:`mne.io.read_raw_fif`
 
+MEG           :ref:`FIL OPM MEG <import-fil>`               .bin       :func:`mne.io.read_raw_fil`
+
 MEG           :ref:`KIT <import-kit>`                       .sqd       :func:`mne.io.read_raw_kit`,
                                                                        :func:`mne.read_epochs_kit`
 

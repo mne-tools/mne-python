@@ -390,7 +390,7 @@ def test_raw_reject(first_samp):
     with pytest.warns(RuntimeWarning, match='outside the data range'):
         raw.set_annotations(Annotations([2, 100, 105, 148],
                                         [2, 8, 5, 8], 'BAD'))
-    data, times = raw.get_data([0, 1, 3, 4], 100, 11200,  # 1-112 sec
+    data, times = raw.get_data([0, 1, 3, 4], 100, 11200,  # 1-112 s
                                'omit', return_times=True)
     bad_times = np.concatenate([np.arange(200, 400),
                                 np.arange(10000, 10800),
@@ -461,6 +461,21 @@ def test_annotation_filtering(first_samp):
     raws_concat_stop = raws_concat.copy().filter(skip_by_annotation='edge',
                                                  **kwargs_stop)
     assert_allclose(raws_zero[0][0], raws_concat_stop[0][0], atol=1e-14)
+
+    # test notch_filtering
+    raw_notch = concatenate_raws([raws_concat.copy(), raws_concat.copy()])
+    raw_notch.annotations.append(3. + raw_notch._first_time, 0.2, 'foo_notch')
+    raw_notch.annotations.append(5. + raw_notch._first_time, 0.2, 'foo_notch')
+
+    n_times = raw_notch._data.shape[1]
+    with catch_logging() as log:
+        raw_notch.notch_filter(60., fir_design='firwin', trans_bandwidth=5.,
+                               skip_by_annotation='foo_notch', verbose='info')
+    log = log.getvalue()
+    assert '3 contiguous segment' in log
+    # check that data has same shape before/after filtering
+    assert n_times == raw_notch._data.shape[1]
+
     # one last test: let's cut out a section entirely:
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
@@ -726,7 +741,7 @@ def test_events_from_annot_in_raw_objects():
 def test_events_from_annot_onset_alingment():
     """Test events and annotations onset are the same."""
     raw = _raw_annot(meas_date=1, orig_time=1.5)
-    #       sec  0        1        2        3
+    #         s  0        1        2        3
     #       raw  .        |--------xxxxxxxxx
     #     annot  .             |---xx
     # raw.annot  .        |--------xx

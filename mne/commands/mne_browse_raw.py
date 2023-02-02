@@ -40,7 +40,7 @@ def run():
                       help="Events file", metavar="FILE",
                       default='')
     parser.add_option("-d", "--duration", dest="duration", type="float",
-                      help="Time window for plotting (sec)",
+                      help="Time window for plotting (s)",
                       default=10.0)
     parser.add_option("-t", "--start", dest="start", type="float",
                       help="Initial start time for plotting",

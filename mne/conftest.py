@@ -31,6 +31,7 @@ from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
+from mne.viz.backends._utils import _init_mne_qtapp
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -121,12 +122,18 @@ def pytest_configure(config):
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     # matplotlib 3.6 and pyvista/nilearn
     ignore:.*cmap function will be deprecated.*:
+    # TODO: matplotlib 3.7 that needs to be fixed
+    ignore:The rectangles attribute was deprecated in Matplotlib.*:
+    ignore:The lines attribute was deprecated in Matplotlib.*:
     # joblib hasn't updated to avoid distutils
     ignore:.*distutils package is deprecated.*:DeprecationWarning
+    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     # nbclient
     ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
     ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
+    ignore:Widget\..* is deprecated\.:DeprecationWarning
+    ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     # hopefully temporary https://github.com/matplotlib/matplotlib/pull/24455#issuecomment-1319318629
     ignore:The circles attribute was deprecated in Matplotlib.*:
     # PySide6
@@ -493,14 +500,14 @@ def renderer_notebook(request, options_3d):
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive_pyvistaqt(request, options_3d):
+@pytest.fixture(params=["pyvistaqt"])
+def renderer_interactive_pyvistaqt(request, options_3d, qt_windows_closed):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt"])
+@pytest.fixture(params=["pyvistaqt"])
 def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
@@ -523,26 +530,35 @@ def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_pyvista,
                                                has_imageio_ffmpeg,
                                                has_pyvistaqt)
-    if name in ('pyvistaqt', 'notebook'):
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
-        if not has_imageio_ffmpeg():
-            pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not _check_qt_version():
-        pytest.skip("Test skipped, requires Qt.")
-    if name == 'pyvistaqt' and not has_pyvistaqt():
-        pytest.skip("Test skipped, requires pyvistaqt")
+    from mne.viz.backends._utils import _notebook_vtk_works
+    if not has_pyvista():
+        pytest.skip("Test skipped, requires pyvista.")
+    if not has_imageio_ffmpeg():
+        pytest.skip("Test skipped, requires imageio-ffmpeg")
+    if name == 'pyvistaqt':
+        if not _check_qt_version():
+            pytest.skip("Test skipped, requires Qt.")
+        if not has_pyvistaqt():
+            pytest.skip("Test skipped, requires pyvistaqt")
+    else:
+        assert name == 'notebook', name
+        if not _notebook_vtk_works():
+            pytest.skip("Test skipped, requires working notebook vtk")
 
 
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
     from mne.viz.backends.tests._utils import has_pyvista
+    # _check_qt_version will init an app for us, so no need for us to do it
     if not has_pyvista() or not _check_qt_version():
         return 1.
-    from qtpy.QtWidgets import QApplication, QMainWindow
-    _ = QApplication.instance() or QApplication([])
+    from qtpy.QtWidgets import QMainWindow
+    from qtpy.QtCore import Qt
+    app = _init_mne_qtapp()
+    app.processEvents()
     window = QMainWindow()
+    window.setAttribute(Qt.WA_DeleteOnClose, True)
     ratio = float(window.devicePixelRatio())
     window.close()
     return ratio
@@ -946,3 +962,25 @@ def nirx_snirf(request):
         pytest.skip(skipper.kwargs['reason'])
     return (read_raw_nirx(request.param[0], preload=True),
             read_raw_snirf(request.param[1], preload=True))
+
+
+@pytest.fixture
+def qt_windows_closed(request):
+    """Ensure that no new Qt windows are open after a test."""
+    _check_skip_backend('pyvistaqt')
+    app = _init_mne_qtapp()
+    gc.collect()
+    n_before = len(app.topLevelWidgets())
+    yield
+    gc.collect()
+    if 'allow_unclosed' in request.fixturenames:
+        return
+    widgets = app.topLevelWidgets()
+    n_after = len(widgets)
+    assert n_before == n_after, widgets[-4:]
+
+
+@pytest.fixture
+def allow_unclosed():
+    """Allow unclosed Qt Windows."""
+    pass

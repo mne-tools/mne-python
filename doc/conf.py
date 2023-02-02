@@ -92,6 +92,7 @@ extensions = [
     'mne_substitutions',
     'newcontrib_substitutions',
     'gen_names',
+    'matplotlib.sphinxext.plot_directive',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
     'sphinx_design',
@@ -134,8 +135,8 @@ copybutton_prompt_is_regexp = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://numpy.org/devdocs', None),
-    'scipy': ('https://scipy.github.io/devdocs', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
     'numba': ('https://numba.readthedocs.io/en/latest', None),
@@ -266,7 +267,7 @@ numpydoc_xref_ignore = {
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
-    'RawPersyst', 'RawNihon', 'RawNedf', 'RawHitachi',
+    'RawPersyst', 'RawNihon', 'RawNedf', 'RawHitachi', 'RawFIL',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
@@ -631,7 +632,7 @@ html_theme_options = {
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'secondary_sidebar_items': ['page-toc'],
-    'analytics': dict(google_analytics_id='UA-37225609-1'),
+    'analytics': dict(google_analytics_id='G-5TBCPCRB6X'),
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
         'version_match': switcher_version_match,
@@ -916,6 +917,31 @@ html_context = {
 htmlhelp_basename = 'mne-doc'
 
 
+# -- Options for plot_directive ----------------------------------------------
+
+# Adapted from SciPy
+plot_include_source = True
+plot_formats = [('png', 96)]
+plot_html_show_formats = False
+plot_html_show_source_link = False
+font_size = 13 * 72 / 96.0  # 13 px
+plot_rcparams = {
+    'font.size': font_size,
+    'axes.titlesize': font_size,
+    'axes.labelsize': font_size,
+    'xtick.labelsize': font_size,
+    'ytick.labelsize': font_size,
+    'legend.fontsize': font_size,
+    'figure.figsize': (6, 5),
+    'figure.subplot.bottom': 0.2,
+    'figure.subplot.left': 0.2,
+    'figure.subplot.right': 0.9,
+    'figure.subplot.top': 0.85,
+    'figure.subplot.wspace': 0.4,
+    'text.usetex': False,
+}
+
+
 # -- Options for LaTeX output ------------------------------------------------
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -976,8 +1002,11 @@ def reset_warnings(gallery_conf, fname):
         'distutils package is deprecated',
         # jupyter
         'Jupyter is migrating its paths to use standard',
+        r'Widget\..* is deprecated\.',
         # PyQt6
         'Enum value .* is marked as deprecated',
+        # matplotlib PDF output
+        'The py23 module has been deprecated',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)

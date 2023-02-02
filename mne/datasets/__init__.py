@@ -27,6 +27,7 @@ from . import ssvep
 from . import erp_core
 from . import epilepsy_ecog
 from . import eyelink
+from . import ucl_opm_auditory
 from ._fetch import fetch_dataset
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation, has_dataset)

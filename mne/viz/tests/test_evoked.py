@@ -527,7 +527,7 @@ def test_plot_ctf():
     raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     events = np.array([[200, 0, 1]])
     event_id = 1
-    tmin, tmax = -0.1, 0.5  # start and end of an epoch in sec.
+    tmin, tmax = -0.1, 0.5  # start and end of an epoch in s.
     picks = mne.pick_types(raw.info, meg=True, stim=True, eog=True,
                            ref_meg=True, exclude='bads')[::20]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,

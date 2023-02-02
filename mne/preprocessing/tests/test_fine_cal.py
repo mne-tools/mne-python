@@ -99,7 +99,7 @@ def test_compute_fine_cal():
             assert 9 < got_want_max_angle < 11, got_want_max_angle
         else:
             # Some of these angles are large, but mostly this has to do with
-            # processing a very short (one 10-sec segment), downsampled (90 Hz)
+            # processing a very short (one 10-s segment), downsampled (90 Hz)
             # file
             assert 66 < want_orig_max_angle < 68, want_orig_max_angle
             assert 56 < got_orig_max_angle < 113, got_orig_max_angle

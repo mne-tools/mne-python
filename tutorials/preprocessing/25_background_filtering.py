@@ -393,7 +393,7 @@ f_s = f_p + transition_band
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
-# filter_dur = 6.6 / transition_band  # sec
+# filter_dur = 6.6 / transition_band  # s
 # n = int(sfreq * filter_dur)
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
@@ -409,7 +409,7 @@ plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default',
 
 transition_band = 0.5  # Hz
 f_s = f_p + transition_band
-filter_dur = 10.  # sec
+filter_dur = 10.  # s
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent
@@ -447,7 +447,7 @@ h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
 x_min = np.convolve(h, x)
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 6.6 / transition_band  # sec
+filter_dur = 6.6 / transition_band  # s
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
@@ -708,7 +708,7 @@ x_hp_2 = signal.filtfilt(iir_hp_2[0], iir_hp_2[1], x, padlen=0)
 
 xlim = t[[0, -1]]
 ylim = [-2, 6]
-xlabel = 'Time (sec)'
+xlabel = 'Time (s)'
 ylabel = r'Amplitude ($\mu$V)'
 tticks = [0, 0.5, 1.3, t[-1]]
 axes = plt.subplots(2, 2)[1].ravel()
