@@ -565,7 +565,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                         sfreq=self.info['sfreq'])
         if self.baseline is not None and self.baseline != baseline:
             logger.info(f'Setting baseline interval to '
-                        f'[{self.baseline[0]}, {self.baseline[1]}] sec')
+                        f'[{self.baseline[0]}, {self.baseline[1]}] s')
 
         logger.info(_log_rescale(self.baseline))
 
@@ -1067,15 +1067,47 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @property
     def _name(self):
         """Give a nice string representation based on event ids."""
+        return self._get_name()
+
+    def _get_name(self, count='frac', ms='×', sep='+'):
+        """Generate human-readable name for epochs and evokeds from event_id.
+
+        Parameters
+        ----------
+        count : 'frac' | 'total'
+            Whether to include the fraction or total number of epochs that each
+            event type contributes to the number of all epochs.
+            Ignored if only one event type is present.
+        ms : str | None
+            The multiplication sign to use. Pass ``None`` to omit the sign.
+            Ignored if only one event type is present.
+        sep : str
+            How to separate the different events names. Ignored if only one
+            event type is present.
+        """
+        _check_option('count', value=count, allowed_values=['frac', 'total'])
+
         if len(self.event_id) == 1:
             comment = next(iter(self.event_id.keys()))
         else:
-            count = Counter(self.events[:, 2])
+            counter = Counter(self.events[:, 2])
             comments = list()
-            for key, value in self.event_id.items():
-                comments.append('%.2f × %s' % (
-                    float(count[value]) / len(self.events), key))
-            comment = ' + '.join(comments)
+
+            # Take care of padding
+            if ms is None:
+                ms = ' '
+            else:
+                ms = f' {ms} '
+
+            for event_name, event_code in self.event_id.items():
+                if count == 'frac':
+                    frac = float(counter[event_code]) / len(self.events)
+                    comment = f'{frac:.2f}{ms}{event_name}'
+                else:  # 'total'
+                    comment = f'{counter[event_code]}{ms}{event_name}'
+                comments.append(comment)
+
+            comment = f' {sep} '.join(comments)
         return comment
 
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
@@ -1574,12 +1606,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Build string representation."""
         s = ' %s events ' % len(self.events)
         s += '(all good)' if self._bad_dropped else '(good & bad)'
-        s += ', %g - %g sec' % (self.tmin, self.tmax)
+        s += ', %g – %g s' % (self.tmin, self.tmax)
         s += ', baseline '
         if self.baseline is None:
             s += 'off'
         else:
-            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} sec'
+            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} s'
             if self.baseline != _check_baseline(
                     self.baseline, times=self.times, sfreq=self.info['sfreq'],
                     on_baseline_outside_data='adjust'):
@@ -1607,7 +1639,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             baseline = 'off'
         else:
             baseline = tuple([f'{b:.3f}' for b in self.baseline])
-            baseline = f'{baseline[0]} – {baseline[1]} sec'
+            baseline = f'{baseline[0]} – {baseline[1]} s'
 
         if isinstance(self.event_id, dict):
             event_strings = []
@@ -1660,12 +1692,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if self.reject_tmin is not None and self.reject_tmin < self.tmin:
             logger.info(
                 f'reject_tmin is not in epochs time interval. '
-                f'Setting reject_tmin to epochs.tmin ({self.tmin} sec)')
+                f'Setting reject_tmin to epochs.tmin ({self.tmin} s)')
             self.reject_tmin = self.tmin
         if self.reject_tmax is not None and self.reject_tmax > self.tmax:
             logger.info(
                 f'reject_tmax is not in epochs time interval. '
-                f'Setting reject_tmax to epochs.tmax ({self.tmax} sec)')
+                f'Setting reject_tmax to epochs.tmax ({self.tmax} s)')
             self.reject_tmax = self.tmax
         return self
 

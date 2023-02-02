@@ -134,7 +134,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
                     '(averaging over %s time intervals)'
                     % (len(mag_picks), len(time_idxs) - 1))
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info('    Processing interval %0.3f - %0.3f sec'
+            logger.info('    Processing interval %0.3f - %0.3f s'
                         % (start / info['sfreq'], stop / info['sfreq']))
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -168,7 +168,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
                     % (len(grad_picks), extra))
         imb_list = list()
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info('    Processing interval %0.3f - %0.3f sec'
+            logger.info('    Processing interval %0.3f - %0.3f s'
                         % (start / info['sfreq'], stop / info['sfreq']))
             data = raw[picks, start:stop][0]
             if ctc is not None:

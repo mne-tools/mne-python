@@ -389,7 +389,7 @@ def fname_src_small(tmp_path, small_surf_src):
 
 
 @requires_mne
-@pytest.mark.timeout(90)  # can take longer than 60 sec on Travis
+@pytest.mark.timeout(90)  # can take longer than 60 s on Travis
 def test_make_forward_solution_sphere(tmp_path, fname_src_small):
     """Test making a forward solution with a sphere model."""
     out_name = tmp_path / 'tmp-fwd.fif'

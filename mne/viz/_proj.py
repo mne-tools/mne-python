@@ -218,7 +218,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             first_ax[key] = ba_ax
         ri += 1
     for ax in last_ax:
-        ax.set(xlabel='Time (sec)')
+        ax.set(xlabel='Time (s)')
     for title, ax in first_ax.items():
         ax.set_title(title, fontsize='medium')
     plt_show(show)

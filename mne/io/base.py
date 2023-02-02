@@ -1276,7 +1276,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('tmin (%s) must be >= 0' % (tmin,))
         elif tmax - int(not include_tmax) / self.info['sfreq'] > max_time:
             raise ValueError('tmax (%s) must be less than or equal to the max '
-                             'time (%0.4f sec)' % (tmax, max_time))
+                             'time (%0.4f s)' % (tmax, max_time))
 
         smin, smax = np.where(_time_mask(
             self.times, tmin, tmax, sfreq=self.info['sfreq'],

@@ -1821,7 +1821,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         if fir_design == 'firwin' or phase == 'zero':
             filter_length += (filter_length - 1) % 2
 
-        logger.info('- Filter length: %s samples (%0.3f sec)'
+        logger.info('- Filter length: %s samples (%0.3f s)'
                     % (filter_length, filter_length / sfreq))
         logger.info('')
 

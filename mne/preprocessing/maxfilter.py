@@ -45,14 +45,14 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     autobad : str ('on', 'off', 'n')
         Sets automated bad channel detection on or off.
     skip : str or a list of float-tuples (or None)
-        Skips raw data sequences, time intervals pairs in sec,
+        Skips raw data sequences, time intervals pairs in s,
         e.g.: 0 30 120 150.
     force : bool
         Ignore program warnings.
     st : bool
         Apply the time-domain MaxST extension.
     st_buflen : float
-        MaxSt buffer length in sec (disabled if st is False).
+        MaxSt buffer length in s (disabled if st is False).
     st_corr : float
         MaxSt subspace correlation limit (disabled if st is False).
     mv_trans : str (filename or 'default') (or None)
