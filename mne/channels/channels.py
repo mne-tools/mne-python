@@ -2199,7 +2199,7 @@ def set_channel_types_eyetrack(inst, mapping):
     information.
 
     Note: inst.set_channel_types() with eyetrack_pos or eyetrack_pupil
-    acchieves the same, but cannot set specific unit, eye or x/y component
+    achieves the same, but cannot set specific unit, eye or x/y component
     (for Gaze channel).
 
     Parameters

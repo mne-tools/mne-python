@@ -76,7 +76,7 @@ raw.plot(events=events, event_id={'Flash': 3}, event_color='g',
 # ---------------------------
 #
 # We now visualize the pupillary light reflex.
-# Therefor, we select only the pupil channel and plot the evoked response to
+# Therefore, we select only the pupil channel and plot the evoked response to
 # the light flashes.
 #
 # As we see, there is a prominent decrease in pupil size following the
