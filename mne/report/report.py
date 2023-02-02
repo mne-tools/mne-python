@@ -3321,8 +3321,8 @@ class Report:
             if n_epochs_required > len(epochs):
                 raise ValueError(
                     f'You requested to calculate PSD on a duration of '
-                    f'{psd:.3f} sec, but all your epochs '
-                    f'are only {signal_duration:.1f} sec long'
+                    f'{psd:.3f} s, but all your epochs '
+                    f'are only {signal_duration:.1f} s long'
                 )
             epochs_idx = np.round(
                 np.linspace(
@@ -3338,7 +3338,7 @@ class Report:
                     len(epochs_idx_unique) * epoch_duration, 1
                 )
                 warn(f'Using {len(epochs_idx_unique)} epochs, only '
-                     f'covering {duration:.1f} sec of data')
+                     f'covering {duration:.1f} s of data')
                 del duration
 
             epochs_for_psd = epochs[epochs_idx_unique]
@@ -3358,7 +3358,7 @@ class Report:
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
             f'PSD calculated from {len(epochs_for_psd)} epochs '
-            f'({duration:.1f} sec).'
+            f'({duration:.1f} s).'
         )
         self._add_figure(
             fig=fig,

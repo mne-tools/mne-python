@@ -445,7 +445,7 @@ def test_render_mri(renderer, tmp_path):
 @requires_nibabel()
 @pytest.mark.parametrize('n_jobs', [
     1,
-    pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 sec locally
+    pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 s locally
 ])
 @pytest.mark.filterwarnings('ignore:No contour levels were.*:UserWarning')
 def test_add_bem_n_jobs(n_jobs, monkeypatch):
@@ -732,7 +732,7 @@ def test_split_files(tmp_path, split_naming):
     assert len(report._content) == 1
 
 
-@pytest.mark.slowtest  # ~40 sec on Azure Windows
+@pytest.mark.slowtest  # ~40 s on Azure Windows
 @testing.requires_testing_data
 def test_survive_pickle(tmp_path):
     """Testing functionality of Report-Object after pickling."""
@@ -751,7 +751,7 @@ def test_survive_pickle(tmp_path):
     report.save(fname=save_name, open_browser=False)
 
 
-@pytest.mark.slowtest  # ~30 sec on Azure Windows
+@pytest.mark.slowtest  # ~30 s on Azure Windows
 @requires_sklearn
 @testing.requires_testing_data
 def test_manual_report_2d(tmp_path, invisible_fig):
@@ -906,7 +906,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     r.save(fname=fname, open_browser=False)
 
 
-@pytest.mark.slowtest  # 30 sec on Azure
+@pytest.mark.slowtest  # 30 s on Azure
 @testing.requires_testing_data
 def test_manual_report_3d(tmp_path, renderer):
     """Simulate adding 3D sections."""

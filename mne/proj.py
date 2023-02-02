@@ -272,12 +272,12 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     raw : instance of Raw
         A raw object to use the data from.
     start : float
-        Time (in sec) to start computing SSP.
+        Time (in s) to start computing SSP.
     stop : float
-        Time (in sec) to stop computing SSP.
+        Time (in s) to stop computing SSP.
         None will go to the end of the file.
     duration : float
-        Duration (in sec) to chunk data into for SSP
+        Duration (in s) to chunk data into for SSP
         If duration is None, data will not be chunked.
     n_grad : int
         Number of vectors for gradiometers.

@@ -936,7 +936,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
         .. versionadded:: 0.21.0
     dlim : None | tuple
-        The y-axis delay limits (sec) to use (default:
+        The y-axis delay limits (s) to use (default:
         ``(-tmax / 2., tmax / 2.)``).
 
         .. versionadded:: 1.1.0
