@@ -2235,7 +2235,7 @@ def set_channel_types_eyetrack(inst, mapping):
     for ch_name, ch_desc in mapping.items():
         if ch_name not in ch_names:
             raise ValueError("This channel name (%s) doesn't exist in "
-                                "info." % ch_name)
+                             "info." % ch_name)
         c_ind = ch_names.index(ch_name)
 
         # set ch_type and unit
@@ -2251,7 +2251,7 @@ def set_channel_types_eyetrack(inst, mapping):
         inst.info['chs'][c_ind]['coil_type'] = coil_type
         inst.info['chs'][c_ind]['kind'] = FIFF.FIFFV_EYETRACK_CH
 
-        ch_unit = None if (ch_desc[1]==None) else ch_desc[1].lower()
+        ch_unit = None if (ch_desc[1] is None) else ch_desc[1].lower()
         if ch_unit not in [item for sublist in allowed_units.values()
                            for item in sublist]:
             raise ValueError(
