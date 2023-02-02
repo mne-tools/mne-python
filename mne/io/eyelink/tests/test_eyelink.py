@@ -6,7 +6,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
-from mne.utils import _check_pandas_installed
+from mne.utils import _check_pandas_installed, requires_pandas
 
 testing_path = data_path(download=False)
 fname = testing_path / 'eyetrack' / 'test_eyelink.asc'
@@ -21,6 +21,7 @@ def test_eyetrack_not_data_ch():
 
 
 @requires_testing_data
+@requires_pandas
 @pytest.mark.parametrize('fname, create_annotations, find_overlaps',
                          [(fname, False, False),
                           (fname, True, False),
@@ -69,6 +70,7 @@ def test_eyelink(fname, create_annotations, find_overlaps):
 
 
 @requires_testing_data
+@requires_pandas
 @pytest.mark.parametrize('fname', [(fname)])
 def test_fill_times(fname):
     """Test use of pd.merge_asof in _fill_times. We are merging on floating
@@ -92,6 +94,7 @@ def test_fill_times(fname):
     assert df_merged['pupil_left'].isna().sum() == nan_count  # i.e. 0
 
 
+@requires_pandas
 def test_find_overlaps():
     """Test function that finds overlapping occular events between the left
        and right eyes. In the simulated blink df below, the first two rows
