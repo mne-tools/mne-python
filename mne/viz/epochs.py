@@ -918,6 +918,8 @@ def plot_epochs(
     unit_scalings = _handle_default("scalings", None)
     decim, picks_data = _handle_decim(epochs.info.copy(), decim, None)
     noise_cov = _check_cov(noise_cov, epochs.info)
+    if event_id is True:  # use epochs.event_id
+        event_id = epochs.event_id
     event_id_rev = {v: k for k, v in (event_id or {}).items()}
     _check_option("group_by", group_by, ("selection", "position", "original", "type"))
     # validate epoch_colors
@@ -946,7 +948,12 @@ def plot_epochs(
     boundary_times = np.arange(len(epochs) + 1) * len(epochs.times) / sfreq
 
     # events
-    if events is not None:
+    if events is None:
+        event_nums = None
+        event_times = None
+    else:
+        if events is True:  # use epochs.events
+            events = epochs.events
         event_nums = events[:, 2]
         event_samps = events[:, 0]
         epoch_n_samps = len(epochs.times)
@@ -973,9 +980,7 @@ def plot_epochs(
             event_numbers.extend([num] * len(_ixs))
         event_nums = np.array(event_numbers)
         event_times = np.array(event_times)
-    else:
-        event_nums = None
-        event_times = None
+
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
 
     # determine trace order
