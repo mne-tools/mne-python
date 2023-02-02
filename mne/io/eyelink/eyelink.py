@@ -243,17 +243,19 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
     ----------
     fname : str
         Path to the eyelink file (.asc).
-    create_annotations : boolean or list (Default True)
+    %(preload)s
+    %(verbose)s
+    create_annotations : bool | list (Default True)
         Whether to create mne.Annotations from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
         contain one or more of ['fixations', 'saccades',' blinks', messages'].
         If True, creates mne.Annotations for both occular events and experiment
         messages.
-    apply_offsets : boolean (Default False)
+    apply_offsets : bool (Default False)
         Adjusts the onset time of the mne.Annotations created from Eyelink
         experiment messages, if offset values exist in
         self.dataframes['messages'].
-    find_overlaps : boolean (Default False)
+    find_overlaps : bool (Default False)
         Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
         saccades) if their start times and their stop times are both not
         separated by more than overlap_threshold.
@@ -262,14 +264,12 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
         stop times of the left and right eyes. If gap is larger than threshold,
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
-        :class:`mne.Annotations` will be merged (i.e. "blink_both")
+        :class:`mne.Annotations` will be merged (i.e. "blink_both").
     gap_description : str (Default 'bad_rec_gap')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
         blocks. Uses 'bad_rec_gap' by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
-    %(preload)s
-    %(verbose)s
 
     Returns
     -------
@@ -304,13 +304,13 @@ class RawEyelink(BaseRaw):
     ----------
     fname : str
         Path to the data file (.XXX).
-    create_annotations : boolean or list (Default True)
+    create_annotations : bool | list (Default True)
         Whether to create mne.Annotations from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
         contain one or more of ['fixations', 'saccades',' blinks', messages'].
         If True, creates mne.Annotations for both occular events and experiment
         messages.
-    apply_offsets : boolean (Default False)
+    apply_offsets : bool (Default False)
         Adjusts the onset time of the mne.Annotations created from Eyelink
         experiment messages, if offset values exist in
         raw.dataframes['messages'].
@@ -323,7 +323,7 @@ class RawEyelink(BaseRaw):
         stop times of the left and right eyes. If gap is larger than threshold,
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
-        :class:`mne.Annotations` will be merged (i.e. "blink_both")
+        :class:`mne.Annotations` will be merged (i.e. "blink_both").
     gap_desc : str (Default 'bad_rec_gap')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
@@ -651,7 +651,7 @@ class RawEyelink(BaseRaw):
         return info
 
     def _make_gap_annots(self, key='recording_blocks'):
-        """Creates Annotations for gap periods between recording blocks"""
+        """Create Annotations for gap periods between recording blocks"""
         df = self.dataframes[key]
         gap_desc = self._gap_desc
         onsets = df['end_time'].iloc[:-1]
@@ -663,7 +663,7 @@ class RawEyelink(BaseRaw):
                            description=descriptions)
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
-        """Creates Annotations for each df in self.dataframes"""
+        """Create Annotations for each df in self.dataframes"""
 
         valid_descs = ['blinks', 'saccades', 'fixations', 'messages']
         msg = ("create_annotations must be True or a list containing one or"
