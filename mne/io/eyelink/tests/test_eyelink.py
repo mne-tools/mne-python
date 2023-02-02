@@ -10,7 +10,6 @@ from mne.utils import _check_pandas_installed, requires_pandas
 
 testing_path = data_path(download=False)
 fname = testing_path / 'eyetrack' / 'test_eyelink.asc'
-pd = _check_pandas_installed()
 
 
 def test_eyetrack_not_data_ch():
