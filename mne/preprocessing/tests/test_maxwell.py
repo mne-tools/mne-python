@@ -552,7 +552,7 @@ def test_spatiotemporal():
 
     # We could check both 4 and 10 seconds because Elekta handles them
     # differently (to ensure that std/non-std tSSS windows are correctly
-    # handled), but the 4-sec case should hopefully be sufficient.
+    # handled), but the 4-s case should hopefully be sufficient.
     st_durations = [4.]  # , 10.]
     tols = [(80, 100)]  # , 200.]
     kwargs = dict(origin=mf_head_origin, regularize=None,
@@ -1389,7 +1389,7 @@ def test_find_bads_maxwell_flat():
     assert noisy == ['MEG 1032', 'MEG 2313', 'MEG 2443']
     assert flat == []
     n = int(round(raw.info['sfreq'] * 10))
-    assert (len(raw.times) - n) / raw.info['sfreq'] > 10  # at least 10 sec
+    assert (len(raw.times) - n) / raw.info['sfreq'] > 10  # at least 10 s
     with catch_logging() as log:
         want_noisy, want_flat = find_bad_channels_maxwell(
             raw.copy().crop(n / raw.info['sfreq'], None), min_count=1,
@@ -1414,7 +1414,7 @@ def test_find_bads_maxwell_flat():
     raw.info['bads'] = []
     raw.set_annotations(annot)
     data_good = raw.get_data(reject_by_annotation='omit')
-    assert data_good.shape[1] / raw.info['sfreq'] / 5. > 2  # at least 10 sec
+    assert data_good.shape[1] / raw.info['sfreq'] / 5. > 2  # at least 10 s
     with catch_logging() as log:
         noisy, flat = find_bad_channels_maxwell(
             raw, min_count=1, skip_by_annotation='bad_flat', verbose='debug')

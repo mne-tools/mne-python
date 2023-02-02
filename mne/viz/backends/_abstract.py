@@ -1212,7 +1212,7 @@ class _AbstractMplCanvas(ABC):
         with context:
             self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
-        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
+        self.axes.set(xlabel='Time (s)', ylabel='Activation (AU)')
         self.manager = None
 
     def _connect(self):

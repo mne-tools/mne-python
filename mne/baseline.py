@@ -185,8 +185,8 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data='raise'):
             % (baseline_tmin, baseline_tmax))
 
     if (baseline_tmin < tmin - tstep) or (baseline_tmax > tmax + tstep):
-        msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] sec "
-               f"is outside of epochs data [{tmin}, {tmax}] sec. Epochs were "
+        msg = (f"Baseline interval [{baseline_tmin}, {baseline_tmax}] s "
+               f"is outside of epochs data [{tmin}, {tmax}] s. Epochs were "
                f"probably cropped.")
         if on_baseline_outside_data == 'raise':
             raise ValueError(msg)

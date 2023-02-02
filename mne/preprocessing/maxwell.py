@@ -613,7 +613,7 @@ def _run_maxwell_filter(
             continue  # Skip zero-length annotations
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
-        t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
+        t_str = '%8.3f - %8.3f s' % tuple(rel_times[[0, -1]])
         t_str += ('(#%d/%d)' % (ii + 1, len(starts))).rjust(2 * n_sig + 5)
 
         # Get original data
@@ -2232,7 +2232,7 @@ def find_bad_channels_maxwell(
             ss[-1] = end
             stops.extend(ss)
     min_count = min(_ensure_int(min_count, 'min_count'), len(starts))
-    logger.info('Scanning for bad channels in %d interval%s (%0.1f sec) ...'
+    logger.info('Scanning for bad channels in %d interval%s (%0.1f s) ...'
                 % (len(starts), _pl(starts), step / raw.info['sfreq']))
     params = _prep_maxwell_filter(
         raw, skip_by_annotation=[],  # already accounted for
