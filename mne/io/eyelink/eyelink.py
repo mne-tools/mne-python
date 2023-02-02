@@ -164,7 +164,7 @@ def _fill_times(df, sfreq, time_col='time',):
 
         returns
         -------
-        pandas DataFrame with previously missing timestamps included
+        %(df_return)s
         """
     pd = _check_pandas_installed()
 
@@ -180,7 +180,7 @@ def _fill_times(df, sfreq, time_col='time',):
 def _find_overlaps(df, max_time=0.05):
     """
     Combine left and right eye events if their start times and their stop times
-    are both not separated by more than `max_time`.
+    are both not separated by more than max_time.
 
     df : pandas.DataFrames:
         Pandas DataFrame with occular events (fixations, saccades, blinks)
@@ -189,8 +189,8 @@ def _find_overlaps(df, max_time=0.05):
 
     Returns:
     --------
-    DataFrame: Instance of a Pandas DataFrame
-        DataFrame specifying overlapped eye events, if any
+    DataFrame: %(df_return)s
+        :class:`pandas.DataFrame` specifying overlapped eye events, if any
     Notes
     -----
     The idea is to cumulative sum the boolean values for rows with start/end
@@ -216,7 +216,7 @@ def _find_overlaps(df, max_time=0.05):
                          & df["overlap_start"])
     df["group"] = df["no_overlap"].cumsum()
 
-    # now use groupby on `'group'`. If one left and one right eye in group
+    # now use groupby on 'group'. If one left and one right eye in group
     # the new start/end times are the mean of the two eyes
     ovrlp = pd.concat([pd.DataFrame(g[1].drop(columns="eye").mean()).T
                        if (len(g[1]) == 2) and (len(g[1].eye.unique()) == 2)
@@ -254,15 +254,15 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
         experiment messages, if offset values exist in
         self.dataframes['messages'].
     find_overlaps : boolean (Default False)
-        Combine left and right eye `Annotations` (blinks, fixations, saccades)
-        if their start times and their stop times are both not separated by
-        more than `overlap_threshold`.
+        Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
+        saccades) if their start times and their stop times are both not
+        separated by more than overlap_threshold.
     overlap_threshold : float (Default 0.05)
         Time in seconds. Threshold of allowable time-gap between the start and
         stop times of the left and right eyes. If gap is larger than threshold,
-        the `Annotations` will be kept separate (i.e. "blink_L", "blink_R"). If
-        the gap is smaller than the threshold, the `Annotations` will be merged
-        (i.e. "blink_both")
+        the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
+        "blink_R"). If the gap is smaller than the threshold, the
+        :class:`mne.Annotations` will be merged (i.e. "blink_both")
     gap_description : str (Default 'bad_rec_gap')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
@@ -313,17 +313,17 @@ class RawEyelink(BaseRaw):
     apply_offsets : boolean (Default False)
         Adjusts the onset time of the mne.Annotations created from Eyelink
         experiment messages, if offset values exist in
-        `raw.dataframes['messages']`.
+        raw.dataframes['messages'].
      find_overlaps : boolean (Default False)
-        Combine left and right eye `Annotations` (blinks, fixations, saccades)
-        if their start times and their stop times are both not separated by
-        more than `overlap_threshold`.
+        Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
+        saccades) if their start times and their stop times are both not
+        separated by more than overlap_threshold.
     overlap_threshold : float (Default 0.05)
         Time in seconds. Threshold of allowable time-gap between the start and
         stop times of the left and right eyes. If gap is larger than threshold,
-        the `Annotations` will be kept separate (i.e. "blink_L", "blink_R"). If
-        the gap is smaller than the threshold, the `Annotations` will be merged
-        (i.e. "blink")
+        the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
+        "blink_R"). If the gap is smaller than the threshold, the
+        :class:`mne.Annotations` will be merged (i.e. "blink_both")
     gap_desc : str (Default 'bad_rec_gap')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
@@ -539,7 +539,7 @@ class RawEyelink(BaseRaw):
             logger.info(f'There are {n_block} recording blocks in this'
                         ' file. Times between blocks will be annotated with'
                         f" '{self._gap_desc}'. This annotation description"
-                        ' can be customized by the `gap_description` argument')
+                        ' can be customized by the gap_description argument')
             # if there is more than 1 recording block we must account for
             # the missing timestamps and samples bt the blocks
             self.dataframes['samples'] = _fill_times(self.dataframes
@@ -563,7 +563,7 @@ class RawEyelink(BaseRaw):
 
                 if find_overlaps is True:
                     if self._tracking_mode == 'monocular':
-                        raise ValueError('`find_overlaps` is only valid with'
+                        raise ValueError('find_overlaps is only valid with'
                                          ' binocular recordings, this file is'
                                          f' {self._tracking_mode}')
                     df = _find_overlaps(self.dataframes[label],
@@ -666,7 +666,7 @@ class RawEyelink(BaseRaw):
         """Creates Annotations for each df in self.dataframes"""
 
         valid_descs = ['blinks', 'saccades', 'fixations', 'messages']
-        msg = ("create_annotations must be `True` or a list containing one or"
+        msg = ("create_annotations must be True or a list containing one or"
                f" more of {valid_descs}.")
         wrong_type = (msg + f' Got a {type(create_annots)} instead.')
         if create_annots is True:
