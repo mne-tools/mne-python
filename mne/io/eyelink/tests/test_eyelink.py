@@ -13,6 +13,7 @@ fname = testing_path / 'eyetrack' / 'test_eyelink.asc'
 
 
 def test_eyetrack_not_data_ch():
+    """Eyetrack channels are not data channels."""
     msg = 'eyetrack channels are not data channels. Refer to MNE definition'\
           ' of data channels in the glossary section of the documentation.'
     assert 'eyetrack_pos' not in _DATA_CH_TYPES_SPLIT, msg
@@ -72,11 +73,14 @@ def test_eyelink(fname, create_annotations, find_overlaps):
 @requires_pandas
 @pytest.mark.parametrize('fname', [(fname)])
 def test_fill_times(fname):
-    """Test use of pd.merge_asof in _fill_times. We are merging on floating
-       point values. pd.merge_asof is used so that any differences in floating
-       point precision between df['samples']['times'] and the times generated
-       with np.arange don't result in the time columns not merging
-       correctly - i.e. 1560687.0 and 1560687.000001 should merge."""
+    """Test use of pd.merge_asof in _fill_times.
+
+    We are merging on floating
+    point values. pd.merge_asof is used so that any differences in floating
+    point precision between df['samples']['times'] and the times generated
+    with np.arange don't result in the time columns not merging
+    correctly - i.e. 1560687.0 and 1560687.000001 should merge.
+    """
     from ..eyelink import _fill_times
 
     raw = read_raw_eyelink(fname, create_annotations=False)
@@ -95,13 +99,15 @@ def test_fill_times(fname):
 
 @requires_pandas
 def test_find_overlaps():
-    """Test function that finds overlapping occular events between the left
-       and right eyes. In the simulated blink df below, the first two rows
-       will be considered an overlap because the diff() of both the 'time' and
-       'end_time' values is <.05 (50ms). the 3rd and 4th rows will not be
-       considered an overlap because the diff() of the 'time' values is > .05
-       (4.20 - 4.14 = .06). The 5th and 6th rows will not be considered an
-       overlap because they are both left eye events."""
+    """Test finding overlapping occular events between the left and right eyes.
+
+    In the simulated blink df below, the first two rows
+    will be considered an overlap because the diff() of both the 'time' and
+    'end_time' values is <.05 (50ms). the 3rd and 4th rows will not be
+    considered an overlap because the diff() of the 'time' values is > .05
+    (4.20 - 4.14 = .06). The 5th and 6th rows will not be considered an
+    overlap because they are both left eye events.
+    """
     from ..eyelink import _find_overlaps
     pd = _check_pandas_installed()
     blink_df = pd.DataFrame({'eye': ['L', 'R', 'L', 'R', 'L', 'L'],

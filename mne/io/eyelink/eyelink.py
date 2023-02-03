@@ -36,10 +36,13 @@ EYELINK_COLS = {'timestamp': ('time',),
 
 
 def _isfloat(token):
-    '''boolean test for whether string can be of type float.
+    """Boolean test for whether string can be of type float.
 
-       token (str): single element from tokens list'''
-
+    Parameters
+    ----------
+    token : str
+        Single element from tokens list.
+    """
     if isinstance(token, str):
         try:
             float(token)
@@ -52,18 +55,23 @@ def _isfloat(token):
 
 
 def _convert_types(tokens):
-    """Converts the type of each token in list, which are read in as strings.
-       Posix timestamp strings can be integers, eye gaze position and
-       pupil size can be floats. flags token ("...") remains as string.
-       Missing eye/head-target data (indicated by '.' or 'MISSING_DATA')
-       are replaced by np.nan.
+    """Convert the type of each token in list.
 
-       Parameters
-       ----------
-       tokens (list): list of string elements.
+    The tokens input is a list of string elements.
+    Posix timestamp strings can be integers, eye gaze position and
+    pupil size can be floats. flags token ("...") remains as string.
+    Missing eye/head-target data (indicated by '.' or 'MISSING_DATA')
+    are replaced by np.nan.
 
-       returns: tokens list with elements of various types."""
+    Parameters
+    ----------
+    Tokens : list
+        List of string elements.
 
+    Returns
+    -------
+        Tokens list with elements of various types.
+    """
     return [int(token) if token.isdigit()  # execute this before _isfloat()
             else float(token) if _isfloat(token)
             else np.nan if token in ('.', 'MISSING_DATA')
@@ -72,10 +80,12 @@ def _convert_types(tokens):
 
 
 def _parse_line(line):
-    """takes a tab deliminited string from eyelink file,
-       splits it into a list of tokens, and converts the type
-       for each token in the list"""
+    """Parse tab delminited string from eyelink ASCII file.
 
+    Takes a tab deliminited string from eyelink file,
+    splits it into a list of tokens, and converts the type
+    for each token in the list.
+    """
     if len(line):
         tokens = line.split()
         return _convert_types(tokens)
@@ -84,29 +94,48 @@ def _parse_line(line):
 
 
 def _is_sys_msg(line):
-    """Some lines in eyelink files are system outputs usually
-       only meant for Eyelinks DataViewer application to read.
-       These shouldn't need to be parsed.
+    """Flag lines from eyelink ASCII file that contain a known system message.
 
-       Parameters
-       ----------
-       line (string): single line from Eyelink asc file
+    Some lines in eyelink files are system outputs usually
+    only meant for Eyelinks DataViewer application to read.
+    These shouldn't need to be parsed.
 
-       Returns: True if any of the following strings that are
-       known to indicate a system message are in the line"""
+    Parameters
+    ----------
+    line : string
+        single line from Eyelink asc file
 
+    Returns
+    -------
+    bool :
+        True if any of the following strings that are
+        known to indicate a system message are in the line
+
+    Notes
+    -----
+    Examples of eyelink system messages:
+    - ;Sess:22Aug22;Tria:1;Tri2:False;ESNT:182BFE4C2F4;
+    - ;NTPT:182BFE55C96;SMSG:__NTP_CLOCK_SYNC__;DIFF:-1;
+    - !V APLAYSTART 0 1 library/audio
+    - !MODE RECORD CR 500 2 1 R
+    """
     return any(['!V' in line,
                 '!MODE' in line,
                 ';' in line])
 
 
 def _get_sfreq(rec_info):
-    """
-       rec_info (list):
-           the first list in self._event_lines['SAMPLES'].
-           The sfreq occurs after RATE: i.e. [..., RATE, 1000, ...].
+    """Get sampling frequency from Eyelink ASCII file.
 
-        returns: sfreq
+    Parameters
+    ----------
+    rec_info : list
+        the first list in self._event_lines['SAMPLES'].
+        The sfreq occurs after RATE: i.e. [..., RATE, 1000, ...].
+
+    Returns
+    -------
+    sfreq : int | float
     """
     for i, token in enumerate(rec_info):
         if token == 'RATE':
@@ -121,11 +150,9 @@ def _sort_by_time(df, col='time'):
 
 def _convert_times(df, first_samp, col='time'):
     """Set initial time to 0, converts from ms to seconds in place.
-       Each sample in an Eyelink file has a posix timestamp string.
-       Subtracts the "first" sample's timestamp from each timestamp.
-       The "first" sample is inferred to be the first sample of
-       the first recording block, i.e. the first "START" line.
 
+    Parameters
+    ----------
        df pandas.DataFrame:
            One of the dataframes in the self.dataframes dict.
 
@@ -133,10 +160,16 @@ def _convert_times(df, first_samp, col='time'):
            timestamp of the first sample of the recording. This should
            be the first sample of the first recording block.
         col str (default 'time'):
-            column name to sort pandas.DataFrame by"""
+            column name to sort pandas.DataFrame by
 
+    Notes
+    -----
+    Each sample in an Eyelink file has a posix timestamp string.
+    Subtracts the "first" sample's timestamp from each timestamp.
+    The "first" sample is inferred to be the first sample of
+    the first recording block, i.e. the first "START" line.
+    """
     _sort_by_time(df, col)
-
     for col in df.columns:
         if col.endswith('time'):  # 'time' and 'end_time' cols
             df[col] -= first_samp
@@ -146,26 +179,31 @@ def _convert_times(df, first_samp, col='time'):
 
 
 def _fill_times(df, sfreq, time_col='time',):
-    """Fills missing timestamps in cases where there are multiple
-       recording blocks, which cause missing samples from the
-       gap periods between the blocks.
+    """Fill missing timestamps if there are multiple recording blocks.
 
-        parameters
-        ---------
-        df : pandas.DataFrame:
-           dataframe of the eyetracking data samples, BEFORE
-           _convert_times() is applied to the dataframe
+    Parameters
+    ----------
+    df : pandas.DataFrame:
+        dataframe of the eyetracking data samples, BEFORE
+        _convert_times() is applied to the dataframe
 
-        sfreq : int, float:
-           sampling frequency of the data
+    sfreq : int | float:
+        sampling frequency of the data
 
-        time_col : str (default 'time'):
-           name of column with the timestamps (e.g. 9511881, 9511882, ...)
+    time_col : str (default 'time'):
+        name of column with the timestamps (e.g. 9511881, 9511882, ...)
 
-        returns
-        -------
-        %(df_return)s
-        """
+    Returns
+    -------
+    %(df_return)s
+
+    Notes
+    -----
+    After _parse_recording_blocks, Files with multiple recording blocks will
+    have missing timestamps for the duration of the period between the blocks.
+    This would cause the occular annotations (i.e. blinks) to not line up with
+    the signal.
+    """
     pd = _check_pandas_installed()
 
     first, last = df[time_col].iloc[[0, -1]]
@@ -178,28 +216,26 @@ def _fill_times(df, sfreq, time_col='time',):
 
 
 def _find_overlaps(df, max_time=0.05):
-    """
-    Combine left and right eye events if their start times and their stop times
-    are both not separated by more than max_time.
+    """Merge left/right eye events with onset/offset diffs less than max_time.
 
-    df : pandas.DataFrames:
+    df : pandas.DataFrame
         Pandas DataFrame with occular events (fixations, saccades, blinks)
     max_time : float (default value 0.05)
-        Time in seconds.
+        Time in seconds. Defaults to .05 (50 ms)
 
-    Returns:
-    --------
+    Returns
+    -------
     DataFrame: %(df_return)s
         :class:`pandas.DataFrame` specifying overlapped eye events, if any
     Notes
     -----
-    The idea is to cumulative sum the boolean values for rows with start/end
-    time differences (against the previous row) that are greater than the
-    max_time. If start and end diffs are less than max_time then no_overlap
-    will become False. Alternatively, if either the start or end diff is
+    The idea is to cumulative sum the boolean values for rows with onset and
+    offset differences (against the previous row) that are greater than the
+    max_time. If onset and offset diffs are less than max_time then no_overlap
+    will become False. Alternatively, if either the onset or offset diff is
     greater than max_time, no_overlap becomes True. Cumulatively summing over
     these boolean values will leave rows with no_overlap == False unchanged
-    and hence the same group number.
+    and hence with the same group number.
     """
     pd = _check_pandas_installed()
 
@@ -280,7 +316,6 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-
     extension = Path(fname).suffix
     if extension not in '.asc':
         raise ValueError('This reader can only read eyelink .asc files.'
@@ -334,27 +369,27 @@ class RawEyelink(BaseRaw):
 
     Attributes
     ----------
-    fname (pathlib.Path object):
+    fname : pathlib.Path
         Eyelink filename
-    dataframes (dictionary):
+    dataframes : dict
         Dictionary of pandas DataFrames. One for eyetracking samples,
         and one for each type of eyelink event (blinks, messages, etc)
-    _sample_lines (list):
+    _sample_lines : list
         List of lists, each list is one sample containing eyetracking
         X/Y and pupil channel data (+ other channels, if they exist)
-    _event_lines (dict):
+    _event_lines : dict
         Each key contains a list of lists, for an event-type that occurred
         during the recording period. Events can vary, from occular events
         (blinks, saccades, fixations), to messages from the stimulus
         presentation software, or info from a response controller.
-    _system_lines (list):
-        List of space delimited strings. Each string is a system message,
+    _system_lines : list
+        List of tab delimited strings. Each string is a system message,
         that in most cases aren't needed. System messages occur for
         Eyelinks DataViewer application.
-    _tracking_mode (str):
+    _tracking_mode : str
         Whether whether a single eye was tracked ('monocular'), or both
         ('binocular').
-    _gap_desc (str):
+    _gap_desc : str
         The description to be used for annotations returned by _make_gap_annots
 
     See Also
@@ -413,13 +448,15 @@ class RawEyelink(BaseRaw):
             logger.info('Not creating any annotations')
 
     def _parse_recording_blocks(self):
-        '''Eyelink samples occur within START and END blocks.
-           samples lines start with a posix-like string,
-           and contain eyetracking sample info. Event Lines
-           start with an upper case string and contain info
-           about occular events (i.e. blink/saccade), or experiment
-           messages sent by the stimulus presentation software.'''
+        """Parse Eyelink ASCII file.
 
+        Eyelink samples occur within START and END blocks.
+        samples lines start with a posix-like string,
+        and contain eyetracking sample info. Event Lines
+        start with an upper case string and contain info
+        about occular events (i.e. blink/saccade), or experiment
+        messages sent by the stimulus presentation software.
+        """
         with self.fname.open() as file:
             block_num = 1
             self._sample_lines = []
@@ -451,12 +488,14 @@ class RawEyelink(BaseRaw):
                 raise ValueError(f"Couldn't find any samples in {self.fname}")
 
     def _infer_col_names(self):
-        """Returns the expected column names for the sample lines and event
-           lines, to be passed into pd.DataFrame. Sample and event lines in
-           eyelink files have a fixed order of columns, but the columns that
-           are present can vary. The order that col_names is built below should
-           NOT change."""
+        """Build column and channel names for data from Eyelink ASCII file.
 
+        Returns the expected column names for the sample lines and event
+        lines, to be passed into pd.DataFrame. Sample and event lines in
+        eyelink files have a fixed order of columns, but the columns that
+        are present can vary. The order that col_names is built below should
+        NOT change.
+        """
         col_names = {}
 
         # a list of keywords specifying what type of data is present
@@ -522,9 +561,11 @@ class RawEyelink(BaseRaw):
 
     def _create_dataframes(self, col_names, sfreq, find_overlaps=False,
                            threshold=0.05):
-        """creates a pandas DataFrame for self._sample_lines and for each
-           non-empty key in self._event_lines"""
+        """Create pandas.DataFrame for Eyelink samples and events.
 
+        Creates a pandas DataFrame for self._sample_lines and for each
+        non-empty key in self._event_lines.
+        """
         pd = _check_pandas_installed()
 
         # First sample should be the first line of the first recording block
@@ -619,6 +660,7 @@ class RawEyelink(BaseRaw):
         # TODO: Make dataframes for other eyelink events (Buttons)
 
     def _create_info(self, ch_names, sfreq):
+        """Create info object for RawEyelink."""
         # assign channel type from ch_name
         pos_names = ('x_left', 'x_right', 'y_left', 'y_right')
         pupil_names = ('pupil_left', 'pupil_right')
@@ -651,7 +693,7 @@ class RawEyelink(BaseRaw):
         return info
 
     def _make_gap_annots(self, key='recording_blocks'):
-        """Create Annotations for gap periods between recording blocks"""
+        """Create Annotations for gap periods between recording blocks."""
         df = self.dataframes[key]
         gap_desc = self._gap_desc
         onsets = df['end_time'].iloc[:-1]
@@ -663,8 +705,7 @@ class RawEyelink(BaseRaw):
                            description=descriptions)
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
-        """Create Annotations for each df in self.dataframes"""
-
+        """Create Annotations for each df in self.dataframes."""
         valid_descs = ['blinks', 'saccades', 'fixations', 'messages']
         msg = ("create_annotations must be True or a list containing one or"
                f" more of {valid_descs}.")
