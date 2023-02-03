@@ -14,18 +14,16 @@ from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, _check_pandas_installed
 
 EYELINK_COLS = {'timestamp': ('time',),
-                'gaze': {'monocular': ('x', 'y', 'pupil'),
-                         'binocular': ('x_left', 'y_left', 'pupil_left',
-                                       'x_right', 'y_right', 'pupil_right')},
-                'velocity': {'monocular': ('x_vel', 'y_vel'),
-                             'binocular': ('x_vel_left', 'y_vel_left',
-                                           'x_vel_right', 'y_vel_right')},
-                'resolution': ('x_res', 'y_res'),
+                'pos': {'left': ('xpos_left', 'ypos_left', 'pupil_left'),
+                        'right': ('xpos_right', 'ypos_right', 'pupil_right')},
+                'velocity': {'left': ('xvel_left', 'yvel_left'),
+                             'right': ('xvel_right', 'yvel_right')},
+                'resolution': ('xres', 'yres'),
                 'input': ('DIN',),
                 'flags': ('flags',),
-                'remote': ('head_target_x', 'head_target_y',
-                           'head_target_distance'),
-                'remote_flags': ('head_target_flags',),
+                'remote': ('x_head', 'y_head',
+                           'distance'),
+                'remote_flags': ('head_flags',),
                 'block_num': ('block',),
                 'eye_event': ('eye', 'time', 'end_time', 'duration'),
                 'fixation': ('fix_avg_x', 'fix_avg_y',
@@ -519,18 +517,23 @@ class RawEyelink(BaseRaw):
         # If monocular, find out which eye was tracked and append to ch_name
         if self._tracking_mode == 'monocular':
             assert rec_info[1] in ['LEFT', 'RIGHT']
-            mono_eye = rec_info[1].lower()
-
-        ch_names = list(EYELINK_COLS['gaze'][eyes_tracked])
-        if self._tracking_mode == 'monocular':
-            ch_names = [f'{name}_{mono_eye}'
-                        for name in ch_names]  # x_left, ... y_right
+            eye = rec_info[1].lower()
+            ch_names = list(EYELINK_COLS['pos'][eye])
+        elif self._tracking_mode == 'binocular':
+            ch_names = list(EYELINK_COLS['pos']['left'] +
+                            EYELINK_COLS['pos']['right'])
         col_names['sample'].extend(ch_names)
 
         # The order of these if statements should not be changed.
         if 'VEL' in rec_info:  # If velocity data are reported
-            ch_names.extend(EYELINK_COLS['velocity'][eyes_tracked])
-            col_names['sample'].extend(EYELINK_COLS['velocity'][eyes_tracked])
+            if self._tracking_mode == 'monocular':
+                ch_names.extend(EYELINK_COLS['velocity'][eye])
+                col_names['sample'].extend(EYELINK_COLS['velocity'][eye])
+            elif self._tracking_mode == 'binocular':
+                ch_names.extend(EYELINK_COLS['velocity']['left'] +
+                                EYELINK_COLS['velocity']['right'])
+                col_names['sample'].extend(EYELINK_COLS['velocity']['left'] +
+                                           EYELINK_COLS['velocity']['right'])
         # if resolution data are reported
         if 'RES' in rec_info:
             ch_names.extend(EYELINK_COLS['resolution'])
@@ -662,8 +665,10 @@ class RawEyelink(BaseRaw):
     def _create_info(self, ch_names, sfreq):
         """Create info object for RawEyelink."""
         # assign channel type from ch_name
-        pos_names = ('x_left', 'x_right', 'y_left', 'y_right')
-        pupil_names = ('pupil_left', 'pupil_right')
+        pos_names = (EYELINK_COLS['pos']['left'][:-1]
+                     + EYELINK_COLS['pos']['right'][:-1])
+        pupil_names = (EYELINK_COLS['pos']['left'][-1]
+                       + EYELINK_COLS['pos']['right'][-1])
         ch_types = ['eyetrack_pos' if ch in pos_names
                     else 'eyetrack_pupil' if ch in pupil_names
                     else 'stim' if ch == 'DIN'
