@@ -1,4 +1,4 @@
-"""Module for loading Eye-Tracker data"""
+"""Module for loading Eye-Tracker data."""
 
 # Author: Dominik Welke <dominik.welke@web.de>
 #
