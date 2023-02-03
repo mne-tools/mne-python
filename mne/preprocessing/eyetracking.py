@@ -11,7 +11,7 @@ from ..io.constants import FIFF
 # specific function to set eyetrack channels
 def set_channel_types_eyetrack(inst, mapping):
     """Define sensor type for eyetrack channels.
-    
+
     This function can set all specific information.
     Note: inst.set_channel_types() with eyetrack_pos or eyetrack_pupil
     achieves the same, but cannot set specific unit, eye or x/y component
@@ -42,14 +42,14 @@ def set_channel_types_eyetrack(inst, mapping):
     valid_units['all'] = [item for sublist in valid_units.values()
                           for item in sublist]
     valid_eye = {'l': ['left', 'l'],
-                'r': ['right', 'r']}
+                 'r': ['right', 'r']}
     valid_eye['all'] = [item for sublist in valid_eye.values()
                         for item in sublist]
     valid_xy = {'x': ['x', 'h', 'horizontal'],
                 'y': ['y', 'v', 'vertical']}
     valid_xy['all'] = [item for sublist in valid_xy.values()
                        for item in sublist]
-    
+
     # loop over channels
     for ch_name, ch_desc in mapping.items():
         if ch_name not in ch_names:
