@@ -5,17 +5,15 @@
 
 import numpy as np
 
-from ..io.constants import FIFF
+from ...io.constants import FIFF
 
 
 # specific function to set eyetrack channels
 def set_channel_types_eyetrack(inst, mapping):
     """Define sensor type for eyetrack channels.
 
-    This function can set all specific information.
-    Note: inst.set_channel_types() with eyetrack_pos or eyetrack_pupil
-    achieves the same, but cannot set specific unit, eye or x/y component
-    (for Gaze channel).
+    This function can set all eye tracking specific information:
+    unit, eye (Gaze and Pupil channels) and x/y component (Gaze channels)
 
     Parameters
     ----------
@@ -30,6 +28,11 @@ def set_channel_types_eyetrack(inst, mapping):
     -------
     inst : instance of Raw | Epochs | Evoked
         The instance, modified in place.
+
+    Notes
+    -----
+    ``inst.set_channel_types()`` to ``'eyetrack_pos'`` or ``'eyetrack_pupil'``
+    achieves the same, but cannot set specific unit, eye and x/y component.
     """
     ch_names = inst.info['ch_names']
 
