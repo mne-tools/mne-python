@@ -56,6 +56,8 @@ _missing_coil_def = (
     303,    # fNIRS optical density
     304,    # fNIRS frequency domain AC amplitude
     305,    # fNIRS frequency domain phase
+    306,    # fNIRS time domain gated amplitude
+    307,    # fNIRS time domain moments amplitude
     400,    # Eye-tracking gaze position
     401,    # Eye-tracking pupil size
     1000,   # For testing the MCG software
@@ -82,7 +84,6 @@ _aliases = dict(
 
 
 @requires_good_network
-@pytest.mark.xfail  # TODO: Remove before merge
 def test_constants(tmp_path):
     """Test compensation."""
     tmp_path = str(tmp_path)  # old pytest...
