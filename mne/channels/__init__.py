@@ -17,8 +17,7 @@ from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
                        read_ch_adjacency, _get_ch_type, find_ch_adjacency,
                        make_1020_channel_selections, combine_channels,
                        read_vectorview_selection, _SELECTIONS, _EEG_SELECTIONS,
-                       _divide_to_regions, get_builtin_ch_adjacencies,
-                       set_channel_types_eyetrack)
+                       _divide_to_regions, get_builtin_ch_adjacencies)
 
 __all__ = [
     # Data Structures

@@ -139,6 +139,19 @@ Projections:
 
    project_sensors_onto_brain
 
+:py:mod:`mne.preprocessing.eyetracking`:
+
+.. currentmodule:: mne.preprocessing.eyetracking
+
+.. automodule:: mne.preprocessing.eyetracking
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   set_channel_types_eyetrack
+
 EEG referencing:
 
 .. currentmodule:: mne
