@@ -36,7 +36,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     @verbose
     def __init__(self, base_estimator, scoring=None, n_jobs=None, *,
-                 position=0, verbose=None):  # noqa: D102
+                 position=0):  # noqa: D102
         _check_estimator(base_estimator)
         self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.base_estimator = base_estimator
