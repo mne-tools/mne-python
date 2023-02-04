@@ -85,7 +85,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
                              position=self.position) as pb:
                 estimators = parallel(
                     p_func(self.base_estimator, split, y, pb.subset(pb_idx),
-                        **fit_params)
+                           **fit_params)
                     for pb_idx, split in array_split_idx(X, n_jobs, axis=-1)
                 )
         else:
@@ -147,9 +147,10 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             mesg = 'Transforming %s' % (self.__class__.__name__,)
             with ProgressBar(X.shape[-1], mesg=mesg,
                              position=self.position) as pb:
-                y_pred = parallel(p_func(est, x, method, pb.subset(pb_idx))
-                                  for pb_idx, est, x in zip(
-                                    idx, est_splits, X_splits))
+                y_pred = parallel(
+                    p_func(est, x, method, pb.subset(pb_idx))
+                    for pb_idx, est, x in zip(idx, est_splits, X_splits)
+                )
         else:
             y_pred = parallel(p_func(est, x, method, None)
                               for est, x in zip(est_splits, X_splits))
