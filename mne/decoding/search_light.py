@@ -43,6 +43,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.n_jobs = n_jobs
         self.scoring = scoring
         self.position = position
+        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         repr_str = '<' + super(SlidingEstimator, self).__repr__()
@@ -76,13 +77,22 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             _sl_fit, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         self.estimators_ = list()
         self.fit_params = fit_params
+
         # For fitting, the parallelization is across estimators.
-        mesg = 'Fitting %s' % (self.__class__.__name__,)
-        with ProgressBar(X.shape[-1], mesg=mesg, position=self.position) as pb:
+        if self.verbose:
+            mesg = 'Fitting %s' % (self.__class__.__name__,)
+            with ProgressBar(X.shape[-1], mesg=mesg,
+                             position=self.position) as pb:
+                estimators = parallel(
+                    p_func(self.base_estimator, split, y, pb.subset(pb_idx),
+                        **fit_params)
+                    for pb_idx, split in array_split_idx(X, n_jobs, axis=-1)
+                )
+        else:
             estimators = parallel(
-                p_func(self.base_estimator, split, y, pb.subset(pb_idx),
-                       **fit_params)
-                for pb_idx, split in array_split_idx(X, n_jobs, axis=-1))
+                p_func(self.base_estimator, split, y, None, **fit_params)
+                for _, split in array_split_idx(X, n_jobs, axis=-1)
+            )
 
         # Each parallel job can have a different number of training estimators
         # We can't directly concatenate them because of sklearn's Bagging API
@@ -129,13 +139,20 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
             _sl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
-        mesg = 'Transforming %s' % (self.__class__.__name__,)
+
         X_splits = np.array_split(X, n_jobs, axis=-1)
         idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
-        with ProgressBar(X.shape[-1], mesg=mesg, position=self.position) as pb:
-            y_pred = parallel(p_func(est, x, method, pb.subset(pb_idx))
-                              for pb_idx, est, x in zip(
-                                  idx, est_splits, X_splits))
+
+        if self.verbose:
+            mesg = 'Transforming %s' % (self.__class__.__name__,)
+            with ProgressBar(X.shape[-1], mesg=mesg,
+                             position=self.position) as pb:
+                y_pred = parallel(p_func(est, x, method, pb.subset(pb_idx))
+                                  for pb_idx, est, x in zip(
+                                    idx, est_splits, X_splits))
+        else:
+            y_pred = parallel(p_func(est, x, method, None)
+                              for est, x in zip(est_splits, X_splits))
 
         y_pred = np.concatenate(y_pred, axis=1)
         return y_pred
@@ -273,7 +290,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         parallel, p_func, n_jobs = parallel_func(
-            _sl_score, self.n_jobs, max_jobs=X.shape[-1])
+            _sl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
         score = parallel(p_func(est, scoring, x, y)
@@ -305,6 +322,8 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     y : array, shape (n_sample, )
         The target values.
+    pb : instance of ProgressBar | None
+        The progress bar to update. If None, no progress bar is used.
     fit_params : dict | None
         Parameters to pass to the fit method of the estimator.
 
@@ -319,7 +338,9 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
         est = clone(estimator)
         est.fit(X[..., ii], y, **fit_params)
         estimators_.append(est)
-        pb.update(ii + 1)
+
+        if pb is not None:
+            pb.update(ii + 1)
     return estimators_
 
 
@@ -337,6 +358,8 @@ def _sl_transform(estimators, X, method, pb):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     method : str
         The estimator method to use (e.g. 'predict', 'transform').
+    pb : instance of ProgressBar | None
+        The progress bar to update. If None, no progress bar is used.
 
     Returns
     -------
@@ -350,7 +373,9 @@ def _sl_transform(estimators, X, method, pb):
         if ii == 0:
             y_pred = _sl_init_pred(_y_pred, X)
         y_pred[:, ii, ...] = _y_pred
-        pb.update(ii + 1)
+
+        if pb is not None:
+            pb.update(ii + 1)
     return y_pred
 
 
