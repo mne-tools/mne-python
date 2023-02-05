@@ -266,8 +266,8 @@ def test_verbose_arg(capsys):
     for n_jobs, verbose in zip([1, 2, 1, 2], [False, False, True, True]):
         estimator = SlidingEstimator(clf, n_jobs=n_jobs, verbose=verbose)
         estimator = estimator.fit(X, y)
-        scores = estimator.score(X, y)
-        pred = estimator.predict(X)
+        estimator.score(X, y)
+        estimator.predict(X)
 
         _, stderr = capsys.readouterr()
         if not verbose:
