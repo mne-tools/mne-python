@@ -255,6 +255,28 @@ def test_generalization_light():
 
 
 @requires_sklearn
+def test_verbose_arg(capsys):
+    """Test controlling output with the ``verbose`` argument."""
+    from sklearn.svm import SVC
+
+    X, y = make_data()
+    clf = SVC()
+
+    # shows progress bar and prints other messages to the console
+    for n_jobs, verbose in zip([1, 2, 1, 2], [False, False, True, True]):
+        estimator = SlidingEstimator(clf, n_jobs=n_jobs, verbose=verbose)
+        estimator = estimator.fit(X, y)
+        scores = estimator.score(X, y)
+        pred = estimator.predict(X)
+
+        _, stderr = capsys.readouterr()
+        if not verbose:
+            assert stderr == ''
+        else:
+            assert len(stderr) > 0
+
+
+@requires_sklearn
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
     from sklearn.linear_model import LinearRegression
