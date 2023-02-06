@@ -84,7 +84,7 @@ ax.xaxis.set_ticks_position('bottom')
 ax.set_xlabel('Condition: "Right"\nTesting Time (s)')
 ax.set_ylabel('Condition: "Left"\nTraining Time (s)')
 ax.set_title('Generalization across time and condition')
-plt.colorbar(im, ax=ax)
+plt.colorbar(im, ax=ax, label='ROC AUC')
 plt.show()
 
 ##############################################################################
