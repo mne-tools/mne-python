@@ -9,7 +9,8 @@ import numpy as np
 
 from ...channels import make_dig_montage
 from ...io.pick import _picks_to_idx
-from ...surface import _read_mri_surface, fast_cross_3d, read_surface
+from ...surface import (_read_mri_surface, fast_cross_3d, read_surface,
+                        _read_patch)
 from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
                            _ensure_trans)
 from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
@@ -110,8 +111,8 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
 
 @verbose
 def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
-                                  picks=None, max_dist=0.006, copy=True,
-                                  verbose=None):
+                                  picks=None, max_dist=0.004, flat=False,
+                                  copy=True, verbose=None):
     """Project sensors onto the brain surface.
 
     Parameters
@@ -121,10 +122,10 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     %(subject)s
     %(subjects_dir)s
     %(picks_base)s only ``seeg`` channels.
-    max_dist : float
-        The maximum distance to project a sensor in meters. Sensors that
-        are greater than this distance from the pial surface will not
-        be assigned locations.
+    %(max_dist_ieeg)s
+    flat : bool
+        Whether to project the sensors onto the flat map of the
+        inflated brain instead of the normal inflated brain.
     copy : bool
         If ``True``, return a new instance of ``info``, if ``False``
         ``info`` is modified in place.
@@ -145,15 +146,26 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surf_data = dict(lh=dict(), rh=dict())
     x_dir = np.array([1., 0., 0.])
+    surfs = ('pial', 'inflated')
+    if flat:
+        surfs += ('cortex.patch.flat',)
     for hemi in ('lh', 'rh'):
-        for surf in ('pial', 'inflated'):
+        for surf in surfs:
             for img in ('', '.T1', '.T2', ''):
                 surf_fname = op.join(subjects_dir, subject, 'surf',
                                      f'{hemi}.{surf}')
                 if op.isfile(surf_fname):
                     break
-            coords, faces = read_surface(surf_fname)
-            if surf == 'inflated':
+            if surf.split('.')[-1] == 'flat':
+                surf = 'flat'
+                coords, faces, orig_faces = _read_patch(surf_fname)
+                # rotate 90 degrees to get to a more standard orientation
+                # where X determines the distance between the hemis
+                coords = coords[:, [1, 0, 2]]
+                coords[:, 1] *= -1
+            else:
+                coords, faces = read_surface(surf_fname)
+            if surf in ('inflated', 'flat'):
                 x_ = coords @ x_dir
                 coords -= np.max(x_) * x_dir if hemi == 'lh' else \
                     np.min(x_) * x_dir
@@ -165,6 +177,7 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     locs = apply_trans(trans, locs)
     # initialize projected locs
     proj_locs = np.zeros(locs.shape) * np.nan
+    surf = 'flat' if flat else 'inflated'
     for hemi in ('lh', 'rh'):
         hemi_picks = np.where(
             locs[:, 0] <= 0 if hemi == 'lh' else locs[:, 0] > 0)[0]
@@ -173,7 +186,7 @@ def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
         for j, idx in enumerate(hemi_picks):
             if dists[:, j].min() / 1000 < max_dist:
                 proj_locs[idx] = \
-                    surf_data[hemi]['inflated'][0][np.argmin(dists[:, j])]
+                    surf_data[hemi][surf][0][np.argmin(dists[:, j])]
     # back to the "head" coordinate frame for storing in ``raw``
     proj_locs = apply_trans(invert_transform(trans), proj_locs)
     montage = info.get_montage()

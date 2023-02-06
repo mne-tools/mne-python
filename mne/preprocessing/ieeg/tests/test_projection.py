@@ -78,15 +78,25 @@ def test_project_sensors_onto_inflated(tmp_path):
     tempdir = str(tmp_path)
     raw = mne.io.read_raw_fif(fname_raw)
     trans = _get_trans(fname_trans)[0]
-    os.makedirs(op.join(tempdir, 'sample', 'surf'), exist_ok=True)
-    for hemi in ('lh', 'rh'):
-        # fake white surface for pial
-        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.white'),
-                 op.join(tempdir, 'sample', 'surf', f'{hemi}.pial'))
-        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.curv'),
-                 op.join(tempdir, 'sample', 'surf', f'{hemi}.curv'))
-        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.inflated'),
-                 op.join(tempdir, 'sample', 'surf', f'{hemi}.inflated'))
+    for subject in ('sample', 'fsaverage'):
+        os.makedirs(op.join(tempdir, subject, 'surf'), exist_ok=True)
+        for hemi in ('lh', 'rh'):
+            # fake white surface for pial
+            copyfile(op.join(subjects_dir, subject, 'surf', f'{hemi}.white'),
+                     op.join(tempdir, subject, 'surf', f'{hemi}.pial'))
+            copyfile(op.join(subjects_dir, subject, 'surf', f'{hemi}.curv'),
+                     op.join(tempdir, subject, 'surf', f'{hemi}.curv'))
+            copyfile(op.join(subjects_dir, subject, 'surf',
+                             f'{hemi}.inflated'),
+                     op.join(tempdir, subject, 'surf', f'{hemi}.inflated'))
+            if subject == 'fsaverage':
+                copyfile(op.join(subjects_dir, subject, 'surf',
+                                 f'{hemi}.cortex.patch.flat'),
+                         op.join(tempdir, subject, 'surf',
+                                 f'{hemi}.cortex.patch.flat'))
+                copyfile(op.join(subjects_dir, subject, 'surf',
+                                 f'{hemi}.sphere'),
+                         op.join(tempdir, subject, 'surf', f'{hemi}.sphere'))
     # now make realistic sEEG locations, picked from T1
     raw.pick_types(meg=False, eeg=True)
     raw.load_data()
@@ -102,13 +112,9 @@ def test_project_sensors_onto_inflated(tmp_path):
     raw.drop_channels(raw.ch_names[len(pos):])
     raw.set_montage(mne.channels.make_dig_montage(
         ch_pos=dict(zip(raw.ch_names, pos)), coord_frame='head'))
-    raw.info = project_sensors_onto_inflated(
+    proj_info = project_sensors_onto_inflated(
         raw.info, trans, 'sample', subjects_dir=tempdir)
-    # plot to check, should be projected down onto inner skull
-    # brain = mne.viz.Brain('sample', subjects_dir=tempdir, alpha=0.5,
-    #                       surf='inflated')
-    # brain.add_sensors(raw.info, trans=trans)
-    assert_allclose(raw.info['chs'][0]['loc'][:3],
+    assert_allclose(proj_info['chs'][0]['loc'][:3],
                     np.array([0.0555809, 0.0034069, -0.04593032]), rtol=0.01)
     # check all on inflated surface
     x_dir = np.array([1., 0., 0.])
@@ -120,9 +126,47 @@ def test_project_sensors_onto_inflated(tmp_path):
         coords -= np.max(x_) * x_dir if hemi == 'lh' else \
             np.min(x_) * x_dir
         coords /= 1000  # mm -> m
-        for ch in raw.info['chs']:
+        for ch in proj_info['chs']:
             loc = ch['loc'][:3]
             if not np.isnan(loc).any() and (loc[0] <= 0) == (hemi == 'lh'):
                 assert np.linalg.norm(
                     coords - mne.transforms.apply_trans(head_mri_t, loc),
                     axis=1).min() < 1e-16
+
+    # test flat map
+    montage = raw.get_montage()
+    montage.apply_trans(mne.transforms.invert_transform(trans))
+    mri_mni_t = mne.read_talxfm('sample', subjects_dir)
+    montage.apply_trans(mri_mni_t)  # mri to mni_tal (MNI Taliarach)
+    montage.apply_trans(
+        mne.transforms.Transform(fro='mni_tal', to='mri', trans=np.eye(4)))
+    raw.set_montage(montage)
+    trans = mne.channels.compute_native_head_t(montage)
+
+    flat_proj_info = project_sensors_onto_inflated(
+        raw.info, trans=trans, subject='fsaverage',
+        subjects_dir=tempdir, flat=True)
+
+    # check all on flat surface
+    x_dir = np.array([1., 0., 0.])
+    head_mri_t = mne.transforms.invert_transform(trans)  # need head->mri
+    for hemi in ('lh', 'rh'):
+        coords, faces, _ = mne.surface._read_patch(
+            op.join(tempdir, 'fsaverage', 'surf', f'{hemi}.cortex.patch.flat'))
+        coords = coords[:, [1, 0, 2]]
+        coords[:, 1] *= -1
+        x_ = coords @ x_dir
+        coords -= np.max(x_) * x_dir if hemi == 'lh' else \
+            np.min(x_) * x_dir
+        coords /= 1000  # mm -> m
+        for ch in flat_proj_info['chs']:
+            loc = ch['loc'][:3]
+            if not np.isnan(loc).any() and (loc[0] <= 0) == (hemi == 'lh'):
+                assert np.linalg.norm(
+                    coords - mne.transforms.apply_trans(head_mri_t, loc),
+                    axis=1).min() < 1e-16
+
+    # plot to check
+    # brain = mne.viz.Brain('fsaverage', subjects_dir=tempdir, alpha=0.5,
+    #                       surf='flat')
+    # brain.add_sensors(flat_proj_info, trans=trans)
