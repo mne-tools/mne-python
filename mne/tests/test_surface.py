@@ -227,7 +227,7 @@ def test_normal_orth():
         assert_allclose(ori[2], nn, atol=1e-12)
 
 
-# 0.06 sec locally even with all these params
+# 0.06 s locally even with all these params
 @pytest.mark.parametrize('dtype', (np.float64, np.uint16, '>i4'))
 @pytest.mark.parametrize('value', (1, 12))
 @pytest.mark.parametrize('smooth', (0, 0.9))

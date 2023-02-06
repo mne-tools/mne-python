@@ -7,6 +7,7 @@ from os import path as op
 from itertools import combinations
 import numpy as np
 
+from ...channels import make_dig_montage
 from ...io.pick import _picks_to_idx
 from ...surface import _read_mri_surface, fast_cross_3d
 from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
@@ -97,6 +98,11 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
         proj_locs[i] = use_rr[np.argmin(surf_dists)]
     # back to the "head" coordinate frame for storing in ``raw``
     proj_locs = apply_trans(invert_transform(trans), proj_locs)
+    montage = info.get_montage()
+    montage_kwargs = montage.get_positions() if montage else \
+        dict(ch_pos=dict(), coord_frame='head')
     for idx, loc in zip(picks_idx, proj_locs):
-        info['chs'][idx]['loc'][:3] = loc
+        # surface RAS-> head and mm->m
+        montage_kwargs['ch_pos'][info.ch_names[idx]] = loc
+    info.set_montage(make_dig_montage(**montage_kwargs))
     return info

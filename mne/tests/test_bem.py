@@ -451,7 +451,7 @@ def test_io_head_bem(tmp_path):
     assert np.allclose(head['tris'], head_defect['tris'])
 
 
-@pytest.mark.slowtest  # ~4 sec locally
+@pytest.mark.slowtest  # ~4 s locally
 def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
     """Test topology checks for make_scalp_surfaces."""
     pytest.importorskip('pyvista')

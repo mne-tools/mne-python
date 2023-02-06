@@ -104,7 +104,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
         bad = ts > times[-1]
         if bad.any():
             raise RuntimeError('All position times must be <= t_end (%0.1f '
-                               'sec), found %s/%s bad values (is this a split '
+                               's), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
     # If it starts close to zero, make it zero (else unique(offset) fails)
     if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
@@ -296,7 +296,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         else:
             this_n = stc_counted[1].data.shape[1]
         this_stop = this_start + this_n
-        logger.info('    Interval %0.3f-%0.3f sec'
+        logger.info('    Interval %0.3f–%0.3f s'
                     % (this_start / info['sfreq'],
                         this_stop / info['sfreq']))
         n_doing = this_stop - this_start

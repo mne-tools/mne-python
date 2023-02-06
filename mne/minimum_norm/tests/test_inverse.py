@@ -924,7 +924,7 @@ _fast_methods.pop(_fast_methods.index('eLORETA'))
 def test_apply_inverse_cov(method, pick_ori):
     """Test MNE with precomputed inverse operator on cov."""
     raw = read_raw_fif(fname_raw, preload=True)
-    # use 10 sec of data
+    # use 10 s of data
     raw.crop(0, 10)
 
     raw.filter(1, None)

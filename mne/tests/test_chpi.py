@@ -402,8 +402,8 @@ def test_calculate_head_pos_chpi_on_chpi5_in_one_second_steps():
     mf_quats = read_head_pos(chpi5_pos_fname)
     raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes')
     # the last two seconds contain a maxfilter problem!
-    # fiff file timing: 26. to 43. seconds
-    # maxfilter estimates a wrong head position for interval 16: 41.-42. sec
+    # fiff file timing: 26. to 43. s
+    # maxfilter estimates a wrong head position for interval 16: 41.-42. s
     raw = _decimate_chpi(raw.crop(0., 10.).load_data(), decim=8)
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
     py_quats = _calculate_chpi_positions(
@@ -555,7 +555,7 @@ def test_calculate_chpi_coil_locs_artemis():
     times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
 
     assert len(np.setdiff1d(times, raw.times + raw.first_time)) == 0
-    # Should be somewhere around 1.5 sec, depending on coil GOF values
+    # Should be somewhere around 1.5 s, depending on coil GOF values
     # around 0.98 it can change
     assert_allclose(times[5], 1.5, atol=2e-1)
     assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)

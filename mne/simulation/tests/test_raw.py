@@ -197,7 +197,7 @@ def raw_data():
 
 def _get_head_pos_sim(raw):
     head_pos_sim = dict()
-    # these will be at 1., 2., ... sec
+    # these will be at 1., 2., ... s
     shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.]]
 
     for time_key, shift in enumerate(shifts):
