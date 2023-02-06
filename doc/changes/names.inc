@@ -50,6 +50,8 @@
 
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
 
+.. _Arne Pelzer: https://github.com/aplzr
+
 .. _Ashley Drew: https://github.com/ashdrew
 
 .. _Asish Panda: https://github.com/kaichogami
