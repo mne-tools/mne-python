@@ -75,16 +75,16 @@ scores = time_gen.score(X=epochs['Right'].get_data(),
 
 # %%
 # Plot
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(constrained_layout=True)
 im = ax.matshow(scores, vmin=0, vmax=1., cmap='RdBu_r', origin='lower',
                 extent=epochs.times[[0, -1, 0, -1]])
 ax.axhline(0., color='k')
 ax.axvline(0., color='k')
 ax.xaxis.set_ticks_position('bottom')
-ax.set_xlabel('Condition: "Right"\nTesting Time (s)')
+ax.set_xlabel('Condition: "Right"\nTesting Time (s)',)
 ax.set_ylabel('Condition: "Left"\nTraining Time (s)')
-ax.set_title('Generalization across time and condition')
-plt.colorbar(im, ax=ax, label='ROC AUC')
+ax.set_title('Generalization across time and condition', fontweight='bold')
+fig.colorbar(im, ax=ax, label='Performance (ROC AUC)')
 plt.show()
 
 ##############################################################################
