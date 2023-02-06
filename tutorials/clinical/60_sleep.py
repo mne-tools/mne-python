@@ -78,7 +78,7 @@ ALICE, BOB = 0, 1
 [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
 
 raw_train = mne.io.read_raw_edf(alice_files[0], stim_channel='Event marker',
-                                misc=['Temp rectal'])
+                                misc=['Temp rectal'], infer_types=True)
 annot_train = mne.read_annotations(alice_files[1])
 
 raw_train.set_annotations(annot_train, emit_warning=False)
@@ -158,7 +158,7 @@ print(epochs_train)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 raw_test = mne.io.read_raw_edf(bob_files[0], stim_channel='Event marker',
-                               misc=['Temp rectal'])
+                               misc=['Temp rectal'], infer_types=True)
 annot_test = mne.read_annotations(bob_files[1])
 annot_test.crop(annot_test[1]['onset'] - 30 * 60,
                 annot_test[-2]['onset'] + 30 * 60)
