@@ -1,7 +1,7 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
-
+import contextlib
 import numpy as np
 
 from .mixin import TransformerMixin
@@ -81,17 +81,17 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         # For fitting, the parallelization is across estimators.
         if self.verbose:
             mesg = 'Fitting %s' % (self.__class__.__name__,)
-            with ProgressBar(X.shape[-1], mesg=mesg,
-                             position=self.position) as pb:
-                estimators = parallel(
-                    p_func(self.base_estimator, split, y, pb.subset(pb_idx),
-                           **fit_params)
-                    for pb_idx, split in array_split_idx(X, n_jobs, axis=-1)
-                )
+            context = ProgressBar(
+                X.shape[-1], mesg=mesg, position=self.position)
         else:
+            context = contextlib.nullcontext()
+
+        with context as pb:
             estimators = parallel(
-                p_func(self.base_estimator, split, y, None, **fit_params)
-                for _, split in array_split_idx(X, n_jobs, axis=-1)
+                p_func(self.base_estimator, split, y,
+                       pb.subset(pb_idx) if self.verbose else None,
+                       **fit_params)
+                for pb_idx, split in array_split_idx(X, n_jobs, axis=-1)
             )
 
         # Each parallel job can have a different number of training estimators
@@ -145,15 +145,17 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
         if self.verbose:
             mesg = 'Transforming %s' % (self.__class__.__name__,)
-            with ProgressBar(X.shape[-1], mesg=mesg,
-                             position=self.position) as pb:
-                y_pred = parallel(
-                    p_func(est, x, method, pb.subset(pb_idx))
-                    for pb_idx, est, x in zip(idx, est_splits, X_splits)
-                )
+            context = ProgressBar(
+                X.shape[-1], mesg=mesg, position=self.position)
         else:
-            y_pred = parallel(p_func(est, x, method, None)
-                              for est, x in zip(est_splits, X_splits))
+            context = contextlib.nullcontext()
+
+        with context as pb:
+            y_pred = parallel(
+                p_func(est, x, method,
+                       pb.subset(pb_idx) if self.verbose else None)
+                for pb_idx, est, x in zip(idx, est_splits, X_splits)
+            )
 
         y_pred = np.concatenate(y_pred, axis=1)
         return y_pred
