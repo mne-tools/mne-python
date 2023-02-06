@@ -1230,22 +1230,24 @@ def test_bad_channels(method, allow_ref_meg):
               allow_ref_meg=allow_ref_meg)
     for inst in [raw, epochs]:
         for ch in chs_bad:
+            picks_dict = {('eyetrack' if ch.startswith('eyetrack')
+                           else str(ch)): True}
             if allow_ref_meg:
                 # Test case for only bad channels
                 picks_bad1 = pick_types(inst.info, meg=False,
                                         ref_meg=False,
-                                        **{str(ch): True})
+                                        **picks_dict)
                 # Test case for good and bad channels
                 picks_bad2 = pick_types(inst.info, meg=True,
                                         ref_meg=True,
-                                        **{str(ch): True})
+                                        **picks_dict)
             else:
                 # Test case for only bad channels
                 picks_bad1 = pick_types(inst.info, meg=False,
-                                        **{str(ch): True})
+                                        **picks_dict)
                 # Test case for good and bad channels
                 picks_bad2 = pick_types(inst.info, meg=True,
-                                        **{str(ch): True})
+                                        **picks_dict)
 
             with pytest.raises(ValueError, match='Invalid channel type'):
                 ica.fit(inst, picks=picks_bad1)

@@ -362,7 +362,9 @@ def _triage_fnirs_pick(ch, fnirs, warned):
 
 def _triage_eyetrack_pick(ch, eyetrack):
     """Triage an eyetrack pick type."""
-    if eyetrack is True:
+    if eyetrack is False:
+        return False
+    elif eyetrack is True:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_PUPIL and \
             'eyetrack_pupil' in eyetrack:
