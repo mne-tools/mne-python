@@ -482,8 +482,52 @@ class RawEyelink(BaseRaw):
                     if tokens[0] == 'END':  # end of recording block
                         is_recording_block = False
                         block_num += 1
+            if not self._event_lines['START']:
+                raise ValueError('Could not determine the start of the'
+                                 ' recording. When converting to ASCII, START'
+                                 ' events should not be suppressed.')
             if not self._sample_lines:  # no samples parsed
                 raise ValueError(f"Couldn't find any samples in {self.fname}")
+            self._validate_data()
+
+    def _validate_data(self):
+        """Check the incoming data for some known problems that can occur."""
+        rec_info = self._event_lines['SAMPLES'][0]
+        n_blocks = len(self._event_lines['START'])
+        sfreq = int(_get_sfreq(rec_info))
+        first_samp = self._event_lines['START'][0][0]
+        self._tracking_mode = ('binocular' if
+                               ('LEFT' in rec_info) and ('RIGHT' in rec_info)
+                               else 'monocular')
+        if sfreq == 2000 and isinstance(first_samp, int):
+            raise ValueError(f'The sampling rate is {sfreq}Hz but the'
+                             ' timestamps were not output as float values.'
+                             ' Check the settings in the EDF2ASC application.')
+        elif sfreq != 2000 and isinstance(first_samp, float):
+            raise ValueError('For recordings with a sampling rate less than'
+                             ' 2000Hz, timestamps should not be output to the'
+                             ' ASCII file as float values. Check the'
+                             ' settings in the EDF2ASC application. Got a'
+                             f' sampling rate of {sfreq}Hz.')
+        if n_blocks > 1:
+            err_msg = 'The sampling frequency changed during the recording.'\
+                      ' This file cannot be read into MNE.'
+            for block_info in self._event_lines['SAMPLES'][1:]:
+                block_sfreq = int(_get_sfreq(block_info))
+                if block_sfreq != sfreq:
+                    raise ValueError(err_msg +
+                                     f' Got both {sfreq} and {block_sfreq} Hz.'
+                                     )
+            if self._tracking_mode == 'monocular':
+                assert rec_info[1] in ['LEFT', 'RIGHT']
+                eye = rec_info[1]
+                blocks_list = self._event_lines['SAMPLES']
+                eye_per_block = [block_info[1] for block_info in blocks_list]
+                if not all([this_eye == eye for this_eye in eye_per_block]):
+                    logger.warn('The eye being tracked changed during the'
+                                ' recording. The channel names will reflect'
+                                ' the eye that was tracked at the start of'
+                                ' the recording.')
 
     def _infer_col_names(self):
         """Build column and channel names for data from Eyelink ASCII file.
@@ -510,10 +554,6 @@ class RawEyelink(BaseRaw):
                                     EYELINK_COLS['saccade'])
 
         # Recording was either binocular or monocular
-        eyes_tracked = ('binocular' if
-                        ('LEFT' in rec_info) and ('RIGHT' in rec_info)
-                        else 'monocular')
-        self._tracking_mode = eyes_tracked
         # If monocular, find out which eye was tracked and append to ch_name
         if self._tracking_mode == 'monocular':
             assert rec_info[1] in ['LEFT', 'RIGHT']
