@@ -28,7 +28,7 @@ DEFAULTS = dict(
                fnirs_cw_amplitude='V', fnirs_fd_ac_amplitude='V',
                fnirs_fd_phase='rad', fnirs_od='V', csd='mV/m²',
                whitened='Z', gsr='S', temperature='C',
-               eyetrack_pos='px', eyetrack_pupil='AU'),
+               eyetrack_pos='AU', eyetrack_pupil='AU'),
     # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,
                   misc=1.0, seeg=1e3, dbs=1e6, ecog=1e6, dipole=1e9, gof=1.0,
