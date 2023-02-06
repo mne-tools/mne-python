@@ -75,14 +75,14 @@ scores = time_gen.score(X=epochs['Right'].get_data(),
 
 # %%
 # Plot
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots()
 im = ax.matshow(scores, vmin=0, vmax=1., cmap='RdBu_r', origin='lower',
                 extent=epochs.times[[0, -1, 0, -1]])
 ax.axhline(0., color='k')
 ax.axvline(0., color='k')
 ax.xaxis.set_ticks_position('bottom')
-ax.set_xlabel('Testing Time (s)')
-ax.set_ylabel('Training Time (s)')
+ax.set_xlabel('"Right" Testing Time (s)')
+ax.set_ylabel('"Left" Training Time (s)')
 ax.set_title('Generalization across time and condition')
 plt.colorbar(im, ax=ax)
 plt.show()
