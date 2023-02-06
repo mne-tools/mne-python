@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn, _record_warnings
+from mne.utils import requires_sklearn, _record_warnings, use_log_level
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 
@@ -263,17 +263,18 @@ def test_verbose_arg(capsys):
     clf = SVC()
 
     # shows progress bar and prints other messages to the console
-    for n_jobs, verbose in zip([1, 2, 1, 2], [False, False, True, True]):
-        estimator = SlidingEstimator(clf, n_jobs=n_jobs, verbose=verbose)
-        estimator = estimator.fit(X, y)
-        estimator.score(X, y)
-        estimator.predict(X)
+    with use_log_level(True) as log:
+        for n_jobs, verbose in zip([1, 2, 1, 2], [False, False, True, True]):
+            estimator = SlidingEstimator(clf, n_jobs=n_jobs, verbose=verbose)
+            estimator = estimator.fit(X, y)
+            estimator.score(X, y)
+            estimator.predict(X)
 
-        _, stderr = capsys.readouterr()
-        if not verbose:
-            assert stderr == ''
-        else:
-            assert len(stderr) > 0
+            stdout, stderr = capsys.readouterr()
+            if not verbose:
+                assert all(channel == '' for channel in (stdout, stderr))
+            else:
+                assert any(len(channel) > 0 for channel in (stdout, stderr))
 
 
 @requires_sklearn
