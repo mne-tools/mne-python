@@ -263,7 +263,7 @@ def test_verbose_arg(capsys):
     clf = SVC()
 
     # shows progress bar and prints other messages to the console
-    with use_log_level(True) as log:
+    with use_log_level(True):
         for n_jobs, verbose in zip([1, 2, 1, 2], [False, False, True, True]):
             estimator = SlidingEstimator(clf, n_jobs=n_jobs, verbose=verbose)
             estimator = estimator.fit(X, y)
