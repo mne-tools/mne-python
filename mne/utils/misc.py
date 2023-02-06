@@ -440,7 +440,7 @@ def _resource_path(submodule, filename):
     -------
     path : str
         The full system path to the requested file.
-    """     
+    """
     return files(submodule).joinpath(filename)
 
 
