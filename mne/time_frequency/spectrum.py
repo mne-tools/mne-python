@@ -760,7 +760,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
-        an additional column "frequency" is added, unless ``index='freq'``
+        an additional column "freq" is added, unless ``index='freq'``
         (in which case frequency values form the DataFrame's index).
 
         Parameters
