@@ -264,17 +264,21 @@ def test_verbose_arg(capsys):
 
     # shows progress bar and prints other messages to the console
     with use_log_level(True):
-        for n_jobs, verbose in zip([1, 2, 1, 2], [False, False, True, True]):
-            estimator = SlidingEstimator(clf, n_jobs=n_jobs, verbose=verbose)
-            estimator = estimator.fit(X, y)
-            estimator.score(X, y)
-            estimator.predict(X)
+        for estimator_object in [SlidingEstimator, GeneralizingEstimator]:
+            for n_jobs, verbose in zip([1, 2, 1, 2],
+                                       [False, False, True, True]):
+                estimator = estimator_object(
+                    clf, n_jobs=n_jobs, verbose=verbose)
+                estimator = estimator.fit(X, y)
+                estimator.score(X, y)
+                estimator.predict(X)
 
-            stdout, stderr = capsys.readouterr()
-            if not verbose:
-                assert all(channel == '' for channel in (stdout, stderr))
-            else:
-                assert any(len(channel) > 0 for channel in (stdout, stderr))
+                stdout, stderr = capsys.readouterr()
+                if not verbose:
+                    assert all(channel == '' for channel in (stdout, stderr))
+                else:
+                    assert any(len(channel) > 0
+                               for channel in (stdout, stderr))
 
 
 @requires_sklearn
