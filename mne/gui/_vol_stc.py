@@ -290,19 +290,19 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _pick_stc_volume(self):
         """Select volume based on the current time, frequency and vertex."""
-        stc_data = self._pick_stc_tfr(self._data)
-        stc_data = self._pick_stc_epoch(stc_data)
+        stc_data = self._pick_stc_epoch(self._data)
         stc_data = self._apply_vector_norm(stc_data)
         stc_data = self._apply_baseline_correction(stc_data)
+        stc_data = self._pick_stc_tfr(stc_data)
         self._stc_img = _make_vol(self._src_lut, stc_data)
         _threshold_array(self._stc_img, *self._get_min_max_val())
 
     def _pick_stc_image(self):
         """Select time-(frequency) image based on vertex."""
-        stc_data = self._pick_stc_vertex(self._data)
-        stc_data = self._pick_stc_epoch(stc_data)
-        stc_data = self._apply_vector_norm(stc_data, axis=0)
+        stc_data = self._pick_stc_epoch(self._data)
+        stc_data = self._apply_vector_norm(stc_data)
         stc_data = self._apply_baseline_correction(stc_data)
+        stc_data = self._pick_stc_vertex(stc_data)
         _threshold_array(stc_data, *self._get_min_max_val())
         return stc_data
 
@@ -372,7 +372,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         if all([coord >= 0 and coord < dim for coord, dim in zip(
                 src_coord, self._src_lut.shape)]) and \
                 self._src_lut[src_coord] >= 0:
-            stc_data = stc_data[:, self._src_lut[src_coord]]
+            stc_data = stc_data[self._src_lut[src_coord]]
         else:  # out-of-bounds or unused vertex
             stc_data = np.zeros(stc_data[:, 0].shape) * np.nan
         return stc_data
@@ -598,7 +598,6 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._stc_plot = self._fig.axes[0].imshow(
                 stc_data, aspect='auto', cmap=self._cmap,
                 interpolation='bicubic')
-            import pdb; pdb.set_trace()
             self._stc_vline = self._fig.axes[0].axvline(
                 x=self._t_idx, color='white', linewidth=0.5)
             self._stc_hline = self._fig.axes[0].axhline(
