@@ -266,7 +266,7 @@ def test_verbose_arg(capsys):
     with use_log_level(True):
         for estimator_object in [SlidingEstimator, GeneralizingEstimator]:
             for n_jobs, verbose in zip([1, 2, 1, 2],
-                                       [False, False, True, True]):
+                                       [False, False, True, 'info']):
                 estimator = estimator_object(
                     clf, n_jobs=n_jobs, verbose=verbose)
                 estimator = estimator.fit(X, y)
@@ -274,7 +274,7 @@ def test_verbose_arg(capsys):
                 estimator.predict(X)
 
                 stdout, stderr = capsys.readouterr()
-                if not verbose:
+                if isinstance(verbose, bool) and not verbose:
                     assert all(channel == '' for channel in (stdout, stderr))
                 else:
                     assert any(len(channel) > 0

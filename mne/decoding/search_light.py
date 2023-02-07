@@ -2,6 +2,7 @@
 #
 # License: BSD-3-Clause
 import contextlib
+import logging
 import numpy as np
 
 from .mixin import TransformerMixin
@@ -9,7 +10,7 @@ from .base import BaseEstimator, _check_estimator
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import (array_split_idx, ProgressBar,
-                     verbose, fill_doc)
+                     verbose, fill_doc, _parse_verbose)
 
 
 @fill_doc
@@ -83,8 +84,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         with context as pb:
             estimators = parallel(
                 p_func(self.base_estimator, split, y,
-                       pb.subset(pb_idx) if self.verbose else None,
-                       **fit_params)
+                       pb.subset(pb_idx) if _check_verbose(self.verbose)
+                       else None, **fit_params)
                 for pb_idx, split in array_split_idx(X, n_jobs, axis=-1)
             )
 
@@ -141,7 +142,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         with context as pb:
             y_pred = parallel(
                 p_func(est, x, method,
-                       pb.subset(pb_idx) if self.verbose else None)
+                       pb.subset(pb_idx) if _check_verbose(self.verbose)
+                       else None)
                 for pb_idx, est, x in zip(idx, est_splits, X_splits)
             )
 
@@ -456,7 +458,8 @@ class GeneralizingEstimator(SlidingEstimator):
         with context as pb:
             y_pred = parallel(
                 p_func(self.estimators_, x_split, method,
-                       pb.subset(pb_idx) if self.verbose else None)
+                       pb.subset(pb_idx) if _check_verbose(self.verbose)
+                       else None)
                 for pb_idx, x_split in array_split_idx(
                     X, n_jobs, axis=-1, n_per_split=len(self.estimators_))
             )
@@ -578,7 +581,8 @@ class GeneralizingEstimator(SlidingEstimator):
         with context as pb:
             score = parallel(
                 p_func(self.estimators_, scoring, x, y,
-                       pb.subset(pb_idx) if self.verbose else None)
+                       pb.subset(pb_idx) if _check_verbose(self.verbose)
+                       else None)
                 for pb_idx, x in array_split_idx(
                     X, n_jobs, axis=-1, n_per_split=len(self.estimators_))
             )
@@ -702,7 +706,7 @@ def _fix_auc(scoring, y):
 
 
 def _create_progressbar_context(inst, X, message):
-    if inst.verbose:
+    if _check_verbose(inst.verbose):
         multiply = (len(inst.estimators_)
                     if isinstance(inst, GeneralizingEstimator) else 1)
         n_steps = X.shape[-1] * max(1, multiply)
@@ -712,3 +716,9 @@ def _create_progressbar_context(inst, X, message):
     else:
         context = contextlib.nullcontext()
     return context
+
+
+def _check_verbose(verbose):
+    logging_level = _parse_verbose(verbose)
+    bool_verbose = logging_level <= logging.INFO
+    return bool_verbose
