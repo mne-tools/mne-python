@@ -56,14 +56,15 @@ def _load_image(img, verbose=None):
     return img_data, vox_ras_t, vox_scan_ras_t
 
 
-def _make_mpl_plot(width=4, height=4, dpi=300, tight=True, hide_axes=True):
+def _make_mpl_plot(width=4, height=4, dpi=300, tight=True, hide_axes=True,
+                   facecolor='black'):
     fig = Figure(figsize=(width, height), dpi=dpi)
     canvas = FigureCanvas(fig)
     ax = fig.subplots()
     if tight:
         fig.subplots_adjust(bottom=0, left=0, right=1, top=1,
                             wspace=0, hspace=0)
-    ax.set_facecolor('k')
+    ax.set_facecolor(facecolor)
     # clean up excess plot text, invert
     ax.invert_yaxis()
     if hide_axes:

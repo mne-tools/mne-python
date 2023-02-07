@@ -85,6 +85,7 @@ def _threshold_array(array, min_val, max_val):
     array = array.astype(float)
     array[array < min_val] = np.nan
     array[array > max_val] = np.nan
+    return array
 
 
 def _int_complex_conj(data):
@@ -190,10 +191,10 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._epoch_idx = 'Average' + ' Power' * self._is_complex
 
         # initialize current 3D image for chosen time and frequency
-        stc_data = self._pick_stc_epoch(self._data)
+        self._stc_data = self._pick_stc_epoch(self._data)
 
         # take the vector magnitude, if scalar, does nothing
-        stc_data_vol = np.linalg.norm(stc_data, axis=1)
+        stc_data_vol = np.linalg.norm(self._stc_data, axis=1)
 
         self._stc_min = np.nanmin(stc_data_vol)
         self._stc_range = np.nanmax(stc_data_vol) - self._stc_min
@@ -225,13 +226,13 @@ class VolSourceEstimateViewer(SliceBrowser):
             extent = [corners[0][x_idx], corners[1][x_idx],
                       corners[1][y_idx], corners[0][y_idx]]
             self._images['stc'].append(self._figs[axis].axes[0].imshow(
-                stc_slice, aspect='auto', extent=extent,
+                stc_slice, aspect='auto', extent=extent, cmap=self._cmap,
                 alpha=self._alpha, zorder=2))
 
         # plot vectors if vector stc
         if self._data.shape[2] > 1:
             assert self._data.shape[2] == 3
-            vectors = self._pick_stc_tfr(stc_data)
+            vectors = self._pick_stc_tfr(self._stc_data)
             # rescale
             vectors = 5 * vectors / (self._stc_min + self._stc_range)
             self._vector_mapper, self._vector_data = self._renderer.quiver3d(
@@ -288,30 +289,29 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._current_slice, self._vox_scan_ras_t,
             self._src_scan_ras_vox_t)).astype(int))
 
-    def _pick_stc_volume(self):
-        """Select volume based on the current time, frequency and vertex."""
+    def _update_stc_pick(self):
+        """Update the normalized data with the epoch picked."""
         stc_data = self._pick_stc_epoch(self._data)
+        self._stc_data = self._apply_baseline_correction(stc_data)
+
+    def _update_stc_volume(self):
+        """Select volume based on the current time, frequency and vertex."""
+        stc_data = self._pick_stc_tfr(self._stc_data)
         stc_data = self._apply_vector_norm(stc_data)
-        stc_data = self._apply_baseline_correction(stc_data)
-        stc_data = self._pick_stc_tfr(stc_data)
         self._stc_img = _make_vol(self._src_lut, stc_data)
-        _threshold_array(self._stc_img, *self._get_min_max_val())
+        self._stc_img = \
+            _threshold_array(self._stc_img, *self._get_min_max_val())
 
     def _pick_stc_image(self):
         """Select time-(frequency) image based on vertex."""
-        stc_data = self._pick_stc_epoch(self._data)
-        stc_data = self._apply_vector_norm(stc_data)
-        stc_data = self._apply_baseline_correction(stc_data)
-        stc_data = self._pick_stc_vertex(stc_data)
-        _threshold_array(stc_data, *self._get_min_max_val())
+        stc_data = self._pick_stc_vertex(self._stc_data)
+        stc_data = self._apply_vector_norm(stc_data, axis=0)
         return stc_data
 
     def _pick_stc_vector(self):
         """Select vector solution based on current time, frequency etc."""
-        stc_data = self._pick_stc_tfr(self._data)
-        stc_data = self._pick_stc_epoch(stc_data)
-        stc_data = self._apply_baseline_correction(stc_data)
-        _threshold_array(stc_data, *self._get_min_max_val())
+        stc_data = self._pick_stc_tfr(self._stc_data)
+        stc_data = _threshold_array(stc_data, *self._get_min_max_val())
         return stc_data
 
     def _pick_stc_epoch(self, stc_data):
@@ -578,7 +578,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         """Configure the plot that shows spectrograms/time-courses."""
         from ._core import _make_mpl_plot
         canvas, self._fig = _make_mpl_plot(
-            dpi=96, tight=False, hide_axes=False)
+            dpi=96, tight=False, hide_axes=False, facecolor='white')
 
         stc_data = self._pick_stc_image()
 
@@ -599,9 +599,9 @@ class VolSourceEstimateViewer(SliceBrowser):
                 stc_data, aspect='auto', cmap=self._cmap,
                 interpolation='bicubic')
             self._stc_vline = self._fig.axes[0].axvline(
-                x=self._t_idx, color='white', linewidth=0.5)
+                x=self._t_idx, color='lime', linewidth=0.5)
             self._stc_hline = self._fig.axes[0].axhline(
-                y=self._f_idx, color='white', linewidth=0.5)
+                y=self._f_idx, color='lime', linewidth=0.5)
             self._cax = self._fig.colorbar(
                 self._stc_plot, ax=self._fig.axes[0])
             self._cax.ax.set_ylabel('Power')
@@ -668,7 +668,8 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._bl_tmin_textbox.setText(str(tmin))
             self._bl_tmax_textbox.setText(str(tmax))
         self._update = True
-        self._update_stc_image()
+        self._update_stc_pick()  # needs both new baseline-corrected
+        self._update_stc_image()  # and then new volume
 
     def _update_baseline(self, name):
         """Update the chosen baseline normalization method."""
@@ -686,7 +687,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         for axis in range(3):
             self._images['stc'][axis].set_cmap(self._cmap)
         self._stc_plot.set_cmap(self._cmap)
-        if self._update:
+        if self._update:  # don't update if bl_tmin, bl_tmax are also changing
+            self._update_stc_pick()
             self._update_stc_image()
 
     def _update_baseline_tmin(self, event):
@@ -704,6 +706,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._bl_tmin_textbox.clearFocus()
         self.setFocus()  # remove focus from textbox
         if self._update:
+            self._update_stc_pick()
             self._update_stc_image()
 
     def _update_baseline_tmax(self, event):
@@ -721,6 +724,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._bl_tmax_textbox.clearFocus()
         self.setFocus()  # remove focus from textbox
         if self._update:
+            self._update_stc_pick()
             self._update_stc_image()
 
     def _update_min_range(self):
@@ -749,7 +753,8 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         self._update_min_range()
         if self._update:
-            self._update_stc_image()
+            self._update_stc_pick()  # if the epoch changes, we need to redo
+            self._update_stc_image()  # both the baseline correction and volume
 
     def set_freq(self, freq):
         """Set the frequency to display (in Hz).
@@ -769,7 +774,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._freq_label.setText(
             f'Freq = {self._inst.freqs[self._f_idx].round(2)} Hz')
         if self._update:
-            self._update_stc_image()
+            self._update_stc_image()  # just need volume updated here
         self._stc_hline.set_ydata([self._f_idx])
         self._update_intensity()
         self._fig.canvas.draw()
@@ -791,7 +796,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._time_label.setText(
             f'Time = {self._inst.times[self._t_idx].round(2)} s')
         if self._update:
-            self._update_stc_image()
+            self._update_stc_image()  # just need volume updated here
         self._stc_vline.set_xdata([self._t_idx])
         self._update_intensity()
         self._fig.canvas.draw()
@@ -859,7 +864,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         else:  # make low values transparent
             ctable[:25, 3] = np.linspace(0, 255, 25)
 
-        self._update_stc_images()
+        self._update_stc_volume()
+        self._update_stc_plots()
         for axis in range(3):
             self._images['stc'][axis].set_clim(vmin, vmax)
             self._images['stc'][axis].set_cmap(cmap)
@@ -941,7 +947,7 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _update_stc_image(self):
         """Update the stc image based on the time and frequency range."""
-        self._pick_stc_volume()
+        self._update_stc_volume()
 
         if self._data.shape[2] > 1:
             vectors = self._pick_stc_vector()
@@ -954,7 +960,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._update_images()
         self._update_cmap()
 
-    def _update_stc_images(self, axis=None, draw=False):
+    def _update_stc_plots(self, axis=None, draw=False):
         """Update the stc image(s)."""
         src_coord = self._get_src_coord()
         for axis in range(3):
@@ -971,6 +977,6 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _update_images(self, axis=None, draw=True):
         """Update images when general changes happen."""
-        self._update_stc_images(axis=axis, draw=draw)
+        self._update_stc_plots(axis=axis, draw=draw)
         self._update_data_plot(draw=draw)
         super()._update_images()
