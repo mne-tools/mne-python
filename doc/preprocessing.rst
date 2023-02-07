@@ -138,7 +138,6 @@ Projections:
    :toctree: generated/
 
    project_sensors_onto_brain
-   project_sensors_onto_inflated
 
 EEG referencing:
 

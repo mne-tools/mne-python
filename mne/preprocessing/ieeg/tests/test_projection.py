@@ -15,8 +15,9 @@ from numpy.testing import assert_allclose
 import pytest
 
 import mne
-from mne.preprocessing.ieeg import (project_sensors_onto_brain,
-                                    project_sensors_onto_inflated)
+from mne.preprocessing.ieeg import project_sensors_onto_brain
+from mne.preprocessing.ieeg._projection import \
+    _project_sensors_onto_inflated
 from mne.datasets import testing
 from mne.transforms import _get_trans
 
@@ -112,7 +113,7 @@ def test_project_sensors_onto_inflated(tmp_path):
     raw.drop_channels(raw.ch_names[len(pos):])
     raw.set_montage(mne.channels.make_dig_montage(
         ch_pos=dict(zip(raw.ch_names, pos)), coord_frame='head'))
-    proj_info = project_sensors_onto_inflated(
+    proj_info = _project_sensors_onto_inflated(
         raw.info, trans, 'sample', subjects_dir=tempdir)
     assert_allclose(proj_info['chs'][0]['loc'][:3],
                     np.array([0.0555809, 0.0034069, -0.04593032]), rtol=0.01)
@@ -143,7 +144,7 @@ def test_project_sensors_onto_inflated(tmp_path):
     raw.set_montage(montage)
     trans = mne.channels.compute_native_head_t(montage)
 
-    flat_proj_info = project_sensors_onto_inflated(
+    flat_proj_info = _project_sensors_onto_inflated(
         raw.info, trans=trans, subject='fsaverage',
         subjects_dir=tempdir, flat=True)
 

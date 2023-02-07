@@ -110,9 +110,9 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
 
 
 @verbose
-def project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
-                                  picks=None, max_dist=0.004, flat=False,
-                                  copy=True, verbose=None):
+def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
+                                   picks=None, max_dist=0.004, flat=False,
+                                   copy=True, verbose=None):
     """Project sensors onto the brain surface.
 
     Parameters

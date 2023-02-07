@@ -2581,7 +2581,8 @@ class Brain(object):
         -----
         .. versionadded:: 0.24
         """
-        from ...preprocessing.ieeg import project_sensors_onto_inflated
+        from ...preprocessing.ieeg._projection import \
+            _project_sensors_onto_inflated
         _validate_type(info, Info, 'info')
         meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
         picks = pick_types(info, meg=('sensors' in meg),
@@ -2592,7 +2593,7 @@ class Brain(object):
         if self._surf in ('inflated', 'flat'):
             for modality, check in dict(seeg=seeg, ecog=ecog).items():
                 if pick_types(info, **{modality: check}).size > 0:
-                    info = project_sensors_onto_inflated(
+                    info = _project_sensors_onto_inflated(
                         info, head_mri_t, subject=self._subject,
                         subjects_dir=self._subjects_dir, picks=modality,
                         max_dist=max_dist, flat=self._surf == 'flat')
