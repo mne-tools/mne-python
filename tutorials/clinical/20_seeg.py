@@ -115,7 +115,7 @@ brain.show_view(distance=400, **view_kwargs)
 # This video may be helpful for understanding the how the annotations on
 # the pial surface translate to the inflated brain and flat map:
 #
-# .. youtube: OOy7t1yq8IM
+# .. youtube:: OOy7t1yq8IM
 brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
                       surf='inflated', background='black')
 brain.add_annotation('aparc.a2009s')
