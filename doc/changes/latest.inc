@@ -42,6 +42,7 @@ Bugs
 - Fix :func:`mne.io.read_raw_edf` when reading EDF data with different sampling rates and a mix of data channels when using ``infer_types=True`` (:gh:`11427` by `Alex Gramfort`_)
 - Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11436` by `Alex Rockhill`_)
 - Fix configuration folder discovery on Windows, which would fail in certain edge cases; and produce a helpful error message if discovery still fails (:gh:`11441` by `Richard Höchenberger`_)
+- Fix how :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` ignored ``verbose`` argument. Now with ``verbose=False`` progress bar is not shown during fitting, scoring etc. (:gh:`11450` by `Mikołaj Magnuski`_)
 
 API changes
 ~~~~~~~~~~~
