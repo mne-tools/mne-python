@@ -81,6 +81,12 @@ def _coord_to_coord(coord, vox_ras_t, ras_vox_t):
     return apply_trans(ras_vox_t, apply_trans(vox_ras_t, coord))
 
 
+def _threshold_array(array, min_val, max_val):
+    array = array.astype(float)
+    array[array < min_val] = np.nan
+    array[array > max_val] = np.nan
+
+
 def _int_complex_conj(data):
     # Since the mixed real * imaginary terms cancel out, the complex
     # conjugate is the same as squaring and adding the real and imaginary.
@@ -271,6 +277,11 @@ class VolSourceEstimateViewer(SliceBrowser):
         if show:
             self.show()
 
+    def _get_min_max_val(self):
+        """Get the minimum and maximum non-transparent values."""
+        return [self._cmap_sliders[i].value() /
+                1000 * self._stc_range + self._stc_min for i in (0, 2)]
+
     def _get_src_coord(self):
         """Get the current slice transformed to source space."""
         return tuple(np.round(_coord_to_coord(
@@ -284,6 +295,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         stc_data = self._apply_vector_norm(stc_data)
         stc_data = self._apply_baseline_correction(stc_data)
         self._stc_img = _make_vol(self._src_lut, stc_data)
+        _threshold_array(self._stc_img, *self._get_min_max_val())
 
     def _pick_stc_image(self):
         """Select time-(frequency) image based on vertex."""
@@ -291,6 +303,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         stc_data = self._pick_stc_epoch(stc_data)
         stc_data = self._apply_vector_norm(stc_data, axis=0)
         stc_data = self._apply_baseline_correction(stc_data)
+        _threshold_array(stc_data, *self._get_min_max_val())
         return stc_data
 
     def _pick_stc_vector(self):
@@ -298,6 +311,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         stc_data = self._pick_stc_tfr(self._data)
         stc_data = self._pick_stc_epoch(stc_data)
         stc_data = self._apply_baseline_correction(stc_data)
+        _threshold_array(stc_data, *self._get_min_max_val())
         return stc_data
 
     def _pick_stc_epoch(self, stc_data):
@@ -584,6 +598,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._stc_plot = self._fig.axes[0].imshow(
                 stc_data, aspect='auto', cmap=self._cmap,
                 interpolation='bicubic')
+            import pdb; pdb.set_trace()
             self._stc_vline = self._fig.axes[0].axvline(
                 x=self._t_idx, color='white', linewidth=0.5)
             self._stc_hline = self._fig.axes[0].axhline(
@@ -663,6 +678,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             return
         self._baseline = name
         self._update_min_range()
+        self._cmap_sliders[0].setValue(0)
+        self._cmap_sliders[1].setValue(500)
+        self._cmap_sliders[2].setValue(1000)
         # all baselines have negative support
         self._cmap = _get_cmap('hot' if name == 'none' and self._pos_support
                                else 'mne')
@@ -754,6 +772,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         if self._update:
             self._update_stc_image()
         self._stc_hline.set_ydata([self._f_idx])
+        self._update_intensity()
         self._fig.canvas.draw()
 
     def set_time(self, time):
@@ -775,6 +794,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         if self._update:
             self._update_stc_image()
         self._stc_vline.set_xdata([self._t_idx])
+        self._update_intensity()
         self._fig.canvas.draw()
 
     def set_alpha(self, alpha):
@@ -890,13 +910,17 @@ class VolSourceEstimateViewer(SliceBrowser):
         if draw:
             self._fig.canvas.draw()
 
-    def _update_moved(self):
-        """Update when cursor position changes."""
-        super()._update_moved()
+    def _update_intensity(self):
+        """Update the intensity label."""
         self._intensity_label.setText(
             'intensity = ' +
             ('{:.3e}' if self._stc_range > 1e5 else '{:.3f}').format(
                 self._stc_img[tuple(self._get_src_coord())]))
+
+    def _update_moved(self):
+        """Update when cursor position changes."""
+        super()._update_moved()
+        self._update_intensity()
 
     @fill_doc
     def set_3d_view(self, roll=None, distance=None, azimuth=None,
@@ -934,17 +958,12 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_stc_images(self, axis=None, draw=False):
         """Update the stc image(s)."""
         src_coord = self._get_src_coord()
-        min_val, max_val = [self._cmap_sliders[i].value() /
-                            1000 * self._stc_range + self._stc_min
-                            for i in (0, 2)]
         for axis in range(3):
             # ensure in bounds
             if src_coord[axis] >= 0 and \
                     src_coord[axis] < self._stc_img.shape[axis]:
                 stc_slice = np.take(
                     self._stc_img, src_coord[axis], axis=axis).T
-                stc_slice[stc_slice < min_val] = np.nan
-                stc_slice[stc_slice > max_val] = np.nan
             else:
                 stc_slice = np.take(self._stc_img, 0, axis=axis).T * np.nan
             self._images['stc'][axis].set_data(stc_slice)
