@@ -1,5 +1,6 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
+#         Thomas S. Binns <t.s.binns@outlook.com>
 # License: BSD-3-Clause
 
 import numpy as np
@@ -322,3 +323,23 @@ def test_return_filtered():
     psd_out, freqs = psd_array_welch(out[0], sfreq=250, n_fft=250)
     freqs_up = int(freqs[psd_out > 0.5][0]), int(freqs[psd_out > 0.5][-1])
     assert (freqs_up != freqs_sig)
+
+
+def test_non_full_rank_data():
+    """Test that the method works with non-full rank data."""
+    n_channels = 10
+    X, _, _ = simulate_data(SNR=0.9, freqs_sig=[4, 13], n_channels=n_channels)
+    info = create_info(ch_names=n_channels, sfreq=250, ch_types='eeg')
+
+    filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
+                              l_trans_bandwidth=1, h_trans_bandwidth=1)
+    filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
+                             l_trans_bandwidth=1, h_trans_bandwidth=1)
+
+    # Make data non full rank
+    rank = 5
+    X[rank:] = X[:rank] #  (an extreme example, but a valid one)
+    assert np.linalg.matrix_rank(X) == rank
+
+    ssd = SSD(info, filt_params_signal, filt_params_noise)
+    ssd.fit(X)
