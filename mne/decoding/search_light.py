@@ -702,13 +702,13 @@ def _fix_auc(scoring, y):
 
 
 def _create_progressbar_context(inst, X, message):
-        if inst.verbose:
-            multiply = (len(inst.estimators_)
-                        if isinstance(inst, GeneralizingEstimator) else 1)
-            n_steps = X.shape[-1] * multiply
-            mesg = f'{message} {inst.__class__.__name__}'
-            context = ProgressBar(
-                n_steps, mesg=mesg, position=inst.position)
-        else:
-            context = contextlib.nullcontext()
-        return context
+    if inst.verbose:
+        multiply = (len(inst.estimators_)
+                    if isinstance(inst, GeneralizingEstimator) else 1)
+        n_steps = X.shape[-1] * max(1, multiply)
+        mesg = f'{message} {inst.__class__.__name__}'
+        context = ProgressBar(
+            n_steps, mesg=mesg, position=inst.position)
+    else:
+        context = contextlib.nullcontext()
+    return context
