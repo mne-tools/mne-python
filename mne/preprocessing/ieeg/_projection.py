@@ -136,7 +136,6 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     -----
     This is useful in sEEG analysis for visualization
     """
-    from scipy.spatial.distance import cdist
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surf_data = dict(lh=dict(), rh=dict())
     x_dir = np.array([1., 0., 0.])
