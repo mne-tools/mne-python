@@ -448,15 +448,18 @@ class GeneralizingEstimator(SlidingEstimator):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
         method = _check_method(self.base_estimator, method)
-        mesg = 'Transforming %s' % (self.__class__.__name__,)
+
         parallel, p_func, n_jobs = parallel_func(
             _gl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
-        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg,
-                         position=self.position) as pb:
+
+        context = _create_progressbar_context(self, X, 'Transforming')
+        with context as pb:
             y_pred = parallel(
-                p_func(self.estimators_, x_split, method, pb.subset(pb_idx))
+                p_func(self.estimators_, x_split, method,
+                       pb.subset(pb_idx) if self.verbose else None)
                 for pb_idx, x_split in array_split_idx(
-                    X, n_jobs, axis=-1, n_per_split=len(self.estimators_)))
+                    X, n_jobs, axis=-1, n_per_split=len(self.estimators_))
+            )
 
         y_pred = np.concatenate(y_pred, axis=2)
         return y_pred
@@ -566,18 +569,19 @@ class GeneralizingEstimator(SlidingEstimator):
         self._check_Xy(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
-        mesg = 'Scoring %s' % (self.__class__.__name__,)
         parallel, p_func, n_jobs = parallel_func(
             _gl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
-        with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg,
-                         position=self.position) as pb:
-            score = parallel(p_func(self.estimators_, scoring, x, y,
-                                    pb.subset(pb_idx))
-                             for pb_idx, x in array_split_idx(
-                                 X, n_jobs, axis=-1,
-                                 n_per_split=len(self.estimators_)))
+
+        context = _create_progressbar_context(self, X, 'Scoring')
+        with context as pb:
+            score = parallel(
+                p_func(self.estimators_, scoring, x, y,
+                       pb.subset(pb_idx) if self.verbose else None)
+                for pb_idx, x in array_split_idx(
+                    X, n_jobs, axis=-1, n_per_split=len(self.estimators_))
+            )
 
         score = np.concatenate(score, axis=1)
         return score
@@ -594,6 +598,10 @@ def _gl_transform(estimators, X, method, pb):
         The training input samples. For each data slice, a clone estimator
         is fitted independently. The feature dimension can be multidimensional
         e.g. X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+    method : str
+        The method to call for each estimator.
+    pb : instance of ProgressBar | None
+        The progress bar to update. If None, no progress bar is used.
 
     Returns
     -------
@@ -617,7 +625,9 @@ def _gl_transform(estimators, X, method, pb):
         if ii == 0:
             y_pred = _gl_init_pred(_y_pred, X, len(estimators))
         y_pred[:, ii, ...] = _y_pred
-        pb.update((ii + 1) * n_iter)
+
+        if pb is not None:
+            pb.update((ii + 1) * n_iter)
     return y_pred
 
 
@@ -650,6 +660,8 @@ def _gl_score(estimators, scoring, X, y, pb):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     y : array, shape (n_samples,) | (n_samples, n_targets)
         The target values.
+    pb : instance of ProgressBar | None
+        The progress bar to update. If None, no progress bar is used.
 
     Returns
     -------
@@ -667,7 +679,9 @@ def _gl_score(estimators, scoring, X, y, pb):
                 dtype = type(_score)
                 score = np.zeros(score_shape, dtype)
             score[ii, jj, ...] = _score
-            pb.update(jj * len(estimators) + ii + 1)
+
+            if pb is not None:
+                pb.update(jj * len(estimators) + ii + 1)
     return score
 
 
