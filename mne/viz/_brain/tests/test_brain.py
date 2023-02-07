@@ -11,6 +11,7 @@
 import os
 import os.path as op
 import sys
+from shutil import copyfile
 
 import pytest
 import numpy as np
@@ -19,7 +20,8 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
                  SourceEstimate, MixedSourceEstimate, write_surface,
-                 VolSourceEstimate, vertex_to_mni, Dipole)
+                 VolSourceEstimate, vertex_to_mni, Dipole, create_info)
+from mne.channels import make_dig_montage
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
@@ -353,6 +355,34 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
         brain.add_sensors(info, trans=fname_trans)
+
+    # test sEEG projection onto inflated
+    # make temp path to fake pial surface
+    tempdir = str(tmp_path)
+    os.makedirs(op.join(tempdir, subject, 'surf'), exist_ok=True)
+    for hemi in ('lh', 'rh'):
+        # fake white surface for pial
+        copyfile(op.join(subjects_dir, subject, 'surf', f'{hemi}.white'),
+                 op.join(tempdir, subject, 'surf', f'{hemi}.pial'))
+        copyfile(op.join(subjects_dir, subject, 'surf', f'{hemi}.curv'),
+                 op.join(tempdir, subject, 'surf', f'{hemi}.curv'))
+        copyfile(op.join(subjects_dir, subject, 'surf',
+                         f'{hemi}.inflated'),
+                 op.join(tempdir, subject, 'surf', f'{hemi}.inflated'))
+
+    brain._subjects_dir = tempdir
+    proj_info = create_info([f'Ch{i}' for i in range(1, 7)], 1000, 'seeg')
+    pos = np.array([[25.85, 9.04, -5.38],
+                    [33.56, 9.04, -5.63],
+                    [40.44, 9.04, -5.06],
+                    [46.75, 9.04, -6.78],
+                    [-30.08, 9.04, 28.23],
+                    [-32.95, 9.04, 37.99],
+                    [-36.39, 9.04, 46.03]]) / 1000
+    proj_info.set_montage(make_dig_montage(
+        ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame='head'))
+    brain.add_sensors(proj_info, trans=fname_trans)
+    brain._subjects_dir = subjects_dir  # put back
 
     # add dipole
     dip = Dipole(times=[0], pos=[[-0.06439933, 0.00733009, 0.06280205]],

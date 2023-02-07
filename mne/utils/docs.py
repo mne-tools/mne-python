@@ -1947,6 +1947,14 @@ match_case : bool
     .. versionadded:: 0.20
 """
 
+docdict['max_dist_ieeg'] = """
+max_dist : float
+    The maximum distance to project a sensor to the pial surface in meters.
+    Sensors that are greater than this distance from the pial surface will
+    not be assigned locations. Projections can be done to the inflated or
+    flat brain.
+"""
+
 docdict['max_iter_multitaper'] = """
 max_iter : int
     Maximum number of iterations to reach convergence when combining the
