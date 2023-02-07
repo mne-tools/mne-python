@@ -79,13 +79,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self.fit_params = fit_params
 
         # For fitting, the parallelization is across estimators.
-        if self.verbose:
-            mesg = 'Fitting %s' % (self.__class__.__name__,)
-            context = ProgressBar(
-                X.shape[-1], mesg=mesg, position=self.position)
-        else:
-            context = contextlib.nullcontext()
-
+        context = _create_progressbar_context(self, X, 'Fitting')
         with context as pb:
             estimators = parallel(
                 p_func(self.base_estimator, split, y,
@@ -143,13 +137,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         X_splits = np.array_split(X, n_jobs, axis=-1)
         idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
 
-        if self.verbose:
-            mesg = 'Transforming %s' % (self.__class__.__name__,)
-            context = ProgressBar(
-                X.shape[-1], mesg=mesg, position=self.position)
-        else:
-            context = contextlib.nullcontext()
-
+        context = _create_progressbar_context(self, X, 'Transforming')
         with context as pb:
             y_pred = parallel(
                 p_func(est, x, method,
@@ -697,3 +685,16 @@ def _fix_auc(scoring, y):
                                  'two-class problems.')
             y = LabelEncoder().fit_transform(y)
     return y
+
+
+def _create_progressbar_context(inst, X, message):
+        if inst.verbose:
+            multiply = (len(inst.estimators_)
+                        if isinstance(inst, GeneralizingEstimator) else 1)
+            n_steps = X.shape[-1] * multiply
+            mesg = f'{message} {inst.__class__.__name__}'
+            context = ProgressBar(
+                n_steps, mesg=mesg, position=inst.position)
+        else:
+            context = contextlib.nullcontext()
+        return context
