@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from . import TransformerMixin, BaseEstimator
 from ..cov import _regularized_covariance, Covariance
@@ -163,6 +162,7 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
+        from scipy import linalg
         self._check_X(X)
         X_aux = X[..., self.picks_, :]
 
@@ -308,6 +308,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
 def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     """Perform dimensionality reduction on the covariance matrices."""
+    from scipy import linalg
     n_channels = cov_signal.shape[0]
     rank_signal = list(compute_rank(
         Covariance(cov_signal, info.ch_names, list(), list(), 0,
