@@ -336,9 +336,9 @@ def test_non_full_rank_data():
     filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
                              l_trans_bandwidth=1, h_trans_bandwidth=1)
 
-    # Make data non full rank
+    # Make data non-full rank
     rank = 5
-    X[rank:] = X[:rank] #  (an extreme example, but a valid one)
+    X[rank:] = X[:rank]  # an extreme example, but a valid one
     assert np.linalg.matrix_rank(X) == rank
 
     ssd = SSD(info, filt_params_signal, filt_params_noise)

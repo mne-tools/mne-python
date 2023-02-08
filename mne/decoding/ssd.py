@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from scipy.linalg import eigh
+import scipy as sp
 
 from . import TransformerMixin, BaseEstimator
 from ..cov import _regularized_covariance, Covariance
@@ -185,7 +185,7 @@ class SSD(BaseEstimator, TransformerMixin):
         cov_signal_red, cov_noise_red, dim_red = (_dimensionality_reduction(
             cov_signal, cov_noise, self.info, self.rank))
 
-        eigvals_, eigvects_ = eigh(
+        eigvals_, eigvects_ = sp.linalg.eigh(
             cov_signal_red, cov_noise_red)
         # sort in descending order
         ix = np.argsort(eigvals_)[::-1]
@@ -308,7 +308,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
 
 def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
-    """Performs dimensionality reduction on the covariance matrices."""
+    """Perform dimensionality reduction on the covariance matrices."""
     n_channels = cov_signal.shape[0]
     rank_signal = list(compute_rank(
         Covariance(cov_signal, info.ch_names, list(), list(), 0,
@@ -318,10 +318,10 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
         Covariance(cov_signal, info.ch_names, list(), list(), 0,
                    verbose=_verbose_safe_false()),
         rank, _handle_default('scalings_cov_rank', None), info).values())[0]
-    rank = np.min([rank_signal, rank_noise]) # should be identical
+    rank = np.min([rank_signal, rank_noise])  # should be identical
 
     if rank < n_channels:
-        eigvals, eigvects = eigh(cov_signal)
+        eigvals, eigvects = sp.linalg.eigh(cov_signal)
         # sort in descending order
         ix = np.argsort(eigvals)[::-1]
         eigvals = eigvals[ix]
@@ -334,7 +334,7 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     else:
         dim_red = np.eye(n_channels)
         logger.info("Preserving covariance rank (%i)" % (rank,))
-    
+
     cov_signal_red = np.matmul(dim_red.T, np.matmul(cov_signal, dim_red))
     cov_noise_red = np.matmul(dim_red.T, np.matmul(cov_noise, dim_red))
     return cov_signal_red, cov_noise_red, dim_red
