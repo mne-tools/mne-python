@@ -94,7 +94,7 @@ def test_plot_epochs_colors(epochs, browser_backend):
 
 def test_plot_epochs_scale_bar(epochs, browser_backend):
     """Test scale bar for epochs."""
-    fig = epochs.plot(events=None)
+    fig = epochs.plot(events=False)
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
     if browser_backend.name == "pyqtgraph":

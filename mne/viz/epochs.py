@@ -806,10 +806,11 @@ def plot_epochs(
     title : str | None
         The title of the window. If None, the event names (from
         ``epochs.event_id``) will be displayed. Defaults to None.
-    events : None | array, shape (n_events, 3)
+    events : False | True | array, shape (n_events, 3)
         Events to show with vertical bars. You can use `~mne.viz.plot_events`
         as a legend for the colors. By default, the coloring scheme is the
-        same. Defaults to ``None``.
+        same. ``True`` plots ``epochs.events``. Defaults to ``False`` (do not
+        plot events).
 
         .. warning::  If the epochs have been resampled, the events no longer
             align with the data.
@@ -918,8 +919,6 @@ def plot_epochs(
     unit_scalings = _handle_default("scalings", None)
     decim, picks_data = _handle_decim(epochs.info.copy(), decim, None)
     noise_cov = _check_cov(noise_cov, epochs.info)
-    if event_id is True:  # use epochs.event_id
-        event_id = epochs.event_id
     event_id_rev = {v: k for k, v in (event_id or {}).items()}
     _check_option("group_by", group_by, ("selection", "position", "original", "type"))
     # validate epoch_colors
@@ -949,9 +948,17 @@ def plot_epochs(
 
     # events
     if events is None:
+        warn(
+            "The current default events=None is deprecated. If you want to plot events that are contained in the Epochs"
+            " object, use events=True. If you want to plot custom events, pass the corresponding events array as the "
+            "argument. If you do not want to plot events, use events=False.",
+            category=DeprecationWarning
+        )
+        events = False
+    if events is False:
         event_nums = None
         event_times = None
-    else:
+    else:  # True or ndarray
         if events is True:  # use epochs.events
             events = epochs.events
         event_nums = events[:, 2]
