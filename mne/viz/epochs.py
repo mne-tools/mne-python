@@ -949,9 +949,11 @@ def plot_epochs(
     # events
     if events is None:
         warn(
-            "The current default events=None is deprecated. If you want to plot events that are contained in the Epochs"
-            " object, use events=True. If you want to plot custom events, pass the corresponding events array as the "
-            "argument. If you do not want to plot events, use events=False.",
+            "The current default events=None is deprecated. If you want to "
+            "plot events that are contained in the Epochs object, use "
+            "events=True. If you want to plot custom events, pass the "
+            "corresponding events array as the argument. If you do not want to"
+            " plot events, use events=False.",
             category=DeprecationWarning
         )
         events = False
