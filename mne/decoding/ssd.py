@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
-import scipy as sp
+from scipy import linalg
 
 from . import TransformerMixin, BaseEstimator
 from ..cov import _regularized_covariance, Covariance
@@ -185,8 +185,7 @@ class SSD(BaseEstimator, TransformerMixin):
         cov_signal_red, cov_noise_red, dim_red = (_dimensionality_reduction(
             cov_signal, cov_noise, self.info, self.rank))
 
-        eigvals_, eigvects_ = sp.linalg.eigh(
-            cov_signal_red, cov_noise_red)
+        eigvals_, eigvects_ = linalg.eigh(cov_signal_red, cov_noise_red)
         # sort in descending order
         ix = np.argsort(eigvals_)[::-1]
         self.eigvals_ = np.real(eigvals_[ix])
@@ -321,7 +320,7 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     rank = np.min([rank_signal, rank_noise])  # should be identical
 
     if rank < n_channels:
-        eigvals, eigvects = sp.linalg.eigh(cov_signal)
+        eigvals, eigvects = linalg.eigh(cov_signal)
         # sort in descending order
         ix = np.argsort(eigvals)[::-1]
         eigvals = eigvals[ix]
