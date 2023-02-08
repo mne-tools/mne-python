@@ -461,7 +461,7 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
             new_dict[key] = value
         return new_dict
     elif event_color is None:  # make a dict from color cycle
-        uniq_events = set() if events is None else np.unique(events[:, 2])
+        uniq_events = set() if events is False else np.unique(events[:, 2])
         return _handle_event_colors(event_color, uniq_events, event_id)
     else:  # if event_color is a MPL color-like thing, use it for all events
         return defaultdict(lambda: event_color)
