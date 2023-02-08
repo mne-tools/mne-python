@@ -2594,7 +2594,7 @@ class Brain(object):
             for modality, check in dict(seeg=seeg, ecog=ecog).items():
                 if pick_types(info, **{modality: check}).size > 0:
                     info = _project_sensors_onto_inflated(
-                        info, head_mri_t, subject=self._subject,
+                        info.copy(), head_mri_t, subject=self._subject,
                         subjects_dir=self._subjects_dir, picks=modality,
                         max_dist=max_dist, flat=self._surf == 'flat')
         del trans

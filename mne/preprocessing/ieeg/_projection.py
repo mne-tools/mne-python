@@ -10,7 +10,7 @@ import numpy as np
 from ...channels import make_dig_montage
 from ...io.pick import _picks_to_idx
 from ...surface import (_read_mri_surface, fast_cross_3d, read_surface,
-                        _read_patch)
+                        _read_patch, _compute_nearest)
 from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
                            _ensure_trans)
 from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
@@ -112,7 +112,7 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
 @verbose
 def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
                                    picks=None, max_dist=0.004, flat=False,
-                                   copy=True, verbose=None):
+                                   verbose=None):
     """Project sensors onto the brain surface.
 
     Parameters
@@ -126,9 +126,6 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     flat : bool
         Whether to project the sensors onto the flat map of the
         inflated brain instead of the normal inflated brain.
-    copy : bool
-        If ``True``, return a new instance of ``info``, if ``False``
-        ``info`` is modified in place.
     %(verbose)s
 
     Returns
@@ -139,10 +136,6 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     -----
     This is useful in sEEG analysis for visualization
     """
-    from scipy.spatial.distance import cdist
-    _validate_type(copy, bool, 'copy')
-    if copy:
-        info = info.copy()
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surf_data = dict(lh=dict(), rh=dict())
     x_dir = np.array([1., 0., 0.])
@@ -182,11 +175,10 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
         hemi_picks = np.where(
             locs[:, 0] <= 0 if hemi == 'lh' else locs[:, 0] > 0)[0]
         # compute distances to pial vertices
-        dists = cdist(surf_data[hemi]['pial'][0], locs[hemi_picks])
-        for j, idx in enumerate(hemi_picks):
-            if dists[:, j].min() / 1000 < max_dist:
-                proj_locs[idx] = \
-                    surf_data[hemi][surf][0][np.argmin(dists[:, j])]
+        nearest, dists = _compute_nearest(
+            surf_data[hemi]['pial'][0], locs[hemi_picks], return_dists=True)
+        mask = dists / 1000 < max_dist
+        proj_locs[hemi_picks[mask]] = surf_data[hemi][surf][0][nearest[mask]]
     # back to the "head" coordinate frame for storing in ``raw``
     proj_locs = apply_trans(invert_transform(trans), proj_locs)
     montage = info.get_montage()
