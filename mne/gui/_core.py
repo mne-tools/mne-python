@@ -272,9 +272,6 @@ class SliceBrowser(QMainWindow):
         self._VOX_textbox.setMaximumHeight(25)
         self._VOX_textbox.setMinimumWidth(75)
         self._VOX_textbox.focusOutEvent = self._update_VOX
-        self._VOX_textbox.textChanged.connect(partial(
-            self._check_update_textbox, textbox=self._VOX_textbox,
-            callback=self._update_VOX))
         hbox.addWidget(VOX_label)
         hbox.addWidget(self._VOX_textbox)
 
@@ -283,9 +280,6 @@ class SliceBrowser(QMainWindow):
         self._RAS_textbox.setMaximumHeight(25)
         self._RAS_textbox.setMinimumWidth(150)
         self._RAS_textbox.focusOutEvent = self._update_RAS
-        self._RAS_textbox.textChanged.connect(partial(
-            self._check_update_textbox, textbox=self._RAS_textbox,
-            callback=self._update_RAS))
         hbox.addWidget(RAS_label)
         hbox.addWidget(self._RAS_textbox)
         self._update_moved()  # update text now
@@ -389,12 +383,6 @@ class SliceBrowser(QMainWindow):
     def _current_slice(self):
         return self._vox.round().astype(int)
 
-    @Slot()
-    def _check_update_textbox(self, event, textbox, callback):
-        """Check whether a textbox is done being edited."""
-        if '\n' in textbox.text():
-            callback(event)
-
     def _draw(self, axis=None):
         """Update the figures with a draw call."""
         for axis in (range(3) if axis is None else [axis]):
@@ -438,17 +426,23 @@ class SliceBrowser(QMainWindow):
         if event.key() == 'escape':
             self.close()
 
-        if event.text() == 'h':
+        elif event.key() == QtCore.Qt.Key_Return:
+            for widget in (self._RAS_textbox, self._VOX_textbox):
+                if widget.hasFocus():
+                    widget.clearFocus()
+                    self.setFocus()  # removing focus calls focus out event
+
+        elif event.text() == 'h':
             self._show_help()
 
-        if event.text() in ('=', '+', '-'):
+        elif event.text() in ('=', '+', '-'):
             self._zoom(sign=-2 * (event.text() == '-') + 1, draw=True)
 
         # Changing slices
-        if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down,
-                           QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
-                           QtCore.Qt.Key_Comma, QtCore.Qt.Key_Period,
-                           QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown):
+        elif event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down,
+                             QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
+                             QtCore.Qt.Key_Comma, QtCore.Qt.Key_Period,
+                             QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown):
             ras = np.array(self._ras)
             if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
                 ras[2] += 2 * (event.key() == QtCore.Qt.Key_Up) - 1
