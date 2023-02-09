@@ -328,8 +328,7 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
         est.fit(X[..., ii], y, **fit_params)
         estimators_.append(est)
 
-        if pb is not None:
-            pb.update(ii + 1)
+        pb.update(ii + 1)
     return estimators_
 
 
@@ -363,8 +362,7 @@ def _sl_transform(estimators, X, method, pb):
             y_pred = _sl_init_pred(_y_pred, X)
         y_pred[:, ii, ...] = _y_pred
 
-        if pb is not None:
-            pb.update(ii + 1)
+        pb.update(ii + 1)
     return y_pred
 
 
