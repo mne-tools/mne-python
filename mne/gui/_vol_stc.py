@@ -17,8 +17,10 @@ from matplotlib.colors import LinearSegmentedColormap
 from ._core import SliceBrowser
 from .. import BaseEpochs
 from ..baseline import rescale, _check_baseline
+from ..evoked import EvokedArray
 from ..time_frequency import EpochsTFR
 from ..io.constants import FIFF
+from ..io.pick import _get_channel_types
 from ..transforms import apply_trans
 from ..utils import (_require_version, _validate_type, _check_range, fill_doc,
                      _check_option)
@@ -105,7 +107,7 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     @_qt_safe_window(splash='_renderer.figure.splash', window='')
     def __init__(self, data, subject=None, subjects_dir=None, src=None,
-                 inst=None, show=True, verbose=None):
+                 inst=None, show_topomap=True, show=True, verbose=None):
         """View a volume time and/or frequency source time course estimate.
 
         Parameters
@@ -124,8 +126,10 @@ class VolSourceEstimateViewer(SliceBrowser):
             The volume source space for the ``stc``.
         inst : EpochsTFR | AverageTFR | None
             The time-frequency or data object to use to plot topography.
+        show_topomap : bool
+            Show the sensor topomap if ``True``.
         show : bool
-            Show the GUI if True.
+            Show the GUI if ``True``.
         block : bool
             Whether to halt program execution until the figure is closed.
         %(verbose)s
@@ -169,6 +173,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._data = data
         self._src = src
         self._inst = inst
+        self._show_topomap = show_topomap
         (self._src_lut, self._src_vox_scan_ras_t, self._src_vox_ras_t,
          self._src_rr) = _get_src_lut(src)
         self._src_scan_ras_vox_t = np.linalg.inv(self._src_vox_scan_ras_t)
@@ -192,7 +197,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._epoch_idx = 'Average' + ' Power' * self._is_complex
 
         # initialize current 3D image for chosen time and frequency
-        stc_data = self._pick_stc_epoch(self._data)
+        stc_data = self._pick_epoch(self._data)
 
         # take the vector magnitude, if scalar, does nothing
         self._stc_data_vol = np.linalg.norm(stc_data, axis=1)
@@ -297,7 +302,7 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _update_stc_pick(self):
         """Update the normalized data with the epoch picked."""
-        stc_data = self._pick_stc_epoch(self._data)
+        stc_data = self._pick_epoch(self._data)
         self._stc_data_vol = self._apply_vector_norm(stc_data)
         self._stc_data_vol = self._apply_baseline_correction(
             self._stc_data_vol)
@@ -344,7 +349,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         """Select time-(frequency) image based on vertex."""
         return self._pick_stc_vertex(self._stc_data_vol)
 
-    def _pick_stc_epoch(self, stc_data):
+    def _pick_epoch(self, stc_data):
         """Select the source time course epoch based on the parameters."""
         if self._epoch_idx == 'Average':
             if stc_data.dtype == BASE_INT_DTYPE:
@@ -420,7 +425,15 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         plot_vbox = QVBoxLayout()
         plot_vbox.addLayout(self._plt_grid)
-        plot_vbox.addWidget(data_plot)
+
+        if self._show_topomap:
+            data_hbox = QHBoxLayout()
+            topo_plot = self._configure_topo_plot()
+            data_hbox.addWidget(topo_plot)
+            data_hbox.addWidget(data_plot)
+            plot_vbox.addLayout(data_hbox)
+        else:
+            plot_vbox.addWidget(data_plot)
 
         main_hbox = QHBoxLayout()
         main_hbox.addLayout(slider_bar)
@@ -583,6 +596,19 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         hbox.addStretch(3 if self._f_idx is None else 2)
 
+        if self._show_topomap:
+            hbox.addWidget(QLabel('Topo Data='))
+            self._data_type_selector = QComboBox()
+            self._data_type_selector.addItems(
+                _get_channel_types(self._inst.info, unique=True))
+            self._data_type_selector.currentTextChanged.connect(
+                self._update_data_type)
+            self._data_type_selector.setSizeAdjustPolicy(
+                QComboBox.AdjustToContents)
+            self._data_type_selector.keyPressEvent = self.keyPressEvent
+            hbox.addWidget(self._data_type_selector)
+            hbox.addStretch(1)
+
         if self._f_idx is not None:
             hbox.addWidget(QLabel('Interpolate'))
             self._interp_button = QPushButton('On')
@@ -610,7 +636,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         canvas, self._fig = _make_mpl_plot(
             dpi=96, tight=False, hide_axes=False, facecolor='white')
 
-        self._fig.axes[0].set_position([0.1, 0.25, 0.75, 0.6])
+        self._fig.axes[0].set_position([0.15, 0.25, 0.7, 0.6])
         self._fig.axes[0].set_xlabel('Time (s)')
         self._fig.axes[0].set_xticks(
             [0, self._inst.times.size // 2, self._inst.times.size - 1])
@@ -632,6 +658,46 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._fig.canvas.mpl_connect(
             'button_release_event', self._on_data_plot_click)
         canvas.setMinimumHeight(int(self.size().height() * 0.4))
+        canvas.keyPressEvent = self.keyPressEvent
+        return canvas
+
+    def _plot_topomap(self):
+        self._topo_fig.axes[0].clear()
+        if isinstance(self._inst, EpochsTFR):
+            inst_data = self._inst.data
+        elif isinstance(self._inst, BaseEpochs):
+            inst_data = self._inst.get_data()
+        else:
+            inst_data = self._inst.data[None]  # new axis for single epoch
+
+        evo_data = self._pick_epoch(inst_data)
+
+        if self._f_idx is not None:
+            evo_data = evo_data[:, self._f_idx]
+
+        ave = EvokedArray(evo_data, self._inst.info, tmin=self._inst.times[0])
+
+        if self._baseline != 'none':
+            ave.apply_baseline(
+                baseline=(float(self._bl_tmin), float(self._bl_tmax)),
+                mode=self._baseline)
+
+        ave.plot_topomap(times=self._inst.times[self._t_idx],
+                         ch_type=self._data_type_selector.currentText(),
+                         axes=(self._topo_fig.axes[0], self._topo_cax),
+                         show=False)
+        self._topo_fig.axes[0].set_title('')
+        self._topo_fig.canvas.draw()
+
+    def _configure_topo_plot(self):
+        """Configure the plot that shows spectrograms/time-courses."""
+        from ._core import _make_mpl_plot
+        canvas, self._topo_fig = _make_mpl_plot(
+            dpi=96, tight=False, hide_axes=False, facecolor='white')
+        self._topo_cax = self._topo_fig.add_axes((0.8, 0.1, 0.05, 0.75))
+        self._plot_topomap()
+        canvas.setMinimumHeight(int(self.size().height() * 0.4))
+        canvas.setMaximumWidth(int(self.size().width() * 0.4))
         canvas.keyPressEvent = self.keyPressEvent
         return canvas
 
@@ -761,6 +827,10 @@ class VolSourceEstimateViewer(SliceBrowser):
         if self._update:
             self._update_stc_all()
 
+    def _update_data_type(self, dtype):
+        """Update which data type is shown in the topomap."""
+        self._plot_topomap()
+
     def _update_data_plot_ylabel(self):
         """Update the ylabel of the data plot."""
         if self._epoch_idx == 'ITC':
@@ -806,6 +876,8 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._update_stc_image()  # just need volume updated here
         self._stc_hline.set_ydata([self._f_idx])
         self._update_intensity()
+        if self._show_topomap and self._update:
+            self._plot_topomap()
         self._fig.canvas.draw()
 
     def set_time(self, time):
@@ -829,6 +901,8 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._update_stc_image()  # just need volume updated here
         self._stc_vline.set_xdata([self._t_idx])
         self._update_intensity()
+        if self._show_topomap and self._update:
+            self._plot_topomap()
         self._fig.canvas.draw()
 
     def set_alpha(self, alpha):
@@ -908,10 +982,6 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._update_stc_volume()
             self._update_stc_plots(draw=draw)
 
-        # update vector mask
-        self._update_vec_threshold()
-        self._update_vectors(draw=False)
-
         if self._f_idx is None:
             self._fig.axes[0].set_ylim([vmin, vmax])
         else:
@@ -928,6 +998,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             return
 
         if self._data.shape[2] > 1 and not self._is_complex:
+            # update vector mask
+            self._update_vec_threshold()
+            self._update_vectors(draw=False)
             self._renderer._set_colormap_range(
                 actor=self._vector_actor, ctable=ctable, scalar_bar=None,
                 rng=[vmin, vmax])

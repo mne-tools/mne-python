@@ -53,13 +53,11 @@ def test_slice_browser_display(renderer_interactive_pyvistaqt):
     # test RAS
     gui._RAS_textbox.setText('10 10 10')
     gui._RAS_textbox.focusOutEvent(event=None)
-    _fake_keypress(gui, QtCore.Qt.Key_Return)
     assert_allclose(gui._ras, [10, 10, 10])
 
     # test vox
     gui._VOX_textbox.setText('150, 150, 150')
     gui._VOX_textbox.focusOutEvent(event=None)
-    _fake_keypress(gui, QtCore.Qt.Key_Return)
     assert_allclose(gui._ras, [23, 22, 23])
 
     # test click

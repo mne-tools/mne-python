@@ -249,7 +249,8 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 @verbose
 def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
-                 src=None, inst=None, show=True, block=False, verbose=None):
+                 src=None, inst=None, show_topomap=True, show=True,
+                 block=False, verbose=None):
     """View a volume time and/or frequency source time course estimate.
 
     Parameters
@@ -276,6 +277,8 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
         The volume source space for the ``stc``.
     inst : EpochsTFR | AverageTFR | None
         The time-frequency or data object to use to plot topography.
+    show_topomap : bool
+        Whether to show the sensor topomap in the GUI.
     show : bool
         Show the GUI if True.
     block : bool
@@ -328,7 +331,7 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
 
     gui = VolSourceEstimateViewer(
         data, subject=subject, subjects_dir=subjects_dir,
-        src=src, inst=inst, show=show,
+        src=src, inst=inst, show_topomap=show_topomap, show=show,
         verbose=verbose)
     if block:
         _qt_app_exec(app)
