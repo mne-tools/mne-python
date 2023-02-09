@@ -39,8 +39,8 @@ class ProgressBar(object):
         The max value. If None, the length of ``iterable`` will be used.
     which_tqdm : str | None
         Which tqdm module to use. Can be "tqdm", "tqdm.notebook", or "off".
-        Defaults to "auto", which uses the value of the MNE_TQDM environment
-        variable, or "tqdm.auto" if that is not set.
+        Defaults to ``None``, which uses the value of the MNE_TQDM environment
+        variable, or ``"tqdm.auto"`` if that is not set.
     **kwargs : dict
         Additional keyword arguments for tqdm.
     """
