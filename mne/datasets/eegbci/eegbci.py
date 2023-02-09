@@ -11,6 +11,7 @@ from pathlib import Path
 from ...utils import _url_to_local_path, verbose
 from ..utils import _do_path_update, _get_path
 
+# TODO: remove try/except when our min version is py 3.9
 try:
     from importlib.resources import files
 except ImportError:
