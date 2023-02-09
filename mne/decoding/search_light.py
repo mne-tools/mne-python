@@ -311,8 +311,8 @@ def _sl_fit(estimator, X, y, pb, **fit_params):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     y : array, shape (n_sample, )
         The target values.
-    pb : instance of ProgressBar | None
-        The progress bar to update. If None, no progress bar is used.
+    pb : instance of ProgressBar
+        The progress bar to update.
     fit_params : dict | None
         Parameters to pass to the fit method of the estimator.
 
@@ -346,8 +346,8 @@ def _sl_transform(estimators, X, method, pb):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     method : str
         The estimator method to use (e.g. 'predict', 'transform').
-    pb : instance of ProgressBar | None
-        The progress bar to update. If None, no progress bar is used.
+    pb : instance of ProgressBar
+        The progress bar to update.
 
     Returns
     -------
@@ -594,8 +594,8 @@ def _gl_transform(estimators, X, method, pb):
         e.g. X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     method : str
         The method to call for each estimator.
-    pb : instance of ProgressBar | None
-        The progress bar to update. If None, no progress bar is used.
+    pb : instance of ProgressBar
+        The progress bar to update.
 
     Returns
     -------
@@ -653,8 +653,8 @@ def _gl_score(estimators, scoring, X, y, pb):
         X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
     y : array, shape (n_samples,) | (n_samples, n_targets)
         The target values.
-    pb : instance of ProgressBar | None
-        The progress bar to update. If None, no progress bar is used.
+    pb : instance of ProgressBar
+        The progress bar to update.
 
     Returns
     -------
