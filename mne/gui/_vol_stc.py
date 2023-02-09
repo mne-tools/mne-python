@@ -684,8 +684,8 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         ave.plot_topomap(times=self._inst.times[self._t_idx],
                          ch_type=self._data_type_selector.currentText(),
-                         axes=(self._topo_fig.axes[0], self._topo_cax),
-                         show=False)
+                         axes=self._topo_fig.axes[0],
+                         colorbar=False, show=False)
         self._topo_fig.axes[0].set_title('')
         self._topo_fig.canvas.draw()
 
@@ -694,7 +694,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         from ._core import _make_mpl_plot
         canvas, self._topo_fig = _make_mpl_plot(
             dpi=96, tight=False, hide_axes=False, facecolor='white')
-        self._topo_cax = self._topo_fig.add_axes((0.8, 0.1, 0.05, 0.75))
+        # Topomap colorbar could be added later, a bit too much clutter though
+        # self._topo_cax = self._topo_fig.add_axes((0.8, 0.1, 0.05, 0.75))
         self._plot_topomap()
         canvas.setMinimumHeight(int(self.size().height() * 0.4))
         canvas.setMaximumWidth(int(self.size().width() * 0.4))
