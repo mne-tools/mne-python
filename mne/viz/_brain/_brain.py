@@ -243,6 +243,7 @@ class Brain(object):
         from ..backends.renderer import backend, _get_renderer
 
         _validate_type(subject, str, 'subject')
+        self._surf = surf
         if hemi is None:
             hemi = 'vol'
         hemi = self._check_hemi(hemi, extras=('both', 'split', 'vol'))
@@ -2559,7 +2560,8 @@ class Brain(object):
 
     @verbose
     def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
-                    ecog=True, seeg=True, dbs=True, verbose=None):
+                    ecog=True, seeg=True, dbs=True, max_dist=0.004,
+                    verbose=None):
         """Add mesh objects to represent sensor positions.
 
         Parameters
@@ -2572,12 +2574,15 @@ class Brain(object):
         %(ecog)s
         %(seeg)s
         %(dbs)s
+        %(max_dist_ieeg)s
         %(verbose)s
 
         Notes
         -----
         .. versionadded:: 0.24
         """
+        from ...preprocessing.ieeg._projection import \
+            _project_sensors_onto_inflated
         _validate_type(info, Info, 'info')
         meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
         picks = pick_types(info, meg=('sensors' in meg),
@@ -2585,8 +2590,15 @@ class Brain(object):
                            ecog=ecog, seeg=seeg, dbs=dbs,
                            fnirs=(len(fnirs) > 0))
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        if self._surf in ('inflated', 'flat'):
+            for modality, check in dict(seeg=seeg, ecog=ecog).items():
+                if pick_types(info, **{modality: check}).size > 0:
+                    info = _project_sensors_onto_inflated(
+                        info.copy(), head_mri_t, subject=self._subject,
+                        subjects_dir=self._subjects_dir, picks=modality,
+                        max_dist=max_dist, flat=self._surf == 'flat')
         del trans
-        # get transforms to "mri"window
+        # get transforms to "mri" window
         to_cf_t = _get_transforms_to_coord_frame(
             info, head_mri_t, coord_frame='mri')
         if pick_types(info, eeg=True, exclude=()).size > 0 and \
