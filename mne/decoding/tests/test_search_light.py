@@ -277,8 +277,7 @@ def test_verbose_arg(capsys, n_jobs, verbose):
             if isinstance(verbose, bool) and not verbose:
                 assert all(channel == '' for channel in (stdout, stderr))
             else:
-                assert any(len(channel) > 0
-                            for channel in (stdout, stderr))
+                assert any(len(channel) > 0 for channel in (stdout, stderr))
 
 
 @requires_sklearn
