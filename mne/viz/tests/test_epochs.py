@@ -413,11 +413,11 @@ def test_plot_epochs_ctf(raw_ctf, browser_backend):
     )
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
-    epochs.plot()
+    epochs.plot(events=False)
     browser_backend._close_all()
 
     # test butterfly
-    fig = epochs.plot(butterfly=True)
+    fig = epochs.plot(events=False, butterfly=True)
     # leave fullscreen testing to Raw / _figure abstraction (too annoying here)
     keys = (
         "b",
