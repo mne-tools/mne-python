@@ -1,7 +1,6 @@
 # Author: Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD-3-Clause
-import contextlib
 import logging
 import numpy as np
 
