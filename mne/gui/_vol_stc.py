@@ -197,11 +197,6 @@ class VolSourceEstimateViewer(SliceBrowser):
         # take the vector magnitude, if scalar, does nothing
         self._stc_data_vol = np.linalg.norm(stc_data, axis=1)
 
-        # also compute vectors for chosen time-frequency
-        self._stc_data_vec = self._pick_stc_tfr(stc_data).astype(float)
-        self._stc_data_vec /= abs(self._stc_data_vec).max()
-        self._stc_data_vec_masked = self._stc_data_vec.copy()
-
         self._stc_min = np.nanmin(self._stc_data_vol)
         self._stc_range = np.nanmax(self._stc_data_vol) - self._stc_min
 
@@ -238,6 +233,11 @@ class VolSourceEstimateViewer(SliceBrowser):
         # plot vectors if vector stc, complex-valued data is represented as
         # power so vectors would be constrained to first quadrant -- don't plot
         if self._data.shape[2] > 1 and not self._is_complex:
+            # also compute vectors for chosen time
+            self._stc_data_vec = self._pick_stc_tfr(stc_data).astype(float)
+            self._stc_data_vec /= abs(self._stc_data_vec).max()
+            self._stc_data_vec_masked = self._stc_data_vec.copy()
+
             assert self._data.shape[2] == 3
             self._vector_mapper, self._vector_data = self._renderer.quiver3d(
                 *self._src_rr.T,
@@ -307,10 +307,11 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._stc_data_vol[inf_mask] = np.nan
         self._stc_min = np.nanmin(self._stc_data_vol)
         self._stc_range = np.nanmax(self._stc_data_vol) - self._stc_min
-        # pick vector as well
-        self._stc_data_vec = self._pick_stc_tfr(stc_data).astype(float)
-        self._stc_data_vec /= abs(self._stc_data_vec).max()
-        self._update_vec_threshold()
+        if self._data.shape[2] > 1 and not self._is_complex:
+            # pick vector as well
+            self._stc_data_vec = self._pick_stc_tfr(stc_data).astype(float)
+            self._stc_data_vec /= abs(self._stc_data_vec).max()
+            self._update_vec_threshold()
 
     def _update_vec_threshold(self):
         """Update the threshold for the vectors."""
