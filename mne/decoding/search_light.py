@@ -84,8 +84,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         with context as pb:
             estimators = parallel(
                 p_func(self.base_estimator, split, y,
-                       pb.subset(pb_idx) if _check_verbose(self.verbose)
-                       else None, **fit_params)
+                       pb.subset(pb_idx), **fit_params)
                 for pb_idx, split in array_split_idx(X, n_jobs, axis=-1)
             )
 
@@ -141,9 +140,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         context = _create_progressbar_context(self, X, 'Transforming')
         with context as pb:
             y_pred = parallel(
-                p_func(est, x, method,
-                       pb.subset(pb_idx) if _check_verbose(self.verbose)
-                       else None)
+                p_func(est, x, method, pb.subset(pb_idx))
                 for pb_idx, est, x in zip(idx, est_splits, X_splits)
             )
 
@@ -457,9 +454,7 @@ class GeneralizingEstimator(SlidingEstimator):
         context = _create_progressbar_context(self, X, 'Transforming')
         with context as pb:
             y_pred = parallel(
-                p_func(self.estimators_, x_split, method,
-                       pb.subset(pb_idx) if _check_verbose(self.verbose)
-                       else None)
+                p_func(self.estimators_, x_split, method, pb.subset(pb_idx))
                 for pb_idx, x_split in array_split_idx(
                     X, n_jobs, axis=-1, n_per_split=len(self.estimators_))
             )
@@ -580,9 +575,7 @@ class GeneralizingEstimator(SlidingEstimator):
         context = _create_progressbar_context(self, X, 'Scoring')
         with context as pb:
             score = parallel(
-                p_func(self.estimators_, scoring, x, y,
-                       pb.subset(pb_idx) if _check_verbose(self.verbose)
-                       else None)
+                p_func(self.estimators_, scoring, x, y, pb.subset(pb_idx))
                 for pb_idx, x in array_split_idx(
                     X, n_jobs, axis=-1, n_per_split=len(self.estimators_))
             )
@@ -630,8 +623,7 @@ def _gl_transform(estimators, X, method, pb):
             y_pred = _gl_init_pred(_y_pred, X, len(estimators))
         y_pred[:, ii, ...] = _y_pred
 
-        if pb is not None:
-            pb.update((ii + 1) * n_iter)
+        pb.update((ii + 1) * n_iter)
     return y_pred
 
 
@@ -684,8 +676,7 @@ def _gl_score(estimators, scoring, X, y, pb):
                 score = np.zeros(score_shape, dtype)
             score[ii, jj, ...] = _score
 
-            if pb is not None:
-                pb.update(jj * len(estimators) + ii + 1)
+            pb.update(jj * len(estimators) + ii + 1)
     return score
 
 
@@ -706,15 +697,16 @@ def _fix_auc(scoring, y):
 
 
 def _create_progressbar_context(inst, X, message):
-    if _check_verbose(inst.verbose):
-        multiply = (len(inst.estimators_)
-                    if isinstance(inst, GeneralizingEstimator) else 1)
-        n_steps = X.shape[-1] * max(1, multiply)
-        mesg = f'{message} {inst.__class__.__name__}'
-        context = ProgressBar(
-            n_steps, mesg=mesg, position=inst.position)
-    else:
-        context = contextlib.nullcontext()
+    """Create a progress bar taking into account ``inst.verbose``."""
+    multiply = (len(inst.estimators_)
+                if isinstance(inst, GeneralizingEstimator) else 1)
+    n_steps = X.shape[-1] * max(1, multiply)
+    mesg = f'{message} {inst.__class__.__name__}'
+
+    which_tqdm = 'off' if not _check_verbose(inst.verbose) else 'auto'
+    context = ProgressBar(n_steps, mesg=mesg, position=inst.position,
+                          which_tqdm=which_tqdm)
+
     return context
 
 
