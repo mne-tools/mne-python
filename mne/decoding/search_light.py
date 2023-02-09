@@ -700,7 +700,7 @@ def _create_progressbar_context(inst, X, message):
     n_steps = X.shape[-1] * max(1, multiply)
     mesg = f'{message} {inst.__class__.__name__}'
 
-    which_tqdm = 'off' if not _check_verbose(inst.verbose) else 'auto'
+    which_tqdm = 'off' if not _check_verbose(inst.verbose) else None
     context = ProgressBar(n_steps, mesg=mesg, position=inst.position,
                           which_tqdm=which_tqdm)
 

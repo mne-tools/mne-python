@@ -255,7 +255,9 @@ def test_generalization_light():
 
 
 @requires_sklearn
-def test_verbose_arg(capsys):
+@pytest.mark.parametrize('n_jobs, verbose',
+                         [(1, False), (2, False), (1, True), (2, 'info')])
+def test_verbose_arg(capsys, n_jobs, verbose):
     """Test controlling output with the ``verbose`` argument."""
     from sklearn.svm import SVC
 
@@ -265,20 +267,18 @@ def test_verbose_arg(capsys):
     # shows progress bar and prints other messages to the console
     with use_log_level(True):
         for estimator_object in [SlidingEstimator, GeneralizingEstimator]:
-            for n_jobs, verbose in zip([1, 2, 1, 2],
-                                       [False, False, True, 'info']):
-                estimator = estimator_object(
-                    clf, n_jobs=n_jobs, verbose=verbose)
-                estimator = estimator.fit(X, y)
-                estimator.score(X, y)
-                estimator.predict(X)
+            estimator = estimator_object(
+                clf, n_jobs=n_jobs, verbose=verbose)
+            estimator = estimator.fit(X, y)
+            estimator.score(X, y)
+            estimator.predict(X)
 
-                stdout, stderr = capsys.readouterr()
-                if isinstance(verbose, bool) and not verbose:
-                    assert all(channel == '' for channel in (stdout, stderr))
-                else:
-                    assert any(len(channel) > 0
-                               for channel in (stdout, stderr))
+            stdout, stderr = capsys.readouterr()
+            if isinstance(verbose, bool) and not verbose:
+                assert all(channel == '' for channel in (stdout, stderr))
+            else:
+                assert any(len(channel) > 0
+                            for channel in (stdout, stderr))
 
 
 @requires_sklearn
