@@ -31,6 +31,8 @@ COMPLEX_DTYPE = np.dtype([('re', BASE_INT_DTYPE),
 RANGE_VALUE = 2**15
 RANGE_SQRT = 2**8  # round up so no overflow
 
+VECTOR_SCALAR = 10
+
 
 def _check_consistent(items, name):
     if not len(items):
@@ -196,7 +198,9 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._stc_data_vol = np.linalg.norm(stc_data, axis=1)
 
         # also compute vectors for chosen time-frequency
-        self._stc_data_vec = self._pick_stc_tfr(stc_data)
+        self._stc_data_vec = self._pick_stc_tfr(stc_data).astype(float)
+        self._stc_data_vec /= abs(self._stc_data_vec).max()
+        self._stc_data_vec_masked = self._stc_data_vec.copy()
 
         self._stc_min = np.nanmin(self._stc_data_vol)
         self._stc_range = np.nanmax(self._stc_data_vol) - self._stc_min
@@ -231,14 +235,15 @@ class VolSourceEstimateViewer(SliceBrowser):
                 stc_slice, aspect='auto', extent=extent, cmap=self._cmap,
                 alpha=self._alpha, zorder=2))
 
-        # plot vectors if vector stc
-        if self._data.shape[2] > 1:
+        # plot vectors if vector stc, complex-valued data is represented as
+        # power so vectors would be constrained to first quadrant -- don't plot
+        if self._data.shape[2] > 1 and not self._is_complex:
             assert self._data.shape[2] == 3
-            vectors = 5 * self._stc_data_vec / \
-                (self._stc_min + self._stc_range)  # rescale
             self._vector_mapper, self._vector_data = self._renderer.quiver3d(
-                *self._src_rr.T, *vectors.T, color=None, mode='2darrow',
-                scale_mode='vector', scale=1, opacity=1)
+                *self._src_rr.T,
+                *(VECTOR_SCALAR * self._stc_data_vec_masked.T),
+                color=None, mode='2darrow', scale_mode='vector', scale=1,
+                opacity=1)
             self._vector_actor = self._renderer._actor(self._vector_mapper)
             self._vector_actor.GetProperty().SetLineWidth(2.)
             self._renderer.plotter.add_actor(self._vector_actor, render=False)
@@ -293,8 +298,9 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_stc_pick(self):
         """Update the normalized data with the epoch picked."""
         stc_data = self._pick_stc_epoch(self._data)
-        stc_data = self._apply_baseline_correction(stc_data)
         self._stc_data_vol = self._apply_vector_norm(stc_data)
+        self._stc_data_vol = self._apply_baseline_correction(
+            self._stc_data_vol)
         # deal with baseline infinite numbers
         inf_mask = np.isinf(self._stc_data_vol)
         if inf_mask.any():
@@ -302,7 +308,20 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._stc_min = np.nanmin(self._stc_data_vol)
         self._stc_range = np.nanmax(self._stc_data_vol) - self._stc_min
         # pick vector as well
-        self._stc_data_vec = self._pick_stc_tfr(stc_data)
+        self._stc_data_vec = self._pick_stc_tfr(stc_data).astype(float)
+        self._stc_data_vec /= abs(self._stc_data_vec).max()
+        self._update_vec_threshold()
+
+    def _update_vec_threshold(self):
+        """Update the threshold for the vectors."""
+        # apply threshold, must be different for vectors, can't be
+        # baseline corrected the same way
+        vec_norms = np.linalg.norm(self._stc_data_vec, axis=1)
+        self._stc_data_vec_masked = self._stc_data_vec.copy()
+        self._stc_data_vec_masked[
+            vec_norms < self._cmap_sliders[0].value() / 1000] = np.nan
+        self._stc_data_vec_masked[
+            vec_norms > self._cmap_sliders[2].value() / 1000] = np.nan
 
     def _update_stc_volume(self):
         """Select volume based on the current time, frequency and vertex."""
@@ -684,8 +703,6 @@ class VolSourceEstimateViewer(SliceBrowser):
         tmin : float
             The minimum baseline time
         """  # noqa E501
-        if self._epoch_idx == 'ITC':
-            raise ValueError('Baseline correction cannot be performed for ITC')
         _check_option('mode', mode, ('mean', 'ratio', 'logratio', 'percent',
                                      'zscore', 'zlogratio', 'none', None))
         self._update = False
@@ -762,6 +779,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._cmap_sliders[0].setValue(0)
             self._cmap_sliders[1].setValue(500)
             self._cmap_sliders[2].setValue(1000)
+            self._baseline_selector.setCurrentText('none')
 
         if self._update:
             self._update_stc_all()
@@ -889,6 +907,10 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._update_stc_volume()
             self._update_stc_plots(draw=draw)
 
+        # update vector mask
+        self._update_vec_threshold()
+        self._update_vectors(draw=False)
+
         if self._f_idx is None:
             self._fig.axes[0].set_ylim([vmin, vmax])
         else:
@@ -904,7 +926,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         if not update_3d:
             return
 
-        if self._data.shape[2] > 1:
+        if self._data.shape[2] > 1 and not self._is_complex:
             self._renderer._set_colormap_range(
                 actor=self._vector_actor, ctable=ctable, scalar_bar=None,
                 rng=[vmin, vmax])
@@ -984,16 +1006,21 @@ class VolSourceEstimateViewer(SliceBrowser):
             elevation=elevation, focalpoint=focalpoint, reset_camera=False)
         self._renderer._update()
 
+    def _update_vectors(self, draw=True):
+        """Update the vector plots."""
+        if self._data.shape[2] > 1 and not self._is_complex:
+            self._vector_data.point_data['vec'] = \
+                VECTOR_SCALAR * self._stc_data_vec_masked
+            if draw:
+                self._renderer._update()
+
     def _update_stc_image(self):
         """Update the stc image based on the time and frequency range."""
         self._update_stc_volume()
         self._update_cmap()  # note: this updates stc slice plots
         self._update_data_plot()
 
-        if self._data.shape[2] > 1:
-            self._vector_data.point_data['vec'] = \
-                5 * self._stc_data_vec / (self._stc_min + self._stc_range)
-
+        self._update_vectors()
         self._grid.cell_data['values'] = np.where(
             np.isnan(self._stc_img), 0., self._stc_img).flatten(order='F')
 
