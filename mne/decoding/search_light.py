@@ -711,6 +711,7 @@ def _create_progressbar_context(inst, X, message):
 
 
 def _check_verbose(verbose):
+    """Check if verbose is above or equal 'INFO' level."""
     logging_level = _parse_verbose(verbose)
     bool_verbose = logging_level <= logging.INFO
     return bool_verbose
