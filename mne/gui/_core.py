@@ -57,7 +57,7 @@ def _load_image(img, verbose=None):
 
 
 def _make_mpl_plot(width=4, height=4, dpi=300, tight=True, hide_axes=True,
-                   facecolor='black'):
+                   facecolor='black', invert=True):
     fig = Figure(figsize=(width, height), dpi=dpi)
     canvas = FigureCanvas(fig)
     ax = fig.subplots()
@@ -66,7 +66,8 @@ def _make_mpl_plot(width=4, height=4, dpi=300, tight=True, hide_axes=True,
                             wspace=0, hspace=0)
     ax.set_facecolor(facecolor)
     # clean up excess plot text, invert
-    ax.invert_yaxis()
+    if invert:
+        ax.invert_yaxis()
     if hide_axes:
         ax.set_xticks([])
         ax.set_yticks([])
@@ -301,10 +302,16 @@ class SliceBrowser(QMainWindow):
         """Zoom in on the image."""
         delta = _ZOOM_STEP_SIZE * sign
         for axis, fig in enumerate(self._figs):
-            xmid = self._images['cursor_v'][axis].get_xdata()[0]
-            ymid = self._images['cursor_h'][axis].get_ydata()[0]
+            xcur = self._images['cursor_v'][axis].get_xdata()[0]
+            ycur = self._images['cursor_h'][axis].get_ydata()[0]
             xmin, xmax = fig.axes[0].get_xlim()
             ymin, ymax = fig.axes[0].get_ylim()
+            xmid = (xmin + xmax) / 2
+            xmid += delta / 2 * np.sign(xcur - xmid) if \
+                delta / 2 < abs(xmid - xcur) else xcur - xmid
+            ymid = (ymin + ymax) / 2
+            ymid += delta / 2 * np.sign(ycur - ymid) if \
+                delta / 2 < abs(ymid - ycur) else ycur - ymid
             xwidth = (xmax - xmin) / 2 - delta
             ywidth = (ymax - ymin) / 2 - delta
             if xwidth <= 0 or ywidth <= 0:
