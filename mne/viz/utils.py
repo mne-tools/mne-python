@@ -924,11 +924,12 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
-    ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
+    ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | array_like | None
         Channel groups for coloring the sensors. If None (default), default
         coloring scheme is used. If 'position', the sensors are divided
         into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
-        array, the channels are divided by picks given in the array.
+        array, the channels are divided by picks given in the array. Also accepts
+        list of lists or an object array to allow channel groups of different sizes.
 
         .. versionadded:: 0.13.0
     to_sphere : bool
@@ -1024,7 +1025,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        if ch_groups in ['position', 'selection']:
+        if isinstance(ch_groups, str) and ch_groups in ['position', 'selection']:
             # Avoid circular import
             from ..channels import (read_vectorview_selection, _SELECTIONS,
                                     _EEG_SELECTIONS, _divide_to_regions)
