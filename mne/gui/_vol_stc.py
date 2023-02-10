@@ -34,6 +34,7 @@ RANGE_VALUE = 2**15
 RANGE_SQRT = 2**8  # round up so no overflow
 
 VECTOR_SCALAR = 25
+SLIDER_WIDTH = 300
 
 
 def _check_consistent(items, name):
@@ -290,8 +291,8 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _get_min_max_val(self):
         """Get the minimum and maximum non-transparent values."""
-        return [self._cmap_sliders[i].value() /
-                1000 * self._stc_range + self._stc_min for i in (0, 2)]
+        return [self._cmap_sliders[i].value() / SLIDER_WIDTH *
+                self._stc_range + self._stc_min for i in (0, 2)]
 
     def _get_src_coord(self):
         """Get the current slice transformed to source space."""
@@ -504,10 +505,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             def mouseReleaseEvent(self, event):
                 if event.button() == QtCore.Qt.LeftButton:
                     event.accept()
-                    x = event.pos().x()
-                    value = (self.maximum() - self.minimum()) * \
-                        x / self.width() + self.minimum()
-                    value = np.clip(value, self.minimum(), self.maximum())
+                    value = np.clip(event.pos().x(), 0, SLIDER_WIDTH)
                     self.setValue(int(round(value)))
                 else:
                     super(Slider, self).mouseReleaseEvent(event)
@@ -521,7 +519,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             if sfun is not None:
                 slider.valueChanged.connect(sfun)
             slider.keyPressEvent = self.keyPressEvent
-            slider.setMinimumWidth(300)
+            slider.setMinimumWidth(SLIDER_WIDTH)
             return slider
 
         slider_layout = QVBoxLayout()
@@ -566,9 +564,10 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         slider_layout.addWidget(make_label('min / mid / max'))
         self._cmap_sliders = [
-            make_slider(0, 1000, 0, self._update_cmap),
-            make_slider(0, 1000, 500, self._update_cmap),
-            make_slider(0, 1000, 1000, self._update_cmap)]
+            make_slider(0, SLIDER_WIDTH, 0, self._update_cmap),
+            make_slider(0, SLIDER_WIDTH, SLIDER_WIDTH // 2,
+                        self._update_cmap),
+            make_slider(0, SLIDER_WIDTH, SLIDER_WIDTH, self._update_cmap)]
         for slider in self._cmap_sliders:
             slider_layout.addWidget(slider)
         slider_layout.addStretch(1)
@@ -699,7 +698,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             evo_data = evo_data[:, self._f_idx]
 
         if self._baseline != 'none':
-            rescale(evo_data, times=self._inst.times,
+            rescale(evo_data.astype(float), times=self._inst.times,
                     baseline=(float(self._bl_tmin), float(self._bl_tmax)),
                     mode=self._baseline, copy=False)
 
@@ -814,8 +813,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         """Update the chosen baseline normalization method."""
         self._baseline = name
         self._cmap_sliders[0].setValue(0)
-        self._cmap_sliders[1].setValue(500)
-        self._cmap_sliders[2].setValue(1000)
+        self._cmap_sliders[1].setValue(SLIDER_WIDTH // 2)
+        self._cmap_sliders[2].setValue(SLIDER_WIDTH)
         # all baselines have negative support
         self._cmap = _get_cmap('hot' if name == 'none' and self._pos_support
                                else 'mne')
@@ -874,8 +873,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         # reset sliders
         if name == 'ITC' != self._epoch_idx == 'ITC':
             self._cmap_sliders[0].setValue(0)
-            self._cmap_sliders[1].setValue(500)
-            self._cmap_sliders[2].setValue(1000)
+            self._cmap_sliders[1].setValue(SLIDER_WIDTH // 2)
+            self._cmap_sliders[2].setValue(SLIDER_WIDTH)
             self._baseline_selector.setCurrentText('none')
 
         if self._update:
@@ -970,7 +969,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         for i, val in enumerate((vmin, vmid, vmax)):
             if val is not None:
                 _check_range(val, 0, 1, name)
-                self._cmap_sliders[i].setValue(int(round(val * 1000)))
+                self._cmap_sliders[i].setValue(int(round(val * SLIDER_WIDTH)))
         self._update = True
         self._update_cmap()
 
@@ -993,9 +992,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._cmap_sliders[1].setValue(self._cmap_sliders[0].value())
         self._update = update_tmp
 
-        vmin, vmid, vmax = [val / 1000 * self._stc_range + self._stc_min
-                            for val in (self._cmap_sliders[i].value()
-                                        for i in range(3))]
+        vmin, vmid, vmax = [
+            val / SLIDER_WIDTH * self._stc_range + self._stc_min
+            for val in (self._cmap_sliders[i].value() for i in range(3))]
         mid_pt = (vmid - vmin) / (vmax - vmin)
         ctable = self._cmap(np.concatenate([
             np.linspace(0, mid_pt, 128), np.linspace(mid_pt, 1, 128)]))
