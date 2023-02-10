@@ -130,6 +130,7 @@ requires_pandas = partial(requires_module, name='pandas')
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn')
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
+requires_xarray = partial(requires_module, name='xarray')
 
 
 def requires_mne_mark():

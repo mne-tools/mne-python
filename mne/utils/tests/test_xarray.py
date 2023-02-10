@@ -1,8 +1,11 @@
 import numpy as np
 import mne
+from mne.utils import requires_xarray
 
 
+@requires_xarray
 def test_conversion_to_xarray():
+    """Test conversion of mne object to xarray DataArray."""
     import xarray as xr
     from mne.utils.xarray import to_xarray
 
