@@ -33,7 +33,7 @@ COMPLEX_DTYPE = np.dtype([('re', BASE_INT_DTYPE),
 RANGE_VALUE = 2**15
 RANGE_SQRT = 2**8  # round up so no overflow
 
-VECTOR_SCALAR = 50
+VECTOR_SCALAR = 25
 
 
 def _check_consistent(items, name):
