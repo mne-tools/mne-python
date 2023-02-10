@@ -236,8 +236,6 @@ class VolSourceEstimateViewer(SliceBrowser):
                 stc_slice, aspect='auto', extent=extent, cmap=self._cmap,
                 alpha=self._alpha, zorder=2))
 
-        # plot vectors if vector stc, complex-valued data is represented as
-        # power so vectors would be constrained to first quadrant -- don't plot
         self._data_max = abs(stc_data).max()
         if self._data.shape[2] > 1 and not self._is_complex:
             # also compute vectors for chosen time
@@ -505,7 +503,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             def mouseReleaseEvent(self, event):
                 if event.button() == QtCore.Qt.LeftButton:
                     event.accept()
-                    value = np.clip(event.pos().x(), 0, SLIDER_WIDTH)
+                    value = (self.maximum() - self.minimum()) * \
+                        event.pos().x() / self.width() + self.minimum()
+                    value = np.clip(value, 0, SLIDER_WIDTH)
                     self.setValue(int(round(value)))
                 else:
                     super(Slider, self).mouseReleaseEvent(event)
@@ -555,8 +555,9 @@ class VolSourceEstimateViewer(SliceBrowser):
         slider_layout.addStretch(1)
 
         slider_layout.addWidget(make_label('Alpha'))
-        self._alpha_slider = make_slider(0, 100, int(self._alpha * 100),
-                                         self._update_alpha)
+        self._alpha_slider = make_slider(
+            0, SLIDER_WIDTH, int(self._alpha * SLIDER_WIDTH),
+            self._update_alpha)
         slider_layout.addWidget(self._alpha_slider)
         self._alpha_label = make_label(f'Alpha = {self._alpha}')
         slider_layout.addWidget(self._alpha_label)
@@ -944,7 +945,7 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _update_alpha(self, event=None):
         """Update stc plot alpha."""
-        self._alpha = self._alpha_slider.value() / 100
+        self._alpha = round(self._alpha_slider.value() / SLIDER_WIDTH, 2)
         self._alpha_label.setText(f'Alpha = {self._alpha}')
         for axis in range(3):
             self._images['stc'][axis].set_alpha(self._alpha)
