@@ -55,3 +55,4 @@ dependencies:
 - eeglabio
 - edflib-python
 - pybv
+- xarray
