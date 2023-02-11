@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def to_xarray(inst, picks=None, copy=True):
+def to_xarray(inst, picks=None):
     """Convert MNE object instance to xarray DataArray.
 
     Parameters
@@ -11,8 +11,6 @@ def to_xarray(inst, picks=None, copy=True):
     picks : list of str | array-like of int | None
         Channels to include. If None only good data channels are kept.
         (I couldn't use @fill_doc here, so I put this temporarily here)
-    copy : bool
-        If ``True``, return a copy of the data. Defaults to ``True``.
 
     Returns
     -------
@@ -39,7 +37,6 @@ def to_xarray(inst, picks=None, copy=True):
         coords['epoch'] = np.arange(inst.n_epochs)
 
     data = inst.get_data(picks=picks)
-    data = data.copy() if copy else data
     xarr = DataArray(data, dims=dims, coords=coords)
 
     # add channel types as additional dimension coordinate

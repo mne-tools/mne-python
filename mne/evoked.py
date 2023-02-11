@@ -877,14 +877,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                default_index=['time'])
         return df
 
-    def to_xarray(self, picks=None, copy=True):
-        """Export evoked data as an xarray DataArray.
+    @fill_doc
+    def to_xarray(self, picks=None):
+        """Export a copy of evoked data as an xarray DataArray.
 
         Parameters
         ----------
         %(picks_all)s
-        copy : bool
-            If ``True``, return a copy of the data. Defaults to ``True``.
 
         Returns
         -------
@@ -896,7 +895,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.1.3
         """
         _check_xarray_installed()
-        return to_xarray(self, picks=picks, copy=copy)
+        return to_xarray(self, picks=picks)
 
 
 @fill_doc
