@@ -725,7 +725,7 @@ plt.show()
 # %%
 # Similarly, in a P300 paradigm reported by
 # Kappenman & Luck (2010) :footcite:`KappenmanLuck2010`,
-# they found that applying a 1&nbsp;Hz high-pass decreased the probability of
+# they found that applying a :unit:`1 Hz` high-pass decreased the probability of
 # finding a significant difference in the N100 response, likely because
 # the P300 response was smeared (and inverted) in time by the high-pass
 # filter such that it tended to cancel out the increased N100. However,
