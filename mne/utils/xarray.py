@@ -19,7 +19,8 @@ def to_xarray(inst, picks=None):
     """
     from xarray import DataArray
     from .. import Epochs, Evoked
-    from mne.utils import _validate_type
+    from . import _validate_type
+    from ..io.pick import _picks_to_idx
 
     _validate_type(inst, (Epochs, Evoked))
 
@@ -31,6 +32,10 @@ def to_xarray(inst, picks=None):
         raise ValueError('MNE instance must be Epochs or Evoked.')
 
     coords = dict(chan=inst.ch_names)
+    if picks is not None:
+        picks = _picks_to_idx(inst.info, picks, exclude=[])
+        coords['chan'] = [inst.ch_names[pck] for pck in picks]
+
     if 'time' in dims:
         coords['time'] = inst.times
     if 'epoch' in dims:
@@ -40,5 +45,7 @@ def to_xarray(inst, picks=None):
     xarr = DataArray(data, dims=dims, coords=coords)
 
     # add channel types as additional dimension coordinate
-    xarr = xarr.assign_coords(ch_type=('chan', inst.get_channel_types()))
+    xarr = xarr.assign_coords(
+        ch_type=('chan', inst.get_channel_types(picks=picks))
+    )
     return xarr
