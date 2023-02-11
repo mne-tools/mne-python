@@ -11,11 +11,11 @@ def test_conversion_to_xarray():
 
     info = mne.create_info(list('abcd'), sfreq=250)
     data = np.random.rand(4, 350)
-    erp = mne.EvokedArray(data, info, tmin=-0.5)
+    evoked = mne.EvokedArray(data, info, tmin=-0.5)
 
-    erp_x = to_xarray(erp)
-    assert isinstance(erp_x, xr.DataArray)
-    assert erp_x.shape == (4, 350)
-    assert erp_x.dims == ('chan', 'time')
-    assert erp_x.coords['chan'].data.tolist() == erp.ch_names
-    assert (erp_x.coords['time'].data == erp.times).all()
+    xarr = evoked.to_xarray()
+    assert isinstance(xarr, xr.DataArray)
+    assert xarr.shape == evoked.data.shape
+    assert xarr.dims == ('chan', 'time')
+    assert xarr.coords['chan'].data.tolist() == evoked.ch_names
+    assert (xarr.coords['time'].data == evoked.times).all()
