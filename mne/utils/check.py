@@ -370,6 +370,11 @@ def _check_pandas_installed(strict=True):
     return _soft_import('pandas', 'dataframe integration', strict=strict)
 
 
+def _check_xarray_installed(strict=True):
+    """Aux function."""
+    return _soft_import('xarray', 'converting to xarray', strict=strict)
+
+
 def _check_eeglabio_installed(strict=True):
     """Aux function."""
     return _soft_import('eeglabio', 'exporting to EEGLab', strict=strict)

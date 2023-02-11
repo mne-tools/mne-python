@@ -24,7 +24,8 @@ from .utils import (check_fname, logger, verbose, warn, sizeof_fmt, repr_html,
                     fill_doc, _check_option, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _check_fname, TimeMixin)
+                    _check_preload, _check_fname, TimeMixin, to_xarray,
+                    _check_xarray_installed)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -875,6 +876,27 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
                                default_index=['time'])
         return df
+
+    def to_xarray(self, picks=None, copy=True):
+        """Export evoked data as an xarray DataArray.
+
+        Parameters
+        ----------
+        %(picks_all)s
+        copy : bool
+            If ``True``, return a copy of the data. Defaults to ``True``.
+
+        Returns
+        -------
+        xarr : DataArray
+            The xarray object.
+
+        Notes
+        -----
+        .. versionadded:: 0.1.3
+        """
+        _check_xarray_installed()
+        return to_xarray(self, picks=picks, copy=copy)
 
 
 @fill_doc

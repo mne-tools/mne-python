@@ -23,7 +23,8 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_edflib_installed, _to_rgb, _soft_import,
                     _check_dict_keys, _check_pymatreader_installed,
                     _import_h5py, _import_h5io_funcs,
-                    _import_pymatreader_funcs, _check_head_radius)
+                    _import_pymatreader_funcs, _check_head_radius,
+                    _check_xarray_installed)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -73,3 +74,4 @@ from .linalg import (_svd_lwork, _repeated_svd, _sym_mat_pow, sqrtm_sym, eigh,
                      _get_blas_funcs)
 from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
                         _convert_times, _build_data_frame)
+from .xarray import to_xarray

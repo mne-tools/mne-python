@@ -1,7 +1,5 @@
 import numpy as np
 
-from .. import Epochs, Evoked
-from ..time_frequency import AverageTFR
 
 def to_xarray(inst, picks=None, copy=True):
     """Convert MNE object instance to xarray DataArray.
