@@ -7,7 +7,6 @@ from mne.utils import requires_xarray
 def test_conversion_to_xarray():
     """Test conversion of mne object to xarray DataArray."""
     import xarray as xr
-    from mne.utils.xarray import to_xarray
 
     info = mne.create_info(list('abcd'), sfreq=250)
     data = np.random.rand(4, 350)
