@@ -18,3 +18,8 @@ def test_conversion_to_xarray():
     assert xarr.dims == ('chan', 'time')
     assert xarr.coords['chan'].data.tolist() == evoked.ch_names
     assert (xarr.coords['time'].data == evoked.times).all()
+
+    xarr = evoked.to_xarray(picks=['b', 'd'])
+    assert xarr.shape == (2, 350)
+    assert xarr.coords['chan'].data.tolist() == ['b', 'd']
+    assert (xarr.data == evoked.data[[1, 3]]).all()
