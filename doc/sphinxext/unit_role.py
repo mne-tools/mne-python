@@ -16,7 +16,7 @@ def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
         return pass_error_to_sphinx(rawtext, text, lineno, inliner)
     # ensure first part is a number
     try:
-          _ = float(parts[0])
+        _ = float(parts[0])
     except ValueError:
         return pass_error_to_sphinx(rawtext, text, lineno, inliner)
     # input is well-formatted: proceed
@@ -26,3 +26,4 @@ def unit_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
 
 def setup(app):
     app.add_role('unit', unit_role)
+    return
