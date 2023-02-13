@@ -37,7 +37,6 @@ jobs:
           # channels: conda-forge
           # mamba-version: "*"
           # use-mamba: true
-        name: 'Setup conda'
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh
@@ -96,7 +95,6 @@ jobs:
           channels: conda-forge
           mamba-version: "*"
           use-mamba: true
-        name: 'Setup conda'
       - shell: bash -el {0}
         run: |
           conda install -c conda-forge "vtk>=9.2=*osmesa*"
