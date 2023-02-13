@@ -52,12 +52,16 @@ def _fake_stc(src_type='vol'):
     freqs = np.arange(8, 10)
     times = np.arange(0.1, 0.11, 1 / info['sfreq'])
     data = rng.integers(-1000, 1000, size=(n_epochs, len(info.ch_names),
-                                           freqs.size, times.size))
+                                           freqs.size, times.size)) + \
+        1j * rng.integers(-1000, 1000, size=(n_epochs, len(info.ch_names),
+                                             freqs.size, times.size))
     epochs_tfr = mne.time_frequency.EpochsTFR(
         info, data, times=times, freqs=freqs)
     nuse = sum([this_src['nuse'] for this_src in src])
     stc_data = rng.integers(-1000, 1000, size=(n_epochs, nuse, 3,
-                                               freqs.size, times.size))
+                                               freqs.size, times.size)) + \
+        1j * rng.integers(-1000, 1000, size=(n_epochs, nuse, 3,
+                                             freqs.size, times.size))
     return stc_data, src, epochs_tfr
 
 
@@ -105,6 +109,9 @@ def test_stc_viewer_io(renderer_interactive_pyvistaqt):
         VolSourceEstimateViewer(
             stc_data[:, :, :, 1:], src=src, inst=epochs_tfr)
 
+    with pytest.raises(ValueError, match='Complex data is required'):
+        VolSourceEstimateViewer(stc_data.real, src=src, inst=epochs_tfr)
+
     with pytest.raises(ValueError,
                        match='Times in `inst` do not match'):
         VolSourceEstimateViewer(
@@ -125,7 +132,7 @@ def test_stc_viewer_display(renderer_interactive_pyvistaqt):
             src=src, inst=epochs_tfr)
     # test go to max
     viewer._go_to_max_button.click()
-    assert_allclose(viewer._ras, [-40, -40, -20], atol=0.01)
+    assert_allclose(viewer._ras, [-20, -60, -20], atol=0.01)
 
     src_coord = viewer._get_src_coord()
     stc_idx = viewer._src_lut[src_coord]
@@ -139,8 +146,9 @@ def test_stc_viewer_display(renderer_interactive_pyvistaqt):
     viewer._time_slider.setValue(2)
     assert viewer._t_idx == 2
 
-    assert_allclose(np.linalg.norm(stc_data[0], axis=1)[stc_idx],
-                    viewer._stc_plot.get_array())
+    plot_data = np.linalg.norm((stc_data[0] * stc_data[0].conj()).real,
+                               axis=1)[stc_idx]
+    assert_allclose(plot_data, viewer._stc_plot.get_array())
 
     # test clicking on stc plot
     _fake_click(viewer._fig, viewer._fig.axes[0],
@@ -156,16 +164,17 @@ def test_stc_viewer_display(renderer_interactive_pyvistaqt):
     viewer.close()
 
     # test time only, not frequencies
-    epochs = mne.EpochsArray(epochs_tfr.data[:, :, 0], epochs_tfr.info,
+    epochs = mne.EpochsArray(epochs_tfr.data[:, :, 0].real, epochs_tfr.info,
                              tmin=epochs_tfr.tmin)
+    stc_time_data = stc_data[:, :, :, 0:1].real
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         viewer = VolSourceEstimateViewer(
-            stc_data[:, :, :, 0:1], subject='sample',
+            stc_time_data, subject='sample',
             subjects_dir=subjects_dir, src=src, inst=epochs)
 
     # test go to max
     viewer._go_to_max_button.click()
-    assert_allclose(viewer._ras, [-20, -40, 0], atol=0.01)
+    assert_allclose(viewer._ras, [-20, -60, -20], atol=0.01)
 
     src_coord = viewer._get_src_coord()
     stc_idx = viewer._src_lut[src_coord]
@@ -180,7 +189,7 @@ def test_stc_viewer_display(renderer_interactive_pyvistaqt):
     viewer._time_slider.setValue(2)
     assert viewer._t_idx == 2
 
-    assert_allclose(np.linalg.norm(stc_data[0], axis=1)[stc_idx][0],
+    assert_allclose(np.linalg.norm(stc_time_data[0], axis=1)[stc_idx][0],
                     viewer._stc_plot.get_data()[1])
     viewer.close()
 

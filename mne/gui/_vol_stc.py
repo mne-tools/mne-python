@@ -174,6 +174,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             raise ValueError(
                 'Frequencies in `inst` do not match with `data`, '
                 f'expected {data.shape[3]}, got {inst.freqs.size}')
+        if hasattr(inst, 'freqs') and not np.iscomplexobj(data):
+            raise ValueError('Complex data is required for time-frequency '
+                             'source estimates')
         if data.shape[4] != inst.times.size:
             raise ValueError(
                 'Times in `inst` do not match with `data`, '
