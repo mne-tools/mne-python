@@ -188,13 +188,9 @@ class SSD(BaseEstimator, TransformerMixin):
         eigvals_, eigvects_ = linalg.eigh(cov_signal_red, cov_noise_red)
         # sort in descending order
         ix = np.argsort(eigvals_)[::-1]
-        self.eigvals_ = np.real(eigvals_[ix])
-        filters_ = eigvects_[:, ix]
+        self.eigvals_ = eigvals_[ix]
         # restores dimensionality
-        self.filters_ = np.matmul(dim_red, filters_)
-        self.patterns_ = np.linalg.solve(
-            np.matmul(self.filters_.T, np.matmul(cov_signal, self.filters_)).T,
-            np.matmul(cov_signal, self.filters_).T)
+        self.filters_ = np.matmul(dim_red, eigvects_[:, ix])
 
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
