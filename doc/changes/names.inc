@@ -188,6 +188,8 @@
 
 .. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
 
+.. _Hyonyoung Shin: https://github.com/mcvain
+
 .. _Ilias Machairas: https://github.com/JungleHippo
 
 .. _Ivana Kojcic: https://github.com/ikojcic
@@ -531,3 +533,5 @@
 .. _Pavel Navratil: https://github.com/navrpa13
 
 .. _Tom Ma: https://github.com/myd7349
+
+.. _Thomas Binns: https://github.com/tsbinns
