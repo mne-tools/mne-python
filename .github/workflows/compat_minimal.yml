@@ -38,6 +38,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          channels: conda-forge
           mamba-version: "*"
           use-mamba: true
         name: 'Setup conda'

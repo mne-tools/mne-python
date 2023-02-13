@@ -34,6 +34,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
           # No mamba for this one job (use conda)
+          # channels: conda-forge
           # mamba-version: "*"
           # use-mamba: true
         name: 'Setup conda'
@@ -92,6 +93,7 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
+          channels: conda-forge
           mamba-version: "*"
           use-mamba: true
         name: 'Setup conda'

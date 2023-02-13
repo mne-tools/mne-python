@@ -32,6 +32,7 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
+          channels: conda-forge
           mamba-version: "*"
           use-mamba: true
         name: 'Setup conda'
