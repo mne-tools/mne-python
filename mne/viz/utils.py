@@ -929,7 +929,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         coloring scheme is used. If 'position', the sensors are divided
         into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
         array, the channels are divided by picks given in the array. Also
-        accepts a list of lists to allow channel groups of different sizes.
+        accepts a list of lists to allow channel groups of the same or
+        different sizes.
 
         .. versionadded:: 0.13.0
     to_sphere : bool
