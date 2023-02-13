@@ -191,6 +191,7 @@ class SSD(BaseEstimator, TransformerMixin):
         self.eigvals_ = eigvals_[ix]
         # restores dimensionality
         self.filters_ = np.matmul(dim_red, eigvects_[:, ix])
+        self.patterns_ = np.linalg.pinv(self.filters_)
 
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
