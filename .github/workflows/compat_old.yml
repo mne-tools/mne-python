@@ -33,6 +33,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           channels: conda-forge
+          channel-priority: strict
           mamba-version: "*"
           use-mamba: true
       - shell: bash -el {0}

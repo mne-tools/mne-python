@@ -33,10 +33,7 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          # No mamba for this one job (use conda)
-          # channels: conda-forge
-          # mamba-version: "*"
-          # use-mamba: true
+          # No mamba for this one job (use conda itself!)
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh
@@ -93,6 +90,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
           channels: conda-forge
+          channel-priority: strict
           mamba-version: "*"
           use-mamba: true
       - shell: bash -el {0}
