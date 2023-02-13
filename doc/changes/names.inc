@@ -531,3 +531,5 @@
 .. _Pavel Navratil: https://github.com/navrpa13
 
 .. _Tom Ma: https://github.com/myd7349
+
+.. _Thomas Binns: https://github.com/tsbinns
