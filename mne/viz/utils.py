@@ -1020,12 +1020,12 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
+    _validate_type(ch_groups, (list, np.ndarray, str, None), 'ch_groups')
     if ch_groups is None:
         def_colors = _handle_default('color')
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        _validate_type(ch_groups, (list, np.ndarray, str), 'ch_groups')
         if isinstance(ch_groups, str):
             _check_option(
                 'ch_groups', ch_groups, ['position', 'selection'],
