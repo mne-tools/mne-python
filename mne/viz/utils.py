@@ -908,16 +908,17 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
-        sensor selection dialog. Available options 'topomap', '3d', 'select'.
-        If 'select', a set of channels can be selected interactively by using
-        lasso selector or clicking while holding control key. The selected
-        channels are returned along with the figure instance. Defaults to
-        'topomap'.
+        sensor selection dialog. Available options ``'topomap'``, ``'3d'``,
+        ``'select'``. If ``'select'``, a set of channels can be selected
+        interactively by using lasso selector or clicking while holding control
+        key. The selected channels are returned along with the figure instance.
+        Defaults to ``'topomap'``.
     ch_type : None | str
-        The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
-        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
-        then channels are chosen in the order given above.
+        The channel type to plot. Available options ``'mag'``, ``'grad'``,
+        ``'eeg'``, ``'seeg'``, ``'dbs'``, ``'ecog'``, ``'all'``. If ``'all'``,
+        all the available mag, grad, eeg, seeg, dbs and ecog channels are
+        plotted. If None (default), then channels are chosen in the order given
+        above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
@@ -934,7 +935,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     to_sphere : bool
         Whether to project the 3d locations to a sphere. When False, the
         sensor array appears similar as to looking downwards straight above the
-        subject's head. Has no effect when kind='3d'. Defaults to True.
+        subject's head. Has no effect when ``kind='3d'``. Defaults to True.
 
         .. versionadded:: 0.14.0
     %(axes_montage)s
@@ -949,10 +950,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         Show figure if True. Defaults to True.
     %(sphere_topomap_auto)s
     pointsize : float | None
-        The size of the points. If None (default), will bet set to 75 if
-        ``kind='3d'``, or 25 otherwise.
+        The size of the points. If None (default), will bet set to ``75`` if
+        ``kind='3d'``, or ``25`` otherwise.
     linewidth : float
-        The width of the outline. If 0, the outline will not be drawn.
+        The width of the outline. If ``0``, the outline will not be drawn.
     %(verbose)s
 
     Returns
