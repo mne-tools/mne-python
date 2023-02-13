@@ -1644,6 +1644,10 @@ def test_plot_montage():
     montage.plot()
     plt.close('all')
 
+    f, ax = plt.subplots(1, 1)
+    montage.plot(axes=ax)
+    plt.close("all")
+
 
 def test_montage_equality():
     """Test montage equality."""

@@ -937,9 +937,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         subject's head. Has no effect when kind='3d'. Defaults to True.
 
         .. versionadded:: 0.14.0
-    axes : instance of Axes | instance of Axes3D | None
-        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
-        of Axes3D. If None (default), a new axes will be created.
+    %(axes_montage)s
 
         .. versionadded:: 0.13.0
     block : bool
