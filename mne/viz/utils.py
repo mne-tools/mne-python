@@ -977,6 +977,24 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     """
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
+    if axes is not None:
+        from matplotlib.axes import Axes
+        from mpl_toolkits.mplot3d.axes3d import Axes3D
+
+        if kind == "3d" and not isinstance(axes, Axes3D):
+            raise TypeError(
+                "Argument 'axes' must be an Axes3D if 'kind' is '3d'."
+            )
+        elif kind in ("topomap", "select") and not isinstance(axes, Axes):
+            raise TypeError(
+                "Argument 'axes' must be an Axes if 'kind' is 'topomap'."
+            )
+        elif kind in ("topomap", "select") and isinstance(axes, Axes3D):
+            raise TypeError(
+                "Argument 'axes' must be an Axes if 'kind' is 'topomap'. An "
+                "Axes3D must be provided if 'kind' is '3d'."
+            )
+
     if not isinstance(info, Info):
         raise TypeError(f'info must be an instance of Info not {type(info)}')
     ch_indices = channel_indices_by_type(info)
