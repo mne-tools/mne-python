@@ -718,6 +718,7 @@ for ax, x_f, title in zip(axes, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
     ax.plot(t, x_f, color='k', linestyle='--')
     ax.set(ylim=ylim, xlim=xlim, xticks=tticks,
            title=title, xlabel=xlabel, ylabel=ylabel)
+           
 mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
