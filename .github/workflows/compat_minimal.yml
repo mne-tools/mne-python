@@ -38,6 +38,8 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          mamba-version: "*"
+          use-mamba: true
         name: 'Setup conda'
       - shell: bash -el {0}
         run: |
