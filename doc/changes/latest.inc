@@ -32,6 +32,7 @@ Enhancements
 - Add :func:`mne.count_events` to count unique event types in a given event array (:gh:`11430` by `Clemens Brunner`_)
 - Add a video to :ref:`tut-freesurfer-mne` of a brain inflating from the pial surface to aid in understanding the inflated brain (:gh:`11440` by `Alex Rockhill`_)
 - Add automatic projection of sEEG contact onto the inflated surface for :meth:`mne.viz.Brain.add_sensors` (:gh:`11436` by `Alex Rockhill`_)
+- Forward argument ``axes`` from `mne.viz.plot_sensors` to `mne.channels.DigMontage.plot` (:gh:`11470` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
