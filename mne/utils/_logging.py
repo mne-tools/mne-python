@@ -197,8 +197,25 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     old_level : int
         The old level. Only returned if ``return_old_level`` is True.
     """
+    old_verbose = logger.level
+    verbose = _parse_verbose(verbose)
+
+    if verbose != old_verbose:
+        logger.setLevel(verbose)
+    if add_frames is not None:
+        _filter.add_frames = int(add_frames)
+        fmt = '%(frame_info)s ' if add_frames else ''
+        fmt += '%(message)s'
+        fmt = logging.Formatter(fmt)
+        for handler in logger.handlers:
+            handler.setFormatter(fmt)
+    return (old_verbose if return_old_level else None)
+
+
+def _parse_verbose(verbose):
     from .config import get_config
     from .check import _check_option, _validate_type
+
     _validate_type(verbose, (bool, str, int, None), 'verbose')
     if verbose is None:
         verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
@@ -211,17 +228,8 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
         verbose = verbose.upper()
         _check_option('verbose', verbose, _LOGGING_TYPES, '(when a string)')
         verbose = _LOGGING_TYPES[verbose]
-    old_verbose = logger.level
-    if verbose != old_verbose:
-        logger.setLevel(verbose)
-    if add_frames is not None:
-        _filter.add_frames = int(add_frames)
-        fmt = '%(frame_info)s ' if add_frames else ''
-        fmt += '%(message)s'
-        fmt = logging.Formatter(fmt)
-        for handler in logger.handlers:
-            handler.setFormatter(fmt)
-    return (old_verbose if return_old_level else None)
+
+    return verbose
 
 
 def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
