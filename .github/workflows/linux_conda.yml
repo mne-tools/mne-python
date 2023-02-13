@@ -90,7 +90,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
           channels: conda-forge
-          channel-priority: strict
+          channel-priority: true
           mamba-version: "*"
           use-mamba: true
       - shell: bash -el {0}
