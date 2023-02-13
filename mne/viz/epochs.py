@@ -806,7 +806,7 @@ def plot_epochs(
     title : str | None
         The title of the window. If None, the event names (from
         ``epochs.event_id``) will be displayed. Defaults to None.
-    events : False | True | array, shape (n_events, 3)
+    events : bool | array, shape (n_events, 3)
         Events to show with vertical bars. You can use `~mne.viz.plot_events`
         as a legend for the colors. By default, the coloring scheme is the
         same. ``True`` plots ``epochs.events``. Defaults to ``False`` (do not
@@ -859,12 +859,10 @@ def plot_epochs(
         .. versionadded:: 0.24.0
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
-    event_id : dict | None
-        Dictionary of event labels (e.g. 'aud_l') as keys and associated event
-        integers as values. Useful when ``events`` contains event numbers not
-        present in ``epochs.event_id`` (e.g., because of event subselection).
-        Values in ``event_id`` will take precedence over those in
-        ``epochs.event_id`` when there are overlapping keys.
+    event_id : bool | dict
+        If ``True``, use ``epochs.event_id``. If ``False``, use event numbers
+        instead of IDs. If ``dict``, use keys as event labels (e.g. 'aud_l')
+        for values corresponding to event integers.
 
         .. versionadded:: 0.20
     %(group_by_browse)s
@@ -949,12 +947,10 @@ def plot_epochs(
     # events
     if events is None:
         warn(
-            "The current default events=None is deprecated. If you want to "
-            "plot events that are contained in the Epochs object, use "
-            "events=True. If you want to plot custom events, pass the "
-            "corresponding events array as the argument. If you do not want to"
-            " plot events, use events=False.",
-            category=DeprecationWarning
+            "The current default events=None is deprecated and will change to "
+            "events=True in MNE 1.5. Set events=False to suppress this "
+            "warning.",
+            category=FutureWarning
         )
         events = False
     if events is False:
