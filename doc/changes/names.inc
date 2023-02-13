@@ -50,6 +50,8 @@
 
 .. _Archit Singhal: https://github.com/architsinghal-mriirs
 
+.. _Arne Pelzer: https://github.com/aplzr
+
 .. _Ashley Drew: https://github.com/ashdrew
 
 .. _Asish Panda: https://github.com/kaichogami
@@ -531,3 +533,5 @@
 .. _Pavel Navratil: https://github.com/navrpa13
 
 .. _Tom Ma: https://github.com/myd7349
+
+.. _Thomas Binns: https://github.com/tsbinns

@@ -37,17 +37,23 @@ class ProgressBar(object):
         a sane value based on the current terminal width.
     max_value : int | None
         The max value. If None, the length of ``iterable`` will be used.
+    which_tqdm : str | None
+        Which tqdm module to use. Can be "tqdm", "tqdm.notebook", or "off".
+        Defaults to ``None``, which uses the value of the MNE_TQDM environment
+        variable, or ``"tqdm.auto"`` if that is not set.
     **kwargs : dict
         Additional keyword arguments for tqdm.
     """
 
     def __init__(self, iterable=None, initial_value=0, mesg=None,
-                 max_total_width='auto', max_value=None,
+                 max_total_width='auto', max_value=None, *, which_tqdm=None,
                  **kwargs):  # noqa: D102
         # The following mimics this, but with configurable module to use
         # from ..externals.tqdm import auto
         import tqdm
-        which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
+
+        if which_tqdm is None:
+            which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
         _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.', 'off'),
                       extra='beginning')
         logger.debug(f'Using ProgressBar with {which_tqdm}')
