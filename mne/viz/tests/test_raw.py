@@ -856,7 +856,7 @@ def test_plot_sensors(raw):
     raw.plot_sensors(ch_groups='selection', to_sphere=False)
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
     raw.plot_sensors(ch_groups=np.array([[0, 1, 2], [3, 4, 5]]))
-    raw.plot_sensprs(ch_groups=np.array([[0, 1, 2], [3, 4]], dtype=object))
+    raw.plot_sensors(ch_groups=np.array([[0, 1, 2], [3, 4]], dtype=object))
     pytest.raises(ValueError, raw.plot_sensors, ch_groups='asd')
     pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
     pytest.raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
