@@ -2,13 +2,13 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 import glob
-from itertools import product
 import os
-import os.path as op
 import pickle
 import shutil
+from contextlib import nullcontext
+from itertools import product
+from pathlib import Path
 
 import numpy as np
 from scipy import sparse
@@ -34,25 +34,24 @@ from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
 
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-stc_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-lh.stc')
-real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
-                           'Aud-lh.label')
-real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
-                              'Aud-rh.label')
-v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
+subjects_dir = data_path / "subjects"
+src_fname = subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
+stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
+real_label_fname = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
+real_label_rh_fname = data_path / "MEG" / "sample" / "labels" / "Aud-rh.label"
+v1_label_fname = subjects_dir / "sample" / "label" / "lh.V1.label"
 
-fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                        'fsaverage-ico-5-src.fif')
-label_dir = op.join(subjects_dir, 'sample', 'label', 'aparc')
+fwd_fname = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+)
+src_bad_fname = (
+    data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+)
+label_dir = subjects_dir / "sample" / "label" / "aparc"
 
-test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
-label_fname = op.join(test_path, 'test-lh.label')
-label_rh_fname = op.join(test_path, 'test-rh.label')
+test_path = Path(__file__).parent.parent / "io" / "tests" / "data"
+label_fname = test_path / "test-lh.label"
+label_rh_fname = test_path / "test-rh.label"
 
 # This code was used to generate the "fake" test labels:
 # for hemi in ['lh', 'rh']:
@@ -96,10 +95,10 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
         subject = stc.subject
 
     if isinstance(src, str):
-        subjects_dir = get_subjects_dir(subjects_dir)
-        surf_path_from = op.join(subjects_dir, src, 'surf')
-        rr_lh, tris_lh = read_surface(op.join(surf_path_from, 'lh.white'))
-        rr_rh, tris_rh = read_surface(op.join(surf_path_from, 'rh.white'))
+        subjects_dir = Path(get_subjects_dir(subjects_dir))
+        surf_path_from = subjects_dir / src / "surf"
+        rr_lh, tris_lh = read_surface(surf_path_from / "lh.white")
+        rr_rh, tris_rh = read_surface(surf_path_from / "rh.white")
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
     else:
@@ -313,7 +312,6 @@ def test_label_io_and_time_course_estimates():
 @testing.requires_testing_data
 def test_label_io(tmp_path):
     """Test IO of label files."""
-    tempdir = str(tmp_path)
     label = read_label(label_fname)
 
     # label attributes
@@ -322,12 +320,12 @@ def test_label_io(tmp_path):
     assert label.color is None
 
     # save and reload
-    label.save(op.join(tempdir, 'foo'))
-    label2 = read_label(op.join(tempdir, 'foo-lh.label'))
+    label.save(tmp_path / "foo")
+    label2 = read_label(tmp_path / "foo-lh.label")
     assert_labels_equal(label, label2)
 
     # pickling
-    dest = op.join(tempdir, 'foo.pickled')
+    dest = tmp_path / "foo.pickled"
     with open(dest, 'wb') as fid:
         pickle.dump(label, fid, pickle.HIGHEST_PROTOCOL)
     with open(dest, 'rb') as fid:
@@ -349,30 +347,29 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 def test_annot_io(tmp_path):
     """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
-    tempdir = str(tmp_path)
     subject = 'fsaverage'
-    label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
-    surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
-    label_dir = os.path.join(tempdir, subject, 'label')
-    surf_dir = os.path.join(tempdir, subject, 'surf')
+    label_src = subjects_dir / "fsaverage" / "label"
+    surf_src = subjects_dir / "fsaverage" /"surf"
+    label_dir = tmp_path / subject / "label"
+    surf_dir = tmp_path / subject / "surf"
     os.makedirs(label_dir)
     os.mkdir(surf_dir)
-    shutil.copy(os.path.join(label_src, 'lh.PALS_B12_Lobes.annot'), label_dir)
-    shutil.copy(os.path.join(label_src, 'rh.PALS_B12_Lobes.annot'), label_dir)
-    shutil.copy(os.path.join(surf_src, 'lh.white'), surf_dir)
-    shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
+    shutil.copy(label_src / "lh.PALS_B12_Lobes.annot", label_dir)
+    shutil.copy(label_src / "rh.PALS_B12_Lobes.annot", label_dir)
+    shutil.copy(surf_src / "lh.white", surf_dir)
+    shutil.copy(surf_src / "rh.white", surf_dir)
 
     # read original labels
     with pytest.raises(IOError, match='\nPALS_B12_Lobes$'):
         read_labels_from_annot(subject, 'PALS_B12_Lobesey',
-                               subjects_dir=tempdir)
+                               subjects_dir=tmp_path)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
-                                    subjects_dir=tempdir)
+                                    subjects_dir=tmp_path)
 
     # test saving parcellation only covering one hemisphere
     parc = [label for label in labels if label.name == 'LOBE.TEMPORAL-lh']
-    write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
-    parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
+    write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tmp_path)
+    parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tmp_path)
     parc1 = [label for label in parc1 if not label.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
     for lt, rt in zip(parc1, parc):
@@ -381,19 +378,19 @@ def test_annot_io(tmp_path):
     # test saving only one hemisphere
     parc = [label for label in labels if label.name.startswith('LOBE')]
     write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
-                          subjects_dir=tempdir)
-    annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
-    assert os.path.isfile(annot_fname % 'l')
-    assert not os.path.isfile(annot_fname % 'r')
+                          subjects_dir=tmp_path)
+    annot_fname = tmp_path / subject / "label" / "%sh.myparc2.annot"
+    assert Path(str(annot_fname) % 'l').is_file()
+    assert not Path(str(annot_fname) % 'r').is_file()
     parc1 = read_labels_from_annot(subject, 'myparc2',
-                                   annot_fname=annot_fname % 'l',
-                                   subjects_dir=tempdir)
+                                   annot_fname=str(annot_fname) % 'l',
+                                   subjects_dir=tmp_path)
     parc_lh = [label for label in parc if label.name.endswith('lh')]
     for lt, rt in zip(parc1, parc_lh):
         assert_labels_equal(lt, rt)
 
     # test that the annotation is complete (test Label() support)
-    rr = read_surface(op.join(surf_dir, 'lh.white'))[0]
+    rr = read_surface(surf_dir / "lh.white")[0]
     label = sum(labels, Label(hemi='lh', subject='fsaverage')).lh
     assert_array_equal(label.vertices, np.arange(len(rr)))
 
@@ -470,7 +467,7 @@ def test_read_labels_from_annot(tmp_path):
         assert label.color is not None
 
     # read labels using annot_fname
-    annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
+    annot_fname = subjects_dir / "sample" / "label" / "rh.aparc.annot"
     labels_rh = read_labels_from_annot('sample', annot_fname=annot_fname,
                                        subjects_dir=subjects_dir)
     for label in labels_rh:
@@ -513,7 +510,7 @@ def test_read_labels_from_annot(tmp_path):
 @testing.requires_testing_data
 def test_read_labels_from_annot_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels."""
-    label_fnames = glob.glob(label_dir + '/*.label')
+    label_fnames = glob.glob(str(label_dir) + '/*.label')
     label_fnames.sort()
     labels_mne = [read_label(fname) for fname in label_fnames]
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
@@ -525,43 +522,41 @@ def test_read_labels_from_annot_annot2labels():
 @testing.requires_testing_data
 def test_write_labels_to_annot(tmp_path):
     """Test writing FreeSurfer parcellation from labels."""
-    tempdir = str(tmp_path)
-
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
     # create temporary subjects-dir skeleton
-    surf_dir = op.join(subjects_dir, 'sample', 'surf')
-    temp_surf_dir = op.join(tempdir, 'sample', 'surf')
+    surf_dir = subjects_dir / "sample" / "surf"
+    temp_surf_dir = tmp_path / "sample" / "surf"
     os.makedirs(temp_surf_dir)
-    shutil.copy(op.join(surf_dir, 'lh.white'), temp_surf_dir)
-    shutil.copy(op.join(surf_dir, 'rh.white'), temp_surf_dir)
-    os.makedirs(op.join(tempdir, 'sample', 'label'))
+    shutil.copy(surf_dir / "lh.white", temp_surf_dir)
+    shutil.copy(surf_dir / "rh.white", temp_surf_dir)
+    os.makedirs(tmp_path / "sample" / "label")
 
     # test automatic filenames
-    dst = op.join(tempdir, 'sample', 'label', '%s.%s.annot')
-    write_labels_to_annot(labels, 'sample', 'test1', subjects_dir=tempdir)
-    assert (op.exists(dst % ('lh', 'test1')))
-    assert (op.exists(dst % ('rh', 'test1')))
+    dst = tmp_path / "sample" / "label" / "%s.%s.annot"
+    write_labels_to_annot(labels, 'sample', 'test1', subjects_dir=tmp_path)
+    assert Path(str(dst) % ("lh", "test1")).exists()
+    assert Path(str(dst) % ("rh", "test1")).exists()
     # lh only
     for label in labels:
         if label.hemi == 'lh':
             break
-    write_labels_to_annot([label], 'sample', 'test2', subjects_dir=tempdir)
-    assert (op.exists(dst % ('lh', 'test2')))
-    assert (op.exists(dst % ('rh', 'test2')))
+    write_labels_to_annot([label], 'sample', 'test2', subjects_dir=tmp_path)
+    assert Path(str(dst) % ("lh", "test2")).exists()
+    assert Path(str(dst) % ("rh", "test2")).exists()
     # rh only
     for label in labels:
         if label.hemi == 'rh':
             break
-    write_labels_to_annot([label], 'sample', 'test3', subjects_dir=tempdir)
-    assert (op.exists(dst % ('lh', 'test3')))
-    assert (op.exists(dst % ('rh', 'test3')))
+    write_labels_to_annot([label], 'sample', 'test3', subjects_dir=tmp_path)
+    assert Path(str(dst) % ("lh", "test3")).exists()
+    assert Path(str(dst) % ("rh", "test3")).exists()
     # label alone
     pytest.raises(TypeError, write_labels_to_annot, labels[0], 'sample',
-                  'test4', subjects_dir=tempdir)
+                  'test4', subjects_dir=tmp_path)
 
     # write left and right hemi labels with filenames:
-    fnames = [op.join(tempdir, hemi + '-myparc') for hemi in ['lh', 'rh']]
+    fnames = [tmp_path / (hemi + "-myparc") for hemi in ["lh", "rh"]]
     for fname in fnames:
         with pytest.warns(RuntimeWarning, match='subjects_dir'):
             write_labels_to_annot(labels, annot_fname=fname)
@@ -692,8 +687,9 @@ def test_split_label():
     assert_equal(antmost.name, "lingual_div40-lh")
 
     # Apply contiguous splitting to DMN label from parcellation in Yeo, 2011
-    label_default_mode = read_label(op.join(subjects_dir, 'fsaverage', 'label',
-                                            'lh.7Networks_7.label'))
+    label_default_mode = read_label(
+        subjects_dir / "fsaverage" / "label" / "lh.7Networks_7.label"
+    )
     DMN_sublabels = label_default_mode.split(parts='contiguous',
                                              subject='fsaverage',
                                              subjects_dir=subjects_dir)
@@ -709,7 +705,7 @@ def test_stc_to_label():
     src = read_source_spaces(fwd_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
-    os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
+    os.environ["SUBJECTS_DIR"] = str(data_path / "subjects")
     labels1 = _stc_to_label(stc, src='sample', smooth=3)
     labels2 = _stc_to_label(stc, src=src, smooth=3)
     assert_equal(len(labels1), len(labels2))
@@ -887,8 +883,7 @@ def test_random_parcellation():
         # test that labels don't intersect
         assert_equal(len(np.unique(vertices_total)), len(vertices_total))
 
-        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' +
-                             surface)
+        surf_fname = subjects_dir / subject / "surf" / (hemi + "." + surface)
         vert, _ = read_surface(surf_fname)
 
         # Test that labels cover whole surface
@@ -980,8 +975,9 @@ def test_label_center_of_mass():
 def test_select_sources():
     """Test the selection of sources for simulation."""
     subject = 'sample'
-    label_file = op.join(subjects_dir, subject, 'label', 'aparc',
-                         'temporalpole-rh.label')
+    label_file = (
+        subjects_dir / subject / "label" / "aparc" / "temporalpole-rh.label"
+    )
 
     # Regardless of other parameters, using extent 0 should always yield a
     # a single source.
@@ -1049,8 +1045,7 @@ def test_label_geometry(fname, area):
         dist, outside = label.distances_to_outside(subjects_dir=subjects_dir)
     if stop:
         return
-    rr, tris = read_surface(
-        op.join(subjects_dir, 'sample', 'surf', 'lh.white'))
+    rr, tris = read_surface(subjects_dir / "sample" / "surf" / "lh.white")
     mask = np.zeros(len(rr), bool)
     mask[label.vertices] = 1
     border_mask = np.in1d(label.vertices, _mesh_borders(tris, mask))
