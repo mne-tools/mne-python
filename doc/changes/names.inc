@@ -492,6 +492,8 @@
 
 .. _Theodore Papadopoulo: https://github.com/papadop
 
+.. _Thomas Binns: https://github.com/tsbinns
+
 .. _Thomas Hartmann: https://github.com/thht
 
 .. _Thomas Radman: https://github.com/tradman
@@ -533,5 +535,3 @@
 .. _Pavel Navratil: https://github.com/navrpa13
 
 .. _Tom Ma: https://github.com/myd7349
-
-.. _Thomas Binns: https://github.com/tsbinns
