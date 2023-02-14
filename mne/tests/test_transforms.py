@@ -3,14 +3,14 @@
 #
 # License: BSD-3-Clause
 
+import itertools
 import os
-import os.path as op
+from pathlib import Path
 
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
                            assert_array_less, assert_almost_equal)
-import itertools
 
 import mne
 from mne.datasets import testing
@@ -32,17 +32,16 @@ from mne.transforms import (invert_transform, _get_trans,
 from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
-fname_eve = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc_raw-eve.fif')
-subjects_dir = op.join(data_path, 'subjects')
-fname_t1 = op.join(subjects_dir, 'fsaverage', 'mri', 'T1.mgz')
+fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+fname_eve = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
+subjects_dir = data_path / "subjects"
+fname_t1 = subjects_dir / "fsaverage" / "mri" / "T1.mgz"
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-fname_trans = op.join(base_dir, 'sample-audvis-raw-trans.txt')
-test_fif_fname = op.join(base_dir, 'test_raw.fif')
-ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
-hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+fname_trans = base_dir / "sample-audvis-raw-trans.txt"
+test_fif_fname = base_dir / "test_raw.fif"
+ctf_fname = base_dir / "test_ctf_raw.fif"
+hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 
 
 def test_tps():
@@ -77,13 +76,12 @@ def test_get_trans():
 @testing.requires_testing_data
 def test_io_trans(tmp_path):
     """Test reading and writing of trans files."""
-    tempdir = str(tmp_path)
-    os.mkdir(op.join(tempdir, 'sample'))
-    pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
+    os.mkdir(tmp_path / "sample")
+    pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tmp_path)
     trans0 = read_trans(fname)
-    fname1 = op.join(tempdir, 'sample', 'test-trans.fif')
+    fname1 = tmp_path / 'sample' / 'test-trans.fif'
     trans0.save(fname1)
-    assert fname1 == _find_trans('sample', subjects_dir=tempdir)
+    assert fname1 == _find_trans('sample', subjects_dir=tmp_path)
     trans1 = read_trans(fname1)
 
     # check all properties
@@ -93,7 +91,7 @@ def test_io_trans(tmp_path):
     pytest.raises(IOError, read_trans, fname_eve)
 
     # check warning on bad filenames
-    fname2 = op.join(tempdir, 'trans-test-bad-name.fif')
+    fname2 = tmp_path / 'trans-test-bad-name.fif'
     with pytest.warns(RuntimeWarning, match='-trans.fif'):
         write_trans(fname2, trans0)
 
@@ -378,14 +376,19 @@ def test_average_quats():
 @pytest.mark.parametrize('subject', ('fsaverage', 'sample'))
 def test_fs_xfm(subject, tmp_path):
     """Test reading and writing of Freesurfer transforms."""
-    fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
-                    'talairach.xfm')
+    fname = (
+        data_path
+        / "subjects"
+        / subject
+        / "mri"
+        / "transforms"
+        / "talairach.xfm"
+    )
     xfm, kind = _read_fs_xfm(fname)
     if subject == 'fsaverage':
         assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
     assert kind == 'MNI Transform File'
-    tempdir = str(tmp_path)
-    fname_out = op.join(tempdir, 'out.xfm')
+    fname_out = tmp_path / 'out.xfm'
     _write_fs_xfm(fname_out, xfm, kind)
     xfm_read, kind_read = _read_fs_xfm(fname_out)
     assert kind_read == kind

@@ -33,16 +33,15 @@ from mne.rank import _compute_rank_int
 from mne.utils import (requires_sklearn, catch_logging, assert_snr,
                        _record_warnings)
 
-base_dir = Path(__file__).parent.parent / 'io' / 'tests' / 'data'
-cov_fname = base_dir / 'test-cov.fif'
-cov_gz_fname = base_dir / 'test-cov.fif.gz'
-cov_km_fname = base_dir / 'test-km-cov.fif'
-raw_fname = base_dir / 'test_raw.fif'
-ave_fname = base_dir / 'test-ave.fif'
-erm_cov_fname = base_dir / 'test_erm-cov.fif'
-hp_fif_fname = base_dir / 'test_chpi_raw_sss.fif'
-
-ctf_fname = testing.data_path(download=False) / 'CTF' / 'testdata_ctf.ds'
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+cov_fname = base_dir / "test-cov.fif"
+cov_gz_fname = base_dir / "test-cov.fif.gz"
+cov_km_fname = base_dir / "test-km-cov.fif"
+raw_fname = base_dir / "test_raw.fif"
+ave_fname = base_dir / "test-ave.fif"
+erm_cov_fname = base_dir / "test_erm-cov.fif"
+hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
+ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 
 
 @pytest.mark.parametrize('proj', (True, False))
