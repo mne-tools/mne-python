@@ -3,11 +3,10 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 import itertools as itt
 import sys
-
 from inspect import signature
+from pathlib import Path
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -34,17 +33,16 @@ from mne.rank import _compute_rank_int
 from mne.utils import (requires_sklearn, catch_logging, assert_snr,
                        _record_warnings)
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-cov_gz_fname = op.join(base_dir, 'test-cov.fif.gz')
-cov_km_fname = op.join(base_dir, 'test-km-cov.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-ave_fname = op.join(base_dir, 'test-ave.fif')
-erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
-hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+base_dir = Path(__file__).parent.parent / 'io' / 'tests' / 'data'
+cov_fname = base_dir / 'test-cov.fif'
+cov_gz_fname = base_dir / 'test-cov.fif.gz'
+cov_km_fname = base_dir / 'test-km-cov.fif'
+raw_fname = base_dir / 'test_raw.fif'
+ave_fname = base_dir / 'test-ave.fif'
+erm_cov_fname = base_dir / 'test_erm-cov.fif'
+hp_fif_fname = base_dir / 'test_chpi_raw_sss.fif'
 
-ctf_fname = op.join(testing.data_path(download=False), 'CTF',
-                    'testdata_ctf.ds')
+ctf_fname = testing.data_path(download=False) / 'CTF' / 'testdata_ctf.ds'
 
 
 @pytest.mark.parametrize('proj', (True, False))
