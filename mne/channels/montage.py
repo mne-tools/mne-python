@@ -1191,9 +1191,9 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             f"DigMontage. The channel{pl} missing from the montage {are_is}:"
             f"\n\n{missing_names}.\n\nConsider using inst.rename_channels to "
             "match the montage nomenclature, or inst.set_channel_types if "
-            f"{'these' if pl else 'this'} {are_is} not {'' if pl else 'an '}EEG channel{pl}, or use "
-            f"the on_missing parameter if the channel position{pl} {are_is} "
-            "allowed to be unknown in your analyses."
+            f"{'these' if pl else 'this'} {are_is} not {'' if pl else 'an '}"
+            f"EEG channel{pl}, or use the on_missing parameter if the channel "
+            f"position{pl} {are_is} allowed to be unknown in your analyses."
         )
         _on_missing(on_missing, missing_coord_msg)
 
