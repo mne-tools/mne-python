@@ -981,22 +981,21 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         from matplotlib.axes import Axes
         from mpl_toolkits.mplot3d.axes3d import Axes3D
 
-        if kind == "3d" and not isinstance(axes, Axes3D):
-            raise TypeError(
-                "Argument 'axes' must be an Axes3D if 'kind' is '3d'."
+        if kind == "3d":
+            _validate_type(axes, Axes3D, "axes", extra="when 'kind' is '3d'")
+        elif kind in ("topomap", "select"):
+            _validate_type(
+                axes,
+                Axes,
+                "axes",
+                extra="when 'kind' is 'topomap' or 'select'"
             )
-        elif kind in ("topomap", "select") and not isinstance(axes, Axes):
-            raise TypeError(
-                "Argument 'axes' must be an Axes if 'kind' is 'topomap'."
-            )
-        elif kind in ("topomap", "select") and isinstance(axes, Axes3D):
-            raise TypeError(
-                "Argument 'axes' must be an Axes if 'kind' is 'topomap'. An "
-                "Axes3D must be provided if 'kind' is '3d'."
-            )
-
-    if not isinstance(info, Info):
-        raise TypeError(f'info must be an instance of Info not {type(info)}')
+            if isinstance(axes, Axes3D):
+                raise TypeError(
+                    "axes must be an instance of Axes when 'kind' is "
+                    f"'topomap' or 'select', got {type(axes)} instead."
+                )
+    _validate_type(info, Info, "info")
     ch_indices = channel_indices_by_type(info)
     allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
