@@ -32,9 +32,8 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          channels: conda-forge
-          channel-priority: true
-          mamba-version: "*"
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
           use-mamba: true
       - shell: bash -el {0}
         run: |
