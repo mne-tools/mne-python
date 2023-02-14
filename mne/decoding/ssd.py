@@ -20,7 +20,7 @@ from ..utils import (
 @fill_doc
 class SSD(BaseEstimator, TransformerMixin):
     """
-    M/EEG signal decomposition using the Spatio-Spectral Decomposition (SSD).
+    Signal decomposition using the Spatio-Spectral Decomposition (SSD).
 
     SSD seeks to maximize the power at a frequency band of interest while
     simultaneously minimizing it at the flanking (surrounding) frequency bins
@@ -39,27 +39,27 @@ class SSD(BaseEstimator, TransformerMixin):
         Filtering for the frequencies of non-interest.
     reg : float | str | None (default)
         Which covariance estimator to use.
-        If not None (same as 'empirical'), allow regularization for
-        covariance estimation. If float, shrinkage is used
-        (0 <= shrinkage <= 1). For str options, reg will be passed to
-        method to :func:`mne.compute_covariance`.
+        If not None (same as 'empirical'), allow regularization for covariance
+        estimation. If float, shrinkage is used (0 <= shrinkage <= 1). For str
+        options, reg will be passed to method :func:`mne.compute_covariance`.
     n_components : int | None (default None)
         The number of components to extract from the signal.
-        If n_components is None, no dimensionality reduction is applied.
+        If None, the number of components equal to the rank of the data are
+        returned (see :attr:`rank`).
     picks : array of int | None (default None)
         The indices of good channels.
-    sort_by_spectral_ratio : bool (default False)
-       If set to True, the components are sorted accordingly
-       to the spectral ratio.
-       See Eq. (24) in :footcite:`NikulinEtAl2011`.
-    return_filtered : bool (default True)
-        If return_filtered is True, data is bandpassed and projected onto
-        the SSD components.
+    sort_by_spectral_ratio : bool (default True)
+        If set to True, the components are sorted according to the spectral
+        ratio.
+        See Eq. (24) in :footcite:`NikulinEtAl2011`.
+    return_filtered : bool (default False)
+        If return_filtered is True, data is bandpassed and projected onto the
+        SSD components.
     n_fft : int (default None)
        If sort_by_spectral_ratio is set to True, then the SSD sources will be
-       sorted accordingly to their spectral ratio which is calculated based on
-       :func:`mne.time_frequency.psd_array_welch` function. The n_fft parameter
-       set the length of FFT used.
+       sorted according to their spectral ratio which is calculated based on
+       :func:`mne.time_frequency.psd_array_welch`. The n_fft parameter sets the
+       length of FFT used.
        See :func:`mne.time_frequency.psd_array_welch` for more information.
     cov_method_params : dict | None (default None)
         As in :class:`mne.decoding.SPoC`
@@ -67,7 +67,8 @@ class SSD(BaseEstimator, TransformerMixin):
     rank : None | dict | ‘info’ | ‘full’
         As in :class:`mne.decoding.SPoC`
         This controls the rank computation that can be read from the
-        measurement info or estimated from the data.
+        measurement info or estimated from the data, which determines the
+        number of available components.
         See Notes of :func:`mne.compute_rank` for details.
         We recommend to use 'full' when working with epoched data.
 
