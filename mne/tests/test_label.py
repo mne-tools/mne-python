@@ -349,7 +349,7 @@ def test_annot_io(tmp_path):
     # copy necessary files from fsaverage to tempdir
     subject = 'fsaverage'
     label_src = subjects_dir / "fsaverage" / "label"
-    surf_src = subjects_dir / "fsaverage" /"surf"
+    surf_src = subjects_dir / "fsaverage" / "surf"
     label_dir = tmp_path / subject / "label"
     surf_dir = tmp_path / subject / "surf"
     os.makedirs(label_dir)
