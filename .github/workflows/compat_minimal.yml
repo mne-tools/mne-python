@@ -38,9 +38,8 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          channels: conda-forge
-          channel-priority: true
-          mamba-version: "*"
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
           use-mamba: true
       - shell: bash -el {0}
         run: |
