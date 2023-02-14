@@ -8,7 +8,7 @@ from ..io._digitization import _get_fid_coords
 
 @verbose
 def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
-                 show=True, sphere=None, axes=None, *, verbose=None):
+                 show=True, sphere=None, *, axes=None, verbose=None):
     """Plot a montage.
 
     Parameters
@@ -29,6 +29,11 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
 
         .. versionadded:: 1.4
     %(verbose)s
+    axes : instance of Axes | instance of Axes3D | None
+        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
+        of Axes3D. If None (default), a new axes will be created.
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------

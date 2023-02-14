@@ -328,7 +328,7 @@ class DigMontage(object):
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=True, kind='topomap', show=True,
-             sphere=None, axes=None, *, verbose=None):
+             sphere=None, *, axes=None, verbose=None):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
                             sphere=sphere, axes=axes)
