@@ -81,7 +81,7 @@ def test_io_trans(tmp_path):
     trans0 = read_trans(fname)
     fname1 = tmp_path / 'sample' / 'test-trans.fif'
     trans0.save(fname1)
-    assert fname1 == _find_trans('sample', subjects_dir=tmp_path)
+    assert str(fname1) == _find_trans('sample', subjects_dir=tmp_path)
     trans1 = read_trans(fname1)
 
     # check all properties
@@ -384,29 +384,29 @@ def test_fs_xfm(subject, tmp_path):
         / "transforms"
         / "talairach.xfm"
     )
-    xfm, kind = _read_fs_xfm(fname)
+    xfm, kind = _read_fs_xfm(str(fname))
     if subject == 'fsaverage':
         assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
     assert kind == 'MNI Transform File'
     fname_out = tmp_path / 'out.xfm'
     _write_fs_xfm(fname_out, xfm, kind)
-    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    xfm_read, kind_read = _read_fs_xfm(str(fname_out))
     assert kind_read == kind
     assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
     # Some wacky one
     xfm[:3] = np.random.RandomState(0).randn(3, 4)
     _write_fs_xfm(fname_out, xfm, 'foo')
-    xfm_read, kind_read = _read_fs_xfm(fname_out)
+    xfm_read, kind_read = _read_fs_xfm(str(fname_out))
     assert kind_read == 'foo'
     assert_allclose(xfm, xfm_read, rtol=1e-5, atol=1e-5)
     # degenerate conditions
     with open(fname_out, 'w') as fid:
         fid.write('foo')
     with pytest.raises(ValueError, match='Failed to find'):
-        _read_fs_xfm(fname_out)
+        _read_fs_xfm(str(fname_out))
     _write_fs_xfm(fname_out, xfm[:2], 'foo')
     with pytest.raises(ValueError, match='Could not find'):
-        _read_fs_xfm(fname_out)
+        _read_fs_xfm(str(fname_out))
 
 
 @pytest.fixture()
