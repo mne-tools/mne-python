@@ -925,11 +925,13 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
-    ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
+    ch_groups : 'position' | list of list | None
         Channel groups for coloring the sensors. If None (default), default
         coloring scheme is used. If 'position', the sensors are divided
         into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
-        array, the channels are divided by picks given in the array.
+        array, the channels are divided by picks given in the array. Also
+        accepts a list of lists to allow channel groups of the same or
+        different sizes.
 
         .. versionadded:: 0.13.0
     to_sphere : bool
@@ -1035,12 +1037,16 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
+    _validate_type(ch_groups, (list, np.ndarray, str, None), 'ch_groups')
     if ch_groups is None:
         def_colors = _handle_default('color')
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        if ch_groups in ['position', 'selection']:
+        if isinstance(ch_groups, str):
+            _check_option(
+                'ch_groups', ch_groups, ['position', 'selection'],
+                extra='when str')
             # Avoid circular import
             from ..channels import (read_vectorview_selection, _SELECTIONS,
                                     _EEG_SELECTIONS, _divide_to_regions)
@@ -1064,13 +1070,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 x, y, z = pos[color_picks].T
                 color = np.mean(_rgb(x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
-        else:
+        else:  # array-like
             import matplotlib.pyplot as plt
             colors = np.linspace(0, 1, len(ch_groups))
             color_vals = [plt.cm.jet(colors[i]) for i in range(len(ch_groups))]
-        if not isinstance(ch_groups, (np.ndarray, list)):
-            raise ValueError("ch_groups must be None, 'position', "
-                             "'selection', or an array. Got %s." % ch_groups)
         colors = np.zeros((len(picks), 4))
         for pick_idx, pick in enumerate(picks):
             for ind, value in enumerate(ch_groups):

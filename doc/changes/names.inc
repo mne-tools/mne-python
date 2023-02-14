@@ -192,6 +192,8 @@
 
 .. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
 
+.. _Hyonyoung Shin: https://github.com/mcvain
+
 .. _Ilias Machairas: https://github.com/JungleHippo
 
 .. _Ivana Kojcic: https://github.com/ikojcic
@@ -499,6 +501,8 @@
 .. _Teon Brooks: https://teonbrooks.com
 
 .. _Theodore Papadopoulo: https://github.com/papadop
+
+.. _Thomas Binns: https://github.com/tsbinns
 
 .. _Thomas Hartmann: https://github.com/thht
 

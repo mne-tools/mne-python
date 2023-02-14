@@ -1,15 +1,20 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
+#         Thomas S. Binns <t.s.binns@outlook.com>
 # License: BSD-3-Clause
 
 import numpy as np
 
-from ..filter import filter_data
-from ..cov import _regularized_covariance
 from . import TransformerMixin, BaseEstimator
-from ..time_frequency import psd_array_welch
-from ..utils import _time_mask, fill_doc, _validate_type, _check_option
+from ..cov import _regularized_covariance, Covariance
+from ..defaults import _handle_default
+from ..filter import filter_data
 from ..io.pick import _get_channel_types, _picks_to_idx
+from ..rank import compute_rank
+from ..time_frequency import psd_array_welch
+from ..utils import (
+    fill_doc, logger, _check_option, _time_mask, _validate_type,
+    _verbose_safe_false)
 
 
 @fill_doc
@@ -157,7 +162,7 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
-        from scipy.linalg import eigh
+        from scipy import linalg
         self._check_X(X)
         X_aux = X[..., self.picks_, :]
 
@@ -172,17 +177,22 @@ class SSD(BaseEstimator, TransformerMixin):
 
         cov_signal = _regularized_covariance(
             X_signal, reg=self.reg, method_params=self.cov_method_params,
-            rank=self.rank, info=self.info)
+            rank="full", info=self.info)
         cov_noise = _regularized_covariance(
             X_noise, reg=self.reg, method_params=self.cov_method_params,
-            rank=self.rank, info=self.info)
+            rank="full", info=self.info)
 
-        eigvals_, eigvects_ = eigh(cov_signal, cov_noise)
+        cov_signal_red, cov_noise_red, dim_red = (_dimensionality_reduction(
+            cov_signal, cov_noise, self.info, self.rank))
+
+        eigvals_, eigvects_ = linalg.eigh(cov_signal_red, cov_noise_red)
         # sort in descending order
         ix = np.argsort(eigvals_)[::-1]
         self.eigvals_ = eigvals_[ix]
-        self.filters_ = eigvects_[:, ix]
+        # restores dimensionality
+        self.filters_ = np.matmul(dim_red, eigvects_[:, ix])
         self.patterns_ = np.linalg.pinv(self.filters_)
+
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
         # fitting.
@@ -191,6 +201,7 @@ class SSD(BaseEstimator, TransformerMixin):
         if self.sort_by_spectral_ratio:
             _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
         self.sorter_spec = sorter_spec
+        logger.info("Done.")
         return self
 
     def transform(self, X):
@@ -290,3 +301,37 @@ class SSD(BaseEstimator, TransformerMixin):
         pick_patterns = self.patterns_[self.sorter_spec][:self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+
+def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
+    """Perform dimensionality reduction on the covariance matrices."""
+    from scipy import linalg
+    n_channels = cov_signal.shape[0]
+    rank_signal = list(compute_rank(
+        Covariance(cov_signal, info.ch_names, list(), list(), 0,
+                   verbose=_verbose_safe_false()),
+        rank, _handle_default('scalings_cov_rank', None), info).values())[0]
+    rank_noise = list(compute_rank(
+        Covariance(cov_signal, info.ch_names, list(), list(), 0,
+                   verbose=_verbose_safe_false()),
+        rank, _handle_default('scalings_cov_rank', None), info).values())[0]
+    rank = np.min([rank_signal, rank_noise])  # should be identical
+
+    if rank < n_channels:
+        eigvals, eigvects = linalg.eigh(cov_signal)
+        # sort in descending order
+        ix = np.argsort(eigvals)[::-1]
+        eigvals = eigvals[ix]
+        eigvects = eigvects[:, ix]
+        # compute dimensionality reduction transformation matrix
+        dim_red = np.matmul(
+            eigvects[:, :rank], np.eye(rank) * (eigvals[:rank]**-0.5))
+        logger.info(
+            "Reducing covariance rank from %i -> %i" % (n_channels, rank,))
+    else:
+        dim_red = np.eye(n_channels)
+        logger.info("Preserving covariance rank (%i)" % (rank,))
+
+    cov_signal_red = np.matmul(dim_red.T, np.matmul(cov_signal, dim_red))
+    cov_noise_red = np.matmul(dim_red.T, np.matmul(cov_noise, dim_red))
+    return cov_signal_red, cov_noise_red, dim_red
