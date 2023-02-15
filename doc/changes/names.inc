@@ -116,6 +116,8 @@
 
 .. _Denis Engemann: http://denis-engemann.de
 
+.. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
+
 .. _Dirk Gütlin: https://github.com/DiGyt
 
 .. _Dmitrii Altukhov: https://github.com/dmalt
@@ -178,6 +180,8 @@
 
 .. _Hamid Maymandi: https://github.com/HamidMandi
 
+.. _Hakimeh Pourakbari: https://github.com/Hpakbari
+
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
 .. _Henrich Kolkhorst: https://github.com/hekolk
@@ -188,6 +192,8 @@
 
 .. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
 
+.. _Hyonyoung Shin: https://github.com/mcvain
+
 .. _Ilias Machairas: https://github.com/JungleHippo
 
 .. _Ivana Kojcic: https://github.com/ikojcic
@@ -197,6 +203,8 @@
 .. _Jack Zhang: https://github.com/jackz314
 
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
+
+.. _Jan Ebert: https://www.jan-ebert.com/
 
 .. _Jan Sedivy: https://github.com/honzaseda
 
@@ -211,6 +219,8 @@
 .. _Jean-Remi King: https://github.com/kingjr
 
 .. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
+
+.. _Jennifer Behnke: https://github.com/JKBehnke
 
 .. _Jeroen Van Der Donckt: https://github.com/jvdd
 
@@ -376,6 +386,8 @@
 
 .. _Paul Roujansky: https://github.com/paulroujansky
 
+.. _Pavel Navratil: https://github.com/navrpa13
+
 .. _Peter Molfese: https://github.com/pmolfese
 
 .. _Phillip Alday: https://palday.bitbucket.io
@@ -490,6 +502,8 @@
 
 .. _Theodore Papadopoulo: https://github.com/papadop
 
+.. _Thomas Binns: https://github.com/tsbinns
+
 .. _Thomas Hartmann: https://github.com/thht
 
 .. _Thomas Radman: https://github.com/tradman
@@ -497,6 +511,8 @@
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199
 
 .. _Tod Flak: https://github.com/todflak
+
+.. _Tom Ma: https://github.com/myd7349
 
 .. _Tommy Clausner: https://github.com/TommyClausner
 
@@ -521,15 +537,3 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 
 .. _Zhi Zhang: https://github.com/tczhangzhi/
-
-.. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
-
-.. _Jennifer Behnke: https://github.com/JKBehnke
-
-.. _Hakimeh Pourakbari: https://github.com/Hpakbari
-
-.. _Pavel Navratil: https://github.com/navrpa13
-
-.. _Tom Ma: https://github.com/myd7349
-
-.. _Thomas Binns: https://github.com/tsbinns

@@ -280,6 +280,10 @@ docdict['axes_cov_plot_topomap'] = _axes_list.format('axes', 'be length 1')
 docdict['axes_evoked_plot_topomap'] = _axes_list.format(
     'axes',
     'match the number of ``times`` provided (unless ``times`` is ``None``)')
+docdict['axes_montage'] = """
+axes : instance of Axes | instance of Axes3D | None
+    Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
+    of Axes3D. If None (default), a new axes will be created."""
 docdict['axes_plot_projs_topomap'] = _axes_list.format(
     'axes', 'match the number of projectors')
 docdict['axes_plot_topomap'] = _axes_base.format('axes', '', '', '')
