@@ -5,9 +5,9 @@
 #
 # License: BSD-3-Clause
 
-from copy import deepcopy
-import os.path as op
 import pickle
+from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 from scipy import fftpack
@@ -23,11 +23,11 @@ from mne.io import read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import requires_pandas, grand_average
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-fname = op.join(base_dir, 'test-ave.fif')
-fname_gz = op.join(base_dir, 'test-ave.fif.gz')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+fname = base_dir / "test-ave.fif"
+fname_gz = base_dir / "test-ave.fif.gz"
+raw_fname = base_dir / "test_raw.fif"
+event_name = base_dir / "test-eve.fif"
 
 
 def test_get_data():
@@ -185,7 +185,7 @@ def test_evoked_aspects(aspect_kind, tmp_path):
     ave._aspect_kind = aspect_kind
     assert 'Evoked' in repr(ave)
     # for completeness let's try a round-trip
-    temp_fname = op.join(str(tmp_path), 'test-ave.fif')
+    temp_fname = tmp_path / "test-ave.fif"
     ave.save(temp_fname)
     ave_2 = read_evokeds(temp_fname, condition=0)
     assert_allclose(ave.data, ave_2.data)
@@ -201,7 +201,7 @@ def test_io_evoked(tmp_path):
     ave_double.nave = ave.nave * 2
 
     write_evokeds(tmp_path / 'evoked-ave.fif', [ave, ave_double])
-    ave2, ave_double = read_evokeds(op.join(tmp_path, 'evoked-ave.fif'))
+    ave2, ave_double = read_evokeds(tmp_path / "evoked-ave.fif")
     assert ave2.nave * 2 == ave_double.nave
 
     # This not being assert_array_equal due to windows rounding
@@ -296,10 +296,9 @@ def test_io_evoked(tmp_path):
 
 def test_shift_time_evoked(tmp_path):
     """Test for shifting of time scale."""
-    tempdir = str(tmp_path)
     # Shift backward
     ave = read_evokeds(fname, 0).shift_time(-0.1, relative=True)
-    fname_temp = op.join(tempdir, 'evoked-ave.fif')
+    fname_temp = tmp_path / "evoked-ave.fif"
     write_evokeds(fname_temp, ave)
 
     # Shift forward twice the amount
@@ -364,14 +363,13 @@ def test_tmin_tmax():
 
 def test_evoked_resample(tmp_path):
     """Test resampling evoked data."""
-    tempdir = str(tmp_path)
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
     orig_lp = ave.info['lowpass']
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal, npad=100)
     assert ave.info['lowpass'] == orig_lp
-    fname_temp = op.join(tempdir, 'evoked-ave.fif')
+    fname_temp = tmp_path / "evoked-ave.fif"
     write_evokeds(fname_temp, ave)
     ave_up = read_evokeds(fname_temp, 0)
 
@@ -724,8 +722,6 @@ def test_arithmetic():
 
 def test_array_epochs(tmp_path):
     """Test creating evoked from array."""
-    tempdir = str(tmp_path)
-
     # creating
     rng = np.random.RandomState(42)
     data1 = rng.randn(20, 60)
@@ -736,7 +732,7 @@ def test_array_epochs(tmp_path):
     evoked1 = EvokedArray(data1, info, tmin=-0.01)
 
     # save, read, and compare evokeds
-    tmp_fname = op.join(tempdir, 'evkdary-ave.fif')
+    tmp_fname = tmp_path / "evkdary-ave.fif"
     evoked1.save(tmp_fname)
     evoked2 = read_evokeds(tmp_fname)[0]
     data2 = evoked2.data
