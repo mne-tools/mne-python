@@ -2,7 +2,7 @@
 # License: BSD
 
 import glob
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -27,14 +27,14 @@ def test_what(tmp_path, verbose_debug):
                    create_info(3, 1000., 'eeg'))
     with _record_warnings():  # convergence sometimes
         ica.fit(raw)
-    fname = op.join(str(tmp_path), 'x-ica.fif')
+    fname = tmp_path / "x-ica.fif"
     ica.save(fname)
     assert what(fname) == 'ica'
     # test files
-    fnames = glob.glob(
-        op.join(data_path, 'MEG', 'sample', '*.fif'))
+    fnames = glob.glob(str(data_path / "MEG" / "sample" / "*.fif"))
     fnames += glob.glob(
-        op.join(data_path, 'subjects', 'sample', 'bem', '*.fif'))
+        str(data_path / "subjects" / "sample" / "bem" / "*.fif")
+    )
     fnames = sorted(fnames)
     want_dict = dict(eve='events', ave='evoked', cov='cov', inv='inverse',
                      fwd='forward', trans='transform', proj='proj',
@@ -43,10 +43,10 @@ def test_what(tmp_path, verbose_debug):
                      sparse='bem surfaces', head='bem surfaces',
                      fiducials='fiducials')
     for fname in fnames:
-        kind = op.splitext(fname)[0].split('-')[-1]
+        kind = Path(fname).stem.split("-")[-1]
         if len(kind) > 5:
             kind = kind.split('_')[-1]
         this = what(fname)
         assert this == want_dict[kind]
-    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave_xfit.dip')
+    fname = data_path / "MEG" / "sample" / "sample_audvis-ave_xfit.dip"
     assert what(fname) == 'unknown'
