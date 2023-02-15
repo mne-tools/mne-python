@@ -97,7 +97,7 @@ extensions = [
     'sphinx_copybutton',
     'sphinx_design',
     'sphinxcontrib.youtube',
-    'unit_role'
+    'unit_role',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
