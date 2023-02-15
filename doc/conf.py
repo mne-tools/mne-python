@@ -1008,6 +1008,9 @@ def reset_warnings(gallery_conf, fname):
         'Enum value .* is marked as deprecated',
         # matplotlib PDF output
         'The py23 module has been deprecated',
+        # pkg_resources
+        'Implementing implicit namespace packages',
+        'Deprecated call to `pkg_resources',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
