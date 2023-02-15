@@ -20,10 +20,12 @@ from mne.utils import assert_stcs_equal, catch_logging
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
-fname_evoked =  data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
-fname_cov =  data_path / 'MEG' / 'sample' / 'sample_audvis-cov.fif'
-fname_fwd =  data_path / 'MEG' / 'sample' /'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif'
-subjects_dir =  data_path / 'subjects'
+fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis-cov.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+)
+subjects_dir = data_path / "subjects"
 
 
 def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.,
