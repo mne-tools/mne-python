@@ -1,4 +1,5 @@
-import os.path as op
+from pathlib import Path
+
 import pytest
 import numpy as np
 
@@ -6,10 +7,10 @@ from mne.io import read_raw_fif
 from mne import pick_types
 from mne.preprocessing import find_ecg_events, create_ecg_epochs
 
-data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_path, 'test_raw.fif')
-event_fname = op.join(data_path, 'test-eve.fif')
-proj_fname = op.join(data_path, 'test-proj.fif')
+data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_path / "test_raw.fif"
+event_fname = data_path / "test-eve.fif"
+proj_fname = data_path / "test-proj.fif"
 
 
 def test_find_ecg():
