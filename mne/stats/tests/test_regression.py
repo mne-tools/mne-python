@@ -4,8 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
@@ -20,8 +18,7 @@ from mne.io import RawArray
 from mne.utils import requires_sklearn
 
 data_path = testing.data_path(download=False)
-stc_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-lh.stc')
+stc_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc-meg-lh.stc'
 raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
 event_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw-eve.fif'
 
