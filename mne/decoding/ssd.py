@@ -45,7 +45,7 @@ class SSD(BaseEstimator, TransformerMixin):
     n_components : int | None (default None)
         The number of components to extract from the signal.
         If None, the number of components equal to the rank of the data are
-        returned (see :attr:`rank`).
+        returned (see ``rank``).
     picks : array of int | None (default None)
         The indices of good channels.
     sort_by_spectral_ratio : bool (default True)
