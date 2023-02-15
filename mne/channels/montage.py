@@ -1183,14 +1183,17 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     missing = np.where([use not in ch_pos for use in info_names_use])[0]
     if len(missing):  # DigMontage is subset of info
         missing_names = [info_names[ii] for ii in missing]
+        pl = _pl(missing)
+        are_is = "are" if pl else "is"
         missing_coord_msg = (
-            'DigMontage is only a subset of info. There are '
-            f'{len(missing)} channel position{_pl(missing)} '
-            'not present in the DigMontage. The required channels are:\n\n'
-            f'{missing_names}.\n\nConsider using inst.set_channel_types '
-            'if these are not EEG channels, or use the on_missing '
-            'parameter if the channel positions are allowed to be unknown '
-            'in your analyses.'
+            f"DigMontage is only a subset of info. There {are_is} "
+            f"{len(missing)} channel position{pl} not present in the "
+            f"DigMontage. The channel{pl} missing from the montage {are_is}:"
+            f"\n\n{missing_names}.\n\nConsider using inst.rename_channels to "
+            "match the montage nomenclature, or inst.set_channel_types if "
+            f"{'these' if pl else 'this'} {are_is} not {'' if pl else 'an '}"
+            f"EEG channel{pl}, or use the on_missing parameter if the channel "
+            f"position{pl} {are_is} allowed to be unknown in your analyses."
         )
         _on_missing(on_missing, missing_coord_msg)
 
