@@ -908,16 +908,17 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
-        sensor selection dialog. Available options 'topomap', '3d', 'select'.
-        If 'select', a set of channels can be selected interactively by using
-        lasso selector or clicking while holding control key. The selected
-        channels are returned along with the figure instance. Defaults to
-        'topomap'.
+        sensor selection dialog. Available options ``'topomap'``, ``'3d'``,
+        ``'select'``. If ``'select'``, a set of channels can be selected
+        interactively by using lasso selector or clicking while holding control
+        key. The selected channels are returned along with the figure instance.
+        Defaults to ``'topomap'``.
     ch_type : None | str
-        The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
-        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
-        then channels are chosen in the order given above.
+        The channel type to plot. Available options ``'mag'``, ``'grad'``,
+        ``'eeg'``, ``'seeg'``, ``'dbs'``, ``'ecog'``, ``'all'``. If ``'all'``,
+        all the available mag, grad, eeg, seeg, dbs and ecog channels are
+        plotted. If None (default), then channels are chosen in the order given
+        above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
@@ -936,12 +937,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     to_sphere : bool
         Whether to project the 3d locations to a sphere. When False, the
         sensor array appears similar as to looking downwards straight above the
-        subject's head. Has no effect when kind='3d'. Defaults to True.
+        subject's head. Has no effect when ``kind='3d'``. Defaults to True.
 
         .. versionadded:: 0.14.0
-    axes : instance of Axes | instance of Axes3D | None
-        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
-        of Axes3D. If None (default), a new axes will be created.
+    %(axes_montage)s
 
         .. versionadded:: 0.13.0
     block : bool
@@ -953,10 +952,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         Show figure if True. Defaults to True.
     %(sphere_topomap_auto)s
     pointsize : float | None
-        The size of the points. If None (default), will bet set to 75 if
-        ``kind='3d'``, or 25 otherwise.
+        The size of the points. If None (default), will bet set to ``75`` if
+        ``kind='3d'``, or ``25`` otherwise.
     linewidth : float
-        The width of the outline. If 0, the outline will not be drawn.
+        The width of the outline. If ``0``, the outline will not be drawn.
     %(verbose)s
 
     Returns
@@ -980,8 +979,25 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     """
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
-    if not isinstance(info, Info):
-        raise TypeError(f'info must be an instance of Info not {type(info)}')
+    if axes is not None:
+        from matplotlib.axes import Axes
+        from mpl_toolkits.mplot3d.axes3d import Axes3D
+
+        if kind == "3d":
+            _validate_type(axes, Axes3D, "axes", extra="when 'kind' is '3d'")
+        elif kind in ("topomap", "select"):
+            _validate_type(
+                axes,
+                Axes,
+                "axes",
+                extra="when 'kind' is 'topomap' or 'select'"
+            )
+            if isinstance(axes, Axes3D):
+                raise TypeError(
+                    "axes must be an instance of Axes when 'kind' is "
+                    f"'topomap' or 'select', got {type(axes)} instead."
+                )
+    _validate_type(info, Info, "info")
     ch_indices = channel_indices_by_type(info)
     allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
