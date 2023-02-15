@@ -139,6 +139,9 @@ def pytest_configure(config):
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    # pkg_resources usage bug
+    ignore:Implementing implicit namespace packages.*:DeprecationWarning
+    ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
