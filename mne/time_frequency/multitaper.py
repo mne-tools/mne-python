@@ -294,7 +294,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
         half_nbw = 4.
     if half_nbw < 0.5:
         raise ValueError(
-            'bandwidth value %s yields a normalized bandwidth of %s < 0.5, '
+            'bandwidth value %s yields a normalized half-bandwidth of %s < 0.5, '
             'use a value of at least %s'
             % (bandwidth, half_nbw, sfreq / n_times))
 
