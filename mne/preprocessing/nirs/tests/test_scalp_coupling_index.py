@@ -4,8 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_less
@@ -16,13 +14,19 @@ from mne.preprocessing.nirs import optical_density, scalp_coupling_index,\
     beer_lambert_law
 from mne.datasets import testing
 
-fname_nirx_15_0 = op.join(data_path(download=False),
-                          'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(data_path(download=False),
-                          'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(data_path(download=False),
-                                'NIRx', 'nirscout',
-                                'nirx_15_2_recording_w_short')
+
+fname_nirx_15_0 = (
+    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"
+)
+fname_nirx_15_2 = (
+    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording"
+)
+fname_nirx_15_2_short = (
+    data_path(download=False)
+    / "NIRx"
+    / "nirscout"
+    / "nirx_15_2_recording_w_short"
+)
 
 
 @testing.requires_testing_data
