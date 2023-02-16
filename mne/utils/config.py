@@ -5,16 +5,17 @@
 # License: BSD-3-Clause
 
 import atexit
-from functools import partial
 import json
 import os
 import os.path as op
 import platform
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import re
+from functools import partial
+from pathlib import Path
 
 from .check import (_validate_type, _check_qt_version, _check_option,
                     _check_fname)
@@ -373,7 +374,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         If a value is provided, return subjects_dir. Otherwise, look for
         SUBJECTS_DIR config and return the result.
     raise_error : bool
@@ -453,11 +454,12 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _get_root_dir():
     """Get as close to the repo root as possible."""
-    root_dir = op.abspath(op.join(op.dirname(__file__), '..'))
-    up_dir = op.join(root_dir, '..')
-    if op.isfile(op.join(up_dir, 'setup.py')) and all(
-            op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):
-        root_dir = op.abspath(up_dir)
+    root_dir = Path(__file__).parent.parent.absolute()
+    up_dir = root_dir.parent
+    if (up_dir / "setup.py").is_file() and all(
+        (up_dir / x).is_dir() for x in ("mne", "examples", "doc")
+    ):
+        root_dir = up_dir
     return root_dir
 
 
