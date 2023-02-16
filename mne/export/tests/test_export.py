@@ -360,7 +360,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
-    temp_fname = op.join(str(tmp_path), 'test.set')
+    temp_fname = tmp_path / "test.set"
     # TODO: eeglabio 0.2 warns about invalid events
     if _compare_version(eeglabio.__version__, '==', '0.0.2-1'):
         ctx = _record_warnings
