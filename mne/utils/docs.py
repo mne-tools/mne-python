@@ -1515,8 +1515,8 @@ h_trans_bandwidth : float | str
 """
 
 docdict['head_pos'] = """
-head_pos : None | str | dict | tuple | array
-    Name of the position estimates file. Should be in the format of
+head_pos : None | path-like | dict | tuple | array
+    Path to the position estimates file. Should be in the format of
     the files produced by MaxFilter. If dict, keys should
     be the time points and entries should be 4x4 ``dev_head_t``
     matrices. If None, the original head position (from

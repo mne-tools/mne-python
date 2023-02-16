@@ -475,11 +475,18 @@ def test_simulate_raw_chpi():
                                     sphere_units='m')
     stcs = [_make_stc(raw, src)] * 15
     # simulate data with cHPI on
-    raw_sim = simulate_raw(raw.info, stc=stcs, trans=None, src=src, bem=sphere,
-                           head_pos=str(pos_fname), interp="zero",
-                           first_samp=raw.first_samp)
+    raw_sim = simulate_raw(
+        raw.info,
+        stc=stcs,
+        trans=None,
+        src=src,
+        bem=sphere,
+        head_pos=pos_fname,
+        interp="zero",
+        first_samp=raw.first_samp,
+    )
     # need to trim extra samples off this one
-    raw_chpi = add_chpi(raw_sim.copy(), head_pos=str(pos_fname), interp="zero")
+    raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp="zero")
     # test cHPI indication
     hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(raw.info, on_missing='raise')
     assert_allclose(raw_sim[hpi_pick][0], 0.)
