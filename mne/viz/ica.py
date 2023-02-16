@@ -44,7 +44,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
+    inst : instance of Raw, Epochs or Evoked
         The object to plot the sources from.
     %(picks_ica)s
     start, stop : float | int | None
@@ -859,7 +859,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA object.
-    inst : instance of mne.io.Raw or mne.Evoked
+    inst : instance of Raw or Evoked
         The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
         and after cleaning. In a second panel, the cross-channel average will
         be displayed. Since dipolar sources will be canceled out, this

@@ -192,7 +192,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered.
 
         .. warning:: It is critical to mark bad channels in
@@ -237,7 +237,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Returns
     -------
-    raw_sss : instance of mne.io.Raw
+    raw_sss : instance of Raw
         The raw data with Maxwell filtering applied.
 
     See Also
@@ -1610,7 +1610,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered
     origin : array-like, shape (3,)
         Origin of internal and external multipolar moment space in head coords
