@@ -165,6 +165,8 @@ class SliceBrowser(QMainWindow):
                  'head plot, use :ref:`mne.bem.make_scalp_surfaces` '
                  'to add the scalp surface instead of skull from the CT')
             self._head = None
+        # allow ?h.pial.T1 if ?h.pial doesn't exist
+        # end with '' for better file not found error
         for img in ('', '.T1', '.T2', ''):
             surf_fname = op.join(
                 self._subject_dir, 'surf', '{hemi}' + f'.pial{img}')
