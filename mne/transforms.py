@@ -453,7 +453,6 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
         types += (None,)
     _validate_type(trans, types, 'trans')
     if _path_like(trans):
-        trans = Path(trans)
         if trans == 'fsaverage':
             trans = (
                 Path(__file__).parent
@@ -461,6 +460,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
                 / "fsaverage"
                 / "fsaverage-trans.fif"
             )
+        trans = Path(trans)
         if not trans.is_file():
             raise IOError(f'trans file "{trans}" not found')
         if trans.suffix in ['.fif', '.gz']:
