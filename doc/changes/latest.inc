@@ -23,7 +23,7 @@ Current (1.4.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add :unit:`magnitude unit`  to use uniform non-breaking space throughout the documentation(:gh:`11469` by :newcontrib:`Sawradip Saha`)
+- Add ``:unit:`` Sphinx directive to enable use of uniform non-breaking spaces throughout the documentation (:gh:`11469` by :newcontrib:`Sawradip Saha`)
 - Adjusted the algorithm used in :class:`mne.decoding.SSD` to support non-full rank data (:gh:`11458` by :newcontrib:`Thomas Binns`)
 - Changed suggested type for ``ch_groups``` in `mne.viz.plot_sensors` from array to list of list(s) (arrays are still supported). (:gh:`11465` by `Hyonyoung Shin`_)
 - Add support for UCL/FIL OPM data using :func:`mne.io.read_raw_fil` (:gh:`11366` by :newcontrib:`George O'Neill` and `Robert Seymour`_)
