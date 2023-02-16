@@ -100,8 +100,7 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
             if pt['kind'] == FIFF.FIFFV_POINT_EEG:
                 eeg_chans.append(f"EEG {pt['ident']:03d}")
 
-        dig = DigMontage(dig=tmp_info['dig'],
-                         ch_names=eeg_chans)
+        dig = DigMontage(dig=tmp_info["dig"], ch_names=eeg_chans)
         inst_path = tmp_path / 'tmp-dig.fif'
         dig.save(inst_path)
 

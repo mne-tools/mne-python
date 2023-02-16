@@ -96,13 +96,13 @@ def test_project_sensors_onto_inflated(tmp_path):
             if subject == 'fsaverage':
                 copyfile(
                     subjects_dir
-                        / subject
-                        / "surf"
-                        / f"{hemi}.cortex.patch.flat",
+                    / subject
+                    / "surf"
+                    / f"{hemi}.cortex.patch.flat",
                     tmp_path
-                        / subject
-                        / "surf"
-                        / f"{hemi}.cortex.patch.flat",
+                    / subject
+                    / "surf"
+                    / f"{hemi}.cortex.patch.flat",
                 )
                 copyfile(
                     subjects_dir / subject / "surf" / f"{hemi}.sphere",
