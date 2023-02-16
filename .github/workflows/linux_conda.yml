@@ -81,7 +81,7 @@ jobs:
         shell: bash
     env:
       CONDA_ENV: 'environment.yml'
-      PYTHON_VERSION: '3.11'
+      PYTHON_VERSION: '3.10'
     steps:
       - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
@@ -89,9 +89,8 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-          channels: conda-forge
-          channel-priority: true
-          mamba-version: "*"
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
           use-mamba: true
       - shell: bash -el {0}
         run: |
