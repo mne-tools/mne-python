@@ -81,7 +81,7 @@ jobs:
         shell: bash
     env:
       CONDA_ENV: 'environment.yml'
-      PYTHON_VERSION: '3.10'
+      PYTHON_VERSION: '3.11'
     steps:
       - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
