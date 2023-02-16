@@ -55,13 +55,13 @@ def _get_test_info():
 def test_io_layout_lout(tmp_path):
     """Test IO with .lout files."""
     layout = read_layout('Vectorview-all', scale=False)
-    layout.save(str(tmp_path / "foobar.lout"))
+    layout.save(tmp_path / "foobar.lout")
     layout_read = read_layout(
-        str(tmp_path / "foobar.lout"), path="./", scale=False
+        tmp_path / "foobar.lout", path="./", scale=False
     )
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names
-    print(layout)  # test repr
+    assert "<Layout |" in layout.__repr__()
 
 
 def test_io_layout_lay(tmp_path):

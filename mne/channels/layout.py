@@ -12,7 +12,7 @@
 import logging
 from collections import defaultdict
 from itertools import combinations
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -21,7 +21,7 @@ from ..io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
-                     _check_option, _check_sphere, logger)
+                     _check_fname, _check_option, _check_sphere, logger)
 from .channels import _get_ch_info
 
 
@@ -54,13 +54,15 @@ class Layout(object):
         self.ids = ids
         self.kind = kind
 
-    def save(self, fname):
+    def save(self, fname, overwrite=False):
         """Save Layout to disk.
 
         Parameters
         ----------
-        fname : str
-            The file name (e.g. 'my_layout.lout').
+        fname : path-like
+            The file name (e.g. ``'my_layout.lout'``).
+        overwrite : bool
+            If True, overwrites the destination file if it exists.
 
         See Also
         --------
@@ -70,9 +72,11 @@ class Layout(object):
         y = self.pos[:, 1]
         width = self.pos[:, 2]
         height = self.pos[:, 3]
-        if fname.endswith('.lout'):
+        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        fname = Path(fname)  # required until _check_fname returns a Path
+        if fname.suffix == ".lout":
             out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
-        elif fname.endswith('.lay'):
+        elif fname.suffix == ".lay":
             out_str = ''
         else:
             raise ValueError('Unknown layout type. Should be of type '
@@ -166,15 +170,14 @@ def read_layout(kind, path=None, scale=True):
     Parameters
     ----------
     kind : str
-        The name of the .lout file (e.g. kind='Vectorview-all' for
-        'Vectorview-all.lout').
-
-    path : str | None
+        The name of the ``.lout`` file (e.g. ``kind='Vectorview-all'`` for
+        ``'Vectorview-all.lout'``).
+    path : path-like | None
         The path of the folder containing the Layout file. Defaults to the
-        mne/channels/data/layouts folder inside your mne-python installation.
-
+        ``mne/channels/data/layouts`` folder inside your mne-python
+        installation.
     scale : bool
-        Apply useful scaling for out the box plotting using layout.pos.
+        Apply useful scaling for out the box plotting using ``layout.pos``.
         Defaults to True.
 
     Returns
@@ -237,25 +240,25 @@ def read_layout(kind, path=None, scale=True):
        | Vectorview-mag       |
        +----------------------+
     """
-    if path is None:
-        path = op.join(op.dirname(__file__), 'data', 'layouts')
-    if not kind.endswith('.lout') and op.exists(op.join(path, kind + '.lout')):
-        kind += '.lout'
-    elif not kind.endswith('.lay') and op.exists(op.join(path, kind + '.lay')):
-        kind += '.lay'
+    readers = {".lout": _read_lout, ".lay": _read_lay}
 
-    if kind.endswith('.lout'):
-        fname = op.join(path, kind)
-        kind = kind[:-5]
-        box, pos, names, ids = _read_lout(fname)
-    elif kind.endswith('.lay'):
-        fname = op.join(path, kind)
-        kind = kind[:-4]
-        box, pos, names, ids = _read_lay(fname)
-        kind.endswith('.lay')
-    else:
-        raise ValueError('Unknown layout type. Should be of type '
-                         '.lout or .lay.')
+    if path is None:
+        path = Path(__file__).parent / "data" / "layouts"
+    # kind should be the name as a string, but let's consider the case where
+    # the path to the file is provided instead.
+    kind = Path(kind)
+    if len(kind.suffix) == 0 and (path / kind.with_suffix(".lout")).exists():
+        kind = kind.with_suffix(".lout")
+    elif len(kind.suffix) == 0 and (path / kind.with_suffix(".lay")).exists():
+        kind = kind.with_suffix(".lay")
+
+    fname = kind if kind.exists() else path / kind.name
+    if fname.suffix not in (".lout", ".lay"):
+        raise ValueError(
+            "Unknown layout type. Should be of type .lout or .lay."
+        )
+    kind = fname.stem
+    box, pos, names, ids = readers[fname.suffix](fname)
 
     if scale:
         pos[:, 0] -= np.min(pos[:, 0])
