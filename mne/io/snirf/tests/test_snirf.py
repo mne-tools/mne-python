@@ -2,7 +2,6 @@
 # Authors: Robert Luke  <mail@robertluke.net>
 #          simplified BSD-3 license
 
-import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 import shutil
@@ -19,40 +18,71 @@ from mne.io.constants import FIFF
 
 
 testing_path = data_path(download=False)
-
 # SfNIRS files
-sfnirs_homer_103_wShort = op.join(testing_path, 'SNIRF', 'SfNIRS',
-                                  'snirf_homer3', '1.0.3',
-                                  'snirf_1_3_nirx_15_2_'
-                                  'recording_w_short.snirf')
-sfnirs_homer_103_wShort_original = op.join(testing_path, 'NIRx', 'nirscout',
-                                           'nirx_15_2_recording_w_short')
-
-sfnirs_homer_103_153 = op.join(testing_path, 'SNIRF', 'SfNIRS', 'snirf_homer3',
-                               '1.0.3', 'nirx_15_3_recording.snirf')
+sfnirs_homer_103_wShort = (
+    testing_path
+    / "SNIRF"
+    / "SfNIRS"
+    / "snirf_homer3"
+    / "1.0.3"
+    / "snirf_1_3_nirx_15_2_recording_w_short.snirf"
+)
+sfnirs_homer_103_wShort_original = (
+    testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
+)
+sfnirs_homer_103_153 = (
+    testing_path
+    / "SNIRF"
+    / "SfNIRS"
+    / "snirf_homer3"
+    / "1.0.3"
+    / "nirx_15_3_recording.snirf"
+)
 
 # NIRSport2 files
-nirx_nirsport2_103 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
-                             '1.0.3', '2021-04-23_005.snirf')
-nirx_nirsport2_103_2 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
-                               '1.0.3', '2021-05-05_001.snirf')
-snirf_nirsport2_20219 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
-                                '2021.9', '2021-10-01_002.snirf')
-nirx_nirsport2_20219 = op.join(testing_path, 'NIRx', 'nirsport_v2',
-                               'aurora_2021_9')
+nirx_nirsport2_103 = (
+    testing_path
+    / "SNIRF"
+    / "NIRx"
+    / "NIRSport2"
+    / "1.0.3"
+    / "2021-04-23_005.snirf"
+)
+nirx_nirsport2_103_2 = (
+    testing_path
+    / "SNIRF"
+    / "NIRx"
+    / "NIRSport2"
+    / "1.0.3"
+    / "2021-05-05_001.snirf"
+)
+snirf_nirsport2_20219 = (
+    testing_path
+    / "SNIRF"
+    / "NIRx"
+    / "NIRSport2"
+    / "2021.9"
+    / "2021-10-01_002.snirf"
+)
+nirx_nirsport2_20219 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 
 # Kernel
-kernel_hb = op.join(testing_path, 'SNIRF', 'Kernel', 'Flow50',
-                    'Portal_2021_11', 'hb.snirf')
+kernel_hb = (
+    testing_path
+    / "SNIRF"
+    / "Kernel"
+    / "Flow50"
+    / "Portal_2021_11"
+    / "hb.snirf"
+)
 
-h5py = pytest.importorskip('h5py')  # module-level
+h5py = pytest.importorskip("h5py")  # module-level
 
 # Fieldtrip
-ft_od = op.join(testing_path, 'SNIRF', 'FieldTrip',
-                '220307_opticaldensity.snirf')
+ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 
 # GowerLabs
-lumo110 = op.join(testing_path, 'SNIRF', 'GowerLabs', 'lumomat-1-1-0.snirf')
+lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
 
 
 def _get_loc(raw, ch_name):
