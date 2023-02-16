@@ -1272,7 +1272,9 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata,
     got_size = _get_split_size(split_size)
     assert got_size == size
     _assert_splits(fname, n_files, size)
-    assert not fname.with_stem(fname.stem + f"-{n_files + 1}").is_file()
+    assert not fname.with_name(
+        f"{fname.stem}-{n_files + 1}{fname.suffix}"
+    ).is_file()
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
         assert_allclose(epochs2.get_data(), epochs_data)
@@ -1340,7 +1342,10 @@ def _assert_splits(fname, n, size):
     assert n >= 0
     next_fnames = (
         [fname] +
-        [fname.with_stem(fname.stem + f"-{ii}") for ii in range(1, n + 2)]
+        [
+            fname.with_name(f"{fname.stem}-{ii}{fname.suffix}")
+            for ii in range(1, n + 2)
+        ]
     )
     bad_fname = next_fnames.pop(-1)
     for ii, this_fname in enumerate(next_fnames[:-1]):
