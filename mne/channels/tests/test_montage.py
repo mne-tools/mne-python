@@ -1634,6 +1634,17 @@ def test_plot_montage():
     montage.plot()
     plt.close('all')
 
+    f, ax = plt.subplots(1, 1)
+    montage.plot(axes=ax)
+    plt.close("all")
+
+    with pytest.raises(TypeError, match="must be an instance of Axes"):
+        montage.plot(axes=101)
+    with pytest.raises(TypeError, match="when 'kind' is '3d'"):
+        montage.plot(axes=ax, kind="3d")
+    with pytest.raises(TypeError, match="when 'kind' is '3d'"):
+        montage.plot(axes=101, kind="3d")
+
 
 def test_montage_equality():
     """Test montage equality."""
