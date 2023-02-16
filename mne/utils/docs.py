@@ -852,9 +852,9 @@ depth : None | float | dict
 """
 
 docdict['destination_maxwell_dest'] = """
-destination : str | array-like, shape (3,) | None
+destination : path-like | array-like, shape (3,) | None
     The destination location for the head. Can be ``None``, which
-    will not change the head position, or a string path to a FIF file
+    will not change the head position, or a path to a FIF file
     containing a MEG device<->head transformation, or a 3-element array
     giving the coordinates to translate to (with no rotations).
     For example, ``destination=(0, 0, 0.04)`` would translate the bases

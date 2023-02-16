@@ -9,6 +9,7 @@
 import os
 import os.path as op
 import glob
+from pathlib import Path
 
 import numpy as np
 from copy import deepcopy
@@ -452,13 +453,17 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
         types += (None,)
     _validate_type(trans, types, 'trans')
     if _path_like(trans):
-        trans = str(trans)
+        trans = Path(trans)
         if trans == 'fsaverage':
-            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
-                            'fsaverage-trans.fif')
-        if not op.isfile(trans):
+            trans = (
+                Path(__file__).parent
+                / "data"
+                / "fsaverage"
+                / "fsaverage-trans.fif"
+            )
+        if not trans.is_file():
             raise IOError(f'trans file "{trans}" not found')
-        if op.splitext(trans)[1] in ['.fif', '.gz']:
+        if trans.suffix in ['.fif', '.gz']:
             fro_to_t = read_trans(trans)
         else:
             # convert "-trans.txt" to "-trans.fif" mri-type equivalent

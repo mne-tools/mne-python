@@ -794,7 +794,7 @@ def test_head_translation():
     with use_coil_def(elekta_def_fname):
         raw_sss = maxwell_filter(
             raw,
-            destination=str(raw_fname),
+            destination=raw_fname,
             origin=mf_head_origin,
             regularize=None,
             bad_condition="ignore",
@@ -1142,7 +1142,7 @@ def test_all():
     mins = (3.5, 3.5, 1.2, 0.9)
     meds = (10.8, 10.4, 3.2, 6.)
     st_durs = (1., 1., 1., None)
-    destinations = (None, str(sample_fname), None, None)
+    destinations = (None, sample_fname, None, None)
     origins = (mf_head_origin,
                mf_head_origin,
                mf_meg_origin,
