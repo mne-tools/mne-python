@@ -48,7 +48,6 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
 
 from mne.io import RawArray
 from mne.datasets import testing
-from mne.io.brainvision import __file__ as _BRAINVISON_FILE
 
 
 data_path = testing.data_path(download=False)

@@ -29,6 +29,7 @@ fid_fname = subjects_dir / "sample" / "bem" / "sample-fiducials.fif"
 raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 
+
 @pytest.fixture
 def few_surfaces(monkeypatch):
     """Set the _MNE_FEW_SURFACES env var."""
@@ -309,7 +310,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             subjects_dir_tmp_few,
             kind="mri",
             unscale=True,
-            )
+        )
         assert_allclose(pos_mri_from_3, 1e3 * pos_mri_from, atol=1e-3)
 
 

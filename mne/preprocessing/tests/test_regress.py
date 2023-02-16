@@ -2,8 +2,6 @@
 #
 # License: BSD-3-Clause
 
-
-
 import numpy as np
 import pytest
 from numpy.testing import (

@@ -1694,7 +1694,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     subject_from = 'sample'
     subject_to = 'small'
     testing_dir = subjects_dir / subject_from
-    from_dir =tmp_path / subject_from
+    from_dir = tmp_path / subject_from
     for root in ('mri', 'surf', 'label', 'bem'):
         os.makedirs(from_dir / root, exist_ok=True)
     for hemi in ('lh', 'rh'):

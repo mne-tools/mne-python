@@ -53,6 +53,7 @@ fname_fs_vol = (
 fname_aseg_fs = subjects_dir / "fsaverage" / "mri" / "aseg.mgz"
 fname_stc = sample_dir / "fsaverage_audvis_trunc-meg"
 
+
 def _real_vec_stc():
     inv = read_inverse_operator(fname_inv_surf)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
