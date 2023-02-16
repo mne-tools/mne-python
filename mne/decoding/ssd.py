@@ -68,7 +68,7 @@ class SSD(BaseEstimator, TransformerMixin):
         As in :class:`mne.decoding.SPoC`
         This controls the rank computation that can be read from the
         measurement info or estimated from the data, which determines the
-        number of available components.
+        maximum possible number of components.
         See Notes of :func:`mne.compute_rank` for details.
         We recommend to use 'full' when working with epoched data.
 
