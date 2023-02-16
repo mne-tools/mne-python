@@ -12,11 +12,13 @@
 
 import copy
 import io
-from glob import glob
-from itertools import cycle
+import os
 import os.path as op
 import warnings
 from collections import defaultdict
+from glob import glob
+from itertools import cycle
+from pathlib import Path
 
 import numpy as np
 
@@ -504,10 +506,10 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
     slices : list of int | None
         The indices of the MRI slices to plot. If ``None``, automatically
         pick 12 equally-spaced slices.
-    brain_surfaces : None | str | list of str
+    brain_surfaces : str | list of str | None
         One or more brain surface to plot (optional). Entries should correspond
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
-    src : None | SourceSpaces | str
+    src : SourceSpaces | path-like | None
         SourceSpaces instance or path to a source space to plot individual
         sources as scatter-plot. Sources will be shown on exactly one slice
         (whichever slice is closest to each source in the given orientation
@@ -583,17 +585,20 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)
 
-    if isinstance(src, str):
-        if not op.exists(src):
-            src_ = op.join(subjects_dir, subject, 'bem', src)
-            if op.exists(src_):
-                src = src_
-            else:
-                raise IOError("%s does not exist" % src)
+    if isinstance(src, (str, Path, os.PathLike)):
+        src = Path(src)
+        if not src.exists():
+            # convert to Path until get_subjects_dir returns a Path object
+            src_ = Path(subjects_dir) / subject / "bem" / src
+            if not src_.exists():
+                raise IOError(f"{src} does not exist")
+            src = src_
         src = read_source_spaces(src)
     elif src is not None and not isinstance(src, SourceSpaces):
-        raise TypeError("src needs to be None, str or SourceSpaces instance, "
-                        "not %s" % repr(src))
+        raise TypeError(
+            "src needs to be None, path-like or SourceSpaces instance, "
+            "not %s" % repr(src)
+        )
 
     if len(surfaces) == 0:
         raise IOError('No surface files found. Surface files must end with '
