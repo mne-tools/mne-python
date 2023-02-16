@@ -10,13 +10,15 @@
 #
 # License: Simplified BSD
 
-from itertools import cycle
+import os
 import os.path as op
 import warnings
 from collections.abc import Iterable
-from functools import partial
 from dataclasses import dataclass
+from functools import partial
+from itertools import cycle
 from typing import Optional
+from pathlib import Path
 
 import numpy as np
 
@@ -500,7 +502,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     %(ecog)s
     src : instance of SourceSpaces | None
         If not None, also plot the source space points.
-    mri_fiducials : bool | str
+    mri_fiducials : bool | str | path-like
         Plot MRI fiducials (default False). If ``True``, look for a file with
         the canonical name (``bem/{subject}-fiducials.fif``). If ``str``,
         it can be ``'estimated'`` to use :func:`mne.coreg.get_mni_fiducials`,
@@ -1016,13 +1018,12 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
                              "automatically find the fiducials file.")
         mri_fiducials = op.join(subjects_dir, subject, 'bem',
                                 subject + '-fiducials.fif')
-    if isinstance(mri_fiducials, str):
-        if mri_fiducials == 'estimated':
-            mri_fiducials = get_mni_fiducials(subject, subjects_dir)
-        else:
-            mri_fiducials, cf = read_fiducials(mri_fiducials)
-            if cf != FIFF.FIFFV_COORD_MRI:
-                raise ValueError("Fiducials are not in MRI space")
+    elif mri_fiducials == "estimated":
+        mri_fiducials = get_mni_fiducials(subject, subjects_dir)
+    elif isinstance(mri_fiducials, (str, Path, os.PathLike)):
+        mri_fiducials, cf = read_fiducials(mri_fiducials)
+        if cf != FIFF.FIFFV_COORD_MRI:
+            raise ValueError("Fiducials are not in MRI space")
     if isinstance(mri_fiducials, np.ndarray):
         fid_loc = mri_fiducials
     else:
@@ -2927,7 +2928,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     trans : dict | None
         The mri to head trans.
         Can be None with mode set to '3d'.
-    subject : str | None
+    subject : str | None
         The FreeSurfer subject name (will be used to set the FreeSurfer
         environment variable ``SUBJECT``).
         Can be ``None`` with mode set to ``'3d'``.
