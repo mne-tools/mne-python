@@ -36,6 +36,7 @@ fname_nirx_15_2_short = (
     / "nirx_15_2_recording_w_short"
 )
 
+
 @testing.requires_testing_data
 def test_fnirs_picks():
     """Test picking of fnirs types after different conversions."""

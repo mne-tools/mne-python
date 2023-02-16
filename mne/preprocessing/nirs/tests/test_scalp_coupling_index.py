@@ -14,7 +14,6 @@ from mne.preprocessing.nirs import optical_density, scalp_coupling_index,\
     beer_lambert_law
 from mne.datasets import testing
 
-
 fname_nirx_15_0 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"
 )
