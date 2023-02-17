@@ -5,6 +5,8 @@
 # License: BSD-3-Clause
 
 import os.path as op
+from os import PathLike
+from pathlib import Path
 
 import numpy as np
 
@@ -293,10 +295,10 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    events : str | array, shape (n_events, 3) | None
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    events : path-like | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
         of interest as specified by event_id, they will be marked as 'IGNORED'
@@ -431,10 +433,10 @@ class EpochsEEGLAB(BaseEpochs):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    events : str | array, shape (n_events, 3) | None
+    events : path-like | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
         of interest as specified by event_id, they will be marked as 'IGNORED'
@@ -561,7 +563,7 @@ class EpochsEEGLAB(BaseEpochs):
                 events[idx, 0] = event_latencies[idx]
                 events[idx, 1] = prev_stim
                 events[idx, 2] = event_id[event_name[idx]]
-        elif isinstance(events, str):
+        elif isinstance(events, (str, Path, PathLike)):
             events = read_events(events)
 
         logger.info('Extracting parameters from %s...' % input_fname)

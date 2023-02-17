@@ -285,7 +285,7 @@ def test_io_set_epochs_events(tmp_path):
     assert_equal(len(epochs.events), 4)
     assert epochs.preload
     assert epochs._bad_dropped
-    epochs = read_epochs_eeglab(epochs_fname_mat, str(out_fname), event_id)
+    epochs = read_epochs_eeglab(epochs_fname_mat, out_fname, event_id)
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat,
                   None, event_id)
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat,
