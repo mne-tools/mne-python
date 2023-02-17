@@ -75,35 +75,14 @@ class RawKIT(BaseRaw):
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-        If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape (8, 3)
-        Digitizer points representing the location of the fiducials and the
-        marker coils with respect to the digitized head shape, or path to a
-        file containing these points.
-    hsp : None | str | array, shape (n_points, 3)
-        Digitizer head shape points, or path to head shape file. If more than
-        10,000 points are in the head shape, they are automatically decimated.
-    stim : list of int | '<' | '>' | None
-        Channel-value correspondence when converting KIT trigger channels to a
-        Neuromag-style stim channel. For '<', the largest values are assigned
-        to the first channel (default). For '>', the largest values are
-        assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes. If None, no synthesized channel is generated.
-    slope : '+' | '-'
-        How to interpret values on KIT trigger channels when synthesizing a
-        Neuromag-style stim channel. With '+', a positive slope (low-to-high)
-        is interpreted as an event. With '-', a negative slope (high-to-low)
-        is interpreted as an event.
-    stimthresh : float
-        The threshold level for accepting voltage changes in KIT trigger
-        channels as a trigger event. If None, stim must also be set to None.
+    %(kit_mrp)s
+    %(kit_elp)s
+    %(kit_hsp)s
+    %(kit_stim)s
+    %(kit_slope)s
+    %(kit_stimthresh)s
     %(preload)s
-    stim_code : 'binary' | 'channel'
-        How to decode trigger values from stim channels. 'binary' read stim
-        channel events as binary code, 'channel' encodes channel number.
+    %(kit_stimcode)s
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
@@ -864,35 +843,14 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-        If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape (8, 3)
-        Digitizer points representing the location of the fiducials and the
-        marker coils with respect to the digitized head shape, or path to a
-        file containing these points.
-    hsp : None | str | array, shape (n_points, 3)
-        Digitizer head shape points, or path to head shape file. If more than
-        10,000 points are in the head shape, they are automatically decimated.
-    stim : list of int | '<' | '>'
-        Channel-value correspondence when converting KIT trigger channels to a
-        Neuromag-style stim channel. For '<', the largest values are assigned
-        to the first channel (default). For '>', the largest values are
-        assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes.
-    slope : '+' | '-'
-        How to interpret values on KIT trigger channels when synthesizing a
-        Neuromag-style stim channel. With '+', a positive slope (low-to-high)
-        is interpreted as an event. With '-', a negative slope (high-to-low)
-        is interpreted as an event.
-    stimthresh : float
-        The threshold level for accepting voltage changes in KIT trigger
-        channels as a trigger event.
+    %(kit_mrp)s
+    %(kit_elp)s
+    %(kit_hsp)s
+    %(kit_stim)s
+    %(kit_slope)s
+    %(kit_stimthresh)s
     %(preload)s
-    stim_code : 'binary' | 'channel'
-        How to decode trigger values from stim channels. 'binary' read stim
-        channel events as binary code, 'channel' encodes channel number.
+    %(kit_stimcode)s
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.

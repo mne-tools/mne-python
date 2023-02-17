@@ -1774,6 +1774,56 @@ keep_his : bool
                  anonymized. Use with caution.
 """
 
+docdict['kit_elp'] = """
+elp : path-like | array_like, shape (8, 3) | None
+    Digitizer points representing the location of the fiducials and the
+    marker coils with respect to the digitized head shape, or path to a
+    file containing these points.
+"""
+
+docdict['kit_hsp'] = """
+hsp : path-like | array, shape (n_points, 3) | None
+    Digitizer head shape points, or path to head shape file. If more than
+    10,000 points are in the head shape, they are automatically decimated.
+"""
+
+docdict['kit_mrp'] = """
+mrk : path-like | array_like, shape (5, 3) | list | None
+    Marker points representing the location of the marker coils with
+    respect to the MEG Sensors, or path to a marker file.
+    If list, all of the markers will be averaged together.
+"""
+
+docdict['kit_slope'] = """
+slope : ``'+'`` | ``'-'``
+    How to interpret values on KIT trigger channels when synthesizing a
+    Neuromag-style stim channel. With ``'+'``, a positive slope (low-to-high)
+    is interpreted as an event. With ``'-'``, a negative slope (high-to-low)
+    is interpreted as an event.
+"""
+
+docdict['kit_stim'] = """
+stim : list of int | ``'<'`` | ``'>'`` | None
+    Channel-value correspondence when converting KIT trigger channels to a
+    Neuromag-style stim channel. For ``'<'``, the largest values are
+    assigned to the first channel (default). For ``'>'``, the largest
+    values are assigned to the last channel. Can also be specified as a
+    list of trigger channel indexes. If None, no synthesized channel is
+    generated.
+"""
+
+docdict['kit_stimcode'] = """
+stim_code : ``'binary'`` | ``'channel'``
+    How to decode trigger values from stim channels. ``'binary'`` read stim
+    channel events as binary code, 'channel' encodes channel number.
+"""
+
+docdict['kit_stimthresh'] = """
+stimthresh : float | None
+    The threshold level for accepting voltage changes in KIT trigger
+    channels as a trigger event. If None, stim must also be set to None.
+"""
+
 docdict['kwargs_fun'] = """
 **kwargs : dict
     Additional keyword arguments to pass to ``fun``.
