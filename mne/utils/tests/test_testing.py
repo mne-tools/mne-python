@@ -3,6 +3,7 @@
 #
 # License: BSD-3-Clause
 
+import os.path as op
 from pathlib import Path
 
 import numpy as np
@@ -54,4 +55,4 @@ def test_datasets(monkeypatch, tmp_path):
 def test_url_to_local_path():
     """Test URL to local path."""
     assert _url_to_local_path('http://google.com/home/why.html', '.') == \
-        "./" + str(Path(".") / "home" / "why.html")
+        op.join('.', 'home', 'why.html')
