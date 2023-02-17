@@ -11,7 +11,8 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py.
 
 from collections import defaultdict, OrderedDict
 from math import sin, cos
-from os import SEEK_CUR, path as op
+from os import SEEK_CUR, path as op, PathLike
+from pathlib import Path
 
 import numpy as np
 
@@ -43,7 +44,7 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # prepare mrk
     if isinstance(mrk, list):
-        mrk = [read_mrk(marker) if isinstance(marker, str)
+        mrk = [read_mrk(marker) if isinstance(marker, (str, Path, PathLike))
                else marker for marker in mrk]
         mrk = np.mean(mrk, axis=0)
 
@@ -94,7 +95,7 @@ class RawKIT(BaseRaw):
     ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
     Polhemus FastScan system. ``hsp`` refers to the headshape surface points.
     ``elp`` refers to the points in head-space that corresponds to the HPI
-    points. Currently, ``'*.elp'`` and ``'*.hsp'`` files are NOT supported.
+    points.
 
     If ``mrk``, ``hsp`` or ``elp`` are array_like inputs, then the numbers
     in xyz coordinates should be in units of meters.
@@ -874,7 +875,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
     Polhemus FastScan system. ``hsp`` refers to the headshape surface points.
     ``elp`` refers to the points in head-space that corresponds to the HPI
-    points. Currently, ``'*.elp'`` and ``'*.hsp'`` files are NOT supported.
+    points.
 
     If ``mrk``, ``hsp`` or ``elp`` are array_like inputs, then the numbers
     in xyz coordinates should be in units of meters.

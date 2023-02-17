@@ -4,10 +4,11 @@
 #
 # License: BSD-3-Clause
 
-from collections import OrderedDict
-from os import SEEK_CUR, path as op
 import pickle
 import re
+from collections import OrderedDict
+from os import SEEK_CUR, path as op, PathLike
+from pathlib import Path
 
 import numpy as np
 
@@ -15,7 +16,7 @@ from .constants import KIT, FIFF
 from .._digitization import _make_dig_points
 from ...transforms import (Transform, apply_trans, get_ras_to_neuromag_trans,
                            als_ras_trans)
-from ...utils import warn, _check_option
+from ...utils import warn, _check_option, _check_fname
 
 
 INT32 = '<i4'
@@ -27,7 +28,7 @@ def read_mrk(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Absolute path to Marker file.
         File formats allowed: \*.sqd, \*.mrk, \*.txt, \*.pickled.
 
@@ -37,8 +38,10 @@ def read_mrk(fname):
         Marker points in MEG space [m].
     """
     from .kit import _read_dirs
-    ext = op.splitext(fname)[-1]
-    if ext in ('.sqd', '.mrk'):
+
+    fname = _check_fname(fname, "read", must_exist=True, name="mrk file")
+    fname = Path(fname)
+    if fname.suffix in (".sqd", ".mrk"):
         with open(fname, 'rb', buffering=0) as fid:
             dirs = _read_dirs(fid)
             fid.seek(dirs[KIT.DIR_INDEX_COREG]['offset'])
@@ -53,9 +56,9 @@ def read_mrk(fname):
                 if meg_done:
                     pts.append(meg_pts)
             mrk_points = np.array(pts)
-    elif ext == '.txt':
+    elif fname.suffix == ".txt":
         mrk_points = _read_dig_kit(fname, unit='m')
-    elif ext == '.pickled':
+    elif fname.suffix == ".pickled":
         with open(fname, 'rb') as fid:
             food = pickle.load(fid)
         try:
@@ -65,7 +68,7 @@ def read_mrk(fname):
             raise ValueError(err)
     else:
         raise ValueError('KIT marker file must be *.sqd, *.mrk, *.txt or '
-                         '*.pickled, *%s is not supported.' % ext)
+                         '*.pickled, *%s is not supported.' % fname.suffix)
 
     # check output
     mrk_points = np.asarray(mrk_points)
@@ -105,14 +108,14 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
 
     Parameters
     ----------
-    mrk : None | str | array_like, shape (5, 3)
+    mrk : path-like | array_like, shape (5, 3) | None
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
-    elp : None | str | array_like, shape (8, 3)
+    elp : path-like | array_like, shape (8, 3) | None
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
         file containing these points.
-    hsp : None | str | array, shape (n_points, 3)
+    hsp : path-like | array, shape (n_points, 3) | None
         Digitizer head shape points, or path to head shape file. If more
         than 10`000 points are in the head shape, they are automatically
         decimated.
@@ -130,7 +133,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     """
     from ...coreg import fit_matched_points, _decimate_points
 
-    if isinstance(hsp, str):
+    if isinstance(hsp, (str, Path, PathLike)):
         hsp = _read_dig_kit(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
@@ -142,7 +145,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
              "downsample is using FastScan.".format(
                  n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new))
 
-    if isinstance(elp, str):
+    if isinstance(elp, (str, Path, PathLike)):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
             raise ValueError("File %r should contain 8 points; got shape "
@@ -151,7 +154,7 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     elif len(elp) not in (6, 7, 8):
         raise ValueError("ELP should contain 6 ~ 8 points; got shape "
                          "%s." % (elp.shape,))
-    if isinstance(mrk, str):
+    if isinstance(mrk, (str, Path, PathLike)):
         mrk = read_mrk(mrk)
 
     mrk = apply_trans(als_ras_trans, mrk)
@@ -184,17 +187,23 @@ def _read_dig_kit(fname, unit='auto'):
     from ...channels.montage import (
         read_polhemus_fastscan, read_dig_polhemus_isotrak, read_custom_montage,
         _check_dig_shape)
+
+    fname = _check_fname(
+        fname, "read", must_exist=True, name="hsp or elp file"
+    )
+    fname = Path(fname)
     assert unit in ('auto', 'm', 'mm')
-    _, ext = op.splitext(fname)
-    _check_option('file extension', ext[1:], ('hsp', 'elp', 'mat', 'txt'))
-    if ext == '.txt':
+    _check_option(
+        "file extension", fname.suffix, (".hsp", ".elp", ".mat", ".txt")
+    )
+    if fname.suffix == ".txt":
         unit = 'mm' if unit == 'auto' else unit
         out = read_polhemus_fastscan(fname, unit=unit,
                                      on_header_missing='ignore')
-    elif ext in ('.hsp', '.elp'):
+    elif fname.suffix in (".hsp", ".elp"):
         unit = 'm' if unit == 'auto' else unit
         mon = read_dig_polhemus_isotrak(fname, unit=unit)
-        if fname.endswith('.hsp'):
+        if fname.suffix == ".hsp":
             dig = [d['r'] for d in mon.dig
                    if d['kind'] != FIFF.FIFFV_POINT_CARDINAL]
         else:
@@ -206,7 +215,7 @@ def _read_dig_kit(fname, unit='auto'):
                 dig[:3] = [dig[1], dig[0], dig[2]]
         out = np.array(dig, float)
     else:
-        assert ext == '.mat'
+        assert fname.suffix == ".mat"
         out = np.array([d['r'] for d in read_custom_montage(fname).dig])
     _check_dig_shape(out)
     return out

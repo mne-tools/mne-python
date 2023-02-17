@@ -696,9 +696,7 @@ def test_calculate_head_pos_ctf():
 @testing.requires_testing_data
 def test_calculate_head_pos_kit():
     """Test calculation of head position using KIT data."""
-    raw = read_raw_kit(
-        con_fname, str(mrk_fname), str(elp_fname), str(hsp_fname)
-    )
+    raw = read_raw_kit(con_fname, mrk_fname, elp_fname, hsp_fname)
     assert len(raw.info['hpi_results']) == 1
     chpi_locs = extract_chpi_locs_kit(raw)
     assert chpi_locs['rrs'].shape == (2, 5, 3)
