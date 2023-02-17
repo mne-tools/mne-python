@@ -200,7 +200,7 @@ evoked_array.plot()
 # %%
 # In certain situations you may wish to use a custom time-frequency
 # decomposition for estimation of power spectra. Or you may wish to
-# to process pre-computed power spectra in MNE.
+# process pre-computed power spectra in MNE.
 # Following the same logic, it is possible to instantiate averaged power
 # spectrum using the `~mne.time_frequency.Spectrum` class. This is slightly
 # experimental at the moment but works. An API for doing this may follow.
