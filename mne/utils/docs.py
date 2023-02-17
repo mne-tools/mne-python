@@ -1797,16 +1797,16 @@ mrk : path-like | array_like, shape (5, 3) | list | None
 docdict['kit_slope'] = """
 slope : ``'+'`` | ``'-'``
     How to interpret values on KIT trigger channels when synthesizing a
-    Neuromag-style stim channel. With ``'+'``, a positive slope (low-to-high)
-    is interpreted as an event. With ``'-'``, a negative slope (high-to-low)
+    Neuromag-style stim channel. With ``'+'``\, a positive slope (low-to-high)
+    is interpreted as an event. With ``'-'``\, a negative slope (high-to-low)
     is interpreted as an event.
 """
 
 docdict['kit_stim'] = """
 stim : list of int | ``'<'`` | ``'>'`` | None
     Channel-value correspondence when converting KIT trigger channels to a
-    Neuromag-style stim channel. For ``'<'``, the largest values are
-    assigned to the first channel (default). For ``'>'``, the largest
+    Neuromag-style stim channel. For ``'<'``\, the largest values are
+    assigned to the first channel (default). For ``'>'``\, the largest
     values are assigned to the last channel. Can also be specified as a
     list of trigger channel indexes. If None, no synthesized channel is
     generated.
