@@ -212,7 +212,8 @@ psd, freqs = mne.time_frequency.psd_array_welch(
 
 psd_ave = psd.mean(0)
 
-# mapt to `~mne.time_frequency.Spectrum` class and explore API
+# map to `~mne.time_frequency.Spectrum` class and explore API
+
 
 def spectrum_from_array(data: np.ndarray,  # spectral features
                         freqs: np.ndarray,  # frequencies
@@ -226,7 +227,7 @@ def spectrum_from_array(data: np.ndarray,  # spectral features
         dims=('channel', 'freq'),
         freqs=freqs,
         inst_type_str='Raw',
-        data_type='Averaged EEG',
+        data_type='simulated signals',
         info=inst_info,
     )
     defaults = dict(
