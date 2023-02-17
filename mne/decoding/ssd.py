@@ -20,7 +20,7 @@ from ..utils import (
 @fill_doc
 class SSD(BaseEstimator, TransformerMixin):
     """
-    M/EEG signal decomposition using the Spatio-Spectral Decomposition (SSD).
+    Signal decomposition using the Spatio-Spectral Decomposition (SSD).
 
     SSD seeks to maximize the power at a frequency band of interest while
     simultaneously minimizing it at the flanking (surrounding) frequency bins
@@ -39,27 +39,27 @@ class SSD(BaseEstimator, TransformerMixin):
         Filtering for the frequencies of non-interest.
     reg : float | str | None (default)
         Which covariance estimator to use.
-        If not None (same as 'empirical'), allow regularization for
-        covariance estimation. If float, shrinkage is used
-        (0 <= shrinkage <= 1). For str options, reg will be passed to
-        method to :func:`mne.compute_covariance`.
+        If not None (same as 'empirical'), allow regularization for covariance
+        estimation. If float, shrinkage is used (0 <= shrinkage <= 1). For str
+        options, reg will be passed to method :func:`mne.compute_covariance`.
     n_components : int | None (default None)
         The number of components to extract from the signal.
-        If n_components is None, no dimensionality reduction is applied.
+        If None, the number of components equal to the rank of the data are
+        returned (see ``rank``).
     picks : array of int | None (default None)
         The indices of good channels.
-    sort_by_spectral_ratio : bool (default False)
-       If set to True, the components are sorted accordingly
-       to the spectral ratio.
-       See Eq. (24) in :footcite:`NikulinEtAl2011`.
-    return_filtered : bool (default True)
-        If return_filtered is True, data is bandpassed and projected onto
-        the SSD components.
+    sort_by_spectral_ratio : bool (default True)
+        If set to True, the components are sorted according to the spectral
+        ratio.
+        See Eq. (24) in :footcite:`NikulinEtAl2011`.
+    return_filtered : bool (default False)
+        If return_filtered is True, data is bandpassed and projected onto the
+        SSD components.
     n_fft : int (default None)
        If sort_by_spectral_ratio is set to True, then the SSD sources will be
-       sorted accordingly to their spectral ratio which is calculated based on
-       :func:`mne.time_frequency.psd_array_welch` function. The n_fft parameter
-       set the length of FFT used.
+       sorted according to their spectral ratio which is calculated based on
+       :func:`mne.time_frequency.psd_array_welch`. The n_fft parameter sets the
+       length of FFT used.
        See :func:`mne.time_frequency.psd_array_welch` for more information.
     cov_method_params : dict | None (default None)
         As in :class:`mne.decoding.SPoC`
@@ -67,7 +67,8 @@ class SSD(BaseEstimator, TransformerMixin):
     rank : None | dict | ‘info’ | ‘full’
         As in :class:`mne.decoding.SPoC`
         This controls the rank computation that can be read from the
-        measurement info or estimated from the data.
+        measurement info or estimated from the data, which determines the
+        maximum possible number of components.
         See Notes of :func:`mne.compute_rank` for details.
         We recommend to use 'full' when working with epoched data.
 
@@ -175,22 +176,24 @@ class SSD(BaseEstimator, TransformerMixin):
             X_signal = np.hstack(X_signal)
             X_noise = np.hstack(X_noise)
 
+        # prevent rank change when computing cov with rank='full'
         cov_signal = _regularized_covariance(
             X_signal, reg=self.reg, method_params=self.cov_method_params,
-            rank="full", info=self.info)
+            rank='full', info=self.info)
         cov_noise = _regularized_covariance(
             X_noise, reg=self.reg, method_params=self.cov_method_params,
-            rank="full", info=self.info)
+            rank='full', info=self.info)
 
-        cov_signal_red, cov_noise_red, dim_red = (_dimensionality_reduction(
+        # project cov to rank subspace
+        cov_signal, cov_noise, rank_proj = (_dimensionality_reduction(
             cov_signal, cov_noise, self.info, self.rank))
 
-        eigvals_, eigvects_ = linalg.eigh(cov_signal_red, cov_noise_red)
+        eigvals_, eigvects_ = linalg.eigh(cov_signal, cov_noise)
         # sort in descending order
         ix = np.argsort(eigvals_)[::-1]
         self.eigvals_ = eigvals_[ix]
-        # restores dimensionality
-        self.filters_ = np.matmul(dim_red, eigvects_[:, ix])
+        # project back to sensor space
+        self.filters_ = np.matmul(rank_proj, eigvects_[:, ix])
         self.patterns_ = np.linalg.pinv(self.filters_)
 
         # We assume that ordering by spectral ratio is more important
@@ -201,7 +204,7 @@ class SSD(BaseEstimator, TransformerMixin):
         if self.sort_by_spectral_ratio:
             _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
         self.sorter_spec = sorter_spec
-        logger.info("Done.")
+        logger.info('Done.')
         return self
 
     def transform(self, X):
@@ -307,12 +310,14 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     """Perform dimensionality reduction on the covariance matrices."""
     from scipy import linalg
     n_channels = cov_signal.shape[0]
+
+    # find ranks of covariance matrices
     rank_signal = list(compute_rank(
         Covariance(cov_signal, info.ch_names, list(), list(), 0,
                    verbose=_verbose_safe_false()),
         rank, _handle_default('scalings_cov_rank', None), info).values())[0]
     rank_noise = list(compute_rank(
-        Covariance(cov_signal, info.ch_names, list(), list(), 0,
+        Covariance(cov_noise, info.ch_names, list(), list(), 0,
                    verbose=_verbose_safe_false()),
         rank, _handle_default('scalings_cov_rank', None), info).values())[0]
     rank = np.min([rank_signal, rank_noise])  # should be identical
@@ -323,15 +328,17 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
         ix = np.argsort(eigvals)[::-1]
         eigvals = eigvals[ix]
         eigvects = eigvects[:, ix]
-        # compute dimensionality reduction transformation matrix
-        dim_red = np.matmul(
+        # compute rank subspace projection matrix
+        rank_proj = np.matmul(
             eigvects[:, :rank], np.eye(rank) * (eigvals[:rank]**-0.5))
         logger.info(
-            "Reducing covariance rank from %i -> %i" % (n_channels, rank,))
+            'Projecting covariance of %i channels to %i rank subspace'
+            % (n_channels, rank,))
     else:
-        dim_red = np.eye(n_channels)
-        logger.info("Preserving covariance rank (%i)" % (rank,))
+        rank_proj = np.eye(n_channels)
+        logger.info('Preserving covariance rank (%i)' % (rank,))
 
-    cov_signal_red = np.matmul(dim_red.T, np.matmul(cov_signal, dim_red))
-    cov_noise_red = np.matmul(dim_red.T, np.matmul(cov_noise, dim_red))
-    return cov_signal_red, cov_noise_red, dim_red
+    # project covariance matrices to rank subspace
+    cov_signal = np.matmul(rank_proj.T, np.matmul(cov_signal, rank_proj))
+    cov_noise = np.matmul(rank_proj.T, np.matmul(cov_noise, rank_proj))
+    return cov_signal, cov_noise, rank_proj
