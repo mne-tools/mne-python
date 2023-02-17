@@ -7,7 +7,7 @@
 import pickle
 import re
 from collections import OrderedDict
-from os import SEEK_CUR, path as op, PathLike
+from os import SEEK_CUR, PathLike
 from pathlib import Path
 
 import numpy as np
@@ -39,8 +39,11 @@ def read_mrk(fname):
     """
     from .kit import _read_dirs
 
-    fname = _check_fname(fname, "read", must_exist=True, name="mrk file")
     fname = Path(fname)
+    _check_option(
+        "file extension", fname.suffix, (".sqd", ".mrk", ".txt", ".pickled")
+    )
+    _check_fname(fname, "read", must_exist=True, name="mrk file")
     if fname.suffix in (".sqd", ".mrk"):
         with open(fname, 'rb', buffering=0) as fid:
             dirs = _read_dirs(fid)
@@ -66,9 +69,6 @@ def read_mrk(fname):
         except Exception:
             err = ("%r does not contain marker points." % fname)
             raise ValueError(err)
-    else:
-        raise ValueError('KIT marker file must be *.sqd, *.mrk, *.txt or '
-                         '*.pickled, *%s is not supported.' % fname.suffix)
 
     # check output
     mrk_points = np.asarray(mrk_points)

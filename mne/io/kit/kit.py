@@ -76,7 +76,7 @@ class RawKIT(BaseRaw):
     ----------
     input_fname : str
         Path to the sqd file.
-    %(kit_mrp)s
+    %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
     %(kit_stim)s
@@ -278,6 +278,7 @@ def _make_stim_channel(trigger_chs, slope, threshold, stim_code,
     return np.array(trig_chs.sum(axis=0), ndmin=2)
 
 
+@fill_doc
 class EpochsKIT(BaseEpochs):
     """Epochs Array object from KIT SQD file.
 
@@ -285,63 +286,23 @@ class EpochsKIT(BaseEpochs):
     ----------
     input_fname : str
         Path to the sqd file.
-    events : str | array, shape (n_events, 3)
-        Path to events file. If array, it is the events typically returned
-        by the read_events function. If some events don't match the events
-        of interest as specified by event_id,they will be marked as 'IGNORED'
-        in the drop log.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
+    events : array of int, shape (n_events, 3) | path-like
+        The array of :term:`events`. The first column contains the event time
+        in samples, with :term:`first_samp` included. The third column contains
+        the event id. If a path, must yield a ``.txt`` file containing the
+        events.
+        If some events don't match the events of interest as specified by
+        ``event_id``, they will be marked as ``IGNORED`` in the drop log.
+    %(event_id)s
     tmin : float
         Start time before event.
-    baseline : None or tuple of length 2 (default (None, 0))
-        The time interval to apply baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-        The baseline (a, b) includes both endpoints, i.e. all
-        timepoints t such that a <= t <= b.
-    reject : dict | None
-        Rejection parameters based on peak-to-peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. Example::
-
-            reject = dict(grad=4000e-13, # T / m (gradiometers)
-                          mag=4e-12, # T (magnetometers)
-                          eeg=40e-6, # V (EEG channels)
-                          eog=250e-6 # V (EOG channels)
-                          )
-    flat : dict | None
-        Rejection parameters based on flatness of signal.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
-        are floats that set the minimum acceptable peak-to-peak amplitude.
-        If flat is None then no rejection is done.
-    reject_tmin : scalar | None
-        Start of the time window used to reject epochs (with the default None,
-        the window will start with tmin).
-    reject_tmax : scalar | None
-        End of the time window used to reject epochs (with the default None,
-        the window will end with tmax).
-    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-        If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape = (8, 3)
-        Digitizer points representing the location of the fiducials and the
-        marker coils with respect to the digitized head shape, or path to a
-        file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
-        Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
+    %(baseline_epochs)s
+    %(reject_epochs)s
+    %(flat)s
+    %(epochs_reject_tmin_tmax)s
+    %(kit_mrk)s
+    %(kit_elp)s
+    %(kit_hsp)s
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.
@@ -367,7 +328,7 @@ class EpochsKIT(BaseEpochs):
                  allow_unknown_format=False, standardize_names=None,
                  verbose=None):  # noqa: D102
 
-        if isinstance(events, str):
+        if isinstance(events, (str, PathLike, Path)):
             events = read_events(events)
 
         input_fname = _check_fname(fname=input_fname, must_exist=True,
@@ -847,7 +808,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     ----------
     input_fname : str
         Path to the sqd file.
-    %(kit_mrp)s
+    %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
     %(kit_stim)s
@@ -897,19 +858,17 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     ----------
     input_fname : str
         Path to the sqd file.
-    %(events_epochs)s
+    events : array of int, shape (n_events, 3) | path-like
+        The array of :term:`events`. The first column contains the event time
+        in samples, with :term:`first_samp` included. The third column contains
+        the event id. If a path, must yield a ``.txt`` file containing the
+        events.
+        If some events don't match the events of interest as specified by
+        ``event_id``, they will be marked as ``IGNORED`` in the drop log.
     %(event_id)s
-    mrk : None | str | array_like, shape (5, 3) | list of str or array_like
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-        If list, all of the markers will be averaged together.
-    elp : None | str | array_like, shape (8, 3)
-        Digitizer points representing the location of the fiducials and the
-        marker coils with respect to the digitized head shape, or path to a
-        file containing these points.
-    hsp : None | str | array, shape (n_points, 3)
-        Digitizer head shape points, or path to head shape file. If more than
-        10,000 points are in the head shape, they are automatically decimated.
+    %(kit_mrk)s
+    %(kit_elp)s
+    %(kit_hsp)s
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
         read and re-save the data with the KIT MEG Laboratory application.

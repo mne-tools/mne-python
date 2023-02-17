@@ -1068,8 +1068,8 @@ events : array of int, shape (n_events, 3)
     The array of :term:`events`. The first column contains the event time in
     samples, with :term:`first_samp` included. The third column contains the
     event id.
-    If some events don't match the events of interest as specified by event_id,
-    they will be marked as ``IGNORED`` in the drop log."""
+    If some events don't match the events of interest as specified by
+    ``event_id``, they will be marked as ``IGNORED`` in the drop log."""
 
 docdict['evoked_by_event_type_returns'] = """
 evoked : instance of Evoked | list of Evoked
@@ -1787,7 +1787,7 @@ hsp : path-like | array, shape (n_points, 3) | None
     10,000 points are in the head shape, they are automatically decimated.
 """
 
-docdict['kit_mrp'] = """
+docdict['kit_mrk'] = """
 mrk : path-like | array_like, shape (5, 3) | list | None
     Marker points representing the location of the marker coils with
     respect to the MEG Sensors, or path to a marker file.
