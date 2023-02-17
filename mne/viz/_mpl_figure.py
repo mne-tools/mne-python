@@ -1009,7 +1009,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
         selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
                                 'horizontal', minspan=0.1, useblit=False,
-                                **rect_kw)
+                                button=1, **rect_kw)
         self.mne.ax_main.selector = selector
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
