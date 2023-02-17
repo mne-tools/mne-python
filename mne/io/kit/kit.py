@@ -92,9 +92,12 @@ class RawKIT(BaseRaw):
     Notes
     -----
     ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
-    Polhemus FastScan system. hsp refers to the headshape surface points. elp
-    refers to the points in head-space that corresponds to the HPI points.
-    Currently, '*.elp' and '*.hsp' files are NOT supported.
+    Polhemus FastScan system. ``hsp`` refers to the headshape surface points.
+    ``elp`` refers to the points in head-space that corresponds to the HPI
+    points. Currently, ``'*.elp'`` and ``'*.hsp'`` files are NOT supported.
+
+    If ``mrk``, ``hsp`` or ``elp`` are array_like inputs, then the numbers
+    in xyz coordinates should be in units of meters.
 
     See Also
     --------
@@ -868,8 +871,13 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 
     Notes
     -----
-    If mrk, hsp or elp are array_like inputs, then the numbers in xyz
-    coordinates should be in units of meters.
+    ``elp`` and ``hsp`` are usually the exported text files (*.txt) from the
+    Polhemus FastScan system. ``hsp`` refers to the headshape surface points.
+    ``elp`` refers to the points in head-space that corresponds to the HPI
+    points. Currently, ``'*.elp'`` and ``'*.hsp'`` files are NOT supported.
+
+    If ``mrk``, ``hsp`` or ``elp`` are array_like inputs, then the numbers
+    in xyz coordinates should be in units of meters.
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
