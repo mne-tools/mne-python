@@ -1909,8 +1909,8 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     if not fname.suffix == ".fif":
         raise ValueError('Forward name does not end with .fif')
-    fname = fname.name
     path = fname.parent.absolute()
+    fname = fname.name
 
     # deal with mindist
     if mindist is not None:
