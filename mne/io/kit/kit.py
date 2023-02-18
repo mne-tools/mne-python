@@ -70,7 +70,7 @@ class UnsupportedKITFormat(ValueError):
 
 @fill_doc
 class RawKIT(BaseRaw):
-    """Raw object from KIT SQD file.
+    r"""Raw object from KIT SQD file.
 
     Parameters
     ----------
@@ -97,8 +97,8 @@ class RawKIT(BaseRaw):
     ``elp`` refers to the points in head-space that corresponds to the HPI
     points.
 
-    If ``mrk``, ``hsp`` or ``elp`` are array_like inputs, then the numbers
-    in xyz coordinates should be in units of meters.
+    If ``mrk``\, ``hsp`` or ``elp`` are :term:`array_like` inputs, then the
+    numbers in xyz coordinates should be in units of meters.
 
     See Also
     --------
@@ -802,7 +802,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, stim_code='binary',
                  allow_unknown_format=False, standardize_names=False,
                  verbose=None):
-    """Reader function for Ricoh/KIT conversion to FIF.
+    r"""Reader function for Ricoh/KIT conversion to FIF.
 
     Parameters
     ----------
@@ -838,8 +838,8 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     ``elp`` refers to the points in head-space that corresponds to the HPI
     points.
 
-    If ``mrk``, ``hsp`` or ``elp`` are array_like inputs, then the numbers
-    in xyz coordinates should be in units of meters.
+    If ``mrk``\, ``hsp`` or ``elp`` are :term:`array_like` inputs, then the
+    numbers in xyz coordinates should be in units of meters.
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,

@@ -1775,20 +1775,20 @@ keep_his : bool
 """
 
 docdict['kit_elp'] = """
-elp : path-like | array_like, shape (8, 3) | None
+elp : path-like | array of shape (8, 3) | None
     Digitizer points representing the location of the fiducials and the
     marker coils with respect to the digitized head shape, or path to a
     file containing these points.
 """
 
 docdict['kit_hsp'] = """
-hsp : path-like | array, shape (n_points, 3) | None
+hsp : path-like | array of shape (n_points, 3) | None
     Digitizer head shape points, or path to head shape file. If more than
     10,000 points are in the head shape, they are automatically decimated.
 """
 
 docdict['kit_mrk'] = """
-mrk : path-like | array_like, shape (5, 3) | list | None
+mrk : path-like | array of shape (5, 3) | list | None
     Marker points representing the location of the marker coils with
     respect to the MEG sensors, or path to a marker file.
     If list, all of the markers will be averaged together.
