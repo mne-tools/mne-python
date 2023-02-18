@@ -1790,7 +1790,7 @@ hsp : path-like | array, shape (n_points, 3) | None
 docdict['kit_mrk'] = """
 mrk : path-like | array_like, shape (5, 3) | list | None
     Marker points representing the location of the marker coils with
-    respect to the MEG Sensors, or path to a marker file.
+    respect to the MEG sensors, or path to a marker file.
     If list, all of the markers will be averaged together.
 """
 
@@ -3407,7 +3407,7 @@ st_only : bool
 docdict['standardize_names'] = """
 standardize_names : bool
     If True, standardize MEG and EEG channel names to be
-    ``"MEG ###"`` and ``"EEG ###"``. If False (default), native
+    ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
     channel names in the file will be used when possible.
 """
 
