@@ -228,7 +228,7 @@ def spectrum_from_array(data: np.ndarray,  # spectral features
         dims=('channel', 'freq'),
         freqs=freqs,
         inst_type_str='Raw',
-        data_type='simulated signals',
+        data_type='Averaged Power Spectrum',
         info=inst_info,
     )
     defaults = dict(
@@ -240,4 +240,4 @@ def spectrum_from_array(data: np.ndarray,  # spectral features
 
 
 spectrum = spectrum_from_array(data=psd_ave, freqs=freqs, inst_info=info)
-spectrum.plot(picks=[0, 1])
+spectrum.plot(picks=[0, 1], spatial_colors=False)
