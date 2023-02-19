@@ -216,10 +216,11 @@ psd_ave = psd.mean(0)
 # map to `~mne.time_frequency.Spectrum` class and explore API
 
 
-def spectrum_from_array(data: np.ndarray,  # spectral features
-                        freqs: np.ndarray,  # frequencies
-                        inst_info: mne.Info  # the meta data of MNE instance
-                        ) -> mne.time_frequency.Spectrum:  # Spectrum object
+def spectrum_from_array(
+    data: np.ndarray,  # spectral features
+    freqs: np.ndarray,  # frequencies
+    inst_info: mne.Info  # the meta data of MNE instance
+) -> mne.time_frequency.Spectrum:  # Spectrum object
     """Create MNE averaged power spectrum object from custom data"""
     state = dict(
         method='my_welch',
