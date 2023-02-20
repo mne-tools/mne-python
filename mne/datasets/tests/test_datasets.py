@@ -240,7 +240,7 @@ def _fake_mcd(manifest_path, destination, url, hash_, name=None,
     if name is None:
         name = url.split('/')[-1].split('.')[0]
         assert name in url
-        assert name in destination
+        assert name in str(destination)
     assert name in manifest_path
     assert len(hash_) == 32
     if fake_files:
