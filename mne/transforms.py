@@ -7,7 +7,6 @@
 # License: BSD-3-Clause
 
 import os
-import os.path as op
 import glob
 from pathlib import Path
 
