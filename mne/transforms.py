@@ -205,14 +205,14 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
+    trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
     elif len(trans_fnames) > 1:
         raise RuntimeError('Found multiple transformations for '
                            '{subject}'.format(subject=subject))
-    return trans_fnames[0]
+    return Path(trans_fnames[0])
 
 
 def apply_trans(trans, pts, move=True):

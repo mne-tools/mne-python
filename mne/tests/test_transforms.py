@@ -81,7 +81,7 @@ def test_io_trans(tmp_path):
     trans0 = read_trans(fname)
     fname1 = tmp_path / 'sample' / 'test-trans.fif'
     trans0.save(fname1)
-    assert str(fname1) == _find_trans('sample', subjects_dir=tmp_path)
+    assert fname1 == _find_trans('sample', subjects_dir=tmp_path)
     trans1 = read_trans(fname1)
 
     # check all properties

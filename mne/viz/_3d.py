@@ -617,7 +617,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # configure transforms
     if isinstance(trans, str) and trans == 'auto':
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        trans = _find_trans(subject, subjects_dir)
+        trans = _find_trans(subject, Path(subjects_dir))
     trans, trans_type = _get_trans(trans, fro='head', to='mri')
 
     picks = pick_types(info, meg=('sensors' in meg), ref_meg=('ref' in meg),

@@ -53,7 +53,7 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         through all files matching the pattern. The head surface will be read
         from the first file containing a head surface. Can also be a list
         to try multiple strings.
-    subjects_dir : str, or None
+    subjects_dir : path-like or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
     %(on_defects)s
