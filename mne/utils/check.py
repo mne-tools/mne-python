@@ -211,38 +211,46 @@ def _check_event_id(event_id, events):
 
 
 @verbose
-def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 need_dir=False, *, verbose=None):
+def _check_fname(
+    fname,
+    overwrite=False,
+    must_exist=False,
+    name="File",
+    need_dir=False,
+    *,
+    verbose=None,
+):
     """Check for file existence, and return string of its absolute path."""
-    _validate_type(fname, 'path-like', name)
-    fname = str(
-        Path(fname)
-        .expanduser()
-        .absolute()
-    )
+    _validate_type(fname, "path-like", name)
+    fname = Path(fname).expanduser().absolute()
 
-    if op.exists(fname):
+    if fname.exists():
         if not overwrite:
-            raise FileExistsError('Destination file exists. Please use option '
-                                  '"overwrite=True" to force overwriting.')
-        elif overwrite != 'read':
-            logger.info('Overwriting existing file.')
+            raise FileExistsError(
+                "Destination file exists. Please use option "
+                '"overwrite=True" to force overwriting.'
+            )
+        elif overwrite != "read":
+            logger.info("Overwriting existing file.")
         if must_exist:
             if need_dir:
-                if not op.isdir(fname):
+                if not fname.is_dir():
                     raise IOError(
-                        f'Need a directory for {name} but found a file '
-                        f'at {fname}')
+                        f"Need a directory for {name} but found a file "
+                        f"at {fname}"
+                    )
             else:
-                if not op.isfile(fname):
+                if not fname.is_file():
                     raise IOError(
-                        f'Need a file for {name} but found a directory '
-                        f'at {fname}')
+                        f"Need a file for {name} but found a directory "
+                        f"at {fname}"
+                    )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(
-                    f'{name} does not have read permissions: {fname}')
+                    f"{name} does not have read permissions: {fname}"
+                )
     elif must_exist:
-        raise FileNotFoundError(f'{name} does not exist: {fname}')
+        raise FileNotFoundError(f"{name} does not exist: {fname}")
 
     return fname
 
