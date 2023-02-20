@@ -333,8 +333,8 @@ class RawNihon(BaseRaw):
 
     Parameters
     ----------
-    fname : str
-        Path to the Nihon Kohden data file (.eeg).
+    fname : path-like
+        Path to the Nihon Kohden data ``.eeg`` file.
     preload : bool
         If True, all data are loaded at initialization.
     %(verbose)s
@@ -347,7 +347,6 @@ class RawNihon(BaseRaw):
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         fname = _check_fname(fname, 'read', True, 'fname')
-        fname = _ensure_path(fname)
         data_name = fname.name
         logger.info('Loading %s' % data_name)
 

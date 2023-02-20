@@ -348,9 +348,9 @@ class RawEEGLAB(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
@@ -375,7 +375,9 @@ class RawEEGLAB(BaseRaw):
     def __init__(self, input_fname, eog=(),
                  preload=False, *, uint16_codec=None, montage_units='mm',
                  verbose=None):  # noqa: D102
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
+        input_fname = str(
+            _check_fname(input_fname, "read", True, "input_fname")
+        )
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
@@ -434,8 +436,8 @@ class EpochsEEGLAB(BaseEpochs):
     Parameters
     ----------
     input_fname : path-like
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
     events : path-like | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
@@ -504,8 +506,9 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, eog=(), uint16_codec=None,
                  montage_units='mm', verbose=None):  # noqa: D102
-        input_fname = _check_fname(fname=input_fname, must_exist=True,
-                                   overwrite='read')
+        input_fname = str(
+            _check_fname(fname=input_fname, must_exist=True, overwrite="read")
+        )
         eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or

@@ -2144,9 +2144,9 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The absolute path of the file name to save the ICA solution into.
-            The file name should end with -ica.fif or -ica.fif.gz.
+            The file name should end with ``-ica.fif`` or ``-ica.fif.gz``.
         %(overwrite)s
 
             .. versionadded:: 1.0

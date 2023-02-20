@@ -73,7 +73,6 @@ class Layout(object):
         width = self.pos[:, 2]
         height = self.pos[:, 3]
         fname = _check_fname(fname, overwrite=overwrite, name=fname)
-        fname = Path(fname)  # required until _check_fname returns a Path
         if fname.suffix == ".lout":
             out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
         elif fname.suffix == ".lay":

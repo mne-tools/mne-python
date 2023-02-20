@@ -213,7 +213,7 @@ def read_source_estimate(fname, subject=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to (a) source-estimate file(s).
     subject : str | None
         Name of the subject the source estimate(s) is (are) from.
@@ -230,25 +230,24 @@ def read_source_estimate(fname, subject=None):
     Notes
     -----
      - for volume source estimates, ``fname`` should provide the path to a
-       single file named '*-vl.stc` or '*-vol.stc'
+       single file named ``'*-vl.stc``` or ``'*-vol.stc'``
      - for surface source estimates, ``fname`` should either provide the
-       path to the file corresponding to a single hemisphere ('*-lh.stc',
-       '*-rh.stc') or only specify the asterisk part in these patterns. In any
-       case, the function expects files for both hemisphere with names
+       path to the file corresponding to a single hemisphere (``'*-lh.stc'``,
+       ``'*-rh.stc'``) or only specify the asterisk part in these patterns. In
+       any case, the function expects files for both hemisphere with names
        following this pattern.
      - for vector surface source estimates, only HDF5 files are supported.
      - for mixed source estimates, only HDF5 files are supported.
-     - for single time point .w files, ``fname`` should follow the same
+     - for single time point ``.w`` files, ``fname`` should follow the same
        pattern as for surface estimates, except that files are named
-       '*-lh.w' and '*-rh.w'.
+       ``'*-lh.w'`` and ``'*-rh.w'``.
     """  # noqa: E501
     fname_arg = fname
-    _validate_type(fname, 'path-like', 'fname')
 
     # expand `~` without checking whether the file actually exists – we'll
     # take care of that later, as it's complicated by the different suffixes
     # STC files can have
-    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
+    fname = str(_check_fname(fname=fname, overwrite="read", must_exist=False))
 
     # make sure corresponding file(s) can be found
     ftype = None
@@ -611,11 +610,11 @@ class _BaseSourceEstimate(TimeMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The file name to write the source estimate to, should end in
-            '-stc.h5'.
+            ``'-stc.h5'``.
         ftype : str
-            File format to use. Currently, the only allowed values is "h5".
+            File format to use. Currently, the only allowed values is ``"h5"``.
         %(overwrite)s
 
             .. versionadded:: 1.0
@@ -626,8 +625,8 @@ class _BaseSourceEstimate(TimeMixin):
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
         _, write_hdf5 = _import_h5io_funcs()
-        if not fname.endswith('.h5'):
-            fname += '-stc.h5'
+        if fname.suffix != ".h5":
+            fname = fname.with_name(f"{fname.name}-stc.h5")
         fname = _check_fname(fname=fname, overwrite=overwrite)
         write_hdf5(fname,
                    dict(vertices=self.vertices, data=self.data,
@@ -1581,20 +1580,21 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The stem of the file name. The file names used for surface source
-            spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
-            and "-rh.w") to the stem provided, for the left and the right
-            hemisphere, respectively.
+            spaces are obtained by adding ``"-lh.stc"`` and ``"-rh.stc"`` (or
+            ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
+            the right hemisphere, respectively.
         ftype : str
-            File format to use. Allowed values are "stc" (default), "w",
-            and "h5". The "w" format only supports a single time point.
+            File format to use. Allowed values are ``"stc"`` (default),
+            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
+            time point.
         %(overwrite)s
 
             .. versionadded:: 1.0
         %(verbose)s
         """
-        fname = _check_fname(fname=fname, overwrite=True)  # checked below
+        fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
         lh_data = self.data[:len(self.lh_vertno)]
@@ -1607,8 +1607,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                                  "in HDF5 format instead, or cast the data to "
                                  "real numbers before saving.")
             logger.info('Writing STC to disk...')
-            fname_l = _check_fname(fname + '-lh.stc', overwrite=overwrite)
-            fname_r = _check_fname(fname + '-rh.stc', overwrite=overwrite)
+            fname_l = str(_check_fname(fname + "-lh.stc", overwrite=overwrite))
+            fname_r = str(_check_fname(fname + "-rh.stc", overwrite=overwrite))
             _write_stc(fname_l, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.lh_vertno, data=lh_data)
             _write_stc(fname_r, tmin=self.tmin, tstep=self.tstep,
@@ -1618,8 +1618,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                 raise ValueError('w files can only contain a single time '
                                  'point')
             logger.info('Writing STC to disk (w format)...')
-            fname_l = _check_fname(fname + '-lh.w', overwrite=overwrite)
-            fname_r = _check_fname(fname + '-rh.w', overwrite=overwrite)
+            fname_l = str(_check_fname(fname + "-lh.w", overwrite=overwrite))
+            fname_r = str(_check_fname(fname + "-rh.w", overwrite=overwrite))
             _write_w(fname_l, vertices=self.lh_vertno, data=lh_data[:, 0])
             _write_w(fname_r, vertices=self.rh_vertno, data=rh_data[:, 0])
         elif ftype == 'h5':
@@ -2053,13 +2053,13 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the generated nifti file.
         src : list
             The list of source spaces (should all be of type volume).
-        dest : 'mri' | 'surf'
-            If 'mri' the volume is defined in the coordinate system of
-            the original T1 image. If 'surf' the coordinate system
+        dest : ``'mri'`` | ``'surf'``
+            If ``'mri'`` the volume is defined in the coordinate system of
+            the original T1 image. If ``'surf'`` the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
         mri_resolution : bool
             It True the image is saved in MRI resolution.
@@ -2067,7 +2067,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             .. warning:: If you have many time points, the file produced can be
                          huge.
         format : str
-            Either 'nifti1' (default) or 'nifti2'.
+            Either ``'nifti1'`` (default) or ``'nifti2'``.
 
             .. versionadded:: 0.17
         %(overwrite)s
@@ -2087,7 +2087,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         .. versionadded:: 0.9.0
         """
         import nibabel as nib
-        _validate_type(fname, 'path-like', 'fname')
+
         fname = _check_fname(fname=fname, overwrite=overwrite)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)
@@ -2177,19 +2177,20 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
 
         Parameters
         ----------
-        fname : str
-            The stem of the file name. The stem is extended with "-vl.stc"
-            or "-vl.w".
+        fname : path-like
+            The stem of the file name. The stem is extended with ``"-vl.stc"``
+            or ``"-vl.w"``.
         ftype : str
-            File format to use. Allowed values are "stc" (default), "w",
-            and "h5". The "w" format only supports a single time point.
+            File format to use. Allowed values are ``"stc"`` (default),
+            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
+            time point.
         %(overwrite)s
 
             .. versionadded:: 1.0
         %(verbose)s
         """
         # check overwrite individually below
-        fname = _check_fname(fname=fname, overwrite=True)  # checked below
+        fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype != 'h5' and len(self.vertices) != 1:
             raise ValueError('Can only write to .stc or .w if a single volume '
@@ -2201,14 +2202,14 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             logger.info('Writing STC to disk...')
             if not fname.endswith(('-vl.stc', '-vol.stc')):
                 fname += '-vl.stc'
-            fname = _check_fname(fname, overwrite=overwrite)
+            fname = str(_check_fname(fname, overwrite=overwrite))
             _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.vertices[0], data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
             if not fname.endswith(('-vl.w', '-vol.w')):
                 fname += '-vl.w'
-            fname = _check_fname(fname, overwrite=overwrite)
+            fname = str(_check_fname(fname, overwrite=overwrite))
             _write_w(fname, vertices=self.vertices[0], data=self.data)
         elif ftype == 'h5':
             super().save(fname, 'h5', overwrite=overwrite)

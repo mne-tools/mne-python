@@ -650,16 +650,16 @@ class SourceMorph:
 
         Parameters
         ----------
-        fname : str
-            The stem of the file name. '-morph.h5' will be added if fname does
-            not end with '.h5'.
+        fname : path-like
+            The path to the file. ``'-morph.h5'`` will be added if fname does
+            not end with ``'.h5'``.
         %(overwrite)s
         %(verbose)s
         """
         _, write_hdf5 = _import_h5io_funcs()
         fname = _check_fname(fname, overwrite=overwrite, must_exist=False)
-        if not fname.endswith('.h5'):
-            fname = '%s-morph.h5' % fname
+        if fname.suffix != ".h5":
+            fname = fname.with_name(f"{fname.name}-morph.h5")
 
         out_dict = {k: getattr(self, k) for k in _SOURCE_MORPH_ATTRIBUTES}
         for key in ('pre_affine', 'sdr_morph'):  # classes

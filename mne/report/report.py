@@ -579,7 +579,7 @@ def open_report(fname, **params):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
@@ -594,7 +594,7 @@ def open_report(fname, **params):
     report : instance of Report
         The report.
     """
-    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
+    fname = str(_check_fname(fname=fname, overwrite="read", must_exist=False))
     if op.exists(fname):
         # Check **params with the loaded report
         read_hdf5, _ = _import_h5io_funcs()
@@ -888,7 +888,7 @@ class Report:
 
         # We loop over all content elements and implement special treatment
         # for those that are part of a section: Those sections don't actually
-        # exist in `self._content` – we're creating them on-the-fly here!
+        # exist in `self._content` – we're creating them on-the-fly here!
         for idx, content_element in enumerate(content_elements):
             if content_element.section:
                 if content_element.section in titles:
@@ -2431,9 +2431,14 @@ class Report:
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = _check_fname(
-                fname=self.data_path, overwrite='read', must_exist=True,
-                name='Directory or folder', need_dir=True
+            data_path = str(
+                _check_fname(
+                    fname=self.data_path,
+                    overwrite="read",
+                    must_exist=True,
+                    name="Directory or folder",
+                    need_dir=True,
+                )
             )
             fnames.extend(sorted(_recursive_search(data_path, p)))
 
@@ -2592,7 +2597,7 @@ class Report:
                      f'instead')
             fname = op.join(self.data_path, 'report.html')
 
-        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:

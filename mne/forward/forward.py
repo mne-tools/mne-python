@@ -478,14 +478,13 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The file name, which should end with -fwd.fif or -fwd.fif.gz.
+    fname : path-like
+        The file name, which should end with ``-fwd.fif`` or ``-fwd.fif.gz``.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
     exclude : list, optional
-        List of names of channels to exclude. If empty include all
-        channels.
+        List of names of channels to exclude. If empty include all channels.
     %(verbose)s
 
     Returns
@@ -802,7 +801,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File name to save the forward solution to. It should end with
         ``-fwd.fif`` or ``-fwd.fif.gz``.
     fwd : Forward
@@ -1809,7 +1808,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         recursively subdivided icosahedron, or ``'oct#'`` for a recursively
         subdivided octahedron (e.g., ``spacing='ico4'``). Default is 7 mm.
     mindist : float | str | None
-        Minimum distance of sources from inner skull surface (in mm).
+        Minimum distance measof sources from inner skull surface (in mm).
         If None, the MNE default value is used. If string, ``'all'``
         indicates to include all points.
     bem : str | None
@@ -1864,7 +1863,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         write_info(meas_file, meas.info)
         meas = meas_file
     else:
-        meas = _check_fname(meas, overwrite='read', must_exist=True)
+        meas = str(_check_fname(meas, overwrite="read", must_exist=True))
 
     # deal with trans/mri
     if mri is not None and trans is not None:

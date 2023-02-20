@@ -2430,9 +2430,18 @@ class Brain(object):
         if not aseg.endswith('aseg'):
             raise RuntimeError(
                 f'`aseg` file path must end with "aseg", got {aseg}')
-        aseg = _check_fname(op.join(self._subjects_dir, self._subject,
-                                    'mri', aseg + '.mgz'),
-                            overwrite='read', must_exist=True)
+        aseg = str(
+            _check_fname(
+                op.join(
+                    self._subjects_dir,
+                    self._subject,
+                    "mri",
+                    aseg + ".mgz",
+                ),
+                overwrite="read",
+                must_exist=True,
+            )
+        )
         aseg_fname = aseg
         aseg = nib.load(aseg_fname)
         aseg_data = np.asarray(aseg.dataobj)

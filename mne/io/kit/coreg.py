@@ -191,7 +191,6 @@ def _read_dig_kit(fname, unit='auto'):
     fname = _check_fname(
         fname, "read", must_exist=True, name="hsp or elp file"
     )
-    fname = Path(fname)
     assert unit in ('auto', 'm', 'mm')
     _check_option(
         "file extension", fname.suffix, (".hsp", ".elp", ".mat", ".txt")

@@ -284,7 +284,7 @@ class EpochsKIT(BaseEpochs):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the sqd file.
     events : array of int, shape (n_events, 3) | path-like
         The array of :term:`events`. The first column contains the event time
@@ -331,8 +331,9 @@ class EpochsKIT(BaseEpochs):
         if isinstance(events, (str, PathLike, Path)):
             events = read_events(events)
 
-        input_fname = _check_fname(fname=input_fname, must_exist=True,
-                                   overwrite='read')
+        input_fname = str(
+            _check_fname(fname=input_fname, must_exist=True, overwrite="read")
+        )
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names)

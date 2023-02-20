@@ -761,7 +761,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file containing the surface.
     read_metadata : bool
         Read metadata as key-value pairs. Only works when reading a FreeSurfer
@@ -813,8 +813,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'
@@ -1145,7 +1144,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File to write.
     coords : array, shape=(n_vertices, 3)
         Coordinate points.
@@ -1189,8 +1188,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'

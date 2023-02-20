@@ -321,7 +321,6 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
     read_events
     """
     filename = _check_fname(filename, overwrite=overwrite)
-    filename = Path(filename)
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))

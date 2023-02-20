@@ -779,9 +779,9 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end with -src.fif or
-        -src.fif.gz.
+    fname : path-like
+        The name of the file, which should end with ``-src.fif`` or
+        ``-src.fif.gz``.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     %(verbose)s
@@ -796,7 +796,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite='read', must_exist=True))
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '_src.fif', '_src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
@@ -1473,7 +1473,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
 def _check_volume_labels(volume_label, mri, name='volume_label'):
     _validate_type(mri, 'path-like', 'mri when %s is not None' % (name,))
-    mri = _check_fname(mri, overwrite='read', must_exist=True)
+    mri = str(_check_fname(mri, overwrite='read', must_exist=True))
     if isinstance(volume_label, str):
         volume_label = [volume_label]
     _validate_type(volume_label, (list, tuple, dict), name)  # should be
@@ -1623,11 +1623,23 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     _validate_type(bem, ('path-like', ConductorModel, None), 'bem')
     _validate_type(surface, ('path-like', dict, None), 'surface')
     if bem is not None and not isinstance(bem, ConductorModel):
-        bem = _check_fname(bem, overwrite='read', must_exist=True,
-                           name='bem filename')
+        bem = str(
+            _check_fname(
+                bem,
+                overwrite="read",
+                must_exist=True,
+                name="bem filename"
+            )
+        )
     if surface is not None and not isinstance(surface, dict):
-        surface = _check_fname(surface, overwrite='read', must_exist=True,
-                               name='surface filename')
+        surface = str(
+            _check_fname(
+                surface,
+                overwrite="read",
+                must_exist=True,
+                name="surface filename"
+            )
+        )
 
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '

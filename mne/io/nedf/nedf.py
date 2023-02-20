@@ -131,7 +131,7 @@ class RawNedf(BaseRaw):
     """Raw object from NeuroElectrics nedf file."""
 
     def __init__(self, filename, preload=False, verbose=None):
-        filename = _check_fname(filename, 'read', True, 'filename')
+        filename = str(_check_fname(filename, "read", True, "filename"))
         with open(filename, mode='rb') as fid:
             header = fid.read(_HDRLEN)
         header, dt, dt_last, n_samp, n_full = _parse_nedf_header(header)

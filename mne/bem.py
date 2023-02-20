@@ -1365,7 +1365,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file containing the surfaces.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
@@ -1391,7 +1391,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
     # Open the file, create directory
     _validate_type(s_id, ('int-like', None), 's_id')
     fname = _check_fname(fname, 'read', True, 'fname')
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         surf = _read_bem_surfaces_h5(fname, s_id)
     else:
         surf = _read_bem_surfaces_fif(fname, s_id)
@@ -1528,7 +1528,7 @@ def read_bem_solution(fname, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file containing the BEM solution.
     %(verbose)s
 
@@ -1546,7 +1546,7 @@ def read_bem_solution(fname, *, verbose=None):
     """
     fname = _check_fname(fname, 'read', True, 'fname')
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         read_hdf5, _ = _import_h5io_funcs()
         logger.info('Loading surfaces and solution...')
         bem = read_hdf5(fname)
@@ -1713,11 +1713,11 @@ def _bem_find_surface(bem, id_):
 
 @verbose
 def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
-    """Write BEM surfaces to a fiff file.
+    """Write BEM surfaces to a FIF file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to write. Can end with ``.h5`` to write using HDF5.
     surfs : dict | list of dict
         The surfaces, or a single surface.
@@ -1728,7 +1728,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
         surfs = [surfs]
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
 
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         _, write_hdf5 = _import_h5io_funcs()
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
@@ -1787,7 +1787,7 @@ def write_bem_solution(fname, bem, overwrite=False, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to use. Can end with ``.h5`` to write using HDF5.
     bem : instance of ConductorModel
         The BEM model with solution to save.
@@ -1799,7 +1799,7 @@ def write_bem_solution(fname, bem, overwrite=False, *, verbose=None):
     read_bem_solution
     """
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         _, write_hdf5 = _import_h5io_funcs()
         bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
         write_hdf5(fname, bem, overwrite=True)

@@ -567,14 +567,14 @@ def read_trans(fname, return_all=False, verbose=None):
 
 @verbose
 def write_trans(fname, trans, *, overwrite=False, verbose=None):
-    """Write a -trans.fif file.
+    """Write a transformation FIF file.
 
     Parameters
     ----------
     fname : path-like
         The name of the file, which should end in ``-trans.fif``.
     trans : dict
-        Trans file data, as returned by read_trans.
+        Trans file data, as returned by `~mne.read_trans`.
     %(overwrite)s
     %(verbose)s
 
@@ -1469,13 +1469,19 @@ def read_ras_mni_t(subject, subjects_dir=None):
     ras_mni_t : instance of Transform
         The transform from RAS to MNI (in mm).
     """
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = Path(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     _validate_type(subject, 'str', 'subject')
-    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
-                    'talairach.xfm')
-    fname = _check_fname(
-        fname, 'read', True, 'FreeSurfer Talairach transformation file')
+    fname = subjects_dir / subject / "mri" / "transforms" / "talairach.xfm"
+    fname = str(
+        _check_fname(
+            fname,
+            "read",
+            True,
+            "FreeSurfer Talairach transformation file",
+        )
+    )
     return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
 
 

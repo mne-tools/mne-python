@@ -1732,7 +1732,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the file, which should end with ``-epo.fif`` or
             ``-epo.fif.gz``.
         split_size : str | int
@@ -1770,7 +1770,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       '_epo.fif', '_epo.fif.gz'))
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite)
+        fname = str(_check_fname(fname=fname, overwrite=overwrite))
 
         split_size_bytes = _get_split_size(split_size)
 
@@ -3256,8 +3256,9 @@ class EpochsFIF(BaseEpochs):
                 fname=fname, filetype='epochs',
                 endings=('-epo.fif', '-epo.fif.gz', '_epo.fif', '_epo.fif.gz')
             )
-            fname = _check_fname(fname=fname, must_exist=True,
-                                 overwrite='read')
+            fname = str(
+                _check_fname(fname=fname, must_exist=True, overwrite="read")
+            )
         elif not preload:
             raise ValueError('preload must be used with file-like objects')
 

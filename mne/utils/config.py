@@ -397,7 +397,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
             need_dir=True, name='subjects_dir'
         )
 
-    return subjects_dir
+    return str(subjects_dir)
 
 
 @fill_doc

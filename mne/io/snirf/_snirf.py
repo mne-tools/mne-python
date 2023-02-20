@@ -64,7 +64,7 @@ class RawSNIRF(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the SNIRF data file.
     optode_frame : str
         Coordinate frame used for the optode positions. The default is unknown,
@@ -86,7 +86,7 @@ class RawSNIRF(BaseRaw):
         from ...preprocessing.nirs import _validate_nirs_info
         h5py = _import_h5py()
 
-        fname = _check_fname(fname, 'read', True, 'fname')
+        fname = str(_check_fname(fname, "read", True, "fname"))
         logger.info('Loading %s' % fname)
 
         with h5py.File(fname, 'r') as dat:

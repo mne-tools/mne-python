@@ -400,8 +400,15 @@ class RawMff(BaseRaw):
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
         """Init the RawMff class."""
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname',
-                                   need_dir=True)
+        input_fname = str(
+            _check_fname(
+                input_fname,
+                "read",
+                True,
+                "input_fname",
+                need_dir=True,
+            )
+        )
         logger.info('Reading EGI MFF Header from %s...' % input_fname)
         egi_info = _read_header(input_fname)
         if eog is None:
