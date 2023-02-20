@@ -567,9 +567,9 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
     mri_fname = _check_mri(mri, subject, subjects_dir)
 
     # Get the BEM surface filenames
-    bem_path = op.join(subjects_dir, subject, 'bem')
+    bem_path = subjects_dir / subject / "bem"
 
-    if not op.isdir(bem_path):
+    if not bem_path.is_dir():
         raise IOError(f'Subject bem directory "{bem_path}" does not exist')
 
     surfaces = _get_bem_plotting_surfaces(bem_path)
@@ -578,9 +578,10 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
             brain_surfaces = (brain_surfaces,)
         for surf_name in brain_surfaces:
             for hemi in ('lh', 'rh'):
-                surf_fname = op.join(subjects_dir, subject, 'surf',
-                                     hemi + '.' + surf_name)
-                if op.exists(surf_fname):
+                surf_fname = (
+                    subjects_dir / subject / "surf" / f"{hemi}.{surf_name}"
+                )
+                if surf_fname.exists():
                     surfaces.append((surf_fname, '#00DD00'))
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)

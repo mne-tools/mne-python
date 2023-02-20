@@ -1967,7 +1967,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         cmd.append('--overwrite')
 
     env = os.environ.copy()
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     env['SUBJECTS_DIR'] = subjects_dir
 
     try:

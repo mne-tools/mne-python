@@ -753,7 +753,7 @@ class Report:
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
         if subjects_dir is not None:
-            subjects_dir = get_subjects_dir(subjects_dir)
+            subjects_dir = str(get_subjects_dir(subjects_dir))
         self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
@@ -3782,7 +3782,7 @@ class Report:
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
             subjects_dir = self.subjects_dir
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
 
         # Get the MRI filename
         mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')

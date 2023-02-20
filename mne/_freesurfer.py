@@ -266,7 +266,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
     Parameters
     ----------
     pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system.
+        The coordinates (in m) in head coordinate system.
     %(subject)s
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
@@ -298,7 +298,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
     _validate_type(kind, str, 'kind')
     _check_option('kind', kind, ('ras', 'mri'))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    t1_fname = subjects_dir / subject / "mri" / "T1.mgz"
     head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
     if kind == 'ras':
         _, _, mri_ras_t, _, _ = _read_mri_info(t1_fname)
@@ -331,7 +331,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
         Hemisphere(s) the vertices belong to.
     %(subject)s
     subjects_dir : str, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+        Path to ``SUBJECTS_DIR`` if it is not set in the environment.
     %(verbose)s
 
     Returns
@@ -352,8 +352,10 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
-    surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
-             for h in ['lh', 'rh']]
+    surfs = [
+        subjects_dir / subject / "surf" / f"{h}.white"
+        for h in ["lh", "rh"]
+    ]
 
     # read surface locations in MRI space
     rr = [read_surface(s)[0] for s in surfs]
@@ -437,8 +439,12 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     # transformation rather than the standard brain-based MNI Talaranch
     # transformation, and/or project the points onto the head surface
     # (if available).
-    fname_fids_fs = op.join(op.dirname(__file__), 'data',
-                            'fsaverage', 'fsaverage-fiducials.fif')
+    fname_fids_fs = (
+        Path(__file__).parent
+        / "data"
+        / "fsaverage"
+        / "fsaverage-fiducials.fif"
+    )
 
     # Read fsaverage fiducials file and subject Talairach.
     fids, coord_frame = read_fiducials(fname_fids_fs)
@@ -470,6 +476,7 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     %(trans_not_none)s
     """
     from .channels.montage import make_dig_montage, compute_native_head_t
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     lpa, nasion, rpa = get_mni_fiducials(subject, subjects_dir)
     montage = make_dig_montage(lpa=lpa['r'], nasion=nasion['r'], rpa=rpa['r'],
@@ -573,10 +580,10 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 
     # To do this, we get Norig and Torig
     # (i.e. vox_ras_t and vox_mri_t, respectively)
-    path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
-    if not op.isfile(path):
-        path = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    if not op.isfile(path):
+    path = subjects_dir / subject / "mri" / "orig.mgz"
+    if not path.is_file():
+        path = subjects_dir / subject / "mri" / "T1.mgz"
+    if not path.is_file():
         raise IOError('mri not found: %s' % path)
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
@@ -592,7 +599,7 @@ def _check_mri(mri, subject, subjects_dir):
         if subject is None:
             raise FileNotFoundError(
                 f'MRI file {mri!r} not found and no subject provided')
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
         mri = op.join(subjects_dir, subject, 'mri', mri)
         if not op.isfile(mri):
             raise FileNotFoundError(f'MRI file {mri!r} not found')

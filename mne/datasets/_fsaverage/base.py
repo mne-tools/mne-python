@@ -84,7 +84,7 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
 
 
 def _get_create_subjects_dir(subjects_dir):
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=False))
     if subjects_dir is None:
         subjects_dir = _get_path(None, 'MNE_DATA', 'montage coregistration')
         subjects_dir = op.join(subjects_dir, 'MNE-fsaverage-data')
@@ -97,7 +97,7 @@ def _set_montage_coreg_path(subjects_dir=None):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The path to use as the subjects directory in the MNE-Python
         config file. None will use the existing config variable (i.e.,
         will not change anything), and if it does not exist, will use

@@ -280,7 +280,7 @@ class Brain(object):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
-        subjects_dir = get_subjects_dir(subjects_dir)
+        subjects_dir = str(get_subjects_dir(subjects_dir))
 
         self.time_viewer = False
         self._hash = time.time_ns()

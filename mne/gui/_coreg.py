@@ -215,8 +215,9 @@ class CoregistrationUI(HasTraits):
 
         # process requirements
         info = None
-        subjects_dir = get_subjects_dir(
-            subjects_dir=subjects_dir, raise_error=True)
+        subjects_dir = str(
+            get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+        )
         subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window

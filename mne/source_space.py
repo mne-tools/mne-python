@@ -1389,7 +1389,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
         compute patch information (requires SciPy 1.3+).
 
         .. versionchanged:: 0.20
-           Support for add_dist='patch'.
+           Support for ``add_dist='patch'``.
     %(n_jobs)s
         Ignored if ``add_dist=='patch'``.
     %(verbose)s
@@ -1408,8 +1408,10 @@ def setup_source_space(subject, spacing='oct6', surface='white',
            % (subject, spacing, surface, subjects_dir, add_dist, verbose))
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
-             for hemi in ['lh.', 'rh.']]
+    surfs = [
+        subjects_dir / subject / "surf" / f"{hemi}.{surface}"
+        for hemi in ["lh", "rh"]
+    ]
     for surf, hemi in zip(surfs, ['LH', 'RH']):
         if surf is not None and not op.isfile(surf):
             raise IOError('Could not find the %s surface %s'
@@ -2645,8 +2647,10 @@ def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
     # nearest-neighbor mode should be used)
     logger.info('Mapping %s %s -> %s (nearest neighbor)...'
                 % (hemi, subject_from, subject_to))
-    regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
-            for s in (subject_from, subject_to)]
+    regs = [
+        subjects_dir / s / "surf" / f"{hemi}.sphere.reg"
+        for s in (subject_from, subject_to)
+    ]
     reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
     if to_neighbor_tri is not None:
         reg_to['neighbor_tri'] = to_neighbor_tri
@@ -2718,7 +2722,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     src_out = list()
     for fro in src_from:
         hemi, idx, id_ = _get_hemi(fro)
-        to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
+        to = subjects_dir / subject_to / "surf" / f"{hemi}.{surf}"
         logger.info('Reading destination surface %s' % (to,))
         to = read_surface(to, return_dict=True, verbose=False)[-1]
         complete_surface_info(to, copy=False)

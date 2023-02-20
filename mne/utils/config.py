@@ -383,23 +383,18 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
 
     Returns
     -------
-    value : str | None
+    value : Path | None
         The SUBJECTS_DIR value.
     """
-    _validate_type(item=subjects_dir, types=('path-like', None),
-                   item_name='subjects_dir', type_name='str or path-like')
-
     if subjects_dir is None:
         subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
     if subjects_dir is not None:
-        subjects_dir = str(
-            _check_fname(
-                fname=subjects_dir,
-                overwrite="read",
-                must_exist=True,
-                need_dir=True,
-                name="subjects_dir",
-            )
+        subjects_dir = _check_fname(
+            fname=subjects_dir,
+            overwrite="read",
+            must_exist=True,
+            need_dir=True,
+            name="subjects_dir",
         )
     return subjects_dir
 

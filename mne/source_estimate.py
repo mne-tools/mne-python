@@ -1264,8 +1264,7 @@ def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
         raise ValueError('All values must be non-negative and at least one '
                          'must be non-zero, cannot compute COM')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    surf = read_surface(op.join(subjects_dir, subject, 'surf',
-                                hemi + '.' + surf))
+    surf = read_surface(subjects_dir / subject / "surf" / f"{hemi}.{surf}")
     if restrict_vertices is True:
         restrict_vertices = vertices
     elif restrict_vertices is False:
@@ -3332,9 +3331,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     subject = _check_subject(None, subject, raise_error=False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if surface is not None:
-        surf_rr = [read_surface(op.join(subjects_dir, subject, 'surf',
-                                        f'{hemi}.{surface}'))[0] / 1000.
-                   for hemi in ('lh', 'rh')]
+        surf_rr = [
+            read_surface(
+                subjects_dir / subject / "surf" / f"{hemi}.{surface}"
+            )[0] / 1000.
+            for hemi in ("lh", "rh")
+        ]
     if src is None:  # fake a full surface one
         _validate_type(surface, str, 'surface', 'when src is None')
         src = SourceSpaces([

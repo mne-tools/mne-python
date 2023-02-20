@@ -23,14 +23,14 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
 
     Parameters
     ----------
-    subject : string
+    subject : str
         Subject name
-    subjects_dir : string
+    subjects_dir : path-like
         Directory containing subjects data (Freesurfer SUBJECTS_DIR)
-    method : string
-        Can be 'flash' or 'watershed'.
+    method : str
+        Can be ``'flash'`` or ``'watershed'``.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
 
     if subject is None:
         raise ValueError("subject argument is None.")
@@ -83,7 +83,7 @@ def run():
     parser = get_optparser(__file__)
 
     subject = os.environ.get('SUBJECT')
-    subjects_dir = get_subjects_dir()
+    subjects_dir = str(get_subjects_dir())
 
     parser.add_option("-s", "--subject", dest="subject",
                       help="Subject name", default=subject)

@@ -86,7 +86,7 @@ class SliceBrowser(QMainWindow):
         self._verbose = verbose
         # if bad/None subject, will raise an informative error when loading MRI
         subject = os.environ.get('SUBJECT') if subject is None else subject
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
         self._subject_dir = op.join(subjects_dir, subject)
         self._load_image_data(base_image=base_image)
 

@@ -176,7 +176,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         raise ValueError('Only surface source estimates can compute a '
                          'sparse morph.')
 
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     shape = affine = pre_affine = sdr_morph = morph_mat = None
     vertices_to_surf, vertices_to_vol = list(), list()
 
@@ -1139,8 +1139,10 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None,
         return [np.arange(10242), np.arange(10242)]
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
-    spheres_to = [op.join(subjects_dir, subject, 'surf',
-                          xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres_to = [
+        subjects_dir / subject / "surf" / (xh + ".sphere.reg")
+        for xh in ["lh", "rh"]
+    ]
     lhs, rhs = [read_surface(s)[0] for s in spheres_to]
 
     if grade is not None:  # fill a subset of vertices
@@ -1274,8 +1276,10 @@ def _sparse_argmax_nnz_row(csr_mat):
 
 
 def _get_subject_sphere_tris(subject, subjects_dir):
-    spheres = [op.join(subjects_dir, subject, 'surf',
-                       xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres = [
+        subjects_dir / subject / "surf" / (xh + ".sphere.reg")
+        for xh in ["lh", "rh"]
+    ]
     tris = [read_surface(s)[1] for s in spheres]
     return tris
 

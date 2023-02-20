@@ -617,7 +617,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # configure transforms
     if isinstance(trans, str) and trans == 'auto':
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        trans = _find_trans(subject, Path(subjects_dir))
+        trans = _find_trans(subject, subjects_dir)
     trans, trans_type = _get_trans(trans, fro='head', to='mri')
 
     picks = pick_types(info, meg=('sensors' in meg), ref_meg=('ref' in meg),
@@ -677,13 +677,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             brain = 'pial' if brain == 'brain' else brain
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             for hemi in ['lh', 'rh']:
-                brain_fname = op.join(subjects_dir, subject, 'surf',
-                                      f'{hemi}.{brain}')
-                if not op.isfile(brain_fname):
+                brain_fname = (
+                    subjects_dir / subject / "surf" / f"{hemi}.{brain}"
+                )
+                if not brain_fname.is_file():
                     raise RuntimeError(
                         f'No brain surface found for subject {subject}, '
                         f'expected {brain_fname} to exist')
                 surfs[hemi] = _read_mri_surface(brain_fname)
+            subjects_dir = str(subjects_dir)
 
     # Head surface:
     head_keys = ('auto', 'head', 'outer_skin', 'head-dense', 'seghead')
@@ -1016,8 +1018,9 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
         if subject is None:
             raise ValueError("Subject needs to be specified to "
                              "automatically find the fiducials file.")
-        mri_fiducials = op.join(subjects_dir, subject, 'bem',
-                                subject + '-fiducials.fif')
+        mri_fiducials = (
+            subjects_dir / subject / "bem" / (subject + "-fiducials.fif")
+        )
     elif mri_fiducials == "estimated":
         mri_fiducials = get_mni_fiducials(subject, subjects_dir)
     elif isinstance(mri_fiducials, (str, Path, os.PathLike)):
@@ -1855,12 +1858,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str
-        Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
-        of 'both', both hemispheres are shown in the same window.
-        In the case of 'split' hemispheres are displayed side-by-side
+        Hemisphere id (ie ``'lh'``, ``'rh'``, ``'both'``, or ``'split'``). In
+        the case of ``'both'``, both hemispheres are shown in the same window.
+        In the case of ``'split'`` hemispheres are displayed side-by-side
         in different viewing panes.
     %(colormap)s
-        The default ('auto') uses 'hot' for one-sided data and
+        The default ('auto') uses ``'hot'`` for one-sided data and
         'mne' for two-sided data.
     %(time_label)s
     smoothing_steps : int
@@ -1895,12 +1898,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     colorbar : bool
         If True, display colorbar on scene.
     %(clim)s
-    cortex : str or tuple
+    cortex : str | tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset Brain cortex colorscheme (one of
-        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the name of
-        a colormap, or a tuple with values (colormap, min, max, reverse)
-        to fully specify the curvature colors. Has no effect with mpl backend.
+        ``'classic'``, ``'bone'``, ``'low_contrast'``, or ``'high_contrast'``),
+        or the name of a colormap, or a tuple with values
+        ``(colormap, min, max, reverse)`` to fully specify the curvature
+        colors. Has no effect with the matplotlib backend.
     size : float or tuple of float
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
@@ -1913,10 +1917,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
-    time_unit : 's' | 'ms'
+    time_unit : ``'s'`` | ``'ms'``
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : 'auto' | 'pyvistaqt' | 'matplotlib'
+    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'matplotlib'``
         Which backend to use. If ``'auto'`` (default), tries to plot with
         pyvistaqt, but resorts to matplotlib if no 3d backend is available.
 
@@ -1959,10 +1963,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, use_3d_backend
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = str(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     subject = _check_subject(stc.subject, subject)
     _check_option('backend', backend,
                   ['auto', 'matplotlib', 'pyvistaqt', 'notebook'])
@@ -2002,9 +2008,11 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               view_layout, add_data_kwargs, brain_kwargs):
     from .backends.renderer import _get_3d_backend, get_brain_class
     from ..source_estimate import _BaseVolSourceEstimate
+
     vec = stc._data_ndim == 3
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = str(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     subject = _check_subject(stc.subject, subject)
 
     backend = _get_3d_backend()
@@ -3045,7 +3053,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     _validate_type(coord_frame, str, 'coord_frame')
     _check_option('mode', mode, ('orthoview', 'outlines', 'arrow', 'sphere'))
     if mode in ('orthoview', 'outlines'):
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     kwargs = dict(
         trans=trans, subject=subject, subjects_dir=subjects_dir,
         coord_frame=coord_frame, ax=ax, block=block, show=show, color=color,
@@ -3191,8 +3199,9 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     from nibabel.processing import resample_from_to
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = str(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
     # Do everything in mm here to make life slightly easier

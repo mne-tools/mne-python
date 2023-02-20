@@ -53,9 +53,9 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         through all files matching the pattern. The head surface will be read
         from the first file containing a head surface. Can also be a list
         to try multiple strings.
-    subjects_dir : path-like or None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    subjects_dir : path-like | None
+        Path to the ``SUBJECTS_DIR``. If None, the path is obtained by using
+        the environment variable ``SUBJECTS_DIR``.
     %(on_defects)s
 
         .. versionadded:: 1.0
@@ -75,8 +75,9 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
                       raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
+
     # Load the head surface from the BEM
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     if not isinstance(subject, str):
         raise TypeError('subject must be a string, not %s.' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
@@ -1051,7 +1052,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
         del surf['neighbor_vert']
     else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
-        surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
+        surf_name = subjects_dir / subject / "surf" / f"{hemi}.sphere"
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = read_surface(surf_name, return_dict=True)[-1]
         _normalize_vectors(from_surf['rr'])

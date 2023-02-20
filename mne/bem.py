@@ -631,7 +631,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
         raise ValueError('surfs, ids, and sigmas must all have the same '
                          'number of elements (1 or 3)')
     for si, surf in enumerate(surfs):
-        if isinstance(surf, str):
+        if isinstance(surf, (str, Path, os.PathLike)):
             surfs[si] = surf = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
@@ -677,8 +677,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     subject : str
         The subject.
     ico : int | None
-        The surface ico downsampling to use, e.g. 5=20484, 4=5120, 3=1280.
-        If None, no subsampling is applied.
+        The surface ico downsampling to use, e.g. ``5=20484``, ``4=5120``,
+        ``3=1280``. If None, no subsampling is applied.
     conductivity : array of int, shape (3,) or (1,)
         The conductivities to use for each shell. Should be a single element
         for a one-layer model, or three elements for a three-layer model.
@@ -709,11 +709,11 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         raise ValueError('conductivity must be 1D array-like with 1 or 3 '
                          'elements')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    subject_dir = op.join(subjects_dir, subject)
-    bem_dir = op.join(subject_dir, 'bem')
-    inner_skull = op.join(bem_dir, 'inner_skull.surf')
-    outer_skull = op.join(bem_dir, 'outer_skull.surf')
-    outer_skin = op.join(bem_dir, 'outer_skin.surf')
+    subject_dir = subjects_dir / subject
+    bem_dir = subject_dir / "bem"
+    inner_skull = bem_dir / "inner_skull.surf"
+    outer_skull = bem_dir / "outer_skull.surf"
+    outer_skin = bem_dir / "outer_skin.surf"
     surfaces = [inner_skull, outer_skull, outer_skin]
     ids = [FIFF.FIFFV_BEM_SURF_ID_BRAIN,
            FIFF.FIFFV_BEM_SURF_ID_SKULL,
@@ -1843,19 +1843,14 @@ def _prepare_env(subject, subjects_dir):
     _validate_type(subject, "str")
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    subjects_dir = op.abspath(subjects_dir)  # force use of an absolute path
-    subjects_dir = op.expanduser(subjects_dir)
-    if not op.isdir(subjects_dir):
-        raise RuntimeError('Could not find the MRI data directory "%s"'
-                           % subjects_dir)
-    subject_dir = op.join(subjects_dir, subject)
-    if not op.isdir(subject_dir):
+    subject_dir = subjects_dir / subject
+    if not subject_dir.is_dir():
         raise RuntimeError('Could not find the subject data directory "%s"'
                            % (subject_dir,))
-    env.update(SUBJECT=subject, SUBJECTS_DIR=subjects_dir,
+    env.update(SUBJECT=subject, SUBJECTS_DIR=str(subjects_dir),
                FREESURFER_HOME=fs_home)
-    mri_dir = op.join(subject_dir, 'mri')
-    bem_dir = op.join(subject_dir, 'bem')
+    mri_dir = subject_dir / "mri"
+    bem_dir = subject_dir / "bem"
     return env, mri_dir, bem_dir
 
 
@@ -2286,7 +2281,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         create surfaces for all three types of decimations.
     threshold : int
         The threshold to use with the MRI in the call to ``mkheadsurf``.
-        The default is 20.
+        The default is ``20``.
 
         .. versionadded:: 1.1
     mri : str
@@ -2297,23 +2292,23 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     incomplete = 'warn' if force else 'raise'
-    subj_path = op.join(subjects_dir, subject)
-    if not op.exists(subj_path):
+    subj_path = subjects_dir / subject
+    if not subj_path.exists():
         raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
     # Backward compat for old FreeSurfer (?)
     _validate_type(mri, str, 'mri')
     if mri == 'T1.mgz':
-        mri = mri if op.exists(op.join(subj_path, 'mri', mri)) else 'T1'
+        mri = mri if (subj_path / "mri" / mri).exists() else "T1"
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
-    def check_seghead(surf_path=op.join(subj_path, 'surf')):
+    def check_seghead(surf_path=subj_path / "surf"):
         surf = None
         for k in ['lh.seghead', 'lh.smseghead']:
-            this_surf = op.join(surf_path, k)
-            if op.exists(this_surf):
+            this_surf = surf_path / k
+            if this_surf.exists():
                 surf = this_surf
                 break
         return surf
@@ -2322,9 +2317,9 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     threshold = _ensure_int(threshold, 'threshold')
     if my_seghead is None:
         this_env = deepcopy(os.environ)
-        this_env['SUBJECTS_DIR'] = subjects_dir
+        this_env['SUBJECTS_DIR'] = str(subjects_dir)
         this_env['SUBJECT'] = subject
-        this_env['subjdir'] = subjects_dir + '/' + subject
+        this_env['subjdir'] = str(subj_path)
         if 'FREESURFER_HOME' not in this_env:
             raise RuntimeError(
                 'The FreeSurfer environment needs to be set up to use '
@@ -2340,11 +2335,11 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         raise RuntimeError('mkheadsurf did not produce the standard output '
                            'file.')
 
-    bem_dir = op.join(subjects_dir, subject, 'bem')
-    if not op.isdir(bem_dir):
+    bem_dir = subjects_dir / subject / "bem"
+    if not bem_dir.is_dir():
         os.mkdir(bem_dir)
-    fname_template = op.join(bem_dir, '%s-head-{}.fif' % subject)
-    dense_fname = fname_template.format('dense')
+    fname_template = bem_dir / ("%s-head-{}.fif" % subject)
+    dense_fname = str(fname_template).format('dense')
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
@@ -2365,7 +2360,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         points, tris = decimate_surface(points=surf['rr'],
                                         triangles=surf['tris'],
                                         n_triangles=n_tri)
-        dec_fname = fname_template.format(level)
+        dec_fname = str(fname_template).format(level)
         logger.info('%i.2 Creating %s' % (ii, dec_fname))
         _check_file(dec_fname, overwrite)
         dec_surf = _surfaces_to_bem(
