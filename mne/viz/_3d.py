@@ -1696,7 +1696,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     else:
         fig.add_axes(ax)
     hemi_idx = 0 if hemi == 'lh' else 1
-    surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
+    surf = subjects_dir / subject / "surf" / f"{hemi}.{surface}"
     if spacing == 'all':
         coords, faces = nib.freesurfer.read_geometry(surf)
         inuse = slice(None)
@@ -1718,7 +1718,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     greymap = _get_cmap('Greys')
 
     curv = nib.freesurfer.read_morph_data(
-        op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
+        subjects_dir / subject / "surf" / f"{hemi}.curv"
+    )[inuse]
     curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
                   hemi_idx=hemi_idx, vertices=vertices, tris=tris,
@@ -1966,7 +1967,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
-    subjects_dir = str(
+    subjects_dir = (
         get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
     )
     subject = _check_subject(stc.subject, subject)
