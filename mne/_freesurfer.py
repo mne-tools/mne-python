@@ -41,7 +41,7 @@ def _get_aseg(aseg, subject, subjects_dir):
         raise RuntimeError(
             f'`aseg` file path must end with "aseg", got {aseg}')
     aseg = _check_fname(
-        subjects_dir / subject / "mri" / aseg + ".mgz",
+        subjects_dir / subject / "mri" / (aseg + ".mgz"),
         overwrite="read",
         must_exist=True,
     )
