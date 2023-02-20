@@ -2132,7 +2132,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     """
     logger.info('Reading labels from parcellation...')
 
-    subjects_dir = str(get_subjects_dir(subjects_dir))
+    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = None if subjects_dir is None else str(subjects_dir)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
@@ -2464,7 +2465,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     """
     logger.info('Writing labels to parcellation...')
 
-    subjects_dir = str(get_subjects_dir(subjects_dir))
+    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = None if subjects_dir is None else str(subjects_dir)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,

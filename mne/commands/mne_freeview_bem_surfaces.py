@@ -83,7 +83,8 @@ def run():
     parser = get_optparser(__file__)
 
     subject = os.environ.get('SUBJECT')
-    subjects_dir = str(get_subjects_dir())
+    subjects_dir = get_subjects_dir()
+    subjects_dir = None if subjects_dir is None else str(subjects_dir)
 
     parser.add_option("-s", "--subject", dest="subject",
                       help="Subject name", default=subject)

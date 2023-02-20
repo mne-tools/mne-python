@@ -753,7 +753,8 @@ class Report:
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
         if subjects_dir is not None:
-            subjects_dir = str(get_subjects_dir(subjects_dir))
+            subjects_dir = get_subjects_dir(subjects_dir)
+            subjects_dir = None if subjects_dir is None else str(subjects_dir)
         self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
