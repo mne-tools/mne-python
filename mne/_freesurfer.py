@@ -792,7 +792,7 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
                         'looking in the subject directory.')
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
     fname = _check_fname(
-        subjects_dir / subject / "bem" / surf + "_skull.surf",
+        subjects_dir / subject / "bem" / (surf + "_skull.surf"),
         overwrite="read",
         must_exist=True,
         name=f"{surf} skull surface"
