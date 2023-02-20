@@ -9,7 +9,6 @@ from difflib import get_close_matches
 from importlib import import_module
 import operator
 import os
-import os.path as op
 from pathlib import Path
 import re
 import sys
