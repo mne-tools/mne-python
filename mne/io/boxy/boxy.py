@@ -45,7 +45,7 @@ class RawBOXY(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the BOXY data file.
     %(preload)s
     %(verbose)s
@@ -65,7 +65,7 @@ class RawBOXY(BaseRaw):
         raw_extras = dict()
         raw_extras['offsets'] = list()  # keep track of our offsets
         sfreq = None
-        fname = _check_fname(fname, 'read', True, 'fname')
+        fname = str(_check_fname(fname, "read", True, "fname"))
         with open(fname, 'r') as fid:
             line_num = 0
             i_line = fid.readline()

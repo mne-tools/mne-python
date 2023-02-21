@@ -1,5 +1,5 @@
-import os.path as op
-import itertools as itt
+import itertools
+from pathlib import Path
 
 from numpy.testing import assert_array_equal
 import numpy as np
@@ -18,16 +18,16 @@ from mne.rank import (estimate_rank, compute_rank, _get_rank_sss,
                       _compute_rank_int, _estimate_rank_raw)
 
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-ave_fname = op.join(base_dir, 'test-ave.fif')
-ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
-hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+cov_fname = base_dir / "test-cov.fif"
+raw_fname = base_dir / "test_raw.fif"
+ave_fname = base_dir / "test-ave.fif"
+ctf_fname = base_dir / "test_ctf_raw.fif"
+hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 
 testing_path = testing.data_path(download=False)
-data_dir = op.join(testing_path, 'MEG', 'sample')
-mf_fif_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw_sss.fif')
+data_dir = testing_path / "MEG" / "sample"
+mf_fif_fname = testing_path / "SSS" / "test_move_anon_raw_sss.fif"
 
 
 def test_estimate_rank():
@@ -79,11 +79,11 @@ def test_raw_rank_estimation(fname, ref_meg, scalings, tol_kind, tol):
     got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg,
                                   tol=tol, tol_kind=tol_kind)
     assert got_rank == expected_rank
-    if 'sss' in fname:
+    if 'sss' in fname.name:
         raw.add_proj(compute_proj_raw(raw))
     raw.apply_proj()
     n_proj = len(raw.info['projs'])
-    want_rank = expected_rank - (0 if 'sss' in fname else n_proj)
+    want_rank = expected_rank - (0 if 'sss' in fname.name else n_proj)
     got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg,
                                   tol=tol, tol_kind=tol_kind)
     assert got_rank == want_rank
@@ -137,7 +137,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
     picks_stack_somato += [('all',
                             pick_types(info_sss, meg=True, eeg=True))]
 
-    iter_tests = list(itt.product(
+    iter_tests = list(itertools.product(
         [(cov_sample, picks_stack_sample, info_sample),
          (cov_sample_proj, picks_stack_sample, info_sample),
          (cov_sss, picks_stack_somato, info_sss),

@@ -293,7 +293,7 @@ class EOGRegression():
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The file to write the regression weights to. Should end in ``.h5``.
         %(overwrite)s
         """
@@ -308,7 +308,7 @@ def read_eog_regression(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file to read the regression model from. Should end in ``.h5``.
 
     Returns

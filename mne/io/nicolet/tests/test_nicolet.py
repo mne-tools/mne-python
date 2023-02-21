@@ -3,18 +3,16 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-import inspect
+from pathlib import Path
 
 from mne.io import read_raw_nicolet
 from mne.io.tests.test_raw import _test_raw_reader
 
 import pytest
 
-FILE = inspect.getfile(inspect.currentframe())
-base_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
-fname_data = op.join(base_dir, 'test_nicolet_raw.data')
-fname_head = op.join(base_dir, 'test_nicolet_raw.head')
+base_dir = Path(__file__).parent / "data"
+fname_data = base_dir / "test_nicolet_raw.data"
+fname_head = base_dir / "test_nicolet_raw.head"
 
 
 def test_data():

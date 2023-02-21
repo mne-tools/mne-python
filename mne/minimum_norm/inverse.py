@@ -134,8 +134,9 @@ def read_inverse_operator(fname, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
+    fname : path-like
+        The name of the FIF file, which ends with ``-inv.fif`` or
+        ``-inv.fif.gz``.
     %(verbose)s
 
     Returns
@@ -355,8 +356,9 @@ def write_inverse_operator(fname, inv, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
+    fname : path-like
+        The name of the FIF file, which ends with ``-inv.fif`` or
+        ``-inv.fif.gz``.
     inv : dict
         The inverse operator.
     %(overwrite)s

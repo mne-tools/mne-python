@@ -4,9 +4,10 @@
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
-import os.path as op
+
 import re
 import shutil
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -22,56 +23,55 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.annotations import events_from_annotations
 
-data_dir = op.join(op.dirname(__file__), 'data')
-vhdr_path = op.join(data_dir, 'test.vhdr')
-vmrk_path = op.join(data_dir, 'test.vmrk')
-eeg_path = op.join(data_dir, 'test.eeg')
+data_dir = Path(__file__).parent / "data"
+vhdr_path = data_dir / "test.vhdr"
+vmrk_path = data_dir / "test.vmrk"
+eeg_path = data_dir / "test.eeg"
 
-vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
-                                                 'test_partially_disabled'
-                                                 '_hw_filter.vhdr')
+vhdr_partially_disabled_hw_filter_path = (
+    data_dir / "test_partially_disabled_hw_filter.vhdr"
+)
 
-vhdr_old_path = op.join(
-    data_dir, 'test_old_layout_latin1_software_filter.vhdr')
-vhdr_old_longname_path = op.join(
-    data_dir, 'test_old_layout_latin1_software_filter_longname.vhdr')
+vhdr_old_path = data_dir / "test_old_layout_latin1_software_filter.vhdr"
+vhdr_old_longname_path = (
+    data_dir / "test_old_layout_latin1_software_filter_longname.vhdr"
+)
+vhdr_v2_path = data_dir / "testv2.vhdr"
 
-vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
-
-vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
-vhdr_mixed_highpass_path = op.join(data_dir, 'test_mixed_highpass.vhdr')
-vhdr_highpass_hz_path = op.join(data_dir, 'test_highpass_hz.vhdr')
-vhdr_mixed_highpass_hz_path = op.join(data_dir, 'test_mixed_highpass_hz.vhdr')
+vhdr_highpass_path = data_dir / "test_highpass.vhdr"
+vhdr_mixed_highpass_path = data_dir / "test_mixed_highpass.vhdr"
+vhdr_highpass_hz_path = data_dir / "test_highpass_hz.vhdr"
+vhdr_mixed_highpass_hz_path = data_dir / "test_mixed_highpass_hz.vhdr"
 
 # Not a typo: we can reuse the highpass file for the lowpass (Hz) test
-vhdr_lowpass_path = op.join(data_dir, 'test_highpass.vhdr')
-vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
-vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
-vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
+vhdr_lowpass_path = data_dir / "test_highpass.vhdr"
+vhdr_mixed_lowpass_path = data_dir / "test_mixed_lowpass.vhdr"
+vhdr_lowpass_s_path = data_dir / "test_lowpass_s.vhdr"
+vhdr_mixed_lowpass_s_path = data_dir / "test_mixed_lowpass_s.vhdr"
 
 # VHDR exported with neuroone
 data_path = testing.data_path(download=False)
-neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
+neuroone_vhdr = data_path / "Brainvision" / "test_NO.vhdr"
 
 # AHDR exported with VAmp
 data_path = testing.data_path(download=False)
-vamp_ahdr = op.join(data_path, 'Brainvision', 'test_VAmp.ahdr')
+vamp_ahdr = data_path / "Brainvision" / "test_VAmp.ahdr"
 
 # Test for nanovolts as unit
-vhdr_units_path = op.join(data_dir, 'test_units.vhdr')
+vhdr_units_path = data_dir / "test_units.vhdr"
 
 # Test bad date
-vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
+vhdr_bad_date = data_dir / "test_bad_date.vhdr"
 
-eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
-eog = ['HL', 'HR', 'Vb']
+eeg_bin = data_dir / "test_bin_raw.fif"
+eog = ["HL", "HR", "Vb"]
 
 # XXX: BUG we cannot parse test.hpts FastSCAN file to create a DigMontage
 #      (plus I've removed montage from all the read_raw_brainvision and nothing
 #       broke, so we were not testing that set_montage in brainvision was
 #       working)
 #      This should be amend in its own PR.
-montage = op.join(data_dir, 'test.hpts')
+montage = data_dir / "test.hpts"
 
 
 def test_orig_units(recwarn):
@@ -124,9 +124,9 @@ DATE_TEST_CASES = np.array([
 def _mocked_meas_date_data(tmp_path_factory):
     """Prepare files for mocked_meas_date_file fixture."""
     # Prepare the files
-    tmp_path = str(tmp_path_factory.mktemp('brainvision_mocked_meas_date'))
+    tmp_path = tmp_path_factory.mktemp("brainvision_mocked_meas_date")
     vhdr_fname, vmrk_fname, eeg_fname = [
-        op.join(tmp_path, op.basename(ff))
+        tmp_path / ff.name
         for ff in [vhdr_path, vmrk_path, eeg_path]
     ]
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
@@ -170,10 +170,9 @@ def test_vhdr_codepage_ansi(tmp_path):
     """Test BV reading with ANSI codepage."""
     raw_init = read_raw_brainvision(vhdr_path)
     data_expected, times_expected = raw_init[:]
-    tempdir = str(tmp_path)
-    ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
-    ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
-    ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
+    ansi_vhdr_path = tmp_path / vhdr_path.name
+    ansi_vmrk_path = tmp_path / vmrk_path.name
+    ansi_eeg_path = tmp_path / eeg_path.name
     # copy data file
     shutil.copy(eeg_path, ansi_eeg_path)
     # modify header file
@@ -214,9 +213,9 @@ def test_vhdr_versions(tmp_path, header):
     """Test BV reading with different header variants."""
     raw_init = read_raw_brainvision(vhdr_path)
     data_expected, times_expected = raw_init[:]
-    use_vhdr_path = op.join(tmp_path, op.split(vhdr_path)[-1])
-    use_vmrk_path = op.join(tmp_path, op.split(vmrk_path)[-1])
-    use_eeg_path = op.join(tmp_path, op.split(eeg_path)[-1])
+    use_vhdr_path = tmp_path / vhdr_path.name
+    use_vmrk_path = tmp_path / vmrk_path.name
+    use_eeg_path = tmp_path / eeg_path.name
     shutil.copy(eeg_path, use_eeg_path)
     with open(use_vhdr_path, 'wb') as fout:
         with open(vhdr_path, 'rb') as fin:
@@ -257,10 +256,12 @@ def test_vhdr_versions(tmp_path, header):
 def test_ascii(tmp_path, data_sep):
     """Test ASCII BV reading."""
     raw = read_raw_brainvision(vhdr_path)
-    ascii_vhdr_path = op.join(tmp_path, op.split(vhdr_path)[-1])
+    ascii_vhdr_path = tmp_path / vhdr_path.name
     # copy marker file
-    shutil.copy(vhdr_path.replace('.vhdr', '.vmrk'),
-                ascii_vhdr_path.replace('.vhdr', '.vmrk'))
+    shutil.copy(
+        vhdr_path.with_suffix(".vmrk"),
+        ascii_vhdr_path.with_suffix(".vmrk"),
+    )
     # modify header file
     skipping = False
     with open(ascii_vhdr_path, 'wb') as fout:
@@ -282,7 +283,7 @@ def test_ascii(tmp_path, data_sep):
                     fout.write(line)
     # create the .dat file
     data, times = raw[:]
-    with open(ascii_vhdr_path.replace('.vhdr', '.dat'), 'wb') as fid:
+    with open(ascii_vhdr_path.with_suffix(".dat"), "wb") as fid:
         fid.write(data_sep.join(ch_name.encode('ASCII')
                                 for ch_name in raw.ch_names) + b'\n')
         fid.write(b'\n'.join(b' '.join(b'%.3f' % dd for dd in d)

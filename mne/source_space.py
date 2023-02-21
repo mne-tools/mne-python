@@ -779,9 +779,9 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end with -src.fif or
-        -src.fif.gz.
+    fname : path-like
+        The name of the file, which should end with ``-src.fif`` or
+        ``-src.fif.gz``.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     %(verbose)s
@@ -796,7 +796,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite='read', must_exist=True))
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '_src.fif', '_src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
@@ -1389,7 +1389,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
         compute patch information (requires SciPy 1.3+).
 
         .. versionchanged:: 0.20
-           Support for add_dist='patch'.
+           Support for ``add_dist='patch'``.
     %(n_jobs)s
         Ignored if ``add_dist=='patch'``.
     %(verbose)s
@@ -1408,8 +1408,10 @@ def setup_source_space(subject, spacing='oct6', surface='white',
            % (subject, spacing, surface, subjects_dir, add_dist, verbose))
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
-             for hemi in ['lh.', 'rh.']]
+    surfs = [
+        subjects_dir / subject / "surf" / f"{hemi}.{surface}"
+        for hemi in ["lh", "rh"]
+    ]
     for surf, hemi in zip(surfs, ['LH', 'RH']):
         if surf is not None and not op.isfile(surf):
             raise IOError('Could not find the %s surface %s'
@@ -1473,7 +1475,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
 def _check_volume_labels(volume_label, mri, name='volume_label'):
     _validate_type(mri, 'path-like', 'mri when %s is not None' % (name,))
-    mri = _check_fname(mri, overwrite='read', must_exist=True)
+    mri = str(_check_fname(mri, overwrite='read', must_exist=True))
     if isinstance(volume_label, str):
         volume_label = [volume_label]
     _validate_type(volume_label, (list, tuple, dict), name)  # should be
@@ -1623,11 +1625,23 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     _validate_type(bem, ('path-like', ConductorModel, None), 'bem')
     _validate_type(surface, ('path-like', dict, None), 'surface')
     if bem is not None and not isinstance(bem, ConductorModel):
-        bem = _check_fname(bem, overwrite='read', must_exist=True,
-                           name='bem filename')
+        bem = str(
+            _check_fname(
+                bem,
+                overwrite="read",
+                must_exist=True,
+                name="bem filename"
+            )
+        )
     if surface is not None and not isinstance(surface, dict):
-        surface = _check_fname(surface, overwrite='read', must_exist=True,
-                               name='surface filename')
+        surface = str(
+            _check_fname(
+                surface,
+                overwrite="read",
+                must_exist=True,
+                name="surface filename"
+            )
+        )
 
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
@@ -2633,8 +2647,10 @@ def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
     # nearest-neighbor mode should be used)
     logger.info('Mapping %s %s -> %s (nearest neighbor)...'
                 % (hemi, subject_from, subject_to))
-    regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
-            for s in (subject_from, subject_to)]
+    regs = [
+        subjects_dir / s / "surf" / f"{hemi}.sphere.reg"
+        for s in (subject_from, subject_to)
+    ]
     reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
     if to_neighbor_tri is not None:
         reg_to['neighbor_tri'] = to_neighbor_tri
@@ -2706,7 +2722,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     src_out = list()
     for fro in src_from:
         hemi, idx, id_ = _get_hemi(fro)
-        to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
+        to = subjects_dir / subject_to / "surf" / f"{hemi}.{surf}"
         logger.info('Reading destination surface %s' % (to,))
         to = read_surface(to, return_dict=True, verbose=False)[-1]
         complete_surface_info(to, copy=False)

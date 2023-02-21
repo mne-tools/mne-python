@@ -2,9 +2,6 @@
 #
 # License: BSD-3-Clause
 
-
-import os.path as op
-
 import numpy as np
 import pytest
 from numpy.testing import (
@@ -18,7 +15,7 @@ from mne.preprocessing import (regress_artifact, create_eog_epochs,
 from mne.utils import requires_version
 
 data_path = testing.data_path(download=False)
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 
 
 @testing.requires_testing_data

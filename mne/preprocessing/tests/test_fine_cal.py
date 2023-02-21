@@ -2,9 +2,6 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
-
-import os.path as op
-
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -21,11 +18,11 @@ from mne.utils import object_diff
 
 # Define fine calibration filepaths
 data_path = testing.data_path(download=False)
-fine_cal_fname = op.join(data_path, 'SSS', 'sss_cal_3053.dat')
-fine_cal_fname_3d = op.join(data_path, 'SSS', 'sss_cal_3053_3d.dat')
-erm_fname = op.join(data_path, 'SSS', '141027_cropped_90Hz_raw.fif')
-ctc = op.join(data_path, 'SSS', 'ct_sparse.fif')
-cal_mf_fname = op.join(data_path, 'SSS', '141027.dat')
+fine_cal_fname = data_path / "SSS" / "sss_cal_3053.dat"
+fine_cal_fname_3d = data_path / "SSS" / "sss_cal_3053_3d.dat"
+erm_fname = data_path / "SSS" / "141027_cropped_90Hz_raw.fif"
+ctc = data_path / "SSS" / "ct_sparse.fif"
+cal_mf_fname = data_path / "SSS" / "141027.dat"
 
 
 @pytest.mark.parametrize('fname', (cal_mf_fname, fine_cal_fname,
@@ -33,7 +30,7 @@ cal_mf_fname = op.join(data_path, 'SSS', '141027.dat')
 @testing.requires_testing_data
 def test_fine_cal_io(tmp_path, fname):
     """Test round trip reading/writing of fine calibration .dat file."""
-    temp_fname = op.join(str(tmp_path), 'fine_cal_temp.dat')
+    temp_fname = tmp_path / "fine_cal_temp.dat"
     # Load fine calibration file
     fine_cal_dict = read_fine_calibration(fname)
 

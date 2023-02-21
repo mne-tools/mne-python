@@ -1,14 +1,13 @@
 from copy import deepcopy
-import os.path as op
+from pathlib import Path
 
-from numpy.testing import assert_array_equal, assert_equal
 import pytest
 import numpy as np
+from numpy.testing import assert_array_equal, assert_equal
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
                  pick_info, pick_channels, create_info, make_ad_hoc_cov)
-from mne import __file__ as _root_init_fname
 from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.channels import make_standard_montage
@@ -23,13 +22,14 @@ from mne.datasets import testing
 from mne.utils import catch_logging, assert_object_equal
 
 data_path = testing.data_path(download=False)
-fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_mc = op.join(data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
+fname_meeg = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_mc = data_path / "SSS" / "test_move_anon_movecomp_raw_sss.fif"
 
-io_dir = op.join(op.dirname(__file__), '..')
-ctf_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_raw.fif')
-fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
+io_dir = Path(__file__).parent.parent
+ctf_fname = io_dir / "tests" / "data" / "test_ctf_raw.fif"
+fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 
 
 def _picks_by_type_old(info, meg_combined=False, ref_meg=False,
@@ -93,22 +93,24 @@ def test_pick_refs():
     """Test picking of reference sensors."""
     infos = list()
     # KIT
-    kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
-    sqd_path = op.join(kit_dir, 'test.sqd')
-    mrk_path = op.join(kit_dir, 'test_mrk.sqd')
-    elp_path = op.join(kit_dir, 'test_elp.txt')
-    hsp_path = op.join(kit_dir, 'test_hsp.txt')
-    raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    kit_dir = io_dir / "kit" / "tests" / "data"
+    sqd_path = kit_dir / "test.sqd"
+    mrk_path = kit_dir / "test_mrk.sqd"
+    elp_path = kit_dir / "test_elp.txt"
+    hsp_path = kit_dir / "test_hsp.txt"
+    raw_kit = read_raw_kit(
+        sqd_path, str(mrk_path), str(elp_path), str(hsp_path)
+    )
     infos.append(raw_kit.info)
     # BTi
-    bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
-    bti_pdf = op.join(bti_dir, 'test_pdf_linux')
-    bti_config = op.join(bti_dir, 'test_config_linux')
-    bti_hs = op.join(bti_dir, 'test_hs_linux')
+    bti_dir = io_dir / "bti" / "tests" / "data"
+    bti_pdf = bti_dir / "test_pdf_linux"
+    bti_config = bti_dir / "test_config_linux"
+    bti_hs = bti_dir / "test_hs_linux"
     raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     infos.append(raw_bti.info)
     # CTF
-    fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
+    fname_ctf_raw = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
     raw_ctf = read_raw_fif(fname_ctf_raw)
     raw_ctf.apply_gradient_compensation(2)
     for info in infos:
@@ -241,8 +243,7 @@ def test_pick_seeg_ecog():
     for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
         assert lt == rt
     # Deal with constant debacle
-    raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
-                               'test_chpi_raw_sss.fif'))
+    raw = read_raw_fif(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
     assert_equal(len(pick_types(raw.info, meg=False, seeg=True, ecog=True)), 0)
 
 
@@ -266,15 +267,14 @@ def test_pick_dbs():
     e_dbs = evoked.copy().pick_types(meg=False, dbs=True)
     for lt, rt in zip(e_dbs.ch_names, [names[4], names[5], names[6]]):
         assert lt == rt
-    raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
-                               'test_chpi_raw_sss.fif'))
+    raw = read_raw_fif(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
     assert len(pick_types(raw.info, meg=False, dbs=True)) == 0
 
 
 def test_pick_chpi():
     """Test picking cHPI."""
     # Make sure we don't mis-classify cHPI channels
-    info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
+    info = read_info(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
     _assert_channel_types(info)
     channel_types = _get_channel_types(info)
     assert 'chpi' in channel_types
@@ -436,8 +436,7 @@ def test_picks_by_channels():
 
 def test_clean_info_bads():
     """Test cleaning info['bads'] when bad_channels are excluded."""
-    raw_file = op.join(op.dirname(_root_init_fname), 'io', 'tests', 'data',
-                       'test_raw.fif')
+    raw_file = io_dir / "tests" / "data" / "test_raw.fif"
     raw = read_raw_fif(raw_file)
     _assert_channel_types(raw.info)
 

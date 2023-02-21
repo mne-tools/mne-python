@@ -29,14 +29,14 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
 
     Parameters
     ----------
-    fname : str
-        Path and filename of the .mat file containing the data.
+    fname : path-like
+        Path and filename of the ``.mat`` file containing the data.
     info : dict or None
         The info dict of the raw data file corresponding to the data to import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
     data_name : str
-        Name of heading dict/ variable name under which the data was originally
+        Name of heading dict/variable name under which the data was originally
         saved in MATLAB.
 
     Returns

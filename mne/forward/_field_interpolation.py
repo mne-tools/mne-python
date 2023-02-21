@@ -21,7 +21,9 @@ from ..transforms import transform_surface_to, _find_trans, _get_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
-from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
+from ..utils import (
+    logger, verbose, _check_option, _reg_pinv, _pl, _check_fname
+)
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
 
@@ -390,21 +392,21 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     ----------
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
-    %(trans)s "auto" (default) will load trans from the FreeSurfer directory
-        specified by ``subject`` and ``subjects_dir`` parameters.
+    %(trans)s ``"auto"`` (default) will load trans from the FreeSurfer
+        directory specified by ``subject`` and ``subjects_dir`` parameters.
 
         .. versionchanged:: 0.19
-            Support for 'fsaverage' argument.
+            Support for ``'fsaverage'`` argument.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None, map for EEG data will not be available.
-    subjects_dir : str
+    subjects_dir : path-like
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    ch_type : None | 'eeg' | 'meg'
+    ch_type : None | ``'eeg'`` | ``'meg'``
         If None, a map for each available channel type will be returned.
         Else only the specified type will be used.
-    mode : 'accurate' | 'fast'
+    mode : ``'accurate'`` | ``'fast'``
         Either ``'accurate'`` or ``'fast'``, determines the quality of the
         Legendre polynomial expansion used. ``'fast'`` should be sufficient
         for most applications.
@@ -437,6 +439,14 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         _check_option('ch_type', ch_type, ['eeg', 'meg'])
         types = [ch_type]
 
+    if subjects_dir is not None:
+        subjects_dir = _check_fname(
+            subjects_dir,
+            overwrite="read",
+            must_exist=True,
+            name="subjects_dir",
+            need_dir=True,
+        )
     if isinstance(trans, str) and trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         trans = _find_trans(subject, subjects_dir)

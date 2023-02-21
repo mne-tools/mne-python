@@ -53,7 +53,7 @@ class RawPersyst(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the Persyst header (.lay) file.
     %(preload)s
     %(verbose)s
@@ -65,7 +65,7 @@ class RawPersyst(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        fname = _check_fname(fname, 'read', True, 'fname')
+        fname = str(_check_fname(fname, "read", True, "fname"))
         logger.info('Loading %s' % fname)
 
         # make sure filename is the Lay file

@@ -61,7 +61,7 @@ class RawNIRX(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
@@ -87,7 +87,7 @@ class RawNIRX(BaseRaw):
         if fname.endswith('.hdr'):
             fname = op.dirname(op.abspath(fname))
 
-        fname = _check_fname(fname, 'read', True, 'fname', need_dir=True)
+        fname = str(_check_fname(fname, "read", True, "fname", need_dir=True))
 
         json_config = glob.glob('%s/*%s' % (fname, "config.json"))
         if len(json_config):

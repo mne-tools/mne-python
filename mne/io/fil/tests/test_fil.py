@@ -2,8 +2,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 from numpy import isnan, empty
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
@@ -130,11 +128,10 @@ def _fil_sensorpos(raw_test, raw_mat):
 @testing.requires_testing_data
 def test_fil_all():
     """Test FIL reader, match to known answers from .mat file."""
-    binname = op.join(fil_path,
-                      "sub-noise_ses-001_task-noise220622_run-001_meg.bin")
-    matname = op.join(fil_path,
-                      "sub-noise_ses-001_task-noise220622_run-001" +
-                      "_fieldtrip.mat")
+    binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
+    matname = (
+        fil_path / "sub-noise_ses-001_task-noise220622_run-001_fieldtrip.mat"
+    )
 
     raw = read_raw_fil(binname)
     raw.load_data(verbose=False)

@@ -74,7 +74,7 @@ def _remove_ignored_info_fields(info):
 
 def get_data_paths(system):
     """Return common paths for all tests."""
-    return testing_path / 'fieldtrip' / 'ft_test_data' / system
+    return testing_path / "fieldtrip" / "ft_test_data" / system
 
 
 def get_cfg_local(system):

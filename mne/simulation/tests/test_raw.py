@@ -4,8 +4,8 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -33,23 +33,26 @@ from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
 from mne.utils import catch_logging, check_version
 
-base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname_short = op.join(base_path, 'test_raw.fif')
+raw_fname_short = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test_raw.fif"
+)
 
 data_path = testing.data_path(download=False)
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-cov_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-cov.fif')
-trans_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
-subjects_dir = op.join(data_path, 'subjects')
-bem_path = op.join(subjects_dir, 'sample', 'bem')
-src_fname = op.join(bem_path, 'sample-oct-2-src.fif')
-bem_fname = op.join(bem_path, 'sample-320-320-320-bem-sol.fif')
-bem_1_fname = op.join(bem_path, 'sample-320-bem-sol.fif')
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+cov_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+subjects_dir = data_path / "subjects"
+bem_path = subjects_dir / "sample" / "bem"
+src_fname = bem_path / "sample-oct-2-src.fif"
+bem_fname = bem_path / "sample-320-320-320-bem-sol.fif"
+bem_1_fname = bem_path / "sample-320-bem-sol.fif"
 
-raw_chpi_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
-pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_subsampled.pos')
+raw_chpi_fname = data_path / "SSS" / "test_move_anon_raw.fif"
+pos_fname = data_path / "SSS" / "test_move_anon_raw_subsampled.pos"
 
 
 def _assert_iter_sim(raw_sim, raw_new, new_event_id):
@@ -213,7 +216,6 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     seed = 42
     raw, src, stc, trans, sphere = raw_data
     assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
-    tempdir = str(tmp_path)
 
     # head pos
     head_pos_sim = _get_head_pos_sim(raw)
@@ -230,7 +232,7 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     raw_sim = simulate_raw(raw_meg.info, stc, trans, src, sphere_norad,
                            head_pos=head_pos_sim)
     # Test IO on processed data
-    test_outname = op.join(tempdir, 'sim_test_raw.fif')
+    test_outname = tmp_path / "sim_test_raw.fif"
     raw_sim.save(test_outname)
 
     raw_sim_loaded = read_raw_fif(test_outname, preload=True)
@@ -473,11 +475,18 @@ def test_simulate_raw_chpi():
                                     sphere_units='m')
     stcs = [_make_stc(raw, src)] * 15
     # simulate data with cHPI on
-    raw_sim = simulate_raw(raw.info, stc=stcs, trans=None, src=src, bem=sphere,
-                           head_pos=pos_fname, interp='zero',
-                           first_samp=raw.first_samp)
+    raw_sim = simulate_raw(
+        raw.info,
+        stc=stcs,
+        trans=None,
+        src=src,
+        bem=sphere,
+        head_pos=pos_fname,
+        interp="zero",
+        first_samp=raw.first_samp,
+    )
     # need to trim extra samples off this one
-    raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp='zero')
+    raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp="zero")
     # test cHPI indication
     hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(raw.info, on_missing='raise')
     assert_allclose(raw_sim[hpi_pick][0], 0.)

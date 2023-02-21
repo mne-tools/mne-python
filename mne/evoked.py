@@ -70,7 +70,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of evoked/average FIF file to load.
         If None no data is loaded.
     condition : int, or str
@@ -79,14 +79,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     proj : bool, optional
         Apply SSP projection vectors.
     kind : str
-        Either 'average' or 'standard_error'. The type of data to read.
+        Either ``'average'`` or ``'standard_error'``. The type of data to read.
         Only used if 'condition' is a str.
     allow_maxshield : bool | str (default False)
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
-        activity. Can also be "yes" to load without eliciting a warning.
+        activity. Can also be ``"yes"`` to load without eliciting a warning.
     %(verbose)s
 
     Attributes
@@ -129,7 +129,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
+        fname = str(
+            _check_fname(fname=fname, must_exist=True, overwrite="read")
+        )
         self.info, self.nave, self._aspect_kind, self.comment, times, \
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)
@@ -1180,7 +1182,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         saving, this will be reflected in their ``baseline`` attribute after
         reading.
     """
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                   '_ave.fif', '_ave.fif.gz'))
     logger.info('Reading %s ...' % fname)
