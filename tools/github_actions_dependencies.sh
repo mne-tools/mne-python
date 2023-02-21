@@ -28,6 +28,8 @@ else
 	echo "nilearn and openmeeg"
 	pip install $STD_ARGS --pre https://github.com/nilearn/nilearn/zipball/main
 	pip install $STD_ARGS --pre --only-binary ":all:" -i "https://test.pypi.org/simple" openmeeg
+	echo "xarray"
+	pip install --progress-bar off --pre xarray
 	echo "VTK"
 	pip install $STD_ARGS --pre --only-binary ":all:" vtk
 	python -c "import vtk"
