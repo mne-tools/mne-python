@@ -1021,7 +1021,7 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
         mri_fiducials = (
             subjects_dir / subject / "bem" / (subject + "-fiducials.fif")
         )
-    elif isinstance(mri_fiducials, str) and mri_fiducials == "estimated":
+    if isinstance(mri_fiducials, str) and mri_fiducials == "estimated":
         mri_fiducials = get_mni_fiducials(subject, subjects_dir)
     elif isinstance(mri_fiducials, (str, Path, os.PathLike)):
         mri_fiducials, cf = read_fiducials(mri_fiducials)
