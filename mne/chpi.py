@@ -63,7 +63,7 @@ def read_head_pos(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to read. This can be produced by e.g.,
         ``maxfilter -headpos <name>.pos``.
 
@@ -95,7 +95,7 @@ def write_head_pos(fname, pos):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to write.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.

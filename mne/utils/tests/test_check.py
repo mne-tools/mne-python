@@ -3,8 +3,8 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
+
 import os
-import os.path as op
 import sys
 
 import numpy as np
@@ -22,11 +22,11 @@ from mne.utils import (check_random_state, _check_fname, check_fname, _suggest,
                        _check_sphere, _check_range)
 
 data_path = testing.data_path(download=False)
-base_dir = op.join(data_path, 'MEG', 'sample')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_event = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
-fname_fwd = op.join(base_dir, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_mgz = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
+base_dir = data_path / "MEG" / "sample"
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_event = base_dir / "sample_audvis_trunc_raw-eve.fif"
+fname_fwd = base_dir / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+fname_mgz = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
 reject = dict(grad=4000e-13, mag=4e-12)
 
 
@@ -39,7 +39,7 @@ def test_check(tmp_path):
     fname = tmp_path / 'foo'
     with open(fname, 'wb'):
         pass
-    assert op.isfile(fname)
+    assert fname.is_file()
     _check_fname(fname, overwrite='read', must_exist=True)
     orig_perms = os.stat(fname).st_mode
     os.chmod(fname, 0)
@@ -48,7 +48,7 @@ def test_check(tmp_path):
             _check_fname(fname, overwrite='read', must_exist=True)
     os.chmod(fname, orig_perms)
     os.remove(fname)
-    assert not op.isfile(fname)
+    assert not fname.is_file()
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
@@ -67,7 +67,7 @@ def test_check(tmp_path):
                           '_meg.fif.gz', '_eeg.fif.gz', '_ieeg.fif.gz'))
 def test_check_fname_suffixes(suffix, tmp_path):
     """Test checking for valid filename suffixes."""
-    new_fname = tmp_path / op.basename(fname_raw).replace('_raw.fif', suffix)
+    new_fname = tmp_path / fname_raw.name.replace('_raw.fif', suffix)
     raw = mne.io.read_raw_fif(fname_raw).crop(0, 0.1)
     raw.save(new_fname)
     mne.io.read_raw_fif(new_fname)

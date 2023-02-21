@@ -2,8 +2,6 @@
 #
 # License: BSD-3-Clause
 
-from os import path as op
-
 from itertools import combinations
 import numpy as np
 
@@ -64,8 +62,9 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
             f'n_neighbors must be 2 or greater, got {n_neighbors}')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     try:
-        surf = _read_mri_surface(op.join(
-            subjects_dir, subject, 'bem', 'brain.surf'))
+        surf = _read_mri_surface(
+            subjects_dir / subject / "bem" / "brain.surf"
+        )
     except FileNotFoundError as err:
         raise RuntimeError(f'{err}\n\nThe brain surface requires generating '
                            'a BEM using `mne flash_bem` (if you have '
@@ -145,9 +144,8 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     for hemi in ('lh', 'rh'):
         for surf in surfs:
             for img in ('', '.T1', '.T2', ''):
-                surf_fname = op.join(subjects_dir, subject, 'surf',
-                                     f'{hemi}.{surf}')
-                if op.isfile(surf_fname):
+                surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surf}"
+                if surf_fname.is_file():
                     break
             if surf.split('.')[-1] == 'flat':
                 surf = 'flat'

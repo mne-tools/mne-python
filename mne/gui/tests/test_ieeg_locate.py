@@ -3,7 +3,6 @@
 #
 # License: BSD-3-clause
 
-import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -16,11 +15,11 @@ from mne.utils import requires_nibabel, requires_version, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
-subject = 'sample'
-subjects_dir = op.join(data_path, 'subjects')
-sample_dir = op.join(data_path, 'MEG', subject)
-raw_path = op.join(sample_dir, 'sample_audvis_trunc_raw.fif')
-fname_trans = op.join(sample_dir, 'sample_audvis_trunc-trans.fif')
+subject = "sample"
+subjects_dir = data_path / "subjects"
+sample_dir = data_path / "MEG" / subject
+raw_path = sample_dir / "sample_audvis_trunc_raw.fif"
+fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
 
 
 @requires_nibabel()
@@ -28,10 +27,10 @@ fname_trans = op.join(sample_dir, 'sample_audvis_trunc-trans.fif')
 def _fake_CT_coords(skull_size=5, contact_size=2):
     """Make somewhat realistic CT data with contacts."""
     import nibabel as nib
-    brain = nib.load(
-        op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
+    brain = nib.load(subjects_dir / subject / "mri" / "brain.mgz")
     verts = mne.read_surface(
-        op.join(subjects_dir, subject, 'bem', 'outer_skull.surf'))[0]
+        subjects_dir / subject / "bem" / "outer_skull.surf"
+    )[0]
     verts = apply_trans(np.linalg.inv(brain.header.get_vox2ras_tkr()), verts)
     x, y, z = np.array(brain.shape).astype(int) // 2
     coords = [(x, y - 14, z), (x - 10, y - 15, z),
@@ -68,7 +67,7 @@ def test_ieeg_elec_locate_io(renderer_interactive_pyvistaqt):
     info = mne.create_info([], 1000)
 
     # fake as T1 so that aligned
-    aligned_ct = nib.load(op.join(subjects_dir, subject, 'mri', 'brain.mgz'))
+    aligned_ct = nib.load(subjects_dir / subject / "mri" / "brain.mgz")
 
     trans = mne.transforms.Transform('head', 'mri')
     with pytest.raises(ValueError,
@@ -107,15 +106,15 @@ def test_locate_scraper(renderer_interactive_pyvistaqt, _fake_CT_coords,
             raw.info, trans, aligned_ct,
             subject=subject, subjects_dir=subjects_dir)
     (tmp_path / '_images').mkdir()
-    image_path = str(tmp_path / '_images' / 'temp.png')
-    gallery_conf = dict(builder_name='html', src_dir=str(tmp_path))
+    image_path = tmp_path / '_images' / 'temp.png'
+    gallery_conf = dict(builder_name='html', src_dir=tmp_path)
     block_vars = dict(
         example_globals=dict(gui=gui),
-        image_path_iterator=iter([image_path]))
-    assert not op.isfile(image_path)
+        image_path_iterator=iter([str(image_path)]))
+    assert not image_path.is_file()
     assert not getattr(gui, '_scraped', False)
     mne.gui._GUIScraper()(None, block_vars, gallery_conf)
-    assert op.isfile(image_path)
+    assert image_path.is_file()
     assert gui._scraped
     # no need to call .close
 

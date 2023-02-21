@@ -852,9 +852,9 @@ depth : None | float | dict
 """
 
 docdict['destination_maxwell_dest'] = """
-destination : str | array-like, shape (3,) | None
+destination : path-like | array-like, shape (3,) | None
     The destination location for the head. Can be ``None``, which
-    will not change the head position, or a string path to a FIF file
+    will not change the head position, or a path to a FIF file
     containing a MEG device<->head transformation, or a 3-element array
     giving the coordinates to translate to (with no rotations).
     For example, ``destination=(0, 0, 0.04)`` would translate the bases
@@ -1068,8 +1068,8 @@ events : array of int, shape (n_events, 3)
     The array of :term:`events`. The first column contains the event time in
     samples, with :term:`first_samp` included. The third column contains the
     event id.
-    If some events don't match the events of interest as specified by event_id,
-    they will be marked as ``IGNORED`` in the drop log."""
+    If some events don't match the events of interest as specified by
+    ``event_id``, they will be marked as ``IGNORED`` in the drop log."""
 
 docdict['evoked_by_event_type_returns'] = """
 evoked : instance of Evoked | list of Evoked
@@ -1515,8 +1515,8 @@ h_trans_bandwidth : float | str
 """
 
 docdict['head_pos'] = """
-head_pos : None | str | dict | tuple | array
-    Name of the position estimates file. Should be in the format of
+head_pos : None | path-like | dict | tuple | array
+    Path to the position estimates file. Should be in the format of
     the files produced by MaxFilter. If dict, keys should
     be the time points and entries should be 4x4 ``dev_head_t``
     matrices. If None, the original head position (from
@@ -1772,6 +1772,56 @@ keep_his : bool
 
     .. warning:: This could mean that ``info`` is not fully
                  anonymized. Use with caution.
+"""
+
+docdict['kit_elp'] = """
+elp : path-like | array of shape (8, 3) | None
+    Digitizer points representing the location of the fiducials and the
+    marker coils with respect to the digitized head shape, or path to a
+    file containing these points.
+"""
+
+docdict['kit_hsp'] = """
+hsp : path-like | array of shape (n_points, 3) | None
+    Digitizer head shape points, or path to head shape file. If more than
+    10,000 points are in the head shape, they are automatically decimated.
+"""
+
+docdict['kit_mrk'] = """
+mrk : path-like | array of shape (5, 3) | list | None
+    Marker points representing the location of the marker coils with
+    respect to the MEG sensors, or path to a marker file.
+    If list, all of the markers will be averaged together.
+"""
+
+docdict['kit_slope'] = r"""
+slope : ``'+'`` | ``'-'``
+    How to interpret values on KIT trigger channels when synthesizing a
+    Neuromag-style stim channel. With ``'+'``\, a positive slope (low-to-high)
+    is interpreted as an event. With ``'-'``\, a negative slope (high-to-low)
+    is interpreted as an event.
+"""
+
+docdict['kit_stim'] = r"""
+stim : list of int | ``'<'`` | ``'>'`` | None
+    Channel-value correspondence when converting KIT trigger channels to a
+    Neuromag-style stim channel. For ``'<'``\, the largest values are
+    assigned to the first channel (default). For ``'>'``\, the largest
+    values are assigned to the last channel. Can also be specified as a
+    list of trigger channel indexes. If None, no synthesized channel is
+    generated.
+"""
+
+docdict['kit_stimcode'] = """
+stim_code : ``'binary'`` | ``'channel'``
+    How to decode trigger values from stim channels. ``'binary'`` read stim
+    channel events as binary code, 'channel' encodes channel number.
+"""
+
+docdict['kit_stimthresh'] = """
+stimthresh : float | None
+    The threshold level for accepting voltage changes in KIT trigger
+    channels as a trigger event. If None, stim must also be set to None.
 """
 
 docdict['kwargs_fun'] = """
@@ -3357,7 +3407,7 @@ st_only : bool
 docdict['standardize_names'] = """
 standardize_names : bool
     If True, standardize MEG and EEG channel names to be
-    ``"MEG ###"`` and ``"EEG ###"``. If False (default), native
+    ``'MEG ###'`` and ``'EEG ###'``. If False (default), native
     channel names in the file will be used when possible.
 """
 

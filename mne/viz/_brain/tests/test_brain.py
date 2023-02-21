@@ -9,8 +9,8 @@
 # License: Simplified BSD
 
 import os
-import os.path as op
 import sys
+from pathlib import Path
 from shutil import copyfile
 
 import pytest
@@ -37,17 +37,17 @@ from matplotlib import image
 from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
-subject = 'sample'
-subjects_dir = op.join(data_path, 'subjects')
-sample_dir = op.join(data_path, 'MEG', 'sample')
-fname_raw_testing = op.join(sample_dir, 'sample_audvis_trunc_raw.fif')
-fname_trans = op.join(sample_dir, 'sample_audvis_trunc-trans.fif')
-fname_stc = op.join(sample_dir, 'sample_audvis_trunc-meg')
-fname_label = op.join(sample_dir, 'labels', 'Vis-lh.label')
-fname_cov = op.join(sample_dir, 'sample_audvis_trunc-cov.fif')
-fname_evoked = op.join(sample_dir, 'sample_audvis_trunc-ave.fif')
-fname_fwd = op.join(sample_dir, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-src_fname = op.join(subjects_dir, subject, 'bem', 'sample-oct-6-src.fif')
+subject = "sample"
+subjects_dir = data_path / "subjects"
+sample_dir = data_path / "MEG" / "sample"
+fname_raw_testing = sample_dir / "sample_audvis_trunc_raw.fif"
+fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
+fname_stc = sample_dir / "sample_audvis_trunc-meg"
+fname_label = sample_dir / "labels" / "Vis-lh.label"
+fname_cov = sample_dir / "sample_audvis_trunc-cov.fif"
+fname_evoked = sample_dir / "sample_audvis_trunc-ave.fif"
+fname_fwd = sample_dir / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+src_fname = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
 
 
 class _Collection(object):
@@ -317,7 +317,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                        [0, 128, 0, 255])  # second is green
     brain.remove_labels()
     assert 'unnamed0' not in overlays
-    brain.add_label(fname_label)
+    brain.add_label(str(fname_label))
     brain.add_label('V1', borders=True)
     brain.remove_labels()
     brain.remove_labels()
@@ -358,19 +358,23 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
     # test sEEG projection onto inflated
     # make temp path to fake pial surface
-    tempdir = str(tmp_path)
-    os.makedirs(op.join(tempdir, subject, 'surf'), exist_ok=True)
+    os.makedirs(tmp_path / subject / "surf", exist_ok=True)
     for hemi in ('lh', 'rh'):
         # fake white surface for pial
-        copyfile(op.join(subjects_dir, subject, 'surf', f'{hemi}.white'),
-                 op.join(tempdir, subject, 'surf', f'{hemi}.pial'))
-        copyfile(op.join(subjects_dir, subject, 'surf', f'{hemi}.curv'),
-                 op.join(tempdir, subject, 'surf', f'{hemi}.curv'))
-        copyfile(op.join(subjects_dir, subject, 'surf',
-                         f'{hemi}.inflated'),
-                 op.join(tempdir, subject, 'surf', f'{hemi}.inflated'))
+        copyfile(
+            subjects_dir / subject / "surf" / f"{hemi}.white",
+            tmp_path / subject / "surf" / f"{hemi}.pial",
+        )
+        copyfile(
+            subjects_dir / subject / "surf" / f"{hemi}.curv",
+            tmp_path / subject / "surf" / f"{hemi}.curv",
+        )
+        copyfile(
+            subjects_dir / subject / "surf" / f"{hemi}.inflated",
+            tmp_path / subject / "surf" / f"{hemi}.inflated"
+        )
 
-    brain._subjects_dir = tempdir
+    brain._subjects_dir = tmp_path
     proj_info = create_info([f'Ch{i}' for i in range(1, 7)], 1000, 'seeg')
     pos = np.array([[25.85, 9.04, -5.38],
                     [33.56, 9.04, -5.63],
@@ -419,22 +423,24 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
     # add annotation
-    annots = ['aparc', op.join(subjects_dir, 'fsaverage', 'label',
-                               'lh.PALS_B12_Lobes.annot')]
+    annots = [
+        "aparc",
+        subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
+    ]
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
     brain = Brain(subject='fsaverage', hemi='both', size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     with pytest.raises(RuntimeError, match="both hemispheres"):
-        brain.add_annotation(annots[-1])
+        brain.add_annotation(str(annots[-1]))
     with pytest.raises(ValueError, match="does not exist"):
         brain.add_annotation('foo')
     brain.close()
     brain = Brain(subject='fsaverage', hemi=hemi, size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     for a, b, p, color in zip(annots, borders, alphas, colors):
-        brain.add_annotation(a, b, p, color=color)
+        brain.add_annotation(str(a), b, p, color=color)
 
     view_args = dict(roll=1, distance=500, focalpoint=(1e-5, 1e-5, 1e-5))
     cam = brain._renderer.figure.plotter.camera
@@ -457,10 +463,10 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     del view_args
 
     # image and screenshot
-    fname = op.join(str(tmp_path), 'test.png')
-    assert not op.isfile(fname)
+    fname = tmp_path / "test.png"
+    assert not fname.is_file()
     brain.save_image(fname)
-    assert op.isfile(fname)
+    assert fname.is_file()
     fp = np.array(
         brain._renderer.figure.plotter.renderer.ComputeVisiblePropBounds())
     fp = (fp[1::2] + fp[::2]) * 0.5
@@ -512,7 +518,7 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
     from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False,
                                   cortex=['r', 'b'])  # custom binarized
-    filename = str(op.join(tmp_path, "brain_test.mov"))
+    filename = tmp_path / "brain_test.mov"
     for interactive_state in (False, True):
         # for coverage, we set interactivity
         if interactive_state:
@@ -522,13 +528,13 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
         with pytest.raises(TypeError, match='unexpected keyword argument'):
             brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
                              bad_name='blah')
-        assert not op.isfile(filename)
+        assert not filename.is_file()
         tmin = 1
         tmax = 5
         duration = np.floor(tmax - tmin)
         brain.save_movie(filename, time_dilation=1., tmin=tmin,
                          tmax=tmax, interpolation='nearest')
-        assert op.isfile(filename)
+        assert filename.is_file()
         _, nsecs = count_frames_and_secs(filename)
         assert_allclose(duration, nsecs, atol=0.2)
 
@@ -885,8 +891,9 @@ something
     assert brain.plotter is None  # closed
     gif_0 = fnames[0][:-3] + 'gif'
     for fname in (gif_0, fnames[1]):
-        assert op.basename(fname) in rst
-        assert op.isfile(fname)
+        fname = Path(fname)
+        assert fname.stem in rst
+        assert fname.is_file()
         img = image.imread(fname)
         assert img.shape[1] == screenshot.shape[1]  # same width
         assert img.shape[0] > screenshot.shape[0]  # larger height
@@ -916,9 +923,9 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     assert brain.plotter is None  # closed
     assert brain._cleaned
     del brain
-    fname = fnames[0]
-    assert op.basename(fname) in rst
-    assert op.isfile(fname)
+    fname = Path(fnames[0])
+    assert fname.stem in rst
+    assert fname.is_file()
     img = image.imread(fname)
     w = img.shape[1]
     w0 = size[0]

@@ -4,8 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import pytest
 import numpy as np
 
@@ -16,13 +14,11 @@ from mne.utils import _validate_type, requires_version
 from mne.datasets import testing
 
 testing_path = data_path(download=False)
-fname_nirx_15_0 = op.join(testing_path,
-                          'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(testing_path,
-                          'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(testing_path,
-                                'NIRx', 'nirscout',
-                                'nirx_15_2_recording_w_short')
+fname_nirx_15_0 = testing_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
+fname_nirx_15_2 = testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording"
+fname_nirx_15_2_short = (
+    testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
+)
 
 
 @testing.requires_testing_data
@@ -84,9 +80,13 @@ def test_beer_lambert_v_matlab():
     raw = beer_lambert_law(raw, ppf=0.121)
     raw._data *= 1e6  # Scale to uM for comparison to MATLAB
 
-    matlab_fname = op.join(testing_path,
-                           'NIRx', 'nirscout', 'validation',
-                           'nirx_15_0_recording_bl.mat')
+    matlab_fname = (
+        testing_path
+        / "NIRx"
+        / "nirscout"
+        / "validation"
+        / "nirx_15_0_recording_bl.mat"
+    )
     matlab_data = read_mat(matlab_fname)
 
     for idx in range(raw.get_data().shape[0]):

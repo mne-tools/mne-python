@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 from pathlib import Path
 
 import numpy as np
@@ -43,30 +42,29 @@ from mne.bem import read_bem_solution, read_bem_surfaces
 
 
 data_dir = testing.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-trans_fname = op.join(data_dir, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
-src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
-                    'sample-oct-6-src.fif')
-dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
-ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
-nirx_fname = op.join(data_dir, 'NIRx', 'nirscout',
-                     'nirx_15_2_recording_w_short')
+subjects_dir = data_dir / "subjects"
+trans_fname = data_dir / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+src_fname = data_dir / "subjects" / "sample" / "bem" / "sample-oct-6-src.fif"
+dip_fname = data_dir / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
+ctf_fname = data_dir / "CTF" / "testdata_ctf.ds"
+nirx_fname = data_dir / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 
-io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
-base_dir = op.join(io_dir, 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
+io_dir = Path(__file__).parent.parent.parent / "io"
+base_dir = io_dir / "tests" / "data"
+evoked_fname = base_dir / "test-ave.fif"
 
-fwd_fname = op.join(data_dir, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fwd_fname2 = op.join(data_dir, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fwd_fname = (
+    data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
+fwd_fname2 = (
+    data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
 
-base_dir = op.join(io_dir, 'bti', 'tests', 'data')
-pdf_fname = op.join(base_dir, 'test_pdf_linux')
-config_fname = op.join(base_dir, 'test_config_linux')
-hs_fname = op.join(base_dir, 'test_hs_linux')
-sqd_fname = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
+base_dir = io_dir / "bti" / "tests" / "data"
+pdf_fname = base_dir / "test_pdf_linux"
+config_fname = base_dir / "test_config_linux"
+hs_fname = base_dir / "test_hs_linux"
+sqd_fname = io_dir / "kit" / "tests" / "data" / "test.sqd"
 
 coil_3d = """# custom cube coil def
 1   9999    1   8  3e-03  0.000e+00     "QuSpin ZFOPM 3mm cube"
@@ -219,8 +217,7 @@ def test_plot_alignment_surf(renderer):
 def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     """Test plotting of -trans.fif files and MEG sensor layouts."""
     # generate fiducials file for testing
-    tempdir = str(tmp_path)
-    fiducials_path = op.join(tempdir, 'fiducials.fif')
+    fiducials_path = tmp_path / "fiducials.fif"
     fid = [{'coord_frame': 5, 'ident': 1, 'kind': 1,
             'r': [-0.08061612, -0.02908875, -0.04131077]},
            {'coord_frame': 5, 'ident': 2, 'kind': 1,
@@ -290,10 +287,12 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     renderer.backend._close_all()
 
     sphere = make_sphere_model(info=info, r0='auto', head_radius='auto')
-    bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
-                                        'sample-1280-1280-1280-bem-sol.fif'))
-    bem_surfs = read_bem_surfaces(op.join(subjects_dir, 'sample', 'bem',
-                                          'sample-1280-1280-1280-bem.fif'))
+    bem_sol = read_bem_solution(
+        subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif"
+    )
+    bem_surfs = read_bem_surfaces(
+        subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem.fif"
+    )
     sample_src[0]['coord_frame'] = 4  # hack for coverage
     plot_alignment(info, trans_fname, subject='sample',
                    eeg='projected', meg='helmet', bem=sphere, dig=True,
@@ -323,8 +322,9 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
                    surfaces=['head', 'inner_skull'], bem=bem_surfs)
     # single-layer BEM can still plot head surface
     assert bem_surfs[-1]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
-    bem_sol_homog = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
-                                              'sample-1280-bem-sol.fif'))
+    bem_sol_homog = read_bem_solution(
+        subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
+    )
     for use_bem in (bem_surfs[-1:], bem_sol_homog):
         with catch_logging() as log:
             plot_alignment(info, trans_fname, subject='sample',
@@ -363,7 +363,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     info_cube['chs'][1]['coil_type'] = 9998
     with pytest.raises(RuntimeError, match='coil definition not found'):
         plot_alignment(info_cube, meg='sensors', surfaces=())
-    coil_def_fname = op.join(tempdir, 'temp')
+    coil_def_fname = tmp_path / "temp"
     with open(coil_def_fname, 'w') as fid:
         fid.write(coil_3d)
     # make sure our other OPMs can be plotted, too
@@ -413,8 +413,12 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
         plot_alignment(info=info, trans=trans_fname,
                        subject='sample', subjects_dir=subjects_dir,
                        surfaces=dict(brain=42))
-    fwd_fname = op.join(data_dir, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+    fwd_fname = (
+        data_dir
+        / "MEG"
+        / "sample"
+        / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+    )
     fwd = read_forward_solution(fwd_fname)
     plot_alignment(subject='sample', subjects_dir=subjects_dir,
                    trans=trans_fname, fwd=fwd,

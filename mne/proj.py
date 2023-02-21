@@ -55,9 +55,9 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of file containing the projections vectors. It should end with
-        -proj.fif or -proj.fif.gz.
+        ``-proj.fif`` or ``-proj.fif.gz``.
     projs : list
         The list of projection vectors.
     %(overwrite)s

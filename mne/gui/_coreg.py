@@ -215,8 +215,9 @@ class CoregistrationUI(HasTraits):
 
         # process requirements
         info = None
-        subjects_dir = get_subjects_dir(
-            subjects_dir=subjects_dir, raise_error=True)
+        subjects_dir = str(
+            get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+        )
         subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window
@@ -320,8 +321,14 @@ class CoregistrationUI(HasTraits):
         if subjects_dir is None or not subjects_dir:
             return
         try:
-            subjects_dir = _check_fname(
-                subjects_dir, overwrite='read', must_exist=True, need_dir=True)
+            subjects_dir = str(
+                _check_fname(
+                    subjects_dir,
+                    overwrite="read",
+                    must_exist=True,
+                    need_dir=True,
+                )
+            )
             subjects = _get_subjects(subjects_dir)
             low_res_path = _find_head_bem(
                 subjects[0], subjects_dir, high_res=False)
@@ -347,8 +354,13 @@ class CoregistrationUI(HasTraits):
         if fname is None:
             fids = 'auto'
         else:
-            fname = _check_fname(
-                fname, overwrite='read', must_exist=True, need_dir=False
+            fname = str(
+                _check_fname(
+                    fname,
+                    overwrite="read",
+                    must_exist=True,
+                    need_dir=False,
+                )
             )
             fids, _ = read_fiducials(fname)
 
@@ -384,7 +396,7 @@ class CoregistrationUI(HasTraits):
         try:
             check_fname(fname, 'info', tuple(raw_supported_types.keys()),
                         endings_err=tuple(raw_supported_types.keys()))
-            fname = _check_fname(fname, overwrite='read')  # convert to str
+            fname = str(_check_fname(fname, overwrite="read"))  # cast to str
 
             # ctf ds `files` are actually directories
             if fname.endswith(('.ds',)):
@@ -398,7 +410,7 @@ class CoregistrationUI(HasTraits):
             valid = False
         if valid:
             style = dict(border="initial")
-            self._info_file = info_file
+            self._info_file = str(info_file)
         else:
             style = dict(border="2px solid #ff0000")
         self._forward_widget_command("info_file_field", "set_style", style)

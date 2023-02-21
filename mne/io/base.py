@@ -1358,7 +1358,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
             ``raw.fif`` (common raw data), ``raw_sss.fif``
@@ -1425,7 +1425,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings_err = ('.fif', '.fif.gz')
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = str(_check_fname(fname, overwrite=True, verbose="error"))
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1453,8 +1453,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite,
-                             verbose="error")
+        fname = str(
+            _check_fname(fname=fname, overwrite=overwrite, verbose="error")
+        )
 
         if proj:
             info = deepcopy(self.info)
@@ -2198,7 +2199,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     # Expand `~` if present
-    fname = _check_fname(fname=fname, overwrite=overwrite)
+    fname = str(_check_fname(fname=fname, overwrite=overwrite))
 
     base, ext = op.splitext(fname)
     if part_idx > 0:

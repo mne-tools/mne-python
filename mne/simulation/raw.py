@@ -5,7 +5,9 @@
 #
 # License: BSD-3-Clause
 
+import os
 from collections.abc import Iterable
+from pathlib import Path
 
 import numpy as np
 
@@ -79,7 +81,7 @@ def _log_ch(start, info, ch):
 def _check_head_pos(head_pos, info, first_samp, times=None):
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
-    if isinstance(head_pos, str):  # can be a head pos file
+    if isinstance(head_pos, (str, Path, os.PathLike)):
         head_pos = read_head_pos(head_pos)
     if isinstance(head_pos, np.ndarray):  # can be head_pos quats
         head_pos = head_pos_to_trans_rot_t(head_pos)

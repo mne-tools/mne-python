@@ -6,6 +6,7 @@ import math
 import os.path as op
 import re
 from xml.dom.minidom import parse
+from pathlib import Path
 
 import numpy as np
 
@@ -201,7 +202,7 @@ def _read_header(input_fname):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path for the file
 
     Returns
@@ -209,8 +210,9 @@ def _read_header(input_fname):
     info : dict
         Main headers set.
     """
+    input_fname = str(input_fname)  # cast to str any Paths
     mff_hdr = _read_mff_header(input_fname)
-    with open(input_fname + '/signal1.bin', 'rb') as fid:
+    with open(input_fname + "/signal1.bin", "rb") as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
     '''
     the datetime.strptime .f directive (milleseconds)
@@ -398,8 +400,15 @@ class RawMff(BaseRaw):
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
         """Init the RawMff class."""
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname',
-                                   need_dir=True)
+        input_fname = str(
+            _check_fname(
+                input_fname,
+                "read",
+                True,
+                "input_fname",
+                need_dir=True,
+            )
+        )
         logger.info('Reading EGI MFF Header from %s...' % input_fname)
         egi_info = _read_header(input_fname)
         if eog is None:
@@ -813,7 +822,8 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
     """
     mffpy = _import_mffpy()
     # Confirm `fname` is a path to an MFF file
-    if not fname.endswith('.mff'):
+    fname = Path(fname)  # should be replace with _check_fname
+    if not fname.suffix == ".mff":
         raise ValueError('fname must be an MFF file with extension ".mff".')
     # Confirm the input MFF is averaged
     mff = mffpy.Reader(fname)

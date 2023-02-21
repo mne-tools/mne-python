@@ -126,12 +126,12 @@ class Dipole(TimeMixin):
 
     @verbose
     def save(self, fname, overwrite=False, *, verbose=None):
-        """Save dipole in a .dip or .bdip file.
+        """Save dipole in a ``.dip`` or ``.bdip`` file.
 
         Parameters
         ----------
-        fname : str
-            The name of the .dip or .bdip file.
+        fname : path-like
+            The name of the ``.dip`` or ``.bdip`` file.
         %(overwrite)s
 
             .. versionadded:: 0.20
@@ -144,7 +144,7 @@ class Dipole(TimeMixin):
         """
         # obligatory fields
         fname = _check_fname(fname, overwrite=overwrite)
-        if fname.endswith('.bdip'):
+        if fname.suffix == ".bdip":
             _write_dipole_bdip(fname, self)
         else:
             _write_dipole_text(fname, self)
@@ -487,12 +487,12 @@ class DipoleFixed(TimeMixin):
 # IO
 @verbose
 def read_dipole(fname, verbose=None):
-    """Read .dip file from Neuromag/xfit or MNE.
+    """Read ``.dip`` file from Neuromag/xfit or MNE.
 
     Parameters
     ----------
-    fname : str
-        The name of the .dip or .fif file.
+    fname : path-like
+        The name of the ``.dip`` or ``.fif`` file.
     %(verbose)s
 
     Returns
@@ -511,9 +511,9 @@ def read_dipole(fname, verbose=None):
        Support for reading bdip (Xfit binary) format.
     """
     fname = _check_fname(fname, overwrite='read', must_exist=True)
-    if fname.endswith('.fif') or fname.endswith('.fif.gz'):
+    if fname.suffix == ".fif" or fname.name.endswith(".fif.gz"):
         return _read_dipole_fixed(fname)
-    elif fname.endswith('.bdip'):
+    elif fname.suffix == ".bdip":
         return _read_dipole_bdip(fname)
     else:
         return _read_dipole_text(fname)

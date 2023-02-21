@@ -458,7 +458,7 @@ class Annotations(object):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The filename to use.
         %(overwrite)s
 
@@ -477,9 +477,9 @@ class Annotations(object):
                                            '_annot.fif', '_annot.fif.gz',
                                            '.txt', '.csv'))
         fname = _check_fname(fname, overwrite=overwrite)
-        if fname.endswith(".txt"):
+        if fname.suffix == ".txt":
             _write_annotations_txt(fname, self)
-        elif fname.endswith(".csv"):
+        elif fname.suffix == ".csv":
             _write_annotations_csv(fname, self)
         else:
             with start_file(fname) as fid:
@@ -1038,14 +1038,15 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vmrk, .amrk, .edf, .txt, .csv, .cnt,
-     .cef, or .set file and makes an :class:`mne.Annotations` object.
+    This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
+    ``.edf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or ``.set`` file and
+    makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename.
-    sfreq : float | 'auto'
+    sfreq : float | ``'auto'``
         The sampling frequency in the file. This parameter is necessary for
         \*.vmrk, \*.amrk, and \*.cef files as Annotations are expressed in
         seconds and \*.vmrk/\*.amrk/\*.cef files are in samples. For any other
@@ -1060,8 +1061,8 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
+        ``'latin1'`` or ``'utf-8'``) should be used when reading character
+        arrays and can therefore help you solve this problem.
 
     Returns
     -------
@@ -1070,9 +1071,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     Notes
     -----
-    The annotations stored in a .csv require the onset columns to be
+    The annotations stored in a ``.csv`` require the onset columns to be
     timestamps. If you have onsets as floats (in seconds), you should use the
-    .txt extension.
+    ``.txt`` extension.
     """
     from .io.brainvision.brainvision import _read_annotations_brainvision
     from .io.eeglab.eeglab import _read_annotations_eeglab
@@ -1080,11 +1081,16 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
-    _validate_type(fname, 'path-like', 'fname')
-    fname = _check_fname(
-        fname, overwrite='read', must_exist=True,
-        need_dir=str(fname).endswith('.ds'),  # for CTF
-        name='fname')
+
+    fname = str(
+        _check_fname(
+            fname,
+            overwrite="read",
+            must_exist=True,
+            need_dir=str(fname).endswith(".ds"),  # for CTF
+            name="fname",
+        )
+    )
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
         # Read FiF files
