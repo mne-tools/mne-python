@@ -516,6 +516,8 @@
 
 .. _Tom Ma: https://github.com/myd7349
 
+.. _Tom Stone: https://github.com/tomdstone
+
 .. _Tommy Clausner: https://github.com/TommyClausner
 
 .. _Toomas Erik Anijärv: http://www.toomaserikanijarv.com/
