@@ -49,7 +49,7 @@ labels = [mne.read_label(meg_path / 'labels' / f'{ln}.label')
           for ln in label_names]
 
 # %%
-# Generate source time courses from 2 dipoles and the correspond evoked data
+# Generate source time courses from 2 dipoles and the corresponding evoked data:
 
 times = np.arange(300, dtype=np.float64) / raw.info['sfreq'] - 0.1
 rng = np.random.RandomState(42)
@@ -65,7 +65,7 @@ stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
                           random_state=42, labels=labels, data_fun=data_fun)
 
 # %%
-# Generate noisy evoked data
+# Generate noisy evoked data:
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 iir_filter = fit_iir_model_raw(raw, order=5, picks=picks, tmin=60, tmax=180)[1]
 nave = 100  # simulate average of 100 epochs
@@ -73,7 +73,7 @@ evoked = simulate_evoked(fwd, stc, info, cov, nave=nave, use_cps=True,
                          iir_filter=iir_filter)
 
 # %%
-# Plot
+# Plot:
 plot_sparse_source_estimates(fwd['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.5, high_resolution=True)
 
