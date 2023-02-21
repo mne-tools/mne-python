@@ -103,14 +103,6 @@ def _int_complex_conj(data):
            (data['im'] // RANGE_SQRT)**2 // 2
 
 
-def _complex_to_vector(data):
-    if data.dtype == COMPLEX_DTYPE:
-        data = (data['re'] + 1j * data['im'])
-    assert np.iscomplexobj(data)
-    data = np.abs(data) * np.cos(np.angle(data))
-    return data
-
-
 class VolSourceEstimateViewer(SliceBrowser):
     """View a source estimate time-course time-frequency visualization."""
 
@@ -249,19 +241,9 @@ class VolSourceEstimateViewer(SliceBrowser):
                 alpha=self._alpha, zorder=2))
 
         self._data_max = abs(stc_data).max()
-        if self._data.shape[2] > 1:
+        if self._data.shape[2] > 1 and not self._is_complex:
             # also compute vectors for chosen time
-            if self._f_idx is None:
-                self._stc_vectors = self._pick_stc_tfr(data)
-                self._tfr_vector_max = None
-            else:
-                self._stc_vectors = _complex_to_vector(data)
-                self._tfr_vector_max = self._stc_vectors.max()
-                self._stc_vectors = self._pick_stc_tfr(self._stc_vectors)
-            self._stc_vectors = self._pick_epoch(
-                self._stc_vectors).astype(float)
-            if self._f_idx is not None:
-                self._stc_vectors /= self._tfr_vector_max
+            self._stc_vectors = self._pick_stc_tfr(stc_data).astype(float)
             self._stc_vectors /= self._data_max
             self._stc_vectors_masked = self._stc_vectors.copy()
 
@@ -334,15 +316,11 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._stc_range = np.nanmax(self._stc_data_vol) - self._stc_min
 
     def _update_vectors(self):
-        if self._data.shape[2] > 1:
+        if self._data.shape[2] > 1 and not self._is_complex:
             # pick vector as well
             self._stc_vectors = self._pick_stc_tfr(self._data)
-            if self._f_idx is not None:
-                self._stc_vectors = _complex_to_vector(self._stc_vectors)
             self._stc_vectors = self._pick_epoch(
                 self._stc_vectors).astype(float)
-            if self._f_idx is not None:
-                self._stc_vectors /= self._tfr_vector_max
             self._stc_vectors /= self._data_max
             self._update_vector_threshold()
             self._plot_vectors()
@@ -1061,7 +1039,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         if not update_3d:
             return
 
-        if self._data.shape[2] > 1:
+        if self._data.shape[2] > 1 and not self._is_complex:
             # update vector mask
             self._update_vector_threshold()
             self._plot_vectors(draw=False)
@@ -1148,7 +1126,7 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _plot_vectors(self, draw=True):
         """Update the vector plots."""
-        if self._data.shape[2] > 1:
+        if self._data.shape[2] > 1 and not self._is_complex:
             self._vector_data.point_data['vec'] = \
                 VECTOR_SCALAR * self._stc_vectors_masked
             if draw and self._update:
