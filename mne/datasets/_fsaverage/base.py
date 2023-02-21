@@ -85,11 +85,12 @@ def fetch_fsaverage(subjects_dir=None, *, verbose=None):
 
 def _get_create_subjects_dir(subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
-    subjects_dir = None if subjects_dir is None else str(subjects_dir)
     if subjects_dir is None:
         subjects_dir = _get_path(None, 'MNE_DATA', 'montage coregistration')
         subjects_dir = op.join(subjects_dir, 'MNE-fsaverage-data')
         os.makedirs(subjects_dir, exist_ok=True)
+    else:
+        subjects_dir = str(subjects_dir)
     return subjects_dir
 
 

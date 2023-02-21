@@ -281,7 +281,8 @@ class Brain(object):
                              'sequence of ints.')
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
-        subjects_dir = None if subjects_dir is None else str(subjects_dir)
+        if subjects_dir is not None:
+            subjects_dir = str(subjects_dir)
 
         self.time_viewer = False
         self._hash = time.time_ns()
