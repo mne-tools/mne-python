@@ -49,7 +49,8 @@ labels = [mne.read_label(meg_path / 'labels' / f'{ln}.label')
           for ln in label_names]
 
 # %%
-# Generate source time courses from 2 dipoles and the corresponding evoked data:
+# Generate source time courses from 2 dipoles and the corresponding evoked
+# data:
 
 times = np.arange(300, dtype=np.float64) / raw.info['sfreq'] - 0.1
 rng = np.random.RandomState(42)
