@@ -22,8 +22,8 @@ def read_raw_persyst(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to the Persyst header (.lay) file.
+    fname : path-like
+        Path to the Persyst header ``.lay`` file.
     %(preload)s
     %(verbose)s
 

@@ -169,8 +169,8 @@ class Transform(dict):
 
         Parameters
         ----------
-        fname : str
-            The name of the file, which should end in '-trans.fif'.
+        fname : path-like
+            The name of the file, which should end in ``-trans.fif``.
         """
         write_trans(fname, self)
 
@@ -1778,7 +1778,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     %(sdr_morph)s
     interpolation : str
         Interpolation to be used during the interpolation.
-        Can be "linear" (default) or "nearest".
+        Can be ``"linear"`` (default) or ``"nearest"``.
     cval : float | str
         The constant value to assume exists outside the bounds of the
         ``moving`` image domain. Can be a string percentage like ``'1%%'``

@@ -327,7 +327,7 @@ def start_file(fname, id_=None):
 
     Parameters
     ----------
-    fname : string | fid
+    fname : path-like | fid
         The name of the file to open. It is recommended
         that the name ends with .fif or .fif.gz. Can also be an
         already opened file.

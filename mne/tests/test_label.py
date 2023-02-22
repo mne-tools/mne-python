@@ -70,12 +70,12 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
         The source estimates.
     src : SourceSpaces | str | None
         The source space over which the source estimates are defined.
-        If it's a string it should the subject name (e.g. fsaverage).
-        Can be None if stc.subject is not None.
+        If it's a string it should be the subject name (e.g. ``'fsaverage'``').
+        Can be None if ``stc.subject`` is not None.
     smooth : int
         Number of smoothing iterations.
-    subjects_dir : str | None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    subjects_dir : path-like | None
+        Path to ``SUBJECTS_DIR`` if it is not set in the environment.
 
     Returns
     -------

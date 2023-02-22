@@ -31,13 +31,13 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
     Parameters
     ----------
-    in_fname : str
+    in_fname : path-like
         Input file name.
-    out_fname : str
+    out_fname : path-like
         Output file name.
     origin : array-like or str
         Head origin in mm. If None it will be estimated from headshape points.
-    frame : str ('device' or 'head')
+    frame : ``'device'`` | ``'head'``
         Coordinate frame for head center.
     bad : str, list (or None)
         List of static bad channels. Can be a list with channel names, or a

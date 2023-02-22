@@ -32,7 +32,7 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the SNIRF data file.
     optode_frame : str
         Coordinate frame used for the optode positions. The default is unknown,

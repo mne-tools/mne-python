@@ -292,7 +292,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the file, which should end with ``-ave.fif(.gz)`` or
             ``_ave.fif(.gz)``.
         %(overwrite)s
@@ -1409,8 +1409,8 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise', overwrite=False,
 
     Parameters
     ----------
-    fname : str
-        The file name, which should end with -ave.fif or -ave.fif.gz.
+    fname : path-like
+        The file name, which should end with ``-ave.fif`` or ``-ave.fif.gz``.
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,

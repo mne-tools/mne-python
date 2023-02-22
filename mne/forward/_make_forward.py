@@ -763,7 +763,7 @@ def use_coil_def(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename of the coil definition file.
 
     Returns

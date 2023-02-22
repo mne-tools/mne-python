@@ -284,20 +284,21 @@ class SourceSpaces(list):
             If True, show head surface.
         brain : bool | str
             If True, show the brain surfaces. Can also be a str for
-            surface type (e.g., 'pial', same as True). Default is None,
-            which means 'white' for surface source spaces and False otherwise.
+            surface type (e.g., ``'pial'``, same as True). Default is None,
+            which means ``'white'`` for surface source spaces and ``False``
+            otherwise.
         skull : bool | str | list of str | list of dict | None
             Whether to plot skull surface. If string, common choices would be
-            'inner_skull', or 'outer_skull'. Can also be a list to plot
+            ``'inner_skull'``, or ``'outer_skull'``. Can also be a list to plot
             multiple skull surfaces. If a list of dicts, each dict must
             contain the complete surface info (such as you get from
             :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
             The subjects bem and bem/flash folders are searched for the 'surf'
             files. Defaults to None, which is False for surface source spaces,
             and True otherwise.
-        subjects_dir : str | None
-            Path to SUBJECTS_DIR if it is not set in the environment.
-        trans : str | 'auto' | dict | None
+        subjects_dir : path-like | None
+            Path to ``SUBJECTS_DIR`` if it is not set in the environment.
+        trans : path-like | ``'auto'`` | dict | None
             The full path to the head<->MRI transform ``*-trans.fif`` file
             produced during coregistration. If trans is None, an identity
             matrix is assumed. This is only needed when the source space is in
@@ -440,7 +441,7 @@ class SourceSpaces(list):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             File to write.
         %(overwrite)s
         %(verbose)s
@@ -456,13 +457,13 @@ class SourceSpaces(list):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             Name of nifti or mgz file to write.
         include_surfaces : bool
             If True, include surface source spaces.
         include_discrete : bool
             If True, include discrete source spaces.
-        dest : 'mri' | 'surf'
+        dest : ``'mri'`` | ``'surf'``
             If 'mri' the volume is defined in the coordinate system of the
             original T1 image. If 'surf' the coordinate system of the
             FreeSurfer surface is used (Surface RAS).
@@ -1171,9 +1172,9 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end with -src.fif or
-        -src.fif.gz.
+    fname : path-like
+        The name of the file, which should end with ``-src.fif`` or
+        ``-src.fif.gz``.
     src : instance of SourceSpaces
         The source spaces (as returned by read_source_spaces).
     %(overwrite)s
@@ -2702,8 +2703,8 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     subject_from : str | None
         The "from" subject. For most source spaces this shouldn't need
         to be provided, since it is stored in the source space itself.
-    subjects_dir : str | None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    subjects_dir : path-like | None
+        Path to ``SUBJECTS_DIR`` if it is not set in the environment.
     %(verbose)s
 
     Returns

@@ -538,11 +538,11 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
     Parameters
     ----------
-    fname_1 : str
+    fname_1 : path-like
         First file to compare.
-    fname_2 : str
+    fname_2 : path-like
         Second file to compare.
-    fname_out : str | None
+    fname_out : path-like | None
         Filename to store the resulting diff. If None, a temporary
         file will be created.
     show : bool

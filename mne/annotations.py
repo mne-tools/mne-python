@@ -1146,7 +1146,7 @@ def _read_annotations_csv(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename.
 
     Returns
@@ -1181,7 +1181,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename
     orig_time : float | int | instance of datetime | array of int | None
         A POSIX Timestamp, datetime or an array containing the timestamp as the
@@ -1408,7 +1408,7 @@ def events_from_annotations(raw, event_id="auto",
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | callable | None | 'auto'
+    event_id : dict | callable | None | ``'auto'``
         Can be:
 
         - **dict**: map descriptions (keys) to integer event codes (values).

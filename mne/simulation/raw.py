@@ -158,11 +158,11 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         be in FIF format, any other ending will be assumed to be a text
         file with a 4x4 transformation matrix (like the ``--trans`` MNE-C
         option). If trans is None, an identity transform will be used.
-    src : str | instance of SourceSpaces | None
+    src : path-like | instance of SourceSpaces | None
         Source space corresponding to the stc. If string, should be a source
         space filename. Can also be an instance of loaded or generated
         SourceSpaces. Can be None if ``forward`` is provided.
-    bem : str | dict | None
+    bem : path-like | dict | None
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.

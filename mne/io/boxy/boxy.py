@@ -22,7 +22,7 @@ def read_raw_boxy(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the BOXY data file.
     %(preload)s
     %(verbose)s
