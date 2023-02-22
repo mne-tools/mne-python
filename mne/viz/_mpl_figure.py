@@ -1006,7 +1006,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         drag_ax.set(xlim=(0, aspect), ylim=(0, 1))
         drag_ax.set_axis_off()
         if _OLD_BUTTONS:
-            # TODO: .rectangles deprecated in matplotlib 3.7
             rect = checkbox.rectangles[0]
             _pad, _size = (0.2, 0.6)
             rect.set_bounds(_pad, _pad, _size, _size)
@@ -1444,17 +1443,19 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         second_line = 'Projectors marked with "X" are active on the plot.'
         ax.set_title(f'{first_line}{second_line}')
         # draw checkboxes
-        checkboxes = CheckButtons(ax, labels=labels, actives=self.mne.projs_on)
+        checkboxes = CheckButtons(
+            ax, labels=labels, actives=self.mne.projs_on,
+            **_get_check_kwargs(labels=labels))
         # gray-out already applied projectors
-        # TODO: lines and rectangles deprecated in matplotlib 3.7
-        for label, rect, lines in zip(checkboxes.labels,
-                                      checkboxes.rectangles,
-                                      checkboxes.lines):
-            if label.get_text().endswith('(already applied)'):
-                label.set_color('0.5')
-                rect.set_edgecolor('0.7')
-                [x.set_color('0.7') for x in lines]
-            rect.set_linewidth(1)
+        if _OLD_BUTTONS:
+            for label, rect, lines in zip(checkboxes.labels,
+                                          checkboxes.rectangles,
+                                          checkboxes.lines):
+                if label.get_text().endswith('(already applied)'):
+                    label.set_color('0.5')
+                    rect.set_edgecolor('0.7')
+                    [x.set_color('0.7') for x in lines]
+                rect.set_linewidth(1)
         # add "toggle all" button
         ax_all = fig.add_axes((0.25, 0.01, 0.5, offset), frame_on=True)
         fig.mne.proj_all = Button(ax_all, 'Toggle all')
@@ -2266,8 +2267,24 @@ def _init_browser(**kwargs):
     return fig
 
 
-def _get_check_kwargs():
+def _get_check_kwargs(labels=None):
     check_kwargs = dict()
     if not _OLD_BUTTONS:
         check_kwargs.update(check_props=dict(s=144), frame_props=dict(s=144))
+        if labels is not None:
+            textcolor = list()
+            checkcolor = list()
+            for label in labels:
+                if label.endswith('(already applied)'):
+                    textcolor.append('0.5')
+                    checkcolor.append('0.7')
+                else:
+                    textcolor.append('k')
+                    checkcolor.append('k')
+            check_kwargs['check_props'].update(
+                facecolor=checkcolor, linewidth=1)
+            check_kwargs['frame_props'].update(
+                edgecolor=checkcolor, linewidth=1)
+            check_kwargs['label_props'] = dict(
+                color=textcolor)
     return check_kwargs
