@@ -217,11 +217,7 @@ class MNEAnnotationFigure(MNEFigure):
         idx = labels.index(buttons.value_selected)
         self._set_active_button(idx)
         # update click-drag rectangle color
-        if _OLD_BUTTONS:
-            color = buttons.circles[idx].get_edgecolor()
-        else:
-            # TODO: Figure out a way to use a non-private attribute for this :(
-            color = buttons._buttons.get_edgecolor()[idx]
+        color = self.mne.parent_fig.mne.annotation_segment_colors[labels[idx]]
         selector = self.mne.parent_fig.mne.ax_main.selector
         # https://github.com/matplotlib/matplotlib/issues/20618
         # https://github.com/matplotlib/matplotlib/pull/20693
@@ -1018,14 +1014,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             for artist in lines + (rect, text):
                 artist.set_transform(drag_ax.transData)
         # setup interactivity in plot window
-        buttons = fig.mne.radio_ax.buttons
-        if buttons is None:
+        if fig.mne.radio_ax.buttons is None:
             col = '#ff0000'
-        elif _OLD_BUTTONS:
-            col = buttons.circles[0].get_edgecolor()
         else:
-            # TODO: Figure out a way to use a non-private attribute for this :(
-            col = buttons._buttons.get_edgecolor()[0]
+            col = self.mne.annotation_segment_colors[
+                self._get_annotation_labels()[0]
+            ]
 
         # TODO: we would like useblit=True here, but it behaves oddly when the
         # first span is dragged (subsequent spans seem to work OK)
