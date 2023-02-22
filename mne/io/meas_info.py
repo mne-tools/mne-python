@@ -249,7 +249,8 @@ class ContainsMixin(object):
         Parameters
         ----------
         ch_type : str
-            Channel type to check for. Can be e.g. ``'meg'``, ``'eeg'``, ``'stim', etc.
+            Channel type to check for. Can be e.g. ``'meg'``, ``'eeg'``,
+            ``'stim'``, etc.
 
         Returns
         -------
