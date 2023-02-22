@@ -91,7 +91,7 @@ def test_io_layout_lay(tmp_path):
     layout = read_layout(fname="CTF151", scale=False)
     layout.save(str(tmp_path / "foobar.lay"))
     layout_read = read_layout(
-        fname = tmp_path / "foobar.lay", scale=False
+        fname=tmp_path / "foobar.lay", scale=False
     )
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names

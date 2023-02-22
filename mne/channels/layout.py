@@ -260,12 +260,18 @@ def read_layout(kind=None, path=None, fname=None, *, scale=True):
         )
         if path is None:
             path = Path(__file__).parent / "data" / "layouts"
-        # kind should be the name as a string, but let's consider the case where
-        # the path to the file is provided instead.
+        # kind should be the name as a string, but let's consider the case
+        # where the path to the file is provided instead.
         kind = Path(kind)
-        if len(kind.suffix) == 0 and (path / kind.with_suffix(".lout")).exists():
+        if (
+            len(kind.suffix) == 0
+            and (path / kind.with_suffix(".lout")).exists()
+        ):
             kind = kind.with_suffix(".lout")
-        elif len(kind.suffix) == 0 and (path / kind.with_suffix(".lay")).exists():
+        elif (
+            len(kind.suffix) == 0
+            and (path / kind.with_suffix(".lay")).exists()
+        ):
             kind = kind.with_suffix(".lay")
 
         fname = kind if kind.exists() else path / kind.name
@@ -289,11 +295,8 @@ def read_layout(kind=None, path=None, fname=None, *, scale=True):
             elif (directory / fname).with_suffix(".lay").exists():
                 fname = (directory / fname).with_suffix(".lay")
         # if not, it must be a valid path provided as str or Path
-        fname = _check_fname(
-            fname, "read", must_exist=True, name="layout"
-        )
+        fname = _check_fname(fname, "read", must_exist=True, name="layout")
         kind = fname.stem
-
     box, pos, names, ids = readers[fname.suffix](fname)
 
     if scale:
