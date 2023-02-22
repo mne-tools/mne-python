@@ -2,13 +2,12 @@
 #
 # License: BSD-3-Clause
 
-
-import os.path as op
-
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import (
+    assert_allclose, assert_array_equal, assert_array_less)
 
+from mne import pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (regress_artifact, create_eog_epochs,
@@ -16,7 +15,7 @@ from mne.preprocessing import (regress_artifact, create_eog_epochs,
 from mne.utils import requires_version
 
 data_path = testing.data_path(download=False)
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 
 
 @testing.requires_testing_data
@@ -136,3 +135,32 @@ def test_read_eog_regression(tmp_path):
     assert_array_equal(model.coef_, model2.coef_)
     assert model.proj == model2.proj
     assert model.info_.keys() == model2.info_.keys()
+
+
+@testing.requires_testing_data
+def test_regress_artifact_bads():
+    """Test that bad channels are handled properly."""
+    # Pick the first few EEG channels
+    raw = read_raw_fif(raw_fname).del_proj().set_eeg_reference(projection=True)
+    picks_all = np.concatenate([
+        pick_types(raw.info, meg=True)[:4],
+        pick_types(raw.info, eeg=True)[:8],
+        pick_types(raw.info, eog=True)[:1],
+    ])
+    raw.pick(picks_all).load_data()
+    assert len(raw.ch_names) == 13  # 4 MEG, 8 EEG, 1 EOG
+    del picks_all
+    picks = pick_types(raw.info, eeg=True)
+    assert_array_equal(picks, np.arange(4, 12))
+    norms = np.linalg.norm(raw.get_data(picks), axis=1)
+    raw_reg, _ = regress_artifact(raw, picks=picks, picks_artifact='eog')
+    assert_allclose(raw_reg.get_data('meg'), raw.get_data('meg'))  # unchanged
+    data_reg = raw_reg.get_data()
+    norms_reg = np.linalg.norm(data_reg[picks], axis=1)
+    suppression = 20 * np.log10(norms / norms_reg)
+    assert_array_less(3, suppression)  # at least 3 dB suppression
+    # Adding some bad channels shouldn't affect anything when we supply picks
+    raw.info['bads'] = raw.ch_names[:2] + raw.ch_names[-2:-1]
+    raw_reg, _ = regress_artifact(raw, picks=picks, picks_artifact='eog')
+    data_reg_new = raw_reg.get_data()
+    assert_allclose(data_reg, data_reg_new)

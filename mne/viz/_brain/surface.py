@@ -93,7 +93,7 @@ class _Surface(object):
         self.labels = dict()
         self.x_dir = x_dir
 
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
         self.data_path = path.join(subjects_dir, subject)
         if surf == 'seghead':
             raise ValueError('`surf` cannot be seghead, use '

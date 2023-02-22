@@ -3,8 +3,9 @@
 #
 # License: BSD-3-Clause
 
+from pathlib import Path
+
 import numpy as np
-import os.path as op
 
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
@@ -18,9 +19,9 @@ from mne.io import read_raw_fif
 from mne.utils import requires_sklearn
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+event_name = base_dir / "test-eve.fif"
 
 tmin, tmax = -0.1, 0.2
 event_id = dict(cond2=2, cond3=3)

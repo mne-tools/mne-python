@@ -176,7 +176,7 @@ def test_norm_epsilon():
 
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX
-@pytest.mark.timeout(60)  # ~30 sec on Travis OSX and Linux OpenBLAS
+@pytest.mark.timeout(60)  # ~30 s on Travis OSX and Linux OpenBLAS
 def test_dgapl21l1():
     """Test duality gap for L21 + L1 regularization."""
     n_orient = 2

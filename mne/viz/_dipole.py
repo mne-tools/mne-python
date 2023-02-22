@@ -53,6 +53,8 @@ def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
                         f'{hemi}.{surf}'), return_dict=True)[2]
             surfs[hemi]['rr'] /= 1000.
     subjects_dir = get_subjects_dir(subjects_dir)
+    if subjects_dir is not None:
+        subjects_dir = str(subjects_dir)
     surfs['head'] = _get_head_surface(head_source, subject, subjects_dir)
     del head_source
     mri_trans = head_trans = np.eye(4)

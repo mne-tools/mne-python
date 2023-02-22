@@ -17,7 +17,7 @@ def get_cuda_memory(kind='available'):
     Parameters
     ----------
     kind : str
-        Can be "available" or "total".
+        Can be ``"available"`` or ``"total"``.
 
     Returns
     -------
@@ -119,7 +119,7 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
     Parameters
     ----------
     n_jobs : int | str
-        If n_jobs == 'cuda', the function will attempt to set up for CUDA
+        If ``n_jobs='cuda'``, the function will attempt to set up for CUDA
         FFT multiplication.
     h : array
         The filtering function that will be used repeatedly.

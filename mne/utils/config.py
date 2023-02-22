@@ -5,16 +5,17 @@
 # License: BSD-3-Clause
 
 import atexit
-from functools import partial
 import json
 import os
 import os.path as op
 import platform
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import re
+from functools import partial
+from pathlib import Path
 
 from .check import (_validate_type, _check_qt_version, _check_option,
                     _check_fname)
@@ -123,6 +124,7 @@ known_config_types = (
     'MNE_DATASETS_SSVEP_PATH',
     'MNE_DATASETS_ERP_CORE_PATH',
     'MNE_DATASETS_EPILEPSY_ECOG_PATH',
+    'MNE_DATASETS_UCL_OPM_AUDITORY_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -327,10 +329,22 @@ def _get_extra_data_path(home_dir=None):
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
-            if op.isdir(op.join(os.getenv('APPDATA'), '.mne')):
-                home_dir = os.getenv('APPDATA')
+            APPDATA_DIR = os.getenv('APPDATA')
+            USERPROFILE_DIR = os.getenv('USERPROFILE')
+            if (
+                APPDATA_DIR is not None
+                and op.isdir(op.join(APPDATA_DIR, '.mne'))  # backward-compat
+            ):
+                home_dir = APPDATA_DIR
+            elif USERPROFILE_DIR is not None:
+                home_dir = USERPROFILE_DIR
             else:
-                home_dir = os.getenv('USERPROFILE')
+                raise FileNotFoundError(
+                    "The USERPROFILE environment variable is not set, cannot "
+                    "determine the location of the MNE-Python configuration "
+                    "folder"
+                )
+            del APPDATA_DIR, USERPROFILE_DIR
         else:
             # This is a more robust way of getting the user's home folder on
             # Linux platforms (not sure about OSX, Unix or BSD) than checking
@@ -360,7 +374,7 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         If a value is provided, return subjects_dir. Otherwise, look for
         SUBJECTS_DIR config and return the result.
     raise_error : bool
@@ -369,20 +383,19 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
 
     Returns
     -------
-    value : str | None
+    value : Path | None
         The SUBJECTS_DIR value.
     """
-    _validate_type(item=subjects_dir, types=('path-like', None),
-                   item_name='subjects_dir', type_name='str or path-like')
-
     if subjects_dir is None:
         subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
     if subjects_dir is not None:
         subjects_dir = _check_fname(
-            fname=subjects_dir, overwrite='read', must_exist=True,
-            need_dir=True, name='subjects_dir'
+            fname=subjects_dir,
+            overwrite="read",
+            must_exist=True,
+            need_dir=True,
+            name="subjects_dir",
         )
-
     return subjects_dir
 
 
@@ -440,11 +453,12 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
 
 def _get_root_dir():
     """Get as close to the repo root as possible."""
-    root_dir = op.abspath(op.join(op.dirname(__file__), '..'))
-    up_dir = op.join(root_dir, '..')
-    if op.isfile(op.join(up_dir, 'setup.py')) and all(
-            op.isdir(op.join(up_dir, x)) for x in ('mne', 'examples', 'doc')):
-        root_dir = op.abspath(up_dir)
+    root_dir = Path(__file__).parent.parent.expanduser().absolute()
+    up_dir = root_dir.parent
+    if (up_dir / "setup.py").is_file() and all(
+        (up_dir / x).is_dir() for x in ("mne", "examples", "doc")
+    ):
+        root_dir = up_dir
     return root_dir
 
 

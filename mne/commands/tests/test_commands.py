@@ -217,7 +217,7 @@ def test_surf2bem():
     check_usage(mne_surf2bem)
 
 
-@pytest.mark.timeout(900)  # took ~400 sec on a local test
+@pytest.mark.timeout(900)  # took ~400 s on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_nibabel()
@@ -264,7 +264,7 @@ def test_watershed_bem(tmp_path):
         assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
-@pytest.mark.timeout(180)  # took ~70 sec locally
+@pytest.mark.timeout(180)  # took ~70 s locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer

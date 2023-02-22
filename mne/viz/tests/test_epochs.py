@@ -14,7 +14,11 @@ import pytest
 from mne import Epochs, create_info, EpochsArray
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
+from mne.utils import check_version
 from mne.viz import plot_drop_log
+
+
+_mpl_37 = check_version('matplotlib', '3.7')
 
 
 def test_plot_epochs_not_preloaded(epochs_unloaded, browser_backend):
@@ -103,7 +107,7 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
         wants = ('800.0 fT/cm', '2000.0 fT')
     elif browser_backend.name == 'matplotlib':
         assert len(texts) == 4
-        wants = ('800.0 fT/cm', '0.55 sec', '2000.0 fT', '0.55 sec')
+        wants = ('800.0 fT/cm', '0.55 s', '2000.0 fT', '0.55 s')
     assert texts == wants
 
 
@@ -131,6 +135,8 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys,
     fig = epochs_full.plot(n_epochs=3)
     first_ch = fig._get_ticklabels('y')[0]
     assert first_ch not in fig.mne.info['bads']
+    if _mpl_37 and browser_backend.name == 'matplotlib':
+        pytest.xfail(reason='KeyError on matplotlib 3.7')
     fig._click_ch_name(ch_index=0, button=1)  # click ch name to mark bad
     assert first_ch in fig.mne.info['bads']
     # test clicking scrollbars

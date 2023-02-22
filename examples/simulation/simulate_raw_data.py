@@ -67,7 +67,7 @@ stc = simulate_sparse_stc(src, n_dipoles=n_dipoles, times=times,
 # look at our source data
 fig, ax = plt.subplots(1)
 ax.plot(times, 1e9 * stc.data.T)
-ax.set(ylabel='Amplitude (nAm)', xlabel='Time (sec)')
+ax.set(ylabel='Amplitude (nAm)', xlabel='Time (s)')
 mne.viz.utils.plt_show()
 
 ##############################################################################

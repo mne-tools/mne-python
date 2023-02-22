@@ -64,9 +64,9 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     Parameters
     ----------
     pos_from : np.ndarray of float, shape(n_good_sensors, 3)
-        The positions to interpoloate from.
+        The positions to interpolate from.
     pos_to : np.ndarray of float, shape(n_bad_sensors, 3)
-        The positions to interpoloate.
+        The positions to interpolate.
     alpha : float
         Regularization parameter. Defaults to 1e-5.
 

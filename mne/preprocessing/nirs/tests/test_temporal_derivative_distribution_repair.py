@@ -2,8 +2,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
@@ -13,9 +11,9 @@ from mne.io import read_raw_nirx
 from mne.preprocessing.nirs import beer_lambert_law, optical_density, tddr
 from mne.datasets import testing
 
-
-fname_nirx_15_2 = op.join(data_path(download=False),
-                          'NIRx', 'nirscout', 'nirx_15_2_recording')
+fname_nirx_15_2 = (
+    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording"
+)
 
 
 @testing.requires_testing_data

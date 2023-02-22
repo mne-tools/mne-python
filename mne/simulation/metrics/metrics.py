@@ -29,7 +29,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     stc2 : SourceEstimate
         Second source estimate for comparison.
     metric : str
-        Metric to calculate, 'rms' or 'cosine'.
+        Metric to calculate, ``'rms'`` or ``'cosine'``.
 
     Returns
     -------

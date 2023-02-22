@@ -4,13 +4,18 @@
 # License: BSD Style.
 
 import os
-from os import path as op
-import pkg_resources
 import re
+from os import path as op
 from pathlib import Path
 
-from ..utils import _get_path, _do_path_update
 from ...utils import _url_to_local_path, verbose
+from ..utils import _do_path_update, _get_path
+
+# TODO: remove try/except when our min version is py 3.9
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
 
 
 EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
@@ -185,8 +190,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     )
 
     # load the checksum registry
-    registry = pkg_resources.resource_stream(
-        'mne', op.join('data', 'eegbci_checksums.txt'))
+    registry = files('mne').joinpath('data', 'eegbci_checksums.txt')
     fetcher.load_registry(registry)
 
     # fetch the file(s)

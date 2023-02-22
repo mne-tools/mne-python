@@ -12,7 +12,7 @@ pytestmark = pytest.mark.skipif(
     sys.platform.startswith('win'), reason='nbexec does not work on Windows')
 
 
-def test_gui_api(renderer_notebook, nbexec, n_warn=0):
+def test_gui_api(renderer_notebook, nbexec, *, n_warn=0, backend='qt'):
     """Test GUI API."""
     import contextlib
     import mne
@@ -20,19 +20,15 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     import sys
     try:
         # Function
-        n_warn  # noqa
+        backend  # noqa
     except Exception:
         # Notebook standalone mode
+        backend = 'notebook'
         n_warn = 0
     # nbexec does not expose renderer_notebook so I use a
     # temporary variable to synchronize the tests
-    try:
-        assert mne.MNE_PYVISTAQT_BACKEND_TEST
-    except AttributeError:
+    if backend == 'notebook':
         mne.viz.set_3d_backend('notebook')
-        backend = 'notebook'
-    else:
-        backend = 'qt'
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
 
     # theme
@@ -48,7 +44,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         renderer._window_set_theme('dark')
     w = [ww for ww in w if 'is not yet supported' in str(ww.message)]
     if sys.platform != 'darwin':  # sometimes this is fine
-        assert len(w) == n_warn
+        assert len(w) == n_warn, [ww.message for ww in w]
 
     # window without 3d plotter
     if backend == 'qt':
@@ -196,6 +192,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         is_directory=True,
         tooltip='file button',
     )
+
     renderer._dock_add_file_button(
         name='',
         desc='',
@@ -268,6 +265,11 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         shortcut=None,
     )
     renderer.actions['help'].trigger()
+    if renderer._kind == 'qt':
+        dialog = renderer._window.children()[-1]
+        assert 'FileDialog' in repr(dialog)
+        dialog.close()
+        dialog.deleteLater()
 
     # play button
     assert 'play' not in renderer.actions
@@ -346,6 +348,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
             with _check_widget_trigger(None, mock, '', '', get_value=False):
                 widget.trigger(button=button)
             assert mock.call_args.args == (button,)
+        assert not widget._widget.isVisible()
 
         # buttons list empty means OK button (default)
         button = 'Ok'
@@ -361,6 +364,8 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         with _check_widget_trigger(None, mock, '', '', get_value=False):
             widget.trigger(button=button)
         assert mock.call_args.args == (button,)
+        widget.trigger(button='Ok')
+
     # --- END: dialog ---
 
     # --- BEGIN: keypress ---
@@ -382,12 +387,12 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         assert mock.call_count == old_call_count + 2
         assert mock.call_args_list[-1].args == ('last',)
         assert mock.call_args_list[-2].args == ('first',)
+        assert renderer._window.isVisible() is False
+    del renderer
 
 
 def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
-    import mne
-    mne.MNE_PYVISTAQT_BACKEND_TEST = True
     _, api = _check_qt_version(return_api=True)
     n_warn = int(api in ('PySide6', 'PyQt6'))
-    test_gui_api(None, None, n_warn=n_warn)
+    test_gui_api(None, None, n_warn=n_warn, backend='qt')

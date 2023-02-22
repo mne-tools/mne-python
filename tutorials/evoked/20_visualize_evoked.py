@@ -11,7 +11,6 @@ This tutorial shows the different visualization methods for
 
 As usual we'll start by importing the modules we need:
 """
-
 # %%
 
 import numpy as np
@@ -30,8 +29,8 @@ import mne
 # that when loading:
 
 root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
-evk_file = root / 'sample_audvis-ave.fif'
-evokeds_list = mne.read_evokeds(evk_file, baseline=(None, 0), proj=True,
+evoked_file = root / 'sample_audvis-ave.fif'
+evokeds_list = mne.read_evokeds(evoked_file, baseline=(None, 0), proj=True,
                                 verbose=False)
 
 # Show condition names and baseline intervals

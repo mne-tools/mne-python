@@ -1,4 +1,4 @@
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -14,13 +14,11 @@ from mne.io import read_raw_nirx
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.utils import _record_warnings, requires_version
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-raw_fname_ctf = op.join(base_dir, 'test_ctf_raw.fif')
-
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+event_name = base_dir / "test-eve.fif"
+raw_fname_ctf = base_dir / "test_ctf_raw.fif"
 testing_path = testing.data_path(download=False)
-
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
 
@@ -274,7 +272,7 @@ def test_interpolate_meg_ctf():
 @testing.requires_testing_data
 def test_interpolation_ctf_comp():
     """Test interpolation with compensated CTF data."""
-    raw_fname = op.join(testing_path, 'CTF', 'somMDYO-18av.ds')
+    raw_fname = testing_path / "CTF" / "somMDYO-18av.ds"
     raw = io.read_raw_ctf(raw_fname, preload=True)
     raw.info['bads'] = [raw.ch_names[5], raw.ch_names[-5]]
     raw.interpolate_bads(mode='fast', origin=(0., 0., 0.04))
@@ -285,8 +283,9 @@ def test_interpolation_ctf_comp():
 @testing.requires_testing_data
 def test_interpolation_nirs():
     """Test interpolating bad nirs channels."""
-    fname = op.join(testing_path,
-                    'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
+    fname = (
+        testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_overlap"
+    )
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
     sci = scalp_coupling_index(raw_od)

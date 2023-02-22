@@ -1005,7 +1005,19 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         aspect = width_ax / fig._inch_to_rel(drag_ax_height)
         drag_ax.set(xlim=(0, aspect), ylim=(0, 1))
         drag_ax.set_axis_off()
-
+        if _OLD_BUTTONS:
+            # TODO: .rectangles deprecated in matplotlib 3.7
+            rect = checkbox.rectangles[0]
+            _pad, _size = (0.2, 0.6)
+            rect.set_bounds(_pad, _pad, _size, _size)
+            lines = checkbox.lines[0]
+            for line, direction in zip(lines, (1, -1)):
+                line.set_xdata((_pad, _pad + _size)[::direction])
+                line.set_ydata((_pad, _pad + _size))
+            text = checkbox.labels[0]
+            text.set(position=(3 * _pad + _size, 0.45), va='center')
+            for artist in lines + (rect, text):
+                artist.set_transform(drag_ax.transData)
         # setup interactivity in plot window
         buttons = fig.mne.radio_ax.buttons
         if buttons is None:
@@ -1021,7 +1033,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
         selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
                                 'horizontal', minspan=0.1, useblit=False,
-                                **rect_kw)
+                                button=1, **rect_kw)
         self.mne.ax_main.selector = selector
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
@@ -1434,6 +1446,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # draw checkboxes
         checkboxes = CheckButtons(ax, labels=labels, actives=self.mne.projs_on)
         # gray-out already applied projectors
+        # TODO: lines and rectangles deprecated in matplotlib 3.7
         for label, rect, lines in zip(checkboxes.labels,
                                       checkboxes.rectangles,
                                       checkboxes.lines):
@@ -1642,7 +1655,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=self.mne.zorder['scalebar'])
         if ch_type == 'time':
-            label = f'{self.mne.boundary_times[1]/2:.2f} sec'
+            label = f'{self.mne.boundary_times[1]/2:.2f} s'
             text = self.mne.ax_main.text(x[0] + .015, y[1] - .05, label,
                                          va='bottom', ha='left',
                                          size='xx-small', **kwargs)
@@ -1988,8 +2001,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             rel_time = self._recompute_epochs_vlines(xdata)
             xdata = rel_time + self.mne.inst.times[0]
         else:
-            self.mne.vline.set_xdata(xdata)
-            self.mne.vline_hscroll.set_xdata(xdata)
+            self.mne.vline.set_xdata([xdata])
+            self.mne.vline_hscroll.set_xdata([xdata])
         text = self._xtick_formatter(xdata, ax_type='vline')[:12]
         self.mne.vline_text.set_text(text)
         self._toggle_vline(True)

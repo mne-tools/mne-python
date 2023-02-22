@@ -579,7 +579,7 @@ def open_report(fname, **params):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
@@ -594,7 +594,7 @@ def open_report(fname, **params):
     report : instance of Report
         The report.
     """
-    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
+    fname = str(_check_fname(fname=fname, overwrite="read", must_exist=False))
     if op.exists(fname):
         # Check **params with the loaded report
         read_hdf5, _ = _import_h5io_funcs()
@@ -754,6 +754,8 @@ class Report:
         self.baseline = baseline
         if subjects_dir is not None:
             subjects_dir = get_subjects_dir(subjects_dir)
+            if subjects_dir is not None:
+                subjects_dir = str(subjects_dir)
         self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
@@ -888,7 +890,7 @@ class Report:
 
         # We loop over all content elements and implement special treatment
         # for those that are part of a section: Those sections don't actually
-        # exist in `self._content` – we're creating them on-the-fly here!
+        # exist in `self._content` – we're creating them on-the-fly here!
         for idx, content_element in enumerate(content_elements):
             if content_element.section:
                 if content_element.section in titles:
@@ -2431,9 +2433,14 @@ class Report:
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = _check_fname(
-                fname=self.data_path, overwrite='read', must_exist=True,
-                name='Directory or folder', need_dir=True
+            data_path = str(
+                _check_fname(
+                    fname=self.data_path,
+                    overwrite="read",
+                    must_exist=True,
+                    name="Directory or folder",
+                    need_dir=True,
+                )
             )
             fnames.extend(sorted(_recursive_search(data_path, p)))
 
@@ -2592,7 +2599,7 @@ class Report:
                      f'instead')
             fname = op.join(self.data_path, 'report.html')
 
-        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
@@ -3321,8 +3328,8 @@ class Report:
             if n_epochs_required > len(epochs):
                 raise ValueError(
                     f'You requested to calculate PSD on a duration of '
-                    f'{psd:.3f} sec, but all your epochs '
-                    f'are only {signal_duration:.1f} sec long'
+                    f'{psd:.3f} s, but all your epochs '
+                    f'are only {signal_duration:.1f} s long'
                 )
             epochs_idx = np.round(
                 np.linspace(
@@ -3338,7 +3345,7 @@ class Report:
                     len(epochs_idx_unique) * epoch_duration, 1
                 )
                 warn(f'Using {len(epochs_idx_unique)} epochs, only '
-                     f'covering {duration:.1f} sec of data')
+                     f'covering {duration:.1f} s of data')
                 del duration
 
             epochs_for_psd = epochs[epochs_idx_unique]
@@ -3358,7 +3365,7 @@ class Report:
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
             f'PSD calculated from {len(epochs_for_psd)} epochs '
-            f'({duration:.1f} sec).'
+            f'({duration:.1f} s).'
         )
         self._add_figure(
             fig=fig,
@@ -3777,7 +3784,7 @@ class Report:
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
             subjects_dir = self.subjects_dir
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
 
         # Get the MRI filename
         mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')

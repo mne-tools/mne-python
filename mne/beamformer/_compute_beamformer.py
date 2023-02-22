@@ -455,7 +455,7 @@ class Beamformer(dict):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The filename to use to write the HDF5 data.
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
         %(overwrite)s
@@ -481,7 +481,7 @@ def read_beamformer(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename of the HDF5 file.
 
     Returns

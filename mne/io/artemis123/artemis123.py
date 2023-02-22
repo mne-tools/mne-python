@@ -24,13 +24,13 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the data file (extension ``.bin``). The header file with the
         same file name stem and an extension ``.txt`` is expected to be found
         in the same directory.
     %(preload)s
     %(verbose)s
-    pos_fname : str or None (default None)
+    pos_fname : path-like | None
         If not None, load digitized head points from this file.
     add_head_trans : bool (default True)
         If True attempt to perform initial head localization. Compute initial
@@ -292,7 +292,7 @@ class RawArtemis123(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the Artemis123 data file (ending in ``'.bin'``).
     %(preload)s
     %(verbose)s
@@ -308,7 +308,9 @@ class RawArtemis123(BaseRaw):
         from scipy.spatial.distance import cdist
         from ...chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                              _fit_coil_order_dev_head_trans)
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
+        input_fname = str(
+            _check_fname(input_fname, "read", True, "input_fname")
+        )
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'

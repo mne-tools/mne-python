@@ -393,7 +393,7 @@ f_s = f_p + transition_band
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
-# filter_dur = 6.6 / transition_band  # sec
+# filter_dur = 6.6 / transition_band  # s
 # n = int(sfreq * filter_dur)
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
@@ -409,7 +409,7 @@ plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default',
 
 transition_band = 0.5  # Hz
 f_s = f_p + transition_band
-filter_dur = 10.  # sec
+filter_dur = 10.  # s
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent
@@ -447,7 +447,7 @@ h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
 x_min = np.convolve(h, x)
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 6.6 / transition_band  # sec
+filter_dur = 6.6 / transition_band  # s
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
@@ -708,7 +708,7 @@ x_hp_2 = signal.filtfilt(iir_hp_2[0], iir_hp_2[1], x, padlen=0)
 
 xlim = t[[0, -1]]
 ylim = [-2, 6]
-xlabel = 'Time (sec)'
+xlabel = 'Time (s)'
 ylabel = r'Amplitude ($\mu$V)'
 tticks = [0, 0.5, 1.3, t[-1]]
 axes = plt.subplots(2, 2)[1].ravel()
@@ -718,6 +718,7 @@ for ax, x_f, title in zip(axes, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
     ax.plot(t, x_f, color='k', linestyle='--')
     ax.set(ylim=ylim, xlim=xlim, xticks=tticks,
            title=title, xlabel=xlabel, ylabel=ylabel)
+
 mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
@@ -725,12 +726,12 @@ plt.show()
 # %%
 # Similarly, in a P300 paradigm reported by
 # Kappenman & Luck (2010) :footcite:`KappenmanLuck2010`,
-# they found that applying a 1&nbsp;Hz high-pass decreased the probability of
-# finding a significant difference in the N100 response, likely because
-# the P300 response was smeared (and inverted) in time by the high-pass
-# filter such that it tended to cancel out the increased N100. However,
-# they nonetheless noted that some high-passing can still be useful to deal
-# with drifts in the data.
+# of they found that applying a :unit:`1 Hz` high-pass decreased the
+# probability finding a significant difference in the N100 response, likely
+# because the P300 response was smeared (and inverted) in time by the
+# high-pass filter such that it tended to cancel out the increased N100.
+# However, they nonetheless noted that some high-passing can still be useful
+# to deal with drifts in the data.
 #
 # Even though these papers generally advise a 0.1 Hz or lower frequency for
 # a high-pass, it is important to keep in mind (as most authors note) that

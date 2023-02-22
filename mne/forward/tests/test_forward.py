@@ -1,5 +1,5 @@
-import os.path as op
 import gc
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -20,13 +20,22 @@ from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
 from mne.channels import equalize_channels
 
 data_path = testing.data_path(download=False)
-fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_meeg_grad = op.join(data_path, 'MEG', 'sample',
-                          'sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif')
-
-fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                       'data', 'test-ave.fif')
+fname_meeg = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_meeg_grad = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif"
+)
+fname_evoked = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test-ave.fif"
+)
 
 
 def assert_forward_allclose(f1, f2, rtol=1e-7):
@@ -300,10 +309,10 @@ def test_restrict_forward_to_label(tmp_path):
                                    use_cps=True)
     fwd = pick_types_forward(fwd, meg=True)
 
-    label_path = op.join(data_path, 'MEG', 'sample', 'labels')
+    label_path = data_path / "MEG" / "sample" / "labels"
     labels = ['Aud-lh', 'Vis-rh']
-    label_lh = read_label(op.join(label_path, labels[0] + '.label'))
-    label_rh = read_label(op.join(label_path, labels[1] + '.label'))
+    label_lh = read_label(label_path / (labels[0] + ".label"))
+    label_rh = read_label(label_path / (labels[1] + ".label"))
 
     fwd_out = restrict_forward_to_label(fwd, [label_lh, label_rh])
 
@@ -326,10 +335,10 @@ def test_restrict_forward_to_label(tmp_path):
     fwd = read_forward_solution(fname_meeg)
     fwd = pick_types_forward(fwd, meg=True)
 
-    label_path = op.join(data_path, 'MEG', 'sample', 'labels')
+    label_path = data_path / "MEG" / "sample" / "labels"
     labels = ['Aud-lh', 'Vis-rh']
-    label_lh = read_label(op.join(label_path, labels[0] + '.label'))
-    label_rh = read_label(op.join(label_path, labels[1] + '.label'))
+    label_lh = read_label(label_path / (labels[0] + ".label"))
+    label_rh = read_label(label_path / (labels[1] + ".label"))
 
     fwd_out = restrict_forward_to_label(fwd, [label_lh, label_rh])
 

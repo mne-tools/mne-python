@@ -131,19 +131,19 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         Signals to filter.
     h : 1d array
         Filter impulse response (FIR filter coefficients). Must be odd length
-        if phase == 'linear'.
+        if ``phase='linear'``.
     n_fft : int
         Length of the FFT. If None, the best size is determined automatically.
     phase : str
-        If 'zero', the delay for the filter is compensated (and it must be
-        an odd-length symmetric filter). If 'linear', the response is
-        uncompensated. If 'zero-double', the filter is applied in the
+        If ``'zero'``, the delay for the filter is compensated (and it must be
+        an odd-length symmetric filter). If ``'linear'``, the response is
+        uncompensated. If ``'zero-double'``, the filter is applied in the
         forward and reverse directions. If 'minimum', a minimum-phase
         filter will be used.
     picks : list | None
         See calling functions.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
         is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
@@ -1821,7 +1821,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         if fir_design == 'firwin' or phase == 'zero':
             filter_length += (filter_length - 1) % 2
 
-        logger.info('- Filter length: %s samples (%0.3f sec)'
+        logger.info('- Filter length: %s samples (%0.3f s)'
                     % (filter_length, filter_length / sfreq))
         logger.info('')
 

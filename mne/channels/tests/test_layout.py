@@ -6,7 +6,7 @@
 # License: Simplified BSD
 
 import copy
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -22,13 +22,13 @@ from mne import pick_types, pick_info
 from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
 
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
-fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
-lout_path = op.join(io_dir, 'tests', 'data')
-bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
-fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
-fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
-fname_kit_umd = op.join(io_dir, 'kit', 'tests', 'data', 'test_umd-raw.sqd')
+io_dir = Path(__file__).parent.parent.parent / "io"
+fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
+lout_path = io_dir / "tests" / "data"
+bti_dir = io_dir / "bti" / "tests" / "data"
+fname_ctf_raw = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
+fname_kit_157 = io_dir / "kit" / "tests" / "data" / "test.sqd"
+fname_kit_umd = io_dir / "kit" / "tests" / "data" / "test_umd-raw.sqd"
 
 
 def _get_test_info():
@@ -54,23 +54,23 @@ def _get_test_info():
 
 def test_io_layout_lout(tmp_path):
     """Test IO with .lout files."""
-    tempdir = str(tmp_path)
     layout = read_layout('Vectorview-all', scale=False)
-    layout.save(op.join(tempdir, 'foobar.lout'))
-    layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
-                              scale=False)
+    layout.save(tmp_path / "foobar.lout")
+    layout_read = read_layout(
+        tmp_path / "foobar.lout", path="./", scale=False
+    )
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names
-    print(layout)  # test repr
+    assert "<Layout |" in layout.__repr__()
 
 
 def test_io_layout_lay(tmp_path):
     """Test IO with .lay files."""
-    tempdir = str(tmp_path)
     layout = read_layout('CTF151', scale=False)
-    layout.save(op.join(tempdir, 'foobar.lay'))
-    layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
-                              scale=False)
+    layout.save(str(tmp_path / "foobar.lay"))
+    layout_read = read_layout(
+        str(tmp_path / "foobar.lay"), path="./", scale=False
+    )
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names
 
@@ -141,7 +141,6 @@ def test_find_topomap_coords():
 
 def test_make_eeg_layout(tmp_path):
     """Test creation of EEG layout."""
-    tempdir = str(tmp_path)
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
@@ -150,8 +149,8 @@ def test_make_eeg_layout(tmp_path):
     layout = make_eeg_layout(info, exclude=[])
     assert_array_equal(len(layout.names), len([ch for ch in info['ch_names']
                                                if ch.startswith('EE')]))
-    layout.save(op.join(tempdir, tmp_name + '.lout'))
-    lout_new = read_layout(kind=tmp_name, path=tempdir, scale=False)
+    layout.save(str(tmp_path / (tmp_name + ".lout")))
+    lout_new = read_layout(kind=tmp_name, path=tmp_path, scale=False)
     assert_array_equal(lout_new.kind, tmp_name)
     assert_allclose(layout.pos, lout_new.pos, atol=0.1)
     assert_array_equal(lout_orig.names, lout_new.names)
@@ -167,13 +166,12 @@ def test_make_eeg_layout(tmp_path):
 
 def test_make_grid_layout(tmp_path):
     """Test creation of grid layout."""
-    tempdir = str(tmp_path)
     tmp_name = 'bar'
     lout_name = 'test_ica'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
     layout = make_grid_layout(_get_test_info())
-    layout.save(op.join(tempdir, tmp_name + '.lout'))
-    lout_new = read_layout(kind=tmp_name, path=tempdir)
+    layout.save(str(tmp_path / (tmp_name + ".lout")))
+    lout_new = read_layout(kind=tmp_name, path=tmp_path)
     assert_array_equal(lout_new.kind, tmp_name)
     assert_array_equal(lout_orig.pos, lout_new.pos)
     assert_array_equal(lout_orig.names, lout_new.names)
@@ -249,7 +247,7 @@ def test_find_layout():
     lout = find_layout(read_info(fname_ctf_raw))
     assert_equal(lout.kind, 'CTF-275')
 
-    fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
+    fname_bti_raw = bti_dir / "exported4D_linux_raw.fif"
     lout = find_layout(read_info(fname_bti_raw))
     assert_equal(lout.kind, 'magnesWH3600')
 
