@@ -1136,8 +1136,8 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
 
 # TODO: allow_unclosed for macOS here as the conda build shows some
 # windows stay open afterward
-def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt,
-                      allow_unclosed):
+@pytest.mark.allow_unclosed
+def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     """Test mapping foci to the surface."""
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo['lh'].coords[:2] + 0.01
