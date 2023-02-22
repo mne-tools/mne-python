@@ -51,6 +51,7 @@ Bugs
 - Fix configuration folder discovery on Windows, which would fail in certain edge cases; and produce a helpful error message if discovery still fails (:gh:`11441` by `Richard Höchenberger`_)
 - Make :class:`~mne.decoding.SlidingEstimator` and :class:`~mne.decoding.GeneralizingEstimator` respect the ``verbose`` argument. Now with ``verbose=False``, the progress bar is not shown during fitting, scoring, etc. (:gh:`11450` by `Mikołaj Magnuski`_)
 - Fix bug with :func:`mne.gui.locate_ieeg` where Freesurfer ``?h.pial.T1`` was not recognized and suppress excess logging (:gh:`11489` by `Alex Rockhill`_)
+- Fix support for `~pathlib.Path` in the MNE codebase (:gh:`11473` and :gh:`11499` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
