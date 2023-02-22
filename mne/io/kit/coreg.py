@@ -84,7 +84,7 @@ def read_sns(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Absolute path to sensor definition file.
 
     Returns

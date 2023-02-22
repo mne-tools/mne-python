@@ -447,7 +447,7 @@ def make_bem_solution(surfs, *, solver='mne', verbose=None):
     surfs : list of dict
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
     solver : str
-        Can be 'mne' (default) to use MNE-Python, or 'openmeeg' to use
+        Can be ``'mne'`` (default) to use MNE-Python, or ``'openmeeg'`` to use
         the :doc:`OpenMEEG <openmeeg:index>` package.
 
         .. versionadded:: 1.2
@@ -975,7 +975,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     %(info_not_none)s
     %(dig_kinds)s
     units : str
-        Can be "m" (default) or "mm".
+        Can be ``"m"`` (default) or ``"mm"``.
 
         .. versionadded:: 0.12
     %(verbose)s
@@ -1742,11 +1742,11 @@ def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
 @verbose
 def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
                    *, verbose=None):
-    """Write a head surface to a fiff file.
+    """Write a head surface to a FIF file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to write.
     rr : array, shape (n_vertices, 3)
         Coordinate points in the MRI coordinate system.

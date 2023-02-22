@@ -26,22 +26,22 @@ def read_raw_nicolet(input_fname, ch_type, eog=(),
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the data file (ending with ``.data`` not ``.head``).
     ch_type : str
         Channel type to designate to the data channels. Supported data types
-        include 'eeg', 'dbs'.
-    eog : list | tuple | 'auto'
+        include ``'eeg'``, ``'dbs'``.
+    eog : list | tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        EOG channels. If 'auto', the channel names beginning with
+        EOG channels. If ``'auto'``, the channel names beginning with
         ``EOG`` are used. Defaults to empty tuple.
-    ecg : list or tuple | 'auto'
+    ecg : list or tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        ECG channels. If 'auto', the channel names beginning with
+        ECG channels. If ``'auto'``, the channel names beginning with
         ``ECG`` are used. Defaults to empty tuple.
-    emg : list or tuple | 'auto'
+    emg : list or tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        EMG channels. If 'auto', the channel names beginning with
+        EMG channels. If ``'auto'``, the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated
@@ -130,22 +130,22 @@ class RawNicolet(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the Nicolet file.
     ch_type : str
         Channel type to designate to the data channels. Supported data types
-        include 'eeg', 'seeg'.
-    eog : list | tuple | 'auto'
+        include ``'eeg'``, ``'seeg'``.
+    eog : list | tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        EOG channels. If 'auto', the channel names beginning with
+        EOG channels. If ``'auto'``, the channel names beginning with
         ``EOG`` are used. Defaults to empty tuple.
-    ecg : list or tuple | 'auto'
+    ecg : list or tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        ECG channels. If 'auto', the channel names beginning with
+        ECG channels. If ``'auto'``, the channel names beginning with
         ``ECG`` are used. Defaults to empty tuple.
-    emg : list or tuple | 'auto'
+    emg : list or tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        EMG channels. If 'auto', the channel names beginning with
+        EMG channels. If ``'auto'``, the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
     misc : list or tuple
         Names of channels or list of indices that should be designated

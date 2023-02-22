@@ -17,8 +17,8 @@ def read_raw_eximia(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to the eXimia data file (.nxe).
+    fname : path-like
+        Path to the eXimia ``.nxe`` data file.
     %(preload)s
     %(verbose)s
 

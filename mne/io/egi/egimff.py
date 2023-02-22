@@ -338,7 +338,7 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the raw file.
     eog : list or tuple
         Names of channels or list of indices that should be designated
@@ -775,8 +775,8 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
 
     Parameters
     ----------
-    fname : str
-        File path to averaged MFF file. Should end in .mff.
+    fname : path-like
+        File path to averaged MFF file. Should end in ``.mff``.
     condition : int or str | list of int or str | None
         The index (indices) or category (categories) from which to read in
         data. Averaged MFF files can contain separate averages for different

@@ -87,7 +87,7 @@ class CoregistrationUI(HasTraits):
         with a different color. Defaults to True.
     sensor_opacity : float
         The opacity of the sensors between 0 and 1. Defaults to 1.0.
-    trans : str
+    trans : path-like
         The path to the Head<->MRI transform FIF file ("-trans.fif").
     size : tuple
         The dimensions (width, height) of the rendering view. The default is
