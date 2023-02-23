@@ -467,13 +467,13 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         if self._data.shape[0] > 1:
             self._epoch_selector = QComboBox()
-            self._epoch_selector.addItems(
-                [f'Epoch {i}' for i in range(self._data.shape[0])])
             if self._is_complex:
                 self._epoch_selector.addItems(['Average Power'])
                 self._epoch_selector.addItems(['ITC'])
             else:
                 self._epoch_selector.addItems(['Average'])
+            self._epoch_selector.addItems(
+                [f'Epoch {i}' for i in range(self._data.shape[0])])
             self._epoch_selector.setCurrentText(self._epoch_idx)
             self._epoch_selector.currentTextChanged.connect(self._update_epoch)
             self._epoch_selector.setSizeAdjustPolicy(
@@ -657,7 +657,6 @@ class VolSourceEstimateViewer(SliceBrowser):
             dpi=96, tight=False, hide_axes=False, invert=False,
             facecolor='white')
 
-        self._fig.axes[0].set_position([0.15, 0.3, 0.7, 0.6])
         self._fig.axes[0].set_xlabel('Time (s)')
         self._fig.axes[0].set_xticks(
             [0, self._inst.times.size // 2, self._inst.times.size - 1])
@@ -684,10 +683,10 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._fig.axes[0].set_ylabel('Frequency (Hz)')
             self._fig.axes[0].set_yticks(range(self._inst.freqs.size))
             self._fig.axes[0].set_yticklabels(self._inst.freqs.round(2))
-            self._cbar = self._fig.colorbar(
-                self._stc_plot, ax=self._fig.axes[0])
-            self._cax = self._cbar.ax
+            self._cax = self._fig.add_axes([0.87, 0.25, 0.02, 0.7])
+            self._cbar = self._fig.colorbar(self._stc_plot, cax=self._cax)
             self._cax.set_ylabel('Power')
+        self._fig.axes[0].set_position([0.1, 0.25, 0.75, 0.7])
         self._fig.canvas.mpl_connect(
             'button_release_event', self._on_data_plot_click)
         canvas.setMinimumHeight(int(self.size().height() * 0.4))
@@ -871,7 +870,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         # handle plot labels
         self._update_data_plot_ylabel()
         # reset sliders
-        if name == 'ITC' != self._epoch_idx == 'ITC':
+        if name == 'ITC' and self._epoch_idx != 'ITC':
             self._cmap_sliders[0].setValue(0)
             self._cmap_sliders[1].setValue(SLIDER_WIDTH // 2)
             self._cmap_sliders[2].setValue(SLIDER_WIDTH)
@@ -1081,7 +1080,6 @@ class VolSourceEstimateViewer(SliceBrowser):
         else:  # text == 'On', turn off
             self._interp_button.setText('Off')
             self._interp_button.setStyleSheet("background-color: red")
-        self._plot_spectrogram(draw=False)
 
         self._stc_plot.set_interpolation(
             'bicubic' if self._interp_button.text() == 'On' else None)
