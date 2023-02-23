@@ -2489,12 +2489,14 @@ def _check_raw_compatibility(raw):
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], type(raw[0])):
             raise ValueError(f'raw[{ri}] type must match')
-        for key in ('nchan', 'bads', 'sfreq'):
+        for key in ('nchan', 'sfreq'):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
                     f'raw[{ri}].info[{key}] must match:\n'
                     f'{repr(a)} != {repr(b)}')
+        if not set(raw[ri].info['bads']) == set(raw[0].info['bads']):
+            raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
         if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri]._cals == raw[0]._cals):
