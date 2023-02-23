@@ -487,7 +487,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     check_kwargs = dict()
     if not _OLD_BUTTONS:
         checkcolor = ['#ff0000' if p['active'] else 'k' for p in projs]
-        check_kwargs['check_props'].update(facecolor=checkcolor)
+        check_kwargs['check_props'] = dict(facecolor=checkcolor)
         check_kwargs['frame_props'] = dict(edgecolor='0.5', linewidth=1)
     proj_checks = widgets.CheckButtons(
         ax_temp, labels=labels, actives=actives, **check_kwargs)
