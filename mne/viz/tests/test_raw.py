@@ -6,7 +6,6 @@ import itertools
 import os
 from copy import deepcopy
 
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import backend_bases
 import numpy as np
@@ -19,13 +18,21 @@ from mne.datasets import testing
 from mne.io import RawArray
 from mne.io.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.utils import (_dt_to_stamp, _record_warnings, get_config, set_config,
-                       _assert_no_instances, check_version)
+                       _assert_no_instances)
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress
 
 
-# TODO: fix these matplotlib 3.7 compat bugs
-_mpl_37 = check_version('matplotlib', '3.7')
+def _get_button_xy(buttons, idx):
+    from mne.viz._mpl_figure import _OLD_BUTTONS
+    if _OLD_BUTTONS:
+        return buttons.circles[idx].center
+    else:
+        # Each transform is to display coords, and our offsets are in Axes
+        # coords. We want data coords, so we go Axes -> display -> data.
+        return buttons.ax.transData.inverted().transform(
+            buttons.ax.transAxes.transform(
+                buttons.ax.collections[0].get_offsets()[idx]))
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -63,7 +70,7 @@ def _annotation_helper(raw, browse_backend, events=False):
             fig._fake_keypress(key, fig=ann_fig)
         # change annotation label
         for ix in (-1, 0):
-            xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
+            xy = _get_button_xy(ann_fig.mne.radio_ax.buttons, ix)
             fig._fake_click(xy, fig=ann_fig, ax=ann_fig.mne.radio_ax,
                             xform='data')
     else:
@@ -159,10 +166,8 @@ def _annotation_helper(raw, browse_backend, events=False):
 
 
 def _proj_status(ssp_fig, browse_backend):
-    if browse_backend.name == 'matplotlib':
-        ax = ssp_fig.mne.proj_checkboxes.ax
-        return [line.get_visible() for line
-                in ax.findobj(matplotlib.lines.Line2D)][::2]
+    if browse_backend == 'matplotlib' or browse_backend.name == 'matplotlib':
+        return ssp_fig.mne.proj_checkboxes.get_status()
     else:
         return [chkbx.isChecked() for chkbx in ssp_fig.checkboxes]
 
@@ -177,11 +182,12 @@ def _proj_label(ssp_fig, browse_backend):
 def _proj_click(idx, fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == 'matplotlib':
-        pos = np.array(ssp_fig.mne.proj_checkboxes.
-                       labels[idx].get_position()) + 0.01
-
+        text_lab = ssp_fig.mne.proj_checkboxes.labels[idx]
+        pos = np.mean(
+            text_lab.get_tightbbox(renderer=fig.canvas.get_renderer()),
+            axis=0)
         fig._fake_click(pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax,
-                        xform='data')
+                        xform='pix')
     else:
         # _fake_click on QCheckBox is inconsistent across platforms
         # (also see comment in test_plot_raw_selection).
@@ -282,8 +288,9 @@ def test_plot_raw_selection(raw, browser_backend):
     sel_fig = fig.mne.fig_selection
     assert sel_fig is not None
     # test changing selection with arrow keys
+    left_temp = 'Left-temporal'
     sel_dict = fig.mne.ch_selections
-    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
+    assert len(fig.mne.traces) == len(sel_dict[left_temp])  # 6
     fig._fake_keypress('down', fig=sel_fig)
     assert len(fig.mne.traces) == len(sel_dict['Left-frontal'])  # 3
     fig._fake_keypress('down', fig=sel_fig)
@@ -306,7 +313,13 @@ def test_plot_raw_selection(raw, browser_backend):
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
     if ismpl:
-        xy = sel_fig.mne.radio_ax.buttons.circles[0].center
+        print(f'Clicking button: {repr(left_temp)}')
+        assert sel_fig.mne.radio_ax.buttons.labels[0].get_text() == left_temp
+        xy = _get_button_xy(sel_fig.mne.radio_ax.buttons, 0)
+        lim = sel_fig.mne.radio_ax.get_xlim()
+        assert lim[0] < xy[0] < lim[1]
+        lim = sel_fig.mne.radio_ax.get_ylim()
+        assert lim[0] < xy[1] < lim[1]
         fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
     else:
         # For an unknown reason test-clicking on checkboxes is inconsistent
@@ -314,15 +327,12 @@ def test_plot_raw_selection(raw, browser_backend):
         # (QTest.mouseClick works isolated on all platforms but somehow
         # not in this context. _fake_click isn't working on linux)
         sel_fig._chkbx_changed(list(sel_fig.chkbxs.keys())[0])
-    # TODO: Results are wrong on matplotlib 3.7!
-    if browser_backend.name == 'matplotlib' and _mpl_37:
-        pytest.xfail('Fails on matplotlib 3.7')
-    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
     assert not fig.mne.butterfly
+    assert len(fig.mne.traces) == len(sel_dict[left_temp])  # 6
     # test clicking on "custom" when not defined: should be no-op
     if ismpl:
         before_state = sel_fig.mne.radio_ax.buttons.value_selected
-        xy = sel_fig.mne.radio_ax.buttons.circles[-1].center
+        xy = _get_button_xy(sel_fig.mne.radio_ax.buttons, -1)
         fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
         lasso = sel_fig.lasso
         sensor_ax = sel_fig.mne.sensor_ax
@@ -334,7 +344,7 @@ def test_plot_raw_selection(raw, browser_backend):
         lasso = sel_fig.channel_fig.lasso
         sensor_ax = sel_fig.channel_widget
         assert before_state == sel_fig.mne.old_selection          # unchanged
-    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
+    assert len(fig.mne.traces) == len(sel_dict[left_temp])  # unchanged
     # test marking bad channel in selection mode → should make sensor red
     assert lasso.ec[:, 0].sum() == 0   # R of RGBA zero for all chans
     fig._click_ch_name(ch_index=1, button=1)  # mark bad
@@ -385,9 +395,6 @@ def test_plot_raw_ssp_interaction(raw, browser_backend):
     assert _proj_status(ssp_fig, browser_backend) == [True, True, True]
     # this should work (proj 1 not applied)
     _proj_click(1, fig, browser_backend)
-    # TODO: Broken on matplotlib 3.7
-    if browser_backend.name == 'matplotlib' and _mpl_37:
-        pytest.xfail('Fails on matplotlib 3.7')
     assert _proj_status(ssp_fig, browser_backend) == [True, False, True]
     # turn it back on
     _proj_click(1, fig, browser_backend)
@@ -407,8 +414,6 @@ def test_plot_raw_ssp_interaction(raw, browser_backend):
 
 def test_plot_raw_child_figures(raw, browser_backend):
     """Test spawning and closing of child figures."""
-    if browser_backend.name == 'matplotlib' and _mpl_37:
-        pytest.xfail(reason='IndexError on matplotlib 3.7')
     ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
@@ -446,8 +451,6 @@ def test_orphaned_annot_fig(raw, browser_backend):
     """Test that annotation window is not orphaned (GH #10454)."""
     if browser_backend.name != 'matplotlib':
         return
-    if _mpl_37:
-        pytest.xfail(reason='IndexError on matplotlib 3.7')
     assert browser_backend._get_n_figs() == 0
     fig = raw.plot()
     _spawn_child_fig(fig, 'fig_annotation', browser_backend, 'a')
@@ -661,8 +664,6 @@ def test_plot_misc_auto(browser_backend):
 @pytest.mark.slowtest
 def test_plot_annotations(raw, browser_backend):
     """Test annotation mode of the plotter."""
-    if browser_backend.name == 'matplotlib' and _mpl_37:
-        pytest.xfail(reason='IndexError on matplotlib 3.7')
     ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.
