@@ -38,6 +38,8 @@ from mne.viz.utils import (_find_peaks, _fake_click, _fake_keypress,
                            _fake_scroll)
 from mne.utils import requires_sklearn, check_version
 
+from mne.viz.tests.test_raw import _proj_status
+
 data_dir = testing.data_path(download=False)
 subjects_dir = data_dir / "subjects"
 ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
@@ -52,11 +54,6 @@ layout = read_layout("Vectorview-all")
 cov_fname = base_dir / "test-cov.fif"
 
 
-# TODO: This is a problem on Windows at least
-@pytest.mark.xfail(
-    condition=check_version('matplotlib', '3.7'),
-    reason='Lines not visible',
-)
 @pytest.mark.parametrize('constrained_layout', (False, True))
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
@@ -86,7 +83,7 @@ def test_plot_topomap_interactive(constrained_layout):
     assert len(plt.get_fignums()) == 1
 
     ax.clear()
-    evoked.copy().plot_topomap(proj='interactive', **kwargs)
+    fig = evoked.copy().plot_topomap(proj='interactive', **kwargs)
     canvas.draw()
     image_interactive = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
     assert_array_equal(image_noproj, image_interactive)
@@ -94,14 +91,10 @@ def test_plot_topomap_interactive(constrained_layout):
     assert len(plt.get_fignums()) == 2
 
     proj_fig = plt.figure(plt.get_fignums()[-1])
-    assert len(proj_fig.axes[0].lines) == 2
-    for line in proj_fig.axes[0].lines:
-        assert not line.get_visible()
-    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
-    assert len(proj_fig.axes[0].lines) == 2
+    assert _proj_status(fig, 'matplotlib') == [False]
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='ax')
     proj_fig.canvas.draw_idle()
-    for li, line in enumerate(proj_fig.axes[0].lines):
-        assert line.get_visible(), f'line {li} not visible'
+    assert _proj_status(fig, 'matplotlib') == [True]
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
@@ -112,7 +105,7 @@ def test_plot_topomap_interactive(constrained_layout):
         image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.85 < corr < 0.9
 
-    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='ax')
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
