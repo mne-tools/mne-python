@@ -778,6 +778,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
             assert kind == 'motion'
             kind = 'motion_notify_event'
             button = None
+        logger.debug(
+            f'Faking {kind} @ ({x}, {y}) with button={button} and key={key}')
         fig.canvas.callbacks.process(
             kind,
             backend_bases.MouseEvent(

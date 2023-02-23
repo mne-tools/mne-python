@@ -284,6 +284,7 @@ class MNESelectionFigure(MNEFigure):
 
     def _radiopress(self, event):
         """Handle RadioButton clicks for channel selection groups."""
+        logger.debug(f'Got radio press: {repr(event)}')
         selections_dict = self.mne.parent_fig.mne.ch_selections
         buttons = self.mne.radio_ax.buttons
         labels = [label.get_text() for label in buttons.labels]
@@ -295,6 +296,7 @@ class MNESelectionFigure(MNEFigure):
             return
         # clicking a selection cancels butterfly mode
         if parent.mne.butterfly:
+            logger.debug('Disabling butterfly mode')
             parent._toggle_butterfly()
             with _events_off(buttons):
                 buttons.set_active(labels.index(this_label))
