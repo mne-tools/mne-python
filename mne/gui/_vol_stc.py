@@ -583,7 +583,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         hbox = QHBoxLayout() if hbox is None else hbox
 
         bl_widget = QWidget()
-        bl_widget.setStyleSheet('background-color: lightgray;')
+        bl_widget.setStyleSheet('background-color: darkgray;')
         bl_hbox = QHBoxLayout()
 
         bl_hbox.addWidget(QLabel('Baseline'))
@@ -637,9 +637,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._interp_button.released.connect(self._toggle_interp)
             hbox.addStretch(1)
 
-        self._go_to_max_button = QPushButton('Go to Maxima')
-        self._go_to_max_button.released.connect(self.go_to_max)
-        hbox.addWidget(self._go_to_max_button)
+        self._go_to_extreme_button = QPushButton('Go to Max')
+        self._go_to_extreme_button.released.connect(self.go_to_extreme)
+        hbox.addWidget(self._go_to_extreme_button)
         hbox.addStretch(2)
 
         self._intensity_label = QLabel('')  # update later
@@ -657,14 +657,14 @@ class VolSourceEstimateViewer(SliceBrowser):
             dpi=96, tight=False, hide_axes=False, invert=False,
             facecolor='white')
 
-        self._fig.axes[0].set_position([0.15, 0.25, 0.7, 0.6])
+        self._fig.axes[0].set_position([0.15, 0.3, 0.7, 0.6])
         self._fig.axes[0].set_xlabel('Time (s)')
         self._fig.axes[0].set_xticks(
             [0, self._inst.times.size // 2, self._inst.times.size - 1])
         self._fig.axes[0].set_xticklabels(
             self._inst.times[[0, self._inst.times.size // 2, -1]].round(2))
+        stc_data = self._pick_stc_image()
         if self._f_idx is None:
-            stc_data = self._pick_stc_image()
             self._fig.axes[0].set_facecolor('black')
             self._stc_plot = self._fig.axes[0].plot(
                 stc_data[0], color='white')[0]
@@ -673,7 +673,17 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._fig.axes[0].set_ylabel('Activation (AU)')
             self._cax = None
         else:
-            self._plot_spectrogram(draw=False)
+            self._stc_plot = self._fig.axes[0].imshow(
+                stc_data, aspect='auto', cmap=self._cmap,
+                interpolation='bicubic')
+            self._stc_vline = self._fig.axes[0].axvline(
+                x=self._t_idx, color='lime', linewidth=0.5)
+            self._stc_hline = self._fig.axes[0].axhline(
+                y=self._f_idx, color='lime', linewidth=0.5)
+            self._fig.axes[0].invert_yaxis()
+            self._fig.axes[0].set_ylabel('Frequency (Hz)')
+            self._fig.axes[0].set_yticks(range(self._inst.freqs.size))
+            self._fig.axes[0].set_yticklabels(self._inst.freqs.round(2))
             self._cbar = self._fig.colorbar(
                 self._stc_plot, ax=self._fig.axes[0])
             self._cax = self._cbar.ax
@@ -703,16 +713,17 @@ class VolSourceEstimateViewer(SliceBrowser):
             evo_data = evo_data[:, self._f_idx]
 
         if self._baseline != 'none':
-            rescale(evo_data.astype(float), times=self._inst.times,
-                    baseline=(float(self._bl_tmin), float(self._bl_tmax)),
-                    mode=self._baseline, copy=False)
+            evo_data = rescale(
+                evo_data.astype(float), times=self._inst.times,
+                baseline=(float(self._bl_tmin), float(self._bl_tmax)),
+                mode=self._baseline, copy=False)
 
         info = _pick_inst(self._inst, self._data_type_selector.currentText(),
                           'bads').info
         ave = EvokedArray(evo_data, info, tmin=self._inst.times[0])
 
         ave.plot_topomap(times=self._inst.times[self._t_idx],
-                         axes=self._topo_fig.axes[0],
+                         axes=self._topo_fig.axes[0], cmap=self._cmap,
                          colorbar=False, show=False)
         self._topo_fig.axes[0].set_title('')
         self._topo_fig.subplots_adjust(top=1.1, bottom=0.05)
@@ -730,25 +741,6 @@ class VolSourceEstimateViewer(SliceBrowser):
         canvas.setMaximumWidth(int(self.size().width() * 0.4))
         canvas.keyPressEvent = self.keyPressEvent
         return canvas
-
-    def _plot_spectrogram(self, draw=True):
-        """Plot a spectrogram as the data plot."""
-        stc_data = self._pick_stc_image()
-        interp = 'bicubic' if self._interp_button.text() == 'On' else None
-        self._fig.axes[0].clear()
-        self._stc_plot = self._fig.axes[0].imshow(
-            stc_data, aspect='auto', cmap=self._cmap,
-            interpolation=interp)
-        self._stc_vline = self._fig.axes[0].axvline(
-            x=self._t_idx, color='lime', linewidth=0.5)
-        self._stc_hline = self._fig.axes[0].axhline(
-            y=self._f_idx, color='lime', linewidth=0.5)
-        self._fig.axes[0].invert_yaxis()
-        self._fig.axes[0].set_ylabel('Frequency (Hz)')
-        self._fig.axes[0].set_yticks(range(self._inst.freqs.size))
-        self._fig.axes[0].set_yticklabels(self._inst.freqs.round(2))
-        if draw and self._update:
-            self._fig.canvas.draw()
 
     def keyPressEvent(self, event):
         """Execute functions when the user presses a key."""
@@ -823,6 +815,9 @@ class VolSourceEstimateViewer(SliceBrowser):
         # all baselines have negative support
         self._cmap = _get_cmap('hot' if name == 'none' and self._pos_support
                                else 'mne')
+        self._go_to_extreme_button.setText(
+            'Go to Max' if name == 'none' and self._pos_support else
+            'Go to Extreme')
         if self._update:  # don't update if bl_tmin, bl_tmax are also changing
             self._update_stc_all()
 
@@ -1056,8 +1051,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         if draw and self._update:
             self._renderer._update()
 
-    def go_to_max(self):
-        """Go to the maximum intensity source vertex."""
+    def go_to_extreme(self):
+        """Go to the extreme intensity source vertex."""
         stc_idx, f_idx, t_idx = np.unravel_index(np.nanargmax(
             abs(self._stc_data_vol)), self._stc_data_vol.shape)
         if self._f_idx is not None:
@@ -1087,6 +1082,11 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._interp_button.setText('Off')
             self._interp_button.setStyleSheet("background-color: red")
         self._plot_spectrogram(draw=False)
+
+        self._stc_plot.set_interpolation(
+            'bicubic' if self._interp_button.text() == 'On' else None)
+        if self._update:
+            self._fig.canvas.draw()
         # draws data plot, fixes vmin, vmax
         self._update_cmap(update_slice_plots=False, update_3d=False)
 

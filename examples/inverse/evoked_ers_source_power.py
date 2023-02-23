@@ -83,7 +83,6 @@ cov_active = compute_covariance(epochs, tmin=win_active[0], tmax=win_active[1],
 cov_common = cov_baseline + cov_active
 cov_baseline.plot(epochs.info)
 
-# compute cross-spectral density matrices
 freqs = np.logspace(np.log10(12), np.log10(30), 9)
 
 # time-frequency decomposition
@@ -92,6 +91,7 @@ epochs_tfr = mne.time_frequency.tfr_morlet(
     average=False, output='complex')
 epochs_tfr.decimate(20)  # decimate for speed
 
+# compute cross-spectral density matrices
 csd = csd_tfr(epochs_tfr, tmin=-1, tmax=1.5)
 csd_baseline = csd_tfr(epochs_tfr, tmin=win_baseline[0], tmax=win_baseline[1])
 csd_ers = csd_tfr(epochs_tfr, tmin=win_active[0], tmax=win_active[1])
@@ -213,6 +213,6 @@ stcs = mne.minimum_norm.apply_inverse_tfr_epochs(
 
 viewer = mne.gui.view_vol_stc(stcs, subject=subject, subjects_dir=subjects_dir,
                               src=vol_src, inst=epochs_tfr)
-viewer.go_to_max()  # show the maximum intensity source vertex
+viewer.go_to_extreme()  # show the maximum intensity source vertex
 viewer.set_cmap(vmin=0.25, vmid=0.8)
 viewer.set_3d_view(azimuth=40, elevation=35, distance=350)

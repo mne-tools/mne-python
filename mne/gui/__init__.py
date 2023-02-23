@@ -256,19 +256,19 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
     Parameters
     ----------
     stcs : list of list | generator
-        The source estimates. List of lists or generators for epochs
-        and frequencies (i.e. using
+        The source estimates, the options are: 1) List of lists or
+        generators for epochs and frequencies (i.e. using
         :func:`mne.minimum_norm.apply_inverse_tfr_epochs` or
         :func:`mne.beamformer.apply_dics_tfr_epochs`-- in this case
-        use ``freq_first=False``). Lists of source estimates across
-        frequencies (e.g. :func::func:`mne.beamformer.apply_dics_csd`)
-        and lists of source estimates across epochs
+        use ``freq_first=False``), or 2) List of source estimates across
+        frequencies (e.g. :func::func:`mne.beamformer.apply_dics_csd`),
+        or 3) list of source estimates across epochs
         (e.g. :func:`mne.minimum_norm.apply_inverse_epochs` and
-        :func:`mne.beamformer.apply_dics_epochs`--in these
-        case use ``freq_first=False``) are also allowed. Single
+        :func:`mne.beamformer.apply_dics_epochs`--in this
+        case use ``freq_first=False``), or 4) Single
         source estimates (e.g. :func:`mne.minimum_norm.apply_inverse`
-        and :func:`mne.beamformer.apply_dics`) are also allowed
-        (``freq_first`` will not be used in this case).
+        and :func:`mne.beamformer.apply_dics`, note ``freq_first``
+        will not be used in this case).
     freq_first : bool
         If frequencies are the outer list of ``stcs`` use ``True``.
     %(subject)s

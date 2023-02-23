@@ -131,7 +131,7 @@ def test_stc_viewer_display(renderer_interactive_pyvistaqt):
             stc_data, subject='sample', subjects_dir=subjects_dir,
             src=src, inst=epochs_tfr)
     # test go to max
-    viewer._go_to_max_button.click()
+    viewer._go_to_extreme_button.click()
     assert_allclose(viewer._ras, [-20, -60, -20], atol=0.01)
 
     src_coord = viewer._get_src_coord()
@@ -173,7 +173,7 @@ def test_stc_viewer_display(renderer_interactive_pyvistaqt):
             subjects_dir=subjects_dir, src=src, inst=epochs)
 
     # test go to max
-    viewer._go_to_max_button.click()
+    viewer._go_to_extreme_button.click()
     assert_allclose(viewer._ras, [-20, -60, -20], atol=0.01)
 
     src_coord = viewer._get_src_coord()
