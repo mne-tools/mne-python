@@ -183,7 +183,9 @@ def _proj_click(idx, fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == 'matplotlib':
         text_lab = ssp_fig.mne.proj_checkboxes.labels[idx]
-        pos = np.mean(text_lab.get_tightbbox(), axis=0)
+        pos = np.mean(
+            text_lab.get_tightbbox(renderer=fig.canvas.get_renderer()),
+            axis=0)
         fig._fake_click(pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax,
                         xform='pix')
     else:

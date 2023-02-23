@@ -209,13 +209,13 @@ class MNEAnnotationFigure(MNEFigure):
         self.label.set_text(text)
         self.canvas.draw()
 
-    def _radiopress(self, event):
+    def _radiopress(self, event, *, draw=True):
         """Handle Radiobutton clicks for Annotation label selection."""
         # update which button looks active
         buttons = self.mne.radio_ax.buttons
         labels = [label.get_text() for label in buttons.labels]
         idx = labels.index(buttons.value_selected)
-        self._set_active_button(idx)
+        self._set_active_button(idx, draw=False)
         # update click-drag rectangle color
         color = self.mne.parent_fig.mne.annotation_segment_colors[labels[idx]]
         selector = self.mne.parent_fig.mne.ax_main.selector
@@ -228,6 +228,8 @@ class MNEAnnotationFigure(MNEFigure):
                 warnings.simplefilter('ignore', DeprecationWarning)
                 selector.rect.set_color(color)
                 selector.rectprops.update(dict(facecolor=color))
+        if draw:
+            self.canvas.draw()
 
     def _click_override(self, event):
         """Override MPL radiobutton click detector to use transData."""
@@ -246,7 +248,7 @@ class MNEAnnotationFigure(MNEFigure):
             closest = min(distances, key=distances.get)
             buttons.set_active(closest)
 
-    def _set_active_button(self, idx):
+    def _set_active_button(self, idx, *, draw=True):
         """Set active button in annotation dialog figure."""
         buttons = self.mne.radio_ax.buttons
         logger.debug(f'buttons: {buttons}')
@@ -262,7 +264,8 @@ class MNEAnnotationFigure(MNEFigure):
             logger.debug(f'color: {color}')
             color[-1] = 0.5
             buttons.circles[idx].set_facecolor(color)
-        self.canvas.draw()
+        if draw:
+            self.canvas.draw()
 
 
 class MNESelectionFigure(MNEFigure):
@@ -1045,7 +1048,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Enable/disable draggable annotation edges."""
         self.mne.draggable_annotations = not self.mne.draggable_annotations
 
-    def _update_annotation_fig(self):
+    def _update_annotation_fig(self, *, draw=True):
         """Draw or redraw the radio buttons and annotation labels."""
         from matplotlib.colors import to_rgba
         from matplotlib.widgets import CheckButtons, RadioButtons
@@ -1098,7 +1101,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         ax.set_xlim((0, aspect))
         # style the selected button
         if len(labels):
-            fig._set_active_button(0)
+            fig._set_active_button(0, draw=False)
         # add event listeners
         if ax.buttons is not None:
             if _OLD_BUTTONS:
@@ -1107,11 +1110,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if _OLD_BUTTONS:
                 ax.buttons.connect_event(
                     'button_press_event', fig._click_override)
+        ax.set_axis_off()
 
         # now do the show/hide checkboxes
         show_hide_ax = fig.mne.show_hide_ax
         show_hide_ax.clear()
-        show_hide_ax.set_axis_off()
+        show_hide_ax.set_axis_on()
         aspect = ANNOTATION_FIG_CHECKBOX_COLUMN_W / radio_button_h
         show_hide_ax.set(xlim=(0, aspect), ylim=(0, 1))
         # ensure new labels have checkbox values
@@ -1126,9 +1130,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                                   **check_kwargs)
         checkboxes.on_clicked(self._toggle_visible_annotations)
         # add title, hide labels
-        show_hide_ax.set_title('show/\nhide ', size=None, loc='right')
+        show_hide_title = 'show/\nhide ' if len(labels) else ''
+        show_hide_ax.set_title(show_hide_title, size=None, loc='right')
         for label in checkboxes.labels:
             label.set_visible(False)
+        show_hide_ax.set_axis_off()
         # fix aspect and right-align
         if _OLD_BUTTONS:
             if len(labels) == 1:
@@ -1149,6 +1155,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # store state
         self.mne.visible_annotations = check_values
         self.mne.show_hide_annotation_checkboxes = checkboxes
+        if draw:
+            fig.canvas.draw_idle()
 
     def _toggle_annotation_fig(self):
         """Show/hide the annotation dialog window."""
@@ -1182,17 +1190,26 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _add_annotation_label(self, event):
         """Add new annotation description."""
         text = self.mne.fig_annotation.label.get_text()
+        # If it exists, change this title. If it doesn't, the title will
+        # be set in _update_annotation_fig()
+        if text in self.mne.new_annotation_labels:
+            self.mne.fig_annotation.mne.radio_ax.set_title(
+                f'Existing labels: (duplicate label: {repr(text)})',
+                size=None, loc='left')
+            self.mne.fig_annotation.canvas.draw()
+            return
         self.mne.new_annotation_labels.append(text)
         self._setup_annotation_colors()
-        self._update_annotation_fig()
+        self._update_annotation_fig(draw=False)
         # automatically activate new label's radio button
         idx = [label.get_text() for label in
                self.mne.fig_annotation.mne.radio_ax.buttons.labels].index(text)
-        self.mne.fig_annotation._set_active_button(idx)
+        self.mne.fig_annotation._set_active_button(idx, draw=False)
         # simulate a click on the radiobutton → update the span selector color
-        self.mne.fig_annotation._radiopress(event=None)
+        self.mne.fig_annotation._radiopress(event=None, draw=False)
         # reset the text entry box's text
         self.mne.fig_annotation.label.set_text('BAD_')
+        self.mne.fig_annotation.canvas.draw()
 
     def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
@@ -2266,7 +2283,9 @@ def _init_browser(**kwargs):
 def _get_check_kwargs(labels=None):
     check_kwargs = dict()
     if not _OLD_BUTTONS:
-        check_kwargs.update(check_props=dict(s=144), frame_props=dict(s=144))
+        check_kwargs.update(
+            check_props=dict(s=144, clip_on=False),
+            frame_props=dict(s=144, clip_on=False))
         if labels is not None:
             textcolor = list()
             checkcolor = list()
