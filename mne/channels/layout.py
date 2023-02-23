@@ -1068,7 +1068,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         one index per channel.
     name : str
         The name of this layout type.
-    bg_image : str | ndarray
+    bg_image : path-like | ndarray
         The image over which sensor axes will be plotted. Either a path to an
         image file, or an array that can be plotted with plt.imshow. If
         provided, xy points will be normalized by the width/height of this

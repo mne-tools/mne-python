@@ -29,7 +29,7 @@ def read_raw_nirx(fname, saturated='annotate', preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s

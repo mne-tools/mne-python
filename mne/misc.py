@@ -9,7 +9,7 @@ def parse_config(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Config file name.
 
     Returns
@@ -60,7 +60,7 @@ def read_reject_parameters(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to read.
 
     Returns

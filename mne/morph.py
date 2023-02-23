@@ -315,7 +315,7 @@ class SourceMorph:
         subject_to can be the path to a MRI volume. Can also be a list of
         two arrays if morphing to hemisphere surfaces.
     kind : str | None
-        Kind of source estimate. E.g. 'volume' or 'surface'.
+        Kind of source estimate. E.g. ``'volume'`` or ``'surface'``.
     zooms : float | tuple
         See :func:`mne.compute_source_morph`.
     niter_affine : tuple of int
@@ -430,13 +430,14 @@ class SourceMorph:
         stc_from : VolSourceEstimate | VolVectorSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
         output : str
-            Can be 'stc' (default) or possibly 'nifti1', or 'nifti2'
-            when working with a volume source space defined on a regular
-            grid.
+            Can be ``'stc'`` (default) or possibly ``'nifti1'``, or
+            ``'nifti2'`` when working with a volume source space defined on a
+            regular grid.
         mri_resolution : bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
-            WARNING: if you have many time points the file produced can be
-            huge. The default is mri_resolution=False.
+
+            .. warning: If you have many time points the file produced can be
+                        huge. The default is ``mri_resolution=False``.
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.
@@ -744,8 +745,8 @@ def read_source_morph(fname):
 
     Parameters
     ----------
-    fname : str
-        Full filename including path.
+    fname : path-like
+        Path to the file containing the morph source estimates.
 
     Returns
     -------

@@ -67,13 +67,13 @@ def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
     ----------
     s : ndarray, shape (..., ndim)
         The singular values of the matrix.
-    tol : float | 'auto'
+    tol : float | ``'auto'``
         Tolerance for singular values to consider non-zero in calculating the
         rank. Can be 'auto' to use the same thresholding as
         ``scipy.linalg.orth`` (assuming np.float64 datatype) adjusted
         by a factor of 2.
     tol_kind : str
-        Can be "absolute" or "relative".
+        Can be ``"absolute"`` or ``"relative"``.
 
     Returns
     -------
@@ -128,13 +128,13 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol='auto',
     data : np.ndarray of float, shape(n_channels, n_samples)
         The M/EEG signals.
     %(info_not_none)s
-    scalings : dict | 'norm' | np.ndarray | None
+    scalings : dict | ``'norm'`` | np.ndarray | None
         The rescaling method to be applied. If dict, it will override the
         following default dict:
 
             dict(mag=1e15, grad=1e13, eeg=1e6)
 
-        If 'norm' data will be scaled by channel-wise norms. If array,
+        If ``'norm'`` data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
     tol : float | str
         Tolerance. See ``estimate_rank``.

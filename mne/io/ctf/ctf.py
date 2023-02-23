@@ -32,7 +32,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
 
     Parameters
     ----------
-    directory : str
+    directory : path-like
         Path to the CTF data (ending in ``'.ds'``).
     system_clock : str
         How to treat the system clock. Use "truncate" (default) to truncate

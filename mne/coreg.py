@@ -110,7 +110,7 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     Parameters
     ----------
     %(info_not_none)s
-    fiducials : str | list of dict
+    fiducials : path-like | list of dict
         Fiducials in MRI coordinate space (either path to a ``*-fiducials.fif``
         file or list of fiducials as returned by :func:`read_fiducials`.
 

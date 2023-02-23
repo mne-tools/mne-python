@@ -255,16 +255,16 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    eog : list | tuple | 'auto'
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    eog : list | tuple | ``'auto'``
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     %(preload)s
-        Note that preload=False will be effective only if the data is stored
-        in a separate binary file.
+        Note that ``preload=False`` will be effective only if the data is
+        stored in a separate binary file.
     %(uint16_codec)s
     %(montage_units)s
     %(verbose)s

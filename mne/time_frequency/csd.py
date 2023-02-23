@@ -589,9 +589,9 @@ def read_csd(fname):
 
     Parameters
     ----------
-    fname : str
-        The name of the file to read the CSD from. The extension '.h5' will be
-        appended if the given filename doesn't have it already.
+    fname : path-like
+        The name of the file to read the CSD from. The extension ``'.h5'`` will
+        be appended if the given filename doesn't have it already.
 
     Returns
     -------

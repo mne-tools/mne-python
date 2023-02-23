@@ -730,14 +730,14 @@ def read_curvature(filepath, binary=True):
 
     Parameters
     ----------
-    filepath : str
-        Input path to the .curv file.
+    filepath : path-like
+        Input path to the ``.curv`` file.
     binary : bool
         Specify if the output array is to hold binary values. Defaults to True.
 
     Returns
     -------
-    curv : array, shape=(n_vertices,)
+    curv : array of shape (n_vertices,)
         The curvature values loaded from the user given file.
     """
     with open(filepath, "rb") as fobj:
@@ -1608,8 +1608,8 @@ def read_tri(fname_in, swap=False, verbose=None):
 
     Parameters
     ----------
-    fname_in : str
-        Path to surface ASCII file (ending with '.tri').
+    fname_in : path-like
+        Path to surface ASCII file (ending with ``'.tri'``).
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
