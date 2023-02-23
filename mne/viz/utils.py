@@ -495,20 +495,27 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
     ax_temp.set_title('Projectors marked with "X" are active')
 
-    proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
-    # make edges around checkbox areas
-    for rect in proj_checks.rectangles:
-        rect.set_edgecolor('0.5')
-        rect.set_linewidth(1.)
+    # make edges around checkbox areas and change already-applied projectors
+    # to red
+    from ._mpl_figure import _OLD_BUTTONS
+    check_kwargs = dict()
+    if not _OLD_BUTTONS:
+        checkcolor = ['#ff0000' if p['active'] else 'k' for p in projs]
+        check_kwargs['check_props'] = dict(facecolor=checkcolor)
+        check_kwargs['frame_props'] = dict(edgecolor='0.5', linewidth=1)
+    proj_checks = widgets.CheckButtons(
+        ax_temp, labels=labels, actives=actives, **check_kwargs)
+    if _OLD_BUTTONS:
+        for rect in proj_checks.rectangles:
+            rect.set_edgecolor('0.5')
+            rect.set_linewidth(1.)
+        for ii, p in enumerate(projs):
+            if p['active']:
+                for x in proj_checks.lines[ii]:
+                    x.set_color('#ff0000')
 
-    # change already-applied projectors to red
-    for ii, p in enumerate(projs):
-        if p['active']:
-            for x in proj_checks.lines[ii]:
-                x.set_color('#ff0000')
     # make minimal size
     # pass key presses from option dialog over
-
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
     fig_proj.canvas.mpl_connect('key_press_event', _key_press)
@@ -785,6 +792,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
             assert kind == 'motion'
             kind = 'motion_notify_event'
             button = None
+        logger.debug(
+            f'Faking {kind} @ ({x}, {y}) with button={button} and key={key}')
         fig.canvas.callbacks.process(
             kind,
             backend_bases.MouseEvent(

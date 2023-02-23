@@ -1847,6 +1847,10 @@ def plot_evoked_topomap(
             merge_channels=merge_channels, scale=scaling, axes=axes,
             contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
+        # This is mostly for testing purposes, but it's also consistent with
+        # raw.plot, so maybe not a bad thing in principle either
+        from mne.viz._figure import BrowserParams
+        fig.mne = BrowserParams(proj_checkboxes=params['proj_checks'])
 
     plt_show(show, block=False)
     if axes_given:

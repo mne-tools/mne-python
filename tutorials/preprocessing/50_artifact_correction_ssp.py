@@ -34,7 +34,6 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
 #
-#
 # What is SSP?
 # ^^^^^^^^^^^^
 #
