@@ -11,12 +11,13 @@ import numpy as np
 from qtpy import QtCore
 from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
                             QMessageBox, QWidget, QSlider, QPushButton,
-                            QComboBox, QLineEdit)
+                            QComboBox, QLineEdit, QFrame)
 from matplotlib.colors import LinearSegmentedColormap
 
 from ._core import SliceBrowser
 from .. import BaseEpochs
 from ..baseline import rescale, _check_baseline
+from ..defaults import DEFAULTS
 from ..evoked import EvokedArray
 from ..time_frequency import EpochsTFR
 from ..io.constants import FIFF
@@ -582,11 +583,7 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _configure_status_bar(self, hbox=None):
         hbox = QHBoxLayout() if hbox is None else hbox
 
-        bl_widget = QWidget()
-        bl_widget.setStyleSheet('background-color: darkgray;')
-        bl_hbox = QHBoxLayout()
-
-        bl_hbox.addWidget(QLabel('Baseline'))
+        hbox.addWidget(QLabel('Baseline'))
         self._baseline_selector = QComboBox()
         self._baseline_selector.addItems(['none', 'mean', 'ratio', 'logratio',
                                           'percent', 'zscore', 'zlogratio'])
@@ -595,23 +592,24 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._update_baseline)
         self._baseline_selector.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self._baseline_selector.keyPressEvent = self.keyPressEvent
-        bl_hbox.addWidget(self._baseline_selector)
+        hbox.addWidget(self._baseline_selector)
 
-        bl_hbox.addWidget(QLabel('tmin ='))
+        hbox.addWidget(QLabel('tmin ='))
         self._bl_tmin_textbox = QLineEdit(str(round(self._bl_tmin, 2)))
         self._bl_tmin_textbox.setMaximumWidth(40)
         self._bl_tmin_textbox.focusOutEvent = self._update_baseline_tmin
-        bl_hbox.addWidget(self._bl_tmin_textbox)
+        hbox.addWidget(self._bl_tmin_textbox)
 
-        bl_hbox.addWidget(QLabel('tmax ='))
+        hbox.addWidget(QLabel('tmax ='))
         self._bl_tmax_textbox = QLineEdit(str(round(self._bl_tmax, 2)))
         self._bl_tmax_textbox.setMaximumWidth(40)
         self._bl_tmax_textbox.focusOutEvent = self._update_baseline_tmax
-        bl_hbox.addWidget(self._bl_tmax_textbox)
+        hbox.addWidget(self._bl_tmax_textbox)
 
-        bl_widget.setLayout(bl_hbox)
-
-        hbox.addWidget(bl_widget)
+        # add separator for clarity
+        sep = QFrame()
+        sep.setFrameShape(QFrame.VLine | QFrame.Sunken)
+        hbox.addWidget(sep)
 
         hbox.addStretch(3 if self._f_idx is None else 2)
 
@@ -656,7 +654,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         canvas, self._fig = _make_mpl_plot(
             dpi=96, tight=False, hide_axes=False, invert=False,
             facecolor='white')
-
+        self._fig.axes[0].set_position([0.12, 0.25, 0.73, 0.7])
         self._fig.axes[0].set_xlabel('Time (s)')
         self._fig.axes[0].set_xticks(
             [0, self._inst.times.size // 2, self._inst.times.size - 1])
@@ -686,7 +684,6 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._cax = self._fig.add_axes([0.87, 0.25, 0.02, 0.7])
             self._cbar = self._fig.colorbar(self._stc_plot, cax=self._cax)
             self._cax.set_ylabel('Power')
-        self._fig.axes[0].set_position([0.1, 0.25, 0.75, 0.7])
         self._fig.canvas.mpl_connect(
             'button_release_event', self._on_data_plot_click)
         canvas.setMinimumHeight(int(self.size().height() * 0.4))
@@ -695,37 +692,48 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _plot_topomap(self):
         self._topo_fig.axes[0].clear()
+        dtype = self._data_type_selector.currentText()
+        units = DEFAULTS['units'][dtype]
+        scaling = DEFAULTS['scalings'][dtype]
+
         if isinstance(self._inst, EpochsTFR):
             inst_data = self._inst.data
+            scaling *= scaling  # power is squared
+            units = f'({units})' + r'$^2$/Hz'
         elif isinstance(self._inst, BaseEpochs):
             inst_data = self._inst.get_data()
         else:
             inst_data = self._inst.data[None]  # new axis for single epoch
 
-        pick_idx = _picks_to_idx(
-            self._inst.info, self._data_type_selector.currentText())
+        if self._epoch_idx == 'ITC':
+            units = 'ITC'
+            scaling = 1
+
+        pick_idx = _picks_to_idx(self._inst.info, dtype)
         inst_data = inst_data[:, pick_idx]
 
-        evo_data = self._pick_epoch(inst_data)
+        evo_data = self._pick_epoch(inst_data) * scaling
 
         if self._f_idx is not None:
             evo_data = evo_data[:, self._f_idx]
 
         if self._baseline != 'none':
+            units = None
             evo_data = rescale(
                 evo_data.astype(float), times=self._inst.times,
                 baseline=(float(self._bl_tmin), float(self._bl_tmax)),
                 mode=self._baseline, copy=False)
 
-        info = _pick_inst(self._inst, self._data_type_selector.currentText(),
-                          'bads').info
+        info = _pick_inst(self._inst, dtype, 'bads').info
         ave = EvokedArray(evo_data, info, tmin=self._inst.times[0])
 
+        cbar_fmt = '%3.1f' if evo_data.max() < 1e5 else '%.1e'
         ave.plot_topomap(times=self._inst.times[self._t_idx],
-                         axes=self._topo_fig.axes[0], cmap=self._cmap,
-                         colorbar=False, show=False)
+                         axes=(self._topo_fig.axes[0], self._topo_cax),
+                         cmap=self._cmap, colorbar=True,
+                         units=units, cbar_fmt=cbar_fmt, show=False)
         self._topo_fig.axes[0].set_title('')
-        self._topo_fig.subplots_adjust(top=1.1, bottom=0.05)
+        self._topo_fig.subplots_adjust(top=1.1, bottom=0.05, right=0.75)
         self._topo_fig.canvas.draw()
 
     def _configure_topo_plot(self):
@@ -733,6 +741,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         from ._core import _make_mpl_plot
         canvas, self._topo_fig = _make_mpl_plot(
             dpi=96, hide_axes=False, facecolor='white')
+        self._topo_cax = self._topo_fig.add_axes([0.77, 0.1, 0.02, 0.75])
         # Topomap colorbar could be added later, a bit too much clutter though
         # self._topo_cax = self._topo_fig.add_axes((0.8, 0.1, 0.05, 0.75))
         self._plot_topomap()
