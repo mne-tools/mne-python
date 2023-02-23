@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -20,14 +20,30 @@ from mne.cov import regularize, whiten_evoked
 from mne.utils import catch_logging, check_version
 
 data_path = testing.data_path(download=False)
-fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                    'data', 'test_raw.fif')
-ave_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                    'data', 'test-ave.fif')
-cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                    'data', 'test-cov.fif')
+fwd_fname = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+)
+raw_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test_raw.fif"
+)
+ave_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test-ave.fif"
+)
+cov_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test-cov.fif"
+)
 
 
 @testing.requires_testing_data

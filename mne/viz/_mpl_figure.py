@@ -989,6 +989,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         drag_ax.set_xlim(0, aspect)
         drag_ax.set_axis_off()
         # reposition & resize checkbox & label
+        # TODO: .rectangles deprecated in matplotlib 3.7
         rect = checkbox.rectangles[0]
         _pad, _size = (0.2, 0.6)
         rect.set_bounds(_pad, _pad, _size, _size)
@@ -1008,7 +1009,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         rect_kw = _prop_kw('rect', dict(alpha=0.5, facecolor=col))
         selector = SpanSelector(self.mne.ax_main, self._select_annotation_span,
                                 'horizontal', minspan=0.1, useblit=False,
-                                **rect_kw)
+                                button=1, **rect_kw)
         self.mne.ax_main.selector = selector
         self.mne._callback_ids['motion_notify_event'] = \
             self.canvas.mpl_connect('motion_notify_event', self._hover)
@@ -1396,6 +1397,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # draw checkboxes
         checkboxes = CheckButtons(ax, labels=labels, actives=self.mne.projs_on)
         # gray-out already applied projectors
+        # TODO: lines and rectangles deprecated in matplotlib 3.7
         for label, rect, lines in zip(checkboxes.labels,
                                       checkboxes.rectangles,
                                       checkboxes.lines):
@@ -1604,7 +1606,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=self.mne.zorder['scalebar'])
         if ch_type == 'time':
-            label = f'{self.mne.boundary_times[1]/2:.2f} sec'
+            label = f'{self.mne.boundary_times[1]/2:.2f} s'
             text = self.mne.ax_main.text(x[0] + .015, y[1] - .05, label,
                                          va='bottom', ha='left',
                                          size='xx-small', **kwargs)
@@ -1950,8 +1952,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             rel_time = self._recompute_epochs_vlines(xdata)
             xdata = rel_time + self.mne.inst.times[0]
         else:
-            self.mne.vline.set_xdata(xdata)
-            self.mne.vline_hscroll.set_xdata(xdata)
+            self.mne.vline.set_xdata([xdata])
+            self.mne.vline_hscroll.set_xdata([xdata])
         text = self._xtick_formatter(xdata, ax_type='vline')[:12]
         self.mne.vline_text.set_text(text)
         self._toggle_vline(True)

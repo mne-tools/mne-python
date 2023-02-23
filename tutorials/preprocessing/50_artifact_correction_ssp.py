@@ -87,7 +87,7 @@ system_projs = raw.info['projs']
 raw.del_proj()
 empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                'ernoise_raw.fif')
-# cropped to 60 sec just for speed
+# cropped to 60 s just for speed
 empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 
 # %%

@@ -47,11 +47,12 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div, TimeMixin, repr_html)
+                     _check_time_format, _arange_div, TimeMixin, repr_html,
+                     _pl)
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
-from ..time_frequency.spectrum import Spectrum, SpectrumMixin
+from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 
 @fill_doc
@@ -987,7 +988,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=None,
                      method='fir', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     fir_design='firwin', pad='reflect_limited', verbose=None):
+                     fir_design='firwin', pad='reflect_limited',
+                     skip_by_annotation=('edge', 'bad_acq_skip'),
+                     verbose=None):
         """Notch filter a subset of channels.
 
         Parameters
@@ -1024,6 +1027,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
+        %(skip_by_annotation)s
         %(verbose)s
 
         Returns
@@ -1053,13 +1057,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         fs = float(self.info['sfreq'])
         picks = _picks_to_idx(self.info, picks, exclude=(), none='data_or_ica')
         _check_preload(self, 'raw.notch_filter')
-        self._data = notch_filter(
-            self._data, fs, freqs, filter_length=filter_length,
-            notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
-            method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
-            p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase, fir_window=fir_window, fir_design=fir_design,
-            pad=pad)
+        onsets, ends = _annotations_starts_stops(
+            self, skip_by_annotation, invert=True)
+        logger.info('Filtering raw data in %d contiguous segment%s'
+                    % (len(onsets), _pl(onsets)))
+        for si, (start, stop) in enumerate(zip(onsets, ends)):
+            notch_filter(
+                self._data[:, start:stop], fs, freqs,
+                filter_length=filter_length, notch_widths=notch_widths,
+                trans_bandwidth=trans_bandwidth, method=method,
+                iir_params=iir_params, mt_bandwidth=mt_bandwidth,
+                p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
+                phase=phase, fir_window=fir_window, fir_design=fir_design,
+                pad=pad)
         return self
 
     @verbose
@@ -1266,7 +1276,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('tmin (%s) must be >= 0' % (tmin,))
         elif tmax - int(not include_tmax) / self.info['sfreq'] > max_time:
             raise ValueError('tmax (%s) must be less than or equal to the max '
-                             'time (%0.4f sec)' % (tmax, max_time))
+                             'time (%0.4f s)' % (tmax, max_time))
 
         smin, smax = np.where(_time_mask(
             self.times, tmin, tmax, sfreq=self.info['sfreq'],
@@ -1348,7 +1358,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
             ``raw.fif`` (common raw data), ``raw_sss.fif``
@@ -1415,7 +1425,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings_err = ('.fif', '.fif.gz')
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = str(_check_fname(fname, overwrite=True, verbose="error"))
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1443,8 +1453,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite,
-                             verbose="error")
+        fname = str(
+            _check_fname(fname=fname, overwrite=overwrite, verbose="error")
+        )
 
         if proj:
             info = deepcopy(self.info)
@@ -1775,7 +1786,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stim_channel : str | None
             Name of the stim channel to add to. If None, the config variable
             'MNE_STIM_CHANNEL' is used. If this is not found, it will default
-            to 'STI 014'.
+            to ``'STI 014'``.
         replace : bool
             If True the old events on the stim channel are removed before
             adding the new ones.
@@ -1843,6 +1854,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         .. footbibliography::
         """
+        method = _validate_method(method, type(self).__name__)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
         return Spectrum(
             self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
@@ -2185,7 +2199,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     # Expand `~` if present
-    fname = _check_fname(fname=fname, overwrite=overwrite)
+    fname = str(_check_fname(fname=fname, overwrite=overwrite))
 
     base, ext = op.splitext(fname)
     if part_idx > 0:

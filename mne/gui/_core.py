@@ -11,7 +11,7 @@ import numpy as np
 from functools import partial
 
 from qtpy import QtCore
-from qtpy.QtCore import Slot
+from qtpy.QtCore import Slot, Qt
 from qtpy.QtWidgets import (QMainWindow, QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
                             QMessageBox, QWidget, QPlainTextEdit)
@@ -37,7 +37,7 @@ def _load_image(img, verbose=None):
     """Load data from a 3D image file (e.g. CT, MR)."""
     nib = _import_nibabel('use GUI')
     if not isinstance(img, nib.spatialimages.SpatialImage):
-        logger.info(f'Loading {img}')
+        logger.debug(f'Loading {img}')
         _check_fname(img, overwrite='read', must_exist=True)
         img = nib.load(img)
     # get data
@@ -81,11 +81,12 @@ class SliceBrowser(QMainWindow):
         """GUI for browsing slices of anatomical images."""
         # initialize QMainWindow class
         super(SliceBrowser, self).__init__()
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
         self._verbose = verbose
         # if bad/None subject, will raise an informative error when loading MRI
         subject = os.environ.get('SUBJECT') if subject is None else subject
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
         self._subject_dir = op.join(subjects_dir, subject)
         self._load_image_data(base_image=base_image)
 
@@ -164,12 +165,17 @@ class SliceBrowser(QMainWindow):
                  'head plot, use :ref:`mne.bem.make_scalp_surfaces` '
                  'to add the scalp surface instead of skull from the CT')
             self._head = None
-        if op.exists(op.join(self._subject_dir, 'surf', 'lh.pial')):
-            self._lh = _read_mri_surface(
-                op.join(self._subject_dir, 'surf', 'lh.pial'))
+        # allow ?h.pial.T1 if ?h.pial doesn't exist
+        # end with '' for better file not found error
+        for img in ('', '.T1', '.T2', ''):
+            surf_fname = op.join(
+                self._subject_dir, 'surf', '{hemi}' + f'.pial{img}')
+            if op.isfile(surf_fname.format(hemi='lh')):
+                break
+        if op.exists(surf_fname.format(hemi='lh')):
+            self._lh = _read_mri_surface(surf_fname.format(hemi='lh'))
             assert _frame_to_str[self._lh['coord_frame']] == 'mri'
-            self._rh = _read_mri_surface(
-                op.join(self._subject_dir, 'surf', 'rh.pial'))
+            self._rh = _read_mri_surface(surf_fname.format(hemi='rh'))
             assert _frame_to_str[self._rh['coord_frame']] == 'mri'
         else:
             warn('`pial` surface not found, skipping adding to 3D '
@@ -225,8 +231,8 @@ class SliceBrowser(QMainWindow):
                 'button_release_event', partial(self._on_click, axis=axis))
         # add head and brain in mm (convert from m)
         if self._head is None:
-            logger.info('Using marching cubes on CT for the '
-                        '3D visualization panel')
+            logger.debug('Using marching cubes on CT for the '
+                         '3D visualization panel')
             rr, tris = _marching_cubes(np.where(
                 self._base_data < np.quantile(self._base_data, 0.95), 0, 1),
                 [1])[0]
@@ -460,7 +466,7 @@ class SliceBrowser(QMainWindow):
         if event.inaxes is self._figs[axis].axes[0]:
             # Data coordinates are voxel coordinates
             pos = (event.xdata, event.ydata)
-            logger.info(f'Clicked {"XYZ"[axis]} ({axis}) axis at pos {pos}')
+            logger.debug(f'Clicked {"XYZ"[axis]} ({axis}) axis at pos {pos}')
             xyz = self._vox
             xyz[list(self._xy_idx[axis])] = pos
             logger.debug(f'Using voxel  {list(xyz)}')

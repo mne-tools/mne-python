@@ -1776,6 +1776,7 @@ class ICA(ContainsMixin):
         .. versionadded:: 1.1
         """
         from scipy.spatial.distance import pdist, squareform
+        from scipy.special import expit
         _validate_type(threshold, 'numeric', 'threshold')
 
         sources = self.get_sources(inst, start=start, stop=stop)
@@ -1813,14 +1814,15 @@ class ICA(ContainsMixin):
 
         # typical muscle slope is ~0.15, non-muscle components negative
         # so logistic with shift -0.5 and slope 0.25 so -0.5 -> 0.5 and 0->1
+        slope_score = expit((slopes + 0.5) / 0.25)
         # focus distance is ~65% of max electrode distance with 10% slope
         # (assumes typical head size)
+        focus_score = expit((focus_dists - 0.65) / 0.1)
         # smoothnessness is around 150 for muscle and 450 otherwise
         # so use reversed logistic centered at 300 with 100 slope
+        smoothness_score = 1 - expit((smoothnesses - 300) / 100)
         # multiply so that all three components must be present
-        scores = (1 / (1 + np.exp(-(slopes + 0.5) / 0.25))) * \
-            (1 / (1 + np.exp(-(focus_dists - 0.65) / 0.1))) * \
-            (1 - (1 / (1 + np.exp(-(smoothnesses - 300) / 100))))
+        scores = slope_score * focus_score * smoothness_score
         # scale the threshold by the use of three metrics
         self.labels_['muscle'] = [idx for idx, score in enumerate(scores)
                                   if score > threshold**3]
@@ -2142,9 +2144,9 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The absolute path of the file name to save the ICA solution into.
-            The file name should end with -ica.fif or -ica.fif.gz.
+            The file name should end with ``-ica.fif`` or ``-ica.fif.gz``.
         %(overwrite)s
 
             .. versionadded:: 1.0
@@ -2187,19 +2189,18 @@ class ICA(ContainsMixin):
             reject='auto', sensors=True, show_names=False, contours=6,
             outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=1, cmap='RdBu_r', vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=False, cbar_fmt='%3.2f', axes=None,
-            title=None, nrows='auto', ncols='auto', show=True,
-            topomap_args=None, image_args=None, psd_args=None, verbose=None):
+            size=1, cmap='RdBu_r', vlim=(None, None), cnorm=None,
+            colorbar=False, cbar_fmt='%3.2f', axes=None, title=None,
+            nrows='auto', ncols='auto', show=True, image_args=None,
+            psd_args=None, verbose=None):
         return plot_ica_components(
             self, picks=picks, ch_type=ch_type, inst=inst, plot_std=plot_std,
             reject=reject, sensors=sensors, show_names=show_names,
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
-            res=res, size=size, cmap=cmap, vlim=vlim, vmin=vmin, vmax=vmax,
-            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, axes=axes,
-            title=title, nrows=nrows, ncols=ncols, show=show,
-            topomap_args=topomap_args, image_args=image_args,
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, axes=axes, title=title,
+            nrows=nrows, ncols=ncols, show=show, image_args=image_args,
             psd_args=psd_args, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
@@ -2582,7 +2583,7 @@ def read_ica(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Absolute path to fif file containing ICA matrices.
         The file name should end with -ica.fif or -ica.fif.gz.
     %(verbose)s
@@ -2969,8 +2970,8 @@ def read_ica_eeglab(fname, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Complete path to a .set EEGLAB file that contains an ICA object.
+    fname : path-like
+        Complete path to a ``.set`` EEGLAB file that contains an ICA object.
     %(verbose)s
 
     Returns

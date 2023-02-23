@@ -6,8 +6,8 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal, assert_almost_equal
@@ -39,19 +39,24 @@ from mne.viz.utils import (_find_peaks, _fake_click, _fake_keypress,
 from mne.utils import requires_sklearn, check_version
 
 data_dir = testing.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg-proj.fif')
-triux_fname = op.join(data_dir, 'SSS', 'TRIUX', 'triux_bmlhus_erm_raw.fif')
+subjects_dir = data_dir / "subjects"
+ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
+triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-ctf_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
-layout = read_layout('Vectorview-all')
-cov_fname = op.join(base_dir, 'test-cov.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+evoked_fname = base_dir / "test-ave.fif"
+raw_fname = base_dir / "test_raw.fif"
+event_name = base_dir / "test-eve.fif"
+ctf_fname = base_dir / "test_ctf_comp_raw.fif"
+layout = read_layout("Vectorview-all")
+cov_fname = base_dir / "test-cov.fif"
 
 
+# TODO: This is a problem on Windows at least
+@pytest.mark.xfail(
+    condition=check_version('matplotlib', '3.7'),
+    reason='Lines not visible',
+)
 @pytest.mark.parametrize('constrained_layout', (False, True))
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""

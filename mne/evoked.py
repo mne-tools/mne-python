@@ -44,7 +44,7 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
-from .time_frequency.spectrum import Spectrum, SpectrumMixin
+from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -70,7 +70,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Name of evoked/average FIF file to load.
         If None no data is loaded.
     condition : int, or str
@@ -79,14 +79,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     proj : bool, optional
         Apply SSP projection vectors.
     kind : str
-        Either 'average' or 'standard_error'. The type of data to read.
+        Either ``'average'`` or ``'standard_error'``. The type of data to read.
         Only used if 'condition' is a str.
     allow_maxshield : bool | str (default False)
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
-        activity. Can also be "yes" to load without eliciting a warning.
+        activity. Can also be ``"yes"`` to load without eliciting a warning.
     %(verbose)s
 
     Attributes
@@ -129,7 +129,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
+        fname = str(
+            _check_fname(fname=fname, must_exist=True, overwrite="read")
+        )
         self.info, self.nave, self._aspect_kind, self.comment, times, \
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)
@@ -290,7 +292,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the file, which should end with ``-ave.fif(.gz)`` or
             ``_ave.fif(.gz)``.
         %(overwrite)s
@@ -339,12 +341,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         else:
             comment = self.comment
         s = "'%s' (%s, N=%s)" % (comment, self.kind, self.nave)
-        s += ", %0.5g – %0.5g sec" % (self.times[0], self.times[-1])
+        s += ", %0.5g – %0.5g s" % (self.times[0], self.times[-1])
         s += ', baseline '
         if self.baseline is None:
             s += 'off'
         else:
-            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} sec'
+            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} s'
             if self.baseline != _check_baseline(
                     self.baseline, times=self.times, sfreq=self.info['sfreq'],
                     on_baseline_outside_data='adjust'):
@@ -360,7 +362,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             baseline = 'off'
         else:
             baseline = tuple([f'{b:.3f}' for b in self.baseline])
-            baseline = f'{baseline[0]} – {baseline[1]} sec'
+            baseline = f'{baseline[0]} – {baseline[1]} s'
 
         t = repr_templates_env.get_template('evoked.html.jinja')
         t = t.render(evoked=self, baseline=baseline)
@@ -760,6 +762,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         .. footbibliography::
         """
+        method = _validate_method(method, type(self).__name__)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
         return Spectrum(
             self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             picks=picks, proj=proj, reject_by_annotation=False, n_jobs=n_jobs,
@@ -1177,7 +1182,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         saving, this will be reflected in their ``baseline`` attribute after
         reading.
     """
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                   '_ave.fif', '_ave.fif.gz'))
     logger.info('Reading %s ...' % fname)
@@ -1200,7 +1205,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
             # Don't touch an existing baseline
             bmin, bmax = evoked.baseline
             logger.info(f'Loaded Evoked data is baseline-corrected '
-                        f'(baseline: [{bmin:g}, {bmax:g}] sec)')
+                        f'(baseline: [{bmin:g}, {bmax:g}] s)')
         else:
             evoked.apply_baseline(baseline)
         out.append(evoked)
@@ -1404,8 +1409,8 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise', overwrite=False,
 
     Parameters
     ----------
-    fname : str
-        The file name, which should end with -ave.fif or -ave.fif.gz.
+    fname : path-like
+        The file name, which should end with ``-ave.fif`` or ``-ave.fif.gz``.
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,

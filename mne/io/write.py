@@ -129,7 +129,7 @@ def write_julian(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Write a string tag."""
-    str_data = data.encode('latin1')
+    str_data = str(data).encode('latin1')
     data_size = len(str_data)  # therefore compute size here
     my_dtype = '>a'  # py2/3 compatible on writing -- don't ask me why
     if data_size > 0:
@@ -144,6 +144,27 @@ def write_name_list(fid, kind, data):
     data : list of strings
     """
     write_string(fid, kind, ':'.join(data))
+
+
+def write_name_list_sanitized(fid, kind, lst, name):
+    """Write a sanitized, colon-separated list of names."""
+    write_string(fid, kind, _safe_name_list(lst, 'write', name))
+
+
+def _safe_name_list(lst, operation, name):
+    if operation == 'write':
+        assert isinstance(lst, (list, tuple, np.ndarray)), type(lst)
+        if any('{COLON}' in val for val in lst):
+            raise ValueError(
+                f'The substring "{{COLON}}" in {name} not supported.')
+        return ':'.join(val.replace(':', '{COLON}') for val in lst)
+    else:
+        # take a sanitized string and return a list of strings
+        assert operation == 'read'
+        assert lst is None or isinstance(lst, str)
+        if not lst:  # None or empty string
+            return []
+        return [val.replace('{COLON}', ':') for val in lst.split(':')]
 
 
 def write_float_matrix(fid, kind, mat):
@@ -306,7 +327,7 @@ def start_file(fname, id_=None):
 
     Parameters
     ----------
-    fname : string | fid
+    fname : path-like | fid
         The name of the file to open. It is recommended
         that the name ends with .fif or .fif.gz. Can also be an
         already opened file.

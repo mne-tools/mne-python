@@ -3,8 +3,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal
 import pytest
@@ -17,16 +15,16 @@ from mne import pick_types
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.io.constants import FIFF
 
-artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
-
-short_HPI_dip_fname = op.join(artemis123_dir,
-                              'Artemis_Data_2017-04-04-15h-44m-' +
-                              '22s_Motion_Translation-z.bin')
-
-dig_fname = op.join(artemis123_dir, 'Phantom_040417_dig.pos')
-
-short_hpi_1kz_fname = op.join(artemis123_dir, 'Artemis_Data_2017-04-14-10h' +
-                              '-38m-59s_Phantom_1k_HPI_1s.bin')
+artemis123_dir = testing.data_path(download=False) / "ARTEMIS123"
+short_HPI_dip_fname = (
+    artemis123_dir
+    / "Artemis_Data_2017-04-04-15h-44m-22s_Motion_Translation-z.bin"
+)
+dig_fname = artemis123_dir / "Phantom_040417_dig.pos"
+short_hpi_1kz_fname = (
+    artemis123_dir
+    / "Artemis_Data_2017-04-14-10h-38m-59s_Phantom_1k_HPI_1s.bin"
+)
 
 
 # XXX this tol is way too high, but it's not clear which is correct
@@ -46,7 +44,7 @@ def _assert_trans(actual, desired, dist_tol=0.017, angle_tol=5.):
         '%0.3f > %0.3f° rotation' % (angle, angle_tol)
 
 
-@pytest.mark.timeout(60)  # ~25 sec on Travis Linux OpenBLAS
+@pytest.mark.timeout(60)  # ~25 s on Travis Linux OpenBLAS
 @testing.requires_testing_data
 def test_artemis_reader():
     """Test reading raw Artemis123 files."""
@@ -105,8 +103,7 @@ def test_dev_head_t():
 def test_utils(tmp_path):
     """Test artemis123 utils."""
     # make a tempfile
-    tmp_dir = str(tmp_path)
-    tmp_fname = op.join(tmp_dir, 'test_gen_mne_locs.csv')
+    tmp_fname = tmp_path / "test_gen_mne_locs.csv"
     _generate_mne_locs_file(tmp_fname)
     installed_locs = _load_mne_locs()
     generated_locs = _load_mne_locs(tmp_fname)

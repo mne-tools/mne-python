@@ -17,7 +17,7 @@ def _read_events(input_fname, info):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         The file path.
     info : dict
         Header info array.
@@ -38,7 +38,7 @@ def _read_mff_events(filename, sfreq):
 
     Parameters
     ----------
-    filename : str
+    filename : path-like
         File path.
     sfreq : float
         The sampling frequency

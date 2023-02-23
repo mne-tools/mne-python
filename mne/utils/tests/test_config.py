@@ -97,10 +97,10 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
     subjects_dir.mkdir()
 
     # String
-    assert get_subjects_dir(str(subjects_dir)) == str(subjects_dir)
+    assert get_subjects_dir(str(subjects_dir)) == subjects_dir
 
     # Path
-    assert get_subjects_dir(subjects_dir) == str(subjects_dir)
+    assert get_subjects_dir(subjects_dir) == subjects_dir
 
     # `None`
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
@@ -110,4 +110,4 @@ def test_get_subjects_dir(tmp_path, monkeypatch):
     # Expand `~`
     monkeypatch.setenv('HOME', str(tmp_path))
     monkeypatch.setenv('USERPROFILE', str(tmp_path))  # Windows
-    assert get_subjects_dir('~/foo') == str(subjects_dir)
+    assert str(get_subjects_dir('~/foo')) == str(subjects_dir)

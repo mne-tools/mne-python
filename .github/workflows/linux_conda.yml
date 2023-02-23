@@ -33,7 +33,7 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-        name: 'Setup conda'
+          # No mamba for this one job (use conda itself!)
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh
@@ -89,7 +89,9 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-        name: 'Setup conda'
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
       - shell: bash -el {0}
         run: |
           conda install -c conda-forge "vtk>=9.2=*osmesa*"

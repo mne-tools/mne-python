@@ -30,8 +30,9 @@ from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_and_end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
-                    write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix, write_id, DATE_NONE)
+                    write_coord_trans, write_ch_info,
+                    write_julian, write_float_matrix, write_id, DATE_NONE,
+                    _safe_name_list, write_name_list_sanitized)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans, _frame_to_str)
@@ -248,7 +249,8 @@ class ContainsMixin(object):
         Parameters
         ----------
         ch_type : str
-            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+            Channel type to check for. Can be e.g. ``'meg'``, ``'eeg'``,
+            ``'stim'``, etc.
 
         Returns
         -------
@@ -1227,6 +1229,16 @@ class Info(dict, MontageMixin, ContainsMixin):
             experimenter=self.get('experimenter'),
         )
 
+    def save(self, fname):
+        """Write measurement info in fif file.
+
+        Parameters
+        ----------
+        fname : path-like
+            The name of the file. Should end by ``'-info.fif'``.
+        """
+        write_info(fname, self)
+
 
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
@@ -1320,7 +1332,7 @@ def read_info(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File name.
     %(verbose)s
 
@@ -1361,9 +1373,19 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = tag.data.split(':')
-    bads[:] = _rename_list(bads, ch_names_mapping)
+                bads = _safe_name_list(tag.data, 'read', 'bads')
+        bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
+
+
+def _write_bad_channels(fid, bads, ch_names_mapping):
+    if bads is not None and len(bads) > 0:
+        ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
+        bads = _rename_list(bads, ch_names_mapping)
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, 'bads')
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
 
 @verbose
@@ -2059,11 +2081,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proj(fid, info['projs'], ch_names_mapping=ch_names_mapping)
 
     #   Bad channels
-    if len(info['bads']) > 0:
-        bads = _rename_list(info['bads'], ch_names_mapping)
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    _write_bad_channels(fid, info['bads'], ch_names_mapping=ch_names_mapping)
 
     #   General
     if info.get('experimenter') is not None:
@@ -2189,8 +2207,8 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. Should end by -info.fif.
+    fname : path-like
+        The name of the file. Should end by ``-info.fif``.
     %(info_not_none)s
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),

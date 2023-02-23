@@ -25,14 +25,14 @@ python-picard
 statsmodels
 joblib
 psutil
-dipy; sys_platform != 'darwin' or platform_machine != 'arm64'  # TODO: Needs dipy 1.6 release
+dipy
 vtk
 nilearn
 xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
 traitlets
-pyvista>=0.32,!=0.35.2
+pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2
 pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets

@@ -77,7 +77,7 @@ def _check_mocked_function_calls(mocked_func, call_fname_hash_pairs,
 def test_run_update_age_records(tmp_path):
     """Test Sleep Physionet URL handling."""
     import pandas as pd
-    fname = op.join(str(tmp_path), "records.csv")
+    fname = tmp_path / "records.csv"
     _update_sleep_age_records(fname)
     data = pd.read_csv(fname)
     pd.testing.assert_frame_equal(data, pd.read_csv(AGE_SLEEP_RECORDS))
@@ -177,7 +177,8 @@ def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
 def test_run_update_temazepam_records(tmp_path):
     """Test Sleep Physionet URL handling."""
     import pandas as pd
-    fname = op.join(str(tmp_path), "records.csv")
+
+    fname = tmp_path / "records.csv"
     _update_sleep_temazepam_records(fname)
     data = pd.read_csv(fname)
 

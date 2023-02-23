@@ -47,7 +47,7 @@ def run():
                       "'n')", default="off")
     parser.add_option("--skip", dest="skip",
                       help="Skips raw data sequences, time intervals pairs in "
-                      "sec, e.g.: 0 30 120 150", default=None)
+                      "s, e.g.: 0 30 120 150", default=None)
     parser.add_option("--force", dest="force", action="store_true",
                       help="Ignore program warnings",
                       default=False)
@@ -55,7 +55,7 @@ def run():
                       help="Apply the time-domain MaxST extension",
                       default=False)
     parser.add_option("--buflen", dest="st_buflen", type="float",
-                      help="MaxSt buffer length in sec",
+                      help="MaxSt buffer length in s",
                       default=16.0)
     parser.add_option("--corr", dest="st_corr", type="float",
                       help="MaxSt subspace correlation",

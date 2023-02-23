@@ -1005,9 +1005,9 @@ class InterpolationMixin(object):
             origin fit.
 
             .. versionadded:: 0.17
-        method : dict
+        method : dict | None
             Method to use for each channel type.
-            Currently only the key "eeg" has multiple options:
+            Currently only the key ``"eeg"`` has multiple options:
 
             - ``"spline"`` (default)
                 Use spherical spline interpolation.
@@ -1015,8 +1015,9 @@ class InterpolationMixin(object):
                 Use minimum-norm projection to a sphere and back.
                 This is the method used for MEG channels.
 
-            The value for "meg" is "MNE", and the value for
-            "fnirs" is "nearest". The default (None) is thus an alias for::
+            The value for ``"meg"`` is ``"MNE"``, and the value for
+            ``"fnirs"`` is ``"nearest"``. The default (None) is thus an alias
+            for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
@@ -1436,7 +1437,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like | str
         The path to the file to load, or the name of a channel adjacency
         matrix that ships with MNE-Python.
 
@@ -1473,10 +1474,12 @@ def read_ch_adjacency(fname, picks=None):
     """
     from scipy.io import loadmat
     if op.isabs(fname):
-        fname = _check_fname(
-            fname=fname,
-            overwrite='read',
-            must_exist=True
+        fname = str(
+            _check_fname(
+                fname=fname,
+                overwrite="read",
+                must_exist=True,
+            )
         )
     else:  # built-in FieldTrip neighbors
         ch_adj_name = fname
@@ -1495,10 +1498,12 @@ def read_ch_adjacency(fname, picks=None):
                   if a.name == ch_adj_name][0]
         fname = ch_adj.fname
         templates_dir = Path(__file__).resolve().parent / 'data' / 'neighbors'
-        fname = _check_fname(  # only needed to convert to a string
-            fname=templates_dir / fname,
-            overwrite='read',
-            must_exist=True
+        fname = str(
+            _check_fname(  # only needed to convert to a string
+                fname=templates_dir / fname,
+                overwrite="read",
+                must_exist=True,
+            )
         )
 
     nb = loadmat(fname)['neighbours']
@@ -2114,7 +2119,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         ``'Right-frontal'``. Selections can also be matched and combined by
         spcecifying common substrings. For example, ``name='temporal`` will
         produce a combination of ``'Left-temporal'`` and ``'Right-temporal'``.
-    fname : str
+    fname : path-like
         Filename of the selection file (if ``None``, built-in selections are
         used).
     %(info)s Used to determine which channel naming convention to use, e.g.
@@ -2146,7 +2151,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     if fname is None:
         fname = op.join(op.dirname(__file__), '..', 'data', 'mne_analyze.sel')
 
-    fname = _check_fname(fname, must_exist=True, overwrite='read')
+    fname = str(_check_fname(fname, must_exist=True, overwrite="read"))
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}

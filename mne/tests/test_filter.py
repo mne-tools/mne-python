@@ -1,5 +1,3 @@
-import os.path as op
-
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose,
@@ -30,9 +28,8 @@ def test_filter_array():
 @requires_mne
 def test_mne_c_design(tmp_path):
     """Test MNE-C filter design."""
-    tempdir = str(tmp_path)
-    temp_fname = op.join(tempdir, 'test_raw.fif')
-    out_fname = op.join(tempdir, 'test_c_raw.fif')
+    temp_fname = tmp_path / "test_raw.fif"
+    out_fname = tmp_path / "test_c_raw.fif"
     x = np.zeros((1, 10001))
     x[0, 5000] = 1.
     time_sl = slice(5000 - 4096, 5000 + 4097)

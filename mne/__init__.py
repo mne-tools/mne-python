@@ -43,7 +43,7 @@ from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
                   compute_covariance, whiten_evoked, make_ad_hoc_cov)
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
-                    find_stim_steps, AcqParserFIF)
+                    find_stim_steps, AcqParserFIF, count_events)
 from ._freesurfer import (head_to_mni, head_to_mri, read_talxfm,
                           get_volume_labels_from_aseg, read_freesurfer_lut,
                           vertex_to_mni, read_lta)
