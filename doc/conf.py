@@ -1012,6 +1012,7 @@ def reset_warnings(gallery_conf, fname):
         'Deprecated call to `pkg_resources',
         # nilearn
         r'The register_cmap function was deprecated in Matplotlib 3\.7',
+        'Setting data with a non sequence',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
