@@ -2500,33 +2500,33 @@ def _write_raw_buffer(fid, buf, cals, fmt):
 
 def _check_raw_compatibility(raw):
     """Ensure all instances of Raw have compatible parameters."""
-    for i in range(1, len(raw)):
-        if not isinstance(raw[i], type(raw[0])):
-            raise ValueError(f'raw[{i}] type must match')
+    for ri in range(1, len(raw)):
+        if not isinstance(raw[ri], type(raw[0])):
+            raise ValueError(f'raw[{ri}] type must match')
         for key in ('nchan', 'sfreq'):
-            a, b = raw[i].info[key], raw[0].info[key]
+            a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
-                    f'raw[{i}].info[{key}] must match:\n'
+                    f'raw[{ri}].info[{key}] must match:\n'
                     f'{repr(a)} != {repr(b)}')
         bads0 = set(raw[0].info['bads'])
-        badsi = set(raw[i].info['bads'])
+        badsi = set(raw[ri].info['bads'])
         bads_mismatch = bads0.symmetric_difference(badsi)
         if bads_mismatch:
-            raise ValueError(f'raw[{i}][\'info\'][\'bads\'] do not match: '
+            raise ValueError(f'raw[{ri}][\'info\'][\'bads\'] do not match: '
                              f'{sorted(bads_mismatch)}')
         chs0 = set(raw[0].info['ch_names'])
-        chsi = set(raw[i].info['ch_names'])
+        chsi = set(raw[ri].info['ch_names'])
         ch_mismatch = chs0.symmetric_difference(chsi)
         if ch_mismatch:
-            raise ValueError(f'raw[{i}][\'info\'][\'ch_names\'] do not match:'
+            raise ValueError(f'raw[{ri}][\'info\'][\'ch_names\'] do not match:'
                              f' {sorted(ch_mismatch)}')
-        if any(raw[i]._cals != raw[0]._cals):
-            raise ValueError('raw[%d]._cals must match' % i)
-        if len(raw[0].info['projs']) != len(raw[i].info['projs']):
+        if any(raw[ri]._cals != raw[0]._cals):
+            raise ValueError('raw[%d]._cals must match' % ri)
+        if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
             raise ValueError('SSP projectors in raw files must be the same')
         if not all(_proj_equal(p1, p2) for p1, p2 in
-                   zip(raw[0].info['projs'], raw[i].info['projs'])):
+                   zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
     if any(r.orig_format != raw[0].orig_format for r in raw):
         warn('raw files do not all have the same data format, could result in '
