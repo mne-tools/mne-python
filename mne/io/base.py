@@ -2509,7 +2509,7 @@ def _check_raw_compatibility(raw):
                 raise ValueError(
                     f'raw[{ri}].info[{key}] must match:\n'
                     f'{repr(a)} != {repr(b)}')
-        if not set(raw[ri].info['bads']) == set(raw[0].info['bads']):
+        if set(raw[ri].info['bads']) != set(raw[0].info['bads']):
             raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
         if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
