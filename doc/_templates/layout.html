@@ -1,0 +1,20 @@
+{%- extends 'pydata_sphinx_theme/layout.html' %}
+
+{% block extrahead %}
+    <link rel="canonical" href="https://mne.tools/stable/index.html" />
+    {{ super() }}
+{% endblock %}
+
+{% block docs_body %}
+<div>
+  {% block body %} {% endblock %}
+  {% if pagename == 'index' %}
+    {%- include 'homepage.html' -%}
+  {% endif %}
+</div>
+{% endblock %}
+
+{%- block scripts_end %}
+    <script src="https://mne.tools/versionwarning.js"></script>
+    {{ super() }}
+{%- endblock %}
