@@ -6,7 +6,7 @@
 Source localization with equivalent current dipole (ECD) fit
 ============================================================
 
-This shows how to fit a dipole :footcite:`Sarvas1987` using mne-python.
+This shows how to fit a dipole :footcite:`Sarvas1987` using MNE-Python.
 
 For a comparison of fits between MNE-C and MNE-Python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
