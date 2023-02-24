@@ -608,7 +608,8 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         # add separator for clarity
         sep = QFrame()
-        sep.setFrameShape(QFrame.VLine | QFrame.Sunken)
+        sep.setFrameShape(QFrame.VLine)
+        sep.setFrameShadow(QFrame.Sunken)
         hbox.addWidget(sep)
 
         hbox.addStretch(3 if self._f_idx is None else 2)
