@@ -74,8 +74,8 @@ class RawKIT(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
-        Path to the sqd file.
+    input_fname : path-like
+        Path to the SQD file.
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
@@ -425,7 +425,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
 
     Parameters
     ----------
-    rawfile : str
+    rawfile : path-like
         KIT file to be read.
     allow_unknown_format : bool
         Force reading old data that is not officially supported. Alternatively,
@@ -807,8 +807,8 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 
     Parameters
     ----------
-    input_fname : str
-        Path to the sqd file.
+    input_fname : path-like
+        Path to the SQD file.
     %(kit_mrk)s
     %(kit_elp)s
     %(kit_hsp)s
@@ -857,8 +857,8 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
 
     Parameters
     ----------
-    input_fname : str
-        Path to the sqd file.
+    input_fname : path-like
+        Path to the SQD file.
     events : array of int, shape (n_events, 3) | path-like
         The array of :term:`events`. The first column contains the event time
         in samples, with :term:`first_samp` included. The third column contains

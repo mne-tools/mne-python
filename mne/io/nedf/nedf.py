@@ -202,8 +202,8 @@ def read_raw_nedf(filename, preload=False, verbose=None):
 
     Parameters
     ----------
-    filename : str
-        Path to the .nedf file.
+    filename : path-like
+        Path to the ``.nedf`` file.
     %(preload)s
     %(verbose)s
 

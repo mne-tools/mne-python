@@ -371,7 +371,7 @@ def read_cov(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The path-like of file containing the covariance matrix. It should end
         with ``-cov.fif`` or ``-cov.fif.gz``.
     %(verbose)s
@@ -1379,8 +1379,9 @@ def write_cov(fname, cov, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. It should end with -cov.fif or -cov.fif.gz.
+    fname : path-like
+        The name of the file. It should end with ``-cov.fif`` or
+        ``-cov.fif.gz``.
     cov : Covariance
         The noise covariance matrix.
     %(overwrite)s

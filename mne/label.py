@@ -376,7 +376,7 @@ class Label:
 
         Parameters
         ----------
-        filename : str
+        filename : path-like
             Path to label file to produce.
 
         Notes

@@ -34,7 +34,7 @@ class Raw(BaseRaw):
 
     Parameters
     ----------
-    fname : str | file-like
+    fname : path-like | file-like
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames not ending with
         ``raw.fif``, ``raw_sss.fif``, ``raw_tsss.fif``, ``_meg.fif``,
@@ -446,7 +446,7 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
 
     Parameters
     ----------
-    fname : str | file-like
+    fname : path-like | file-like
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,

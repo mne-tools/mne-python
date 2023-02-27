@@ -1278,7 +1278,7 @@ def _read_isotrak_elp_points(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .elp Polhemus Isotrak file.
 
     Returns
@@ -1308,7 +1308,7 @@ def _read_isotrak_hsp_points(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .hsp Polhemus Isotrak file.
 
     Returns

@@ -14,8 +14,8 @@ def what(fname):
 
     Parameters
     ----------
-    fname : str
-        The filename. Should end in .fif or .fif.gz.
+    fname : path-like
+        The filename. Should end in ``.fif`` or ``.fif.gz``.
 
     Returns
     -------

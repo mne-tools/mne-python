@@ -91,7 +91,7 @@ def _write_stc(filename, tmin, tstep, vertices, data):
 
     Parameters
     ----------
-    filename : string
+    filename : path-like
         The name of the STC file.
     tmin : float
         The first time point of the data in seconds.
@@ -102,7 +102,6 @@ def _write_stc(filename, tmin, tstep, vertices, data):
     data : 2D array
         The data matrix (nvert * ntime).
     """
-    filename
     with open(filename, 'wb') as fid:
         # write start time in ms
         fid.write(np.array(1000 * tmin, dtype='>f4').tobytes())
@@ -135,7 +134,7 @@ def _read_w(filename):
 
     Parameters
     ----------
-    filename : string
+    filename : path-like
         The name of the w file.
 
     Returns
@@ -184,7 +183,7 @@ def _write_w(filename, vertices, data):
 
     Parameters
     ----------
-    filename: string
+    filename: path-like
         The name of the w file.
     vertices: array of int
         Vertex indices (0 based).
@@ -2063,8 +2062,8 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning:: If you have many time points, the file produced can be
-                         huge.
+            .. warning: If you have many time points the file produced can be
+                        huge. The default is ``mri_resolution=False``.
         format : str
             Either ``'nifti1'`` (default) or ``'nifti2'``.
 
@@ -2101,15 +2100,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The source spaces (should all be of type volume, or part of a
             mixed source space).
-        dest : 'mri' | 'surf'
-            If 'mri' the volume is defined in the coordinate system of
+        dest : ``'mri'`` | ``'surf'``
+            If ``'mri'`` the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning:: If you have many time points, the file produced can be
-                         huge.
+            .. warning: If you have many time points the file produced can be
+                        huge. The default is ``mri_resolution=False``.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
@@ -3223,11 +3222,10 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     distance : float
         Distance (m) defining the activation "ball" of the sensor.
     mode : str
-        Can be "sum" to do a linear sum of weights, "weighted" to make this
-        a weighted sum, "nearest" to
-        use only the weight of the nearest sensor, or "single" to
-        do a distance-weight of the nearest sensor. Default is "sum".
-        See Notes.
+        Can be ``"sum"`` to do a linear sum of weights, ``"weighted"`` to make
+        this a weighted sum, ``"nearest"`` to use only the weight of the
+        nearest sensor, or ``"single"`` to do a distance-weight of the nearest
+        sensor. Default is ``"sum"``. See Notes.
 
         .. versionchanged:: 0.24
            Added "weighted" option.

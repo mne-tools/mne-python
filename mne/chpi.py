@@ -1130,7 +1130,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
         Maximum time step to use.
     too_close : str
         How to handle HPI positions too close to the sensors,
-        can be 'raise' (default), 'warning', or 'info'.
+        can be ``'raise'`` (default), ``'warning'``, or ``'info'``.
     %(adjust_dig_chpi)s
     %(verbose)s
 

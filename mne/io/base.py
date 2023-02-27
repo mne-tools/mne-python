@@ -1786,7 +1786,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stim_channel : str | None
             Name of the stim channel to add to. If None, the config variable
             'MNE_STIM_CHANNEL' is used. If this is not found, it will default
-            to 'STI 014'.
+            to ``'STI 014'``.
         replace : bool
             If True the old events on the stim channel are removed before
             adding the new ones.

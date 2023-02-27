@@ -447,7 +447,7 @@ class DipoleFixed(TimeMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the .fif file. Must end with ``'.fif'`` or
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
@@ -1155,9 +1155,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
         The dataset to fit.
     cov : str | instance of Covariance
         The noise covariance.
-    bem : str | instance of ConductorModel
+    bem : path-like | instance of ConductorModel
         The BEM filename (str) or conductor model.
-    trans : str | None
+    trans : path-like | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
     min_dist : float
@@ -1187,8 +1187,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
 
         .. versionadded:: 0.20
     accuracy : str
-        Can be "normal" (default) or "accurate", which gives the most accurate
-        coil definition but is typically not necessary for real-world data.
+        Can be ``"normal"`` (default) or ``"accurate"``, which gives the most
+        accurate coil definition but is typically not necessary for real-world
+        data.
 
         .. versionadded:: 0.24
     tol : float

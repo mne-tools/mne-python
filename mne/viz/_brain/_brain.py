@@ -3004,10 +3004,10 @@ class Brain(object):
 
         Parameters
         ----------
-        filename : str
+        filename : path-like
             Path to new image file.
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         """
         if filename is None:
             filename = _generate_default_filename(".png")
@@ -3021,7 +3021,7 @@ class Brain(object):
         Parameters
         ----------
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         %(time_viewer_brain_screenshot)s
 
         Returns

@@ -24,13 +24,13 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the data file (extension ``.bin``). The header file with the
         same file name stem and an extension ``.txt`` is expected to be found
         in the same directory.
     %(preload)s
     %(verbose)s
-    pos_fname : str or None (default None)
+    pos_fname : path-like | None
         If not None, load digitized head points from this file.
     add_head_trans : bool (default True)
         If True attempt to perform initial head localization. Compute initial
