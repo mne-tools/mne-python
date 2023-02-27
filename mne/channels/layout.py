@@ -281,7 +281,8 @@ def read_layout(fname=None, path="", scale=True, *, kind=None):
             )
         kind = fname.stem
     else:
-        if kind is not None or path != "":  # to be removed along the deprecated argument
+        # to be removed along the deprecated argument
+        if kind is not None or path != "":
             warn(
                 "Argument 'kind' and 'path' are deprecated in favor of "
                 "'fname' and should not be provided alongside 'fname'.",
