@@ -54,22 +54,6 @@ def _get_test_info():
 
 def test_io_layout_lout(tmp_path):
     """Test IO with .lout files."""
-    with pytest.warns(
-        DeprecationWarning, match="'kind' and 'path' are deprecated"
-    ):
-        layout = read_layout('Vectorview-all', scale=False)
-    layout.save(tmp_path / "foobar.lout")
-    with pytest.warns(
-        DeprecationWarning, match="'kind' and 'path' are deprecated"
-    ):
-        layout_read = read_layout(
-            tmp_path / "foobar.lout", path="./", scale=False
-        )
-    assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
-    assert layout.names == layout_read.names
-    assert "<Layout |" in layout.__repr__()
-
-    # with fname
     layout = read_layout(fname="Vectorview-all", scale=False)
     layout.save(tmp_path / "foobar.lout", overwrite=True)
     layout_read = read_layout(
@@ -80,10 +64,18 @@ def test_io_layout_lout(tmp_path):
     assert "<Layout |" in layout.__repr__()
 
     # deprecation
-    with pytest.raises(ValueError, match="'kind' and 'path' should be None"):
+    with pytest.warns(DeprecationWarning, match="should not be provided"):
         layout_read = read_layout(
-            kind="Vectorview-all", fname=tmp_path / "foobar.lout", scale=False,
+            fname=tmp_path / "foobar.lout", kind="Vectorview-all", scale=False,
         )
+    with pytest.warns(DeprecationWarning, match="should not be provided"):
+        layout_read = read_layout(
+            fname=tmp_path / "foobar.lout", path=None, scale=False,
+        )
+    with pytest.warns(
+        DeprecationWarning, match="'kind' and 'path' are deprecated"
+    ):
+        layout_read = read_layout(kind="Vectorview-all", scale=False)
 
 
 def test_io_layout_lay(tmp_path):

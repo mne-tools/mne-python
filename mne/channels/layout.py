@@ -163,18 +163,15 @@ def _read_lay(fname):
     return box, pos, names, ids
 
 
-def read_layout(kind=None, path=None, fname=None, *, scale=True):
+def read_layout(fname=None, path="", scale=True, *, kind=None):
     """Read layout from a file.
 
     Parameters
     ----------
-    kind : str | None
-        The name of the ``.lout`` file (e.g. ``kind='Vectorview-all'`` for
-        ``'Vectorview-all.lout'``).
-
-        .. deprecated:: v1.4
-           The ``kind`` and ``path`` parameters will be removed in version
-           1.5. Please use the ``fname`` parameter instead.
+    fname : path-like | str
+        Either the path to a ``.lout`` or ``.lay`` file or the name of a
+        built-in layout. c.f. Notes for a list of the available built-in
+        layouts.
     path : path-like | None
         The path of the folder containing the Layout file. Defaults to the
         ``mne/channels/data/layouts`` folder inside your mne-python
@@ -183,13 +180,16 @@ def read_layout(kind=None, path=None, fname=None, *, scale=True):
         .. deprecated:: v1.4
            The ``kind`` and ``path`` parameters will be removed in version
            1.5. Please use the ``fname`` parameter instead.
-    fname : path-like | str
-        Either the path to a ``.lout`` or ``.lay`` file or the name of a
-        built-in layout. c.f. Notes for a list of the available built-in
-        layouts.
     scale : bool
         Apply useful scaling for out the box plotting using ``layout.pos``.
         Defaults to True.
+    kind : str | None
+        The name of the ``.lout`` file (e.g. ``kind='Vectorview-all'`` for
+        ``'Vectorview-all.lout'``).
+
+        .. deprecated:: v1.4
+           The ``kind`` and ``path`` parameters will be removed in version
+           1.5. Please use the ``fname`` parameter instead.
 
     Returns
     -------
@@ -202,7 +202,7 @@ def read_layout(kind=None, path=None, fname=None, *, scale=True):
 
     Notes
     -----
-    Valid ``fname`` (or ``kind``) arguments are:
+    Valid ``fname`` arguments are:
 
     .. table::
        :widths: auto
@@ -258,7 +258,7 @@ def read_layout(kind=None, path=None, fname=None, *, scale=True):
             "Argument 'kind' and 'path' are deprecated in favor of 'fname'.",
             DeprecationWarning,
         )
-        if path is None:
+        if path == "" or path is None:
             path = Path(__file__).parent / "data" / "layouts"
         # kind should be the name as a string, but let's consider the case
         # where the path to the file is provided instead.
@@ -281,9 +281,11 @@ def read_layout(kind=None, path=None, fname=None, *, scale=True):
             )
         kind = fname.stem
     else:
-        if kind is not None:  # to be removed along the deprecated argument
-            raise ValueError(
-                "Argument 'kind' and 'path' should be None if 'fname' is used."
+        if kind is not None or path != "":  # to be removed along the deprecated argument
+            warn(
+                "Argument 'kind' and 'path' are deprecated in favor of "
+                "'fname' and should not be provided alongside 'fname'.",
+                DeprecationWarning,
             )
         if isinstance(fname, str):
             # is it a built-in layout?
