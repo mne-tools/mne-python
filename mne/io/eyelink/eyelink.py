@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import numpy as np
-
+from ..constants import FIFF
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
@@ -492,13 +492,14 @@ class RawEyelink(BaseRaw):
 
     def _validate_data(self):
         """Check the incoming data for some known problems that can occur."""
-        rec_info = self._event_lines['SAMPLES'][0]
+        self._rec_info = self._event_lines['SAMPLES'][0]
         n_blocks = len(self._event_lines['START'])
-        sfreq = int(_get_sfreq(rec_info))
+        sfreq = int(_get_sfreq(self._rec_info))
         first_samp = self._event_lines['START'][0][0]
-        self._tracking_mode = ('binocular' if
-                               ('LEFT' in rec_info) and ('RIGHT' in rec_info)
-                               else 'monocular')
+        if ('LEFT' in self._rec_info) and ('RIGHT' in self._rec_info):
+            self._tracking_mode = 'binocular'
+        else:
+            self._tracking_mode = 'monocular'
         if sfreq == 2000 and isinstance(first_samp, int):
             raise ValueError(f'The sampling rate is {sfreq}Hz but the'
                              ' timestamps were not output as float values.'
@@ -519,8 +520,8 @@ class RawEyelink(BaseRaw):
                                      f' Got both {sfreq} and {block_sfreq} Hz.'
                                      )
             if self._tracking_mode == 'monocular':
-                assert rec_info[1] in ['LEFT', 'RIGHT']
-                eye = rec_info[1]
+                assert self._rec_info[1] in ['LEFT', 'RIGHT']
+                eye = self._rec_info[1]
                 blocks_list = self._event_lines['SAMPLES']
                 eye_per_block = [block_info[1] for block_info in blocks_list]
                 if not all([this_eye == eye for this_eye in eye_per_block]):
@@ -528,6 +529,27 @@ class RawEyelink(BaseRaw):
                                 ' recording. The channel names will reflect'
                                 ' the eye that was tracked at the start of'
                                 ' the recording.')
+
+    def _href_to_radian(self, opposite, f=15_000):
+        """Convert HREF eyegaze samples to radians.
+
+        Parameters
+        ----------
+        opposite : int
+            The x or y coordinate in an HREF gaze sample.
+        f : int (default 15_000)
+            distance of plane from the eye.
+
+        Returns
+        -------
+        x or y coordinate in radians
+
+        Notes
+        -----
+        See section 4.4.2.2 in the Eyelink 1000 Plus User Manual
+        (version 1.0.19) for a detailed description of HREF data.
+        """
+        return np.arcsin(opposite/f)
 
     def _infer_col_names(self):
         """Build column and channel names for data from Eyelink ASCII file.
@@ -539,10 +561,6 @@ class RawEyelink(BaseRaw):
         NOT change.
         """
         col_names = {}
-
-        # a list of keywords specifying what type of data is present
-        rec_info = self._event_lines['SAMPLES'][0]
-
         # initiate the column names for the sample lines
         col_names['sample'] = list(EYELINK_COLS['timestamp'])
 
@@ -556,8 +574,8 @@ class RawEyelink(BaseRaw):
         # Recording was either binocular or monocular
         # If monocular, find out which eye was tracked and append to ch_name
         if self._tracking_mode == 'monocular':
-            assert rec_info[1] in ['LEFT', 'RIGHT']
-            eye = rec_info[1].lower()
+            assert self._rec_info[1] in ['LEFT', 'RIGHT']
+            eye = self._rec_info[1].lower()
             ch_names = list(EYELINK_COLS['pos'][eye])
         elif self._tracking_mode == 'binocular':
             ch_names = list(EYELINK_COLS['pos']['left'] +
@@ -565,7 +583,7 @@ class RawEyelink(BaseRaw):
         col_names['sample'].extend(ch_names)
 
         # The order of these if statements should not be changed.
-        if 'VEL' in rec_info:  # If velocity data are reported
+        if 'VEL' in self._rec_info:  # If velocity data are reported
             if self._tracking_mode == 'monocular':
                 ch_names.extend(EYELINK_COLS['velocity'][eye])
                 col_names['sample'].extend(EYELINK_COLS['velocity'][eye])
@@ -575,13 +593,13 @@ class RawEyelink(BaseRaw):
                 col_names['sample'].extend(EYELINK_COLS['velocity']['left'] +
                                            EYELINK_COLS['velocity']['right'])
         # if resolution data are reported
-        if 'RES' in rec_info:
+        if 'RES' in self._rec_info:
             ch_names.extend(EYELINK_COLS['resolution'])
             col_names['sample'].extend(EYELINK_COLS['resolution'])
             col_names['fixation'].extend(EYELINK_COLS['resolution'])
             col_names['saccade'].extend(EYELINK_COLS['resolution'])
         # if digital input port values are reported
-        if 'INPUT' in rec_info:
+        if 'INPUT' in self._rec_info:
             ch_names.extend(EYELINK_COLS['input'])
             col_names['sample'].extend(EYELINK_COLS['input'])
 
@@ -589,7 +607,7 @@ class RawEyelink(BaseRaw):
         col_names['sample'].extend(EYELINK_COLS['flags'])
 
         # if head target info was reported, add its cols after flags col.
-        if 'HTARGET' in rec_info:
+        if 'HTARGET' in self._rec_info:
             ch_names.extend(EYELINK_COLS['remote'])
             col_names['sample'].extend(EYELINK_COLS['remote']
                                        + EYELINK_COLS['remote_flags'])
@@ -617,6 +635,14 @@ class RawEyelink(BaseRaw):
         # dataframe for samples
         self.dataframes['samples'] = pd.DataFrame(self._sample_lines,
                                                   columns=col_names['sample'])
+        if 'HREF' in self._rec_info:
+            pos_names = (EYELINK_COLS['pos']['left'][:-1]
+                         + EYELINK_COLS['pos']['right'][:-1])
+            for col in self.dataframes['samples'].columns:
+                if col not in pos_names:  # 'xpos_left' ... 'ypos_right'
+                    continue
+                series = self._href_to_radian(self.dataframes['samples'][col])
+                self.dataframes['samples'][col] = series
 
         n_block = len(self._event_lines['START'])
         if n_block > 1:
@@ -735,6 +761,9 @@ class RawEyelink(BaseRaw):
             else:
                 logger.debug(f"leaving index 4 of loc array as"
                              f" {ch_dict['loc'][4]} for {ch_dict['ch_name']}")
+            if 'HREF' in self._rec_info:
+                if ch_dict['ch_name'].startswith(('xpos', 'ypos')):
+                    ch_dict['unit'] = FIFF.FIFF_UNIT_RAD
         return info
 
     def _make_gap_annots(self, key='recording_blocks'):
