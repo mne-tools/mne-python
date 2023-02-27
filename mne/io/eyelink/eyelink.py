@@ -549,7 +549,7 @@ class RawEyelink(BaseRaw):
         See section 4.4.2.2 in the Eyelink 1000 Plus User Manual
         (version 1.0.19) for a detailed description of HREF data.
         """
-        return np.arcsin(opposite/f)
+        return np.arcsin(opposite / f)
 
     def _infer_col_names(self):
         """Build column and channel names for data from Eyelink ASCII file.
