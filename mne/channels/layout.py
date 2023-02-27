@@ -298,6 +298,8 @@ def read_layout(fname=None, path="", scale=True, *, kind=None):
                 fname = (directory / fname).with_suffix(".lay")
         # if not, it must be a valid path provided as str or Path
         fname = _check_fname(fname, "read", must_exist=True, name="layout")
+        # and it must have a valid extension
+        _check_option("fname extension", fname.suffix, readers)
         kind = fname.stem
     box, pos, names, ids = readers[fname.suffix](fname)
 
