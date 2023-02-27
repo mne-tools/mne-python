@@ -155,23 +155,17 @@ def test_find_topomap_coords():
 
 def test_make_eeg_layout(tmp_path):
     """Test creation of EEG layout."""
-    tmp_name = 'foo'
-    lout_name = 'test_raw'
-    with pytest.warns(
-        DeprecationWarning, match="'kind' and 'path' are deprecated"
-    ):
-        lout_orig = read_layout(kind=lout_name, path=lout_path)
+    lout_orig = read_layout(fname=lout_path / "test_raw.lout")
     info = read_info(fif_fname)
-    info['bads'].append(info['ch_names'][360])
+    info["bads"].append(info["ch_names"][360])
     layout = make_eeg_layout(info, exclude=[])
-    assert_array_equal(len(layout.names), len([ch for ch in info['ch_names']
-                                               if ch.startswith('EE')]))
-    layout.save(str(tmp_path / (tmp_name + ".lout")))
-    with pytest.warns(
-        DeprecationWarning, match="'kind' and 'path' are deprecated"
-    ):
-        lout_new = read_layout(kind=tmp_name, path=tmp_path, scale=False)
-    assert_array_equal(lout_new.kind, tmp_name)
+    assert_array_equal(
+        len(layout.names),
+        len([ch for ch in info["ch_names"] if ch.startswith("EE")]),
+    )
+    layout.save(str(tmp_path / "foo.lout"))
+    lout_new = read_layout(fname=tmp_path / "foo.lout", scale=False)
+    assert_array_equal(lout_new.kind, "foo")
     assert_allclose(layout.pos, lout_new.pos, atol=0.1)
     assert_array_equal(lout_orig.names, lout_new.names)
 
@@ -186,19 +180,11 @@ def test_make_eeg_layout(tmp_path):
 
 def test_make_grid_layout(tmp_path):
     """Test creation of grid layout."""
-    tmp_name = 'bar'
-    lout_name = 'test_ica'
-    with pytest.warns(
-        DeprecationWarning, match="'kind' and 'path' are deprecated"
-    ):
-        lout_orig = read_layout(kind=lout_name, path=lout_path)
+    lout_orig = read_layout(fname=lout_path / "test_ica.lout")
     layout = make_grid_layout(_get_test_info())
-    layout.save(str(tmp_path / (tmp_name + ".lout")))
-    with pytest.warns(
-        DeprecationWarning, match="'kind' and 'path' are deprecated"
-    ):
-        lout_new = read_layout(kind=tmp_name, path=tmp_path)
-    assert_array_equal(lout_new.kind, tmp_name)
+    layout.save(str(tmp_path / "bar.lout"))
+    lout_new = read_layout(fname=tmp_path / "bar.lout")
+    assert_array_equal(lout_new.kind, "bar")
     assert_array_equal(lout_orig.pos, lout_new.pos)
     assert_array_equal(lout_orig.names, lout_new.names)
 
