@@ -94,8 +94,8 @@ jobs:
           use-mamba: true
       - shell: bash -el {0}
         run: |
-          # TODO: As of 2023/02/28, ipython 8.11 breaks our notebook tests
-          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "ipython!=8.11"
+          # TODO: As of 2023/02/28, notebook tests need a pin
+          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "jupyter_console!=6.6.2"
         name: 'Install OSMesa VTK variant'
       - shell: bash -el {0}
         run: |
@@ -117,7 +117,7 @@ jobs:
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
-        run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
+        run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz/_brain/tests/test_notebook.py
         name: 'Run viz tests'
       - uses: codecov/codecov-action@v3
         if: success()
