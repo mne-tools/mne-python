@@ -94,8 +94,8 @@ jobs:
           use-mamba: true
       - shell: bash -el {0}
         run: |
-          # TODO: As of 2023/02/28, notebook tests need a pin
-          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "imageio=2.25.1" "ipython=8.10.0" "jupyter_console==6.6.1" "libnghttp2=1.51.0" "mesalib=21.2.5" "pooch=1.6.0" "prompt-toolkit=3.0.36" "prompt_toolkit=3.0.36" "tifffile=2023.2.3" "wrapt=1.14.1" "xorg-libx11=1.7.2"
+          # TODO: As of 2023/02/28, notebook tests need a pinned mesalib
+          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
           mamba list
         name: 'Install OSMesa VTK variant'
       - shell: bash -el {0}
@@ -119,7 +119,7 @@ jobs:
         name: 'Download testing data'
       - shell: bash -el {0}
         # TODO: Revert making this list short
-        run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv -x mne/viz/_brain/tests/test_notebook.py
+        run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
         name: 'Run viz tests'
       - uses: codecov/codecov-action@v3
         if: success()
