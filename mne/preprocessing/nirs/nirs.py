@@ -23,7 +23,7 @@ def source_detector_distances(info, picks=None):
     Parameters
     ----------
     %(info_not_none)s
-    %(picks_all)s
+    %(picks_all_data)s
 
     Returns
     -------

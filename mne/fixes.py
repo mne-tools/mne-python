@@ -15,6 +15,7 @@ at which the fix is no longer needed.
 import inspect
 from math import log
 from pprint import pprint
+from io import StringIO
 import os
 import warnings
 
@@ -68,26 +69,6 @@ def _median_complex(data, axis):
     else:
         data = np.median(data, axis=axis)
     return data
-
-
-# helpers to get function arguments
-def _get_args(function, varargs=False, *,
-              exclude=('var_positional', 'var_keyword')):
-    params = inspect.signature(function).parameters
-    # As of Python 3.10:
-    # https://docs.python.org/3/library/inspect.html#inspect.Parameter.kind
-    # POSITIONAL_ONLY, POSITIONAL_OR_KEYWORD, VAR_POSITIONAL, KEYWORD_ONLY,
-    # VAR_KEYWORD
-    exclude = set(getattr(inspect.Parameter, ex.upper()) for ex in exclude)
-    args = [key for key, param in params.items() if param.kind not in exclude]
-    if varargs:
-        varargs = [param.name for param in params.values()
-                   if param.kind == param.VAR_POSITIONAL]
-        if len(varargs) == 0:
-            varargs = None
-        return args, varargs
-    else:
-        return args
 
 
 def _safe_svd(A, **kwargs):
@@ -460,8 +441,11 @@ class BaseEstimator(object):
         return self
 
     def __repr__(self):
+        params = StringIO()
+        pprint(self.get_params(deep=False), params)
+        params.seek(0)
         class_name = self.__class__.__name__
-        return '%s(%s)' % (class_name, pprint(self.get_params(deep=False)))
+        return '%s(%s)' % (class_name, params.read().strip())
 
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
@@ -974,7 +958,7 @@ try:
             **kwargs):  # noqa
         return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
                          cache=cache, **kwargs)
-except ImportError:
+except Exception:  # could be ImportError, SystemError, etc.
     has_numba = False
 else:
     has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
@@ -1079,23 +1063,3 @@ def pinv(a, rtol=None):
     u = u[:, :rank]
     u /= s[:rank]
     return (u @ vh[:rank]).conj().T
-
-
-###############################################################################
-# PyVista
-
-# Deal with pyvista deprecation of point_data and cell_data
-# (can be removed once we require 0.31+)
-
-def _point_data(obj):
-    try:
-        return obj.point_data
-    except AttributeError:
-        return obj.point_arrays
-
-
-def _cell_data(obj):
-    try:
-        return obj.cell_data
-    except AttributeError:
-        return obj.cell_arrays

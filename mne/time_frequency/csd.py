@@ -449,9 +449,9 @@ class CrossSpectralDensity(object):
 
         Parameters
         ----------
-        fname : str
-            The name of the file to save the CSD to. The extension '.h5' will
-            be appended if the given filename doesn't have it already.
+        fname : path-like
+            The name of the file to save the CSD to. The extension ``'.h5'``
+            will be appended if the given filename doesn't have it already.
         %(overwrite)s
 
             .. versionadded:: 1.0
@@ -464,9 +464,9 @@ class CrossSpectralDensity(object):
         read_csd : For reading CSD objects from a file.
         """
         _, write_hdf5 = _import_h5io_funcs()
-        if not fname.endswith('.h5'):
-            fname += '.h5'
-
+        fname = _check_fname(fname, overwrite=True)
+        if fname.suffix != ".h5":
+            fname = fname.with_name(f"{fname.name}.h5")
         fname = _check_fname(fname, overwrite=overwrite)
         write_hdf5(fname, self.__getstate__(), overwrite=True,
                    title='conpy')
@@ -589,9 +589,9 @@ def read_csd(fname):
 
     Parameters
     ----------
-    fname : str
-        The name of the file to read the CSD from. The extension '.h5' will be
-        appended if the given filename doesn't have it already.
+    fname : path-like
+        The name of the file to read the CSD from. The extension ``'.h5'`` will
+        be appended if the given filename doesn't have it already.
 
     Returns
     -------
@@ -607,6 +607,12 @@ def read_csd(fname):
         fname += '.h5'
 
     csd_dict = read_hdf5(fname, title='conpy')
+
+    if csd_dict["projs"] is not None:
+        # Avoid circular import
+        from ..proj import Projection
+        csd_dict["projs"] = [Projection(**proj) for proj in csd_dict["projs"]]
+
     return CrossSpectralDensity(**csd_dict)
 
 
@@ -803,7 +809,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                          tmax=None, ch_names=None, n_fft=None, bandwidth=None,
                          adaptive=False, low_bias=True, projs=None,
-                         n_jobs=None, *, verbose=None):
+                         n_jobs=None, max_iter=250, *, verbose=None):
     """Estimate cross-spectral density from an array using a multitaper method.
 
     Parameters
@@ -843,6 +849,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
         List of projectors to store in the CSD object. Defaults to ``None``,
         which means no projectors are stored.
     %(n_jobs)s
+    %(max_iter_multitaper)s
     %(verbose)s
 
     Returns
@@ -886,7 +893,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     # Compute the CSD
     return _execute_csd_function(X, times, frequencies, _csd_multitaper,
                                  params=[sfreq, n_times, window_fun, eigvals,
-                                         freq_mask, n_fft, adaptive],
+                                         freq_mask, n_fft, adaptive, max_iter],
                                  n_fft=n_fft, ch_names=ch_names, projs=projs,
                                  n_jobs=n_jobs, verbose=verbose)
 
@@ -1226,37 +1233,13 @@ def _csd_fourier(X, sfreq, n_times, freq_mask, n_fft):
 
 
 def _csd_multitaper(X, sfreq, n_times, window_fun, eigvals, freq_mask, n_fft,
-                    adaptive):
-    """Compute cross spectral density (CSD) using multitaper module.
-
-    Computes the CSD for a single epoch of data.
-
-    Parameters
-    ----------
-    X : ndarray, shape (n_channels, n_times)
-        The time series data consisting of n_channels time-series of length
-        n_times.
-    sfreq : float
-        The sampling frequency of the data in Hertz.
-    n_times : int
-        Number of time samples
-    window_fun : ndarray
-        Window function(s) of length n_times. This corresponds to first output
-        of `dpss_windows`.
-    eigvals : ndarray | float
-        Eigenvalues associated with window functions.
-    freq_mask : ndarray
-        Which frequencies to use.
-    n_fft : int
-        Length of the FFT.
-    adaptive : bool
-        Use adaptive weights to combine the tapered spectra into PSD.
-    """
+                    adaptive, max_iter=250):
+    """Compute cross spectral density (CSD) using multitaper module."""
     x_mt, _ = _mt_spectra(X, window_fun, sfreq, n_fft)
 
     if adaptive:
         # Compute adaptive weights
-        _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
+        _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter,
                                            return_weights=True)
         # Tiling weights so that we can easily use _csd_from_mt()
         weights = weights[:, np.newaxis, :, :]

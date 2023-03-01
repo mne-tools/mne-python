@@ -9,11 +9,12 @@ h5io
 packaging
 pymatreader
 qtpy
-PySide6!=6.3.0
+PySide6!=6.3.0,!=6.4.0,!=6.4.0.1  # incompat with Matplotlib 3.6.1 and qtpy
 pyobjc-framework-Cocoa>=5.2.0; platform_system=="Darwin"
 sip
 scikit-learn
 nibabel
+openmeeg>=2.5.5
 numba
 h5py
 jinja2
@@ -31,7 +32,7 @@ xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
 traitlets
-pyvista>=0.32,!=0.35.2
+pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3
 pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets

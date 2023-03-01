@@ -39,7 +39,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets.sleep_physionet.age import fetch_data
-from mne.time_frequency import psd_welch
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -79,7 +78,7 @@ ALICE, BOB = 0, 1
 [alice_files, bob_files] = fetch_data(subjects=[ALICE, BOB], recording=[1])
 
 raw_train = mne.io.read_raw_edf(alice_files[0], stim_channel='Event marker',
-                                misc=['Temp rectal'])
+                                infer_types=True)
 annot_train = mne.read_annotations(alice_files[1])
 
 raw_train.set_annotations(annot_train, emit_warning=False)
@@ -159,7 +158,7 @@ print(epochs_train)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 raw_test = mne.io.read_raw_edf(bob_files[0], stim_channel='Event marker',
-                               misc=['Temp rectal'])
+                               infer_types=True)
 annot_test = mne.read_annotations(bob_files[1])
 annot_test.crop(annot_test[1]['onset'] - 30 * 60,
                 annot_test[-2]['onset'] + 30 * 60)
@@ -194,13 +193,12 @@ for ax, title, epochs in zip([ax1, ax2],
                              [epochs_train, epochs_test]):
 
     for stage, color in zip(stages, stage_colors):
-        epochs[stage].plot_psd(area_mode=None, color=color, ax=ax,
-                               fmin=0.1, fmax=20., show=False,
-                               average=True, spatial_colors=False)
+        spectrum = epochs[stage].compute_psd(fmin=0.1, fmax=20.)
+        spectrum.plot(ci=None, color=color, axes=ax,
+                      show=False, average=True, spatial_colors=False)
     ax.set(title=title, xlabel='Frequency (Hz)')
-ax2.set(ylabel='µV^2/Hz (dB)')
+ax1.set(ylabel='µV²/Hz (dB)')
 ax2.legend(ax2.lines[2::3], stages)
-plt.show()
 
 ##############################################################################
 # Design a scikit-learn transformer from a Python function
@@ -235,7 +233,8 @@ def eeg_power_band(epochs):
                   "sigma": [11.5, 15.5],
                   "beta": [15.5, 30]}
 
-    psds, freqs = psd_welch(epochs, picks='eeg', fmin=0.5, fmax=30.)
+    spectrum = epochs.compute_psd(picks='eeg', fmin=0.5, fmax=30.)
+    psds, freqs = spectrum.get_data(return_freqs=True)
     # Normalize the PSDs
     psds /= np.sum(psds, axis=-1, keepdims=True)
 

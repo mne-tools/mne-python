@@ -103,9 +103,31 @@ trans = mne.channels.compute_native_head_t(montage)
 # ``mne.transforms.invert_transform(
 #      mne.transforms.combine_transforms(head_mri_t, mri_mni_t))``
 
-fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
-                             subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=['pial', 'head'], coord_frame='mri')
+view_kwargs = dict(azimuth=105, elevation=100, focalpoint=(0, 0, -15))
+brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
+                      cortex='low_contrast', alpha=0.25, background='white')
+brain.add_sensors(epochs.info, trans=trans)
+brain.add_head(alpha=0.25, color='tan')
+brain.show_view(distance=400, **view_kwargs)
+
+# %%
+# Now, let's project onto the inflated brain surface for visualization.
+# This video may be helpful for understanding the how the annotations on
+# the pial surface translate to the inflated brain and flat map:
+#
+# .. youtube:: OOy7t1yq8IM
+brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
+                      surf='inflated', background='black')
+brain.add_annotation('aparc.a2009s')
+brain.add_sensors(epochs.info, trans=trans)
+brain.show_view(distance=500, **view_kwargs)
+
+# %%
+# Let's also show the sensors on a flat brain.
+brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
+                      surf='flat', background='black')
+brain.add_annotation('aparc.a2009s')
+brain.add_sensors(epochs.info, trans=trans)
 
 # %%
 # Let's also look at which regions of interest are nearby our electrode

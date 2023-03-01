@@ -2,7 +2,7 @@
 # Author: Tommy Clausner <Tommy.Clausner@gmail.com>
 #
 # License: BSD-3-Clause
-import os.path as op
+from inspect import signature
 
 import pytest
 import numpy as np
@@ -28,35 +28,30 @@ from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
                        requires_dipy, catch_logging, _record_warnings)
-from mne.fixes import _get_args
 
 # Setup paths
 
 data_path = testing.data_path(download=False)
-sample_dir = op.join(data_path, 'MEG', 'sample')
-subjects_dir = op.join(data_path, 'subjects')
-fname_evoked = op.join(sample_dir, 'sample_audvis-ave.fif')
-fname_trans = op.join(sample_dir, 'sample_audvis_trunc-trans.fif')
-fname_inv_vol = op.join(sample_dir,
-                        'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
-fname_fwd_vol = op.join(sample_dir,
-                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_vol_w = op.join(sample_dir,
-                      'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
-fname_inv_surf = op.join(sample_dir,
-                         'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-fname_fmorph = op.join(data_path, 'MEG', 'sample',
-                       'fsaverage_audvis_trunc-meg')
-fname_smorph = op.join(sample_dir, 'sample_audvis_trunc-meg')
-fname_t1 = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
-fname_vol = op.join(subjects_dir, 'sample', 'bem', 'sample-volume-7mm-src.fif')
-fname_brain = op.join(subjects_dir, 'sample', 'mri', 'brain.mgz')
-fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-fname_fs_vol = op.join(subjects_dir, 'fsaverage', 'bem',
-                       'fsaverage-vol7-nointerp-src.fif.gz')
-fname_aseg_fs = op.join(subjects_dir, 'fsaverage', 'mri', 'aseg.mgz')
-fname_stc = op.join(sample_dir, 'fsaverage_audvis_trunc-meg')
+sample_dir = data_path / "MEG" / "sample"
+subjects_dir = data_path / "subjects"
+fname_evoked = sample_dir / "sample_audvis-ave.fif"
+fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
+fname_inv_vol = sample_dir / "sample_audvis_trunc-meg-vol-7-meg-inv.fif"
+fname_fwd_vol = sample_dir / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+fname_vol_w = sample_dir / "sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w"
+fname_inv_surf = sample_dir / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
+fname_aseg = subjects_dir / "sample" / "mri" / "aseg.mgz"
+fname_fmorph = data_path / "MEG" / "sample" / "fsaverage_audvis_trunc-meg"
+fname_smorph = sample_dir / "sample_audvis_trunc-meg"
+fname_t1 = subjects_dir / "sample" / "mri" / "T1.mgz"
+fname_vol = subjects_dir / "sample" / "bem" / "sample-volume-7mm-src.fif"
+fname_brain = subjects_dir / "sample" / "mri" / "brain.mgz"
+fname_aseg = subjects_dir / "sample" / "mri" / "aseg.mgz"
+fname_fs_vol = (
+    subjects_dir / "fsaverage" / "bem" / "fsaverage-vol7-nointerp-src.fif.gz"
+)
+fname_aseg_fs = subjects_dir / "fsaverage" / "mri" / "aseg.mgz"
+fname_stc = sample_dir / "fsaverage_audvis_trunc-meg"
 
 
 def _real_vec_stc():
@@ -67,7 +62,7 @@ def _real_vec_stc():
 
 def test_sourcemorph_consistency():
     """Test SourceMorph class consistency."""
-    assert _get_args(SourceMorph.__init__)[1:-1] == \
+    assert list(signature(SourceMorph.__init__).parameters)[1:-1] == \
         mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 
@@ -79,12 +74,18 @@ def test_sparse_morph():
                    np.sort(rng.permutation(np.arange(10242))[:6])]
     data = rng.randn(10, 1)
     stc_fs = SourceEstimate(data, vertices_fs, 1, 1, 'fsaverage')
-    spheres_fs = [mne.read_surface(op.join(
-        subjects_dir, 'fsaverage', 'surf', '%s.sphere.reg' % hemi))[0]
-        for hemi in ('lh', 'rh')]
-    spheres_sample = [mne.read_surface(op.join(
-        subjects_dir, 'sample', 'surf', '%s.sphere.reg' % hemi))[0]
-        for hemi in ('lh', 'rh')]
+    spheres_fs = [
+        mne.read_surface(
+            subjects_dir / "fsaverage" / "surf" / f"{hemi}.sphere.reg"
+        )[0]
+        for hemi in ('lh', 'rh')
+    ]
+    spheres_sample = [
+        mne.read_surface(
+            subjects_dir / "sample" / "surf" / f"{hemi}.sphere.reg"
+        )[0]
+        for hemi in ('lh', 'rh')
+    ]
     morph_fs_sample = compute_source_morph(
         stc_fs, 'fsaverage', 'sample', sparse=True, spacing=None,
         subjects_dir=subjects_dir)
@@ -604,7 +605,7 @@ def test_volume_source_morph_round_trip(
     del stc_from, stc_from_rt
     # before and after morph, check the proportion of vertices
     # that are inside and outside the brainmask.mgz
-    brain = nib.load(op.join(subjects_dir, subject_from, 'mri', 'brain.mgz'))
+    brain = nib.load(subjects_dir / subject_from / "mri" / "brain.mgz")
     mask = _get_img_fdata(brain) > 0
     if subject_from == subject_to == 'sample':
         for stc in [stc_from_unit, stc_from_unit_rt]:
@@ -825,7 +826,8 @@ def _mixed_morph_srcs():
         add_interpolator=True, verbose=True)
     # create the destination space
     src_fs = mne.read_source_spaces(
-        op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
+        subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+    )
     src_fs += mne.setup_volume_source_space(
         'fsaverage', pos=7., volume_label=labels_vol,
         subjects_dir=subjects_dir, add_interpolator=False, verbose=True)

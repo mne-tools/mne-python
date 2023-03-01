@@ -3,12 +3,11 @@
 #
 # License: BSD-3-Clause
 
+import sys
 from collections import OrderedDict
 from datetime import datetime, timezone, timedelta
 from itertools import repeat
-import sys
-
-import os.path as op
+from pathlib import Path
 
 import pytest
 from pytest import approx
@@ -30,15 +29,14 @@ from mne.annotations import (_sync_onset, _handle_meas_date,
                              _read_annotations_txt_parse_header)
 from mne.datasets import testing
 
-data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
-fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
-
-first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
-
 data_path = testing.data_path(download=False)
-edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
-edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
+data_dir = data_path / "MEG" / "sample"
+fif_fname = (
+    Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
+)
+first_samps = pytest.mark.parametrize("first_samp", (0, 10000))
+edf_reduced = data_path / "EDF" / "test_reduced.edf"
+edf_annot_only = data_path / "EDF" / "SC4001EC-Hypnogram.edf"
 
 
 needs_pandas = pytest.mark.skipif(
@@ -226,8 +224,7 @@ def test_crop(tmp_path):
     assert_array_almost_equal(raw.annotations.onset, expected_onset, decimal=2)
 
     # Test IO
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'test-annot.fif')
+    fname = tmp_path / "test-annot.fif"
     raw.annotations.save(fname)
     annot_read = read_annotations(fname)
     for attr in ('onset', 'duration'):
@@ -243,7 +240,7 @@ def test_crop(tmp_path):
     assert len(annot) == 0
     annot.crop()  # test if cropping empty annotations doesn't raise an error
     # Test that empty annotations can be saved with an object
-    fname = op.join(tempdir, 'test_raw.fif')
+    fname = tmp_path / "test_raw.fif"
     raw.set_annotations(annot)
     raw.save(fname)
     raw_read = read_raw_fif(fname)
@@ -261,7 +258,7 @@ def test_crop(tmp_path):
     annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
     raw = raw.set_annotations(annotation)
     raw_copied = raw.copy().crop(5, 18)
-    fname = op.join(tempdir, 'test_raw.fif')
+    fname = tmp_path / "test_raw.fif"
     raw_copied.save(fname, overwrite=True)
     raw_loaded = mne.io.read_raw(str(fname))
     for attr in ('onset', 'duration'):
@@ -363,7 +360,7 @@ def test_crop_more():
 @testing.requires_testing_data
 def test_read_brainstorm_annotations():
     """Test reading for Brainstorm events file."""
-    fname = op.join(data_dir, 'events_sample_audvis_raw_bst.mat')
+    fname = data_dir / "events_sample_audvis_raw_bst.mat"
     annot = read_annotations(fname)
     assert len(annot) == 238
     assert annot.onset.min() > 40  # takes into account first_samp
@@ -390,7 +387,7 @@ def test_raw_reject(first_samp):
     with pytest.warns(RuntimeWarning, match='outside the data range'):
         raw.set_annotations(Annotations([2, 100, 105, 148],
                                         [2, 8, 5, 8], 'BAD'))
-    data, times = raw.get_data([0, 1, 3, 4], 100, 11200,  # 1-112 sec
+    data, times = raw.get_data([0, 1, 3, 4], 100, 11200,  # 1-112 s
                                'omit', return_times=True)
     bad_times = np.concatenate([np.arange(200, 400),
                                 np.arange(10000, 10800),
@@ -461,6 +458,21 @@ def test_annotation_filtering(first_samp):
     raws_concat_stop = raws_concat.copy().filter(skip_by_annotation='edge',
                                                  **kwargs_stop)
     assert_allclose(raws_zero[0][0], raws_concat_stop[0][0], atol=1e-14)
+
+    # test notch_filtering
+    raw_notch = concatenate_raws([raws_concat.copy(), raws_concat.copy()])
+    raw_notch.annotations.append(3. + raw_notch._first_time, 0.2, 'foo_notch')
+    raw_notch.annotations.append(5. + raw_notch._first_time, 0.2, 'foo_notch')
+
+    n_times = raw_notch._data.shape[1]
+    with catch_logging() as log:
+        raw_notch.notch_filter(60., fir_design='firwin', trans_bandwidth=5.,
+                               skip_by_annotation='foo_notch', verbose='info')
+    log = log.getvalue()
+    assert '3 contiguous segment' in log
+    # check that data has same shape before/after filtering
+    assert n_times == raw_notch._data.shape[1]
+
     # one last test: let's cut out a section entirely:
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
@@ -726,7 +738,7 @@ def test_events_from_annot_in_raw_objects():
 def test_events_from_annot_onset_alingment():
     """Test events and annotations onset are the same."""
     raw = _raw_annot(meas_date=1, orig_time=1.5)
-    #       sec  0        1        2        3
+    #         s  0        1        2        3
     #       raw  .        |--------xxxxxxxxx
     #     annot  .             |---xx
     # raw.annot  .        |--------xx
@@ -1124,7 +1136,7 @@ def test_date_none(tmp_path):
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
     assert info['meas_date'] is None
     raw = RawArray(data=data, info=info)
-    fname = op.join(str(tmp_path), 'test-raw.fif')
+    fname = tmp_path / "test-raw.fif"
     raw.save(fname)
     raw_read = read_raw_fif(fname, preload=True)
     assert raw_read.info['meas_date'] is None

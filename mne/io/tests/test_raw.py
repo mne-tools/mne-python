@@ -22,7 +22,9 @@ import mne
 from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
+from mne.io._digitization import _dig_kind_dict
 from mne.io.base import _get_scaling
+from mne.io.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
                        object_diff, check_version, requires_pandas,
                        _import_h5io_funcs)
@@ -119,7 +121,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             data1, times1 = raw[picks, sl_time]
             for other_raw in other_raws:
                 data2, times2 = other_raw[picks, sl_time]
-                assert_allclose(data1, data2)
+                assert_allclose(
+                    data1, data2, err_msg='Data mismatch with preload')
                 assert_allclose(times1, times2)
 
         # test projection vs cals and data units
@@ -396,8 +399,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         # len(kwargs) == 0 for the fake arange reader
         if len(kwargs):
             assert key is not None, sorted(kwargs.keys())
-            dirname = op.dirname(fname)
-            these_kwargs[key] = op.basename(fname)
+            this_fname = fname[0] if isinstance(fname, list) else fname
+            dirname = op.dirname(this_fname)
+            these_kwargs[key] = op.basename(this_fname)
             these_kwargs['preload'] = False
             orig_dir = os.getcwd()
             try:
@@ -415,6 +419,36 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 use_kwargs = kwargs.copy()
                 use_kwargs['preload'] = True
                 _test_raw_crop(reader, t_prop, use_kwargs)
+
+    # make sure electrode-like sensor locations show up as dig points
+    eeg_dig = [d for d in (raw.info['dig'] or [])
+               if d['kind'] == _dig_kind_dict['eeg']]
+    pick_kwargs = dict()
+    for t in _ELECTRODE_CH_TYPES + ('fnirs',):
+        pick_kwargs[t] = True
+    dig_picks = pick_types(raw.info, exclude=(), **pick_kwargs)
+    dig_types = _ELECTRODE_CH_TYPES + _FNIRS_CH_TYPES_SPLIT
+    assert (len(dig_picks) > 0) == any(t in raw for t in dig_types)
+    if len(dig_picks):
+        eeg_loc = np.array([  # eeg_loc a bit of a misnomer to match eeg_dig
+            raw.info['chs'][pick]['loc'][:3] for pick in dig_picks])
+        eeg_loc = eeg_loc[np.isfinite(eeg_loc).all(axis=1)]
+        if len(eeg_loc):
+            if 'fnirs_cw_amplitude' in raw:
+                assert 2 * len(eeg_dig) >= len(eeg_loc)
+            else:
+                assert len(eeg_dig) >= len(eeg_loc)  # could have some excluded
+    # make sure that dig points in head coords implies that fiducials are
+    # present
+    if len(raw.info['dig'] or []) > 0:
+        card_pts = [d for d in raw.info['dig']
+                    if d['kind'] == _dig_kind_dict['cardinal']]
+        eeg_dig_head = [
+            d for d in eeg_dig if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+        if len(eeg_dig_head):
+            assert len(card_pts) == 3, 'Cardinal points missing'
+        if len(card_pts) == 3:  # they should all be in head coords then
+            assert len(eeg_dig_head) == len(eeg_dig)
 
     return raw
 

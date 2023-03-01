@@ -136,10 +136,10 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
             title = ch_type
         this_data = np.average(this_data, axis=1)
         axarr[0][idx].set_title(title)
-        vmin = min(this_data) if psd else None
-        vmax = max(this_data) if psd else None  # All negative for dB psd.
+        # can be all negative for dB PSD
+        vlim = (min(this_data), max(this_data)) if psd else (None, None)
         cmap = 'Reds' if psd else None
-        plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
+        plot_topomap(this_data, pos, cmap=cmap, vlim=vlim,
                      axes=axarr[0][idx], show=False, sphere=this_sphere,
                      outlines=outlines)
 
@@ -168,8 +168,8 @@ def _topo_closed(events, ax, lines, fill):
 def _rgb(x, y, z):
     """Transform x, y, z values into RGB colors."""
     rgb = np.array([x, y, z]).T
-    rgb -= rgb.min(0)
-    rgb /= np.maximum(rgb.max(0), 1e-16)  # avoid div by zero
+    rgb -= np.nanmin(rgb, 0)
+    rgb /= np.maximum(np.nanmax(rgb, 0), 1e-16)  # avoid div by zero
     return rgb
 
 
@@ -191,6 +191,18 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
         ax.scatter(pos_x[bads], pos_y[bads], s=size / 6, marker='.',
                    color='w', zorder=1)
     _draw_outlines(ax, outlines)
+
+
+def _check_spatial_colors(info, picks, spatial_colors):
+    """Use spatial colors if channel locations exist."""
+    # NB: this assumes `picks`` has already been through _picks_to_idx()
+    # and it reflects *just the picks for the current subplot*
+    if spatial_colors == 'auto':
+        if len(picks) == 1:
+            spatial_colors = False
+        else:
+            spatial_colors = _check_ch_locs(info)
+    return spatial_colors
 
 
 def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
@@ -217,7 +229,7 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         If True, draw at the end.
     """
     import matplotlib.pyplot as plt
-
+    _check_option('spatial_colors', spatial_colors, [True, False, 'auto'])
     # For evoked.plot_image ...
     # First input checks for group_by and axes if any of them is not None.
     # Either both must be dicts, or neither.
@@ -251,7 +263,8 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                          mask_style=mask_style, mask_cmap=mask_cmap,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
-                         sphere=sphere, draw=False)
+                         sphere=sphere, draw=False,
+                         spatial_colors=spatial_colors)
             if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
@@ -451,19 +464,22 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if (spatial_colors is True and
+                # _plot_psd can pass spatial_colors=color (e.g., "black") so
+                # we need to use "is True" here
+                _spat_col = _check_spatial_colors(info, idx, spatial_colors)
+                if (_spat_col is True and
                         not _check_ch_locs(info=info, picks=idx)):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
-                    spatial_colors = selectable = False
-                if spatial_colors is True and len(idx) != 1:
+                    _spat_col = selectable = False
+                if _spat_col is True and len(idx) != 1:
                     x, y, z = locs3d.T
                     colors = _rgb(x, y, z)
                     _handle_spatial_colors(colors, info, idx, this_type, psd,
                                            ax, sphere)
                 else:
-                    if isinstance(spatial_colors, (tuple, str)):
-                        col = [spatial_colors]
+                    if isinstance(_spat_col, (tuple, str)):
+                        col = [_spat_col]
                     else:
                         col = ['k']
                     colors = col * len(idx)
@@ -488,7 +504,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 for ch_idx, z in enumerate(z_ord):
                     line_list.append(
                         ax.plot(times, D[ch_idx], picker=True,
-                                zorder=z + 1 if spatial_colors is True else 1,
+                                zorder=z + 1 if _spat_col else 1,
                                 color=colors[ch_idx], alpha=line_alpha,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
@@ -736,11 +752,14 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
            Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : bool
+    spatial_colors : bool | 'auto'
         If True, the lines are color coded by mapping physical sensor
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
-        channels are plotted black and bad channels red. Defaults to False.
+        channels are plotted black and bad channels red. If ``'auto'``, uses
+        True if channel locations are present, and False if channel locations
+        are missing or if the data contains only a single channel. Defaults to
+        ``'auto'``.
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         ``spatial_colors`` is used.
@@ -1243,7 +1262,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
                               hline=[-1.96, 1.96], show=False,
-                              time_unit=time_unit)
+                              time_unit=time_unit, spatial_colors=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k',
@@ -1401,7 +1420,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     topomap_args : None | dict
         A dict of ``kwargs`` that are forwarded to
         :meth:`mne.Evoked.plot_topomap` to style the topomaps.
-        If it is not in this dict, ``outlines='skirt'`` will be passed.
+        If it is not in this dict, ``outlines='head'`` will be passed.
         ``show``, ``times``, ``colorbar`` are illegal.
         If ``None``, no customizable arguments will be passed.
         Defaults to ``None``.
@@ -1548,7 +1567,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     topomap_args_pass = (dict(extrapolate='local') if ch_type == 'seeg'
                          else dict())
     topomap_args_pass.update(topomap_args)
-    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
+    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'head')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times_sec, axes=map_ax, show=False,
                         colorbar=False, **topomap_args_pass)
@@ -1897,8 +1916,18 @@ def _draw_legend_pce(legend, split_legend, styles, linestyles, colors, cmap,
         legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
     # draw the legend
     if any([draw_styles, draw_colors, draw_linestyles]):
-        labels = [line.get_label() for line in lines]
+        labels = [_abbreviate_label(line.get_label()) for line in lines]
         ax.legend(lines, labels, **legend_params)
+
+
+_LABEL_LIMIT = 40
+
+
+# don't let labels be excessively long
+def _abbreviate_label(label):
+    if len(label) > _LABEL_LIMIT:
+        label = label[:_LABEL_LIMIT] + ' …'
+    return label
 
 
 def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
@@ -2305,8 +2334,13 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     picks, picked_types = _picks_to_idx(info, picks, return_kind=True)
     # some things that depend on picks:
     ch_names = np.array(one_evoked.ch_names)[picks].tolist()
+    all_types = _DATA_CH_TYPES_SPLIT + (
+        'misc',  # from ICA
+        'emg',
+        'ref_meg',
+    )
     ch_types = [t for t in _get_channel_types(info, picks=picks, unique=True)
-                if t in _DATA_CH_TYPES_SPLIT + ('misc',)]  # miscICA
+                if t in all_types]
     picks_by_type = channel_indices_by_type(info, picks)
     # discard picks from non-data channels (e.g., ref_meg)
     good_picks = sum([picks_by_type[ch_type] for ch_type in ch_types], [])

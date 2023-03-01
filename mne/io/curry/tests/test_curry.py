@@ -6,7 +6,7 @@
 # License: BSD-3-Clause
 
 from datetime import datetime, timezone
-import os.path as op
+from pathlib import Path
 from shutil import copyfile
 
 import pytest
@@ -22,35 +22,27 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import check_version, catch_logging, _record_warnings
 from mne.annotations import read_annotations
 from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
                                 _read_events_curry, FILE_EXTENSIONS)
 
-
 data_dir = testing.data_path(download=False)
-curry_dir = op.join(data_dir, "curry")
-
-bdf_file = op.join(data_dir, 'BDF', 'test_bdf_stim_channel.bdf')
-
-bti_rfDC_file = op.join(data_dir, 'BTi', 'erm_HFH', 'c,rfDC')
-
-curry7_rfDC_file = op.join(curry_dir, "c,rfDC Curry 7.dat")
-curry8_rfDC_file = op.join(curry_dir, "c,rfDC Curry 8.cdt")
-
-curry7_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.dat")
-curry7_bdf_ascii_file = op.join(curry_dir,
-                                "test_bdf_stim_channel Curry 7 ASCII.dat")
-
-curry8_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 8.cdt")
-curry8_bdf_ascii_file = op.join(curry_dir,
-                                "test_bdf_stim_channel Curry 8 ASCII.cdt")
-
-missing_event_file = op.join(curry_dir, "test_sfreq_0.dat")
-
-Ref_chan_omitted_file = op.join(curry_dir, 'Ref_channel_omitted Curry7.dat')
-Ref_chan_omitted_reordered_file = op.join(curry_dir, 'Ref_channel_omitted '
-                                          'reordered Curry7.dat')
+curry_dir = data_dir / "curry"
+bdf_file = data_dir / "BDF" / "test_bdf_stim_channel.bdf"
+bti_rfDC_file = data_dir / "BTi" / "erm_HFH" / "c,rfDC"
+curry7_rfDC_file = curry_dir / "c,rfDC Curry 7.dat"
+curry8_rfDC_file = curry_dir / "c,rfDC Curry 8.cdt"
+curry7_bdf_file = curry_dir / "test_bdf_stim_channel Curry 7.dat"
+curry7_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 7 ASCII.dat"
+curry8_bdf_file = curry_dir / "test_bdf_stim_channel Curry 8.cdt"
+curry8_bdf_ascii_file = curry_dir / "test_bdf_stim_channel Curry 8 ASCII.cdt"
+missing_event_file = curry_dir / "test_sfreq_0.dat"
+Ref_chan_omitted_file = curry_dir / "Ref_channel_omitted Curry7.dat"
+Ref_chan_omitted_reordered_file = (
+    curry_dir / "Ref_channel_omitted reordered Curry7.dat"
+)
 
 
 @pytest.fixture(scope='session')
@@ -96,6 +88,18 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol)
     assert raw.info['dev_head_t'] is None
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname', [
+    pytest.param(curry7_bdf_file, id='curry 7'),
+    pytest.param(curry8_bdf_file, id='curry 8'),
+    pytest.param(curry7_bdf_ascii_file, id='curry 7 ascii'),
+    pytest.param(curry8_bdf_ascii_file, id='curry 8 ascii'),
+])
+def test_read_raw_curry_test_raw(fname):
+    """Test read_raw_curry with _test_raw_reader."""
+    _test_raw_reader(read_raw_curry, fname=fname)
 
 
 # These values taken from a different recording but allow us to test
@@ -208,19 +212,18 @@ WANT_TRANS = np.array(
 def test_read_raw_curry_rfDC(fname, tol, mock_dev_head_t, tmp_path):
     """Test reading CURRY files."""
     if mock_dev_head_t:
-        if 'Curry 7' in fname:  # not supported yet
+        if 'Curry 7' in fname.name:  # not supported yet
             return
         # copy files to tmp_path
-        base = op.splitext(fname)[0]
         for ext in ('.cdt', '.cdt.dpa'):
-            src = base + ext
-            dst = op.join(tmp_path, op.basename(base) + ext)
+            src = fname.with_suffix(ext)
+            dst = tmp_path / fname.with_suffix(ext).name
             copyfile(src, dst)
             if ext == '.cdt.dpa':
                 with open(dst, 'a') as fid:
                     fid.write(LM_CONTENT)
-        fname = op.join(tmp_path, op.basename(fname))
-        with open(fname + '.hpi', 'w') as fid:
+        fname = tmp_path / fname.name
+        with open(fname.with_suffix(fname.suffix + ".hpi"), "w") as fid:
             fid.write(HPI_CONTENT)
 
     # check data
@@ -335,18 +338,23 @@ def sfreq_testing_data(tmp_path, request):
     """Generate different sfreq, time_step scenarios to be tested."""
     sfreq, time_step = request.param['sfreq'], request.param['time_step']
 
-    in_base_name = curry7_bdf_file.strip('dat')
-    out_base_name = str(tmp_path / 'curry.')
-
     # create dummy empty files for 'dat' and 'rs3'
-    for fname in [out_base_name + ext for ext in ['dat', 'rs3']]:
-        open(fname, 'a').close()
+    for fname in ["curry.dat", "curry.rs3"]:
+        open(tmp_path / fname, 'a').close()
 
-    _mock_info_file(src=in_base_name + 'dap', dst=out_base_name + 'dap',
-                    sfreq=sfreq, time_step=time_step)
-    _mock_info_file(src=in_base_name + 'rs3', dst=out_base_name + 'rs3',
-                    sfreq=sfreq, time_step=time_step)
-    return out_base_name + 'dat'
+    _mock_info_file(
+        src=curry7_bdf_file.with_suffix(".dap"),
+        dst=tmp_path / "curry.dap",
+        sfreq=sfreq,
+        time_step=time_step,
+    )
+    _mock_info_file(
+        src=curry7_bdf_file.with_suffix(".rs3"),
+        dst=tmp_path / "curry.rs3",
+        sfreq=sfreq,
+        time_step=time_step,
+    )
+    return tmp_path / "curry.dat"
 
 
 @testing.requires_testing_data
@@ -358,12 +366,12 @@ def test_sfreq(sfreq_testing_data):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname', [
-    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 7.cef', id='7'),
-    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 8.cdt.cef', id='8'),
-    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 7 ASCII.cef',
-                 id='7 ascii'),
-    pytest.param(curry_dir + '/test_bdf_stim_channel Curry 8 ASCII.cdt.cef',
-                 id='8 ascii'),
+    pytest.param(curry_dir / "test_bdf_stim_channel Curry 7.cef", id="7"),
+    pytest.param(curry_dir / "test_bdf_stim_channel Curry 8.cdt.cef", id="8"),
+    pytest.param(curry_dir / "test_bdf_stim_channel Curry 7 ASCII.cef",
+                 id="7 ascii"),
+    pytest.param(curry_dir / "test_bdf_stim_channel Curry 8 ASCII.cdt.cef",
+                 id="8 ascii"),
 ])
 def test_read_curry_annotations(fname):
     """Test reading for Curry events file."""
@@ -386,15 +394,21 @@ def test_read_curry_annotations(fname):
 def _get_read_annotations_mock_info(name_part, mock_dir):
     original, modified = dict(), dict()
 
-    original['event'] = curry_dir + '/test_bdf_stim_channel ' + name_part
-    original['base'], ext = original['event'].split(".", maxsplit=1)
+    original["event"] = curry_dir / ("test_bdf_stim_channel " + name_part)
+    original["base"], ext = str(original["event"]).split(".", maxsplit=1)
+    original["base"] = Path(original["base"])
     version = _get_curry_version(ext)
-    original['info'] = original['base'] + FILE_EXTENSIONS[version]["info"]
+    original["info"] = original["base"].with_suffix(
+        FILE_EXTENSIONS[version]["info"]
+    )
 
-    modified['base'] = str(mock_dir / 'curry')
-    modified['event'] = (modified['base'] +
-                         FILE_EXTENSIONS[version]["events_cef"])
-    modified['info'] = modified['base'] + FILE_EXTENSIONS[version]["info"]
+    modified["base"] = mock_dir / "curry"
+    modified["event"] = modified["base"].with_suffix(
+        FILE_EXTENSIONS[version]["events_cef"]
+    )
+    modified["info"] = modified["base"].with_suffix(
+        FILE_EXTENSIONS[version]["info"]
+    )
 
     return original, modified
 
@@ -416,8 +430,9 @@ def test_read_curry_annotations_using_mocked_info(tmp_path, name_part):
                             '50000', '1', '50000', '1', '50000', '1', '50000',
                             '1', '50000', '1', '50000']
 
-    original, fname = _get_read_annotations_mock_info("Curry " + name_part,
-                                                      tmp_path)
+    original, fname = _get_read_annotations_mock_info(
+        "Curry " + name_part, tmp_path
+    )
     copyfile(src=original['event'], dst=fname['event'])
 
     _msg = 'required files cannot be found'
@@ -478,3 +493,22 @@ def test_meas_date(fname, expected_meas_date):
     # If the information is not valid, raw.info['meas_date'] should be None
     raw = read_raw_curry(fname, preload=False)
     assert raw.info['meas_date'] == expected_meas_date
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname, others', [
+    pytest.param(curry7_rfDC_file, ('.dap', '.rs3'), id='curry7'),
+    pytest.param(curry8_rfDC_file, ('.cdt.dpa',), id='curry8'),
+])
+def test_dot_names(fname, others, tmp_path):
+    """Test that dots are parsed properly (e.g., in paths)."""
+    my_path = tmp_path / 'dot.dot.dot'
+    my_path.mkdir()
+    my_path = my_path / Path(fname).parts[-1]
+    fname = Path(fname)
+    copyfile(fname, my_path)
+    for ext in others:
+        this_fname = fname.with_suffix(ext)
+        to_fname = my_path.with_suffix(ext)
+        copyfile(this_fname, to_fname)
+    read_raw_curry(my_path)

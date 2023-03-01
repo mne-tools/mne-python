@@ -92,10 +92,12 @@ extensions = [
     'mne_substitutions',
     'newcontrib_substitutions',
     'gen_names',
+    'matplotlib.sphinxext.plot_directive',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
     'sphinx_design',
-    'sphinxcontrib.youtube'
+    'sphinxcontrib.youtube',
+    'unit_role',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -134,8 +136,8 @@ copybutton_prompt_is_regexp = True
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://numpy.org/devdocs', None),
-    'scipy': ('https://scipy.github.io/devdocs', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
     'numba': ('https://numba.readthedocs.io/en/latest', None),
@@ -160,7 +162,8 @@ intersphinx_mapping = {
              'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
     'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
-    'pyqtgraph': ('https://pyqtgraph.readthedocs.io/en/latest/', None)
+    'pyqtgraph': ('https://pyqtgraph.readthedocs.io/en/latest/', None),
+    'openmeeg': ('https://openmeeg.github.io', None),
 }
 
 
@@ -180,7 +183,7 @@ numpydoc_xref_aliases = {
     'file-like': ':term:`file-like <python:file object>`',
     'iterator': ':term:`iterator <python:iterator>`',
     'path-like': ':term:`path-like`',
-    'array-like': ':term:`array-like`',
+    'array-like': ':term:`array_like <numpy:array_like>`',
     'Path': ':class:`python:pathlib.Path`',
     'bool': ':class:`python:bool`',
     # Matplotlib
@@ -236,6 +239,9 @@ numpydoc_xref_aliases = {
     'Transform': 'mne.transforms.Transform',
     'Coregistration': 'mne.coreg.Coregistration',
     'Figure3D': 'mne.viz.Figure3D',
+    'EOGRegression': 'mne.preprocessing.EOGRegression',
+    'Spectrum': 'mne.time_frequency.Spectrum',
+    'EpochsSpectrum': 'mne.time_frequency.EpochsSpectrum',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
@@ -262,7 +268,7 @@ numpydoc_xref_ignore = {
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF', 'RawSNIRF', 'RawBOXY',
-    'RawPersyst', 'RawNihon', 'RawNedf', 'RawHitachi',
+    'RawPersyst', 'RawNihon', 'RawNedf', 'RawHitachi', 'RawFIL',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
@@ -284,10 +290,6 @@ numpydoc_validation_exclude = {  # set of regex
     r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
     # copied from sklearn
     r'mne\.utils\.deprecated',
-    # deprecations
-    r'mne\.connectivity\.degree', r'mne\.connectivity\.seed_target_indices',
-    r'mne\.viz\.plot_sensors_connectivity',
-    r'mne\.viz\.plot_connectivity_circle',
 }
 
 
@@ -389,6 +391,7 @@ else:
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista
         pyvista.OFF_SCREEN = False
+        pyvista.BUILDING_GALLERY = True
         scrapers += (
             mne.gui._GUIScraper(),
             mne.viz._brain._BrainScraper(),
@@ -465,6 +468,42 @@ sphinx_gallery_conf = {
     'matplotlib_animations': True,
     'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
+    'exclude_implicit_doc': {
+        r'mne\.io\.read_raw_fif', r'mne\.io\.Raw', r'mne\.Epochs',
+        r'mne.datasets.*',
+    },
+    'show_api_usage': False,  # disable for now until graph warning fixed
+    'api_usage_ignore': (
+        '('
+        '.*__.*__|'  # built-ins
+        '.*Base.*|.*Array.*|mne.Vector.*|mne.Mixed.*|mne.Vol.*|'  # inherited
+        'mne.coreg.Coregistration.*|'  # GUI
+        # common
+        '.*utils.*|.*verbose()|.*copy()|.*update()|.*save()|'
+        '.*get_data()|'
+        # mixins
+        '.*add_channels()|.*add_reference_channels()|'
+        '.*anonymize()|.*apply_baseline()|.*apply_function()|'
+        '.*apply_hilbert()|.*as_type()|.*decimate()|'
+        '.*drop()|.*drop_channels()|.*drop_log_stats()|'
+        '.*export()|.*get_channel_types()|'
+        '.*get_montage()|.*interpolate_bads()|.*next()|'
+        '.*pick()|.*pick_channels()|.*pick_types()|'
+        '.*plot_sensors()|.*rename_channels()|'
+        '.*reorder_channels()|.*savgol_filter()|'
+        '.*set_eeg_reference()|.*set_channel_types()|'
+        '.*set_meas_date()|.*set_montage()|.*shift_time()|'
+        '.*time_as_index()|.*to_data_frame()|'
+        # dictionary inherited
+        '.*clear()|.*fromkeys()|.*get()|.*items()|'
+        '.*keys()|.*pop()|.*popitem()|.*setdefault()|'
+        '.*values()|'
+        # sklearn inherited
+        '.*apply()|.*decision_function()|.*fit()|'
+        '.*fit_transform()|.*get_params()|.*predict()|'
+        '.*predict_proba()|.*set_params()|.*transform()|'
+        # I/O, also related to mixins
+        '.*.remove.*|.*.write.*)')
 }
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
@@ -549,6 +588,11 @@ nitpick_ignore = [
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
 ]
+nitpick_ignore_regex = [
+    ('py:.*', r"mne\.io\.BaseRaw.*"),
+    ('py:.*', r"mne\.BaseEpochs.*"),
+    ('py:obj', "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)"),  # noqa: E501
+]
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 
@@ -567,28 +611,35 @@ html_theme_options = {
     'icon_links': [
         dict(name='GitHub',
              url='https://github.com/mne-tools/mne-python',
-             icon='fab fa-github-square'),
+             icon='fa-brands fa-square-github'),
+        dict(name='Mastodon',
+             url='https://fosstodon.org/@mne',
+             icon='fa-brands fa-mastodon',
+             attributes=dict(rel='me')),
         dict(name='Twitter',
              url='https://twitter.com/mne_python',
-             icon='fab fa-twitter-square'),
+             icon='fa-brands fa-square-twitter'),
         dict(name='Discourse',
              url='https://mne.discourse.group/',
-             icon='fab fa-discourse'),
+             icon='fa-brands fa-discourse'),
         dict(name='Discord',
              url='https://discord.gg/rKfvxTuATa',
-             icon='fab fa-discord')
+             icon='fa-brands fa-discord')
     ],
-    'icon_links_label': 'Quick Links',  # for screen reader
+    'icon_links_label': 'External Links',  # for screen reader
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
-    'analytics': dict(google_analytics_id='UA-37225609-1'),
+    'secondary_sidebar_items': ['page-toc'],
+    'analytics': dict(google_analytics_id='G-5TBCPCRB6X'),
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
         'version_match': switcher_version_match,
-    }
+    },
+    'pygment_light_style': 'default',
+    'pygment_dark_style': 'github-dark',
 }
 
 # The name of an image file (relative to this directory) to place at the top
@@ -752,7 +803,7 @@ html_context = {
         dict(name='Technische Universität Ilmenau',
              img='Ilmenau-dark.svg',
              url='https://www.tu-ilmenau.de/',
-             size=xxl,\
+             size=xxl,
              klass='only-dark'),
         dict(name='Berkeley Institute for Data Science',
              img='BIDS.svg',
@@ -822,6 +873,10 @@ html_context = {
              url='https://www.research.chop.edu/imaging',
              size=xxl,
              klass='only-dark'),
+        dict(name='Donders Institute for Brain, Cognition and Behaviour at Radboud University',  # noqa E501
+             img='Donders.png',
+             url='https://www.ru.nl/donders/',
+             size=xl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
@@ -861,6 +916,31 @@ html_context = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'mne-doc'
+
+
+# -- Options for plot_directive ----------------------------------------------
+
+# Adapted from SciPy
+plot_include_source = True
+plot_formats = [('png', 96)]
+plot_html_show_formats = False
+plot_html_show_source_link = False
+font_size = 13 * 72 / 96.0  # 13 px
+plot_rcparams = {
+    'font.size': font_size,
+    'axes.titlesize': font_size,
+    'axes.labelsize': font_size,
+    'xtick.labelsize': font_size,
+    'ytick.labelsize': font_size,
+    'legend.fontsize': font_size,
+    'figure.figsize': (6, 5),
+    'figure.subplot.bottom': 0.2,
+    'figure.subplot.left': 0.2,
+    'figure.subplot.right': 0.9,
+    'figure.subplot.top': 0.85,
+    'figure.subplot.wspace': 0.4,
+    'text.usetex': False,
+}
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -919,6 +999,20 @@ def reset_warnings(gallery_conf, fname):
         'The \'sym_pos\' keyword is deprecated',
         # numba
         '`np.MachAr` is deprecated',
+        # joblib hasn't updated to avoid distutils
+        'distutils package is deprecated',
+        # jupyter
+        'Jupyter is migrating its paths to use standard',
+        r'Widget\..* is deprecated\.',
+        # PyQt6
+        'Enum value .* is marked as deprecated',
+        # matplotlib PDF output
+        'The py23 module has been deprecated',
+        # pkg_resources
+        'Implementing implicit namespace packages',
+        'Deprecated call to `pkg_resources',
+        # nilearn
+        r'The register_cmap function was deprecated in Matplotlib 3\.7',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -933,6 +1027,18 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message=r'.*Setting theme=.*6 in qdarkstyle.*',
         category=RuntimeWarning)
+    # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
+    warnings.filterwarnings(
+        'ignore', message=r'iteritems is deprecated.*Use \.items instead\.',
+        category=FutureWarning)
+    # pandas in 50_epochs_to_data_frame.py
+    warnings.filterwarnings(
+        'ignore', message=r'invalid value encountered in cast',
+        category=RuntimeWarning)
+    # xarray _SixMetaPathImporter (?)
+    warnings.filterwarnings(
+        'ignore', message=r'falling back to find_module',
+        category=ImportWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
@@ -944,41 +1050,30 @@ reset_warnings(None, None)
 
 # -- Fontawesome support -----------------------------------------------------
 
-# here the "fab" and "fas" refer to "brand" and "solid" (determines which font
-# file to look in). "fw" indicates fixed width.
 brand_icons = ('apple', 'linux', 'windows', 'discourse', 'python')
-fixed_icons = (
+fixed_width_icons = (
     # homepage:
-    'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
+    'book', 'code-branch', 'newspaper', 'circle-question', 'quote-left',
     # contrib guide:
-    'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
-    'universal-access', 'discourse', 'python',
+    'bug-slash', 'comment', 'computer-mouse', 'hand-sparkles', 'pencil',
+    'text-slash', 'universal-access', 'wand-magic-sparkles',
+    'discourse', 'python',
 )
 other_icons = (
     'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
-    'terminal', 'cloud-download-alt', 'wrench', 'hourglass'
+    'terminal', 'cloud-arrow-down', 'wrench', 'hourglass-half'
 )
-icons = dict()
-for icon in brand_icons + fixed_icons + other_icons:
-    font = ('fab' if icon in brand_icons else 'fas',)  # brand or solid font
-    fw = ('fa-fw',) if icon in fixed_icons else ()     # fixed-width
-    icons[icon] = font + fw
+icon_class = dict()
+for icon in brand_icons + fixed_width_icons + other_icons:
+    icon_class[icon] = ('fa-brands',) if icon in brand_icons else ('fa-solid',)
+    icon_class[icon] += ('fa-fw',) if icon in fixed_width_icons else ()
 
 prolog = ''
-for icon, classes in icons.items():
+for icon, classes in icon_class.items():
     prolog += f'''
 .. |{icon}| raw:: html
 
-    <i class="{' '.join(classes)} fa-{icon}"></i>
-'''
-
-prolog += '''
-.. |fix-bug| raw:: html
-
-    <span class="fa-stack small-stack">
-        <i class="fas fa-bug fa-stack-1x"></i>
-        <i class="fas fa-ban fa-stack-2x"></i>
-    </span>
+    <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
 '''
 
 prolog += '''

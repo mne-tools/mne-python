@@ -16,6 +16,8 @@ Time-Frequency
    AverageTFR
    EpochsTFR
    CrossSpectralDensity
+   Spectrum
+   EpochsSpectrum
 
 Functions that operate on mne-python objects:
 
@@ -29,13 +31,12 @@ Functions that operate on mne-python objects:
    pick_channels_csd
    read_csd
    fit_iir_model_raw
-   psd_welch
-   psd_multitaper
    tfr_morlet
    tfr_multitaper
    tfr_stockwell
    read_tfrs
    write_tfrs
+   read_spectrum
 
 Functions that operate on ``np.ndarray`` objects:
 
@@ -46,6 +47,7 @@ Functions that operate on ``np.ndarray`` objects:
    csd_array_multitaper
    csd_array_morlet
    dpss_windows
+   fwhm
    morlet
    stft
    istft

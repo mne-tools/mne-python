@@ -11,7 +11,6 @@ from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
 from .parallel import parallel_func
-from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, warn, _pl,
                     _check_preload, _validate_type, _check_option, _ensure_int)
 from ._ola import _COLA
@@ -132,19 +131,19 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         Signals to filter.
     h : 1d array
         Filter impulse response (FIR filter coefficients). Must be odd length
-        if phase == 'linear'.
+        if ``phase='linear'``.
     n_fft : int
         Length of the FFT. If None, the best size is determined automatically.
     phase : str
-        If 'zero', the delay for the filter is compensated (and it must be
-        an odd-length symmetric filter). If 'linear', the response is
-        uncompensated. If 'zero-double', the filter is applied in the
+        If ``'zero'``, the delay for the filter is compensated (and it must be
+        an odd-length symmetric filter). If ``'linear'``, the response is
+        uncompensated. If ``'zero-double'``, the filter is applied in the
         forward and reverse directions. If 'minimum', a minimum-phase
         filter will be used.
     picks : list | None
         See calling functions.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
         is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
@@ -802,7 +801,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     .. note:: If n_jobs > 1, more memory is required as
               ``len(picks) * n_times`` additional time points need to
-              be temporaily stored in memory.
+              be temporarily stored in memory.
 
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample` and
@@ -1196,19 +1195,12 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
 
 
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
-    # max taper size chosen because it has an max error < 1e-3:
-    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
-    # 0.00099972447657578449
-    # so we use 1000 because it's the first "nice" number bigger than 953.
-    # but if we have a new enough scipy,
-    # it's only ~0.175 sec for 8 tapers even with 100000 samples
     from scipy import stats
-    dpss_n_times_max = 100000
+    from .time_frequency.multitaper import _compute_mt_params
 
     # figure out what tapers to use
     window_fun, _, _ = _compute_mt_params(
-        n_times, sfreq, mt_bandwidth, False, False,
-        interp_from=min(n_times, dpss_n_times_max), verbose=False)
+        n_times, sfreq, mt_bandwidth, False, False, verbose=False)
 
     # F-stat of 1-p point
     threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
@@ -1297,6 +1289,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
     """
+    from .time_frequency.multitaper import _mt_spectra
     assert x.ndim == 1
     if x.shape[-1] != window_fun.shape[-1]:
         window_fun, threshold = get_thresh(x.shape[-1])
@@ -1828,7 +1821,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         if fir_design == 'firwin' or phase == 'zero':
             filter_length += (filter_length - 1) % 2
 
-        logger.info('- Filter length: %s samples (%0.3f sec)'
+        logger.info('- Filter length: %s samples (%0.3f s)'
                     % (filter_length, filter_length / sfreq))
         logger.info('')
 
@@ -1942,15 +1935,7 @@ class FilterMixin(object):
         %(phase)s
         %(fir_window)s
         %(fir_design)s
-        skip_by_annotation : str | list of str
-            If a string (or list of str), any annotation segment that begins
-            with the given string will not be included in filtering, and
-            segments on either side of the given excluded annotated segment
-            will be filtered separately (i.e., as independent signals).
-            The default (``('edge', 'bad_acq_skip')`` will separately filter
-            any segments that were concatenated by :func:`mne.concatenate_raws`
-            or :meth:`mne.io.Raw.append`, or separated during acquisition.
-            To disable, provide an empty list. Only used if ``inst`` is raw.
+        %(skip_by_annotation)s
 
             .. versionadded:: 0.16.
         %(pad_fir)s
@@ -1993,7 +1978,7 @@ class FilterMixin(object):
 
         .. note:: If n_jobs > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
+                  be temporarily stored in memory.
 
         For more information, see the tutorials
         :ref:`disc-filtering` and :ref:`tut-filter-resample` and
@@ -2139,7 +2124,7 @@ class FilterMixin(object):
         If envelope=False, more memory is required since the original raw data
         as well as the analytic signal have temporarily to be stored in memory.
         If n_jobs > 1, more memory is required as ``len(picks) * n_times``
-        additional time points need to be temporaily stored in memory.
+        additional time points need to be temporarily stored in memory.
 
         Also note that the ``n_fft`` parameter will allow you to pad the signal
         with zeros before performing the Hilbert transform. This padding

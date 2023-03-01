@@ -9,6 +9,8 @@
 # License: BSD Style.
 
 from collections import OrderedDict
+import importlib
+import inspect
 import os
 import os.path as op
 from pathlib import Path
@@ -142,11 +144,58 @@ def _do_path_update(path, update_path, key, name):
     return path
 
 
+# This is meant to be semi-public: let packages like mne-bids use it to make
+# sure they don't accidentally set download=True in their tests, too
+_MODULES_TO_ENSURE_DOWNLOAD_IS_FALSE_IN_TESTS = ('mne',)
+
+
+def _check_in_testing_and_raise(name, download):
+    """Check if we're in an MNE test and raise an error if download!=False."""
+    root_dirs = [
+        importlib.import_module(ns)
+        for ns in _MODULES_TO_ENSURE_DOWNLOAD_IS_FALSE_IN_TESTS]
+    root_dirs = [str(Path(ns.__file__).parent) for ns in root_dirs]
+    check = False
+    func = None
+    frame = inspect.currentframe()
+    try:
+        # First, traverse out of the data_path() call
+        while frame:
+            if frame.f_code.co_name in ('data_path', 'load_data'):
+                func = frame.f_code.co_name
+                frame = frame.f_back.f_back  # out of verbose decorator
+                break
+            frame = frame.f_back
+        # Next, see what the caller was
+        while frame:
+            fname = frame.f_code.co_filename
+            if fname is not None:
+                fname = Path(fname)
+                # in mne namespace, and
+                # (can't use is_relative_to here until 3.9)
+                if any(str(fname).startswith(rd) for rd in root_dirs) and (
+                        # in tests/*.py
+                        fname.parent.stem == 'tests' or
+                        # or in a conftest.py
+                        fname.stem == 'conftest.py'):
+                    check = True
+                    break
+            frame = frame.f_back
+    finally:
+        del frame
+    if check and download is not False:
+        raise RuntimeError(
+            f'Do not download dataset {repr(name)} in tests, pass '
+            f'{func}(download=False) to prevent accidental downloads')
+
+
 def _download_mne_dataset(name, processor, path, force_update,
                           update_path, download, accept=False):
     """Aux function for downloading internal MNE datasets."""
     import pooch
     from mne.datasets._fetch import fetch_dataset
+
+    _check_in_testing_and_raise(name, download)
 
     # import pooch library for handling the dataset downloading
     dataset_params = MNE_DATASETS[name]
@@ -254,7 +303,7 @@ def _download_all_example_data(verbose=True):
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor, refmeg_noise, fetch_infant_template,
                    fetch_fsaverage, ssvep, erp_core, epilepsy_ecog,
-                   fetch_phantom)
+                   fetch_phantom, ucl_opm_auditory)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -271,6 +320,7 @@ def _download_all_example_data(verbose=True):
     refmeg_noise.data_path()
     ssvep.data_path()
     epilepsy_ecog.data_path()
+    ucl_opm_auditory.data_path()
     brainstorm.bst_raw.data_path(accept=True)
     brainstorm.bst_auditory.data_path(accept=True)
     brainstorm.bst_resting.data_path(accept=True)
@@ -302,7 +352,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
     %(verbose)s
@@ -314,20 +364,20 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     import pooch
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    destination = op.join(subjects_dir, 'fsaverage', 'label')
+    destination = subjects_dir / "fsaverage" / "label"
     urls = dict(lh='https://osf.io/p92yb/download',
                 rh='https://osf.io/4kxny/download')
     hashes = dict(lh='9e4d8d6b90242b7e4b0145353436ef77',
                   rh='dd6464db8e7762d969fc1d8087cd211b')
     for hemi in ('lh', 'rh'):
         fname = f'{hemi}.aparc_sub.annot'
-        fpath = op.join(destination, fname)
-        if not op.isfile(fpath):
+        fpath = destination / fname
+        if not fpath.is_file():
             pooch.retrieve(
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
-                fname=fname
+                fname=fname,
             )
 
 
@@ -342,7 +392,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
     combine : bool
@@ -364,14 +414,13 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
     import pooch
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    destination = op.join(subjects_dir, 'fsaverage', 'label')
-    fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
-              for hemi in ('lh', 'rh')]
+    destination = subjects_dir / "fsaverage" / "label"
+    fnames = [destination / f"{hemi}.HCPMMP1.annot" for hemi in ("lh", "rh")]
     urls = dict(lh='https://ndownloader.figshare.com/files/5528816',
                 rh='https://ndownloader.figshare.com/files/5528819')
     hashes = dict(lh='46a102b59b2fb1bb4bd62d51bf02e975',
                   rh='75e96b331940227bbcb07c1c791c2463')
-    if not all(op.isfile(fname) for fname in fnames):
+    if not all(fname.exists() for fname in fnames):
         if accept or '--accept-hcpmmp-license' in sys.argv:
             answer = 'y'
         else:
@@ -381,12 +430,12 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
                                'dataset')
     for hemi, fpath in zip(('lh', 'rh'), fnames):
         if not op.isfile(fpath):
-            fname = op.basename(fpath)
+            fname = fpath.name
             pooch.retrieve(
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
-                fname=fname
+                fname=fname,
             )
 
     if combine:

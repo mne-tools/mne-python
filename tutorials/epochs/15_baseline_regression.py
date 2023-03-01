@@ -236,13 +236,15 @@ vmin = min(diff_traditional.get_data().min(),
            diff_regression.get_data().min()) * 1e6
 vmax = max(diff_traditional.get_data().max(),
            diff_regression.get_data().max()) * 1e6
-topo_kwargs = dict(vmin=vmin, vmax=vmax, ch_type='eeg',
+topo_kwargs = dict(vlim=(vmin, vmax), ch_type='eeg',
                    times=np.linspace(0.05, 0.45, 9))
 
-diff_traditional.plot_topomap(title="Traditional", **topo_kwargs)
+fig = diff_traditional.plot_topomap(**topo_kwargs)
+fig.suptitle("Traditional")
 
 # %%
-diff_regression.plot_topomap(title="Regression-based", **topo_kwargs)
+fig = diff_regression.plot_topomap(**topo_kwargs)
+fig.suptitle("Regression-based")
 
 # %%
 # We can see that the regression-based approach shows *stronger* difference

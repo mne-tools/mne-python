@@ -3,8 +3,8 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 import sys
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
@@ -19,13 +19,13 @@ from mne.utils import (requires_sklearn, catch_logging, _record_warnings)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+evoked_fname = base_dir / "test-ave.fif"
+raw_fname = base_dir / "test_raw.fif"
+cov_fname = base_dir / "test-cov.fif"
+event_name = base_dir / "test-eve.fif"
 event_id, tmin, tmax = 1, -0.1, 0.2
-raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+raw_ctf_fname = base_dir / "test_ctf_raw.fif"
 
 
 def _get_raw(preload=False):
@@ -147,7 +147,7 @@ def test_plot_ica_properties():
     assert 'extrapolation mode local to mean' in log, log
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
     fig = ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
-                              topomap_args={'res': 4, 'colorbar': True},
+                              topomap_args=dict(res=4, colorbar=True),
                               psd_args={'fmax': 65.}, plot_std=False,
                               log_scale=True, figsize=[4.5, 4.5],
                               reject=reject)[0]

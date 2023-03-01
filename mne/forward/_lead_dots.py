@@ -1,5 +1,5 @@
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
-#          Eric Larson <larsoner@uw.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD-3-Clause

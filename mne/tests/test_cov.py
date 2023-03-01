@@ -3,9 +3,10 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 import itertools as itt
 import sys
+from inspect import signature
+from pathlib import Path
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -25,7 +26,6 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  make_fixed_length_events, create_info, compute_rank)
 from mne.channels import equalize_channels
 from mne.datasets import testing
-from mne.fixes import _get_args
 from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
@@ -33,17 +33,15 @@ from mne.rank import _compute_rank_int
 from mne.utils import (requires_sklearn, catch_logging, assert_snr,
                        _record_warnings)
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-cov_gz_fname = op.join(base_dir, 'test-cov.fif.gz')
-cov_km_fname = op.join(base_dir, 'test-km-cov.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-ave_fname = op.join(base_dir, 'test-ave.fif')
-erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
-hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-
-ctf_fname = op.join(testing.data_path(download=False), 'CTF',
-                    'testdata_ctf.ds')
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+cov_fname = base_dir / "test-cov.fif"
+cov_gz_fname = base_dir / "test-cov.fif.gz"
+cov_km_fname = base_dir / "test-km-cov.fif"
+raw_fname = base_dir / "test_raw.fif"
+ave_fname = base_dir / "test-ave.fif"
+erm_cov_fname = base_dir / "test_erm-cov.fif"
+hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
+ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 
 
 @pytest.mark.parametrize('proj', (True, False))
@@ -467,7 +465,8 @@ def test_regularize_cov():
     assert noise_cov['data'].shape == reg_noise_cov['data'].shape
     assert np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08
     # make sure all args are represented
-    assert set(_DATA_CH_TYPES_SPLIT) - set(_get_args(regularize)) == set()
+    assert (set(_DATA_CH_TYPES_SPLIT) - set(signature(regularize).parameters)
+            == set())
 
 
 def test_whiten_evoked():

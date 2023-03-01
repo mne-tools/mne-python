@@ -20,6 +20,7 @@ jobs:
     env:
       PYTHON_VERSION: '3.8'
       MNE_LOGGING_LEVEL: 'warning'
+      MNE_3D_OPTION_SMOOTH_SHADING: 'true'
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       CONDA_ENV: 'environment.yml'
@@ -31,7 +32,9 @@ jobs:
           activate-environment: 'mne'
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
-        name: 'Setup conda'
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh

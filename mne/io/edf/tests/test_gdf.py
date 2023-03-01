@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 from datetime import datetime, timezone, timedelta
-import os.path as op
 import shutil
 
 import pytest
@@ -19,15 +18,20 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
-gdf1_path = str(op.join(data_path, 'GDF', 'test_gdf_1.25'))
-gdf2_path = str(op.join(data_path, 'GDF', 'test_gdf_2.20'))
-gdf_1ch_path = op.join(data_path, 'GDF', 'test_1ch.gdf')
+gdf1_path = data_path / "GDF" / "test_gdf_1.25"
+gdf2_path = data_path / "GDF" / "test_gdf_2.20"
+gdf_1ch_path = data_path / "GDF" / "test_1ch.gdf"
 
 
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
-    raw = read_raw_gdf(gdf1_path + '.gdf', eog=None, misc=None, preload=True)
+    raw = read_raw_gdf(
+        gdf1_path.with_name(gdf1_path.name + ".gdf"),
+        eog=None,
+        misc=None,
+        preload=True,
+    )
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -43,7 +47,7 @@ def test_gdf_data():
     assert evs_id == EXPECTED_EVS_ID
 
     # this .npy was generated using the official biosig python package
-    raw_biosig = np.load(gdf1_path + '_biosig.npy')
+    raw_biosig = np.load(gdf1_path.with_name(gdf1_path.name + "_biosig.npy"))
     raw_biosig = raw_biosig * 1e-6  # data are stored in microvolts
     data_biosig = raw_biosig[picks]
 
@@ -61,7 +65,7 @@ def test_gdf_data():
 def test_gdf2_birthday(tmp_path):
     """Test reading raw GDF 2.x files."""
     new_fname = tmp_path / 'temp.gdf'
-    shutil.copyfile(gdf2_path + '.gdf', new_fname)
+    shutil.copyfile(gdf2_path.with_name(gdf2_path.name + ".gdf"), new_fname)
     # go back 44.5 years so the subject should show up as 44
     offset_edf = (  # to their ref
         datetime.now(tz=timezone.utc) -
@@ -86,14 +90,19 @@ def test_gdf2_birthday(tmp_path):
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
-    raw = read_raw_gdf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
+    raw = read_raw_gdf(
+        gdf2_path.with_name(gdf2_path.name + ".gdf"),
+        eog=None,
+        misc=None,
+        preload=True,
+    )
     assert raw._raw_extras[0]['subject_info']['age'] is None
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
     # This .mat was generated using the official biosig matlab package
-    mat = sio.loadmat(gdf2_path + '_biosig.mat')
+    mat = sio.loadmat(gdf2_path.with_name(gdf2_path.name + "_biosig.mat"))
     data_biosig = mat['dat'] * 1e-6  # data are stored in microvolts
     data_biosig = data_biosig[picks]
 
@@ -108,10 +117,13 @@ def test_gdf2_data():
 
     # gh-5604
     assert raw.info['meas_date'] is None
-    _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
-                     eog=None, misc=None,
-                     test_scaling=False,  # XXX this should be True
-                     )
+    _test_raw_reader(
+        read_raw_gdf,
+        input_fname=gdf2_path.with_name(gdf2_path.name + ".gdf"),
+        eog=None,
+        misc=None,
+        test_scaling=False,  # XXX this should be True
+    )
 
 
 @testing.requires_testing_data
@@ -126,13 +138,19 @@ def test_one_channel_gdf():
 @testing.requires_testing_data
 def test_gdf_exclude_channels():
     """Test reading GDF data with excluded channels."""
-    raw = read_raw_gdf(gdf1_path + '.gdf', exclude=('FP1', 'O1'))
+    raw = read_raw_gdf(
+        gdf1_path.with_name(gdf1_path.name + ".gdf"), exclude=('FP1', 'O1')
+    )
     assert 'FP1' not in raw.ch_names
     assert 'O1' not in raw.ch_names
-    raw = read_raw_gdf(gdf2_path + '.gdf', exclude=('Fp1', 'O1'))
+    raw = read_raw_gdf(
+        gdf2_path.with_name(gdf2_path.name + ".gdf"), exclude=('Fp1', 'O1')
+    )
     assert 'Fp1' not in raw.ch_names
     assert 'O1' not in raw.ch_names
-    raw = read_raw_gdf(gdf2_path + '.gdf', exclude=".+z$")
+    raw = read_raw_gdf(
+        gdf2_path.with_name(gdf2_path.name + ".gdf"), exclude=".+z$"
+    )
     assert 'AFz' not in raw.ch_names
     assert 'Cz' not in raw.ch_names
     assert 'Pz' not in raw.ch_names
@@ -142,5 +160,7 @@ def test_gdf_exclude_channels():
 @testing.requires_testing_data
 def test_gdf_include():
     """Test reading GDF data with include."""
-    raw = read_raw_gdf(gdf1_path + '.gdf', include=('FP1', 'O1'))
+    raw = read_raw_gdf(
+        gdf1_path.with_name(gdf1_path.name + ".gdf"), include=('FP1', 'O1')
+    )
     assert sorted(raw.ch_names) == ['FP1', 'O1']

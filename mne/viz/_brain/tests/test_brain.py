@@ -9,8 +9,9 @@
 # License: Simplified BSD
 
 import os
-import os.path as op
 import sys
+from pathlib import Path
+from shutil import copyfile
 
 import pytest
 import numpy as np
@@ -19,14 +20,14 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
                  SourceEstimate, MixedSourceEstimate, write_surface,
-                 VolSourceEstimate, vertex_to_mni, Dipole)
+                 VolSourceEstimate, vertex_to_mni, Dipole, create_info)
+from mne.channels import make_dig_montage
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
 from mne.datasets import testing
-from mne.fixes import _cell_data
 from mne.io import read_info
-from mne.utils import check_version
+from mne.utils import check_version, requires_version
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
@@ -36,17 +37,17 @@ from matplotlib import image
 from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
-subject = 'sample'
-subjects_dir = op.join(data_path, 'subjects')
-sample_dir = op.join(data_path, 'MEG', 'sample')
-fname_raw_testing = op.join(sample_dir, 'sample_audvis_trunc_raw.fif')
-fname_trans = op.join(sample_dir, 'sample_audvis_trunc-trans.fif')
-fname_stc = op.join(sample_dir, 'sample_audvis_trunc-meg')
-fname_label = op.join(sample_dir, 'labels', 'Vis-lh.label')
-fname_cov = op.join(sample_dir, 'sample_audvis_trunc-cov.fif')
-fname_evoked = op.join(sample_dir, 'sample_audvis_trunc-ave.fif')
-fname_fwd = op.join(sample_dir, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-src_fname = op.join(subjects_dir, subject, 'bem', 'sample-oct-6-src.fif')
+subject = "sample"
+subjects_dir = data_path / "subjects"
+sample_dir = data_path / "MEG" / "sample"
+fname_raw_testing = sample_dir / "sample_audvis_trunc_raw.fif"
+fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
+fname_stc = sample_dir / "sample_audvis_trunc-meg"
+fname_label = sample_dir / "labels" / "Vis-lh.label"
+fname_cov = sample_dir / "sample_audvis_trunc-cov.fif"
+fname_evoked = sample_dir / "sample_audvis_trunc-ave.fif"
+fname_fwd = sample_dir / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+src_fname = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
 
 
 class _Collection(object):
@@ -106,7 +107,9 @@ class TstVTKPicker(object):
         return np.array(self.GetPickPosition()) - (0, 0, 100)
 
 
-def test_layered_mesh(renderer_interactive_pyvistaqt):
+# TODO: allow_unclosed for macOS here as the conda and M1 builds show some
+# windows stay open afterward
+def test_layered_mesh(renderer_interactive_pyvistaqt, allow_unclosed):
     """Test management of scalars/colormap overlay."""
     mesh = _LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
@@ -199,8 +202,6 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match='RGB argument'):
         Brain('sample', cortex='badcolor')
     # test no surfaces
-    with pytest.deprecated_call(match='show_toolbar'):  # and subject_id
-        Brain(subject_id=subject, hemi=None, surf=None, show_toolbar=True)
     with pytest.raises(TypeError, match='missing 1 required positional'):
         Brain()
     renderer_pyvistaqt.backend._close_all()
@@ -315,7 +316,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
                        [0, 128, 0, 255])  # second is green
     brain.remove_labels()
     assert 'unnamed0' not in overlays
-    brain.add_label(fname_label)
+    brain.add_label(str(fname_label))
     brain.add_label('V1', borders=True)
     brain.remove_labels()
     brain.remove_labels()
@@ -331,9 +332,15 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.remove_skull()
 
     # add volume labels
+    plotargs = {
+        'bcolor': (0.5, 0.5, 0.5),
+        'border': False,
+        'size': (0.2, 0.6),
+        'loc': 'upper left'
+    }
     brain.add_volume_labels(
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
-                             'Left-Amygdala'))
+                             'Left-Amygdala'), legend=plotargs)
     brain.remove_volume_labels()
 
     # add sensors
@@ -347,6 +354,38 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
         brain.add_sensors(info, trans=fname_trans)
+
+    # test sEEG projection onto inflated
+    # make temp path to fake pial surface
+    os.makedirs(tmp_path / subject / "surf", exist_ok=True)
+    for hemi in ('lh', 'rh'):
+        # fake white surface for pial
+        copyfile(
+            subjects_dir / subject / "surf" / f"{hemi}.white",
+            tmp_path / subject / "surf" / f"{hemi}.pial",
+        )
+        copyfile(
+            subjects_dir / subject / "surf" / f"{hemi}.curv",
+            tmp_path / subject / "surf" / f"{hemi}.curv",
+        )
+        copyfile(
+            subjects_dir / subject / "surf" / f"{hemi}.inflated",
+            tmp_path / subject / "surf" / f"{hemi}.inflated"
+        )
+
+    brain._subjects_dir = tmp_path
+    proj_info = create_info([f'Ch{i}' for i in range(1, 7)], 1000, 'seeg')
+    pos = np.array([[25.85, 9.04, -5.38],
+                    [33.56, 9.04, -5.63],
+                    [40.44, 9.04, -5.06],
+                    [46.75, 9.04, -6.78],
+                    [-30.08, 9.04, 28.23],
+                    [-32.95, 9.04, 37.99],
+                    [-36.39, 9.04, 46.03]]) / 1000
+    proj_info.set_montage(make_dig_montage(
+        ch_pos=dict(zip(proj_info.ch_names, pos)), coord_frame='head'))
+    brain.add_sensors(proj_info, trans=fname_trans)
+    brain._subjects_dir = subjects_dir  # put back
 
     # add dipole
     dip = Dipole(times=[0], pos=[[-0.06439933, 0.00733009, 0.06280205]],
@@ -383,22 +422,24 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
     # add annotation
-    annots = ['aparc', op.join(subjects_dir, 'fsaverage', 'label',
-                               'lh.PALS_B12_Lobes.annot')]
+    annots = [
+        "aparc",
+        subjects_dir / "fsaverage" / "label" / "lh.PALS_B12_Lobes.annot",
+    ]
     borders = [True, 2]
     alphas = [1, 0.5]
     colors = [None, 'r']
     brain = Brain(subject='fsaverage', hemi='both', size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     with pytest.raises(RuntimeError, match="both hemispheres"):
-        brain.add_annotation(annots[-1])
+        brain.add_annotation(str(annots[-1]))
     with pytest.raises(ValueError, match="does not exist"):
         brain.add_annotation('foo')
     brain.close()
     brain = Brain(subject='fsaverage', hemi=hemi, size=size,
                   surf='inflated', subjects_dir=subjects_dir)
     for a, b, p, color in zip(annots, borders, alphas, colors):
-        brain.add_annotation(a, b, p, color=color)
+        brain.add_annotation(str(a), b, p, color=color)
 
     view_args = dict(roll=1, distance=500, focalpoint=(1e-5, 1e-5, 1e-5))
     cam = brain._renderer.figure.plotter.camera
@@ -421,10 +462,10 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     del view_args
 
     # image and screenshot
-    fname = op.join(str(tmp_path), 'test.png')
-    assert not op.isfile(fname)
+    fname = tmp_path / "test.png"
+    assert not fname.is_file()
     brain.save_image(fname)
-    assert op.isfile(fname)
+    assert fname.is_file()
     fp = np.array(
         brain._renderer.figure.plotter.renderer.ComputeVisiblePropBounds())
     fp = (fp[1::2] + fp[::2]) * 0.5
@@ -440,9 +481,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     img = brain.screenshot(mode='rgba')
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
     # on macOS sometimes matplotlib is HiDPI and VTK is not...
-    factor = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.) else 1
-    want_size[:2] /= factor
-    assert_allclose(img.shape, want_size)
+    div = 2 if np.allclose(img.shape[:2], want_size[:2] / 2., atol=15) else 1
+    want_size[:2] /= div
+    assert_allclose(img.shape, want_size, atol=15)
     brain.close()
 
 
@@ -476,7 +517,7 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
     from imageio_ffmpeg import count_frames_and_secs
     brain = _create_testing_brain(hemi='lh', time_viewer=False,
                                   cortex=['r', 'b'])  # custom binarized
-    filename = str(op.join(tmp_path, "brain_test.mov"))
+    filename = tmp_path / "brain_test.mov"
     for interactive_state in (False, True):
         # for coverage, we set interactivity
         if interactive_state:
@@ -486,13 +527,13 @@ def test_brain_save_movie(tmp_path, renderer, brain_gc):
         with pytest.raises(TypeError, match='unexpected keyword argument'):
             brain.save_movie(filename, time_dilation=1, tmin=1, tmax=1.1,
                              bad_name='blah')
-        assert not op.isfile(filename)
+        assert not filename.is_file()
         tmin = 1
         tmax = 5
         duration = np.floor(tmax - tmin)
         brain.save_movie(filename, time_dilation=1., tmin=tmin,
                          tmax=tmax, interpolation='nearest')
-        assert op.isfile(filename)
+        assert filename.is_file()
         _, nsecs = count_frames_and_secs(filename)
         assert_allclose(duration, nsecs, atol=0.2)
 
@@ -643,7 +684,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio,
     brain.show_view(azimuth=180., elevation=90.)
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
-    assert_allclose(img.shape, want_shape)
+    assert_allclose(img.shape, want_shape, atol=30)
     brain.close()
 
 
@@ -779,7 +820,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
         if current_hemi == 'vol':
             current_mesh = brain._data['vol']['grid']
             vertices = brain._data['vol']['vertices']
-            values = _cell_data(current_mesh)['values'][vertices]
+            values = current_mesh.cell_data['values'][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain._layered_meshes[current_hemi]._polydata
@@ -849,8 +890,9 @@ something
     assert brain.plotter is None  # closed
     gif_0 = fnames[0][:-3] + 'gif'
     for fname in (gif_0, fnames[1]):
-        assert op.basename(fname) in rst
-        assert op.isfile(fname)
+        fname = Path(fname)
+        assert fname.stem in rst
+        assert fname.is_file()
         img = image.imread(fname)
         assert img.shape[1] == screenshot.shape[1]  # same width
         assert img.shape[0] > screenshot.shape[0]  # larger height
@@ -861,10 +903,10 @@ something
 # https://github.com/mne-tools/mne-python/pull/10935
 # for some reason there is a dependency issue with ipympl even using pyvista
 @pytest.mark.skipif(sys.platform == 'win32', reason='ipympl issue on Windows')
+@requires_version('sphinx_gallery')
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
-    pytest.importorskip('sphinx_gallery')
     stc = read_source_estimate(fname_stc, subject='sample')
     size = (600, 300)
     brain = stc.plot(subjects_dir=subjects_dir,
@@ -880,14 +922,16 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     assert brain.plotter is None  # closed
     assert brain._cleaned
     del brain
-    fname = fnames[0]
-    assert op.basename(fname) in rst
-    assert op.isfile(fname)
+    fname = Path(fnames[0])
+    assert fname.stem in rst
+    assert fname.is_file()
     img = image.imread(fname)
     w = img.shape[1]
     w0 = size[0]
-    assert np.isclose(w, w0, atol=10) or \
-        np.isclose(w, w0 * 2, atol=10), f'w ∉ {{{w0}, {2 * w0}}}'  # HiDPI
+    # With matplotlib 3.6 on Linux+conda we get a width of 624,
+    # similar tweak in test_brain_init above
+    assert np.isclose(w, w0, atol=30) or \
+        np.isclose(w, w0 * 2, atol=30), f'w ∉ {{{w0}, {2 * w0}}}'  # HiDPI
 
 
 @testing.requires_testing_data
@@ -1089,7 +1133,10 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
     return brain_data
 
 
-def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
+# TODO: allow_unclosed for macOS here as the conda build shows some
+# windows stay open afterward
+def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt,
+                      allow_unclosed):
     """Test mapping foci to the surface."""
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo['lh'].coords[:2] + 0.01

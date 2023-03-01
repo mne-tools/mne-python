@@ -4,7 +4,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 from shutil import copytree
 
 import pytest
@@ -33,33 +33,37 @@ from mne.io.pick import _picks_to_idx
 from mne.io.constants import FIFF
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
-aseg_fname = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
-fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-fname_vol = op.join(subjects_dir, 'sample', 'bem',
-                    'sample-volume-7mm-src.fif')
-fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-1280-bem.fif')
-fname_bem_sol = op.join(data_path, 'subjects', 'sample', 'bem',
-                        'sample-1280-bem-sol.fif')
-fname_bem_3 = op.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-1280-1280-1280-bem.fif')
-fname_bem_3_sol = op.join(data_path, 'subjects', 'sample', 'bem',
-                          'sample-1280-1280-1280-bem-sol.fif')
-fname_fs = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif')
-fname_morph = op.join(subjects_dir, 'sample', 'bem',
-                      'sample-fsaverage-ico-5-src.fif')
-fname_src = op.join(
-    data_path, 'subjects', 'sample', 'bem', 'sample-oct-4-src.fif')
-fname_fwd = op.join(
-    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-trans_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
-
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-fname_small = op.join(base_dir, 'small-src.fif.gz')
-fname_ave = op.join(base_dir, 'test-ave.fif')
+subjects_dir = data_path / "subjects"
+fname_mri = data_path / "subjects" / "sample" / "mri" / "T1.mgz"
+aseg_fname = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
+fname = subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
+fname_vol = subjects_dir / "sample" / "bem" / "sample-volume-7mm-src.fif"
+fname_bem = data_path / "subjects" / "sample" / "bem" / "sample-1280-bem.fif"
+fname_bem_sol = (
+    data_path / "subjects" / "sample" / "bem" / "sample-1280-bem-sol.fif"
+)
+fname_bem_3 = (
+    data_path / "subjects" / "sample" / "bem" / "sample-1280-1280-1280-bem.fif"
+)
+fname_bem_3_sol = (
+    data_path
+    / "subjects"
+    / "sample"
+    / "bem"
+    / "sample-1280-1280-1280-bem-sol.fif"
+)
+fname_fs = subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+fname_morph = (
+    subjects_dir / "sample" / "bem" / "sample-fsaverage-ico-5-src.fif"
+)
+fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-4-src.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+fname_small = base_dir / "small-src.fif.gz"
+fname_ave = base_dir / "test-ave.fif"
 rng = np.random.RandomState(0)
 
 
@@ -160,6 +164,39 @@ def test_add_patch_info(monkeypatch):
                 s[key] = None
         add_source_space_distances(src_new, dist_limit=0)
         _compare_source_spaces(src, src_new, 'approx')
+
+
+# We could test "src_py" here, but we can rely on our existing tests to
+# make sure the pinfo/patch_inds/nearest match
+@testing.requires_testing_data
+@pytest.mark.parametrize('src_kind', ['fwd', 'src'])
+def test_surface_source_space_doc(src_kind):
+    """Test surface source space docstring."""
+    # make sure we're correct about this stuff for both kinds!
+    if src_kind == 'fwd':
+        src = mne.read_source_spaces(fname_fwd)
+    else:
+        assert src_kind == 'src'
+        src = mne.read_source_spaces(fname_src)
+    for s in src:
+        if src_kind == 'src':  # original
+            assert len(s['pinfo']) == s['nuse']
+            assert_array_equal(s['patch_inds'], np.arange(s['nuse']))
+        else:  # pts removed
+            assert len(s['pinfo']) > s['nuse']
+        all_pinfo = np.concatenate(s['pinfo'])
+        assert_array_equal(np.sort(all_pinfo), np.arange(s['np']))
+        assert len(s['patch_inds']) == s['nuse']
+        assert len(s['vertno']) == s['nuse']
+        assert len(s['patch_inds']) == s['nuse']
+        for idx in (0, 42, 173):
+            this_dense_vertex = s['vertno'][idx]
+            # 'pinfo'
+            this_vertex_represents = s['pinfo'][s['patch_inds'][idx]]
+            assert len(this_vertex_represents) > 1
+            # 'nearest'
+            for other in this_vertex_represents:
+                assert s['nearest'][other] == this_dense_vertex
 
 
 @testing.requires_testing_data
@@ -429,8 +466,13 @@ def test_accumulate_normals():
 @testing.requires_testing_data
 def test_setup_source_space(tmp_path):
     """Test setting up ico, oct, and all source spaces."""
-    fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                        'fsaverage-ico-5-src.fif')
+    fname_ico = (
+        data_path
+        / "subjects"
+        / "fsaverage"
+        / "bem"
+        / "fsaverage-ico-5-src.fif"
+    )
     # first lets test some input params
     for spacing in ('oct', 'oct6e'):
         with pytest.raises(ValueError, match='subdivision must be an integer'):
@@ -491,7 +533,7 @@ def test_setup_source_space(tmp_path):
 @pytest.mark.parametrize('spacing', [2, 7])
 def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     """Test setting up surface source spaces using a given spacing."""
-    copytree(op.join(subjects_dir, 'sample'), tmp_path / 'sample')
+    copytree(subjects_dir / "sample", tmp_path / "sample")
     args = [] if spacing == 7 else ['--spacing', str(spacing)]
     monkeypatch.setenv('SUBJECTS_DIR', str(tmp_path))
     monkeypatch.setenv('SUBJECT', 'sample')
@@ -627,7 +669,7 @@ def test_source_space_exclusive_complete(src_volume_labels):
     assert_array_equal(src_full[0]['vertno'], src_single[0]['vertno'])
 
 
-@pytest.mark.timeout(60)  # ~24 sec on Travis
+@pytest.mark.timeout(60)  # ~24 s on Travis
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_nibabel()

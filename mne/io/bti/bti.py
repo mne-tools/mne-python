@@ -8,6 +8,7 @@
 #
 #          simplified BSD-3 license
 
+import functools
 import os.path as op
 from io import BytesIO
 from itertools import count
@@ -48,7 +49,7 @@ def _instantiate_default_info_chs():
                 unit=FIFF.FIFF_UNIT_V,
                 cal=1.0,
                 scanno=None,
-                kind=FIFF.FIFFV_ECG_CH,
+                kind=FIFF.FIFFV_MISC_CH,
                 logno=None)
 
 
@@ -908,11 +909,11 @@ class RawBTi(BaseRaw):
 
     Parameters
     ----------
-    pdf_fname : str
+    pdf_fname : path-like
         Path to the processed data file (PDF).
-    config_fname : str
+    config_fname : path-like
         Path to system config file.
-    head_shape_fname : str | None
+    head_shape_fname : path-like | None
         Path to the head shape file.
     rotation_x : float
         Degrees to tilt x-axis for sensor frame misalignment. Ignored
@@ -995,6 +996,23 @@ class RawBTi(BaseRaw):
                 for ii, b_i_o in enumerate(bti_info['order']):
                     one[ii] = block[:, b_i_o] * read_cals[b_i_o]
                 _mult_cal_one(data_view, one, idx, cals, mult)
+
+
+@functools.lru_cache(1)
+def _1020_names():
+    from mne.channels import make_standard_montage
+    return set(ch_name.lower()
+               for ch_name in make_standard_montage('standard_1005').ch_names)
+
+
+def _eeg_like(ch_name):
+    # Some bti recordigs look like "F4-POz", so let's at least mark them
+    # as EEG
+    if ch_name.count('-') != 1:
+        return
+    ch, ref = ch_name.split('-')
+    eeg_names = _1020_names()
+    return ch.lower() in eeg_names and ref.lower() in eeg_names
 
 
 def _make_bti_digitization(
@@ -1184,24 +1202,30 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                 chan_info['coil_type'] = \
                     FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD
 
-        elif chan_4d.startswith('EEG'):
+        elif chan_4d.startswith('EEG') or _eeg_like(chan_4d):
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
             chan_info['coord_frame'] = eeg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_V
+            # TODO: We should use 'electrodes' to fill this in, and make sure
+            # we turn them into dig as well
+            chan_info['loc'][:3] = np.nan
 
         elif chan_4d == 'RESPONSE':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d == 'TRIGGER':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
-        elif chan_4d.startswith('EOG') or chan_4d in eog_ch:
+        elif chan_4d.startswith('EOG') or \
+                chan_4d[:4] in ('HEOG', 'VEOG') or chan_4d in eog_ch:
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
-        elif chan_4d == ecg_ch:
+        elif chan_4d.startswith('EMG'):
+            chan_info['kind'] = FIFF.FIFFV_EMG_CH
+        elif chan_4d == ecg_ch or chan_4d.startswith('ECG'):
             chan_info['kind'] = FIFF.FIFFV_ECG_CH
-        elif chan_4d.startswith('X'):
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
-        elif chan_4d == 'UACurrent':
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        # Our default is now misc, but if we ever change that,
+        # we'll need this:
+        # elif chan_4d.startswith('X') or chan_4d == 'UACurrent':
+        #     chan_info['kind'] = FIFF.FIFFV_MISC_CH
 
         chs.append(chan_info)
 
@@ -1245,11 +1269,11 @@ def read_raw_bti(pdf_fname, config_fname='config',
 
     Parameters
     ----------
-    pdf_fname : str
+    pdf_fname : path-like
         Path to the processed data file (PDF).
-    config_fname : str
+    config_fname : path-like
         Path to system config file.
-    head_shape_fname : str | None
+    head_shape_fname : path-like | None
         Path to the head shape file.
     rotation_x : float
         Degrees to tilt x-axis for sensor frame misalignment. Ignored

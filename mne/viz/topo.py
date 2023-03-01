@@ -794,8 +794,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     if legend is not False:
         legend_loc = 0 if legend is True else legend
         labels = [e.comment if e.comment else 'Unknown' for e in evoked]
-        legend = plt.legend(labels, loc=legend_loc,
-                            prop={'size': 10})
+        handles = fig.axes[0].lines[:len(evoked)]
+        legend = plt.legend(
+            labels=labels,
+            handles=handles,
+            loc=legend_loc,
+            prop={'size': 10})
         legend.get_frame().set_facecolor(axis_facecolor)
         txts = legend.get_texts()
         for txt, col in zip(txts, color):

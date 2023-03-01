@@ -34,8 +34,9 @@ from .write import (start_and_end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
-from ..annotations import (_annotations_starts_stops, _write_annotations,
-                           _handle_meas_date)
+from ..annotations import (Annotations, _annotations_starts_stops,
+                           _combine_annotations, _handle_meas_date,
+                           _sync_onset, _write_annotations)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
@@ -46,16 +47,18 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div, TimeMixin)
+                     _check_time_format, _arange_div, TimeMixin, repr_html,
+                     _pl)
 from ..defaults import _handle_default
-from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
+from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
-from ..annotations import Annotations, _combine_annotations, _sync_onset
+from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin):
+              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin,
+              SpectrumMixin):
     """Base class for Raw data.
 
     Parameters
@@ -214,7 +217,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # Final check of orig_units, editing a unit if it is not a valid
             # unit
             orig_units = _check_orig_units(orig_units)
-        self._orig_units = orig_units
+        self._orig_units = orig_units or dict()  # always a dict
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
@@ -923,7 +926,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(fun_applyfun)s
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
-        %(n_jobs)s
+        %(n_jobs)s Ignored if ``channel_wise=False`` as the workload
+            is split across channels.
         %(channel_wise_applyfun)s
 
             .. versionadded:: 0.18
@@ -984,7 +988,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=None,
                      method='fir', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     fir_design='firwin', pad='reflect_limited', verbose=None):
+                     fir_design='firwin', pad='reflect_limited',
+                     skip_by_annotation=('edge', 'bad_acq_skip'),
+                     verbose=None):
         """Notch filter a subset of channels.
 
         Parameters
@@ -1021,6 +1027,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
+        %(skip_by_annotation)s
         %(verbose)s
 
         Returns
@@ -1043,20 +1050,26 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         .. note:: If n_jobs > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
+                  be temporarily stored in memory.
 
         For details, see :func:`mne.filter.notch_filter`.
         """
         fs = float(self.info['sfreq'])
         picks = _picks_to_idx(self.info, picks, exclude=(), none='data_or_ica')
         _check_preload(self, 'raw.notch_filter')
-        self._data = notch_filter(
-            self._data, fs, freqs, filter_length=filter_length,
-            notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
-            method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
-            p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase, fir_window=fir_window, fir_design=fir_design,
-            pad=pad)
+        onsets, ends = _annotations_starts_stops(
+            self, skip_by_annotation, invert=True)
+        logger.info('Filtering raw data in %d contiguous segment%s'
+                    % (len(onsets), _pl(onsets)))
+        for si, (start, stop) in enumerate(zip(onsets, ends)):
+            notch_filter(
+                self._data[:, start:stop], fs, freqs,
+                filter_length=filter_length, notch_widths=notch_widths,
+                trans_bandwidth=trans_bandwidth, method=method,
+                iir_params=iir_params, mt_bandwidth=mt_bandwidth,
+                p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
+                phase=phase, fir_window=fir_window, fir_design=fir_design,
+                pad=pad)
         return self
 
     @verbose
@@ -1261,9 +1274,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              % (tmin, tmax))
         if tmin < 0.0:
             raise ValueError('tmin (%s) must be >= 0' % (tmin,))
-        elif tmax > max_time:
+        elif tmax - int(not include_tmax) / self.info['sfreq'] > max_time:
             raise ValueError('tmax (%s) must be less than or equal to the max '
-                             'time (%0.4f sec)' % (tmax, max_time))
+                             'time (%0.4f s)' % (tmax, max_time))
 
         smin, smax = np.where(_time_mask(
             self.times, tmin, tmax, sfreq=self.info['sfreq'],
@@ -1345,7 +1358,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
             ``raw.fif`` (common raw data), ``raw_sss.fif``
@@ -1412,7 +1425,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings_err = ('.fif', '.fif.gz')
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = str(_check_fname(fname, overwrite=True, verbose="error"))
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1440,8 +1453,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite,
-                             verbose="error")
+        fname = str(
+            _check_fname(fname=fname, overwrite=overwrite, verbose="error")
+        )
 
         if proj:
             info = deepcopy(self.info)
@@ -1534,39 +1548,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         precompute=precompute, use_opengl=use_opengl,
                         theme=theme, overview_mode=overview_mode,
                         verbose=verbose)
-
-    @verbose
-    @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
-                 n_fft=None, n_overlap=0, reject_by_annotation=True,
-                 picks=None, ax=None, color='black', xscale='linear',
-                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=None, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, window='hamming',
-                 exclude='bads', verbose=None):
-        return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-                            proj=proj, n_fft=n_fft, n_overlap=n_overlap,
-                            reject_by_annotation=reject_by_annotation,
-                            picks=picks, ax=ax, color=color, xscale=xscale,
-                            area_mode=area_mode, area_alpha=area_alpha,
-                            dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
-                            average=average, line_alpha=line_alpha,
-                            spatial_colors=spatial_colors, sphere=sphere,
-                            window=window, exclude=exclude, verbose=verbose)
-
-    @copy_function_doc_to_method_doc(plot_raw_psd_topo)
-    def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
-                      n_fft=2048, n_overlap=0, layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=None, axes=None,
-                      verbose=None):
-        return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
-                                 fmax=fmax, proj=proj, n_fft=n_fft,
-                                 n_overlap=n_overlap, layout=layout,
-                                 color=color, fig_facecolor=fig_facecolor,
-                                 axis_facecolor=axis_facecolor, dB=dB,
-                                 show=show, block=block, n_jobs=n_jobs,
-                                 axes=axes, verbose=verbose)
 
     @property
     def ch_names(self):
@@ -1770,14 +1751,21 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 size_str))
         return "<%s | %s>" % (self.__class__.__name__, s)
 
+    @repr_html
     def _repr_html_(self, caption=None):
         from ..html_templates import repr_templates_env
         basenames = [
             os.path.basename(f) for f in self._filenames if f is not None
         ]
-        m, s = divmod(self._last_time - self.first_time, 60)
-        h, m = divmod(m, 60)
-        duration = f'{int(h):02d}:{int(m):02d}:{int(s):02d}'
+
+        # https://stackoverflow.com/a/10981895
+        duration = timedelta(seconds=self.times[-1])
+        hours, remainder = divmod(duration.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        seconds += duration.microseconds / 1e6
+        seconds = np.ceil(seconds)  # always take full seconds
+
+        duration = f'{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}'
         raw_template = repr_templates_env.get_template('raw.html.jinja')
         return raw_template.render(
             info_repr=self.info._repr_html_(caption=caption),
@@ -1798,7 +1786,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stim_channel : str | None
             Name of the stim channel to add to. If None, the config variable
             'MNE_STIM_CHANNEL' is used. If this is not found, it will default
-            to 'STI 014'.
+            to ``'STI 014'``.
         replace : bool
             If True the old events on the stim channel are removed before
             adding the new ones.
@@ -1832,6 +1820,47 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             buffer_size_sec = self.buffer_size_sec
         buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
+
+    @verbose
+    def compute_psd(self, method='welch', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False,
+                    reject_by_annotation=True, *, n_jobs=1, verbose=None,
+                    **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'welch'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(reject_by_annotation_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            The spectral representation of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.2
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        method = _validate_method(method, type(self).__name__)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
+        return Spectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
+            n_jobs=n_jobs, verbose=verbose, **method_kw)
 
     @verbose
     def to_data_frame(self, picks=None, index=None,
@@ -2170,7 +2199,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     # Expand `~` if present
-    fname = _check_fname(fname=fname, overwrite=overwrite)
+    fname = str(_check_fname(fname=fname, overwrite=overwrite))
 
     base, ext = op.splitext(fname)
     if part_idx > 0:

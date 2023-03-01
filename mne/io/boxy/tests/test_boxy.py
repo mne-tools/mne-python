@@ -2,8 +2,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import pytest
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal,
@@ -16,21 +14,38 @@ from mne.io import read_raw_boxy
 from mne.io.tests.test_raw import _test_raw_reader
 
 data_path = testing.data_path(download=False)
-boxy_0_40 = op.join(
-    data_path, 'BOXY', 'boxy_0_40_recording',
-    'boxy_0_40_notriggers_unparsed.txt')
-p_pod_0_40 = op.join(
-    data_path, 'BOXY', 'boxy_0_40_recording', 'p_pod_10_6_3_loaded_data',
-    'p_pod_10_6_3_notriggers_unparsed.mat')
-boxy_0_84 = op.join(
-    data_path, 'BOXY', 'boxy_0_84_digaux_recording',
-    'boxy_0_84_triggers_unparsed.txt')
-boxy_0_84_parsed = op.join(
-    data_path, 'BOXY', 'boxy_0_84_digaux_recording',
-    'boxy_0_84_triggers_parsed.txt')
-p_pod_0_84 = op.join(
-    data_path, 'BOXY', 'boxy_0_84_digaux_recording',
-    'p_pod_10_6_3_loaded_data', 'p_pod_10_6_3_triggers_unparsed.mat')
+boxy_0_40 = (
+    data_path
+    / "BOXY"
+    / "boxy_0_40_recording"
+    / "boxy_0_40_notriggers_unparsed.txt"
+)
+p_pod_0_40 = (
+    data_path
+    / "BOXY"
+    / "boxy_0_40_recording"
+    / "p_pod_10_6_3_loaded_data"
+    / "p_pod_10_6_3_notriggers_unparsed.mat"
+)
+boxy_0_84 = (
+    data_path
+    / "BOXY"
+    / "boxy_0_84_digaux_recording"
+    / "boxy_0_84_triggers_unparsed.txt"
+)
+boxy_0_84_parsed = (
+    data_path
+    / "BOXY"
+    / "boxy_0_84_digaux_recording"
+    / "boxy_0_84_triggers_parsed.txt"
+)
+p_pod_0_84 = (
+    data_path
+    / "BOXY"
+    / "boxy_0_84_digaux_recording"
+    / "p_pod_10_6_3_loaded_data"
+    / "p_pod_10_6_3_triggers_unparsed.mat"
+)
 
 
 def _assert_ppod(raw, p_pod_file):

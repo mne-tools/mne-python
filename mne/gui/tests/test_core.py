@@ -3,7 +3,6 @@
 #
 # License: BSD-3-clause
 
-import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -14,58 +13,40 @@ from mne.utils import requires_nibabel, catch_logging, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
-subject = 'sample'
-subjects_dir = op.join(data_path, 'subjects')
-
-
-@pytest.fixture
-def _slice_browser(renderer_interactive_pyvistaqt):
-    from qtpy.QtWidgets import QApplication
-    from mne.gui._core import SliceBrowser
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(["Slice Browser"])
-    # Use a fixture to create these classes so we can ensure that they
-    # are closed at the end of the test
-    guis = list()
-
-    def fun(*args, **kwargs):
-        guis.append(SliceBrowser(*args, **kwargs))
-        return guis[-1]
-
-    yield fun
-
-    for gui in guis:
-        try:
-            gui.close()
-        except Exception:
-            pass
+subject = "sample"
+subjects_dir = data_path / "subjects"
 
 
 @requires_nibabel()
-def test_slice_browser_io(_slice_browser):
+@testing.requires_testing_data
+def test_slice_browser_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the slice browser GUI."""
     import nibabel as nib
+    from mne.gui._core import SliceBrowser
     with pytest.raises(ValueError, match='Base image is not aligned to MRI'):
-        _slice_browser(nib.MGHImage(
+        SliceBrowser(nib.MGHImage(
             np.ones((96, 96, 96), dtype=np.float32), np.eye(4)),
             subject=subject, subjects_dir=subjects_dir)
 
 
+# TODO: For some reason this leaves some stuff un-closed, we should fix it
 @testing.requires_testing_data
-def test_slice_browser_display(_slice_browser):
+def test_slice_browser_display(renderer_interactive_pyvistaqt, allow_unclosed):
     """Test that the slice browser GUI displays properly."""
+    from mne.gui._core import SliceBrowser
     # test no seghead, fsaverage doesn't have seghead
     with pytest.warns(RuntimeWarning, match='`seghead` not found'):
         with catch_logging() as log:
-            _slice_browser(subject='fsaverage', subjects_dir=subjects_dir,
-                           verbose=True)
+            gui = SliceBrowser(
+                subject='fsaverage', subjects_dir=subjects_dir,
+                verbose=True)
     log = log.getvalue()
     assert 'using marching cubes' in log
+    gui.close()
 
     # test functions
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
-        gui = _slice_browser(subject=subject, subjects_dir=subjects_dir)
+        gui = SliceBrowser(subject=subject, subjects_dir=subjects_dir)
 
     # test RAS
     gui._RAS_textbox.setPlainText('10 10 10\n')
@@ -80,3 +61,4 @@ def test_slice_browser_display(_slice_browser):
         _fake_click(gui._figs[2], gui._figs[2].axes[0],
                     [137, 140], xform='data', kind='release')
     assert_allclose(gui._ras, [10, 12, 23])
+    gui.close()

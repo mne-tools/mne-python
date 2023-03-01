@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-|GH-Linux|_ |GH-macOS|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
+|GH-Linux|_ |GH-macOS|_ |Cirrus|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
 
 |MNE|_
 
@@ -9,6 +9,9 @@
 
 .. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=main
 .. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
+
+.. |Cirrus| image:: https://api.cirrus-ci.com/github/mne-tools/mne-python.svg
+.. _Cirrus: https://cirrus-ci.com/github/mne-tools/mne-python
 
 .. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=main
 .. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
@@ -104,6 +107,7 @@ For full functionality, some functions require:
 - joblib >= 0.15 (for parallelization control)
 - Numba >= 0.48.0
 - NiBabel >= 2.5.0
+- OpenMEEG >= 2.5.5
 - Pandas >= 1.0.0
 - Picard >= 0.3
 - CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)

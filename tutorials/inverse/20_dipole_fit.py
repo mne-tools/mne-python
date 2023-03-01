@@ -6,7 +6,7 @@
 Source localization with equivalent current dipole (ECD) fit
 ============================================================
 
-This shows how to fit a dipole :footcite:`Sarvas1987` using mne-python.
+This shows how to fit a dipole :footcite:`Sarvas1987` using MNE-Python.
 
 For a comparison of fits between MNE-C and MNE-Python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
@@ -14,7 +14,6 @@ For a comparison of fits between MNE-C and MNE-Python, see
 
 # %%
 
-import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -76,7 +75,7 @@ label = dip.to_volume_labels(fname_trans, subject=subject,
                              aseg='aparc.a2009s+aseg')[best_dip_idx]
 
 # Draw dipole position on MRI scan and add anatomical label from parcellation
-t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+t1_fname = subjects_dir / subject / 'mri' / 'T1.mgz'
 fig_T1 = plot_anat(t1_fname, cut_coords=mri_pos[0],
                    title=f'Dipole location: {label}')
 
@@ -106,8 +105,8 @@ fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4],
 vmin, vmax = -400, 400  # make sure each plot has same colour range
 
 # first plot the topography at the time of the best fitting (single) dipole
-plot_params = dict(times=best_time, ch_type='mag', outlines='skirt',
-                   colorbar=False, time_unit='s')
+plot_params = dict(times=best_time, ch_type='mag', outlines='head',
+                   colorbar=False)
 evoked.plot_topomap(time_format='Measured field', axes=axes[0], **plot_params)
 
 # compare this to the predicted field
@@ -127,7 +126,7 @@ fig.tight_layout()
 # orientation (the one that maximized GOF) over the entire interval
 dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
                            pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
-dip_fixed.plot(time_unit='s')
+dip_fixed.plot()
 
 # %%
 # References

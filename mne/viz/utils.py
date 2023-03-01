@@ -14,6 +14,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
+from inspect import signature
 import difflib
 from functools import partial
 import math
@@ -28,10 +29,8 @@ from decorator import decorator
 import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
-from ..io.meas_info import create_info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES,
@@ -387,7 +386,7 @@ def _get_channel_plotting_order(order, ch_types, picks=None):
                          f'"{order}" ({type(order)}).')
     if picks is not None:
         order = [ch for ch in order if ch in picks]
-    return np.asarray(order)
+    return np.asarray(order, int)
 
 
 def _make_event_color_dict(event_color, events=None, event_id=None):
@@ -482,20 +481,27 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
     ax_temp.set_title('Projectors marked with "X" are active')
 
-    proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
-    # make edges around checkbox areas
-    for rect in proj_checks.rectangles:
-        rect.set_edgecolor('0.5')
-        rect.set_linewidth(1.)
+    # make edges around checkbox areas and change already-applied projectors
+    # to red
+    from ._mpl_figure import _OLD_BUTTONS
+    check_kwargs = dict()
+    if not _OLD_BUTTONS:
+        checkcolor = ['#ff0000' if p['active'] else 'k' for p in projs]
+        check_kwargs['check_props'] = dict(facecolor=checkcolor)
+        check_kwargs['frame_props'] = dict(edgecolor='0.5', linewidth=1)
+    proj_checks = widgets.CheckButtons(
+        ax_temp, labels=labels, actives=actives, **check_kwargs)
+    if _OLD_BUTTONS:
+        for rect in proj_checks.rectangles:
+            rect.set_edgecolor('0.5')
+            rect.set_linewidth(1.)
+        for ii, p in enumerate(projs):
+            if p['active']:
+                for x in proj_checks.lines[ii]:
+                    x.set_color('#ff0000')
 
-    # change already-applied projectors to red
-    for ii, p in enumerate(projs):
-        if p['active']:
-            for x in proj_checks.lines[ii]:
-                x.set_color('#ff0000')
     # make minimal size
     # pass key presses from option dialog over
-
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
     fig_proj.canvas.mpl_connect('key_press_event', _key_press)
@@ -538,11 +544,11 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
     Parameters
     ----------
-    fname_1 : str
+    fname_1 : path-like
         First file to compare.
-    fname_2 : str
+    fname_2 : path-like
         Second file to compare.
-    fname_out : str | None
+    fname_out : path-like | None
         Filename to store the resulting diff. If None, a temporary
         file will be created.
     show : bool
@@ -772,6 +778,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
             assert kind == 'motion'
             kind = 'motion_notify_event'
             button = None
+        logger.debug(
+            f'Faking {kind} @ ({x}, {y}) with button={button} and key={key}')
         fig.canvas.callbacks.process(
             kind,
             backend_bases.MouseEvent(
@@ -908,38 +916,39 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
-        sensor selection dialog. Available options 'topomap', '3d', 'select'.
-        If 'select', a set of channels can be selected interactively by using
-        lasso selector or clicking while holding control key. The selected
-        channels are returned along with the figure instance. Defaults to
-        'topomap'.
+        sensor selection dialog. Available options ``'topomap'``, ``'3d'``,
+        ``'select'``. If ``'select'``, a set of channels can be selected
+        interactively by using lasso selector or clicking while holding control
+        key. The selected channels are returned along with the figure instance.
+        Defaults to ``'topomap'``.
     ch_type : None | str
-        The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
-        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
-        then channels are chosen in the order given above.
+        The channel type to plot. Available options ``'mag'``, ``'grad'``,
+        ``'eeg'``, ``'seeg'``, ``'dbs'``, ``'ecog'``, ``'all'``. If ``'all'``,
+        all the available mag, grad, eeg, seeg, dbs and ecog channels are
+        plotted. If None (default), then channels are chosen in the order given
+        above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
-    ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
+    ch_groups : 'position' | list of list | None
         Channel groups for coloring the sensors. If None (default), default
         coloring scheme is used. If 'position', the sensors are divided
         into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
-        array, the channels are divided by picks given in the array.
+        array, the channels are divided by picks given in the array. Also
+        accepts a list of lists to allow channel groups of the same or
+        different sizes.
 
         .. versionadded:: 0.13.0
     to_sphere : bool
         Whether to project the 3d locations to a sphere. When False, the
         sensor array appears similar as to looking downwards straight above the
-        subject's head. Has no effect when kind='3d'. Defaults to True.
+        subject's head. Has no effect when ``kind='3d'``. Defaults to True.
 
         .. versionadded:: 0.14.0
-    axes : instance of Axes | instance of Axes3D | None
-        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
-        of Axes3D. If None (default), a new axes will be created.
+    %(axes_montage)s
 
         .. versionadded:: 0.13.0
     block : bool
@@ -951,10 +960,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         Show figure if True. Defaults to True.
     %(sphere_topomap_auto)s
     pointsize : float | None
-        The size of the points. If None (default), will bet set to 75 if
-        ``kind='3d'``, or 25 otherwise.
+        The size of the points. If None (default), will bet set to ``75`` if
+        ``kind='3d'``, or ``25`` otherwise.
     linewidth : float
-        The width of the outline. If 0, the outline will not be drawn.
+        The width of the outline. If ``0``, the outline will not be drawn.
     %(verbose)s
 
     Returns
@@ -978,8 +987,25 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     """
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
-    if not isinstance(info, Info):
-        raise TypeError(f'info must be an instance of Info not {type(info)}')
+    if axes is not None:
+        from matplotlib.axes import Axes
+        from mpl_toolkits.mplot3d.axes3d import Axes3D
+
+        if kind == "3d":
+            _validate_type(axes, Axes3D, "axes", extra="when 'kind' is '3d'")
+        elif kind in ("topomap", "select"):
+            _validate_type(
+                axes,
+                Axes,
+                "axes",
+                extra="when 'kind' is 'topomap' or 'select'"
+            )
+            if isinstance(axes, Axes3D):
+                raise TypeError(
+                    "axes must be an instance of Axes when 'kind' is "
+                    f"'topomap' or 'select', got {type(axes)} instead."
+                )
+    _validate_type(info, Info, "info")
     ch_indices = channel_indices_by_type(info)
     allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
@@ -1019,12 +1045,16 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
+    _validate_type(ch_groups, (list, np.ndarray, str, None), 'ch_groups')
     if ch_groups is None:
         def_colors = _handle_default('color')
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        if ch_groups in ['position', 'selection']:
+        if isinstance(ch_groups, str):
+            _check_option(
+                'ch_groups', ch_groups, ['position', 'selection'],
+                extra='when str')
             # Avoid circular import
             from ..channels import (read_vectorview_selection, _SELECTIONS,
                                     _EEG_SELECTIONS, _divide_to_regions)
@@ -1048,13 +1078,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 x, y, z = pos[color_picks].T
                 color = np.mean(_rgb(x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
-        else:
+        else:  # array-like
             import matplotlib.pyplot as plt
             colors = np.linspace(0, 1, len(ch_groups))
             color_vals = [plt.cm.jet(colors[i]) for i in range(len(ch_groups))]
-        if not isinstance(ch_groups, (np.ndarray, list)):
-            raise ValueError("ch_groups must be None, 'position', "
-                             "'selection', or an array. Got %s." % ch_groups)
         colors = np.zeros((len(picks), 4))
         for pick_idx, pick in enumerate(picks):
             for ind, value in enumerate(ch_groups):
@@ -1951,7 +1978,7 @@ def _check_cov(noise_cov, info):
 
 
 def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
-                                   all=False, ch_type=None):
+                                   all_=False, ch_type=None):
     """Prepare a title string for multiple electrodes."""
     if title is None:
         title = ", ".join(ch_names[:max_chans])
@@ -1960,15 +1987,15 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
             ch_type = "sensor"
         if len(ch_names) > 1:
             ch_type += "s"
-        if all is True and isinstance(combine, str):
-            combine = combine.capitalize()
-            title = "{} of {} {}".format(
-                combine, len(ch_names), ch_type)
+        combine = combine.capitalize() \
+            if isinstance(combine, str) else "Combination"
+        if all_:
+            title = f"{combine} of {len(ch_names)} {ch_type}"
         elif len(ch_names) > max_chans and combine != "gfp":
-            logger.info("More than {} channels, truncating title ...".format(
-                max_chans))
-            title += ", ...\n({} of {} {})".format(
-                combine, len(ch_names), ch_type,)
+            logger.info(
+                "More than %i channels, truncating title ...", max_chans
+            )
+            title += f", ...\n({combine} of {len(ch_names)} {ch_type})"
     return title
 
 
@@ -2213,9 +2240,10 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
               line_alpha, sphere, xlabels_list):
-    # helper function for plot_raw_psd and plot_epochs_psd
+    # helper function for Spectrum.plot()
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
+    from ..stats import _ci
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -2238,15 +2266,17 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         if average:
             # mean across channels
             psd_mean = np.mean(psd, axis=0)
-            if area_mode == 'std':
+            if area_mode in ('sd', 'std'):
                 # std across channels
                 psd_std = np.std(psd, axis=0)
                 hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
             elif area_mode == 'range':
                 hyp_limits = (np.min(psd, axis=0),
                               np.max(psd, axis=0))
-            else:  # area_mode is None
+            elif area_mode is None:
                 hyp_limits = None
+            else:  # area_mode is float
+                hyp_limits = _ci(psd, ci=area_mode)
 
             ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
                     linewidth=0.5)
@@ -2256,14 +2286,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
     if not average:
         picks = np.concatenate(picks_list)
-        psd_list = np.concatenate(psd_list)
-        types = np.array(inst.get_channel_types(picks=picks))
-        # Needed because the data do not match the info anymore.
-        info = create_info([inst.ch_names[p] for p in picks],
-                           inst.info['sfreq'], types)
-        with info._unlock():
-            info['chs'] = [inst.info['chs'][p] for p in picks]
-            info['dev_head_t'] = inst.info['dev_head_t']
+        info = pick_info(inst.info, sel=picks, copy=True)
+        types = np.array(info.get_channel_types())
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:
@@ -2272,10 +2296,13 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         unit = ''
         units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
-        picks = np.arange(len(psd_list))
+        # here we overwrite `picks` because of how _plot_lines works;
+        # we already have the data, ch_types, etc in sync.
+        psd_array = np.concatenate(psd_list)
+        picks = np.arange(len(psd_array))
         if not spatial_colors:
             spatial_colors = color
-        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+        _plot_lines(psd_array, info, picks, fig, ax_list, spatial_colors,
                     unit, units=units, scalings=None, hline=None, gfp=False,
                     types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
@@ -2299,6 +2326,29 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     if make_label:
         fig.align_ylabels(axs=ax_list)
     return fig
+
+
+def _format_units_psd(unit, latex=False, power=True, dB=False):
+    """Format PSD measurement units nicely."""
+    unit = f'({unit})' if '/' in unit else unit
+    if power:
+        denom = 'Hz'
+        exp = r'^{2}' if latex else '²'
+    else:
+        denom = r'\sqrt{Hz}' if latex else '√(Hz)'
+        exp = ''
+    pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
+    db = ' (dB)' if dB else ''
+    return f'{pre}{unit}{exp}/{denom}{post}{db}'
+
+
+def _prepare_sensor_names(names, show_names):
+    """Apply callable to sensor names (if provided)."""
+    if callable(show_names):
+        names = [show_names(name) for name in names]
+    elif not show_names:
+        names = None
+    return names
 
 
 def _trim_ticks(ticks, _min, _max):
@@ -2454,7 +2504,7 @@ def _prop_kw(kind, val):
     # Can be removed in when we depend on matplotlib 3.4.3+
     # https://github.com/matplotlib/matplotlib/pull/20585
     from matplotlib.widgets import SpanSelector
-    pre = '' if 'props' in _get_args(SpanSelector) else kind
+    pre = '' if 'props' in signature(SpanSelector).parameters else kind
     return {pre + 'props': val}
 
 

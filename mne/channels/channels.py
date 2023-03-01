@@ -24,7 +24,8 @@ import numpy as np
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
-                     _get_stim_channel, _check_fname, _check_dict_keys)
+                     _get_stim_channel, _check_fname, _check_dict_keys,
+                     _on_missing)
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
                             _rename_comps)
@@ -191,7 +192,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     return equalized_instances
 
 
-channel_type_constants = get_channel_type_constants()
+channel_type_constants = get_channel_type_constants(include_defaults=True)
 _human2fiff = {k: v.get('kind', FIFF.FIFFV_COIL_NONE) for k, v in
                channel_type_constants.items()}
 _human2unit = {k: v.get('unit', FIFF.FIFF_UNIT_NONE) for k, v in
@@ -201,7 +202,8 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_T_M: 'T/m',
                FIFF.FIFF_UNIT_MOL: 'M',
                FIFF.FIFF_UNIT_NONE: 'NA',
-               FIFF.FIFF_UNIT_CEL: 'C'}
+               FIFF.FIFF_UNIT_CEL: 'C',
+               FIFF.FIFF_UNIT_S: 'S'}
 
 
 def _check_set(ch, projs, ch_type):
@@ -221,7 +223,8 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          ch_type='auto', forward=None, verbose=None):
+                          ch_type='auto', forward=None, *, joint=False,
+                          verbose=None):
         """Specify which reference to use for EEG data.
 
         Use this function to explicitly specify the desired reference for EEG.
@@ -235,6 +238,7 @@ class SetChannelsMixin(MontageMixin):
         %(projection_set_eeg_reference)s
         %(ch_type_set_eeg_reference)s
         %(forward_set_eeg_reference)s
+        %(joint_set_eeg_reference)s
         %(verbose)s
 
         Returns
@@ -248,7 +252,7 @@ class SetChannelsMixin(MontageMixin):
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
                                  projection=projection, ch_type=ch_type,
-                                 forward=forward)[0]
+                                 forward=forward, joint=joint)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
@@ -327,7 +331,7 @@ class SetChannelsMixin(MontageMixin):
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
             ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od
+            fnirs_fd_phase, fnirs_od, temperature, gsr
 
         .. versionadded:: 0.9.0
         """
@@ -413,11 +417,9 @@ class SetChannelsMixin(MontageMixin):
         if isinstance(self, BaseRaw):
             # whatever mapping was provided, now we can just use a dict
             mapping = dict(zip(ch_names_orig, self.info['ch_names']))
-            if self._orig_units is not None:
-                for old_name, new_name in mapping.items():
-                    if old_name != new_name:
-                        self._orig_units[new_name] = self._orig_units[old_name]
-                        del self._orig_units[old_name]
+            for old_name, new_name in mapping.items():
+                if old_name in self._orig_units:
+                    self._orig_units[new_name] = self._orig_units.pop(old_name)
             ch_names = self.annotations.ch_names
             for ci, ch in enumerate(ch_names):
                 ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
@@ -585,15 +587,16 @@ class SetChannelsMixin(MontageMixin):
 
 
 class UpdateChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
+    """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
     @verbose
     def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
-                   ecg=False, emg=False, ref_meg='auto', misc=False,
+                   ecg=False, emg=False, ref_meg='auto', *, misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False,
-                   ecog=False, fnirs=False, csd=False, dbs=False, include=(),
-                   exclude='bads', selection=None, verbose=None):
+                   ecog=False, fnirs=False, csd=False, dbs=False,
+                   temperature=False, gsr=False,
+                   include=(), exclude='bads', selection=None, verbose=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -619,7 +622,8 @@ class UpdateChannelsMixin(object):
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
-            exclude=exclude, selection=selection)
+            exclude=exclude, selection=selection, temperature=temperature,
+            gsr=gsr)
 
         self._pick_drop_channels(idx)
 
@@ -735,13 +739,15 @@ class UpdateChannelsMixin(object):
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
-    def drop_channels(self, ch_names):
+    @fill_doc
+    def drop_channels(self, ch_names, on_missing='raise'):
         """Drop channel(s).
 
         Parameters
         ----------
         ch_names : iterable or str
             Iterable (e.g. list) of channel name(s) or channel name to remove.
+        %(on_missing_ch_names)s
 
         Returns
         -------
@@ -774,7 +780,7 @@ class UpdateChannelsMixin(object):
         missing = [ch for ch in ch_names if ch not in self.ch_names]
         if len(missing) > 0:
             msg = "Channel(s) {0} not found, nothing dropped."
-            raise ValueError(msg.format(", ".join(missing)))
+            _on_missing(on_missing, msg.format(", ".join(missing)))
 
         bad_idx = [self.ch_names.index(ch) for ch in ch_names
                    if ch in self.ch_names]
@@ -786,6 +792,7 @@ class UpdateChannelsMixin(object):
         # avoid circular imports
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
+        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = 'adding, dropping, or reordering channels'
         if isinstance(self, BaseRaw):
@@ -810,8 +817,12 @@ class UpdateChannelsMixin(object):
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        # All others (Evoked, Epochs, Raw) have chs axis=-2
-        axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
+        if isinstance(self, BaseSpectrum):
+            axis = self._dims.index('channel')
+        elif isinstance(self, (AverageTFR, EpochsTFR)):
+            axis = -3
+        else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
+            axis = -2
         if hasattr(self, '_data'):  # skip non-preloaded Raw
             self._data = self._data.take(idx, axis=axis)
         else:
@@ -819,6 +830,9 @@ class UpdateChannelsMixin(object):
 
         if isinstance(self, BaseRaw):
             self.annotations._prune_ch_names(self.info, on_missing='ignore')
+            self._orig_units = {
+                k: v for k, v in self._orig_units.items()
+                if k in self.ch_names}
 
         self._pick_projs()
         return self
@@ -894,9 +908,9 @@ class UpdateChannelsMixin(object):
         shapes = np.array([dat.shape for dat in data])[:, compare_axes]
         for shape in shapes:
             if not ((shapes[0] - shape) == 0).all():
-                raise AssertionError('All data dimensions except channels '
-                                     'must match, got %s != %s'
-                                     % (shapes[0], shape))
+                raise ValueError(
+                    'All data dimensions except channels must match, got '
+                    f'{shapes[0]} != {shape}')
         del shapes
 
         # Create final data / info objects
@@ -933,6 +947,8 @@ class UpdateChannelsMixin(object):
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
+            for other in add_list:
+                self._orig_units.update(other._orig_units)
         elif isinstance(self, BaseEpochs):
             self.picks = np.arange(self._data.shape[1])
             if hasattr(self, '_projector'):
@@ -989,9 +1005,9 @@ class InterpolationMixin(object):
             origin fit.
 
             .. versionadded:: 0.17
-        method : dict
+        method : dict | None
             Method to use for each channel type.
-            Currently only the key "eeg" has multiple options:
+            Currently only the key ``"eeg"`` has multiple options:
 
             - ``"spline"`` (default)
                 Use spherical spline interpolation.
@@ -999,8 +1015,9 @@ class InterpolationMixin(object):
                 Use minimum-norm projection to a sphere and back.
                 This is the method used for MEG channels.
 
-            The value for "meg" is "MNE", and the value for
-            "fnirs" is "nearest". The default (None) is thus an alias for::
+            The value for ``"meg"`` is ``"MNE"``, and the value for
+            ``"fnirs"`` is ``"nearest"``. The default (None) is thus an alias
+            for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
@@ -1420,7 +1437,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like | str
         The path to the file to load, or the name of a channel adjacency
         matrix that ships with MNE-Python.
 
@@ -1457,10 +1474,12 @@ def read_ch_adjacency(fname, picks=None):
     """
     from scipy.io import loadmat
     if op.isabs(fname):
-        fname = _check_fname(
-            fname=fname,
-            overwrite='read',
-            must_exist=True
+        fname = str(
+            _check_fname(
+                fname=fname,
+                overwrite="read",
+                must_exist=True,
+            )
         )
     else:  # built-in FieldTrip neighbors
         ch_adj_name = fname
@@ -1479,10 +1498,12 @@ def read_ch_adjacency(fname, picks=None):
                   if a.name == ch_adj_name][0]
         fname = ch_adj.fname
         templates_dir = Path(__file__).resolve().parent / 'data' / 'neighbors'
-        fname = _check_fname(  # only needed to convert to a string
-            fname=templates_dir / fname,
-            overwrite='read',
-            must_exist=True
+        fname = str(
+            _check_fname(  # only needed to convert to a string
+                fname=templates_dir / fname,
+                overwrite="read",
+                must_exist=True,
+            )
         )
 
     nb = loadmat(fname)['neighbours']
@@ -1583,6 +1604,13 @@ def find_ch_adjacency(info, ch_type):
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
     :func:`read_ch_adjacency` directly.
+
+    .. warning::
+        If Delaunay triangulation is used to calculate the adjacency matrix it
+        may yield partially unexpected results (e.g., include unwanted edges
+        between non-adjacent sensors). Therefore, it is recommended to check
+        (and, if necessary, manually modify) the result by inspecting it
+        via :func:`mne.viz.plot_ch_adjacency`.
 
     Note that depending on your use case, you may need to additionally use
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
@@ -1860,8 +1888,9 @@ def make_1020_channel_selections(info, midline="z"):
     return selections
 
 
+@verbose
 def combine_channels(inst, groups, method='mean', keep_stim=False,
-                     drop_bad=False):
+                     drop_bad=False, verbose=None):
     """Combine channels based on specified channel grouping.
 
     Parameters
@@ -1899,6 +1928,7 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
+    %(verbose)s
 
     Returns
     -------
@@ -2089,7 +2119,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         ``'Right-frontal'``. Selections can also be matched and combined by
         spcecifying common substrings. For example, ``name='temporal`` will
         produce a combination of ``'Left-temporal'`` and ``'Right-temporal'``.
-    fname : str
+    fname : path-like
         Filename of the selection file (if ``None``, built-in selections are
         used).
     %(info)s Used to determine which channel naming convention to use, e.g.
@@ -2121,7 +2151,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     if fname is None:
         fname = op.join(op.dirname(__file__), '..', 'data', 'mne_analyze.sel')
 
-    fname = _check_fname(fname, must_exist=True, overwrite='read')
+    fname = str(_check_fname(fname, must_exist=True, overwrite="read"))
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}

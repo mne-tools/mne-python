@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 import copy as cp
-import os.path as op
 
 import pytest
 from numpy.testing import (assert_array_equal, assert_allclose,
@@ -12,30 +11,35 @@ from numpy.testing import (assert_array_equal, assert_allclose,
 import numpy as np
 
 import mne
+from mne import pick_types
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
-                            apply_dics_csd, read_beamformer, Beamformer)
+                            apply_dics_tfr_epochs, apply_dics_csd,
+                            read_beamformer, Beamformer)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
 from mne.io.constants import FIFF
+from mne.io import read_info
+from mne.io.pick import pick_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
-from mne.time_frequency import CrossSpectralDensity, csd_morlet
+from mne.time_frequency import (CrossSpectralDensity, csd_morlet, EpochsTFR,
+                                csd_tfr)
 from mne.time_frequency.csd import _sym_mat_to_vector
 from mne.transforms import invert_transform, apply_trans
 from mne.utils import object_diff, requires_version, catch_logging
 
 data_path = testing.data_path(download=False)
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc_raw-eve.fif')
-
-subjects_dir = op.join(data_path, 'subjects')
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_fwd_vol = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
+fname_event = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
+subjects_dir = data_path / "subjects"
 
 
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
@@ -319,7 +323,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
 
-    fname = op.join(str(tmp_path), 'filters-dics.h5')
+    fname = tmp_path / "filters-dics.h5"
     filters.save(fname)
     filters_read = read_beamformer(fname)
     assert isinstance(filters, Beamformer)
@@ -368,7 +372,7 @@ def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
-@pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
+@pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power', 'vector'])
 @pytest.mark.parametrize('inversion', ['single', 'matrix'])
 @idx_param
 def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
@@ -395,7 +399,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     inds = np.triu_indices(csd.n_channels)
     csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_power, f = apply_dics_csd(csd_noise, filters)
-    want_norm = 3 if pick_ori is None else 1.
+    want_norm = 3 if pick_ori in (None, 'vector') else 1
     assert_allclose(noise_power.data, want_norm, atol=1e-7)
 
     # Test filter with forward normalization instead of weight
@@ -429,7 +433,7 @@ def test_real(_load_forward, idx):
     reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
                              real_filter=True, inversion='single')
-    # Also test here that no warings are thrown - implemented to check whether
+    # Also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs:
     power, f = apply_dics_csd(csd, filters_real)
 
@@ -570,6 +574,71 @@ def test_apply_dics_timeseries(_load_forward, idx):
         apply_dics_epochs(epochs, filters_vol)
 
 
+@testing.requires_testing_data
+@pytest.mark.parametrize('return_generator', (True, False))
+def test_apply_dics_tfr(return_generator):
+    """Test DICS applied to time-frequency objects."""
+    info = read_info(fname_raw)
+    info = pick_info(info, pick_types(info, meg='grad'))
+    forward = mne.read_forward_solution(fname_fwd)
+    rng = np.random.default_rng(11)
+
+    # Construct an EpochsTFR object filled with random data.
+    n_epochs = 8
+    n_chans = len(info.ch_names)
+    freqs = [8, 9]
+    n_times = 300
+    times = np.arange(n_times) / info['sfreq']
+    data = rng.random((n_epochs, n_chans, len(freqs), n_times))
+    data *= 1e-6
+    data = data + data * 1j  # add imag. component to simulate phase
+    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+
+    # Create a DICS beamformer and convert the EpochsTFR to source space.
+    csd = csd_tfr(epochs_tfr)
+    filters = make_dics(epochs_tfr.info, forward, csd, reg=0.05)
+    stcs = apply_dics_tfr_epochs(epochs_tfr, filters, return_generator)
+
+    # Check some basic properties of the returned SourceEstimate objects.
+    if return_generator:
+        stcs = list(stcs)
+    assert_allclose(stcs[0][0].times, times)
+    assert len(stcs) == len(epochs_tfr)  # check same number of epochs
+    assert all([len(s) == len(freqs) for s in stcs])  # check nested freqs
+    assert all([s.data.shape == (forward['nsource'], n_times)
+                for these_stcs in stcs for s in these_stcs])
+
+    # Compute power from the source space TFR. This should yield the same
+    # result as the apply_dics_csd function.
+    source_power = np.zeros((forward['nsource'], len(freqs)))
+    for stcs_epoch in stcs:
+        for i, stc_freq in enumerate(stcs_epoch):
+            power = (stc_freq.data * np.conj(stc_freq.data)).real
+            power = power.mean(axis=-1)  # mean over time
+            # Scaling by sampling frequency for compatibility with Matlab
+            power /= epochs_tfr.info['sfreq']
+            source_power[:, i] += power.T
+    source_power /= n_epochs
+
+    ref_source_power, ref_freqs = apply_dics_csd(csd, filters)
+    assert_allclose(freqs, ref_freqs)
+    assert_allclose(ref_source_power.data, source_power)
+
+    # Test that real-value only data fails, due to non-linearity of computing
+    # power, it is recommended to transform to source-space first before
+    # converting to power.
+    with pytest.raises(RuntimeError,
+                       match='Time-frequency data must be complex'):
+        epochs_tfr_real = epochs_tfr.copy()
+        epochs_tfr_real.data = epochs_tfr_real.data.real
+        stcs = apply_dics_tfr_epochs(epochs_tfr_real, filters)
+
+    filters_vector = filters.copy()
+    filters_vector['pick_ori'] = 'vector'
+    with pytest.warns(match='vector solution'):
+        apply_dics_tfr_epochs(epochs_tfr, filters_vector)
+
+
 def _cov_as_csd(cov, info):
     rng = np.random.RandomState(0)
     assert cov['data'].ndim == 2
@@ -585,6 +654,10 @@ def _cov_as_csd(cov, info):
 @pytest.mark.slowtest
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
+        (0.05, 'vector', 'unit-noise-gain-invariant',
+         False, None, 26, 28, True),
+        (0.05, 'vector', 'unit-noise-gain', False, None, 13, 15, True),
+        (0.05, 'vector', 'nai', False, None, 13, 15, True),
         (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),
         (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, False),
         (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, True),

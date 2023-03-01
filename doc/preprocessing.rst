@@ -70,6 +70,7 @@ Projections:
 
    ICA
    Xdawn
+   EOGRegression
    annotate_amplitude
    annotate_break
    annotate_movement
@@ -99,6 +100,7 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   read_eog_regression
    realign_raw
    regress_artifact
    corrmap
@@ -184,6 +186,7 @@ EEG referencing:
    extract_chpi_locs_ctf
    extract_chpi_locs_kit
    filter_chpi
+   get_active_chpi
    get_chpi_info
    head_pos_to_trans_rot_t
    read_head_pos

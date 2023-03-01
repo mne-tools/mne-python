@@ -13,8 +13,6 @@ signal with point-spread by applying a forward and inverse solution.
 
 # %%
 
-import os.path as op
-
 import numpy as np
 
 import mne
@@ -42,14 +40,13 @@ dt = times[1] - times[0]
 
 # Paths to MEG data
 data_path = sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
+subjects_dir = data_path / 'subjects'
+fname_fwd = data_path / 'MEG' / 'sample' / 'sample_audvis-meg-oct-6-fwd.fif'
+fname_inv = (
+    data_path / 'MEG' / 'sample' / 'sample_audvis-meg-oct-6-meg-fixed-inv.fif'
+)
 
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis-ave.fif')
+fname_evoked = data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
 
 # %%
 # Load the MEG data
@@ -61,13 +58,15 @@ fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True,
 fwd['info']['bads'] = []
 inv_op = read_inverse_operator(fname_inv)
 
-raw = mne.io.read_raw_fif(op.join(data_path, 'MEG', 'sample',
-                                  'sample_audvis_raw.fif'))
+raw = mne.io.read_raw_fif(
+    data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+)
+
+raw.info['bads'] = []
 raw.set_eeg_reference(projection=True)
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 epochs = mne.Epochs(raw, events, event_id, baseline=(None, 0), preload=True)
-epochs.info['bads'] = []
 evoked = epochs.average()
 
 labels = mne.read_labels_from_annot('sample', subjects_dir=subjects_dir)

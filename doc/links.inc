@@ -23,6 +23,7 @@
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
 .. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
+.. _OpenMEEG: http://openmeeg.github.io
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
 .. _EOSS4: https://chanzuckerberg.com/eoss/proposals/building-pediatric-and-clinical-data-pipelines-for-mne-python/
 .. _`code of conduct`: https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md
@@ -132,7 +133,7 @@
 .. _git: https://git-scm.com/
 .. _github: https://github.com
 .. _GitHub Help: https://help.github.com
-.. _GitHub learning lab: https://lab.github.com/
+.. _GitHub skills: https://skills.github.com/
 .. _pro git book: https://git-scm.com/book/
 .. _git bash: https://gitforwindows.org/
 .. _git for Windows: https://gitforwindows.org/

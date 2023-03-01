@@ -32,7 +32,6 @@ from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors, _plot_forward)
 from .._3d_overlay import _LayeredMesh
 from ...defaults import _handle_default, DEFAULTS
-from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
                             _get_head_surface, _get_skull_surface,
                             _estimate_talxfm_rigid)
@@ -121,8 +120,6 @@ class Brain(object):
 
         .. versionchanged:: 0.23
            Default changed to "auto".
-    show_toolbar : bool
-        If True, toolbars will be shown for each view.
     offscreen : bool
         If True, rendering will be done offscreen (not shown). Useful
         mostly for generating images or screenshots, but can be buggy.
@@ -143,8 +140,6 @@ class Brain(object):
         Display the window as soon as it is ready. Defaults to True.
     block : bool
         If True, start the Qt application event loop. Default to False.
-    subject_id : str | None
-        Deprecated, use ``subject`` instead.
 
     Attributes
     ----------
@@ -238,29 +233,17 @@ class Brain(object):
        +-------------------------------------+--------------+---------------+
     """
 
-    def __init__(self, subject=None, hemi='both', surf='pial', title=None,
+    def __init__(self, subject, hemi='both', surf='pial', title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views='auto', *, offset='auto', show_toolbar=None,
+                 views='auto', *, offset='auto',
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme=None,
-                 show=True, block=False, subject_id=None):
+                 show=True, block=False):
         from ..backends.renderer import backend, _get_renderer
 
-        if show_toolbar is not None:
-            warn('show_toolbar is deprecated and will be removed in 1.3.',
-                 DeprecationWarning)
-        # This and the "if subject is None" conditional should be removed in
-        # 1.3, and the default subject=None switched to subject (no default)
-        if subject_id is not None:
-            warn('subject_id is deprecated and will be removed in 1.3, use '
-                 'subject instead.', DeprecationWarning)
-            subject = subject_id
-        if subject is None:
-            # raise the same error that we'd get if subject had no default
-            raise TypeError("Brain.__init__() missing 1 required positional "
-                            "argument: 'subject'")
         _validate_type(subject, str, 'subject')
+        self._surf = surf
         if hemi is None:
             hemi = 'vol'
         hemi = self._check_hemi(hemi, extras=('both', 'split', 'vol'))
@@ -298,6 +281,8 @@ class Brain(object):
                              'sequence of ints.')
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
+        if subjects_dir is not None:
+            subjects_dir = str(subjects_dir)
 
         self.time_viewer = False
         self._hash = time.time_ns()
@@ -1321,7 +1306,7 @@ class Brain(object):
             grid = mesh = self._data[hemi]['grid']
             vertices = self._data[hemi]['vertices']
             coords = self._data[hemi]['grid_coords'][vertices]
-            scalars = _cell_data(grid)['values'][vertices]
+            scalars = grid.cell_data['values'][vertices]
             spacing = np.array(grid.GetSpacing())
             max_dist = np.linalg.norm(spacing) / 2.
             origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
@@ -1337,7 +1322,7 @@ class Brain(object):
             # useful for debugging the ray by mapping it into the volume:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
-            # _cell_data(grid)['values'][vertices] = dists * mask
+            # grid.cell_data['values'][vertices] = dists * mask
             idx = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[idx]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
@@ -1394,16 +1379,9 @@ class Brain(object):
         if hemi == 'vol':
             ijk = np.unravel_index(
                 vertex_id, np.array(mesh.GetDimensions()) - 1, order='F')
-            # should just be GetCentroid(center), but apparently it's VTK9+:
-            # center = np.empty(3)
-            # voxel.GetCentroid(center)
             voxel = mesh.GetCell(*ijk)
-            pts = voxel.GetPoints()
-            n_pts = pts.GetNumberOfPoints()
-            center = np.empty((n_pts, 3))
-            for ii in range(pts.GetNumberOfPoints()):
-                pts.GetPoint(ii, center[ii])
-            center = np.mean(center, axis=0)
+            center = np.empty(3)
+            voxel.GetCentroid(center)
         else:
             center = mesh.GetPoints().GetPoint(vertex_id)
         del mesh
@@ -1577,7 +1555,7 @@ class Brain(object):
                     lw=1,
                     update=update,
                 )
-            self.time_line.set_xdata(current_time)
+            self.time_line.set_xdata([current_time])
             if update:
                 self.mpl_canvas.update_plot()
 
@@ -1782,7 +1760,7 @@ class Brain(object):
             Original clim arguments.
         %(src_volume_options)s
         colorbar_kwargs : dict | None
-            Options to pass to :meth:`pyvista.Plotter.add_scalar_bar`
+            Options to pass to ``pyvista.Plotter.add_scalar_bar``
             (e.g., ``dict(title_font_size=10)``).
         %(verbose)s
 
@@ -2123,7 +2101,7 @@ class Brain(object):
             (away from the true border) along the cortical mesh to include
             as part of the border definition.
         hemi : str | None
-            If None, it is assumed to belong to the hemipshere being
+            If None, it is assumed to belong to the hemisphere being
             shown.
         subdir : None | str
             If a label is specified as name, subdir can be used to indicate
@@ -2442,7 +2420,7 @@ class Brain(object):
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
             Can also be a dict of ``kwargs`` to pass to
-            :meth:`pyvista.Plotter.add_legend`.
+            ``pyvista.Plotter.add_legend``.
 
         Notes
         -----
@@ -2454,9 +2432,18 @@ class Brain(object):
         if not aseg.endswith('aseg'):
             raise RuntimeError(
                 f'`aseg` file path must end with "aseg", got {aseg}')
-        aseg = _check_fname(op.join(self._subjects_dir, self._subject,
-                                    'mri', aseg + '.mgz'),
-                            overwrite='read', must_exist=True)
+        aseg = str(
+            _check_fname(
+                op.join(
+                    self._subjects_dir,
+                    self._subject,
+                    "mri",
+                    aseg + ".mgz",
+                ),
+                overwrite="read",
+                must_exist=True,
+            )
+        )
         aseg_fname = aseg
         aseg = nib.load(aseg_fname)
         aseg_data = np.asarray(aseg.dataobj)
@@ -2472,7 +2459,7 @@ class Brain(object):
             labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
 
         _validate_type(fill_hole_size, (int, None), 'fill_hole_size')
-        _validate_type(legend, (bool, None), 'legend')
+        _validate_type(legend, (bool, None, dict), 'legend')
         if legend is None:
             legend = len(labels) < 11
 
@@ -2540,7 +2527,7 @@ class Brain(object):
         name : str
             Internal name to use.
         hemi : str | None
-            If None, it is assumed to belong to the hemipshere being
+            If None, it is assumed to belong to the hemisphere being
             shown. If two hemispheres are being shown, an error will
             be thrown.
         resolution : int
@@ -2584,7 +2571,8 @@ class Brain(object):
 
     @verbose
     def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
-                    ecog=True, seeg=True, dbs=True, verbose=None):
+                    ecog=True, seeg=True, dbs=True, max_dist=0.004,
+                    verbose=None):
         """Add mesh objects to represent sensor positions.
 
         Parameters
@@ -2597,12 +2585,15 @@ class Brain(object):
         %(ecog)s
         %(seeg)s
         %(dbs)s
+        %(max_dist_ieeg)s
         %(verbose)s
 
         Notes
         -----
         .. versionadded:: 0.24
         """
+        from ...preprocessing.ieeg._projection import \
+            _project_sensors_onto_inflated
         _validate_type(info, Info, 'info')
         meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
         picks = pick_types(info, meg=('sensors' in meg),
@@ -2610,8 +2601,15 @@ class Brain(object):
                            ecog=ecog, seeg=seeg, dbs=dbs,
                            fnirs=(len(fnirs) > 0))
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        if self._surf in ('inflated', 'flat'):
+            for modality, check in dict(seeg=seeg, ecog=ecog).items():
+                if pick_types(info, **{modality: check}).size > 0:
+                    info = _project_sensors_onto_inflated(
+                        info.copy(), head_mri_t, subject=self._subject,
+                        subjects_dir=self._subjects_dir, picks=modality,
+                        max_dist=max_dist, flat=self._surf == 'flat')
         del trans
-        # get transforms to "mri"window
+        # get transforms to "mri" window
         to_cf_t = _get_transforms_to_coord_frame(
             info, head_mri_t, coord_frame='mri')
         if pick_types(info, eeg=True, exclude=()).size > 0 and \
@@ -2777,7 +2775,7 @@ class Brain(object):
             as part of the border definition.
         %(alpha)s Default is 1.
         hemi : str | None
-            If None, it is assumed to belong to the hemipshere being
+            If None, it is assumed to belong to the hemisphere being
             shown. If two hemispheres are being shown, data must exist
             for both hemispheres.
         remove_existing : bool
@@ -3006,10 +3004,10 @@ class Brain(object):
 
         Parameters
         ----------
-        filename : str
+        filename : path-like
             Path to new image file.
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         """
         if filename is None:
             filename = _generate_default_filename(".png")
@@ -3023,7 +3021,7 @@ class Brain(object):
         Parameters
         ----------
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         %(time_viewer_brain_screenshot)s
 
         Returns
@@ -3245,12 +3243,12 @@ class Brain(object):
                     values = self._current_act_data['vol']
                     rng = self._cmap_range
                     fill = 0 if self._data['center'] is not None else rng[0]
-                    _cell_data(grid)['values'].fill(fill)
+                    grid.cell_data['values'].fill(fill)
                     # XXX for sided data, we probably actually need two
                     # volumes as composite/MIP needs to look at two
                     # extremes... for now just use abs. Eventually we can add
                     # two volumes if we want.
-                    _cell_data(grid)['values'][vertices] = values
+                    grid.cell_data['values'][vertices] = values
 
                 # interpolate in space
                 smooth_mat = hemi_data.get('smooth_mat')
@@ -3328,7 +3326,7 @@ class Brain(object):
                 hemi_data['glyph_mapper'] = glyph_mapper
             else:
                 glyph_dataset = hemi_data['glyph_dataset']
-                _point_data(glyph_dataset)['vec'] = vectors
+                glyph_dataset.point_data['vec'] = vectors
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = self._renderer._actor(glyph_mapper)

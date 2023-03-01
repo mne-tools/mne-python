@@ -27,6 +27,7 @@ from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
+from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
 from ..viz.utils import safe_event
 from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
@@ -86,7 +87,7 @@ class CoregistrationUI(HasTraits):
         with a different color. Defaults to True.
     sensor_opacity : float
         The opacity of the sensors between 0 and 1. Defaults to 1.0.
-    trans : str
+    trans : path-like
         The path to the Head<->MRI transform FIF file ("-trans.fif").
     size : tuple
         The dimensions (width, height) of the rendering view. The default is
@@ -135,6 +136,8 @@ class CoregistrationUI(HasTraits):
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
+    @_qt_safe_window(splash='_renderer.figure.splash',
+                     window='_renderer.figure.plotter')
     @verbose
     def __init__(self, info_file, *, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
@@ -145,7 +148,6 @@ class CoregistrationUI(HasTraits):
                  show=True, block=False, fullscreen=False,
                  interaction='terrain', verbose=None):
         from ..viz.backends.renderer import _get_renderer
-        from ..viz.backends._utils import _qt_app_exec
 
         def _get_default(var, val):
             return var if var is not None else val
@@ -213,8 +215,9 @@ class CoregistrationUI(HasTraits):
 
         # process requirements
         info = None
-        subjects_dir = get_subjects_dir(
-            subjects_dir=subjects_dir, raise_error=True)
+        subjects_dir = str(
+            get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+        )
         subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window
@@ -318,8 +321,14 @@ class CoregistrationUI(HasTraits):
         if subjects_dir is None or not subjects_dir:
             return
         try:
-            subjects_dir = _check_fname(
-                subjects_dir, overwrite='read', must_exist=True, need_dir=True)
+            subjects_dir = str(
+                _check_fname(
+                    subjects_dir,
+                    overwrite="read",
+                    must_exist=True,
+                    need_dir=True,
+                )
+            )
             subjects = _get_subjects(subjects_dir)
             low_res_path = _find_head_bem(
                 subjects[0], subjects_dir, high_res=False)
@@ -345,8 +354,13 @@ class CoregistrationUI(HasTraits):
         if fname is None:
             fids = 'auto'
         else:
-            fname = _check_fname(
-                fname, overwrite='read', must_exist=True, need_dir=False
+            fname = str(
+                _check_fname(
+                    fname,
+                    overwrite="read",
+                    must_exist=True,
+                    need_dir=False,
+                )
             )
             fids, _ = read_fiducials(fname)
 
@@ -382,7 +396,7 @@ class CoregistrationUI(HasTraits):
         try:
             check_fname(fname, 'info', tuple(raw_supported_types.keys()),
                         endings_err=tuple(raw_supported_types.keys()))
-            fname = _check_fname(fname, overwrite='read')  # convert to str
+            fname = str(_check_fname(fname, overwrite="read"))  # cast to str
 
             # ctf ds `files` are actually directories
             if fname.endswith(('.ds',)):
@@ -396,7 +410,7 @@ class CoregistrationUI(HasTraits):
             valid = False
         if valid:
             style = dict(border="initial")
-            self._info_file = info_file
+            self._info_file = str(info_file)
         else:
             style = dict(border="2px solid #ff0000")
         self._forward_widget_command("info_file_field", "set_style", style)
@@ -742,7 +756,7 @@ class CoregistrationUI(HasTraits):
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @verbose
-    def _redraw(self, verbose=None):
+    def _redraw(self, *, verbose=None):
         if not self._redraws_pending:
             return
         draw_map = dict(
@@ -1161,6 +1175,7 @@ class CoregistrationUI(HasTraits):
 
     def _add_helmet(self):
         if self._helmet:
+            logger.debug('Drawing helmet')
             head_mri_t = _get_trans(self.coreg.trans, 'head', 'mri')[0]
             helmet_actor, _, _ = _plot_helmet(
                 self._renderer, self._info, self._to_cf_t, head_mri_t,
@@ -1199,7 +1214,7 @@ class CoregistrationUI(HasTraits):
     def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
-            updates = ['hsp', 'hpi', 'eeg', 'head_fids']
+            updates = ['hsp', 'hpi', 'eeg', 'head_fids', 'helmet']
             if update_head:
                 updates.insert(0, 'head')
 

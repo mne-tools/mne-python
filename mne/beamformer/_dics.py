@@ -12,11 +12,13 @@ from ..channels import equalize_channels
 from ..io.pick import pick_info, pick_channels
 from ..utils import (logger, verbose, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option, _validate_type)
+                     _check_option, _validate_type, warn)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..rank import compute_rank
 from ..source_estimate import _make_stc, _get_src_type
+from ..time_frequency import EpochsTFR
+from ..time_frequency.tfr import _check_tfr_complex
 from ._compute_beamformer import (_prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
                                   Beamformer, _compute_power,
@@ -117,6 +119,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                 The normalization of the weights.
             'src_type' : str
                 Type of source space.
+            'source_nn' : ndarray, shape (n_sources, 3)
+                For each source location, the surface normal.
             'is_free_ori' : bool
                 Whether the filter was computed in a fixed direction
                 (pick_ori='max-power', pick_ori='normal') or not.
@@ -162,7 +166,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     .. footbibliography::
     """  # noqa: E501
     rank = _check_rank(rank)
-    _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
+    _check_option('pick_ori', pick_ori,
+                  [None, 'vector', 'normal', 'max-power'])
     _check_option('inversion', inversion, ['single', 'matrix'])
     _validate_type(weight_norm, (str, None), 'weight_norm')
 
@@ -210,8 +215,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     max_oris = []
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
-            logger.info('    computing DICS spatial filter at %sHz (%d/%d)' %
-                        (freq, i + 1, n_freqs))
+            logger.info('    computing DICS spatial filter at '
+                        f'{round(freq, 2)} Hz ({i + 1}/{n_freqs})')
 
         Cm = csd.get_data(index=i)
 
@@ -244,8 +249,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
         vertices=vertices, n_sources=n_sources, subject=subject,
         pick_ori=pick_ori, inversion=inversion, weight_norm=weight_norm,
-        src_type=src_type, is_free_ori=is_free_ori, whitener=whitener,
-        max_power_ori=max_oris)
+        src_type=src_type, source_nn=forward['source_nn'].copy(),
+        is_free_ori=is_free_ori, whitener=whitener, max_power_ori=max_oris)
 
     return filters
 
@@ -262,9 +267,9 @@ def _prepare_noise_csd(csd, noise_csd, real_filter):
     return csd, noise_csd
 
 
-def _apply_dics(data, filters, info, tmin):
+def _apply_dics(data, filters, info, tmin, tfr=False):
     """Apply DICS spatial filter to data for source reconstruction."""
-    if isinstance(data, np.ndarray) and data.ndim == 2:
+    if isinstance(data, np.ndarray) and data.ndim == (2 + tfr):
         data = [data]
         one_epoch = True
     else:
@@ -282,14 +287,19 @@ def _apply_dics(data, filters, info, tmin):
             logger.info("Processing epoch : %d" % (i + 1))
 
         # Apply SSPs
-        M = _proj_whiten_data(M, info['projs'], filters)
+        if not tfr:  # save computation, only compute once
+            M_w = _proj_whiten_data(M, info['projs'], filters)
 
         stcs = []
-        for W in Ws:
-            # project to source space using beamformer weights
-            sol = np.dot(W, M)
+        for j, W in enumerate(Ws):
 
-            if filters['is_free_ori']:
+            if tfr:  # must compute for each frequency
+                M_w = _proj_whiten_data(M[:, j], info['projs'], filters)
+
+            # project to source space using beamformer weights
+            sol = np.dot(W, M_w)
+
+            if filters['is_free_ori'] and filters['pick_ori'] != 'vector':
                 logger.info('combining the current components...')
                 sol = combine_xyz(sol)
 
@@ -298,6 +308,8 @@ def _apply_dics(data, filters, info, tmin):
             stcs.append(_make_stc(sol, vertices=filters['vertices'],
                                   src_type=filters['src_type'], tmin=tmin,
                                   tstep=tstep, subject=subject,
+                                  vector=(filters['pick_ori'] == 'vector'),
+                                  source_nn=filters['source_nn'],
                                   warn_text=warn_text))
         if one_freq:
             yield stcs[0]
@@ -342,6 +354,7 @@ def apply_dics(evoked, filters, verbose=None):
     See Also
     --------
     apply_dics_epochs
+    apply_dics_tfr_epochs
     apply_dics_csd
     """  # noqa: E501
     _check_reference(evoked)
@@ -395,6 +408,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     See Also
     --------
     apply_dics
+    apply_dics_tfr_epochs
     apply_dics_csd
     """
     _check_reference(epochs)
@@ -422,12 +436,70 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
 
 
 @verbose
+def apply_dics_tfr_epochs(epochs_tfr, filters, return_generator=False,
+                          verbose=None):
+    """Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights.
+
+    Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights
+    on single trial time-frequency data.
+
+    Parameters
+    ----------
+    epochs_tfr : EpochsTFR
+        Single trial time-frequency epochs.
+    filters : instance of Beamformer
+        DICS spatial filter (beamformer weights)
+        Filter weights returned from :func:`make_dics`.
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
+    %(verbose)s
+
+    Returns
+    -------
+    stcs : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+        The source estimates for all epochs (outside list) and for
+        all frequencies (inside list).
+
+    See Also
+    --------
+    apply_dics
+    apply_dics_epochs
+    apply_dics_csd
+    """ # noqa E501
+    _validate_type(epochs_tfr, EpochsTFR)
+    _check_tfr_complex(epochs_tfr)
+
+    if filters['pick_ori'] == 'vector':
+        warn('Using a vector solution to compute power will lead to '
+             'inaccurate directions (only in the first quadrent) '
+             'because power is a strictly positive (squared) metric. '
+             'Using singular value decomposition (SVD) to determine '
+             'the direction is not yet supported in MNE.')
+
+    sel = _check_channels_spatial_filter(epochs_tfr.ch_names, filters)
+    data = epochs_tfr.data[:, sel, :, :]
+
+    stcs = _apply_dics(data, filters, epochs_tfr.info,
+                       epochs_tfr.tmin, tfr=True)
+    if not return_generator:
+        stcs = [[stc for stc in tfr_stcs] for tfr_stcs in stcs]
+    return stcs
+
+
+@verbose
 def apply_dics_csd(csd, filters, verbose=None):
     """Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights.
 
     Apply a previously computed DICS beamformer to a cross-spectral density
     (CSD) object to estimate source power in time and frequency windows
     specified in the CSD object :footcite:`GrossEtAl2001`.
+
+    .. note:: Only power can computed from the cross-spectral density, not
+              complex phase-amplitude, so vector DICS filters will be
+              converted to scalar source estimates since power is strictly
+              positive and so 3D directions cannot be combined meaningfully
+              (the direction would be confined to the positive quadrant).
 
     Parameters
     ----------
@@ -448,6 +520,12 @@ def apply_dics_csd(csd, filters, verbose=None):
         The frequencies for which the source power has been computed. If the
         data CSD object defines frequency-bins instead of exact frequencies,
         the mean of each bin is returned.
+
+    See Also
+    --------
+    apply_dics
+    apply_dics_epochs
+    apply_dics_tfr_epochs
 
     References
     ----------
@@ -472,8 +550,8 @@ def apply_dics_csd(csd, filters, verbose=None):
     logger.info('Computing DICS source power...')
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
-            logger.info('    applying DICS spatial filter at %sHz (%d/%d)' %
-                        (freq, i + 1, n_freqs))
+            logger.info('    applying DICS spatial filter at '
+                        f'{round(freq, 2)} Hz ({i + 1}/{n_freqs})')
 
         Cm = csd.get_data(index=i)
         Cm = Cm[csd_picks, :][:, csd_picks]

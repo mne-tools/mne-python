@@ -16,7 +16,6 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 
 # %%
 
-import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import compress
@@ -25,7 +24,7 @@ import mne
 
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-fnirs_cw_amplitude_dir = op.join(fnirs_data_folder, 'Participant-1')
+fnirs_cw_amplitude_dir = fnirs_data_folder / 'Participant-1'
 raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
 raw_intensity.load_data()
 
@@ -58,7 +57,7 @@ raw_intensity.annotations.delete(unwanted)
 # optionally shown as orange dots. Source are optionally shown as red dots and
 # detectors as black.
 
-subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
+subjects_dir = mne.datasets.sample.data_path() / 'subjects'
 
 brain = mne.viz.Brain(
     'fsaverage', subjects_dir=subjects_dir, background='w', cortex='0.5')
@@ -297,32 +296,27 @@ epochs['Tapping/Right'].average(picks='hbr').plot_topomap(
 
 fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
                          gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
-vmin, vmax, ts = -8, 8, 9.0
+vlim = (-8, 8)
+ts = 9.0
 
 evoked_left = epochs['Tapping/Left'].average()
 evoked_right = epochs['Tapping/Right'].average()
 
 evoked_left.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 0],
-                         vmin=vmin, vmax=vmax, colorbar=False,
-                         **topomap_args)
+                         vlim=vlim, colorbar=False, **topomap_args)
 evoked_left.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 0],
-                         vmin=vmin, vmax=vmax, colorbar=False,
-                         **topomap_args)
+                         vlim=vlim, colorbar=False, **topomap_args)
 evoked_right.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 1],
-                          vmin=vmin, vmax=vmax, colorbar=False,
-                          **topomap_args)
+                          vlim=vlim, colorbar=False, **topomap_args)
 evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
-                          vmin=vmin, vmax=vmax, colorbar=False,
-                          **topomap_args)
+                          vlim=vlim, colorbar=False, **topomap_args)
 
 evoked_diff = mne.combine_evoked([evoked_left, evoked_right], weights=[1, -1])
 
 evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2:],
-                         vmin=vmin, vmax=vmax, colorbar=True,
-                         **topomap_args)
+                         vlim=vlim, colorbar=True, **topomap_args)
 evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2:],
-                         vmin=vmin, vmax=vmax, colorbar=True,
-                         **topomap_args)
+                         vlim=vlim, colorbar=True, **topomap_args)
 
 for column, condition in enumerate(
         ['Tapping Left', 'Tapping Right', 'Left-Right']):

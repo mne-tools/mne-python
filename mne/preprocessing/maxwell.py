@@ -10,6 +10,7 @@ from collections import Counter, OrderedDict
 from functools import partial
 from math import factorial
 from os import path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -192,7 +193,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered.
 
         .. warning:: It is critical to mark bad channels in
@@ -216,7 +217,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         buffer window will be lumped into the previous buffer.
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
-        ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
+        overlapping intersecting inner/outer signals during spatiotemporal SSS.
     %(coord_frame_maxwell)s
     %(destination_maxwell_dest)s
     %(regularize_maxwell_reg)s
@@ -237,7 +238,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Returns
     -------
-    raw_sss : instance of mne.io.Raw
+    raw_sss : instance of Raw
         The raw data with Maxwell filtering applied.
 
     See Also
@@ -613,7 +614,7 @@ def _run_maxwell_filter(
             continue  # Skip zero-length annotations
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
-        t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
+        t_str = '%8.3f - %8.3f s' % tuple(rel_times[[0, -1]])
         t_str += ('(#%d/%d)' % (ii + 1, len(starts))).rjust(2 * n_sig + 5)
 
         # Get original data
@@ -763,7 +764,7 @@ def _check_destination(destination, info, head_frame):
     if not head_frame:
         raise RuntimeError('destination can only be set if using the '
                            'head coordinate frame')
-    if isinstance(destination, str):
+    if isinstance(destination, (str, Path)):
         recon_trans = _get_trans(destination, 'meg', 'head')[0]
     elif isinstance(destination, Transform):
         recon_trans = destination
@@ -785,21 +786,10 @@ def _check_destination(destination, info, head_frame):
 @verbose
 def _prep_mf_coils(info, ignore_ref=True, verbose=None):
     """Get all coil integration information loaded and sorted."""
-    coils, comp_coils = _prep_meg_channels(
-        info, head_frame=False,
-        ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
+    meg_sensors = _prep_meg_channels(
+        info, head_frame=False, ignore_ref=ignore_ref, verbose=False)
+    coils = meg_sensors['defs']
     mag_mask = _get_mag_mask(coils)
-    if len(comp_coils) > 0:
-        meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
-        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-        inserts = np.searchsorted(meg_picks, ref_picks)
-        # len(inserts) == len(comp_coils)
-        for idx, comp_coil in zip(inserts[::-1], comp_coils[::-1]):
-            coils.insert(idx, comp_coil)
-        # Now we have:
-        # [c['chname'] for c in coils] ==
-        # [info['ch_names'][ii]
-        #  for ii in pick_types(info, meg=True, ref_meg=True)]
 
     # Now coils is a sorted list of coils. Time to do some vectorization.
     n_coils = len(coils)
@@ -1621,7 +1611,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered
     origin : array-like, shape (3,)
         Origin of internal and external multipolar moment space in head coords
@@ -2243,7 +2233,7 @@ def find_bad_channels_maxwell(
             ss[-1] = end
             stops.extend(ss)
     min_count = min(_ensure_int(min_count, 'min_count'), len(starts))
-    logger.info('Scanning for bad channels in %d interval%s (%0.1f sec) ...'
+    logger.info('Scanning for bad channels in %d interval%s (%0.1f s) ...'
                 % (len(starts), _pl(starts), step / raw.info['sfreq']))
     params = _prep_maxwell_filter(
         raw, skip_by_annotation=[],  # already accounted for

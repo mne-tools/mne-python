@@ -33,12 +33,12 @@ def get_channel_type_constants(include_defaults=False):
 
     Notes
     -----
-        Values which might vary within a channel type across real data
-        recordings are excluded unless ``include_defaults=True``. For example,
-        "ref_meg" channels may have coil type
-        ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
-        (depending on the recording system), so no "coil_type" entry is given
-        for "ref_meg" unless ``include_defaults`` is requested.
+    Values which might vary within a channel type across real data
+    recordings are excluded unless ``include_defaults=True``. For example,
+    "ref_meg" channels may have coil type
+    ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
+    (depending on the recording system), so no "coil_type" entry is given
+    for "ref_meg" unless ``include_defaults`` is requested.
     """
     base = dict(grad=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T_M),
                 mag=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T),
@@ -102,7 +102,12 @@ def get_channel_type_constants(include_defaults=False):
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBR),
                 csd=dict(kind=FIFF.FIFFV_EEG_CH,
                          unit=FIFF.FIFF_UNIT_V_M2,
-                         coil_type=FIFF.FIFFV_COIL_EEG_CSD))
+                         coil_type=FIFF.FIFFV_COIL_EEG_CSD),
+                temperature=dict(kind=FIFF.FIFFV_TEMPERATURE_CH,
+                                 unit=FIFF.FIFF_UNIT_CEL),
+                gsr=dict(kind=FIFF.FIFFV_GALVANIC_CH,
+                         unit=FIFF.FIFF_UNIT_S),
+                )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
         unit_none = dict(unit=FIFF.FIFF_UNIT_NONE)
@@ -154,6 +159,8 @@ _first_rule = {
     FIFF.FIFFV_GOODNESS_FIT: 'gof',
     FIFF.FIFFV_ECOG_CH: 'ecog',
     FIFF.FIFFV_FNIRS_CH: 'fnirs',
+    FIFF.FIFFV_TEMPERATURE_CH: 'temperature',
+    FIFF.FIFFV_GALVANIC_CH: 'gsr',
 }
 # How to reduce our categories in channel_type (originally)
 _second_rules = {
@@ -198,7 +205,8 @@ def channel_type(info, idx):
 
             {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
              'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
-              'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
+              'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr',
+              'temperature', 'gsr'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -380,10 +388,11 @@ def _check_info_exclude(info, exclude):
 
 @fill_doc
 def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
-               exci=False, ias=False, syst=False, seeg=False, dipole=False,
-               gof=False, bio=False, ecog=False, fnirs=False, csd=False,
-               dbs=False, include=(), exclude='bads', selection=None):
+               emg=False, ref_meg='auto', *, misc=False, resp=False,
+               chpi=False, exci=False, ias=False, syst=False, seeg=False,
+               dipole=False, gof=False, bio=False, ecog=False, fnirs=False,
+               csd=False, dbs=False, temperature=False, gsr=False,
+               include=(), exclude='bads', selection=None):
     """Pick channels by type and names.
 
     Parameters
@@ -411,7 +420,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                    len(info['comps']) > 0 and meg is not False)
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
-                  ias, syst, seeg, dipole, gof, bio, ecog, csd, dbs):
+                  ias, syst, seeg, dipole, gof, bio, ecog, csd, dbs,
+                  temperature, gsr):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception of '
                  '"meg", "ref_meg" and "fnirs") must be of type bool, not {}.')
@@ -420,7 +430,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
                       misc=misc, resp=resp, chpi=chpi, exci=exci,
                       ias=ias, syst=syst, seeg=seeg, dbs=dbs, dipole=dipole,
-                      gof=gof, bio=bio, ecog=ecog, csd=csd)
+                      gof=gof, bio=bio, ecog=ecog, csd=csd,
+                      temperature=temperature, gsr=gsr)
     # avoid triage if possible
     if isinstance(meg, bool):
         for key in ('grad', 'mag'):
@@ -524,6 +535,9 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             c['data']['data'] = c['data']['data'][row_idx]
         with info._unlock():
             info['comps'] = comps
+    if info.get('custom_ref_applied', False) and not _electrode_types(info):
+        with info._unlock():
+            info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     info._check_consistency()
 
     return info
@@ -922,7 +936,7 @@ _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True,
-    dbs=True)
+    dbs=True, temperature=False, gsr=False)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = (
@@ -933,13 +947,21 @@ _FNIRS_CH_TYPES_SPLIT = (
 _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
-    'dbs') + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
+    'dbs', 'temperature', 'gsr', 'gof', 'dipole',
+) + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
     'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
     'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
+# Electrode types (e.g., can be average-referenced together or separately)
+_ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
+
+
+def _electrode_types(info, *, exclude='bads'):
+    return [ch_type for ch_type in _ELECTRODE_CH_TYPES
+            if len(pick_types(info, exclude=exclude, **{ch_type: True}))]
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True,
@@ -962,8 +984,15 @@ def _pick_data_or_ica(info, exclude=()):
 
 
 def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
-                  with_ref_meg=True, return_kind=False):
-    """Convert and check pick validity."""
+                  with_ref_meg=True, return_kind=False, picks_on="channels"):
+    """Convert and check pick validity.
+
+    Parameters
+    ----------
+    picks_on : str
+        'channels' (default) for error messages about selection of channels.
+        'components' for error messages about selection of components.
+    """
     from .meas_info import Info
     picked_ch_type_or_generic = False
     #
@@ -1009,8 +1038,12 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
     if picks.dtype.kind not in ['i', 'u']:
-        raise TypeError('picks must be a list of int or list of str, got '
-                        'a data type of %s' % (picks.dtype,))
+        extra_ch = " or list of str (names)" if picks_on == "channels" else ""
+        msg = (
+            f"picks must be a list of int (indices){extra_ch}. "
+            f"The provided data type {picks.dtype} is invalid."
+        )
+        raise TypeError(msg)
     del extra_repr
     picks = picks.astype(int)
 
@@ -1018,14 +1051,14 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     # ensure we have (optionally non-empty) ndarray of valid int
     #
     if len(picks) == 0 and not allow_empty:
-        raise ValueError('No appropriate channels found for the given picks '
-                         '(%r)' % (orig_picks,))
+        raise ValueError('No appropriate %s found for the given picks '
+                         '(%r)' % (picks_on, orig_picks))
     if (picks < -n_chan).any():
         raise ValueError('All picks must be >= %d, got %r'
                          % (-n_chan, orig_picks))
     if (picks >= n_chan).any():
-        raise ValueError('All picks must be < n_channels (%d), got %r'
-                         % (n_chan, orig_picks))
+        raise ValueError('All picks must be < n_%s (%d), got %r'
+                         % (picks_on, n_chan, orig_picks))
     picks %= n_chan  # ensure positive
     if return_kind:
         return picks, picked_ch_type_or_generic

@@ -10,8 +10,8 @@ This tutorial explains how to compute the forward operator from EEG data
 using the standard template MRI subject ``fsaverage``.
 
 .. caution:: Source reconstruction without an individual T1 MRI from the
-             subject will be less accurate. Do not over interpret
-             activity locations which can be off by multiple centimeters.
+             subject will be less accurate. Do not over interpret activity
+             locations which can be off by multiple centimeters.
 
 Adult template MRI (fsaverage)
 ------------------------------

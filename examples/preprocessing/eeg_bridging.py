@@ -147,7 +147,7 @@ ax.set_ylabel('Count (channel pairs for all epochs)')
 
 mne.viz.plot_bridged_electrodes(
     raw_data[6].info, bridged_idx, ed_matrix,
-    title='Subject 6 Bridged Electrodes', topomap_args=dict(vmax=5))
+    title='Subject 6 Bridged Electrodes', topomap_args=dict(vlim=(None, 5)))
 
 # %%
 # Plot the Raw Voltage Time Series for Bridged Electrodes
@@ -225,7 +225,8 @@ fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 for sub, (bridged_idx, ed_matrix) in ed_data.items():
     mne.viz.plot_bridged_electrodes(
         raw_data[sub].info, bridged_idx, ed_matrix,
-        title=f'Subject {sub} Bridged Electrodes', topomap_args=dict(vmax=5))
+        title=f'Subject {sub} Bridged Electrodes',
+        topomap_args=dict(vlim=(None, 5)))
 
 # %%
 # For subjects with many bridged channels like Subject 6 shown in the example
@@ -339,7 +340,7 @@ cmap = LinearSegmentedColormap.from_list(name='impedance_cmap',
                                          colors=['g', 'y', 'r'], N=256)
 fig, ax = plt.subplots(figsize=(5, 5))
 im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax,
-                              cmap=cmap, vmin=25, vmax=75)
+                              cmap=cmap, vlim=(25, 75))
 ax.set_title('Electrode Impendances')
 cax = fig.colorbar(im, ax=ax)
 cax.set_label(r'Impedance (k$\Omega$)')

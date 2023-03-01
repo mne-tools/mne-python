@@ -59,7 +59,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Use a high resolution head surface.
         Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value
         (which defaults to True).
-    trans : str | None
+    trans : path-like | None
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
@@ -124,7 +124,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Step by step instructions for the coregistrations are shown below:
 
-    .. youtube:: uK4n5g6DBcg
+    .. youtube:: ALV5qqMHLlQ
     """
     unsupported_params = {
         'tabbed': (tabbed, False),

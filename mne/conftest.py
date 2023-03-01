@@ -27,10 +27,11 @@ from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_qt_version, _TempDir)
+                       _check_qt_version, _TempDir, check_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
+from mne.viz.backends._utils import _init_mne_qtapp
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -121,6 +122,21 @@ def pytest_configure(config):
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     # matplotlib 3.6 and pyvista/nilearn
     ignore:.*cmap function will be deprecated.*:
+    # joblib hasn't updated to avoid distutils
+    ignore:.*distutils package is deprecated.*:DeprecationWarning
+    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
+    # nbclient
+    ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
+    ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
+    ignore:Jupyter is migrating its paths.*:DeprecationWarning
+    ignore:Widget\..* is deprecated\.:DeprecationWarning
+    ignore:.*is deprecated in pyzmq.*:DeprecationWarning
+    # PySide6
+    ignore:Enum value .* is marked as deprecated:DeprecationWarning
+    ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    # pkg_resources usage bug
+    ignore:Implementing implicit namespace packages.*:DeprecationWarning
+    ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -424,11 +440,11 @@ def _check_pyqtgraph(request):
             pytest.skip(f'mne_qt_browser {ver} requires PyQt5, API is {api}')
 
 
-@pytest.mark.pgtest
 @pytest.fixture
 def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
     _check_pyqtgraph(request)
+    from mne_qt_browser._pg_figure import MNEQtBrowser
     with use_browser_backend('qt') as backend:
         backend._close_all()
         yield backend
@@ -436,6 +452,9 @@ def pg_backend(request, garbage_collect):
         # This shouldn't be necessary, but let's make sure nothing is stale
         import mne_qt_browser
         mne_qt_browser._browser_instances.clear()
+        if check_version('mne_qt_browser', min_version='0.4'):
+            _assert_no_instances(
+                MNEQtBrowser, f'Closure of {request.node.name}')
 
 
 @pytest.fixture(params=[
@@ -479,14 +498,14 @@ def renderer_notebook(request, options_3d):
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive_pyvistaqt(request, options_3d):
+@pytest.fixture(params=["pyvistaqt"])
+def renderer_interactive_pyvistaqt(request, options_3d, qt_windows_closed):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
-@pytest.fixture(scope="module", params=["pyvistaqt"])
+@pytest.fixture(params=["pyvistaqt"])
 def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
@@ -509,26 +528,35 @@ def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_pyvista,
                                                has_imageio_ffmpeg,
                                                has_pyvistaqt)
-    if name in ('pyvistaqt', 'notebook'):
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
-        if not has_imageio_ffmpeg():
-            pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not _check_qt_version():
-        pytest.skip("Test skipped, requires Qt.")
-    if name == 'pyvistaqt' and not has_pyvistaqt():
-        pytest.skip("Test skipped, requires pyvistaqt")
+    from mne.viz.backends._utils import _notebook_vtk_works
+    if not has_pyvista():
+        pytest.skip("Test skipped, requires pyvista.")
+    if not has_imageio_ffmpeg():
+        pytest.skip("Test skipped, requires imageio-ffmpeg")
+    if name == 'pyvistaqt':
+        if not _check_qt_version():
+            pytest.skip("Test skipped, requires Qt.")
+        if not has_pyvistaqt():
+            pytest.skip("Test skipped, requires pyvistaqt")
+    else:
+        assert name == 'notebook', name
+        if not _notebook_vtk_works():
+            pytest.skip("Test skipped, requires working notebook vtk")
 
 
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
     from mne.viz.backends.tests._utils import has_pyvista
+    # _check_qt_version will init an app for us, so no need for us to do it
     if not has_pyvista() or not _check_qt_version():
         return 1.
-    from qtpy.QtWidgets import QApplication, QMainWindow
-    _ = QApplication.instance() or QApplication([])
+    from qtpy.QtWidgets import QMainWindow
+    from qtpy.QtCore import Qt
+    app = _init_mne_qtapp()
+    app.processEvents()
     window = QMainWindow()
+    window.setAttribute(Qt.WA_DeleteOnClose, True)
     ratio = float(window.devicePixelRatio())
     window.close()
     return ratio
@@ -600,17 +628,26 @@ def _fwd_subvolume(_evoked_cov_sphere):
         evoked.info, fname_trans, src_vol, sphere, mindist=5.0)
 
 
+@pytest.fixture
+def fwd_volume_small(_fwd_subvolume):
+    """Provide a small volumetric source space."""
+    return _fwd_subvolume.copy()
+
+
 @pytest.fixture(scope='session')
 def _all_src_types_fwd(_fwd_surf, _fwd_subvolume):
     """Create all three forward types (surf, vol, mixed)."""
-    fwds = dict(surface=_fwd_surf, volume=_fwd_subvolume)
+    fwds = dict(
+        surface=_fwd_surf.copy(),
+        volume=_fwd_subvolume.copy())
     with pytest.raises(RuntimeError,
                        match='Invalid source space with kinds'):
         fwds['volume']['src'] + fwds['surface']['src']
 
     # mixed (4)
     fwd = fwds['surface'].copy()
-    f2 = fwds['volume']
+    f2 = fwds['volume'].copy()
+    del _fwd_surf, _fwd_subvolume
     for keys, axis in [(('source_rr',), 0),
                        (('source_nn',), 0),
                        (('sol', 'data'), 1),
@@ -761,6 +798,9 @@ def brain_gc(request):
     assert len(bad) == 0, 'VTK objects linger:\n' + '\n'.join(bad)
 
 
+_files = list()
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Handle the end of the session."""
     n = session.config.option.durations
@@ -772,7 +812,6 @@ def pytest_sessionfinish(session, exitstatus):
     except ImportError:
         print('Module-level timings require pytest-harvest')
         return
-    from py.io import TerminalWriter
     # get the number to print
     res = pytest_harvest.get_session_synthesis_dct(session)
     files = dict()
@@ -789,12 +828,17 @@ def pytest_sessionfinish(session, exitstatus):
         files[file_key] = files.get(file_key, 0) + val['pytest_duration_s']
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
-    files = files[:n]
-    if len(files):
-        writer = TerminalWriter()
-        writer.line()  # newline
-        writer.sep('=', f'slowest {n} test module{_pl(n)}')
-        names, timings = zip(*files)
+    _files[:] = files[:n]
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Print the module-level timings."""
+    writer = terminalreporter
+    n = len(_files)
+    if n:
+        writer.line('')  # newline
+        writer.write_sep('=', f'slowest {n} test module{_pl(n)}')
+        names, timings = zip(*_files)
         timings = [f'{timing:0.2f}s total' for timing in timings]
         rjust = max(len(timing) for timing in timings)
         timings = [timing.rjust(rjust) for timing in timings]
@@ -861,7 +905,10 @@ def _nbclient():
 }""", as_version=4)
     client = NotebookClient(nb, km=km)
     yield client
-    client._cleanup_kernel()
+    try:
+        client._cleanup_kernel()
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope='function')
@@ -908,5 +955,30 @@ def pytest_runtest_call(item):
 def nirx_snirf(request):
     """Return a (raw_nirx, raw_snirf) matched pair."""
     pytest.importorskip('h5py')
+    skipper = request.param[2].marks[0].mark
+    if skipper.args[0]:  # will skip
+        pytest.skip(skipper.kwargs['reason'])
     return (read_raw_nirx(request.param[0], preload=True),
             read_raw_snirf(request.param[1], preload=True))
+
+
+@pytest.fixture
+def qt_windows_closed(request):
+    """Ensure that no new Qt windows are open after a test."""
+    _check_skip_backend('pyvistaqt')
+    app = _init_mne_qtapp()
+    gc.collect()
+    n_before = len(app.topLevelWidgets())
+    yield
+    gc.collect()
+    if 'allow_unclosed' in request.fixturenames:
+        return
+    widgets = app.topLevelWidgets()
+    n_after = len(widgets)
+    assert n_before == n_after, widgets[-4:]
+
+
+@pytest.fixture
+def allow_unclosed():
+    """Allow unclosed Qt Windows."""
+    pass

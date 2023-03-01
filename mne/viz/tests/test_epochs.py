@@ -103,7 +103,7 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
         wants = ('800.0 fT/cm', '2000.0 fT')
     elif browser_backend.name == 'matplotlib':
         assert len(texts) == 4
-        wants = ('800.0 fT/cm', '0.55 sec', '2000.0 fT', '0.55 sec')
+        wants = ('800.0 fT/cm', '0.55 s', '2000.0 fT', '0.55 s')
     assert texts == wants
 
 
@@ -302,7 +302,19 @@ def test_plot_epochs_image(epochs):
     # mismatched picks and order
     with pytest.raises(ValueError, match='must match the length of the data'):
         epochs.plot_image(picks=[1], order=[0, 1])
+    # with a ref MEG channel (that we "convert" from a grad channel)
+    with pytest.warns(RuntimeWarning, match='.* from T/m to T.$'):
+        epochs.set_channel_types({epochs.ch_names[0]: 'ref_meg'})
+    epochs.plot_image()
     plt.close('all')
+
+
+def test_plot_epochs_image_emg():
+    """Test plotting epochs image with EMG."""
+    info = create_info(['EMG 001'], sfreq=100, ch_types='emg')
+    data = np.ones((2, 1, 10))
+    epochs = EpochsArray(data=data, info=info)
+    epochs.plot_image('EMG 001', ts_args={"show_sensors": False})
 
 
 def test_plot_drop_log(epochs_unloaded):
@@ -386,16 +398,15 @@ def test_plot_psd_epochs_ctf(raw_ctf):
     """Test plotting CTF epochs psd (+topomap)."""
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
-    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
-                  bands=[(0, 0.01, 'foo')])  # no freqs in range
-    epochs.plot_psd_topomap()
-
     # EEG060 is flat in this dataset
     for dB in [True, False]:
         with pytest.warns(UserWarning, match='for channel EEG060'):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)
+    with pytest.raises(RuntimeError, match='No frequencies in band'):
+        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+    epochs.plot_psd_topomap()
 
 
 def test_plot_epochs_selection_butterfly(raw, browser_backend):

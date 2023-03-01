@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+import os
 import re
 import shutil
 import zipfile
@@ -20,9 +20,8 @@ from mne.utils import requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-# TODO: Set back to mne-tools before merge!
-REPO = 'larsoner'
-COMMIT = 'd9835a6fd544926da18a6c07403808368c8f2931'
+REPO = 'mne-tools'
+COMMIT = 'd477427def717f9d77e1bbdd68463be2dcab9eb7'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -84,9 +83,8 @@ _aliases = dict(
 @requires_good_network
 def test_constants(tmp_path):
     """Test compensation."""
-    tmp_path = str(tmp_path)  # old pytest...
     fname = 'fiff.zip'
-    dest = op.join(tmp_path, fname)
+    dest = tmp_path / fname
     pooch.retrieve(
         url='https://codeload.github.com/'
             f'{REPO}/fiff-constants/zip/{COMMIT}',
@@ -99,9 +97,8 @@ def test_constants(tmp_path):
         for name in ff.namelist():
             if 'Dictionary' in name:
                 ff.extract(name, tmp_path)
-                names.append(op.basename(name))
-                shutil.move(op.join(tmp_path, name),
-                            op.join(tmp_path, names[-1]))
+                names.append(os.path.basename(name))
+                shutil.move(tmp_path / name, tmp_path / names[-1])
     names = sorted(names)
     assert names == ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt',
                      'DictionaryStructures.txt',
@@ -112,7 +109,7 @@ def test_constants(tmp_path):
     con = dict(iod=dict(), tags=dict(), types=dict(), defines=dict())
     fiff_version = None
     for name in ['DictionaryIOD.txt', 'DictionaryIOD_MNE.txt']:
-        with open(op.join(tmp_path, name), 'rb') as fid:
+        with open(tmp_path / name, "rb") as fid:
             for line in fid:
                 line = line.decode('latin1').strip()
                 if line.startswith('# Packing revision'):
@@ -136,7 +133,7 @@ def test_constants(tmp_path):
                     assert id_ not in fif['iod']
                 fif['iod'][id_] = [kind, desc]
     # Tags (MEGIN)
-    with open(op.join(tmp_path, 'DictionaryTags.txt'), 'rb') as fid:
+    with open(tmp_path / "DictionaryTags.txt", "rb") as fid:
         for line in fid:
             line = line.decode('ISO-8859-1').strip()
             if (line.startswith('#') or line.startswith('alias') or
@@ -153,7 +150,7 @@ def test_constants(tmp_path):
             assert id_ not in fif['tags'], (fif['tags'].get(id_), val)
             fif['tags'][id_] = val
     # Tags (MNE)
-    with open(op.join(tmp_path, 'DictionaryTags_MNE.txt'), 'rb') as fid:
+    with open(tmp_path / "DictionaryTags_MNE.txt", "rb") as fid:
         for li, line in enumerate(fid):
             line = line.decode('ISO-8859-1').strip()
             # ignore continuation lines (*)
@@ -188,8 +185,7 @@ def test_constants(tmp_path):
     re_defi = re.compile(r'#define\s*(\S*)\s*(\S*)\s*"(.*)"$')
     used_enums = list()
     for extra in ('', '_MNE'):
-        with open(op.join(tmp_path, 'DictionaryTypes%s.txt'
-                          % (extra,)), 'rb') as fid:
+        with open(tmp_path / f"DictionaryTypes{extra}.txt", "rb") as fid:
             for li, line in enumerate(fid):
                 line = line.decode('ISO-8859-1').strip()
                 if in_ is None:

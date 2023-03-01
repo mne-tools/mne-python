@@ -140,7 +140,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         tr_ax = plt.subplot2grid(
             shape, (ri, n_col - cs_trace), colspan=cs_trace, fig=fig)
         # topomaps
-        _plot_projs_topomap(these_projs, info=info, show=False,
+        _plot_projs_topomap(these_projs, info=info,
                             axes=topo_axes, **topomap_kwargs)
         for idx, proj, ax_ in zip(these_idxs, these_projs, topo_axes):
             ax_.set_title('')  # could use proj['desc'] but it's long
@@ -157,7 +157,8 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             ch_traces = evoked.data[picks_trace]
             ch_traces -= np.mean(ch_traces, axis=1, keepdims=True)
             ch_traces /= np.abs(ch_traces).max()
-        _plot_evoked(this_evoked, picks='all', axes=[tr_ax], **pe_kwargs)
+        _plot_evoked(this_evoked, picks='all', axes=[tr_ax], **pe_kwargs,
+                     spatial_colors=False)
         for line in tr_ax.lines:
             line.set(lw=0.5, zorder=3)
         for t in list(tr_ax.texts):
@@ -217,7 +218,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             first_ax[key] = ba_ax
         ri += 1
     for ax in last_ax:
-        ax.set(xlabel='Time (sec)')
+        ax.set(xlabel='Time (s)')
     for title, ax in first_ax.items():
         ax.set_title(title, fontsize='medium')
     plt_show(show)

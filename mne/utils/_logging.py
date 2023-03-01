@@ -156,7 +156,7 @@ class use_log_level:
     This message will be printed!
     """
 
-    def __init__(self, verbose, *, add_frames=None):  # noqa: D102
+    def __init__(self, verbose=None, *, add_frames=None):  # noqa: D102
         self._level = verbose
         self._add_frames = add_frames
         self._old_frames = _filter.add_frames
@@ -168,6 +168,11 @@ class use_log_level:
     def __exit__(self, *args):  # noqa: D105
         add_frames = self._old_frames if self._add_frames is not None else None
         set_log_level(self._old_level, add_frames=add_frames)
+
+
+_LOGGING_TYPES = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
+                      WARNING=logging.WARNING, ERROR=logging.ERROR,
+                      CRITICAL=logging.CRITICAL)
 
 
 @fill_doc
@@ -192,24 +197,9 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     old_level : int
         The old level. Only returned if ``return_old_level`` is True.
     """
-    from .config import get_config
-    from .check import _check_option, _validate_type
-    _validate_type(verbose, (bool, str, int, None), 'verbose')
-    if verbose is None:
-        verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
-    elif isinstance(verbose, bool):
-        if verbose is True:
-            verbose = 'INFO'
-        else:
-            verbose = 'WARNING'
-    if isinstance(verbose, str):
-        verbose = verbose.upper()
-        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
-                             WARNING=logging.WARNING, ERROR=logging.ERROR,
-                             CRITICAL=logging.CRITICAL)
-        _check_option('verbose', verbose, logging_types, '(when a string)')
-        verbose = logging_types[verbose]
     old_verbose = logger.level
+    verbose = _parse_verbose(verbose)
+
     if verbose != old_verbose:
         logger.setLevel(verbose)
     if add_frames is not None:
@@ -222,14 +212,34 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     return (old_verbose if return_old_level else None)
 
 
+def _parse_verbose(verbose):
+    from .config import get_config
+    from .check import _check_option, _validate_type
+
+    _validate_type(verbose, (bool, str, int, None), 'verbose')
+    if verbose is None:
+        verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
+    elif isinstance(verbose, bool):
+        if verbose is True:
+            verbose = 'INFO'
+        else:
+            verbose = 'WARNING'
+    if isinstance(verbose, str):
+        verbose = verbose.upper()
+        _check_option('verbose', verbose, _LOGGING_TYPES, '(when a string)')
+        verbose = _LOGGING_TYPES[verbose]
+
+    return verbose
+
+
 def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     """Set the log to print to a file.
 
     Parameters
     ----------
-    fname : str, or None
+    fname : path-like | None
         Filename of the log to print to. If None, stdout is used.
-        To suppress log outputs, use set_log_level('WARN').
+        To suppress log outputs, use set_log_level('WARNING').
     output_format : str
         Format of the output messages. See the following for examples:
 
@@ -369,7 +379,7 @@ def warn(message, category=RuntimeWarning, module='mne',
     root_dirs = [importlib.import_module(ns) for ns in ignore_namespaces]
     root_dirs = [op.dirname(ns.__file__) for ns in root_dirs]
     frame = None
-    if logger.level <= logging.WARN:
+    if logger.level <= logging.WARNING:
         frame = inspect.currentframe()
         while frame:
             fname = frame.f_code.co_filename
@@ -485,3 +495,8 @@ def _frame_info(n):
         return ['unknown']
     finally:
         del frame
+
+
+def _verbose_safe_false(*, level='warning'):
+    lev = _LOGGING_TYPES[level.upper()]
+    return lev if logger.level <= lev else None

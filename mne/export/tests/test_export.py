@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from mne.io import RawArray
 from mne.io.meas_info import create_info
 from pathlib import Path
-import os.path as op
 
 import pytest
 import numpy as np
@@ -32,7 +31,7 @@ fname_evoked = _resource_path('mne.io.tests.data', 'test-ave.fif')
 fname_raw = _resource_path('mne.io.tests.data', 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
-egi_evoked_fname = op.join(data_path, 'EGI', 'test_egi_evoked.mff')
+egi_evoked_fname = data_path / "EGI" / "test_egi_evoked.mff"
 misc_path = misc.data_path(download=False)
 
 
@@ -84,12 +83,15 @@ def test_export_raw_eeglab(tmp_path):
     """Test saving a Raw instance to EEGLAB's set format."""
     raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
-    temp_fname = op.join(str(tmp_path), 'test.set')
+    temp_fname = tmp_path / "test.set"
     raw.export(temp_fname)
     raw.drop_channels([ch for ch in ['epoc']
                        if ch in raw.ch_names])
-    raw_read = read_raw_eeglab(temp_fname, preload=True)
+
+    with pytest.warns(RuntimeWarning, match='is above the 99th percentile'):
+        raw_read = read_raw_eeglab(temp_fname, preload=True, montage_units='m')
     assert raw.ch_names == raw_read.ch_names
+
     cart_coords = np.array([d['loc'][:3] for d in raw.info['chs']])  # just xyz
     cart_coords_read = np.array([d['loc'][:3] for d in raw_read.info['chs']])
     assert_allclose(cart_coords, cart_coords_read)
@@ -153,6 +155,11 @@ def test_double_export_edf(tmp_path):
     read_ch_types = raw_read.get_channel_types()
     assert_array_equal(orig_ch_types, read_ch_types)
 
+    # check handling of missing subject metadata
+    del info['subject_info']['sex']
+    raw_2 = RawArray(data, info)
+    raw_2.export(temp_fname, add_ch_type=True, overwrite=True)
+
 
 @pytest.mark.skipif(not _check_edflib_installed(strict=False),
                     reason='edflib-python not installed')
@@ -174,7 +181,7 @@ def test_export_edf_annotations(tmp_path):
     raw.set_annotations(annotations)
 
     # export
-    temp_fname = op.join(str(tmp_path), f'test.{format}')
+    temp_fname = tmp_path / f"test.{format}"
     raw.export(temp_fname)
 
     # read in the file
@@ -209,7 +216,7 @@ def test_rawarray_edf(tmp_path):
                          minute=time_now.minute, second=time_now.second,
                          tzinfo=timezone.utc)
     raw.set_meas_date(meas_date)
-    temp_fname = op.join(str(tmp_path), f'test.{format}')
+    temp_fname = tmp_path / f"test.{format}"
 
     raw.export(temp_fname, add_ch_type=True)
     raw_read = read_raw_edf(temp_fname, infer_types=True, preload=True)
@@ -292,14 +299,14 @@ def test_export_raw_edf(tmp_path, dataset, format):
     if dataset == 'test':
         raw = read_raw_fif(fname_raw)
     elif dataset == 'misc':
-        fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
+        fname = misc_path / "ecog" / "sample_ecog_ieeg.fif"
         raw = read_raw_fif(fname)
 
     # only test with EEG channels
     raw.pick_types(eeg=True, ecog=True, seeg=True)
     raw.load_data()
     orig_ch_names = raw.ch_names
-    temp_fname = op.join(str(tmp_path), f'test.{format}')
+    temp_fname = tmp_path / f"test.{format}"
 
     # test runtime errors
     with pytest.raises(RuntimeError, match='The maximum'), \
@@ -353,7 +360,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
-    temp_fname = op.join(str(tmp_path), 'test.set')
+    temp_fname = tmp_path / "test.set"
     # TODO: eeglabio 0.2 warns about invalid events
     if _compare_version(eeglabio.__version__, '==', '0.0.2-1'):
         ctx = _record_warnings
@@ -401,7 +408,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
 def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     """Test exporting evoked dataset to MFF."""
     evoked = read_evokeds_mff(egi_evoked_fname)
-    export_fname = op.join(str(tmp_path), 'evoked.mff')
+    export_fname = tmp_path / "evoked.mff"
     history = [
         {
             'name': 'Test Segmentation',

@@ -13,7 +13,7 @@ on:
 jobs:
   job:
     name: 'old 3.7'
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash
@@ -32,7 +32,9 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-        name: 'Setup conda'
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh

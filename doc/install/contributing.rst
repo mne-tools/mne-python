@@ -14,7 +14,7 @@ There are lots of ways to contribute, such as:
 
 .. rst-class:: icon-bullets
 
-- |bug| Use the software, and when you find bugs, tell us about them! We can
+- |computer-mouse| Use the software, and when you find bugs, tell us about them! We can
   only fix the bugs we know about.
 - |discourse| Answer questions on `our user forum`_.
 - |comment| Tell us about parts of the documentation that you find confusing or
@@ -22,10 +22,10 @@ There are lots of ways to contribute, such as:
 - |hand-sparkles| Tell us about things you wish MNE-Python could do, or things
   it can do but you wish they were easier.
 - |universal-access| Improve the accessibility of our website.
-- |fix-bug| Fix bugs.
-- |remove-format| Fix mistakes in our function documentation strings.
-- |magic| Implement new features.
-- |pencil-alt| Improve existing tutorials or write new ones.
+- |bug-slash| Fix bugs.
+- |text-slash| Fix mistakes in our function documentation strings.
+- |wand-magic-sparkles| Implement new features.
+- |pencil| Improve existing tutorials or write new ones.
 - |python| Contribute to one of the many Python packages that MNE-Python
   depends on.
 
@@ -167,7 +167,7 @@ If you don't see this or something similar, you may not have ``make`` installed.
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Get make for Linux
+            |cloud-arrow-down| |ensp| Get make for Linux
 
     .. tab-item:: macOS
         :class-content: text-center
@@ -178,7 +178,7 @@ If you don't see this or something similar, you may not have ``make`` installed.
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Get make for macOS
+            |cloud-arrow-down| |ensp| Get make for macOS
 
     .. tab-item:: Windows
 
@@ -450,7 +450,7 @@ in the pull request you should describe how the tests are failing and ask for
 advice about how to fix them.
 
 To learn more about git, check out the `GitHub help`_ website, the `GitHub
-Learning Lab`_ tutorial series, and the `pro git book`_.
+skills`_ tutorial series, and the `pro git book`_.
 
 
 .. _github-ssh:
@@ -546,11 +546,11 @@ like this:
                             'new_param in 0.XX.')
             if new_param is None:
                 new_param = old_param
-                warn(depr_message, DeprecationWarning)
+                warn(depr_message, FutureWarning)
             else:
                 warn(depr_message + ' Since you passed values for both '
                      'old_param and new_param, old_param will be ignored.',
-                     DeprecationWarning)
+                     FutureWarning)
         # Do whatever you have to do with new_param
         return 'foo'
 
@@ -561,13 +561,13 @@ conditions you expect:
 .. code-block:: python
 
     # test deprecation warning for function
-    with pytest.warns(DeprecationWarning, match='my_function is deprecated'):
+    with pytest.warns(FutureWarning, match='my_function is deprecated'):
         my_function()
 
     # test deprecation warning for parameter
-    with pytest.warns(DeprecationWarning, match='values for both old_param'):
+    with pytest.warns(FutureWarning, match='values for both old_param'):
         my_other_function(new_param=1, old_param=2)
-    with pytest.warns(DeprecationWarning, match='old_param is deprecated and'):
+    with pytest.warns(FutureWarning, match='old_param is deprecated and'):
         my_other_function(old_param=2)
 
 You should also search the codebase for any cases where the deprecated function
@@ -927,9 +927,12 @@ you expect).
    commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
-locally-rendered documentation site in your browser. Additional ``make``
-recipes are available; run ``make help`` from the :file:`doc` directory or
-consult the `Sphinx-Gallery`_ documentation for additional details.
+locally-rendered documentation site in your browser. If you see many warnings
+that seem unrelated to your contributions, it might be that your output folder
+for the documentation build contains old, now irrelevant, files. Running
+``make clean`` will clean those up. Additional ``make`` recipes are available;
+run ``make help`` from the :file:`doc` directory or consult the
+`Sphinx-Gallery`_ documentation for additional details.
 
 
 Modifying command-line tools

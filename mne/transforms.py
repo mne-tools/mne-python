@@ -7,8 +7,8 @@
 # License: BSD-3-Clause
 
 import os
-import os.path as op
 import glob
+from pathlib import Path
 
 import numpy as np
 from copy import deepcopy
@@ -82,14 +82,15 @@ class Transform(dict):
         The starting coordinate frame. See notes for valid coordinate frames.
     to : str | int
         The ending coordinate frame. See notes for valid coordinate frames.
-    trans : array-like, shape (4, 4) | None
+    trans : array of shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
 
     Notes
     -----
-    Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
-    'fs_tal','ctf_head','ctf_meg','unknown'
+    Valid coordinate frames are ``'meg'``, ``'mri'``, ``'mri_voxel'``,
+    ``'head'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``, ``'ctf_head'``,
+    ``'ctf_meg'``, ``'unknown'``.
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102
@@ -168,8 +169,8 @@ class Transform(dict):
 
         Parameters
         ----------
-        fname : str
-            The name of the file, which should end in '-trans.fif'.
+        fname : path-like
+            The name of the file, which should end in ``-trans.fif``.
         """
         write_trans(fname, self)
 
@@ -203,14 +204,14 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
+    trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
     elif len(trans_fnames) > 1:
         raise RuntimeError('Found multiple transformations for '
                            '{subject}'.format(subject=subject))
-    return trans_fnames[0]
+    return Path(trans_fnames[0])
 
 
 def apply_trans(trans, pts, move=True):
@@ -451,13 +452,17 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
         types += (None,)
     _validate_type(trans, types, 'trans')
     if _path_like(trans):
-        trans = str(trans)
         if trans == 'fsaverage':
-            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
-                            'fsaverage-trans.fif')
-        if not op.isfile(trans):
+            trans = (
+                Path(__file__).parent
+                / "data"
+                / "fsaverage"
+                / "fsaverage-trans.fif"
+            )
+        trans = Path(trans)
+        if not trans.is_file():
             raise IOError(f'trans file "{trans}" not found')
-        if op.splitext(trans)[1] in ['.fif', '.gz']:
+        if trans.suffix in ['.fif', '.gz']:
             fro_to_t = read_trans(trans)
         else:
             # convert "-trans.txt" to "-trans.fif" mri-type equivalent
@@ -561,14 +566,14 @@ def read_trans(fname, return_all=False, verbose=None):
 
 @verbose
 def write_trans(fname, trans, *, overwrite=False, verbose=None):
-    """Write a -trans.fif file.
+    """Write a transformation FIF file.
 
     Parameters
     ----------
     fname : path-like
         The name of the file, which should end in ``-trans.fif``.
     trans : dict
-        Trans file data, as returned by read_trans.
+        Trans file data, as returned by `~mne.read_trans`.
     %(overwrite)s
     %(verbose)s
 
@@ -1463,13 +1468,19 @@ def read_ras_mni_t(subject, subjects_dir=None):
     ras_mni_t : instance of Transform
         The transform from RAS to MNI (in mm).
     """
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = Path(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     _validate_type(subject, 'str', 'subject')
-    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
-                    'talairach.xfm')
-    fname = _check_fname(
-        fname, 'read', True, 'FreeSurfer Talairach transformation file')
+    fname = subjects_dir / subject / "mri" / "transforms" / "talairach.xfm"
+    fname = str(
+        _check_fname(
+            fname,
+            "read",
+            True,
+            "FreeSurfer Talairach transformation file",
+        )
+    )
     return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
 
 
@@ -1767,7 +1778,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     %(sdr_morph)s
     interpolation : str
         Interpolation to be used during the interpolation.
-        Can be "linear" (default) or "nearest".
+        Can be ``"linear"`` (default) or ``"nearest"``.
     cval : float | str
         The constant value to assume exists outside the bounds of the
         ``moving`` image domain. Can be a string percentage like ``'1%%'``

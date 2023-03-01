@@ -1,3 +1,5 @@
+.. include:: links.inc
+
 .. _whats_new:
 
 What's new
@@ -6,6 +8,8 @@ What's new
 .. currentmodule:: mne
 
 .. include:: changes/latest.inc
+.. include:: changes/1.3.inc
+.. include:: changes/1.2.inc
 .. include:: changes/1.1.inc
 .. include:: changes/1.0.inc
 .. include:: changes/0.24.inc

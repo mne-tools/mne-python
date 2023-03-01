@@ -15,7 +15,8 @@ DEFAULTS = dict(
                fnirs_fd_phase='k', fnirs_od='k',
                fnirs_td_gated_amplitude='k',
                fnirs_td_moments_amplitude='k',
-               csd='k', whitened='k'),
+               csd='k', whitened='k',
+               gsr='#666633', temperature='#663333'),
     si_units=dict(mag='T', grad='T/m', eeg='V', eog='V', ecg='V', emg='V',
                   misc='AU', seeg='V', dbs='V', dipole='Am', gof='GOF',
                   bio='V', ecog='V', hbo='M', hbr='M', ref_meg='T',
@@ -24,7 +25,8 @@ DEFAULTS = dict(
                   # TODO: These units and scalings are wrong
                   fnirs_td_gated_amplitude='Au',
                   fnirs_td_moments_amplitude='Au',
-                  csd='V/m²', whitened='Z'),
+                  csd='V/m²', whitened='Z',
+                  gsr='S', temperature='C'),
     units=dict(mag='fT', grad='fT/cm', eeg='µV', eog='µV', ecg='µV', emg='µV',
                misc='AU', seeg='mV', dbs='µV', dipole='nAm', gof='GOF',
                bio='µV', ecog='µV', hbo='µM', hbr='µM', ref_meg='fT',
@@ -32,7 +34,8 @@ DEFAULTS = dict(
                fnirs_fd_phase='rad', fnirs_od='V',
                fnirs_td_gated_amplitude='Au',
                fnirs_td_moments_amplitude='Au',
-               csd='mV/m²', whitened='Z'),
+               csd='mV/m²', whitened='Z',
+               gsr='S', temperature='C'),
     # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,
                   misc=1.0, seeg=1e3, dbs=1e6, ecog=1e6, dipole=1e9, gof=1.0,
@@ -41,7 +44,8 @@ DEFAULTS = dict(
                   fnirs_fd_phase=1., fnirs_od=1.0,
                   fnirs_td_gated_amplitude=1.,
                   fnirs_td_moments_amplitude=1.,
-                  csd=1e3, whitened=1.),
+                  csd=1e3, whitened=1.,
+                  gsr=1., temperature=0.1),
     # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                            ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc='auto',
@@ -52,7 +56,8 @@ DEFAULTS = dict(
                            fnirs_od=2e-2,
                            fnirs_td_gated_amplitude=1.,
                            fnirs_td_moments_amplitude=1.,
-                           csd=200e-4, dipole=1e-7, gof=1e2),
+                           csd=200e-4, dipole=1e-7, gof=1e2,
+                           gsr=1., temperature=0.1),
     scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5,  # ~100x scalings
                            seeg=1e1, dbs=1e4, ecog=1e4, hbo=1e4, hbr=1e4),
     ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
@@ -70,7 +75,8 @@ DEFAULTS = dict(
                 fnirs_td_gated_amplitude='fNIRS (TD amplitude)',
                 fnirs_td_moments_amplitude='fNIRS (TD moment)',
                 gof='Goodness of fit', csd='Current source density',
-                stim='Stimulus',
+                stim='Stimulus', gsr='Galvanic skin response',
+                temperature='Temperature',
                 ),
     mask_params=dict(marker='o',
                      markerfacecolor='w',
@@ -120,8 +126,8 @@ DEFAULTS = dict(
     volume_options=dict(
         alpha=None, resolution=1., surface_alpha=None, blending='mip',
         silhouette_alpha=None, silhouette_linewidth=2.),
-    prefixes={'': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3, 'µ': 1e6, 'u': 1e6,
-              'n': 1e9, 'p': 1e12, 'f': 1e15},
+    prefixes={'k': 1e-3, 'h': 1e-2, '': 1e0, 'd': 1e1, 'c': 1e2, 'm': 1e3,
+              'µ': 1e6, 'u': 1e6, 'n': 1e9, 'p': 1e12, 'f': 1e15},
     transform_zooms=dict(
         translation=None, rigid=None, affine=None, sdr=None),
     transform_niter=dict(
