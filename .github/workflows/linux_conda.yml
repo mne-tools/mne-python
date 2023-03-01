@@ -94,7 +94,8 @@ jobs:
           use-mamba: true
       - shell: bash -el {0}
         run: |
-          conda install -c conda-forge "vtk>=9.2=*osmesa*"
+          # TODO: As of 2023/02/28, ipython 8.11 breaks our notebook tests
+          conda install -c conda-forge "vtk>=9.2=*osmesa*" "ipython!=8.11"
         name: 'Install OSMesa VTK variant'
       - shell: bash -el {0}
         run: |
