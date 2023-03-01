@@ -109,7 +109,8 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     @_qt_safe_window(splash='_renderer.figure.splash', window='')
     def __init__(self, data, subject=None, subjects_dir=None, src=None,
-                 inst=None, show_topomap=True, show=True, verbose=None):
+                 inst=None, show_topomap=True, group=False,
+                 show=True, verbose=None):
         """View a volume time and/or frequency source time course estimate.
 
         Parameters
@@ -130,6 +131,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             The time-frequency or data object to use to plot topography.
         show_topomap : bool
             Show the sensor topomap if ``True``.
+        group : bool
+            If the first dimension of the data is subjects, rather than
+            epochs use ``True``.
         show : bool
             Show the GUI if ``True``.
         block : bool
@@ -180,6 +184,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._src = src
         self._inst = inst
         self._show_topomap = show_topomap
+        self._selector_prefix = 'Subject' if group else 'Epoch'
         (self._src_lut, self._src_vox_scan_ras_t, self._src_vox_ras_t,
          self._src_rr) = _get_src_lut(src)
         self._src_scan_ras_vox_t = np.linalg.inv(self._src_vox_scan_ras_t)
@@ -378,7 +383,8 @@ class VolSourceEstimateViewer(SliceBrowser):
             else:
                 stc_data = np.abs((stc_data / np.abs(stc_data)).mean(axis=0))
         else:
-            stc_data = stc_data[int(self._epoch_idx.replace('Epoch ', ''))]
+            stc_data = stc_data[int(self._epoch_idx.replace(
+                f'{self._selector_prefix} ', ''))]
             if stc_data.dtype == COMPLEX_DTYPE:
                 stc_data = _int_complex_conj(stc_data)
             elif self._is_complex:
@@ -474,7 +480,8 @@ class VolSourceEstimateViewer(SliceBrowser):
             else:
                 self._epoch_selector.addItems(['Average'])
             self._epoch_selector.addItems(
-                [f'Epoch {i}' for i in range(self._data.shape[0])])
+                [f'{self._selector_prefix} {i}'
+                 for i in range(self._data.shape[0])])
             self._epoch_selector.setCurrentText(self._epoch_idx)
             self._epoch_selector.currentTextChanged.connect(self._update_epoch)
             self._epoch_selector.setSizeAdjustPolicy(

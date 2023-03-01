@@ -248,9 +248,10 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 
 @verbose
-def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
-                 src=None, inst=None, show_topomap=True, show=True,
-                 block=False, verbose=None):
+def view_vol_stc(stcs, freq_first=True, group=False,
+                 subject=None, subjects_dir=None,
+                 src=None, inst=None, show_topomap=True,
+                 show=True, block=False, verbose=None):
     """View a volume time and/or frequency source time course estimate.
 
     Parameters
@@ -262,15 +263,21 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
         :func:`mne.beamformer.apply_dics_tfr_epochs`-- in this case
         use ``freq_first=False``), or 2) List of source estimates across
         frequencies (e.g. :func::func:`mne.beamformer.apply_dics_csd`),
-        or 3) list of source estimates across epochs
+        or 3) List of source estimates across epochs
         (e.g. :func:`mne.minimum_norm.apply_inverse_epochs` and
         :func:`mne.beamformer.apply_dics_epochs`--in this
         case use ``freq_first=False``), or 4) Single
         source estimates (e.g. :func:`mne.minimum_norm.apply_inverse`
         and :func:`mne.beamformer.apply_dics`, note ``freq_first``
-        will not be used in this case).
+        will not be used in this case), or 5) List of lists or
+        generators for subjects and frequencies (use ``group=True``),
+        or 6) List or generator for subjects with ``stcs`` from
+        evoked data (use ``group=True``).
     freq_first : bool
         If frequencies are the outer list of ``stcs`` use ``True``.
+    group : bool
+        If data from different subjects is passed in the place
+        of different epochs, use group should be ``True``.
     %(subject)s
     %(subjects_dir)s
     src : instance of SourceSpaces
@@ -331,8 +338,8 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
 
     gui = VolSourceEstimateViewer(
         data, subject=subject, subjects_dir=subjects_dir,
-        src=src, inst=inst, show_topomap=show_topomap, show=show,
-        verbose=verbose)
+        src=src, inst=inst, show_topomap=show_topomap, group=group,
+        show=show, verbose=verbose)
     if block:
         _qt_app_exec(app)
     return gui
