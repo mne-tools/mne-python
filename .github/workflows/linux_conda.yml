@@ -75,7 +75,7 @@ jobs:
 
   notebook:
     timeout-minutes: 90
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash
@@ -118,7 +118,6 @@ jobs:
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
-        # TODO: Revert making this list short
         run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
         name: 'Run viz tests'
       - uses: codecov/codecov-action@v3
