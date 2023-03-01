@@ -45,7 +45,7 @@ DEFAULTS = dict(
                   fnirs_td_gated_amplitude=1.,
                   fnirs_td_moments_amplitude=1.,
                   csd=1e3, whitened=1.,
-                  gsr=1., temperature=0.1),
+                  gsr=1., temperature=1.),
     # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                            ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc='auto',
