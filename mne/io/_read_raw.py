@@ -8,11 +8,26 @@
 from pathlib import Path
 from functools import partial
 
-from . import (read_raw_edf, read_raw_bdf, read_raw_gdf, read_raw_brainvision,
-               read_raw_fif, read_raw_eeglab, read_raw_cnt, read_raw_egi,
-               read_raw_eximia, read_raw_nirx, read_raw_fieldtrip,
-               read_raw_artemis123, read_raw_nicolet, read_raw_kit,
-               read_raw_ctf, read_raw_boxy, read_raw_snirf, read_raw_fil)
+from . import (
+    read_raw_edf,
+    read_raw_bdf,
+    read_raw_gdf,
+    read_raw_brainvision,
+    read_raw_fif,
+    read_raw_eeglab,
+    read_raw_cnt,
+    read_raw_egi,
+    read_raw_eximia,
+    read_raw_nirx,
+    read_raw_fieldtrip,
+    read_raw_artemis123,
+    read_raw_nicolet,
+    read_raw_kit,
+    read_raw_ctf,
+    read_raw_boxy,
+    read_raw_snirf,
+    read_raw_fil,
+)
 from ..utils import fill_doc
 
 
@@ -43,8 +58,8 @@ supported = {
     ".snirf": dict(SNIRF=read_raw_snirf),
     ".mat": dict(fieldtrip=read_raw_fieldtrip),
     ".bin": {
-        'ARTEMIS': read_raw_artemis123,
-        'UCL FIL OPM': read_raw_fil,
+        "ARTEMIS": read_raw_artemis123,
+        "UCL FIL OPM": read_raw_fil,
     },
     ".data": dict(Nicolet=read_raw_nicolet),
     ".sqd": dict(KIT=read_raw_kit),
@@ -99,9 +114,9 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs):
     raw : mne.io.Raw
         Raw object.
     """
-    ext = "".join(Path(fname).suffixes)
-    kwargs['verbose'] = verbose
-    kwargs['preload'] = preload
+    ext = Path(fname).suffixes[-1]
+    kwargs["verbose"] = verbose
+    kwargs["preload"] = preload
     if ext not in readers:
         _read_unsupported(fname)
     these_readers = list(readers[ext].values())
@@ -112,10 +127,12 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs):
             if len(these_readers) == 1:
                 raise
     else:
-        choices = '\n'.join(
-            f'mne.io.{func.__name__.ljust(20)} ({kind})'
-            for kind, func in readers[ext].items())
+        choices = "\n".join(
+            f"mne.io.{func.__name__.ljust(20)} ({kind})"
+            for kind, func in readers[ext].items()
+        )
         raise RuntimeError(
-            'Could not read file using any of the possible readers for '
-            f'extension {ext}. Consider trying to read the file directly with '
-            f'one of:\n{choices}')
+            "Could not read file using any of the possible readers for "
+            f"extension {ext}. Consider trying to read the file directly with "
+            f"one of:\n{choices}"
+        )
