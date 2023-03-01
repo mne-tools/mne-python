@@ -499,7 +499,7 @@ class RawSNIRF(BaseRaw):
                     data = np.atleast_2d(np.array(
                         dat.get(f'/nirs/{key}/data')))
                     if data.size > 0:
-                        desc = np.array(dat.get(f'/nirs{key}/name')).item()
+                        desc = np.array(dat.get(f'/nirs/{key}/name')).item()
                         annot.append(data[:, 0],
                                      data[:, 1],
                                      desc.decode('UTF-8'))
