@@ -328,7 +328,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
                     if scalar is None:
                         # this is an order of magnitude approximation,
                         # larger stcs will have some clipping
-                        scalar = (RANGE_VALUE - 1) / stc.data.real.max()
+                        scalar = (RANGE_VALUE - 1) / stc.data.real.max() / 5
                     stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
                     stc_data['re'] = np.clip(stc.data.real * scalar,
                                              -RANGE_VALUE, RANGE_VALUE - 1)
@@ -343,7 +343,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
                     else:
                         stc_data = stc.data.copy()
                     if scalar is None:
-                        scalar = (RANGE_VALUE - 1) / stc_data.max() / 10
+                        scalar = (RANGE_VALUE - 1) / stc_data.max() / 5
                     inner_data.append(np.clip(stc_data * scalar,
                                               -RANGE_VALUE, RANGE_VALUE - 1
                                               ).astype(np.int16))
