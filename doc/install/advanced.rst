@@ -93,7 +93,7 @@ MESA to render properly):
 
 .. code-block:: console
 
-    $ conda install -c conda-forge "vtk>=9.2=*osmesa*"
+    $ conda install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
