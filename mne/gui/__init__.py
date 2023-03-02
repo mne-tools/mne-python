@@ -6,7 +6,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from ..utils import verbose, get_config, warn
+from ..utils import verbose, get_config, warn, _check_option
 
 
 @verbose
@@ -262,28 +262,35 @@ def view_vol_stc(stcs, freq_first=True, group=False,
         :func:`mne.minimum_norm.apply_inverse_tfr_epochs` or
         :func:`mne.beamformer.apply_dics_tfr_epochs`-- in this case
         use ``freq_first=False``), or 2) List of source estimates across
-        frequencies (e.g. :func::func:`mne.beamformer.apply_dics_csd`),
+        frequencies (e.g. :func:`mne.beamformer.apply_dics_csd`),
         or 3) List of source estimates across epochs
         (e.g. :func:`mne.minimum_norm.apply_inverse_epochs` and
         :func:`mne.beamformer.apply_dics_epochs`--in this
         case use ``freq_first=False``), or 4) Single
         source estimates (e.g. :func:`mne.minimum_norm.apply_inverse`
         and :func:`mne.beamformer.apply_dics`, note ``freq_first``
-        will not be used in this case), or 5) List of lists or
-        generators for subjects and frequencies (use ``group=True``),
-        or 6) List or generator for subjects with ``stcs`` from
-        evoked data (use ``group=True``).
+        will not be used in this case), or 5) List of list of lists or
+        generators for subjects and frequencies and epochs (e.g.
+        :func:`mne.minimum_norm.apply_inverse_tfr_epochs` for each subject in
+        a list; use ``group=True``), or 6) List or generator for subjects
+        with ``stcs`` from evoked data (e.g.
+        :func:`mne.minimum_norm.apply_inverse` or
+        :func:`mne.beamformer.apply_dics_csd` for each subject in a
+        list; use ``group=True``).
     freq_first : bool
         If frequencies are the outer list of ``stcs`` use ``True``.
-    group : bool
-        If data from different subjects is passed in the place
-        of different epochs, use group should be ``True``.
+    group : bool | str
+        If data is from different subjects is, group should be ``True``.
+        If data is in time-frequency, group should be ``'ITC'`` to show
+        inter-trial coherence (power is shown by default).
     %(subject)s
     %(subjects_dir)s
     src : instance of SourceSpaces
         The volume source space for the ``stc``.
-    inst : EpochsTFR | AverageTFR | None
-        The time-frequency or data object to use to plot topography.
+    inst : EpochsTFR | AverageTFR | None | list
+        The time-frequency or data instances to use to plot topography.
+        If group-level results are given (``group=True``), a list of
+        instances should be provided.
     show_topomap : bool
         Whether to show the sensor topomap in the GUI.
     show : bool
@@ -300,6 +307,8 @@ def view_vol_stc(stcs, freq_first=True, group=False,
     from ..viz.backends._utils import _init_mne_qtapp, _qt_app_exec
     from ._vol_stc import VolSourceEstimateViewer, COMPLEX_DTYPE, RANGE_VALUE
 
+    _check_option('group', group, (True, False, 'ITC', 'power'))
+
     app = _init_mne_qtapp()
 
     # cast to integers to lower memory usage, use custom complex data
@@ -308,33 +317,53 @@ def view_vol_stc(stcs, freq_first=True, group=False,
     # can be generator, compute using first stc object, just a general
     # rescaling of data, does not need to be precise
     scalar = None
-    for inner_stcs in (stcs if np.iterable(stcs) else [stcs]):
-        inner_data = list()
-        for stc in (inner_stcs if np.iterable(inner_stcs) else [inner_stcs]):
-            if np.iscomplexobj(stc.data):
-                if scalar is None:
-                    # this is an order of magnitude approximation,
-                    # larger stcs will have some clipping
-                    scalar = (RANGE_VALUE - 1) / stc.data.real.max()
-                stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
-                stc_data['re'] = np.clip(stc.data.real * scalar,
-                                         -RANGE_VALUE, RANGE_VALUE - 1)
-                stc_data['im'] = np.clip(stc.data.imag * scalar,
-                                         -RANGE_VALUE, RANGE_VALUE - 1)
-                inner_data.append(stc_data)
-            else:
-                if scalar is None:
-                    scalar = (RANGE_VALUE - 1) / stc.data.max() / 10
-                inner_data.append(np.clip(stc.data * scalar,
-                                          -RANGE_VALUE, RANGE_VALUE - 1
-                                          ).astype(np.int16))
-        data.append(inner_data)
+    for group_stcs in (stcs if group else [stcs]):
+        outer_data = list()
+        for inner_stcs in (group_stcs if np.iterable(group_stcs) else
+                           [group_stcs]):
+            inner_data = list()
+            for stc in (inner_stcs if np.iterable(inner_stcs) else
+                        [inner_stcs]):
+                if np.iscomplexobj(stc.data) and not group:
+                    if scalar is None:
+                        # this is an order of magnitude approximation,
+                        # larger stcs will have some clipping
+                        scalar = (RANGE_VALUE - 1) / stc.data.real.max()
+                    stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
+                    stc_data['re'] = np.clip(stc.data.real * scalar,
+                                             -RANGE_VALUE, RANGE_VALUE - 1)
+                    stc_data['im'] = np.clip(stc.data.imag * scalar,
+                                             -RANGE_VALUE, RANGE_VALUE - 1)
+                    inner_data.append(stc_data)
+                else:
+                    if group == 'ITC' and np.iscomplexobj(stc.data):
+                        stc_data = np.abs((stc.data / np.abs(stc.data)))
+                    elif group and np.iscomplexobj(stc.data):  # power
+                        stc_data = (stc.data * stc.data.conj()).real
+                    else:
+                        stc_data = stc.data.copy()
+                    if scalar is None:
+                        scalar = (RANGE_VALUE - 1) / stc_data.max() / 10
+                    inner_data.append(np.clip(stc_data * scalar,
+                                              -RANGE_VALUE, RANGE_VALUE - 1
+                                              ).astype(np.int16))
+            outer_data.append(
+                np.mean(inner_data, axis=0).round().astype(np.int16)
+                if group and freq_first else inner_data)
+        data.append(np.mean(outer_data, axis=0).round().astype(np.int16)
+                    if group and not freq_first else outer_data)
+
     data = np.array(data)
+
+    if not group:
+        data = data[0]  # flatten group dimension
+
     if data.ndim == 4:  # scalar solution, add dimension at the end
         data = data[:, :, :, None]
 
     # move frequencies to penultimate
-    data = data.transpose((1, 2, 3, 0, 4) if freq_first else (0, 2, 3, 1, 4))
+    data = data.transpose((1, 2, 3, 0, 4) if freq_first and not group else
+                          (0, 2, 3, 1, 4))
 
     gui = VolSourceEstimateViewer(
         data, subject=subject, subjects_dir=subjects_dir,
