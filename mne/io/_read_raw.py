@@ -64,6 +64,17 @@ suggested = {
 readers = {**supported, **suggested}
 
 
+def split_name_ext(fname):
+    """Return name and supported file extension."""
+    maxsuffixes = max([ext.count(".") for ext in supported])
+    suffixes = Path(fname).suffixes
+    for i in range(-maxsuffixes, 0):
+        ext = "".join(suffixes[i:]).lower()
+        if ext in readers.keys():
+            return Path(fname).name[:-len(ext)], ext
+    return fname, None  # unknown file extension
+
+
 @fill_doc
 def read_raw(fname, *, preload=False, verbose=None, **kwargs):
     """Read raw file.
@@ -99,7 +110,7 @@ def read_raw(fname, *, preload=False, verbose=None, **kwargs):
     raw : mne.io.Raw
         Raw object.
     """
-    ext = "".join(Path(fname).suffixes)
+    _, ext = split_name_ext(fname)
     kwargs['verbose'] = verbose
     kwargs['preload'] = preload
     if ext not in readers:
