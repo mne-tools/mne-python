@@ -37,6 +37,7 @@ Enhancements
 - Add a video to :ref:`tut-freesurfer-mne` of a brain inflating from the pial surface to aid in understanding the inflated brain (:gh:`11440` by `Alex Rockhill`_)
 - Add automatic projection of sEEG contact onto the inflated surface for :meth:`mne.viz.Brain.add_sensors` (:gh:`11436` by `Alex Rockhill`_)
 - Add to :ref:`ex-source-loc-methods` how how to apply inverse methods to time-frequency resolved epochs and use :func:`mne.gui.view_vol_stc` to view the output (:gh:`10920` by `Alex Rockhill`_)
+- Add group-level visualization to :func:`mne.gui.view_vol_stc` (:gh:`11525` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
