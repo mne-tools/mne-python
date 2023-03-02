@@ -52,7 +52,8 @@ def _get_src_lut(src):
     offset = 2 if src.kind == 'mixed' else 0
     inuse = [s['inuse'] for s in src[offset:]]
     rr = np.concatenate(
-        [s['rr'][this_inuse] for s, this_inuse in zip(src[offset:], inuse)])
+        [s['rr'][this_inuse.astype(bool)]
+         for s, this_inuse in zip(src[offset:], inuse)])
     shape = _check_consistent([this_src['shape'] for this_src in src],
                               "src['shape']")
     # order='F' so that F-order flattening is faster

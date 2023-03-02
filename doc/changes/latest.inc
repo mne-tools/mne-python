@@ -57,4 +57,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- Deprecate arguments ``kind`` and ``path`` from :func:`mne.channels.read_layout` in favor of a common argument ``fname`` (:gh:`11500` by `Mathieu Scheltienne`_)
