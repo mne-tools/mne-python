@@ -33,7 +33,7 @@ def test_read_raw_unsupported_multi(fname, tmp_path):
         read_raw(fname)
 
 
-@pytest.mark.parametrize('fname', ['x.vmrk', 'x.eeg'])
+@pytest.mark.parametrize('fname', ['x.vmrk', 'y.amrk'])
 def test_read_raw_suggested(fname):
     """Test handling of unsupported file types with suggested alternatives."""
     with pytest.raises(ValueError, match='Try reading'):
