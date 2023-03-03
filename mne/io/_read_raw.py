@@ -10,7 +10,7 @@ from functools import partial
 
 from . import (read_raw_edf, read_raw_bdf, read_raw_gdf, read_raw_brainvision,
                read_raw_fif, read_raw_eeglab, read_raw_cnt, read_raw_egi,
-               read_raw_eximia, read_raw_nirx, read_raw_fieldtrip,
+               read_raw_eximia, read_raw_nirx, read_raw_fieldtrip, read_raw_nihon,
                read_raw_artemis123, read_raw_nicolet, read_raw_kit,
                read_raw_ctf, read_raw_boxy, read_raw_snirf, read_raw_fil)
 from ..utils import fill_doc
@@ -29,6 +29,7 @@ def _read_unsupported(fname, **kwargs):
 # supported read file formats
 supported = {
     ".edf": dict(EDF=read_raw_edf),
+    ".eeg": dict(NihonKoden=read_raw_nihon),
     ".bdf": dict(BDF=read_raw_bdf),
     ".gdf": dict(GDF=read_raw_gdf),
     ".vhdr": dict(brainvision=read_raw_brainvision),
@@ -57,7 +58,6 @@ supported = {
 suggested = {
     ".vmrk": dict(brainvision=partial(_read_unsupported, suggest=".vhdr")),
     ".amrk": dict(brainvision=partial(_read_unsupported, suggest=".ahdr")),
-    ".eeg": dict(brainvision=partial(_read_unsupported, suggest=".vhdr")),
 }
 
 # all known file formats
