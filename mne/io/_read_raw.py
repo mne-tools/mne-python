@@ -69,8 +69,8 @@ def split_name_ext(fname):
     """Return name and supported file extension."""
     maxsuffixes = max([ext.count(".") for ext in supported])
     suffixes = Path(fname).suffixes
-    for i in range(-maxsuffixes, 0):
-        ext = "".join(suffixes[i:]).lower()
+    for si in range(-maxsuffixes, 0):
+        ext = "".join(suffixes[si:]).lower()
         if ext in readers.keys():
             return Path(fname).name[:-len(ext)], ext
     return fname, None  # unknown file extension
