@@ -8,8 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from mne.io import read_raw
 from mne.datasets import testing
+from mne.io import read_raw
+from mne.io._read_raw import split_name_ext, supported
 
 
 base = Path(__file__).parent.parent
@@ -43,6 +44,8 @@ _testing_mark = testing._pytest_mark()
 
 
 @pytest.mark.parametrize('fname', [
+    base / 'tests/data/test_raw.fif',
+    base / 'tests/data/test_raw.fif.gz',
     base / 'edf/tests/data/test.edf',
     base / 'edf/tests/data/test.bdf',
     base / 'brainvision/tests/data/test.vhdr',
@@ -66,3 +69,14 @@ def test_read_raw_supported(fname):
     read_raw(fname, verbose=False)
     raw = read_raw(fname, preload=True)
     assert "data loaded" in str(raw)
+
+
+def test_split_name_ext():
+    """Test file name extension splitting."""
+    # test supported extensions
+    for ext in supported.keys():
+        assert split_name_ext(f"test{ext}")[1] == ext
+
+    # test unsupported extensions
+    for ext in ("this.is.not.supported", "a.b.c.d.e", "fif.gz.xyz"):
+        assert split_name_ext(f"test{ext}")[1] is None
