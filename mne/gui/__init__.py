@@ -292,7 +292,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
         If group-level results are given (``group=True``), a list of
         instances should be provided.
     %(tmin)s
-    $(tmax)s
+    %(tmax)s
     show_topomap : bool
         Whether to show the sensor topomap in the GUI.
     show : bool
