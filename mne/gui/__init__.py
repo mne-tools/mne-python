@@ -249,8 +249,8 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 @verbose
 def view_vol_stc(stcs, freq_first=True, group=False,
-                 subject=None, subjects_dir=None,
-                 src=None, inst=None, show_topomap=True,
+                 subject=None, subjects_dir=None, src=None, inst=None,
+                 show_topomap=True, tmin=None, tmax=None,
                  show=True, block=False, verbose=None):
     """View a volume time and/or frequency source time course estimate.
 
@@ -291,6 +291,8 @@ def view_vol_stc(stcs, freq_first=True, group=False,
         The time-frequency or data instances to use to plot topography.
         If group-level results are given (``group=True``), a list of
         instances should be provided.
+    %(tmin)s
+    $(tmax)s
     show_topomap : bool
         Whether to show the sensor topomap in the GUI.
     show : bool
@@ -305,11 +307,17 @@ def view_vol_stc(stcs, freq_first=True, group=False,
         The graphical user interface (GUI) window.
     """
     from ..viz.backends._utils import _init_mne_qtapp, _qt_app_exec
-    from ._vol_stc import VolSourceEstimateViewer, COMPLEX_DTYPE, RANGE_VALUE
+    from ._vol_stc import (VolSourceEstimateViewer, BASE_INT_DTYPE,
+                           COMPLEX_DTYPE, RANGE_VALUE)
 
-    _check_option('group', group, (True, False, 'ITC', 'power'))
+    _check_option('group', group, (True, False, 'itc', 'power'))
 
     app = _init_mne_qtapp()
+
+    def itc(data):
+        data = np.array(data)
+        return (np.abs((data / np.abs(data)).mean(axis=0)) * (RANGE_VALUE - 1)
+                ).astype(BASE_INT_DTYPE)
 
     # cast to integers to lower memory usage, use custom complex data
     # type if necessary
@@ -324,6 +332,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
             inner_data = list()
             for stc in (inner_stcs if np.iterable(inner_stcs) else
                         [inner_stcs]):
+                stc.crop(tmin=tmin, tmax=tmax)
                 if np.iscomplexobj(stc.data) and not group:
                     if scalar is None:
                         # this is an order of magnitude approximation,
@@ -336,9 +345,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
                                              -RANGE_VALUE, RANGE_VALUE - 1)
                     inner_data.append(stc_data)
                 else:
-                    if group == 'ITC' and np.iscomplexobj(stc.data):
-                        stc_data = np.abs((stc.data / np.abs(stc.data)))
-                    elif group and np.iscomplexobj(stc.data):  # power
+                    if group and np.iscomplexobj(stc.data):  # power
                         stc_data = (stc.data * stc.data.conj()).real
                     else:
                         stc_data = stc.data.copy()
@@ -346,12 +353,21 @@ def view_vol_stc(stcs, freq_first=True, group=False,
                         scalar = (RANGE_VALUE - 1) / stc_data.max() / 5
                     inner_data.append(np.clip(stc_data * scalar,
                                               -RANGE_VALUE, RANGE_VALUE - 1
-                                              ).astype(np.int16))
-            outer_data.append(
-                np.mean(inner_data, axis=0).round().astype(np.int16)
-                if group and freq_first else inner_data)
-        data.append(np.mean(outer_data, axis=0).round().astype(np.int16)
-                    if group and not freq_first else outer_data)
+                                              ).astype(BASE_INT_DTYPE))
+            # compute ITC here, need epochs
+            if group == 'itc' and np.iscomplexobj(stc.data) and freq_first:
+                outer_data.append(itc(inner_data))
+            else:
+                outer_data.append(
+                    np.mean(inner_data, axis=0).round().astype(BASE_INT_DTYPE)
+                    if group and freq_first else inner_data)
+
+        # compute ITC here, need epochs
+        if group == 'itc' and np.iscomplexobj(stc.data) and not freq_first:
+            data.append(itc(outer_data))
+        else:
+            data.append(np.mean(outer_data, axis=0).round().astype(
+                BASE_INT_DTYPE) if group and not freq_first else outer_data)
 
     data = np.array(data)
 
@@ -364,6 +380,10 @@ def view_vol_stc(stcs, freq_first=True, group=False,
     # move frequencies to penultimate
     data = data.transpose((1, 2, 3, 0, 4) if freq_first and not group else
                           (0, 2, 3, 1, 4))
+
+    # crop inst(s) to tmin and tmax
+    for this_inst in (inst if np.iterable(inst) else [inst]):
+        this_inst.crop(tmin=tmin, tmax=tmax)
 
     gui = VolSourceEstimateViewer(
         data, subject=subject, subjects_dir=subjects_dir,
