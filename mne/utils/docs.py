@@ -3744,6 +3744,11 @@ title : str | None
     displayed.
 """
 
+docdict['tmax'] = """
+tmax : scalar
+    Time point of the last sample in data.
+"""
+
 docdict['tmax_raw'] = """
 tmax : float
     End time of the raw data to use in seconds (cannot exceed data duration).
