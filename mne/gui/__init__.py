@@ -382,7 +382,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
                           (0, 2, 3, 1, 4))
 
     # crop inst(s) to tmin and tmax
-    for this_inst in (inst if np.iterable(inst) else [inst]):
+    for this_inst in (inst if isinstance(inst, (list, tuple)) else [inst]):
         this_inst.crop(tmin=tmin, tmax=tmax)
 
     gui = VolSourceEstimateViewer(
