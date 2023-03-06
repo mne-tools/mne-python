@@ -345,13 +345,16 @@ def view_vol_stc(stcs, freq_first=True, group=False,
                                              -RANGE_VALUE, RANGE_VALUE - 1)
                     inner_data.append(stc_data)
                 else:
-                    if group and np.iscomplexobj(stc.data):  # power
+                    if group in (True, 'power') and np.iscomplexobj(stc.data):
                         stc_data = (stc.data * stc.data.conj()).real
                     else:
                         stc_data = stc.data.copy()
                     if scalar is None:
                         scalar = (RANGE_VALUE - 1) / stc_data.max() / 5
-                    inner_data.append(np.clip(stc_data * scalar,
+                    # ignore group == 'itc' if not complex
+                    use_itc = group == 'itc' and np.iscomplexobj(stc.data)
+                    inner_data.append(stc_data if use_itc else
+                                      np.clip(stc_data * scalar,
                                               -RANGE_VALUE, RANGE_VALUE - 1
                                               ).astype(BASE_INT_DTYPE))
             # compute ITC here, need epochs
@@ -375,7 +378,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
         data = data[0]  # flatten group dimension
 
     if data.ndim == 4:  # scalar solution, add dimension at the end
-        data = data[:, :, :, None]
+        data = data[..., None]
 
     # move frequencies to penultimate
     data = data.transpose((1, 2, 3, 0, 4) if freq_first and not group else
