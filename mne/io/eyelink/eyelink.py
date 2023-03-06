@@ -558,26 +558,28 @@ class RawEyelink(BaseRaw):
         # create a timezone object for UTC
         tz = timezone(timedelta(hours=0))
         in_header = False
-        for line in self.fname.open():
-            # header lines are at top of file and start with **
-            if line.startswith('**'):
-                in_header = True
-            if in_header:
-                if line.startswith('** DATE:'):
-                    dt_str = line.replace('** DATE:', '').strip()
-                    fmt = "%a %b %d %H:%M:%S %Y"
-                    try:
-                        # Eyelink measdate timestamps are timezone naive.
-                        # Force datetime to be in UTC.
-                        # Even though dt is probably in local time zone.
-                        dt_naive = datetime.strptime(dt_str, fmt)
-                        dt_aware = dt_naive.replace(tzinfo=tz)
-                        self._meas_date = dt_aware
-                    except Exception:
-                        logger.warning('Extraction of measurement date failed.'
-                                       ' Please report this as a github issue.'
-                                       ' The date is being set to None')
-                    break
+        with self.fname.open() as file:
+            for line in file:
+                # header lines are at top of file and start with **
+                if line.startswith('**'):
+                    in_header = True
+                if in_header:
+                    if line.startswith('** DATE:'):
+                        dt_str = line.replace('** DATE:', '').strip()
+                        fmt = "%a %b %d %H:%M:%S %Y"
+                        try:
+                            # Eyelink measdate timestamps are timezone naive.
+                            # Force datetime to be in UTC.
+                            # Even though dt is probably in local time zone.
+                            dt_naive = datetime.strptime(dt_str, fmt)
+                            dt_aware = dt_naive.replace(tzinfo=tz)
+                            self._meas_date = dt_aware
+                        except Exception:
+                            msg = ('Extraction of measurement date failed.'
+                                   ' Please report this as a github issue.'
+                                   ' The date is being set to None')
+                            logger.warning(msg)
+                        break
 
     def _href_to_radian(self, opposite, f=15_000):
         """Convert HREF eyegaze samples to radians.
