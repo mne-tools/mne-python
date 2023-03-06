@@ -344,7 +344,8 @@ def _warn_empty(meth):
     @wraps(meth)
     def wrapper(*args, **kwargs):
         # Prevent method from running if epochs are empty
-        if len(args[0]) == 0:
+        inst = args[0]
+        if inst.preload and len(inst) == 0:
             warn(f'{meth.__name__} can not run because Epochs are empty!')
         else:
             # Catch exceptions when epochs are dropped
@@ -353,6 +354,7 @@ def _warn_empty(meth):
                 return meth(*args, **kwargs)
             except (ZeroDivisionError, ValueError, IndexError):
                 if args[0].events.shape[0] == 0:
+                    traceback.print_exc()
                     warn(f'{meth.__name__} failed because Epochs are empty!')
                 else:
                     traceback.print_exc()
