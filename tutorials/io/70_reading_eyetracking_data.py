@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 r"""
-.. _tut-importing-physio-data:
+.. _tut-importing-eyetracking-data:
 
 =======================================
 Importing Data from Eyetracking devices
@@ -65,7 +65,7 @@ screen, with (0, 0) at the top left.
 
 This may be best demonstrated with an example. In the file plotted below,
 eyetracking data was recorded while the participant read text on a display.
-In this file, as the participant read the each lines from left to right, the
+In this file, as the participant read the each line from left to right, the
 x-coordinate increased. When the participant moved their gaze down to read a
 new line, the y-coordinate *increased*, which is why the ``ypos_right`` channel
 in the plot below increases over time (for example, at about 4-seconds, and
