@@ -100,9 +100,9 @@ def get_channel_type_constants(include_defaults=False):
                 gsr=dict(kind=FIFF.FIFFV_GALVANIC_CH,
                          unit=FIFF.FIFF_UNIT_S),
                 eyegaze=dict(kind=FIFF.FIFFV_EYETRACK_CH,
-                                  coil_type=FIFF.FIFFV_COIL_EYETRACK_POS),
+                             coil_type=FIFF.FIFFV_COIL_EYETRACK_POS),
                 pupil=dict(kind=FIFF.FIFFV_EYETRACK_CH,
-                                    coil_type=FIFF.FIFFV_COIL_EYETRACK_PUPIL)
+                           coil_type=FIFF.FIFFV_COIL_EYETRACK_PUPIL)
                 )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
