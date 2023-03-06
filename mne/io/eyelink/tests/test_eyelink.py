@@ -34,6 +34,10 @@ def test_eyelink(fname, create_annotations, find_overlaps):
 
     # First, tests that shouldn't change based on function arguments
     assert raw.info['sfreq'] == 500  # True for this file
+    assert raw.info['meas_date'].month == 3
+    assert raw.info['meas_date'].day == 10
+    assert raw.info['meas_date'].year == 2022
+
     assert len(raw.info['ch_names']) == 6
     assert raw.info['chs'][0]['kind'] == FIFF.FIFFV_EYETRACK_CH
     assert raw.info['chs'][0]['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_POS
