@@ -510,13 +510,13 @@ class RawEyelink(BaseRaw):
         # Detect the datatypes that are in file.
         if 'GAZE' in self._rec_info:
             logger.info('Pixel coordinate data detected.')
-            logger.warn('Pass dict(eyegaze=1e3) to the scalings argument'
-                        ' when using plot method to make traces more legible.')
+            logger.warning('Pass `scalings=dict(eyegaze=1e3)` when using plot'
+                           ' method to make traces more legible.')
         elif 'HREF' in self._rec_info:
             logger.info('Head-referenced eye angle data detected.')
         elif 'PUPIL' in self._rec_info:
-            logger.warn('Raw eyegaze coordinates detected. Analyze with'
-                        ' caution.')
+            logger.warning('Raw eyegaze coordinates detected. Analyze with'
+                           ' caution.')
         if 'AREA' in pupil_info:
             logger.info('Pupil-size area reported.')
         elif 'DIAMETER' in pupil_info:
@@ -548,10 +548,10 @@ class RawEyelink(BaseRaw):
                 blocks_list = self._event_lines['SAMPLES']
                 eye_per_block = [block_info[1] for block_info in blocks_list]
                 if not all([this_eye == eye for this_eye in eye_per_block]):
-                    logger.warn('The eye being tracked changed during the'
-                                ' recording. The channel names will reflect'
-                                ' the eye that was tracked at the start of'
-                                ' the recording.')
+                    logger.warning('The eye being tracked changed during the'
+                                   ' recording. The channel names will reflect'
+                                   ' the eye that was tracked at the start of'
+                                   ' the recording.')
 
     def _get_recording_datetime(self):
         """Create a datetime object from the datetime in ASCII file."""
@@ -574,9 +574,9 @@ class RawEyelink(BaseRaw):
                         dt_aware = dt_naive.replace(tzinfo=tz)
                         self._meas_date = dt_aware
                     except Exception:
-                        logger.warn('Extraction of measurement date failed.'
-                                    ' Please report this as a github issue.'
-                                    ' The date is being set to None')
+                        logger.warning('Extraction of measurement date failed.'
+                                       ' Please report this as a github issue.'
+                                       ' The date is being set to None')
                     break
 
     def _href_to_radian(self, opposite, f=15_000):
@@ -697,8 +697,7 @@ class RawEyelink(BaseRaw):
         if n_block > 1:
             logger.info(f'There are {n_block} recording blocks in this'
                         ' file. Times between blocks will be annotated with'
-                        f" '{self._gap_desc}'. This annotation description"
-                        ' can be customized by the gap_description argument')
+                        f' {self._gap_desc}.')
             # if there is more than 1 recording block we must account for
             # the missing timestamps and samples bt the blocks
             self.dataframes['samples'] = _fill_times(self.dataframes
@@ -857,8 +856,9 @@ class RawEyelink(BaseRaw):
             elif (key in ['messages']) and (key in descs):
                 if apply_offsets:
                     if df['offset'].isnull().all():
-                        logger.warn('There are no offsets for the messages in'
-                                    f' {self.fname}. Not applying any offset')
+                        logger.warning('There are no offsets for the messages'
+                                       f' in {self.fname}. Not applying any'
+                                       ' offset')
                     # If df['offset] is all NaNs, time is not changed
                     onsets = df['time'] + df['offset'].fillna(0)
                 else:
@@ -875,7 +875,7 @@ class RawEyelink(BaseRaw):
             elif annots:
                 annots += this_annot
         if not annots:
-            logger.warn(f'Annotations for {descs} were requested but'
-                        ' none could be made.')
+            logger.warning(f'Annotations for {descs} were requested but'
+                           ' none could be made.')
             return
         return annots
