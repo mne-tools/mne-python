@@ -17,7 +17,7 @@ def set_channel_types_eyetrack(inst, mapping):
 
     Parameters
     ----------
-    inst : Instance of Raw, Epochs, or Evoked
+    inst : instance of Raw, Epochs, or Evoked
         The data instance.
     mapping : dict
         A dictionary mapping a channel to a list/tuple including

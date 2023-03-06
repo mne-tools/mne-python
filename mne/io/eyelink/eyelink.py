@@ -218,7 +218,7 @@ def _find_overlaps(df, max_time=0.05):
 
     df : pandas.DataFrame
         Pandas DataFrame with occular events (fixations, saccades, blinks)
-    max_time : float (default value 0.05)
+    max_time : float (default 0.05)
         Time in seconds. Defaults to .05 (50 ms)
 
     Returns
@@ -279,27 +279,27 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
         Path to the eyelink file (.asc).
     %(preload)s
     %(verbose)s
-    create_annotations : bool | list (Default True)
+    create_annotations : bool | list (default True)
         Whether to create mne.Annotations from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
         contain one or more of ['fixations', 'saccades',' blinks', messages'].
         If True, creates mne.Annotations for both occular events and experiment
         messages.
-    apply_offsets : bool (Default False)
+    apply_offsets : bool (default False)
         Adjusts the onset time of the mne.Annotations created from Eyelink
         experiment messages, if offset values exist in
         self.dataframes['messages'].
-    find_overlaps : bool (Default False)
+    find_overlaps : bool (default False)
         Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
         saccades) if their start times and their stop times are both not
         separated by more than overlap_threshold.
-    overlap_threshold : float (Default 0.05)
+    overlap_threshold : float (default 0.05)
         Time in seconds. Threshold of allowable time-gap between the start and
         stop times of the left and right eyes. If gap is larger than threshold,
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_description : str (Default 'bad_rec_gap')
+    gap_description : str (default 'bad_rec_gap')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
         blocks. Uses 'bad_rec_gap' by default so that these time periods will
@@ -307,7 +307,7 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
 
     Returns
     -------
-    raw : instance of RawEyetrack
+    raw : instance of RawEyelink
         A Raw object containing eyetracker data.
 
     See Also
@@ -337,27 +337,27 @@ class RawEyelink(BaseRaw):
     ----------
     fname : str
         Path to the data file (.XXX).
-    create_annotations : bool | list (Default True)
+    create_annotations : bool | list (default True)
         Whether to create mne.Annotations from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
         contain one or more of ['fixations', 'saccades',' blinks', messages'].
         If True, creates mne.Annotations for both occular events and experiment
         messages.
-    apply_offsets : bool (Default False)
+    apply_offsets : bool (default False)
         Adjusts the onset time of the mne.Annotations created from Eyelink
         experiment messages, if offset values exist in
         raw.dataframes['messages'].
-     find_overlaps : boolean (Default False)
+     find_overlaps : boolean (default False)
         Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
         saccades) if their start times and their stop times are both not
         separated by more than overlap_threshold.
-    overlap_threshold : float (Default 0.05)
+    overlap_threshold : float (default 0.05)
         Time in seconds. Threshold of allowable time-gap between the start and
         stop times of the left and right eyes. If gap is larger than threshold,
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_desc : str (Default 'bad_rec_gap')
+    gap_desc : str (default 'bad_rec_gap')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
         blocks. Uses 'bad_rec_gap' by default so that these time periods will
