@@ -20,12 +20,18 @@ pupil response to light flashes (i.e. the pupillary light reflex).
 # ------------
 #
 # First we will load an eye tracker recording from SR research's proprietary
-# .asc file format.
-# We can select which annotations to read out (the files usually also include
-# annotations for saccades and fixations).
+# ``'.asc'`` file format.
 #
-# As the info structure tells us we loaded a monocular recording with 2 Gaze
-# channels (X/Y), 1 Pupil channel, and 1 Stim channel.
+# By default, Eyelink files will output events for occular events (blinks,
+# saccades, fixations), and experiment messages. MNE will store these events
+# as `mne.Annotations`. If we are only interested in certain event types from
+# the Eyelink file, we can select for these using the ``'create_annotations'``
+# argument of `mne.io.read_raw_eyelink`. Here, we will only create annotations
+# for blinks, and experiment messages.
+#
+# The info structure tells us we loaded a monocular recording with 2
+# ``'eyegaze'``, channels (X/Y), 1 ``'pupil'`` channel, and 1 ``'stim'``
+# channel.
 
 from mne import Epochs, find_events
 from mne.io import read_raw_eyelink
@@ -43,12 +49,12 @@ raw.crop(tmin=0, tmax=146)
 #
 # Eyelink eye trackers have a DIN port that can be used to feed in stimulus
 # or response timings. :func:`mne.io.read_raw_eyelink` loads this data as a
-# Stim channel.
-# Alternatively, trigger information could be send to the eyetracker as
-# `messages` - these can be read in as annotations.
+# ``'stim'`` channel. Alternatively, the onset of stimulus events could be sent
+# to the eyetracker as ``messages`` - these can be read in as
+# `mne.Annotations`.
 #
 # In the example data, the DIN channel contains the onset of light flashes on
-# screen. We now extract these events to visualize the pupil response.
+# the screen. We now extract these events to visualize the pupil response.
 
 events = find_events(raw, 'DIN',
                      shortest_event=1,
@@ -89,3 +95,10 @@ epochs.pick_types(eyetrack='eyetrack_pupil')
 epochs.average().plot()
 
 # %%
+# It is important to note that pupil size data are reported by Eyelink (and
+# stored internally by MNE) as arbitrary units (AU). While it often can be
+# preferable to convert pupil size data to millimeters, this requires
+# information that is not always present in the file. MNE does not currently
+# provide methods to convert pupil size data.
+# See :ref:`tut-importing-eyetracking-data` for more information on pupil size
+# data.
