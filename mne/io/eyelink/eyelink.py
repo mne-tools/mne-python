@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -409,9 +410,11 @@ class RawEyelink(BaseRaw):
         self._event_lines = None
         self._system_lines = None
         self._tracking_mode = None  # assigned in self._infer_col_names
+        self._meas_date = None
         self._gap_desc = gap_desc
         self.dataframes = {}
 
+        self._get_recording_datetime()  # sets self._meas_date
         self._parse_recording_blocks()  # sets sample, event, & system lines
 
         sfreq = _get_sfreq(self._event_lines['SAMPLES'][0])
@@ -426,6 +429,8 @@ class RawEyelink(BaseRaw):
         super(RawEyelink, self).__init__(info, preload=eye_ch_data,
                                          filenames=[self.fname],
                                          verbose=verbose)
+        # set meas_date
+        self.set_meas_date(self._meas_date)
 
         # Make Annotations
         gap_annots = None
@@ -529,6 +534,32 @@ class RawEyelink(BaseRaw):
                                 ' recording. The channel names will reflect'
                                 ' the eye that was tracked at the start of'
                                 ' the recording.')
+
+    def _get_recording_datetime(self):
+        """Create a datetime object from the datetime in ASCII file."""
+        # create a timezone object for UTC
+        tz = timezone(timedelta(hours=0))
+        in_header = False
+        for line in self.fname.open():
+            # header lines are at top of file and start with **
+            if line.startswith('**'):
+                in_header = True
+            if in_header:
+                if line.startswith('** DATE:'):
+                    dt_str = line.replace('** DATE:', '').strip()
+                    fmt = "%a %b %d %H:%M:%S %Y"
+                    try:
+                        # Eyelink measdate timestamps are timezone naive.
+                        # Force datetime to be in UTC.
+                        # Even though dt is probably in local time zone.
+                        dt_naive = datetime.strptime(dt_str, fmt)
+                        dt_aware = dt_naive.replace(tzinfo=tz)
+                        self._meas_date = dt_aware
+                    except Exception:
+                        logger.warn('Extraction of measurement date failed.'
+                                    ' Please report this as a github issue.'
+                                    ' The date is being set to None')
+                    break
 
     def _href_to_radian(self, opposite, f=15_000):
         """Convert HREF eyegaze samples to radians.
