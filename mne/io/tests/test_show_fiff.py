@@ -3,14 +3,14 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 from mne.io import show_fiff
 
-base_dir = op.join(op.dirname(__file__), 'data')
-fname_evoked = op.join(base_dir, 'test-ave.fif')
-fname_raw = op.join(base_dir, 'test_raw.fif')
-fname_c_annot = op.join(base_dir, 'test_raw-annot.fif')
+base_dir = Path(__file__).parent / "data"
+fname_evoked = base_dir / "test-ave.fif"
+fname_raw = base_dir / "test_raw.fif"
+fname_c_annot = base_dir / "test_raw-annot.fif"
 
 
 def test_show_fiff():

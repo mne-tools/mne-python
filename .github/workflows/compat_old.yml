@@ -32,7 +32,9 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-        name: 'Setup conda'
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh

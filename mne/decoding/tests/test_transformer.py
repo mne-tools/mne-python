@@ -3,7 +3,8 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
+
 import numpy as np
 
 import pytest
@@ -19,10 +20,9 @@ from mne.utils import requires_sklearn, check_version, use_log_level
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8
-
-data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_dir, 'test_raw.fif')
-event_name = op.join(data_dir, 'test-eve.fif')
+data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
 
 
 @pytest.mark.parametrize('info, method', [

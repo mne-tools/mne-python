@@ -59,7 +59,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
     assert get_subjects_dir(None) is None
     _set_montage_coreg_path()
     sd = get_subjects_dir()
-    assert sd.endswith('MNE-fsaverage-data')
+    assert sd.name.endswith('MNE-fsaverage-data')
     monkeypatch.setenv('MNE_DATA', str(tmp_path / 'foo'))
     with pytest.raises(FileNotFoundError, match='as specified by MNE_DAT'):
         testing.data_path(download=False)
@@ -240,7 +240,7 @@ def _fake_mcd(manifest_path, destination, url, hash_, name=None,
     if name is None:
         name = url.split('/')[-1].split('.')[0]
         assert name in url
-        assert name in destination
+        assert name in str(destination)
     assert name in manifest_path
     assert len(hash_) == 32
     if fake_files:

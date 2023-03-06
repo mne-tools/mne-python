@@ -99,10 +99,10 @@ def get_channel_type_constants(include_defaults=False):
                                  unit=FIFF.FIFF_UNIT_CEL),
                 gsr=dict(kind=FIFF.FIFFV_GALVANIC_CH,
                          unit=FIFF.FIFF_UNIT_S),
-                eyetrack_pos=dict(kind=FIFF.FIFFV_EYETRACK_CH,
-                                  coil_type=FIFF.FIFFV_COIL_EYETRACK_POS),
-                eyetrack_pupil=dict(kind=FIFF.FIFFV_EYETRACK_CH,
-                                    coil_type=FIFF.FIFFV_COIL_EYETRACK_PUPIL)
+                eyegaze=dict(kind=FIFF.FIFFV_EYETRACK_CH,
+                             coil_type=FIFF.FIFFV_COIL_EYETRACK_POS),
+                pupil=dict(kind=FIFF.FIFFV_EYETRACK_CH,
+                           coil_type=FIFF.FIFFV_COIL_EYETRACK_PUPIL)
                 )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
@@ -119,8 +119,8 @@ def get_channel_type_constants(include_defaults=False):
             emg=coil_none,
             bio=coil_none,
             fnirs_od=unit_none,
-            eyetrack_pupil=unit_none,
-            eyetrack_pos=dict(unit=FIFF.FIFF_UNIT_PX),
+            pupil=unit_none,
+            eyegaze=dict(unit=FIFF.FIFF_UNIT_PX),
         )
         for key, value in defaults.items():
             base[key].update(value)
@@ -180,8 +180,8 @@ _second_rules = {
                           FIFF.FIFFV_COIL_NONE: 'eeg',  # MNE-C backward compat
                           FIFF.FIFFV_COIL_EEG_CSD: 'csd',
                           }),
-    'eyetrack': ('coil_type', {FIFF.FIFFV_COIL_EYETRACK_POS: 'eyetrack_pos',
-                               FIFF.FIFFV_COIL_EYETRACK_PUPIL: 'eyetrack_pupil'
+    'eyetrack': ('coil_type', {FIFF.FIFFV_COIL_EYETRACK_POS: 'eyegaze',
+                               FIFF.FIFFV_COIL_EYETRACK_PUPIL: 'pupil'
                                })
 }
 
@@ -367,10 +367,10 @@ def _triage_eyetrack_pick(ch, eyetrack):
     elif eyetrack is True:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_PUPIL and \
-            'eyetrack_pupil' in eyetrack:
+            'pupil' in eyetrack:
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_POS and \
-            'eyetrack_pos' in eyetrack:
+            'eyegaze' in eyetrack:
         return True
     return False
 
@@ -466,7 +466,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
-            elif ch_type in ('eyetrack_pos', 'eyetrack_pupil'):
+            elif ch_type in ('eyegaze', 'pupil'):
                 pick[k] = _triage_eyetrack_pick(info['chs'][k], eyetrack)
             else:  # ch_type in ('hbo', 'hbr')
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs, warned)
@@ -763,7 +763,7 @@ def channel_indices_by_type(info, picks=None):
     idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(),
                        fnirs_cw_amplitude=list(), fnirs_fd_ac_amplitude=list(),
                        fnirs_fd_phase=list(), fnirs_od=list(),
-                       eyetrack_pos=list(), eyetrack_pupil=list())
+                       eyegaze=list(), pupil=list())
     picks = _picks_to_idx(info, picks,
                           none='all', exclude=(), allow_empty=True)
     for k in picks:
@@ -962,7 +962,7 @@ _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
                          'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
-_EYETRACK_CH_TYPES_SPLIT = ('eyetrack_pos', 'eyetrack_pupil')
+_EYETRACK_CH_TYPES_SPLIT = ('eyegaze', 'pupil')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',

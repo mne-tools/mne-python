@@ -96,7 +96,8 @@ extensions = [
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
     'sphinx_design',
-    'sphinxcontrib.youtube'
+    'sphinxcontrib.youtube',
+    'unit_role',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -1007,6 +1008,11 @@ def reset_warnings(gallery_conf, fname):
         'Enum value .* is marked as deprecated',
         # matplotlib PDF output
         'The py23 module has been deprecated',
+        # pkg_resources
+        'Implementing implicit namespace packages',
+        'Deprecated call to `pkg_resources',
+        # nilearn
+        r'The register_cmap function was deprecated in Matplotlib 3\.7',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)

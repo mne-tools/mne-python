@@ -506,12 +506,12 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True, *,
     %(trans)s
 
         .. versionchanged:: 0.19
-            Support for 'fsaverage' argument.
+            Support for ``'fsaverage'`` argument.
     src : path-like | instance of SourceSpaces
-        If string, should be a source space filename. Can also be an
-        instance of loaded or generated SourceSpaces.
+        Either a path to a source space file or a loaded or generated
+        `~mne.source_space.SourceSpaces`.
     bem : path-like | dict
-        Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
+        Filename of the BEM (e.g., ``"sample-5120-5120-5120-bem-sol.fif"``) to
         use, or a loaded sphere model (dict).
     meg : bool
         If True (Default), include MEG computations.
@@ -763,7 +763,7 @@ def use_coil_def(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename of the coil definition file.
 
     Returns

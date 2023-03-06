@@ -348,7 +348,7 @@ def _write_dig_points(fname, dig_points):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the file to write. The kind of file to write is determined
         based on the extension: '.txt' for tab separated text file.
     dig_points : numpy.ndarray, shape (n_points, 3)

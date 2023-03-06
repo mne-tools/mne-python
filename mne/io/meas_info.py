@@ -249,7 +249,8 @@ class ContainsMixin(object):
         Parameters
         ----------
         ch_type : str
-            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+            Channel type to check for. Can be e.g. ``'meg'``, ``'eeg'``,
+            ``'stim'``, etc.
 
         Returns
         -------
@@ -1233,7 +1234,7 @@ class Info(dict, MontageMixin, ContainsMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the file. Should end by ``'-info.fif'``.
         """
         write_info(fname, self)
@@ -1331,7 +1332,7 @@ def read_info(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File name.
     %(verbose)s
 
@@ -2206,8 +2207,8 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. Should end by -info.fif.
+    fname : path-like
+        The name of the file. Should end by ``-info.fif``.
     %(info_not_none)s
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),

@@ -1,4 +1,4 @@
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
@@ -9,8 +9,13 @@ from mne.time_frequency.ar import _yule_walker, fit_iir_model_raw
 from mne.utils import requires_version
 
 
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
+raw_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test_raw.fif"
+)
 
 
 # 0.7 attempts to import nonexistent TimeSeries from Pandas 0.20

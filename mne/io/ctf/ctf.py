@@ -32,7 +32,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
 
     Parameters
     ----------
-    directory : str
+    directory : path-like
         Path to the CTF data (ending in ``'.ds'``).
     system_clock : str
         How to treat the system clock. Use "truncate" (default) to truncate
@@ -73,11 +73,11 @@ class RawCTF(BaseRaw):
 
     Parameters
     ----------
-    directory : str
+    directory : path-like
         Path to the CTF data (ending in ``'.ds'``).
     system_clock : str
-        How to treat the system clock. Use "truncate" (default) to truncate
-        the data file when the system clock drops to zero, and use "ignore"
+        How to treat the system clock. Use ``"truncate"`` (default) to truncate
+        the data file when the system clock drops to zero, and use ``"ignore"``
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
     %(preload)s
@@ -95,8 +95,9 @@ class RawCTF(BaseRaw):
     def __init__(self, directory, system_clock='truncate', preload=False,
                  verbose=None, clean_names=False):  # noqa: D102
         # adapted from mne_ctf2fiff.c
-        directory = _check_fname(directory, 'read', True, 'directory',
-                                 need_dir=True)
+        directory = str(
+            _check_fname(directory, "read", True, "directory", need_dir=True)
+        )
         if not directory.endswith('.ds'):
             raise TypeError('directory must be a directory ending with ".ds", '
                             f'got {directory}')

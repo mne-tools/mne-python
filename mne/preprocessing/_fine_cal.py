@@ -425,14 +425,14 @@ def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order):
 
 
 def read_fine_calibration(fname):
-    """Read fine calibration information from a .dat file.
+    """Read fine calibration information from a ``.dat`` file.
 
     The fine calibration typically includes improved sensor locations,
     calibration coefficients, and gradiometer imbalance information.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename.
 
     Returns
@@ -481,11 +481,11 @@ def read_fine_calibration(fname):
 
 
 def write_fine_calibration(fname, calibration):
-    """Write fine calibration information to a .dat file.
+    """Write fine calibration information to a ``.dat`` file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to write out.
     calibration : dict
         Fine calibration information.

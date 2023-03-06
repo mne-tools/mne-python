@@ -53,9 +53,9 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         through all files matching the pattern. The head surface will be read
         from the first file containing a head surface. Can also be a list
         to try multiple strings.
-    subjects_dir : str, or None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    subjects_dir : path-like | None
+        Path to the ``SUBJECTS_DIR``. If None, the path is obtained by using
+        the environment variable ``SUBJECTS_DIR``.
     %(on_defects)s
 
         .. versionadded:: 1.0
@@ -75,8 +75,9 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
                       raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
+
     # Load the head surface from the BEM
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     if not isinstance(subject, str):
         raise TypeError('subject must be a string, not %s.' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
@@ -729,14 +730,14 @@ def read_curvature(filepath, binary=True):
 
     Parameters
     ----------
-    filepath : str
-        Input path to the .curv file.
+    filepath : path-like
+        Input path to the ``.curv`` file.
     binary : bool
         Specify if the output array is to hold binary values. Defaults to True.
 
     Returns
     -------
-    curv : array, shape=(n_vertices,)
+    curv : array of shape (n_vertices,)
         The curvature values loaded from the user given file.
     """
     with open(filepath, "rb") as fobj:
@@ -761,7 +762,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file containing the surface.
     read_metadata : bool
         Read metadata as key-value pairs. Only works when reading a FreeSurfer
@@ -813,8 +814,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'
@@ -1052,7 +1052,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
         del surf['neighbor_vert']
     else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
-        surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
+        surf_name = subjects_dir / subject / "surf" / f"{hemi}.sphere"
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = read_surface(surf_name, return_dict=True)[-1]
         _normalize_vectors(from_surf['rr'])
@@ -1145,7 +1145,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File to write.
     coords : array, shape=(n_vertices, 3)
         Coordinate points.
@@ -1189,8 +1189,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'
@@ -1609,8 +1608,8 @@ def read_tri(fname_in, swap=False, verbose=None):
 
     Parameters
     ----------
-    fname_in : str
-        Path to surface ASCII file (ending with '.tri').
+    fname_in : path-like
+        Path to surface ASCII file (ending with ``'.tri'``).
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.

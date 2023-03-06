@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 import copy as cp
-import os.path as op
 
 import pytest
 from numpy.testing import (assert_array_equal, assert_allclose,
@@ -32,15 +31,15 @@ from mne.transforms import invert_transform, apply_trans
 from mne.utils import object_diff, requires_version, catch_logging
 
 data_path = testing.data_path(download=False)
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc_raw-eve.fif')
-
-subjects_dir = op.join(data_path, 'subjects')
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_fwd_vol = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
+fname_event = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
+subjects_dir = data_path / "subjects"
 
 
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
@@ -324,7 +323,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
 
-    fname = op.join(str(tmp_path), 'filters-dics.h5')
+    fname = tmp_path / "filters-dics.h5"
     filters.save(fname)
     filters_read = read_beamformer(fname)
     assert isinstance(filters, Beamformer)

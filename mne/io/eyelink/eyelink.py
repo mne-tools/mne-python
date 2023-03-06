@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -409,9 +410,12 @@ class RawEyelink(BaseRaw):
         self._event_lines = None
         self._system_lines = None
         self._tracking_mode = None  # assigned in self._infer_col_names
+        self._meas_date = None
+        self._rec_info = None
         self._gap_desc = gap_desc
         self.dataframes = {}
 
+        self._get_recording_datetime()  # sets self._meas_date
         self._parse_recording_blocks()  # sets sample, event, & system lines
 
         sfreq = _get_sfreq(self._event_lines['SAMPLES'][0])
@@ -426,6 +430,8 @@ class RawEyelink(BaseRaw):
         super(RawEyelink, self).__init__(info, preload=eye_ch_data,
                                          filenames=[self.fname],
                                          verbose=verbose)
+        # set meas_date
+        self.set_meas_date(self._meas_date)
 
         # Make Annotations
         gap_annots = None
@@ -461,7 +467,7 @@ class RawEyelink(BaseRaw):
             self._event_lines = {'START': [], 'END': [], 'SAMPLES': [],
                                  'EVENTS': [], 'ESACC': [], 'EBLINK': [],
                                  'EFIX': [], 'MSG': [], 'INPUT': [],
-                                 'BUTTON': []}
+                                 'BUTTON': [], 'PUPIL': []}
             self._system_lines = []
 
             is_recording_block = False
@@ -493,6 +499,7 @@ class RawEyelink(BaseRaw):
     def _validate_data(self):
         """Check the incoming data for some known problems that can occur."""
         self._rec_info = self._event_lines['SAMPLES'][0]
+        pupil_info = self._event_lines['PUPIL'][0]
         n_blocks = len(self._event_lines['START'])
         sfreq = int(_get_sfreq(self._rec_info))
         first_samp = self._event_lines['START'][0][0]
@@ -500,6 +507,21 @@ class RawEyelink(BaseRaw):
             self._tracking_mode = 'binocular'
         else:
             self._tracking_mode = 'monocular'
+        # Detect the datatypes that are in file.
+        if 'GAZE' in self._rec_info:
+            logger.info('Pixel coordinate data detected.')
+            logger.warn('Pass dict(eyegaze=1e3) to the scalings argument'
+                        ' when using plot method to make traces more legible.')
+        elif 'HREF' in self._rec_info:
+            logger.info('Head-referenced eye angle data detected.')
+        elif 'PUPIL' in self._rec_info:
+            logger.warn('Raw eyegaze coordinates detected. Analyze with'
+                        ' caution.')
+        if 'AREA' in pupil_info:
+            logger.info('Pupil-size area reported.')
+        elif 'DIAMETER' in pupil_info:
+            logger.info('Pupil-size diameter reported.')
+        # Check sampling frequency.
         if sfreq == 2000 and isinstance(first_samp, int):
             raise ValueError(f'The sampling rate is {sfreq}Hz but the'
                              ' timestamps were not output as float values.'
@@ -510,6 +532,7 @@ class RawEyelink(BaseRaw):
                              ' ASCII file as float values. Check the'
                              ' settings in the EDF2ASC application. Got a'
                              f' sampling rate of {sfreq}Hz.')
+        # If more than 1 recording period, make sure sfreq didn't change.
         if n_blocks > 1:
             err_msg = 'The sampling frequency changed during the recording.'\
                       ' This file cannot be read into MNE.'
@@ -529,6 +552,32 @@ class RawEyelink(BaseRaw):
                                 ' recording. The channel names will reflect'
                                 ' the eye that was tracked at the start of'
                                 ' the recording.')
+
+    def _get_recording_datetime(self):
+        """Create a datetime object from the datetime in ASCII file."""
+        # create a timezone object for UTC
+        tz = timezone(timedelta(hours=0))
+        in_header = False
+        for line in self.fname.open():
+            # header lines are at top of file and start with **
+            if line.startswith('**'):
+                in_header = True
+            if in_header:
+                if line.startswith('** DATE:'):
+                    dt_str = line.replace('** DATE:', '').strip()
+                    fmt = "%a %b %d %H:%M:%S %Y"
+                    try:
+                        # Eyelink measdate timestamps are timezone naive.
+                        # Force datetime to be in UTC.
+                        # Even though dt is probably in local time zone.
+                        dt_naive = datetime.strptime(dt_str, fmt)
+                        dt_aware = dt_naive.replace(tzinfo=tz)
+                        self._meas_date = dt_aware
+                    except Exception:
+                        logger.warn('Extraction of measurement date failed.'
+                                    ' Please report this as a github issue.'
+                                    ' The date is being set to None')
+                    break
 
     def _href_to_radian(self, opposite, f=15_000):
         """Convert HREF eyegaze samples to radians.
@@ -735,8 +784,8 @@ class RawEyelink(BaseRaw):
                      + EYELINK_COLS['pos']['right'][:-1])
         pupil_names = (EYELINK_COLS['pos']['left'][-1]
                        + EYELINK_COLS['pos']['right'][-1])
-        ch_types = ['eyetrack_pos' if ch in pos_names
-                    else 'eyetrack_pupil' if ch in pupil_names
+        ch_types = ['eyegaze' if ch in pos_names
+                    else 'pupil' if ch in pupil_names
                     else 'stim' if ch == 'DIN'
                     else 'misc'
                     for ch in ch_names]

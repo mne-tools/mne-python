@@ -16,7 +16,14 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-from ._version import __version__
+try:
+    from importlib.metadata import version
+    __version__ = version("mne")
+except Exception:
+    try:
+        from ._version import __version__
+    except ImportError:
+        __version__ = '0.0.0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,

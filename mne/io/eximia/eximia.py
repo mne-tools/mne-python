@@ -17,8 +17,8 @@ def read_raw_eximia(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to the eXimia data file (.nxe).
+    fname : path-like
+        Path to the eXimia ``.nxe`` data file.
     %(preload)s
     %(verbose)s
 
@@ -40,7 +40,7 @@ class RawEximia(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the eXimia data file (.nxe).
     %(preload)s
     %(verbose)s
@@ -52,7 +52,7 @@ class RawEximia(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        fname = _check_fname(fname, 'read', True, 'fname')
+        fname = str(_check_fname(fname, 'read', True, 'fname'))
         data_name = op.basename(fname)
         logger.info('Loading %s' % data_name)
         # Create vhdr and vmrk files so that we can use mne_brain_vision2fiff

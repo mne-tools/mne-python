@@ -328,10 +328,10 @@ class DigMontage(object):
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=True, kind='topomap', show=True,
-             sphere=None, verbose=None):
+             sphere=None, *, axes=None, verbose=None):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
-                            sphere=sphere)
+                            sphere=sphere, axes=axes)
 
     @fill_doc
     def rename_channels(self, mapping, allow_duplicates=False):
@@ -799,14 +799,14 @@ def read_dig_fif(fname):
 
 
 def read_dig_hpts(fname, unit='mm'):
-    """Read historical .hpts mne-c files.
+    """Read historical ``.hpts`` MNE-C files.
 
     Parameters
     ----------
     fname : path-like
         The filepath of .hpts file.
-    unit : 'm' | 'cm' | 'mm'
-        Unit of the positions. Defaults to 'mm'.
+    unit : ``'m'`` | ``'cm'`` | ``'mm'``
+        Unit of the positions. Defaults to ``'mm'``.
 
     Returns
     -------
@@ -867,6 +867,7 @@ def read_dig_hpts(fname, unit='mm'):
         ...
     """
     from ._standard_montage_utils import _str_names, _str
+
     fname = _check_fname(fname, overwrite='read', must_exist=True)
     _scale = _check_unit_and_get_scaling(unit)
 
@@ -1183,14 +1184,17 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     missing = np.where([use not in ch_pos for use in info_names_use])[0]
     if len(missing):  # DigMontage is subset of info
         missing_names = [info_names[ii] for ii in missing]
+        pl = _pl(missing)
+        are_is = "are" if pl else "is"
         missing_coord_msg = (
-            'DigMontage is only a subset of info. There are '
-            f'{len(missing)} channel position{_pl(missing)} '
-            'not present in the DigMontage. The required channels are:\n\n'
-            f'{missing_names}.\n\nConsider using inst.set_channel_types '
-            'if these are not EEG channels, or use the on_missing '
-            'parameter if the channel positions are allowed to be unknown '
-            'in your analyses.'
+            f"DigMontage is only a subset of info. There {are_is} "
+            f"{len(missing)} channel position{pl} not present in the "
+            f"DigMontage. The channel{pl} missing from the montage {are_is}:"
+            f"\n\n{missing_names}.\n\nConsider using inst.rename_channels to "
+            "match the montage nomenclature, or inst.set_channel_types if "
+            f"{'these' if pl else 'this'} {are_is} not {'' if pl else 'an '}"
+            f"EEG channel{pl}, or use the on_missing parameter if the channel "
+            f"position{pl} {are_is} allowed to be unknown in your analyses."
         )
         _on_missing(on_missing, missing_coord_msg)
 
@@ -1274,7 +1278,7 @@ def _read_isotrak_elp_points(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .elp Polhemus Isotrak file.
 
     Returns
@@ -1304,7 +1308,7 @@ def _read_isotrak_hsp_points(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .hsp Polhemus Isotrak file.
 
     Returns
@@ -1348,15 +1352,15 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     ----------
     fname : path-like
         The filepath of Polhemus ISOTrak formatted file.
-        File extension is expected to be '.hsp', '.elp' or '.eeg'.
+        File extension is expected to be ``'.hsp'``, ``'.elp'`` or ``'.eeg'``.
     ch_names : None | list of str
         The names of the points. This will make the points
         considered as EEG channels. If None, channels will be assumed
         to be HPI if the extension is ``'.elp'``, and extra headshape
         points otherwise.
-    unit : 'm' | 'cm' | 'mm'
+    unit : ``'m'`` | ``'cm'`` | ``'mm'``
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
-        exported in meters. Defaults to 'm'.
+        exported in meters. Defaults to ``'m'``.
 
     Returns
     -------
@@ -1375,7 +1379,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     read_dig_localite
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
@@ -1431,10 +1435,10 @@ def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
     Parameters
     ----------
     fname : path-like
-        The path of .txt Polhemus FastSCAN file.
-    unit : 'm' | 'cm' | 'mm'
+        The path of ``.txt`` Polhemus FastSCAN file.
+    unit : ``'m'`` | ``'cm'`` | ``'mm'``
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
-        exported in millimeters. Defaults to 'mm'.
+        exported in millimeters. Defaults to ``'mm'``.
     %(on_header_missing)s
     %(verbose)s
 
@@ -1449,7 +1453,7 @@ def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
     make_dig_montage
     """
     VALID_FILE_EXT = ['.txt']
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
@@ -1481,18 +1485,18 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     ----------
     fname : path-like
         File extension is expected to be:
-        '.loc' or '.locs' or '.eloc' (for EEGLAB files),
-        '.sfp' (BESA/EGI files), '.csd',
-        '.elc', '.txt', '.csd', '.elp' (BESA spherical),
-        '.bvef' (BrainVision files),
-        '.csv', '.tsv', '.xyz' (XYZ coordinates).
+        ``'.loc'`` or ``'.locs'`` or ``'.eloc'`` (for EEGLAB files),
+        ``'.sfp'`` (BESA/EGI files), ``'.csd'``,
+        ``'.elc'``, ``'.txt'``, ``'.csd'``, ``'.elp'`` (BESA spherical),
+        ``'.bvef'`` (BrainVision files),
+        ``'.csv'``, ``'.tsv'``, ``'.xyz'`` (XYZ coordinates).
     head_size : float | None
         The size of the head (radius, in [m]). If ``None``, returns the values
         read from the montage file with no modification. Defaults to 0.095m.
     coord_frame : str | None
-        The coordinate frame of the points. Usually this is "unknown"
-        for native digitizer space. Defaults to None, which is "unknown" for
-        most readers but "head" for EEGLAB.
+        The coordinate frame of the points. Usually this is ``"unknown"``
+        for native digitizer space. Defaults to None, which is ``"unknown"``
+        for most readers but ``"head"`` for EEGLAB.
 
         .. versionadded:: 0.20
 
@@ -1532,7 +1536,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         'xyz': ('.csv', '.tsv', '.xyz'),
     }
 
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     _, ext = op.splitext(fname)
     _check_option('fname', ext, list(sum(SUPPORTED_FILE_EXT.values(), ())))
 

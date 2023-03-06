@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -23,36 +23,37 @@ from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.surface import _get_ico_surface
-from mne.io.kit import __file__ as _KIT_INIT_FILE
 
-data_dir = op.join(op.dirname(_KIT_INIT_FILE), 'tests', 'data')
-sqd_path = op.join(data_dir, 'test.sqd')
-sqd_umd_path = op.join(data_dir, 'test_umd-raw.sqd')
-epochs_path = op.join(data_dir, 'test-epoch.raw')
-events_path = op.join(data_dir, 'test-eve.txt')
-mrk_path = op.join(data_dir, 'test_mrk.sqd')
-mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
-mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
-elp_txt_path = op.join(data_dir, 'test_elp.txt')
-hsp_txt_path = op.join(data_dir, 'test_hsp.txt')
-elp_path = op.join(data_dir, 'test.elp')
-hsp_path = op.join(data_dir, 'test.hsp')
+data_dir = Path(__file__).parent / "data"
+sqd_path = data_dir / "test.sqd"
+sqd_umd_path = data_dir / "test_umd-raw.sqd"
+epochs_path = data_dir / "test-epoch.raw"
+events_path = data_dir / "test-eve.txt"
+mrk_path = data_dir / "test_mrk.sqd"
+mrk2_path = data_dir / "test_mrk_pre.sqd"
+mrk3_path = data_dir / "test_mrk_post.sqd"
+elp_txt_path = data_dir / "test_elp.txt"
+hsp_txt_path = data_dir / "test_hsp.txt"
+elp_path = data_dir / "test.elp"
+hsp_path = data_dir / "test.hsp"
 
 data_path = mne.datasets.testing.data_path(download=False)
-sqd_as_path = op.join(data_path, 'KIT', 'test_as-raw.con')
-yokogawa_path = op.join(
-    data_path, 'KIT', 'ArtificalSignalData_Yokogawa_1khz.con')
-ricoh_path = op.join(
-    data_path, 'KIT', 'ArtificalSignalData_RICOH_1khz.con')
-ricoh_systems_paths = [op.join(
-    data_path, 'KIT', 'Example_PQA160C_1001-export_anonymyze.con')]
-ricoh_systems_paths += [op.join(
-    data_path, 'KIT', 'Example_RICOH160-1_10020-export_anonymyze.con')]
-ricoh_systems_paths += [op.join(
-    data_path, 'KIT', 'Example_RICOH160-1_10021-export_anonymyze.con')]
-ricoh_systems_paths += [op.join(
-    data_path, 'KIT', '010409_Motor_task_coregist-export_tiny_1s.con')]
-berlin_path = op.join(data_path, 'KIT', 'data_berlin.con')
+sqd_as_path = data_path / "KIT" / "test_as-raw.con"
+yokogawa_path = data_path / "KIT" / "ArtificalSignalData_Yokogawa_1khz.con"
+ricoh_path = data_path / "KIT" / "ArtificalSignalData_RICOH_1khz.con"
+ricoh_systems_paths = [
+    data_path / "KIT" / "Example_PQA160C_1001-export_anonymyze.con"
+]
+ricoh_systems_paths += [
+    data_path / "KIT" / "Example_RICOH160-1_10020-export_anonymyze.con"
+]
+ricoh_systems_paths += [
+    data_path / "KIT" / "Example_RICOH160-1_10021-export_anonymyze.con"
+]
+ricoh_systems_paths += [
+    data_path / "KIT" / "010409_Motor_task_coregist-export_tiny_1s.con"
+]
+berlin_path = data_path / "KIT" / "data_berlin.con"
 
 
 @requires_testing_data
@@ -101,14 +102,14 @@ def test_data(tmp_path):
 
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, meg=True, exclude='bads')
-    raw_bin = op.join(data_dir, 'test_bin_raw.fif')
+    raw_bin = data_dir / "test_bin_raw.fif"
     raw_bin = read_raw_fif(raw_bin, preload=True)
     bin_picks = pick_types(raw_bin.info, meg=True, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
     # this .mat was generated using the Yokogawa MEG Reader
-    data_Ykgw = op.join(data_dir, 'test_Ykgw.mat')
+    data_Ykgw = data_dir / "test_Ykgw.mat"
     data_Ykgw = scipy.io.loadmat(data_Ykgw)['data']
     data_Ykgw = data_Ykgw[py_picks]
 
@@ -153,7 +154,7 @@ def test_data(tmp_path):
 @requires_testing_data
 def test_unknown_format(tmp_path):
     """Test our warning about an unknown format."""
-    fname = tmp_path / op.basename(ricoh_path)
+    fname = tmp_path / ricoh_path.name
     _, kit_info = get_kit_info(ricoh_path, allow_unknown_format=False)
     n_before = kit_info['dirs'][KIT.DIR_INDEX_SYSTEM]['offset']
     with open(fname, 'wb') as fout:
@@ -271,13 +272,13 @@ def test_ch_loc():
     """Test raw kit loc."""
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_txt_path, hsp_txt_path,
                           stim='<')
-    raw_bin = read_raw_fif(op.join(data_dir, 'test_bin_raw.fif'))
+    raw_bin = read_raw_fif(data_dir / "test_bin_raw.fif")
 
     ch_py = np.array([ch['loc'] for ch in
                       raw_py._raw_extras[0]['channels'][:160]])
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
-    ch_sns = read_sns(op.join(data_dir, 'sns.txt'))
+    ch_sns = read_sns(data_dir / "sns.txt")
     assert_array_almost_equal(ch_py, ch_sns, 2)
 
     assert_array_almost_equal(raw_py.info['dev_head_t']['trans'],
@@ -326,8 +327,7 @@ def test_decimate(tmp_path):
     hsp_m = hsp_mm / 1000.
 
     # save headshape to a file in mm in temporary directory
-    tempdir = str(tmp_path)
-    sphere_hsp_path = op.join(tempdir, 'test_sphere.txt')
+    sphere_hsp_path = tmp_path / "test_sphere.txt"
     np.savetxt(sphere_hsp_path, hsp_mm)
 
     # read in raw data using spherical hsp, and extract new hsp

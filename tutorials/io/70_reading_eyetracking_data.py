@@ -120,7 +120,7 @@ raw.pick_types(eyetrack=True).plot(scalings=custom_scalings)
 fpath = misc.data_path() / 'eyetracking' / 'eyelink'
 raw = read_raw_eyelink(fpath / 'HREF_textpage_ws.asc',
                        create_annotations=['blinks'])
-custom_scalings = dict(eyetrack_pos=2e-1)
+custom_scalings = dict(eyegaze=2e-1)
 raw.pick_types(eyetrack=True).plot(scalings=custom_scalings)
 
 # %%
