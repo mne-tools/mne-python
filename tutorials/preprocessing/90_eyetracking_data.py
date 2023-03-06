@@ -85,7 +85,7 @@ raw.plot(events=events, event_id={'Flash': 3}, event_color='g',
 
 epochs = Epochs(raw, events, tmin=-0.3, tmax=5,
                 event_id=event_dict, preload=True)
-epochs.pick_types(eyetrack='eyetrack_pupil')
+epochs.pick_types(eyetrack='pupil')
 epochs.average().plot()
 
 # %%

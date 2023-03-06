@@ -16,8 +16,8 @@ def test_eyetrack_not_data_ch():
     """Eyetrack channels are not data channels."""
     msg = 'eyetrack channels are not data channels. Refer to MNE definition'\
           ' of data channels in the glossary section of the documentation.'
-    assert 'eyetrack_pos' not in _DATA_CH_TYPES_SPLIT, msg
-    assert 'eyetrack_pupil' not in _DATA_CH_TYPES_SPLIT, msg
+    assert 'eyegaze' not in _DATA_CH_TYPES_SPLIT, msg
+    assert 'pupil' not in _DATA_CH_TYPES_SPLIT, msg
 
 
 @requires_testing_data

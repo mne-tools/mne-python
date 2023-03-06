@@ -2658,8 +2658,8 @@ gsr : bool
     Galvanic skin response channels.
 eyetrack : bool | str
     Eyetracking channels. If True include all eyetracking channels. If False
-    (default) include none. If string it can be 'eyetrack_pos' (to include
-    eye position channels) or 'eyetrack_pupil' (to include pupil-size
+    (default) include none. If string it can be 'eyegaze' (to include
+    eye position channels) or 'pupil' (to include pupil-size
     channels).
 include : list of str
     List of additional channels to include. If empty do not include

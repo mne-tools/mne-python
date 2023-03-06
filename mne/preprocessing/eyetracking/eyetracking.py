@@ -22,7 +22,7 @@ def set_channel_types_eyetrack(inst, mapping):
     mapping : dict
         A dictionary mapping a channel to a list/tuple including
         sensor type, unit, eye, [and x/y component] (all as str),  e.g.,
-        ``{'l_x': ('eyetrack_pos', 'deg', 'left', 'x')}``.
+        ``{'l_x': ('eyegaze', 'deg', 'left', 'x')}``.
 
     Returns
     -------
@@ -31,13 +31,13 @@ def set_channel_types_eyetrack(inst, mapping):
 
     Notes
     -----
-    ``inst.set_channel_types()`` to ``'eyetrack_pos'`` or ``'eyetrack_pupil'``
+    ``inst.set_channel_types()`` to ``'eyegaze'`` or ``'pupil'``
     achieves the same, but cannot set specific unit, eye and x/y component.
     """
     ch_names = inst.info['ch_names']
 
     # allowed
-    valid_types = ['eyetrack_pos', 'eyetrack_pupil']  # ch_type
+    valid_types = ['eyegaze', 'pupil']  # ch_type
     valid_units = {'px': ['px', 'pixel'],
                    'deg': ['deg', 'degree', 'degrees'],
                    'mm': ['mm', 'diameter'],
@@ -66,9 +66,9 @@ def set_channel_types_eyetrack(inst, mapping):
             raise ValueError(
                 "ch_type must be one of {}. "
                 "Got '{}' instead.".format(valid_types, ch_type))
-        if ch_type == 'eyetrack_pos':
+        if ch_type == 'eyegaze':
             coil_type = FIFF.FIFFV_COIL_EYETRACK_POS
-        elif ch_type == 'eyetrack_pupil':
+        elif ch_type == 'pupil':
             coil_type = FIFF.FIFFV_COIL_EYETRACK_PUPIL
         inst.info['chs'][c_ind]['coil_type'] = coil_type
         inst.info['chs'][c_ind]['kind'] = FIFF.FIFFV_EYETRACK_CH
@@ -102,7 +102,7 @@ def set_channel_types_eyetrack(inst, mapping):
         elif ch_eye in valid_eye['r']:
             loc[3] = 1
 
-        if ch_type == 'eyetrack_pos':
+        if ch_type == 'eyegaze':
             ch_xy = ch_desc[3].lower()
             if ch_xy not in valid_xy['all']:
                 raise ValueError(

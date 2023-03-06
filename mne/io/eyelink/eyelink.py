@@ -510,7 +510,7 @@ class RawEyelink(BaseRaw):
         # Detect the datatypes that are in file.
         if 'GAZE' in self._rec_info:
             logger.info('Pixel coordinate data detected.')
-            logger.warn('Pass dict(eyetrack_pos=1e3) to the scalings argument'
+            logger.warn('Pass dict(eyegaze=1e3) to the scalings argument'
                         ' when using plot method to make traces more legible.')
         elif 'HREF' in self._rec_info:
             logger.info('Head-referenced eye angle data detected.')
@@ -784,8 +784,8 @@ class RawEyelink(BaseRaw):
                      + EYELINK_COLS['pos']['right'][:-1])
         pupil_names = (EYELINK_COLS['pos']['left'][-1]
                        + EYELINK_COLS['pos']['right'][-1])
-        ch_types = ['eyetrack_pos' if ch in pos_names
-                    else 'eyetrack_pupil' if ch in pupil_names
+        ch_types = ['eyegaze' if ch in pos_names
+                    else 'pupil' if ch in pupil_names
                     else 'stim' if ch == 'DIN'
                     else 'misc'
                     for ch in ch_names]
