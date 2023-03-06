@@ -17,7 +17,7 @@ def _read_events(input_fname, info):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         The file path.
     info : dict
         Header info array.
@@ -29,6 +29,8 @@ def _read_events(input_fname, info):
     events = np.zeros([info['n_events'], info['n_segments'] * n_samples])
     for n, event in enumerate(event_codes):
         for i in mff_events[event]:
+            if (i < 0) or (i >= events.shape[1]):
+                continue
             events[n][i] = n + 1
     return events, info
 
@@ -38,7 +40,7 @@ def _read_mff_events(filename, sfreq):
 
     Parameters
     ----------
-    filename : str
+    filename : path-like
         File path.
     sfreq : float
         The sampling frequency

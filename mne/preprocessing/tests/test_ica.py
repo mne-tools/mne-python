@@ -3,10 +3,10 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 import os
-import os.path as op
 import shutil
+from contextlib import nullcontext
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -33,27 +33,25 @@ from mne.utils import (catch_logging, requires_sklearn, _record_warnings,
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
-data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_dir, 'test_raw.fif')
-event_name = op.join(data_dir, 'test-eve.fif')
-test_cov_name = op.join(data_dir, 'test-cov.fif')
+data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
+test_cov_name = data_dir / "test-cov.fif"
 
 test_base_dir = testing.data_path(download=False)
-ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
+ctf_fname = test_base_dir / "CTF" / "testdata_ctf.ds"
 
-fif_fname = op.join(test_base_dir, 'MEG', 'sample',
-                    'sample_audvis_trunc_raw.fif')
-eeglab_fname = op.join(test_base_dir, 'EEGLAB', 'test_raw.set')
-eeglab_montage = op.join(test_base_dir, 'EEGLAB', 'test_chans.locs')
-
-ctf_fname2 = op.join(test_base_dir, 'CTF', 'catch-alp-good-f.ds')
-
+fif_fname = test_base_dir / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+eeglab_fname = test_base_dir / "EEGLAB" / "test_raw.set"
+eeglab_montage = test_base_dir / "EEGLAB" / "test_chans.locs"
+ctf_fname2 = test_base_dir / "CTF" / "catch-alp-good-f.ds"
 event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 6
-score_funcs_unsuited = ['pointbiserialr', 'ansari']
+score_funcs_unsuited = ["pointbiserialr", "ansari"]
 pymatreader_mark = pytest.mark.skipif(
-    not check_version('pymatreader'), reason='Requires pymatreader')
+    not check_version("pymatreader"), reason="Requires pymatreader"
+)
 
 
 def ICA(*args, **kwargs):
@@ -898,7 +896,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_equal(len(ica_raw._filenames), 1)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert (ica.n_components_ == len(ica_chans))
-    test_ica_fname = op.join(op.abspath(op.curdir), 'test-ica_raw.fif')
+    test_ica_fname = Path.cwd() / "test-ica_raw.fif"
     ica.n_components = np.int32(ica.n_components)
     ica_raw.save(test_ica_fname, overwrite=True)
     ica_raw2 = read_raw_fif(test_ica_fname, preload=True)
@@ -1145,8 +1143,7 @@ def test_fit_methods(method, tmp_path):
     # Only picard and infomax support the "extended" keyword, so limit the
     # tests to those.
     if method in ['picard', 'infomax']:
-        tmp_path = str(tmp_path)
-        output_fname = op.join(tmp_path, 'test_ica-ica.fif')
+        output_fname = tmp_path / "test_ica-ica.fif"
 
         raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
         n_components = 3
@@ -1456,11 +1453,11 @@ def test_ica_labels():
 def test_ica_eeg(fname, grade):
     """Test ICA on EEG."""
     method = 'fastica'
-    if fname.endswith('.fif'):
+    if fname.suffix == ".fif":
         raw = read_raw_fif(fif_fname)
         raw.pick(raw.ch_names[::5]).load_data()
         raw.info.normalize_proj()
-    elif fname.endswith('.set'):
+    elif fname.suffix == ".set":
         raw = read_raw_eeglab(input_fname=eeglab_fname, preload=True)
     else:
         with pytest.warns(RuntimeWarning, match='MISC channel'):
@@ -1500,9 +1497,8 @@ def test_ica_eeg(fname, grade):
 @testing.requires_testing_data
 def test_read_ica_eeglab():
     """Test read_ica_eeglab function."""
-    fname = op.join(test_base_dir, "EEGLAB", "test_raw.set")
-    fname_cleaned_matlab = op.join(test_base_dir, "EEGLAB",
-                                   "test_raw.cleaned.set")
+    fname = test_base_dir / "EEGLAB" / "test_raw.set"
+    fname_cleaned_matlab = test_base_dir / "EEGLAB" / "test_raw.cleaned.set"
 
     raw = read_raw_eeglab(fname, preload=True)
     raw_eeg = _check_load_mat(fname, None)
@@ -1533,15 +1529,18 @@ def test_read_ica_eeglab():
 @testing.requires_testing_data
 def test_read_ica_eeglab_mismatch(tmp_path):
     """Test read_ica_eeglab function when there is a mismatch."""
-    fname_orig = op.join(test_base_dir, "EEGLAB", "test_raw.set")
-    base = op.basename(fname_orig)[:-3]
-    shutil.copyfile(fname_orig[:-3] + 'fdt', tmp_path / (base + 'fdt'))
+    fname_orig = test_base_dir / "EEGLAB" / "test_raw.set"
+    base = fname_orig.stem + "."
+    shutil.copyfile(
+        fname_orig.with_suffix(".fdt"),
+        tmp_path / fname_orig.with_suffix(".fdt").name,
+    )
     fname = tmp_path / base
     data = loadmat(fname_orig)
     w = data['EEG']['icaweights'][0][0]
     w[:] = np.random.RandomState(0).randn(*w.shape)
-    savemat(str(fname), data, appendmat=False)
-    assert op.isfile(fname)
+    savemat(fname, data, appendmat=False)
+    assert fname.is_file()
     with pytest.warns(RuntimeWarning, match='Mismatch.*removal.*icawinv.*'):
         ica = read_ica_eeglab(fname)
     _assert_ica_attributes(ica)

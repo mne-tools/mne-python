@@ -1,5 +1,3 @@
-import os.path as op
-
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -20,11 +18,14 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
 from mne.time_frequency.multitaper import psd_array_multitaper
 
 data_path = testing.data_path(download=False)
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
-fname_data = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc_raw.fif')
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+fname_inv = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif"
+)
+fname_data = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_label = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
 
 
 @testing.requires_testing_data

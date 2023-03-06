@@ -3,7 +3,6 @@
 #
 # License: BSD-3-clause
 
-import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -14,8 +13,8 @@ from mne.utils import requires_nibabel, catch_logging, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
-subject = 'sample'
-subjects_dir = op.join(data_path, 'subjects')
+subject = "sample"
+subjects_dir = data_path / "subjects"
 
 
 @requires_nibabel()

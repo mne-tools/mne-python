@@ -909,11 +909,11 @@ class RawBTi(BaseRaw):
 
     Parameters
     ----------
-    pdf_fname : str
+    pdf_fname : path-like
         Path to the processed data file (PDF).
-    config_fname : str
+    config_fname : path-like
         Path to system config file.
-    head_shape_fname : str | None
+    head_shape_fname : path-like | None
         Path to the head shape file.
     rotation_x : float
         Degrees to tilt x-axis for sensor frame misalignment. Ignored
@@ -1269,11 +1269,11 @@ def read_raw_bti(pdf_fname, config_fname='config',
 
     Parameters
     ----------
-    pdf_fname : str
+    pdf_fname : path-like
         Path to the processed data file (PDF).
-    config_fname : str
+    config_fname : path-like
         Path to system config file.
-    head_shape_fname : str | None
+    head_shape_fname : path-like | None
         Path to the head shape file.
     rotation_x : float
         Degrees to tilt x-axis for sensor frame misalignment. Ignored

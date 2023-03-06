@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 import re
 
 import numpy as np
@@ -22,9 +21,10 @@ from mne.viz import plot_volume_source_estimates
 from mne.viz.utils import _fake_click, _fake_keypress
 
 data_dir = testing.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-fwd_fname = op.join(data_dir, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
+subjects_dir = data_dir / "subjects"
+fwd_fname = (
+    data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
 
 
 @pytest.mark.slowtest  # can be slow on OSX

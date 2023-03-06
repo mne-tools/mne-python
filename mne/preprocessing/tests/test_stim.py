@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
@@ -13,9 +13,9 @@ from mne.event import read_events
 from mne.epochs import Epochs
 from mne.preprocessing.stim import fix_stim_artifact
 
-data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_path, 'test_raw.fif')
-event_fname = op.join(data_path, 'test-eve.fif')
+data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_path / "test_raw.fif"
+event_fname = data_path / "test-eve.fif"
 
 
 def test_fix_stim_artifact():

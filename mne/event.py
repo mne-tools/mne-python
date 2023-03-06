@@ -7,8 +7,8 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
@@ -200,13 +200,13 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
     Parameters
     ----------
-    filename : str
+    filename : path-like
         Name of the input file.
-        If the extension is .fif, events are read assuming
-        the file is in FIF format, otherwise (e.g., .eve,
-        .lst, .txt) events are read as coming from text.
+        If the extension is ``.fif``, events are read assuming
+        the file is in FIF format, otherwise (e.g., ``.eve``,
+        ``.lst``, ``.txt``) events are read as coming from text.
         Note that new format event files do not contain
-        the "time" column (used to be the second column).
+        the ``"time"`` column (used to be the second column).
     include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -217,7 +217,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
         If None (default), no masking is performed.
-    mask_type : 'and' | 'not_and'
+    mask_type : ``'and'`` | ``'not_and'``
         The type of operation between the mask and the trigger.
         Choose 'and' (default) for MNE-C masking behavior.
 
@@ -252,9 +252,8 @@ def read_events(filename, include=None, exclude=None, mask=None,
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt',
                                      '-annot.fif',  # MNE-C annot
                                      ))
-
-    ext = op.splitext(filename)[1].lower()
-    if ext == '.fif' or ext == '.gz':
+    filename = Path(filename)
+    if filename.suffix in (".fif", ".gz"):
         fid, tree, _ = fiff_open(filename)
         with fid as f:
             event_list, event_id = _read_events_fif(f, tree)
@@ -306,13 +305,13 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    filename : str
+    filename : path-like
         Name of the output file.
-        If the extension is .fif, events are written in
-        binary FIF format, otherwise (e.g., .eve, .lst,
-        .txt) events are written as plain text.
+        If the extension is ``.fif``, events are written in
+        binary FIF format, otherwise (e.g., ``.eve``,
+        ``.lst``, ``.txt``) events are written as plain text.
         Note that new format event files do not contain
-        the "time" column (used to be the second column).
+        the ``"time"`` column (used to be the second column).
     %(events)s
     %(overwrite)s
     %(verbose)s
@@ -325,8 +324,7 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
-    ext = op.splitext(filename)[1].lower()
-    if ext in ('.fif', '.gz'):
+    if filename.suffix in ('.fif', '.gz'):
         #   Start writing...
         with start_and_end_file(filename) as fid:
             start_block(fid, FIFF.FIFFB_MNE_EVENTS)

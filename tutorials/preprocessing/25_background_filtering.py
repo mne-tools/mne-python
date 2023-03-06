@@ -718,6 +718,7 @@ for ax, x_f, title in zip(axes, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
     ax.plot(t, x_f, color='k', linestyle='--')
     ax.set(ylim=ylim, xlim=xlim, xticks=tticks,
            title=title, xlabel=xlabel, ylabel=ylabel)
+
 mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
@@ -725,12 +726,12 @@ plt.show()
 # %%
 # Similarly, in a P300 paradigm reported by
 # Kappenman & Luck (2010) :footcite:`KappenmanLuck2010`,
-# they found that applying a 1&nbsp;Hz high-pass decreased the probability of
-# finding a significant difference in the N100 response, likely because
-# the P300 response was smeared (and inverted) in time by the high-pass
-# filter such that it tended to cancel out the increased N100. However,
-# they nonetheless noted that some high-passing can still be useful to deal
-# with drifts in the data.
+# of they found that applying a :unit:`1 Hz` high-pass decreased the
+# probability finding a significant difference in the N100 response, likely
+# because the P300 response was smeared (and inverted) in time by the
+# high-pass filter such that it tended to cancel out the increased N100.
+# However, they nonetheless noted that some high-passing can still be useful
+# to deal with drifts in the data.
 #
 # Even though these papers generally advise a 0.1 Hz or lower frequency for
 # a high-pass, it is important to keep in mind (as most authors note) that

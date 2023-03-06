@@ -238,7 +238,7 @@ class TimeDelayingRidge(BaseEstimator):
     alpha : float
         The ridge (or laplacian) regularization factor.
     reg_type : str | list
-        Can be "ridge" (default) or "laplacian".
+        Can be ``"ridge"`` (default) or ``"laplacian"``.
         Can also be a 2-element list specifying how to regularize in time
         and across adjacent features.
     fit_intercept : bool

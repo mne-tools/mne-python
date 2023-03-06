@@ -387,7 +387,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
-        The epochs.
+        The epochs.default ``'complex'``
     freqs : array-like of floats, shape (n_freqs)
         The frequencies.
     sfreq : float | int, default 1.0
@@ -419,9 +419,9 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
 
-    output : str, default 'complex'
+    output : str
 
-        * 'complex' : single trial complex.
+        * 'complex' (default) : single trial complex.
         * 'power' : single trial power.
         * 'phase' : single trial phase.
         * 'avg_power' : average of single trial power.
@@ -1112,7 +1112,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The file name, which should end with ``-tfr.h5``.
         %(overwrite)s
         %(verbose)s
@@ -2568,7 +2568,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file name, which should end with ``-tfr.h5``.
     tfr : AverageTFR | list of AverageTFR | EpochsTFR
         The TFR dataset, or list of TFR datasets, to save in one file.
@@ -2617,7 +2617,7 @@ def read_tfrs(fname, condition=None, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file name, which should end with -tfr.h5 .
     condition : int or str | list of int or str | None
         The condition to load. If None, all conditions will be returned.

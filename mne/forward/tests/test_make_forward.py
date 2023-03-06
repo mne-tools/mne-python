@@ -1,6 +1,4 @@
 from itertools import product
-import os
-import os.path as op
 from pathlib import Path
 
 import pytest
@@ -36,28 +34,33 @@ from mne.source_space import (write_source_spaces, _compare_source_spaces,
 from mne.forward.tests.test_forward import assert_forward_allclose
 
 data_path = testing.data_path(download=False)
-fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
-fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-fname_dip = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
-fname_trans = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
-subjects_dir = os.path.join(data_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
-fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                    'sample-1280-1280-1280-bem-sol.fif')
-fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-1280-bem-sol.fif')
+fname_meeg = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_raw = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test_raw.fif"
+)
+fname_evo = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+fname_dip = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
+fname_trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+subjects_dir = data_path / "subjects"
+fname_src = subjects_dir / "sample" / "bem" / "sample-oct-4-src.fif"
+fname_bem = (
+    subjects_dir / "sample" / "bem" / "sample-1280-1280-1280-bem-sol.fif"
+)
+fname_aseg = subjects_dir / "sample" / "mri" / "aseg.mgz"
+fname_bem_meg = subjects_dir / "sample" / "bem" / "sample-1280-bem-sol.fif"
 
-io_path = Path(__file__).parent.parent.parent / 'io'
-bti_dir = io_path / 'bti' / 'tests' / 'data'
-kit_dir = io_path / 'kit' / 'tests' / 'data'
-trans_path = op.join(kit_dir, 'trans-sample.fif')
-fname_ctf_raw = io_path / 'tests' / 'data' / 'test_ctf_comp_raw.fif'
+io_path = Path(__file__).parent.parent.parent / "io"
+bti_dir = io_path / "bti" / "tests" / "data"
+kit_dir = io_path / "kit" / "tests" / "data"
+trans_path = kit_dir / "trans-sample.fif"
+fname_ctf_raw = io_path / "tests" / "data" / "test_ctf_comp_raw.fif"
 
 
 def _col_corrs(a, b):
@@ -172,11 +175,11 @@ def test_magnetic_dipole():
 @requires_mne
 def test_make_forward_solution_kit(tmp_path, fname_src_small):
     """Test making fwd using KIT (compensated) files."""
-    sqd_path = op.join(kit_dir, 'test.sqd')
-    mrk_path = op.join(kit_dir, 'test_mrk.sqd')
-    elp_path = op.join(kit_dir, 'test_elp.txt')
-    hsp_path = op.join(kit_dir, 'test_hsp.txt')
-    fname_kit_raw = op.join(kit_dir, 'test_bin_raw.fif')
+    sqd_path = kit_dir / "test.sqd"
+    mrk_path = kit_dir / "test_mrk.sqd"
+    elp_path = kit_dir / "test_elp.txt"
+    hsp_path = kit_dir / "test_hsp.txt"
+    fname_kit_raw = kit_dir / "test_bin_raw.fif"
 
     # first use mne-C: convert file, make forward solution
     fwd = _do_forward_solution('sample', fname_kit_raw, src=fname_src_small,

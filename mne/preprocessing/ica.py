@@ -2144,9 +2144,9 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The absolute path of the file name to save the ICA solution into.
-            The file name should end with -ica.fif or -ica.fif.gz.
+            The file name should end with ``-ica.fif`` or ``-ica.fif.gz``.
         %(overwrite)s
 
             .. versionadded:: 1.0
@@ -2583,7 +2583,7 @@ def read_ica(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Absolute path to fif file containing ICA matrices.
         The file name should end with -ica.fif or -ica.fif.gz.
     %(verbose)s
@@ -2970,8 +2970,8 @@ def read_ica_eeglab(fname, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Complete path to a .set EEGLAB file that contains an ICA object.
+    fname : path-like
+        Complete path to a ``.set`` EEGLAB file that contains an ICA object.
     %(verbose)s
 
     Returns

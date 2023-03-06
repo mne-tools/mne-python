@@ -2,11 +2,11 @@
 #
 # License: BSD-3-Clause
 
+import os
 from collections import Counter
 from io import BytesIO
-import os
-import os.path as op
 from functools import reduce, partial
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -29,20 +29,19 @@ from mne import pick_types
 from mne.utils import assert_dig_allclose
 from mne.transforms import Transform, combine_transforms, invert_transform
 
-base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
+base_dir = Path(__file__).parent / "data"
 
-archs = 'linux', 'solaris'
-pdf_fnames = [op.join(base_dir, 'test_pdf_%s' % a) for a in archs]
-config_fnames = [op.join(base_dir, 'test_config_%s' % a) for a in archs]
-hs_fnames = [op.join(base_dir, 'test_hs_%s' % a) for a in archs]
-exported_fnames = [op.join(base_dir, 'exported4D_%s_raw.fif' % a)
-                   for a in archs]
-tmp_raw_fname = op.join(base_dir, 'tmp_raw.fif')
+archs = "linux", "solaris"
+pdf_fnames = [base_dir / f"test_pdf_{a}" for a in archs]
+config_fnames = [base_dir / f"test_config_{a}" for a in archs]
+hs_fnames = [base_dir / f"test_hs_{a}" for a in archs]
+exported_fnames = [base_dir / f"exported4D_{a}_raw.fif" for a in archs]
+tmp_raw_fname = base_dir / "tmp_raw.fif"
 
-testing_path_bti = testing.data_path(download=False) / 'BTi'
-fname_2500 = testing_path_bti / 'erm_HFH' / 'c,rfDC'
-fname_sim = testing_path_bti / '4Dsim' / 'c,rfDC'
-fname_sim_filt = testing_path_bti / '4Dsim' / 'c,rfDC,fn50,o'
+testing_path_bti = testing.data_path(download=False) / "BTi"
+fname_2500 = testing_path_bti / "erm_HFH" / "c,rfDC"
+fname_sim = testing_path_bti / "4Dsim" / "c,rfDC"
+fname_sim_filt = testing_path_bti / "4Dsim" / "c,rfDC,fn50,o"
 
 # the 4D exporter doesn't export all channels, so we confine our comparison
 NCH = 248
@@ -127,7 +126,7 @@ def test_raw():
         pytest.raises(ValueError, read_raw_bti, pdf, 'eggs', preload=False)
         pytest.raises(ValueError, read_raw_bti, pdf, config, 'spam',
                       preload=False)
-        if op.exists(tmp_raw_fname):
+        if tmp_raw_fname.exists():
             os.remove(tmp_raw_fname)
         ex = read_raw_fif(exported, preload=True)
         ra = read_raw_bti(pdf, config, hs, preload=False)
