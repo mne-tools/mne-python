@@ -71,10 +71,13 @@ event_dict = {'flash': 3}
 # data, eyeblink annotations and stimulus events (from the DIN channel).
 #
 # The plot also shows us that there is some noise in the data (not always
-# categorized as blinks).
+# categorized as blinks). Also, notice that we have passed a custom `dict` into
+# the scalings argument of ``raw.plot``. This is necessary to make the eyegaze
+# channel traces legible when plotting, since the file contains pixel position
+# data (as opposed to eye angles, which are reported in radians).
 
 raw.plot(events=events, event_id={'Flash': 3}, event_color='g',
-         start=25, duration=45)
+         start=25, duration=45, scalings=dict(eyegaze=1e3))
 
 
 # %%
