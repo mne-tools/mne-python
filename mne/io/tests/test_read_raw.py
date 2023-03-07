@@ -89,4 +89,3 @@ def test_read_raw_multiple_dots(tmp_path):
     dst = tmp_path / "test.this.file.edf"
     copyfile(src, dst)
     read_raw(dst)
-    
