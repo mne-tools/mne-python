@@ -1012,7 +1012,6 @@ def reset_warnings(gallery_conf, fname):
         'Implementing implicit namespace packages',
         'Deprecated call to `pkg_resources',
         # nilearn
-        r'The register_cmap function was deprecated in Matplotlib 3\.7',
         'pkg_resources is deprecated as an API',
         r'The .* was deprecated in Matplotlib 3\.7',
     ):
