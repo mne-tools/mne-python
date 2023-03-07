@@ -71,7 +71,7 @@ def split_name_ext(fname):
     suffixes = Path(fname).suffixes
     for si in range(-maxsuffixes, 0):
         ext = "".join(suffixes[si:]).lower()
-        if ext in readers.keys():
+        if ext in readers:
             return Path(fname).name[:-len(ext)], ext
     return fname, None  # unknown file extension
 
