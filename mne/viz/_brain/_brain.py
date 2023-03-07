@@ -243,6 +243,7 @@ class Brain(object):
         from ..backends.renderer import backend, _get_renderer
 
         _validate_type(subject, str, 'subject')
+        self._surf = surf
         if hemi is None:
             hemi = 'vol'
         hemi = self._check_hemi(hemi, extras=('both', 'split', 'vol'))
@@ -280,6 +281,8 @@ class Brain(object):
                              'sequence of ints.')
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
+        if subjects_dir is not None:
+            subjects_dir = str(subjects_dir)
 
         self.time_viewer = False
         self._hash = time.time_ns()
@@ -1552,7 +1555,7 @@ class Brain(object):
                     lw=1,
                     update=update,
                 )
-            self.time_line.set_xdata(current_time)
+            self.time_line.set_xdata([current_time])
             if update:
                 self.mpl_canvas.update_plot()
 
@@ -1757,7 +1760,7 @@ class Brain(object):
             Original clim arguments.
         %(src_volume_options)s
         colorbar_kwargs : dict | None
-            Options to pass to :meth:`pyvista.Plotter.add_scalar_bar`
+            Options to pass to ``pyvista.Plotter.add_scalar_bar``
             (e.g., ``dict(title_font_size=10)``).
         %(verbose)s
 
@@ -2417,7 +2420,7 @@ class Brain(object):
             Add a legend displaying the names of the ``labels``. Default (None)
             is ``True`` if the number of ``labels`` is 10 or fewer.
             Can also be a dict of ``kwargs`` to pass to
-            :meth:`pyvista.Plotter.add_legend`.
+            ``pyvista.Plotter.add_legend``.
 
         Notes
         -----
@@ -2429,9 +2432,18 @@ class Brain(object):
         if not aseg.endswith('aseg'):
             raise RuntimeError(
                 f'`aseg` file path must end with "aseg", got {aseg}')
-        aseg = _check_fname(op.join(self._subjects_dir, self._subject,
-                                    'mri', aseg + '.mgz'),
-                            overwrite='read', must_exist=True)
+        aseg = str(
+            _check_fname(
+                op.join(
+                    self._subjects_dir,
+                    self._subject,
+                    "mri",
+                    aseg + ".mgz",
+                ),
+                overwrite="read",
+                must_exist=True,
+            )
+        )
         aseg_fname = aseg
         aseg = nib.load(aseg_fname)
         aseg_data = np.asarray(aseg.dataobj)
@@ -2559,7 +2571,8 @@ class Brain(object):
 
     @verbose
     def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
-                    ecog=True, seeg=True, dbs=True, verbose=None):
+                    ecog=True, seeg=True, dbs=True, max_dist=0.004,
+                    verbose=None):
         """Add mesh objects to represent sensor positions.
 
         Parameters
@@ -2572,12 +2585,15 @@ class Brain(object):
         %(ecog)s
         %(seeg)s
         %(dbs)s
+        %(max_dist_ieeg)s
         %(verbose)s
 
         Notes
         -----
         .. versionadded:: 0.24
         """
+        from ...preprocessing.ieeg._projection import \
+            _project_sensors_onto_inflated
         _validate_type(info, Info, 'info')
         meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
         picks = pick_types(info, meg=('sensors' in meg),
@@ -2585,8 +2601,15 @@ class Brain(object):
                            ecog=ecog, seeg=seeg, dbs=dbs,
                            fnirs=(len(fnirs) > 0))
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        if self._surf in ('inflated', 'flat'):
+            for modality, check in dict(seeg=seeg, ecog=ecog).items():
+                if pick_types(info, **{modality: check}).size > 0:
+                    info = _project_sensors_onto_inflated(
+                        info.copy(), head_mri_t, subject=self._subject,
+                        subjects_dir=self._subjects_dir, picks=modality,
+                        max_dist=max_dist, flat=self._surf == 'flat')
         del trans
-        # get transforms to "mri"window
+        # get transforms to "mri" window
         to_cf_t = _get_transforms_to_coord_frame(
             info, head_mri_t, coord_frame='mri')
         if pick_types(info, eeg=True, exclude=()).size > 0 and \
@@ -2981,10 +3004,10 @@ class Brain(object):
 
         Parameters
         ----------
-        filename : str
+        filename : path-like
             Path to new image file.
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         """
         if filename is None:
             filename = _generate_default_filename(".png")
@@ -2998,7 +3021,7 @@ class Brain(object):
         Parameters
         ----------
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         %(time_viewer_brain_screenshot)s
 
         Returns

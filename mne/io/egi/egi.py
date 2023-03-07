@@ -98,8 +98,8 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     Parameters
     ----------
     input_fname : path-like
-        Path to the raw file. Files with an extension .mff are automatically
-        considered to be EGI's native MFF format files.
+        Path to the raw file. Files with an extension ``.mff`` are
+        automatically considered to be EGI's native MFF format files.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -119,9 +119,9 @@ def read_raw_egi(input_fname, eog=None, misc=None,
 
         .. versionadded:: 0.11
     channel_naming : str
-        Channel naming convention for the data channels. Defaults to 'E%%d'
-        (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
-        prior to 0.14.0 was 'EEG %%03d'.
+        Channel naming convention for the data channels. Defaults to ``'E%%d'``
+        (resulting in channel names ``'E1'``, ``'E2'``, ``'E3'``...). The
+        effective default prior to 0.14.0 was ``'EEG %%03d'``.
 
          .. versionadded:: 0.14.0
     %(verbose)s
@@ -166,7 +166,9 @@ class RawEGI(BaseRaw):
     def __init__(self, input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):  # noqa: D102
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
+        input_fname = str(
+            _check_fname(input_fname, "read", True, "input_fname")
+        )
         if eog is None:
             eog = []
         if misc is None:

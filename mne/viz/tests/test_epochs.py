@@ -103,7 +103,7 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
         wants = ('800.0 fT/cm', '2000.0 fT')
     elif browser_backend.name == 'matplotlib':
         assert len(texts) == 4
-        wants = ('800.0 fT/cm', '0.55 sec', '2000.0 fT', '0.55 sec')
+        wants = ('800.0 fT/cm', '0.55 s', '2000.0 fT', '0.55 s')
     assert texts == wants
 
 

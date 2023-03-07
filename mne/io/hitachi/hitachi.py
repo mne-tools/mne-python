@@ -72,7 +72,9 @@ class RawHitachi(BaseRaw):
             fname = [fname]
         fname = list(fname)  # our own list that we can modify
         for fi, this_fname in enumerate(fname):
-            fname[fi] = _check_fname(this_fname, 'read', True, f'fname[{fi}]')
+            fname[fi] = str(
+                _check_fname(this_fname, "read", True, f"fname[{fi}]")
+            )
         infos = list()
         probes = list()
         last_samps = list()

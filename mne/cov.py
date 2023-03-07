@@ -150,7 +150,7 @@ class Covariance(dict):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             Output filename.
         %(overwrite)s
 
@@ -371,9 +371,9 @@ def read_cov(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of file containing the covariance matrix. It should end with
-        -cov.fif or -cov.fif.gz.
+    fname : path-like
+        The path-like of file containing the covariance matrix. It should end
+        with ``-cov.fif`` or ``-cov.fif.gz``.
     %(verbose)s
 
     Returns
@@ -388,7 +388,7 @@ def read_cov(fname, verbose=None):
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                       '_cov.fif', '_cov.fif.gz'))
     fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
-    f, tree = fiff_open(fname)[:2]
+    f, tree, _ = fiff_open(fname)
     with f as fid:
         return Covariance(**_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV,
                                       limited=True))
@@ -1379,8 +1379,9 @@ def write_cov(fname, cov, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. It should end with -cov.fif or -cov.fif.gz.
+    fname : path-like
+        The name of the file. It should end with ``-cov.fif`` or
+        ``-cov.fif.gz``.
     cov : Covariance
         The noise covariance matrix.
     %(overwrite)s

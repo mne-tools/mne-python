@@ -2,7 +2,8 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
+
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -12,8 +13,8 @@ from mne.io.compensator import make_compensator, get_current_comp
 from mne.io import read_raw_fif
 from mne.utils import requires_mne, run_subprocess
 
-base_dir = op.join(op.dirname(__file__), 'data')
-ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
+base_dir = Path(__file__).parent / "data"
+ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
 
 
 def test_compensation_identity():
@@ -56,7 +57,7 @@ def test_compensation_apply(tmp_path, preload, pick):
         assert raw2._comp is None
     else:
         assert raw2._comp.shape == (len(raw2.ch_names),) * 2
-    fname = op.join(tmp_path, 'ctf-raw.fif')
+    fname = tmp_path / "ctf-raw.fif"
     raw2.save(fname)
     raw2 = read_raw_fif(fname)
     assert raw2.compensation_grade == 2
@@ -86,14 +87,14 @@ def test_compensation_mne(tmp_path):
 
     def compensate_mne(fname, comp):
         """Compensate using MNE-C."""
-        tmp_fname = '%s-%d-ave.fif' % (fname[:-4], comp)
-        cmd = ['mne_compensate_data', '--in', fname,
+        tmp_fname = '%s-%d-ave.fif' % (fname.stem, comp)
+        cmd = ['mne_compensate_data', '--in', str(fname),
                '--out', tmp_fname, '--grad', str(comp)]
         run_subprocess(cmd)
         return read_evokeds(tmp_fname)[0]
 
     # save evoked response with default compensation
-    fname_default = op.join(tmp_path, 'ctf_default-ave.fif')
+    fname_default = tmp_path / "ctf_default-ave.fif"
     make_evoked(ctf_comp_fname, None).save(fname_default)
 
     for comp in [0, 1, 2, 3]:

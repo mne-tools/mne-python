@@ -1781,7 +1781,7 @@ def plot_evoked_topomap(
         kwargs.update(vlim=_vlim)
         axes.append(plt.subplot(gs[1, :-1]))
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
-                        times[0], valfmt='%1.2fs')
+                        valinit=times[0], valfmt='%1.2fs')
         slider.vline.remove()  # remove initial point indicator
         func = _merge_ch_data if merge_channels else lambda x: x
         changed_callback = partial(_slider_changed, ax=axes[0],
@@ -1824,6 +1824,10 @@ def plot_evoked_topomap(
             merge_channels=merge_channels, scale=scaling, axes=axes,
             contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
+        # This is mostly for testing purposes, but it's also consistent with
+        # raw.plot, so maybe not a bad thing in principle either
+        from mne.viz._figure import BrowserParams
+        fig.mne = BrowserParams(proj_checkboxes=params['proj_checks'])
 
     plt_show(show, block=False)
     if axes_given:

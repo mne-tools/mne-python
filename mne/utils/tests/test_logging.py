@@ -1,7 +1,7 @@
 import os
-import os.path as op
 import re
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -13,11 +13,11 @@ from mne.utils import (warn, set_log_level, set_log_file, filter_out_warnings,
                        logger, check)
 from mne.utils._logging import _frame_info
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-fname_raw = op.join(base_dir, 'test_raw.fif')
-fname_evoked = op.join(base_dir, 'test-ave.fif')
-fname_log = op.join(base_dir, 'test-ave.log')
-fname_log_2 = op.join(base_dir, 'test-ave-2.log')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+fname_raw = base_dir / "test_raw.fif"
+fname_evoked = base_dir / "test-ave.fif"
+fname_log = base_dir / "test-ave.log"
+fname_log_2 = base_dir / "test-ave-2.log"
 
 
 @verbose
@@ -68,8 +68,7 @@ def test_logging_options(tmp_path):
     with use_log_level(None):  # just ensure it's set back
         with pytest.raises(ValueError, match="Invalid value for the 'verbose"):
             set_log_level('foo')
-        tempdir = str(tmp_path)
-        test_name = op.join(tempdir, 'test.log')
+        test_name = tmp_path / "test.log"
         with open(fname_log, 'r') as old_log_file:
             # [:-1] used to strip an extra "No baseline correction applied"
             old_lines = clean_lines(old_log_file.readlines())
@@ -79,7 +78,7 @@ def test_logging_options(tmp_path):
             old_lines_2.pop(14)
             old_lines_2.pop(-1)
 
-        if op.isfile(test_name):
+        if test_name.is_file():
             os.remove(test_name)
         # test it one way (printing default off)
         set_log_file(test_name)

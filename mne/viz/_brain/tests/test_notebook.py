@@ -41,21 +41,22 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
 @testing.requires_testing_data
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""
-    import os
     import tempfile
     from contextlib import contextmanager
+    from pathlib import Path
     import pytest
     from numpy.testing import assert_allclose
     from ipywidgets import Button
     import matplotlib.pyplot as plt
     import mne
     from mne.datasets import testing
+
     with pytest.MonkeyPatch().context() as mp:
         mp.delenv('_MNE_FAKE_HOME_DIR')
         data_path = testing.data_path(download=False)
-    sample_dir = os.path.join(data_path, 'MEG', 'sample')
-    subjects_dir = os.path.join(data_path, 'subjects')
-    fname_stc = os.path.join(sample_dir, 'sample_audvis_trunc-meg')
+    sample_dir = data_path / "MEG" / "sample"
+    subjects_dir = data_path / "subjects"
+    fname_stc = sample_dir / "sample_audvis_trunc-meg"
     stc = mne.read_source_estimate(fname_stc, subject='sample')
     stc.crop(0.1, 0.11)
     initial_time = 0.13
@@ -81,11 +82,12 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         assert brain._renderer.figure.notebook
         assert brain._renderer.figure.display is not None
         brain._renderer._update()
-        tmp_path = tempfile.mkdtemp()
-        movie_path = os.path.join(tmp_path, 'test.gif')
-        screenshot_path = os.path.join(tmp_path, 'test.png')
-        brain._renderer.actions['movie_field'].value = movie_path
-        brain._renderer.actions['screenshot_field'].value = screenshot_path
+        tmp_path = Path(tempfile.mkdtemp())
+        movie_path = tmp_path / "test.gif"
+        screenshot_path = tmp_path / "test.png"
+        brain._renderer.actions['movie_field'].value = str(movie_path)
+        brain._renderer.actions['screenshot_field'].value = \
+            str(screenshot_path)
         total_number_of_buttons = sum(
             '_field' not in k for k in brain._renderer.actions.keys())
         assert 'play' in brain._renderer.actions
@@ -97,8 +99,8 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
                 widget.click()
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
-        assert os.path.isfile(movie_path)
-        assert os.path.isfile(screenshot_path)
+        assert movie_path.is_file()
+        assert screenshot_path.is_file()
         img_nv = brain.screenshot()
         assert img_nv.shape == (300, 300, 3), img_nv.shape
         img_v = brain.screenshot(time_viewer=True)

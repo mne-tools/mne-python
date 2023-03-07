@@ -5,7 +5,9 @@
 #
 # License: BSD-3-Clause
 
+import os
 from collections.abc import Iterable
+from pathlib import Path
 
 import numpy as np
 
@@ -79,7 +81,7 @@ def _log_ch(start, info, ch):
 def _check_head_pos(head_pos, info, first_samp, times=None):
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
-    if isinstance(head_pos, str):  # can be a head pos file
+    if isinstance(head_pos, (str, Path, os.PathLike)):
         head_pos = read_head_pos(head_pos)
     if isinstance(head_pos, np.ndarray):  # can be head_pos quats
         head_pos = head_pos_to_trans_rot_t(head_pos)
@@ -104,7 +106,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
         bad = ts > times[-1]
         if bad.any():
             raise RuntimeError('All position times must be <= t_end (%0.1f '
-                               'sec), found %s/%s bad values (is this a split '
+                               's), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
     # If it starts close to zero, make it zero (else unique(offset) fails)
     if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
@@ -156,11 +158,11 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         be in FIF format, any other ending will be assumed to be a text
         file with a 4x4 transformation matrix (like the ``--trans`` MNE-C
         option). If trans is None, an identity transform will be used.
-    src : str | instance of SourceSpaces | None
+    src : path-like | instance of SourceSpaces | None
         Source space corresponding to the stc. If string, should be a source
         space filename. Can also be an instance of loaded or generated
         SourceSpaces. Can be None if ``forward`` is provided.
-    bem : str | dict | None
+    bem : path-like | dict | None
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
@@ -296,7 +298,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         else:
             this_n = stc_counted[1].data.shape[1]
         this_stop = this_start + this_n
-        logger.info('    Interval %0.3f-%0.3f sec'
+        logger.info('    Interval %0.3f–%0.3f s'
                     % (this_start / info['sfreq'],
                         this_stop / info['sfreq']))
         n_doing = this_stop - this_start

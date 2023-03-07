@@ -10,15 +10,15 @@ from ...evoked import EvokedArray
 @fill_doc
 @verbose
 def read_evoked_besa(fname, verbose=None):
-    """Reader function for BESA .avr or .mul files.
+    """Reader function for BESA ``.avr`` or ``.mul`` files.
 
-    When a .elp sidecar file is present, it will be used to determine electrode
-    information.
+    When a ``.elp`` sidecar file is present, it will be used to determine
+    electrode information.
 
     Parameters
     ----------
-    fname : str | Path
-        Path to the .avr or .mul file.
+    fname : path-like
+        Path to the ``.avr`` or ``.mul`` file.
     %(verbose)s
 
     Returns

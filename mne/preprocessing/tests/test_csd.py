@@ -7,7 +7,7 @@ For each supported file format, implement a test.
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -27,13 +27,13 @@ from mne.datasets import testing
 from mne.preprocessing import (compute_current_source_density,
                                compute_bridged_electrodes)
 
-data_path = op.join(testing.data_path(download=False), 'preprocessing')
-eeg_fname = op.join(data_path, 'test_eeg.mat')
-coords_fname = op.join(data_path, 'test_eeg_pos.mat')
-csd_fname = op.join(data_path, 'test_eeg_csd.mat')
+data_path = testing.data_path(download=False) / "preprocessing"
+eeg_fname = data_path / "test_eeg.mat"
+coords_fname = data_path / "test_eeg_pos.mat"
+csd_fname = data_path / "test_eeg_csd.mat"
 
-io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(io_path, 'test_raw.fif')
+io_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = io_path / "test_raw.fif"
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])

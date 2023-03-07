@@ -9,7 +9,7 @@
 #
 # License: Simplified BSD
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -30,15 +30,14 @@ from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.stats.parametric import _parametric_ci
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-raw_sss_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+evoked_fname = base_dir / "test-ave.fif"
+raw_fname = base_dir / "test_raw.fif"
+raw_sss_fname = base_dir / "test_chpi_raw_sss.fif"
+cov_fname = base_dir / "test-cov.fif"
+event_name = base_dir / "test-eve.fif"
 event_id, tmin, tmax = 1, -0.1, 0.1
-
-ctf_fname = testing.data_path(download=False) / 'CTF' / 'testdata_ctf.ds'
+ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 
 # Use a subset of channels for plotting speed
 # make sure we have a magnetometer and a pair of grad pairs for topomap.
@@ -527,7 +526,7 @@ def test_plot_ctf():
     raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     events = np.array([[200, 0, 1]])
     event_id = 1
-    tmin, tmax = -0.1, 0.5  # start and end of an epoch in sec.
+    tmin, tmax = -0.1, 0.5  # start and end of an epoch in s.
     picks = mne.pick_types(raw.info, meg=True, stim=True, eog=True,
                            ref_meg=True, exclude='bads')[::20]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,

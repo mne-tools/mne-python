@@ -4,7 +4,6 @@
 
 
 from pathlib import Path
-import os.path as op
 import os
 import shutil
 from datetime import datetime, timezone
@@ -22,19 +21,19 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import requires_version, object_diff
 from mne.datasets.testing import data_path, requires_testing_data
 
-base_dir = op.join(op.dirname(op.abspath(__file__)), 'data')
-egi_fname = op.join(base_dir, 'test_egi.raw')
-egi_txt_fname = op.join(base_dir, 'test_egi.txt')
+base_dir = Path(__file__).parent / "data"
+egi_fname = base_dir / "test_egi.raw"
+egi_txt_fname = base_dir / "test_egi.txt"
 testing_path = data_path(download=False)
-egi_path = op.join(testing_path, 'EGI')
-egi_mff_fname = op.join(egi_path, 'test_egi.mff')
-egi_mff_pns_fname = op.join(egi_path, 'test_egi_pns.mff')
-egi_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
-egi_eprime_pause_fname = op.join(egi_path, 'test_egi_multiepoch_eprime.mff')
-egi_pause_w1337_fname = op.join(egi_path, 'w1337_20191014_105416.mff')
-egi_mff_evoked_fname = op.join(egi_path, 'test_egi_evoked.mff')
-egi_txt_evoked_cat1_fname = op.join(egi_path, 'test_egi_evoked_cat1.txt')
-egi_txt_evoked_cat2_fname = op.join(egi_path, 'test_egi_evoked_cat2.txt')
+egi_path = testing_path / "EGI"
+egi_mff_fname = egi_path / "test_egi.mff"
+egi_mff_pns_fname = egi_path / "test_egi_pns.mff"
+egi_pause_fname = egi_path / "test_egi_multiepoch_paused.mff"
+egi_eprime_pause_fname = egi_path / "test_egi_multiepoch_eprime.mff"
+egi_pause_w1337_fname = egi_path / "w1337_20191014_105416.mff"
+egi_mff_evoked_fname = egi_path / "test_egi_evoked.mff"
+egi_txt_evoked_cat1_fname = egi_path / "test_egi_evoked_cat1.txt"
+egi_txt_evoked_cat2_fname = egi_path / "test_egi_evoked_cat2.txt"
 
 # absolute event times from NetStation
 egi_pause_events = {'AM40': [7.224, 11.928, 14.413, 16.848],
@@ -269,7 +268,7 @@ def test_io_egi_pns_mff(tmp_path):
         'Resp_Effort_Abdomen',
         'EMGLeg'
     ]
-    egi_fname_mat = op.join(testing_path, 'EGI', 'test_egi_pns.mat')
+    egi_fname_mat = testing_path / "EGI" / "test_egi_pns.mat"
     mc = sio.loadmat(egi_fname_mat)
     for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
         print('Testing {}'.format(ch_name))
@@ -280,11 +279,11 @@ def test_io_egi_pns_mff(tmp_path):
         assert_array_equal(mat_data, raw_data)
 
     # EEG missing
-    new_mff = tmp_path / 'temp.mff'
+    new_mff = tmp_path / "temp.mff"
     shutil.copytree(egi_mff_pns_fname, new_mff)
     read_raw_egi(new_mff, verbose='error')
-    os.remove(op.join(new_mff, 'info1.xml'))
-    os.remove(op.join(new_mff, 'signal1.bin'))
+    os.remove(new_mff / "info1.xml")
+    os.remove(new_mff / "signal1.bin")
     with pytest.raises(FileNotFoundError, match='Could not find any EEG'):
         read_raw_egi(new_mff, verbose='error')
 
@@ -293,14 +292,14 @@ def test_io_egi_pns_mff(tmp_path):
 @pytest.mark.parametrize('preload', (True, False))
 def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
-    egi_fname_mff = op.join(testing_path, 'EGI', 'test_egi_pns_bug.mff')
+    egi_fname_mff = testing_path / "EGI" / "test_egi_pns_bug.mff"
     with pytest.warns(RuntimeWarning, match='EGI PSG sample bug'):
         raw = read_raw_egi(egi_fname_mff, include=None, preload=preload,
                            verbose='warning')
     assert len(raw.annotations) == 1
     assert_allclose(raw.annotations.duration, [0.004])
     assert_allclose(raw.annotations.onset, [13.948])
-    egi_fname_mat = op.join(testing_path, 'EGI', 'test_egi_pns.mat')
+    egi_fname_mat = testing_path / "EGI" / "test_egi_pns.mat"
     mc = sio.loadmat(egi_fname_mat)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
     pns_names = ['Resp. Temperature'[:15],

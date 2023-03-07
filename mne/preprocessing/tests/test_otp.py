@@ -2,8 +2,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import pytest
 
 import numpy as np
@@ -17,9 +15,9 @@ from mne.preprocessing import oversampled_temporal_projection
 from mne.utils import catch_logging
 
 data_path = testing.data_path(download=False)
-erm_fname = op.join(data_path, 'SSS', 'test_move_anon_erm_raw.fif')
-triux_fname = op.join(data_path, 'SSS', 'TRIUX', 'triux_bmlhus_erm_raw.fif')
-skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
+erm_fname = data_path / "SSS" / "test_move_anon_erm_raw.fif"
+triux_fname = data_path / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
+skip_fname = data_path / "misc" / "intervalrecording_raw.fif"
 
 
 def test_otp_array():
