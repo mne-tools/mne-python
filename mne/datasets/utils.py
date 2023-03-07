@@ -104,7 +104,7 @@ def _get_path(path, key, name):
                    f"not exist. Either create this directory manually and try "
                    f"again, or set MNE_DATA to an existing directory.")
             raise FileNotFoundError(msg)
-        return Path(path).expanduser()
+        return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
     logger.info('Using default location ~/mne_data for %s...' % name)
