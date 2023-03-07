@@ -5,6 +5,7 @@
 # License: BSD-3-Clause
 
 from pathlib import Path
+from shutil import copyfile
 
 import pytest
 
@@ -80,3 +81,12 @@ def test_split_name_ext():
     # test unsupported extensions
     for ext in ("this.is.not.supported", "a.b.c.d.e", "fif.gz.xyz"):
         assert split_name_ext(f"test{ext}")[1] is None
+
+
+def test_read_raw_multiple_dots(tmp_path):
+    """Test if file names with multiple dots work correctly."""
+    src = base / 'edf/tests/data/test.edf'
+    dst = tmp_path / "test.this.file.edf"
+    copyfile(src, dst)
+    read_raw(dst)
+    
