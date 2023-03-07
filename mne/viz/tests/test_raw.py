@@ -326,10 +326,7 @@ def test_plot_raw_selection(raw, browser_backend):
         # across platforms.
         # (QTest.mouseClick works isolated on all platforms but somehow
         # not in this context. _fake_click isn't working on linux)
-        if ismpl:
-            sel_fig._chkbx_changed(list(sel_fig.chkbxs.keys())[0])
-        else:
-            sel_fig._chkbx_changed(None, list(sel_fig.chkbxs.keys())[0])
+        sel_fig._chkbx_changed(None, list(sel_fig.chkbxs.keys())[0])
     assert not fig.mne.butterfly
     assert len(fig.mne.traces) == len(sel_dict[left_temp])  # 6
     # test clicking on "custom" when not defined: should be no-op
