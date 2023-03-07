@@ -67,7 +67,7 @@ readers = {**supported, **suggested}
 
 def split_name_ext(fname):
     """Return name and supported file extension."""
-    maxsuffixes = max([ext.count(".") for ext in supported])
+    maxsuffixes = max(ext.count(".") for ext in supported)
     suffixes = Path(fname).suffixes
     for si in range(-maxsuffixes, 0):
         ext = "".join(suffixes[si:]).lower()
