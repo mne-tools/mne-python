@@ -54,11 +54,14 @@ def test_eyelink(fname, create_annotations, find_overlaps):
 
     # Test some annotation values for accuracy.
     if create_annotations is True and find_overlaps:
+        orig = raw.info['meas_date']
         df = raw.annotations.to_data_frame()
-        df['time_in_sec'] = df['onset'].astype(np.int64) / int(1e9)
+        # Convert annot onset datetimes to seconds, relative to orig_time
+        df['time_in_sec'] = df['onset'].apply(lambda x: x.timestamp()
+                                              - orig.timestamp())
         # There is a blink in this data at 8.9 seconds
         cond = (df['time_in_sec'] > 8.899) & (df['time_in_sec'] < 8.95)
-        df[cond]['description'].values[0].startswith('blink')
+        assert df[cond]['description'].values[0].startswith('blink')
     if find_overlaps is True:
         df = raw.annotations.to_data_frame()
         # these should both be True so long as _find_overlaps is not

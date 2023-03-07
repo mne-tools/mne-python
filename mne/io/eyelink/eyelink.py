@@ -853,8 +853,7 @@ class RawEyelink(BaseRaw):
                 descriptions = f'{key[:-1]}_' + df['eye']  # i.e "blink_r"
                 this_annot = Annotations(onset=onsets,
                                          duration=durations,
-                                         description=descriptions,
-                                         orig_time=None)
+                                         description=descriptions)
             elif (key in ['messages']) and (key in descs):
                 if apply_offsets:
                     if df['offset'].isnull().all():
