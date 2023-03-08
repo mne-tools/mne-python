@@ -100,6 +100,8 @@ The minimum required dependencies to run MNE-Python are:
 - tqdm
 - Jinja2
 - decorator
+- threadpoolctl
+- psutil
 
 For full functionality, some functions require:
 

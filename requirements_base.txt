@@ -9,3 +9,5 @@ packaging
 jinja2
 importlib_resources>=5.10.2
 importlib_metadata; python_version < '3.8'
+threadpoolctl
+psutil
