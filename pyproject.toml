@@ -1,6 +1,7 @@
 [tool.codespell]
 ignore-words = "ignore_words.txt"
 uri-ignore-words-list = "bu"
+builtin = "clear,rare,informal,names,usage"
 
 [tool.ruff]
 exclude = ["__init__.py"]
