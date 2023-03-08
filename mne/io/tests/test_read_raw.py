@@ -5,11 +5,13 @@
 # License: BSD-3-Clause
 
 from pathlib import Path
+from shutil import copyfile
 
 import pytest
 
-from mne.io import read_raw
 from mne.datasets import testing
+from mne.io import read_raw
+from mne.io._read_raw import split_name_ext, readers
 
 
 base = Path(__file__).parent.parent
@@ -32,7 +34,7 @@ def test_read_raw_unsupported_multi(fname, tmp_path):
         read_raw(fname)
 
 
-@pytest.mark.parametrize('fname', ['x.vmrk', 'x.eeg'])
+@pytest.mark.parametrize('fname', ['x.vmrk', 'y.amrk'])
 def test_read_raw_suggested(fname):
     """Test handling of unsupported file types with suggested alternatives."""
     with pytest.raises(ValueError, match='Try reading'):
@@ -43,6 +45,8 @@ _testing_mark = testing._pytest_mark()
 
 
 @pytest.mark.parametrize('fname', [
+    base / 'tests/data/test_raw.fif',
+    base / 'tests/data/test_raw.fif.gz',
     base / 'edf/tests/data/test.edf',
     base / 'edf/tests/data/test.bdf',
     base / 'brainvision/tests/data/test.vhdr',
@@ -66,3 +70,22 @@ def test_read_raw_supported(fname):
     read_raw(fname, verbose=False)
     raw = read_raw(fname, preload=True)
     assert "data loaded" in str(raw)
+
+
+def test_split_name_ext():
+    """Test file name extension splitting."""
+    # test known extensions
+    for ext in readers:
+        assert split_name_ext(f"test{ext}")[1] == ext
+
+    # test unsupported extensions
+    for ext in ("this.is.not.supported", "a.b.c.d.e", "fif.gz.xyz"):
+        assert split_name_ext(f"test{ext}")[1] is None
+
+
+def test_read_raw_multiple_dots(tmp_path):
+    """Test if file names with multiple dots work correctly."""
+    src = base / 'edf/tests/data/test.edf'
+    dst = tmp_path / "test.this.file.edf"
+    copyfile(src, dst)
+    read_raw(dst)
