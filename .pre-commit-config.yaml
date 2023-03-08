@@ -12,10 +12,8 @@ repos:
   hooks:
     - id: ruff
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.2.2
+  rev: v2.2.3
   hooks:
     - id: codespell
-      additional_dependencies:
-        - tomli
       files: ^mne/|^doc/|^examples/|^tutorials/
       types_or: [python, bib, rst]
