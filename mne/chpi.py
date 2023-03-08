@@ -1213,8 +1213,8 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
         # check if data has sufficiently changed
         if last['sin_fit'] is not None:  # first iteration
             corrs = np.array(
-                [np.corrcoef(s, l)[0, 1]
-                    for s, l in zip(sin_fit, last['sin_fit'])])
+                [np.corrcoef(s, lst)[0, 1]
+                    for s, lst in zip(sin_fit, last['sin_fit'])])
             corrs *= corrs
             # check to see if we need to continue
             if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
