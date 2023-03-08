@@ -1,0 +1,2 @@
+[tool.ruff]
+exclude = ["__init__.py"]
