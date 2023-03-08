@@ -6,6 +6,7 @@ repos:
   rev: 23.1.0
   hooks:
     - id: black
+      args: [--quiet]
 - repo: https://github.com/charliermarsh/ruff-pre-commit
   rev: v0.0.254
   hooks:
