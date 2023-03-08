@@ -15,4 +15,4 @@ repos:
   rev: v2.2.2
   hooks:
     - id: codespell
-      args: [mne/,doc/,tutorials/,examples/,*.py,*.rst,*.bib,*.inc]
+      args: ["mne/", "doc/", "tutorials/", "examples/", "*.py", "*.rst", "*.bib"]
