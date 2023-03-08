@@ -1227,7 +1227,7 @@ def test_bad_channels(method, allow_ref_meg):
               allow_ref_meg=allow_ref_meg)
     for inst in [raw, epochs]:
         for ch in chs_bad:
-            picks_dict = {('eyetrack' if ch.startswith('eyetrack')
+            picks_dict = {('eyetrack' if ch in ('eyegaze', 'pupil')
                            else str(ch)): True}
             if allow_ref_meg:
                 # Test case for only bad channels
