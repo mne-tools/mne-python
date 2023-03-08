@@ -249,8 +249,8 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 @verbose
 def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
-                 src=None, inst=None, show_topomap=True, show=True,
-                 block=False, verbose=None):
+                 src=None, inst=None, use_int=True, show_topomap=True,
+                 show=True, block=False, verbose=None):
     """View a volume time and/or frequency source time course estimate.
 
     Parameters
@@ -277,6 +277,8 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
         The volume source space for the ``stc``.
     inst : EpochsTFR | AverageTFR | None
         The time-frequency or data object to use to plot topography.
+    use_int : bool
+        If ``True``, cast the data to integers to reduce memory use.
     show_topomap : bool
         Whether to show the sensor topomap in the GUI.
     show : bool
@@ -291,7 +293,8 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
         The graphical user interface (GUI) window.
     """
     from ..viz.backends._utils import _init_mne_qtapp, _qt_app_exec
-    from ._vol_stc import VolSourceEstimateViewer, COMPLEX_DTYPE, RANGE_VALUE
+    from ._vol_stc import (VolSourceEstimateViewer, COMPLEX_DTYPE,
+                           RANGE_VALUE, BASE_INT_DTYPE)
 
     app = _init_mne_qtapp()
 
@@ -304,24 +307,27 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
     for inner_stcs in (stcs if np.iterable(stcs) else [stcs]):
         inner_data = list()
         for stc in (inner_stcs if np.iterable(inner_stcs) else [inner_stcs]):
-            if np.iscomplexobj(stc.data):
+            if use_int:
                 if scalar is None:
                     # this is an order of magnitude approximation,
-                    # larger stcs will have some clipping
-                    scalar = (RANGE_VALUE - 1) / stc.data.real.max() / 5
-                stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
-                stc_data['re'] = np.clip(stc.data.real * scalar,
-                                         -RANGE_VALUE, RANGE_VALUE - 1)
-                stc_data['im'] = np.clip(stc.data.imag * scalar,
-                                         -RANGE_VALUE, RANGE_VALUE - 1)
-                inner_data.append(stc_data)
+                    # if another stc is 10x larger than the first one,
+                    # it will have some clipping
+                    scalar = (RANGE_VALUE - 1) / stc.data.real.max() / 10
+                if np.iscomplexobj(stc.data):
+                    stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
+                    stc_data['re'] = np.clip(stc.data.real * scalar,
+                                             -RANGE_VALUE, RANGE_VALUE - 1)
+                    stc_data['im'] = np.clip(stc.data.imag * scalar,
+                                             -RANGE_VALUE, RANGE_VALUE - 1)
+                    inner_data.append(stc_data)
+                else:
+                    inner_data.append(np.clip(stc.data * scalar,
+                                              -RANGE_VALUE, RANGE_VALUE - 1
+                                              ).astype(BASE_INT_DTYPE))
             else:
-                if scalar is None:
-                    scalar = (RANGE_VALUE - 1) / stc.data.max() / 5
-                inner_data.append(np.clip(stc.data * scalar,
-                                          -RANGE_VALUE, RANGE_VALUE - 1
-                                          ).astype(np.int16))
+                inner_data.append(stc.data)
         data.append(inner_data)
+
     data = np.array(data)
     if data.ndim == 4:  # scalar solution, add dimension at the end
         data = data[:, :, :, None]
