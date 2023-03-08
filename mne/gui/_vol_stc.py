@@ -735,8 +735,9 @@ class VolSourceEstimateViewer(SliceBrowser):
                       (max_val - min_val) + min_val for i in (0, 2)]
         vrange = vmax - vmin
         ave.plot_topomap(times=self._inst.times[self._t_idx],
-                         axes=self._topo_fig.axes[0], cmap=self._cmap,
-                         colorbar=False, units=units, show=False)
+                         scalings={dtype: 1}, axes=self._topo_fig.axes[0],
+                         cmap=self._cmap, colorbar=False, units=units,
+                         show=False)
         topo_img = self._topo_fig.axes[0].get_images()[0]
         self._topo_cbar = self._topo_fig.colorbar(topo_img, cax=self._topo_cax)
         self._topo_cax.set_title(units)
@@ -745,7 +746,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._topo_cax.set_yticks(y_ticks)  # so they don't change
         self._topo_cax.set_yticklabels(
             [f'{tick * vrange + vmin:{cbar_fmt}}' for tick in
-             np.linspace(0, 1, y_ticks.size)])
+             y_ticks / max_val])  # topomap is strictly positive cmap
 
         self._topo_fig.axes[0].set_title('')
         self._topo_fig.subplots_adjust(top=1.1, bottom=0.05, right=0.75)
