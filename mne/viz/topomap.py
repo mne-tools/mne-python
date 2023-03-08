@@ -1496,8 +1496,7 @@ def plot_evoked_topomap(
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
         cnorm=None, colorbar=True, cbar_fmt='%3.1f', units=None, axes=None,
-        time_unit='s', time_format=None, nrows=1, ncols='auto',
-        merge_ch_method='rms', show=True):
+        time_unit='s', time_format=None, nrows=1, ncols='auto', show=True):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1552,10 +1551,6 @@ def plot_evoked_topomap(
     %(nrows_ncols_topomap)s Ignored when times == 'interactive'.
 
         .. versionadded:: 0.20
-    merge_ch_method : str
-        Can be either "rms" (default) or "mean".
-
-        .. versionadded:: 1.4
     %(show)s
 
     Returns
@@ -1725,8 +1720,7 @@ def plot_evoked_topomap(
     # apply scalings and merge channels
     data *= scaling
     if merge_channels:
-        data, ch_names = _merge_ch_data(data, ch_type, ch_names,
-                                        method=merge_ch_method)
+        data, ch_names = _merge_ch_data(data, ch_type, ch_names)
         if ch_type in _fnirs_types:
             merge_channels = False
     # apply mask if requested
@@ -1738,8 +1732,7 @@ def plot_evoked_topomap(
         else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, time_idx)]
     # set up colormap
-    norm = merge_channels and not merge_ch_method == 'mean'
-    _vlim = [_setup_vmin_vmax(data[:, i], *vlim, norm=norm)
+    _vlim = [_setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels)
              for i in range(n_times)]
     _vlim = (np.min(_vlim), np.max(_vlim))
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)

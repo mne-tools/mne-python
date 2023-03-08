@@ -729,15 +729,12 @@ class VolSourceEstimateViewer(SliceBrowser):
         info = _pick_inst(self._inst, dtype, 'bads').info
         ave = EvokedArray(evo_data, info, tmin=self._inst.times[0])
 
-        min_val, max_val = evo_data.min(), evo_data.max()
-        cbar_fmt = '%3.1f' if max([max_val, -min_val]) < 1e3 else '%.1e'
-        merge_ch_method = 'rms' if self._baseline == 'none' else 'mean'
+        cbar_fmt = '%3.1f' if abs(evo_data).max() < 1e3 else '%.1e'
         ave.plot_topomap(times=self._inst.times[self._t_idx],
                          scalings={dtype: 1}, units=units,
                          axes=(self._topo_fig.axes[0], self._topo_cax),
                          cmap=self._cmap, colorbar=True, cbar_fmt=cbar_fmt,
-                         vlim=(min_val, max_val),
-                         merge_ch_method=merge_ch_method, show=False)
+                         show=False)
 
         self._topo_fig.axes[0].set_title('')
         self._topo_fig.subplots_adjust(top=1.1, bottom=0.05, right=0.75)
