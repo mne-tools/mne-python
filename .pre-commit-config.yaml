@@ -15,4 +15,5 @@ repos:
   rev: v2.2.2
   hooks:
     - id: codespell
-      args: ['mne/', 'doc/', 'tutorials/', 'examples/', '*.py', '*.rst', '*.bib']
+      files: ^mne/|^doc/|^examples/|^tutorials/
+      types_or: [python, bib, rst]

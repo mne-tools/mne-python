@@ -2,6 +2,7 @@
 ignore-words = "ignore_words.txt"
 uri-ignore-words-list = "bu"
 builtin = "clear,rare,informal,names,usage"
+skip = "doc/references.bib"
 
 [tool.ruff]
 exclude = ["__init__.py", "constants.py", "fixes.py", "resources.py"]
