@@ -433,7 +433,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=True,
             cbar_fmt='%3.1f', units=None, axes=None, time_unit='s',
-            time_format=None, nrows=1, ncols='auto', show=True):
+            time_format=None, nrows=1, ncols='auto', merge_ch_method='rms',
+            show=True):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, vlim=vlim, cmap=cmap,
             cnorm=cnorm, sensors=sensors, colorbar=colorbar, scalings=scalings,
@@ -442,7 +443,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             show_names=show_names, mask=mask, mask_params=mask_params,
             outlines=outlines, contours=contours, image_interp=image_interp,
             average=average, axes=axes, extrapolate=extrapolate, sphere=sphere,
-            border=border, nrows=nrows, ncols=ncols)
+            border=border, nrows=nrows, ncols=ncols,
+            merge_ch_method=merge_ch_method)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',

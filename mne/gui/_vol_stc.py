@@ -730,23 +730,14 @@ class VolSourceEstimateViewer(SliceBrowser):
         ave = EvokedArray(evo_data, info, tmin=self._inst.times[0])
 
         min_val, max_val = evo_data.min(), evo_data.max()
-        cbar_fmt = '3.1f' if max([max_val, -min_val]) < 1e3 else '.1e'
-        vmin, vmax = [self._cmap_sliders[i].value() / SLIDER_WIDTH *
-                      (max_val - min_val) + min_val for i in (0, 2)]
-        vrange = vmax - vmin
+        cbar_fmt = '%3.1f' if max([max_val, -min_val]) < 1e3 else '%.1e'
+        merge_ch_method = 'rms' if self._baseline == 'none' else 'mean'
         ave.plot_topomap(times=self._inst.times[self._t_idx],
-                         scalings={dtype: 1}, axes=self._topo_fig.axes[0],
-                         cmap=self._cmap, colorbar=False, units=units,
-                         show=False)
-        topo_img = self._topo_fig.axes[0].get_images()[0]
-        self._topo_cbar = self._topo_fig.colorbar(topo_img, cax=self._topo_cax)
-        self._topo_cax.set_title(units)
-        self._topo_cax.tick_params(labelsize=7)
-        y_ticks = self._topo_cax.get_yticks()
-        self._topo_cax.set_yticks(y_ticks)  # so they don't change
-        self._topo_cax.set_yticklabels(
-            [f'{tick * vrange + vmin:{cbar_fmt}}' for tick in
-             y_ticks / max_val])  # topomap is strictly positive cmap
+                         scalings={dtype: 1}, units=units,
+                         axes=(self._topo_fig.axes[0], self._topo_cax),
+                         cmap=self._cmap, colorbar=True, cbar_fmt=cbar_fmt,
+                         vlim=(min_val, max_val),
+                         merge_ch_method=merge_ch_method, show=False)
 
         self._topo_fig.axes[0].set_title('')
         self._topo_fig.subplots_adjust(top=1.1, bottom=0.05, right=0.75)
