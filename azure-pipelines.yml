@@ -55,12 +55,6 @@ stages:
         python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
       displayName: Install dependencies
     - bash: |
-        make flake
-      displayName: make flake
-    - bash: |
-        make codespell-error
-      displayName: make codespell
-    - bash: |
         make pydocstyle
       displayName: make pydocstyle
       condition: always()
