@@ -16,4 +16,4 @@ repos:
   hooks:
     - id: codespell
       files: ^mne/|^doc/|^examples/|^tutorials/
-      types_or: [python, bib, rst]
+      types_or: [python, bib, rst, inc]
