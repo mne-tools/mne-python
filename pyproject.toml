@@ -1,2 +1,5 @@
 [tool.ruff]
 exclude = ["__init__.py"]
+
+[tool.ruff.per-file-ignores]
+"tutorials/time-freq/10_spectrum_class.py" = ["E501"]
