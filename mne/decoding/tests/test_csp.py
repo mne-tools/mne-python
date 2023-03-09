@@ -260,7 +260,7 @@ def test_csp_pipeline():
 
 def test_ajd():
     """Test approximate joint diagonalization."""
-    # The implementation shuold obtain the same
+    # The implementation should obtain the same
     # results as the Matlab implementation by Pham Dinh-Tuan.
     # Generate a set of cavariances matrices for test purpose
     n_times, n_channels = 10, 3
