@@ -878,7 +878,7 @@ def _check_qt_version(*, return_api=False):
                      f'    pip install "{api}>=5.10"\n')
         # Having Qt installed is not enough -- sometimes the app is unusable
         # for example because there is no usable display (e.g., on a server),
-        # so we have to try instatiating one to actually know.
+        # so we have to try instantiating one to actually know.
         try:
             _init_mne_qtapp()
         except Exception:

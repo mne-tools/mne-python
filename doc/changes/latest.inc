@@ -36,7 +36,6 @@ Enhancements
 - Add :func:`mne.count_events` to count unique event types in a given event array (:gh:`11430` by `Clemens Brunner`_)
 - Add a video to :ref:`tut-freesurfer-mne` of a brain inflating from the pial surface to aid in understanding the inflated brain (:gh:`11440` by `Alex Rockhill`_)
 - Add automatic projection of sEEG contact onto the inflated surface for :meth:`mne.viz.Brain.add_sensors` (:gh:`11436` by `Alex Rockhill`_)
-- Add to :ref:`ex-source-loc-methods` how how to apply inverse methods to time-frequency resolved epochs and use :func:`mne.gui.view_vol_stc` to view the output (:gh:`10920` by `Alex Rockhill`_)
 - Add vector time-frequency visualization to :func:`mne.gui.view_vol_stc` (:gh:`11524` by `Alex Rockhill`_)
 
 Bugs
@@ -55,6 +54,8 @@ Bugs
 - Fix bug with :func:`mne.gui.locate_ieeg` where Freesurfer ``?h.pial.T1`` was not recognized and suppress excess logging (:gh:`11489` by `Alex Rockhill`_)
 - All functions accepting paths can now correctly handle :class:`~pathlib.Path` as input. Historically, we expected strings (instead of "proper" path objects), and only added :class:`~pathlib.Path` support in a few select places, leading to inconsistent behavior. (:gh:`11473` and :gh:`11499` by `Mathieu Scheltienne`_)
 - Fix visualization dialog compatibility with matplotlib 3.7 (:gh:`11409` by `Daniel McCloy`_ and `Eric Larson`_)
+- Expand tilde (user directory) in config keys (:gh:`11537` by `Clemens Brunner`_)
+- Fix :func:`mne.io.read_raw` for file names containing multiple dots (:gh:`11521` by `Clemens Brunner`_)
 
 API changes
 ~~~~~~~~~~~

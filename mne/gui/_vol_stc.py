@@ -99,10 +99,8 @@ def _int_complex_conj(data):
     # conjugate is the same as squaring and adding the real and imaginary.
     # Pre-scale by the square root of the range so that the greatest
     # allowable value, when squared does not overflow.
-    # Similarly, the divide by 2 allows for the greatest value in
-    # both real and imaginary to be added without overflow
-    return (data['re'] // RANGE_SQRT)**2 // 2 + \
-           (data['im'] // RANGE_SQRT)**2 // 2
+    return (data['re'] // RANGE_SQRT)**2 + \
+           (data['im'] // RANGE_SQRT)**2
 
 
 def _complex_to_vector(data):
@@ -619,13 +617,13 @@ class VolSourceEstimateViewer(SliceBrowser):
 
         hbox.addWidget(QLabel('tmin ='))
         self._bl_tmin_textbox = QLineEdit(str(round(self._bl_tmin, 2)))
-        self._bl_tmin_textbox.setMaximumWidth(40)
+        self._bl_tmin_textbox.setMaximumWidth(60)
         self._bl_tmin_textbox.focusOutEvent = self._update_baseline_tmin
         hbox.addWidget(self._bl_tmin_textbox)
 
         hbox.addWidget(QLabel('tmax ='))
         self._bl_tmax_textbox = QLineEdit(str(round(self._bl_tmax, 2)))
-        self._bl_tmax_textbox.setMaximumWidth(40)
+        self._bl_tmax_textbox.setMaximumWidth(60)
         self._bl_tmax_textbox.focusOutEvent = self._update_baseline_tmax
         hbox.addWidget(self._bl_tmax_textbox)
 
@@ -680,10 +678,11 @@ class VolSourceEstimateViewer(SliceBrowser):
             facecolor='white')
         self._fig.axes[0].set_position([0.12, 0.25, 0.73, 0.7])
         self._fig.axes[0].set_xlabel('Time (s)')
+        min_idx = np.argmin(abs(self._inst.times))
         self._fig.axes[0].set_xticks(
-            [0, self._inst.times.size // 2, self._inst.times.size - 1])
+            [0, min_idx, self._inst.times.size - 1])
         self._fig.axes[0].set_xticklabels(
-            self._inst.times[[0, self._inst.times.size // 2, -1]].round(2))
+            self._inst.times[[0, min_idx, -1]].round(2))
         stc_data = self._pick_stc_image()
         if self._f_idx is None:
             self._fig.axes[0].set_facecolor('black')
@@ -705,7 +704,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._fig.axes[0].set_ylabel('Frequency (Hz)')
             self._fig.axes[0].set_yticks(range(self._inst.freqs.size))
             self._fig.axes[0].set_yticklabels(self._inst.freqs.round(2))
-            self._cax = self._fig.add_axes([0.87, 0.25, 0.02, 0.7])
+            self._cax = self._fig.add_axes([0.92, 0.25, 0.02, 0.6])
             self._cbar = self._fig.colorbar(self._stc_plot, cax=self._cax)
             self._cax.set_ylabel('Power')
         self._fig.canvas.mpl_connect(
@@ -716,6 +715,7 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _plot_topomap(self):
         self._topo_fig.axes[0].clear()
+        self._topo_cax.clear()
         dtype = self._data_type_selector.currentText()
         units = DEFAULTS['units'][dtype]
         scaling = DEFAULTS['scalings'][dtype]
@@ -742,7 +742,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             evo_data = evo_data[:, self._f_idx]
 
         if self._baseline != 'none':
-            units = None
+            units = units if self._baseline == 'mean' else ''
             evo_data = rescale(
                 evo_data.astype(float), times=self._inst.times,
                 baseline=(float(self._bl_tmin), float(self._bl_tmax)),
@@ -751,23 +751,23 @@ class VolSourceEstimateViewer(SliceBrowser):
         info = _pick_inst(self._inst, dtype, 'bads').info
         ave = EvokedArray(evo_data, info, tmin=self._inst.times[0])
 
-        cbar_fmt = '%3.1f' if evo_data.max() < 1e5 else '%.1e'
+        cbar_fmt = '%3.1f' if abs(evo_data).max() < 1e3 else '%.1e'
         ave.plot_topomap(times=self._inst.times[self._t_idx],
+                         scalings={dtype: 1}, units=units,
                          axes=(self._topo_fig.axes[0], self._topo_cax),
-                         cmap=self._cmap, colorbar=True,
-                         units=units, cbar_fmt=cbar_fmt, show=False)
+                         cmap=self._cmap, colorbar=True, cbar_fmt=cbar_fmt,
+                         show=False)
+
         self._topo_fig.axes[0].set_title('')
         self._topo_fig.subplots_adjust(top=1.1, bottom=0.05, right=0.75)
         self._topo_fig.canvas.draw()
 
     def _configure_topo_plot(self):
-        """Configure the plot that shows spectrograms/time-courses."""
+        """Configure the plot that shows topomap."""
         from ._core import _make_mpl_plot
         canvas, self._topo_fig = _make_mpl_plot(
             dpi=96, hide_axes=False, facecolor='white')
         self._topo_cax = self._topo_fig.add_axes([0.77, 0.1, 0.02, 0.75])
-        # Topomap colorbar could be added later, a bit too much clutter though
-        # self._topo_cax = self._topo_fig.add_axes((0.8, 0.1, 0.05, 0.75))
         self._plot_topomap()
         canvas.setMinimumHeight(int(self.size().height() * 0.4))
         canvas.setMaximumWidth(int(self.size().width() * 0.4))
@@ -1060,6 +1060,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._cax.clear()
             self._cbar = self._fig.colorbar(self._stc_plot, cax=self._cax)
             self._update_data_plot_ylabel()
+
         if draw and self._update:
             self._fig.canvas.draw()
 

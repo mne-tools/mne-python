@@ -229,9 +229,9 @@ class SliceBrowser(QMainWindow):
             self._images['cursor_h'].append(ax.plot(
                 h_x, h_y, color='lime', linewidth=0.5, alpha=0.5, zorder=8)[0])
             # label axes
-            self._figs[axis].text(0.5, 0.05, _IMG_LABELS[axis][0],
+            self._figs[axis].text(0.5, 0.075, _IMG_LABELS[axis][0],
                                   **text_kwargs)
-            self._figs[axis].text(0.05, 0.5, _IMG_LABELS[axis][1],
+            self._figs[axis].text(0.075, 0.5, _IMG_LABELS[axis][1],
                                   **text_kwargs)
             self._figs[axis].axes[0].axis(img_extent)
             self._figs[axis].canvas.mpl_connect(
