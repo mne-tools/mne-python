@@ -12,7 +12,6 @@ ignore = ["D100", "D104", "D107", "D413"]
 [tool.ruff.pydocstyle]
 convention = "numpy"
 ignore-decorators = ["copy_.*_doc_to_.*", "on_trait_change.*", "cached_property.*", "deprecated.*", "property.*", ".*setter.*"]
-extend-exclude = ["doc", "tutorials", "examples", "logo", "icons"]
 
 [tool.ruff.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = ["E501"]
