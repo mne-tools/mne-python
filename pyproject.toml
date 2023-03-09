@@ -9,7 +9,7 @@ select = ["E", "F", "W", "D"]
 exclude = ["__init__.py", "constants.py", "fixes.py", "resources.py"]
 
 [tool.ruff.pydocstyle]
-convention = "numpydoc"
+convention = "numpy"
 extend-ignore = ["D100", "D104", "D107", "D413"]
 ignore-decorators = ["copy_.*_doc_to_.*", "on_trait_change.*", "cached_property.*", "deprecated.*", "property.*", ".*setter.*"]
 extend-exclude = ["doc", "tutorials", "examples", "logo", "icons"]
