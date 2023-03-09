@@ -359,6 +359,12 @@ def _triage_fnirs_pick(ch, fnirs, warned):
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and 'fnirs_od' in fnirs:
         return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE and \
+            'fnirs_td_moments_amplitude' in fnirs:
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE and \
+            'fnirs_td_gated_amplitude' in fnirs:
+        return True
     return False
 
 
@@ -451,7 +457,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
-            else:  # ch_type in ('hbo', 'hbr')
+            else:  # ch_type in ('hbo', 'hbr', ...)
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs, warned)
 
     # restrict channels to selection if provided
@@ -939,6 +945,7 @@ _PICK_TYPES_DATA_DICT = dict(
     dbs=True, temperature=False, gsr=False)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
+# Entries here need to be added to _triage_fnirs_pick as well!
 _FNIRS_CH_TYPES_SPLIT = (
     'hbo', 'hbr', 'fnirs_cw_amplitude',
     'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od',
