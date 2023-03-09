@@ -1261,7 +1261,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
           prior dependent only on the sensor geometry (and relationship
           to the sources).
     * ``'whiten'``
-          Compute a whitener and apply it to the gain matirx before computing
+          Compute a whitener and apply it to the gain matrix before computing
           the depth prior. In this case ``noise_cov`` must not be None.
           Whitening the gain matrix makes the depth prior
           depend on both sensor geometry and the data of interest captured
