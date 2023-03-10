@@ -29,6 +29,8 @@ from ._logging import warn, logger
 
 _temp_home_dir = None
 
+_UNICODE = sys.stdout.encoding.lower().startswith('utf')
+
 
 def set_cache_dir(cache_dir):
     """Set the directory to be used for temporary file storage.
@@ -522,7 +524,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 21
+    ljust = 22
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -580,7 +582,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             except ModuleNotFoundError:
                 unavailable.append(name)
             else:
-                out(f"{name}".ljust(ljust))
+                out(f"{'✔︎ ' if _UNICODE else ''}{name}".ljust(ljust))
                 try:
                     out(module.__version__.lstrip("v"))
                 except AttributeError:
