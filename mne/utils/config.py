@@ -15,7 +15,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import defaultdict
 from functools import partial
+from importlib.metadata import requires
 from pathlib import Path
 
 from .check import (_validate_type, _check_qt_version, _check_option,
@@ -520,7 +522,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 21 if dependencies == 'developer' else 18
+    ljust = 21
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -534,63 +536,71 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         del macos_ver, macos_architecture
 
     out = partial(print, end='', file=fid)
-    out('Platform:'.ljust(ljust) + platform_str + '\n')
-    out('Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
-    out('Executable:'.ljust(ljust) + sys.executable + '\n')
-    out('CPU:'.ljust(ljust) + f'{platform.processor()}: ')
-    out(f'{multiprocessing.cpu_count()} cores\n')
-    out('Memory:'.ljust(ljust))
+    out('Platform'.ljust(ljust) + platform_str + '\n')
+    out('Python'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
+    out('Executable'.ljust(ljust) + sys.executable + '\n')
+    out('CPU'.ljust(ljust) + f'{platform.processor()} (')
+    out(f'{multiprocessing.cpu_count()} cores)\n')
+    out('Memory'.ljust(ljust))
     try:
         import psutil
     except ImportError:
         out('Unavailable (requires "psutil" package)')
     else:
-        out(f'{psutil.virtual_memory().total / float(2 ** 30):0.1f} GB\n')
-    out('\n')
+        out(f'{int(psutil.virtual_memory().total / 2**30)} GB\n')
+
     libs = _get_numpy_libs()
-    use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', 'sklearn',
-                     'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
-                     'pandas', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'qtpy', 'ipympl', 'pyqtgraph', 'pooch', 'mne_bids',
-                     'mne_nirs', 'mne_features', 'mne_qt_browser',
-                     'mne_connectivity', 'mne_icalabel')
-    if dependencies == 'developer':
-        use_mod_names += (
-            'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
-            'pytest', 'nbclient')
-    for mod_name in use_mod_names:
-        try:
-            mod = __import__(mod_name)
-        except Exception:
-            pass
+    requirements = requires("mne")
+    packages = defaultdict(list, {"core": []})
+
+    for requirement in requirements:
+        extra = None
+        if ";" in requirement:  # extra (optional)
+            requirement, extra = requirement.split(";")
+        requirement = requirement.split(">=")[0]  # strip version
+        if extra is not None:
+            group = extra.split(" == ")[-1].replace('"', "")
+            packages[group].append(requirement)
         else:
-            out(f'{mod_name}:'.ljust(ljust))
-            if mod_name == 'vtk':
-                vtk_version = mod.vtkVersion()
-                # 9.0 dev has VersionFull but 9.0 doesn't
-                for attr in ('GetVTKVersionFull', 'GetVTKVersion'):
-                    if hasattr(vtk_version, attr):
-                        version = getattr(vtk_version, attr)()
-                        if version != '':
-                            out(version)
-                            break
-                else:
-                    out('unknown')
+            packages["core"].append(requirement)
+
+    for group in packages:
+        out("\n")
+        packages[group].sort(key=str.lower)
+        if group == "core":
+            packages[group].insert(0, "mne")  # add "mne" package
+            out(f"# {group} (required)\n")
+        else:
+            out(f"# {group} (optional)\n")
+
+        unavailable = []
+        for name in packages[group]:
+            try:
+                module = __import__(name)
+            except ModuleNotFoundError:
+                unavailable.append(name)
             else:
-                out(mod.__version__)
-            if mod_name == 'numpy':
-                out(f' {{{libs}}}')
-            elif mod_name == 'qtpy':
-                version, api = _check_qt_version(return_api=True)
-                out(f' {{{api}={version}}}')
-            elif mod_name == 'matplotlib':
-                out(f' {{backend={mod.get_backend()}}}')
-            elif mod_name == 'pyvista':
-                version, renderer = _get_gpu_info()
-                if version is None:
-                    out(' {OpenGL could not be initialized}')
-                else:
-                    out(f' {{OpenGL {version} via {renderer}}}')
-            if show_paths:
-                out(f'\n{" " * ljust}• {op.dirname(mod.__file__)}')
-            out('\n')
+                out(f"{name}".ljust(ljust))
+                try:
+                    out(module.__version__.lstrip("v"))
+                except AttributeError:
+                    out("?")
+                if name == "numpy":
+                    out(f" ({libs})")
+                elif name == "qtpy":
+                    version, api = _check_qt_version(return_api=True)
+                    out(f" ({api}={version})")
+                elif name == "matplotlib":
+                    out(f" ({module.get_backend()} backend)")
+                elif name == "pyvista":
+                    version, renderer = _get_gpu_info()
+                    if version is None:
+                        out(" (OpenGL could not be initialized)")
+                    else:
+                        out(f" (OpenGL {version} via {renderer})")
+                if show_paths:
+                    out(f" ({op.dirname(module.__file__)})")
+                out("\n")
+        if unavailable:
+            out(f"Not installed: {', '.join(unavailable)}\n")
+
