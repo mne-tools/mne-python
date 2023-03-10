@@ -32,7 +32,9 @@ BASE_INT_DTYPE = np.int16
 COMPLEX_DTYPE = np.dtype([('re', BASE_INT_DTYPE),
                           ('im', BASE_INT_DTYPE)])
 RANGE_VALUE = 2**15
-RANGE_SQRT = 2**8  # round up so no overflow
+# for taking the complex conjugate, we need to be able to
+# temporarily store in a value where x**2 * 2 fits
+OVERFLOW_DYPE = np.int32
 
 VECTOR_SCALAR = 10
 SLIDER_WIDTH = 300
@@ -97,10 +99,10 @@ def _threshold_array(array, min_val, max_val):
 def _int_complex_conj(data):
     # Since the mixed real * imaginary terms cancel out, the complex
     # conjugate is the same as squaring and adding the real and imaginary.
-    # Pre-scale by the square root of the range so that the greatest
-    # allowable value, when squared does not overflow.
-    return (data['re'] // RANGE_SQRT)**2 + \
-           (data['im'] // RANGE_SQRT)**2
+    # Case up the integer size temporarily to prevent overflow
+    conj = (data['re'].astype(OVERFLOW_DYPE))**2 + \
+           (data['im'].astype(OVERFLOW_DYPE))**2
+    return (conj // (conj.max() // RANGE_VALUE + 1)).astype(BASE_INT_DTYPE)
 
 
 class VolSourceEstimateViewer(SliceBrowser):
@@ -368,7 +370,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         elif self._epoch_idx == 'Average Power':
             if stc_data.dtype == COMPLEX_DTYPE:
                 stc_data = np.sum(_int_complex_conj(
-                    stc_data) // stc_data.shape[0], axis=0)
+                    stc_data) // stc_data.shape[0], axis=0,
+                    dtype=BASE_INT_DTYPE)
             else:
                 stc_data = (stc_data * stc_data.conj()).real.mean(axis=0)
         elif self._epoch_idx == 'ITC':
@@ -732,9 +735,9 @@ class VolSourceEstimateViewer(SliceBrowser):
         ave = EvokedArray(evo_data, info, tmin=self._inst.times[0])
 
         ave_max = evo_data.max()
-        ave_min = min([evo_data.min(), -ave_max])
-        ave_range = max([ave_max, -ave_min]) - ave_min
-        vmin, vmax = [val / SLIDER_WIDTH * ave_range + ave_min
+        self._ave_min = min([evo_data.min(), -ave_max])
+        self._ave_range = max([ave_max, -self._ave_min]) - self._ave_min
+        vmin, vmax = [val / SLIDER_WIDTH * self._ave_range + self._ave_min
                       for val in (self._cmap_sliders[i].value()
                                   for i in (0, 2))]
         cbar_fmt = '%3.1f' if abs(evo_data).max() < 1e3 else '%.1e'
@@ -779,6 +782,7 @@ class VolSourceEstimateViewer(SliceBrowser):
                 self.set_freq(self._inst.freqs[int(round(event.ydata))])
                 self._update = True
             self.set_time(self._inst.times[int(round(event.xdata))])
+            self._update_intensity()
 
     def set_baseline(self, baseline=None, mode=None):
         """Set the baseline.
@@ -827,8 +831,11 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_baseline(self, name):
         """Update the chosen baseline normalization method."""
         self._baseline = name
+        pre_update = self._update
+        self._update = False
         self._cmap_sliders[0].setValue(0)
         self._cmap_sliders[1].setValue(SLIDER_WIDTH // 2)
+        self._update = pre_update
         self._cmap_sliders[2].setValue(SLIDER_WIDTH)
         # all baselines have negative support
         self._cmap = _get_cmap('hot' if name == 'none' and self._pos_support
@@ -1046,6 +1053,15 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._cax.clear()
             self._cbar = self._fig.colorbar(self._stc_plot, cax=self._cax)
             self._update_data_plot_ylabel()
+
+        if self._show_topomap:
+            topo_vmin, topo_vmax = [
+                val / SLIDER_WIDTH * self._ave_range + self._ave_min
+                for val in (self._cmap_sliders[i].value() for i in (0, 2))]
+            self._topo_fig.axes[0].get_images()[0].set_clim(
+                topo_vmin, topo_vmax)
+            if draw and self._update:
+                self._topo_fig.canvas.draw()
 
         if draw and self._update:
             self._fig.canvas.draw()
