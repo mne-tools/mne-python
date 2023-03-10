@@ -582,7 +582,10 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             except ModuleNotFoundError:
                 unavailable.append(name)
             else:
-                out(f"{'✔︎ ' if _UNICODE else ''}{name}".ljust(ljust))
+                if _UNICODE:
+                    out(f"✔︎ {name}".ljust(ljust + 1))
+                else:
+                    out(f"{name}".ljust(ljust))
                 try:
                     out(module.__version__.lstrip("v"))
                 except AttributeError:
