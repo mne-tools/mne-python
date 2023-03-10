@@ -19,6 +19,7 @@ import shutil
 from collections import defaultdict
 
 import numpy as np
+from scipy.signal import upfirdn
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
@@ -1075,6 +1076,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
                  n_jobs=None, events=None, pad='reflect_limited',
+                 skip_by_annotation=('edge', 'bad_acq_skip'),
                  verbose=None):
         """Resample all channels.
 
@@ -1119,6 +1121,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
+        %(skip_by_annotation)s
         %(verbose)s
 
         Returns
@@ -1173,14 +1176,24 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                               for old_len in self._raw_lengths))
         ratio, n_news = ratio[0], np.array(n_news, int)
         new_offsets = np.cumsum([0] + list(n_news))
+
         if self.preload:
+            onsets, ends = _annotations_starts_stops(
+                self, skip_by_annotation, invert=True)
+            logger.info('Resampling raw data in %d contiguous segment%s'
+                        % (len(onsets), _pl(onsets)))
             new_data = np.empty(
                 (len(self.ch_names), new_offsets[-1]), self._data.dtype)
         for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
             this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
             if self.preload:
-                data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
-                new_data[:, this_sl] = resample(data_chunk, **kwargs)
+                new_data[:, this_sl] = upfirdn(h=[1.], x=self._data, down=ratio)
+                for onset, end in zip(onsets, ends):
+                    onset_new = max(1, int(offsets[ri] / ratio))
+                    end_new = max(1, int(end[ri] / ratio))
+                    data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
+                    new_data[:, onset_new:end_new] = resample(data_chunk,
+                                                              **kwargs)
                 # In empirical testing, it was faster to resample all channels
                 # (above) and then replace the stim channels than it was to
                 # only resample the proper subset of channels and then use

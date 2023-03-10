@@ -5,7 +5,7 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
 import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
-from mne import create_info, Epochs
+from mne import create_info, Epochs, Annotations
 from numpy.fft import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -320,6 +320,17 @@ def test_resample_raw():
     sfreq = 2048.
     raw = RawArray(x, create_info(1, sfreq, 'eeg'))
     raw.resample(128, npad=10)
+    data = raw.get_data()
+    assert data.shape == (1, 63)
+
+
+def test_resample_annotation():
+    """Test annotations for resampling."""
+    x = np.zeros((1, 1001))
+    sfreq = 2048.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    raw.set_annotations(Annotations([0.], [0.2], ['BAD_STIM']))
+    raw.resample(128, npad=10, skip_by_annotation='BAD_STIM')
     data = raw.get_data()
     assert data.shape == (1, 63)
 
