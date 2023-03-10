@@ -603,4 +603,3 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                 out("\n")
         if unavailable:
             out(f"Not installed: {', '.join(unavailable)}\n")
-
