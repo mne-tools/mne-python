@@ -207,8 +207,9 @@ class VolSourceEstimateViewer(SliceBrowser):
         # take the vector magnitude, if scalar, does nothing
         self._stc_data_vol = np.linalg.norm(stc_data, axis=1)
 
-        self._stc_min = np.nanmin(self._stc_data_vol)
-        self._stc_range = np.nanmax(self._stc_data_vol) - self._stc_min
+        stc_max = np.nanmax(self._stc_data_vol)
+        self._stc_min = min([np.nanmin(self._stc_data_vol), stc_max])
+        self._stc_range = max([stc_max, -self._stc_min]) - self._stc_min
 
         stc_data_vol = self._pick_stc_tfr(self._stc_data_vol)
         self._stc_img = _make_vol(self._src_lut, stc_data_vol)
@@ -312,8 +313,9 @@ class VolSourceEstimateViewer(SliceBrowser):
         inf_mask = np.isinf(self._stc_data_vol)
         if inf_mask.any():
             self._stc_data_vol[inf_mask] = np.nan
-        self._stc_min = np.nanmin(self._stc_data_vol)
-        self._stc_range = np.nanmax(self._stc_data_vol) - self._stc_min
+        stc_max = np.nanmax(self._stc_data_vol)
+        self._stc_min = min([np.nanmin(self._stc_data_vol), -stc_max])
+        self._stc_range = max([stc_max, -self._stc_min]) - self._stc_min
 
     def _update_vectors(self):
         if self._data.shape[2] > 1 and not self._is_complex:
@@ -682,7 +684,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._fig.axes[0].set_ylabel('Frequency (Hz)')
             self._fig.axes[0].set_yticks(range(self._inst.freqs.size))
             self._fig.axes[0].set_yticklabels(self._inst.freqs.round(2))
-            self._cax = self._fig.add_axes([0.92, 0.25, 0.02, 0.6])
+            self._cax = self._fig.add_axes([0.88, 0.25, 0.02, 0.6])
             self._cbar = self._fig.colorbar(self._stc_plot, cax=self._cax)
             self._cax.set_ylabel('Power')
         self._fig.canvas.mpl_connect(
@@ -729,12 +731,18 @@ class VolSourceEstimateViewer(SliceBrowser):
         info = _pick_inst(self._inst, dtype, 'bads').info
         ave = EvokedArray(evo_data, info, tmin=self._inst.times[0])
 
+        ave_max = evo_data.max()
+        ave_min = min([evo_data.min(), -ave_max])
+        ave_range = max([ave_max, -ave_min]) - ave_min
+        vmin, vmax = [val / SLIDER_WIDTH * ave_range + ave_min
+                      for val in (self._cmap_sliders[i].value()
+                                  for i in (0, 2))]
         cbar_fmt = '%3.1f' if abs(evo_data).max() < 1e3 else '%.1e'
         ave.plot_topomap(times=self._inst.times[self._t_idx],
                          scalings={dtype: 1}, units=units,
                          axes=(self._topo_fig.axes[0], self._topo_cax),
                          cmap=self._cmap, colorbar=True, cbar_fmt=cbar_fmt,
-                         show=False)
+                         vlim=(vmin, vmax), show=False)
 
         self._topo_fig.axes[0].set_title('')
         self._topo_fig.subplots_adjust(top=1.1, bottom=0.05, right=0.75)
