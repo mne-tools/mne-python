@@ -386,7 +386,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
                 n_smp_read[orig_idx] += len(one_i)
 
         # skip if no data was requested, ie. only annotations were read
-        if sum(n_smp_read)>0:
+        if sum(n_smp_read) > 0:
             # expected number of samples, equals maximum sfreq
             smp_exp = data.shape[-1]
             assert max(n_smp_read) == smp_exp
@@ -394,15 +394,15 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
             # resample data after loading all chunks to prevent edge artifacts
             for i, smp_read in enumerate(n_smp_read):
                 # nothing read, nothing to resample
-                if smp_read==0:
+                if smp_read == 0:
                     continue
                 # resample if n_samples is lower than from highest sfreq
-                if smp_read!=smp_exp:
-                    assert (ones[i, smp_read:]==0).all()  # sanity check
-                    ones[i,:] = resample(
-                                    ones[i,:smp_read].astype(np.float64),
+                if smp_read != smp_exp:
+                    assert (ones[i, smp_read:] == 0).all()  # sanity check
+                    ones[i, :] = resample(
+                                    ones[i, :smp_read].astype(np.float64),
                                     smp_exp, smp_read, npad=0, axis=-1)
-            _mult_cal_one(data[:,:], ones, idx, cals, mult)
+            _mult_cal_one(data[:, :], ones, idx, cals, mult)
 
     if len(tal_data) > 1:
         tal_data = np.concatenate([tal.ravel() for tal in tal_data])
