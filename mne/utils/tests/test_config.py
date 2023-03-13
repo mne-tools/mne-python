@@ -83,12 +83,12 @@ def test_sys_info():
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
-    assert ('numpy:' in out)
+    assert ('numpy' in out)
 
     if platform.system() == 'Darwin':
-        assert 'Platform:         macOS-' in out
+        assert 'Platform              macOS-' in out
     elif platform.system() == 'Linux':
-        assert 'Platform:         Linux' in out
+        assert 'Platform              Linux' in out
 
 
 def test_get_subjects_dir(tmp_path, monkeypatch):
