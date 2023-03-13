@@ -328,11 +328,12 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
         start_offset = (data_offset +
                         block_start_idx * ch_offsets[-1] * dtype_byte)
 
-        # first read everything as list, put into array later
-        # ignore TAL/annotations channel
+        # first read everything into the `ones` array. For channels with
+        # lower sampling frequency, there will be zeros left at the end of the
+        # row. Ignore TAL/annotations channel and only store `orig_sel`
         ones = np.zeros((len(orig_sel), data.shape[-1]), dtype=data.dtype)
-        # save how many samples have already been stored for channel
-        n_read_chs = [0 for _ in range(len(orig_sel))]
+        # save how many samples have already been read per channel
+        n_smp_read = [0 for _ in range(len(orig_sel))]
 
         # read data in chunks
         for ai in range(0, len(r_lims), n_per):
@@ -376,21 +377,22 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
                                            kind='zero', axis=-1)(new)
                 elif orig_idx in stim_channel_idxs:
                     ch_data = np.bitwise_and(ch_data.astype(int), 2**17 - 1)
-                    
+
                 one_i = ch_data.ravel()[r_sidx:r_eidx]
-                
+
                 # note how many samples have been read
-                smp_read = n_read_chs[orig_idx]
+                smp_read = n_smp_read[orig_idx]
                 ones[orig_idx, smp_read:smp_read+len(one_i)] = one_i
-                n_read_chs[orig_idx] += len(one_i)
+                n_smp_read[orig_idx] += len(one_i)
 
         # skip if no data was requested, ie. only annotations were read
-        if len(data)>0:
+        if sum(n_smp_read)>0:
             # expected number of samples, equals maximum sfreq
             smp_exp = data.shape[-1]
+            assert max(n_smp_read) == smp_exp
 
             # resample data after loading all chunks to prevent edge artifacts
-            for i, smp_read in enumerate(n_read_chs):
+            for i, smp_read in enumerate(n_smp_read):
                 # nothing read, nothing to resample
                 if smp_read==0:
                     continue
@@ -399,8 +401,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
                     assert (ones[i, smp_read:]==0).all()  # sanity check
                     ones[i,:] = resample(
                                     ones[i,:smp_read].astype(np.float64),
-                                    data.shape[-1], smp_read,
-                                    npad=0, axis=-1)
+                                    smp_exp, smp_read, npad=0, axis=-1)
             _mult_cal_one(data[:,:], ones, idx, cals, mult)
 
     if len(tal_data) > 1:
