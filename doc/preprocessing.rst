@@ -68,6 +68,7 @@ Projections:
 .. autosummary::
    :toctree: generated/
 
+   GradientRemover
    ICA
    Xdawn
    EOGRegression
