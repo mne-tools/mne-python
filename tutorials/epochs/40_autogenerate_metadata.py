@@ -160,7 +160,7 @@ metadata
 # value represents the first (or, in this specific example: the only)
 # response, regardless of side (left or right). To indicate **which** event
 # type (here: response side) was matched, a second column named
-# ``first_response``is added. The values in this column are the event types
+# ``first_response`` is added. The values in this column are the event types
 # without the string used for matching, as it is already encoded as the column
 # name, i.e. in our example, we expect it to only contain ``'left'`` and
 # ``'right'``.
