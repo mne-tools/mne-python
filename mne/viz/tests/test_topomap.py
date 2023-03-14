@@ -236,18 +236,10 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     evoked.pick(['EEG 001', 'EEG 002', 'EEG 003'])
     fig = evoked.plot_topomap(times=0.1, res=8, contours=0, sensors=False,
                               units=units, scalings=scalings)
-    # ideally we'd do this:
-    #     cbar = [ax for ax in fig.axes if hasattr(ax, '_colorbar')]
-    #     assert len(cbar) == 1
-    #     cbar = cbar[0]
-    #     assert cbar.get_title() == expected_unit
-    # ...but not all matplotlib versions support it, and we can't use
-    # @requires_version because it's hard figure out exactly which MPL version
-    # is the cutoff since it relies on a private attribute. So for now we just
-    # do this:
-    for ax in fig.axes:
-        if hasattr(ax, '_colorbar'):
-            assert ax.get_title() == expected_unit
+    cbar = [ax for ax in fig.axes if hasattr(ax, '_colorbar')]
+    assert len(cbar) == 1
+    cbar = cbar[0]
+    assert cbar.get_title() == expected_unit
 
 
 @pytest.mark.parametrize('extrapolate', ('box', 'local', 'head'))
