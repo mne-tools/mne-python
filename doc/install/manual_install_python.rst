@@ -30,7 +30,7 @@ conda to ``/home/user/anaconda3``):
 
             $ conda --version && python --version
             conda 4.9.2
-            Python 3.7.7 :: Anaconda, Inc.
+            Python 3.8.13 :: Anaconda, Inc.
             $ which python
             /home/user/anaconda3/bin/python
             $ which pip
@@ -44,7 +44,7 @@ conda to ``/home/user/anaconda3``):
 
             $ conda --version && python --version
             conda 4.9.2
-            Python 3.7.7
+            Python 3.8.13
             $ which python
             /Users/user/opt/anaconda3/bin/python
             $ which pip
