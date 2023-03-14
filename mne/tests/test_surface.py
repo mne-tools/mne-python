@@ -118,6 +118,7 @@ def test_compute_nearest():
 @testing.requires_testing_data
 def test_io_surface(tmp_path):
     """Test reading and writing of Freesurfer surface mesh files."""
+    pytest.importorskip('nibabel')
     fname_quad = data_path / "subjects" / "bert" / "surf" / "lh.inflated.nofix"
     fname_tri = data_path / "subjects" / "sample" / "bem" / "inner_skull.surf"
     for fname in (fname_quad, fname_tri):
@@ -155,6 +156,7 @@ def test_io_surface(tmp_path):
 @testing.requires_testing_data
 def test_read_curv():
     """Test reading curvature data."""
+    pytest.importorskip('nibabel')
     fname_curv = data_path / "subjects" / "fsaverage" / "surf" / "lh.curv"
     fname_surf = data_path / "subjects" / "fsaverage" / "surf" / "lh.inflated"
     bin_curv = read_curvature(fname_curv)
