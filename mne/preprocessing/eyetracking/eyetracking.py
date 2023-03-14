@@ -13,7 +13,14 @@ def set_channel_types_eyetrack(inst, mapping):
     """Define sensor type for eyetrack channels.
 
     This function can set all eye tracking specific information:
-    unit, eye (Gaze and Pupil channels) and x/y component (Gaze channels)
+    channel type, unit, eye (and x/y component; only for gaze channels)
+
+    Supported channel types:
+    ``'eyegaze'`` and ``'pupil'``
+
+    Supported units:
+    ``'au'``, ``'px'``, ``'deg'``, ``'rad'`` (for eyegaze)
+    ``'au'``, ``'mm'``, ``'m'`` (for pupil)
 
     Parameters
     ----------
@@ -21,8 +28,9 @@ def set_channel_types_eyetrack(inst, mapping):
         The data instance.
     mapping : dict
         A dictionary mapping a channel to a list/tuple including
-        sensor type, unit, eye, [and x/y component] (all as str),  e.g.,
-        ``{'l_x': ('eyegaze', 'deg', 'left', 'x')}``.
+        channel type, unit, eye, [and x/y component] (all as str),  e.g.,
+        ``{'l_x': ('eyegaze', 'deg', 'left', 'x')}`` or
+        ``{'r_pupil': ('pupil', 'au', 'right')}``.
 
     Returns
     -------
@@ -32,16 +40,22 @@ def set_channel_types_eyetrack(inst, mapping):
     Notes
     -----
     ``inst.set_channel_types()`` to ``'eyegaze'`` or ``'pupil'``
-    achieves the same, but cannot set specific unit, eye and x/y component.
+    works as well, but cannot correctly set unit, eye and x/y component.
+
+    Data will be stored in SI units:
+    if your data comes in ``deg`` (visual angle) it will be converted to
+    ``rad``, if it is in ``mm`` it will be converted to ``m``.
     """
     ch_names = inst.info['ch_names']
 
     # allowed
     valid_types = ['eyegaze', 'pupil']  # ch_type
     valid_units = {'px': ['px', 'pixel'],
+                   'rad': ['rad', 'radian', 'radians'],
                    'deg': ['deg', 'degree', 'degrees'],
-                   'mm': ['mm', 'diameter'],
-                   'au': [None, 'none', 'au', 'area']}
+                   'm': ['m', 'meter', 'meters'],
+                   'mm': ['mm', 'millimeter', 'millimeters'],
+                   'au': [None, 'none', 'au', 'arbitrary']}
     valid_units['all'] = [item for sublist in valid_units.values()
                           for item in sublist]
     valid_eye = {'l': ['left', 'l'],
@@ -80,10 +94,16 @@ def set_channel_types_eyetrack(inst, mapping):
                     valid_units['all'], ch_unit))
         if ch_unit in valid_units['px']:
             unit_new = FIFF.FIFF_UNIT_PX
-        elif ch_unit in valid_units['deg']:
-            unit_new = FIFF.FIFF_UNIT_DEG
-        elif ch_unit in valid_units['mm']:
-            unit_new = FIFF.FIFF_UNIT_MM
+        elif ch_unit in valid_units['rad']:
+            unit_new = FIFF.FIFF_UNIT_RAD
+        elif ch_unit in valid_units['deg']:  # convert deg to rad (SI)
+            inst = inst.apply_function(_convert_deg_to_rad, picks=ch_name)
+            unit_new = FIFF.FIFF_UNIT_RAD
+        elif ch_unit in valid_units['m']:
+            unit_new = FIFF.FIFF_UNIT_M
+        elif ch_unit in valid_units['mm']:  # convert mm to m (SI)
+            inst = inst.apply_function(_convert_mm_to_m, picks=ch_name)
+            unit_new = FIFF.FIFF_UNIT_M
         elif ch_unit in valid_units['au']:
             unit_new = FIFF.FIFF_UNIT_NONE
         inst.info['chs'][c_ind]['unit'] = unit_new
@@ -116,3 +136,11 @@ def set_channel_types_eyetrack(inst, mapping):
         inst.info['chs'][c_ind]['loc'] = loc
 
     return inst
+
+
+def _convert_mm_to_m(array):
+    return array * .001
+
+
+def _convert_deg_to_rad(array):
+    return array * np.pi / 180.

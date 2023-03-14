@@ -204,9 +204,7 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_NONE: 'NA',
                FIFF.FIFF_UNIT_CEL: 'C',
                FIFF.FIFF_UNIT_S: 'S',
-               FIFF.FIFF_UNIT_PX: 'px',
-               FIFF.FIFF_UNIT_DEG: 'deg',
-               FIFF.FIFF_UNIT_MM: 'mm'}
+               FIFF.FIFF_UNIT_PX: 'px'}
 
 
 def _check_set(ch, projs, ch_type):
