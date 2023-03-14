@@ -1458,8 +1458,11 @@ class MNEBrowseFigure(MNEFigure):
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
+        import re
         segment_colors = getattr(self.mne, 'annotation_segment_colors', dict())
         labels = self._get_annotation_labels()
+        a = [re.search("\d{1}\.\d{2}_\d{1}\.\d{2}_\d{1}\.\d{2}",label) for label in labels]
+        labels = [label[:span.span()[0]-1] if span is not None else label for span , label in zip(a,labels) ]
         colors, red = _get_color_list(annotations=True)
         color_cycle = cycle(colors)
         for key, color in segment_colors.items():
@@ -1582,7 +1585,8 @@ class MNEBrowseFigure(MNEFigure):
             self.mne.annotation_texts.remove(text)
     # @jit(nopython=True)   
     def _draw_annotations(self):
-        """Draw (or redraw) the annotation spans."""          
+        """Draw (or redraw) the annotation spans."""  
+        import re        
         self._clear_annotations()
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
@@ -1593,6 +1597,13 @@ class MNEBrowseFigure(MNEFigure):
             ylim = ax.get_ylim()        
             if len(self.mne.inst.annotations.description[idx].split(","))==2:
                 descr = self.mne.inst.annotations.description[idx].split(",")[0]
+                sr = re.search("\d{1}\.\d{2}_\d{1}\.\d{2}_\d{1}\.\d{2}",descr)
+                descrtext = descr
+                if sr is not None:
+                    descrtext = descr[sr.span()[0]:sr.span()[1]]
+                    descr = descr[:sr.span()[0]-1]
+                else:
+                    descrtext = descr
                 channelwise = True
                 chname = self.mne.inst.annotations.description[idx].split(",")[1] 
                 try:                            
@@ -1604,6 +1615,7 @@ class MNEBrowseFigure(MNEFigure):
             else:
                 channelwise=False
                 descr = self.mne.inst.annotations.description[idx] 
+                descrtext = descr
             segment_color = self.mne.annotation_segment_colors[descr]
             kwargs = dict(color=segment_color, alpha=0.3,
                           zorder=self.mne.zorder['ann'])
@@ -1620,11 +1632,11 @@ class MNEBrowseFigure(MNEFigure):
                     self.mne.annotations.append(annot)
                     xy = (visible_segment.mean(), ylim[1])
                     if channelwise:
-                        text = ax.annotate("", xy, xytext=(0, 9),
+                        text = ax.annotate(descrtext, xy, xytext=(0, 9),
                                             textcoords='offset points', ha='center',
                                             va='baseline', color=segment_color)
                     else:
-                        text = ax.annotate(descr, xy, xytext=(0, 9),
+                        text = ax.annotate(descrtext, xy, xytext=(0, 9),
                                            textcoords='offset points', ha='center',
                                            va='baseline', color=segment_color)
                     self.mne.annotation_texts.append(text)        
