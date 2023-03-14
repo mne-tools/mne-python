@@ -109,10 +109,10 @@ For full functionality, some functions require:
 - mne-qt-browser >= 0.1 (for fast raw data visualization)
 - Qt5 >= 5.12 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
 
-  - PyQt5 >= 5.12
   - PyQt6 >= 6.0
-  - PySide2 >= 5.12
   - PySide6 >= 6.0
+  - PyQt5 >= 5.12
+  - PySide2 >= 5.12
 
 - Numba >= 0.53.1
 - NiBabel >= 3.2.1
