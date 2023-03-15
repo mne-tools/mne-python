@@ -1,38 +1,27 @@
 .. -*- mode: rst -*-
 
-|GH-Linux|_ |GH-macOS|_ |Cirrus|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
+|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_
 
 |MNE|_
 
-.. |GH-Linux| image:: https://github.com/mne-tools/mne-python/workflows/linux%20/%20conda/badge.svg?branch=main
-.. _GH-Linux: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
-
-.. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=main
-.. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
-
-.. |Cirrus| image:: https://api.cirrus-ci.com/github/mne-tools/mne-python.svg
-.. _Cirrus: https://cirrus-ci.com/github/mne-tools/mne-python
-
-.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=main
-.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
-
-.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=shield
-.. _Circle: https://circleci.com/gh/mne-tools/mne-python
-
-.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/main/graph/badge.svg
-.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
-
-.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
+.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI
 .. _PyPI: https://pypi.org/project/mne/
 
-.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
+.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda
 .. _conda-forge: https://anaconda.org/conda-forge/mne
 
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
 .. _Zenodo: https://doi.org/10.5281/zenodo.592483
 
+.. |Discourse| image:: https://img.shields.io/discourse/status?label=Community&server=https%3A%2F%2Fmne.discourse.group%2F
+.. _Discourse: https://mne.discourse.group/
+
+.. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
+.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
+
 .. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
 .. _MNE: https://mne.tools/dev/
+
 
 MNE-Python
 ==========
