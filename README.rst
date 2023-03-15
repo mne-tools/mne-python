@@ -13,10 +13,10 @@
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
 .. _Zenodo: https://doi.org/10.5281/zenodo.592483
 
-.. |Discourse| image:: https://img.shields.io/discourse/status?label=forum&server=https%3A%2F%2Fmne.discourse.group%2F
+.. |Discourse| image:: https://img.shields.io/discourse/status?label=Community&server=https%3A%2F%2Fmne.discourse.group%2F
 .. _Discourse: https://mne.discourse.group/
 
-.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/main/graph/badge.svg
+.. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
 .. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
