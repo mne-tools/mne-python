@@ -21,8 +21,7 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
                        _dt_to_julian, _julian_to_dt, grand_average,
-                       _ReuseCycle, requires_version, numerics,
-                       _custom_lru_cache)
+                       _ReuseCycle, numerics, _custom_lru_cache)
 from mne.utils.numerics import _LRU_CACHES, _LRU_CACHE_MAXSIZES
 
 
@@ -237,7 +236,6 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_version('numpy', '1.17')  # hermitian kwarg
 @pytest.mark.parametrize('ndim', (2, 3))
 def test_reg_pinv(ndim):
     """Test regularization and inversion of covariance matrix."""
