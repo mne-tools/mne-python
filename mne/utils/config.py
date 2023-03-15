@@ -607,4 +607,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                     out(f" ({op.dirname(module.__file__)})")
                 out("\n")
         if unavailable:
-            out(f"Not installed: {', '.join(unavailable)}\n")
+            if _UNICODE:
+                out(f"✘ Not installed: {', '.join(unavailable)}\n")
+            else:
+                out(f"Not installed: {', '.join(unavailable)}\n")
