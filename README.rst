@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-|GH-Linux|_ |GH-macOS|_ |Cirrus|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
+|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_
 
 |MNE|_
 
