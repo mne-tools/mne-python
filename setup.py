@@ -85,7 +85,7 @@ if __name__ == "__main__":
               'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
           },
           platforms='any',
-          python_requires='>=3.7',
+          python_requires='>=3.8',
           install_requires=install_requires,
           setup_requires=["setuptools>=45", "setuptools_scm>=6.2"],
           use_scm_version={
