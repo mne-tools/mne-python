@@ -24,6 +24,7 @@ from ..utils import (GetEpochsMixin, _build_data_frame,
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
+from ..utils.spectrum import _translate_old_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
@@ -104,9 +105,7 @@ class SpectrumMixin():
             picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose, **rba,
             **method_kw)
 
-        # translate kwargs
-        amplitude = 'auto' if estimate == 'auto' else (estimate == 'amplitude')
-        ci = 'sd' if area_mode == 'std' else area_mode
+        amplitude, ci = _translate_old_psd_kwargs(estimate, area_mode)
         # ↓ here picks="all" because we've already restricted the `info` to
         # ↓ have only `picks` channels
         fig = spectrum.plot(
