@@ -10,6 +10,7 @@ from mne.utils import _check_pandas_installed, requires_pandas
 
 testing_path = data_path(download=False)
 fname = testing_path / 'eyetrack' / 'test_eyelink.asc'
+fname_href = testing_path / 'eyetrack' / 'test_eyelink_HREF.asc'
 
 
 def test_eyetrack_not_data_ch():
@@ -74,6 +75,25 @@ def test_eyelink(fname, create_annotations, find_overlaps):
         # Rows 0, 1, 2 should be 'fixation_both', 'saccade_both', 'blink_both'
         for i, label in zip([0, 1, 2], ['fixation', 'saccade', 'blink']):
             assert df['description'].iloc[i] == f'{label}_both'
+
+
+@requires_testing_data
+@pytest.mark.parametrize('fname_href',
+                         [(fname_href)])
+def test_radian(fname_href):
+    """Test converting HREF position data to radians."""
+    raw = read_raw_eyelink(fname_href, create_annotations=['blinks'])
+    # Test channel types
+    assert raw.get_channel_types() == ['eyegaze', 'eyegaze', 'pupil']
+
+    # Test that eyegaze channels have a radian unit
+    assert raw.info['chs'][0]['unit'] == FIFF.FIFF_UNIT_RAD
+    assert raw.info['chs'][1]['unit'] == FIFF.FIFF_UNIT_RAD
+
+    # Data in radians should range between -1 and 1
+    # Test first channel (xpos_right)
+    assert raw.get_data()[0].min() > -1
+    assert raw.get_data()[0].max() < 1
 
 
 @requires_testing_data
