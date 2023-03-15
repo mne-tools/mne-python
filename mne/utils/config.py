@@ -17,8 +17,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from functools import partial
-from importlib import import_module
-from importlib.metadata import requires
+from importlib import import_module, metadata
 from pathlib import Path
 
 from .check import (_validate_type, _check_qt_version, _check_option,
@@ -553,7 +552,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         out(f'{int(psutil.virtual_memory().total / 2**30)} GB\n')
 
     libs = _get_numpy_libs()
-    requirements = requires("mne")
+    requirements = metadata.requires("mne")
     packages = defaultdict(list, {"core": []})
 
     for requirement in requirements:
@@ -588,7 +587,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                 else:
                     out(f"{name}".ljust(ljust))
                 try:
-                    out(module.__version__.lstrip("v"))
+                    out(metadata.version(name))
                 except AttributeError:
                     out("?")
                 if name == "numpy":
