@@ -94,9 +94,9 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - Python >= 3.8
-- NumPy >= 1.18.1
+- NumPy >= 1.20.2
 - SciPy >= 1.6.3
-- Matplotlib >= 3.1.0
+- Matplotlib >= 3.4.0
 - pooch >= 1.5
 - tqdm
 - Jinja2
@@ -104,18 +104,26 @@ The minimum required dependencies to run MNE-Python are:
 
 For full functionality, some functions require:
 
-- Scikit-learn >= 0.22.0
+- Scikit-learn >= 0.24.2
 - joblib >= 0.15 (for parallelization control)
-- Numba >= 0.48.0
-- NiBabel >= 2.5.0
+- mne-qt-browser >= 0.1 (for fast raw data visualization)
+- Qt5 >= 5.12 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
+
+  - PyQt6 >= 6.0
+  - PySide6 >= 6.0
+  - PyQt5 >= 5.12
+  - PySide2 >= 5.12
+
+- Numba >= 0.53.1
+- NiBabel >= 3.2.1
 - OpenMEEG >= 2.5.5
-- Pandas >= 1.0.0
+- Pandas >= 1.2.4
 - Picard >= 0.3
-- CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)
-- DIPY >= 1.1.0
-- Imageio >= 2.6.1
-- PyVista >= 0.32
-- pyvistaqt >= 0.4
+- CuPy >= 9.0.0 (for NVIDIA CUDA acceleration)
+- DIPY >= 1.4.0
+- Imageio >= 2.8.0
+- PyVista >= 0.32 (for 3D visualization)
+- pyvistaqt >= 0.4 (for 3D visualization)
 - mffpy >= 0.5.7
 - h5py
 - h5io
