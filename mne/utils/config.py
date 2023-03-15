@@ -17,6 +17,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from functools import partial
+from importlib import import_module
 from importlib.metadata import requires
 from pathlib import Path
 
@@ -578,7 +579,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         unavailable = []
         for name in packages[group]:
             try:
-                module = __import__(name)
+                module = import_module(name)
             except ModuleNotFoundError:
                 unavailable.append(name)
             else:
