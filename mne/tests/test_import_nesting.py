@@ -22,7 +22,7 @@ import mne
 out = set()
 
 # check scipy (Numba imports it to check the version)
-ok_scipy_submodules = {'scipy', 'numpy', 'version'}
+ok_scipy_submodules = {'version'}
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x and
                        not x.split('.')[1].startswith('_')
