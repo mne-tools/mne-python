@@ -59,7 +59,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.plot_psd(fmin=2., fmax=40., average=True)
+epochs.compute_psd(fmin=2., fmax=40.).plot(average=True)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged
