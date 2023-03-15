@@ -15,6 +15,12 @@ MNE-Python provides functions for reading eyetracking data. When possible,
 MNE-Python will internally convert and store eyetracking data according to an
 SI unit (for example radians for position data, and meters for pupil size).
 
+.. note:: If you have eye tracking data in a format that MNE does not support
+          yet, you can try reading it using other tools and create an MNE
+          object from a numpy array. Then you can use
+          :func:`mne.preprocessing.eyetracking.set_channel_types_eyetrack`
+          to assign the correct eyetrack channel types.
+
 .. seealso:: Some MNE functions may not be available to eyetracking and other
              physiological data, because MNE does not consider them to be data
              channels. See the :doc:`glossary </glossary>` for more
@@ -60,8 +66,8 @@ Gaze position data report the estimated (x, y) pixel coordinates of the
 participants's gaze on the stimulus screen, compensating for head position
 changes and distance from  the screen. This datatype may be preferable if you
 are interested in knowing where the participant was looking at on the stimulus
-screen. The default pixel range in Eyelink systems is that of a 1024 x 768
-screen, with (0, 0) at the top left.
+screen. The default (0, 0) location for Eyelink systems is at the top left of
+the screen.
 
 This may be best demonstrated with an example. In the file plotted below,
 eyetracking data was recorded while the participant read text on a display.
@@ -143,10 +149,13 @@ raw.pick_types(eyetrack=True).plot()
 # Pupil Size Data
 # ---------------
 # Pupil size is measured by the EyeLink system at up to 500 samples per second.
-# It may be reported as pupil *area*, or pupil *diameter*. The pupil size data
-# is not calibrated and are reported in arbitrary units. Typical pupil *area*
-# data range between 800 to 2000 units, with a precision of 1 unit, while pupil
-# *diameter* data range between 1800-3000 units.
+# It may be reported as pupil *area*, or pupil *diameter* (i.e. the diameter
+# of a circle/ellipse model fit to the pupil area).
+# Which of these datatypes you get is specified by your recording- and/or your
+# EDF2ASC settings. The pupil size data is not calibrated and reported in
+# arbitrary units. Typical pupil *area* data range between 800 to 2000 units,
+# with a precision of 1 unit, while pupil *diameter* data range between
+# 1800-3000 units.
 #
 # Velocity, resolution, and head position data
 # --------------------------------------------
