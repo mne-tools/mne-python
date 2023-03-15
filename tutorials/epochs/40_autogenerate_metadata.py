@@ -269,7 +269,7 @@ vis_erp = epochs['response_correct'].average()
 vis_erp_slow = epochs['(not response_correct) & '
                       '(response > 0.3)'].average()
 
-fig, ax = plt.subplots(2, figsize=(6, 6))
+fig, ax = plt.subplots(2, figsize=(6, 6), layout='constrained')
 vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0])
 vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1])
 ax[0].set_title('Visual ERPs – All Correct Responses')
