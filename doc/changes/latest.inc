@@ -55,7 +55,7 @@ Bugs
 - Fix visualization dialog compatibility with matplotlib 3.7 (:gh:`11409` by `Daniel McCloy`_ and `Eric Larson`_)
 - Expand tilde (user directory) in config keys (:gh:`11537` by `Clemens Brunner`_)
 - Fix bug in :func:`mne.preprocessing.compute_maxwell_basis` where using ``int_order=0`` would raise an error (:gh:`11562` by `Eric Larson`_)
-- In the legacy function :func:`mne.viz.plot_epochs_psd_topomap`, the parameter ``names`` now works again (:gh:`?????` by `Daniel McCloy`_)
+- In the legacy function :func:`mne.viz.plot_epochs_psd_topomap`, the parameter ``names`` now works again (:gh:`11563` by `Daniel McCloy`_)
 - Fix :func:`mne.io.read_raw` for file names containing multiple dots (:gh:`11521` by `Clemens Brunner`_)
 
 API changes
