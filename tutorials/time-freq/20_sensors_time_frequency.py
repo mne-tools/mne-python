@@ -64,7 +64,7 @@ epochs.compute_psd(fmin=2., fmax=40.).plot(average=True)
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged
 # across epochs and frequency bands.
-epochs.plot_psd_topomap(ch_type='grad', normalize=False)
+epochs.compute_psd().plot_topomap(ch_type='grad', normalize=False)
 
 # %%
 # Alternatively, you can also create PSDs from `~mne.Epochs` methods directly.

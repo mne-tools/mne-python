@@ -483,11 +483,13 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
-    return raw.plot_psd_topo(
+    return raw.compute_psd(
         tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj, method='welch',
+        n_jobs=n_jobs, verbose=verbose, n_fft=n_fft, n_overlap=n_overlap
+    ).plot_topo(
         dB=dB, layout=layout, color=color, fig_facecolor=fig_facecolor,
         axis_facecolor=axis_facecolor, axes=axes, block=block, show=show,
-        n_jobs=n_jobs, verbose=verbose, n_fft=n_fft, n_overlap=n_overlap)
+    )
 
 
 def _setup_channel_selections(raw, kind, order):

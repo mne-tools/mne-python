@@ -177,5 +177,6 @@ def test_array_raw():
 
     raw = RawArray(data, info)
     raw.set_montage(montage)
-    raw.compute_psd().plot(average=False)  # looking for nonexistent layout
-    raw.plot_psd_topo()
+    spectrum = raw.compute_psd()
+    spectrum.plot(average=False)  # looking for nonexistent layout
+    spectrum.plot_topo()
