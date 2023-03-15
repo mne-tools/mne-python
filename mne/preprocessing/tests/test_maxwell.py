@@ -1438,11 +1438,13 @@ def test_find_bads_maxwell_flat():
     assert noisy == want_noisy
 
 
-@pytest.mark.parametrize('regularize, n', [
-    (None, 80),
-    ('in', 71),
+@pytest.mark.parametrize('regularize, n, int_order', [
+    (None, 80, 8),
+    ('in', 71, 8),
+    (None, 0, 0),
+    ('in', 0, 0),
 ])
-def test_compute_maxwell_basis(regularize, n):
+def test_compute_maxwell_basis(regularize, n, int_order):
     """Test compute_maxwell_basis."""
     raw = read_raw_fif(raw_small_fname).crop(0, 2)
     assert raw.info['bads'] == []
@@ -1450,7 +1452,7 @@ def test_compute_maxwell_basis(regularize, n):
     rank = compute_rank(raw)['meg']
     assert rank == 306
     raw.info['bads'] = ['MEG 2443']
-    kwargs = dict(regularize=regularize, verbose=True)
+    kwargs = dict(regularize=regularize, int_order=int_order, verbose=True)
     raw_sss = maxwell_filter(raw, **kwargs)
     want = raw_sss.get_data('meg')
     rank = compute_rank(raw_sss)['meg']
