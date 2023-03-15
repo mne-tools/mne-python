@@ -143,8 +143,8 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    raw2.plot_psd(tmax=2., average=True, n_fft=1024,
-                  spatial_colors=False)
+    (raw2.compute_psd(tmax=2., n_fft=1024)
+         .plot(average=True, spatial_colors=False))
     plt.close('all')
 
     # epoching
@@ -177,5 +177,5 @@ def test_array_raw():
 
     raw = RawArray(data, info)
     raw.set_montage(montage)
-    raw.plot_psd(average=False)  # looking for nonexistent layout
+    raw.compute_psd().plot(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
