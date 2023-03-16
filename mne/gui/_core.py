@@ -14,7 +14,7 @@ from qtpy import QtCore
 from qtpy.QtCore import Slot, Qt
 from qtpy.QtWidgets import (QMainWindow, QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
-                            QMessageBox, QWidget, QPlainTextEdit)
+                            QMessageBox, QWidget, QLineEdit)
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -27,6 +27,7 @@ from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _marching_cubes
 from ..transforms import apply_trans, _frame_to_str
 from ..utils import logger, _check_fname, verbose, warn, get_subjects_dir
+from ..viz.backends._utils import _qt_safe_window
 
 _IMG_LABELS = [['I', 'P'], ['I', 'L'], ['P', 'L']]
 _ZOOM_STEP_SIZE = 5
@@ -51,19 +52,25 @@ def _load_image(img, verbose=None):
     orig_mgh = nib.MGHImage(orig_data, img.affine)
     aff_trans = nib.orientations.inv_ornt_aff(ornt_trans, img.shape)
     vox_ras_t = np.dot(orig_mgh.header.get_vox2ras_tkr(), aff_trans)
-    return img_data, vox_ras_t
+    vox_scan_ras_t = np.dot(orig_mgh.header.get_vox2ras(), aff_trans)
+    return img_data, vox_ras_t, vox_scan_ras_t
 
 
-def _make_slice_plot(width=4, height=4, dpi=300):
+def _make_mpl_plot(width=4, height=4, dpi=300, tight=True, hide_axes=True,
+                   facecolor='black', invert=True):
     fig = Figure(figsize=(width, height), dpi=dpi)
     canvas = FigureCanvas(fig)
     ax = fig.subplots()
-    fig.subplots_adjust(bottom=0, left=0, right=1, top=1, wspace=0, hspace=0)
-    ax.set_facecolor('k')
+    if tight:
+        fig.subplots_adjust(bottom=0, left=0, right=1, top=1,
+                            wspace=0, hspace=0)
+    ax.set_facecolor(facecolor)
     # clean up excess plot text, invert
-    ax.invert_yaxis()
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if invert:
+        ax.invert_yaxis()
+    if hide_axes:
+        ax.set_xticks([])
+        ax.set_yticks([])
     return canvas, fig
 
 
@@ -76,6 +83,7 @@ class SliceBrowser(QMainWindow):
         (0, 1),
     )
 
+    @_qt_safe_window(splash='_renderer.figure.splash', window='')
     def __init__(self, base_image=None, subject=None, subjects_dir=None,
                  verbose=None):
         """GUI for browsing slices of anatomical images."""
@@ -96,7 +104,7 @@ class SliceBrowser(QMainWindow):
         self._plt_grid = QGridLayout()
         self._figs = list()
         for i in range(3):
-            canvas, fig = _make_slice_plot()
+            canvas, fig = _make_mpl_plot()
             self._plt_grid.addWidget(canvas, i // 2, i % 2)
             self._figs.append(fig)
         self._renderer = _get_renderer(
@@ -129,9 +137,10 @@ class SliceBrowser(QMainWindow):
         # allows recon-all not to be finished (T1 made in a few minutes)
         mri_img = 'brain' if op.isfile(op.join(
             self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
-        self._mri_data, self._vox_ras_t = _load_image(
+        self._mri_data, self._vox_ras_t, self._vox_scan_ras_t = _load_image(
             op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'))
-        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
+        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)  # surface RAS
+        self._scan_ras_vox_t = np.linalg.inv(self._vox_scan_ras_t)
 
         self._voxel_sizes = np.array(self._mri_data.shape)
 
@@ -147,7 +156,7 @@ class SliceBrowser(QMainWindow):
         if base_image is None:
             self._base_data = self._mri_data
         else:
-            self._base_data, vox_ras_t = _load_image(base_image)
+            self._base_data, vox_ras_t, _ = _load_image(base_image)
             if self._mri_data.shape != self._base_data.shape or \
                     not np.allclose(self._vox_ras_t, vox_ras_t, rtol=1e-6):
                 raise ValueError('Base image is not aligned to MRI, got '
@@ -220,9 +229,9 @@ class SliceBrowser(QMainWindow):
             self._images['cursor_h'].append(ax.plot(
                 h_x, h_y, color='lime', linewidth=0.5, alpha=0.5, zorder=8)[0])
             # label axes
-            self._figs[axis].text(0.5, 0.05, _IMG_LABELS[axis][0],
+            self._figs[axis].text(0.5, 0.075, _IMG_LABELS[axis][0],
                                   **text_kwargs)
-            self._figs[axis].text(0.05, 0.5, _IMG_LABELS[axis][1],
+            self._figs[axis].text(0.075, 0.5, _IMG_LABELS[axis][1],
                                   **text_kwargs)
             self._figs[axis].axes[0].axis(img_extent)
             self._figs[axis].canvas.mpl_connect(
@@ -265,20 +274,18 @@ class SliceBrowser(QMainWindow):
         hbox.addWidget(self._intensity_label)
 
         VOX_label = QLabel('VOX =')
-        self._VOX_textbox = QPlainTextEdit('')  # update later
+        self._VOX_textbox = QLineEdit('')  # update later
         self._VOX_textbox.setMaximumHeight(25)
-        self._VOX_textbox.setMaximumWidth(125)
+        self._VOX_textbox.setMinimumWidth(75)
         self._VOX_textbox.focusOutEvent = self._update_VOX
-        self._VOX_textbox.textChanged.connect(self._check_update_VOX)
         hbox.addWidget(VOX_label)
         hbox.addWidget(self._VOX_textbox)
 
         RAS_label = QLabel('RAS =')
-        self._RAS_textbox = QPlainTextEdit('')  # update later
+        self._RAS_textbox = QLineEdit('')  # update later
         self._RAS_textbox.setMaximumHeight(25)
-        self._RAS_textbox.setMaximumWidth(200)
+        self._RAS_textbox.setMinimumWidth(150)
         self._RAS_textbox.focusOutEvent = self._update_RAS
-        self._RAS_textbox.textChanged.connect(self._check_update_RAS)
         hbox.addWidget(RAS_label)
         hbox.addWidget(self._RAS_textbox)
         self._update_moved()  # update text now
@@ -300,10 +307,16 @@ class SliceBrowser(QMainWindow):
         """Zoom in on the image."""
         delta = _ZOOM_STEP_SIZE * sign
         for axis, fig in enumerate(self._figs):
-            xmid = self._images['cursor_v'][axis].get_xdata()[0]
-            ymid = self._images['cursor_h'][axis].get_ydata()[0]
+            xcur = self._images['cursor_v'][axis].get_xdata()[0]
+            ycur = self._images['cursor_h'][axis].get_ydata()[0]
             xmin, xmax = fig.axes[0].get_xlim()
             ymin, ymax = fig.axes[0].get_ylim()
+            xmid = (xmin + xmax) / 2
+            xmid += delta / 2 * np.sign(xcur - xmid) if \
+                delta / 2 < abs(xmid - xcur) else xcur - xmid
+            ymid = (ymin + ymax) / 2
+            ymid += delta / 2 * np.sign(ycur - ymid) if \
+                delta / 2 < abs(ymid - ycur) else ycur - ymid
             xwidth = (xmax - xmin) / 2 - delta
             ywidth = (ymax - ymin) / 2 - delta
             if xwidth <= 0 or ywidth <= 0:
@@ -316,16 +329,14 @@ class SliceBrowser(QMainWindow):
     @Slot()
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._RAS_textbox.toPlainText()
-        ras = self._convert_text(text, 'ras')
+        ras = self._convert_text(self._RAS_textbox.text(), 'ras')
         if ras is not None:
             self._set_ras(ras)
 
     @Slot()
     def _update_VOX(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._VOX_textbox.toPlainText()
-        ras = self._convert_text(text, 'vox')
+        ras = self._convert_text(self._VOX_textbox.text(), 'vox')
         if ras is not None:
             self._set_ras(ras)
 
@@ -384,18 +395,6 @@ class SliceBrowser(QMainWindow):
     def _current_slice(self):
         return self._vox.round().astype(int)
 
-    @Slot()
-    def _check_update_RAS(self):
-        """Check whether the RAS textbox is done being edited."""
-        if '\n' in self._RAS_textbox.toPlainText():
-            self._update_RAS(event=None)
-
-    @Slot()
-    def _check_update_VOX(self):
-        """Check whether the VOX textbox is done being edited."""
-        if '\n' in self._VOX_textbox.toPlainText():
-            self._update_VOX(event=None)
-
     def _draw(self, axis=None):
         """Update the figures with a draw call."""
         for axis in (range(3) if axis is None else [axis]):
@@ -422,7 +421,6 @@ class SliceBrowser(QMainWindow):
             x, y = self._vox[list(self._xy_idx[axis])]
             self._images['cursor_v'][axis].set_xdata([x, x])
             self._images['cursor_h'][axis].set_ydata([y, y])
-        self._zoom(0)  # doesn't actually zoom just resets view to center
         self._update_images(draw=True)
         self._update_moved()
 
@@ -435,22 +433,28 @@ class SliceBrowser(QMainWindow):
             "up/down arrow: superior/inferior\n"
             "left angle bracket/right angle bracket: anterior/posterior")
 
-    def _key_press_event(self, event):
+    def keyPressEvent(self, event):
         """Execute functions when the user presses a key."""
         if event.key() == 'escape':
             self.close()
 
-        if event.text() == 'h':
+        elif event.key() == QtCore.Qt.Key_Return:
+            for widget in (self._RAS_textbox, self._VOX_textbox):
+                if widget.hasFocus():
+                    widget.clearFocus()
+                    self.setFocus()  # removing focus calls focus out event
+
+        elif event.text() == 'h':
             self._show_help()
 
-        if event.text() in ('=', '+', '-'):
+        elif event.text() in ('=', '+', '-'):
             self._zoom(sign=-2 * (event.text() == '-') + 1, draw=True)
 
         # Changing slices
-        if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down,
-                           QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
-                           QtCore.Qt.Key_Comma, QtCore.Qt.Key_Period,
-                           QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown):
+        elif event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down,
+                             QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
+                             QtCore.Qt.Key_Comma, QtCore.Qt.Key_Period,
+                             QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown):
             ras = np.array(self._ras)
             if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
                 ras[2] += 2 * (event.key() == QtCore.Qt.Key_Up) - 1
@@ -475,9 +479,9 @@ class SliceBrowser(QMainWindow):
 
     def _update_moved(self):
         """Update when cursor position changes."""
-        self._RAS_textbox.setPlainText('{:.2f}, {:.2f}, {:.2f}'.format(
+        self._RAS_textbox.setText('{:.2f}, {:.2f}, {:.2f}'.format(
             *self._ras))
-        self._VOX_textbox.setPlainText('{:3d}, {:3d}, {:3d}'.format(
+        self._VOX_textbox.setText('{:3d}, {:3d}, {:3d}'.format(
             *self._current_slice))
         self._intensity_label.setText('intensity = {:.2f}'.format(
             self._base_data[tuple(self._current_slice)]))
@@ -485,5 +489,8 @@ class SliceBrowser(QMainWindow):
     @safe_event
     def closeEvent(self, event):
         """Clean up upon closing the window."""
-        self._renderer.plotter.close()
+        try:
+            self._renderer.plotter.close()
+        except AttributeError:
+            pass
         self.close()
