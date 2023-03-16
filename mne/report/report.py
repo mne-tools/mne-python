@@ -687,7 +687,7 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.Spectrum.plot`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
         .. versionchanged:: 1.4
@@ -719,7 +719,7 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.Spectrum.plot`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
         .. versionchanged:: 1.4
