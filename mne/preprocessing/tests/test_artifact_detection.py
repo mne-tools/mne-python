@@ -2,8 +2,6 @@
 #
 # License: BSD-3-Clause
 
-
-import os.path as op
 import numpy as np
 import pytest
 
@@ -17,9 +15,9 @@ from mne import Annotations, events_from_annotations
 from mne.tests.test_annotations import _assert_annotations_equal
 
 data_path = testing.data_path(download=False)
-sss_path = op.join(data_path, 'SSS')
-pos_fname = op.join(sss_path, 'test_move_anon_raw.pos')
-raw_fname = op.join(sss_path, 'test_move_anon_raw.fif')
+sss_path = data_path / "SSS"
+pos_fname = sss_path / "test_move_anon_raw.pos"
+raw_fname = sss_path / "test_move_anon_raw.fif"
 
 
 @testing.requires_testing_data

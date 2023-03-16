@@ -112,9 +112,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         The labels. The default is None, otherwise its size must be n_dipoles.
     %(random_state)s
     location : str
-        The label location to choose. Can be 'random' (default) or 'center'
-        to use :func:`mne.Label.center_of_mass`. Note that for 'center'
-        mode the label values are used as weights.
+        The label location to choose. Can be ``'random'`` (default) or
+        ``'center'`` to use :func:`mne.Label.center_of_mass`. Note that for
+        ``'center'`` mode the label values are used as weights.
 
         .. versionadded:: 0.13
     subject : str | None

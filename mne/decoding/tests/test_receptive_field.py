@@ -1,11 +1,11 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
 # License: BSD-3-Clause
-import os.path as op
+
+from pathlib import Path
 
 import pytest
 import numpy as np
-
 from numpy import einsum
 from numpy.fft import rfft, irfft
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
@@ -18,9 +18,9 @@ from mne.decoding.time_delaying_ridge import (_compute_reg_neighbors,
                                               _compute_corrs)
 
 
-data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_dir, 'test_raw.fif')
-event_name = op.join(data_dir, 'test-eve.fif')
+data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
 
 tmin, tmax = -0.1, 0.5
 event_id = dict(aud_l=1, vis_l=3)

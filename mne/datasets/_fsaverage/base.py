@@ -89,6 +89,8 @@ def _get_create_subjects_dir(subjects_dir):
         subjects_dir = _get_path(None, 'MNE_DATA', 'montage coregistration')
         subjects_dir = op.join(subjects_dir, 'MNE-fsaverage-data')
         os.makedirs(subjects_dir, exist_ok=True)
+    else:
+        subjects_dir = str(subjects_dir)
     return subjects_dir
 
 
@@ -97,7 +99,7 @@ def _set_montage_coreg_path(subjects_dir=None):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The path to use as the subjects directory in the MNE-Python
         config file. None will use the existing config variable (i.e.,
         will not change anything), and if it does not exist, will use

@@ -13,15 +13,13 @@ from functools import partial, lru_cache
 from collections import OrderedDict
 from glob import glob
 from os import path as op
-from struct import pack
 import time
 import warnings
 
 import numpy as np
 
 from .channels.channels import _get_meg_system
-from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
-                    prange, bincount)
+from .fixes import jit, prange, bincount
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
@@ -53,9 +51,9 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         through all files matching the pattern. The head surface will be read
         from the first file containing a head surface. Can also be a list
         to try multiple strings.
-    subjects_dir : str, or None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    subjects_dir : path-like | None
+        Path to the ``SUBJECTS_DIR``. If None, the path is obtained by using
+        the environment variable ``SUBJECTS_DIR``.
     %(on_defects)s
 
         .. versionadded:: 1.0
@@ -75,8 +73,9 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
                       raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
+
     # Load the head surface from the BEM
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     if not isinstance(subject, str):
         raise TypeError('subject must be a string, not %s.' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
@@ -729,14 +728,14 @@ def read_curvature(filepath, binary=True):
 
     Parameters
     ----------
-    filepath : str
-        Input path to the .curv file.
+    filepath : path-like
+        Input path to the ``.curv`` file.
     binary : bool
         Specify if the output array is to hold binary values. Defaults to True.
 
     Returns
     -------
-    curv : array, shape=(n_vertices,)
+    curv : array of shape (n_vertices,)
         The curvature values loaded from the user given file.
     """
     with open(filepath, "rb") as fobj:
@@ -761,7 +760,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file containing the surface.
     read_metadata : bool
         Read metadata as key-value pairs. Only works when reading a FreeSurfer
@@ -809,18 +808,20 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     write_surface
     read_tri
     """
+    from ._freesurfer import _import_nibabel
     fname = _check_fname(fname, 'read', True)
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'
 
     if file_format == 'freesurfer':
-        ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+        _import_nibabel('read surface geometry')
+        from nibabel.freesurfer import read_geometry
+        ret = read_geometry(fname, read_metadata=read_metadata)
     elif file_format == 'obj':
         ret = _read_wavefront_obj(fname)
         if read_metadata:
@@ -1052,7 +1053,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
         del surf['neighbor_vert']
     else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
-        surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
+        surf_name = subjects_dir / subject / "surf" / f"{hemi}.sphere"
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = read_surface(surf_name, return_dict=True)[-1]
         _normalize_vectors(from_surf['rr'])
@@ -1145,7 +1146,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File to write.
     coords : array, shape=(n_vertices, 3)
         Coordinate points.
@@ -1185,46 +1186,24 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     read_surface
     read_tri
     """
+    from ._freesurfer import _import_nibabel
     fname = _check_fname(fname, overwrite=overwrite)
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'
 
     if file_format == 'freesurfer':
-        try:
-            import nibabel as nib
-            has_nibabel = True
-        except ImportError:
-            has_nibabel = False
-        if has_nibabel:
-            nib.freesurfer.io.write_geometry(fname, coords, faces,
-                                             create_stamp=create_stamp,
-                                             volume_info=volume_info)
-            return
-        if len(create_stamp.splitlines()) > 1:
-            raise ValueError("create_stamp can only contain one line")
-
-        with open(fname, 'wb') as fid:
-            fid.write(pack('>3B', 255, 255, 254))
-            strs = ['%s\n' % create_stamp, '\n']
-            strs = [s.encode('utf-8') for s in strs]
-            fid.writelines(strs)
-            vnum = len(coords)
-            fnum = len(faces)
-            fid.write(pack('>2i', vnum, fnum))
-            fid.write(np.array(coords, dtype='>f4').tobytes())
-            fid.write(np.array(faces, dtype='>i4').tobytes())
-
-            # Add volume info, if given
-            if volume_info is not None and len(volume_info) > 0:
-                fid.write(_serialize_volume_info(volume_info))
-
-    elif file_format == 'obj':
+        _import_nibabel('write surface geometry')
+        from nibabel.freesurfer import write_geometry
+        write_geometry(
+            fname, coords, faces, create_stamp=create_stamp,
+            volume_info=volume_info)
+    else:
+        assert file_format == 'obj'
         with open(fname, 'w') as fid:
             for line in create_stamp.splitlines():
                 fid.write(f'# {line}\n')
@@ -1609,8 +1588,8 @@ def read_tri(fname_in, swap=False, verbose=None):
 
     Parameters
     ----------
-    fname_in : str
-        Path to surface ASCII file (ending with '.tri').
+    fname_in : path-like
+        Path to surface ASCII file (ending with ``'.tri'``).
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.

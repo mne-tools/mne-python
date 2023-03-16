@@ -873,7 +873,7 @@ def make_eeg_average_ref_proj(info, activate=True, *, ch_type='eeg',
         If True projections are activated.
     ch_type : str
         The channel type to use for reference projection.
-        Valid types are 'eeg', 'ecog', 'seeg' and 'dbs'.
+        Valid types are ``'eeg'``, ``'ecog'``, ``'seeg'`` and ``'dbs'``.
 
         .. versionadded:: 1.2
     %(verbose)s

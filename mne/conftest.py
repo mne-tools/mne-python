@@ -122,9 +122,6 @@ def pytest_configure(config):
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     # matplotlib 3.6 and pyvista/nilearn
     ignore:.*cmap function will be deprecated.*:
-    # TODO: matplotlib 3.7 that needs to be fixed
-    ignore:The rectangles attribute was deprecated in Matplotlib.*:
-    ignore:The lines attribute was deprecated in Matplotlib.*:
     # joblib hasn't updated to avoid distutils
     ignore:.*distutils package is deprecated.*:DeprecationWarning
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
@@ -134,11 +131,13 @@ def pytest_configure(config):
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
-    # hopefully temporary https://github.com/matplotlib/matplotlib/pull/24455#issuecomment-1319318629
-    ignore:The circles attribute was deprecated in Matplotlib.*:
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    # pkg_resources usage bug
+    ignore:Implementing implicit namespace packages.*:DeprecationWarning
+    ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
+    ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()

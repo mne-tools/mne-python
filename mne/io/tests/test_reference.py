@@ -4,9 +4,9 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 import itertools
-import os.path as op
+from contextlib import nullcontext
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
@@ -26,13 +26,12 @@ from mne.io.reference import _apply_reference
 from mne.datasets import testing
 from mne.utils import catch_logging, _record_warnings
 
-base_dir = op.join(op.dirname(__file__), 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-
-data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
-fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
-eve_fname = op.join(data_dir, 'sample_audvis_trunc_raw-eve.fif')
-ave_fname = op.join(data_dir, 'sample_audvis-ave.fif')
+base_dir = Path(__file__).parent / "data"
+raw_fname = base_dir / "test_raw.fif"
+data_dir = testing.data_path(download=False) / "MEG" / "sample"
+fif_fname = data_dir / "sample_audvis_trunc_raw.fif"
+eve_fname = data_dir / "sample_audvis_trunc_raw-eve.fif"
+ave_fname = data_dir / "sample_audvis-ave.fif"
 
 
 def _test_reference(raw, reref, ref_data, ref_from):

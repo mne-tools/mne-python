@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
@@ -18,8 +18,8 @@ from mne.io.meas_info import create_info
 from mne.io.pick import get_channel_type_constants
 from mne.channels import make_dig_montage
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
-fif_fname = op.join(base_dir, 'test_raw.fif')
+base_dir = Path(__file__).parent.parent.parent / "tests" / "data"
+fif_fname = base_dir / "test_raw.fif"
 
 
 def test_long_names():

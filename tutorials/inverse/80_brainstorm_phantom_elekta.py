@@ -49,8 +49,8 @@ raw.plot(events=events)
 raw.info['bads'] = ['MEG1933', 'MEG2421']
 
 # %%
-# The data have strong line frequency (60 Hz and harmonics) and cHPI coil
-# noise (five peaks around 300 Hz). Here we plot only out to 60 seconds
+# The data has strong line frequency (60 Hz and harmonics) and cHPI coil
+# noise (five peaks around 300 Hz). Here, we use only the first 30 seconds
 # to save memory:
 
 raw.plot_psd(tmax=30., average=False)

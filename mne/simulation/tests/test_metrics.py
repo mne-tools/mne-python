@@ -3,9 +3,6 @@
 #
 # License: BSD-3-Clause
 
-
-import os.path as op
-
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -16,8 +13,7 @@ from mne.simulation import simulate_sparse_stc
 from mne.simulation.metrics import source_estimate_quantification
 
 data_path = testing.data_path(download=False)
-src_fname = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-oct-6-src.fif')
+src_fname = data_path / "subjects" / "sample" / "bem" / "sample-oct-6-src.fif"
 
 
 @testing.requires_testing_data

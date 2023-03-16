@@ -1,7 +1,7 @@
-from itertools import product
 import datetime
-import os.path as op
 import re
+from itertools import product
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose)
@@ -23,10 +23,10 @@ from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 from mne.tests.test_epochs import assert_metadata_equal
 
-data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_path, 'test_raw.fif')
-event_fname = op.join(data_path, 'test-eve.fif')
-raw_ctf_fname = op.join(data_path, 'test_ctf_raw.fif')
+data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_path / "test_raw.fif"
+event_fname = data_path / "test-eve.fif"
+raw_ctf_fname = data_path / "test_ctf_raw.fif"
 
 
 def test_tfr_ctf():
@@ -469,8 +469,8 @@ def test_decim():
 def test_io(tmp_path):
     """Test TFR IO capacities."""
     from pandas import DataFrame
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'test-tfr.h5')
+
+    fname = tmp_path / "test-tfr.h5"
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
@@ -504,7 +504,7 @@ def test_io(tmp_path):
     tfr.comment = 'test-A'
     tfr2.comment = 'test-B'
 
-    fname = op.join(tempdir, 'test2-tfr.h5')
+    fname = tmp_path / "test2-tfr.h5"
     write_tfrs(fname, [tfr, tfr2])
     tfr3 = read_tfrs(fname, condition='test-A')
     assert_equal(tfr.comment, tfr3.comment)
@@ -544,7 +544,7 @@ def test_io(tmp_path):
                     metadata=meta)
     fname_save = fname
     tfr.save(fname_save, True)
-    fname_write = op.join(tempdir, 'test3-tfr.h5')
+    fname_write = tmp_path / "test3-tfr.h5"
     write_tfrs(fname_write, tfr, overwrite=True)
     for fname in [fname_save, fname_write]:
         read_tfr = read_tfrs(fname)[0]

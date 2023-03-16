@@ -2,11 +2,11 @@
 #
 # License: BSD-3-Clause
 
+import os
+import re
 from contextlib import nullcontext
 from copy import deepcopy
-import os
-import os.path as op
-import re
+from pathlib import Path
 from shutil import copyfile
 
 import numpy as np
@@ -48,37 +48,51 @@ from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-fname_inv_fixed = op.join(
-    data_path, 'MEG', 'sample',
-    'sample_audvis_trunc-meg-eeg-oct-4-meg-fixed-inv.fif')
-fname_fwd = op.join(
-    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_cov = op.join(
-    data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
-fname_fs_t1 = op.join(data_path, 'subjects', 'fsaverage', 'mri', 'T1.mgz')
-fname_aseg = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
-fname_src = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                       'fsaverage-ico-5-src.fif')
-bem_path = op.join(data_path, 'subjects', 'sample', 'bem')
-fname_src_3 = op.join(bem_path, 'sample-oct-4-src.fif')
-fname_src_vol = op.join(bem_path, 'sample-volume-7mm-src.fif')
-fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
-fname_vol = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
-fname_vsrc = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_inv_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
-fname_nirx = op.join(data_path, 'NIRx', 'nirscout', 'nirx_15_0_recording')
+subjects_dir = data_path / "subjects"
+fname_inv = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
+)
+fname_inv_fixed = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-meg-eeg-oct-4-meg-fixed-inv.fif"
+)
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+fname_evoked = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_t1 = data_path / "subjects" / "sample" / "mri" / "T1.mgz"
+fname_fs_t1 = data_path / "subjects" / "fsaverage" / "mri" / "T1.mgz"
+fname_aseg = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
+fname_src = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+)
+fname_src_fs = (
+    data_path / "subjects" / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+)
+bem_path = data_path / "subjects" / "sample" / "bem"
+fname_src_3 = bem_path / "sample-oct-4-src.fif"
+fname_src_vol = bem_path / "sample-volume-7mm-src.fif"
+fname_stc = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg"
+fname_vol = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w"
+)
+fname_vsrc = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
+fname_inv_vol = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-meg-inv.fif"
+)
+fname_nirx = data_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
 rng = np.random.RandomState(0)
 
 
@@ -442,16 +456,16 @@ def test_io_stc_h5(tmp_path, is_complex, vector):
     match = 'can only be written' if vector else "Invalid value for the 'ftype"
     with pytest.raises(ValueError, match=match):
         stc.save(tmp_path / 'tmp.h5', ftype='foo')
-    out_name = str(tmp_path / 'tmp')
+    out_name = tmp_path / "tmp"
     stc.save(out_name, ftype='h5')
     # test overwrite
-    assert op.isfile(out_name + '-stc.h5')
+    assert out_name.with_name(out_name.name + "-stc.h5").is_file()
     with pytest.raises(FileExistsError, match='Destination file exists'):
         stc.save(out_name, ftype='h5')
     stc.save(out_name, ftype='h5', overwrite=True)
     stc3 = read_source_estimate(out_name)
-    stc4 = read_source_estimate(out_name + '-stc')
-    stc5 = read_source_estimate(out_name + '-stc.h5')
+    stc4 = read_source_estimate(out_name.with_name(out_name.name + "-stc"))
+    stc5 = read_source_estimate(out_name.with_name(out_name.name + "-stc.h5"))
     pytest.raises(RuntimeError, read_source_estimate, out_name,
                   subject='bar')
     for stc_new in stc3, stc4, stc5:
@@ -1552,15 +1566,21 @@ def test_stc_near_sensors(tmp_path):
     evoked = EvokedArray(np.eye(info['nchan']), info)
     trans = read_trans(fname_fwd)
     assert trans['to'] == FIFF.FIFFV_COORD_HEAD
-    this_dir = str(tmp_path)
     # testing does not have pial, so fake it
-    os.makedirs(op.join(this_dir, 'sample', 'surf'))
+    os.makedirs(tmp_path / "sample" / "surf")
     for hemi in ('lh', 'rh'):
-        copyfile(op.join(subjects_dir, 'sample', 'surf', f'{hemi}.white'),
-                 op.join(this_dir, 'sample', 'surf', f'{hemi}.pial'))
+        copyfile(
+            subjects_dir / "sample" / "surf" / f"{hemi}.white",
+            tmp_path / "sample" / "surf" / f"{hemi}.pial"
+        )
     # here we use a distance is smaller than the inter-sensor distance
-    kwargs = dict(subject='sample', trans=trans, subjects_dir=this_dir,
-                  verbose=True, distance=0.005)
+    kwargs = dict(
+        subject="sample",
+        trans=trans,
+        subjects_dir=tmp_path,
+        verbose=True,
+        distance=0.005,
+    )
     with pytest.raises(ValueError, match='No appropriate channels'):
         stc_near_sensors(evoked, **kwargs)
     evoked.set_channel_types({ch_name: 'ecog' for ch_name in evoked.ch_names})
@@ -1611,7 +1631,7 @@ def test_stc_near_sensors(tmp_path):
     # these are EEG electrodes, so the distance 0.01 is too small for the
     # scalp+skull. Even at a distance of 33 mm EEG 060 is too far:
     with pytest.warns(RuntimeWarning, match='Channel missing in STC: EEG 060'):
-        stc = stc_near_sensors(evoked, trans, 'sample', subjects_dir=this_dir,
+        stc = stc_near_sensors(evoked, trans, "sample", subjects_dir=tmp_path,
                                project=False, distance=0.033)
     assert stc.data.any(0).sum() == len(evoked.ch_names) - 1
 
@@ -1671,24 +1691,22 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
 @pytest.mark.parametrize('scale', ((1.0, 0.8, 1.2), 1., 0.9))
 def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     """Test label extraction, morphing, and MRI scaling relationships."""
-    tempdir = str(tmp_path)
     subject_from = 'sample'
     subject_to = 'small'
-    testing_dir = op.join(subjects_dir, subject_from)
-    from_dir = op.join(tempdir, subject_from)
+    testing_dir = subjects_dir / subject_from
+    from_dir = tmp_path / subject_from
     for root in ('mri', 'surf', 'label', 'bem'):
-        os.makedirs(op.join(from_dir, root), exist_ok=True)
+        os.makedirs(from_dir / root, exist_ok=True)
     for hemi in ('lh', 'rh'):
         for root, fname in (('surf', 'sphere'), ('surf', 'white'),
                             ('surf', 'sphere.reg'),
                             ('label', 'aparc.annot')):
-            use_fname = op.join(root, f'{hemi}.{fname}')
-            copyfile(op.join(testing_dir, use_fname),
-                     op.join(from_dir, use_fname))
+            use_fname = Path(root) / f"{hemi}.{fname}"
+            copyfile(testing_dir / use_fname, from_dir / use_fname)
+
     for root, fname in (('mri', 'aseg.mgz'), ('mri', 'brain.mgz')):
-        use_fname = op.join(root, fname)
-        copyfile(op.join(testing_dir, use_fname),
-                 op.join(from_dir, use_fname))
+        use_fname = Path(root) / fname
+        copyfile(testing_dir / use_fname, from_dir / use_fname)
     del testing_dir
     if kind == 'surface':
         src_from = read_source_spaces(fname_src_3)
@@ -1700,42 +1718,42 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
         assert src_from[0]['nuse'] == src_from[1]['nuse'] == 258
         klass = SourceEstimate
         labels_from = read_labels_from_annot(
-            subject_from, subjects_dir=tempdir)
+            subject_from, subjects_dir=tmp_path)
         n_labels = len(labels_from)
-        write_source_spaces(op.join(tempdir, subject_from, 'bem',
-                                    f'{subject_from}-oct-4-src.fif'), src_from)
+        write_source_spaces(
+            tmp_path / subject_from / "bem" / f"{subject_from}-oct-4-src.fif",
+            src_from,
+        )
     else:
         assert kind == 'volume'
         pytest.importorskip('dipy')
         src_from = read_source_spaces(fname_src_vol)
         src_from[0]['subject_his_id'] = subject_from
-        labels_from = op.join(
-            tempdir, subject_from, 'mri', 'aseg.mgz')
+        labels_from = tmp_path / subject_from / "mri" / "aseg.mgz"
         n_labels = 46
-        assert op.isfile(labels_from)
+        assert labels_from.is_file()
         klass = VolSourceEstimate
         assert len(src_from) == 1
         assert src_from[0]['nuse'] == 4157
         write_source_spaces(
-            op.join(from_dir, 'bem', 'sample-vol20-src.fif'), src_from)
-    scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
+            from_dir / "bem" / "sample-vol20-src.fif", src_from
+        )
+    scale_mri(subject_from, subject_to, scale, subjects_dir=tmp_path,
               annot=True, skip_fiducials=True, verbose=True,
               overwrite=True)
     if kind == 'surface':
         src_to = read_source_spaces(
-            op.join(tempdir, subject_to, 'bem',
-                    f'{subject_to}-oct-4-src.fif'))
-        labels_to = read_labels_from_annot(
-            subject_to, subjects_dir=tempdir)
+            tmp_path / subject_to / "bem" / f"{subject_to}-oct-4-src.fif"
+        )
+        labels_to = read_labels_from_annot(subject_to, subjects_dir=tmp_path)
         # Save time since we know these subjects are identical
         monkeypatch.setattr(mne.morph_map, '_make_morph_map_hemi',
                             _make_morph_map_hemi_same)
     else:
         src_to = read_source_spaces(
-            op.join(tempdir, subject_to, 'bem',
-                    f'{subject_to}-vol20-src.fif'))
-        labels_to = op.join(
-            tempdir, subject_to, 'mri', 'aseg.mgz')
+            tmp_path / subject_to / "bem" / f"{subject_to}-vol20-src.fif"
+        )
+        labels_to = tmp_path / subject_to / "mri" / "aseg.mgz"
     # 1. Label->STC->Label for the given subject should be identity
     #    (for surfaces at least; for volumes it's not as clean as this
     #     due to interpolation)
@@ -1785,7 +1803,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     with ctx:  # vertices not included
         morph = compute_source_morph(
             src_from, subject_to=subject_to, src_to=src_to,
-            subjects_dir=tempdir, niter_sdr=(), smooth=1,
+            subjects_dir=tmp_path, niter_sdr=(), smooth=1,
             zooms=14., verbose=True)  # speed up with higher zooms
     if kind == 'volume':
         got_affine = morph.pre_affine.affine
@@ -1858,8 +1876,8 @@ def test_label_extraction_subject(kind):
         assert kind == 'volume'
         inv = read_inverse_operator(fname_inv_vol)
         inv['src'][0]['subject_his_id'] = 'sample'  # modernize
-        labels = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-        labels_fs = op.join(subjects_dir, 'fsaverage', 'mri', 'aseg.mgz')
+        labels = subjects_dir / "sample" / "mri" / "aseg.mgz"
+        labels_fs = subjects_dir / "fsaverage" / "mri" / "aseg.mgz"
         n_labels = 46
     src = inv['src']
     assert src.kind == kind

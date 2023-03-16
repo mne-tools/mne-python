@@ -11,7 +11,6 @@ Peak localisation error of sLORETA for PSFs is zero.
 Currently only for fixed source orientations.
 """
 
-import os.path as op
 import numpy as np
 import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -24,14 +23,18 @@ from mne.minimum_norm.spatial_resolution import (resolution_metrics,
                                                  _rectify_resolution_matrix)
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc-ave.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+subjects_dir = data_path / "subjects"
+fname_inv = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif"
+)
+fname_evoked = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
 
 
 @testing.requires_testing_data

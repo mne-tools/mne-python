@@ -1,7 +1,7 @@
 from copy import deepcopy
-from io import StringIO
-import os.path as op
 from datetime import datetime, timezone
+from io import StringIO
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -21,15 +21,14 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
                        _dt_to_julian, _julian_to_dt, grand_average,
-                       _ReuseCycle, requires_version, numerics,
-                       _custom_lru_cache)
+                       _ReuseCycle, numerics, _custom_lru_cache)
 from mne.utils.numerics import _LRU_CACHES, _LRU_CACHE_MAXSIZES
 
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-fname_raw = op.join(base_dir, 'test_raw.fif')
-ave_fname = op.join(base_dir, 'test-ave.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+fname_raw = base_dir / "test_raw.fif"
+ave_fname = base_dir / "test-ave.fif"
+cov_fname = base_dir / "test-cov.fif"
 
 
 def test_get_inst_data():
@@ -57,9 +56,8 @@ def test_get_inst_data():
 
 def test_hashfunc(tmp_path):
     """Test md5/sha1 hash calculations."""
-    tempdir = str(tmp_path)
-    fname1 = op.join(tempdir, 'foo')
-    fname2 = op.join(tempdir, 'bar')
+    fname1 = tmp_path / "foo"
+    fname2 = tmp_path / "bar"
     with open(fname1, 'wb') as fid:
         fid.write(b'abcd')
     with open(fname2, 'wb') as fid:
@@ -238,7 +236,6 @@ def test_cov_scaling():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_version('numpy', '1.17')  # hermitian kwarg
 @pytest.mark.parametrize('ndim', (2, 3))
 def test_reg_pinv(ndim):
     """Test regularization and inversion of covariance matrix."""

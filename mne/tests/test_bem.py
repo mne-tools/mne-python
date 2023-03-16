@@ -2,10 +2,10 @@
 #
 # License: BSD-3-Clause
 
+import re
 from copy import deepcopy
 from os import makedirs
-import os.path as op
-import re
+from pathlib import Path
 from shutil import copy
 
 import numpy as np
@@ -29,19 +29,17 @@ from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
 from mne.surface import read_surface, _get_ico_surface
 from mne.io import read_info
 
-fname_raw = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
-fname_bem_3 = op.join(subjects_dir, 'sample', 'bem',
-                      'sample-320-320-320-bem.fif')
-fname_bem_1 = op.join(subjects_dir, 'sample', 'bem',
-                      'sample-320-bem.fif')
-fname_bem_sol_3 = op.join(subjects_dir, 'sample', 'bem',
-                          'sample-320-320-320-bem-sol.fif')
-fname_bem_sol_1 = op.join(subjects_dir, 'sample', 'bem',
-                          'sample-320-bem-sol.fif')
-fname_dense_head = op.join(subjects_dir, 'sample', 'bem',
-                           'sample-head-dense.fif')
+fname_raw = (
+    Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
+)
+subjects_dir = testing.data_path(download=False) / "subjects"
+fname_bem_3 = subjects_dir / "sample" / "bem" / "sample-320-320-320-bem.fif"
+fname_bem_1 = subjects_dir / "sample" / "bem" / "sample-320-bem.fif"
+fname_bem_sol_3 = (
+    subjects_dir / "sample" / "bem" / "sample-320-320-320-bem-sol.fif"
+)
+fname_bem_sol_1 = subjects_dir / "sample" / "bem" / "sample-320-bem-sol.fif"
+fname_dense_head = subjects_dir / "sample" / "bem" / "sample-head-dense.fif"
 
 
 def _compare_bem_surfaces(surfs_1, surfs_2):
@@ -81,7 +79,7 @@ h5py_mark = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
 ])
 def test_io_bem(tmp_path, ext):
     """Test reading and writing of bem surfaces and solutions."""
-    temp_bem = op.join(str(tmp_path), f'temp-bem.{ext}')
+    temp_bem = tmp_path / f"temp-bem.{ext}"
     # model
     with pytest.raises(ValueError, match='BEM data not found'):
         read_bem_surfaces(fname_raw)
@@ -103,7 +101,7 @@ def test_io_bem(tmp_path, ext):
     # solution
     with pytest.raises(RuntimeError, match='No BEM solution found'):
         read_bem_solution(fname_bem_3)
-    temp_sol = op.join(str(tmp_path), f'temp-sol.{ext}')
+    temp_sol = tmp_path / f"temp-sol.{ext}"
     sol = read_bem_solution(fname_bem_sol_3)
     assert 'BEM' in repr(sol)
     write_bem_solution(temp_sol, sol)
@@ -180,8 +178,10 @@ def test_bem_model_topology(tmp_path):
     makedirs(tmp_path / 'foo' / 'bem')
     for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
         fname += '.surf'
-        copy(op.join(subjects_dir, 'sample', 'bem', fname),
-             tmp_path / 'foo' / 'bem' / fname)
+        copy(
+            subjects_dir / "sample" / "bem" / fname,
+            tmp_path / "foo" / "bem" / fname,
+        )
     outer_fname = tmp_path / 'foo' / 'bem' / 'outer_skull.surf'
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]
@@ -234,7 +234,7 @@ def test_bem_solution(tmp_path, cond, fname):
         _check_surface_size(surfs[1])
 
     # actually test functionality
-    fname_temp = op.join(str(tmp_path), 'temp-bem-sol.fif')
+    fname_temp = tmp_path / "temp-bem-sol.fif"
     # use a model and solution made in Python
     for model_type in ('python', 'c'):
         if model_type == 'python':
@@ -430,7 +430,7 @@ def test_fit_sphere_to_headshape():
 def test_io_head_bem(tmp_path):
     """Test reading and writing of defective head surfaces."""
     head = read_bem_surfaces(fname_dense_head)[0]
-    fname_defect = op.join(str(tmp_path), 'temp-head-defect.fif')
+    fname_defect = tmp_path / "temp-head-defect.fif"
     # create defects
     head['rr'][0] = np.array([-0.01487014, -0.04563854, -0.12660208])
     head['tris'][0] = np.array([21919, 21918, 21907])

@@ -3,8 +3,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import pytest
 import numpy as np
 from scipy import linalg
@@ -19,10 +17,11 @@ from mne.utils import catch_logging
 
 
 data_path = testing.data_path(download=False)
-fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_ave = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
 
 
 def _get_data(ch_decim=1):

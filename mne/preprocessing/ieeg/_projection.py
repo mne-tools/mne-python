@@ -2,15 +2,13 @@
 #
 # License: BSD-3-Clause
 
-from os import path as op
-
 from itertools import combinations
 import numpy as np
 
 from ...channels import make_dig_montage
 from ...io.pick import _picks_to_idx
 from ...surface import (_read_mri_surface, fast_cross_3d, read_surface,
-                        _read_patch)
+                        _read_patch, _compute_nearest)
 from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
                            _ensure_trans)
 from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
@@ -64,8 +62,9 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
             f'n_neighbors must be 2 or greater, got {n_neighbors}')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     try:
-        surf = _read_mri_surface(op.join(
-            subjects_dir, subject, 'bem', 'brain.surf'))
+        surf = _read_mri_surface(
+            subjects_dir / subject / "bem" / "brain.surf"
+        )
     except FileNotFoundError as err:
         raise RuntimeError(f'{err}\n\nThe brain surface requires generating '
                            'a BEM using `mne flash_bem` (if you have '
@@ -112,7 +111,7 @@ def project_sensors_onto_brain(info, trans, subject, subjects_dir=None,
 @verbose
 def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
                                    picks=None, max_dist=0.004, flat=False,
-                                   copy=True, verbose=None):
+                                   verbose=None):
     """Project sensors onto the brain surface.
 
     Parameters
@@ -126,9 +125,6 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     flat : bool
         Whether to project the sensors onto the flat map of the
         inflated brain instead of the normal inflated brain.
-    copy : bool
-        If ``True``, return a new instance of ``info``, if ``False``
-        ``info`` is modified in place.
     %(verbose)s
 
     Returns
@@ -139,10 +135,6 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     -----
     This is useful in sEEG analysis for visualization
     """
-    from scipy.spatial.distance import cdist
-    _validate_type(copy, bool, 'copy')
-    if copy:
-        info = info.copy()
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     surf_data = dict(lh=dict(), rh=dict())
     x_dir = np.array([1., 0., 0.])
@@ -152,9 +144,8 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
     for hemi in ('lh', 'rh'):
         for surf in surfs:
             for img in ('', '.T1', '.T2', ''):
-                surf_fname = op.join(subjects_dir, subject, 'surf',
-                                     f'{hemi}.{surf}')
-                if op.isfile(surf_fname):
+                surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surf}"
+                if surf_fname.is_file():
                     break
             if surf.split('.')[-1] == 'flat':
                 surf = 'flat'
@@ -182,11 +173,10 @@ def _project_sensors_onto_inflated(info, trans, subject, subjects_dir=None,
         hemi_picks = np.where(
             locs[:, 0] <= 0 if hemi == 'lh' else locs[:, 0] > 0)[0]
         # compute distances to pial vertices
-        dists = cdist(surf_data[hemi]['pial'][0], locs[hemi_picks])
-        for j, idx in enumerate(hemi_picks):
-            if dists[:, j].min() / 1000 < max_dist:
-                proj_locs[idx] = \
-                    surf_data[hemi][surf][0][np.argmin(dists[:, j])]
+        nearest, dists = _compute_nearest(
+            surf_data[hemi]['pial'][0], locs[hemi_picks], return_dists=True)
+        mask = dists / 1000 < max_dist
+        proj_locs[hemi_picks[mask]] = surf_data[hemi][surf][0][nearest[mask]]
     # back to the "head" coordinate frame for storing in ``raw``
     proj_locs = apply_trans(invert_transform(trans), proj_locs)
     montage = info.get_montage()

@@ -6,7 +6,6 @@
 # License: BSD-3-Clause
 
 from contextlib import nullcontext
-import os.path as op
 import numpy as np
 from numpy.testing import (assert_array_almost_equal,
                            assert_array_equal, assert_allclose)
@@ -20,14 +19,14 @@ from mne.minimum_norm.resolution_matrix import (make_inverse_resolution_matrix,
                                                 _vertices_for_get_psf_ctf)
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc-ave.fif')
+subjects_dir = data_path / "subjects"
+fname_evoked = data_path / "MEG" / "sample" / "sample_audvis_trunc-ave.fif"
 # Intentional mismatch here!
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-fname_label = op.join(data_path, 'subjects', 'sample', 'label', 'lh.V1.label')
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+fname_label = data_path / "subjects" / "sample" / "label" / "lh.V1.label"
 
 
 @testing.requires_testing_data

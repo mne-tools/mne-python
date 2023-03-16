@@ -293,7 +293,7 @@ Bugs
 
 - Fix bug where "seeg", "ecog", "dbs" and "fnirs" data had coordinate frame unknown upon loading from a file when it should have been in "head" (:gh:`9580` by `Alex Rockhill`_)
 
-- Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identitiy head->mri transform (:gh:`9585` by `Alex Rockhill`_)
+- Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identity head->mri transform (:gh:`9585` by `Alex Rockhill`_)
 
 - Fix bug where :meth:`mne.Epochs.equalize_event_counts` failed when only one good epoch existed for one of the event types (:gh:`9758` by `Daniel McCloy`_)
 

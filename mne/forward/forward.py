@@ -7,9 +7,11 @@
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
-from time import time
-from copy import deepcopy
 import re
+from copy import deepcopy
+from os import PathLike
+from pathlib import Path
+from time import time
 
 import numpy as np
 
@@ -476,14 +478,13 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The file name, which should end with -fwd.fif or -fwd.fif.gz.
+    fname : path-like
+        The file name, which should end with ``-fwd.fif`` or ``-fwd.fif.gz``.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
     exclude : list, optional
-        List of names of channels to exclude. If empty include all
-        channels.
+        List of names of channels to exclude. If empty include all channels.
     %(verbose)s
 
     Returns
@@ -800,7 +801,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File name to save the forward solution to. It should end with
         ``-fwd.fif`` or ``-fwd.fif.gz``.
     fwd : Forward
@@ -1260,7 +1261,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
           prior dependent only on the sensor geometry (and relationship
           to the sources).
     * ``'whiten'``
-          Compute a whitener and apply it to the gain matirx before computing
+          Compute a whitener and apply it to the gain matrix before computing
           the depth prior. In this case ``noise_cov`` must not be None.
           Whitening the gain matrix makes the depth prior
           depend on both sensor geometry and the data of interest captured
@@ -1797,7 +1798,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         saved to a temporary directory. If str, then it should be a
         filename to a file with measurement information the mne
         command-line tools can understand (i.e., raw or evoked).
-    fname : str | None
+    fname : path-like | None
         Destination forward solution filename. If None, the solution
         will be created in a temporary directory, loaded, and deleted.
     src : str | None
@@ -1807,18 +1808,18 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         recursively subdivided icosahedron, or ``'oct#'`` for a recursively
         subdivided octahedron (e.g., ``spacing='ico4'``). Default is 7 mm.
     mindist : float | str | None
-        Minimum distance of sources from inner skull surface (in mm).
-        If None, the MNE default value is used. If string, 'all'
+        Minimum distance measof sources from inner skull surface (in mm).
+        If None, the MNE default value is used. If string, ``'all'``
         indicates to include all points.
     bem : str | None
-        Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
+        Name of the BEM to use (e.g., ``"sample-5120-5120-5120"``). If None
         (Default), the MNE default will be used.
-    mri : str | None
+    mri : dict | path-like | None
         The name of the trans file in FIF format.
-        If None, trans must not be None.
-    trans : dict | str | None
+        If None, ``trans`` must not be None.
+    trans : dict | path-like | None
         File name of the trans file in text format.
-        If None, mri must not be None.
+        If None, ``mri`` must not be None.
     eeg : bool
         If True (Default), include EEG computations.
     meg : bool
@@ -1849,9 +1850,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise RuntimeError('mne command line tools could not be found')
 
     # check for file existence
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = Path(tempfile.mkdtemp())
     if fname is None:
-        fname = op.join(temp_dir, 'temp-fwd.fif')
+        fname = temp_dir / "temp-fwd.fif"
     _check_fname(fname, overwrite)
     _validate_type(subject, "str", "subject")
 
@@ -1862,7 +1863,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         write_info(meas_file, meas.info)
         meas = meas_file
     else:
-        meas = _check_fname(meas, overwrite='read', must_exist=True)
+        meas = str(_check_fname(meas, overwrite="read", must_exist=True))
 
     # deal with trans/mri
     if mri is not None and trans is not None:
@@ -1873,33 +1874,42 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise ValueError('Either trans or mri must be specified')
 
     if trans is not None:
-        _validate_type(trans, "str", "trans")
-        if not op.isfile(trans):
-            raise IOError('trans file "%s" not found' % trans)
+        if isinstance(trans, dict):
+            trans_data = deepcopy(trans)
+            trans = temp_dir / "trans-trans.fif"
+            try:
+                write_trans(trans, trans_data)
+            except Exception:
+                raise IOError('trans was a dict, but could not be '
+                              'written to disk as a transform file')
+        elif isinstance(trans, (str, Path, PathLike)):
+            _check_fname(trans, "read", must_exist=True, name="trans")
+            trans = Path(trans)
+        else:
+            raise ValueError("trans must be a path or dict")
     if mri is not None:
-        # deal with trans
-        if not isinstance(mri, str):
-            if isinstance(mri, dict):
-                mri_data = deepcopy(mri)
-                mri = op.join(temp_dir, 'mri-trans.fif')
-                try:
-                    write_trans(mri, mri_data)
-                except Exception:
-                    raise IOError('mri was a dict, but could not be '
-                                  'written to disk as a transform file')
-            else:
-                raise ValueError('trans must be a string or dict (trans)')
-        if not op.isfile(mri):
-            raise IOError('trans file "%s" could not be found' % trans)
+        if isinstance(mri, dict):
+            mri_data = deepcopy(trans)
+            mri = temp_dir / "mri-trans.fif"
+            try:
+                write_trans(mri, mri_data)
+            except Exception:
+                raise IOError('mri was a dict, but could not be '
+                              'written to disk as a transform file')
+        elif isinstance(mri, (str, Path, PathLike)):
+            _check_fname(mri, "read", must_exist=True, name="mri")
+            mri = Path(mri)
+        else:
+            raise ValueError("mri must be a path or dict")
 
     # deal with meg/eeg
     if not meg and not eeg:
         raise ValueError('meg or eeg (or both) must be True')
 
-    path, fname = op.split(fname)
-    if not op.splitext(fname)[1] == '.fif':
+    if not fname.suffix == ".fif":
         raise ValueError('Forward name does not end with .fif')
-    path = op.abspath(path)
+    path = fname.parent.absolute()
+    fname = fname.name
 
     # deal with mindist
     if mindist is not None:
@@ -1922,7 +1932,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
            '--subject', subject,
            '--meas', meas,
            '--fwd', fname,
-           '--destdir', path]
+           '--destdir', str(path)]
     if src is not None:
         cmd += ['--src', src]
     if spacing is not None:
@@ -1940,9 +1950,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if bem is not None:
         cmd += ['--bem', bem]
     if mri is not None:
-        cmd += ['--mri', '%s' % mri]
+        cmd += ['--mri', '%s' % str(mri.absolute())]
     if trans is not None:
-        cmd += ['--trans', '%s' % trans]
+        cmd += ['--trans', '%s' % str(trans.absolute())]
     if not meg:
         cmd.append('--eegonly')
     if not eeg:
@@ -1957,7 +1967,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         cmd.append('--overwrite')
 
     env = os.environ.copy()
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     env['SUBJECTS_DIR'] = subjects_dir
 
     try:
@@ -1967,7 +1977,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     except Exception:
         raise
     else:
-        fwd = read_forward_solution(op.join(path, fname), verbose=False)
+        fwd = read_forward_solution(path / fname, verbose=False)
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
     return fwd
