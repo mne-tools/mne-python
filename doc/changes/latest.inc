@@ -56,6 +56,8 @@ Bugs
 - Expand tilde (user directory) in config keys (:gh:`11537` by `Clemens Brunner`_)
 - Fix bug in :func:`mne.preprocessing.compute_maxwell_basis` where using ``int_order=0`` would raise an error (:gh:`11562` by `Eric Larson`_)
 - Fix :func:`mne.io.read_raw` for file names containing multiple dots (:gh:`11521` by `Clemens Brunner`_)
+- Fix bug in :func:`mne.concatenate_raws` where two raws could not be merged if the order of the bad channel lists did not match (:gh:`11502` by `Moritz Gerster`_)
+
 
 API changes
 ~~~~~~~~~~~
