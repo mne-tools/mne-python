@@ -57,7 +57,7 @@ def _fixed_phase1a(n_dipoles, data_cov, gain):
     s_ap = []
     ap_val1 = np.zeros(n_dipoles)
     for dip in range(n_dipoles):
-        l_p = gain[:, [dip]]
+        l_p = gain[:, dip:dip + 1]
         ap_val1[dip] = multi_dot([l_p.T, data_cov, l_p]) / (l_p.T @ l_p)[0, 0]
     s1_idx = np.argmax(ap_val1)
     s_ap.append(s1_idx)
