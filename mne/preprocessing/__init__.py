@@ -33,4 +33,4 @@ from .annotate_nan import annotate_nan
 from .interpolate import equalize_bads, interpolate_bridged_electrodes
 from . import ieeg
 from ._css import cortical_signal_suppression
-from .hfc import apply_hfc, FieldCorrector
+from .hfc import apply_hfc, FieldCorrector, read_field_corrector
