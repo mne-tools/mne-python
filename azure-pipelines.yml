@@ -198,7 +198,7 @@ stages:
         set -e
         mne sys_info -pd
         pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PySide6
+        python -m pip uninstall -yq PySide6 PySide6-Essentials PySide6-Addons shiboken6
       displayName: 'PySide6'
     - bash: |
         set -e
