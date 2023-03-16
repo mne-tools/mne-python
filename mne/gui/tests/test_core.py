@@ -6,10 +6,11 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
+import nibabel as nib
 import pytest
 
 from mne.datasets import testing
-from mne.utils import requires_nibabel, catch_logging, use_log_level
+from mne.utils import catch_logging, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -17,11 +18,9 @@ subject = "sample"
 subjects_dir = data_path / "subjects"
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_slice_browser_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the slice browser GUI."""
-    import nibabel as nib
     from mne.gui._core import SliceBrowser
     with pytest.raises(ValueError, match='Base image is not aligned to MRI'):
         SliceBrowser(nib.MGHImage(

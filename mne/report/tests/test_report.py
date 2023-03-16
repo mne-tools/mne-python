@@ -27,8 +27,7 @@ from mne.report.report import (
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import (requires_nibabel, Bunch, requires_version,
-                       requires_sklearn)
+from mne.utils import Bunch, requires_version, requires_sklearn
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -441,7 +440,6 @@ def test_render_add_sections(renderer, tmp_path):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel()
 def test_render_mri(renderer, tmp_path):
     """Test rendering MRI for mne report."""
     trans_fname_new = tmp_path / "temp-trans.fif"
@@ -464,7 +462,6 @@ def test_render_mri(renderer, tmp_path):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('n_jobs', [
     1,
     pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 s locally
@@ -499,7 +496,6 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_render_mri_without_bem(tmp_path):
     """Test rendering MRI without BEM for mne report."""
     os.mkdir(tmp_path / "sample")
@@ -516,7 +512,6 @@ def test_render_mri_without_bem(tmp_path):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_add_html():
     """Test adding html str to mne report."""
     report = Report(info_fname=raw_fname,

@@ -24,8 +24,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
-from mne.utils import (requires_mne, requires_freesurfer,
-                       requires_nibabel, ArgvSetter,
+from mne.utils import (requires_mne, requires_freesurfer, ArgvSetter,
                        _stamp_to_dt, _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -138,7 +137,6 @@ def test_kit2fiff():
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
-    pytest.importorskip('nibabel')
     pytest.importorskip('pyvista')
     check_usage(mne_make_scalp_surfaces)
     has = 'SUBJECTS_DIR' in os.environ
@@ -199,7 +197,6 @@ def test_maxfilter():
 @testing.requires_testing_data
 def test_report(tmp_path):
     """Test mne report."""
-    pytest.importorskip('nibabel')
     check_usage(mne_report)
     tempdir = str(tmp_path)
     use_fname = op.join(tempdir, op.basename(raw_fname))
@@ -220,7 +217,6 @@ def test_surf2bem():
 @pytest.mark.timeout(900)  # took ~400 s on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
-@requires_nibabel()
 @requires_freesurfer('mri_watershed')
 @testing.requires_testing_data
 def test_watershed_bem(tmp_path):

@@ -7,11 +7,13 @@
 from pathlib import Path
 from shutil import copytree
 
-import pytest
-import scipy
+import nibabel as nib
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_allclose, assert_equal,
                            assert_array_less)
+import pytest
+import scipy
+
 from mne.datasets import testing
 import mne
 from mne import (read_source_spaces, write_source_spaces,
@@ -22,8 +24,8 @@ from mne import (read_source_spaces, write_source_spaces,
                  read_bem_solution, read_freesurfer_lut,
                  read_trans)
 from mne.fixes import _get_img_fdata
-from mne.utils import (requires_nibabel, run_subprocess, _record_warnings,
-                       requires_mne, check_version)
+from mne.utils import (run_subprocess, _record_warnings, requires_mne,
+                       check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
 from mne.source_space import (get_volume_labels_from_src,
@@ -319,7 +321,6 @@ def test_discrete_source_space(tmp_path):
             pos=dict(rr=[[0, 0, float('inf')]], nn=[[0, 1, 0]]))
 
 
-@requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_space(tmp_path):
@@ -592,7 +593,6 @@ def test_write_source_space(tmp_path):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('pass_ids', (True, False))
 def test_source_space_from_label(tmp_path, pass_ids):
     """Test generating a source space from volume label."""
@@ -641,7 +641,6 @@ def test_source_space_from_label(tmp_path, pass_ids):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""
     # these two are neighbors and are quite large, so let's use them to
@@ -672,7 +671,6 @@ def test_source_space_exclusive_complete(src_volume_labels):
 @pytest.mark.timeout(60)  # ~24 s on Travis
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel()
 def test_read_volume_from_src():
     """Test reading volumes from a mixed source space."""
     labels_vol = ['Left-Amygdala',
@@ -710,10 +708,8 @@ def test_read_volume_from_src():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_combine_source_spaces(tmp_path):
     """Test combining source spaces."""
-    import nibabel as nib
     rng = np.random.RandomState(2)
     volume_labels = ['Brain-Stem', 'Right-Hippocampus']  # two fairly large
 

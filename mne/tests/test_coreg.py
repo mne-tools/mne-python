@@ -18,8 +18,7 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        coregister_fiducials, get_mni_fiducials, Coregistration)
 from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
-from mne.utils import (requires_nibabel, check_version, catch_logging,
-                       _record_warnings)
+from mne.utils import check_version, catch_logging
 from mne.source_space import write_source_spaces
 from mne.channels import DigMontage
 
@@ -62,7 +61,6 @@ def test_coregister_fiducials():
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
-@requires_nibabel()
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @pytest.mark.parametrize('scale', (.9, [1, .2, .8]))
@@ -111,15 +109,14 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
     # scale fsaverage
     write_source_spaces(bem_path / (bem_fname % "ico-0"), src, overwrite=True)
-    with _record_warnings():  # sometimes missing nibabel
-        scale_mri(
-            "fsaverage",
-            "flachkopf",
-            scale,
-            True,
-            subjects_dir=tmp_path,
-            verbose="debug",
-        )
+    scale_mri(
+        "fsaverage",
+        "flachkopf",
+        scale,
+        True,
+        subjects_dir=tmp_path,
+        verbose="debug",
+    )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
     spath = tmp_path / "flachkopf" / "bem"
     spath_fname = "flachkopf-%s-src.fif"
@@ -176,7 +173,6 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
-@requires_nibabel()
 def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
     """Test scale_mri transforms and MRI scaling."""
     # scale fsaverage
@@ -350,7 +346,6 @@ def test_fit_matched_points():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_get_mni_fiducials():
     """Test get_mni_fiducials."""
     fids, coord_frame = read_fiducials(fid_fname)

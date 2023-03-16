@@ -19,9 +19,8 @@ from mne import (read_forward_solution, write_forward_solution,
                  get_volume_labels_from_aseg)
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
-from mne.utils import (requires_mne, requires_nibabel, run_subprocess,
-                       catch_logging, requires_mne_mark,
-                       requires_openmeeg_mark)
+from mne.utils import (requires_mne, run_subprocess, catch_logging,
+                       requires_mne_mark, requires_openmeeg_mark)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward, _do_forward_solution, use_coil_def
@@ -433,7 +432,6 @@ def test_make_forward_solution_sphere(tmp_path, fname_src_small):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel()
 def test_forward_mixed_source_space(tmp_path):
     """Test making the forward solution for a mixed source space."""
     # get the surface source space

@@ -56,11 +56,6 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_nibabel():
-    """Wrap to requires_module with a function call (fewer lines to change)."""
-    return partial(requires_module, name='nibabel')
-
-
 def requires_dipy():
     """Check for dipy."""
     import pytest

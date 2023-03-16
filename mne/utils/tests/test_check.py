@@ -18,7 +18,7 @@ from mne.io.pick import pick_channels_cov, _picks_to_idx
 from mne.utils import (check_random_state, _check_fname, check_fname, _suggest,
                        _check_subject, _check_info_inv, _check_option, Bunch,
                        check_version, _path_like, _validate_type, _on_missing,
-                       requires_nibabel, _safe_input, _check_ch_locs,
+                       _safe_input, _check_ch_locs,
                        _check_sphere)
 
 data_path = testing.data_path(download=False)
@@ -186,7 +186,6 @@ def test_validate_type():
         _validate_type(False, 'int-like')
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_suggest():
     """Test suggestions."""

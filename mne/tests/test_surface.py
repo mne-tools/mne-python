@@ -4,9 +4,10 @@
 
 from pathlib import Path
 
-import pytest
+import nibabel as nib
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+import pytest
 
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances, get_montage_volume_labels)
@@ -22,9 +23,8 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          _project_onto_surface, _get_ico_surface)
 from mne.transforms import (_get_trans, compute_volume_registration,
                             apply_trans)
-from mne.utils import (catch_logging, object_diff,
-                       requires_freesurfer, requires_nibabel, requires_dipy,
-                       _record_warnings)
+from mne.utils import (catch_logging, object_diff, requires_freesurfer,
+                       requires_dipy, _record_warnings)
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -118,7 +118,6 @@ def test_compute_nearest():
 @testing.requires_testing_data
 def test_io_surface(tmp_path):
     """Test reading and writing of Freesurfer surface mesh files."""
-    pytest.importorskip('nibabel')
     fname_quad = data_path / "subjects" / "bert" / "surf" / "lh.inflated.nofix"
     fname_tri = data_path / "subjects" / "sample" / "bem" / "inner_skull.surf"
     for fname in (fname_quad, fname_tri):
@@ -156,7 +155,6 @@ def test_io_surface(tmp_path):
 @testing.requires_testing_data
 def test_read_curv():
     """Test reading curvature data."""
-    pytest.importorskip('nibabel')
     fname_curv = data_path / "subjects" / "fsaverage" / "surf" / "lh.curv"
     fname_surf = data_path / "subjects" / "fsaverage" / "surf" / "lh.inflated"
     bin_curv = read_curvature(fname_curv)
@@ -259,7 +257,6 @@ def test_marching_cubes(dtype, value, smooth):
         _marching_cubes(data[0], [1])
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_get_montage_volume_labels():
     """Test finding ROI labels near montage channel locations."""
@@ -306,13 +303,11 @@ def test_voxel_neighbors():
     assert true_volume.difference(volume) == set()
 
 
-@requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_warp_montage_volume():
     """Test warping an montage based on intracranial electrode positions."""
-    import nibabel as nib
     subject_brain = nib.load(subjects_dir / "sample" / "mri" / "brain.mgz")
     template_brain = nib.load(subjects_dir / "fsaverage" / "mri" / "brain.mgz")
     zooms = dict(translation=10, rigid=10, sdr=10)

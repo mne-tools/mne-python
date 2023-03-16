@@ -7,10 +7,11 @@ import itertools
 import os
 from pathlib import Path
 
-import pytest
+import nibabel as nib
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
                            assert_array_less, assert_almost_equal)
+import pytest
 
 import mne
 from mne.datasets import testing
@@ -29,7 +30,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
                             _quat_to_affine, _compute_r2, _validate_pipeline)
-from mne.utils import requires_nibabel, requires_dipy
+from mne.utils import requires_dipy
 
 data_path = testing.data_path(download=False)
 fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
@@ -522,13 +523,11 @@ def test_euler(quats):
     assert_allclose(quat_rot, euler_rot, atol=1e-14)
 
 
-@requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_registration():
     """Test volume registration."""
-    import nibabel as nib
     from dipy.align import resample
     T1 = nib.load(fname_t1)
     affine = np.eye(4)

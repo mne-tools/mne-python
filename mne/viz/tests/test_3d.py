@@ -34,7 +34,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
-from mne.utils import requires_nibabel, catch_logging, _record_warnings
+from mne.utils import catch_logging, _record_warnings
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.transforms import Transform
@@ -580,7 +580,6 @@ def test_process_clim_round_trip():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
     sample_src = read_source_spaces(src_fname)
@@ -612,7 +611,6 @@ def test_stc_mpl():
 @pytest.mark.slowtest
 @pytest.mark.timeout(60)  # can sometimes take > 60 s
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('coord_frame, idx, show_all, title',
                          [('head', 'gof', True, 'Test'),
                           ('mri', 'amplitude', False, None)])

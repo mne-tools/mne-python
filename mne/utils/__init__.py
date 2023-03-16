@@ -42,10 +42,10 @@ from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _assert_no_instances, _resource_path, repr_html)
 from .progressbar import ProgressBar
 from ._testing import (run_command_if_main, requires_sklearn,
-                       requires_version, requires_nibabel, requires_mne,
+                       requires_version, requires_mne,
                        requires_good_network, requires_pandas, requires_h5py,
                        ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
-                       _TempDir, has_nibabel, buggy_mkl_svd,
+                       _TempDir, buggy_mkl_svd,
                        requires_numpydoc, requires_freesurfer,
                        requires_nitime, requires_dipy, requires_mne_mark,
                        requires_neuromag2ft, requires_pylsl,
