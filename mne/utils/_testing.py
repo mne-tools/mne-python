@@ -222,22 +222,6 @@ class SilenceStdout(object):
         sys.stdout = self.stdout
 
 
-def has_nibabel():
-    """Determine if nibabel is installed.
-
-    Returns
-    -------
-    has : bool
-        True if the user has nibabel.
-    """
-    try:
-        import nibabel  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
-
-
 def has_mne_c():
     """Check for MNE-C."""
     return 'MNE_ROOT' in os.environ

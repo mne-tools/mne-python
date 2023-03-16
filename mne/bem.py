@@ -36,7 +36,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname, has_nibabel, _check_option, path_like,
+                    _check_fname, _check_option, path_like,
                     _on_missing, _import_h5io_funcs, _ensure_int,
                     _path_like, _verbose_safe_false, _check_head_radius)
 
@@ -1283,7 +1283,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     run_subprocess_env(cmd)
     del tempdir  # clean up directory
     if op.isfile(T1_mgz):
-        new_info = _extract_volume_info(T1_mgz) if has_nibabel() else dict()
+        new_info = _extract_volume_info(T1_mgz)
         if not new_info:
             warn('nibabel is not available or the volume info is invalid.'
                  'Volume info not updated in the written surface.')
