@@ -7,4 +7,3 @@ pooch>=1.5
 decorator
 packaging
 jinja2
-importlib_resources>=5.10.2
