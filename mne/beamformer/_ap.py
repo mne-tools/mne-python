@@ -206,7 +206,8 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
     logger.info(' 2nd phase : ')
     s_ap_2 = copy(s_ap)
-    s_ap_2 = _fixed_phase2(n_sources, n_dipoles, max_iter, s_ap_2, gain, data_cov)
+    s_ap_2 = _fixed_phase2(n_sources, n_dipoles, max_iter,
+                           s_ap_2, gain, data_cov)
 
     return s_ap_2
 
@@ -337,8 +338,8 @@ def _free_phase1b(n_sources, n_dipoles, gain, data_cov,
     return s_ap, oris, sub_g_proj
 
 
-def _free_phase2(ap_temp_tuple, attr_dict,
-                 data_cov, gain, force_no_rep):
+def _free_phase2(ap_temp_tuple, n_sources, n_dipoles,
+                 max_iter, data_cov, gain, force_no_rep):
     """Calculate phase 2 of free oriented AP.
 
     altering the projection of current estimated dipoles
@@ -347,8 +348,12 @@ def _free_phase2(ap_temp_tuple, attr_dict,
     ----------
     ap_temp_tuple : tuple
         See: _free_phase1b.
-    attr_dict : dict
-        See: _calculate_free_alternating_projections.
+    n_sources : int
+        The number of dipoles to estimate.
+    n_dipoles : int
+        Number of dipoles throughout the model.
+    max_iter : int
+        Maximal iteration number of AP.
     data_cov : array
         Data Covariance.
     gain : array, shape (nchannels, 3 * n_dipoles)
@@ -371,17 +376,17 @@ def _free_phase2(ap_temp_tuple, attr_dict,
 
     s_ap_2, oris, sub_g_proj = copy(ap_temp_tuple)
     logger.info(' 2nd phase : ')
-    for itr in range(attr_dict['max_iter']):
+    for itr in range(max_iter):
         logger.info('iteration No. {}'.format(itr + 1))
         s_ap_2_prev = copy(s_ap_2)
-        for src in range(attr_dict['n_sources']):
+        for src in range(n_sources):
             # AP localization of src-th source
-            ap_val2 = np.zeros(attr_dict['n_dipoles'])
+            ap_val2 = np.zeros(n_dipoles)
             a_tmp = copy(ap_temp_tuple[2])
             a_tmp = np.delete(a_tmp, src, 1)
             act_spc = _active_subspace(a_tmp)
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-            for dip in range(attr_dict['n_dipoles']):
+            for dip in range(n_dipoles):
                 if force_no_rep and (dip in np.delete(s_ap_2, src, 0)):
                     continue
                 sol_tuple = _solve_active_gain_eig(
@@ -402,7 +407,7 @@ def _free_phase2(ap_temp_tuple, attr_dict,
             # No improvement vs. previous iteration
             logger.info('Done (optimally)')
             break
-        if itr == attr_dict['max_iter']:
+        if itr == max_iter:
             logger.info('Done (max iteration)')
 
     return s_ap_2, oris, sub_g_proj
@@ -432,13 +437,8 @@ def _calculate_free_alternating_projections(data_arr, gain,
     """
     logger.info('calculating free-orientation alternating projection')
     n_dipoles = int(gain.shape[1] / 3)
-    attr_dict = {
-        'n_dipoles': n_dipoles,
-        'n_sources': n_sources,
-        'max_iter': max_iter
-    }
 
-    data_cov = _produce_data_cov(data_arr, attr_dict)
+    data_cov = _produce_data_cov(data_arr, n_sources)
     # ######################################
     # 1st Phase
     # (a) Initialization: search the 1st source location over the entire
@@ -446,14 +446,14 @@ def _calculate_free_alternating_projections(data_arr, gain,
     # ######################################
 
     logger.info(' 1st phase : ')
-    ap_temp_tuple = _free_phase1a(attr_dict, gain, data_cov)
+    ap_temp_tuple = _free_phase1a(n_sources, n_dipoles, gain, data_cov)
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
 
     # ######################################
     # (b) Now, add one source at a time
     # ######################################
 
-    ap_temp_tuple = _free_phase1b(attr_dict, gain, data_cov,
+    ap_temp_tuple = _free_phase1b(n_sources, n_dipoles, gain, data_cov,
                                   ap_temp_tuple, force_no_rep)
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
     logger.info('current s_ap = {}'.format(ap_temp_tuple[0]))
@@ -462,8 +462,8 @@ def _calculate_free_alternating_projections(data_arr, gain,
     # 2nd phase
     # #####################################
 
-    ap_temp_tuple = _free_phase2(ap_temp_tuple, attr_dict,
-                                 data_cov, gain, force_no_rep)
+    ap_temp_tuple = _free_phase2(ap_temp_tuple, n_sources, n_dipoles,
+                                 max_iter, data_cov, gain, force_no_rep)
 
     return ap_temp_tuple
 
