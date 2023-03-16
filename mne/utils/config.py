@@ -18,6 +18,7 @@ import tempfile
 from collections import defaultdict
 from functools import partial
 from importlib import import_module, metadata
+from importlib.util import find_spec
 from pathlib import Path
 
 from .check import (_validate_type, _check_qt_version, _check_option,
@@ -626,7 +627,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='core', unicode=True):
                     else:
                         out(f" (OpenGL {version} via {renderer})")
                 if show_paths:
-                    out(f" ({op.dirname(module.__file__)})")
+                    path = op.dirname(find_spec(_get_import_name(name)).origin)
+                    out(f" ({path})")
                 out("\n")
         if unavailable:
             if unicode and _UNICODE_SUPPORT:
