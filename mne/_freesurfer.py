@@ -555,7 +555,7 @@ def _check_mri(mri, subject, subjects_dir):
     return mri
 
 
-def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
+def _read_mri_info(path, units='m', return_img=False):
     import nibabel as nib
     hdr = nib.load(path).header
     n_orig = hdr.get_vox2ras()
