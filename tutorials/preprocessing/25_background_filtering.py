@@ -22,6 +22,7 @@ Widmann *et al.* (2015) :footcite:`WidmannEtAl2015`.
    tutorial and read :ref:`tut-filter-resample` instead (but someday, you
    should come back and read this one too 🙂).
 
+
 Problem statement
 =================
 
