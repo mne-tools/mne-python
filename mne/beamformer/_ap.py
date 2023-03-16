@@ -17,14 +17,13 @@ from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
 
 
-def _produce_data_cov(data_arr, attr_dict):
+def _produce_data_cov(data_arr, n_sources):
     """Calculate data Covariance."""
-    nsources = attr_dict['nsources']
     data_tr = data_arr.transpose()
     data_norm = np.matmul(data_arr, data_tr)
     data_cov = (data_norm + data_norm.trace()
                 * np.eye(data_arr.shape[0]) * 0.001)  # Array Covariance Matrix
-    logger.info(' alternating projection ; nsources = {}:'.format(nsources))
+    logger.info(' alternating projection ; n_sources = {}:'.format(n_sources))
 
     return data_cov
 
@@ -34,7 +33,7 @@ def _active_subspace(Mat):
     return multi_dot([Mat, pinv(Mat.T @ Mat), Mat.T])
 
 
-def _fixed_phase1a(attr_dict, data_cov, gain):
+def _fixed_phase1a(n_dipoles, data_cov, gain):
     """Calculate phase 1a of fixed oriented AP.
 
     Initialization: search the 1st source location over the entire
@@ -42,11 +41,11 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
 
     Parameters
     ----------
-    attr_dict : dict
-        See: _calculate_fixed_alternating_projections.
+    n_dipoles : int
+        Number of dipoles throughout the model.
     data_cov : array
         Data Covariance.
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, n_dipoles)
         Gain matrix.
 
     Returns
@@ -56,8 +55,8 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
 
     """
     s_ap = []
-    ap_val1 = np.zeros(attr_dict['ndipoles'])
-    for dip in range(attr_dict['ndipoles']):
+    ap_val1 = np.zeros(n_dipoles)
+    for dip in range(n_dipoles):
         l_p = gain[:, [dip]]
         ap_val1[dip] = multi_dot([l_p.T, data_cov, l_p]) / (l_p.T @ l_p)[0, 0]
     s1_idx = np.argmax(ap_val1)
@@ -65,21 +64,23 @@ def _fixed_phase1a(attr_dict, data_cov, gain):
     return s_ap
 
 
-def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
+def _fixed_phase1b(gain, s_ap, data_cov, n_sources, n_dipoles):
     """Calculate phase 1b of fixed oriented AP.
 
     Adding one source at a time.
 
     Parameters
     ----------
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, n_dipoles)
         Gain matrix.
     s_ap : list of int
         List of dipole indices.
     data_cov : array
         Data Covariance.
-    attr_dict : dict
-        See: _calculate_fixed_alternating_projections.
+    n_sources : int
+        The number of dipoles to estimate.
+    n_dipoles : int
+        Number of dipoles throughout the model.
 
     Returns
     -------
@@ -87,12 +88,12 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
         List of dipole indices.
 
     """
-    for _ in range(1, attr_dict['nsources']):
-        ap_val2 = np.zeros(attr_dict['ndipoles'])
+    for _ in range(1, n_sources):
+        ap_val2 = np.zeros(n_dipoles)
         sub_g = gain[:, s_ap]
         act_spc = _active_subspace(sub_g)
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-        for dip in range(attr_dict['ndipoles']):
+        for dip in range(n_dipoles):
             l_p = np.expand_dims(gain[:, dip], axis=1)
             ap_val2[dip] = multi_dot(
                 [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
@@ -103,18 +104,22 @@ def _fixed_phase1b(gain, s_ap, data_cov, attr_dict):
     return s_ap
 
 
-def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
+def _fixed_phase2(n_sources, n_dipoles, max_iter, s_ap_2, gain, data_cov):
     """Calculate phase 2 of fixed oriented AP.
 
     Altering the projection of current estimated dipoles.
 
     Parameters
     ----------
-    attr_dict : dict
-        See: _calculate_fixed_alternating_projections.
+    n_sources : int
+        The number of dipoles to estimate.
+    n_dipoles : int
+        Number of dipoles throughout the model.
+    max_iter : int
+        Maximal iteration number of AP.
     s_ap_2 : list of int
         List of dipole indices.
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, n_dipoles)
         Gain matrix.
     data_cov : array
         Data Covariance.
@@ -125,18 +130,18 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
         List of dipole indices.
 
     """
-    for itr in range(attr_dict['max_iter']):
+    for itr in range(max_iter):
         logger.info('iteration No. {}'.format(itr + 1))
         s_ap_2_prev = copy(s_ap_2)
-        for src in range(attr_dict['nsources']):
+        for src in range(n_sources):
             # AP localization of src-th source
-            ap_val2 = np.zeros(attr_dict['ndipoles'])
+            ap_val2 = np.zeros(n_dipoles)
             s_ap_temp = copy(s_ap_2)
             s_ap_temp.pop(src)
             sub_g = gain[:, s_ap_temp]
             act_spc = _active_subspace(sub_g)
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-            for dip in range(attr_dict['ndipoles']):
+            for dip in range(n_dipoles):
                 l_p = np.expand_dims(gain[:, dip], axis=1)
                 ap_val2[dip] = multi_dot(
                     [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
@@ -148,13 +153,13 @@ def _fixed_phase2(attr_dict, s_ap_2, gain, data_cov):
             # No improvement vs. previous iteration
             logger.info('Done (optimally)')
             break
-        if itr == attr_dict['max_iter']:
+        if itr == max_iter:
             logger.info('Done (max iteration)')
     return s_ap_2
 
 
 def _calculate_fixed_alternating_projections(data_arr, gain,
-                                             nsources,
+                                             n_sources,
                                              max_iter):
     """Calculate fixed-orientation alternating projection.
 
@@ -162,9 +167,9 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
     ----------
     data_arr : array, shape (nchannels, times)
         Filtered evoked data array.
-    gain : array, shape (nchannels, ndipoles)
+    gain : array, shape (nchannels, n_dipoles)
         Gain matrix.
-    nsources : int
+    n_sources : int
         The number of dipoles to estimate.
     max_iter : int
         Maximal iteration number of AP.
@@ -176,14 +181,9 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
     """
     s_ap = []
-    ndipoles = gain.shape[1]
-    attr_dict = {
-        'ndipoles': ndipoles,
-        'nsources': nsources,
-        'max_iter': max_iter
-    }
+    n_dipoles = gain.shape[1]
     logger.info('calculating fixed-orientation alternating projection')
-    data_cov = _produce_data_cov(data_arr, attr_dict)
+    data_cov = _produce_data_cov(data_arr, n_sources)
 
     # ######################################
     # 1st Phase
@@ -192,13 +192,13 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
     # ######################################
 
     logger.info(' 1st phase : ')
-    s_ap = _fixed_phase1a(attr_dict, data_cov, gain)
+    s_ap = _fixed_phase1a(n_dipoles, data_cov, gain)
 
     # ######################################
     # (b) Now, add one source at a time
     # ######################################
 
-    s_ap = _fixed_phase1b(gain, s_ap, data_cov, attr_dict)
+    s_ap = _fixed_phase1b(gain, s_ap, data_cov, n_sources, n_dipoles)
 
     # #####################################
     # 2nd phase
@@ -206,7 +206,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
     logger.info(' 2nd phase : ')
     s_ap_2 = copy(s_ap)
-    s_ap_2 = _fixed_phase2(attr_dict, s_ap_2, gain, data_cov)
+    s_ap_2 = _fixed_phase2(n_sources, n_dipoles, max_iter, s_ap_2, gain, data_cov)
 
     return s_ap_2
 
@@ -225,7 +225,7 @@ def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
     return eig_val, eig_vec, l_p
 
 
-def _free_phase1a(attr_dict, gain, data_cov):
+def _free_phase1a(n_sources, n_dipoles, gain, data_cov):
     """Calculate phase 1a of free oriented AP.
 
     Initialization: search the 1st source location over
@@ -233,18 +233,20 @@ def _free_phase1a(attr_dict, gain, data_cov):
 
     Parameters
     ----------
-    attr_dict : dict
-        See: _calculate_free_alternating_projections.
+    n_sources : int
+        The number of dipoles to estimate.
+    n_dipoles : int
+        Number of dipoles throughout the model.
+    gain : array, shape (nchannels, 3 * n_dipoles)
+        Gain matrix
     data_cov : array
         Data Covariance.
-    gain : array, shape (nchannels, 3 * ndipoles)
-        Gain matrix.
 
     Returns
     -------
     s_ap : list of int
         List of dipole indices.
-    oris : array, shape (nsources, 3)
+    oris : array, shape (n_sources, 3)
         Orientations array of estimated sources (sorted by s_ap).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
@@ -253,10 +255,10 @@ def _free_phase1a(attr_dict, gain, data_cov):
     from scipy.linalg import eig
 
     s_ap = []
-    oris = np.empty((attr_dict['nsources'], 3))
-    ap_val1 = np.zeros(attr_dict['ndipoles'])
+    oris = np.empty((n_sources, 3))
+    ap_val1 = np.zeros(n_dipoles)
     perpend_spc = np.eye(gain.shape[0])
-    for dip in range(attr_dict['ndipoles']):
+    for dip in range(n_dipoles):
         sol_tuple = _solve_active_gain_eig(
             dip, gain, data_cov, eig, perpend_spc)
         ap_val1[dip] = np.max([x.real for x in sol_tuple[0]])
@@ -276,7 +278,7 @@ def _free_phase1a(attr_dict, gain, data_cov):
     return s_ap, oris, sub_g_proj
 
 
-def _free_phase1b(attr_dict, gain, data_cov,
+def _free_phase1b(n_sources, n_dipoles, gain, data_cov,
                   ap_temp_tuple, force_no_rep):
     """Calculate phase 1b of free oriented AP.
 
@@ -284,14 +286,16 @@ def _free_phase1b(attr_dict, gain, data_cov,
 
     Parameters
     ----------
-    ap_temp_tuple : tuple
-        See: _free_phase1a.
-    attr_dict : dict
-        See: _calculate_free_alternating_projections.
+    n_sources : int
+        The number of dipoles to estimate.
+    n_dipoles : int
+        Number of dipoles throughout the model.
+    gain : array, shape (nchannels, 3 * n_dipoles)
+        Gain matrix.
     data_cov : array
         Data Covariance.
-    gain : array, shape (nchannels, 3 * ndipoles)
-        Gain matrix.
+    ap_temp_tuple : tuple
+        See: _free_phase1a.
     force_no_rep : bool
         Forces no repetition of estinated dipoles.
 
@@ -299,7 +303,7 @@ def _free_phase1b(attr_dict, gain, data_cov,
     -------
     s_ap : list of int
         List of dipole indices.
-    oris : array, shape (nsources, 3)
+    oris : array, shape (n_sources, 3)
         Orientations array of estimated sources (sorted by s_ap).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
@@ -309,11 +313,11 @@ def _free_phase1b(attr_dict, gain, data_cov,
     from scipy.linalg import eig
 
     s_ap, oris, sub_g_proj = copy(ap_temp_tuple)
-    for src in range(1, attr_dict['nsources']):
-        ap_val2 = np.zeros(attr_dict['ndipoles'])
+    for src in range(1, n_sources):
+        ap_val2 = np.zeros(n_dipoles)
         act_spc = _active_subspace(sub_g_proj)
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-        for dip in range(attr_dict['ndipoles']):
+        for dip in range(n_dipoles):
             if force_no_rep and (dip in s_ap):
                 continue
             sol_tuple = _solve_active_gain_eig(
@@ -347,7 +351,7 @@ def _free_phase2(ap_temp_tuple, attr_dict,
         See: _calculate_free_alternating_projections.
     data_cov : array
         Data Covariance.
-    gain : array, shape (nchannels, 3 * ndipoles)
+    gain : array, shape (nchannels, 3 * n_dipoles)
         Gain matrix.
     force_no_rep : bool
         Forces no repetition of estinated dipoles.
@@ -356,7 +360,7 @@ def _free_phase2(ap_temp_tuple, attr_dict,
     -------
     s_ap_2 : list of int
         List of dipole indices.
-    oris : array, shape (nsources, 3)
+    oris : array, shape (n_sources, 3)
         Orientations array of estimated sources (sorted by s_ap_2).
     sub_g_proj : array
         Sub space projected by estimated dipoles.
@@ -370,14 +374,14 @@ def _free_phase2(ap_temp_tuple, attr_dict,
     for itr in range(attr_dict['max_iter']):
         logger.info('iteration No. {}'.format(itr + 1))
         s_ap_2_prev = copy(s_ap_2)
-        for src in range(attr_dict['nsources']):
+        for src in range(attr_dict['n_sources']):
             # AP localization of src-th source
-            ap_val2 = np.zeros(attr_dict['ndipoles'])
+            ap_val2 = np.zeros(attr_dict['n_dipoles'])
             a_tmp = copy(ap_temp_tuple[2])
             a_tmp = np.delete(a_tmp, src, 1)
             act_spc = _active_subspace(a_tmp)
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-            for dip in range(attr_dict['ndipoles']):
+            for dip in range(attr_dict['n_dipoles']):
                 if force_no_rep and (dip in np.delete(s_ap_2, src, 0)):
                     continue
                 sol_tuple = _solve_active_gain_eig(
@@ -405,7 +409,7 @@ def _free_phase2(ap_temp_tuple, attr_dict,
 
 
 def _calculate_free_alternating_projections(data_arr, gain,
-                                            nsources, max_iter,
+                                            n_sources, max_iter,
                                             force_no_rep):
     """Calculate free-orientation alternating projection.
 
@@ -413,9 +417,9 @@ def _calculate_free_alternating_projections(data_arr, gain,
     ----------
     data_arr : array, shape (nchannels, times)
         Filtered evoked data array.
-    gain : array, shape (nchannels, 3 * ndipoles)
+    gain : array, shape (nchannels, 3 * n_dipoles)
         Gain array.
-    nsources : int
+    n_sources : int
         The number of dipoles to estimate.
     max_iter : int
         Maximal iteration number of AP.
@@ -427,10 +431,10 @@ def _calculate_free_alternating_projections(data_arr, gain,
 
     """
     logger.info('calculating free-orientation alternating projection')
-    ndipoles = int(gain.shape[1] / 3)
+    n_dipoles = int(gain.shape[1] / 3)
     attr_dict = {
-        'ndipoles': ndipoles,
-        'nsources': nsources,
+        'n_dipoles': n_dipoles,
+        'n_sources': n_sources,
         'max_iter': max_iter
     }
 
@@ -464,12 +468,12 @@ def _calculate_free_alternating_projections(data_arr, gain,
     return ap_temp_tuple
 
 
-def _free_ori_ap(wh_data, gain, nsources,
+def _free_ori_ap(wh_data, gain, n_sources,
                  forward, max_iter, force_no_rep):
     """Branch of calculations dedicated to freely oriented dipoles."""
     sol_tuple = \
         _calculate_free_alternating_projections(
-            wh_data, gain, nsources, max_iter, force_no_rep)
+            wh_data, gain, n_sources, max_iter, force_no_rep)
     # sol_tuple = active_idx, active_orientations, active_idx_gain
 
     sol = lstsq(sol_tuple[2], wh_data, rcond=None)[0]
@@ -491,10 +495,10 @@ def _free_ori_ap(wh_data, gain, nsources,
     )
 
 
-def _fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
+def _fixed_ori_ap(wh_data, gain, n_sources, forward, max_iter):
     """Branch of calculations dedicated to fixed oriented dipoles."""
     idx = _calculate_fixed_alternating_projections(
-        wh_data, gain, nsources=nsources, max_iter=max_iter)
+        wh_data, gain, n_sources=n_sources, max_iter=max_iter)
 
     sub_g = gain[:, idx]
     sol = lstsq(sub_g, wh_data, rcond=None)[0]
@@ -514,7 +518,7 @@ def _fixed_ori_ap(wh_data, gain, nsources, forward, max_iter):
 
 @fill_doc
 def _apply_ap(data, info, times, forward, noise_cov,
-              nsources, picks, max_iter, force_no_rep):
+              n_sources, picks, max_iter, force_no_rep):
     """AP for evoked data.
 
     Parameters
@@ -528,7 +532,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
         Forward operator.
     noise_cov : instance of Covariance
         The noise Covariance.
-    nsources : int
+    n_sources : int
         The number of dipoles to estimate.
     picks : List of int
         Channel indiecs for filtering.
@@ -548,9 +552,9 @@ def _apply_ap(data, info, times, forward, noise_cov,
         Percentile of data variation explained (see: _log_exp_var).
     dip_ind : List of int
         List of indices of dipole source estimated.
-    oris : array, shape (nsources, 3)
+    oris : array, shape (n_sources, 3)
         Orientations array of estimated sources (sorted by dip_ind).
-    poss : array, shape (nsources, 3)
+    poss : array, shape (n_sources, 3)
         Coordinates array of estimated sources (sorted by dip_ind).
 
     """
@@ -570,13 +574,13 @@ def _apply_ap(data, info, times, forward, noise_cov,
 
     if is_free_ori:
         idx, oris, poss, gain_active, gain_dip, sol, dip_ind = \
-            _free_ori_ap(wh_data, gain, nsources, forward,
+            _free_ori_ap(wh_data, gain, n_sources, forward,
                          max_iter=max_iter, force_no_rep=force_no_rep)
         X = sol[:, np.newaxis] * oris[:, :, np.newaxis]
         X.shape = (-1, len(times))
     else:
         idx, oris, poss, gain_active, gain_dip, sol = \
-            _fixed_ori_ap(wh_data, gain, nsources, forward,
+            _fixed_ori_ap(wh_data, gain, n_sources, forward,
                           max_iter=max_iter)
         X = sol
         dip_ind = idx
@@ -613,7 +617,7 @@ def _make_explained_evoke(evoked, picks, explained_data_mat, residual=False):
 
 
 @verbose
-def alternating_projections(evoked, forward, nsources, noise_cov=None,
+def alternating_projections(evoked, forward, n_sources, noise_cov=None,
                             max_iter=6, return_residual=True,
                             return_active_info=False, verbose=None,
                             force_no_rep=False):
@@ -629,7 +633,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
         Evoked object containing data to be localized.
     forward : instance of Forward
         Forward operator.
-    nsources : int
+    n_sources : int
         The number of dipoles to estimate.
     noise_cov : instance of Covariance, optional
         The noise covariance matrix, used for whitening the evoked signal.
@@ -664,9 +668,9 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
         If return_active_info :
             idx : list of int
                 List of indices of dipole source estimated.
-            poss : array, shape (nsources, 3)
+            poss : array, shape (n_sources, 3)
                 Coordinates array of estimated sources (sorted by idx).
-            oris : array, shape (nsources, 3)
+            oris : array, shape (n_sources, 3)
                 Orientations array of estimated sources (sorted by idx).
 
     References
@@ -686,7 +690,7 @@ def alternating_projections(evoked, forward, nsources, noise_cov=None,
 
     dipoles, explained_data_mat, var_exp, idx, oris, poss = \
         _apply_ap(data, info, times, forward, noise_cov,
-                  nsources, picks, max_iter=max_iter,
+                  n_sources, picks, max_iter=max_iter,
                   force_no_rep=force_no_rep)
 
     output = [dipoles]

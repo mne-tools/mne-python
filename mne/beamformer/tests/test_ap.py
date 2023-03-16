@@ -52,13 +52,13 @@ def test_ap_simulated():
     forward_fixed = mne.convert_forward_solution(forward, force_fixed=True,
                                                  surf_ori=True, use_cps=True)
 
-    nsources = 2
+    n_sources = 2
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov,
                                 evoked.times, nave=evoked.nave)
     # Check dipoles for fixed ori
     dipoles, _, _, var_exp = alternating_projections(sim_evoked,
                                                      forward_fixed,
-                                                     nsources,
+                                                     n_sources,
                                                      noise_cov,
                                                      verbose=True)
     assert 92 < var_exp < 96
@@ -74,7 +74,7 @@ def test_ap_simulated():
                                 evoked.times, nave=nave)
     dipoles, residual, _, _ = alternating_projections(sim_evoked,
                                                       forward_fixed,
-                                                      nsources,
+                                                      n_sources,
                                                       noise_cov)
 
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual,
@@ -83,7 +83,7 @@ def test_ap_simulated():
     # Check dipoles for free ori
     dipoles, residual, _, _ = alternating_projections(sim_evoked,
                                                       forward,
-                                                      nsources,
+                                                      n_sources,
                                                       noise_cov)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual,
                    rel_tol=0.08, ori_check=0.7)
@@ -91,7 +91,7 @@ def test_ap_simulated():
     # Check dipoles for free surface ori
     dipoles, residual, _, _ = alternating_projections(sim_evoked,
                                                       forward_surf_ori,
-                                                      nsources,
+                                                      n_sources,
                                                       noise_cov)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual,
                    rel_tol=0.08, ori_check=0.7)
@@ -106,7 +106,7 @@ def test_ap_picks():
     evoked.pick_types(meg=True, eeg=False)
     forward = mne.read_forward_solution(fname_fwd)
     noise_cov = mne.read_cov(fname_cov)
-    nsources = 2
-    dipoles = alternating_projections(evoked, forward, nsources,
+    n_sources = 2
+    dipoles = alternating_projections(evoked, forward, n_sources,
                                       noise_cov, return_residual=False)
     assert len(dipoles) == 2

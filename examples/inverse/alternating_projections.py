@@ -70,7 +70,7 @@ noise_cov = mne.read_cov(cov_fname)
 # %% Applied on free-oriented dipoles
 
 dipoles, residual, _, var_exp = alternating_projections(
-    evoked, forward, nsources=2, noise_cov=noise_cov, return_residual=True,
+    evoked, forward, n_sources=2, noise_cov=noise_cov, return_residual=True,
     verbose=True)
 
 trans = forward['mri_head_t']
@@ -87,7 +87,7 @@ residual.plot(ylim=ylim)
 
 forward = mne.convert_forward_solution(forward, force_fixed=True)
 dipoles, residual, _, var_exp = alternating_projections(
-    evoked, forward, nsources=2, noise_cov=noise_cov, return_residual=True,
+    evoked, forward, n_sources=2, noise_cov=noise_cov, return_residual=True,
     verbose=True)
 
 trans = forward['mri_head_t']
