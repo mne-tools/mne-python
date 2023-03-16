@@ -8,3 +8,4 @@ decorator
 packaging
 jinja2
 importlib_resources>=5.10.2
+nibabel>=3.2.1

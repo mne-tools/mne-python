@@ -1680,7 +1680,6 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
 
 def _compute_volume_registration(moving, static, pipeline, zooms, niter, *,
                                  starting_affine=None):
-    _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
     with np.testing.suppress_warnings():
@@ -1794,7 +1793,6 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     -----
     .. versionadded:: 0.24
     """
-    _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     from nibabel.spatialimages import SpatialImage
     from dipy.align.imwarp import DiffeomorphicMap

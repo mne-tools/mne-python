@@ -26,7 +26,6 @@ from .io._digitization import _get_data_as_dict_from_dig
 # namespace, too)
 from ._freesurfer import (_read_mri_info, get_mni_fiducials,  # noqa: F401
                           estimate_head_mri_t)  # noqa: F401
-from ._freesurfer import _import_nibabel
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
@@ -41,7 +40,7 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          rot_to_quat, _angle_between_quats)
 from .channels import make_dig_montage
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel, fill_doc, _validate_type,
+                    warn, fill_doc, _validate_type,
                     _check_subject, _check_option)
 from .viz._3d import _fiducial_coords
 
@@ -1168,21 +1167,21 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
 
 def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
     """Scale an MRI by setting its affine."""
+    import nibabel as nib
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir)
-    nibabel = _import_nibabel('scale an MRI')
     fname_from = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_from), mri_fname)
     fname_to = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_to), mri_fname)
-    img = nibabel.load(fname_from)
+    img = nib.load(fname_from)
     zooms = np.array(img.header.get_zooms())
     zooms[[0, 2, 1]] *= scale
     img.header.set_zooms(zooms)
     # Hack to fix nibabel problems, see
     # https://github.com/nipy/nibabel/issues/619
     img._affine = img.header.get_affine()  # or could use None
-    nibabel.save(img, fname_to)
+    nib.save(img, fname_to)
 
 
 def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
@@ -1190,13 +1189,6 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     """Scale a transform."""
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir)
-
-    # The nibabel warning should already be there in MRI step, if applicable,
-    # as we only get here if T1.mgz is present (and thus a scaling was
-    # attempted) so we can silently return here.
-    if not has_nibabel():
-        return
-
     fname_from = os.path.join(
         mri_transforms_dirname.format(
             subjects_dir=subjects_dir, subject=subject_from), xfm_fname)

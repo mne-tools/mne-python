@@ -17,7 +17,7 @@ from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
 from .fixes import _safe_svd
-from ._freesurfer import (_import_nibabel, _get_mri_info_data,
+from ._freesurfer import (_get_mri_info_data,
                           _get_atlas_values, read_freesurfer_lut)
 from .io.constants import FIFF
 from .io.pick import pick_types
@@ -2970,7 +2970,6 @@ def _volume_labels(src, labels, mri_resolution):
     assert src.kind == 'volume'
     subject = src._subject
     extra = ' when using a volume source space'
-    _import_nibabel('use volume atlas labels')
     _validate_type(labels, ('path-like', list, tuple), 'labels' + extra)
     if _path_like(labels):
         mri = labels

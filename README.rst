@@ -86,6 +86,7 @@ The minimum required dependencies to run MNE-Python are:
 - NumPy >= 1.20.2
 - SciPy >= 1.6.3
 - Matplotlib >= 3.4.0
+- NiBabel >= 3.2.1
 - pooch >= 1.5
 - tqdm
 - Jinja2
@@ -104,7 +105,6 @@ For full functionality, some functions require:
   - PySide2 >= 5.12
 
 - Numba >= 0.53.1
-- NiBabel >= 3.2.1
 - OpenMEEG >= 2.5.5
 - Pandas >= 1.2.4
 - Picard >= 0.3

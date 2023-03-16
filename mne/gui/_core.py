@@ -21,7 +21,6 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
-from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
 from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _marching_cubes
@@ -35,7 +34,7 @@ _ZOOM_STEP_SIZE = 5
 @verbose
 def _load_image(img, verbose=None):
     """Load data from a 3D image file (e.g. CT, MR)."""
-    nib = _import_nibabel('use GUI')
+    import nibabel as nib
     if not isinstance(img, nib.spatialimages.SpatialImage):
         logger.debug(f'Loading {img}')
         _check_fname(img, overwrite='read', must_exist=True)

@@ -33,7 +33,6 @@ def _check_subject_dir(subject, subjects_dir):
 
 def _get_aseg(aseg, subject, subjects_dir):
     """Check that the anatomical segmentation file exists and load it."""
-    _require_version('nibabel', 'load aseg', '2.1.0')
     import nibabel as nib
 
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
@@ -48,18 +47,6 @@ def _get_aseg(aseg, subject, subjects_dir):
     aseg = nib.load(aseg)
     aseg_data = np.array(aseg.dataobj)
     return aseg, aseg_data
-
-
-def _import_nibabel(why='use MRI files'):
-    try:
-        import nibabel as nib
-    except ImportError as exp:
-        msg = 'nibabel is required to %s, got:\n%s' % (why, exp)
-    else:
-        msg = ''
-    if msg:
-        raise ImportError(msg)
-    return nib
 
 
 def _reorient_image(img, axcodes='RAS'):
@@ -128,8 +115,6 @@ def _mri_orientation(orientation):
 
 def _get_mri_info_data(mri, data):
     # Read the segmentation data using nibabel
-    if data:
-        _import_nibabel('load MRI atlas data')
     out = dict()
     _, out['vox_mri_t'], out['mri_ras_t'], dims, _, mgz = _read_mri_info(
         mri, return_img=True)
@@ -141,45 +126,6 @@ def _get_mri_info_data(mri, data):
         out['mri_vox_t'] = invert_transform(out['vox_mri_t'])
         out['data'] = np.asarray(mgz.dataobj)
     return out
-
-
-def _get_mgz_header(fname):
-    """Adapted from nibabel to quickly extract header info."""
-    fname = _check_fname(fname, overwrite='read', must_exist=True,
-                         name='MRI image')
-    if fname.suffix != ".mgz":
-        raise IOError('Filename must end with .mgz')
-    header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
-                  ('type', '>i4'), ('dof', '>i4'), ('goodRASFlag', '>i2'),
-                  ('delta', '>f4', (3,)), ('Mdc', '>f4', (3, 3)),
-                  ('Pxyz_c', '>f4', (3,))]
-    header_dtype = np.dtype(header_dtd)
-    with GzipFile(fname, 'rb') as fid:
-        hdr_str = fid.read(header_dtype.itemsize)
-    header = np.ndarray(shape=(), dtype=header_dtype,
-                        buffer=hdr_str)
-    # dims
-    dims = header['dims'].astype(int)
-    dims = dims[:3] if len(dims) == 4 else dims
-    # vox2ras_tkr
-    delta = header['delta']
-    ds = np.array(delta, float)
-    ns = np.array(dims * ds) / 2.0
-    v2rtkr = np.array([[-ds[0], 0, 0, ns[0]],
-                       [0, 0, ds[2], -ns[2]],
-                       [0, -ds[1], 0, ns[1]],
-                       [0, 0, 0, 1]], dtype=np.float32)
-    # ras2vox
-    d = np.diag(delta)
-    pcrs_c = dims / 2.0
-    Mdc = header['Mdc'].T
-    pxyz_0 = header['Pxyz_c'] - np.dot(Mdc, np.dot(d, pcrs_c))
-    M = np.eye(4, 4)
-    M[0:3, 0:3] = np.dot(Mdc, d)
-    M[0:3, 3] = pxyz_0.T
-    header = dict(dims=dims, vox2ras_tkr=v2rtkr, vox2ras=M,
-                  zooms=header['delta'])
-    return header
 
 
 def _get_atlas_values(vol_info, rr):
@@ -611,21 +557,12 @@ def _check_mri(mri, subject, subjects_dir):
 
 
 def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
-    # This is equivalent but 100x slower, so only use nibabel if we need to
-    # (later):
-    if use_nibabel:
-        import nibabel
-        hdr = nibabel.load(path).header
-        n_orig = hdr.get_vox2ras()
-        t_orig = hdr.get_vox2ras_tkr()
-        dims = hdr.get_data_shape()
-        zooms = hdr.get_zooms()[:3]
-    else:
-        hdr = _get_mgz_header(path)
-        n_orig = hdr['vox2ras']
-        t_orig = hdr['vox2ras_tkr']
-        dims = hdr['dims']
-        zooms = hdr['zooms']
+    import nibabel as nib
+    hdr = nib.load(path).header
+    n_orig = hdr.get_vox2ras()
+    t_orig = hdr.get_vox2ras_tkr()
+    dims = hdr.get_data_shape()
+    zooms = hdr.get_zooms()[:3]
 
     # extract the MRI_VOXEL to RAS (non-zero origin) transform
     vox_ras_t = Transform('mri_voxel', 'ras', n_orig)
@@ -648,8 +585,8 @@ def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
 
     out = (vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms)
     if return_img:
-        nibabel = _import_nibabel()
-        out += (nibabel.load(path),)
+        import nibabel as nib
+        out += (nib.load(path),)
     return out
 
 
