@@ -7,7 +7,7 @@
 
 from copy import deepcopy
 from functools import partial
-from inspect import signature
+from inspect import currentframe, getargvalues, signature
 
 import numpy as np
 
@@ -24,7 +24,7 @@ from ..utils import (GetEpochsMixin, _build_data_frame,
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
-from ..utils.spectrum import _translate_old_psd_kwargs
+from ..utils.spectrum import _translate_old_psd_kwargs, _triage_old_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
@@ -95,24 +95,29 @@ class SpectrumMixin():
         """
         from ..io import BaseRaw
 
-        # triage reject_by_annotation
-        rba = dict()
-        if isinstance(self, BaseRaw):
-            rba = dict(reject_by_annotation=reject_by_annotation)
+        # get passed params & values
+        frame = currentframe()
+        arginfo = getargvalues(frame)
+        passed_kwargs = {k: v for k, v in arginfo.locals.items()
+                         if k in arginfo.args}
+        if arginfo.keywords is not None:
+            passed_kwargs.update(arginfo.locals[arginfo.keywords])
 
-        spectrum = self.compute_psd(
-            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose, **rba,
-            **method_kw)
-
+        # handle API changes
         amplitude, ci = _translate_old_psd_kwargs(estimate, area_mode)
-        # ↓ here picks="all" because we've already restricted the `info` to
-        # ↓ have only `picks` channels
-        fig = spectrum.plot(
-            picks='all', average=average, dB=dB, amplitude=amplitude,
-            xscale=xscale, ci=ci, ci_alpha=area_alpha, color=color,
-            alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-            exclude=exclude, axes=ax, show=show)
+        passed_kwargs.update(amplitude=amplitude, ci=ci)
+        del passed_kwargs['estimate']
+        del passed_kwargs['area_mode']
+
+        # don't pass `reject_by_annotation` if self is Epochs or Evoked
+        if not isinstance(self, BaseRaw):
+            del passed_kwargs['reject_by_annotation']
+
+        # triage kwargs & call constructor
+        init_kwargs, plot_kwargs = _triage_old_psd_kwargs()
+        spectrum = self.compute_psd(**init_kwargs)
+
+        fig = spectrum.plot(**plot_kwargs)
         return fig
 
     @legacy(alt='.compute_psd().plot_topo()')
