@@ -260,6 +260,9 @@ class SliceBrowser(QMainWindow):
         if self._head is None:
             logger.debug('Using marching cubes on CT for the '
                          '3D visualization panel')
+            '''from skimage.measure import marching_cubes
+            rr, tris = marching_cubes(
+                self._base_data < np.quantile(self._base_data, 0.95), 0)[:2]'''
             rr, tris = _marching_cubes(np.where(
                 self._base_data < np.quantile(self._base_data, 0.95), 0, 1),
                 [1])[0]
@@ -319,7 +322,7 @@ class SliceBrowser(QMainWindow):
 
     def _on_scroll(self, event):
         """Process mouse scroll wheel event to zoom."""
-        self._zoom(event.step, draw=True)
+        self._zoom(np.sign(event.step), draw=True)
 
     def _zoom(self, sign=1, draw=False):
         """Zoom in on the image."""
@@ -331,11 +334,12 @@ class SliceBrowser(QMainWindow):
             xmin, xmax = fig.axes[0].get_xlim()
             ymin, ymax = fig.axes[0].get_ylim()
             xmid = (xmin + xmax) / 2
-            xmid += delta / 2 * np.sign(xcur - xmid) if \
-                delta / 2 < abs(xmid - xcur) / rx else xcur - xmid
             ymid = (ymin + ymax) / 2
-            ymid += delta / 2 * np.sign(ycur - ymid) if \
-                delta / 2 < abs(ymid - ycur) / ry else ycur - ymid
+            if sign == 1:  # may need to shift if zooming in
+                if abs(xmid - xcur) > delta / 2 * rx:
+                    xmid += delta * np.sign(xcur - xmid) * rx
+                if abs(ymid - ycur) > delta / 2 * ry:
+                    ymid += delta * np.sign(ycur - ymid) * ry
             xwidth = (xmax - xmin) / 2 - delta * rx
             ywidth = (ymax - ymin) / 2 - delta * ry
             if xwidth <= 0 or ywidth <= 0:
@@ -343,7 +347,7 @@ class SliceBrowser(QMainWindow):
             fig.axes[0].set_xlim(xmid - xwidth, xmid + xwidth)
             fig.axes[0].set_ylim(ymid - ywidth, ymid + ywidth)
             if draw:
-                self._figs[axis].canvas.draw()
+                fig.canvas.draw()
 
     @Slot()
     def _update_RAS(self, event):

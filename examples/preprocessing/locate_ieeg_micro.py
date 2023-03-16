@@ -17,7 +17,7 @@ shows how to do this.
 #
 # License: BSD-3-Clause
 
-import nunpy as np
+import numpy as np
 import nibabel as nib
 import mne
 
@@ -41,15 +41,16 @@ T1 = nib.load(misc_path / 'seeg' / 'sample_seeg' / 'mri' / 'T1.mgz')
 # identiy matrix but we'll find the fiducials on the CT in freeview (be sure
 # to find them in surface RAS (TkReg RAS in freeview) and not scanner RAS
 # (RAS in freeview)) (also be sure to note left is generally on the right in
-# freeview) and reproduce them here:
-
-# note: coord_frame = 'mri' is a bit of a misnormer, it is a reference to
-# the surface RAS coordinate frame, here it is of the CT
-montage = mne.channels.make_dig_montage(
+# freeview) and reproduce them here:montage = mne.channels.make_dig_montage(
     nasion=[-28.97, -5.88, -76.40], lpa=[-96.35, -16.26, 17.63],
     rpa=[31.28, -52.95, -0.69], coord_frame='mri')
 raw.set_montage(montage, on_missing='ignore')  # haven't located yet!
-head_ct_t = mne.channels.compute_native_head_t(montage)
+head_ct_t = mne.transforms.invert_transform(
+    mne.channels.compute_native_head_t(montage))
+
+# note: coord_frame = 'mri' is a bit of a misnormer, it is a reference to
+# the surface RAS coordinate frame, here it is of the CT
+
 
 # launch the viewer with only the CT (note, we won't be able to use
 # the MR in this case to help determine which brain area the contact is
@@ -57,7 +58,10 @@ head_ct_t = mne.channels.compute_native_head_t(montage)
 gui = mne.gui.locate_ieeg(raw.info, head_ct_t, CT_orig)
 
 # we'll programmatically mark all the contacts on one electrode shaft
-for i, pos in [()]:
+for i, pos in enumerate([(-52.66, -40.84, -26.99), (-55.47, -38.03, -27.92),
+                         (-57.68, -36.27, -28.85), (-59.89, -33.81, -29.32),
+                         (-62.57, -31.35, -30.37), (-65.13, -29.07, -31.30),
+                         (-67.57, -26.26, -31.88)]):
     gui.set_RAS(pos)
     gui.mark_channel(f'LENT {i + 1}')
 
@@ -75,13 +79,15 @@ for i, pos in [()]:
 montage = raw.get_montage()  # in head
 montage.apply_trans(head_ct_t)  # in CT surface RAS
 montage.apply_trans(mne.transforms.Transform(  # in CT voxels
-    fro='mri', to='vox',
+    fro='mri', to='mri_voxel',
     trans=np.linalg.inv(CT_orig.header.get_vox2ras_tkr())))
 # to CT scanner RAS == MR scanner RAS
 montage.apply_trans(mne.transforms.Transform(
-    fro='vox', to='ras', trans=CT_orig.header.get_vox2ras()))
-montage.apply_trans(mne.transforms.Transform(  # in MR surface RAS
-    fro='vox', to='mri', trans=T1.header.get_vox2ras_tkr()))
+    fro='mri_voxel', to='ras', trans=CT_orig.header.get_vox2ras()))
+montage.apply_trans(mne.transforms.Transform(  # to MR voxels
+    fro='ras', to='mri_voxel', trans=np.linalg.inv(T1.header.get_vox2ras())))
+montage.apply_trans(mne.transforms.Transform(  # to MR voxels
+    fro='mri_voxel', to='mri', trans=T1.header.get_vox2ras_tkr()))
 head_mri_t = mne.channels.compute_native_head_t(montage)
 raw.set_montage(montage)  # converts to head coordinates
 

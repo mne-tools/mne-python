@@ -541,7 +541,7 @@ class IntracranialElectrodeLocator(SliceBrowser):
         if self._snap_button.text() == 'Off':
             self._chs[name][:] = self._ras
         else:
-            shape = np.mean(self._mri_data.shape)  # Freesurfer shape (256)
+            shape = np.mean(self._voxel_sizes)  # Freesurfer shape (256)
             voxels_max = int(
                 4 / 3 * np.pi * (shape * self._radius / _CH_PLOT_SIZE)**3)
             neighbors = _voxel_neighbors(
