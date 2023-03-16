@@ -136,7 +136,8 @@ residual.plot(axes=axes)
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.  # nAm
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7))
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7),
+                                    constrained_layout=True)
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
 print('mean(position error) = %0.1f mm' % (np.mean(diffs),))
@@ -155,9 +156,6 @@ print('mean(abs amplitude error) = %0.1f nAm' % (np.mean(np.abs(amps)),))
 ax3.bar(event_id, amps)
 ax3.set_xlabel('Dipole index')
 ax3.set_ylabel('Amplitude error (nAm)')
-
-fig.tight_layout()
-plt.show()
 
 # %%
 # Let's plot the positions and the orientations of the actual and the estimated
