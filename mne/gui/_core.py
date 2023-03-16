@@ -94,8 +94,9 @@ class SliceBrowser(QMainWindow):
         self._verbose = verbose
         # if bad/None subject, will raise an informative error when loading MRI
         subject = os.environ.get('SUBJECT') if subject is None else subject
-        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
-        self._subject_dir = op.join(subjects_dir, subject)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=False))
+        self._subject_dir = op.join(subjects_dir, subject) \
+            if subject and subjects_dir else None
         self._load_image_data(base_image=base_image)
 
         # GUI design
@@ -134,15 +135,41 @@ class SliceBrowser(QMainWindow):
 
     def _load_image_data(self, base_image=None):
         """Get image data to display and transforms to/from vox/RAS."""
-        # allows recon-all not to be finished (T1 made in a few minutes)
-        mri_img = 'brain' if op.isfile(op.join(
-            self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
-        self._mri_data, self._vox_ras_t, self._vox_scan_ras_t = _load_image(
-            op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'))
-        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)  # surface RAS
-        self._scan_ras_vox_t = np.linalg.inv(self._vox_scan_ras_t)
+        if self._subject_dir is None:
+            # if the recon-all is not finished or the CT is not
+            # downsampled to the MRI, the MRI can not be used
+            self._mri_data = None
+            self._head = None
+            self._lh = self._rh = None
+        else:
+            mri_img = 'brain' if op.isfile(op.join(
+                self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
+            self._mri_data, vox_ras_t, _ = _load_image(
+                op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'))
 
-        self._voxel_sizes = np.array(self._mri_data.shape)
+        # ready alternate base image if provided, otherwise use brain/T1
+        if base_image is None:
+            assert self._mri_data is not None
+            self._base_data = self._mri_data
+            self._vox_ras_t = vox_ras_t
+        else:
+            self._base_data, self._vox_ras_t, self._vox_scan_ras_t = \
+                _load_image(base_image)
+            if self._mri_data is not None:
+                if self._mri_data.shape != self._base_data.shape or \
+                        not np.allclose(self._vox_ras_t, vox_ras_t, rtol=1e-6):
+                    raise ValueError(
+                        'Base image is not aligned to MRI, got '
+                        f'Base shape={self._base_data.shape}, '
+                        f'MRI shape={self._mri_data.shape}, '
+                        f'Base affine={vox_ras_t} and '
+                        f'MRI affine={self._vox_ras_t}, '
+                        'please provide an aligned image or do not use the '
+                        '``subject`` and ``subjects_dir`` arguments')
+
+        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
+        self._scan_ras_vox_t = np.linalg.inv(self._vox_scan_ras_t)
+        self._voxel_sizes = np.array(self._base_data.shape)
 
         # We need our extents to land the centers of each pixel on the voxel
         # number. This code assumes 1mm isotropic...
@@ -152,46 +179,36 @@ class SliceBrowser(QMainWindow):
              -img_delta, self._voxel_sizes[idx[1]] - img_delta]
             for idx in self._xy_idx)
 
-        # ready alternate base image if provided, otherwise use brain/T1
-        if base_image is None:
-            self._base_data = self._mri_data
-        else:
-            self._base_data, vox_ras_t, _ = _load_image(base_image)
-            if self._mri_data.shape != self._base_data.shape or \
-                    not np.allclose(self._vox_ras_t, vox_ras_t, rtol=1e-6):
-                raise ValueError('Base image is not aligned to MRI, got '
-                                 f'Base shape={self._base_data.shape}, '
-                                 f'MRI shape={self._mri_data.shape}, '
-                                 f'Base affine={vox_ras_t} and '
-                                 f'MRI affine={self._vox_ras_t}')
-
-        if op.exists(op.join(self._subject_dir, 'surf', 'lh.seghead')):
-            self._head = _read_mri_surface(
-                op.join(self._subject_dir, 'surf', 'lh.seghead'))
-            assert _frame_to_str[self._head['coord_frame']] == 'mri'
-        else:
-            warn('`seghead` not found, using marching cubes on CT for '
-                 'head plot, use :ref:`mne.bem.make_scalp_surfaces` '
-                 'to add the scalp surface instead of skull from the CT')
+        if self._subject_dir is not None:
+            if op.exists(op.join(self._subject_dir, 'surf', 'lh.seghead')):
+                self._head = _read_mri_surface(
+                    op.join(self._subject_dir, 'surf', 'lh.seghead'))
+                assert _frame_to_str[self._head['coord_frame']] == 'mri'
+            else:
+                warn('`seghead` not found, using marching cubes on base image '
+                     'for head plot, use :ref:`mne.bem.make_scalp_surfaces` '
+                     'to add the scalp surface instead')
             self._head = None
-        # allow ?h.pial.T1 if ?h.pial doesn't exist
-        # end with '' for better file not found error
-        for img in ('', '.T1', '.T2', ''):
-            surf_fname = op.join(
-                self._subject_dir, 'surf', '{hemi}' + f'.pial{img}')
-            if op.isfile(surf_fname.format(hemi='lh')):
-                break
-        if op.exists(surf_fname.format(hemi='lh')):
-            self._lh = _read_mri_surface(surf_fname.format(hemi='lh'))
-            assert _frame_to_str[self._lh['coord_frame']] == 'mri'
-            self._rh = _read_mri_surface(surf_fname.format(hemi='rh'))
-            assert _frame_to_str[self._rh['coord_frame']] == 'mri'
-        else:
-            warn('`pial` surface not found, skipping adding to 3D '
-                 'plot. This indicates the Freesurfer recon-all '
-                 'has not finished or has been modified and '
-                 'these files have been deleted.')
-            self._lh = self._rh = None
+
+        if self._subject_dir is not None:
+            # allow ?h.pial.T1 if ?h.pial doesn't exist
+            # end with '' for better file not found error
+            for img in ('', '.T1', '.T2', ''):
+                surf_fname = op.join(
+                    self._subject_dir, 'surf', '{hemi}' + f'.pial{img}')
+                if op.isfile(surf_fname.format(hemi='lh')):
+                    break
+            if op.exists(surf_fname.format(hemi='lh')):
+                self._lh = _read_mri_surface(surf_fname.format(hemi='lh'))
+                assert _frame_to_str[self._lh['coord_frame']] == 'mri'
+                self._rh = _read_mri_surface(surf_fname.format(hemi='rh'))
+                assert _frame_to_str[self._rh['coord_frame']] == 'mri'
+            else:
+                warn('`pial` surface not found, skipping adding to 3D '
+                     'plot. This indicates the Freesurfer recon-all '
+                     'has not finished or has been modified and '
+                     'these files have been deleted.')
+                self._lh = self._rh = None
 
     def _plot_images(self):
         """Use the MRI or CT to make plots."""
@@ -244,7 +261,7 @@ class SliceBrowser(QMainWindow):
                          '3D visualization panel')
             rr, tris = _marching_cubes(np.where(
                 self._base_data < np.quantile(self._base_data, 0.95), 0, 1),
-                [1])[0]
+                [1], use_flying_edges=False)[0]
             rr = apply_trans(self._vox_ras_t, rr)
             self._renderer.mesh(
                 *rr.T, triangles=tris, color='gray', opacity=0.2,
@@ -369,6 +386,16 @@ class SliceBrowser(QMainWindow):
     def _ras(self):
         return self._ras_safe
 
+    def set_RAS(self, ras):
+        """Set the crosshairs to a given RAS.
+
+        Parameters
+        ----------
+        ras : array-like
+            The right-anterior-superior scanner RAS coordinate.
+        """
+        self._set_ras(ras)
+
     def _set_ras(self, ras, update_plots=True):
         ras = np.asarray(ras, dtype=float)
         assert ras.shape == (3,)
@@ -386,6 +413,16 @@ class SliceBrowser(QMainWindow):
         logger.debug(f'Setting RAS: ({msg}) mm')
         if update_plots:
             self._move_cursors_to_pos()
+
+    def set_vox(self, vox):
+        """Set the crosshairs to a given voxel coordinate.
+
+        Parameters
+        ----------
+        vox : array-like
+            The voxel coordinate.
+        """
+        self._set_ras(apply_trans(self._vox_ras_t, vox))
 
     @property
     def _vox(self):
