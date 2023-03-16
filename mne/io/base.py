@@ -2509,18 +2509,13 @@ def _check_raw_compatibility(raw):
                 raise ValueError(
                     f'raw[{ri}].info[{key}] must match:\n'
                     f'{repr(a)} != {repr(b)}')
-        bads0 = set(raw[0].info['bads'])
-        badsi = set(raw[ri].info['bads'])
-        bads_mismatch = bads0.symmetric_difference(badsi)
-        if bads_mismatch:
-            raise ValueError(f'raw[{ri}][\'info\'][\'bads\'] do not match: '
-                             f'{sorted(bads_mismatch)}')
-        chs0 = set(raw[0].info['ch_names'])
-        chsi = set(raw[ri].info['ch_names'])
-        ch_mismatch = chs0.symmetric_difference(chsi)
-        if ch_mismatch:
-            raise ValueError(f'raw[{ri}][\'info\'][\'ch_names\'] do not match:'
-                             f' {sorted(ch_mismatch)}')
+        for kind in ('bads', 'ch_names'):
+            set1 = set(raw[0].info[kind])
+            set2 = set(raw[ri].info[kind])
+            mismatch = set1.symmetric_difference(set2)
+            if mismatch:
+                raise ValueError(f'raw[{ri}][\'info\'][{kind}] do not match: '
+                                f'{sorted(mismatch)}')
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError('raw[%d]._cals must match' % ri)
         if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
