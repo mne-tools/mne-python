@@ -13,15 +13,13 @@ from functools import partial, lru_cache
 from collections import OrderedDict
 from glob import glob
 from os import path as op
-from struct import pack
 import time
 import warnings
 
 import numpy as np
 
 from .channels.channels import _get_meg_system
-from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
-                    prange, bincount)
+from .fixes import jit, prange, bincount
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
@@ -810,6 +808,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     write_surface
     read_tri
     """
+    from ._freesurfer import _import_nibabel
     fname = _check_fname(fname, 'read', True)
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
@@ -820,7 +819,9 @@ def read_surface(fname, read_metadata=False, return_dict=False,
             file_format = 'freesurfer'
 
     if file_format == 'freesurfer':
-        ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+        _import_nibabel('read surface geometry')
+        from nibabel.freesurfer import read_geometry
+        ret = read_geometry(fname, read_metadata=read_metadata)
     elif file_format == 'obj':
         ret = _read_wavefront_obj(fname)
         if read_metadata:
@@ -1185,6 +1186,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     read_surface
     read_tri
     """
+    from ._freesurfer import _import_nibabel
     fname = _check_fname(fname, overwrite=overwrite)
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
@@ -1195,35 +1197,13 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
             file_format = 'freesurfer'
 
     if file_format == 'freesurfer':
-        try:
-            import nibabel as nib
-            has_nibabel = True
-        except ImportError:
-            has_nibabel = False
-        if has_nibabel:
-            nib.freesurfer.io.write_geometry(fname, coords, faces,
-                                             create_stamp=create_stamp,
-                                             volume_info=volume_info)
-            return
-        if len(create_stamp.splitlines()) > 1:
-            raise ValueError("create_stamp can only contain one line")
-
-        with open(fname, 'wb') as fid:
-            fid.write(pack('>3B', 255, 255, 254))
-            strs = ['%s\n' % create_stamp, '\n']
-            strs = [s.encode('utf-8') for s in strs]
-            fid.writelines(strs)
-            vnum = len(coords)
-            fnum = len(faces)
-            fid.write(pack('>2i', vnum, fnum))
-            fid.write(np.array(coords, dtype='>f4').tobytes())
-            fid.write(np.array(faces, dtype='>i4').tobytes())
-
-            # Add volume info, if given
-            if volume_info is not None and len(volume_info) > 0:
-                fid.write(_serialize_volume_info(volume_info))
-
-    elif file_format == 'obj':
+        _import_nibabel('write surface geometry')
+        from nibabel.freesurfer import write_geometry
+        write_geometry(
+            fname, coords, faces, create_stamp=create_stamp,
+            volume_info=volume_info)
+    else:
+        assert file_format == 'obj'
         with open(fname, 'w') as fid:
             for line in create_stamp.splitlines():
                 fid.write(f'# {line}\n')

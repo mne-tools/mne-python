@@ -54,22 +54,36 @@ def _get_test_info():
 
 def test_io_layout_lout(tmp_path):
     """Test IO with .lout files."""
-    layout = read_layout('Vectorview-all', scale=False)
-    layout.save(tmp_path / "foobar.lout")
+    layout = read_layout(fname="Vectorview-all", scale=False)
+    layout.save(tmp_path / "foobar.lout", overwrite=True)
     layout_read = read_layout(
-        tmp_path / "foobar.lout", path="./", scale=False
+        fname=tmp_path / "foobar.lout", scale=False,
     )
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names
     assert "<Layout |" in layout.__repr__()
 
+    # deprecation
+    with pytest.warns(DeprecationWarning, match="should not be provided"):
+        layout_read = read_layout(
+            fname=tmp_path / "foobar.lout", kind="Vectorview-all", scale=False,
+        )
+    with pytest.warns(DeprecationWarning, match="should not be provided"):
+        layout_read = read_layout(
+            fname=tmp_path / "foobar.lout", path=None, scale=False,
+        )
+    with pytest.warns(
+        DeprecationWarning, match="'kind' and 'path' are deprecated"
+    ):
+        layout_read = read_layout(kind="Vectorview-all", scale=False)
+
 
 def test_io_layout_lay(tmp_path):
     """Test IO with .lay files."""
-    layout = read_layout('CTF151', scale=False)
+    layout = read_layout(fname="CTF151", scale=False)
     layout.save(str(tmp_path / "foobar.lay"))
     layout_read = read_layout(
-        str(tmp_path / "foobar.lay"), path="./", scale=False
+        fname=tmp_path / "foobar.lay", scale=False
     )
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names
@@ -141,17 +155,17 @@ def test_find_topomap_coords():
 
 def test_make_eeg_layout(tmp_path):
     """Test creation of EEG layout."""
-    tmp_name = 'foo'
-    lout_name = 'test_raw'
-    lout_orig = read_layout(kind=lout_name, path=lout_path)
+    lout_orig = read_layout(fname=lout_path / "test_raw.lout")
     info = read_info(fif_fname)
-    info['bads'].append(info['ch_names'][360])
+    info["bads"].append(info["ch_names"][360])
     layout = make_eeg_layout(info, exclude=[])
-    assert_array_equal(len(layout.names), len([ch for ch in info['ch_names']
-                                               if ch.startswith('EE')]))
-    layout.save(str(tmp_path / (tmp_name + ".lout")))
-    lout_new = read_layout(kind=tmp_name, path=tmp_path, scale=False)
-    assert_array_equal(lout_new.kind, tmp_name)
+    assert_array_equal(
+        len(layout.names),
+        len([ch for ch in info["ch_names"] if ch.startswith("EE")]),
+    )
+    layout.save(str(tmp_path / "foo.lout"))
+    lout_new = read_layout(fname=tmp_path / "foo.lout", scale=False)
+    assert_array_equal(lout_new.kind, "foo")
     assert_allclose(layout.pos, lout_new.pos, atol=0.1)
     assert_array_equal(lout_orig.names, lout_new.names)
 
@@ -166,13 +180,11 @@ def test_make_eeg_layout(tmp_path):
 
 def test_make_grid_layout(tmp_path):
     """Test creation of grid layout."""
-    tmp_name = 'bar'
-    lout_name = 'test_ica'
-    lout_orig = read_layout(kind=lout_name, path=lout_path)
+    lout_orig = read_layout(fname=lout_path / "test_ica.lout")
     layout = make_grid_layout(_get_test_info())
-    layout.save(str(tmp_path / (tmp_name + ".lout")))
-    lout_new = read_layout(kind=tmp_name, path=tmp_path)
-    assert_array_equal(lout_new.kind, tmp_name)
+    layout.save(str(tmp_path / "bar.lout"))
+    lout_new = read_layout(fname=tmp_path / "bar.lout")
+    assert_array_equal(lout_new.kind, "bar")
     assert_array_equal(lout_orig.pos, lout_new.pos)
     assert_array_equal(lout_orig.names, lout_new.names)
 
