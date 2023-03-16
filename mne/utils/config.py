@@ -29,7 +29,7 @@ from ._logging import warn, logger
 
 _temp_home_dir = None
 
-_UNICODE = sys.stdout.encoding.lower().startswith('utf')
+_UNICODE_SUPPORT = sys.stdout.encoding.lower().startswith('utf')
 
 
 def set_cache_dir(cache_dir):
@@ -518,7 +518,7 @@ def _get_import_name(package_name):
         return package_name.replace("-", "_")
 
 
-def sys_info(fid=None, show_paths=False, *, dependencies='core'):
+def sys_info(fid=None, show_paths=False, *, dependencies='core', unicode=True):
     """Print system information.
 
     This function prints system information useful when triaging bugs.
@@ -532,6 +532,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='core'):
         If True, print paths for each module.
     dependencies : 'core' | 'all'
         Show only core or include extra dependencies.
+    unicode : bool
+        Include unicode characters for nicer output.
 
         .. versionadded:: 0.24
     """
@@ -600,7 +602,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='core'):
             except ModuleNotFoundError:
                 unavailable.append(name)
             else:
-                if _UNICODE:
+                if unicode and _UNICODE_SUPPORT:
                     out(f"✔︎ {name}".ljust(ljust + 1))
                 else:
                     out(f"{name}".ljust(ljust))
@@ -625,7 +627,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='core'):
                     out(f" ({op.dirname(module.__file__)})")
                 out("\n")
         if unavailable:
-            if _UNICODE:
+            if unicode and _UNICODE_SUPPORT:
                 out(f"✘ Not installed: {', '.join(unavailable)}\n")
             else:
                 out(f"Not installed: {', '.join(unavailable)}\n")
