@@ -7,7 +7,6 @@
 
 import os.path as op
 import numpy as np
-from gzip import GzipFile
 from pathlib import Path
 
 from .bem import _bem_find_surface, read_bem_surfaces
@@ -17,7 +16,7 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version, logger)
+                    get_subjects_dir, logger)
 
 
 def _check_subject_dir(subject, subjects_dir):
