@@ -1,3 +1,2 @@
 mne-qt-browser
-QtPy
 PySide6

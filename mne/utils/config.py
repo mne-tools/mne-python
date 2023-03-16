@@ -510,7 +510,8 @@ def _get_import_name(package_name):
     mapping = {
         "scikit-learn": "sklearn",
         "edflib-python": "EDFlib",
-        "codespell": "codespell_lib"
+        "codespell": "codespell_lib",
+        "pyside6": "PySide6"
     }
     if package_name.lower() in mapping:
         return mapping[package_name.lower()]
@@ -609,7 +610,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='core', unicode=True):
                     out(f"{name}".ljust(ljust))
                 try:
                     out(metadata.version(name))
-                except AttributeError:
+                except (AttributeError, metadata.PackageNotFoundError):
                     out("?")
                 if name == "numpy":
                     out(f" ({libs})")
