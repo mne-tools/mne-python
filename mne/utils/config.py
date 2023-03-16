@@ -575,6 +575,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='core', unicode=True):
     packages = defaultdict(list, {"core": []})
 
     for requirement in requirements:
+        requirement = requirement.lower()
         extra = None
         if "extra" in requirement:  # extra (optional)
             requirement, extra = requirement.split(";")

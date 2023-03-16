@@ -55,6 +55,7 @@ if __name__ == "__main__":
     hdf5_requires = parse_requirements_file('requirements_hdf5.txt')
     test_requires = (parse_requirements_file('requirements_testing.txt') +
                      parse_requirements_file('requirements_testing_extra.txt'))
+    browser_requires = parse_requirements_file('requirements_browser.txt')
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -96,6 +97,7 @@ if __name__ == "__main__":
               'data': data_requires,
               'hdf5': hdf5_requires,
               'test': test_requires,
+              'browser': browser_requires
           },
           packages=package_tree('mne'),
           package_data={'mne': [
