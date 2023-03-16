@@ -574,12 +574,12 @@ def sys_info(fid=None, show_paths=False, *, dependencies='core'):
 
     for requirement in requirements:
         extra = None
-        if ";" in requirement:  # extra (optional)
+        if "extra" in requirement:  # extra (optional)
             requirement, extra = requirement.split(";")
         requirement = requirement.split(">=")[0]  # strip version
         if extra is not None:
             if dependencies in ("all", "developer"):
-                group = extra.split(" == ")[-1].replace('"', "")
+                group = extra.split("extra == ")[-1].replace('"', "")
                 packages[group].append(requirement)
         else:
             packages["core"].append(requirement)
