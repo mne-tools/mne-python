@@ -518,7 +518,7 @@ def _get_import_name(package_name):
         return package_name.replace("-", "_")
 
 
-def sys_info(fid=None, show_paths=False, *, dependencies='user'):
+def sys_info(fid=None, show_paths=False, *, dependencies='core'):
     """Print system information.
 
     This function prints system information useful when triaging bugs.
@@ -530,13 +530,17 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
-    dependencies : 'user' | 'developer'
-        Show dependencies relevant for users (default) or for developers.
+    dependencies : 'core' | 'all'
+        Show only core or include extra dependencies.
 
         .. versionadded:: 0.24
     """
     _validate_type(dependencies, str)
-    _check_option('dependencies', dependencies, ('user', 'developer'))
+    _check_option(
+        'dependencies',
+        dependencies,
+        ('core', 'all', 'user', 'developer')
+    )
     ljust = 23
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
@@ -574,8 +578,9 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             requirement, extra = requirement.split(";")
         requirement = requirement.split(">=")[0]  # strip version
         if extra is not None:
-            group = extra.split(" == ")[-1].replace('"', "")
-            packages[group].append(requirement)
+            if dependencies in ("all", "developer"):
+                group = extra.split(" == ")[-1].replace('"', "")
+                packages[group].append(requirement)
         else:
             packages["core"].append(requirement)
 
