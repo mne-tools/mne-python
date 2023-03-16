@@ -91,5 +91,5 @@ montage.apply_trans(mne.transforms.Transform(  # to MR voxels
 head_mri_t = mne.channels.compute_native_head_t(montage)
 raw.set_montage(montage)  # converts to head coordinates
 
-brain = mne.viz.Brain(subject='sample_seeg', subjects_dir=subjects_dir)
-brain.add_sensors(raw, head_mri_t)
+brain = mne.viz.Brain(subject='sample_seeg', subjects_dir=subjects_dir, alpha=0.5)
+brain.add_sensors(raw.info, head_mri_t)
