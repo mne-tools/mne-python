@@ -41,7 +41,8 @@ T1 = nib.load(misc_path / 'seeg' / 'sample_seeg' / 'mri' / 'T1.mgz')
 # identiy matrix but we'll find the fiducials on the CT in freeview (be sure
 # to find them in surface RAS (TkReg RAS in freeview) and not scanner RAS
 # (RAS in freeview)) (also be sure to note left is generally on the right in
-# freeview) and reproduce them here:montage = mne.channels.make_dig_montage(
+# freeview) and reproduce them here:
+montage = mne.channels.make_dig_montage(
     nasion=[-28.97, -5.88, -76.40], lpa=[-96.35, -16.26, 17.63],
     rpa=[31.28, -52.95, -0.69], coord_frame='mri')
 raw.set_montage(montage, on_missing='ignore')  # haven't located yet!
