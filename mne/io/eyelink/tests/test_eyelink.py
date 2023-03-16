@@ -78,6 +78,7 @@ def test_eyelink(fname, create_annotations, find_overlaps):
 
 
 @requires_testing_data
+@requires_pandas
 @pytest.mark.parametrize('fname_href',
                          [(fname_href)])
 def test_radian(fname_href):
