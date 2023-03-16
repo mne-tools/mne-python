@@ -505,6 +505,19 @@ def _get_gpu_info():
     return out
 
 
+def _get_import_name(package_name):
+    """Get import name from a given package name."""
+    mapping = {
+        "scikit-learn": "sklearn",
+        "edflib-python": "EDFlib",
+        "codespell": "codespell_lib"
+    }
+    if package_name.lower() in mapping:
+        return mapping[package_name.lower()]
+    else:
+        return package_name.replace("-", "_")
+
+
 def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """Print system information.
 
@@ -524,7 +537,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 22
+    ljust = 23
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -578,7 +591,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         unavailable = []
         for name in packages[group]:
             try:
-                module = import_module(name)
+                module = import_module(_get_import_name(name))
             except ModuleNotFoundError:
                 unavailable.append(name)
             else:
