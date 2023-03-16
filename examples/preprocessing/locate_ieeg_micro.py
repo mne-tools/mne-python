@@ -17,6 +17,7 @@ shows how to do this.
 #
 # License: BSD-3-Clause
 
+import nunpy as np
 import nibabel as nib
 import mne
 
@@ -56,9 +57,33 @@ head_ct_t = mne.channels.compute_native_head_t(montage)
 gui = mne.gui.locate_ieeg(raw.info, head_ct_t, CT_orig)
 
 # we'll programmatically mark all the contacts on one electrode shaft
+for i, pos in [()]:
+    gui.set_RAS(pos)
+    gui.mark_channel(f'LENT {i + 1}')
 
 # finally, the coordinates will be in "head" (unless the trans was faked
-# as the identity in which case they will be in surface RAS of the CT already)
+# as the identity, in which case they will be in surface RAS of the CT already)
 # so we need to convert them to scanner RAS of the aligned CT (which is
 # identical to scanner RAS of the MRI) and from there to surface RAS
-# of the MRI for 
+# of the MRI for viewing using freesurfer recon-all surfaces.
+# note that since we didn't fake the head->CT surface RAS transform, we
+# could apply the head->mri transform directly but that relies of the
+# fiducial points being marked exactly the same on the CT as on the MRI--
+# the error from this is not precise enough for intracranial electrophysiology,
+# better is to rely on the CT-MR image registration precision
+
+montage = raw.get_montage()  # in head
+montage.apply_trans(head_ct_t)  # in CT surface RAS
+montage.apply_trans(mne.transforms.Transform(  # in CT voxels
+    fro='mri', to='vox',
+    trans=np.linalg.inv(CT_orig.header.get_vox2ras_tkr())))
+# to CT scanner RAS == MR scanner RAS
+montage.apply_trans(mne.transforms.Transform(
+    fro='vox', to='ras', trans=CT_orig.header.get_vox2ras()))
+montage.apply_trans(mne.transforms.Transform(  # in MR surface RAS
+    fro='vox', to='mri', trans=T1.header.get_vox2ras_tkr()))
+head_mri_t = mne.channels.compute_native_head_t(montage)
+raw.set_montage(montage)  # converts to head coordinates
+
+brain = mne.viz.Brain(subject='sample_seeg', subjects_dir=subjects_dir)
+brain.add_sensors(raw, head_mri_t)

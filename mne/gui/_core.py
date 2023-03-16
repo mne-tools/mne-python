@@ -170,6 +170,7 @@ class SliceBrowser(QMainWindow):
         self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
         self._scan_ras_vox_t = np.linalg.inv(self._vox_scan_ras_t)
         self._voxel_sizes = np.array(self._base_data.shape)
+        self._voxel_ratios = self._voxel_sizes / self._voxel_sizes.min()
 
         # We need our extents to land the centers of each pixel on the voxel
         # number. This code assumes 1mm isotropic...
@@ -261,7 +262,7 @@ class SliceBrowser(QMainWindow):
                          '3D visualization panel')
             rr, tris = _marching_cubes(np.where(
                 self._base_data < np.quantile(self._base_data, 0.95), 0, 1),
-                [1], use_flying_edges=False)[0]
+                [1])[0]
             rr = apply_trans(self._vox_ras_t, rr)
             self._renderer.mesh(
                 *rr.T, triangles=tris, color='gray', opacity=0.2,
@@ -326,16 +327,17 @@ class SliceBrowser(QMainWindow):
         for axis, fig in enumerate(self._figs):
             xcur = self._images['cursor_v'][axis].get_xdata()[0]
             ycur = self._images['cursor_h'][axis].get_ydata()[0]
+            rx, ry = [self._voxel_ratios[idx] for idx in self._xy_idx[axis]]
             xmin, xmax = fig.axes[0].get_xlim()
             ymin, ymax = fig.axes[0].get_ylim()
             xmid = (xmin + xmax) / 2
             xmid += delta / 2 * np.sign(xcur - xmid) if \
-                delta / 2 < abs(xmid - xcur) else xcur - xmid
+                delta / 2 < abs(xmid - xcur) / rx else xcur - xmid
             ymid = (ymin + ymax) / 2
             ymid += delta / 2 * np.sign(ycur - ymid) if \
-                delta / 2 < abs(ymid - ycur) else ycur - ymid
-            xwidth = (xmax - xmin) / 2 - delta
-            ywidth = (ymax - ymin) / 2 - delta
+                delta / 2 < abs(ymid - ycur) / ry else ycur - ymid
+            xwidth = (xmax - xmin) / 2 - delta * rx
+            ywidth = (ymax - ymin) / 2 - delta * ry
             if xwidth <= 0 or ywidth <= 0:
                 return
             fig.axes[0].set_xlim(xmid - xwidth, xmid + xwidth)

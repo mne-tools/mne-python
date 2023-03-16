@@ -163,7 +163,7 @@ class IntracranialElectrodeLocator(SliceBrowser):
         ch_list.clicked.connect(self._go_to_ch)
         ch_list.setCurrentIndex(
             self._ch_list_model.index(self._ch_index, 0))
-        ch_list.keyPressEvent = self._key_press_event
+        ch_list.keyPressEvent = self.keyPressEvent
         return ch_list
 
     def _make_ch_image(self, axis, proj=False):
@@ -321,7 +321,7 @@ class IntracranialElectrodeLocator(SliceBrowser):
             slider.setTracking(False)  # only update on release
             if sfun is not None:
                 slider.valueChanged.connect(sfun)
-            slider.keyPressEvent = self._key_press_event
+            slider.keyPressEvent = self.keyPressEvent
             return slider
 
         slider_hbox = QHBoxLayout()
@@ -755,9 +755,9 @@ class IntracranialElectrodeLocator(SliceBrowser):
             self._toggle_brain_button.setText('Hide Brain')
         self._draw()
 
-    def _key_press_event(self, event):
+    def keyPressEvent(self, event):
         """Execute functions when the user presses a key."""
-        super(IntracranialElectrodeLocator, self)._key_press_event(event)
+        super(IntracranialElectrodeLocator, self).keyPressEvent(event)
 
         if event.text() == 'm':
             self.mark_channel()
