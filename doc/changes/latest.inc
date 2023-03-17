@@ -57,6 +57,7 @@ Bugs
 - Expand tilde (user directory) in config keys (:gh:`11537` by `Clemens Brunner`_)
 - Fix bug in :func:`mne.preprocessing.compute_maxwell_basis` where using ``int_order=0`` would raise an error (:gh:`11562` by `Eric Larson`_)
 - Fix :func:`mne.io.read_raw` for file names containing multiple dots (:gh:`11521` by `Clemens Brunner`_)
+- Fix bug in :func:`mne.export.export_raw` when exporting to EDF with a physical range set smaller than the data range (:gh:`11569` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
