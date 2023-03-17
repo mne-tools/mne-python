@@ -1878,7 +1878,7 @@ def apply_volume_registration_points(info, trans, moving, static, reg_affine,
                           moving.affine)
     static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32),
                           static.affine)
-    
+
     montage = info.get_montage()
     montage_kwargs = montage.get_positions()
     trans = _ensure_trans(trans, 'head', 'mri')
