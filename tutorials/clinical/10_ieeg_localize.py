@@ -483,10 +483,16 @@ del subject_brain, template_brain
 montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
-montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.25,
+montage_warped = mne.warp_montage(
+    montage, reg_affine, sdr_morph,
     subject_from='sample_seeg', subjects_dir_from=misc_path / 'seeg',
     subject_to='fsaverage', subjects_dir_to=subjects_dir)
+
+elec_image = mne.preprocessing.ieeg.make_montage_volume(
+    CT_aligned, thresh=0.25)
+
+warped_elec_image = mne.transforms.apply_volume_registration(
+    elec_image, template_brain, reg_affine, sdr_morph)
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')

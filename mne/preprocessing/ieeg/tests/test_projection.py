@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Test the compute_current_source_density function.
-
-For each supported file format, implement a test.
-"""
+"""Test the ieeg projection functions."""
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
