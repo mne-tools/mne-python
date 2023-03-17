@@ -1874,9 +1874,6 @@ def apply_volume_registration_points(info, trans, moving, static, reg_affine,
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
 
-    scale = np.eye(4)
-    scale[:3, :3] *= 1000  # mm to m
-
     moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32),
                           moving.affine)
     static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32),
@@ -1889,11 +1886,10 @@ def apply_volume_registration_points(info, trans, moving, static, reg_affine,
 
     locs = np.array(list(montage.get_positions()['ch_pos'].values()))
 
-    locs = apply_trans(Transform(
-        fro='mri', to='mri', trans=scale), locs)  # mm -> m
     locs = apply_trans(Transform(  # to moving voxels
         fro='mri', to='mri_voxel',
-        trans=np.linalg.inv(moving_mgh.header.get_vox2ras_tkr())), locs)
+        trans=np.linalg.inv(moving_mgh.header.get_vox2ras_tkr())),
+        locs * 1000)
     locs = apply_trans(Transform(  # to moving ras
         fro='mri_voxel', to='ras',
         trans=moving_mgh.header.get_vox2ras()), locs)
@@ -1908,9 +1904,7 @@ def apply_volume_registration_points(info, trans, moving, static, reg_affine,
         trans=np.linalg.inv(static_mgh.header.get_vox2ras())), locs)
     locs = apply_trans(Transform(  # to static surface RAS
         fro='mri_voxel', to='mri',
-        trans=static_mgh.header.get_vox2ras_tkr()), locs)
-    locs = apply_trans(Transform(  # m -> mm
-        fro='mri', to='mri', trans=np.linalg.inv(scale)), locs)
+        trans=static_mgh.header.get_vox2ras_tkr()), locs) / 1000
 
     montage_kwargs['coord_frame'] = 'mri'
     montage_kwargs['ch_pos'] = {ch: loc for ch, loc in
