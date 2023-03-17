@@ -1313,7 +1313,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
         from matplotlib.colors import to_rgb
-        from matplotlib.gridspec import GridSpec
         from matplotlib.widgets import RadioButtons
 
         # make figure
@@ -1321,9 +1320,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                                      FigureClass=MNESelectionFigure,
                                      fig_name='fig_selection',
                                      window_title='Channel selection')
-        # XXX when matplotlib 3.3 is min version, replace this with
-        # XXX gs = fig.add_gridspec(15, 1)
-        gs = GridSpec(nrows=15, ncols=1)
+        gs = fig.add_gridspec(15, 1)
         # add sensor plot at top
         fig.mne.sensor_ax = fig.add_subplot(gs[:5])
         plot_sensors(self.mne.info, kind='select', ch_type='all', title='',

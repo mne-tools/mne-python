@@ -243,8 +243,9 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     #     assert cbar.get_title() == expected_unit
     # ...but not all matplotlib versions support it, and we can't use
     # @requires_version because it's hard figure out exactly which MPL version
-    # is the cutoff since it relies on a private attribute. So for now we just
-    # do this:
+    # is the cutoff since it relies on a private attribute. Based on some
+    # basic testing it's at least matplotlib version >= 3.5.
+    # So for now we just do this:
     for ax in fig.axes:
         if hasattr(ax, '_colorbar'):
             assert ax.get_title() == expected_unit
