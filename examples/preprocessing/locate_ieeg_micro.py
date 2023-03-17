@@ -68,14 +68,15 @@ for i, pos in enumerate([(-52.66, -40.84, -26.99), (-55.47, -38.03, -27.92),
 
 # finally, the coordinates will be in "head" (unless the trans was faked
 # as the identity, in which case they will be in surface RAS of the CT already)
-# so we need to convert them to scanner RAS of the aligned CT (which is
-# identical to scanner RAS of the MRI) and from there to surface RAS
+# so we need to convert them to scanner RAS of the CT, apply the alignment so
+# that they are in scanner RAS of the MRI and from there to surface RAS
 # of the MRI for viewing using freesurfer recon-all surfaces.
+
 # note that since we didn't fake the head->CT surface RAS transform, we
 # could apply the head->mri transform directly but that relies of the
 # fiducial points being marked exactly the same on the CT as on the MRI--
 # the error from this is not precise enough for intracranial electrophysiology,
-# better is to rely on the CT-MR image registration precision
+# better is to rely on the precision of the CT-MR image registration
 
 scale = np.eye(4)
 scale[:3, :3] *= 1000  # mm to m

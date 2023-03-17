@@ -144,7 +144,7 @@ class SliceBrowser(QMainWindow):
         else:
             mri_img = 'brain' if op.isfile(op.join(
                 self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
-            self._mri_data, vox_ras_t, _ = _load_image(
+            self._mri_data, vox_ras_t, vox_scan_ras_t = _load_image(
                 op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'))
 
         # ready alternate base image if provided, otherwise use brain/T1
@@ -152,6 +152,7 @@ class SliceBrowser(QMainWindow):
             assert self._mri_data is not None
             self._base_data = self._mri_data
             self._vox_ras_t = vox_ras_t
+            self._vox_scan_ras_t = vox_scan_ras_t
         else:
             self._base_data, self._vox_ras_t, self._vox_scan_ras_t = \
                 _load_image(base_image)
@@ -189,7 +190,7 @@ class SliceBrowser(QMainWindow):
                 warn('`seghead` not found, using marching cubes on base image '
                      'for head plot, use :ref:`mne.bem.make_scalp_surfaces` '
                      'to add the scalp surface instead')
-            self._head = None
+                self._head = None
 
         if self._subject_dir is not None:
             # allow ?h.pial.T1 if ?h.pial doesn't exist
@@ -260,13 +261,16 @@ class SliceBrowser(QMainWindow):
         if self._head is None:
             logger.debug('Using marching cubes on the base image for the '
                          '3D visualization panel')
+            # in this case, leave in voxel coordinates
             rr, tris = _marching_cubes(np.where(
                 self._base_data < np.quantile(self._base_data, 0.95), 0, 1),
                 [1])[0]
-            rr = apply_trans(self._vox_ras_t, rr)
+            # marching cubes transposes dimensions so flip
+            rr = apply_trans(self._vox_ras_t, rr[:, ::-1])
             self._renderer.mesh(
                 *rr.T, triangles=tris, color='gray', opacity=0.2,
                 reset_camera=False, render=False)
+            self._renderer.set_camera(focalpoint=rr.mean(axis=0))
         else:
             self._renderer.mesh(
                 *self._head['rr'].T * 1000, triangles=self._head['tris'],
