@@ -1890,7 +1890,7 @@ def apply_volume_registration_points(info, trans, moving, static, reg_affine,
     locs = np.array(list(montage.get_positions()['ch_pos'].values()))
 
     locs = apply_trans(Transform(
-        fro='mri', to='mri', trans=scale), locs) # mm -> m
+        fro='mri', to='mri', trans=scale), locs)  # mm -> m
     locs = apply_trans(Transform(  # to moving voxels
         fro='mri', to='mri_voxel',
         trans=np.linalg.inv(moving_mgh.header.get_vox2ras_tkr())), locs)
