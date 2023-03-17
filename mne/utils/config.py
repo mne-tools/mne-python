@@ -599,7 +599,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
             out(f'{mod_name}\n')
             continue
         pre = '├'
-        if use_mod_names[mi + 1] == '' and not unavailable:
+        last = use_mod_names[mi + 1] == '' and not unavailable
+        if last:
             pre = '└'
         try:
             mod = import_module(mod_name)
@@ -635,5 +636,11 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
                 else:
                     out(f' (OpenGL {version} via {renderer})')
             if show_paths:
-                out(f'\n{" " * ljust}•{op.dirname(mod.__file__)}')
+                if last:
+                    pre = '   '
+                elif unicode:
+                    pre = '│  '
+                else:
+                    pre = ' | '
+                out(f'\n{pre}{" " * ljust}{op.dirname(mod.__file__)}')
             out('\n')
