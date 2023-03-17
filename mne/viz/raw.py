@@ -7,6 +7,7 @@
 # License: Simplified BSD
 
 from collections import OrderedDict
+from inspect import currentframe, getargvalues
 
 import numpy as np
 
@@ -14,7 +15,7 @@ from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
 from ..io.pick import pick_types, pick_channels
 from ..utils import legacy, verbose, _validate_type, _check_option
-from ..utils.spectrum import _translate_old_psd_kwargs
+from ..utils.spectrum import _triage_old_psd_kwargs
 from ..defaults import _handle_default
 from .utils import (_compute_scalings, _handle_decim, _check_cov,
                     _shorten_path_from_middle, _handle_precompute,
@@ -421,19 +422,10 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     -----
     %(notes_plot_*_psd_func)s
     """
-    amplitude, ci = _translate_old_psd_kwargs(estimate, area_mode)
-    fig = raw.compute_psd(
-        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-        proj=proj, reject_by_annotation=reject_by_annotation, method='welch',
-        n_jobs=n_jobs, verbose=verbose, n_fft=n_fft, n_overlap=n_overlap,
-        window=window
-    ).plot(
-        picks='all', ax=ax, color=color, xscale=xscale, ci=ci,
-        ci_alpha=area_alpha, dB=dB, amplitude=amplitude, show=show,
-        alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-        exclude=exclude, average=average
-    )
-    return fig
+    frame = currentframe()
+    arginfo = getargvalues(frame)
+    init_kw, plot_kw = _triage_old_psd_kwargs(arginfo=arginfo)
+    return raw.compute_psd(**init_kw).plot(**plot_kw)
 
 
 @legacy(alt='Raw.compute_psd().plot_topo()')

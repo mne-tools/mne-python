@@ -24,7 +24,7 @@ from ..utils import (GetEpochsMixin, _build_data_frame,
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
-from ..utils.spectrum import _translate_old_psd_kwargs, _triage_old_psd_kwargs
+from ..utils.spectrum import _triage_old_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
@@ -93,32 +93,10 @@ class SpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
-        from ..io import BaseRaw
-
-        # get passed params & values
         frame = currentframe()
         arginfo = getargvalues(frame)
-        passed_kwargs = {k: v for k, v in arginfo.locals.items()
-                         if k in arginfo.args}
-        if arginfo.keywords is not None:
-            passed_kwargs.update(arginfo.locals[arginfo.keywords])
-
-        # handle API changes
-        amplitude, ci = _translate_old_psd_kwargs(estimate, area_mode)
-        passed_kwargs.update(amplitude=amplitude, ci=ci)
-        del passed_kwargs['estimate']
-        del passed_kwargs['area_mode']
-
-        # don't pass `reject_by_annotation` if self is Epochs or Evoked
-        if not isinstance(self, BaseRaw):
-            del passed_kwargs['reject_by_annotation']
-
-        # triage kwargs & call constructor
-        init_kwargs, plot_kwargs = _triage_old_psd_kwargs()
-        spectrum = self.compute_psd(**init_kwargs)
-
-        fig = spectrum.plot(**plot_kwargs)
-        return fig
+        init_kwargs, plot_kwargs = _triage_old_psd_kwargs(arginfo=arginfo)
+        return self.compute_psd(**init_kwargs).plot(**plot_kwargs)
 
     @legacy(alt='.compute_psd().plot_topo()')
     @verbose

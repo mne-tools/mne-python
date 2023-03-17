@@ -13,6 +13,7 @@
 
 from collections import Counter
 from copy import deepcopy
+from inspect import currentframe, getargvalues
 import warnings
 
 import numpy as np
@@ -21,7 +22,7 @@ from .raw import _setup_channel_selections
 from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
-from ..utils.spectrum import _translate_old_psd_kwargs
+from ..utils.spectrum import _triage_old_psd_kwargs
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -982,17 +983,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -----
     %(notes_plot_*_psd_func)s
     """
-    amplitude, ci = _translate_old_psd_kwargs(estimate, area_mode)
-    fig = epochs.compute_psd(
-        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-        proj=proj, method='multitaper', n_jobs=n_jobs, verbose=verbose,
-        # these are **method_kw:
-        window='hamming', bandwidth=bandwidth, adaptive=adaptive,
-        low_bias=low_bias, normalization=normalization
-    ).plot(
-        picks='all', ax=ax, color=color, xscale=xscale, ci=ci,
-        ci_alpha=area_alpha, dB=dB, amplitude=amplitude, show=show,
-        alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-        exclude=exclude, average=average,
-    )
-    return fig
+    frame = currentframe()
+    arginfo = getargvalues(frame)
+    init_kw, plot_kw = _triage_old_psd_kwargs(arginfo=arginfo)
+    return epochs.compute_psd(**init_kw).plot(**plot_kw)
