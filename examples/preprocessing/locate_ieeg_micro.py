@@ -77,20 +77,37 @@ for i, pos in enumerate([(-52.66, -40.84, -26.99), (-55.47, -38.03, -27.92),
 # the error from this is not precise enough for intracranial electrophysiology,
 # better is to rely on the CT-MR image registration precision
 
+scale = np.eye(4)
+scale[:3, :3] *= 1000  # mm to m
+
+reg_affine = np.array([  # CT-MR registration
+    [0.99270756, -0.03243313, 0.11610254, -133.094156],
+    [0.04374389, 0.99439665, -0.09623816, -97.58320673],
+    [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
+    [0., 0., 0., 1.]])
+
 montage = raw.get_montage()  # in head
 montage.apply_trans(head_ct_t)  # in CT surface RAS
+montage.apply_trans(mne.transforms.Transform(
+    fro='mri', to='mri', trans=scale))
 montage.apply_trans(mne.transforms.Transform(  # in CT voxels
     fro='mri', to='mri_voxel',
     trans=np.linalg.inv(CT_orig.header.get_vox2ras_tkr())))
 # to CT scanner RAS == MR scanner RAS
 montage.apply_trans(mne.transforms.Transform(
     fro='mri_voxel', to='ras', trans=CT_orig.header.get_vox2ras()))
+montage.apply_trans(mne.transforms.Transform(
+    fro='ras', to='ras', trans=np.linalg.inv(reg_affine)))
 montage.apply_trans(mne.transforms.Transform(  # to MR voxels
     fro='ras', to='mri_voxel', trans=np.linalg.inv(T1.header.get_vox2ras())))
 montage.apply_trans(mne.transforms.Transform(  # to MR voxels
     fro='mri_voxel', to='mri', trans=T1.header.get_vox2ras_tkr()))
+montage.apply_trans(mne.transforms.Transform(  # scale back
+    fro='mri', to='mri', trans=np.linalg.inv(scale)))
 head_mri_t = mne.channels.compute_native_head_t(montage)
 raw.set_montage(montage)  # converts to head coordinates
 
-brain = mne.viz.Brain(subject='sample_seeg', subjects_dir=subjects_dir, alpha=0.5)
+brain = mne.viz.Brain(subject='sample_seeg', subjects_dir=subjects_dir,
+                      alpha=0.5)
 brain.add_sensors(raw.info, head_mri_t)
+brain.show_view(azimuth=120, elevation=100)

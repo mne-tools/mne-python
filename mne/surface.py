@@ -1776,7 +1776,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None,
 
     # force double as passing integer types directly can be problematic!
     image_shape = image.shape
-    data_vtk = numpy_to_vtk(image.ravel().astype(float), deep=True)
+    # use order='A' to automatically detect when Fortan ordering is needed
+    data_vtk = numpy_to_vtk(image.ravel(order='A').astype(float), deep=True)
     del image
 
     mc = vtkDiscreteFlyingEdges3D() if use_flying_edges else \

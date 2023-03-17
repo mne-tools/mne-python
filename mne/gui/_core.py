@@ -258,11 +258,8 @@ class SliceBrowser(QMainWindow):
                 'button_release_event', partial(self._on_click, axis=axis))
         # add head and brain in mm (convert from m)
         if self._head is None:
-            logger.debug('Using marching cubes on CT for the '
+            logger.debug('Using marching cubes on the base image for the '
                          '3D visualization panel')
-            '''from skimage.measure import marching_cubes
-            rr, tris = marching_cubes(
-                self._base_data < np.quantile(self._base_data, 0.95), 0)[:2]'''
             rr, tris = _marching_cubes(np.where(
                 self._base_data < np.quantile(self._base_data, 0.95), 0, 1),
                 [1])[0]
