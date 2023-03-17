@@ -18,16 +18,14 @@ import mne
 def run():
     """Run command."""
     parser = mne.commands.utils.get_optparser(__file__, usage='mne sys_info')
-    parser.set_defaults(unicode=False)
     parser.add_option('-p', '--show-paths', dest='show_paths',
                       help='Show module paths', action='store_true')
     parser.add_option('-d', '--developer', dest='developer',
                       help='Show additional developer module information',
                       action='store_true')
-    parser.add_option('-u', '--unicode', dest='unicode',
-                      help='Use Unicode symbols', action='store_true')
     parser.add_option('-a', '--ascii', dest='unicode',
-                      help='Use ASCII symbols', action='store_false')
+                      help='Use ASCII instead of unicode symbols',
+                      action='store_false', default=True)
     options, args = parser.parse_args()
     dependencies = 'developer' if options.developer else 'user'
     if len(args) != 0:

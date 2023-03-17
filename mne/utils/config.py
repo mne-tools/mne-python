@@ -26,7 +26,6 @@ from .misc import _pl
 from ._logging import warn, logger
 
 
-_UNICODE_SUPPORT = sys.stdout.encoding.lower().startswith('utf')
 _temp_home_dir = None
 
 
@@ -555,34 +554,59 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
     libs = _get_numpy_libs()
     unavailable = []
     use_mod_names = (
-        'mne', 'numpy', 'scipy', 'matplotlib', 'pooch', '', 'sklearn', 'numba',
-        'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy', 'pandas', 'pyvista',
-        'pyvistaqt', 'ipyvtklink', 'vtk', 'qtpy', 'ipympl', 'pyqtgraph', '',
-        'mne_bids', 'mne_nirs', 'mne_features', 'mne_qt_browser',
-        'mne_connectivity', 'mne_icalabel', ''
+        '# Core',
+        'mne', 'numpy', 'scipy', 'matplotlib', 'pooch', 'jinja2',
+        '',
+        '# Numerical (optional)',
+        'sklearn', 'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
+        'pandas',
+        '',
+        '# Visualization (optional)',
+        'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk', 'qtpy', 'ipympl',
+        'pyqtgraph', 'mne-qt-browser',
+        '',
+        '# Ecosystem (optional)',
+        'mne_bids', 'mne_nirs', 'mne_features', 'mne_connectivity',
+        'mne_icalabel',
+        ''
     )
     if dependencies == 'developer':
         use_mod_names += (
-            'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
-            'pytest', 'nbclient', ''
+            '# Testing',
+            'pytest', 'nbclient', 'numpydoc', 'flake8', 'pydocstyle',
+            '',
+            '# Documentation',
+            'sphinx', 'sphinx_gallery', 'pydata_sphinx_theme',
+            '',
         )
-    for mod_name in use_mod_names:
-        if mod_name == '':
+    try:
+        unicode = unicode and (sys.stdout.encoding.lower().startswith('utf'))
+    except Exception:  # in case someone overrides sys.stdout in an unsafe way
+        unicode = False
+    for mi, mod_name in enumerate(use_mod_names):
+        # upcoming break
+        if mod_name == '':  # break
             if unavailable:
-                if unicode and _UNICODE_SUPPORT:
-                    out('✘ ')
-                out('Unavailable:'.ljust(ljust))
+                out(f'└☐ ' if unicode else ' - ')
+                out('unavailable:'.ljust(ljust))
                 out(f"{', '.join(unavailable)}\n")
                 unavailable = []
-            out('\n')
+            if mi != len(use_mod_names) - 1:
+                out('\n')
             continue
+        elif mod_name.startswith('# '):  # header
+            mod_name = mod_name.replace('# ', '')
+            out(f'{mod_name}\n')
+            continue
+        pre = '├'
+        if use_mod_names[mi + 1] == '' and not unavailable:
+            pre = '└'
         try:
             mod = import_module(mod_name)
         except Exception:
             unavailable.append(mod_name)
         else:
-            if unicode and _UNICODE_SUPPORT:
-                out('✔︎ ')
+            out(f'{pre}☑ ' if unicode else ' + ')
             out(f'{mod_name}:'.ljust(ljust))
             if mod_name == 'vtk':
                 vtk_version = mod.vtkVersion()
@@ -598,18 +622,18 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
             else:
                 out(mod.__version__.lstrip("v"))
             if mod_name == 'numpy':
-                out(f' {{{libs}}}')
+                out(f' ({libs})')
             elif mod_name == 'qtpy':
                 version, api = _check_qt_version(return_api=True)
-                out(f' {{{api}={version}}}')
+                out(f' ({api}={version})')
             elif mod_name == 'matplotlib':
-                out(f' {{backend={mod.get_backend()}}}')
+                out(f' (backend={mod.get_backend()})')
             elif mod_name == 'pyvista':
                 version, renderer = _get_gpu_info()
                 if version is None:
-                    out(' {OpenGL could not be initialized}')
+                    out(' (OpenGL unavailable)')
                 else:
-                    out(f' {{OpenGL {version} via {renderer}}}')
+                    out(f' (OpenGL {version} via {renderer})')
             if show_paths:
                 out(f'\n{" " * ljust}•{op.dirname(mod.__file__)}')
             out('\n')
