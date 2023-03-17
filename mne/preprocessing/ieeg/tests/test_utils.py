@@ -23,7 +23,7 @@ subjects_dir = data_path / "subjects"
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_montage_volume():
-    """Test making a montage image based on intracranial electrode positions."""
+    """Test making a montage image based on intracranial electrodes."""
     import nibabel as nib
     subject_brain = nib.load(subjects_dir / "sample" / "mri" / "brain.mgz")
     # make an info object with three channels with positions

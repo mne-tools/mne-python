@@ -1853,6 +1853,7 @@ def _vtk_smooth(pd, smooth):
     return out
 
 
+@verbose
 def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     """Warp a montage to a template with image volumes using SDR.
 
