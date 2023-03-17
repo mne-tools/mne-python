@@ -1832,3 +1832,92 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     reg_img = SpatialImage(reg_data, static_affine)
     logger.info('[done]')
     return reg_img
+
+
+@verbose
+def apply_volume_registration_points(info, trans, moving, static, reg_affine,
+                                     sdr_morph=None, verbose=None):
+    """Apply volume registration.
+
+    Uses registration parameters computed by
+    :func:`~mne.transforms.compute_volume_registration`.
+
+    Parameters
+    ----------
+    %(info_not_none)s
+    %(trans_not_none)s
+    %(moving)s
+    %(static)s
+    %(reg_affine)s
+    %(sdr_morph)s
+    %(verbose)s
+
+    Returns
+    -------
+    %(info_not_none)s
+    trans2 : instance of Transform
+        The head->mri (surface RAS) transform for the static image.
+
+    Notes
+    -----
+    .. versionadded:: 1.4.0
+    """
+    from .channels import compute_native_head_t, make_dig_montage
+    _require_version('nibabel', 'volume registration', '2.1.0')
+    from nibabel import MGHImage
+    from nibabel.spatialimages import SpatialImage
+    from dipy.align.imwarp import DiffeomorphicMap
+
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+
+    scale = np.eye(4)
+    scale[:3, :3] *= 1000  # mm to m
+
+    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32),
+                          moving.affine)
+    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32),
+                          static.affine)
+    
+    montage = info.get_montage()
+    montage_kwargs = montage.get_positions()
+    trans = _ensure_trans(trans, 'head', 'mri')
+    montage.apply_trans(trans)  # to moving surface RAS
+
+    locs = np.array(list(montage.get_positions()['ch_pos'].values()))
+
+    locs = apply_trans(Transform(
+        fro='mri', to='mri', trans=scale), locs) # mm -> m
+    locs = apply_trans(Transform(  # to moving voxels
+        fro='mri', to='mri_voxel',
+        trans=np.linalg.inv(moving_mgh.header.get_vox2ras_tkr())), locs)
+    locs = apply_trans(Transform(  # to moving ras
+        fro='mri_voxel', to='ras',
+        trans=moving_mgh.header.get_vox2ras()), locs)
+    locs = apply_trans(Transform(  # to static ras
+        fro='ras', to='ras', trans=np.linalg.inv(reg_affine)), locs)
+    if sdr_morph is not None:
+        _require_version('dipy', 'SDR morph', '1.6.0')
+        locs = sdr_morph.transform_points(
+            locs, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid)
+    locs = apply_trans(Transform(  # to static voxels
+        fro='ras', to='mri_voxel',
+        trans=np.linalg.inv(static_mgh.header.get_vox2ras())), locs)
+    locs = apply_trans(Transform(  # to static surface RAS
+        fro='mri_voxel', to='mri',
+        trans=static_mgh.header.get_vox2ras_tkr()), locs)
+    locs = apply_trans(Transform(  # m -> mm
+        fro='mri', to='mri', trans=np.linalg.inv(scale)), locs)
+
+    montage_kwargs['coord_frame'] = 'mri'
+    montage_kwargs['ch_pos'] = {ch: loc for ch, loc in
+                                zip(montage.ch_names, locs)}
+    montage2 = make_dig_montage(**montage_kwargs)
+
+    trans2 = compute_native_head_t(montage2)
+    info.set_montage(montage2)  # converts to head coordinates
+
+    return info, trans2
