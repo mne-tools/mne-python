@@ -587,7 +587,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         # upcoming break
         if mod_name == '':  # break
             if unavailable:
-                out(f'└▢ ' if unicode else ' - ')
+                out('└▢ ' if unicode else ' - ')
                 out('unavailable:'.ljust(ljust))
                 out(f"{', '.join(unavailable)}\n")
                 unavailable = []
