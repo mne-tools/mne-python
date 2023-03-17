@@ -5,4 +5,4 @@
 # License: BSD-3-Clause
 
 from ._projection import project_sensors_onto_brain
-from .utils import make_montage_volume
+from ._volume import make_montage_volume
