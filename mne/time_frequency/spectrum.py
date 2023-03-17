@@ -894,9 +894,8 @@ class Spectrum(BaseSpectrum):
     .. footbibliography::
     """
 
-    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, reject_by_annotation, *, n_jobs, verbose=None,
-                 **method_kw):
+    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj,
+                 reject_by_annotation, *, n_jobs, verbose=None, **method_kw):
         from ..io import BaseRaw
 
         # triage reading from file
