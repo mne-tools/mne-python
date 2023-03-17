@@ -481,11 +481,13 @@ plot_overlay(template_brain, subject_brain_sdr,
 montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
+# warp the montage
 montage_warped = mne.warp_montage(
     montage, subject_brain, template_brain, reg_affine, sdr_morph)
 
+# visualize using an image of the electrode contacts to see their sizes
 elec_image = mne.preprocessing.ieeg.make_montage_volume(
-    CT_aligned, thresh=0.25)
+    montage, CT_aligned, thresh=0.25)
 
 warped_elec_image = mne.transforms.apply_volume_registration(
     elec_image, template_brain, reg_affine, sdr_morph)

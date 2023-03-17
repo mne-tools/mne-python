@@ -1853,20 +1853,6 @@ def _vtk_smooth(pd, smooth):
     return out
 
 
-def _warn_missing_chs(info, dig_image, after_warp, verbose=None):
-    """Warn that channels are missing."""
-    # ensure that each electrode contact was marked in at least one voxel
-    missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
-        set(np.unique(np.array(dig_image.dataobj))))
-    missing_ch = [info.ch_names[idx - 1] for idx in missing]
-    if missing_ch and verbose != 'error':
-        warn(f'Channel{_pl(missing_ch)} '
-             f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
-             'voxels ' +
-             (f' after applying {after_warp}' if after_warp else ''))
-
-
-
 def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     """Warp a montage to a template with image volumes using SDR.
 
@@ -1907,6 +1893,7 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
                           moving.affine)
     static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32),
                           static.affine)
+    del moving, static
 
     # get montage channel coordinates
     ch_dict = montage.get_positions()
@@ -1921,9 +1908,9 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     ch_coords = np.array([ch_dict['ch_pos'][name] for name in ch_names])
 
     ch_coords = apply_trans(  # convert to moving voxel space
-        np.linalg.inv(moving.header.get_vox2ras_tkr()), ch_coords * 1000)
+        np.linalg.inv(moving_mgh.header.get_vox2ras_tkr()), ch_coords * 1000)
     # next, to moving scanner RAS
-    ch_coords = apply_trans(moving.header.get_vox2ras(), ch_coords)
+    ch_coords = apply_trans(moving_mgh.header.get_vox2ras(), ch_coords)
 
     # now, apply reg_affine
     ch_coords = apply_trans(Transform(  # to static ras
@@ -1936,16 +1923,18 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
             sdr_morph.domain_world2grid)
 
     # back to voxels but now for the static image
-    ch_coords = apply_trans(np.linalg.inv(static.header.get_vox2ras()),
+    ch_coords = apply_trans(np.linalg.inv(static_mgh.header.get_vox2ras()),
                             ch_coords)
 
     # finally, back to surface RAS
-    ch_coords = apply_trans(static.header.get_vox2ras_tkr(), ch_coords) / 1000
+    ch_coords = apply_trans(static_mgh.header.get_vox2ras_tkr(),
+                            ch_coords) / 1000
 
     # make warped montage
     montage_warped = make_dig_montage(
         dict(zip(ch_names, ch_coords)), coord_frame='mri')
     return montage_warped
+
 
 @deprecated('warp_montage_volume will be deprecated in favor of '
             'warp_montage (and optionally '
@@ -2021,6 +2010,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _require_version('dipy', 'SDR morph', '0.10.1')
     from .channels import DigMontage, make_dig_montage
     from ._freesurfer import _check_subject_dir
+    from .preprocessing.ieeg.utils import _warn_missing_chs
     import nibabel as nib
 
     _validate_type(montage, DigMontage, 'montage')

@@ -346,6 +346,7 @@ def test_warp_montage():
         warp_montage(bad_montage, subject_brain, template_brain, reg_affine,
                      sdr_morph)
 
+
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
@@ -380,13 +381,7 @@ def test_warp_montage_volume():
         # then, make the center even higher intensity
         CT_data[x, y, z] = 1000
     CT = nib.Nifti1Image(CT_data, subject_brain.affine)
-    ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
-                          [-14.03007764, 19.69978401, 12.07236939],
-                          [-21.1130506, 21.98310911, 13.25658887]])
-    ch_pos = dict(zip(['1', '2', '3'], ch_coords / 1000))  # mm -> m
-    lpa, nasion, rpa = get_mni_fiducials('sample', subjects_dir)
-    montage = make_dig_montage(ch_pos, lpa=lpa['r'], nasion=nasion['r'],
-                               rpa=rpa['r'], coord_frame='mri')
+
     with pytest.warns(FutureWarning, match='deprecated'):
         montage_warped, image_from, image_to = warp_montage_volume(
             montage, CT, reg_affine, sdr_morph, 'sample',

@@ -2,18 +2,28 @@
 #
 # License: BSD-3-Clause
 
-from itertools import combinations
 import numpy as np
 
-from ...channels import make_dig_montage
-from ...io.pick import _picks_to_idx
-from ...surface import (_read_mri_surface, fast_cross_3d, read_surface,
-                        _read_patch, _compute_nearest)
-from ...transforms import (apply_trans, invert_transform, _cart_to_sph,
-                           _ensure_trans)
-from ...utils import verbose, get_subjects_dir, _validate_type, _ensure_int
+from ...channels import DigMontage
+from ...surface import _voxel_neighbors
+from ...transforms import apply_trans, _frame_to_str
+from ...utils import verbose, warn, _pl, _validate_type, _require_version
 
 
+def _warn_missing_chs(info, dig_image, after_warp=False):
+    """Warn that channels are missing."""
+    # ensure that each electrode contact was marked in at least one voxel
+    missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
+        set(np.unique(np.array(dig_image.dataobj))))
+    missing_ch = [info.ch_names[idx - 1] for idx in missing]
+    if missing_ch:
+        warn(f'Channel{_pl(missing_ch)} '
+             f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
+             'voxels ' +
+             (f' after applying {after_warp}' if after_warp else ''))
+
+
+@verbose
 def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
                         voxels_max=100, use_min=False, verbose=None):
     """Make a volume from intracranial electrode contact locations.
@@ -53,7 +63,7 @@ def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
         corresponding to the index of the channel. The background
         is 0s and this index starts at 1.
     """
-    _require_version('nibabel', 'SDR morph', '2.1.0')
+    _require_version('nibabel', 'elec image', '2.1.0')
     import nibabel as nib
 
     _validate_type(montage, DigMontage, 'montage')
@@ -69,6 +79,10 @@ def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
     if not isinstance(base_image, nib.spatialimages.SpatialImage):
         base_image = nib.load(base_image)
 
+    base_image_mgh = nib.MGHImage(
+        np.array(base_image.dataobj).astype(np.float32), base_image.affine)
+    del base_image
+
     # get montage channel coordinates
     ch_dict = montage.get_positions()
     if ch_dict['coord_frame'] != 'mri':
@@ -82,17 +96,18 @@ def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
     ch_names = list(ch_dict['ch_pos'].keys())
     ch_coords = np.array([ch_dict['ch_pos'][name] for name in ch_names])
 
-    # convert to freesurfer voxel space
+    # convert to voxel space
     ch_coords = apply_trans(
-        np.linalg.inv(fs_from_img.header.get_vox2ras_tkr()), ch_coords * 1000)
+        np.linalg.inv(base_image_mgh.header.get_vox2ras_tkr()),
+        ch_coords * 1000)
 
     # take channel coordinates and use the image to transform them
     # into a volume where all the voxels over a threshold nearby
     # are labeled with an index
-    image_data = np.array(base_image.dataobj)
+    image_data = np.array(base_image_mgh.dataobj)
     if use_min:
         image_data *= -1
-    image_from = np.zeros(base_image.shape, dtype=int)
+    elec_image = np.zeros(base_image_mgh.shape, dtype=int)
     for i, ch_coord in enumerate(ch_coords):
         if np.isnan(ch_coord).any():
             continue
@@ -101,44 +116,20 @@ def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
                                   max_peak_dist=max_peak_dist,
                                   voxels_max=voxels_max)
         for voxel in volume:
-            if image_from[voxel] != 0:
+            if elec_image[voxel] != 0:
                 # some voxels ambiguous because the contacts are bridged on
                 # the image so assign the voxel to the nearest contact location
                 dist_old = np.sqrt(
-                    (ch_coords[image_from[voxel] - 1] - voxel)**2).sum()
+                    (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
                 dist_new = np.sqrt((ch_coord - voxel)**2).sum()
                 if dist_new < dist_old:
-                    image_from[voxel] = i + 1
+                    elec_image[voxel] = i + 1
             else:
-                image_from[voxel] = i + 1
+                elec_image[voxel] = i + 1
 
-    # apply the mapping
-    image_from = nib.spatialimages.SpatialImage(image_from, fs_from_img.affine)
-    _warn_missing_chs(montage, image_from, after_warp=False)
+    # assemble the volume
+    elec_image = nib.spatialimages.SpatialImage(
+        elec_image, base_image_mgh.affine)
+    _warn_missing_chs(montage, elec_image, after_warp=False)
 
-    template_brain = nib.load(
-        op.join(subjects_dir_to, subject_to, 'mri', 'brain.mgz'))
-
-    image_to = apply_volume_registration(
-        image_from, template_brain, reg_affine, sdr_morph,
-        interpolation='nearest')
-
-    after_warp = \
-        'SDR warp' if sdr_morph is not None else 'affine transformation'
-    _warn_missing_chs(montage, image_to, after_warp=after_warp)
-
-    # recover the contact positions as the center of mass
-    warped_data = np.asanyarray(image_to.dataobj)
-    for val, ch_coord in enumerate(ch_coords, 1):
-        ch_coord[:] = np.mean(np.where(warped_data == val), axis=1)
-
-    # convert back to surface RAS of the template
-    fs_to_img = nib.load(
-        op.join(subjects_dir_to, subject_to, 'mri', 'brain.mgz'))
-    ch_coords = apply_trans(
-        fs_to_img.header.get_vox2ras_tkr(), ch_coords) / 1000
-
-    # make warped montage
-    montage_warped = make_dig_montage(
-        dict(zip(ch_names, ch_coords)), coord_frame='mri')
-    return montage_warped, image_from, image_to
+    return elec_image
