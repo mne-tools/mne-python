@@ -247,7 +247,6 @@ def test_spectrum_complex(method, average):
         want_dims = ('epoch', 'channel', 'freq')
         want_shape = (5, 1, sfreq // 2 + 1)
         if not average:
-            # TODO: Bug fix to move segment to the same pos (-2) as taper?
             want_dims = want_dims + ('segment',)
             want_shape = want_shape + (2,)
             kwargs['average'] = average
