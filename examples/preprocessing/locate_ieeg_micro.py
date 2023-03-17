@@ -38,7 +38,7 @@ CT_orig = nib.load(misc_path / 'seeg' / 'sample_seeg_CT.mgz')
 T1 = nib.load(misc_path / 'seeg' / 'sample_seeg' / 'mri' / 'T1.mgz')
 
 # we'll also need a head-CT surface RAS transform, this can be faked with an
-# identiy matrix but we'll find the fiducials on the CT in freeview (be sure
+# identify matrix but we'll find the fiducials on the CT in freeview (be sure
 # to find them in surface RAS (TkReg RAS in freeview) and not scanner RAS
 # (RAS in freeview)) (also be sure to note left is generally on the right in
 # freeview) and reproduce them here:
