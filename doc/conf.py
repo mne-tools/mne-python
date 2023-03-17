@@ -1018,6 +1018,11 @@ def reset_warnings(gallery_conf, fname):
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message=(
+            'Matplotlib is currently using agg, which is a non-GUI backend.*'
+        )
+    )
     # matplotlib 3.6 in nilearn and pyvista
     warnings.filterwarnings(
         'ignore', message='.*cmap function will be deprecated.*')
