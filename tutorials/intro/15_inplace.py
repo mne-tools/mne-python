@@ -101,6 +101,6 @@ fig_reref = rereferenced_raw.plot()
 # During the exploratory phase of your analysis, where you might want
 # to try out the effects of different data cleaning approaches, you should get
 # used to patterns like ``raw.copy().filter(...).plot()`` or
-# ``raw.copy().apply_proj().plot_psd()`` if you want to avoid having to re-load
+# ``raw.copy().apply_proj()..compute_psd().plot()`` if you want to avoid having to re-load
 # data and repeat earlier steps each time you change a computation (see the
 # :ref:`sect-meth-chain` section for more info on method chaining).

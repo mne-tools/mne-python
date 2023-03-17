@@ -159,8 +159,8 @@ evk_spectrum.plot_topomap(ch_type='eeg', agg_fun=np.median)
 #    :meth:`Evoked.compute_psd()<mne.Evoked.compute_psd>` methods, and pass
 #    ``method='welch'`` or ``method='multitaper'`` as a parameter.
 #
-#    The class methods :meth:`Raw.plot_psd()<mne.io.Raw.plot_psd>`,
-#    :meth:`Epochs.plot_psd()<mne.Epochs.plot_psd>`,
+#    The class methods :meth:`Raw..compute_psd().plot()<mne.io.Raw.plot_psd>`,
+#    :meth:`Epochs..compute_psd().plot()<mne.Epochs.plot_psd>`,
 #    :meth:`Raw.plot_psd_topo()<mne.io.Raw.plot_psd_topo>`, and
 #    :meth:`Epochs.plot_psd_topomap()<mne.Epochs.plot_psd_topomap>` have been
 #    kept in the API to support legacy code, but should be avoided when writing

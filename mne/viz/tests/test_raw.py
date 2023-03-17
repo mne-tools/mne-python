@@ -830,7 +830,7 @@ def test_plot_raw_psd(raw, raw_orig):
                            'MEG 0122': 'fnirs_cw_amplitude',
                            'MEG 0123': 'fnirs_od'},
                           verbose='error')
-    fig = raw.plot_psd()
+    fig = raw..compute_psd().plot()
     assert len(fig.axes) == 10
     plt.close('all')
 
