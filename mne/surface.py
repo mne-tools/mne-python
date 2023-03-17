@@ -1936,11 +1936,11 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
             sdr_morph.domain_world2grid)
 
     # back to voxels but now for the static image
-    ch_coords = apply_trans(np.linalg.inv(moving.header.get_vox2ras()),
+    ch_coords = apply_trans(np.linalg.inv(static.header.get_vox2ras()),
                             ch_coords)
 
-    ch_coords = apply_trans(
-        fs_to_img.header.get_vox2ras_tkr(), ch_coords) / 1000
+    # finally, back to surface RAS
+    ch_coords = apply_trans(static.header.get_vox2ras_tkr(), ch_coords) / 1000
 
     # make warped montage
     montage_warped = make_dig_montage(

@@ -465,8 +465,6 @@ subject_brain_sdr = mne.transforms.apply_volume_registration(
 plot_overlay(template_brain, subject_brain_sdr,
              'Alignment with fsaverage after SDR Registration')
 
-del subject_brain, template_brain
-
 # %%
 # Finally, we'll apply the registrations to the electrode contact coordinates.
 # The brain image is warped to the template but the goal was to warp the
@@ -484,9 +482,7 @@ montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
 montage_warped = mne.warp_montage(
-    montage, reg_affine, sdr_morph,
-    subject_from='sample_seeg', subjects_dir_from=misc_path / 'seeg',
-    subject_to='fsaverage', subjects_dir_to=subjects_dir)
+    montage, subject_brain, template_brain, reg_affine, sdr_morph)
 
 elec_image = mne.preprocessing.ieeg.make_montage_volume(
     CT_aligned, thresh=0.25)
@@ -502,7 +498,7 @@ nilearn.plotting.plot_glass_brain(warped_elec_image, axes=axes[1],
 fig.text(0.1, 0.25, 'fsaverage', rotation='vertical')
 fig.suptitle('Electrodes warped to fsaverage')
 
-del CT_aligned
+del CT_aligned, subject_brain, template_brain
 
 # %%
 # We can now plot the result. You can compare this to the plot in
