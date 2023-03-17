@@ -6,6 +6,7 @@
 
 import atexit
 import json
+import multiprocessing
 import os
 import os.path as op
 import platform
@@ -15,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 from functools import partial
+from importlib import import_module
 from pathlib import Path
 
 from .check import (_validate_type, _check_qt_version, _check_option,
@@ -24,6 +26,7 @@ from .misc import _pl
 from ._logging import warn, logger
 
 
+_UNICODE_SUPPORT = sys.stdout.encoding.lower().startswith('utf')
 _temp_home_dir = None
 
 
@@ -500,56 +503,26 @@ def _get_gpu_info():
     return out
 
 
-def sys_info(fid=None, show_paths=False, *, dependencies='user'):
-    """Print the system information for debugging.
+def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
+    """Print system information.
 
-    This function is useful for printing system information
-    to help triage bugs.
+    This function prints system information useful when triaging bugs.
 
     Parameters
     ----------
     fid : file-like | None
-        The file to write to. Will be passed to :func:`print()`.
-        Can be None to use :data:`sys.stdout`.
+        The file to write to. Will be passed to :func:`print()`. Can be None to
+        use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
     dependencies : 'user' | 'developer'
         Show dependencies relevant for users (default) or for developers
         (i.e., output includes additional dependencies).
+    unicode : bool
+        Include Unicode symbols in output.
 
         .. versionadded:: 0.24
-
-    Examples
-    --------
-    Running this function with no arguments prints an output that is
-    useful when submitting bug reports::
-
-        >>> import mne
-        >>> mne.sys_info() # doctest: +SKIP
-        Platform:      Linux-4.15.0-1067-aws-x86_64-with-glibc2.2.5
-        Python:        3.8.1 (default, Feb  2 2020, 08:37:37)  [GCC 8.3.0]
-        Executable:    /usr/local/bin/python
-        CPU:           : 36 cores
-        Memory:        68.7 GB
-
-        mne:           0.21.dev0
-        numpy:         1.19.0 {blas=openblas, lapack=openblas}
-        scipy:         1.5.1
-        matplotlib:    3.2.2 {backend=Qt5Agg}
-
-        sklearn:       0.23.1
-        numba:         0.50.1
-        nibabel:       3.1.1
-        nilearn:       0.7.0
-        dipy:          1.1.1
-        cupy:          Not found
-        pandas:        1.0.5
-        pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
-        vtk:           9.0.1
-        qtpy:          2.0.1 {PySide6=6.2.4}
-        pyqtgraph:     0.12.4
-        pooch:         v1.5.1
-    """  # noqa: E501
+    """
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
     ljust = 21 if dependencies == 'developer' else 18
@@ -569,14 +542,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     out('Platform:'.ljust(ljust) + platform_str + '\n')
     out('Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
     out('Executable:'.ljust(ljust) + sys.executable + '\n')
-    out('CPU:'.ljust(ljust) + f'{platform.processor()}: ')
-    try:
-        import multiprocessing
-    except ImportError:
-        out('number of processors unavailable '
-            '(requires "multiprocessing" package)\n')
-    else:
-        out(f'{multiprocessing.cpu_count()} cores\n')
+    out('CPU:'.ljust(ljust) + f'{platform.processor()} ')
+    out(f'({multiprocessing.cpu_count()} cores)\n')
     out('Memory:'.ljust(ljust))
     try:
         import psutil
@@ -586,26 +553,37 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         out(f'{psutil.virtual_memory().total / float(2 ** 30):0.1f} GB\n')
     out('\n')
     libs = _get_numpy_libs()
-    use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
-                     'pandas', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
-                     'mne_nirs', 'mne_features', 'mne_qt_browser',
-                     'mne_connectivity', 'mne_icalabel')
+    unavailable = []
+    use_mod_names = (
+        'mne', 'numpy', 'scipy', 'matplotlib', 'pooch', '', 'sklearn', 'numba',
+        'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy', 'pandas', 'pyvista',
+        'pyvistaqt', 'ipyvtklink', 'vtk', 'qtpy', 'ipympl', 'pyqtgraph', '',
+        'mne_bids', 'mne_nirs', 'mne_features', 'mne_qt_browser',
+        'mne_connectivity', 'mne_icalabel', ''
+    )
     if dependencies == 'developer':
         use_mod_names += (
-            '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
-            'pytest', 'nbclient')
+            'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
+            'pytest', 'nbclient', ''
+        )
     for mod_name in use_mod_names:
         if mod_name == '':
+            if unavailable:
+                if unicode and _UNICODE_SUPPORT:
+                    out('✘ ')
+                out('Unavailable:'.ljust(ljust))
+                out(f"{', '.join(unavailable)}\n")
+                unavailable = []
             out('\n')
             continue
-        out(f'{mod_name}:'.ljust(ljust))
         try:
-            mod = __import__(mod_name)
+            mod = import_module(mod_name)
         except Exception:
-            out('Not found\n')
+            unavailable.append(mod_name)
         else:
+            if unicode and _UNICODE_SUPPORT:
+                out('✔︎ ')
+            out(f'{mod_name}:'.ljust(ljust))
             if mod_name == 'vtk':
                 vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
@@ -618,7 +596,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                 else:
                     out('unknown')
             else:
-                out(mod.__version__)
+                out(mod.__version__.lstrip("v"))
             if mod_name == 'numpy':
                 out(f' {{{libs}}}')
             elif mod_name == 'qtpy':
