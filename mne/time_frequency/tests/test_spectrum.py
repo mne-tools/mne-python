@@ -1,9 +1,12 @@
+from contextlib import nullcontext
 from functools import partial
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 
+from mne import create_info, make_fixed_length_epochs
+from mne.io import RawArray
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.utils import requires_h5py, requires_pandas
@@ -219,3 +222,51 @@ def test_spectrum_proj(inst, request):
     with has_proj.info._unlock():
         has_proj.info['projs'] = no_proj.info['projs']
     assert has_proj == no_proj
+
+
+@pytest.mark.parametrize('method, average', [
+    ('welch', False),
+    ('multitaper', True),
+    ('multitaper', False),
+])
+def test_spectrum_complex(method, average):
+    """Test output='complex' support."""
+    sfreq = 100
+    n = 10 * sfreq
+    freq = 3.
+    phase = np.pi / 4  # should be recoverable
+    data = np.cos(2 * np.pi * freq * np.arange(n) / sfreq + phase)[np.newaxis]
+    raw = RawArray(data, create_info(1, sfreq, 'eeg'))
+    epochs = make_fixed_length_epochs(raw, duration=2., preload=True)
+    assert len(epochs) == 5
+    assert len(epochs.times) == 2 * sfreq
+    kwargs = dict(output='complex', method=method)
+    if method == 'welch':
+        kwargs['n_fft'] = sfreq
+        ctx = pytest.warns(UserWarning, match='Zero value')
+        want_dims = ('epoch', 'channel', 'freq')
+        want_shape = (5, 1, sfreq // 2 + 1)
+        if not average:
+            # TODO: Bug fix to move segment to the same pos (-2) as taper?
+            want_dims = want_dims + ('segment',)
+            want_shape = want_shape + (2,)
+            kwargs['average'] = average
+    else:
+        ctx = nullcontext()
+        want_dims = ('epoch', 'channel', 'taper', 'freq')
+        want_shape = (5, 1, 7, sfreq + 1)
+    with ctx:
+        spectrum = epochs.compute_psd(**kwargs)
+    idx = np.argmin(np.abs(spectrum.freqs - freq))
+    assert spectrum.freqs[idx] == freq
+    assert spectrum._dims == want_dims
+    assert spectrum.shape == want_shape
+    data = spectrum.get_data()
+    assert data.dtype == np.complex128
+    coef = spectrum.get_data(fmin=freq, fmax=freq).mean(0)
+    if method == 'multitaper':
+        coef = coef[..., 0, :]  # first taper
+    elif not average:
+        coef = coef.mean(-1)  # over segments
+    coef = coef.item()
+    assert_allclose(np.angle(coef), phase, rtol=1e-4)

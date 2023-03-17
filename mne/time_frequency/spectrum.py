@@ -288,7 +288,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._dims = ('channel', 'freq',)
         if method_kw.get('average', '') in (None, False):
             self._dims += ('segment',)
-        if self._complex_tapers(**method_kw):
+        if self._returns_complex_tapers(**method_kw):
             self._dims = self._dims[:-1] + ('taper',) + self._dims[-1:]
         # record data type (for repr and html_repr)
         self._data_type = ('Fourier Coefficients' if 'taper' in self._dims
@@ -370,7 +370,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}',
                  UserWarning)
 
-    def _complex_tapers(self, **method_kw):
+    def _returns_complex_tapers(self, **method_kw):
         return (
             method_kw.get('output', '') == 'complex' and
             self.method == 'multitaper'
@@ -382,7 +382,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             data, self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs,
             verbose=verbose)
         # assign ._data (handling unaggregated multitaper output)
-        if self._complex_tapers(**method_kw):
+        if self._returns_complex_tapers(**method_kw):
             fourier_coefs, freqs, weights = result
             self._data = fourier_coefs
             self._mt_weights = weights
@@ -400,7 +400,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                                                          method_kw)
             self._shape += (n_welch_segments,)
         # insert n_tapers
-        if self._complex_tapers(**method_kw):
+        if self._returns_complex_tapers(**method_kw):
             self._shape = (
                 self._shape[:-1] + (self._mt_weights.size,) + self._shape[-1:])
         # we don't need these anymore, and they make save/load harder
