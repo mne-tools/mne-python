@@ -19,7 +19,8 @@ jobs:
       run:
         shell: bash
     env:
-      CONDA_DEPENDENCIES: 'numpy scipy matplotlib'
+      # TODO: Revert nibabel here pending https://github.com/mne-tools/mne-python/issues/11564
+      CONDA_DEPENDENCIES: 'numpy scipy matplotlib nibabel'
       DEPS: 'minimal'
       DISPLAY: ':99.0'
       MNE_DONTWRITE_HOME: true
