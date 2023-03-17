@@ -587,7 +587,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         # upcoming break
         if mod_name == '':  # break
             if unavailable:
-                out(f'└☐ ' if unicode else ' - ')
+                out(f'└▢ ' if unicode else ' - ')
                 out('unavailable:'.ljust(ljust))
                 out(f"{', '.join(unavailable)}\n")
                 unavailable = []
@@ -606,7 +606,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         except Exception:
             unavailable.append(mod_name)
         else:
-            out(f'{pre}☑ ' if unicode else ' + ')
+            out(f'{pre}▣ ' if unicode else ' + ')
             out(f'{mod_name}:'.ljust(ljust))
             if mod_name == 'vtk':
                 vtk_version = mod.vtkVersion()
