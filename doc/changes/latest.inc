@@ -36,7 +36,7 @@ Enhancements
 - Add :func:`mne.count_events` to count unique event types in a given event array (:gh:`11430` by `Clemens Brunner`_)
 - Add a video to :ref:`tut-freesurfer-mne` of a brain inflating from the pial surface to aid in understanding the inflated brain (:gh:`11440` by `Alex Rockhill`_)
 - Add automatic projection of sEEG contact onto the inflated surface for :meth:`mne.viz.Brain.add_sensors` (:gh:`11436` by `Alex Rockhill`_)
-- Use new :func:`dipy.workflows.align.DiffeomorphicMap.transform_points` to transform a montage of intracranial contacts more efficiently (:gh:`11567` by `Alex Rockhill`_)
+- Use new :meth:`dipy.workflows.align.DiffeomorphicMap.transform_points` to transform a montage of intracranial contacts more efficiently (:gh:`11572` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
@@ -62,4 +62,4 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - Deprecate arguments ``kind`` and ``path`` from :func:`mne.channels.read_layout` in favor of a common argument ``fname`` (:gh:`11500` by `Mathieu Scheltienne`_)
-- :func:`mne.warp_montage_volume` was deprecated in favor of :func:`mne.warp_montage` (doesn't require a volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (so that a volume of electrode contacts can still be made) (:gh:`11567` by `Alex Rockhill`_)
+- :func:`mne.warp_montage_volume` was deprecated in favor of :func:`mne.warp_montage` (doesn't require a volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (so that a volume of electrode contacts can still be made) (:gh:`11572` by `Alex Rockhill`_)

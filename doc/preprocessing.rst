@@ -138,6 +138,7 @@ Projections:
    :toctree: generated/
 
    project_sensors_onto_brain
+   make_montage_volume
 
 EEG referencing:
 
