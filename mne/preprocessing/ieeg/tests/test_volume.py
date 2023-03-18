@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Test ieeg utility functions"""
+"""Test ieeg volume functions."""
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
