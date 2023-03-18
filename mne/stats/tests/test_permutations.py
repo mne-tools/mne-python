@@ -58,10 +58,14 @@ def test_permutation_t_test():
         assert_allclose(p_values_clust, p_values[keep], atol=1e-2)
 
     X = np.random.randn(18, 1)
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations='all')
-    t_obs_scipy, p_values_scipy = stats.ttest_1samp(X[:, 0], 0)
-    assert_allclose(t_obs[0], t_obs_scipy, 8)
-    assert_allclose(p_values[0], p_values_scipy, rtol=1e-2)
+    tail_codes = {'two-sided': 0, 'less': -1, 'greater': 1}
+    for this_tail, this_code in tail_codes.items():
+        t_obs, p_values, H0 = permutation_t_test(X, n_permutations='all',
+                                                 tail=this_code)
+        t_obs_scipy, p_values_scipy = stats.ttest_1samp(X[:, 0], 0,
+                                                        alternative=this_tail)
+        assert_allclose(t_obs[0], t_obs_scipy, 8)
+        assert_allclose(p_values[0], p_values_scipy, rtol=1e-2)
 
 
 def test_ci():
