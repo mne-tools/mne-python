@@ -2011,7 +2011,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _require_version('dipy', 'SDR morph', '0.10.1')
     from .channels import DigMontage, make_dig_montage
     from ._freesurfer import _check_subject_dir
-    from .preprocessing.ieeg.utils import _warn_missing_chs
+    from .preprocessing.ieeg._volume import _warn_missing_chs
     import nibabel as nib
 
     _validate_type(montage, DigMontage, 'montage')
