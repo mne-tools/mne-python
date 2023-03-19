@@ -72,20 +72,20 @@ def test_plot_topomap_interactive(constrained_layout):
                   res=8, time_unit='s')
     evoked.copy().plot_topomap(proj=False, **kwargs)
     canvas.draw()
-    image_noproj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_noproj = np.frombuffer(canvas.tostring_argb(), dtype='uint8')
     assert len(plt.get_fignums()) == 1
 
     ax.clear()
     evoked.copy().plot_topomap(proj=True, **kwargs)
     canvas.draw()
-    image_proj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_proj = np.frombuffer(canvas.tostring_argb(), dtype='uint8')
     assert not np.array_equal(image_noproj, image_proj)
     assert len(plt.get_fignums()) == 1
 
     ax.clear()
     fig = evoked.copy().plot_topomap(proj='interactive', **kwargs)
     canvas.draw()
-    image_interactive = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_interactive = np.frombuffer(canvas.tostring_argb(), dtype='uint8')
     assert_array_equal(image_noproj, image_interactive)
     assert not np.array_equal(image_proj, image_interactive)
     assert len(plt.get_fignums()) == 2
@@ -97,7 +97,7 @@ def test_plot_topomap_interactive(constrained_layout):
     assert _proj_status(fig, 'matplotlib') == [True]
     canvas.draw()
     image_interactive_click = np.frombuffer(
-        canvas.tostring_rgb(), dtype='uint8')
+        canvas.tostring_argb(), dtype='uint8')
     corr = np.corrcoef(
         image_proj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.99 < corr <= 1
@@ -108,7 +108,7 @@ def test_plot_topomap_interactive(constrained_layout):
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='ax')
     canvas.draw()
     image_interactive_click = np.frombuffer(
-        canvas.tostring_rgb(), dtype='uint8')
+        canvas.tostring_argb(), dtype='uint8')
     corr = np.corrcoef(
         image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.99 < corr <= 1

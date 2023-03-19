@@ -151,7 +151,8 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
     # sorting at the agg step *sigh*
     _inplace(orig_df, 'sort_values', by=grouping_cols, ignore_index=True)
     # aggregate
-    gb = df.drop(columns=drop_cols).groupby(grouping_cols, as_index=False)
+    gb = df.drop(columns=drop_cols).groupby(
+        grouping_cols, as_index=False, observed=False)
     if method == 'welch':
         agg_df = gb.aggregate(np.nanmean)
     else:
