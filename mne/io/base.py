@@ -2515,7 +2515,7 @@ def _check_raw_compatibility(raw):
             mismatch = set1.symmetric_difference(set2)
             if mismatch:
                 raise ValueError(f'raw[{ri}][\'info\'][{kind}] do not match: '
-                                f'{sorted(mismatch)}')
+                                 f'{sorted(mismatch)}')
         if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError('raw[%d]._cals must match' % ri)
         if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
