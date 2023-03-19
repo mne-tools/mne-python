@@ -421,7 +421,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     -----
     %(notes_plot_*_psd_func)s
     """
-    init_kw, plot_kw = _triage_old_psd_kwargs()
+    init_kw, plot_kw = _triage_old_psd_kwargs(fallback_fun=plot_raw_psd)
     return raw.compute_psd(**init_kw).plot(**plot_kw)
 
 

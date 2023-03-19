@@ -44,7 +44,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
 from ..utils.spectrum import _triage_old_psd_kwargs
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
-                   Figure3D, use_browser_backend)
+                   Figure3D, use_browser_backend, plot_raw_psd)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..viz._scraper import _mne_qt_browser_screenshot
@@ -2843,7 +2843,8 @@ class Report:
                 fmax = np.inf
 
             # shim: convert legacy .plot_psd(...) → .compute_psd(...).plot(...)
-            init_kwargs, plot_kwargs = _triage_old_psd_kwargs(kwargs=add_psd)
+            init_kwargs, plot_kwargs = _triage_old_psd_kwargs(
+                fallback_fun=plot_raw_psd, kwargs=add_psd)
             init_kwargs.setdefault('fmax', fmax)
             plot_kwargs.setdefault('show', False)
             fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)

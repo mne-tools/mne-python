@@ -982,5 +982,5 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -----
     %(notes_plot_*_psd_func)s
     """
-    init_kw, plot_kw = _triage_old_psd_kwargs()
+    init_kw, plot_kw = _triage_old_psd_kwargs(fallback_fun=plot_epochs_psd)
     return epochs.compute_psd(**init_kw).plot(**plot_kw)
