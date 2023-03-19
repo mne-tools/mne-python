@@ -7,7 +7,6 @@
 # License: Simplified BSD
 
 from collections import OrderedDict
-from inspect import currentframe, getargvalues
 
 import numpy as np
 
@@ -422,9 +421,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     -----
     %(notes_plot_*_psd_func)s
     """
-    frame = currentframe()
-    arginfo = getargvalues(frame)
-    init_kw, plot_kw = _triage_old_psd_kwargs(arginfo=arginfo)
+    init_kw, plot_kw = _triage_old_psd_kwargs()
     return raw.compute_psd(**init_kw).plot(**plot_kw)
 
 

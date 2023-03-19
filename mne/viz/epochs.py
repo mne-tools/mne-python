@@ -13,7 +13,6 @@
 
 from collections import Counter
 from copy import deepcopy
-from inspect import currentframe, getargvalues
 import warnings
 
 import numpy as np
@@ -983,7 +982,5 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -----
     %(notes_plot_*_psd_func)s
     """
-    frame = currentframe()
-    arginfo = getargvalues(frame)
-    init_kw, plot_kw = _triage_old_psd_kwargs(arginfo=arginfo)
+    init_kw, plot_kw = _triage_old_psd_kwargs()
     return epochs.compute_psd(**init_kw).plot(**plot_kw)

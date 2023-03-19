@@ -7,7 +7,7 @@
 
 from copy import deepcopy
 from functools import partial
-from inspect import currentframe, getargvalues, signature
+from inspect import signature
 
 import numpy as np
 
@@ -93,9 +93,7 @@ class SpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
-        frame = currentframe()
-        arginfo = getargvalues(frame)
-        init_kwargs, plot_kwargs = _triage_old_psd_kwargs(arginfo=arginfo)
+        init_kwargs, plot_kwargs = _triage_old_psd_kwargs()
         return self.compute_psd(**init_kwargs).plot(**plot_kwargs)
 
     @legacy(alt='.compute_psd().plot_topo()')
