@@ -1966,7 +1966,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     from ..channels import rename_channels
     spectrum = epochs.compute_psd(
         tmin=tmin, tmax=tmax, proj=proj, method='multitaper',
-        n_jobs=None, verbose=None, bandwidth=bandwidth,
+        n_jobs=n_jobs, verbose=verbose, bandwidth=bandwidth,
         low_bias=low_bias, adaptive=adaptive, normalization=normalization)
     show_names = False
     if names is not None:
@@ -1979,8 +1979,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
         mask_params=mask_params, contours=contours, outlines=outlines,
         sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
         border=border, res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
-        colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=None,
-        show=True,
+        colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=axes,
+        show=show,
     )
 
 
