@@ -41,6 +41,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      _path_like, use_log_level, _check_fname, _pl,
                      _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
                      check_version)
+from ..utils.spectrum import _split_psd_kwargs
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
                    Figure3D, use_browser_backend)
@@ -687,9 +688,11 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -717,9 +720,11 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -2837,7 +2842,11 @@ class Report:
             else:
                 fmax = np.inf
 
-            fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
+            # shim: convert legacy .plot_psd(...) → .compute_psd(...).plot(...)
+            init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
+            init_kwargs.setdefault('fmax', fmax)
+            plot_kwargs.setdefault('show', False)
+            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             tight_layout(fig=fig)
             _constrain_fig_resolution(
                 fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
@@ -3358,7 +3367,7 @@ class Report:
             if fmax > 0.5 * epochs.info['sfreq']:
                 fmax = np.inf
 
-        fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
         _constrain_fig_resolution(
             fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
         )
