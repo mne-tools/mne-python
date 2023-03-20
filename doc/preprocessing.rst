@@ -139,6 +139,7 @@ Projections:
 
    project_sensors_onto_brain
    make_montage_volume
+   warp_montage
 
 EEG referencing:
 

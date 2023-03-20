@@ -62,4 +62,4 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - Deprecate arguments ``kind`` and ``path`` from :func:`mne.channels.read_layout` in favor of a common argument ``fname`` (:gh:`11500` by `Mathieu Scheltienne`_)
-- :func:`mne.warp_montage_volume` was deprecated in favor of :func:`mne.warp_montage` (doesn't require a volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (so that a volume of electrode contacts can still be made) (:gh:`11572` by `Alex Rockhill`_)
+- ``mne.warp_montage_volume`` was deprecated in favor of :func:`mne.preprocessing.ieeg.warp_montage` (doesn't require a volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (so that a volume of electrode contacts can still be made) (:gh:`11572` by `Alex Rockhill`_)

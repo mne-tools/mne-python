@@ -10,12 +10,53 @@ import pytest
 from mne.coreg import get_mni_fiducials
 from mne.channels import make_dig_montage
 from mne.datasets import testing
-from mne.preprocessing.ieeg import make_montage_volume
-from mne.transforms import apply_trans
+from mne.preprocessing.ieeg import make_montage_volume, warp_montage
+from mne.transforms import apply_trans, compute_volume_registration
 from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
+
+
+@requires_nibabel()
+@requires_dipy()
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_warp_montage():
+    """Test warping an montage based on intracranial electrode positions."""
+    import nibabel as nib
+    subject_brain = nib.load(subjects_dir / "sample" / "mri" / "brain.mgz")
+    template_brain = nib.load(subjects_dir / "fsaverage" / "mri" / "brain.mgz")
+    zooms = dict(translation=10, rigid=10, sdr=10)
+    reg_affine, sdr_morph = compute_volume_registration(
+        subject_brain, template_brain, zooms=zooms,
+        niter=[3, 3, 3],
+        pipeline=('translation', 'rigid', 'sdr'))
+    # make an info object with three channels with positions
+    ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
+                          [-14.03007764, 19.69978401, 12.07236939],
+                          [-21.1130506, 21.98310911, 13.25658887]])
+    ch_pos = dict(zip(['1', '2', '3'], ch_coords / 1000))  # mm -> m
+    lpa, nasion, rpa = get_mni_fiducials('sample', subjects_dir)
+    montage = make_dig_montage(ch_pos, lpa=lpa['r'], nasion=nasion['r'],
+                               rpa=rpa['r'], coord_frame='mri')
+    montage_warped = warp_montage(
+        montage, subject_brain, template_brain, reg_affine, sdr_morph)
+    # checked with nilearn plot from `tut-ieeg-localize`
+    # check montage in surface RAS
+    ground_truth_warped = np.array([[-0.009, -0.00133333, -0.033],
+                                    [-0.01445455, 0.00127273, -0.03163636],
+                                    [-0.022, 0.00285714, -0.031]])
+    for i, d in enumerate(montage_warped.dig):
+        assert np.linalg.norm(  # off by less than 1 cm
+            d['r'] - ground_truth_warped[i]) < 0.01
+
+    bad_montage = montage.copy()
+    for d in bad_montage.dig:
+        d['coord_frame'] = 99
+    with pytest.raises(RuntimeError, match='Coordinate frame not supported'):
+        warp_montage(bad_montage, subject_brain, template_brain, reg_affine,
+                     sdr_morph)
 
 
 @requires_nibabel()

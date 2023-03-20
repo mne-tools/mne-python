@@ -4,10 +4,94 @@
 
 import numpy as np
 
-from ...channels import DigMontage
+from ...channels import DigMontage, make_dig_montage
 from ...surface import _voxel_neighbors
-from ...transforms import apply_trans, _frame_to_str
-from ...utils import verbose, warn, _pl, _validate_type, _require_version
+from ...transforms import apply_trans, _frame_to_str, Transform
+from ...utils import (verbose, warn, _pl, _validate_type, _require_version,
+                      _check_option)
+
+
+@verbose
+def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
+    """Warp a montage to a template with image volumes using SDR.
+
+    .. note:: This is likely only applicable for channels inside the brain
+              (intracranial electrodes).
+
+    Parameters
+    ----------
+    montage : instance of mne.channels.DigMontage
+        The montage object containing the channels.
+    %(moving)s
+    %(static)s
+    %(reg_affine)s
+    %(sdr_morph)s
+    %(verbose)s
+
+    Returns
+    -------
+    montage_warped : mne.channels.DigMontage
+        The modified montage object containing the channels.
+    """
+    _require_version('nibabel', 'warp montage', '2.1.0')
+    _require_version('dipy', 'warping points using SDR', '1.6.0')
+
+    from nibabel import MGHImage
+    from nibabel.spatialimages import SpatialImage
+    from dipy.align.imwarp import DiffeomorphicMap
+
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    _validate_type(montage, DigMontage, 'montage')
+
+    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32),
+                          moving.affine)
+    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32),
+                          static.affine)
+    del moving, static
+
+    # get montage channel coordinates
+    ch_dict = montage.get_positions()
+    if ch_dict['coord_frame'] != 'mri':
+        bad_coord_frames = np.unique([d['coord_frame'] for d in montage.dig])
+        bad_coord_frames = ', '.join([
+            _frame_to_str[cf] if cf in _frame_to_str else str(cf)
+            for cf in bad_coord_frames])
+        raise RuntimeError('Coordinate frame not supported, expected '
+                           f'"mri", got {bad_coord_frames}')
+    ch_names = list(ch_dict['ch_pos'].keys())
+    ch_coords = np.array([ch_dict['ch_pos'][name] for name in ch_names])
+
+    ch_coords = apply_trans(  # convert to moving voxel space
+        np.linalg.inv(moving_mgh.header.get_vox2ras_tkr()), ch_coords * 1000)
+    # next, to moving scanner RAS
+    ch_coords = apply_trans(moving_mgh.header.get_vox2ras(), ch_coords)
+
+    # now, apply reg_affine
+    ch_coords = apply_trans(Transform(  # to static ras
+        fro='ras', to='ras', trans=np.linalg.inv(reg_affine)), ch_coords)
+
+    # now, apply SDR morph
+    if sdr_morph is not None:
+        ch_coords = sdr_morph.transform_points(
+            ch_coords, sdr_morph.domain_grid2world,
+            sdr_morph.domain_world2grid)
+
+    # back to voxels but now for the static image
+    ch_coords = apply_trans(np.linalg.inv(static_mgh.header.get_vox2ras()),
+                            ch_coords)
+
+    # finally, back to surface RAS
+    ch_coords = apply_trans(static_mgh.header.get_vox2ras_tkr(),
+                            ch_coords) / 1000
+
+    # make warped montage
+    montage_warped = make_dig_montage(
+        dict(zip(ch_names, ch_coords)), coord_frame='mri')
+    return montage_warped
 
 
 def _warn_missing_chs(info, dig_image, after_warp=False):
@@ -63,7 +147,7 @@ def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
         corresponding to the index of the channel. The background
         is 0s and this index starts at 1.
     """
-    _require_version('nibabel', 'elec image', '2.1.0')
+    _require_version('nibabel', 'montage volume', '2.1.0')
     import nibabel as nib
 
     _validate_type(montage, DigMontage, 'montage')
