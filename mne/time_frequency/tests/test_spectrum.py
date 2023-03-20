@@ -125,8 +125,12 @@ def _agg_helper(df, weights, group_cols):
 
 @requires_pandas
 @pytest.mark.parametrize('long_format', (False, True))
-@pytest.mark.parametrize('method', ('welch', 'multitaper'))
-def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
+@pytest.mark.parametrize('method, output', [
+    ('welch', 'complex'),
+    ('welch', 'power'),
+    ('multitaper', 'complex'),
+])
+def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     """Test converting complex multitaper spectra to data frame."""
     from pandas.testing import assert_frame_equal
 
@@ -137,8 +141,10 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
                   .to_data_frame(long_format=long_format))
     # unaggregated welch or complex multitaper →
     #   aggregate w/ pandas (to make sure we did reshaping right)
-    kwargs = {'average': False} if method == 'welch' else {'output': 'complex'}
-    spectrum = raw.compute_psd(method=method, **kwargs)
+    kwargs = dict()
+    if method == 'welch':
+        kwargs.update(average=False, verbose='error')
+    spectrum = raw.compute_psd(method=method, output=output, **kwargs)
     df = spectrum.to_data_frame(long_format=long_format)
     grouping_cols = ['freq']
     drop_cols = ['segment'] if method == 'welch' else ['taper']
@@ -156,7 +162,12 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
     # aggregate
     gb = df.drop(columns=drop_cols).groupby(grouping_cols, as_index=False)
     if method == 'welch':
-        agg_df = gb.aggregate(np.nanmean)
+        if output == 'complex':
+            def _fun(x):
+                return np.nanmean(np.abs(x))
+        else:
+            _fun = np.nanmean
+        agg_df = gb.aggregate(_fun)
     else:
         agg_df = gb.apply(_agg_helper, spectrum._mt_weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
@@ -226,7 +237,7 @@ def test_spectrum_proj(inst, request):
 
 @pytest.mark.parametrize('method, average', [
     ('welch', False),
-    ('multitaper', True),
+    ('welch', 'mean'),
     ('multitaper', False),
 ])
 def test_spectrum_complex(method, average):
@@ -251,6 +262,8 @@ def test_spectrum_complex(method, average):
             want_shape = want_shape + (2,)
             kwargs['average'] = average
     else:
+        assert method == 'multitaper'
+        assert not average
         ctx = nullcontext()
         want_dims = ('epoch', 'channel', 'taper', 'freq')
         want_shape = (5, 1, 7, sfreq + 1)
