@@ -36,7 +36,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname, _check_option, path_like,
+                    _check_fname, _check_option, path_like, _import_nibabel,
                     _on_missing, _import_h5io_funcs, _ensure_int,
                     _path_like, _verbose_safe_false, _check_head_radius)
 
