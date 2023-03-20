@@ -67,7 +67,7 @@ To install the latest version of the code using pip_ open a terminal and type:
 
     $ pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
 
-To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
+To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:https://github.com/account
 
 .. code-block:: console
 
