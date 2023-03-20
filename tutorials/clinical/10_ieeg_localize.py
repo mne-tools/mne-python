@@ -482,15 +482,17 @@ montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
 # warp the montage
-montage_warped = mne.warp_montage(
+montage_warped = mne.preprocessing.ieeg.warp_montage(
     montage, subject_brain, template_brain, reg_affine, sdr_morph)
 
 # visualize using an image of the electrode contacts to see their sizes
 elec_image = mne.preprocessing.ieeg.make_montage_volume(
     montage, CT_aligned, thresh=0.25)
 
+# warp image using transforms
 warped_elec_image = mne.transforms.apply_volume_registration(
-    elec_image, template_brain, reg_affine, sdr_morph)
+    elec_image, template_brain, reg_affine, sdr_morph,
+    interpolation='nearest')
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
