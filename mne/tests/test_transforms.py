@@ -561,3 +561,15 @@ def test_volume_registration():
     with pytest.raises(ValueError,
                        match='Steps in pipeline should not be repeated'):
         _validate_pipeline(('affine', 'affine'))
+
+    # test points
+    info = read_info(test_fif_fname)
+    trans = read_trans(fname)
+    info2, trans2 = mne.transforms.apply_volume_registration_points(
+        info, trans, T1_resampled, T1, reg_affine, sdr_morph)
+    assert_allclose(trans2['trans'], np.eye(4), atol=0.001)  # same before
+    ch_pos = info2.get_montage().get_positions()['ch_pos']
+    assert_allclose([ch_pos['EEG 001'], ch_pos['EEG 002'], ch_pos['EEG 003']],
+                    [[-0.04136687, 0.05402692, 0.09491907],
+                     [-0.01874947, 0.05656526, 0.09966554],
+                     [0.00828519, 0.05535511, 0.09869323]], atol=0.001)
