@@ -213,6 +213,7 @@ def _get_head_pos_sim(raw):
 
 def test_simulate_raw_sphere(raw_data, tmp_path):
     """Test simulation of raw data with sphere model."""
+    pytest.importorskip('nibabel')
     seed = 42
     raw, src, stc, trans, sphere = raw_data
     assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
