@@ -30,8 +30,9 @@ def test_slice_browser_io(renderer_interactive_pyvistaqt):
 
 
 # TODO: For some reason this leaves some stuff un-closed, we should fix it
+@pytest.mark.allow_unclosed
 @testing.requires_testing_data
-def test_slice_browser_display(renderer_interactive_pyvistaqt, allow_unclosed):
+def test_slice_browser_display(renderer_interactive_pyvistaqt):
     """Test that the slice browser GUI displays properly."""
     from mne.gui._core import SliceBrowser
     # test no seghead, fsaverage doesn't have seghead
@@ -49,11 +50,13 @@ def test_slice_browser_display(renderer_interactive_pyvistaqt, allow_unclosed):
         gui = SliceBrowser(subject=subject, subjects_dir=subjects_dir)
 
     # test RAS
-    gui._RAS_textbox.setPlainText('10 10 10\n')
+    gui._RAS_textbox.setText('10 10 10')
+    gui._RAS_textbox.focusOutEvent(event=None)
     assert_allclose(gui._ras, [10, 10, 10])
 
     # test vox
-    gui._VOX_textbox.setPlainText('150, 150, 150\n')
+    gui._VOX_textbox.setText('150, 150, 150')
+    gui._VOX_textbox.focusOutEvent(event=None)
     assert_allclose(gui._ras, [23, 22, 23])
 
     # test click

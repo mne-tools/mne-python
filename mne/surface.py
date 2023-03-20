@@ -1736,7 +1736,8 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=None,
+                    use_flying_edges=True):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1747,7 +1748,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     from vtkmodules.vtkCommonDataModel import \
         vtkImageData, vtkDataSetAttributes
     from vtkmodules.vtkFiltersCore import vtkThreshold
-    from vtkmodules.vtkFiltersGeneral import vtkDiscreteFlyingEdges3D
+    from vtkmodules.vtkFiltersGeneral import (vtkDiscreteFlyingEdges3D,
+                                              vtkDiscreteMarchingCubes)
     from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
     from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
     from scipy.ndimage import binary_dilation
@@ -1774,10 +1776,12 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
 
     # force double as passing integer types directly can be problematic!
     image_shape = image.shape
-    data_vtk = numpy_to_vtk(image.ravel().astype(float), deep=True)
+    # use order='A' to automatically detect when Fortran ordering is needed
+    data_vtk = numpy_to_vtk(image.ravel(order='A').astype(float), deep=True)
     del image
 
-    mc = vtkDiscreteFlyingEdges3D()
+    mc = vtkDiscreteFlyingEdges3D() if use_flying_edges else \
+        vtkDiscreteMarchingCubes()
     # create image
     imdata = vtkImageData()
     imdata.SetDimensions(image_shape)
@@ -1798,7 +1802,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     selector.SetInputData(mc)
     dsa = vtkDataSetAttributes()
     selector.SetInputArrayToProcess(
-        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
+        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS if use_flying_edges else
+        imdata.FIELD_ASSOCIATION_CELLS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
 

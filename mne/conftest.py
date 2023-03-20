@@ -78,7 +78,8 @@ collect_ignore = [
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers
-    for marker in ('slowtest', 'ultraslowtest', 'pgtest'):
+    for marker in ('slowtest', 'ultraslowtest', 'pgtest', 'allow_unclosed',
+                   'allow_unclosed_pyside2'):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
@@ -969,18 +970,18 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend('pyvistaqt')
     app = _init_mne_qtapp()
+    from qtpy import API_NAME
+    app.processEvents()
     gc.collect()
     n_before = len(app.topLevelWidgets())
+    marks = set(mark.name for mark in request.node.iter_markers())
     yield
+    app.processEvents()
     gc.collect()
-    if 'allow_unclosed' in request.fixturenames:
+    if 'allow_unclosed' in marks:
+        return
+    if 'allow_unclosed_pyside2' in marks and API_NAME.lower() == 'pyside2':
         return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
-
-
-@pytest.fixture
-def allow_unclosed():
-    """Allow unclosed Qt Windows."""
-    pass
