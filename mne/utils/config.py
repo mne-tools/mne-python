@@ -524,7 +524,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
     """
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 21 if dependencies == 'developer' else 18
+    ljust = 24 if dependencies == 'developer' else 21
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -538,12 +538,12 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         del macos_ver, macos_architecture
 
     out = partial(print, end='', file=fid)
-    out('Platform:'.ljust(ljust) + platform_str + '\n')
-    out('Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
-    out('Executable:'.ljust(ljust) + sys.executable + '\n')
-    out('CPU:'.ljust(ljust) + f'{platform.processor()} ')
+    out('Platform'.ljust(ljust) + platform_str + '\n')
+    out('Python'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
+    out('Executable'.ljust(ljust) + sys.executable + '\n')
+    out('CPU'.ljust(ljust) + f'{platform.processor()} ')
     out(f'({multiprocessing.cpu_count()} cores)\n')
-    out('Memory:'.ljust(ljust))
+    out('Memory'.ljust(ljust))
     try:
         import psutil
     except ImportError:
@@ -551,6 +551,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
     else:
         out(f'{psutil.virtual_memory().total / float(2 ** 30):0.1f} GB\n')
     out('\n')
+    ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
     unavailable = []
     use_mod_names = (
@@ -566,8 +567,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         'pyqtgraph', 'mne-qt-browser',
         '',
         '# Ecosystem (optional)',
-        'mne_bids', 'mne_nirs', 'mne_features', 'mne_connectivity',
-        'mne_icalabel',
+        'mne-bids', 'mne-nirs', 'mne-features', 'mne-connectivity',
+        'mne-icalabel',
         ''
     )
     if dependencies == 'developer':
@@ -576,7 +577,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
             'pytest', 'nbclient', 'numpydoc', 'flake8', 'pydocstyle',
             '',
             '# Documentation',
-            'sphinx', 'sphinx_gallery', 'pydata_sphinx_theme',
+            'sphinx', 'sphinx-gallery', 'pydata-sphinx-theme',
             '',
         )
     try:
@@ -588,7 +589,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         if mod_name == '':  # break
             if unavailable:
                 out('└☐ ' if unicode else ' - ')
-                out('unavailable:'.ljust(ljust))
+                out('unavailable'.ljust(ljust))
                 out(f"{', '.join(unavailable)}\n")
                 unavailable = []
             if mi != len(use_mod_names) - 1:
@@ -603,12 +604,12 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         if last:
             pre = '└'
         try:
-            mod = import_module(mod_name)
+            mod = import_module(mod_name.replace("-", "_"))
         except Exception:
             unavailable.append(mod_name)
         else:
             out(f'{pre}☑ ' if unicode else ' + ')
-            out(f'{mod_name}:'.ljust(ljust))
+            out(f'{mod_name}'.ljust(ljust))
             if mod_name == 'vtk':
                 vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
