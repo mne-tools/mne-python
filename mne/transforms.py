@@ -21,7 +21,8 @@ from .io.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _path_like, get_subjects_dir, fill_doc, _check_fname,
-                    _check_option, _require_version, wrapped_stdout)
+                    _check_option, _require_version, wrapped_stdout,
+                    _import_nibabel)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1680,9 +1681,8 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
 
 def _compute_volume_registration(moving, static, pipeline, zooms, niter, *,
                                  starting_affine=None):
-    _require_version('nibabel', 'SDR morph', '2.1.0')
+    nib = _import_nibabel('SDR morph')
     _require_version('dipy', 'SDR morph', '0.10.1')
-    import nibabel as nib
     with np.testing.suppress_warnings():
         from dipy.align.imaffine import AffineMap
         from dipy.align import (affine_registration, center_of_mass,
@@ -1794,8 +1794,8 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     -----
     .. versionadded:: 0.24
     """
-    _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
+    _import_nibabel('SDR morph')
     from nibabel.spatialimages import SpatialImage
     from dipy.align.imwarp import DiffeomorphicMap
     from dipy.align.imaffine import AffineMap

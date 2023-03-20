@@ -26,8 +26,8 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
 from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
-from mne.utils import (requires_nibabel, check_version, requires_version,
-                       requires_dipy, catch_logging, _record_warnings)
+from mne.utils import (check_version, requires_version, catch_logging,
+                       _record_warnings)
 
 # Setup paths
 
@@ -52,6 +52,8 @@ fname_fs_vol = (
 )
 fname_aseg_fs = subjects_dir / "fsaverage" / "mri" / "aseg.mgz"
 fname_stc = sample_dir / "fsaverage_audvis_trunc-meg"
+
+pytest.importorskip('nibabel')
 
 
 def _real_vec_stc():
@@ -290,13 +292,12 @@ def test_surface_vector_source_morph(tmp_path):
 
 
 @requires_version('h5io')
-@requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_morph_basic(tmp_path):
     """Test volume source estimate morph, special cases and exceptions."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
     stc_vol = read_source_estimate(fname_vol_w, 'sample')
 
@@ -475,8 +476,6 @@ def test_volume_source_morph_basic(tmp_path):
 
 
 @requires_version('h5io')
-@requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
@@ -491,7 +490,8 @@ def test_volume_source_morph_round_trip(
         tmp_path, subject_from, subject_to, lower, upper, dtype, morph_mat,
         monkeypatch):
     """Test volume source estimate morph round-trips well."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     from nibabel.processing import resample_from_to
     src = dict()
     if morph_mat:
@@ -752,7 +752,6 @@ def test_morph_stc_sparse():
             spacing=None, sparse=True, xhemi=True, subjects_dir=subjects_dir)
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 @pytest.mark.parametrize('sl, n_real, n_mri, n_orig', [
     # First and last should add up, middle can have overlap should be <= sum
@@ -762,7 +761,7 @@ def test_morph_stc_sparse():
 ])
 def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     """Test generating a source space from volume label."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     n_use = (sl.stop - sl.start) // (sl.step or 1)
     # see gh-5224
     evoked = mne.read_evokeds(fname_evoked)[0].crop(0, 0)
@@ -816,6 +815,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
 
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _mixed_morph_srcs():
+    pytest.importorskip('nibabel')
     # create a mixed source space
     labels_vol = ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex']
     src = mne.setup_source_space('sample', spacing='oct3',
@@ -846,13 +846,12 @@ def _mixed_morph_srcs():
     return morph, src, src_fs
 
 
-@requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @pytest.mark.parametrize('vector', (False, True))
 def test_mixed_source_morph(_mixed_morph_srcs, vector):
     """Test mixed source space morphing."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     morph, src, src_fs = _mixed_morph_srcs
     # Test some basic properties in the subject's own space
     lut, _ = read_freesurfer_lut()
@@ -926,8 +925,6 @@ _affines = (
 )
 
 
-@requires_nibabel()
-@requires_version('dipy', '1.3')
 @pytest.mark.parametrize('from_shape', _shapes)
 @pytest.mark.parametrize('from_affine', _affines)
 @pytest.mark.parametrize('to_shape', _shapes)
@@ -937,6 +934,8 @@ _affines = (
 def test_resample_equiv(from_shape, from_affine, to_shape, to_affine,
                         order, seed):
     """Test resampling equivalences."""
+    pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     rng = np.random.RandomState(seed)
     from_data = rng.randn(*from_shape)
     is_rand = False

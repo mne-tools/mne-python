@@ -27,8 +27,7 @@ from mne.report.report import (
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import (requires_nibabel, Bunch, requires_version,
-                       requires_sklearn)
+from mne.utils import Bunch, requires_version, requires_sklearn
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -401,6 +400,7 @@ def test_report_raw_psd_and_date(tmp_path):
 @testing.requires_testing_data
 def test_render_add_sections(renderer, tmp_path):
     """Test adding figures/images to section."""
+    pytest.importorskip('nibabel')
     from pyvista.plotting import plotting
     report = Report(subjects_dir=subjects_dir)
     # Check add_figure functionality
@@ -444,9 +444,9 @@ def test_render_add_sections(renderer, tmp_path):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel()
 def test_render_mri(renderer, tmp_path):
     """Test rendering MRI for mne report."""
+    pytest.importorskip('nibabel')
     trans_fname_new = tmp_path / "temp-trans.fif"
     for a, b in [[trans_fname, trans_fname_new]]:
         shutil.copyfile(a, b)
@@ -467,7 +467,6 @@ def test_render_mri(renderer, tmp_path):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('n_jobs', [
     1,
     pytest.param(2, marks=pytest.mark.slowtest),  # 1.5 s locally
@@ -475,6 +474,7 @@ def test_render_mri(renderer, tmp_path):
 @pytest.mark.filterwarnings('ignore:No contour levels were.*:UserWarning')
 def test_add_bem_n_jobs(n_jobs, monkeypatch):
     """Test add_bem with n_jobs."""
+    pytest.importorskip('nibabel')
     if n_jobs == 1:  # in one case, do at init -- in the other, pass in
         use_subjects_dir = None
     else:
@@ -502,9 +502,9 @@ def test_add_bem_n_jobs(n_jobs, monkeypatch):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_render_mri_without_bem(tmp_path):
     """Test rendering MRI without BEM for mne report."""
+    pytest.importorskip('nibabel')
     os.mkdir(tmp_path / "sample")
     os.mkdir(tmp_path / "sample" / "mri")
     shutil.copyfile(mri_fname, tmp_path / "sample" / "mri" / "T1.mgz")
@@ -519,9 +519,9 @@ def test_render_mri_without_bem(tmp_path):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_add_html():
     """Test adding html str to mne report."""
+    pytest.importorskip('nibabel')
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     html = '<b>MNE-Python is AWESOME</b>'
@@ -938,6 +938,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
 @testing.requires_testing_data
 def test_manual_report_3d(tmp_path, renderer):
     """Simulate adding 3D sections."""
+    pytest.importorskip('nibabel')
     r = Report(title='My Report')
     info = read_info(raw_fname)
     with info._unlock():

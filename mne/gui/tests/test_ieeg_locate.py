@@ -11,7 +11,7 @@ import pytest
 import mne
 from mne.datasets import testing
 from mne.transforms import apply_trans
-from mne.utils import requires_nibabel, requires_version, use_log_level
+from mne.utils import requires_version, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -22,11 +22,10 @@ raw_path = sample_dir / "sample_audvis_trunc_raw.fif"
 fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
 
 
-@requires_nibabel()
 @pytest.fixture
 def _fake_CT_coords(skull_size=5, contact_size=2):
     """Make somewhat realistic CT data with contacts."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     brain = nib.load(subjects_dir / subject / "mri" / "brain.mgz")
     verts = mne.read_surface(
         subjects_dir / subject / "bem" / "outer_skull.surf"
@@ -59,10 +58,9 @@ def _fake_CT_coords(skull_size=5, contact_size=2):
     return ct, coords
 
 
-@requires_nibabel()
 def test_ieeg_elec_locate_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the intracranial location GUI."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     import mne.gui
     info = mne.create_info([], 1000)
 
