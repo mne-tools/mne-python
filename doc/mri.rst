@@ -32,6 +32,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    scale_labels
    scale_source_space
    transforms.apply_volume_registration
+   transforms.apply_volume_registration_points
    transforms.compute_volume_registration
    vertex_to_mni
    coreg.Coregistration

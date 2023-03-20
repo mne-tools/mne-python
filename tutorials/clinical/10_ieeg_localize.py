@@ -198,6 +198,7 @@ reg_affine = np.array([
     [0.04374389, 0.99439665, -0.09623816, -97.58320673],
     [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
     [0., 0., 0., 1.]])
+
 # use a cval='1%' here to make the values outside the domain of the CT
 # the same as the background level during interpolation
 CT_aligned = mne.transforms.apply_volume_registration(

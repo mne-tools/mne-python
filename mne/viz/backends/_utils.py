@@ -415,7 +415,10 @@ def _qt_safe_window(
                     try:
                         for n in attr.split('.')[:-1]:
                             parent = getattr(parent, n)
-                        widget = getattr(parent, name, False)
+                        if name:
+                            widget = getattr(parent, name, False)
+                        else:  # empty string means "self"
+                            widget = parent
                         if widget:
                             widget.close()
                         del widget
