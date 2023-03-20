@@ -816,6 +816,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
 def _mixed_morph_srcs():
     pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     # create a mixed source space
     labels_vol = ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex']
     src = mne.setup_source_space('sample', spacing='oct3',
