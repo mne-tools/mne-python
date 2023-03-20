@@ -7,8 +7,13 @@ def _pop_with_fallback(mapping, key, fallback_fun):
     return mapping.pop(key, fallback)
 
 
-def _translate_old_psd_kwargs(fallback_fun, kwargs):
-    """Modify passed-in kwargs to match new API."""
+def _update_old_psd_kwargs(kwargs):
+    """Modify passed-in kwargs to match new API.
+
+    NOTE: using plot_raw_psd as fallback (even for epochs) is fine because
+    their kwargs are the same (and will stay the same: both are @legacy funcs).
+    """
+    from ..viz import plot_raw_psd as fallback_fun
     kwargs['axes'] = _pop_with_fallback(kwargs, 'ax', fallback_fun)
     kwargs['alpha'] = _pop_with_fallback(kwargs, 'line_alpha', fallback_fun)
     kwargs['ci_alpha'] = _pop_with_fallback(kwargs, 'area_alpha', fallback_fun)
@@ -16,34 +21,11 @@ def _translate_old_psd_kwargs(fallback_fun, kwargs):
     kwargs['amplitude'] = 'auto' if est == 'auto' else (est == 'amplitude')
     area_mode = _pop_with_fallback(kwargs, 'area_mode', fallback_fun)
     kwargs['ci'] = 'sd' if area_mode == 'std' else area_mode
-    return kwargs
 
 
-def _triage_old_psd_kwargs(*, fallback_fun, plot_fun=None, kwargs=None):
-    """Convert .plot_psd(params) into .compute_psd(params).plot(other_params).
-
-    ``fallback_fun`` should be a callable or "self" or None. ``plot_fun`` is
-    ``Spectrum.plot`` or ``Spectrum.plot_topomap``. ``kwargs`` should be a
-    dict; if it's not passed, the calling function's arguments will be inferred
-    using the ``inspect`` module. Returns a tuple of dicts (1 for
-    ``inst.compute_psd()`` and 1 for ``[Epochs]Spectrum.plot()``.
-    """
+def _split_psd_kwargs(*, plot_fun=None, kwargs=None):
     from ..io import BaseRaw
     from ..time_frequency import Spectrum
-    from ..viz import plot_epochs_psd, plot_raw_psd
-
-    if plot_fun is None:
-        plot_fun = Spectrum.plot
-
-    # for the SpectrumMixin we can't easily pass in the right fallback without
-    # introspection; could have done that in the Mixin but better to keep it
-    # tucked away here (less chance to confuse folks).
-    if fallback_fun == 'self':
-        calling_obj = currentframe().f_back.f_locals['self']
-        if isinstance(calling_obj, BaseRaw):
-            fallback_fun = plot_raw_psd
-        else:
-            fallback_fun = plot_epochs_psd
 
     # if no kwargs supplied, get them from calling func
     if kwargs is None:
@@ -65,22 +47,17 @@ def _triage_old_psd_kwargs(*, fallback_fun, plot_fun=None, kwargs=None):
         kwargs.pop('reject_by_annotation', None)
 
     # handle API changes from .plot_psd(...) to .compute_psd(...).plot(...)
-    if fallback_fun in (plot_raw_psd, plot_epochs_psd):
-        kwargs = _translate_old_psd_kwargs(fallback_fun, kwargs)
+    if plot_fun is Spectrum.plot:
+        _update_old_psd_kwargs(kwargs)
 
-    # split off the plotting kwargs. user-defined picks should only be passed
-    # to the Spectrum constructor (otherwise integer picks could be wrong,
-    # `None` will be handled wrong for `misc` data, etc)
+    # split off the plotting kwargs
     plot_kwargs = {k: v for k, v in kwargs.items() if
                    k in signature(plot_fun).parameters and k != 'picks'}
     for k in plot_kwargs:
         del kwargs[k]
+    # user-defined picks should only be passed to the Spectrum constructor
+    # (otherwise integer picks could be wrong, `None` will be handled wrong
+    # for `misc` data, etc)
     if plot_fun is Spectrum.plot:
         plot_kwargs['picks'] = 'all'  # TODO: this should be the default
-
-    # sanity check
-    overlapping_kwargs = set(kwargs).intersection(set(plot_kwargs))
-    if len(overlapping_kwargs):  # might be 0 for mne.Reports or plot_topomap
-        assert overlapping_kwargs == set(['picks'])
-
     return kwargs, plot_kwargs

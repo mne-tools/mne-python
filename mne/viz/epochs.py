@@ -21,11 +21,12 @@ from .raw import _setup_channel_selections
 from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
-from ..utils.spectrum import _triage_old_psd_kwargs
+from ..utils.spectrum import _split_psd_kwargs
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
+from ..time_frequency import Spectrum
 from .utils import (tight_layout, _setup_vmin_vmax, plt_show,
                     _check_cov, _handle_precompute,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
@@ -982,5 +983,5 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -----
     %(notes_plot_*_psd_func)s
     """
-    init_kw, plot_kw = _triage_old_psd_kwargs(fallback_fun=plot_epochs_psd)
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return epochs.compute_psd(**init_kw).plot(**plot_kw)

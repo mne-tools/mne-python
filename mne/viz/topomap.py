@@ -1965,18 +1965,16 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     """
     from ..channels import rename_channels
     from ..time_frequency import Spectrum
-    from ..utils.spectrum import _triage_old_psd_kwargs
+    from ..utils.spectrum import _split_psd_kwargs
 
-    init_kwargs, topomap_kwargs = _triage_old_psd_kwargs(
-        fallback_fun=None, plot_fun=Spectrum.plot_topomap)
-
-    spectrum = epochs.compute_psd(**init_kwargs)
-    topomap_kwargs.setdefault('show_names', False)
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
+    spectrum = epochs.compute_psd(**init_kw)
+    plot_kw.setdefault('show_names', False)
     if names is not None:
         rename_channels(spectrum.info, dict(zip(spectrum.ch_names, names)),
                         verbose=verbose)
-        topomap_kwargs['show_names'] = True
-    return spectrum.plot_topomap(**topomap_kwargs)
+        plot_kw['show_names'] = True
+    return spectrum.plot_topomap(**plot_kw)
 
 
 @fill_doc
