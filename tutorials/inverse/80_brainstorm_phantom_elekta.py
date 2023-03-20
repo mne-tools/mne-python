@@ -53,7 +53,7 @@ raw.info['bads'] = ['MEG1933', 'MEG2421']
 # noise (five peaks around 300 Hz). Here, we use only the first 30 seconds
 # to save memory:
 
-raw.plot_psd(tmax=30., average=False)
+raw.compute_psd(tmax=30).plot(average=False)
 
 # %%
 # Our phantom produces sinusoidal bursts at 20 Hz:
@@ -136,7 +136,8 @@ residual.plot(axes=axes)
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.  # nAm
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7))
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7),
+                                    constrained_layout=True)
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
 print('mean(position error) = %0.1f mm' % (np.mean(diffs),))
@@ -155,9 +156,6 @@ print('mean(abs amplitude error) = %0.1f nAm' % (np.mean(np.abs(amps)),))
 ax3.bar(event_id, amps)
 ax3.set_xlabel('Dipole index')
 ax3.set_ylabel('Amplitude error (nAm)')
-
-fig.tight_layout()
-plt.show()
 
 # %%
 # Let's plot the positions and the orientations of the actual and the estimated

@@ -21,10 +21,12 @@ from .raw import _setup_channel_selections
 from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
+from ..utils.spectrum import _split_psd_kwargs
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
+from ..time_frequency import Spectrum
 from .utils import (tight_layout, _setup_vmin_vmax, plt_show,
                     _check_cov, _handle_precompute,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
@@ -981,14 +983,5 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -----
     %(notes_plot_*_psd_func)s
     """
-    fig = epochs.plot_psd(
-        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-        proj=proj, method='multitaper',
-        ax=ax, color=color, xscale=xscale, area_mode=area_mode,
-        area_alpha=area_alpha, dB=dB, estimate=estimate, show=show,
-        line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-        exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
-        # these are **method_kw:
-        window='hamming', bandwidth=bandwidth, adaptive=adaptive,
-        low_bias=low_bias, normalization=normalization)
-    return fig
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+    return epochs.compute_psd(**init_kw).plot(**plot_kw)

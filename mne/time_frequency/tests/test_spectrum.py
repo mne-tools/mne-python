@@ -7,6 +7,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import create_info, make_fixed_length_epochs
 from mne.io import RawArray
+from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.utils import requires_h5py, requires_pandas
@@ -82,6 +83,20 @@ def test_spectrum_copy(raw):
     assert id(spect) != id(spect_copy)
     spect_copy._freqs = None
     assert spect.freqs is not None
+
+
+def test_spectrum_reject_by_annot(raw):
+    """Test rejecting by annotation."""
+    spect_no_annot = raw.compute_psd()
+    raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
+    spect_benign_annot = raw.compute_psd()
+    raw.annotations.description = np.array(['bad_test', 'bad_test'])
+    spect_reject_annot = raw.compute_psd()
+    spect_ignored_annot = raw.compute_psd(reject_by_annotation=False)
+    # the only one that should be different is `spect_reject_annot`
+    assert spect_no_annot == spect_benign_annot
+    assert spect_no_annot == spect_ignored_annot
+    assert spect_no_annot != spect_reject_annot
 
 
 def test_spectrum_getitem_raw(raw):
@@ -160,7 +175,8 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # sorting at the agg step *sigh*
     _inplace(orig_df, 'sort_values', by=grouping_cols, ignore_index=True)
     # aggregate
-    gb = df.drop(columns=drop_cols).groupby(grouping_cols, as_index=False)
+    gb = df.drop(columns=drop_cols).groupby(
+        grouping_cols, as_index=False, observed=False)
     if method == 'welch':
         if output == 'complex':
             def _fun(x):

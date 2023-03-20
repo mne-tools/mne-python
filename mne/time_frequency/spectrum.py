@@ -24,6 +24,7 @@ from ..utils import (GetEpochsMixin, _build_data_frame,
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
+from ..utils.spectrum import _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
@@ -92,29 +93,8 @@ class SpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
-        from ..io import BaseRaw
-
-        # triage reject_by_annotation
-        rba = dict()
-        if isinstance(self, BaseRaw):
-            rba = dict(reject_by_annotation=reject_by_annotation)
-
-        spectrum = self.compute_psd(
-            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose, **rba,
-            **method_kw)
-
-        # translate kwargs
-        amplitude = 'auto' if estimate == 'auto' else (estimate == 'amplitude')
-        ci = 'sd' if area_mode == 'std' else area_mode
-        # ↓ here picks="all" because we've already restricted the `info` to
-        # ↓ have only `picks` channels
-        fig = spectrum.plot(
-            picks='all', average=average, dB=dB, amplitude=amplitude,
-            xscale=xscale, ci=ci, ci_alpha=area_alpha, color=color,
-            alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-            exclude=exclude, axes=ax, show=show)
-        return fig
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+        return self.compute_psd(**init_kw).plot(**plot_kw)
 
     @legacy(alt='.compute_psd().plot_topo()')
     @verbose
@@ -148,13 +128,8 @@ class SpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        spectrum = self.compute_psd(
-            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            proj=proj, n_jobs=n_jobs, verbose=verbose, **method_kw)
-
-        return spectrum.plot_topo(
-            dB=dB, layout=layout, color=color, fig_facecolor=fig_facecolor,
-            axis_facecolor=axis_facecolor, axes=axes, block=block, show=show)
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
+        return self.compute_psd(**init_kw).plot_topo(**plot_kw)
 
     @legacy(alt='.compute_psd().plot_topomap()')
     @verbose
@@ -212,19 +187,8 @@ class SpectrumMixin():
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        spectrum = self.compute_psd(
-            method=method, tmin=tmin, tmax=tmax, proj=proj,
-            n_jobs=n_jobs, verbose=verbose, **method_kw)
-
-        fig = spectrum.plot_topomap(
-            bands=bands, ch_type=ch_type, normalize=normalize, agg_fun=agg_fun,
-            dB=dB, sensors=sensors, show_names=show_names, mask=mask,
-            mask_params=mask_params, contours=contours, outlines=outlines,
-            sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
-            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, units=units,
-            axes=axes, show=show)
-        return fig
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
+        return self.compute_psd(**init_kw).plot_topomap(**plot_kw)
 
     def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
         """Update method_kw with legacy n_fft default for plot_psd[_topo]().
@@ -919,9 +883,8 @@ class Spectrum(BaseSpectrum):
     .. footbibliography::
     """
 
-    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, reject_by_annotation, *, n_jobs, verbose=None,
-                 **method_kw):
+    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj,
+                 reject_by_annotation, *, n_jobs, verbose=None, **method_kw):
         from ..io import BaseRaw
 
         # triage reading from file

@@ -6,8 +6,7 @@
 
 from contextlib import nullcontext
 from datetime import datetime, timezone
-from mne.io import RawArray
-from mne.io.meas_info import create_info
+from os import remove
 from pathlib import Path
 
 import pytest
@@ -20,8 +19,9 @@ from mne import (read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff,
 from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
 from mne.fixes import _compare_version
-from mne.io import (read_raw_fif, read_raw_eeglab, read_raw_edf,
+from mne.io import (RawArray, read_raw_fif, read_raw_eeglab, read_raw_edf,
                     read_raw_brainvision)
+from mne.io.meas_info import create_info
 from mne.utils import (_check_eeglabio_installed, requires_version,
                        object_diff, _check_edflib_installed, _resource_path,
                        _check_pybv_installed, _record_warnings)
@@ -309,12 +309,23 @@ def test_export_raw_edf(tmp_path, dataset, format):
     temp_fname = tmp_path / f"test.{format}"
 
     # test runtime errors
-    with pytest.raises(RuntimeError, match='The maximum'), \
-            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
+    with pytest.warns() as record:
         raw.export(temp_fname, physical_range=(-1e6, 0))
-    with pytest.raises(RuntimeError, match='The minimum'), \
-            pytest.warns(RuntimeWarning, match='Data has a non-integer'):
+    if dataset == 'test':
+        assert any(
+            "Data has a non-integer" in str(rec.message) for rec in record
+        )
+    assert any("The maximum" in str(rec.message) for rec in record)
+    remove(temp_fname)
+
+    with pytest.warns() as record:
         raw.export(temp_fname, physical_range=(0, 1e6))
+    if dataset == 'test':
+        assert any(
+            "Data has a non-integer" in str(rec.message) for rec in record
+        )
+    assert any("The minimum" in str(rec.message) for rec in record)
+    remove(temp_fname)
 
     if dataset == 'test':
         with pytest.warns(RuntimeWarning, match='Data has a non-integer'):

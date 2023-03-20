@@ -359,6 +359,9 @@ def test_report_raw_psd_and_date(tmp_path):
     assert 'Unknown' not in ''.join(report.html)
     assert 'GMT' in ''.join(report.html)
 
+    # test kwargs passed through to underlying array func
+    Report(raw_psd=dict(window='boxcar'))
+
     # test new anonymize functionality
     report = Report()
     raw.anonymize()

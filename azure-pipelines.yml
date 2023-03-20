@@ -123,7 +123,7 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
+        mne sys_info -pd | grep "qtpy .*(PySide6=.*)$"
       displayName: Print config
     # Uncomment if "xcb not found" Qt errors/segfaults come up again
     # - bash: |
@@ -198,7 +198,7 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide6
       displayName: 'PySide6'
@@ -206,7 +206,7 @@ stages:
         set -e
         python -m pip install PyQt6
         mne sys_info -pd
-        mne sys_info -pd | grep "^qtpy: .*{PyQt6=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
       displayName: 'PyQt6'
@@ -214,7 +214,7 @@ stages:
         set -e
         python -m pip install PySide2
         mne sys_info -pd
-        mne sys_info -pd | grep "^qtpy: .*{PySide2=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PySide2=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide2
       displayName: 'PySide2'
@@ -223,7 +223,7 @@ stages:
         set -e
         python -m pip install PyQt5
         mne sys_info -pd
-        mne sys_info -pd | grep "^qtpy: .*{PyQt5=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
       displayName: 'PyQt5'
