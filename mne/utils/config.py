@@ -588,7 +588,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         if mod_name == '':  # break
             if unavailable:
                 out('└☐ ' if unicode else ' - ')
-                out('unavailable:'.ljust(ljust))
+                out('unavailable'.ljust(ljust))
                 out(f"{', '.join(unavailable)}\n")
                 unavailable = []
             if mi != len(use_mod_names) - 1:
@@ -608,7 +608,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
             unavailable.append(mod_name)
         else:
             out(f'{pre}☑ ' if unicode else ' + ')
-            out(f'{mod_name}:'.ljust(ljust))
+            out(f'{mod_name}'.ljust(ljust))
             if mod_name == 'vtk':
                 vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
