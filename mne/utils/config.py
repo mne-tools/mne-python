@@ -566,8 +566,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         'pyqtgraph', 'mne-qt-browser',
         '',
         '# Ecosystem (optional)',
-        'mne_bids', 'mne_nirs', 'mne_features', 'mne_connectivity',
-        'mne_icalabel',
+        'mne-bids', 'mne-nirs', 'mne-features', 'mne-connectivity',
+        'mne-icalabel',
         ''
     )
     if dependencies == 'developer':
@@ -576,7 +576,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
             'pytest', 'nbclient', 'numpydoc', 'flake8', 'pydocstyle',
             '',
             '# Documentation',
-            'sphinx', 'sphinx_gallery', 'pydata_sphinx_theme',
+            'sphinx', 'sphinx-gallery', 'pydata-sphinx-theme',
             '',
         )
     try:
@@ -603,7 +603,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         if last:
             pre = '└'
         try:
-            mod = import_module(mod_name)
+            mod = import_module(mod_name.replace("-", "_"))
         except Exception:
             unavailable.append(mod_name)
         else:
