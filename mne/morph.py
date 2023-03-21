@@ -21,7 +21,7 @@ from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, _check_fname, warn, _custom_lru_cache,
-                    _ensure_int, ProgressBar, use_log_level,
+                    _ensure_int, ProgressBar, use_log_level, _import_nibabel,
                     _import_h5io_funcs)
 
 
@@ -182,7 +182,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
     if kind in ('volume', 'mixed'):
         _check_dep(nibabel='2.1.0', dipy='0.10.1')
-        import nibabel as nib
+        nib = _import_nibabel('work with a volume source space')
 
         logger.info('Volume source space(s) present...')
 

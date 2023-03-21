@@ -56,35 +56,6 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_nibabel():
-    """Wrap to requires_module with a function call (fewer lines to change)."""
-    return partial(requires_module, name='nibabel')
-
-
-def requires_dipy():
-    """Check for dipy."""
-    import pytest
-    # for some strange reason on CIs we can get:
-    #
-    #     can get weird ImportError: dlopen: cannot load any more object
-    #     with static TLS
-    #
-    # so let's import everything in the decorator.
-    try:
-        from dipy.align import imaffine, imwarp, metrics, transforms  # noqa, analysis:ignore
-        from dipy.align.reslice import reslice  # noqa, analysis:ignore
-        from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
-        from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
-    except Exception as exc:
-        have = False
-        why = str(exc)
-    else:
-        why = ''
-        have = True
-    return pytest.mark.skipif(
-        not have, reason=f'Requires dipy >= 0.10.1, got: {why}')
-
-
 def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
@@ -226,22 +197,6 @@ class SilenceStdout(object):
         if self.close:
             sys.stdout.close()
         sys.stdout = self.stdout
-
-
-def has_nibabel():
-    """Determine if nibabel is installed.
-
-    Returns
-    -------
-    has : bool
-        True if the user has nibabel.
-    """
-    try:
-        import nibabel  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
 
 
 def has_mne_c():

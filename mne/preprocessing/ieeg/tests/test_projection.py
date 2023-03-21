@@ -26,6 +26,7 @@ fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 @testing.requires_testing_data
 def test_project_sensors_onto_brain(tmp_path):
     """Test projecting sensors onto the brain surface."""
+    pytest.importorskip("nibabel")
     raw = mne.io.read_raw_fif(fname_raw)
     trans = _get_trans(fname_trans)[0]
     # test informative error for no surface first
@@ -72,6 +73,7 @@ def test_project_sensors_onto_brain(tmp_path):
 @testing.requires_testing_data
 def test_project_sensors_onto_inflated(tmp_path):
     """Test projecting sEEG sensors onto an inflated brain surface."""
+    pytest.importorskip("nibabel")
     raw = mne.io.read_raw_fif(fname_raw)
     trans = _get_trans(fname_trans)[0]
     for subject in ('sample', 'fsaverage'):

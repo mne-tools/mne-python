@@ -347,6 +347,7 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 def test_annot_io(tmp_path):
     """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
+    pytest.importorskip('nibabel')
     subject = 'fsaverage'
     label_src = subjects_dir / "fsaverage" / "label"
     surf_src = subjects_dir / "fsaverage" / "surf"
@@ -398,6 +399,7 @@ def test_annot_io(tmp_path):
 @testing.requires_testing_data
 def test_morph_labels():
     """Test morph_labels."""
+    pytest.importorskip('nibabel')
     # Just process the first 5 labels for speed
     parc_fsaverage = read_labels_from_annot(
         'fsaverage', 'aparc', subjects_dir=subjects_dir)[:5]
@@ -428,6 +430,7 @@ def test_morph_labels():
 @testing.requires_testing_data
 def test_labels_to_stc():
     """Test labels_to_stc."""
+    pytest.importorskip('nibabel')
     labels = read_labels_from_annot(
         'sample', 'aparc', subjects_dir=subjects_dir)
     values = np.random.RandomState(0).randn(len(labels))
@@ -448,6 +451,7 @@ def test_labels_to_stc():
 @testing.requires_testing_data
 def test_read_labels_from_annot(tmp_path):
     """Test reading labels from FreeSurfer parcellation."""
+    pytest.importorskip('nibabel')
     # test some invalid inputs
     pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
@@ -510,6 +514,7 @@ def test_read_labels_from_annot(tmp_path):
 @testing.requires_testing_data
 def test_read_labels_from_annot_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels."""
+    pytest.importorskip('nibabel')
     label_fnames = glob.glob(str(label_dir) + '/*.label')
     label_fnames.sort()
     labels_mne = [read_label(fname) for fname in label_fnames]
@@ -522,6 +527,7 @@ def test_read_labels_from_annot_annot2labels():
 @testing.requires_testing_data
 def test_write_labels_to_annot(tmp_path):
     """Test writing FreeSurfer parcellation from labels."""
+    pytest.importorskip('nibabel')
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
     # create temporary subjects-dir skeleton
@@ -647,6 +653,7 @@ def test_write_labels_to_annot(tmp_path):
 @testing.requires_testing_data
 def test_split_label():
     """Test splitting labels."""
+    pytest.importorskip('nibabel')
     aparc = read_labels_from_annot('fsaverage', 'aparc', 'lh',
                                    regexp='lingual', subjects_dir=subjects_dir)
     lingual = aparc[0]
@@ -702,6 +709,7 @@ def test_split_label():
 @requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label."""
+    pytest.importorskip('nibabel')
     src = read_source_spaces(fwd_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
@@ -757,6 +765,7 @@ def test_stc_to_label():
 @testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing."""
+    pytest.importorskip('nibabel')
     label_orig = read_label(real_label_fname)
     label_orig.subject = 'sample'
     # should work for specifying vertices for both hemis, or just the
@@ -791,6 +800,7 @@ def test_morph():
 @testing.requires_testing_data
 def test_grow_labels():
     """Test generation of circular source labels."""
+    pytest.importorskip('nibabel')
     seeds = [0, 50000]
     # these were chosen manually in mne_analyze
     should_be_in = [[49, 227], [51207, 48794]]
@@ -855,6 +865,7 @@ def test_grow_labels():
 @testing.requires_testing_data
 def test_random_parcellation():
     """Test generation of random cortical parcellation."""
+    pytest.importorskip('nibabel')
     hemi = 'both'
     n_parcel = 50
     surface = 'sphere.reg'
@@ -919,6 +930,7 @@ def test_label_sign_flip():
 @testing.requires_testing_data
 def test_label_center_of_mass():
     """Test computing the center of mass of a label."""
+    pytest.importorskip('nibabel')
     stc = read_source_estimate(stc_fname)
     stc.lh_data[:] = 0
     vertex_stc = stc.center_of_mass('sample', subjects_dir=subjects_dir)[0]
@@ -974,6 +986,7 @@ def test_label_center_of_mass():
 @testing.requires_testing_data
 def test_select_sources():
     """Test the selection of sources for simulation."""
+    pytest.importorskip('nibabel')
     subject = 'sample'
     label_file = (
         subjects_dir / subject / "label" / "aparc" / "temporalpole-rh.label"
@@ -1027,6 +1040,7 @@ def test_select_sources():
 ])
 def test_label_geometry(fname, area):
     """Test label geometric computations."""
+    pytest.importorskip('nibabel')
     label = read_label(fname, subject='sample')
     got_area = label.compute_area(subjects_dir=subjects_dir)
     assert_allclose(got_area, area, rtol=1e-3)
