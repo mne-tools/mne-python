@@ -26,7 +26,6 @@ from .io._digitization import _get_data_as_dict_from_dig
 # namespace, too)
 from ._freesurfer import (_read_mri_info, get_mni_fiducials,  # noqa: F401
                           estimate_head_mri_t)  # noqa: F401
-from ._freesurfer import _import_nibabel
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
@@ -41,8 +40,8 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          rot_to_quat, _angle_between_quats)
 from .channels import make_dig_montage
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel, fill_doc, _validate_type,
-                    _check_subject, _check_option)
+                    warn, fill_doc, _validate_type,
+                    _check_subject, _check_option, _import_nibabel)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -1194,9 +1193,6 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     # The nibabel warning should already be there in MRI step, if applicable,
     # as we only get here if T1.mgz is present (and thus a scaling was
     # attempted) so we can silently return here.
-    if not has_nibabel():
-        return
-
     fname_from = os.path.join(
         mri_transforms_dirname.format(
             subjects_dir=subjects_dir, subject=subject_from), xfm_fname)

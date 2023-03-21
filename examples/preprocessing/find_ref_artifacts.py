@@ -63,7 +63,7 @@ raw.plot(**plot_kwargs)
 
 # %%
 # The PSD of these data show the noise as clear peaks.
-raw.plot_psd(fmax=30)
+raw.compute_psd(fmax=30).plot()
 
 # %%
 # Run the "together" algorithm.
@@ -93,7 +93,7 @@ raw_tog = ica_tog.apply(raw_tog, exclude=bad_comps)
 
 # %%
 # Cleaned data:
-raw_tog.plot_psd(fmax=30)
+raw_tog.compute_psd(fmax=30).plot()
 
 # %%
 # Now try the "separate" algorithm.
@@ -138,7 +138,7 @@ raw_sep.plot(**plot_kwargs)
 # %%
 # Cleaned raw data PSD:
 
-raw_sep.plot_psd(fmax=30)
+raw_sep.compute_psd(fmax=30).plot()
 
 ##############################################################################
 # References

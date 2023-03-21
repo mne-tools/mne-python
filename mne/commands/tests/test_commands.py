@@ -24,8 +24,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
-from mne.utils import (requires_mne, requires_freesurfer,
-                       requires_nibabel, ArgvSetter,
+from mne.utils import (requires_mne, requires_freesurfer, ArgvSetter,
                        _stamp_to_dt, _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -220,11 +219,11 @@ def test_surf2bem():
 @pytest.mark.timeout(900)  # took ~400 s on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
-@requires_nibabel()
 @requires_freesurfer('mri_watershed')
 @testing.requires_testing_data
 def test_watershed_bem(tmp_path):
     """Test mne watershed bem."""
+    pytest.importorskip('nibabel')
     check_usage(mne_watershed_bem)
     # from T1.mgz
     Mdc = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
@@ -338,6 +337,7 @@ def test_flash_bem(tmp_path):
 @testing.requires_testing_data
 def test_setup_source_space(tmp_path):
     """Test mne setup_source_space."""
+    pytest.importorskip('nibabel')
     check_usage(mne_setup_source_space, force_help=True)
     # Using the sample dataset
     use_fname = op.join(tmp_path, "sources-src.fif")
@@ -367,6 +367,7 @@ def test_setup_source_space(tmp_path):
 @testing.requires_testing_data
 def test_setup_forward_model(tmp_path):
     """Test mne setup_forward_model."""
+    pytest.importorskip('nibabel')
     check_usage(mne_setup_forward_model, force_help=True)
     # Using the sample dataset
     use_fname = op.join(tmp_path, "model-bem.fif")

@@ -1117,3 +1117,12 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
+
+
+def _import_nibabel(why='use MRI files'):
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        raise exp.__class__(
+            'nibabel is required to %s, got:\n%s' % (why, exp)) from None
+    return nib

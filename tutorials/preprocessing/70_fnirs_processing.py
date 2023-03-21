@@ -151,14 +151,12 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
 # remove this. A high pass filter is also included to remove slow drifts
 # in the data.
 
-fig = raw_haemo.plot_psd(average=True)
-fig.suptitle('Before filtering', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
-raw_haemo = raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2,
-                             l_trans_bandwidth=0.02)
-fig = raw_haemo.plot_psd(average=True)
-fig.suptitle('After filtering', weight='bold', size='x-large')
-fig.subplots_adjust(top=0.88)
+raw_haemo_unfiltered = raw_haemo.copy()
+raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2, l_trans_bandwidth=0.02)
+for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
+    fig = _raw.compute_psd().plot(average=True)
+    fig.suptitle(f'{when} filtering', weight='bold', size='x-large')
+    fig.subplots_adjust(top=0.88)
 
 # %%
 # Extract epochs
