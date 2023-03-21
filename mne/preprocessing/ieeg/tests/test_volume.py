@@ -12,19 +12,17 @@ from mne.channels import make_dig_montage
 from mne.datasets import testing
 from mne.preprocessing.ieeg import make_montage_volume, warp_montage
 from mne.transforms import apply_trans, compute_volume_registration
-from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
 
 
-@requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_warp_montage():
     """Test warping an montage based on intracranial electrode positions."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     subject_brain = nib.load(subjects_dir / "sample" / "mri" / "brain.mgz")
     template_brain = nib.load(subjects_dir / "fsaverage" / "mri" / "brain.mgz")
     zooms = dict(translation=10, rigid=10, sdr=10)
@@ -59,13 +57,12 @@ def test_warp_montage():
                      sdr_morph)
 
 
-@requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_make_montage_volume():
     """Test making a montage image based on intracranial electrodes."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     subject_brain = nib.load(subjects_dir / "sample" / "mri" / "brain.mgz")
     # make an info object with three channels with positions
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
