@@ -326,7 +326,6 @@ def view_vol_stc(stcs, freq_first=True, group=False,
     # cast to integers to lower memory usage, use custom complex data
     # type if necessary
     data = list()
-<<<<<<< HEAD
     for group_stcs in (stcs if group else [stcs]):
         # can be generator, compute using first stc object, just a general
         # rescaling of data, does not need to be precise
