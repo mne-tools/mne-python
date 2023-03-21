@@ -45,6 +45,7 @@ dependencies:
 - mffpy>=0.5.7
 - ipyevents
 - ipywidgets
+- ipykernel
 - ipympl
 - ipyvtklink
 - jupyter_client
