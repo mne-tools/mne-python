@@ -52,6 +52,9 @@ snirf_nirsport2_raw_path = (
 )
 
 
+pytest.importorskip('nibabel')
+
+
 class TstVTKPicker(object):
     """Class to test cell picking."""
 

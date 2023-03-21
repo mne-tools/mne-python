@@ -29,7 +29,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray, fill_doc,
-                    _validate_type, _require_version, _pl)
+                    _validate_type, _require_version, _pl, _import_nibabel)
 
 
 ###############################################################################
@@ -808,7 +808,6 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     write_surface
     read_tri
     """
-    from ._freesurfer import _import_nibabel
     fname = _check_fname(fname, 'read', True)
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
@@ -1186,7 +1185,6 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     read_surface
     read_tri
     """
-    from ._freesurfer import _import_nibabel
     fname = _check_fname(fname, overwrite=overwrite)
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
@@ -1736,7 +1734,8 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=None,
+                    use_flying_edges=True):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1747,7 +1746,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     from vtkmodules.vtkCommonDataModel import \
         vtkImageData, vtkDataSetAttributes
     from vtkmodules.vtkFiltersCore import vtkThreshold
-    from vtkmodules.vtkFiltersGeneral import vtkDiscreteFlyingEdges3D
+    from vtkmodules.vtkFiltersGeneral import (vtkDiscreteFlyingEdges3D,
+                                              vtkDiscreteMarchingCubes)
     from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
     from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
     from scipy.ndimage import binary_dilation
@@ -1774,10 +1774,12 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
 
     # force double as passing integer types directly can be problematic!
     image_shape = image.shape
-    data_vtk = numpy_to_vtk(image.ravel().astype(float), deep=True)
+    # use order='A' to automatically detect when Fortran ordering is needed
+    data_vtk = numpy_to_vtk(image.ravel(order='A').astype(float), deep=True)
     del image
 
-    mc = vtkDiscreteFlyingEdges3D()
+    mc = vtkDiscreteFlyingEdges3D() if use_flying_edges else \
+        vtkDiscreteMarchingCubes()
     # create image
     imdata = vtkImageData()
     imdata.SetDimensions(image_shape)
@@ -1798,7 +1800,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     selector.SetInputData(mc)
     dsa = vtkDataSetAttributes()
     selector.SetInputArrayToProcess(
-        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
+        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS if use_flying_edges else
+        imdata.FIELD_ASSOCIATION_CELLS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
 
@@ -1932,11 +1935,10 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
         The warped image with voxel values corresponding to the index
         of the channel. The background is 0s and this index starts at 1.
     """
-    _require_version('nibabel', 'SDR morph', '2.1.0')
+    nib = _import_nibabel('SDR morph')
     _require_version('dipy', 'SDR morph', '0.10.1')
     from .channels import DigMontage, make_dig_montage
     from ._freesurfer import _check_subject_dir
-    import nibabel as nib
 
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')

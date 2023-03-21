@@ -203,7 +203,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
 
 @verbose
-def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
+def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
                 groups=None, show=True, block=False, verbose=None):
     """Locate intracranial electrode contacts.
 
@@ -211,9 +211,11 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     ----------
     %(info_not_none)s
     %(trans_not_none)s
-    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
-        The CT image that has been aligned to the Freesurfer T1. Path-like
-        inputs and nibabel image objects are supported.
+    base_image : path-like | nibabel.spatialimages.SpatialImage
+        The CT or MR image on which the electrode contacts can located. It
+        must be aligned to the Freesurfer T1 if ``subject`` and
+        ``subjects_dir`` are provided. Path-like inputs and nibabel image
+        objects are supported.
     %(subject)s
     %(subjects_dir)s
     groups : dict | None
@@ -240,7 +242,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     app = _init_mne_qtapp()
 
     gui = IntracranialElectrodeLocator(
-        info, trans, aligned_ct, subject=subject, subjects_dir=subjects_dir,
+        info, trans, base_image, subject=subject, subjects_dir=subjects_dir,
         groups=groups, show=show, verbose=verbose)
     if block:
         _qt_app_exec(app)
@@ -250,7 +252,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 @verbose
 def view_vol_stc(stcs, freq_first=True, group=False,
                  subject=None, subjects_dir=None, src=None, inst=None,
-                 show_topomap=True, tmin=None, tmax=None,
+                 use_int=True, show_topomap=True, tmin=None, tmax=None,
                  show=True, block=False, verbose=None):
     """View a volume time and/or frequency source time course estimate.
 
@@ -291,6 +293,8 @@ def view_vol_stc(stcs, freq_first=True, group=False,
         The time-frequency or data instances to use to plot topography.
         If group-level results are given (``group=True``), a list of
         instances should be provided.
+    use_int : bool
+        If ``True``, cast the data to integers to reduce memory use.
     show_topomap : bool
         Whether to show the sensor topomap in the GUI.
     %(tmin)s
@@ -322,6 +326,7 @@ def view_vol_stc(stcs, freq_first=True, group=False,
     # cast to integers to lower memory usage, use custom complex data
     # type if necessary
     data = list()
+<<<<<<< HEAD
     for group_stcs in (stcs if group else [stcs]):
         # can be generator, compute using first stc object, just a general
         # rescaling of data, does not need to be precise
@@ -333,30 +338,34 @@ def view_vol_stc(stcs, freq_first=True, group=False,
             for stc in (inner_stcs if np.iterable(inner_stcs) else
                         [inner_stcs]):
                 stc.crop(tmin=tmin, tmax=tmax)
-                if np.iscomplexobj(stc.data) and not group:
-                    if scalar is None:
-                        # this is an order of magnitude approximation,
-                        # larger stcs will have some clipping
-                        scalar = (RANGE_VALUE - 1) / stc.data.real.max() / 5
-                    stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
-                    stc_data['re'] = np.clip(stc.data.real * scalar,
-                                             -RANGE_VALUE, RANGE_VALUE - 1)
-                    stc_data['im'] = np.clip(stc.data.imag * scalar,
-                                             -RANGE_VALUE, RANGE_VALUE - 1)
-                    inner_data.append(stc_data)
-                else:
-                    if group in (True, 'power') and np.iscomplexobj(stc.data):
-                        stc_data = (stc.data * stc.data.conj()).real
+                if use_int:
+                    if np.iscomplexobj(stc.data) and not group:
+                        if scalar is None:
+                            # this is an order of magnitude approximation,
+                            # if another stc is 10x larger than the first one,
+                            # it will have some clipping
+                            scalar = (RANGE_VALUE - 1) / stc.data.real.max() / 10
+                        stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
+                        stc_data['re'] = np.clip(stc.data.real * scalar,
+                                                 -RANGE_VALUE, RANGE_VALUE - 1)
+                        stc_data['im'] = np.clip(stc.data.imag * scalar,
+                                                 -RANGE_VALUE, RANGE_VALUE - 1)
+                        inner_data.append(stc_data)
                     else:
-                        stc_data = stc.data.copy()
-                    if scalar is None:
-                        scalar = (RANGE_VALUE - 1) / stc_data.max() / 5
-                    # ignore group == 'itc' if not complex
-                    use_itc = group == 'itc' and np.iscomplexobj(stc.data)
-                    inner_data.append(stc_data if use_itc else
-                                      np.clip(stc_data * scalar,
-                                              -RANGE_VALUE, RANGE_VALUE - 1
-                                              ).astype(BASE_INT_DTYPE))
+                        if group in (True, 'power') and np.iscomplexobj(stc.data):
+                            stc_data = (stc.data * stc.data.conj()).real
+                        else:
+                            stc_data = stc.data.copy()
+                        if scalar is None:
+                            scalar = (RANGE_VALUE - 1) / stc_data.max() / 5
+                        # ignore group == 'itc' if not complex
+                        use_itc = group == 'itc' and np.iscomplexobj(stc.data)
+                        inner_data.append(stc_data if use_itc else
+                                          np.clip(stc_data * scalar,
+                                                  -RANGE_VALUE, RANGE_VALUE - 1
+                                                  ).astype(BASE_INT_DTYPE))
+                else:
+                    inner_data.append(stc.data)
             # compute ITC here, need epochs
             if group == 'itc' and np.iscomplexobj(stc.data) and freq_first:
                 outer_data.append(itc(inner_data))

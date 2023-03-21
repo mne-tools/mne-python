@@ -22,8 +22,8 @@ from mne import (read_source_spaces, write_source_spaces,
                  read_bem_solution, read_freesurfer_lut,
                  read_trans)
 from mne.fixes import _get_img_fdata
-from mne.utils import (requires_nibabel, run_subprocess, _record_warnings,
-                       requires_mne, check_version)
+from mne.utils import (run_subprocess, _record_warnings, requires_mne,
+                       check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
 from mne.source_space import (get_volume_labels_from_src,
@@ -280,6 +280,7 @@ def test_add_source_space_distances(tmp_path):
 @requires_mne
 def test_discrete_source_space(tmp_path):
     """Test setting up (and reading/writing) discrete source spaces."""
+    pytest.importorskip('nibabel')
     src = read_source_spaces(fname)
     v = src[0]['vertno']
 
@@ -319,11 +320,11 @@ def test_discrete_source_space(tmp_path):
             pos=dict(rr=[[0, 0, float('inf')]], nn=[[0, 1, 0]]))
 
 
-@requires_nibabel()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_space(tmp_path):
     """Test setting up volume source spaces."""
+    pytest.importorskip('nibabel')
     src = read_source_spaces(fname_vol)
     temp_name = tmp_path / 'temp-src.fif'
     surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
@@ -466,6 +467,7 @@ def test_accumulate_normals():
 @testing.requires_testing_data
 def test_setup_source_space(tmp_path):
     """Test setting up ico, oct, and all source spaces."""
+    pytest.importorskip('nibabel')
     fname_ico = (
         data_path
         / "subjects"
@@ -592,10 +594,10 @@ def test_write_source_space(tmp_path):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('pass_ids', (True, False))
 def test_source_space_from_label(tmp_path, pass_ids):
     """Test generating a source space from volume label."""
+    pytest.importorskip('nibabel')
     aseg_short = 'aseg.mgz'
     atlas_ids, _ = read_freesurfer_lut()
     volume_label = 'Left-Cerebellum-Cortex'
@@ -641,11 +643,11 @@ def test_source_space_from_label(tmp_path, pass_ids):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_source_space_exclusive_complete(src_volume_labels):
     """Test that we produce exclusive and complete labels."""
     # these two are neighbors and are quite large, so let's use them to
     # ensure no overlaps
+    pytest.importorskip('nibabel')
     src, volume_labels, _ = src_volume_labels
     ii = volume_labels.index('Left-Cerebral-White-Matter')
     jj = volume_labels.index('Left-Cerebral-Cortex')
@@ -672,9 +674,9 @@ def test_source_space_exclusive_complete(src_volume_labels):
 @pytest.mark.timeout(60)  # ~24 s on Travis
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel()
 def test_read_volume_from_src():
     """Test reading volumes from a mixed source space."""
+    pytest.importorskip('nibabel')
     labels_vol = ['Left-Amygdala',
                   'Brain-Stem',
                   'Right-Amygdala']
@@ -710,10 +712,9 @@ def test_read_volume_from_src():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_combine_source_spaces(tmp_path):
     """Test combining source spaces."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     rng = np.random.RandomState(2)
     volume_labels = ['Brain-Stem', 'Right-Hippocampus']  # two fairly large
 
@@ -821,6 +822,7 @@ def test_combine_source_spaces(tmp_path):
 @testing.requires_testing_data
 def test_morph_source_spaces():
     """Test morphing of source spaces."""
+    pytest.importorskip('nibabel')
     src = read_source_spaces(fname_fs)
     src_morph = read_source_spaces(fname_morph)
     src_morph_py = morph_source_spaces(src, 'sample',
@@ -834,6 +836,7 @@ def test_morph_source_spaces():
 def test_morphed_source_space_return():
     """Test returning a morphed source space to the original subject."""
     # let's create some random data on fsaverage
+    pytest.importorskip('nibabel')
     data = rng.randn(20484, 1)
     tmin, tstep = 0, 1.
     src_fs = read_source_spaces(fname_fs)

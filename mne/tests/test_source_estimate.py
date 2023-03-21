@@ -44,7 +44,7 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_nibabel, requires_version, _record_warnings)
+                       requires_version, _record_warnings)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -94,6 +94,8 @@ fname_inv_vol = (
 )
 fname_nirx = data_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
 rng = np.random.RandomState(0)
+
+pytest.importorskip('nibabel')
 
 
 @testing.requires_testing_data
@@ -228,11 +230,10 @@ def test_volume_stc(tmp_path):
             assert_array_almost_equal(stc.data, stc_new.data)
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_stc_as_volume():
     """Test previous volume source estimate morph."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
 
     # Apply inverse operator
@@ -255,10 +256,9 @@ def test_stc_as_volume():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_save_vol_stc_as_nifti(tmp_path):
     """Save the stc as a nifti file and export."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     src = read_source_spaces(fname_vsrc)
     vol_fname = tmp_path / 'stc.nii.gz'
 
@@ -1531,10 +1531,10 @@ def test_spatial_src_adjacency():
 
 
 @requires_sklearn
-@requires_nibabel()
 @testing.requires_testing_data
 def test_vol_mask():
     """Test extraction of volume mask."""
+    pytest.importorskip('nibabel')
     src = read_source_spaces(fname_vsrc)
     mask = _get_vol_mask(src)
     # Let's use an alternative way that should be equivalent
@@ -1681,7 +1681,6 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
                                 reg_from, reg_from)
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 @pytest.mark.parametrize('kind', (
     pytest.param('volume', marks=[requires_version('dipy'),
@@ -1691,6 +1690,7 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
 @pytest.mark.parametrize('scale', ((1.0, 0.8, 1.2), 1., 0.9))
 def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     """Test label extraction, morphing, and MRI scaling relationships."""
+    pytest.importorskip('nibabel')
     subject_from = 'sample'
     subject_to = 'small'
     testing_dir = subjects_dir / subject_from
@@ -1855,8 +1855,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
 @testing.requires_testing_data
 @pytest.mark.parametrize('kind', [
     'surface',
-    pytest.param('volume', marks=[pytest.mark.slowtest,
-                                  requires_version('nibabel')]),
+    pytest.param('volume', marks=[pytest.mark.slowtest]),
 ])
 def test_label_extraction_subject(kind):
     """Test that label extraction subject is treated properly."""
@@ -1874,6 +1873,7 @@ def test_label_extraction_subject(kind):
         n_labels = 68
     else:
         assert kind == 'volume'
+        pytest.importorskip('nibabel')
         inv = read_inverse_operator(fname_inv_vol)
         inv['src'][0]['subject_his_id'] = 'sample'  # modernize
         labels = subjects_dir / "sample" / "mri" / "aseg.mgz"

@@ -79,7 +79,8 @@ cov_baseline = compute_covariance(epochs, tmin=win_baseline[0],
 cov_active = compute_covariance(epochs, tmin=win_active[0], tmax=win_active[1],
                                 method='shrunk', rank=rank, verbose=True)
 
-# Weighted averaging is already in the addition of covariance objects
+# when the covariance objects are added together, they are scaled by the size
+# of the window used to create them so that the average is properly weighted
 cov_common = cov_baseline + cov_active
 cov_baseline.plot(epochs.info)
 
