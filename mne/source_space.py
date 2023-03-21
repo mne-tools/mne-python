@@ -35,7 +35,7 @@ from ._freesurfer import (_get_mri_info_data, _get_atlas_values,  # noqa: F401
                           read_freesurfer_lut, get_mni_fiducials, _check_mri)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _path_like, _check_sphere,
+                    _check_fname, _path_like, _check_sphere, _import_nibabel,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
                     object_size, sizeof_fmt)
 from .parallel import parallel_func
@@ -504,11 +504,7 @@ class SourceSpaces(list):
         else:
             mri_resolution = bool(mri_resolution)
         fname = str(fname)
-        # import nibabel or raise error
-        try:
-            import nibabel as nib
-        except ImportError:
-            raise ImportError('This function requires nibabel.')
+        nib = _import_nibabel()
 
         # Check coordinate frames of each source space
         coord_frames = np.array([s['coord_frame'] for s in self])

@@ -21,12 +21,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
-from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
 from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _marching_cubes
 from ..transforms import apply_trans, _frame_to_str
-from ..utils import logger, _check_fname, verbose, warn, get_subjects_dir
+from ..utils import (logger, _check_fname, verbose, warn, get_subjects_dir,
+                     _import_nibabel)
 from ..viz.backends._utils import _qt_safe_window
 
 _IMG_LABELS = [['I', 'P'], ['I', 'L'], ['P', 'L']]

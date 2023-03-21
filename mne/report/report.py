@@ -40,7 +40,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
                      _path_like, use_log_level, _check_fname, _pl,
                      _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
-                     check_version)
+                     check_version, _import_nibabel)
 from ..utils.spectrum import _split_psd_kwargs
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
@@ -2700,8 +2700,7 @@ class Report:
                              image_format, orientation, decim=2, n_jobs=None,
                              width=512, tags):
         """Render one axis of bem contours (only PNG)."""
-        import nibabel as nib
-
+        nib = _import_nibabel('render BEM contours')
         nim = nib.load(mri_fname)
         data = _reorient_image(nim)[0]
         axis = _mri_orientation(orientation)[0]
