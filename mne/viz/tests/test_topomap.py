@@ -72,20 +72,20 @@ def test_plot_topomap_interactive(constrained_layout):
                   res=8, time_unit='s')
     evoked.copy().plot_topomap(proj=False, **kwargs)
     canvas.draw()
-    image_noproj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_noproj = np.array(canvas.buffer_rgba())
     assert len(plt.get_fignums()) == 1
 
     ax.clear()
     evoked.copy().plot_topomap(proj=True, **kwargs)
     canvas.draw()
-    image_proj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_proj = np.array(canvas.buffer_rgba())
     assert not np.array_equal(image_noproj, image_proj)
     assert len(plt.get_fignums()) == 1
 
     ax.clear()
     fig = evoked.copy().plot_topomap(proj='interactive', **kwargs)
     canvas.draw()
-    image_interactive = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_interactive = np.array(canvas.buffer_rgba())
     assert_array_equal(image_noproj, image_interactive)
     assert not np.array_equal(image_proj, image_interactive)
     assert len(plt.get_fignums()) == 2
@@ -96,8 +96,7 @@ def test_plot_topomap_interactive(constrained_layout):
     proj_fig.canvas.draw_idle()
     assert _proj_status(fig, 'matplotlib') == [True]
     canvas.draw()
-    image_interactive_click = np.frombuffer(
-        canvas.tostring_rgb(), dtype='uint8')
+    image_interactive_click = np.array(canvas.buffer_rgba())
     corr = np.corrcoef(
         image_proj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.99 < corr <= 1
@@ -107,8 +106,7 @@ def test_plot_topomap_interactive(constrained_layout):
 
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='ax')
     canvas.draw()
-    image_interactive_click = np.frombuffer(
-        canvas.tostring_rgb(), dtype='uint8')
+    image_interactive_click = np.array(canvas.buffer_rgba())
     corr = np.corrcoef(
         image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.99 < corr <= 1
@@ -243,8 +241,9 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     #     assert cbar.get_title() == expected_unit
     # ...but not all matplotlib versions support it, and we can't use
     # @requires_version because it's hard figure out exactly which MPL version
-    # is the cutoff since it relies on a private attribute. So for now we just
-    # do this:
+    # is the cutoff since it relies on a private attribute. Based on some
+    # basic testing it's at least matplotlib version >= 3.5.
+    # So for now we just do this:
     for ax in fig.axes:
         if hasattr(ax, '_colorbar'):
             assert ax.get_title() == expected_unit

@@ -108,6 +108,7 @@ def test_simulate_stc(_get_fwd_labels):
 
 def test_simulate_sparse_stc(_get_fwd_labels):
     """Test generation of sparse source estimate."""
+    pytest.importorskip('nibabel')
     fwd, labels = _get_fwd_labels
     n_times = 10
     tmin = 0

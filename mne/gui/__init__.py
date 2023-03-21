@@ -203,7 +203,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
 
 @verbose
-def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
+def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
                 groups=None, show=True, block=False, verbose=None):
     """Locate intracranial electrode contacts.
 
@@ -211,9 +211,11 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     ----------
     %(info_not_none)s
     %(trans_not_none)s
-    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
-        The CT image that has been aligned to the Freesurfer T1. Path-like
-        inputs and nibabel image objects are supported.
+    base_image : path-like | nibabel.spatialimages.SpatialImage
+        The CT or MR image on which the electrode contacts can located. It
+        must be aligned to the Freesurfer T1 if ``subject`` and
+        ``subjects_dir`` are provided. Path-like inputs and nibabel image
+        objects are supported.
     %(subject)s
     %(subjects_dir)s
     groups : dict | None
@@ -240,7 +242,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     app = _init_mne_qtapp()
 
     gui = IntracranialElectrodeLocator(
-        info, trans, aligned_ct, subject=subject, subjects_dir=subjects_dir,
+        info, trans, base_image, subject=subject, subjects_dir=subjects_dir,
         groups=groups, show=show, verbose=verbose)
     if block:
         _qt_app_exec(app)

@@ -10,7 +10,7 @@ import pytest
 
 from mne import create_info, EpochsArray
 from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_sklearn, requires_version
+from mne.utils import requires_sklearn
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore, BaseEstimator)
 from mne.decoding.search_light import SlidingEstimator
@@ -268,7 +268,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
 
 
-@requires_version('sklearn', '0.22')  # roc_auc_ovr_weighted
+@requires_sklearn
 @pytest.mark.parametrize('n_classes, n_channels, n_times', [
     (4, 10, 2),
     (4, 3, 2),

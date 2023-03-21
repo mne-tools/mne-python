@@ -11,7 +11,6 @@ import operator
 import os
 from pathlib import Path
 import re
-import sys
 import numbers
 
 import numpy as np
@@ -871,11 +870,6 @@ def _check_qt_version(*, return_api=False):
             version = QtCore.__version__
         except AttributeError:
             version = QtCore.QT_VERSION_STR
-        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
-            if not _compare_version(version, '>=', '5.10'):
-                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
-                     f'got {version}. Please upgrade e.g. with:\n\n'
-                     f'    pip install "{api}>=5.10"\n')
         # Having Qt installed is not enough -- sometimes the app is unusable
         # for example because there is no usable display (e.g., on a server),
         # so we have to try instantiating one to actually know.
@@ -1123,3 +1117,12 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
+
+
+def _import_nibabel(why='use MRI files'):
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        raise exp.__class__(
+            'nibabel is required to %s, got:\n%s' % (why, exp)) from None
+    return nib

@@ -49,6 +49,8 @@ fname_evoked = sample_dir / "sample_audvis_trunc-ave.fif"
 fname_fwd = sample_dir / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 src_fname = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
 
+pytest.importorskip("nibabel")
+
 
 class _Collection(object):
     def __init__(self, actors):
