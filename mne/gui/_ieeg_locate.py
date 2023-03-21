@@ -24,7 +24,6 @@ from ._core import SliceBrowser
 from ..surface import _voxel_neighbors
 from ..transforms import apply_trans, _get_trans, invert_transform
 from ..utils import logger, _validate_type, verbose
-from ..viz.backends._utils import _qt_safe_window
 from .. import pick_types
 
 _CH_PLOT_SIZE = 1024
