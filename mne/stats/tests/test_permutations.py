@@ -5,6 +5,7 @@
 from numpy.testing import assert_array_equal, assert_allclose
 import numpy as np
 from scipy import stats, sparse
+import pytest
 
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import (permutation_t_test, _ci,
@@ -57,14 +58,17 @@ def test_permutation_t_test():
         assert_allclose(t_obs_clust, t_obs)
         assert_allclose(p_values_clust, p_values[keep], atol=1e-2)
 
-    X = np.random.randn(18, 1)
-@pytest.mark.parametrize('tail', [0, -1, 1])
-def test_permutation_t_test_tail(tail):
+
+@pytest.mark.parametrize('tail_name,tail_code',
+                         [('two-sided', 0), ('less', -1), ('greater', 1)])
+def test_permutation_t_test_tail(tail_name, tail_code):
     """Test that tails work properly."""
-    t_obs, p_values, H0 = permutation_t_test(X, n_permutations='all',
-                                             tail=this_code)
+    X = np.random.randn(18, 1)
+
+    t_obs, p_values, _ = permutation_t_test(X, n_permutations='all',
+                                            tail=tail_code)
     t_obs_scipy, p_values_scipy = stats.ttest_1samp(X[:, 0], 0,
-                                                    alternative=this_tail)
+                                                    alternative=tail_name)
     assert_allclose(t_obs[0], t_obs_scipy, 8)
     assert_allclose(p_values[0], p_values_scipy, rtol=1e-2)
 
