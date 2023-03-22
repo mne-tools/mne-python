@@ -9,7 +9,6 @@ from scipy import stats, sparse
 from mne.stats import permutation_cluster_1samp_test
 from mne.stats.permutations import (permutation_t_test, _ci,
                                     bootstrap_confidence_interval)
-from mne.utils import check_version
 
 
 def test_permutation_t_test():
@@ -76,6 +75,5 @@ def test_ci():
                                                   random_state=0),
                     rtol=.1)
     # smoke test for new API
-    if check_version('numpy', '1.17'):
-        random_state = np.random.default_rng(0)
-        bootstrap_confidence_interval(arr, random_state=random_state)
+    random_state = np.random.default_rng(0)
+    bootstrap_confidence_interval(arr, random_state=random_state)

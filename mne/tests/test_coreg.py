@@ -18,7 +18,7 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        coregister_fiducials, get_mni_fiducials, Coregistration)
 from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
-from mne.utils import check_version, catch_logging
+from mne.utils import catch_logging
 from mne.source_space import write_source_spaces
 from mne.channels import DigMontage
 
@@ -156,20 +156,19 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
     assert ssrc[0]['nearest'] is not None
 
     # check patch info computation (only if SciPy is new enough to be fast)
-    if check_version('scipy', '1.3'):
-        for s in src_dist:
-            for key in ('dist', 'dist_limit'):
-                s[key] = None
-        write_source_spaces(
-            bem_path / (bem_fname % "ico-0"), src_dist, overwrite=True
-        )
+    for s in src_dist:
+        for key in ('dist', 'dist_limit'):
+            s[key] = None
+    write_source_spaces(
+        bem_path / (bem_fname % "ico-0"), src_dist, overwrite=True
+    )
 
-        # scale with distances
-        os.remove(spath / (spath_fname % "ico-0"))
-        scale_source_space('flachkopf', 'ico-0', subjects_dir=tmp_path)
-        ssrc = mne.read_source_spaces(spath / (spath_fname % "ico-0"))
-        assert ssrc[0]['dist'] is None
-        assert ssrc[0]['nearest'] is not None
+    # scale with distances
+    os.remove(spath / (spath_fname % "ico-0"))
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tmp_path)
+    ssrc = mne.read_source_spaces(spath / (spath_fname % "ico-0"))
+    assert ssrc[0]['dist'] is None
+    assert ssrc[0]['nearest'] is not None
 
 
 @pytest.mark.slowtest  # can take forever on OSX Travis

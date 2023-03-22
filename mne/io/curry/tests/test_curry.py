@@ -23,7 +23,7 @@ from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.utils import check_version, catch_logging, _record_warnings
+from mne.utils import catch_logging
 from mne.annotations import read_annotations
 from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
                                 _read_events_curry, FILE_EXTENSIONS)
@@ -62,14 +62,7 @@ def bdf_curry_ref():
 @pytest.mark.parametrize('preload', [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
-    with _record_warnings() as wrn:
-        raw = read_raw_curry(fname, preload=preload)
-
-    if not check_version('numpy', '1.16') and preload and fname.endswith(
-            'ASCII.dat'):
-        assert len(wrn) > 0
-    else:
-        assert len(wrn) == 0
+    raw = read_raw_curry(fname, preload=preload)
 
     assert hasattr(raw, '_data') == preload
     assert raw.n_times == bdf_curry_ref.n_times

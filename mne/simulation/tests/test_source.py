@@ -13,7 +13,6 @@ from mne import (read_label, read_forward_solution, pick_types_forward,
                  convert_forward_solution)
 from mne.label import Label
 from mne.simulation import simulate_stc, simulate_sparse_stc, SourceSimulator
-from mne.utils import check_version
 
 
 data_path = testing.data_path(download=False)
@@ -237,10 +236,9 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
 
     # smoke test for new API
-    if check_version('numpy', '1.17'):
-        simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
-                            labels=labels_single_hemi,
-                            random_state=np.random.default_rng(0))
+    simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
+                        labels=labels_single_hemi,
+                        random_state=np.random.default_rng(0))
 
 
 @testing.requires_testing_data

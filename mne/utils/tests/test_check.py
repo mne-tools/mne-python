@@ -56,8 +56,7 @@ def test_check(tmp_path):
     check_random_state(None).choice(1)
     check_random_state(0).choice(1)
     check_random_state(np.random.RandomState(0)).choice(1)
-    if check_version('numpy', '1.17'):
-        check_random_state(np.random.default_rng(0)).choice(1)
+    check_random_state(np.random.default_rng(0)).choice(1)
 
 
 @testing.requires_testing_data

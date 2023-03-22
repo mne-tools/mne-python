@@ -430,13 +430,8 @@ def _get_bem_contour_figs_as_arrays(
     list of array
         A list of NumPy arrays that represent the generated Matplotlib figures.
     """
-    # Matplotlib <3.2 doesn't work nicely with process-based parallelization
-    kwargs = dict()
-    if not check_version('matplotilb', '3.2'):
-        kwargs['prefer'] = 'threads'
-
     parallel, p_fun, n_jobs = parallel_func(
-        _plot_mri_contours, n_jobs, max_jobs=len(sl), **kwargs)
+        _plot_mri_contours, n_jobs, max_jobs=len(sl), prefer='threads')
     outs = parallel(
         p_fun(
             slices=s, mri_fname=mri_fname, surfaces=surfaces,

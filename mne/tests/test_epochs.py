@@ -40,8 +40,8 @@ from mne.epochs import (
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff, use_log_level,
-                       catch_logging, _FakeNoPandas,
-                       assert_meg_snr, check_version, _dt_to_stamp)
+                       catch_logging, _FakeNoPandas, assert_meg_snr,
+                       _dt_to_stamp)
 
 data_path = testing.data_path(download=False)
 fname_raw_testing = (
@@ -1236,15 +1236,13 @@ def test_epochs_io_preload(tmp_path, preload):
     ('1.5MB', 9, 6, 1572864),
     ('3MB', 18, 3, 3 * 1024 * 1024),
 ])
-@pytest.mark.parametrize('metadata', [
-    False,
-    pytest.param(True, marks=pytest.mark.skipif(
-        not check_version('pandas'), reason='Requires Pandas'))
-])
+@pytest.mark.parametrize('metadata', [False, True])
 @pytest.mark.parametrize('concat', (False, True))
 def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata,
                       concat):
     """Test saving split epochs."""
+    if metadata:
+        pytest.importorskip('pandas')
     # See gh-5102
     fs = 1000.
     n_times = int(round(fs * (n_epochs + 1)))
@@ -1936,9 +1934,7 @@ def test_bootstrap():
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     preload=True, reject=reject, flat=flat)
-    random_states = [0]
-    if check_version('numpy', '1.17'):
-        random_states += [np.random.default_rng(0)]
+    random_states = [0, np.random.default_rng(0)]
     for random_state in random_states:
         epochs2 = bootstrap(epochs, random_state=random_state)
         assert (len(epochs2.events) == len(epochs.events))

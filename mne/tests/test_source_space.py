@@ -22,8 +22,7 @@ from mne import (read_source_spaces, write_source_spaces,
                  read_bem_solution, read_freesurfer_lut,
                  read_trans)
 from mne.fixes import _get_img_fdata
-from mne.utils import (run_subprocess, _record_warnings, requires_mne,
-                       check_version)
+from mne.utils import run_subprocess, _record_warnings, requires_mne
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
 from mne.source_space import (get_volume_labels_from_src,
@@ -157,13 +156,12 @@ def test_add_patch_info(monkeypatch):
             add_source_space_distances(src_new, dist_limit=0)
 
     # New SciPy can
-    if check_version('scipy', '1.3'):
-        src_nodist = src.copy()
-        for s in src_nodist:
-            for key in ('dist', 'dist_limit'):
-                s[key] = None
-        add_source_space_distances(src_new, dist_limit=0)
-        _compare_source_spaces(src, src_new, 'approx')
+    src_nodist = src.copy()
+    for s in src_nodist:
+        for key in ('dist', 'dist_limit'):
+            s[key] = None
+    add_source_space_distances(src_new, dist_limit=0)
+    _compare_source_spaces(src, src_new, 'approx')
 
 
 # We could test "src_py" here, but we can rely on our existing tests to
