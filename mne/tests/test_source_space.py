@@ -155,7 +155,6 @@ def test_add_patch_info(monkeypatch):
         with pytest.raises(RuntimeError, match='required to calculate patch '):
             add_source_space_distances(src_new, dist_limit=0)
 
-    # New SciPy can
     src_nodist = src.copy()
     for s in src_nodist:
         for key in ('dist', 'dist_limit'):

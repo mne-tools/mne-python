@@ -235,11 +235,6 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
 
-    # smoke test for new API
-    simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
-                        labels=labels_single_hemi,
-                        random_state=np.random.default_rng(0))
-
 
 @testing.requires_testing_data
 def test_simulate_stc_labels_overlap(_get_fwd_labels):

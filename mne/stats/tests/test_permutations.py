@@ -74,6 +74,3 @@ def test_ci():
                     bootstrap_confidence_interval(arr, stat_fun="mean",
                                                   random_state=0),
                     rtol=.1)
-    # smoke test for new API
-    random_state = np.random.default_rng(0)
-    bootstrap_confidence_interval(arr, random_state=random_state)

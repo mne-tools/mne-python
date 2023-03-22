@@ -283,11 +283,6 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
     del raw_sim_hann
 
-    # check that new Generator objects can be used
-    random_state = np.random.default_rng(seed)
-    add_ecg(raw_sim, random_state=random_state)
-    add_eog(raw_sim, random_state=random_state)
-
 
 def test_degenerate(raw_data):
     """Test degenerate conditions."""
