@@ -21,6 +21,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    get_montage_volume_labels
    gui.coregistration
    gui.locate_ieeg
+   gui.view_vol_stc
    create_default_subject
    head_to_mni
    head_to_mri
@@ -35,6 +36,4 @@ Step by step instructions for using :func:`gui.coregistration`:
    transforms.apply_volume_registration_points
    transforms.compute_volume_registration
    vertex_to_mni
-   gui.view_vol_stc
-   warp_montage_volume
    coreg.Coregistration
