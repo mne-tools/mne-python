@@ -8,7 +8,6 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-import scipy
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_allclose, assert_equal,
                            assert_array_less)
@@ -22,8 +21,7 @@ from mne import (read_source_spaces, write_source_spaces,
                  read_bem_solution, read_freesurfer_lut,
                  read_trans)
 from mne.fixes import _get_img_fdata
-from mne.utils import (run_subprocess, _record_warnings, requires_mne,
-                       check_version)
+from mne.utils import run_subprocess, _record_warnings, requires_mne
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
 from mne.source_space import (get_volume_labels_from_src,
@@ -149,21 +147,12 @@ def test_add_patch_info(monkeypatch):
             add_source_space_distances(src_new)
     _compare_source_spaces(src, src_new, 'approx')
 
-    # Old SciPy can't do patch info only
-    src_new = _read_small_src()
-    with monkeypatch.context() as m:
-        m.setattr(scipy, '__version__', '1.0')
-        with pytest.raises(RuntimeError, match='required to calculate patch '):
-            add_source_space_distances(src_new, dist_limit=0)
-
-    # New SciPy can
-    if check_version('scipy', '1.3'):
-        src_nodist = src.copy()
-        for s in src_nodist:
-            for key in ('dist', 'dist_limit'):
-                s[key] = None
-        add_source_space_distances(src_new, dist_limit=0)
-        _compare_source_spaces(src, src_new, 'approx')
+    src_nodist = src.copy()
+    for s in src_nodist:
+        for key in ('dist', 'dist_limit'):
+            s[key] = None
+    add_source_space_distances(src_new, dist_limit=0)
+    _compare_source_spaces(src, src_new, 'approx')
 
 
 # We could test "src_py" here, but we can rely on our existing tests to

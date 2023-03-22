@@ -34,10 +34,9 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from ._freesurfer import (_get_mri_info_data, _get_atlas_values,  # noqa: F401
                           read_freesurfer_lut, get_mni_fiducials, _check_mri)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
-                    _ensure_int, check_version, _get_call_line, warn,
+                    _ensure_int, _get_call_line, warn, object_size, sizeof_fmt,
                     _check_fname, _path_like, _check_sphere, _import_nibabel,
-                    _validate_type, _check_option, _is_numeric, _pl, _suggest,
-                    object_size, sizeof_fmt)
+                    _validate_type, _check_option, _is_numeric, _pl, _suggest)
 from .parallel import parallel_func
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -2465,11 +2464,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *,
         raise ValueError('dist_limit must be non-negative, got %s'
                          % (dist_limit,))
     patch_only = (dist_limit == 0)
-    if patch_only and not check_version('scipy', '1.3'):
-        raise RuntimeError('scipy >= 1.3 is required to calculate patch '
-                           'information only, consider upgrading SciPy or '
-                           'using dist_limit=np.inf when running '
-                           'add_source_space_distances')
     if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')

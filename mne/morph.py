@@ -1187,10 +1187,6 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None,
 def _surf_nearest(vertices, adj_mat):
     from scipy import sparse
     from scipy.sparse.csgraph import dijkstra
-    if not check_version('scipy', '1.3'):
-        raise ValueError('scipy >= 1.3 is required to use nearest smoothing, '
-                         'consider upgrading SciPy or using a different '
-                         'smoothing value')
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
     vertices = vertices[order]
