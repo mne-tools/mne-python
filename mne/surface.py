@@ -29,7 +29,8 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray, fill_doc,
-                    _validate_type, _require_version, _pl, _import_nibabel)
+                    _validate_type, _require_version, _pl, _import_nibabel,
+                    deprecated)
 
 
 ###############################################################################
@@ -1856,19 +1857,10 @@ def _vtk_smooth(pd, smooth):
     return out
 
 
-def _warn_missing_chs(info, dig_image, after_warp, verbose=None):
-    """Warn that channels are missing."""
-    # ensure that each electrode contact was marked in at least one voxel
-    missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
-        set(np.unique(np.array(dig_image.dataobj))))
-    missing_ch = [info.ch_names[idx - 1] for idx in missing]
-    if missing_ch and verbose != 'error':
-        warn(f'Channel{_pl(missing_ch)} '
-             f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
-             'voxels ' +
-             (f' after applying {after_warp}' if after_warp else ''))
-
-
+@deprecated('warp_montage_volume will be deprecated in favor of '
+            'warp_montage (and optionally '
+            'mne.preprocessing.ieeg.make_montage_volume) in version '
+            '1.5.0')
 @verbose
 def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                         subject_from, subject_to='fsaverage',
@@ -1939,6 +1931,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
     _require_version('dipy', 'SDR morph', '0.10.1')
     from .channels import DigMontage, make_dig_montage
     from ._freesurfer import _check_subject_dir
+    from .preprocessing.ieeg._volume import _warn_missing_chs
 
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')
