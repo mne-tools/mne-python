@@ -911,7 +911,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
     """
-    if not type(evoked) in (tuple, list):
+    if type(evoked) not in (tuple, list):
         evoked = [evoked]
 
     background_color = _to_rgb(background_color, name='background_color')

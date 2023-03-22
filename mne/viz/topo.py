@@ -658,7 +658,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     import matplotlib.pyplot as plt
     from ..cov import whiten_evoked
 
-    if not type(evoked) in (tuple, list):
+    if type(evoked) not in (tuple, list):
         evoked = [evoked]
 
     noise_cov = _check_cov(noise_cov, evoked[0].info)
