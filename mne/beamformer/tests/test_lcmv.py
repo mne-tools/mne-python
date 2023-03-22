@@ -1,6 +1,5 @@
 from copy import deepcopy
 from inspect import signature
-import os.path as op
 
 import pytest
 import numpy as np
@@ -29,16 +28,17 @@ from mne.utils import (object_diff, requires_version, catch_logging,
 
 
 data_path = testing.data_path(download=False)
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc_raw-eve.fif')
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
-ctf_fname = op.join(data_path, 'CTF', 'somMDYO-18av.ds')
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_fwd_vol = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
+fname_event = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
+fname_label = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
+ctf_fname = data_path / "CTF" / "somMDYO-18av.ds"
 
 reject = dict(grad=4000e-13, mag=4e-12)
 
@@ -306,7 +306,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     assert 'rank %s' % rank in repr(filters)
 
     # I/O
-    fname = op.join(str(tmp_path), 'filters.h5')
+    fname = tmp_path / "filters.h5"
     with pytest.warns(RuntimeWarning, match='-lcmv.h5'):
         filters.save(fname)
     filters_read = read_beamformer(fname)

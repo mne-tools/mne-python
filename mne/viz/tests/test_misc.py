@@ -7,7 +7,7 @@
 #
 # License: Simplified BSD
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -25,21 +25,24 @@ from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd, plot_chpi_snr)
 from mne.viz.misc import _handle_event_colors
 from mne.viz.utils import _get_color_list
-from mne.utils import requires_nibabel
 from mne.time_frequency import CrossSpectralDensity
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-inv_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
-evoked_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-dip_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
-chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-event_fname = op.join(base_dir, 'test-eve.fif')
+subjects_dir = data_path / "subjects"
+src_fname = subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
+inv_fname = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif"
+)
+evoked_fname = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
+dip_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_set1.dip"
+chpi_fif_fname = data_path / "SSS" / "test_move_anon_raw.fif"
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+cov_fname = base_dir / "test-cov.fif"
+event_fname = base_dir / "test-eve.fif"
 
 
 def _get_raw():
@@ -130,9 +133,9 @@ def test_plot_cov():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
+    pytest.importorskip('nibabel')
     with pytest.raises(IOError, match='MRI file .* not found'):
         plot_bem(subject='bad-subject', subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match="Invalid value for the 'orientation"):
@@ -221,8 +224,9 @@ def test_plot_events():
 @testing.requires_testing_data
 def test_plot_source_spectrogram():
     """Test plotting of source spectrogram."""
-    sample_src = read_source_spaces(op.join(subjects_dir, 'sample',
-                                            'bem', 'sample-oct-6-src.fif'))
+    sample_src = read_source_spaces(
+        subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
+    )
 
     # dense version
     vertices = [s['vertno'] for s in sample_src]

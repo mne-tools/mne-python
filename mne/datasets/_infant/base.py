@@ -75,13 +75,12 @@ def fetch_infant_template(age, subjects_dir=None, *, verbose=None):
     _validate_type(age, str, 'age')
     _check_option('age', age, _AGES.split())
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    subjects_dir = op.abspath(subjects_dir)
     unit = dict(wk='Weeks', mo='Months', yr='Years')[age[-2:]]
     first = age[:-2].split('.')[0]
     dash = '-5' if '.5' in age else '-0'
     subject = f'ANTS{first}{dash}{unit}3T'
     # Actually get and create the files
-    subj_dir = op.join(subjects_dir, subject)
+    subj_dir = subjects_dir / subject
     os.makedirs(subj_dir, exist_ok=True)
     # .zip -> hash mapping
     orig_hashes = dict(line.strip().split()[::-1]

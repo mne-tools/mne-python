@@ -14,11 +14,7 @@ import pytest
 from mne import Epochs, create_info, EpochsArray
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
-from mne.utils import check_version
 from mne.viz import plot_drop_log
-
-
-_mpl_37 = check_version('matplotlib', '3.7')
 
 
 def test_plot_epochs_not_preloaded(epochs_unloaded, browser_backend):
@@ -135,8 +131,6 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys,
     fig = epochs_full.plot(n_epochs=3)
     first_ch = fig._get_ticklabels('y')[0]
     assert first_ch not in fig.mne.info['bads']
-    if _mpl_37 and browser_backend.name == 'matplotlib':
-        pytest.xfail(reason='KeyError on matplotlib 3.7')
     fig._click_ch_name(ch_index=0, button=1)  # click ch name to mark bad
     assert first_ch in fig.mne.info['bads']
     # test clicking scrollbars
@@ -340,36 +334,37 @@ def test_plot_drop_log(epochs_unloaded):
 
 def test_plot_psd_epochs(epochs):
     """Test plotting epochs psd (+topomap)."""
-    epochs.plot_psd(average=True, spatial_colors=False)
-    epochs.plot_psd(average=False, spatial_colors=True)
-    epochs.plot_psd(average=False, spatial_colors=False)
+    spectrum = epochs.compute_psd()
+    spectrum.plot(average=True, spatial_colors=False)
+    spectrum.plot(average=False, spatial_colors=True)
+    spectrum.plot(average=False, spatial_colors=False)
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match='No frequencies in band'):
-        epochs.plot_psd_topomap(bands=dict(foo=(0, 0.01)))
+        spectrum.plot_topomap(bands=dict(foo=(0, 0.01)))
     plt.close('all')
     # test defaults
-    fig = epochs.plot_psd_topomap()
+    fig = spectrum.plot_topomap()
     assert len(fig.axes) == 10  # default: 5 bands (δ, θ, α, β, γ) + colorbars
     # test joint vlim
-    fig = epochs.plot_psd_topomap(vlim='joint')
+    fig = spectrum.plot_topomap(vlim='joint')
     vmin_0 = fig.axes[0].images[0].norm.vmin
     vmax_0 = fig.axes[0].images[0].norm.vmax
     assert all(vmin_0 == ax.images[0].norm.vmin for ax in fig.axes[1:5])
     assert all(vmax_0 == ax.images[0].norm.vmax for ax in fig.axes[1:5])
     # test support for single-bin bands and old-style list-of-tuple input
-    fig = epochs.plot_psd_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
+    fig = spectrum.plot_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
     # test with a flat channel
     err_str = 'for channel %s' % epochs.ch_names[2]
     epochs.get_data()[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
-            epochs.plot_psd(dB=dB)
+            epochs.compute_psd().plot(dB=dB)
 
 
 def test_plot_psdtopo_nirs(fnirs_epochs):
     """Test plotting of PSD topography for nirs data."""
     bands = {'0.2 Hz': 0.2, '0.4 Hz': 0.4, '0.8 Hz': 0.8}
-    fig = fnirs_epochs.plot_psd_topomap(bands=bands)
+    fig = fnirs_epochs.compute_psd().plot_topomap(bands=bands)
     assert len(fig.axes) == 6  # 3 band x (plot + cmap)
 
 
@@ -405,14 +400,15 @@ def test_plot_psd_epochs_ctf(raw_ctf):
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
     # EEG060 is flat in this dataset
-    for dB in [True, False]:
-        with pytest.warns(UserWarning, match='for channel EEG060'):
-            epochs.plot_psd(dB=dB)
-    epochs.drop_channels(['EEG060'])
-    epochs.plot_psd(spatial_colors=False, average=False)
+    with pytest.warns(UserWarning, match='for channel EEG060'):
+        spectrum = epochs.compute_psd()
+        for dB in [True, False]:
+            spectrum.plot(dB=dB)
+    spectrum.drop_channels(['EEG060'])
+    spectrum.plot(spatial_colors=False, average=False)
     with pytest.raises(RuntimeError, match='No frequencies in band'):
-        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
-    epochs.plot_psd_topomap()
+        spectrum.plot_topomap(bands=[(0, 0.01, 'foo')])
+    spectrum.plot_topomap()
 
 
 def test_plot_epochs_selection_butterfly(raw, browser_backend):

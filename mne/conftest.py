@@ -78,7 +78,8 @@ collect_ignore = [
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers
-    for marker in ('slowtest', 'ultraslowtest', 'pgtest'):
+    for marker in ('slowtest', 'ultraslowtest', 'pgtest', 'allow_unclosed',
+                   'allow_unclosed_pyside2'):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
@@ -122,9 +123,6 @@ def pytest_configure(config):
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     # matplotlib 3.6 and pyvista/nilearn
     ignore:.*cmap function will be deprecated.*:
-    # TODO: matplotlib 3.7 that needs to be fixed
-    ignore:The rectangles attribute was deprecated in Matplotlib.*:
-    ignore:The lines attribute was deprecated in Matplotlib.*:
     # joblib hasn't updated to avoid distutils
     ignore:.*distutils package is deprecated.*:DeprecationWarning
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
@@ -134,11 +132,14 @@ def pytest_configure(config):
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
-    # hopefully temporary https://github.com/matplotlib/matplotlib/pull/24455#issuecomment-1319318629
-    ignore:The circles attribute was deprecated in Matplotlib.*:
+    ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
+    # pkg_resources usage bug
+    ignore:Implementing implicit namespace packages.*:DeprecationWarning
+    ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
+    ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -969,18 +970,18 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend('pyvistaqt')
     app = _init_mne_qtapp()
+    from qtpy import API_NAME
+    app.processEvents()
     gc.collect()
     n_before = len(app.topLevelWidgets())
+    marks = set(mark.name for mark in request.node.iter_markers())
     yield
+    app.processEvents()
     gc.collect()
-    if 'allow_unclosed' in request.fixturenames:
+    if 'allow_unclosed' in marks:
+        return
+    if 'allow_unclosed_pyside2' in marks and API_NAME.lower() == 'pyside2':
         return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
-
-
-@pytest.fixture
-def allow_unclosed():
-    """Allow unclosed Qt Windows."""
-    pass

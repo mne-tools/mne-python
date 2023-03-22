@@ -10,6 +10,7 @@ from collections import Counter, OrderedDict
 from functools import partial
 from math import factorial
 from os import path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -192,7 +193,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered.
 
         .. warning:: It is critical to mark bad channels in
@@ -237,7 +238,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Returns
     -------
-    raw_sss : instance of mne.io.Raw
+    raw_sss : instance of Raw
         The raw data with Maxwell filtering applied.
 
     See Also
@@ -763,7 +764,7 @@ def _check_destination(destination, info, head_frame):
     if not head_frame:
         raise RuntimeError('destination can only be set if using the '
                            'head coordinate frame')
-    if isinstance(destination, str):
+    if isinstance(destination, (str, Path)):
         recon_trans = _get_trans(destination, 'meg', 'head')[0]
     elif isinstance(destination, Transform):
         recon_trans = destination
@@ -1610,7 +1611,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered
     origin : array-like, shape (3,)
         Origin of internal and external multipolar moment space in head coords
@@ -1977,18 +1978,24 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
     # Pick the components that give at least 98% of max info
     # This is done because the curves can be quite flat, and we err on the
     # side of including rather than excluding components
-    max_info = np.max(I_tots)
-    lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
-    in_removes = remove_order[:lim_idx]
-    for ii, ri in enumerate(in_removes):
-        logger.debug('            Condition %0.3f/%0.3f = %03.1f, '
-                     'Removing in component %s: l=%s, m=%+0.0f'
-                     % (tuple(eigs[ii]) + (eigs[ii, 0] / eigs[ii, 1],
-                                           ri, degrees[ri], orders[ri])))
-    logger.debug('        Resulting information: %0.1f bits/sample '
-                 '(%0.1f%% of peak %0.1f)'
-                 % (I_tots[lim_idx], 100 * I_tots[lim_idx] / max_info,
-                    max_info))
+    if n_in:
+        max_info = np.max(I_tots)
+        lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
+        in_removes = remove_order[:lim_idx]
+        for ii, ri in enumerate(in_removes):
+            eig = eigs[ii]
+            logger.debug(
+                f'            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = '
+                f'{eig[0] / eig[1]:03.1f}, Removing in component '
+                f'{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}'
+            )
+        logger.debug(
+            f'        Resulting information: {I_tots[lim_idx]:0.1f} '
+            f'bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak '
+            f'{max_info:0.1f})'
+        )
+    else:
+        in_removes = remove_order[:0]
     return in_removes, out_removes
 
 

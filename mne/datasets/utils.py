@@ -98,12 +98,13 @@ def _get_path(path, key, name):
     # 3. get_config('MNE_DATA')
     path = get_config(key or 'MNE_DATA', get_config('MNE_DATA'))
     if path is not None:
-        if not op.exists(path):
+        path = Path(path).expanduser()
+        if not path.exists():
             msg = (f"Download location {path} as specified by MNE_DATA does "
                    f"not exist. Either create this directory manually and try "
                    f"again, or set MNE_DATA to an existing directory.")
             raise FileNotFoundError(msg)
-        return Path(path)
+        return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
     logger.info('Using default location ~/mne_data for %s...' % name)
@@ -352,7 +353,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
     %(verbose)s
@@ -364,20 +365,20 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     import pooch
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    destination = op.join(subjects_dir, 'fsaverage', 'label')
+    destination = subjects_dir / "fsaverage" / "label"
     urls = dict(lh='https://osf.io/p92yb/download',
                 rh='https://osf.io/4kxny/download')
     hashes = dict(lh='9e4d8d6b90242b7e4b0145353436ef77',
                   rh='dd6464db8e7762d969fc1d8087cd211b')
     for hemi in ('lh', 'rh'):
         fname = f'{hemi}.aparc_sub.annot'
-        fpath = op.join(destination, fname)
-        if not op.isfile(fpath):
+        fpath = destination / fname
+        if not fpath.is_file():
             pooch.retrieve(
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
-                fname=fname
+                fname=fname,
             )
 
 
@@ -392,7 +393,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
     combine : bool
@@ -414,14 +415,13 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
     import pooch
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    destination = op.join(subjects_dir, 'fsaverage', 'label')
-    fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
-              for hemi in ('lh', 'rh')]
+    destination = subjects_dir / "fsaverage" / "label"
+    fnames = [destination / f"{hemi}.HCPMMP1.annot" for hemi in ("lh", "rh")]
     urls = dict(lh='https://ndownloader.figshare.com/files/5528816',
                 rh='https://ndownloader.figshare.com/files/5528819')
     hashes = dict(lh='46a102b59b2fb1bb4bd62d51bf02e975',
                   rh='75e96b331940227bbcb07c1c791c2463')
-    if not all(op.isfile(fname) for fname in fnames):
+    if not all(fname.exists() for fname in fnames):
         if accept or '--accept-hcpmmp-license' in sys.argv:
             answer = 'y'
         else:
@@ -431,12 +431,12 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
                                'dataset')
     for hemi, fpath in zip(('lh', 'rh'), fnames):
         if not op.isfile(fpath):
-            fname = op.basename(fpath)
+            fname = fpath.name
             pooch.retrieve(
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
-                fname=fname
+                fname=fname,
             )
 
     if combine:

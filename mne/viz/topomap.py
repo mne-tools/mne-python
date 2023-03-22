@@ -1824,6 +1824,10 @@ def plot_evoked_topomap(
             merge_channels=merge_channels, scale=scaling, axes=axes,
             contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
+        # This is mostly for testing purposes, but it's also consistent with
+        # raw.plot, so maybe not a bad thing in principle either
+        from mne.viz._figure import BrowserParams
+        fig.mne = BrowserParams(proj_checkboxes=params['proj_checks'])
 
     plt_show(show, block=False)
     if axes_given:
@@ -1959,16 +1963,18 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     fig : instance of Figure
         Figure showing one scalp topography per frequency band.
     """
-    return epochs.plot_psd_topomap(
-        bands=bands, tmin=tmin, tmax=tmax, proj=proj, method='multitaper',
-        ch_type=ch_type, normalize=normalize, agg_fun=agg_fun, dB=dB,
-        sensors=sensors, names=names, mask=mask, mask_params=mask_params,
-        contours=contours, outlines=outlines, sphere=sphere,
-        image_interp=image_interp, extrapolate=extrapolate, border=border,
-        res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
-        colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=None,
-        show=True, n_jobs=None, verbose=None, bandwidth=bandwidth,
-        low_bias=low_bias, adaptive=adaptive, normalization=normalization)
+    from ..channels import rename_channels
+    from ..time_frequency import Spectrum
+    from ..utils.spectrum import _split_psd_kwargs
+
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
+    spectrum = epochs.compute_psd(**init_kw)
+    plot_kw.setdefault('show_names', False)
+    if names is not None:
+        rename_channels(spectrum.info, dict(zip(spectrum.ch_names, names)),
+                        verbose=verbose)
+        plot_kw['show_names'] = True
+    return spectrum.plot_topomap(**plot_kw)
 
 
 @fill_doc

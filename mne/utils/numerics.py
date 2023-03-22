@@ -144,8 +144,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     n = x.shape[-1]
 
     # Decompose the matrix, not necessarily positive semidefinite
-    from mne.fixes import svd
-    U, s, Vh = svd(x, hermitian=True)
+    U, s, Vh = np.linalg.svd(x, hermitian=True)
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
@@ -154,7 +153,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s, axis=-1)
     if reg:
-        U, s, Vh = svd(
+        U, s, Vh = np.linalg.svd(
             x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n),
             hermitian=True)
 

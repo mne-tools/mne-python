@@ -22,7 +22,7 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_eeglabio_installed, _check_pybv_installed,
                     _check_edflib_installed, _to_rgb, _soft_import,
                     _check_dict_keys, _check_pymatreader_installed,
-                    _import_h5py, _import_h5io_funcs,
+                    _import_h5py, _import_h5io_funcs, _import_nibabel,
                     _import_pymatreader_funcs, _check_head_radius)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
@@ -35,24 +35,24 @@ from .fetching import _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
                        wrapped_stdout, _get_call_line, _record_warnings,
-                       ClosingStringIO, _verbose_safe_false)
+                       ClosingStringIO, _verbose_safe_false, _parse_verbose)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser,
                    _assert_no_instances, _resource_path, repr_html)
 from .progressbar import ProgressBar
 from ._testing import (run_command_if_main, requires_sklearn,
-                       requires_version, requires_nibabel, requires_mne,
+                       requires_version, requires_mne,
                        requires_good_network, requires_pandas, requires_h5py,
                        ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
-                       _TempDir, has_nibabel, buggy_mkl_svd,
+                       _TempDir, buggy_mkl_svd,
                        requires_numpydoc, requires_freesurfer,
-                       requires_nitime, requires_dipy, requires_mne_mark,
+                       requires_nitime, requires_mne_mark,
                        requires_neuromag2ft, requires_pylsl,
                        assert_object_equal, assert_and_remove_boundary_annot,
                        _raw_annot, assert_dig_allclose, assert_meg_snr,
                        assert_snr, assert_stcs_equal, _click_ch_name,
-                       requires_openmeeg_mark)
+                       requires_openmeeg_mark, requires_mne_qt_browser)
 from .numerics import (hashfunc, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,

@@ -27,9 +27,9 @@ def mne_anonymize(fif_fname, out_fname, keep_his, daysback, overwrite):
 
     Parameters
     ----------
-    fif_fname : str
+    fif_fname : path-like
         Raw fif File
-    out_fname : str | None
+    out_fname : path-like | None
         Output file name
         relative paths are saved relative to parent dir of fif_fname
         None will save to parent dir of fif_fname with default prefix

@@ -34,7 +34,6 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
 #
-#
 # What is SSP?
 # ^^^^^^^^^^^^
 #
@@ -104,8 +103,9 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
+spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    empty_room_raw.plot_psd(average=average, dB=False, xscale='log')
+    spectrum.plot(average=average, dB=False, xscale='log')
 
 # %%
 # Creating the empty-room projectors

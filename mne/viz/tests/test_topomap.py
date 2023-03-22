@@ -6,8 +6,8 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 from functools import partial
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal, assert_almost_equal
@@ -38,25 +38,22 @@ from mne.viz.utils import (_find_peaks, _fake_click, _fake_keypress,
                            _fake_scroll)
 from mne.utils import requires_sklearn, check_version
 
+from mne.viz.tests.test_raw import _proj_status
+
 data_dir = testing.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg-proj.fif')
-triux_fname = op.join(data_dir, 'SSS', 'TRIUX', 'triux_bmlhus_erm_raw.fif')
+subjects_dir = data_dir / "subjects"
+ecg_fname = data_dir / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
+triux_fname = data_dir / "SSS" / "TRIUX" / "triux_bmlhus_erm_raw.fif"
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-ctf_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
-layout = read_layout('Vectorview-all')
-cov_fname = op.join(base_dir, 'test-cov.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+evoked_fname = base_dir / "test-ave.fif"
+raw_fname = base_dir / "test_raw.fif"
+event_name = base_dir / "test-eve.fif"
+ctf_fname = base_dir / "test_ctf_comp_raw.fif"
+layout = read_layout("Vectorview-all")
+cov_fname = base_dir / "test-cov.fif"
 
 
-# TODO: This is a problem on Windows at least
-@pytest.mark.xfail(
-    condition=check_version('matplotlib', '3.7'),
-    reason='Lines not visible',
-)
 @pytest.mark.parametrize('constrained_layout', (False, True))
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
@@ -75,36 +72,31 @@ def test_plot_topomap_interactive(constrained_layout):
                   res=8, time_unit='s')
     evoked.copy().plot_topomap(proj=False, **kwargs)
     canvas.draw()
-    image_noproj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_noproj = np.array(canvas.buffer_rgba())
     assert len(plt.get_fignums()) == 1
 
     ax.clear()
     evoked.copy().plot_topomap(proj=True, **kwargs)
     canvas.draw()
-    image_proj = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_proj = np.array(canvas.buffer_rgba())
     assert not np.array_equal(image_noproj, image_proj)
     assert len(plt.get_fignums()) == 1
 
     ax.clear()
-    evoked.copy().plot_topomap(proj='interactive', **kwargs)
+    fig = evoked.copy().plot_topomap(proj='interactive', **kwargs)
     canvas.draw()
-    image_interactive = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    image_interactive = np.array(canvas.buffer_rgba())
     assert_array_equal(image_noproj, image_interactive)
     assert not np.array_equal(image_proj, image_interactive)
     assert len(plt.get_fignums()) == 2
 
     proj_fig = plt.figure(plt.get_fignums()[-1])
-    assert len(proj_fig.axes[0].lines) == 2
-    for line in proj_fig.axes[0].lines:
-        assert not line.get_visible()
-    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
-    assert len(proj_fig.axes[0].lines) == 2
+    assert _proj_status(fig, 'matplotlib') == [False]
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='ax')
     proj_fig.canvas.draw_idle()
-    for li, line in enumerate(proj_fig.axes[0].lines):
-        assert line.get_visible(), f'line {li} not visible'
+    assert _proj_status(fig, 'matplotlib') == [True]
     canvas.draw()
-    image_interactive_click = np.frombuffer(
-        canvas.tostring_rgb(), dtype='uint8')
+    image_interactive_click = np.array(canvas.buffer_rgba())
     corr = np.corrcoef(
         image_proj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.99 < corr <= 1
@@ -112,10 +104,9 @@ def test_plot_topomap_interactive(constrained_layout):
         image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.85 < corr < 0.9
 
-    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
+    _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='ax')
     canvas.draw()
-    image_interactive_click = np.frombuffer(
-        canvas.tostring_rgb(), dtype='uint8')
+    image_interactive_click = np.array(canvas.buffer_rgba())
     corr = np.corrcoef(
         image_noproj.ravel(), image_interactive_click.ravel())[0, 1]
     assert 0.99 < corr <= 1
@@ -250,8 +241,9 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     #     assert cbar.get_title() == expected_unit
     # ...but not all matplotlib versions support it, and we can't use
     # @requires_version because it's hard figure out exactly which MPL version
-    # is the cutoff since it relies on a private attribute. So for now we just
-    # do this:
+    # is the cutoff since it relies on a private attribute. Based on some
+    # basic testing it's at least matplotlib version >= 3.5.
+    # So for now we just do this:
     for ax in fig.axes:
         if hasattr(ax, '_colorbar'):
             assert ax.get_title() == expected_unit

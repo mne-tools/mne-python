@@ -3,12 +3,11 @@
 #
 # License: BSD-3-Clause
 
+import sys
 from collections import OrderedDict
 from datetime import datetime, timezone, timedelta
 from itertools import repeat
-import sys
-
-import os.path as op
+from pathlib import Path
 
 import pytest
 from pytest import approx
@@ -30,15 +29,14 @@ from mne.annotations import (_sync_onset, _handle_meas_date,
                              _read_annotations_txt_parse_header)
 from mne.datasets import testing
 
-data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
-fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
-                    'test_raw.fif')
-
-first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
-
 data_path = testing.data_path(download=False)
-edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
-edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
+data_dir = data_path / "MEG" / "sample"
+fif_fname = (
+    Path(__file__).parent.parent / "io" / "tests" / "data" / "test_raw.fif"
+)
+first_samps = pytest.mark.parametrize("first_samp", (0, 10000))
+edf_reduced = data_path / "EDF" / "test_reduced.edf"
+edf_annot_only = data_path / "EDF" / "SC4001EC-Hypnogram.edf"
 
 
 needs_pandas = pytest.mark.skipif(
@@ -226,8 +224,7 @@ def test_crop(tmp_path):
     assert_array_almost_equal(raw.annotations.onset, expected_onset, decimal=2)
 
     # Test IO
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'test-annot.fif')
+    fname = tmp_path / "test-annot.fif"
     raw.annotations.save(fname)
     annot_read = read_annotations(fname)
     for attr in ('onset', 'duration'):
@@ -243,7 +240,7 @@ def test_crop(tmp_path):
     assert len(annot) == 0
     annot.crop()  # test if cropping empty annotations doesn't raise an error
     # Test that empty annotations can be saved with an object
-    fname = op.join(tempdir, 'test_raw.fif')
+    fname = tmp_path / "test_raw.fif"
     raw.set_annotations(annot)
     raw.save(fname)
     raw_read = read_raw_fif(fname)
@@ -261,7 +258,7 @@ def test_crop(tmp_path):
     annotation = mne.Annotations([8, 12, 15], [2] * 3, [1, 2, 3])
     raw = raw.set_annotations(annotation)
     raw_copied = raw.copy().crop(5, 18)
-    fname = op.join(tempdir, 'test_raw.fif')
+    fname = tmp_path / "test_raw.fif"
     raw_copied.save(fname, overwrite=True)
     raw_loaded = mne.io.read_raw(str(fname))
     for attr in ('onset', 'duration'):
@@ -363,7 +360,7 @@ def test_crop_more():
 @testing.requires_testing_data
 def test_read_brainstorm_annotations():
     """Test reading for Brainstorm events file."""
-    fname = op.join(data_dir, 'events_sample_audvis_raw_bst.mat')
+    fname = data_dir / "events_sample_audvis_raw_bst.mat"
     annot = read_annotations(fname)
     assert len(annot) == 238
     assert annot.onset.min() > 40  # takes into account first_samp
@@ -1065,7 +1062,6 @@ def test_annotations_simple_iteration():
             assert elem == expected_value
 
 
-@requires_version('numpy', '1.12')
 def test_annotations_slices():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
@@ -1139,7 +1135,7 @@ def test_date_none(tmp_path):
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=2048)
     assert info['meas_date'] is None
     raw = RawArray(data=data, info=info)
-    fname = op.join(str(tmp_path), 'test-raw.fif')
+    fname = tmp_path / "test-raw.fif"
     raw.save(fname)
     raw_read = read_raw_fif(fname, preload=True)
     assert raw_read.info['meas_date'] is None

@@ -2,9 +2,9 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
-import os.path as op
 import os
+from contextlib import nullcontext
+from pathlib import Path
 
 import pytest
 from numpy.testing import assert_allclose
@@ -22,19 +22,37 @@ from mne.viz import _3d
 
 
 data_path = testing.data_path(download=False)
-raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_trans = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
-kit_raw_path = op.join(kit_data_dir, 'test_bin_raw.fif')
-subjects_dir = op.join(data_path, 'subjects')
-fid_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-fiducials.fif')
-ctf_raw_path = op.join(data_path, 'CTF', 'catch-alp-good-f.ds')
-nirx_15_0_raw_path = op.join(data_path, 'NIRx', 'nirscout',
-                             'nirx_15_0_recording', 'NIRS-2019-10-27_003.hdr')
-nirsport2_raw_path = op.join(data_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9',
-                             '2021-10-01_002_config.hdr')
-snirf_nirsport2_raw_path = op.join(data_path, 'SNIRF', 'NIRx', 'NIRSport2',
-                                   '1.0.3', '2021-05-05_001.snirf')
+raw_path = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_trans = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+kit_raw_path = kit_data_dir / "test_bin_raw.fif"
+subjects_dir = data_path / "subjects"
+fid_fname = subjects_dir / "sample" / "bem" / "sample-fiducials.fif"
+ctf_raw_path = data_path / "CTF" / "catch-alp-good-f.ds"
+nirx_15_0_raw_path = (
+    data_path
+    / "NIRx"
+    / "nirscout"
+    / "nirx_15_0_recording"
+    / "NIRS-2019-10-27_003.hdr"
+)
+nirsport2_raw_path = (
+    data_path
+    / "NIRx"
+    / "nirsport_v2"
+    / "aurora_2021_9"
+    / "2021-10-01_002_config.hdr"
+)
+snirf_nirsport2_raw_path = (
+    data_path
+    / "SNIRF"
+    / "NIRx"
+    / "NIRSport2"
+    / "1.0.3"
+    / "2021-05-05_001.snirf"
+)
+
+
+pytest.importorskip('nibabel')
 
 
 class TstVTKPicker(object):
@@ -85,8 +103,7 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
             if pt['kind'] == FIFF.FIFFV_POINT_EEG:
                 eeg_chans.append(f"EEG {pt['ident']:03d}")
 
-        dig = DigMontage(dig=tmp_info['dig'],
-                         ch_names=eeg_chans)
+        dig = DigMontage(dig=tmp_info["dig"], ch_names=eeg_chans)
         inst_path = tmp_path / 'tmp-dig.fif'
         dig.save(inst_path)
 
@@ -111,8 +128,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch,
     from mne.gui import coregistration
     config = get_config()
     # the sample subject in testing has MRI fids
-    assert op.isfile(op.join(
-        subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
+    assert (subjects_dir / "sample" / "bem" / "sample-fiducials.fif").is_file()
 
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
@@ -129,7 +145,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch,
     log = log.getvalue()
     assert 'Total 16/78 points inside the surface' in log
     coreg._set_fiducials_file(fid_fname)
-    assert coreg._fiducials_file == fid_fname
+    assert coreg._fiducials_file == str(fid_fname)
 
     # fitting (with scaling)
     assert not coreg._mri_scale_modified
@@ -250,7 +266,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, monkeypatch,
     tmp_trans = tmp_path / 'tmp-trans.fif'
     coreg._save_trans(tmp_trans)
     assert not coreg._trans_modified
-    assert op.isfile(tmp_trans)
+    assert tmp_trans.is_file()
 
     # first, disable auto cleanup
     coreg._renderer._window_close_disconnect(after=True)
@@ -297,15 +313,15 @@ def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     (tmp_path / '_images').mkdir()
-    image_path = str(tmp_path / '_images' / 'temp.png')
-    gallery_conf = dict(builder_name='html', src_dir=str(tmp_path))
+    image_path = tmp_path / '_images' / 'temp.png'
+    gallery_conf = dict(builder_name='html', src_dir=tmp_path)
     block_vars = dict(
         example_globals=dict(gui=coreg),
-        image_path_iterator=iter([image_path]))
-    assert not op.isfile(image_path)
+        image_path_iterator=iter([str(image_path)]))
+    assert not image_path.is_file()
     assert not getattr(coreg, '_scraped', False)
     mne.gui._GUIScraper()(None, block_vars, gallery_conf)
-    assert op.isfile(image_path)
+    assert image_path.is_file()
     assert coreg._scraped
 
 
@@ -313,16 +329,16 @@ def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
 @testing.requires_testing_data
 def test_coreg_gui_notebook(renderer_notebook, nbexec):
     """Test the coregistration UI in a notebook."""
-    import os
     import pytest
     import mne
     from mne.datasets import testing
     from mne.gui import coregistration
+
     mne.viz.set_3d_backend('notebook')  # set the 3d backend
     with pytest.MonkeyPatch().context() as mp:
         mp.delenv('_MNE_FAKE_HOME_DIR')
         data_path = testing.data_path(download=False)
-    subjects_dir = os.path.join(data_path, 'subjects')
+    subjects_dir = data_path / "subjects"
     coregistration(subject='sample', subjects_dir=subjects_dir)
 
 
@@ -331,11 +347,14 @@ def test_no_sparse_head(subjects_dir_tmp, renderer_interactive_pyvistaqt,
                         monkeypatch):
     """Test mne.gui.coregistration with no sparse head."""
     from mne.gui import coregistration
+
+    subjects_dir_tmp = Path(subjects_dir_tmp)
     subject = 'sample'
     out_rr, out_tris = mne.read_surface(
-        op.join(subjects_dir_tmp, subject, 'bem', 'outer_skin.surf'))
+        subjects_dir_tmp / subject / "bem" / "outer_skin.surf"
+    )
     for head in ('sample-head.fif', 'outer_skin.surf'):
-        os.remove(op.join(subjects_dir_tmp, subject, 'bem', head))
+        os.remove(subjects_dir_tmp / subject / "bem" / head)
     # Avoid actually doing the decimation (it's slow)
     monkeypatch.setattr(
         mne.coreg, 'decimate_surface',

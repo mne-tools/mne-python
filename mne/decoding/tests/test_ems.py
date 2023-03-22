@@ -2,7 +2,8 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
+
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
@@ -11,12 +12,9 @@ from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn
 from mne.decoding import compute_ems, EMS
 
-data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-curdir = op.join(op.dirname(__file__))
-
-raw_fname = op.join(data_dir, 'test_raw.fif')
-event_name = op.join(data_dir, 'test-eve.fif')
-
+data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 

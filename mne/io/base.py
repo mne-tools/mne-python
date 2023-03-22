@@ -1358,7 +1358,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
             ``raw.fif`` (common raw data), ``raw_sss.fif``
@@ -1425,7 +1425,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings_err = ('.fif', '.fif.gz')
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = str(_check_fname(fname, overwrite=True, verbose="error"))
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1453,8 +1453,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite,
-                             verbose="error")
+        fname = str(
+            _check_fname(fname=fname, overwrite=overwrite, verbose="error")
+        )
 
         if proj:
             info = deepcopy(self.info)
@@ -1785,7 +1786,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stim_channel : str | None
             Name of the stim channel to add to. If None, the config variable
             'MNE_STIM_CHANNEL' is used. If this is not found, it will default
-            to 'STI 014'.
+            to ``'STI 014'``.
         replace : bool
             If True the old events on the stim channel are removed before
             adding the new ones.
@@ -2198,7 +2199,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     # Expand `~` if present
-    fname = _check_fname(fname=fname, overwrite=overwrite)
+    fname = str(_check_fname(fname=fname, overwrite=overwrite))
 
     base, ext = op.splitext(fname)
     if part_idx > 0:
@@ -2502,22 +2503,27 @@ def _check_raw_compatibility(raw):
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], type(raw[0])):
             raise ValueError(f'raw[{ri}] type must match')
-        for key in ('nchan', 'bads', 'sfreq'):
+        for key in ('nchan', 'sfreq'):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
                     f'raw[{ri}].info[{key}] must match:\n'
                     f'{repr(a)} != {repr(b)}')
-        if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
-            raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
-        if not all(raw[ri]._cals == raw[0]._cals):
+        for kind in ('bads', 'ch_names'):
+            set1 = set(raw[0].info[kind])
+            set2 = set(raw[ri].info[kind])
+            mismatch = set1.symmetric_difference(set2)
+            if mismatch:
+                raise ValueError(f'raw[{ri}][\'info\'][{kind}] do not match: '
+                                 f'{sorted(mismatch)}')
+        if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError('raw[%d]._cals must match' % ri)
         if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
             raise ValueError('SSP projectors in raw files must be the same')
         if not all(_proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
-    if not all(r.orig_format == raw[0].orig_format for r in raw):
+    if any(r.orig_format != raw[0].orig_format for r in raw):
         warn('raw files do not all have the same data format, could result in '
              'precision mismatch. Setting raw.orig_format="unknown"')
         raw[0].orig_format = 'unknown'

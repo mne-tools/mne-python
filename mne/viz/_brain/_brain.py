@@ -281,6 +281,8 @@ class Brain(object):
                              'sequence of ints.')
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
+        if subjects_dir is not None:
+            subjects_dir = str(subjects_dir)
 
         self.time_viewer = False
         self._hash = time.time_ns()
@@ -2430,9 +2432,18 @@ class Brain(object):
         if not aseg.endswith('aseg'):
             raise RuntimeError(
                 f'`aseg` file path must end with "aseg", got {aseg}')
-        aseg = _check_fname(op.join(self._subjects_dir, self._subject,
-                                    'mri', aseg + '.mgz'),
-                            overwrite='read', must_exist=True)
+        aseg = str(
+            _check_fname(
+                op.join(
+                    self._subjects_dir,
+                    self._subject,
+                    "mri",
+                    aseg + ".mgz",
+                ),
+                overwrite="read",
+                must_exist=True,
+            )
+        )
         aseg_fname = aseg
         aseg = nib.load(aseg_fname)
         aseg_data = np.asarray(aseg.dataobj)
@@ -2594,7 +2605,7 @@ class Brain(object):
             for modality, check in dict(seeg=seeg, ecog=ecog).items():
                 if pick_types(info, **{modality: check}).size > 0:
                     info = _project_sensors_onto_inflated(
-                        info, head_mri_t, subject=self._subject,
+                        info.copy(), head_mri_t, subject=self._subject,
                         subjects_dir=self._subjects_dir, picks=modality,
                         max_dist=max_dist, flat=self._surf == 'flat')
         del trans
@@ -2993,10 +3004,10 @@ class Brain(object):
 
         Parameters
         ----------
-        filename : str
+        filename : path-like
             Path to new image file.
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         """
         if filename is None:
             filename = _generate_default_filename(".png")
@@ -3010,7 +3021,7 @@ class Brain(object):
         Parameters
         ----------
         mode : str
-            Either 'rgb' or 'rgba' for values to return.
+            Either ``'rgb'`` or ``'rgba'`` for values to return.
         %(time_viewer_brain_screenshot)s
 
         Returns

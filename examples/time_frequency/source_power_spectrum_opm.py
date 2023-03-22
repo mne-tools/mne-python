@@ -79,7 +79,7 @@ kinds = ('vv', 'opm')
 n_fft = next_fast_len(int(round(4 * new_sfreq)))
 print('Using n_fft=%d (%0.1f s)' % (n_fft, n_fft / raws['vv'].info['sfreq']))
 for kind in kinds:
-    fig = raws[kind].plot_psd(n_fft=n_fft, proj=True)
+    fig = raws[kind].compute_psd(n_fft=n_fft, proj=True).plot()
     fig.suptitle(titles[kind])
     fig.subplots_adjust(0.1, 0.1, 0.95, 0.85)
 

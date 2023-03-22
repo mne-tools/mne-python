@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 
 import os
-import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_equal,
@@ -21,8 +20,7 @@ from mne import (read_dipole, read_forward_solution,
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
-from mne.utils import (requires_mne, run_subprocess, requires_nibabel,
-                       _record_warnings)
+from mne.utils import requires_mne, run_subprocess, _record_warnings
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
@@ -33,27 +31,31 @@ from mne.bem import _bem_find_surface, read_bem_solution
 from mne.transforms import apply_trans, _get_trans
 
 data_path = testing.data_path(download=False)
-meg_path = op.join(data_path, 'MEG', 'sample')
-fname_dip_xfit_80 = op.join(meg_path, 'sample_audvis-ave_xfit.dip')
-fname_raw = op.join(meg_path, 'sample_audvis_trunc_raw.fif')
-fname_dip = op.join(meg_path, 'sample_audvis_trunc_set1.dip')
-fname_bdip = op.join(meg_path, 'sample_audvis_trunc_set1.bdip')
-fname_dip_xfit = op.join(meg_path, 'sample_audvis_trunc_xfit.dip')
-fname_bdip_xfit = op.join(meg_path, 'sample_audvis_trunc_xfit.bdip')
-fname_evo = op.join(meg_path, 'sample_audvis_trunc-ave.fif')
-fname_evo_full = op.join(meg_path, 'sample_audvis-ave.fif')
-fname_cov = op.join(meg_path, 'sample_audvis_trunc-cov.fif')
-fname_trans = op.join(meg_path, 'sample_audvis_trunc-trans.fif')
-fname_fwd = op.join(meg_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-1280-1280-1280-bem-sol.fif')
-fname_src = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-oct-2-src.fif')
-fname_xfit_dip = op.join(data_path, 'dip', 'fixed_auto.fif')
-fname_xfit_dip_txt = op.join(data_path, 'dip', 'fixed_auto.dip')
-fname_xfit_seq_txt = op.join(data_path, 'dip', 'sequential.dip')
-fname_ctf = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
-subjects_dir = op.join(data_path, 'subjects')
+meg_path = data_path / "MEG" / "sample"
+fname_dip_xfit_80 = meg_path / "sample_audvis-ave_xfit.dip"
+fname_raw = meg_path / "sample_audvis_trunc_raw.fif"
+fname_dip = meg_path / "sample_audvis_trunc_set1.dip"
+fname_bdip = meg_path / "sample_audvis_trunc_set1.bdip"
+fname_dip_xfit = meg_path / "sample_audvis_trunc_xfit.dip"
+fname_bdip_xfit = meg_path / "sample_audvis_trunc_xfit.bdip"
+fname_evo = meg_path / "sample_audvis_trunc-ave.fif"
+fname_evo_full = meg_path / "sample_audvis-ave.fif"
+fname_cov = meg_path / "sample_audvis_trunc-cov.fif"
+fname_trans = meg_path / "sample_audvis_trunc-trans.fif"
+fname_fwd = meg_path / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+fname_bem = (
+    data_path
+    / "subjects"
+    / "sample"
+    / "bem"
+    / "sample-1280-1280-1280-bem-sol.fif"
+)
+fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-2-src.fif"
+fname_xfit_dip = data_path / "dip" / "fixed_auto.fif"
+fname_xfit_dip_txt = data_path / "dip" / "fixed_auto.dip"
+fname_xfit_seq_txt = data_path / "dip" / "sequential.dip"
+fname_ctf = data_path / "CTF" / "testdata_ctf_short.ds"
+subjects_dir = data_path / "subjects"
 
 
 def _compare_dipoles(orig, new):
@@ -80,7 +82,7 @@ def test_io_dipoles(tmp_path):
     """Test IO for .dip files."""
     dipole = read_dipole(fname_dip)
     assert 'Dipole ' in repr(dipole)  # test repr
-    out_fname = op.join(str(tmp_path), 'temp.dip')
+    out_fname = tmp_path / 'temp.dip'
     dipole.save(out_fname)
     dipole_new = read_dipole(out_fname)
     _compare_dipoles(dipole, dipole_new)
@@ -104,15 +106,13 @@ def test_dipole_fitting_ctf():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel()
 @requires_mne
 def test_dipole_fitting(tmp_path):
     """Test dipole fitting."""
     amp = 100e-9
-    tempdir = str(tmp_path)
     rng = np.random.RandomState(0)
-    fname_dtemp = op.join(tempdir, 'test.dip')
-    fname_sim = op.join(tempdir, 'test-ave.fif')
+    fname_dtemp = tmp_path / 'test.dip'
+    fname_sim = tmp_path / 'test-ave.fif'
     fwd = convert_forward_solution(read_forward_solution(fname_fwd),
                                    surf_ori=False, force_fixed=True,
                                    use_cps=True)
@@ -399,9 +399,8 @@ def test_dipole_fixed(tmp_path):
 
 def _check_roundtrip_fixed(dip, tmp_path):
     """Check roundtrip IO for fixed dipoles."""
-    tempdir = str(tmp_path)
-    dip.save(op.join(tempdir, 'test-dip.fif.gz'))
-    dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
+    dip.save(tmp_path / 'test-dip.fif.gz')
+    dip_read = read_dipole(tmp_path / 'test-dip.fif.gz')
     assert_allclose(dip_read.data, dip_read.data)
     assert_allclose(dip_read.times, dip.times, atol=1e-8)
     assert dip_read.info['xplotter_layout'] == dip.info['xplotter_layout']
@@ -431,7 +430,7 @@ def test_confidence(tmp_path):
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0., 0., 0.04), 0.08)
     dip_py = fit_dipole(evoked, cov, sphere)[0]
-    fname_test = op.join(str(tmp_path), 'temp-dip.txt')
+    fname_test = tmp_path / 'temp-dip.txt'
     dip_py.save(fname_test)
     dip_read = read_dipole(fname_test)
     with pytest.warns(RuntimeWarning, match="'noise/ft/cm', 'prob'"):

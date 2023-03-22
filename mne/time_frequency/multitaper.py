@@ -294,8 +294,8 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
         half_nbw = 4.
     if half_nbw < 0.5:
         raise ValueError(
-            'bandwidth value %s yields a normalized bandwidth of %s < 0.5, '
-            'use a value of at least %s'
+            'bandwidth value %s yields a normalized half-bandwidth of '
+            '%s < 0.5, use a value of at least %s'
             % (bandwidth, half_nbw, sfreq / n_times))
 
     # Compute DPSS windows
@@ -331,9 +331,10 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         The sampling frequency.
     %(fmin_fmax_psd)s
     bandwidth : float
-        Half-bandwidth of the multi-taper window function in Hz. For a given
-        frequency, frequencies at ± half-bandwidth are smoothed together.
-        The default value is a half-bandwidth of 4.
+        Frequency bandwidth of the multi-taper window function in Hz. For a
+        given frequency, frequencies at ``± bandwidth / 2`` are smoothed
+        together. The default value is a bandwidth of
+        ``8 * (sfreq / n_times)``.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).

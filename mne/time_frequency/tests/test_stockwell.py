@@ -3,7 +3,7 @@
 #
 # License : BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -22,9 +22,9 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
 from mne.time_frequency import AverageTFR, tfr_array_stockwell
 from mne.utils import _record_warnings
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-raw_ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+raw_ctf_fname = base_dir / "test_ctf_raw.fif"
 
 
 def test_stockwell_ctf():
@@ -107,7 +107,7 @@ def test_stockwell_api():
     """Test stockwell functions."""
     raw = read_raw_fif(raw_fname)
     event_id, tmin, tmax = 1, -0.2, 0.5
-    event_name = op.join(base_dir, 'test-eve.fif')
+    event_name = base_dir / "test-eve.fif"
     events = read_events(event_name)
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3])

@@ -117,7 +117,7 @@ docstring:
 	@$(PYTESTS) --doctest-modules mne/tests/test_docstring_parameters.py
 
 check-manifest:
-	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
+	check-manifest -q --ignore .circleci/config.yml,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store,mne/_version.py
 
 check-readme: clean wheel_quiet
 	twine check dist/*

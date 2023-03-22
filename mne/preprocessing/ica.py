@@ -13,7 +13,7 @@ from copy import deepcopy
 from numbers import Integral
 from time import time
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Literal
 import warnings
 
 import math
@@ -448,12 +448,13 @@ class ICA(ContainsMixin):
     def _get_infos_for_repr(self):
         @dataclass
         class _InfosForRepr:
-            # XXX replace with Optional[Literal['raw data', 'epochs'] once we
-            # drop support for Py 3.7
-            fit_on: Optional[str]
-            # XXX replace with fit_method: Literal['fastica', 'infomax',
-            # 'extended-infomax', 'picard'] once we drop support for Py 3.7
-            fit_method: str
+            fit_on: Optional[Literal['raw data', 'epochs']]
+            fit_method: Literal[
+                'fastica',
+                'infomax',
+                'extended-infomax',
+                'picard'
+            ]
             fit_n_iter: Optional[int]
             fit_n_samples: Optional[int]
             fit_n_components: Optional[int]
@@ -2144,9 +2145,9 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The absolute path of the file name to save the ICA solution into.
-            The file name should end with -ica.fif or -ica.fif.gz.
+            The file name should end with ``-ica.fif`` or ``-ica.fif.gz``.
         %(overwrite)s
 
             .. versionadded:: 1.0
@@ -2583,7 +2584,7 @@ def read_ica(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Absolute path to fif file containing ICA matrices.
         The file name should end with -ica.fif or -ica.fif.gz.
     %(verbose)s
@@ -2970,8 +2971,8 @@ def read_ica_eeglab(fname, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Complete path to a .set EEGLAB file that contains an ICA object.
+    fname : path-like
+        Complete path to a ``.set`` EEGLAB file that contains an ICA object.
     %(verbose)s
 
     Returns

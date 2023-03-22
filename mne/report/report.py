@@ -40,7 +40,8 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
                      _path_like, use_log_level, _check_fname, _pl,
                      _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
-                     check_version)
+                     check_version, _import_nibabel)
+from ..utils.spectrum import _split_psd_kwargs
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
                    Figure3D, use_browser_backend)
@@ -579,7 +580,7 @@ def open_report(fname, **params):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
@@ -594,7 +595,7 @@ def open_report(fname, **params):
     report : instance of Report
         The report.
     """
-    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
+    fname = str(_check_fname(fname=fname, overwrite="read", must_exist=False))
     if op.exists(fname):
         # Check **params with the loaded report
         read_hdf5, _ = _import_h5io_funcs()
@@ -687,9 +688,11 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -717,9 +720,11 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -754,6 +759,8 @@ class Report:
         self.baseline = baseline
         if subjects_dir is not None:
             subjects_dir = get_subjects_dir(subjects_dir)
+            if subjects_dir is not None:
+                subjects_dir = str(subjects_dir)
         self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
@@ -888,7 +895,7 @@ class Report:
 
         # We loop over all content elements and implement special treatment
         # for those that are part of a section: Those sections don't actually
-        # exist in `self._content` – we're creating them on-the-fly here!
+        # exist in `self._content` – we're creating them on-the-fly here!
         for idx, content_element in enumerate(content_elements):
             if content_element.section:
                 if content_element.section in titles:
@@ -2431,9 +2438,14 @@ class Report:
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = _check_fname(
-                fname=self.data_path, overwrite='read', must_exist=True,
-                name='Directory or folder', need_dir=True
+            data_path = str(
+                _check_fname(
+                    fname=self.data_path,
+                    overwrite="read",
+                    must_exist=True,
+                    name="Directory or folder",
+                    need_dir=True,
+                )
             )
             fnames.extend(sorted(_recursive_search(data_path, p)))
 
@@ -2592,7 +2604,7 @@ class Report:
                      f'instead')
             fname = op.join(self.data_path, 'report.html')
 
-        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
@@ -2688,8 +2700,7 @@ class Report:
                              image_format, orientation, decim=2, n_jobs=None,
                              width=512, tags):
         """Render one axis of bem contours (only PNG)."""
-        import nibabel as nib
-
+        nib = _import_nibabel('render BEM contours')
         nim = nib.load(mri_fname)
         data = _reorient_image(nim)[0]
         axis = _mri_orientation(orientation)[0]
@@ -2830,7 +2841,11 @@ class Report:
             else:
                 fmax = np.inf
 
-            fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
+            # shim: convert legacy .plot_psd(...) → .compute_psd(...).plot(...)
+            init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
+            init_kwargs.setdefault('fmax', fmax)
+            plot_kwargs.setdefault('show', False)
+            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             tight_layout(fig=fig)
             _constrain_fig_resolution(
                 fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
@@ -3351,7 +3366,7 @@ class Report:
             if fmax > 0.5 * epochs.info['sfreq']:
                 fmax = np.inf
 
-        fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
         _constrain_fig_resolution(
             fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
         )
@@ -3777,7 +3792,7 @@ class Report:
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
             subjects_dir = self.subjects_dir
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
 
         # Get the MRI filename
         mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')

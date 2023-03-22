@@ -9,10 +9,8 @@ from difflib import get_close_matches
 from importlib import import_module
 import operator
 import os
-import os.path as op
 from pathlib import Path
 import re
-import sys
 import numbers
 
 import numpy as np
@@ -211,38 +209,46 @@ def _check_event_id(event_id, events):
 
 
 @verbose
-def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 need_dir=False, *, verbose=None):
+def _check_fname(
+    fname,
+    overwrite=False,
+    must_exist=False,
+    name="File",
+    need_dir=False,
+    *,
+    verbose=None,
+):
     """Check for file existence, and return string of its absolute path."""
-    _validate_type(fname, 'path-like', name)
-    fname = str(
-        Path(fname)
-        .expanduser()
-        .absolute()
-    )
+    _validate_type(fname, "path-like", name)
+    fname = Path(fname).expanduser().absolute()
 
-    if op.exists(fname):
+    if fname.exists():
         if not overwrite:
-            raise FileExistsError('Destination file exists. Please use option '
-                                  '"overwrite=True" to force overwriting.')
-        elif overwrite != 'read':
-            logger.info('Overwriting existing file.')
+            raise FileExistsError(
+                "Destination file exists. Please use option "
+                '"overwrite=True" to force overwriting.'
+            )
+        elif overwrite != "read":
+            logger.info("Overwriting existing file.")
         if must_exist:
             if need_dir:
-                if not op.isdir(fname):
+                if not fname.is_dir():
                     raise IOError(
-                        f'Need a directory for {name} but found a file '
-                        f'at {fname}')
+                        f"Need a directory for {name} but found a file "
+                        f"at {fname}"
+                    )
             else:
-                if not op.isfile(fname):
+                if not fname.is_file():
                     raise IOError(
-                        f'Need a file for {name} but found a directory '
-                        f'at {fname}')
+                        f"Need a file for {name} but found a directory "
+                        f"at {fname}"
+                    )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(
-                    f'{name} does not have read permissions: {fname}')
+                    f"{name} does not have read permissions: {fname}"
+                )
     elif must_exist:
-        raise FileNotFoundError(f'{name} does not exist: {fname}')
+        raise FileNotFoundError(f"{name} does not exist: {fname}")
 
     return fname
 
@@ -833,14 +839,9 @@ def _check_qt_version(*, return_api=False):
             version = QtCore.__version__
         except AttributeError:
             version = QtCore.QT_VERSION_STR
-        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
-            if not _compare_version(version, '>=', '5.10'):
-                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
-                     f'got {version}. Please upgrade e.g. with:\n\n'
-                     f'    pip install "{api}>=5.10"\n')
         # Having Qt installed is not enough -- sometimes the app is unusable
         # for example because there is no usable display (e.g., on a server),
-        # so we have to try instatiating one to actually know.
+        # so we have to try instantiating one to actually know.
         try:
             _init_mne_qtapp()
         except Exception:
@@ -1085,3 +1086,12 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
+
+
+def _import_nibabel(why='use MRI files'):
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        raise exp.__class__(
+            'nibabel is required to %s, got:\n%s' % (why, exp)) from None
+    return nib

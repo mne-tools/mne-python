@@ -96,7 +96,8 @@ extensions = [
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
     'sphinx_design',
-    'sphinxcontrib.youtube'
+    'sphinxcontrib.youtube',
+    'unit_role',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -630,7 +631,8 @@ html_theme_options = {
     'navigation_with_keys': False,
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
-    'footer_items': ['copyright'],
+    'footer_start': ['copyright'],
+    'footer_end': [],
     'secondary_sidebar_items': ['page-toc'],
     'analytics': dict(google_analytics_id='G-5TBCPCRB6X'),
     'switcher': {
@@ -1007,9 +1009,20 @@ def reset_warnings(gallery_conf, fname):
         'Enum value .* is marked as deprecated',
         # matplotlib PDF output
         'The py23 module has been deprecated',
+        # pkg_resources
+        'Implementing implicit namespace packages',
+        'Deprecated call to `pkg_resources',
+        # nilearn
+        'pkg_resources is deprecated as an API',
+        r'The .* was deprecated in Matplotlib 3\.7',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message=(
+            'Matplotlib is currently using agg, which is a non-GUI backend.*'
+        )
+    )
     # matplotlib 3.6 in nilearn and pyvista
     warnings.filterwarnings(
         'ignore', message='.*cmap function will be deprecated.*')
