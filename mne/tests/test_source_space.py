@@ -8,7 +8,6 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-import scipy
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_allclose, assert_equal,
                            assert_array_less)
@@ -147,13 +146,6 @@ def test_add_patch_info(monkeypatch):
         with pytest.warns(RuntimeWarning, match='Computing distances for 258'):
             add_source_space_distances(src_new)
     _compare_source_spaces(src, src_new, 'approx')
-
-    # Old SciPy can't do patch info only
-    src_new = _read_small_src()
-    with monkeypatch.context() as m:
-        m.setattr(scipy, '__version__', '1.0')
-        with pytest.raises(RuntimeError, match='required to calculate patch '):
-            add_source_space_distances(src_new, dist_limit=0)
 
     src_nodist = src.copy()
     for s in src_nodist:
