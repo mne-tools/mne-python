@@ -396,4 +396,6 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     _, api = _check_qt_version(return_api=True)
     n_warn = int(api in ('PySide6', 'PyQt6'))
+    if api == 'PySide6':
+        pytest.skip('PySide6 causes segfaults on CIs sometimes')
     test_gui_api(None, None, n_warn=n_warn, backend='qt')
