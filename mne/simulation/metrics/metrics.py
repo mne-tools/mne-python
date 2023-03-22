@@ -47,7 +47,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     """
     _check_option('metric', metric, ['rms', 'cosine'])
 
-    # This is checking that the datas are having the same size meaning
+    # This is checking that the data are having the same size meaning
     # no comparison between distributed and sparse can be done so far.
     _check_stc(stc1, stc2)
     data1, data2 = stc1.data, stc2.data
