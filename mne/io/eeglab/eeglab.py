@@ -273,10 +273,11 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
     -------
     raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawEEGLAB.
 
     Notes
     -----

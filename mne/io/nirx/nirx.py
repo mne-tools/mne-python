@@ -39,10 +39,11 @@ def read_raw_nirx(fname, saturated='annotate', preload=False, verbose=None):
     -------
     raw : instance of RawNIRX
         A Raw object containing NIRX data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawNIRX.
 
     Notes
     -----

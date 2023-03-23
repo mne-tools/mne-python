@@ -46,10 +46,11 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
     -------
     raw : instance of RawSNIRF
         A Raw object containing fNIRS data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawSNIRF.
     """
     return RawSNIRF(fname, optode_frame, preload, verbose)
 

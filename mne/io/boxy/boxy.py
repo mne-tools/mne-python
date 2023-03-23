@@ -31,10 +31,11 @@ def read_raw_boxy(fname, preload=False, verbose=None):
     -------
     raw : instance of RawBOXY
         A Raw object containing BOXY data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawBOXY.
     """
     return RawBOXY(fname, preload, verbose)
 

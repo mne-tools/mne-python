@@ -31,10 +31,11 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     -------
     raw : instance of RawPersyst
         A Raw object containing Persyst data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawPersyst.
 
     Notes
     -----
