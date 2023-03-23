@@ -29,7 +29,7 @@ def read_raw_eximia(fname, preload=False, verbose=None):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawEximia(fname, preload, verbose)
 
@@ -47,7 +47,7 @@ class RawEximia(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose

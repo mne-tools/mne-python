@@ -155,7 +155,7 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -376,7 +376,7 @@ class RawCNT(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     def __init__(self, input_fname, eog=(), misc=(),

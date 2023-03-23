@@ -384,7 +384,7 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     .. versionadded:: 0.15.0
     """

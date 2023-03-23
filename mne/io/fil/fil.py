@@ -41,7 +41,7 @@ def read_raw_fil(binfile, precision='single', preload=False, *, verbose=None):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawFIL(binfile, precision=precision, preload=preload)
 
@@ -66,7 +66,7 @@ class RawFIL(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     def __init__(self, binfile, precision='single', preload=False):

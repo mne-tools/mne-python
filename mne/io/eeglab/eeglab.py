@@ -276,7 +276,7 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -330,7 +330,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----
@@ -364,7 +364,7 @@ class RawEEGLAB(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -494,7 +494,7 @@ class EpochsEEGLAB(BaseEpochs):
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----

@@ -49,7 +49,7 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawSNIRF(fname, optode_frame, preload, verbose)
 
@@ -76,7 +76,7 @@ class RawSNIRF(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
