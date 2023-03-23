@@ -41,7 +41,7 @@ def read_raw_nihon(fname, preload=False, verbose=None):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawNihon(fname, preload, verbose)
 
@@ -341,7 +341,7 @@ class RawNihon(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose

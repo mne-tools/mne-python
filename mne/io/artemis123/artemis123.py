@@ -45,7 +45,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawArtemis123(input_fname, preload=preload, verbose=verbose,
                          pos_fname=pos_fname, add_head_trans=add_head_trans)
@@ -299,7 +299,7 @@ class RawArtemis123(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose

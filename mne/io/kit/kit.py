@@ -102,7 +102,7 @@ class RawKIT(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
@@ -318,7 +318,7 @@ class EpochsKIT(BaseEpochs):
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
     """
 
     @verbose
@@ -830,7 +830,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----

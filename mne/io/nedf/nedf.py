@@ -214,6 +214,6 @@ def read_raw_nedf(filename, preload=False, verbose=None):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawNedf(filename, preload, verbose)

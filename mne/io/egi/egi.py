@@ -133,7 +133,7 @@ def read_raw_egi(input_fname, eog=None, misc=None,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
