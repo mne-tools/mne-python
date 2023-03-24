@@ -880,10 +880,11 @@ def read_raw_brainvision(vhdr_fname,
     -------
     raw : instance of RawBrainVision
         A Raw object containing BrainVision data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawBrainVision.
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, eog=eog,
                           misc=misc, scale=scale, preload=preload,

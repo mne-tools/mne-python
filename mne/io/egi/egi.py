@@ -130,10 +130,11 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     -------
     raw : instance of RawEGI
         A Raw object containing EGI data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawEGI.
 
     Notes
     -----

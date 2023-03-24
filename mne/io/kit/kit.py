@@ -827,10 +827,11 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     -------
     raw : instance of RawKIT
         A Raw object containing KIT data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawKIT.
 
     Notes
     -----

@@ -49,10 +49,11 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
     -------
     raw : instance of RawCTF
         The raw data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawCTF.
 
     Notes
     -----
