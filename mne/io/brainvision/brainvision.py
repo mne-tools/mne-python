@@ -35,16 +35,16 @@ class RawBrainVision(BaseRaw):
 
     Parameters
     ----------
-    vhdr_fname : str
+    vhdr_fname : path-like
         Path to the EEG header file.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the header file.
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple of str | 'auto'
+    misc : list or tuple of str | ``'auto'``
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the header file. If 'auto', units in header file are used for
+        in the header file. If ``'auto'``, units in header file are used for
         inferring misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
@@ -59,7 +59,7 @@ class RawBrainVision(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
@@ -859,16 +859,16 @@ def read_raw_brainvision(vhdr_fname,
 
     Parameters
     ----------
-    vhdr_fname : str
+    vhdr_fname : path-like
         Path to the EEG header file.
     eog : list or tuple of str
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the header file
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
-    misc : list or tuple of str | 'auto'
+    misc : list or tuple of str | ``'auto'``
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
-        header file. If 'auto', units in header file are used for inferring
+        header file. If ``'auto'``, units in header file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
@@ -880,10 +880,11 @@ def read_raw_brainvision(vhdr_fname,
     -------
     raw : instance of RawBrainVision
         A Raw object containing BrainVision data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawBrainVision.
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, eog=eog,
                           misc=misc, scale=scale, preload=preload,

@@ -8,6 +8,7 @@
 import os.path as op
 import numpy as np
 from gzip import GzipFile
+from pathlib import Path
 
 from .bem import _bem_find_surface, read_bem_surfaces
 from .io.constants import FIFF
@@ -16,46 +17,35 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version, logger)
+                    get_subjects_dir, _import_nibabel, logger)
 
 
 def _check_subject_dir(subject, subjects_dir):
     """Check that the Freesurfer subject directory is as expected."""
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
     for img_name in ('T1', 'brain', 'aseg'):
-        if not op.isfile(op.join(subjects_dir, subject, 'mri',
-                                 f'{img_name}.mgz')):
+        if not (subjects_dir / subject / "mri" / f"{img_name}.mgz").is_file():
             raise ValueError('Freesurfer recon-all subject folder '
                              'is incorrect or improperly formatted, '
-                             f'got {op.join(subjects_dir, subject)}')
-    return op.join(subjects_dir, subject)
+                             f'got {subjects_dir / subject}')
+    return subjects_dir / subject
 
 
 def _get_aseg(aseg, subject, subjects_dir):
     """Check that the anatomical segmentation file exists and load it."""
-    _require_version('nibabel', 'load aseg', '2.1.0')
-    import nibabel as nib
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    nib = _import_nibabel('load aseg')
+    subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
     if not aseg.endswith('aseg'):
         raise RuntimeError(
             f'`aseg` file path must end with "aseg", got {aseg}')
-    aseg = _check_fname(op.join(subjects_dir, subject, 'mri', aseg + '.mgz'),
-                        overwrite='read', must_exist=True)
+    aseg = _check_fname(
+        subjects_dir / subject / "mri" / (aseg + ".mgz"),
+        overwrite="read",
+        must_exist=True,
+    )
     aseg = nib.load(aseg)
     aseg_data = np.array(aseg.dataobj)
     return aseg, aseg_data
-
-
-def _import_nibabel(why='use MRI files'):
-    try:
-        import nibabel as nib
-    except ImportError as exp:
-        msg = 'nibabel is required to %s, got:\n%s' % (why, exp)
-    else:
-        msg = ''
-    if msg:
-        raise ImportError(msg)
-    return nib
 
 
 def _reorient_image(img, axcodes='RAS'):
@@ -80,7 +70,7 @@ def _reorient_image(img, axcodes='RAS'):
     -----
     .. versionadded:: 0.24
     """
-    import nibabel as nib
+    nib = _import_nibabel('reorient MRI image')
     orig_data = np.array(img.dataobj).astype(np.float32)
     # reorient data to RAS
     ornt = nib.orientations.axcodes2ornt(
@@ -143,7 +133,7 @@ def _get_mgz_header(fname):
     """Adapted from nibabel to quickly extract header info."""
     fname = _check_fname(fname, overwrite='read', must_exist=True,
                          name='MRI image')
-    if not fname.endswith('.mgz'):
+    if fname.suffix != ".mgz":
         raise IOError('Filename must end with .mgz')
     header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
                   ('type', '>i4'), ('dof', '>i4'), ('goodRASFlag', '>i2'),
@@ -195,9 +185,9 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
 
     Parameters
     ----------
-    mgz_fname : str
-        Filename to read. Typically aseg.mgz or some variant in the freesurfer
-        pipeline.
+    mgz_fname : path-like
+        Filename to read. Typically ``aseg.mgz`` or some variant in the
+        freesurfer pipeline.
     return_colors : bool
         If True returns also the labels colors.
     atlas_ids : dict | None
@@ -225,9 +215,10 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
 
     .. versionadded:: 0.9.0
     """
-    import nibabel as nib
-    if not op.isfile(mgz_fname):
-        raise IOError('aseg file "%s" not found' % mgz_fname)
+    nib = _import_nibabel('load MRI atlas data')
+    mgz_fname = _check_fname(
+        mgz_fname, overwrite="read", must_exist=True, name="mgz_fname"
+    )
     atlas = nib.load(mgz_fname)
     data = np.asarray(atlas.dataobj)  # don't need float here
     want = np.unique(data)
@@ -253,21 +244,30 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
 
 
 @verbose
-def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
-                verbose=None):
+def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
+                kind='mri', unscale=False, verbose=None):
     """Convert pos from head coordinate system to MRI ones.
-
-    This function converts to MRI RAS coordinates and not to surface
-    RAS.
 
     Parameters
     ----------
     pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system.
+        The coordinates (in m) in head coordinate system.
     %(subject)s
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
     %(subjects_dir)s
+    kind : str
+        The  MRI coordinate frame kind, can be ``'mri'`` (default) for
+        FreeSurfer surface RAS or ``'ras'`` (default in 1.2) to use MRI RAS
+        (scanner RAS).
+
+        .. versionadded:: 1.2
+    unscale : bool
+        For surrogate MRIs (e.g., scaled using ``mne coreg``), if True
+        (default False), use the MRI scaling parameters to obtain points in
+        the original/surrogate subject's MRI space.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -279,12 +279,26 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
     -----
     This function requires nibabel.
     """
+    from .coreg import read_mri_cfg
+    _validate_type(kind, str, 'kind')
+    _check_option('kind', kind, ('ras', 'mri'))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    t1_fname = subjects_dir / subject / "mri" / "T1.mgz"
     head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
-    _, _, mri_ras_t, _, _ = _read_mri_info(t1_fname)
-    head_ras_t = combine_transforms(head_mri_t, mri_ras_t, 'head', 'ras')
-    return 1e3 * apply_trans(head_ras_t, pos)  # mm
+    if kind == 'ras':
+        _, _, mri_ras_t, _, _ = _read_mri_info(t1_fname)
+        head_ras_t = combine_transforms(head_mri_t, mri_ras_t, 'head', 'ras')
+        head_dest_t = head_ras_t
+    else:
+        assert kind == 'mri'
+        head_dest_t = head_mri_t
+    pos_dest = apply_trans(head_dest_t, pos)
+    # unscale if requested
+    if unscale:
+        params = read_mri_cfg(subject, subjects_dir)
+        pos_dest /= params['scale']
+    pos_dest *= 1e3  # mm
+    return pos_dest
 
 
 ##############################################################################
@@ -302,7 +316,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
         Hemisphere(s) the vertices belong to.
     %(subject)s
     subjects_dir : str, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+        Path to ``SUBJECTS_DIR`` if it is not set in the environment.
     %(verbose)s
 
     Returns
@@ -323,8 +337,10 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
-    surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
-             for h in ['lh', 'rh']]
+    surfs = [
+        subjects_dir / subject / "surf" / f"{h}.white"
+        for h in ["lh", "rh"]
+    ]
 
     # read surface locations in MRI space
     rr = [read_surface(s)[0] for s in surfs]
@@ -349,7 +365,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
     Parameters
     ----------
     pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system.
+        The coordinates (in m) in head coordinate system.
     %(subject)s
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
@@ -408,8 +424,12 @@ def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     # transformation rather than the standard brain-based MNI Talaranch
     # transformation, and/or project the points onto the head surface
     # (if available).
-    fname_fids_fs = op.join(op.dirname(__file__), 'data',
-                            'fsaverage', 'fsaverage-fiducials.fif')
+    fname_fids_fs = (
+        Path(__file__).parent
+        / "data"
+        / "fsaverage"
+        / "fsaverage-fiducials.fif"
+    )
 
     # Read fsaverage fiducials file and subject Talairach.
     fids, coord_frame = read_fiducials(fname_fids_fs)
@@ -441,6 +461,7 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
     %(trans_not_none)s
     """
     from .channels.montage import make_dig_montage, compute_native_head_t
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     lpa, nasion, rpa = get_mni_fiducials(subject, subjects_dir)
     montage = make_dig_montage(lpa=lpa['r'], nasion=nasion['r'], rpa=rpa['r'],
@@ -450,7 +471,7 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
 
 def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
     """Check if the image is in Freesurfer surface RAS space."""
-    import nibabel as nib
+    nib = _import_nibabel('load a volume image')
     if not isinstance(image, nib.spatialimages.SpatialImage):
         image = nib.load(image)
     image = nib.MGHImage(image.dataobj.astype(np.float32), image.affine)
@@ -463,13 +484,29 @@ def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
     return image  # returns MGH image for header
 
 
+def _get_affine_from_lta_info(lines):
+    """Get the vox2ras affine from lta file info."""
+    volume_data = np.loadtxt(
+        [line.split('=')[1] for line in lines])
+    # get the size of the volume (number of voxels), slice resolution.
+    # the matrix of directional cosines and the ras at the center of the bore
+    dims, deltas, dir_cos, center_ras = \
+        volume_data[0], volume_data[1], volume_data[2:5], volume_data[5]
+    dir_cos_delta = dir_cos.T * deltas
+    vol_center = (dir_cos_delta @ dims[:3]) / 2
+    affine = np.eye(4)
+    affine[:3, :3] = dir_cos_delta
+    affine[:3, 3] = center_ras - vol_center
+    return affine
+
+
 @verbose
 def read_lta(fname, verbose=None):
     """Read a Freesurfer linear transform array file.
 
     Parameters
     ----------
-    fname : str | None
+    fname : path-like
         The transform filename.
     %(verbose)s
 
@@ -478,10 +515,25 @@ def read_lta(fname, verbose=None):
     affine : ndarray
         The affine transformation described by the lta file.
     """
-    _validate_type(fname, ('path-like', None), 'fname')
     _check_fname(fname, 'read', must_exist=True)
     with open(fname, 'r') as fid:
-        affine = np.loadtxt(fid.readlines()[5:9])
+        lines = fid.readlines()
+    # 0 is linear vox2vox, 1 is linear ras2ras
+    trans_type = int(lines[0].split('=')[1].strip()[0])
+    assert trans_type in (0, 1)
+    affine = np.loadtxt(lines[5:9])
+    if trans_type == 1:
+        return affine
+
+    src_affine = _get_affine_from_lta_info(lines[12:18])
+    dst_affine = _get_affine_from_lta_info(lines[21:27])
+
+    # don't compute if src and dst are already identical
+    if np.allclose(src_affine, dst_affine):
+        return affine
+
+    ras2ras = src_affine @ np.linalg.inv(affine) @ np.linalg.inv(dst_affine)
+    affine = np.linalg.inv(np.linalg.inv(src_affine) @ ras2ras @ src_affine)
     return affine
 
 
@@ -513,10 +565,10 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
 
     # To do this, we get Norig and Torig
     # (i.e. vox_ras_t and vox_mri_t, respectively)
-    path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
-    if not op.isfile(path):
-        path = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-    if not op.isfile(path):
+    path = subjects_dir / subject / "mri" / "orig.mgz"
+    if not path.is_file():
+        path = subjects_dir / subject / "mri" / "T1.mgz"
+    if not path.is_file():
         raise IOError('mri not found: %s' % path)
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
@@ -532,7 +584,7 @@ def _check_mri(mri, subject, subjects_dir):
         if subject is None:
             raise FileNotFoundError(
                 f'MRI file {mri!r} not found and no subject provided')
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
         mri = op.join(subjects_dir, subject, 'mri', mri)
         if not op.isfile(mri):
             raise FileNotFoundError(f'MRI file {mri!r} not found')
@@ -547,8 +599,8 @@ def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
     # This is equivalent but 100x slower, so only use nibabel if we need to
     # (later):
     if use_nibabel:
-        import nibabel
-        hdr = nibabel.load(path).header
+        nib = _import_nibabel()
+        hdr = nib.load(path).header
         n_orig = hdr.get_vox2ras()
         t_orig = hdr.get_vox2ras_tkr()
         dims = hdr.get_data_shape()
@@ -591,7 +643,7 @@ def read_freesurfer_lut(fname=None):
 
     Parameters
     ----------
-    fname : str | None
+    fname : path-like | None
         The filename. Can be None to read the standard Freesurfer LUT.
 
     Returns
@@ -611,10 +663,8 @@ def read_freesurfer_lut(fname=None):
 
 def _get_lut(fname=None):
     """Get a FreeSurfer LUT."""
-    _validate_type(fname, ('path-like', None), 'fname')
     if fname is None:
-        fname = op.join(op.dirname(__file__), 'data',
-                        'FreeSurferColorLUT.txt')
+        fname = Path(__file__).parent / "data" / "FreeSurferColorLUT.txt"
     _check_fname(fname, 'read', must_exist=True)
     dtype = [('id', '<i8'), ('name', 'U'),
              ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
@@ -732,11 +782,13 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
             logger.info('Could not find the surface for '
                         'skull in the provided BEM model, '
                         'looking in the subject directory.')
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    fname = _check_fname(op.join(subjects_dir, subject, 'bem',
-                                 surf + '_skull.surf'),
-                         overwrite='read', must_exist=True,
-                         name=f'{surf} skull surface')
+    subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
+    fname = _check_fname(
+        subjects_dir / subject / "bem" / (surf + "_skull.surf"),
+        overwrite="read",
+        must_exist=True,
+        name=f"{surf} skull surface"
+    )
     return _read_mri_surface(fname)
 
 

@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -12,8 +12,13 @@ import mne
 from mne.preprocessing import annotate_nan
 
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
+raw_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test_raw.fif"
+)
 
 
 @pytest.mark.parametrize('meas_date', (None, 'orig'))

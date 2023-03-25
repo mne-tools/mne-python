@@ -9,7 +9,7 @@
 #
 # License: Simplified BSD
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -17,6 +17,7 @@ import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.collections import PolyCollection
+from mpl_toolkits.axes_grid1.parasite_axes import HostAxes  # spatial_colors
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -29,15 +30,14 @@ from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.stats.parametric import _parametric_ci
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-raw_sss_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+evoked_fname = base_dir / "test-ave.fif"
+raw_fname = base_dir / "test_raw.fif"
+raw_sss_fname = base_dir / "test_chpi_raw_sss.fif"
+cov_fname = base_dir / "test-cov.fif"
+event_name = base_dir / "test-eve.fif"
 event_id, tmin, tmax = 1, -0.1, 0.1
-
-ctf_fname = testing.data_path(download=False) / 'CTF' / 'testdata_ctf.ds'
+ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 
 # Use a subset of channels for plotting speed
 # make sure we have a magnetometer and a pair of grad pairs for topomap.
@@ -174,13 +174,21 @@ def test_plot_evoked():
         [(0, 0.1), (0.1, 0.2)]
     ]:
         fig = evoked.plot(time_unit='s', highlight=highlight)
-        for ax in fig.get_axes():
+        regular_axes = [ax for ax in fig.axes if not isinstance(ax, HostAxes)]
+        for ax in regular_axes:
             highlighted_areas = [child for child in ax.get_children()
                                  if isinstance(child, PolyCollection)]
             assert len(highlighted_areas) == len(np.atleast_2d(highlight))
 
     with pytest.raises(ValueError, match='must be reshapable into a 2D array'):
         fig = evoked.plot(time_unit='s', highlight=0.1)
+
+    # set one channel location to nan, confirm spatial_colors still works
+    evoked = _get_epochs().load_data().average('grad')  # reload data
+    evoked.info['chs'][0]['loc'][:] = np.nan
+    fig = evoked.plot(time_unit='s', spatial_colors=True)
+    line_clr = [x.get_color() for x in fig.axes[0].get_lines()]
+    assert not np.all(np.isnan(line_clr) & (line_clr == 0))
 
 
 def test_constrained_layout():
@@ -189,14 +197,19 @@ def test_constrained_layout():
     assert fig.get_constrained_layout()
     evoked = mne.read_evokeds(evoked_fname)[0]
     evoked.pick(evoked.ch_names[:2])
-    evoked.plot(axes=ax)  # smoke test that it does not break things
+
+    # smoke test that it does not break things
+    evoked.plot(axes=ax)
     assert fig.get_constrained_layout()
     plt.close('all')
 
 
 def _get_amplitudes(fig):
-    amplitudes = [line.get_ydata() for ax in fig.axes
+    # ignore the spatial_colors parasite axes
+    regular_axes = [ax for ax in fig.axes if not isinstance(ax, HostAxes)]
+    amplitudes = [line.get_ydata() for ax in regular_axes
                   for line in ax.get_lines()]
+    # this will exclude hlines, which are lists not arrays
     amplitudes = np.array(
         [line for line in amplitudes if isinstance(line, np.ndarray)])
     return amplitudes
@@ -357,6 +370,7 @@ def test_plot_compare_evokeds():
         assert fig[0].axes[0].get_title().endswith(_t)
     # test passing more than one evoked
     red, blue = evoked.copy(), evoked.copy()
+    red.comment = red.comment + '*' * 100
     red.data *= 1.5
     blue.data /= 1.5
     evoked_dict = {'aud/l': blue, 'aud/r': red, 'vis': evoked}
@@ -468,8 +482,11 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(csd, picks='csd', axes='topo')
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
-    plot_compare_evokeds([red, blue], picks=[0],
-                         ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
+    fig, = plot_compare_evokeds(
+        [red, blue], picks=[0], ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
+    # reasonable legend lengths
+    leg_texts = [t.get_text() for t in fig.axes[0].get_legend().get_texts()]
+    assert all(len(lt) < 50 for lt in leg_texts)
     plot_compare_evokeds([list(evoked_dict.values())], picks=[0],
                          ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)
@@ -509,7 +526,7 @@ def test_plot_ctf():
     raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     events = np.array([[200, 0, 1]])
     event_id = 1
-    tmin, tmax = -0.1, 0.5  # start and end of an epoch in sec.
+    tmin, tmax = -0.1, 0.5  # start and end of an epoch in s.
     picks = mne.pick_types(raw.info, meg=True, stim=True, eog=True,
                            ref_meg=True, exclude='bads')[::20]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,

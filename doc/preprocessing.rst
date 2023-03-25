@@ -70,6 +70,7 @@ Projections:
 
    ICA
    Xdawn
+   EOGRegression
    annotate_amplitude
    annotate_break
    annotate_movement
@@ -99,6 +100,7 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   read_eog_regression
    realign_raw
    regress_artifact
    corrmap
@@ -136,6 +138,8 @@ Projections:
    :toctree: generated/
 
    project_sensors_onto_brain
+   make_montage_volume
+   warp_montage
 
 EEG referencing:
 

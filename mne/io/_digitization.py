@@ -236,6 +236,36 @@ _cardinal_ident_mapping = {
 }
 
 
+def _ensure_fiducials_head(dig):
+    # Ensure that there are all three fiducials in the head coord frame
+    fids = dict()
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            name = _cardinal_ident_mapping.get(d['ident'], None)
+            if name is not None:
+                fids[name] = d
+    radius = None
+    mults = dict(
+        lpa=[-1, 0, 0],
+        rpa=[1, 0, 0],
+        nasion=[0, 1, 0],
+    )
+    for ident, name in _cardinal_ident_mapping.items():
+        if name not in fids:
+            if radius is None:
+                radius = [
+                    np.linalg.norm(d['r']) for d in dig
+                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+                if not radius:
+                    return  # can't complete, no head points
+                radius = np.mean(radius)
+            dig.append(DigPoint(
+                kind=FIFF.FIFFV_POINT_CARDINAL, ident=ident,
+                r=np.array(mults[name], float) * radius,
+                coord_frame=FIFF.FIFFV_COORD_HEAD,
+            ))
+
+
 # XXXX:
 # This does something really similar to _read_dig_montage_fif but:
 #   - does not check coord_frame
@@ -318,7 +348,7 @@ def _write_dig_points(fname, dig_points):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the file to write. The kind of file to write is determined
         based on the extension: '.txt' for tab separated text file.
     dig_points : numpy.ndarray, shape (n_points, 3)
@@ -352,8 +382,8 @@ def _coord_frame_const(coord_frame):
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     extra_points=None, dig_ch_pos=None,
-                     coord_frame='head'):
+                     extra_points=None, dig_ch_pos=None, *,
+                     coord_frame='head', add_missing_fiducials=False):
     """Construct digitizer info for the info.
 
     Parameters
@@ -373,6 +403,10 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     coord_frame : str
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to "head".
+    add_missing_fiducials : bool
+        If True, add fiducials to the dig points if they are not present.
+        Requires that coord_frame='head' and that lpa, nasion, and rpa are all
+        None.
 
     Returns
     -------
@@ -446,6 +480,14 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             dig.append({'r': dig_ch_pos[key], 'ident': int(ident),
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': coord_frame})
+    if add_missing_fiducials:
+        assert coord_frame == FIFF.FIFFV_COORD_HEAD
+        # These being none is really an assumption that if you have one you
+        # should have all three. But we can relax this later if necessary.
+        assert lpa is None
+        assert rpa is None
+        assert nasion is None
+        _ensure_fiducials_head(dig)
 
     return _format_dig_points(dig)
 

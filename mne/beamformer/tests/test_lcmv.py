@@ -1,5 +1,5 @@
 from copy import deepcopy
-import os.path as op
+from inspect import signature
 
 import pytest
 import numpy as np
@@ -18,7 +18,6 @@ from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             read_beamformer, apply_lcmv_cov, make_dics)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
-from mne.fixes import _get_args
 from mne.io.compensator import set_current_comp
 from mne.io.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
@@ -29,16 +28,17 @@ from mne.utils import (object_diff, requires_version, catch_logging,
 
 
 data_path = testing.data_path(download=False)
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc_raw-eve.fif')
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
-ctf_fname = op.join(data_path, 'CTF', 'somMDYO-18av.ds')
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_fwd_vol = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
+fname_event = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
+fname_label = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
+ctf_fname = data_path / "CTF" / "somMDYO-18av.ds"
 
 reject = dict(grad=4000e-13, mag=4e-12)
 
@@ -306,7 +306,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     assert 'rank %s' % rank in repr(filters)
 
     # I/O
-    fname = op.join(str(tmp_path), 'filters.h5')
+    fname = tmp_path / "filters.h5"
     with pytest.warns(RuntimeWarning, match='-lcmv.h5'):
         filters.save(fname)
     filters_read = read_beamformer(fname)
@@ -920,8 +920,8 @@ def _assert_weight_norm(filters, G):
 
 def test_api():
     """Test LCMV/DICS API equivalence."""
-    lcmv_names = _get_args(make_lcmv)
-    dics_names = _get_args(make_dics)
+    lcmv_names = list(signature(make_lcmv).parameters)
+    dics_names = list(signature(make_dics).parameters)
     dics_names[dics_names.index('csd')] = 'data_cov'
     dics_names[dics_names.index('noise_csd')] = 'noise_cov'
     dics_names.pop(dics_names.index('real_filter'))  # not a thing for LCMV

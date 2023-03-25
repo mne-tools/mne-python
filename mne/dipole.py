@@ -37,7 +37,8 @@ from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option,
                     _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type,
-                    copy_function_doc_to_method_doc, TimeMixin)
+                    copy_function_doc_to_method_doc, TimeMixin,
+                    _verbose_safe_false)
 from .viz import plot_dipole_locations
 
 
@@ -45,8 +46,10 @@ from .viz import plot_dipole_locations
 class Dipole(TimeMixin):
     u"""Dipole class for sequential dipole fits.
 
-    .. note:: This class should usually not be instantiated directly,
-              instead :func:`mne.read_dipole` should be used.
+    .. note::
+        This class should usually not be instantiated directly via
+        ``mne.Dipole(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Used to store positions, orientations, amplitudes, times, goodness of fit
     of dipoles, typically obtained with Neuromag/xfit, mne_dipole_fit
@@ -56,7 +59,7 @@ class Dipole(TimeMixin):
     Parameters
     ----------
     times : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted (sec).
+        The time instants at which each dipole was fitted (s).
     pos : array, shape (n_dipoles, 3)
         The dipoles positions (m) in head coordinates.
     amplitude : array, shape (n_dipoles,)
@@ -123,12 +126,12 @@ class Dipole(TimeMixin):
 
     @verbose
     def save(self, fname, overwrite=False, *, verbose=None):
-        """Save dipole in a .dip or .bdip file.
+        """Save dipole in a ``.dip`` or ``.bdip`` file.
 
         Parameters
         ----------
-        fname : str
-            The name of the .dip or .bdip file.
+        fname : path-like
+            The name of the ``.dip`` or ``.bdip`` file.
         %(overwrite)s
 
             .. versionadded:: 0.20
@@ -141,7 +144,7 @@ class Dipole(TimeMixin):
         """
         # obligatory fields
         fname = _check_fname(fname, overwrite=overwrite)
-        if fname.endswith('.bdip'):
+        if fname.suffix == ".bdip":
             _write_dipole_bdip(fname, self)
         else:
             _write_dipole_text(fname, self)
@@ -241,7 +244,8 @@ class Dipole(TimeMixin):
         """
         mri_head_t, trans = _get_trans(trans)
         return head_to_mri(self.pos, subject, mri_head_t,
-                           subjects_dir=subjects_dir, verbose=verbose)
+                           subjects_dir=subjects_dir, verbose=verbose,
+                           kind='mri')
 
     @verbose
     def to_volume_labels(self, trans, subject='fsaverage', aseg='aparc+aseg',
@@ -364,8 +368,10 @@ def _read_dipole_fixed(fname):
 class DipoleFixed(TimeMixin):
     """Dipole class for fixed-position dipole fits.
 
-    .. note:: This class should usually not be instantiated directly,
-              instead :func:`mne.read_dipole` should be used.
+    .. note::
+        This class should usually not be instantiated directly
+        via ``mne.DipoleFixed(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Parameters
     ----------
@@ -441,7 +447,7 @@ class DipoleFixed(TimeMixin):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the .fif file. Must end with ``'.fif'`` or
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
@@ -481,12 +487,12 @@ class DipoleFixed(TimeMixin):
 # IO
 @verbose
 def read_dipole(fname, verbose=None):
-    """Read .dip file from Neuromag/xfit or MNE.
+    """Read ``.dip`` file from Neuromag/xfit or MNE.
 
     Parameters
     ----------
-    fname : str
-        The name of the .dip or .fif file.
+    fname : path-like
+        The name of the ``.dip`` or ``.fif`` file.
     %(verbose)s
 
     Returns
@@ -505,9 +511,9 @@ def read_dipole(fname, verbose=None):
        Support for reading bdip (Xfit binary) format.
     """
     fname = _check_fname(fname, overwrite='read', must_exist=True)
-    if fname.endswith('.fif') or fname.endswith('.fif.gz'):
+    if fname.suffix == ".fif" or fname.name.endswith(".fif.gz"):
         return _read_dipole_fixed(fname)
-    elif fname.endswith('.bdip'):
+    elif fname.suffix == ".bdip":
         return _read_dipole_bdip(fname)
     else:
         return _read_dipole_text(fname)
@@ -1149,9 +1155,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
         The dataset to fit.
     cov : str | instance of Covariance
         The noise covariance.
-    bem : str | instance of ConductorModel
+    bem : path-like | instance of ConductorModel
         The BEM filename (str) or conductor model.
-    trans : str | None
+    trans : path-like | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
     min_dist : float
@@ -1181,8 +1187,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
 
         .. versionadded:: 0.20
     accuracy : str
-        Can be "normal" (default) or "accurate", which gives the most accurate
-        coil definition but is typically not necessary for real-world data.
+        Can be ``"normal"`` (default) or ``"accurate"``, which gives the most
+        accurate coil definition but is typically not necessary for real-world
+        data.
 
         .. versionadded:: 0.24
     tol : float
@@ -1250,7 +1257,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
         logger.info('BEM               : %s' % bem_extra)
     mri_head_t, trans = _get_trans(trans)
     logger.info('MRI transform     : %s' % trans)
-    bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=False)
+    safe_false = _verbose_safe_false()
+    bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=safe_false)
     if not bem['is_sphere']:
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, 'inner_skull')
@@ -1395,7 +1403,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
     # C code computes guesses w/sphere model for speed, don't bother here
     fwd_data = _prep_field_computation(
         guess_src['rr'], sensors=sensors, bem=bem, n_jobs=n_jobs,
-        verbose=False)
+        verbose=safe_false)
     fwd_data['inner_skull'] = inner_skull
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(
         sensors=sensors, fwd_data=fwd_data, whitener=whitener,

@@ -46,29 +46,28 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 # topographies will be shown. We select timepoints from 50 to 150 ms with a
 # step of 20ms and plot magnetometer data:
 times = np.arange(0.05, 0.151, 0.02)
-evoked.plot_topomap(times, ch_type='mag', time_unit='s')
+evoked.plot_topomap(times, ch_type='mag')
 
 # %%
 # If times is set to None at most 10 regularly spaced topographies will be
 # shown:
-evoked.plot_topomap(ch_type='mag', time_unit='s')
+evoked.plot_topomap(ch_type='mag')
 
 # %%
 # We can use ``nrows`` and ``ncols`` parameter to create multiline plots
 # with more timepoints.
 all_times = np.arange(-0.2, 0.5, 0.03)
-evoked.plot_topomap(all_times, ch_type='mag', time_unit='s',
-                    ncols=8, nrows='auto')
+evoked.plot_topomap(all_times, ch_type='mag', ncols=8, nrows='auto')
 
 # %%
 # Instead of showing topographies at specific time points we can compute
 # averages of 50 ms bins centered on these time points to reduce the noise in
 # the topographies:
-evoked.plot_topomap(times, ch_type='mag', average=0.05, time_unit='s')
+evoked.plot_topomap(times, ch_type='mag', average=0.05)
 
 # %%
 # We can plot gradiometer data (plots the RMS for each pair of gradiometers)
-evoked.plot_topomap(times, ch_type='grad', time_unit='s')
+evoked.plot_topomap(times, ch_type='grad')
 
 # %%
 # Additional :func:`~mne.viz.plot_topomap` options
@@ -80,10 +79,9 @@ evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 # * ``cmap`` - to specify the color map
 # * ``res`` - to control the resolution of the topographies (lower resolution
 #   means faster plotting)
-# * ``outlines='skirt'`` to see the topography stretched beyond the head circle
 # * ``contours`` to define how many contour lines should be plotted
 evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
-                    outlines='skirt', contours=4, time_unit='s')
+                    contours=4)
 
 # %%
 # If you look at the edges of the head circle of a single topomap you'll see
@@ -117,10 +115,10 @@ fig.tight_layout()
 # Now we plot magnetometer data as topomap at a single time point: 100 ms
 # post-stimulus, add channel labels, title and adjust plot margins:
 
-evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
-                    size=6, res=128, title='Auditory response',
-                    time_unit='s')
-plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
+fig = evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
+                          size=6, res=128)
+fig.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
+fig.suptitle('Auditory response')
 
 # %%
 # We can also highlight specific channels by adding a mask, to e.g. mark
@@ -131,8 +129,8 @@ mask = evoked.data > 1e-13
 
 # Select times and plot
 times = (0.09, 0.1, 0.11)
-evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
-                    mask_params=dict(markersize=10, markerfacecolor='y'))
+mask_params = dict(markersize=10, markerfacecolor='y')
+evoked.plot_topomap(times, ch_type='mag', mask=mask, mask_params=mask_params)
 
 # %%
 # Or by manually picking the channels to highlight at different times:
@@ -149,8 +147,7 @@ mask = np.zeros(evoked.data.shape, dtype='bool')
 for _chs, _time in zip(_channels, _times):
     mask[_chs, _time] = True
 
-evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
-                    mask_params=dict(markersize=10, markerfacecolor='y'))
+evoked.plot_topomap(times, ch_type='mag', mask=mask, mask_params=mask_params)
 
 # %%
 # Interpolating topomaps
@@ -166,19 +163,18 @@ evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
 # The default cubic interpolation is the smoothest and is great for
 # publications.
 
-evoked.plot_topomap(times, ch_type='eeg', time_unit='s', image_interp='cubic')
+evoked.plot_topomap(times, ch_type='eeg', image_interp='cubic')
 
 # %%
 # The linear interpolation might be helpful in some cases.
 
-evoked.plot_topomap(times, ch_type='eeg', time_unit='s', image_interp='linear')
+evoked.plot_topomap(times, ch_type='eeg', image_interp='linear')
 
 # %%
 # The nearest (Voronoi, no interpolation) interpolation is especially helpful
 # for debugging and seeing the values assigned to the topomap unaltered.
 
-evoked.plot_topomap(times, ch_type='eeg', time_unit='s',
-                    image_interp='nearest', contours=0)
+evoked.plot_topomap(times, ch_type='eeg', image_interp='nearest', contours=0)
 
 # %%
 # Animating the topomap
@@ -190,4 +186,4 @@ evoked.plot_topomap(times, ch_type='eeg', time_unit='s',
 # sphinx_gallery_thumbnail_number = 9
 times = np.arange(0.05, 0.151, 0.01)
 fig, anim = evoked.animate_topomap(
-    times=times, ch_type='mag', frame_rate=2, time_unit='s', blit=False)
+    times=times, ch_type='mag', frame_rate=2, blit=False)

@@ -96,10 +96,13 @@ evoked = epochs.average().pick('meg')
 evoked.drop_channels(evoked.info['bads'])
 evoked.plot(time_unit='s')
 evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag')
-noise_cov.plot_topomap(evoked.info, 'grad', title='Noise')
-data_cov.plot_topomap(evoked.info, 'grad', title='Data')
-data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
-                      title='Whitened data')
+
+loop = {'Noise': (noise_cov, dict()),
+        'Data': (data_cov, dict()),
+        'Whitened data': (data_cov, dict(noise_cov=noise_cov))}
+for title, (_cov, _kw) in loop.items():
+    fig = _cov.plot_topomap(evoked.info, 'grad', **_kw)
+    fig.suptitle(title)
 
 # %%
 # Apply inverse operator to covariance

@@ -4,8 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import numpy as np
 from numpy.testing import assert_array_equal
 import pytest
@@ -17,7 +15,7 @@ from mne.io.cnt import read_raw_cnt
 from mne.annotations import read_annotations
 
 data_path = testing.data_path(download=False)
-fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
+fname = data_path / "CNT" / "scan41_short.cnt"
 
 
 @testing.requires_testing_data

@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-import os.path as op
 import re
 
 import numpy as np
@@ -16,22 +15,19 @@ import pytest
 from mne import (read_forward_solution, VolSourceEstimate, SourceEstimate,
                  VolVectorSourceEstimate, compute_source_morph)
 from mne.datasets import testing
-from mne.utils import (requires_dipy, requires_nibabel, requires_version,
-                       catch_logging, _record_warnings)
+from mne.utils import catch_logging, _record_warnings
 from mne.viz import plot_volume_source_estimates
 from mne.viz.utils import _fake_click, _fake_keypress
 
 data_dir = testing.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-fwd_fname = op.join(data_dir, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-vol-7-fwd.fif')
+subjects_dir = data_dir / "subjects"
+fwd_fname = (
+    data_dir / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
 
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@requires_dipy()
-@requires_nibabel()
-@requires_version('nilearn', '0.4')
 @pytest.mark.parametrize(
     'mode, stype, init_t, want_t, init_p, want_p, bg_img', [
         ('glass_brain', 's', None, 2, None, (-30.9, 18.4, 56.7), None),
@@ -41,6 +37,9 @@ fwd_fname = op.join(data_dir, 'MEG', 'sample',
 def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
                                       init_p, want_p, bg_img):
     """Test interactive plotting of volume source estimates."""
+    pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
+    pytest.importorskip('nilearn')
     forward = read_forward_solution(fwd_fname)
     sample_src = forward['src']
     if init_p is not None:
@@ -89,11 +88,11 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-@requires_dipy()
-@requires_nibabel()
-@requires_version('nilearn', '0.4')
 def test_plot_volume_source_estimates_morph():
     """Test interactive plotting of volume source estimates with morph."""
+    pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
+    pytest.importorskip('nilearn')
     forward = read_forward_solution(fwd_fname)
     sample_src = forward['src']
     vertices = [s['vertno'] for s in sample_src]

@@ -12,11 +12,13 @@
 
 import copy
 import io
-from glob import glob
-from itertools import cycle
+import os
 import os.path as op
 import warnings
 from collections import defaultdict
+from glob import glob
+from itertools import cycle
+from pathlib import Path
 
 import numpy as np
 
@@ -504,10 +506,10 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
     slices : list of int | None
         The indices of the MRI slices to plot. If ``None``, automatically
         pick 12 equally-spaced slices.
-    brain_surfaces : None | str | list of str
+    brain_surfaces : str | list of str | None
         One or more brain surface to plot (optional). Entries should correspond
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
-    src : None | SourceSpaces | str
+    src : SourceSpaces | path-like | None
         SourceSpaces instance or path to a source space to plot individual
         sources as scatter-plot. Sources will be shown on exactly one slice
         (whichever slice is closest to each source in the given orientation
@@ -565,9 +567,9 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
     mri_fname = _check_mri(mri, subject, subjects_dir)
 
     # Get the BEM surface filenames
-    bem_path = op.join(subjects_dir, subject, 'bem')
+    bem_path = subjects_dir / subject / "bem"
 
-    if not op.isdir(bem_path):
+    if not bem_path.is_dir():
         raise IOError(f'Subject bem directory "{bem_path}" does not exist')
 
     surfaces = _get_bem_plotting_surfaces(bem_path)
@@ -576,24 +578,28 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
             brain_surfaces = (brain_surfaces,)
         for surf_name in brain_surfaces:
             for hemi in ('lh', 'rh'):
-                surf_fname = op.join(subjects_dir, subject, 'surf',
-                                     hemi + '.' + surf_name)
-                if op.exists(surf_fname):
+                surf_fname = (
+                    subjects_dir / subject / "surf" / f"{hemi}.{surf_name}"
+                )
+                if surf_fname.exists():
                     surfaces.append((surf_fname, '#00DD00'))
                 else:
                     raise IOError("Surface %s does not exist." % surf_fname)
 
-    if isinstance(src, str):
-        if not op.exists(src):
-            src_ = op.join(subjects_dir, subject, 'bem', src)
-            if op.exists(src_):
-                src = src_
-            else:
-                raise IOError("%s does not exist" % src)
+    if isinstance(src, (str, Path, os.PathLike)):
+        src = Path(src)
+        if not src.exists():
+            # convert to Path until get_subjects_dir returns a Path object
+            src_ = Path(subjects_dir) / subject / "bem" / src
+            if not src_.exists():
+                raise IOError(f"{src} does not exist")
+            src = src_
         src = read_source_spaces(src)
     elif src is not None and not isinstance(src, SourceSpaces):
-        raise TypeError("src needs to be None, str or SourceSpaces instance, "
-                        "not %s" % repr(src))
+        raise TypeError(
+            "src needs to be None, path-like or SourceSpaces instance, "
+            "not %s" % repr(src)
+        )
 
     if len(surfaces) == 0:
         raise IOError('No surface files found. Surface files must end with '
@@ -936,7 +942,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
         .. versionadded:: 0.21.0
     dlim : None | tuple
-        The y-axis delay limits (sec) to use (default:
+        The y-axis delay limits (s) to use (default:
         ``(-tmax / 2., tmax / 2.)``).
 
         .. versionadded:: 1.1.0
@@ -1060,14 +1066,18 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
     if 'time' in plot:
         ax_time_idx = np.where([p == 'time' for p in plot])[0][0]
-        axes[ax_time_idx].plot(t, h, color=color)
+        axes[ax_time_idx].plot(t, h, color=color, linewidth=1.2)
+        axes[ax_time_idx].grid(visible=True, which='major', axis='both',
+                               linewidth=0.15)
         axes[ax_time_idx].set(xlim=t[[0, -1]], xlabel='Time (s)',
                               ylabel='Amplitude', title=title)
     # Magnitude
     if 'magnitude' in plot:
         ax_mag_idx = np.where([p == 'magnitude' for p in plot])[0][0]
         axes[ax_mag_idx].plot(f[sl], mag[sl], color=color,
-                              linewidth=2, zorder=4)
+                              linewidth=1.2, zorder=4)
+        axes[ax_mag_idx].grid(visible=True, which='major', axis='both',
+                              linewidth=0.15)
         if freq is not None and gain is not None:
             plot_ideal_filter(freq, gain, axes[ax_mag_idx],
                               fscale=fscale, show=False)
@@ -1081,7 +1091,9 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     if 'delay' in plot:
         ax_delay_idx = np.where([p == 'delay' for p in plot])[0][0]
         axes[ax_delay_idx].plot(f[sl], gd[sl], color=color,
-                                linewidth=2, zorder=4)
+                                linewidth=1.2, zorder=4)
+        axes[ax_delay_idx].grid(visible=True, which='major', axis='both',
+                                linewidth=0.15)
         # shade nulled regions
         for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
             axes[ax_delay_idx].axvspan(f[start], f[stop - 1],
@@ -1183,8 +1195,8 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         axes = plt.subplots(1)[1]
     for transition in transitions:
         axes.axvspan(*transition, color=color, alpha=0.1)
-    axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=0.5,
-              linewidth=4, zorder=3)
+    axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=alpha,
+              linewidth=2, zorder=3)
     xticks, xticklabels = _filter_ticks(flim, fscale)
     axes.set(ylim=alim, xlabel='Frequency (Hz)', ylabel='Amplitude (dB)',
              xscale=fscale)

@@ -192,7 +192,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     return equalized_instances
 
 
-channel_type_constants = get_channel_type_constants()
+channel_type_constants = get_channel_type_constants(include_defaults=True)
 _human2fiff = {k: v.get('kind', FIFF.FIFFV_COIL_NONE) for k, v in
                channel_type_constants.items()}
 _human2unit = {k: v.get('unit', FIFF.FIFF_UNIT_NONE) for k, v in
@@ -223,7 +223,8 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          ch_type='auto', forward=None, verbose=None):
+                          ch_type='auto', forward=None, *, joint=False,
+                          verbose=None):
         """Specify which reference to use for EEG data.
 
         Use this function to explicitly specify the desired reference for EEG.
@@ -237,6 +238,7 @@ class SetChannelsMixin(MontageMixin):
         %(projection_set_eeg_reference)s
         %(ch_type_set_eeg_reference)s
         %(forward_set_eeg_reference)s
+        %(joint_set_eeg_reference)s
         %(verbose)s
 
         Returns
@@ -250,7 +252,7 @@ class SetChannelsMixin(MontageMixin):
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
                                  projection=projection, ch_type=ch_type,
-                                 forward=forward)[0]
+                                 forward=forward, joint=joint)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
@@ -415,11 +417,9 @@ class SetChannelsMixin(MontageMixin):
         if isinstance(self, BaseRaw):
             # whatever mapping was provided, now we can just use a dict
             mapping = dict(zip(ch_names_orig, self.info['ch_names']))
-            if self._orig_units is not None:
-                for old_name, new_name in mapping.items():
-                    if old_name != new_name:
-                        self._orig_units[new_name] = self._orig_units[old_name]
-                        del self._orig_units[old_name]
+            for old_name, new_name in mapping.items():
+                if old_name in self._orig_units:
+                    self._orig_units[new_name] = self._orig_units.pop(old_name)
             ch_names = self.annotations.ch_names
             for ci, ch in enumerate(ch_names):
                 ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
@@ -830,6 +830,9 @@ class UpdateChannelsMixin(object):
 
         if isinstance(self, BaseRaw):
             self.annotations._prune_ch_names(self.info, on_missing='ignore')
+            self._orig_units = {
+                k: v for k, v in self._orig_units.items()
+                if k in self.ch_names}
 
         self._pick_projs()
         return self
@@ -905,9 +908,9 @@ class UpdateChannelsMixin(object):
         shapes = np.array([dat.shape for dat in data])[:, compare_axes]
         for shape in shapes:
             if not ((shapes[0] - shape) == 0).all():
-                raise AssertionError('All data dimensions except channels '
-                                     'must match, got %s != %s'
-                                     % (shapes[0], shape))
+                raise ValueError(
+                    'All data dimensions except channels must match, got '
+                    f'{shapes[0]} != {shape}')
         del shapes
 
         # Create final data / info objects
@@ -944,6 +947,8 @@ class UpdateChannelsMixin(object):
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
+            for other in add_list:
+                self._orig_units.update(other._orig_units)
         elif isinstance(self, BaseEpochs):
             self.picks = np.arange(self._data.shape[1])
             if hasattr(self, '_projector'):
@@ -1000,9 +1005,9 @@ class InterpolationMixin(object):
             origin fit.
 
             .. versionadded:: 0.17
-        method : dict
+        method : dict | None
             Method to use for each channel type.
-            Currently only the key "eeg" has multiple options:
+            Currently only the key ``"eeg"`` has multiple options:
 
             - ``"spline"`` (default)
                 Use spherical spline interpolation.
@@ -1010,8 +1015,9 @@ class InterpolationMixin(object):
                 Use minimum-norm projection to a sphere and back.
                 This is the method used for MEG channels.
 
-            The value for "meg" is "MNE", and the value for
-            "fnirs" is "nearest". The default (None) is thus an alias for::
+            The value for ``"meg"`` is ``"MNE"``, and the value for
+            ``"fnirs"`` is ``"nearest"``. The default (None) is thus an alias
+            for::
 
                 method=dict(meg="MNE", eeg="spline", fnirs="nearest")
 
@@ -1431,7 +1437,7 @@ def read_ch_adjacency(fname, picks=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like | str
         The path to the file to load, or the name of a channel adjacency
         matrix that ships with MNE-Python.
 
@@ -1468,10 +1474,12 @@ def read_ch_adjacency(fname, picks=None):
     """
     from scipy.io import loadmat
     if op.isabs(fname):
-        fname = _check_fname(
-            fname=fname,
-            overwrite='read',
-            must_exist=True
+        fname = str(
+            _check_fname(
+                fname=fname,
+                overwrite="read",
+                must_exist=True,
+            )
         )
     else:  # built-in FieldTrip neighbors
         ch_adj_name = fname
@@ -1490,10 +1498,12 @@ def read_ch_adjacency(fname, picks=None):
                   if a.name == ch_adj_name][0]
         fname = ch_adj.fname
         templates_dir = Path(__file__).resolve().parent / 'data' / 'neighbors'
-        fname = _check_fname(  # only needed to convert to a string
-            fname=templates_dir / fname,
-            overwrite='read',
-            must_exist=True
+        fname = str(
+            _check_fname(  # only needed to convert to a string
+                fname=templates_dir / fname,
+                overwrite="read",
+                must_exist=True,
+            )
         )
 
     nb = loadmat(fname)['neighbours']
@@ -1594,6 +1604,13 @@ def find_ch_adjacency(info, ch_type):
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
     :func:`read_ch_adjacency` directly.
+
+    .. warning::
+        If Delaunay triangulation is used to calculate the adjacency matrix it
+        may yield partially unexpected results (e.g., include unwanted edges
+        between non-adjacent sensors). Therefore, it is recommended to check
+        (and, if necessary, manually modify) the result by inspecting it
+        via :func:`mne.viz.plot_ch_adjacency`.
 
     Note that depending on your use case, you may need to additionally use
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
@@ -1871,8 +1888,9 @@ def make_1020_channel_selections(info, midline="z"):
     return selections
 
 
+@verbose
 def combine_channels(inst, groups, method='mean', keep_stim=False,
-                     drop_bad=False):
+                     drop_bad=False, verbose=None):
     """Combine channels based on specified channel grouping.
 
     Parameters
@@ -1910,6 +1928,7 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
+    %(verbose)s
 
     Returns
     -------
@@ -2100,7 +2119,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         ``'Right-frontal'``. Selections can also be matched and combined by
         spcecifying common substrings. For example, ``name='temporal`` will
         produce a combination of ``'Left-temporal'`` and ``'Right-temporal'``.
-    fname : str
+    fname : path-like
         Filename of the selection file (if ``None``, built-in selections are
         used).
     %(info)s Used to determine which channel naming convention to use, e.g.
@@ -2132,7 +2151,7 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     if fname is None:
         fname = op.join(op.dirname(__file__), '..', 'data', 'mne_analyze.sel')
 
-    fname = _check_fname(fname, must_exist=True, overwrite='read')
+    fname = str(_check_fname(fname, must_exist=True, overwrite="read"))
 
     # use this to make sure we find at least one match for each name
     name_found = {n: False for n in name}

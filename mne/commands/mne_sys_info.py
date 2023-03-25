@@ -23,13 +23,20 @@ def run():
     parser.add_option('-d', '--developer', dest='developer',
                       help='Show additional developer module information',
                       action='store_true')
+    parser.add_option('-a', '--ascii', dest='unicode',
+                      help='Use ASCII instead of unicode symbols',
+                      action='store_false', default=True)
     options, args = parser.parse_args()
     dependencies = 'developer' if options.developer else 'user'
     if len(args) != 0:
         parser.print_help()
         sys.exit(1)
 
-    mne.sys_info(show_paths=options.show_paths, dependencies=dependencies)
+    mne.sys_info(
+        show_paths=options.show_paths,
+        dependencies=dependencies,
+        unicode=options.unicode
+    )
 
 
 mne.utils.run_command_if_main()

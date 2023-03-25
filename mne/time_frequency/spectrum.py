@@ -13,22 +13,23 @@ import numpy as np
 
 from ..channels.channels import UpdateChannelsMixin, _get_ch_type
 from ..channels.layout import _merge_ch_data
-# from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
-#                         _INTERPOLATION_DEFAULT)
-from ..defaults import _handle_default
+from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _INTERPOLATION_DEFAULT, _handle_default)
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (GetEpochsMixin, _build_data_frame,
                      _check_pandas_index_arguments, _check_pandas_installed,
                      _check_sphere, _time_mask, _validate_type, fill_doc,
-                     legacy, logger, object_diff, verbose, warn)
+                     legacy, logger, object_diff, repr_html, verbose, warn)
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
+from ..utils.spectrum import _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
-from ..viz.utils import _plot_psd, plt_show
+from ..viz.utils import (_format_units_psd, _plot_psd, _prepare_sensor_names,
+                         plt_show)
 from . import psd_array_multitaper, psd_array_welch
 from .psd import _check_nfft
 
@@ -92,30 +93,8 @@ class SpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
-        from ..io import BaseRaw
-
-        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
-        # triage reject_by_annotation
-        rba = dict()
-        if isinstance(self, BaseRaw):
-            rba = dict(reject_by_annotation=reject_by_annotation)
-
-        spectrum = self.compute_psd(
-            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose, **rba,
-            **method_kw)
-
-        # translate kwargs
-        amplitude = 'auto' if estimate == 'auto' else (estimate == 'amplitude')
-        ci = 'sd' if area_mode == 'std' else area_mode
-        # ↓ here picks="all" because we've already restricted the `info` to
-        # ↓ have only `picks` channels
-        fig = spectrum.plot(
-            picks='all', average=average, dB=dB, amplitude=amplitude,
-            xscale=xscale, ci=ci, ci_alpha=area_alpha, color=color,
-            alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-            exclude=exclude, axes=ax, show=show)
-        return fig
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+        return self.compute_psd(**init_kw).plot(**plot_kw)
 
     @legacy(alt='.compute_psd().plot_topo()')
     @verbose
@@ -149,50 +128,55 @@ class SpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
-
-        spectrum = self.compute_psd(
-            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            proj=proj, n_jobs=n_jobs, verbose=verbose, **method_kw)
-
-        return spectrum.plot_topo(
-            dB=dB, layout=layout, color=color, fig_facecolor=fig_facecolor,
-            axis_facecolor=axis_facecolor, axes=axes, block=block, show=show)
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
+        return self.compute_psd(**init_kw).plot_topo(**plot_kw)
 
     @legacy(alt='.compute_psd().plot_topomap()')
     @verbose
-    def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
-                         method='auto', ch_type=None, *, normalize=False,
-                         agg_fun=None, dB=False,  # sensors=True,
-                         # show_names=False, mask=None, mask_params=None,
-                         # contours=6,
-                         outlines='head', sphere=None,
-                         # image_interp=_INTERPOLATION_DEFAULT,
-                         # extrapolate=_EXTRAPOLATE_DEFAULT,
-                         # border=_BORDER_DEFAULT, res=64, size=1,
-                         cmap=None, vlim=(None, None),  # colorbar=True,
-                         cbar_fmt='auto', units=None,
-                         axes=None, show=True, n_jobs=None, verbose=None,
-                         **method_kw):
+    def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, ch_type=None,
+                         *, proj=False, method='auto', normalize=False,
+                         agg_fun=None, dB=False, sensors=True,
+                         show_names=False, mask=None, mask_params=None,
+                         contours=0, outlines='head', sphere=None,
+                         image_interp=_INTERPOLATION_DEFAULT,
+                         extrapolate=_EXTRAPOLATE_DEFAULT,
+                         border=_BORDER_DEFAULT, res=64, size=1, cmap=None,
+                         vlim=(None, None), cnorm=None, colorbar=True,
+                         cbar_fmt='auto', units=None, axes=None, show=True,
+                         n_jobs=None, verbose=None, **method_kw):
         """Plot scalp topography of PSD for chosen frequency bands.
 
         Parameters
         ----------
         %(bands_psd_topo)s
         %(tmin_tmax_psd)s
+        %(ch_type_topomap_psd)s
         %(proj_psd)s
         %(method_plot_psd_auto)s
-        %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
-        %(cmap_psd_topo)s
-        %(vlim_psd_topo_joint)s
-        %(cbar_fmt_psd_topo)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_psd)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
         %(n_jobs)s
         %(verbose)s
@@ -203,34 +187,8 @@ class SpectrumMixin():
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        # add after dB
-        # %(sensors_topomap)s
-        # %(show_names_topomap)s
-        # %(mask_evoked_topomap)s
-        # %(mask_params_topomap)s
-        # %(contours_topomap)s
-        # add after sphere
-        # %(image_interp_topomap)s
-        # %(extrapolate_topomap)s
-        # %(border_topomap)s
-        # %(res_topomap)s
-        # %(size_topomap)s
-        # add after vlim
-        # %(colorbar_topomap)s
-        spectrum = self.compute_psd(
-            method=method, tmin=tmin, tmax=tmax, proj=proj,
-            n_jobs=n_jobs, verbose=verbose, **method_kw)
-
-        fig = spectrum.plot_topomap(
-            bands=bands, ch_type=ch_type, normalize=normalize, agg_fun=agg_fun,
-            dB=dB,  # sensors=sensors, show_names=show_names, mask=mask,
-            # mask_params=mask_params, contours=contours,
-            outlines=outlines, sphere=sphere,
-            # image_interp=image_interp, extrapolate=extrapolate,
-            # border=border, res=res, size=size,
-            cmap=cmap, vlim=vlim,  # colorbar=colorbar,
-            cbar_fmt=cbar_fmt, units=units, axes=axes, show=show)
-        return fig
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
+        return self.compute_psd(**init_kw).plot_topomap(**plot_kw)
 
     def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
         """Update method_kw with legacy n_fft default for plot_psd[_topo]().
@@ -247,7 +205,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     """Base class for Spectrum and EpochsSpectrum."""
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, *, n_jobs, verbose, **method_kw):
+                 proj, *, n_jobs, verbose=None, **method_kw):
         # arg checking
         self._sfreq = inst.info['sfreq']
         if np.isfinite(fmax) and (fmax > self.sfreq / 2):
@@ -256,10 +214,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                 f'frequency of the data ({0.5 * inst.info["sfreq"]} Hz).')
         # method
         self._inst_type = type(inst)
-        if method == 'auto':
-            method = ('welch' if self._get_instance_type_string() == 'Raw'
-                      else 'multitaper')
-        _check_option('method', method, ('welch', 'multitaper'))
+        method = _validate_method(method, self._get_instance_type_string())
 
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
@@ -279,6 +234,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # apply proj if desired
         if proj:
             inst = inst.copy().apply_proj()
+        self.inst = inst
 
         # prep times and picks
         self._time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
@@ -296,7 +252,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._dims = ('channel', 'freq',)
         if method_kw.get('average', '') in (None, False):
             self._dims += ('segment',)
-        if method_kw.get('output', '') == 'complex':
+        if self._returns_complex_tapers(**method_kw):
             self._dims = self._dims[:-1] + ('taper',) + self._dims[-1:]
         # record data type (for repr and html_repr)
         self._data_type = ('Fourier Coefficients' if 'taper' in self._dims
@@ -346,6 +302,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         return (f'<{self._data_type} (from {inst_type_str}, '
                 f'{self.method} method) | {dims}, {freq_range}>')
 
+    @repr_html
     def _repr_html_(self, caption=None):
         """Build HTML representation of the Spectrum object."""
         from ..html_templates import repr_templates_env
@@ -359,7 +316,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def _check_values(self):
         """Check PSD results for correct shape and bad values."""
-        assert len(self._dims) == self._data.ndim
+        assert len(self._dims) == self._data.ndim, \
+            (self._dims, self._data.ndim)
         assert self._data.shape == self._shape
         # negative values OK if the spectrum is really fourier coefficients
         if 'taper' in self._dims:
@@ -376,13 +334,19 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}',
                  UserWarning)
 
+    def _returns_complex_tapers(self, **method_kw):
+        return (
+            method_kw.get('output', '') == 'complex' and
+            self.method == 'multitaper'
+        )
+
     def _compute_spectra(self, data, fmin, fmax, n_jobs, method_kw, verbose):
         # make the spectra
         result = self._psd_func(
             data, self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs,
             verbose=verbose)
         # assign ._data (handling unaggregated multitaper output)
-        if method_kw.get('output', '') == 'complex':
+        if self._returns_complex_tapers(**method_kw):
             fourier_coefs, freqs, weights = result
             self._data = fourier_coefs
             self._mt_weights = weights
@@ -400,25 +364,13 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                                                          method_kw)
             self._shape += (n_welch_segments,)
         # insert n_tapers
-        if method_kw.get('output', '') == 'complex':
+        if self._returns_complex_tapers(**method_kw):
             self._shape = (
                 self._shape[:-1] + (self._mt_weights.size,) + self._shape[-1:])
         # we don't need these anymore, and they make save/load harder
         del self._picks
         del self._psd_func
         del self._time_mask
-
-    def _format_units(self, unit, latex, power=True):
-        """Format the measurement units nicely."""
-        unit = f'({unit})' if '/' in unit else unit
-        if power:
-            denom = 'Hz'
-            exp = r'^{2}' if latex else '²'
-        else:
-            denom = r'\sqrt{Hz}' if latex else '√(Hz)'
-            exp = ''
-        pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
-        return f'{pre}{unit}{exp}/{denom}{post}'
 
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
@@ -484,7 +436,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(fmin_fmax_psd)s
         return_freqs : bool
             Whether to return the frequency bin values for the requested
-            frequency range. Default is ``True``.
+            frequency range. Default is ``False``.
 
         Returns
         -------
@@ -554,7 +506,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
@@ -680,31 +632,41 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     @fill_doc
     def plot_topomap(self, bands=None, ch_type=None, *, normalize=False,
-                     agg_fun=None, dB=False,  # sensors=True, show_names=False,
-                     # mask=None, mask_params=None, contours=6,
-                     outlines='head',
-                     sphere=None,  # image_interp=_INTERPOLATION_DEFAULT,
-                     # extrapolate=_EXTRAPOLATE_DEFAULT,
-                     # border=_BORDER_DEFAULT, res=64, size=1,
-                     cmap=None, vlim=(None, None),  # colorbar=True,
-                     cbar_fmt='auto', units=None, axes=None,
+                     agg_fun=None, dB=False, sensors=True, show_names=False,
+                     mask=None, mask_params=None, contours=6, outlines='head',
+                     sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+                     extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
+                     res=64, size=1, cmap=None, vlim=(None, None), cnorm=None,
+                     colorbar=True, cbar_fmt='auto', units=None, axes=None,
                      show=True):
         """Plot scalp topography of PSD for chosen frequency bands.
 
         Parameters
         ----------
         %(bands_psd_topo)s
-        %(ch_type_psd_topomap)s
+        %(ch_type_topomap_psd)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
-        %(cmap_psd_topo)s
-        %(vlim_psd_topo_joint)s
-        %(cbar_fmt_psd_topo)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_psd)s
+        %(cnorm)s
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
@@ -712,20 +674,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        # add after dB
-        # %(sensors_topomap)s
-        # %(show_names_topomap)s
-        # %(mask_evoked_topomap)s
-        # %(mask_params_topomap)s
-        # %(contours_topomap)s
-        # add after sphere
-        # %(image_interp_topomap)s
-        # %(extrapolate_topomap)s
-        # %(border_topomap)s
-        # %(res_topomap)s
-        # %(size_topomap)s
-        # add after vlim
-        # %(colorbar_topomap)s
         ch_type = _get_ch_type(self, ch_type)
         if units is None:
             units = _handle_default('units', None)
@@ -745,16 +693,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if merge_channels:
             psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
+        names = _prepare_sensor_names(names, show_names)
         return plot_psds_topomap(
             psds=psds, freqs=freqs, pos=pos, bands=bands, ch_type=ch_type,
-            normalize=normalize, agg_fun=agg_fun, dB=dB,  # sensors=sensors,
-            # show_names=show_names, mask=mask, mask_params=mask_params,
-            # contours=contours,
-            outlines=outlines, sphere=sphere,
-            # image_interp=image_interp, extrapolate=extrapolate,
-            # border=border, res=res, size=size,
-            cmap=cmap, vlim=vlim,  # colorbar=colorbar,
-            cbar_fmt=cbar_fmt, unit=unit, axes=axes, show=show)
+            normalize=normalize, agg_fun=agg_fun, dB=dB, sensors=sensors,
+            names=names, mask=mask, mask_params=mask_params,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit, axes=axes,
+            show=show)
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
@@ -880,8 +828,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """
         units = _handle_default('si_units', None)
         power = not hasattr(self, '_mt_weights')
-        return {ch_type: self._format_units(units[ch_type], power=power,
-                                            latex=latex)
+        return {ch_type: _format_units_psd(units[ch_type], power=power,
+                                           latex=latex)
                 for ch_type in sorted(self.get_channel_types(unique=True))}
 
 
@@ -920,7 +868,8 @@ class Spectrum(BaseSpectrum):
         have been computed.
     %(info_not_none)s
     method : str
-        The method used to compute the spectrum ('welch' or 'multitaper').
+        The method used to compute the spectrum (``'welch'`` or
+        ``'multitaper'``).
 
     See Also
     --------
@@ -928,10 +877,14 @@ class Spectrum(BaseSpectrum):
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
+
+    References
+    ----------
+    .. footbibliography::
     """
 
-    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
+    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj,
+                 reject_by_annotation, *, n_jobs, verbose=None, **method_kw):
         from ..io import BaseRaw
 
         # triage reading from file
@@ -942,18 +895,20 @@ class Spectrum(BaseSpectrum):
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
                          n_jobs=n_jobs, verbose=verbose, **method_kw)
         # get just the data we want
-        if isinstance(inst, BaseRaw):
+        if isinstance(self.inst, BaseRaw):
             start, stop = np.where(self._time_mask)[0][[0, -1]]
             rba = 'NaN' if reject_by_annotation else None
-            data = inst.get_data(self._picks, start, stop + 1,
-                                 reject_by_annotation=rba)
+            data = self.inst.get_data(self._picks, start, stop + 1,
+                                      reject_by_annotation=rba)
         else:  # Evoked
-            data = inst.data[self._picks][:, self._time_mask]
+            data = self.inst.data[self._picks][:, self._time_mask]
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         # check for correct shape and bad values
         self._check_values()
         del self._shape
+        # save memory
+        del self.inst
 
     def __getitem__(self, item):
         """Get Spectrum data.
@@ -1030,10 +985,14 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
+
+    References
+    ----------
+    .. footbibliography::
     """
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj, *,
-                 n_jobs, verbose, **method_kw):
+                 n_jobs, verbose=None, **method_kw):
         # triage reading from file
         if isinstance(inst, dict):
             self.__setstate__(inst)
@@ -1042,21 +1001,23 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
                          n_jobs=n_jobs, verbose=verbose, **method_kw)
         # get just the data we want
-        data = inst.get_data(picks=self._picks)[:, :, self._time_mask]
+        data = self.inst.get_data(picks=self._picks)[:, :, self._time_mask]
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         self._dims = ('epoch',) + self._dims
-        self._shape = (len(inst),) + self._shape
+        self._shape = (len(self.inst),) + self._shape
         # check for correct shape and bad values
         self._check_values()
         del self._shape
         # we need these for to_data_frame()
-        self.event_id = inst.event_id.copy()
-        self.events = inst.events.copy()
-        self.selection = inst.selection.copy()
+        self.event_id = self.inst.event_id.copy()
+        self.events = self.inst.events.copy()
+        self.selection = self.inst.selection.copy()
         # we need these for __getitem__()
-        self.drop_log = deepcopy(inst.drop_log)
-        self._metadata = inst.metadata
+        self.drop_log = deepcopy(self.inst.drop_log)
+        self._metadata = self.inst.metadata
+        # save memory
+        del self.inst
 
     def __getitem__(self, item):
         """Subselect epochs from an EpochsSpectrum.
@@ -1092,6 +1053,49 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         self.event_id = state['event_id']
         self.events = state['events']
         self.selection = state['selection']
+
+    def average(self, method='mean'):
+        """Average the spectra across epochs.
+
+        Parameters
+        ----------
+        method : 'mean' | 'median' | callable
+            How to aggregate spectra across epochs. If callable, must take a
+            :class:`NumPy array<numpy.ndarray>` of shape
+            ``(n_epochs, n_channels, n_freqs)`` and return an array of shape
+            ``(n_channels, n_freqs)``. Default is ``'mean'``.
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            The aggregated spectrum object.
+        """
+        if isinstance(method, str):
+            method = getattr(np, method)  # mean, median, std, etc
+            method = partial(method, axis=0)
+        if not callable(method):
+            raise ValueError('"method" must be a valid string or callable, '
+                             f'got a {type(method).__name__} ({method}).')
+        # averaging unaggregated spectral estimates are not supported
+        if hasattr(self, '_mt_weights'):
+            raise NotImplementedError(
+                'Averaging complex spectra is not supported. Consider '
+                'averaging the signals before computing the complex spectrum.')
+        elif 'segment' in self._dims:
+            raise NotImplementedError(
+                'Averaging individual Welch segments across epochs is not '
+                'supported. Consider averaging the signals before computing '
+                'the Welch spectrum estimates.')
+        # serialize the object and update data, dims, and data type
+        state = super().__getstate__()
+        state['data'] = method(state['data'])
+        state['dims'] = state['dims'][1:]
+        state['data_type'] = f'Averaged {state["data_type"]}'
+        defaults = dict(
+            method=None, fmin=None, fmax=None, tmin=None, tmax=None,
+            picks=None, proj=None, reject_by_annotation=None, n_jobs=None,
+            verbose=None)
+        return Spectrum(state, **defaults)
 
 
 def read_spectrum(fname):
@@ -1146,4 +1150,13 @@ def _compute_n_welch_segments(n_times, method_kw):
     # sanity check values / replace `None`s with real numbers
     n_fft, n_per_seg, n_overlap = _check_nfft(n_times, **_defaults)
     # compute expected number of segments
-    return n_times // (n_per_seg - n_overlap)
+    step = n_per_seg - n_overlap
+    return (n_times - n_overlap) // step
+
+
+def _validate_method(method, instance_type):
+    """Convert 'auto' to a real method name, and validate."""
+    if method == 'auto':
+        method = 'welch' if instance_type.startswith('Raw') else 'multitaper'
+    _check_option('method', method, ('welch', 'multitaper'))
+    return method

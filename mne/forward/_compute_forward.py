@@ -2,7 +2,7 @@
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larsoner@uw.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #          Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD-3-Clause

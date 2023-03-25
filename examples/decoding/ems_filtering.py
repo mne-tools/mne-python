@@ -120,7 +120,7 @@ plt.show()
 
 # Visualize spatial filters across time
 evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
-evoked.plot_topomap(time_unit='s', scalings=1)
+evoked.plot_topomap(scalings=1)
 
 #############################################################################
 # Note that a similar transformation can be applied with ``compute_ems``

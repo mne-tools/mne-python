@@ -103,7 +103,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str | fid
+    fname : path-like | fid
         Name of the fif file, or an opened file (will seek back to 0).
     preload : bool
         If True, all data from the file is read into a memory buffer. This
@@ -199,7 +199,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to evaluate.
     indent : str
         How to indent the lines.

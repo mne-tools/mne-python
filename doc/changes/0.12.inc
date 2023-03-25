@@ -65,9 +65,9 @@ Changelog
 BUG
 ~~~
 
-- ``mne.time_frequency.compute_raw_psd``, ``mne.time_frequency.compute_epochs_psd``, :func:`mne.time_frequency.psd_multitaper`, and :func:`mne.time_frequency.psd_welch` no longer remove rows/columns of the SSP matrix before applying SSP projectors when picks are provided by `Chris Holdgraf`_.
+- ``mne.time_frequency.compute_raw_psd``, ``mne.time_frequency.compute_epochs_psd``, ``mne.time_frequency.psd_multitaper``, and ``mne.time_frequency.psd_welch`` no longer remove rows/columns of the SSP matrix before applying SSP projectors when picks are provided by `Chris Holdgraf`_.
 
-- :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method which is more appropriate for epochs. Flags for this function are passed to :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
+- :func:`mne.Epochs.plot_psd` no longer calls a Welch PSD, and instead uses a Multitaper method which is more appropriate for epochs. Flags for this function are passed to ``mne.time_frequency.psd_multitaper`` by `Chris Holdgraf`_
 
 - Time-cropping functions (e.g., :func:`mne.Epochs.crop`, :func:`mne.Evoked.crop`, :func:`mne.io.Raw.crop`, :func:`mne.SourceEstimate.crop`) made consistent with behavior of ``tmin`` and ``tmax`` of :class:`mne.Epochs`, where nearest sample is kept. For example, for MGH data acquired with ``sfreq=600.614990234``, constructing ``Epochs(..., tmin=-1, tmax=1)`` has bounds ``+/-1.00064103``, and now ``epochs.crop(-1, 1)`` will also have these bounds (previously they would have been ``+/-0.99897607``). Time cropping functions also no longer use relative tolerances when determining the boundaries. These changes have minor effects on functions that use cropping under the hood, such as :func:`mne.compute_covariance` and ``mne.connectivity.spectral_connectivity``. Changes by `Jaakko Leppakangas`_ and `Eric Larson`_
 
@@ -140,9 +140,9 @@ API
 
 - The ``mesh_color`` parameter in :func:`mne.viz.plot_dipole_locations` has been removed (use ``brain_color`` instead), by `Marijn van Vliet`_
 
-- Deprecated functions ``mne.time_frequency.compute_raw_psd`` and ``mne.time_frequency.compute_epochs_psd``, replaced by :func:`mne.time_frequency.psd_welch` by `Chris Holdgraf`_
+- Deprecated functions ``mne.time_frequency.compute_raw_psd`` and ``mne.time_frequency.compute_epochs_psd``, replaced by ``mne.time_frequency.psd_welch`` by `Chris Holdgraf`_
 
-- Deprecated function ``mne.time_frequency.multitaper_psd`` and replaced by :func:`mne.time_frequency.psd_multitaper` by `Chris Holdgraf`_
+- Deprecated function ``mne.time_frequency.multitaper_psd`` and replaced by ``mne.time_frequency.psd_multitaper`` by `Chris Holdgraf`_
 
 - The ``y_pred`` attribute in ``mne.decoding.GeneralizationAcrossTime`` and ``mne.decoding.TimeDecoding`` is now a numpy array, by `Jean-Remi King`_
 

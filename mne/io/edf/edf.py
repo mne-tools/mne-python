@@ -38,6 +38,7 @@ CH_TYPE_MAPPING = {
     'EMG': FIFF.FIFFV_EMG_CH,
     'BIO': FIFF.FIFFV_BIO_CH,
     'RESP': FIFF.FIFFV_RESP_CH,
+    'TEMP': FIFF.FIFFV_TEMPERATURE_CH,
     'MISC': FIFF.FIFFV_MISC_CH,
     'SAO2': FIFF.FIFFV_BIO_CH,
 }
@@ -49,7 +50,7 @@ class RawEDF(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the EDF, EDF+ or BDF file.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -59,11 +60,12 @@ class RawEDF(BaseRaw):
         Names of channels or list of indices that should be designated MISC
         channels. Values should correspond to the electrodes in the file.
         Default is None.
-    stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that channels named 'status' or
-        'trigger' (case insensitive) are set to STIM. If str (or list of str),
-        all channels matching the name(s) are set to STIM. If int (or list of
-        ints), the channels corresponding to the indices are set to STIM.
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
+        Defaults to ``'auto'``, which means that channels named ``'status'`` or
+        ``'trigger'`` (case insensitive) are set to STIM. If str (or list of
+        str), all channels matching the name(s) are set to STIM. If int (or
+        list of ints), the channels corresponding to the indices are set to
+        STIM.
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
@@ -84,6 +86,7 @@ class RawEDF(BaseRaw):
         .. versionadded:: 1.1
     %(preload)s
     %(units_edf_bdf_io)s
+    %(encoding_edf)s
     %(verbose)s
 
     See Also
@@ -133,7 +136,7 @@ class RawEDF(BaseRaw):
     @verbose
     def __init__(self, input_fname, eog=None, misc=None, stim_channel='auto',
                  exclude=(), infer_types=False, preload=False, include=None,
-                 units=None, *, verbose=None):
+                 units=None, encoding='utf8', *, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
@@ -176,7 +179,10 @@ class RawEDF(BaseRaw):
             tal_data = self._read_segment_file(
                 np.empty((0, self.n_times)), idx, 0, 0, int(self.n_times),
                 np.ones((len(idx), 1)), None)
-            onset, duration, desc = _read_annotations_edf(tal_data[0])
+            onset, duration, desc = _read_annotations_edf(
+                tal_data[0],
+                encoding=encoding,
+            )
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
@@ -194,7 +200,7 @@ class RawGDF(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the GDF file.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -204,7 +210,7 @@ class RawGDF(BaseRaw):
         Names of channels or list of indices that should be designated MISC
         channels. Values should correspond to the electrodes in the file.
         Default is None.
-    stim_channel : 'auto' | str | list of str | int | list of int
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
         Defaults to 'auto', which means that channels named 'status' or
         'trigger' (case insensitive) are set to STIM. If str (or list of str),
         all channels matching the name(s) are set to STIM. If int (or list of
@@ -483,7 +489,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, infer_types, preload,
             chan_info['kind'] = CH_TYPE_MAPPING.get(ch_type)
             if ch_type not in ['EEG', 'ECOG', 'SEEG', 'DBS']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-                pick_mask[idx] = False
+            pick_mask[idx] = False
         # if user passes in explicit mapping for eog, misc and stim
         # channels set them here
         if ch_name in eog or idx in eog or idx - nchan in eog:
@@ -1303,12 +1309,12 @@ def _find_tal_idx(ch_names):
 @fill_doc
 def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
                  exclude=(), infer_types=False, include=None, preload=False,
-                 units=None, *, verbose=None):
-    """Reader function for EDF or EDF+ files.
+                 units=None, encoding='utf8', *, verbose=None):
+    """Reader function for EDF and EDF+ files.
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the EDF or EDF+ file.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -1318,11 +1324,11 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         Names of channels or list of indices that should be designated MISC
         channels. Values should correspond to the electrodes in the file.
         Default is None.
-    stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that channels named 'status' or
-        'trigger' (case insensitive) are set to STIM. If str (or list of str),
-        all channels matching the name(s) are set to STIM. If int (or list of
-        ints), channels corresponding to the indices are set to STIM.
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
+        Defaults to ``'auto'``, which means that channels named ``'status'`` or
+        ``'trigger'`` (case insensitive) are set to STIM. If str (or list of
+        str), all channels matching the name(s) are set to STIM. If int (or
+        list of ints), channels corresponding to the indices are set to STIM.
     exclude : list of str | str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
@@ -1344,18 +1350,21 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         .. versionadded:: 1.1
     %(preload)s
     %(units_edf_bdf_io)s
+    %(encoding_edf)s
     %(verbose)s
 
     Returns
     -------
     raw : instance of RawEDF
         The raw instance.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
     mne.io.read_raw_bdf : Reader function for BDF files.
     mne.io.read_raw_gdf : Reader function for GDF files.
     mne.export.export_raw : Export function for EDF files.
+    mne.io.Raw : Documentation of attributes and methods of RawEDF.
 
     Notes
     -----
@@ -1406,18 +1415,18 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude,
                   infer_types=infer_types, preload=preload, include=include,
-                  units=units, verbose=verbose)
+                  units=units, encoding=encoding, verbose=verbose)
 
 
 @fill_doc
 def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
                  exclude=(), infer_types=False, include=None, preload=False,
-                 units=None, *, verbose=None):
+                 units=None, encoding='utf8', *, verbose=None):
     """Reader function for BDF files.
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the BDF file.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -1427,11 +1436,11 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         Names of channels or list of indices that should be designated MISC
         channels. Values should correspond to the electrodes in the file.
         Default is None.
-    stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that channels named 'status' or
-        'trigger' (case insensitive) are set to STIM. If str (or list of str),
-        all channels matching the name(s) are set to STIM. If int (or list of
-        ints), channels corresponding to the indices are set to STIM.
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
+        Defaults to ``'auto'``, which means that channels named ``'status'`` or
+        ``'trigger'`` (case insensitive) are set to STIM. If str (or list of
+        str), all channels matching the name(s) are set to STIM. If int (or
+        list of ints), channels corresponding to the indices are set to STIM.
     exclude : list of str | str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
@@ -1453,17 +1462,20 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         .. versionadded:: 1.1
     %(preload)s
     %(units_edf_bdf_io)s
+    %(encoding_edf)s
     %(verbose)s
 
     Returns
     -------
     raw : instance of RawEDF
         The raw instance.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
     mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
     mne.io.read_raw_gdf : Reader function for GDF files.
+    mne.io.Raw : Documentation of attributes and methods of RawEDF.
 
     Notes
     -----
@@ -1508,7 +1520,7 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude,
                   infer_types=infer_types, preload=preload, include=include,
-                  units=units, verbose=verbose)
+                  units=units, encoding=encoding, verbose=verbose)
 
 
 @fill_doc
@@ -1518,7 +1530,7 @@ def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the GDF file.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
@@ -1528,11 +1540,11 @@ def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
         Names of channels or list of indices that should be designated MISC
         channels. Values should correspond to the electrodes in the file.
         Default is None.
-    stim_channel : 'auto' | str | list of str | int | list of int
-        Defaults to 'auto', which means that channels named 'status' or
-        'trigger' (case insensitive) are set to STIM. If str (or list of str),
-        all channels matching the name(s) are set to STIM. If int (or list of
-        ints), channels corresponding to the indices are set to STIM.
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
+        Defaults to ``'auto'``, which means that channels named ``'status'`` or
+        ``'trigger'`` (case insensitive) are set to STIM. If str (or list of
+        str), all channels matching the name(s) are set to STIM. If int (or
+        list of ints), channels corresponding to the indices are set to STIM.
     exclude : list of str | str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
@@ -1547,11 +1559,13 @@ def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
     -------
     raw : instance of RawGDF
         The raw instance.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
     mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
     mne.io.read_raw_bdf : Reader function for BDF files.
+    mne.io.Raw : Documentation of attributes and methods of RawGDF.
 
     Notes
     -----
@@ -1568,13 +1582,15 @@ def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
                   include=include, verbose=verbose)
 
 
-def _read_annotations_edf(annotations):
+@fill_doc
+def _read_annotations_edf(annotations, encoding='utf8'):
     """Annotation File Reader.
 
     Parameters
     ----------
     annotations : ndarray (n_chans, n_samples) | str
         Channel data in EDF+ TAL format or path to annotation file.
+    %(encoding_edf)s
 
     Returns
     -------
@@ -1589,8 +1605,9 @@ def _read_annotations_edf(annotations):
     """
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
     if isinstance(annotations, str):
-        with open(annotations, encoding='latin-1') as annot_file:
-            triggers = re.findall(pat, annot_file.read())
+        with open(annotations, "rb") as annot_file:
+            triggers = re.findall(pat.encode(), annot_file.read())
+            triggers = [tuple(map(lambda x: x.decode(), t)) for t in triggers]
     else:
         tals = bytearray()
         annotations = np.atleast_2d(annotations)
@@ -1609,8 +1626,13 @@ def _read_annotations_edf(annotations):
                 # Exploit np vectorized processing
                 tals.extend(np.uint8([this_chan % 256, this_chan // 256])
                             .flatten('F'))
-
-        triggers = re.findall(pat, tals.decode('utf8'))
+        try:
+            triggers = re.findall(pat, tals.decode(encoding))
+        except UnicodeDecodeError as e:
+            raise Exception(
+                "Encountered invalid byte in at least one annotations channel."
+                " You might want to try setting \"encoding='latin1'\"."
+            ) from e
 
     events = []
     offset = 0.
@@ -1632,11 +1654,6 @@ def _read_annotations_edf(annotations):
                 offset = -onset
 
     return zip(*events) if events else (list(), list(), list())
-
-
-def _get_edf_default_event_id(descriptions):
-    mapping = {a: n for n, a in enumerate(sorted(set(descriptions)), start=1)}
-    return mapping
 
 
 def _get_annotations_gdf(edf_info, sfreq):

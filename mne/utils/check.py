@@ -9,16 +9,16 @@ from difflib import get_close_matches
 from importlib import import_module
 import operator
 import os
-import os.path as op
 from pathlib import Path
 import re
-import sys
 import numbers
 
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from ._logging import warn, logger, verbose, _record_warnings
+from .docs import deprecated
+from ._logging import (warn, logger, verbose, _record_warnings,
+                       _verbose_safe_false)
 
 
 def _ensure_int(x, name='unknown', must_be='an int', *, extra=''):
@@ -210,38 +210,46 @@ def _check_event_id(event_id, events):
 
 
 @verbose
-def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 need_dir=False, *, verbose=None):
+def _check_fname(
+    fname,
+    overwrite=False,
+    must_exist=False,
+    name="File",
+    need_dir=False,
+    *,
+    verbose=None,
+):
     """Check for file existence, and return string of its absolute path."""
-    _validate_type(fname, 'path-like', name)
-    fname = str(
-        Path(fname)
-        .expanduser()
-        .absolute()
-    )
+    _validate_type(fname, "path-like", name)
+    fname = Path(fname).expanduser().absolute()
 
-    if op.exists(fname):
+    if fname.exists():
         if not overwrite:
-            raise FileExistsError('Destination file exists. Please use option '
-                                  '"overwrite=True" to force overwriting.')
-        elif overwrite != 'read':
-            logger.info('Overwriting existing file.')
+            raise FileExistsError(
+                "Destination file exists. Please use option "
+                '"overwrite=True" to force overwriting.'
+            )
+        elif overwrite != "read":
+            logger.info("Overwriting existing file.")
         if must_exist:
             if need_dir:
-                if not op.isdir(fname):
+                if not fname.is_dir():
                     raise IOError(
-                        f'Need a directory for {name} but found a file '
-                        f'at {fname}')
+                        f"Need a directory for {name} but found a file "
+                        f"at {fname}"
+                    )
             else:
-                if not op.isfile(fname):
+                if not fname.is_file():
                     raise IOError(
-                        f'Need a file for {name} but found a directory '
-                        f'at {fname}')
+                        f"Need a file for {name} but found a directory "
+                        f"at {fname}"
+                    )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(
-                    f'{name} does not have read permissions: {fname}')
+                    f"{name} does not have read permissions: {fname}"
+                )
     elif must_exist:
-        raise FileNotFoundError(f'{name} does not exist: {fname}')
+        raise FileNotFoundError(f"{name} does not exist: {fname}")
 
     return fname
 
@@ -822,6 +830,7 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
 
 def _check_qt_version(*, return_api=False):
     """Check if Qt is installed."""
+    from ..viz.backends._utils import _init_mne_qtapp
     try:
         from qtpy import QtCore, API_NAME as api
     except Exception:
@@ -831,11 +840,13 @@ def _check_qt_version(*, return_api=False):
             version = QtCore.__version__
         except AttributeError:
             version = QtCore.QT_VERSION_STR
-        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
-            if not _compare_version(version, '>=', '5.10'):
-                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
-                     f'got {version}. Please upgrade e.g. with:\n\n'
-                     f'    pip install "{api}>=5.10"\n')
+        # Having Qt installed is not enough -- sometimes the app is unusable
+        # for example because there is no usable display (e.g., on a server),
+        # so we have to try instantiating one to actually know.
+        try:
+            _init_mne_qtapp()
+        except Exception:
+            api = version = None
     if return_api:
         return version, api
     else:
@@ -864,7 +875,8 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
         assert info is not None
 
         if sphere == 'auto':
-            R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+            R, r0, _ = fit_sphere_to_headshape(
+                info, verbose=_verbose_safe_false(), units='m')
             sphere = tuple(r0) + (R,)
             sphere_units = 'm'
         elif sphere == 'eeglab':
@@ -956,6 +968,47 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
     return sphere
 
 
+def _check_head_radius(radius, add_info=''):
+    """Check that head radius is within a reasonable range (5. - 10.85 cm).
+
+    Parameters
+    ----------
+    radius : float
+        Head radius in meters.
+    add_info : str
+        Additional info to add to the warning message.
+
+    Notes
+    -----
+    The maximum value was taken from the head size percentiles given in the
+    following Wikipedia infographic:
+    https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
+
+    the maximum radius is taken from the 99th percentile for men Glabella
+    to back of the head measurements (Glabella is a point just above the
+    Nasion):
+
+        21.7cm / 2 = 10.85 cm = 0.1085 m
+
+    The minimum value was taken from The National Center for Health Statistics
+    (USA) infant head circumference percentiles:
+    https://www.cdc.gov/growthcharts/html_charts/hcageinf.htm
+    we take the minimum to be the radius corresponding to the 3rd percentile
+    head circumference of female 0-month infant, rounded down:
+    31.9302 cm circumference / (2 * pi) = 5.08 cm radius -> 0.05 m
+    """
+    min_radius = 0.05
+    max_radius = 0.1085
+    if radius > max_radius:
+        msg = (f'Estimated head radius ({1e2 * radius:0.1f} cm) is '
+               'above the 99th percentile for adult head size.')
+        warn(msg + add_info)
+    elif radius < min_radius:
+        msg = (f'Estimated head radius ({1e2 * radius:0.1f} cm) is '
+               'below the 3rd percentile for infant head size.')
+        warn(msg + add_info)
+
+
 def _check_freesurfer_home():
     from .config import get_config
     fs_home = get_config('FREESURFER_HOME')
@@ -975,9 +1028,9 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _check_on_missing(on_missing, name='on_missing'):
+def _check_on_missing(on_missing, name='on_missing', *, extras=()):
     _validate_type(on_missing, str, name)
-    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'] + list(extras))
 
 
 def _on_missing(on_missing, msg, name='on_missing', error_klass=None):
@@ -1034,3 +1087,17 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
+
+
+@deprecated('has_nibabel is deprecated and will be removed in 1.5')
+def has_nibabel():
+    return check_version('nibabel')  # pragma: no cover
+
+
+def _import_nibabel(why='use MRI files'):
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        raise exp.__class__(
+            'nibabel is required to %s, got:\n%s' % (why, exp)) from None
+    return nib

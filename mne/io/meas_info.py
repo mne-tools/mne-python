@@ -30,15 +30,16 @@ from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_and_end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
-                    write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix, write_id, DATE_NONE)
+                    write_coord_trans, write_ch_info,
+                    write_julian, write_float_matrix, write_id, DATE_NONE,
+                    _safe_name_list, write_name_list_sanitized)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans, _frame_to_str)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
                      _check_option, _on_missing, _check_on_missing, fill_doc,
-                     _check_fname)
+                     _check_fname, repr_html)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig, _get_data_as_dict_from_dig
@@ -248,7 +249,8 @@ class ContainsMixin(object):
         Parameters
         ----------
         ch_type : str
-            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+            Channel type to check for. Can be e.g. ``'meg'``, ``'eeg'``,
+            ``'stim'``, etc.
 
         Returns
         -------
@@ -377,19 +379,21 @@ class Info(dict, MontageMixin, ContainsMixin):
     `FIF format specification <https://github.com/mne-tools/fiff-constants>`__,
     so new entries should not be manually added.
 
-    .. warning:: The only entries that should be manually changed by the user
-                 are ``info['bads']``, ``info['description']``,
-                 ``info['device_info']``, ``info['dev_head_t']``,
-                 ``info['experimenter']``, info['helium_info'],
-                 ``info['line_freq']``, ``info['temp']`` and
-                 ``info['subject_info']``. All other entries should be
-                 considered read-only, though they can be modified by various
-                 MNE-Python functions or methods (which have safeguards to
-                 ensure all fields remain in sync).
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.Info(...)``. Instead, use :func:`mne.create_info` to create
+        measurement information from scratch.
 
-    .. warning:: This class should not be instantiated directly. To create a
-                 measurement information structure, use
-                 :func:`mne.create_info`.
+    .. warning::
+        The only entries that should be manually changed by the user are:
+        ``info['bads']``, ``info['description']``, ``info['device_info']``
+        ``info['dev_head_t']``, ``info['experimenter']``,
+        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
+        and ``info['subject_info']``.
+
+        All other entries should be considered read-only, though they can be
+        modified by various MNE-Python functions or methods (which have
+        safeguards to ensure all fields remain in sync).
 
     Parameters
     ----------
@@ -1174,6 +1178,7 @@ class Info(dict, MontageMixin, ContainsMixin):
 
         return good_channels, bad_channels, ecg, eog
 
+    @repr_html
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
         from ..html_templates import repr_templates_env
@@ -1223,6 +1228,16 @@ class Info(dict, MontageMixin, ContainsMixin):
             sfreq=self.get('sfreq'),
             experimenter=self.get('experimenter'),
         )
+
+    def save(self, fname):
+        """Write measurement info in fif file.
+
+        Parameters
+        ----------
+        fname : path-like
+            The name of the file. Should end by ``'-info.fif'``.
+        """
+        write_info(fname, self)
 
 
 def _simplify_info(info):
@@ -1317,7 +1332,7 @@ def read_info(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File name.
     %(verbose)s
 
@@ -1358,9 +1373,19 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = tag.data.split(':')
-    bads[:] = _rename_list(bads, ch_names_mapping)
+                bads = _safe_name_list(tag.data, 'read', 'bads')
+        bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
+
+
+def _write_bad_channels(fid, bads, ch_names_mapping):
+    if bads is not None and len(bads) > 0:
+        ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
+        bads = _rename_list(bads, ch_names_mapping)
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, 'bads')
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
 
 @verbose
@@ -2056,11 +2081,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proj(fid, info['projs'], ch_names_mapping=ch_names_mapping)
 
     #   Bad channels
-    if len(info['bads']) > 0:
-        bads = _rename_list(info['bads'], ch_names_mapping)
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    _write_bad_channels(fid, info['bads'], ch_names_mapping=ch_names_mapping)
 
     #   General
     if info.get('experimenter') is not None:
@@ -2186,8 +2207,8 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. Should end by -info.fif.
+    fname : path-like
+        The name of the file. Should end by ``-info.fif``.
     %(info_not_none)s
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
@@ -2428,6 +2449,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     be initialized to the identity transform.
 
     Proper units of measure:
+
     * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad

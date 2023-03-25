@@ -42,6 +42,15 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         The noise covariance. If provided, whitening will be done. Providing a
         noise covariance is mandatory if you mix sensor types, e.g.
         gradiometers with magnetometers or EEG with MEG.
+
+        .. note::
+            If ``noise_cov`` is ``None`` and ``weight_norm='unit-noise-gain'``,
+            the unit noise is assumed to be 1 in SI units, e.g., 1 T for
+            magnetometers, 1 V for EEG, so resulting amplitudes will be tiny.
+            Consider using :func:`mne.make_ad_hoc_cov` to provide a
+            ``noise_cov`` to set noise values that are more reasonable for
+            neural data or using ``weight_norm='nai'`` for weight-normalized
+            beamformer output that is scaled by a noise estimate.
     label : instance of Label
         Restricts the LCMV solution to a given label.
     %(pick_ori_bf)s

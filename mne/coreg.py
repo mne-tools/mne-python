@@ -40,8 +40,8 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          rot_to_quat, _angle_between_quats)
 from .channels import make_dig_montage
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel, fill_doc, _validate_type,
-                    _check_subject, _check_option)
+                    warn, fill_doc, _validate_type,
+                    _check_subject, _check_option, _import_nibabel)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -109,7 +109,7 @@ def coregister_fiducials(info, fiducials, tol=0.01):
     Parameters
     ----------
     %(info_not_none)s
-    fiducials : str | list of dict
+    fiducials : path-like | list of dict
         Fiducials in MRI coordinate space (either path to a ``*-fiducials.fif``
         file or list of fiducials as returned by :func:`read_fiducials`.
 
@@ -150,15 +150,15 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None,
     Parameters
     ----------
     fs_home : None | str
-        The freesurfer home directory (only needed if FREESURFER_HOME is not
-        specified as environment variable).
+        The freesurfer home directory (only needed if ``FREESURFER_HOME`` is
+        not specified as environment variable).
     update : bool
         In cases where a copy of the fsaverage brain already exists in the
         subjects_dir, this option allows to only copy files that don't already
         exist in the fsaverage directory.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable
-        (os.environ['SUBJECTS_DIR']) as destination for the new subject.
+    subjects_dir : None | path-like
+        Override the ``SUBJECTS_DIR`` environment variable
+        (``os.environ['SUBJECTS_DIR']``) as destination for the new subject.
     %(verbose)s
 
     Notes
@@ -170,7 +170,7 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None,
     files from Freesurfer into the current subjects_dir, and also adds the
     auxiliary files provided by MNE.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     if fs_home is None:
         fs_home = get_config('FREESURFER_HOME', fs_home)
         if fs_home is None:
@@ -493,7 +493,7 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
         Pattern for finding the labels relative to the label directory in the
         MRI subject directory (e.g., "aparc/*.label" will find all labels
         in the "subject/label/aparc" directory). With None, find all labels.
-    subjects_dir : None | str
+    subjects_dir : None | path-like
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
 
@@ -503,8 +503,8 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
         List of paths relative to the subject's label directory
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    subject_dir = os.path.join(subjects_dir, subject)
-    lbl_dir = os.path.join(subject_dir, 'label')
+    subject_dir = subjects_dir / subject
+    lbl_dir = subject_dir / "label"
 
     if pattern is None:
         paths = []
@@ -529,7 +529,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     skip_fiducials : bool
         Do not scale the MRI fiducials. If False, an IOError will be raised
         if no fiducials file can be found.
-    subjects_dir : None | str
+    subjects_dir : None | path-like
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
 
@@ -539,7 +539,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         Dictionary whose keys are relevant file type names (str), and whose
         values are lists of paths.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     paths = {}
 
     # directories to create
@@ -664,7 +664,7 @@ def _is_mri_subject(subject, subjects_dir=None):
     ----------
     subject : str
         Name of the potential subject/directory.
-    subjects_dir : None | str
+    subjects_dir : None | path-like
         Override the SUBJECTS_DIR environment variable.
 
     Returns
@@ -672,7 +672,7 @@ def _is_mri_subject(subject, subjects_dir=None):
     is_mri_subject : bool
         Whether ``subject`` is an mri subject.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     return bool(_find_head_bem(subject, subjects_dir) or
                 _find_head_bem(subject, subjects_dir, high_res=True))
 
@@ -684,7 +684,7 @@ def _is_scaled_mri_subject(subject, subjects_dir=None):
     ----------
     subject : str
         Name of the potential subject/directory.
-    subjects_dir : None | str
+    subjects_dir : None | path-like
         Override the SUBJECTS_DIR environment variable.
 
     Returns
@@ -695,8 +695,8 @@ def _is_scaled_mri_subject(subject, subjects_dir=None):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if not _is_mri_subject(subject, subjects_dir):
         return False
-    fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
-    return os.path.exists(fname)
+    fname = subjects_dir / subject / "MRI scaling parameters.cfg"
+    return fname.exists()
 
 
 def _mri_subject_has_bem(subject, subjects_dir=None):
@@ -706,7 +706,7 @@ def _mri_subject_has_bem(subject, subjects_dir=None):
     ----------
     subject : str
         Name of the subject.
-    subjects_dir : None | str
+    subjects_dir : None | path-like
         Override the SUBJECTS_DIR environment variable.
 
     Returns
@@ -714,7 +714,7 @@ def _mri_subject_has_bem(subject, subjects_dir=None):
     has_bem_file : bool
         Whether ``subject`` has a bem file.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     pattern = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
                                name='*-bem')
     fnames = glob(pattern)
@@ -728,8 +728,8 @@ def read_mri_cfg(subject, subjects_dir=None):
     ----------
     subject : str
         Name of the scaled MRI subject.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
+    subjects_dir : None | path-like
+        Override the ``SUBJECTS_DIR`` environment variable.
 
     Returns
     -------
@@ -737,9 +737,9 @@ def read_mri_cfg(subject, subjects_dir=None):
         Dictionary with entries from the MRI's cfg file.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
+    fname = subjects_dir / subject / "MRI scaling parameters.cfg"
 
-    if not os.path.exists(fname):
+    if not fname.exists():
         raise IOError("%r does not seem to be a scaled mri subject: %r does "
                       "not exist." % (subject, fname))
 
@@ -765,7 +765,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Target file.
     subject_from : str
         Name of the source MRI subject.
@@ -799,7 +799,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
 
     Returns
     -------
-    subjects_dir : str
+    subjects_dir : path-like
         Subjects directory.
     subject_from : str
         Name of the source subject.
@@ -826,7 +826,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
                          "or array of length 3. Got shape %s."
                          % (scale.shape,))
     n_params = len(scale)
-    return subjects_dir, subject_from, scale, n_params == 1
+    return str(subjects_dir), subject_from, scale, n_params == 1
 
 
 @verbose
@@ -898,8 +898,8 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     scale : None | float | array_like, shape = (3,)
         Scaling parameter. If None, the value is read from subject_to's cfg
         file.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
+    subjects_dir : None | path-like
+        Override the ``SUBJECTS_DIR`` environment variable.
     """
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir)
@@ -910,20 +910,19 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
         return
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    src_root = os.path.join(subjects_dir, subject_from, 'label')
-    dst_root = os.path.join(subjects_dir, subject_to, 'label')
+    src_root = subjects_dir / subject_from / "label"
+    dst_root = subjects_dir / subject_to / "label"
 
     # scale labels
     for fname in paths:
-        dst = os.path.join(dst_root, fname)
-        if not overwrite and os.path.exists(dst):
+        dst = dst_root / fname
+        if not overwrite and dst.exists():
             continue
 
-        dirname = os.path.dirname(dst)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
+        if not dst.parent.exists():
+            os.makedirs(dst.parent)
 
-        src = os.path.join(src_root, fname)
+        src = src_root / fname
         l_old = read_label(src)
         pos = l_old.pos * scale
         l_new = Label(l_old.vertices, pos, l_old.values, l_old.hemi,
@@ -947,8 +946,8 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         The scaling factor (one or 3 parameters).
     overwrite : bool
         If an MRI already exists for subject_to, overwrite it.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable.
+    subjects_dir : None | path-like
+        Override the ``SUBJECTS_DIR`` environment variable.
     skip_fiducials : bool
         Do not scale the MRI fiducials. If False (default), an IOError will be
         raised if no fiducials file can be found.
@@ -973,7 +972,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     :func:`scale_labels`, and :func:`scale_source_space` based on expected
     filename patterns in the subject directory.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)
     scale = np.atleast_1d(scale)
     if scale.shape == (3,):
@@ -1170,12 +1169,7 @@ def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
     """Scale an MRI by setting its affine."""
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir)
-
-    if not has_nibabel():
-        warn('Skipping MRI scaling for %s, please install nibabel')
-        return
-
-    import nibabel
+    nibabel = _import_nibabel('scale an MRI')
     fname_from = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_from), mri_fname)
     fname_to = op.join(mri_dirname.format(
@@ -1199,9 +1193,6 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     # The nibabel warning should already be there in MRI step, if applicable,
     # as we only get here if T1.mgz is present (and thus a scaling was
     # attempted) so we can silently return here.
-    if not has_nibabel():
-        return
-
     fname_from = os.path.join(
         mri_transforms_dirname.format(
             subjects_dir=subjects_dir, subject=subject_from), xfm_fname)
@@ -1329,7 +1320,9 @@ class Coregistration(object):
         _validate_type(info, (Info, None), 'info')
         self._info = info
         self._subject = _check_subject(subject, subject)
-        self._subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        self._subjects_dir = str(
+            get_subjects_dir(subjects_dir, raise_error=True)
+        )
         self._scale_mode = None
         self._on_defects = on_defects
 

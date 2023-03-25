@@ -59,7 +59,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Use a high resolution head surface.
         Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value
         (which defaults to True).
-    trans : str | None
+    trans : path-like | None
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
@@ -124,7 +124,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Step by step instructions for the coregistrations are shown below:
 
-    .. youtube:: uK4n5g6DBcg
+    .. youtube:: ALV5qqMHLlQ
     """
     unsupported_params = {
         'tabbed': (tabbed, False),
@@ -201,7 +201,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
 
 @verbose
-def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
+def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
                 groups=None, show=True, block=False, verbose=None):
     """Locate intracranial electrode contacts.
 
@@ -209,9 +209,11 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     ----------
     %(info_not_none)s
     %(trans_not_none)s
-    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
-        The CT image that has been aligned to the Freesurfer T1. Path-like
-        inputs and nibabel image objects are supported.
+    base_image : path-like | nibabel.spatialimages.SpatialImage
+        The CT or MR image on which the electrode contacts can located. It
+        must be aligned to the Freesurfer T1 if ``subject`` and
+        ``subjects_dir`` are provided. Path-like inputs and nibabel image
+        objects are supported.
     %(subject)s
     %(subjects_dir)s
     groups : dict | None
@@ -240,7 +242,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     if app is None:
         app = QApplication(["Intracranial Electrode Locator"])
     gui = IntracranialElectrodeLocator(
-        info, trans, aligned_ct, subject=subject, subjects_dir=subjects_dir,
+        info, trans, base_image, subject=subject, subjects_dir=subjects_dir,
         groups=groups, show=show, verbose=verbose)
     if block:
         _qt_app_exec(app)

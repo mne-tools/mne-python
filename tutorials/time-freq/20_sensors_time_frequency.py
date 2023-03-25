@@ -59,37 +59,39 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
+epochs.compute_psd(fmin=2., fmax=40.).plot(average=True)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged
 # across epochs and frequency bands.
-epochs.plot_psd_topomap(ch_type='grad', normalize=False)
+epochs.compute_psd().plot_topomap(ch_type='grad', normalize=False, contours=0)
 
 # %%
 # Alternatively, you can also create PSDs from `~mne.Epochs` methods directly.
 #
 # .. note::
-#    In contrast to the methods for visualization, those ``psd_*`` functions do
-#    **not** scale the data from SI units to more "convenient" values. So when
-#    e.g. calculating the PSD of gradiometers via
-#    :func:`~mne.time_frequency.psd_multitaper`, you will get the power as
+#    In contrast to the methods for visualization, the ``compute_psd`` methods
+#    do **not** scale the data from SI units to more "convenient" values. So
+#    when e.g. calculating the PSD of gradiometers via
+#    :meth:`~mne.Epochs.compute_psd`, you will get the power as
 #    ``(T/m)²/Hz`` (instead of ``(fT/cm)²/Hz`` via
 #    :meth:`~mne.Epochs.plot_psd`).
 
-f, ax = plt.subplots()
+_, ax = plt.subplots()
 spectrum = epochs.compute_psd(fmin=2., fmax=40., tmax=3., n_jobs=None)
-psds, freqs = spectrum.get_data(return_freqs=True)
-psds = 10 * np.log10(psds)  # convert to dB
-psds_mean = psds.mean(0).mean(0)
-psds_std = psds.mean(0).std(0)
+# average across epochs first
+mean_spectrum = spectrum.average()
+psds, freqs = mean_spectrum.get_data(return_freqs=True)
+# then convert to dB and take mean & standard deviation across channels
+psds = 10 * np.log10(psds)
+psds_mean = psds.mean(axis=0)
+psds_std = psds.std(axis=0)
 
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5, edgecolor='none')
 ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
-plt.show()
 
 # %%
 # Notably, :meth:`mne.Epochs.compute_psd` supports the keyword argument
@@ -121,19 +123,17 @@ ax.plot(freqs_mean, psds_welch_mean[epo_idx, ch_idx, :], color='k',
 ax.plot(freqs_median, psds_welch_median[epo_idx, ch_idx, :], color='k',
         ls='--', label='median of segments')
 
-ax.set(title='Welch PSD ({}, Epoch {})'.format(ch_name, epo_idx),
+ax.set(title=f'Welch PSD ({ch_name}, Epoch {epo_idx})',
        xlabel='Frequency (Hz)', ylabel='Power Spectral Density (dB)')
 ax.legend(loc='upper right')
-plt.show()
 
 # %%
 # Lastly, we can also retrieve the unaggregated segments by passing
 # ``average=None`` to :meth:`mne.Epochs.compute_psd`. The dimensions of
 # the returned array are ``(n_epochs, n_sensors, n_freqs, n_segments)``.
 
-psds_welch_unagg, freqs_unagg = epochs.compute_psd(
-    'welch', average=None, **kwargs).get_data(return_freqs=True)
-print(psds_welch_unagg.shape)
+welch_unagg = epochs.compute_psd('welch', average=None, **kwargs)
+print(welch_unagg.shape)
 
 # %%
 # .. _inter-trial-coherence:
@@ -172,15 +172,13 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio', title=power.ch_names[82])
 
-fig, axis = plt.subplots(1, 2, figsize=(7, 4))
-power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
-                   baseline=(-0.5, 0), mode='logratio', axes=axis[0],
-                   title='Alpha', show=False)
-power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
-                   baseline=(-0.5, 0), mode='logratio', axes=axis[1],
-                   title='Beta', show=False)
-mne.viz.tight_layout()
-plt.show()
+fig, axes = plt.subplots(1, 2, figsize=(7, 4), constrained_layout=True)
+topomap_kw = dict(ch_type='grad', tmin=0.5, tmax=1.5, baseline=(-0.5, 0),
+                  mode='logratio', show=False)
+plot_dict = dict(Alpha=dict(fmin=8, fmax=12), Beta=dict(fmin=13, fmax=25))
+for ax, (title, fmin_fmax) in zip(axes, plot_dict.items()):
+    power.plot_topomap(**fmin_fmax, axes=ax, **topomap_kw)
+    ax.set_title(title)
 
 # %%
 # Joint Plot
@@ -190,7 +188,7 @@ plt.show()
 # a quick overview regarding oscillatory effects across time and space.
 
 power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
-                 timefreqs=[(.5, 10), (1.3, 8)])
+                 timefreqs=[(0.5, 10), (1.3, 8)])
 
 # %%
 # Inspect ITC
@@ -201,7 +199,9 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 # .. note::
 #     Baseline correction can be applied to power or done in plots.
 #     To illustrate the baseline correction in plots, the next line is
-#     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
+#     commented::
+#
+#     # power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
 #
 # Exercise
 # --------

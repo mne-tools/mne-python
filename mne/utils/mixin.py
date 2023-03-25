@@ -495,18 +495,26 @@ class TimeMixin(object):
         -----
         %(notes_tmax_included_by_default)s
         """
+        t_vars = dict(tmin=tmin, tmax=tmax)
+        for name, t_var in t_vars.items():
+            _validate_type(
+                t_var,
+                types=("numeric", None),
+                item_name=name,
+            )
+
         if tmin is None:
             tmin = self.tmin
         elif tmin < self.tmin:
             warn(f'tmin is not in time interval. tmin is set to '
-                 f'{type(self)}.tmin ({self.tmin:g} sec)')
+                 f'{type(self)}.tmin ({self.tmin:g} s)')
             tmin = self.tmin
 
         if tmax is None:
             tmax = self.tmax
         elif tmax > self.tmax:
             warn(f'tmax is not in time interval. tmax is set to '
-                 f'{type(self)}.tmax ({self.tmax:g} sec)')
+                 f'{type(self)}.tmax ({self.tmax:g} s)')
             tmax = self.tmax
             include_tmax = True
 

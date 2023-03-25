@@ -122,7 +122,7 @@ ax.set_axis_off()
 # lt.save(layout_path / layout_name)  # save if we want
 
 # # We've already got the layout, load it
-lt = mne.channels.read_layout(layout_name, path=layout_path, scale=False)
+lt = mne.channels.read_layout(layout_path / layout_name, scale=False)
 x = lt.pos[:, 0] * float(im.shape[1])
 y = (1 - lt.pos[:, 1]) * float(im.shape[0])  # Flip the y-position
 fig, ax = plt.subplots()

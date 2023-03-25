@@ -83,17 +83,17 @@ the notebook 3d backend:
 The notebook 3d backend requires PyVista to be installed along with other packages,
 please follow :ref:`standard-instructions`.
 
-Installing to a headless server
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installing to a headless Linux server
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-With `pyvista`_:
-Download the `server environment file`_ and use it to create the conda
-environment
+First, follow the standard installation instructions. Next, you can choose
+to install the ``osmesa`` (off-screen MESA) VTK variant, which avoids the need
+to use Xvfb to start a virtual display (and have a sufficiently updated
+MESA to render properly):
 
 .. code-block:: console
 
-    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
-    $ conda env create -f server_environment.yml
+    $ conda install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -277,7 +277,6 @@ line for ``pip uninstall -y vtk``.
 .. LINKS
 
 .. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
-.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb

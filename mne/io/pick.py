@@ -33,12 +33,12 @@ def get_channel_type_constants(include_defaults=False):
 
     Notes
     -----
-        Values which might vary within a channel type across real data
-        recordings are excluded unless ``include_defaults=True``. For example,
-        "ref_meg" channels may have coil type
-        ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
-        (depending on the recording system), so no "coil_type" entry is given
-        for "ref_meg" unless ``include_defaults`` is requested.
+    Values which might vary within a channel type across real data
+    recordings are excluded unless ``include_defaults=True``. For example,
+    "ref_meg" channels may have coil type
+    ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
+    (depending on the recording system), so no "coil_type" entry is given
+    for "ref_meg" unless ``include_defaults`` is requested.
     """
     base = dict(grad=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T_M),
                 mag=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T),
@@ -523,6 +523,9 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             c['data']['data'] = c['data']['data'][row_idx]
         with info._unlock():
             info['comps'] = comps
+    if info.get('custom_ref_applied', False) and not _electrode_types(info):
+        with info._unlock():
+            info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     info._check_consistency()
 
     return info
@@ -938,6 +941,13 @@ _VALID_CHANNEL_TYPES = (
     'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
+# Electrode types (e.g., can be average-referenced together or separately)
+_ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
+
+
+def _electrode_types(info, *, exclude='bads'):
+    return [ch_type for ch_type in _ELECTRODE_CH_TYPES
+            if len(pick_types(info, exclude=exclude, **{ch_type: True}))]
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True,
@@ -960,8 +970,15 @@ def _pick_data_or_ica(info, exclude=()):
 
 
 def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
-                  with_ref_meg=True, return_kind=False):
-    """Convert and check pick validity."""
+                  with_ref_meg=True, return_kind=False, picks_on="channels"):
+    """Convert and check pick validity.
+
+    Parameters
+    ----------
+    picks_on : str
+        'channels' (default) for error messages about selection of channels.
+        'components' for error messages about selection of components.
+    """
     from .meas_info import Info
     picked_ch_type_or_generic = False
     #
@@ -1007,8 +1024,12 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
     if picks.dtype.kind not in ['i', 'u']:
-        raise TypeError('picks must be a list of int or list of str, got '
-                        'a data type of %s' % (picks.dtype,))
+        extra_ch = " or list of str (names)" if picks_on == "channels" else ""
+        msg = (
+            f"picks must be a list of int (indices){extra_ch}. "
+            f"The provided data type {picks.dtype} is invalid."
+        )
+        raise TypeError(msg)
     del extra_repr
     picks = picks.astype(int)
 
@@ -1016,14 +1037,14 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     # ensure we have (optionally non-empty) ndarray of valid int
     #
     if len(picks) == 0 and not allow_empty:
-        raise ValueError('No appropriate channels found for the given picks '
-                         '(%r)' % (orig_picks,))
+        raise ValueError('No appropriate %s found for the given picks '
+                         '(%r)' % (picks_on, orig_picks))
     if (picks < -n_chan).any():
         raise ValueError('All picks must be >= %d, got %r'
                          % (-n_chan, orig_picks))
     if (picks >= n_chan).any():
-        raise ValueError('All picks must be < n_channels (%d), got %r'
-                         % (n_chan, orig_picks))
+        raise ValueError('All picks must be < n_%s (%d), got %r'
+                         % (picks_on, n_chan, orig_picks))
     picks %= n_chan  # ensure positive
     if return_kind:
         return picks, picked_ch_type_or_generic

@@ -13,7 +13,6 @@ from typing import Tuple, Optional
 from collections.abc import Sequence
 import base64
 from io import BytesIO, StringIO
-import contextlib
 import os
 import os.path as op
 from pathlib import Path
@@ -27,7 +26,6 @@ import webbrowser
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from ..fixes import _compare_version
 from .. import (read_evokeds, read_events, read_cov,
                 read_source_estimate, read_trans, sys_info,
                 Evoked, SourceEstimate, Covariance, Info, Transform)
@@ -40,8 +38,10 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname,
-                     _check_ch_locs, _import_h5io_funcs)
+                     _path_like, use_log_level, _check_fname, _pl,
+                     _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
+                     check_version, _import_nibabel)
+from ..utils.spectrum import _split_psd_kwargs
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
                    Figure3D, use_browser_backend)
@@ -346,21 +346,46 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
         own_figure = True  # close the fig we just created
 
     output = BytesIO()
+    dpi = fig.get_dpi()
     logger.debug(
         f'Saving figure with dimension {fig.get_size_inches()} inches with '
-        f'{fig.get_dpi()} dpi'
+        f'{{dpi}} dpi'
     )
 
+    # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
+    mpl_kwargs = dict()
+    pil_kwargs = dict()
+    has_pillow = check_version('PIL')
+    if has_pillow:
+        if image_format == 'webp':
+            pil_kwargs.update(lossless=True, method=6)
+        elif image_format == 'png':
+            pil_kwargs.update(optimize=True, compress_level=9)
+    if pil_kwargs:
+        # matplotlib modifies the passed dict, which is a bug
+        mpl_kwargs['pil_kwargs'] = pil_kwargs.copy()
     with warnings.catch_warnings():
         warnings.filterwarnings(
             action='ignore',
             message='.*Axes that are not compatible with tight_layout.*',
             category=UserWarning
         )
-        fig.savefig(output, format=image_format, dpi=fig.get_dpi())
+        fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
     if own_figure:
         plt.close(fig)
+
+    # Remove alpha
+    if image_format != 'svg' and has_pillow:
+        from PIL import Image
+        output.seek(0)
+        orig = Image.open(output)
+        if orig.mode == 'RGBA':
+            background = Image.new('RGBA', orig.size, (255, 255, 255))
+            new = Image.alpha_composite(background, orig).convert('RGB')
+            output = BytesIO()
+            new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
+
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
             base64.b64encode(output).decode('ascii'))
@@ -405,14 +430,8 @@ def _get_bem_contour_figs_as_arrays(
     list of array
         A list of NumPy arrays that represent the generated Matplotlib figures.
     """
-    # Matplotlib <3.2 doesn't work nicely with process-based parallelization
-    from matplotlib import __version__ as MPL_VERSION
-    kwargs = dict()
-    if _compare_version(MPL_VERSION, '<', '3.2'):
-        kwargs['prefer'] = 'threads'
-
     parallel, p_fun, n_jobs = parallel_func(
-        _plot_mri_contours, n_jobs, max_jobs=len(sl), **kwargs)
+        _plot_mri_contours, n_jobs, max_jobs=len(sl), prefer='threads')
     outs = parallel(
         p_fun(
             slices=s, mri_fname=mri_fname, surfaces=surfaces,
@@ -556,7 +575,7 @@ def open_report(fname, **params):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file containing the report, stored in the HDF5 format. If the file
         does not exist yet, a new report is created that will be saved to the
         specified file.
@@ -571,7 +590,7 @@ def open_report(fname, **params):
     report : instance of Report
         The report.
     """
-    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
+    fname = str(_check_fname(fname=fname, overwrite="read", must_exist=False))
     if op.exists(fname):
         # Check **params with the loaded report
         read_hdf5, _ = _import_h5io_funcs()
@@ -599,6 +618,16 @@ def open_report(fname, **params):
 mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
 mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
 
+_ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'webp')
+
+
+def _webp_supported():
+    good = check_version('matplotlib', '3.6') and check_version('PIL')
+    if good:
+        from PIL import features
+        good = features.check('webp')
+    return good
+
 
 def _check_scale(scale):
     """Ensure valid scale value is passed."""
@@ -609,10 +638,17 @@ def _check_scale(scale):
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
-        _check_option('image_format', image_format,
-                      allowed_values=('png', 'svg', 'gif'))
+        allowed = list(_ALLOWED_IMAGE_FORMATS) + ['auto']
+        extra = ''
+        if not _webp_supported():
+            allowed.pop(allowed.index('webp'))
+            extra = '("webp" supported on matplotlib 3.6+ with PIL installed)'
+        _check_option(
+            'image_format', image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
+    if image_format == 'auto':
+        image_format = 'webp' if _webp_supported() else 'png'
     return image_format
 
 
@@ -633,19 +669,25 @@ class Report:
         Name of the file containing the noise covariance.
     %(baseline_report)s
         Defaults to ``None``, i.e. no baseline correction.
-    image_format : 'png' | 'svg' | 'gif'
-        Default image format to use (default is ``'png'``).
+    image_format : 'png' | 'svg' | 'webp' | 'auto'
+        Default image format to use (default is ``'auto'``, which will use
+        ``'webp'`` if available and ``'png'`` otherwise).
         ``'svg'`` uses vector graphics, so fidelity is higher but can increase
         file size and browser image rendering time as well.
+        ``'webp'`` format requires matplotlib >= 3.6.
 
         .. versionadded:: 0.15
-
+        .. versionchanged:: 1.3
+           Added support for ``'webp'`` format, removed support for GIF, and
+           set the default to ``'auto'``.
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -670,13 +712,14 @@ class Report:
         Default image format to use.
 
         .. versionadded:: 0.15
-
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -704,13 +747,15 @@ class Report:
     @verbose
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', raw_psd=False, projs=False, *,
+                 image_format='auto', raw_psd=False, projs=False, *,
                  verbose=None):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
         if subjects_dir is not None:
             subjects_dir = get_subjects_dir(subjects_dir)
+            if subjects_dir is not None:
+                subjects_dir = str(subjects_dir)
         self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
@@ -732,20 +777,33 @@ class Report:
 
     def __repr__(self):
         """Print useful info about report."""
-        s = f'<Report | {len(self._content)} items'
+        htmls, _, titles, _ = self._content_as_html()
+        items = self._content
+        s = '<Report'
+        s += f' | {len(titles)} title{_pl(titles)}'
+        s += f' | {len(items)} item{_pl(items)}'
         if self.title is not None:
             s += f' | {self.title}'
-        content_element_names = [element.name for element in self._content]
-        if len(content_element_names) > 4:
-            first_entries = '\n'.join(content_element_names[:2])
-            last_entries = '\n'.join(content_element_names[-2:])
-            s += f'\n{first_entries}'
-            s += '\n ...\n'
-            s += last_entries
-        elif len(content_element_names) > 0:
-            entries = '\n'.join(content_element_names)
-            s += f'\n{entries}'
-        s += '\n>'
+        if len(titles) > 0:
+            titles = [f' {t}' for t in titles]  # indent
+            tr = max(len(s), 50)  # trim to larger of opening str and 50
+            titles = [f'{t[:tr - 2]} …' if len(t) > tr else t for t in titles]
+            # then trim to the max length of all of these
+            tr = max(len(title) for title in titles)
+            tr = max(tr, len(s))
+            b_to_mb = 1. / (1024. ** 2)
+            content_element_mb = [len(html) * b_to_mb for html in htmls]
+            total_mb = f'{sum(content_element_mb):0.1f}'
+            content_element_mb = [
+                f'{sz:0.1f}'.rjust(len(total_mb))
+                for sz in content_element_mb
+            ]
+            s = f'{s.ljust(tr + 1)} | {total_mb} MB'
+            s += '\n' + '\n'.join(
+                f'{title[:tr].ljust(tr + 1)} | {sz} MB'
+                for title, sz in zip(titles, content_element_mb))
+            s += '\n'
+        s += '>'
         return s
 
     def __len__(self):
@@ -765,7 +823,7 @@ class Report:
             'baseline', 'cov_fname', 'include', '_content', 'image_format',
             'info_fname', '_dom_id', 'raw_psd', 'projs',
             'subjects_dir', 'subject', 'title', 'data_path', 'lang',
-            'fname'
+            'fname',
         )
 
     def _get_dom_id(self, increment=True):
@@ -832,7 +890,7 @@ class Report:
 
         # We loop over all content elements and implement special treatment
         # for those that are part of a section: Those sections don't actually
-        # exist in `self._content` – we're creating them on-the-fly here!
+        # exist in `self._content` – we're creating them on-the-fly here!
         for idx, content_element in enumerate(content_elements):
             if content_element.section:
                 if content_element.section in titles:
@@ -1407,7 +1465,7 @@ class Report:
         else:  # Epochs
             inst_ = inst.average()
 
-        fig = ica.plot_overlay(inst=inst_, show=False)
+        fig = ica.plot_overlay(inst=inst_, show=False, on_baseline='reapply')
         del inst_
         tight_layout(fig=fig)
         _constrain_fig_resolution(
@@ -1778,16 +1836,14 @@ class Report:
 
     @fill_doc
     def _add_or_replace(
-        self, *, name, section, dom_id, tags, html, replace=False
+        self, *, title, section, dom_id, tags, html, replace=False
     ):
         """Append HTML content report, or replace it if it already exists.
 
         Parameters
         ----------
-        name : str
-            The entry under which the content shall be listed in the table of
-            contents. If it already exists, the content will be replaced if
-            ``replace`` is ``True``
+        title : str
+            The title entry.
         %(section_report)s
         dom_id : str
             A unique element ``id`` in the DOM.
@@ -1796,28 +1852,29 @@ class Report:
         html : str
             The HTML.
         replace : bool
-            Whether to replace existing content.
+            Whether to replace existing content if the title and section match.
         """
         assert isinstance(html, str)  # otherwise later will break
 
         new_content = _ContentElement(
-            name=name,
+            name=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
             html=html
         )
 
-        existing_names = [element.name for element in self._content]
-        if name in existing_names and replace:
-            # Find and replace existing content, starting from the last element
-            for idx, content_element in enumerate(self._content[::-1]):
-                if content_element.name == name:
-                    self._content[idx] = new_content
-                    return
-            raise RuntimeError('This should never happen')
-        else:
-            # Simply append new content (no replace)
+        append = True
+        if replace:
+            matches = [
+                ii
+                for ii, element in enumerate(self._content)
+                if (element.name, element.section) == (title, section)
+            ]
+            if matches:
+                self._content[matches[-1]] = new_content
+                append = False
+        if append:
             self._content.append(new_content)
 
     def _add_code(self, *, code, title, language, section, tags, replace):
@@ -1834,7 +1891,7 @@ class Report:
         )
         self._add_or_replace(
             dom_id=dom_id,
-            name=title,
+            title=title,
             section=section,
             tags=tags,
             html=html,
@@ -1894,11 +1951,9 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-
-        with contextlib.redirect_stdout(StringIO()) as f:
-            sys_info()
-
-        info = f.getvalue()
+        with StringIO() as f:
+            sys_info(f)
+            info = f.getvalue()
         self.add_code(
             code=info, title=title, language='shell', tags=tags,
             replace=replace
@@ -1915,7 +1970,7 @@ class Report:
         )
         self._add_or_replace(
             dom_id=dom_id,
-            name=title,
+            title=title,
             section=section,
             tags=tags,
             html=html,
@@ -2030,14 +2085,11 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        img_bytes = Path(image).expanduser().read_bytes()
-        img_base64 = base64.b64encode(img_bytes).decode('ascii')
-        del img_bytes  # Free memory
-
+        image = Path(_check_fname(image, overwrite='read', must_exist=True))
         img_format = Path(image).suffix.lower()[1:]  # omit leading period
         _check_option('Image format', value=img_format,
-                      allowed_values=('png', 'gif', 'svg'))
-
+                      allowed_values=list(_ALLOWED_IMAGE_FORMATS) + ['gif'])
+        img_base64 = base64.b64encode(image.read_bytes()).decode('ascii')
         self._add_image(
             img=img_base64,
             title=title,
@@ -2050,7 +2102,8 @@ class Report:
 
     @fill_doc
     def add_html(
-        self, html, title, *, tags=('custom-html',), replace=False
+        self, html, title, *, tags=('custom-html',), section=None,
+        replace=False
     ):
         """Add HTML content to the report.
 
@@ -2061,6 +2114,9 @@ class Report:
         title : str
             The title corresponding to ``html``.
         %(tags_report)s
+        %(section_report)s
+
+            .. versionadded:: 1.3
         %(replace_report)s
 
         Notes
@@ -2075,7 +2131,7 @@ class Report:
         )
         self._add_or_replace(
             dom_id=dom_id,
-            name=title,
+            title=title,
             section=None,
             tags=tags,
             html=html_element,
@@ -2117,7 +2173,7 @@ class Report:
         self._add_bem(
             subject=subject, subjects_dir=subjects_dir,
             decim=decim, n_jobs=n_jobs, width=width,
-            image_format=self.image_format, section=title, tags=tags,
+            image_format=self.image_format, title=title, tags=tags,
             replace=replace
         )
 
@@ -2143,6 +2199,7 @@ class Report:
             imgs = [_fig_to_img(fig=fig, image_format=image_format,
                                 own_figure=own_figure)
                     for fig in figs]
+
         dom_id = self._get_dom_id()
         html = _html_slider_element(
             id=dom_id,
@@ -2166,7 +2223,7 @@ class Report:
             klass=klass, own_figure=own_figure
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -2376,9 +2433,14 @@ class Report:
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = _check_fname(
-                fname=self.data_path, overwrite='read', must_exist=True,
-                name='Directory or folder', need_dir=True
+            data_path = str(
+                _check_fname(
+                    fname=self.data_path,
+                    overwrite="read",
+                    must_exist=True,
+                    name="Directory or folder",
+                    need_dir=True,
+                )
             )
             fnames.extend(sorted(_recursive_search(data_path, p)))
 
@@ -2537,7 +2599,7 @@ class Report:
                      f'instead')
             fname = op.join(self.data_path, 'report.html')
 
-        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
@@ -2633,8 +2695,7 @@ class Report:
                              image_format, orientation, decim=2, n_jobs=None,
                              width=512, tags):
         """Render one axis of bem contours (only PNG)."""
-        import nibabel as nib
-
+        nib = _import_nibabel('render BEM contours')
         nim = nib.load(mri_fname)
         data = _reorient_image(nim)[0]
         axis = _mri_orientation(orientation)[0]
@@ -2775,7 +2836,11 @@ class Report:
             else:
                 fmax = np.inf
 
-            fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
+            # shim: convert legacy .plot_psd(...) → .compute_psd(...).plot(...)
+            init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
+            init_kwargs.setdefault('fmax', fmax)
+            plot_kwargs.setdefault('show', False)
+            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             tight_layout(fig=fig)
             _constrain_fig_resolution(
                 fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
@@ -2885,7 +2950,7 @@ class Report:
             tags=tags
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -2944,7 +3009,7 @@ class Report:
             tags=tags,
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -2963,7 +3028,7 @@ class Report:
                      f'create joint plot')
                 continue
 
-            with use_log_level(False):
+            with use_log_level(_verbose_safe_false(level='error')):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
                     title=None,
@@ -3010,7 +3075,7 @@ class Report:
         for ch_type in ch_types:
             evoked.plot_topomap(
                 times=[time], ch_type=ch_type,
-                vmin=vmin[ch_type], vmax=vmax[ch_type],
+                vlim=(vmin[ch_type], vmax[ch_type]),
                 axes=ch_type_ax_map[ch_type], show=False,
                 **topomap_kwargs
             )
@@ -3082,12 +3147,13 @@ class Report:
                 func=self._plot_one_evoked_topomap_timepoint,
                 n_jobs=n_jobs, max_jobs=len(times),
             )
-            fig_arrays = parallel(
-                p_fun(
-                    evoked=evoked, time=time, ch_types=ch_types,
-                    vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
-                ) for time in times
-            )
+            with use_log_level(_verbose_safe_false(level='error')):
+                fig_arrays = parallel(
+                    p_fun(
+                        evoked=evoked, time=time, ch_types=ch_types,
+                        vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+                    ) for time in times
+                )
 
             captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
             self._add_slider(
@@ -3118,14 +3184,15 @@ class Report:
         if len(ch_types) == 1:
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
-            plot_compare_evokeds(
-                evokeds={
-                    label: evoked.copy().pick(ch_type, verbose=False)
-                },
-                ci=None, truncate_xaxis=False,
-                truncate_yaxis=False, legend=False,
-                axes=ax[idx], show=False
-            )
+            with use_log_level(_verbose_safe_false(level='error')):
+                plot_compare_evokeds(
+                    evokeds={
+                        label: evoked.copy().pick(ch_type, verbose=False)
+                    },
+                    ci=None, truncate_xaxis=False,
+                    truncate_yaxis=False, legend=False,
+                    axes=ax[idx], show=False
+                )
             ax[idx].set_title(ch_type)
 
             # Hide x axis label for all but the last subplot
@@ -3264,8 +3331,8 @@ class Report:
             if n_epochs_required > len(epochs):
                 raise ValueError(
                     f'You requested to calculate PSD on a duration of '
-                    f'{psd:.3f} sec, but all your epochs '
-                    f'are only {signal_duration:.1f} sec long'
+                    f'{psd:.3f} s, but all your epochs '
+                    f'are only {signal_duration:.1f} s long'
                 )
             epochs_idx = np.round(
                 np.linspace(
@@ -3281,7 +3348,7 @@ class Report:
                     len(epochs_idx_unique) * epoch_duration, 1
                 )
                 warn(f'Using {len(epochs_idx_unique)} epochs, only '
-                     f'covering {duration:.1f} sec of data')
+                     f'covering {duration:.1f} s of data')
                 del duration
 
             epochs_for_psd = epochs[epochs_idx_unique]
@@ -3294,14 +3361,14 @@ class Report:
             if fmax > 0.5 * epochs.info['sfreq']:
                 fmax = np.inf
 
-        fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
         _constrain_fig_resolution(
             fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
         )
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
             f'PSD calculated from {len(epochs_for_psd)} epochs '
-            f'({duration:.1f} sec).'
+            f'({duration:.1f} s).'
         )
         self._add_figure(
             fig=fig,
@@ -3326,7 +3393,7 @@ class Report:
             html=html
         )
         self._add_or_replace(
-            name=title,
+            title=title,
             section=section,
             dom_id=dom_id,
             tags=tags,
@@ -3442,7 +3509,7 @@ class Report:
         epochs.load_data()
 
         for ch_type in ch_types:
-            with use_log_level(False):
+            with use_log_level(_verbose_safe_false(level='error')):
                 figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
                     show=False
                 )
@@ -3715,12 +3782,12 @@ class Report:
 
     def _add_bem(
         self, *, subject, subjects_dir, decim, n_jobs, width=512,
-        image_format, section, tags, replace
+        image_format, title, tags, replace
     ):
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
             subjects_dir = self.subjects_dir
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
 
         # Get the MRI filename
         mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
@@ -3757,11 +3824,11 @@ class Report:
             html_slider_sagittal=html_slider_sagittal,
             html_slider_coronal=html_slider_coronal,
             tags=tags,
-            title=section,
+            title=title,
         )
         self._add_or_replace(
-            name=section,
-            section=None,  # avoid nesting
+            title=title,
+            section=None,  # no nesting
             dom_id=dom_id,
             tags=tags,
             html=html,

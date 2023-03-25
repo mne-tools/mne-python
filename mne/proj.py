@@ -26,9 +26,9 @@ def read_proj(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of file containing the projections vectors. It should end with
-        -proj.fif or -proj.fif.gz.
+        ``-proj.fif`` or ``-proj.fif.gz``.
     %(verbose)s
 
     Returns
@@ -55,9 +55,9 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of file containing the projections vectors. It should end with
-        -proj.fif or -proj.fif.gz.
+        ``-proj.fif`` or ``-proj.fif.gz``.
     projs : list
         The list of projection vectors.
     %(overwrite)s
@@ -166,9 +166,9 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=None,
         The description prefix to use. If None, one will be created based on
         the event_id, tmin, and tmax.
     meg : str
-        Can be 'separate' (default) or 'combined' to compute projectors
+        Can be ``'separate'`` (default) or ``'combined'`` to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'combined', ``n_mag == n_grad`` is required and the number of
+        If ``'combined'``, ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
@@ -272,12 +272,12 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     raw : instance of Raw
         A raw object to use the data from.
     start : float
-        Time (in sec) to start computing SSP.
+        Time (in s) to start computing SSP.
     stop : float
-        Time (in sec) to stop computing SSP.
+        Time (in s) to stop computing SSP.
         None will go to the end of the file.
     duration : float
-        Duration (in sec) to chunk data into for SSP
+        Duration (in s) to chunk data into for SSP
         If duration is None, data will not be chunked.
     n_grad : int
         Number of vectors for gradiometers.
@@ -355,16 +355,16 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         The forward operator.
     projs : list
         List of projection vectors.
-    ch_type : 'grad' | 'mag' | 'eeg'
+    ch_type : ``'grad'`` | ``'mag'`` | ``'eeg'``
         The type of sensors to use.
     mode : str
-        The type of sensitivity map computed. See manual. Should be 'free',
-        'fixed', 'ratio', 'radiality', 'angle', 'remaining', or 'dampening'
-        corresponding to the argument --map 1, 2, 3, 4, 5, 6 and 7 of the
-        command mne_sensitivity_map.
+        The type of sensitivity map computed. See manual. Should be ``'free'``,
+        ``'fixed'``, ``'ratio'``, ``'radiality'``, ``'angle'``,
+        ``'remaining'``, or ``'dampening'`` corresponding to the argument
+        ``--map 1, 2, 3, 4, 5, 6, 7`` of the command ``mne_sensitivity_map``.
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in fwd['info']['bads'].
+        If ``'bads'``, exclude channels in ``fwd['info']['bads']``.
     %(verbose)s
 
     Returns
@@ -399,7 +399,8 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     # Make sure EEG has average
     if ch_type == 'eeg':
-        if projs is None or not _has_eeg_average_ref_proj(projs):
+        if projs is None or not _has_eeg_average_ref_proj(
+                fwd['info'], projs=projs):
             eeg_ave = [make_eeg_average_ref_proj(fwd['info'])]
         else:
             eeg_ave = []

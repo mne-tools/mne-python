@@ -7,7 +7,7 @@
 # License: Simplified BSD
 
 from collections import namedtuple
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -29,13 +29,13 @@ from mne.viz.utils import _fake_click
 from mne.viz.topo import (_plot_update_evoked_topo_proj, iter_topography,
                           _imshow_tfr)
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+evoked_fname = base_dir / "test-ave.fif"
+raw_fname = base_dir / "test_raw.fif"
+event_name = base_dir / "test-eve.fif"
+cov_fname = base_dir / "test-cov.fif"
 event_id, tmin, tmax = 1, -0.2, 0.2
-layout = read_layout('Vectorview-all')
+layout = read_layout("Vectorview-all")
 
 
 def _get_events():
@@ -134,6 +134,14 @@ def test_plot_topo():
 
     plot_evoked_topo([evoked, evoked], merge_grads=True,
                      background_color='w', color='blue')
+
+    # test legend colors
+    colors = ['red', 'blue']
+    fig = plot_evoked_topo([evoked, evoked], merge_grads=True, color=colors)
+    legend = fig.axes[0].get_legend()
+    legend_colors = [line.properties()['markeredgecolor']
+                     for line in legend.get_lines()]
+    assert legend_colors == colors
 
     with pytest.raises(ValueError, match='must be .*tuple, list, str,.*'):
         plot_evoked_topo([evoked, evoked], merge_grads=True,

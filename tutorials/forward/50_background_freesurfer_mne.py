@@ -7,8 +7,8 @@ How MNE uses FreeSurfer's outputs
 =================================
 
 This tutorial explains how MRI coordinate frames are handled in MNE-Python,
-and how MNE-Python integrates with FreeSurfer for handling MRI data and
-source space data in general.
+and how MNE-Python integrates with FreeSurfer for handling MRI data and source
+space data in general.
 
 As usual we'll start by importing the necessary packages; for this tutorial
 that includes :mod:`nibabel` to handle loading the MRI images (MNE-Python also
@@ -114,8 +114,7 @@ print('Our voxel has real-world coordinates {}, {}, {} (mm)'
 ras_coords_mm = np.array([1, -17, -18])
 inv_affine = np.linalg.inv(t1.affine)
 i_, j_, k_ = np.round(apply_trans(inv_affine, ras_coords_mm)).astype(int)
-print('Our real-world coordinates correspond to voxel ({}, {}, {})'
-      .format(i_, j_, k_))
+print(f'Our real-world coordinates correspond to voxel ({i_}, {j_}, {k_})')
 
 # %%
 # Let's write a short function to visualize where our voxel lies in an
@@ -308,7 +307,7 @@ renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(600, 600), bgcolor='w', scene=False)
 gray = (0.5, 0.5, 0.5)
 renderer.mesh(*rr_mm.T, triangles=tris, color=gray)
-view_kwargs = dict(elevation=90, azimuth=0)
+view_kwargs = dict(elevation=90, azimuth=0)  # camera at +X with +Z up
 mne.viz.set_3d_view(
     figure=renderer.figure, distance=350, focalpoint=(0., 0., 40.),
     **view_kwargs)
@@ -342,7 +341,7 @@ fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
 # sphere, a given vertex in the source (sample) mesh can be mapped easily
 # to the same location in the destination (fsaverage) mesh, and vice-versa.
 
-renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
+renderer_kwargs = dict(bgcolor='w')
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(800, 400), scene=False, **renderer_kwargs)
 curvs = [
@@ -366,30 +365,34 @@ y = (y[1:] + y[:-1]) / 2. - width / 2.
 renderer.quiver3d(zero, y, zero,
                   zero, [1] * 3, zero, 'k', width, 'arrow')
 view_kwargs['focalpoint'] = (0., 0., 0.)
-mne.viz.set_3d_view(figure=renderer.figure, distance=1000, **view_kwargs)
+mne.viz.set_3d_view(figure=renderer.figure, distance=1050, **view_kwargs)
 renderer.show()
 
 # %%
 # Let's look a bit more closely at the spherical alignment by overlaying the
-# two spherical meshes as wireframes and zooming way in (the purple points are
-# separated by about 1 mm):
+# two spherical meshes as wireframes and zooming way in (the vertices of the
+# black mesh are separated by about 1 mm):
 
 cyan = '#66CCEE'
-purple = '#AA3377'
+black = 'k'
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(800, 800), scene=False, **renderer_kwargs)
-fnames = [subjects_dir / subj / 'surf' / 'rh.sphere'
-          for subj in ('sample', 'fsaverage')]
-colors = [cyan, purple]
-for name, color in zip(fnames, colors):
-    this_rr, this_tri = mne.read_surface(name)
+surfs = [mne.read_surface(subjects_dir / subj / 'surf' / 'rh.sphere')
+         for subj in ('fsaverage', 'sample')]
+colors = [black, cyan]
+line_widths = [2, 3]
+for surf, color, line_width in zip(surfs, colors, line_widths):
+    this_rr, this_tri = surf
+    # cull to the subset of tris with all positive X (toward camera)
+    this_tri = this_tri[(this_rr[this_tri, 0] > 0).all(axis=1)]
     renderer.mesh(*this_rr.T, triangles=this_tri, color=color,
-                  representation='wireframe')
-mne.viz.set_3d_view(figure=renderer.figure, distance=20, **view_kwargs)
+                  representation='wireframe', line_width=line_width,
+                  render_lines_as_tubes=True)
+mne.viz.set_3d_view(figure=renderer.figure, distance=150, **view_kwargs)
 renderer.show()
 
 # %%
-# You can see that the fsaverage (purple) mesh is uniformly spaced, and the
+# You can see that the fsaverage (black) mesh is uniformly spaced, and the
 # mesh for subject "sample" (in cyan) has been deformed along the spherical
 # surface by
 # FreeSurfer. This deformation is designed to optimize the sulcal-gyral
@@ -402,21 +405,24 @@ renderer.show()
 # easily be achieved by subsampling in the spherical space. To do this, we
 # use a recursively subdivided icosahedron or octahedron. For example, let's
 # load a standard oct-6 source space, and at the same zoom level as before
-# visualize how it subsampled the dense mesh:
+# visualize how it subsampled (in red) the dense mesh:
 
 src = mne.read_source_spaces(subjects_dir / 'sample' / 'bem' /
                              'sample-oct-6-src.fif')
 print(src)
 
 # sphinx_gallery_thumbnail_number = 10
-blue = '#4477AA'
+red = '#EE6677'
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(800, 800), scene=False, **renderer_kwargs)
-rr_sph, _ = mne.read_surface(fnames[0])
-for tris, color in [(src[1]['tris'], cyan), (src[1]['use_tris'], blue)]:
+rr_sph, _ = mne.read_surface(fnames[1])
+for tris, color in [(src[1]['tris'], cyan), (src[1]['use_tris'], red)]:
+    # cull to the subset of tris with all positive X (toward camera)
+    tris = tris[(rr_sph[tris, 0] > 0).all(axis=1)]
     renderer.mesh(*rr_sph.T, triangles=tris, color=color,
-                  representation='wireframe')
-mne.viz.set_3d_view(figure=renderer.figure, distance=20, **view_kwargs)
+                  representation='wireframe', line_width=3,
+                  render_lines_as_tubes=True)
+mne.viz.set_3d_view(figure=renderer.figure, distance=150, **view_kwargs)
 renderer.show()
 
 # %%
@@ -432,7 +438,7 @@ for y_shift, tris in zip(y_shifts, tris):
     renderer.mesh(*this_rr.T, triangles=tris, color=None, scalars=curvs[0],
                   colormap='copper_r', vmin=-0.2, vmax=1.2)
 renderer.quiver3d([0], [-width / 2.], [0], [0], [1], [0], 'k', width, 'arrow')
-mne.viz.set_3d_view(figure=renderer.figure, distance=400, **view_kwargs)
+mne.viz.set_3d_view(figure=renderer.figure, distance=450, **view_kwargs)
 renderer.show()
 
 
@@ -472,3 +478,15 @@ brain = mne.viz.Brain('fsaverage', 'lh', 'white', subjects_dir=subjects_dir,
                       background='w')
 brain.add_foci(xyz_mni, hemi='lh', color='k')
 brain.show_view('lat')
+
+# %%
+# Understanding the inflated brain
+# --------------------------------
+# It takes a minute to interpret data displayed on an inflated brain. This
+# visualization is very helpful in showing more of a brain in one image
+# since it is difficult to visualize inside the sulci. Below is a video
+# relating the pial surface to an inflated surface. If you're interested
+# in how this was created, here is the gist used to create the video:
+# https://gist.github.com/alexrockhill/b5a1ce6c6ba363cf3f277cd321a763bf.
+#
+# .. youtube:: mOmfNX-Lkn0

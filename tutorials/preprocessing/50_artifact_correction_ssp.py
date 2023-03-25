@@ -34,7 +34,6 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
 #
-#
 # What is SSP?
 # ^^^^^^^^^^^^
 #
@@ -87,7 +86,7 @@ system_projs = raw.info['projs']
 raw.del_proj()
 empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                'ernoise_raw.fif')
-# cropped to 60 sec just for speed
+# cropped to 60 s just for speed
 empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 
 # %%
@@ -104,8 +103,9 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
+spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    empty_room_raw.plot_psd(average=average, dB=False, xscale='log')
+    spectrum.plot(average=average, dB=False, xscale='log')
 
 # %%
 # Creating the empty-room projectors
@@ -487,22 +487,17 @@ for title in ('Without', 'With'):
 
 evoked_eeg = epochs.average().pick('eeg')
 evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
-fig, axes = plt.subplots(1, 3, figsize=(8, 3), squeeze=False)
-for ii in range(axes.shape[0]):
-    axes[ii, 0].get_shared_y_axes().join(*axes[ii])
+fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
 for pi, proj in enumerate((False, True, 'reconstruct')):
-    evoked_eeg.plot(proj=proj, axes=axes[:, pi], spatial_colors=True)
-    if pi == 0:
-        for ax in axes[:, pi]:
-            parts = ax.get_title().split('(')
-            ax.set(ylabel=f'{parts[0]} ({ax.get_ylabel()})\n'
-                          f'{parts[1].replace(")", "")}')
-    axes[0, pi].set(title=f'proj={proj}')
-    for text in list(axes[0, pi].texts):
+    ax = axes[pi]
+    evoked_eeg.plot(proj=proj, axes=ax, spatial_colors=True)
+    parts = ax.get_title().split('(')
+    ylabel = (f'{parts[0]} ({ax.get_ylabel()})\n{parts[1].replace(")", "")}'
+              if pi == 0 else '')
+    ax.set(ylabel=ylabel, title=f'proj={proj}')
+    ax.yaxis.set_tick_params(labelbottom=True)
+    for text in list(ax.texts):
         text.remove()
-plt.setp(axes[1:, :].ravel(), title='')
-plt.setp(axes[:, 1:].ravel(), ylabel='')
-plt.setp(axes[:-1, :].ravel(), xlabel='')
 mne.viz.tight_layout()
 
 # %%

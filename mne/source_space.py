@@ -34,10 +34,9 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
 from ._freesurfer import (_get_mri_info_data, _get_atlas_values,  # noqa: F401
                           read_freesurfer_lut, get_mni_fiducials, _check_mri)
 from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
-                    _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _path_like, _check_sphere,
-                    _validate_type, _check_option, _is_numeric, _pl, _suggest,
-                    object_size, sizeof_fmt)
+                    _ensure_int, _get_call_line, warn, object_size, sizeof_fmt,
+                    _check_fname, _path_like, _check_sphere, _import_nibabel,
+                    _validate_type, _check_option, _is_numeric, _pl, _suggest)
 from .parallel import parallel_func
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -149,16 +148,59 @@ class SourceSpaces(list):
             surfaces) between source points.
         dist_limit : float
             The maximum distance allowed for inclusion in ``nearest``.
-        pinfo : dict
-            Information about the patch of cortex represented by a vertex in
-            the subsampled surface.
-        patch_inds : list of ndarray
+        pinfo : list of ndarray
             For each vertex in the subsampled surface, the indices of the
             vertices in the dense surface that it represents (i.e., is closest
-            to of all subsampled indices).
+            to of all subsampled indices), e.g. for the left hemisphere
+            (here constructed for ``sample`` with ``spacing='oct-6'``),
+            which vertices did we choose? Note the first is 14::
+
+                >>> src[0]['vertno']  # doctest:+SKIP
+                array([    14,     54,     59, ..., 155295, 155323, 155330])
+
+            And which dense surface verts did our vertno[0] (14 on dense) represent? ::
+
+                >>> src[0]['pinfo'][0]  # doctest:+SKIP
+                array([  6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,
+                        19,  20,  21,  22,  23,  24,  25,  29,  30,  31,  39, 134, 135,
+                       136, 137, 138, 139, 141, 142, 143, 144, 149, 150, 151, 152, 156,
+                       162, 163, 173, 174, 185, 448, 449, 450, 451, 452, 453, 454, 455,
+                       456, 462, 463, 464, 473, 474, 475, 485, 496, 497, 512, 864, 876,
+                       881, 889, 890, 904])
+
+        patch_inds : ndarray, shape (n_src_remaining,)
+            The patch indices that have been retained (if relevant, following
+            forward computation. After just :func:`mne.setup_source_space`,
+            this will be ``np.arange(src[0]['nuse'])``. After forward
+            computation, some vertices can be excluded, in which case this
+            tells you which patches (of the original ``np.arange(nuse)``)
+            are still in use. So if some vertices have been excluded, the
+            line above for ``pinfo`` for completeness should be (noting that
+            the first subsampled vertex ([0]) represents the following dense
+            vertices)::
+
+                >>> src[0]['pinfo'][src[0]['patch_inds'][0]]  # doctest:+SKIP
+                array([  6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,
+                        19,  20,  21,  22,  23,  24,  25,  29,  30,  31,  39, 134, 135,
+                       136, 137, 138, 139, 141, 142, 143, 144, 149, 150, 151, 152, 156,
+                       162, 163, 173, 174, 185, 448, 449, 450, 451, 452, 453, 454, 455,
+                       456, 462, 463, 464, 473, 474, 475, 485, 496, 497, 512, 864, 876,
+                       881, 889, 890, 904])
+
         nearest : ndarray, shape (np,)
             For each vertex on the dense surface, this gives the vertex index
-            on the subsampled surface that it's closest to.
+            (in the dense surface) that each dense surface vertex is closest to
+            of the vertices chosen for subsampling. This is essentially the
+            reverse map off ``pinfo``, e.g.::
+
+                >>> src[0]['nearest'].shape  # doctest:+SKIP
+                (115407,)
+
+            Based on ``pinfo`` above, this should be 14:
+
+                >>> src[0]['nearest'][6]  # doctest:+SKIP
+                14
+
         nearest_dist : ndarray, shape (np,)
             The distances corresponding to ``nearest``.
 
@@ -194,7 +236,7 @@ class SourceSpaces(list):
 
     Source spaces also have some attributes that are accessible via ``.``
     access, like ``src.kind``.
-    """
+    """  # noqa: E501
 
     def __init__(self, source_spaces, info=None):  # noqa: D102
         # First check the types is actually a valid config
@@ -241,20 +283,21 @@ class SourceSpaces(list):
             If True, show head surface.
         brain : bool | str
             If True, show the brain surfaces. Can also be a str for
-            surface type (e.g., 'pial', same as True). Default is None,
-            which means 'white' for surface source spaces and False otherwise.
+            surface type (e.g., ``'pial'``, same as True). Default is None,
+            which means ``'white'`` for surface source spaces and ``False``
+            otherwise.
         skull : bool | str | list of str | list of dict | None
             Whether to plot skull surface. If string, common choices would be
-            'inner_skull', or 'outer_skull'. Can also be a list to plot
+            ``'inner_skull'``, or ``'outer_skull'``. Can also be a list to plot
             multiple skull surfaces. If a list of dicts, each dict must
             contain the complete surface info (such as you get from
             :func:`mne.make_bem_model`). True is an alias of 'outer_skull'.
             The subjects bem and bem/flash folders are searched for the 'surf'
             files. Defaults to None, which is False for surface source spaces,
             and True otherwise.
-        subjects_dir : str | None
-            Path to SUBJECTS_DIR if it is not set in the environment.
-        trans : str | 'auto' | dict | None
+        subjects_dir : path-like | None
+            Path to ``SUBJECTS_DIR`` if it is not set in the environment.
+        trans : path-like | ``'auto'`` | dict | None
             The full path to the head<->MRI transform ``*-trans.fif`` file
             produced during coregistration. If trans is None, an identity
             matrix is assumed. This is only needed when the source space is in
@@ -397,7 +440,7 @@ class SourceSpaces(list):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             File to write.
         %(overwrite)s
         %(verbose)s
@@ -413,13 +456,13 @@ class SourceSpaces(list):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             Name of nifti or mgz file to write.
         include_surfaces : bool
             If True, include surface source spaces.
         include_discrete : bool
             If True, include discrete source spaces.
-        dest : 'mri' | 'surf'
+        dest : ``'mri'`` | ``'surf'``
             If 'mri' the volume is defined in the coordinate system of the
             original T1 image. If 'surf' the coordinate system of the
             FreeSurfer surface is used (Surface RAS).
@@ -460,11 +503,7 @@ class SourceSpaces(list):
         else:
             mri_resolution = bool(mri_resolution)
         fname = str(fname)
-        # import nibabel or raise error
-        try:
-            import nibabel as nib
-        except ImportError:
-            raise ImportError('This function requires nibabel.')
+        nib = _import_nibabel()
 
         # Check coordinate frames of each source space
         coord_frames = np.array([s['coord_frame'] for s in self])
@@ -736,9 +775,9 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end with -src.fif or
-        -src.fif.gz.
+    fname : path-like
+        The name of the file, which should end with ``-src.fif`` or
+        ``-src.fif.gz``.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
     %(verbose)s
@@ -753,7 +792,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    fname = str(_check_fname(fname, overwrite='read', must_exist=True))
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '_src.fif', '_src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
@@ -1128,9 +1167,9 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end with -src.fif or
-        -src.fif.gz.
+    fname : path-like
+        The name of the file, which should end with ``-src.fif`` or
+        ``-src.fif.gz``.
     src : instance of SourceSpaces
         The source spaces (as returned by read_source_spaces).
     %(overwrite)s
@@ -1346,7 +1385,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
         compute patch information (requires SciPy 1.3+).
 
         .. versionchanged:: 0.20
-           Support for add_dist='patch'.
+           Support for ``add_dist='patch'``.
     %(n_jobs)s
         Ignored if ``add_dist=='patch'``.
     %(verbose)s
@@ -1365,8 +1404,10 @@ def setup_source_space(subject, spacing='oct6', surface='white',
            % (subject, spacing, surface, subjects_dir, add_dist, verbose))
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
-             for hemi in ['lh.', 'rh.']]
+    surfs = [
+        subjects_dir / subject / "surf" / f"{hemi}.{surface}"
+        for hemi in ["lh", "rh"]
+    ]
     for surf, hemi in zip(surfs, ['LH', 'RH']):
         if surf is not None and not op.isfile(surf):
             raise IOError('Could not find the %s surface %s'
@@ -1430,7 +1471,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
 def _check_volume_labels(volume_label, mri, name='volume_label'):
     _validate_type(mri, 'path-like', 'mri when %s is not None' % (name,))
-    mri = _check_fname(mri, overwrite='read', must_exist=True)
+    mri = str(_check_fname(mri, overwrite='read', must_exist=True))
     if isinstance(volume_label, str):
         volume_label = [volume_label]
     _validate_type(volume_label, (list, tuple, dict), name)  # should be
@@ -1580,11 +1621,23 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     _validate_type(bem, ('path-like', ConductorModel, None), 'bem')
     _validate_type(surface, ('path-like', dict, None), 'surface')
     if bem is not None and not isinstance(bem, ConductorModel):
-        bem = _check_fname(bem, overwrite='read', must_exist=True,
-                           name='bem filename')
+        bem = str(
+            _check_fname(
+                bem,
+                overwrite="read",
+                must_exist=True,
+                name="bem filename"
+            )
+        )
     if surface is not None and not isinstance(surface, dict):
-        surface = _check_fname(surface, overwrite='read', must_exist=True,
-                               name='surface filename')
+        surface = str(
+            _check_fname(
+                surface,
+                overwrite="read",
+                must_exist=True,
+                name="surface filename"
+            )
+        )
 
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
@@ -2411,11 +2464,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *,
         raise ValueError('dist_limit must be non-negative, got %s'
                          % (dist_limit,))
     patch_only = (dist_limit == 0)
-    if patch_only and not check_version('scipy', '1.3'):
-        raise RuntimeError('scipy >= 1.3 is required to calculate patch '
-                           'information only, consider upgrading SciPy or '
-                           'using dist_limit=np.inf when running '
-                           'add_source_space_distances')
     if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
@@ -2590,8 +2638,10 @@ def _get_vertex_map_nn(fro_src, subject_from, subject_to, hemi, subjects_dir,
     # nearest-neighbor mode should be used)
     logger.info('Mapping %s %s -> %s (nearest neighbor)...'
                 % (hemi, subject_from, subject_to))
-    regs = [op.join(subjects_dir, s, 'surf', '%s.sphere.reg' % hemi)
-            for s in (subject_from, subject_to)]
+    regs = [
+        subjects_dir / s / "surf" / f"{hemi}.sphere.reg"
+        for s in (subject_from, subject_to)
+    ]
     reg_fro, reg_to = [read_surface(r, return_dict=True)[-1] for r in regs]
     if to_neighbor_tri is not None:
         reg_to['neighbor_tri'] = to_neighbor_tri
@@ -2643,8 +2693,8 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     subject_from : str | None
         The "from" subject. For most source spaces this shouldn't need
         to be provided, since it is stored in the source space itself.
-    subjects_dir : str | None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    subjects_dir : path-like | None
+        Path to ``SUBJECTS_DIR`` if it is not set in the environment.
     %(verbose)s
 
     Returns
@@ -2663,7 +2713,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
     src_out = list()
     for fro in src_from:
         hemi, idx, id_ = _get_hemi(fro)
-        to = op.join(subjects_dir, subject_to, 'surf', '%s.%s' % (hemi, surf,))
+        to = subjects_dir / subject_to / "surf" / f"{hemi}.{surf}"
         logger.info('Reading destination surface %s' % (to,))
         to = read_surface(to, return_dict=True, verbose=False)[-1]
         complete_surface_info(to, copy=False)

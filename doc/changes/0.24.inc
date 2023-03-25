@@ -137,7 +137,7 @@ Enhancements
 
 - The :meth:`mne.Epochs.get_data` method now has a ``units`` parameter (:gh:`9553` by `Stefan Appelhoff`_)
 
-- Add :func:`mne.warp_montage_volume` to use an anatomical volume with channel locations at high or low insensities to apply a symmetric diffeomorphic registration to a template (e.g. fsaverage) space (:gh:`9544` by `Alex Rockhill`_)
+- Add ``mne.warp_montage_volume`` to use an anatomical volume with channel locations at high or low insensities to apply a symmetric diffeomorphic registration to a template (e.g. fsaverage) space (:gh:`9544` by `Alex Rockhill`_)
 
 - :meth:`mne.io.Raw.get_data`, :meth:`mne.Epochs.get_data`, and :meth:`mne.Evoked.get_data` methods now have ``tmin`` and ``tmax`` parameters to specify data window in seconds to get (:gh:`9556` by `Stefan Appelhoff`_)
 
@@ -293,7 +293,7 @@ Bugs
 
 - Fix bug where "seeg", "ecog", "dbs" and "fnirs" data had coordinate frame unknown upon loading from a file when it should have been in "head" (:gh:`9580` by `Alex Rockhill`_)
 
-- Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identitiy head->mri transform (:gh:`9585` by `Alex Rockhill`_)
+- Raise error when no ``trans`` is provided to :func:`mne.viz.plot_alignment` when required instead of assuming identity head->mri transform (:gh:`9585` by `Alex Rockhill`_)
 
 - Fix bug where :meth:`mne.Epochs.equalize_event_counts` failed when only one good epoch existed for one of the event types (:gh:`9758` by `Daniel McCloy`_)
 

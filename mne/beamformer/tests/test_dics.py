@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 import copy as cp
-import os.path as op
 
 import pytest
 from numpy.testing import (assert_array_equal, assert_allclose,
@@ -12,30 +11,35 @@ from numpy.testing import (assert_array_equal, assert_allclose,
 import numpy as np
 
 import mne
+from mne import pick_types
 from mne.beamformer import (make_dics, apply_dics, apply_dics_epochs,
-                            apply_dics_csd, read_beamformer, Beamformer)
+                            apply_dics_tfr_epochs, apply_dics_csd,
+                            read_beamformer, Beamformer)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
 from mne.io.constants import FIFF
+from mne.io import read_info
+from mne.io.pick import pick_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
-from mne.time_frequency import CrossSpectralDensity, csd_morlet
+from mne.time_frequency import (CrossSpectralDensity, csd_morlet, EpochsTFR,
+                                csd_tfr)
 from mne.time_frequency.csd import _sym_mat_to_vector
 from mne.transforms import invert_transform, apply_trans
 from mne.utils import object_diff, requires_version, catch_logging
 
 data_path = testing.data_path(download=False)
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc_raw-eve.fif')
-
-subjects_dir = op.join(data_path, 'subjects')
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+)
+fname_fwd_vol = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-vol-7-fwd.fif"
+)
+fname_event = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw-eve.fif"
+subjects_dir = data_path / "subjects"
 
 
 @pytest.fixture(scope='module', params=[testing._pytest_param()])
@@ -54,6 +58,7 @@ def _load_forward():
 
 def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     """Simulate an oscillator on the cortex."""
+    pytest.importorskip('nibabel')
     source_vertno = fwd['src'][0]['vertno'][idx]
 
     sfreq = 50.  # Hz.
@@ -319,7 +324,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
 
-    fname = op.join(str(tmp_path), 'filters-dics.h5')
+    fname = tmp_path / "filters-dics.h5"
     filters.save(fname)
     filters_read = read_beamformer(fname)
     assert isinstance(filters, Beamformer)
@@ -568,6 +573,71 @@ def test_apply_dics_timeseries(_load_forward, idx):
     del filters_vol['src_type']  # emulate 0.16 behaviour to cause warning
     with pytest.warns(RuntimeWarning, match='filter does not contain src_typ'):
         apply_dics_epochs(epochs, filters_vol)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('return_generator', (True, False))
+def test_apply_dics_tfr(return_generator):
+    """Test DICS applied to time-frequency objects."""
+    info = read_info(fname_raw)
+    info = pick_info(info, pick_types(info, meg='grad'))
+    forward = mne.read_forward_solution(fname_fwd)
+    rng = np.random.default_rng(11)
+
+    # Construct an EpochsTFR object filled with random data.
+    n_epochs = 8
+    n_chans = len(info.ch_names)
+    freqs = [8, 9]
+    n_times = 300
+    times = np.arange(n_times) / info['sfreq']
+    data = rng.random((n_epochs, n_chans, len(freqs), n_times))
+    data *= 1e-6
+    data = data + data * 1j  # add imag. component to simulate phase
+    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+
+    # Create a DICS beamformer and convert the EpochsTFR to source space.
+    csd = csd_tfr(epochs_tfr)
+    filters = make_dics(epochs_tfr.info, forward, csd, reg=0.05)
+    stcs = apply_dics_tfr_epochs(epochs_tfr, filters, return_generator)
+
+    # Check some basic properties of the returned SourceEstimate objects.
+    if return_generator:
+        stcs = list(stcs)
+    assert_allclose(stcs[0][0].times, times)
+    assert len(stcs) == len(epochs_tfr)  # check same number of epochs
+    assert all([len(s) == len(freqs) for s in stcs])  # check nested freqs
+    assert all([s.data.shape == (forward['nsource'], n_times)
+                for these_stcs in stcs for s in these_stcs])
+
+    # Compute power from the source space TFR. This should yield the same
+    # result as the apply_dics_csd function.
+    source_power = np.zeros((forward['nsource'], len(freqs)))
+    for stcs_epoch in stcs:
+        for i, stc_freq in enumerate(stcs_epoch):
+            power = (stc_freq.data * np.conj(stc_freq.data)).real
+            power = power.mean(axis=-1)  # mean over time
+            # Scaling by sampling frequency for compatibility with Matlab
+            power /= epochs_tfr.info['sfreq']
+            source_power[:, i] += power.T
+    source_power /= n_epochs
+
+    ref_source_power, ref_freqs = apply_dics_csd(csd, filters)
+    assert_allclose(freqs, ref_freqs)
+    assert_allclose(ref_source_power.data, source_power)
+
+    # Test that real-value only data fails, due to non-linearity of computing
+    # power, it is recommended to transform to source-space first before
+    # converting to power.
+    with pytest.raises(RuntimeError,
+                       match='Time-frequency data must be complex'):
+        epochs_tfr_real = epochs_tfr.copy()
+        epochs_tfr_real.data = epochs_tfr_real.data.real
+        stcs = apply_dics_tfr_epochs(epochs_tfr_real, filters)
+
+    filters_vector = filters.copy()
+    filters_vector['pick_ori'] = 'vector'
+    with pytest.warns(match='vector solution'):
+        apply_dics_tfr_epochs(epochs_tfr, filters_vector)
 
 
 def _cov_as_csd(cov, info):

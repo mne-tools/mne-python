@@ -15,14 +15,15 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: Linux
         :class-content: text-center
+        :name: linux-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.3.1/MNE-Python-1.3.1_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for Linux
+            |cloud-arrow-down| |ensp| Download for Linux
 
         **Supported platforms:** Ubuntu 18.04 (Bionic Beaver) and newer
 
@@ -35,14 +36,15 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
+        :name: macos-intel-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.3.1/MNE-Python-1.3.1_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for macOS (Intel)
+            |cloud-arrow-down| |ensp| Download for macOS (Intel)
 
         **Supported platforms:**
         macOS 10.15 (Catalina) and newer
@@ -50,14 +52,15 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: macOS (Apple Silicon)
         :class-content: text-center
+        :name: macos-apple-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.3.1/MNE-Python-1.3.1_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for macOS (Apple Silicon)
+            |cloud-arrow-down| |ensp| Download for macOS (Apple Silicon)
 
 
         **Supported platforms:**
@@ -65,14 +68,15 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: Windows
         :class-content: text-center
+        :name: windows-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.3.1/MNE-Python-1.3.1_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for Windows
+            |cloud-arrow-down| |ensp| Download for Windows
 
         **Supported platforms:** Windows 10 and newer
 
@@ -98,7 +102,7 @@ bundles to the ``Applications`` folder on macOS.
 
 
 .. note::
-   |hourglass| |ensp| Depending on your system, it may take a little while for these
+   |hourglass-half| |ensp| Depending on your system, it may take a little while for these
    applications to start, especially on the very first run – which may take
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.
@@ -131,7 +135,9 @@ interpreter.
         platform = "windows";
       }
       if (navigator.userAgent.indexOf("Mac") !== -1) {
-        platform = "macos";
+        // there's no good way to distinguish intel vs M1 in javascript so we
+        // just default to showing the first of the 2 macOS tabs
+        platform = "macos-intel";
       }
      $(document).ready(function(){
          let all_tab_nodes = document.querySelectorAll(
@@ -140,9 +146,11 @@ interpreter.
              child => child.nodeName === "INPUT");
          let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
          let correct_label = tab_label_nodes.filter(
-             label => label.textContent.trim().toLowerCase() === platform)[0];
-         let hash = correct_label.getAttribute('for');
-         let correct_input = input_nodes.filter(node => node.id === hash)[0];
+             // label.id is drawn from :name: property in the rST, which must
+             // be unique across the whole site (*sigh*)
+             label => label.id.startsWith(platform))[0];
+         let input_id = correct_label.getAttribute('for');
+         let correct_input = input_nodes.filter(node => node.id === input_id)[0];
          correct_input.checked = true;
      });
      </script>

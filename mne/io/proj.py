@@ -7,19 +7,21 @@
 
 from copy import deepcopy
 from itertools import count
+import re
 
 import numpy as np
 
 from .constants import FIFF
-from .pick import pick_types, pick_info
+from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
 from .tag import find_tag, _rename_list
 from .tree import dir_tree_find
-from .write import (write_int, write_float, write_string, write_name_list,
-                    write_float_matrix, end_block, start_block)
+from .write import (write_int, write_float, write_string, write_float_matrix,
+                    end_block, start_block, write_name_list_sanitized,
+                    _safe_name_list)
 from ..defaults import (_INTERPOLATION_DEFAULT, _BORDER_DEFAULT,
                         _EXTRAPOLATE_DEFAULT)
 from ..utils import (logger, verbose, warn, fill_doc, _validate_type,
-                     object_diff)
+                     object_diff, _check_option)
 
 
 class Projection(dict):
@@ -80,20 +82,45 @@ class Projection(dict):
         return not self.__eq__(other)
 
     @fill_doc
-    def plot_topomap(self, info, cmap=None, sensors=True,
-                     colorbar=False, res=64, size=1, show=True,
-                     outlines='head', contours=6,
-                     image_interp=_INTERPOLATION_DEFAULT,
-                     axes=None, vlim=(None, None), sphere=None,
-                     border=_BORDER_DEFAULT):
+    def plot_topomap(
+            self, info, *, sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
+            cbar_fmt='%3.1f', units=None, axes=None, show=True):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
         %(info_not_none)s Used to determine the layout.
-        %(proj_topomap_kwargs)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+
+            .. versionadded:: 1.2
+        %(contours_topomap)s
+        %(outlines_topomap)s
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+
+            .. versionadded:: 1.2
         %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_proj)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+
+            .. versionadded:: 1.2
+        %(units_topomap)s
+
+            .. versionadded:: 1.2
+        %(axes_plot_projs_topomap)s
+        %(show)s
 
         Returns
         -------
@@ -106,10 +133,12 @@ class Projection(dict):
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
         return plot_projs_topomap(
-            self, info, cmap, sensors, colorbar=colorbar, res=res, size=size,
-            show=show, outlines=outlines, contours=contours,
-            image_interp=image_interp, axes=axes, vlim=vlim,
-            sphere=sphere, border=border)
+            self, info, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=axes,
+            show=show)
 
 
 class ProjMixin(object):
@@ -297,46 +326,87 @@ class ProjMixin(object):
         return self
 
     @fill_doc
-    def plot_projs_topomap(self, ch_type=None, cmap=None,
-                           sensors=True, colorbar=False, res=64, size=1,
-                           show=True, outlines='head', contours=6,
-                           image_interp=_INTERPOLATION_DEFAULT, axes=None,
-                           vlim=(None, None), sphere=None,
-                           extrapolate=_EXTRAPOLATE_DEFAULT,
-                           border=_BORDER_DEFAULT):
+    def plot_projs_topomap(
+            self, ch_type=None, *, sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
+            cbar_fmt='%3.1f', units=None, axes=None, show=True):
         """Plot SSP vector.
 
         Parameters
         ----------
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | list
-            The channel type to plot. For 'grad', the gradiometers are collec-
-            ted in pairs and the RMS for each pair is plotted. If None
-            (default), it will return all channel types present. If a list of
-            ch_types is provided, it will return multiple figures.
-        %(proj_topomap_kwargs)s
+        %(ch_type_topomap_proj)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+
+            .. versionadded:: 1.2
+        %(contours_topomap)s
+        %(outlines_topomap)s
         %(sphere_topomap_auto)s
         %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.20
         %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+            Only applies when plotting multiple topomaps at a time.
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_proj)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+
+            .. versionadded:: 1.2
+        %(units_topomap)s
+
+            .. versionadded:: 1.2
+        %(axes_plot_projs_topomap)s
+        %(show)s
 
         Returns
         -------
         fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
-        if self.info['projs'] is not None or len(self.info['projs']) != 0:
-            from ..viz.topomap import plot_projs_topomap
-            fig = plot_projs_topomap(self.info['projs'], self.info, cmap=cmap,
-                                     sensors=sensors, colorbar=colorbar,
-                                     res=res, size=size, show=show,
-                                     outlines=outlines, contours=contours,
-                                     image_interp=image_interp, axes=axes,
-                                     vlim=vlim, sphere=sphere,
-                                     extrapolate=extrapolate, border=border)
-        else:
-            raise ValueError("Info is missing projs. Nothing to plot.")
+        _projs = [deepcopy(_proj) for _proj in self.info['projs']]
+        if _projs is None or len(_projs) == 0:
+            raise ValueError('No projectors in Info; nothing to plot.')
+        if ch_type is not None:
+            # make sure the requested channel type(s) exist
+            _validate_type(ch_type, (str, list, tuple), 'ch_type')
+            if isinstance(ch_type, str):
+                ch_type = [ch_type]
+            bad_ch_types = [_type not in self for _type in ch_type]
+            if any(bad_ch_types):
+                raise ValueError(f'ch_type {ch_type[bad_ch_types]} not '
+                                 f'present in {self.__class__.__name__}.')
+            # remove projs from unrequested channel types. This is a bit
+            # convoluted because Projection objects don't store channel types,
+            # only channel names
+            available_ch_types = np.array(self.get_channel_types())
+            for _proj in _projs[::-1]:
+                idx = np.isin(self.ch_names, _proj['data']['col_names'])
+                proj_ch_type = np.unique(available_ch_types[idx])
+                err_msg = 'Projector contains multiple channel types'
+                assert len(proj_ch_type) == 1, err_msg
+                if proj_ch_type[0] != ch_type:
+                    _projs.remove(_proj)
+            if len(_projs) == 0:
+                raise ValueError('Nothing to plot (no projectors for channel '
+                                 f'type {ch_type}).')
+        # now we have non-empty _projs list with correct channel type(s)
+        from ..viz.topomap import plot_projs_topomap
+        fig = plot_projs_topomap(
+            _projs, self.info, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate,
+            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt,
+            units=units, axes=axes, show=show)
         return fig
 
     def _reconstruct_proj(self, mode='accurate', origin='auto'):
@@ -354,8 +424,7 @@ class ProjMixin(object):
             info_to = info_from.copy()
             with info_to._unlock():
                 info_to['projs'] = []
-                if kind == 'eeg' and _has_eeg_average_ref_proj(
-                        info_from['projs']):
+                if kind == 'eeg' and _has_eeg_average_ref_proj(info_from):
                     info_to['projs'] = [
                         make_eeg_average_ref_proj(info_to, verbose=False)]
             mapping = _map_meg_or_eeg_channels(
@@ -430,7 +499,7 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
         if tag is not None:
-            names = tag.data.split(':')
+            names = _safe_name_list(tag.data, 'read', 'names')
         else:
             raise ValueError('Projection item channel list missing')
 
@@ -511,7 +580,8 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
         write_int(fid, FIFF.FIFF_NCHAN, len(proj['data']['col_names']))
         names = _rename_list(proj['data']['col_names'], ch_names_mapping)
-        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names)
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names, 'col_names')
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
@@ -787,8 +857,13 @@ def deactivate_proj(projs, copy=True, verbose=None):
     return projs
 
 
+# Keep in sync with doc below
+_EEG_AVREF_PICK_DICT = {k: True for k in _ELECTRODE_CH_TYPES}
+
+
 @verbose
-def make_eeg_average_ref_proj(info, activate=True, verbose=None):
+def make_eeg_average_ref_proj(info, activate=True, *, ch_type='eeg',
+                              verbose=None):
     """Create an EEG average reference SSP projection vector.
 
     Parameters
@@ -796,11 +871,16 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     %(info_not_none)s
     activate : bool
         If True projections are activated.
+    ch_type : str
+        The channel type to use for reference projection.
+        Valid types are ``'eeg'``, ``'ecog'``, ``'seeg'`` and ``'dbs'``.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
     -------
-    eeg_proj: instance of Projection
+    proj: instance of Projection
         The SSP/PCA projector.
     """
     if info.get('custom_ref_applied', False):
@@ -809,39 +889,78 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
                            'mne.io.set_eeg_reference function to move from '
                            'one EEG reference to another.')
 
-    logger.info("Adding average EEG reference projection.")
-    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude='bads')
+    _validate_type(ch_type, (list, tuple, str), 'ch_type')
+    singleton = False
+    if isinstance(ch_type, str):
+        ch_type = [ch_type]
+        singleton = True
+    for ci, this_ch_type in enumerate(ch_type):
+        _check_option('ch_type' + ('' if singleton else f'[{ci}]'),
+                      this_ch_type, list(_EEG_AVREF_PICK_DICT))
+
+    ch_type_name = '/'.join(c.upper() for c in ch_type)
+    logger.info(f"Adding average {ch_type_name} reference projection.")
+
+    ch_dict = {c: True for c in ch_type}
+    for c in ch_type:
+        one_picks = pick_types(info, exclude='bads', **{c: True})
+        if len(one_picks) == 0:
+            raise ValueError(f'Cannot create {ch_type_name} average reference '
+                             f'projector (no {c.upper()} data found)')
+    del ch_type
+    ch_sel = pick_types(info, **ch_dict, exclude='bads')
     ch_names = info['ch_names']
-    eeg_names = [ch_names[k] for k in eeg_sel]
-    n_eeg = len(eeg_sel)
-    if n_eeg == 0:
-        raise ValueError('Cannot create EEG average reference projector '
-                         '(no EEG data found)')
-    vec = np.ones((1, n_eeg))
-    vec /= np.sqrt(n_eeg)
+    ch_names = [ch_names[k] for k in ch_sel]
+    n_chs = len(ch_sel)
+    vec = np.ones((1, n_chs))
+    vec /= np.sqrt(n_chs)
     explained_var = None
-    eeg_proj_data = dict(col_names=eeg_names, row_names=None,
-                         data=vec, nrow=1, ncol=n_eeg)
-    eeg_proj = Projection(active=activate, data=eeg_proj_data,
-                          desc='Average EEG reference',
-                          kind=FIFF.FIFFV_PROJ_ITEM_EEG_AVREF,
-                          explained_var=explained_var)
-    return eeg_proj
+    proj_data = dict(col_names=ch_names, row_names=None,
+                     data=vec, nrow=1, ncol=n_chs)
+    proj = Projection(
+        active=activate, data=proj_data, explained_var=explained_var,
+        desc=f'Average {ch_type_name} reference',
+        kind=FIFF.FIFFV_PROJ_ITEM_EEG_AVREF)
+    return proj
 
 
-def _has_eeg_average_ref_proj(projs, check_active=False):
+@verbose
+def _has_eeg_average_ref_proj(
+        info, *, projs=None, check_active=False, ch_type=None, verbose=None):
     """Determine if a list of projectors has an average EEG ref.
 
     Optionally, set check_active=True to additionally check if the CAR
     has already been applied.
     """
+    from .meas_info import Info
+    _validate_type(info, Info, 'info')
+    projs = info.get('projs', []) if projs is None else projs
+    if ch_type is None:
+        pick_kwargs = _EEG_AVREF_PICK_DICT
+    else:
+        ch_type = [ch_type] if isinstance(ch_type, str) else ch_type
+        pick_kwargs = {ch_type: True for ch_type in ch_type}
+    ch_type = '/'.join(c.upper() for c in pick_kwargs)
+    want_names = [
+        info['ch_names'][pick] for pick in pick_types(
+            info, exclude='bads', **pick_kwargs)]
+    if not want_names:
+        return False
+    found_names = list()
     for proj in projs:
-        if (proj['desc'] == 'Average EEG reference' or
-                proj['kind'] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF):
+        if (proj['kind'] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF or
+                re.match('^Average .* reference$', proj['desc'])):
             if not check_active or proj['active']:
-                return True
-    return False
+                found_names.extend(proj['data']['col_names'])
+    # If some are missing we have a problem (keep order for the message,
+    # otherwise we could use set logic)
+    missing = [name for name in want_names if name not in found_names]
+    if missing:
+        if found_names:  # found some but not all: warn
+            warn(f'Incomplete {ch_type} projector, '
+                 f'missing channel(s) {missing}')
+        return False
+    return True
 
 
 def _needs_eeg_average_ref_proj(info):
@@ -850,15 +969,18 @@ def _needs_eeg_average_ref_proj(info):
     This returns True if no custom reference has been applied and no average
     reference projection is present in the list of projections.
     """
-    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude='bads')
-    return (len(eeg_sel) > 0 and
-            not info['custom_ref_applied'] and
-            not _has_eeg_average_ref_proj(info['projs']))
+    if info['custom_ref_applied']:
+        return False
+    if not _electrode_types(info):
+        return False
+    if _has_eeg_average_ref_proj(info):
+        return False
+    return True
 
 
 @verbose
-def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
+def setup_proj(info, add_eeg_ref=True, activate=True, *, eeg_ref_ch_type='eeg',
+               verbose=None):
     """Set up projection for Raw and Epochs.
 
     Parameters
@@ -869,6 +991,11 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
         already exists).
     activate : bool
         If True projections are activated.
+    eeg_ref_ch_type : str
+        The channel type to use for reference projection.
+        Valid types are 'eeg', 'ecog', 'seeg' and 'dbs'.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -880,7 +1007,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     """
     # Add EEG ref reference proj if necessary
     if add_eeg_ref and _needs_eeg_average_ref_proj(info):
-        eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
+        eeg_proj = make_eeg_average_ref_proj(
+            info, activate=activate, ch_type=eeg_ref_ch_type)
         info['projs'].append(eeg_proj)
 
     # Create the projector

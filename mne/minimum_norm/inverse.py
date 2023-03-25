@@ -7,7 +7,6 @@
 
 from copy import deepcopy
 from math import sqrt
-import logging
 
 import numpy as np
 
@@ -20,7 +19,7 @@ from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.proj import (_read_proj, make_projector, _write_proj,
-                       _needs_eeg_average_ref_proj)
+                       _needs_eeg_average_ref_proj, _electrode_types)
 from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_and_end_file,
                         start_block, end_block, write_float,
@@ -42,8 +41,9 @@ from ..surface import _normal_orth
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
-                     _check_compensation_grade, _check_option,
-                     _check_depth, _check_src_normal, _check_fname)
+                     _check_compensation_grade, _check_option, repr_html,
+                     _check_depth, _check_src_normal, _check_fname,
+                     _verbose_safe_false)
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
@@ -95,6 +95,7 @@ class InverseOperator(dict):
         entr += '>'
         return entr
 
+    @repr_html
     def _repr_html_(self):
         from ..html_templates import repr_templates_env
         repr_info = self._get_chs_and_src_info_for_repr()
@@ -133,8 +134,9 @@ def read_inverse_operator(fname, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
+    fname : path-like
+        The name of the FIF file, which ends with ``-inv.fif`` or
+        ``-inv.fif.gz``.
     %(verbose)s
 
     Returns
@@ -354,8 +356,9 @@ def write_inverse_operator(fname, inv, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
+    fname : path-like
+        The name of the FIF file, which ends with ``-inv.fif`` or
+        ``-inv.fif.gz``.
     inv : dict
         The inverse operator.
     %(overwrite)s
@@ -830,7 +833,7 @@ def _check_reference(inst, ch_names=None):
         raise ValueError(
             'EEG average reference (using a projector) is mandatory for '
             'modeling, use the method set_eeg_reference(projection=True)')
-    if info.get('custom_ref_applied', False):
+    if _electrode_types(info) and info.get('custom_ref_applied', False):
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')
 
@@ -1162,6 +1165,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               use_cps=True, verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _validate_type(epochs, BaseEpochs, 'epochs')
+    _check_reference(epochs, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
                inverse_operator['src'])
@@ -1500,16 +1504,11 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     constrained_inverse = any(v < 1. for v in loose.values())
 
     # We only support fixed orientations for surface and discrete source
-    # spaces. Not volume or mixed.
-    if fixed_inverse:
-        if len(loose) > 1:  # Mixed source space
-            raise ValueError('Computing inverse solutions for mixed source '
-                             'spaces with fixed orientations is not '
-                             'supported.')
-        if 'volume' in loose:
-            raise ValueError('Computing inverse solutions for volume source '
-                             'spaces with fixed orientations is not '
-                             'supported.')
+    # spaces, not volume.
+    if fixed_inverse and 'volume' in loose:
+        raise ValueError('Computing inverse solutions for volume source '
+                         'spaces with fixed orientations is not '
+                         'supported.')
     if loose.get('volume', 1) < 1:
         raise ValueError('Computing inverse solutions with restricted '
                          'orientations (loose < 1) is not supported for '
@@ -1584,10 +1583,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     logger.info('Whitening the forward solution.')
     noise_cov = prepare_noise_cov(
         noise_cov, info, info_picked['ch_names'], rank)
-    verbose = False if logger.level <= logging.WARN else None
     whitener, _ = compute_whitener(
-        noise_cov, info, info_picked['ch_names'], pca=pca, verbose=verbose,
-        rank=rank)
+        noise_cov, info, info_picked['ch_names'], pca=pca, rank=rank,
+        verbose=_verbose_safe_false())
     gain = np.dot(whitener, forward['sol']['data'])
 
     logger.info('Creating the source covariance matrix')

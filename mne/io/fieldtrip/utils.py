@@ -5,7 +5,7 @@
 # License: BSD-3-Clause
 import numpy as np
 
-from .._digitization import DigPoint
+from .._digitization import DigPoint, _ensure_fiducials_head
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..pick import pick_info
@@ -140,6 +140,7 @@ def _create_info_chs_dig(ft_struct):
         cur_ch['scanno'] = idx_chan + 1
         if elec and cur_channel_label in elec['label']:
             cur_ch = _process_channel_eeg(cur_ch, elec)
+            assert cur_ch['coord_frame'] == FIFF.FIFFV_COORD_HEAD
             # Ref gets ident=0 and we don't have it, so start at 1
             counter += 1
             d = DigPoint(
@@ -165,6 +166,7 @@ def _create_info_chs_dig(ft_struct):
                 cur_ch['coil_type'] = FIFF.FIFFV_COIL_NONE
 
         chs.append(cur_ch)
+    _ensure_fiducials_head(dig)
 
     return chs, dig
 

@@ -33,7 +33,8 @@ from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_3d_figure, _check_3d_figure, _close_all,  # noqa: F401,E501 analysis:ignore
-                       _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
+                       _set_3d_view, _set_3d_title, _take_3d_screenshot,  # noqa: F401,E501 analysis:ignore
+                       _is_mesa)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractAppWindow, _AbstractHBoxLayout,
                         _AbstractVBoxLayout, _AbstractGridLayout,
                         _AbstractWidget, _AbstractCanvas,
@@ -50,7 +51,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractKeyPress)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
                      _qt_detect_theme, _qt_raise_window, _init_mne_qtapp,
-                     _qt_app_exec)
+                     _qt_app_exec, _qt_safe_window)
 from ..utils import safe_event
 from ...utils import _check_option, get_config
 from ...fixes import _compare_version
@@ -468,7 +469,7 @@ class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
             self, title=title, text=text, info_text=info_text,
             callback=callback, icon=icon, buttons=buttons, window=window)
         _Widget.__init__(self)
-        QMessageBox.__init__(self)
+        QMessageBox.__init__(self, parent=window)
         self.setWindowTitle(title)
         self.setText(text)
         # icon is one of _Dialog.supported_icon_names
@@ -633,6 +634,7 @@ class _MNEMainWindow(MainWindow):
     def __init__(self, parent=None, title=None, size=None):
         MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
 
 
 class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
@@ -723,9 +725,11 @@ class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
 class _3DRenderer(_PyVistaRenderer):
     _kind = 'qt'
 
+    @_qt_safe_window(always_close=False)
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    @_qt_safe_window()
     def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
@@ -741,9 +745,6 @@ class _3DRenderer(_PyVistaRenderer):
         # GUI. Therefore, we close after all these events have been processed
         # here.
         self._process_events()
-        splash = getattr(self.figure, 'splash', False)
-        if splash:
-            splash.close()
         _qt_raise_window(self.plotter.app_window)
 
     def _clean(self):
@@ -1074,19 +1075,26 @@ class _QtDock(_AbstractDock, _QtLayout):
         save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
+        weakself = weakref.ref(self)
 
         def callback():
+            self = weakself()
+            if not self:
+                return
             if is_directory:
                 name = QFileDialog.getExistingDirectory(
+                    parent=self._window,
                     directory=initial_directory
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
+                    parent=self._window,
                     directory=initial_directory,
                     filter=filter
                 )
             else:
                 name = QFileDialog.getOpenFileName(
+                    parent=self._window,
                     directory=initial_directory,
                     filter=filter
                 )
@@ -1236,12 +1244,11 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
 
 class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
+        window = self._window if window is None else window
         self._menus = dict()
         self._menu_actions = dict()
-        self._menu_bar = QMenuBar()
+        self._menu_bar = QMenuBar(window)
         self._menu_bar.setNativeMenuBar(False)
-        window = self._window if window is None else window
-        window.setMenuBar(self._menu_bar)
 
     def _menu_add_submenu(self, name, desc):
         self._menus[name] = self._menu_bar.addMenu(desc)
@@ -1587,12 +1594,14 @@ class _QtDialogWidget(_QtWidget):
         self._modal = modal
         self._communicator = _QtDialogCommunicator()
         self._communicator.signal_show.connect(self.show)
+        self._widget.setAttribute(Qt.WA_DeleteOnClose, True)
 
     def trigger(self, button):
         button_id = getattr(QMessageBox, button)
         for current_button in self._widget.buttons():
             if self._widget.standardButton(current_button) == button_id:
                 current_button.click()
+                break
 
     def show(self, thread=False):
         if thread:
@@ -1620,11 +1629,13 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtKeyPress):
     _kind = 'qt'
 
+    @_qt_safe_window(always_close=False)
     def __init__(self, *args, **kwargs):
         fullscreen = kwargs.pop('fullscreen', False)
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
+    @_qt_safe_window()
     def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
@@ -1641,9 +1652,6 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         # GUI. Therefore, we close after all these events have been processed
         # here.
         self._process_events()
-        splash = getattr(self.figure, 'splash', False)
-        if splash:
-            splash.close()
         _qt_raise_window(self.plotter.app_window)
 
 
@@ -1682,17 +1690,13 @@ def _testing_context(interactive):
     from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
-    orig_interactive = renderer.MNE_3D_BACKEND_INTERACTIVE
     renderer.MNE_3D_BACKEND_TESTING = True
     if interactive:
         pyvista.OFF_SCREEN = False
-        renderer.MNE_3D_BACKEND_INTERACTIVE = True
     else:
         pyvista.OFF_SCREEN = True
-        renderer.MNE_3D_BACKEND_INTERACTIVE = False
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
-        renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive

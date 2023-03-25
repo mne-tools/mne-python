@@ -32,7 +32,7 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the SNIRF data file.
     optode_frame : str
         Coordinate frame used for the optode positions. The default is unknown,
@@ -46,10 +46,11 @@ def read_raw_snirf(fname, optode_frame="unknown", preload=False, verbose=None):
     -------
     raw : instance of RawSNIRF
         A Raw object containing fNIRS data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawSNIRF.
     """
     return RawSNIRF(fname, optode_frame, preload, verbose)
 
@@ -64,7 +65,7 @@ class RawSNIRF(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the SNIRF data file.
     optode_frame : str
         Coordinate frame used for the optode positions. The default is unknown,
@@ -76,7 +77,7 @@ class RawSNIRF(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
@@ -86,7 +87,7 @@ class RawSNIRF(BaseRaw):
         from ...preprocessing.nirs import _validate_nirs_info
         h5py = _import_h5py()
 
-        fname = _check_fname(fname, 'read', True, 'fname')
+        fname = str(_check_fname(fname, "read", True, "fname"))
         logger.info('Loading %s' % fname)
 
         with h5py.File(fname, 'r') as dat:
@@ -333,10 +334,15 @@ class RawSNIRF(BaseRaw):
                     else:
                         extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = \
                             diglocs[idx, :3]
+                add_missing_fiducials = (
+                    coord_frame == FIFF.FIFFV_COORD_HEAD and
+                    lpa is None and rpa is None and nasion is None
+                )
                 dig = _make_dig_points(
                     nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi,
                     dig_ch_pos=extra_ps,
-                    coord_frame=_frame_to_str[coord_frame])
+                    coord_frame=_frame_to_str[coord_frame],
+                    add_missing_fiducials=add_missing_fiducials)
             else:
                 ch_locs = [info['chs'][idx]['loc'][0:3]
                            for idx in range(len(channels))]
@@ -398,6 +404,8 @@ class RawSNIRF(BaseRaw):
                                            verbose=verbose)
 
             # Extract annotations
+            # As described at https://github.com/fNIRS/snirf/
+            # blob/master/snirf_specification.md#nirsistimjdata
             annot = Annotations([], [], [])
             for key in dat['nirs']:
                 if 'stim' in key:
@@ -406,7 +414,9 @@ class RawSNIRF(BaseRaw):
                     if data.size > 0:
                         desc = _correct_shape(np.array(dat.get(
                             '/nirs/' + key + '/name')))[0]
-                        annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
+                        annot.append(data[:, 0],
+                                     data[:, 1],
+                                     desc.decode('UTF-8'))
             self.set_annotations(annot, emit_warning=False)
 
         # Validate that the fNIRS info is correctly formatted

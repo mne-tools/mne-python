@@ -142,11 +142,15 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
         # check that physical min and max is not exceeded
         if data.max() > pmax:
-            raise RuntimeError(f'The maximum μV of the data {data.max()} is '
-                               f'more than the physical max passed in {pmax}.')
+            warn(
+                f"The maximum μV of the data {data.max()} is "
+                f"more than the physical max passed in {pmax}.",
+            )
         if data.min() < pmin:
-            raise RuntimeError(f'The minimum μV of the data {data.min()} is '
-                               f'less than the physical min passed in {pmin}.')
+            warn(
+                f"The minimum μV of the data {data.min()} is "
+                f"less than the physical min passed in {pmin}.",
+            )
 
     # create instance of EDF Writer
     with _auto_close(EDFwriter(fname, file_type, n_channels)) as hdl:
@@ -201,7 +205,11 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             for key, val in [('PatientName', name),
                              ('PatientGender', sex),
                              ('AdditionalPatientInfo', f'hand={hand}')]:
-                _try_to_set_value(hdl, key, val)
+                # EDFwriter compares integer encodings of sex and will
+                # raise a TypeError if value is None as returned by
+                # subj_info.get(key) if key is missing.
+                if val is not None:
+                    _try_to_set_value(hdl, key, val)
 
         # set measurement date
         meas_date = raw.info['meas_date']

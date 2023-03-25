@@ -5,11 +5,13 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 from collections import namedtuple
-import re
-import numpy as np
 from datetime import datetime, timezone
+import os.path as op
+from pathlib import Path
+import re
+
+import numpy as np
 
 from .._digitization import _make_dig_points
 from ..base import BaseRaw
@@ -65,10 +67,16 @@ def _get_curry_file_structure(fname, required=()):
     """Store paths to a dict and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory as {1}."
-    fname = _check_fname(fname, 'read', True, 'fname')
+    fname = Path(_check_fname(fname, 'read', True, 'fname'))
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
-    fname_base, ext = fname.split(".", maxsplit=1)
+    # this won't handle a dot in the filename, but it should handle it in
+    # the parent directories
+    fname_base = fname.name.split('.', maxsplit=1)[0]
+    ext = fname.name[len(fname_base):]
+    fname_base = str(fname)
+    fname_base = fname_base[:len(fname_base) - len(ext)]
+    del fname
     version = _get_curry_version(ext)
     my_curry = dict()
     for key in ('info', 'data', 'labels', 'events_cef', 'events_ceo', 'hpi'):
@@ -89,7 +97,7 @@ def _read_curry_lines(fname, regex_list):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to a curry file.
     regex_list : list of str
         A list of strings or regular expressions to search within the file.
@@ -277,7 +285,8 @@ def _read_curry_info(curry_paths):
                 ch['loc'] = _coil_trans_to_loc(trans)
                 ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
             all_chans.append(ch)
-    dig = _make_dig_points(dig_ch_pos=dig_ch_pos)
+    dig = _make_dig_points(
+        dig_ch_pos=dig_ch_pos, coord_frame='head', add_missing_fiducials=True)
     del dig_ch_pos
 
     ch_count = len(all_chans)
@@ -411,7 +420,7 @@ def _read_events_curry(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to a curry event file with extensions .cef, .ceo,
         .cdt.cef, or .cdt.ceo
 
@@ -468,9 +477,9 @@ def read_raw_curry(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
-        .cdt.cef or .cef.
+    fname : path-like
+        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
+        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
     %(preload)s
     %(verbose)s
 
@@ -478,6 +487,11 @@ def read_raw_curry(fname, preload=False, verbose=None):
     -------
     raw : instance of RawCurry
         A Raw object containing Curry data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods of RawCurry.
     """
     return RawCurry(fname, preload, verbose)
 
@@ -487,15 +501,15 @@ class RawCurry(BaseRaw):
 
     Parameters
     ----------
-    fname : str
-        Path to a curry file with extensions .dat, .dap, .rs3, .cdt, cdt.dpa,
-        .cdt.cef or .cef.
+    fname : path-like
+        Path to a curry file with extensions ``.dat``, ``.dap``, ``.rs3``,
+        ``.cdt``, ``.cdt.dpa``, ``.cdt.cef`` or ``.cef``.
     %(preload)s
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     """
 

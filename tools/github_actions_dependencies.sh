@@ -5,7 +5,7 @@ EXTRA_ARGS=""
 if [ ! -z "$CONDA_ENV" ]; then
 	pip uninstall -yq mne
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
-	conda install -y $CONDA_DEPENDENCIES
+	mamba install -y $CONDA_DEPENDENCIES
 else
 	# Changes here should also go in the interactive_test CircleCI job
 	python -m pip install $STD_ARGS pip setuptools wheel
@@ -15,9 +15,13 @@ else
 	# https://pip.pypa.io/en/latest/user_guide/#possible-ways-to-reduce-backtracking-occurring
 	pip install $STD_ARGS --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six
 	echo "PyQt6"
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 PyQt6-sip PyQt6-Qt6
+	# Broken as of 2022/09/20
+	# pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 PyQt6-sip PyQt6-Qt6
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps PyQt6 PyQt6-sip PyQt6-Qt6
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy scikit-learn dipy matplotlib pandas statsmodels
+	# Wait for https://github.com/scipy/scipy/issues/17811
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 numpy
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" scipy scikit-learn dipy pandas statsmodels matplotlib
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
 	pip install $STD_ARGS --pre --only-binary ":all:" pillow
 	# We don't install Numba here because it forces an old NumPy version
@@ -37,6 +41,8 @@ else
 	  echo "pyobjc-framework-Cocoa"
 	  pip install --progress-bar off pyobjc-framework-Cocoa>=5.2.0
 	fi
+	echo "mne-qt-browser"
+	pip install --progress-bar off https://github.com/mne-tools/mne-qt-browser/zipball/main
 	EXTRA_ARGS="--pre"
 fi
 # for compat_minimal and compat_old, we don't want to --upgrade

@@ -6,8 +6,8 @@
 Compute and visualize ERDS maps
 ===============================
 
-This example calculates and displays ERDS maps of event-related EEG data. ERDS
-(sometimes also written as ERD/ERS) is short for event-related
+This example calculates and displays ERDS maps of event-related EEG data.
+ERDS (sometimes also written as ERD/ERS) is short for event-related
 desynchronization (ERD) and event-related synchronization (ERS)
 :footcite:`PfurtschellerLopesdaSilva1999`. Conceptually, ERD corresponds to a
 decrease in power in a specific frequency band relative to a baseline.
@@ -66,7 +66,16 @@ epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
                     picks=('C3', 'Cz', 'C4'), baseline=None, preload=True)
 
 # %%
-# Here we set suitable values for computing ERDS maps.
+# .. _cnorm-example:
+#
+# Here we set suitable values for computing ERDS maps. Note especially the
+# ``cnorm`` variable, which sets up an *asymmetric* colormap where the middle
+# color is mapped to zero, even though zero is not the middle *value* of the
+# colormap range. This does two things: it ensures that zero values will be
+# plotted in white (given that below we select the ``RdBu`` colormap), and it
+# makes synchronization and desynchronization look equally prominent in the
+# plots, even though their extreme values are of different magnitudes.
+
 freqs = np.arange(2, 36)  # frequencies from 2-35Hz
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
 baseline = (-1, 0)  # baseline interval (in s)

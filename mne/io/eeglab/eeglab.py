@@ -5,16 +5,21 @@
 # License: BSD-3-Clause
 
 import os.path as op
+from os import PathLike
+from pathlib import Path
 
 import numpy as np
 
 from ._eeglab import _readmat
-from ..pick import _PICK_TYPES_KEYS
-from ..utils import _read_segments_file, _find_channels
+from .._digitization import _ensure_fiducials_head
 from ..constants import FIFF
 from ..meas_info import create_info
+from ..pick import _PICK_TYPES_KEYS
+from ..utils import _read_segments_file, _find_channels
 from ..base import BaseRaw
-from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
+from ...defaults import DEFAULTS
+from ...utils import (logger, verbose, warn, fill_doc, Bunch, _check_fname,
+                      _check_head_radius)
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -72,10 +77,10 @@ def _check_load_mat(fname, uint16_codec):
     return eeg
 
 
-def _to_loc(ll):
+def _to_loc(ll, scale_units=1.):
     """Check if location exists."""
     if isinstance(ll, (int, float)) or len(ll) > 0:
-        return ll
+        return ll * scale_units
     else:
         return np.nan
 
@@ -105,7 +110,7 @@ def _eeg_has_montage_information(eeg):
     return has_pos
 
 
-def _get_montage_information(eeg, get_pos):
+def _get_montage_information(eeg, get_pos, scale_units=1.):
     """Get channel name, type and montage information from ['chanlocs']."""
     ch_names, ch_types, pos_ch_names, pos = list(), list(), list(), list()
     unknown_types = dict()
@@ -129,9 +134,9 @@ def _get_montage_information(eeg, get_pos):
 
         # channel loc
         if get_pos:
-            loc_x = _to_loc(chanloc['X'])
-            loc_y = _to_loc(chanloc['Y'])
-            loc_z = _to_loc(chanloc['Z'])
+            loc_x = _to_loc(chanloc['X'], scale_units=scale_units)
+            loc_y = _to_loc(chanloc['Y'], scale_units=scale_units)
+            loc_z = _to_loc(chanloc['Z'], scale_units=scale_units)
             locs = np.r_[-loc_y, loc_x, loc_z]
             pos_ch_names.append(chanloc['labels'])
             pos.append(locs)
@@ -156,16 +161,30 @@ def _get_montage_information(eeg, get_pos):
                 lpa = np.array([d["X"], d["Y"], d["Z"]])
 
     if pos_ch_names:
+        pos_array = np.array(pos)
+
+        # roughly estimate head radius and check if its reasonable
+        is_nan_pos = np.isnan(pos).all(axis=1)
+        if not is_nan_pos.all():
+            mean_radius = np.mean(np.linalg.norm(
+                pos_array[~is_nan_pos], axis=1))
+            additional_info = (
+                ' Check if the montage_units argument is correct (the default '
+                'is "mm", but your channel positions may be in different units'
+                ').')
+            _check_head_radius(mean_radius, add_info=additional_info)
+
         montage = make_dig_montage(
-            ch_pos=dict(zip(ch_names, np.array(pos))),
+            ch_pos=dict(zip(ch_names, pos_array)),
             coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
+        _ensure_fiducials_head(montage.dig)
     else:
         montage = None
 
     return ch_names, ch_types, montage
 
 
-def _get_info(eeg, eog=()):
+def _get_info(eeg, eog=(), scale_units=1.):
     """Get measurement info."""
     # add the ch_names and info['chs'][idx]['loc']
     if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
@@ -179,7 +198,7 @@ def _get_info(eeg, eog=()):
     if eeg_has_ch_names_info:
         has_pos = _eeg_has_montage_information(eeg)
         ch_names, ch_types, eeg_montage = \
-            _get_montage_information(eeg, has_pos)
+            _get_montage_information(eeg, has_pos, scale_units=scale_units)
         update_ch_names = False
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
@@ -218,59 +237,69 @@ def _set_dig_montage_in_init(self, montage):
         )
 
 
+def _handle_montage_units(montage_units):
+    n_char_unit = len(montage_units)
+    if montage_units[-1:] != 'm' or n_char_unit > 2:
+        raise ValueError('``montage_units`` has to be in prefix + "m" format'
+                         f', got "{montage_units}"')
+
+    prefix = montage_units[:-1]
+    scale_units = 1 / DEFAULTS['prefixes'][prefix]
+    return scale_units
+
+
 @fill_doc
 def read_raw_eeglab(input_fname, eog=(), preload=False,
-                    uint16_codec=None, verbose=None):
+                    uint16_codec=None, montage_units='mm', verbose=None):
     r"""Read an EEGLAB .set file.
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    eog : list | tuple | 'auto'
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    eog : list | tuple | ``'auto'``
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     %(preload)s
-        Note that preload=False will be effective only if the data is stored
-        in a separate binary file.
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
+        Note that ``preload=False`` will be effective only if the data is
+        stored in a separate binary file.
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
 
     Returns
     -------
     raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawEEGLAB.
 
     Notes
     -----
     .. versionadded:: 0.11.0
     """
     return RawEEGLAB(input_fname=input_fname, preload=preload,
-                     eog=eog, verbose=verbose, uint16_codec=uint16_codec)
+                     eog=eog, uint16_codec=uint16_codec,
+                     montage_units=montage_units, verbose=verbose)
 
 
 @fill_doc
 def read_epochs_eeglab(input_fname, events=None, event_id=None,
-                       eog=(), verbose=None, uint16_codec=None):
+                       eog=(), *, uint16_codec=None, montage_units='mm',
+                       verbose=None):
     r"""Reader function for EEGLAB epochs files.
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    events : str | array, shape (n_events, 3) | None
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    events : path-like | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
         of interest as specified by event_id, they will be marked as 'IGNORED'
@@ -291,13 +320,9 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
 
     Returns
     -------
@@ -306,15 +331,15 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----
     .. versionadded:: 0.11.0
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
-                          event_id=event_id, verbose=verbose,
-                          uint16_codec=uint16_codec)
+                          event_id=event_id, uint16_codec=uint16_codec,
+                          montage_units=montage_units, verbose=verbose)
     return epochs
 
 
@@ -324,9 +349,9 @@ class RawEEGLAB(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
@@ -334,17 +359,13 @@ class RawEEGLAB(BaseRaw):
     %(preload)s
         Note that preload=False will be effective only if the data is stored
         in a separate binary file.
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -353,8 +374,11 @@ class RawEEGLAB(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, eog=(),
-                 preload=False, uint16_codec=None, verbose=None):  # noqa: D102
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
+                 preload=False, *, uint16_codec=None, montage_units='mm',
+                 verbose=None):  # noqa: D102
+        input_fname = str(
+            _check_fname(input_fname, "read", True, "input_fname")
+        )
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
@@ -362,7 +386,8 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info, eeg_montage, _ = _get_info(eeg, eog=eog)
+        scale_units = _handle_montage_units(montage_units)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog, scale_units=scale_units)
 
         # read the data
         if isinstance(eeg.data, str):
@@ -411,10 +436,10 @@ class EpochsEEGLAB(BaseEpochs):
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    events : str | array, shape (n_events, 3) | None
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    events : path-like | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
         of interest as specified by event_id, they will be marked as 'IGNORED'
@@ -464,17 +489,13 @@ class EpochsEEGLAB(BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----
@@ -484,10 +505,11 @@ class EpochsEEGLAB(BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None, reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, eog=(), verbose=None,
-                 uint16_codec=None):  # noqa: D102
-        input_fname = _check_fname(fname=input_fname, must_exist=True,
-                                   overwrite='read')
+                 reject_tmax=None, eog=(), uint16_codec=None,
+                 montage_units='mm', verbose=None):  # noqa: D102
+        input_fname = str(
+            _check_fname(fname=input_fname, must_exist=True, overwrite="read")
+        )
         eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
@@ -545,11 +567,12 @@ class EpochsEEGLAB(BaseEpochs):
                 events[idx, 0] = event_latencies[idx]
                 events[idx, 1] = prev_stim
                 events[idx, 2] = event_id[event_name[idx]]
-        elif isinstance(events, str):
+        elif isinstance(events, (str, Path, PathLike)):
             events = read_events(events)
 
         logger.info('Extracting parameters from %s...' % input_fname)
-        info, eeg_montage, _ = _get_info(eeg, eog=eog)
+        scale_units = _handle_montage_units(montage_units)
+        info, eeg_montage, _ = _get_info(eeg, eog=eog, scale_units=scale_units)
 
         for key, val in event_id.items():
             if val not in events[:, 2]:

@@ -43,6 +43,7 @@ compound_surnames = (
     'van der Meer',
     'van Harmelen',
     'Visconti di Oleggio Castello',
+    'van Es',
 )
 
 
