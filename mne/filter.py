@@ -671,7 +671,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         # IT will de designed
         ftype_nice = _ftype_dict.get(ftype, ftype)
         _validate_type(phase, str, 'phase')
-        _check_option('phase', ('zero', 'zero-double', 'forward'), phase)
+        _check_option('phase', phase, ('zero', 'zero-double', 'forward'))
         if phase in ('zero-double', 'zero'):
             ptype = 'zero-phase (two-pass forward and reverse) non-causal'
         else:
