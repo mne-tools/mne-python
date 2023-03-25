@@ -517,8 +517,8 @@ _ftype_dict = {
 
 @verbose
 def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
-                         btype=None, return_copy=True, verbose=None, *,
-                         phase='zero'):
+                         btype=None, return_copy=True, *, phase='zero',
+                         verbose=None):
     """Use IIR parameters to get filtering coefficients.
 
     This function works like a wrapper for iirdesign and iirfilter in
@@ -573,8 +573,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         ``iir_params`` will be set inplace (if they weren't already).
         Otherwise, a new ``iir_params`` instance will be created and
         returned with these entries.
-    %(verbose)s
     %(phase)s
+    %(verbose)s
 
     Returns
     -------
@@ -670,6 +670,8 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
         ftype_nice = _ftype_dict.get(ftype, ftype)
+        _validate_type(phase, str, 'phase')
+        _check_option('phase', ('zero', 'zero-double', 'forward'), phase)
         if phase in ('zero-double', 'zero'):
             ptype = 'zero-phase (two-pass forward and reverse) non-causal'
         else:
@@ -677,7 +679,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         logger.info('')
         logger.info('IIR filter parameters')
         logger.info('---------------------')
-        logger.info('%s %s %s filter:' % (ftype_nice, btype, ptype))
+        logger.info(f'{ftype_nice} {btype} {ptype} filter:')
         # SciPy designs forward for -3dB, so forward-backward is -6dB
         if 'order' in iir_params:
             kwargs = dict(N=iir_params['order'], Wn=Wp, btype=btype,
@@ -1700,9 +1702,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
     """Validate and automate filter parameter selection."""
     _validate_type(phase, 'str', 'phase')
     if method == 'fir':
-        _check_option('phase', phase, _known_phases_fir)
+        _check_option('phase', phase, _known_phases_fir,
+                      extra='when FIR filtering')
     else:
-        _check_option('phase', phase, _known_phases_iir)
+        _check_option('phase', phase, _known_phases_iir,
+                      extra='when IIR filtering')
     _validate_type(fir_window, 'str', 'fir_window')
     _check_option('fir_window', fir_window, _known_fir_windows)
     _validate_type(fir_design, 'str', 'fir_design')
