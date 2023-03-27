@@ -872,7 +872,7 @@ def _get_label_src(label, src):
     return hemi_src
 
 
-class BiHemiLabel(object):
+class BiHemiLabel:
     """A freesurfer/MNE label with vertices in both hemispheres.
 
     Parameters

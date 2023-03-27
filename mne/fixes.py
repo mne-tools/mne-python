@@ -214,7 +214,7 @@ _DEFAULT_TAGS = {
 }
 
 
-class BaseEstimator(object):
+class BaseEstimator:
     """Base class for all estimators in scikit-learn.
 
     Notes

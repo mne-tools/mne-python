@@ -147,7 +147,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
     return ch_names
 
 
-class MontageMixin(object):
+class MontageMixin:
     """Mixin for Montage getting and setting."""
 
     @fill_doc
@@ -240,7 +240,7 @@ class MontageMixin(object):
         return self
 
 
-class ContainsMixin(object):
+class ContainsMixin:
     """Mixin class for Raw, Evoked, Epochs and Info."""
 
     def __contains__(self, ch_type):

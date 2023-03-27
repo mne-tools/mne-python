@@ -87,7 +87,7 @@ def _ndarray_ch_names(ch_names):
 
 
 @fill_doc
-class Annotations(object):
+class Annotations:
     """Annotation object for annotating segments of raw data.
 
     .. note::

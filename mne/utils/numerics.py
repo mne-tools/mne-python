@@ -833,7 +833,7 @@ def object_diff(a, b, pre='', *, allclose=False):
     return out
 
 
-class _PCA(object):
+class _PCA:
     """Principal component analysis (PCA)."""
 
     # Adapted from sklearn and stripped down to just use linalg.svd
@@ -1055,7 +1055,7 @@ def _stamp_to_dt(utc_stamp):
             timedelta(seconds=stamp[0], microseconds=stamp[1]))
 
 
-class _ReuseCycle(object):
+class _ReuseCycle:
     """Cycle over a variable, preferring to reuse earlier indices.
 
     Requires the values in ``x`` to be hashable and unique. This holds

@@ -469,7 +469,7 @@ def _is_numeric(n):
     return isinstance(n, numbers.Number)
 
 
-class _IntLike(object):
+class _IntLike:
     @classmethod
     def __instancecheck__(cls, other):
         try:
@@ -484,7 +484,7 @@ int_like = _IntLike()
 path_like = (str, Path, os.PathLike)
 
 
-class _Callable(object):
+class _Callable:
     @classmethod
     def __instancecheck__(cls, other):
         return callable(other)

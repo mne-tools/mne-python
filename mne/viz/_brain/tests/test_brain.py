@@ -52,7 +52,7 @@ src_fname = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
 pytest.importorskip("nibabel")
 
 
-class _Collection(object):
+class _Collection:
     def __init__(self, actors):
         self._actors = actors
 
@@ -63,7 +63,7 @@ class _Collection(object):
         return self._actors[ii]
 
 
-class TstVTKPicker(object):
+class TstVTKPicker:
     """Class to test cell picking."""
 
     def __init__(self, mesh, cell_id, hemi, brain):

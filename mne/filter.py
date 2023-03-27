@@ -1880,7 +1880,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             fir_window, fir_design)
 
 
-class FilterMixin(object):
+class FilterMixin:
     """Object for Epoch/Evoked filtering."""
 
     @verbose

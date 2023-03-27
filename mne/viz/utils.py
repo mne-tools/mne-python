@@ -654,7 +654,7 @@ def _key_press(event):
         plt.close(event.canvas.figure)
 
 
-class ClickableImage(object):
+class ClickableImage:
     """Display an image so you can click on it and store x/y positions.
 
     Takes as input an image array (can be any array that works with imshow,
@@ -1371,7 +1371,7 @@ def _prepare_joint_axes(n_maps, figsize=None):
     return fig, main_ax, map_ax, cbar_ax
 
 
-class DraggableColorbar(object):
+class DraggableColorbar:
     """Enable interactive colorbar.
 
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
@@ -1689,7 +1689,7 @@ def _connection_line(x, fig, sourceax, targetax, y=1.,
                   clip_on=False)
 
 
-class DraggableLine(object):
+class DraggableLine:
     """Custom matplotlib line for moving around by drag and drop.
 
     Parameters

@@ -456,7 +456,7 @@ def _normalize_vectors(rr):
     return size
 
 
-class _CDist(object):
+class _CDist:
     """Wrapper for cdist that uses a Tree-like pattern."""
 
     def __init__(self, xhs):
@@ -513,7 +513,7 @@ def _safe_query(rr, func, reduce=False, **kwargs):
     return out
 
 
-class _DistanceQuery(object):
+class _DistanceQuery:
     """Wrapper for fast distance queries."""
 
     def __init__(self, xhs, method='BallTree', allow_kdtree=False):
@@ -596,7 +596,7 @@ def _polydata_to_surface(pd, normals=True):
     return out
 
 
-class _CheckInside(object):
+class _CheckInside:
     """Efficiently check if points are inside a surface."""
 
     @verbose
