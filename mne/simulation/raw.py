@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Mark Wronkiewicz <wronk@uw.edu>
 #          Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>

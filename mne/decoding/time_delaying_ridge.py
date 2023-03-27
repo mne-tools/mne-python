@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """TimeDelayingRidge class."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Ross Maddox <ross.maddox@rochester.edu>

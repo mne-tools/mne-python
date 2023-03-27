@@ -1,4 +1,3 @@
-
 # Author: Luke Bloy <bloyl@chop.edu>
 #
 # License: BSD-3-Clause

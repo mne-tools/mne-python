@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #

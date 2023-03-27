@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # # Authors: MNE Developers
 #            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #

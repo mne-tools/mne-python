@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _plot_brainstorm_phantom_ctf:
 

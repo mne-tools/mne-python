@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions to make simple plots with M/EEG data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>

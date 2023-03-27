@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Classes to handle overlapping surfaces."""
 
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>

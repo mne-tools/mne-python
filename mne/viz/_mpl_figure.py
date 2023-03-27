@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Figure classes for MNE-Python's 2D plots.
 
 Class Hierarchy

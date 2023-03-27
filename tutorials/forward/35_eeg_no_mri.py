@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-eeg-fsaverage-source-modeling:
 

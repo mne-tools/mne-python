@@ -1,4 +1,3 @@
-
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #         Joan Massich <mailsik@gmail.com>
 #

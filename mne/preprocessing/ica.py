@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>

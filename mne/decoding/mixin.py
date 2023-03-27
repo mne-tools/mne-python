@@ -1,5 +1,3 @@
-
-
 class TransformerMixin(object):
     """Mixin class for all transformers in scikit-learn."""
 

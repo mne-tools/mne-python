@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Reading tools from EDF, EDF+, BDF, and GDF."""
 
 # Authors: Teon Brooks <teon.brooks@gmail.com>

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test the current source density and related functions.
 
 For each supported file format, implement a test.

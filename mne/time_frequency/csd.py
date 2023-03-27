@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>

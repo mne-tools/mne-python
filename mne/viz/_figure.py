@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Base classes and functions for 2D browser backends."""
 
 # Authors: Daniel McCloy <dan@mccloy.info>

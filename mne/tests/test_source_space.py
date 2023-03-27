@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -940,7 +939,6 @@ def test_get_decimated_surfaces(src, n, nv):
 # Unfortunately the C code bombs when trying to add source space distances,
 # possibly due to incomplete "faking" of a smaller surface on our part here.
 """
-# -*- coding: utf-8 -*-
 
 import os
 import numpy as np

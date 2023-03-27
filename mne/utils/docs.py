@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The documentation functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #

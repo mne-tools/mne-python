@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
