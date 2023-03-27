@@ -637,7 +637,9 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
 
     with open(fname, 'rb') as fid:
 
-        fid.read(8)  # version (unused here)
+        version = fid.read(8)
+        if version not in (b'0       ', b'\xffBIOSEMI'):
+            logger.info(f'Unexpected version {version} in file {fname}.')
 
         # patient ID
         patient = {}
@@ -646,29 +648,58 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         if len(id_info):
             patient['id'] = id_info[0]
             if len(id_info) == 4:
-                try:
-                    birthdate = datetime.strptime(id_info[2], "%d-%b-%Y")
-                except ValueError:
-                    birthdate = "X"
+                if id_info[2] == 'X':
+                    birthdate = id_info[2]
+                else:
+                    try:
+                        # The Python locale must be be ANSI C, or English.
+                        birthdate = datetime.strptime(id_info[2], "%d-%b-%Y")
+                    except ValueError:
+                        logger.info(f'Skipping date "{id_info[2]}" in the '
+                                    '"patient identification" field of the '
+                                    'header record, which is not compliant '
+                                    f'with EDF+, in file {fname}.')
+                        birthdate = "X"
                 patient['sex'] = id_info[1]
                 patient['birthday'] = birthdate
                 patient['name'] = id_info[3]
+            else:
+                logger.info('Skipping the "patient identification" field '
+                            'of the header record, which is not compliant '
+                            f'with EDF+, in file {fname}.')
 
         # Recording ID
         meas_id = {}
         rec_info = fid.read(80).decode('latin-1').rstrip().split(' ')
         valid_startdate = False
         if len(rec_info) == 5:
-            try:
-                startdate = datetime.strptime(rec_info[1], "%d-%b-%Y")
-            except ValueError:
-                startdate = "X"
+            if rec_info[0] != 'Startdate':
+                logger.info('The "recording identification" field of the '
+                            f'header record begins with "{rec_info[0]}", '
+                            'which is not compliant with EDF+, '
+                            f'in file {fname}.')
+            if rec_info[1] == 'X':
+                startdate = rec_info[1]
             else:
-                valid_startdate = True
+                try:
+                    # The Python locale must be be ANSI C, or English.
+                    startdate = datetime.strptime(rec_info[1], "%d-%b-%Y")
+                except ValueError:
+                    logger.info(f'Skipping date "{rec_info[1]}" in the '
+                                '"recording identification" field of the '
+                                'header record, which is not compliant '
+                                f'with EDF+, in file {fname}.')
+                    startdate = "X"
+                else:
+                    valid_startdate = True
             meas_id['startdate'] = startdate
             meas_id['study_id'] = rec_info[2]
             meas_id['technician'] = rec_info[3]
             meas_id['equipment'] = rec_info[4]
+        elif len(rec_info):
+            logger.info('Skipping the "recording identification" field '
+                        'of the header record, which is not compliant '
+                        f'with EDF+, in file {fname}.')
 
         # If startdate available in recording info, use it instead of the
         # file's meas_date since it contains all 4 digits of the year
