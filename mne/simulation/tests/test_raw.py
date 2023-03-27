@@ -325,6 +325,7 @@ def test_degenerate(raw_data):
 @pytest.mark.slowtest
 def test_simulate_raw_bem(raw_data):
     """Test simulation of raw data with BEM."""
+    pytest.importorskip('nibabel')
     raw, src_ss, stc, trans, sphere = raw_data
     src = setup_source_space('sample', 'oct1', subjects_dir=subjects_dir)
     for s in src:
