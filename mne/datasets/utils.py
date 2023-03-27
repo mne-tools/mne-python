@@ -304,7 +304,7 @@ def _download_all_example_data(verbose=True):
                    kiloword, phantom_4dbti, sleep_physionet, limo,
                    fnirs_motor, refmeg_noise, fetch_infant_template,
                    fetch_fsaverage, ssvep, erp_core, epilepsy_ecog,
-                   fetch_phantom, ucl_opm_auditory)
+                   fetch_phantom, eyelink, ucl_opm_auditory)
     sample_path = sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -327,6 +327,7 @@ def _download_all_example_data(verbose=True):
     brainstorm.bst_resting.data_path(accept=True)
     phantom_path = brainstorm.bst_phantom_elekta.data_path(accept=True)
     fetch_phantom('otaniemi', subjects_dir=phantom_path)
+    eyelink.data_path()
     brainstorm.bst_phantom_ctf.data_path(accept=True)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     for subj in range(4):
