@@ -73,10 +73,9 @@ class FieldCorrector():
         The order of the spherical harmonic basis set to use. Set to 1 to use
         only the homogeneous field component (default), 2 to add gradients, 3
         to add quadrature terms etc.
-    pm : bool
-        Assume the sensors are point magnetometers, False (default) will use
-        accurate sensor definitions when generating model, whilst True will use
-        the simpler point-sensor definition.
+    accuracy : str
+        Can be ``"point"``, ``"normal"`` or ``"accurate"`` (default), defines
+        which level of coil definition accuracy is used to generate model.
 
     Attributes
     ----------
