@@ -181,8 +181,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        logger.info(u'Omitting %5.1f%% (%3d segments): '
-                    u'ω >= %5.1f°/s (max: %0.1f°/s)'
+        logger.info('Omitting %5.1f%% (%3d segments): '
+                    'ω >= %5.1f°/s (max: %0.1f°/s)'
                     % (bad_pct, len(onsets), rotation_velocity_limit,
                        np.rad2deg(r.max())))
         annot += _annotations_from_mask(
@@ -197,8 +197,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        logger.info(u'Omitting %5.1f%% (%3d segments): '
-                    u'v >= %5.4fm/s (max: %5.4fm/s)'
+        logger.info('Omitting %5.1f%% (%3d segments): '
+                    'v >= %5.4fm/s (max: %5.4fm/s)'
                     % (bad_pct, len(onsets), translation_velocity_limit,
                        v.max()))
         annot += _annotations_from_mask(
@@ -242,8 +242,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        logger.info(u'Omitting %5.1f%% (%3d segments): '
-                    u'disp >= %5.4fm (max: %5.4fm)'
+        logger.info('Omitting %5.1f%% (%3d segments): '
+                    'disp >= %5.4fm (max: %5.4fm)'
                     % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
         annot += _annotations_from_mask(
             hp_ts, bad_mask, 'BAD_mov_dist', orig_time=orig_time)

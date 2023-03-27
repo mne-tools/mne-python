@@ -67,7 +67,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
 
 @fill_doc
 class Scaler(TransformerMixin, BaseEstimator):
-    u"""Standardize channel data.
+    """Standardize channel data.
 
     This class scales data for each channel. It differs from scikit-learn
     classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that

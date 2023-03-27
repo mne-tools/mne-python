@@ -129,7 +129,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
 def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
                  mindist=1.0, interp='cos2', n_jobs=None, use_cps=True,
                  forward=None, first_samp=0, max_iter=10000, verbose=None):
-    u"""Simulate raw data.
+    """Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
     parameter.

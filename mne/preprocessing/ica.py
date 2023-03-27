@@ -149,7 +149,7 @@ _KNOWN_ICA_METHODS = ('fastica', 'infomax', 'picard')
 
 @fill_doc
 class ICA(ContainsMixin):
-    u"""Data decomposition using Independent Component Analysis (ICA).
+    """Data decomposition using Independent Component Analysis (ICA).
 
     This object estimates independent components from :class:`mne.io.Raw`,
     :class:`mne.Epochs`, or :class:`mne.Evoked` objects. Components can

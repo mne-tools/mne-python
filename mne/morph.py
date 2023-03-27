@@ -632,8 +632,8 @@ class SourceMorph:
         return img_to
 
     def __repr__(self):  # noqa: D105
-        s = u"%s" % self.kind
-        s += u", %s -> %s" % (self.subject_from, self.subject_to)
+        s = "%s" % self.kind
+        s += ", %s -> %s" % (self.subject_from, self.subject_to)
         if self.kind == 'volume':
             s += ", zooms : {}".format(self.zooms)
             s += ", niter_affine : {}".format(self.niter_affine)

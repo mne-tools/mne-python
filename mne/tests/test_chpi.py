@@ -438,7 +438,7 @@ def test_simulate_calculate_head_pos_chpi():
     # Read info dict from raw FIF file
     info = read_info(raw_fname)
     # Tune the info structure
-    chpi_channel = u'STI201'
+    chpi_channel = 'STI201'
     ncoil = len(info['hpi_results'][0]['order'])
     coil_freq = 10 + np.arange(ncoil) * 5
     hpi_subsystem = {'event_channel': chpi_channel,
