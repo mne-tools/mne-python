@@ -784,10 +784,11 @@ def _check_destination(destination, info, head_frame):
 
 
 @verbose
-def _prep_mf_coils(info, ignore_ref=True, verbose=None):
+def _prep_mf_coils(info, ignore_ref=True, accuracy='accurate', verbose=None):
     """Get all coil integration information loaded and sorted."""
     meg_sensors = _prep_meg_channels(
-        info, head_frame=False, ignore_ref=ignore_ref, verbose=False)
+        info, head_frame=False, ignore_ref=ignore_ref, accuracy=accuracy,
+        verbose=False)
     coils = meg_sensors['defs']
     mag_mask = _get_mag_mask(coils)
 

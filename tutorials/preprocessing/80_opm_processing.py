@@ -30,8 +30,8 @@ import numpy as np
 import mne
 
 opm_data_folder = mne.datasets.ucl_opm_auditory.data_path()
-opm_file = (opm_data_folder / 'sub-001' / 'ses-001' / 'meg' /
-            'sub-001_ses-001_task-aef_run-001_meg.bin')
+opm_file = (opm_data_folder / 'sub-002' / 'ses-001' / 'meg' /
+            'sub-002_ses-001_task-aef_run-001_meg.bin')
 # For now we are going to assume the device and head coordinate frames are
 # identical (even though this is incorrect), so we pass verbose='error' for now
 raw = mne.io.read_raw_fil(opm_file, verbose='error')
@@ -109,6 +109,36 @@ ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True, ls=':')
 ax.set(title='After reference regression', **set_kwargs)
 
+# compute the psd of the regressed data
+psd_post_reg = raw.compute_psd(**psd_kwargs)
+
+# %%
+# Denoising: Regressing via homogeneous field correction
+# -----------------------------------------------------
+#
+# Regression of a reference channel is a start, but in this instance assumes
+# the relatiship between the references and a given sensor on the head as
+# constant. However this becomes less accurate when the reference is not moving
+# but the subject is. An alternative method, Homogeneous Field Correction (HFC)
+# only requires that the sensors on the helmet stationary relative to each
+# other. Which in a well-designed rigid helmet is the case.
+
+hfc = mne.preprocessing.FieldCorrector()
+hfc.fit(raw)
+hfc.apply(raw, copy=None)
+
+# plot
+data_ds, _ = raw[picks[::5], :stop]
+data_ds = data_ds[:, ::step] * amp_scale
+
+fig, ax = plt.subplots(constrained_layout=True)
+ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
+ax.grid(True, ls=':')
+ax.set(title='After HFC', **set_kwargs)
+
+# compute the psd of the regressed data
+psd_post_hfc = raw.compute_psd(**psd_kwargs)
+
 # %%
 # Comparing denoising methods
 # ---------------------------
@@ -119,16 +149,32 @@ ax.set(title='After reference regression', **set_kwargs)
 # after processing. We will use metric called the shielding factor to summarise
 # the values. Positive shielding factors indicate a reduction in power, whilst
 # negative means in increase.
+#
+# We see that reference regression does a good job in reducing low frequency
+# drift up to ~2 Hz, with 20 dB of shielding. But rapidly drops off due to
+# low pass filtering the reference signal at 5 Hz. We also can see that this
+# method is also introducing additional interference at 3 Hz.
+#
+# HFC improves on the low frequency shielding (up to 32 dB). Also this method
+# is not frequency-specific so we observe broadband interference reduction.
 
-# psd_pre was computed above before regression
-psd_post = raw.compute_psd(**psd_kwargs)
-shielding = 10 * np.log10(psd_pre[:] / psd_post[:])
+shielding = 10 * np.log10(psd_pre[:] / psd_post_reg[:])
 
 fig, ax = plt.subplots(constrained_layout=True)
-ax.plot(psd_post.freqs, shielding.T, **plot_kwargs)
+ax.plot(psd_post_reg.freqs, shielding.T, **plot_kwargs)
 ax.grid(True, ls=':')
-ax.set(xticks=psd_post.freqs)
+ax.set(xticks=psd_post_reg.freqs)
 ax.set(xlim=(0, 20), title='Reference regression shielding',
+       xlabel='Frequency (Hz)', ylabel='Shielding (dB)')
+
+
+shielding = 10 * np.log10(psd_pre[:] / psd_post_hfc[:])
+
+fig, ax = plt.subplots(constrained_layout=True)
+ax.plot(psd_post_hfc.freqs, shielding.T, **plot_kwargs)
+ax.grid(True, ls=':')
+ax.set(xticks=psd_post_hfc.freqs)
+ax.set(xlim=(0, 20), title='Reference regression & HFC shielding',
        xlabel='Frequency (Hz)', ylabel='Shielding (dB)')
 
 # %%
@@ -149,7 +195,7 @@ ax.set(xlim=(0, 20), title='Reference regression shielding',
 # notch
 raw.notch_filter(np.arange(50, 251, 50))
 # bandpass
-raw.filter(1, 48, picks='meg')
+raw.filter(2, 48, picks='meg')
 # plot
 data_ds, _ = raw[picks[::5], :stop]
 data_ds = data_ds[:, ::step] * amp_scale
@@ -159,7 +205,7 @@ ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True)
 set_kwargs = dict(ylim=(-500, 500), xlim=time_ds[[0, -1]],
                   xlabel='Time (s)', ylabel='Amplitude (pT)')
-ax.set(title='After regression and filtering', **set_kwargs)
+ax.set(title='After regression, HFC and filtering', **set_kwargs)
 
 # %%
 # Generating an evoked response
