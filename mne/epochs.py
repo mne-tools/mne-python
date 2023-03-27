@@ -3211,7 +3211,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     return EpochsFIF(fname, proj, preload, verbose)
 
 
-class _RawContainer(object):
+class _RawContainer:
     """Helper for a raw data container."""
 
     def __init__(self, fid, data_tag, event_samps, epoch_shape,

@@ -141,7 +141,7 @@ class Projection(dict):
             show=show)
 
 
-class ProjMixin(object):
+class ProjMixin:
     """Mixin class for Raw, Evoked, Epochs.
 
     Notes

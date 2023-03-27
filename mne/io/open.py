@@ -16,7 +16,7 @@ from .constants import FIFF
 from ..utils import logger, verbose, _file_like, warn
 
 
-class _NoCloseRead(object):
+class _NoCloseRead:
     """Create a wrapper that will not close when used as a context manager."""
 
     def __init__(self, fid):
@@ -310,7 +310,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                         '/'.join(this_type) +
                         ' (' + str(size) + 'b %s)' % type_ +
                         postpend]
-                out[-1] = out[-1].replace('\n', u'¶')
+                out[-1] = out[-1].replace('\n', '¶')
                 counter = 0
                 good = True
         if tag_id in kinds:

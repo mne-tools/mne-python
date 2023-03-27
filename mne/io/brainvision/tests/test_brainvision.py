@@ -498,7 +498,7 @@ def test_brainvision_data_software_filters_latin1_global_units():
 
 def test_brainvision_data():
     """Test reading raw Brain Vision files."""
-    pytest.raises(IOError, read_raw_brainvision, vmrk_path)
+    pytest.raises(OSError, read_raw_brainvision, vmrk_path)
     pytest.raises(ValueError, read_raw_brainvision, vhdr_path,
                   preload=True, scale="foo")
 

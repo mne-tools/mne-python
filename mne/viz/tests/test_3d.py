@@ -34,7 +34,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
-from mne.utils import requires_nibabel, catch_logging, _record_warnings
+from mne.utils import catch_logging, _record_warnings
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.transforms import Transform
@@ -106,6 +106,7 @@ def test_plot_head_positions():
 @pytest.mark.slowtest
 def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     """Test plotting of (sparse) source estimates."""
+    pytest.importorskip('nibabel')
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -175,6 +176,7 @@ def _assert_n_actors(fig, renderer, n_actors):
 ])
 def test_plot_alignment_meg(renderer, system):
     """Test plotting of MEG sensors + helmet."""
+    pytest.importorskip('nibabel')
     if system == 'Neuromag':
         this_info = read_info(evoked_fname)
     elif system == 'CTF':
@@ -204,6 +206,7 @@ def test_plot_alignment_meg(renderer, system):
 @testing.requires_testing_data
 def test_plot_alignment_surf(renderer):
     """Test plotting of a surface."""
+    pytest.importorskip('nibabel')
     info = read_info(evoked_fname)
     fig = plot_alignment(
         info, read_trans(trans_fname), subject='sample',
@@ -462,6 +465,7 @@ def test_plot_alignment_fnirs(renderer, tmp_path):
 @testing.requires_testing_data
 def test_process_clim_plot(renderer_interactive, brain_gc):
     """Test functionality for determining control points with stc.plot."""
+    pytest.importorskip('nibabel')
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1,
                   time_viewer=False, show_traces=False)
@@ -580,11 +584,10 @@ def test_process_clim_round_trip():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
+    pytest.importorskip('nibabel')
     sample_src = read_source_spaces(src_fname)
-
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
@@ -612,12 +615,12 @@ def test_stc_mpl():
 @pytest.mark.slowtest
 @pytest.mark.timeout(60)  # can sometimes take > 60 s
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('coord_frame, idx, show_all, title',
                          [('head', 'gof', True, 'Test'),
                           ('mri', 'amplitude', False, None)])
 def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
     """Test mpl dipole plotting."""
+    pytest.importorskip('nibabel')
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
     fig = dipoles.plot_locations(trans=trans, subject='sample',
@@ -643,6 +646,7 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
 ])
 def test_plot_dipole_mri_outlines(surf, coord_frame, ax, title):
     """Test mpl dipole plotting."""
+    pytest.importorskip('nibabel')
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
     if ax is not None:
@@ -677,6 +681,7 @@ def test_plot_dipole_orientations(renderer):
 @testing.requires_testing_data
 def test_snapshot_brain_montage(renderer):
     """Test snapshot brain montage."""
+    pytest.importorskip('nibabel')
     info = read_info(evoked_fname)
     fig = plot_alignment(
         info, trans=Transform('head', 'mri'), subject='sample',
@@ -828,6 +833,7 @@ def test_brain_colorbar(orientation, diverging, lims):
 @testing.requires_testing_data
 def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for mixed source space."""
+    pytest.importorskip('nibabel')
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources
 
@@ -851,6 +857,7 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 @pytest.mark.slowtest
 def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
+    pytest.importorskip('nibabel')
     sample_src = read_source_spaces(src_fname)
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5

@@ -204,7 +204,6 @@ numpydoc_xref_aliases = {
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
-    'SourceMorph': 'mne.SourceMorph',
     'Epochs': 'mne.Epochs', 'Layout': 'mne.channels.Layout',
     'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.BiHemiLabel',
     'AverageTFR': 'mne.time_frequency.AverageTFR',
@@ -224,7 +223,7 @@ numpydoc_xref_aliases = {
     'CrossSpectralDensity': 'mne.time_frequency.CrossSpectralDensity',
     'SourceMorph': 'mne.SourceMorph',
     'Xdawn': 'mne.preprocessing.Xdawn',
-    'Report': 'mne.Report', 'Forward': 'mne.Forward',
+    'Report': 'mne.Report',
     'TimeDelayingRidge': 'mne.decoding.TimeDelayingRidge',
     'Vectorizer': 'mne.decoding.Vectorizer',
     'UnsupervisedSpatialFilter': 'mne.decoding.UnsupervisedSpatialFilter',
@@ -631,7 +630,8 @@ html_theme_options = {
     'navigation_with_keys': False,
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
-    'footer_items': ['copyright'],
+    'footer_start': ['copyright'],
+    'footer_end': [],
     'secondary_sidebar_items': ['page-toc'],
     'analytics': dict(google_analytics_id='G-5TBCPCRB6X'),
     'switcher': {
@@ -1012,10 +1012,16 @@ def reset_warnings(gallery_conf, fname):
         'Implementing implicit namespace packages',
         'Deprecated call to `pkg_resources',
         # nilearn
-        r'The register_cmap function was deprecated in Matplotlib 3\.7',
+        'pkg_resources is deprecated as an API',
+        r'The .* was deprecated in Matplotlib 3\.7',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    warnings.filterwarnings(
+        'ignore', message=(
+            'Matplotlib is currently using agg, which is a non-GUI backend.*'
+        )
+    )
     # matplotlib 3.6 in nilearn and pyvista
     warnings.filterwarnings(
         'ignore', message='.*cmap function will be deprecated.*')

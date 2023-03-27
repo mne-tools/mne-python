@@ -1,6 +1,6 @@
 
 
-class TransformerMixin(object):
+class TransformerMixin:
     """Mixin class for all transformers in scikit-learn."""
 
     def fit_transform(self, X, y=None, **fit_params):
@@ -33,7 +33,7 @@ class TransformerMixin(object):
             return self.fit(X, y, **fit_params).transform(X)
 
 
-class EstimatorMixin(object):
+class EstimatorMixin:
     """Mixin class for estimators."""
 
     def get_params(self, deep=True):

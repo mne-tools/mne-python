@@ -316,7 +316,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
     return stc
 
 
-class SourceSimulator(object):
+class SourceSimulator:
     """Class to generate simulated Source Estimates.
 
     Parameters

@@ -1310,7 +1310,7 @@ def _find_tal_idx(ch_names):
 def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
                  exclude=(), infer_types=False, include=None, preload=False,
                  units=None, encoding='utf8', *, verbose=None):
-    """Reader function for EDF or EDF+ files.
+    """Reader function for EDF and EDF+ files.
 
     Parameters
     ----------
@@ -1357,12 +1357,14 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     -------
     raw : instance of RawEDF
         The raw instance.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
     mne.io.read_raw_bdf : Reader function for BDF files.
     mne.io.read_raw_gdf : Reader function for GDF files.
     mne.export.export_raw : Export function for EDF files.
+    mne.io.Raw : Documentation of attributes and methods of RawEDF.
 
     Notes
     -----
@@ -1467,11 +1469,13 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
     -------
     raw : instance of RawEDF
         The raw instance.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
     mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
     mne.io.read_raw_gdf : Reader function for GDF files.
+    mne.io.Raw : Documentation of attributes and methods of RawEDF.
 
     Notes
     -----
@@ -1555,11 +1559,13 @@ def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
     -------
     raw : instance of RawGDF
         The raw instance.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
     mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
     mne.io.read_raw_bdf : Reader function for BDF files.
+    mne.io.Raw : Documentation of attributes and methods of RawGDF.
 
     Notes
     -----

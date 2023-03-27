@@ -17,7 +17,7 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version, logger)
+                    get_subjects_dir, _import_nibabel, logger)
 
 
 def _check_subject_dir(subject, subjects_dir):
@@ -33,9 +33,7 @@ def _check_subject_dir(subject, subjects_dir):
 
 def _get_aseg(aseg, subject, subjects_dir):
     """Check that the anatomical segmentation file exists and load it."""
-    _require_version('nibabel', 'load aseg', '2.1.0')
-    import nibabel as nib
-
+    nib = _import_nibabel('load aseg')
     subjects_dir = Path(get_subjects_dir(subjects_dir, raise_error=True))
     if not aseg.endswith('aseg'):
         raise RuntimeError(
@@ -48,18 +46,6 @@ def _get_aseg(aseg, subject, subjects_dir):
     aseg = nib.load(aseg)
     aseg_data = np.array(aseg.dataobj)
     return aseg, aseg_data
-
-
-def _import_nibabel(why='use MRI files'):
-    try:
-        import nibabel as nib
-    except ImportError as exp:
-        msg = 'nibabel is required to %s, got:\n%s' % (why, exp)
-    else:
-        msg = ''
-    if msg:
-        raise ImportError(msg)
-    return nib
 
 
 def _reorient_image(img, axcodes='RAS'):
@@ -84,7 +70,7 @@ def _reorient_image(img, axcodes='RAS'):
     -----
     .. versionadded:: 0.24
     """
-    import nibabel as nib
+    nib = _import_nibabel('reorient MRI image')
     orig_data = np.array(img.dataobj).astype(np.float32)
     # reorient data to RAS
     ornt = nib.orientations.axcodes2ornt(
@@ -148,7 +134,7 @@ def _get_mgz_header(fname):
     fname = _check_fname(fname, overwrite='read', must_exist=True,
                          name='MRI image')
     if fname.suffix != ".mgz":
-        raise IOError('Filename must end with .mgz')
+        raise OSError('Filename must end with .mgz')
     header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
                   ('type', '>i4'), ('dof', '>i4'), ('goodRASFlag', '>i2'),
                   ('delta', '>f4', (3,)), ('Mdc', '>f4', (3, 3)),
@@ -229,8 +215,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
 
     .. versionadded:: 0.9.0
     """
-    import nibabel as nib
-
+    nib = _import_nibabel('load MRI atlas data')
     mgz_fname = _check_fname(
         mgz_fname, overwrite="read", must_exist=True, name="mgz_fname"
     )
@@ -486,7 +471,7 @@ def estimate_head_mri_t(subject, subjects_dir=None, verbose=None):
 
 def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
     """Check if the image is in Freesurfer surface RAS space."""
-    import nibabel as nib
+    nib = _import_nibabel('load a volume image')
     if not isinstance(image, nib.spatialimages.SpatialImage):
         image = nib.load(image)
     image = nib.MGHImage(image.dataobj.astype(np.float32), image.affine)
@@ -584,7 +569,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     if not path.is_file():
         path = subjects_dir / subject / "mri" / "T1.mgz"
     if not path.is_file():
-        raise IOError('mri not found: %s' % path)
+        raise OSError('mri not found: %s' % path)
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
     return mri_mni_t
@@ -606,7 +591,7 @@ def _check_mri(mri, subject, subjects_dir):
     if op.basename(mri) == mri:
         err = (f'Ambiguous filename - found {mri!r} in current folder.\n'
                'If this is correct prefix name with relative or absolute path')
-        raise IOError(err)
+        raise OSError(err)
     return mri
 
 
@@ -614,8 +599,8 @@ def _read_mri_info(path, units='m', return_img=False, use_nibabel=False):
     # This is equivalent but 100x slower, so only use nibabel if we need to
     # (later):
     if use_nibabel:
-        import nibabel
-        hdr = nibabel.load(path).header
+        nib = _import_nibabel()
+        hdr = nib.load(path).header
         n_orig = hdr.get_vox2ras()
         t_orig = hdr.get_vox2ras_tkr()
         dims = hdr.get_data_shape()
@@ -761,7 +746,7 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
                 return read_bem_surfaces(fname, on_defects='warn')[0]
             else:
                 return _read_mri_surface(fname)
-    raise IOError('No head surface found for subject '
+    raise OSError('No head surface found for subject '
                   f'{subject} after trying:\n' + '\n'.join(try_fnames))
 
 

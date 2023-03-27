@@ -586,7 +586,7 @@ class SetChannelsMixin(MontageMixin):
         return self
 
 
-class UpdateChannelsMixin(object):
+class UpdateChannelsMixin:
     """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
     @verbose
@@ -980,7 +980,7 @@ class UpdateChannelsMixin(object):
         return add_reference_channels(self, ref_channels, copy=False)
 
 
-class InterpolationMixin(object):
+class InterpolationMixin:
     """Mixin class for Raw, Evoked, Epochs."""
 
     @verbose

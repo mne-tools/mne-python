@@ -49,8 +49,10 @@ fname_evoked = sample_dir / "sample_audvis_trunc-ave.fif"
 fname_fwd = sample_dir / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 src_fname = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
 
+pytest.importorskip("nibabel")
 
-class _Collection(object):
+
+class _Collection:
     def __init__(self, actors):
         self._actors = actors
 
@@ -61,7 +63,7 @@ class _Collection(object):
         return self._actors[ii]
 
 
-class TstVTKPicker(object):
+class TstVTKPicker:
     """Class to test cell picking."""
 
     def __init__(self, mesh, cell_id, hemi, brain):
@@ -109,7 +111,8 @@ class TstVTKPicker(object):
 
 # TODO: allow_unclosed for macOS here as the conda and M1 builds show some
 # windows stay open afterward
-def test_layered_mesh(renderer_interactive_pyvistaqt, allow_unclosed):
+@pytest.mark.allow_unclosed
+def test_layered_mesh(renderer_interactive_pyvistaqt):
     """Test management of scalars/colormap overlay."""
     mesh = _LayeredMesh(
         renderer=renderer_interactive_pyvistaqt._get_renderer(size=(300, 300)),
@@ -1135,8 +1138,8 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
 
 # TODO: allow_unclosed for macOS here as the conda build shows some
 # windows stay open afterward
-def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt,
-                      allow_unclosed):
+@pytest.mark.allow_unclosed
+def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     """Test mapping foci to the surface."""
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo['lh'].coords[:2] + 0.01

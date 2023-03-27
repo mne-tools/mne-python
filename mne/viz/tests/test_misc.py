@@ -25,7 +25,6 @@ from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd, plot_chpi_snr)
 from mne.viz.misc import _handle_event_colors
 from mne.viz.utils import _get_color_list
-from mne.utils import requires_nibabel
 from mne.time_frequency import CrossSpectralDensity
 
 data_path = testing.data_path(download=False)
@@ -134,10 +133,10 @@ def test_plot_cov():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
-    with pytest.raises(IOError, match='MRI file .* not found'):
+    pytest.importorskip('nibabel')
+    with pytest.raises(OSError, match='MRI file .* not found'):
         plot_bem(subject='bad-subject', subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match="Invalid value for the 'orientation"):
         plot_bem(subject='sample', subjects_dir=subjects_dir,

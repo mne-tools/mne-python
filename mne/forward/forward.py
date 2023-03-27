@@ -1261,7 +1261,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
           prior dependent only on the sensor geometry (and relationship
           to the sources).
     * ``'whiten'``
-          Compute a whitener and apply it to the gain matirx before computing
+          Compute a whitener and apply it to the gain matrix before computing
           the depth prior. In this case ``noise_cov`` must not be None.
           Whitening the gain matrix makes the depth prior
           depend on both sensor geometry and the data of interest captured
@@ -1880,7 +1880,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             try:
                 write_trans(trans, trans_data)
             except Exception:
-                raise IOError('trans was a dict, but could not be '
+                raise OSError('trans was a dict, but could not be '
                               'written to disk as a transform file')
         elif isinstance(trans, (str, Path, PathLike)):
             _check_fname(trans, "read", must_exist=True, name="trans")
@@ -1894,7 +1894,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             try:
                 write_trans(mri, mri_data)
             except Exception:
-                raise IOError('mri was a dict, but could not be '
+                raise OSError('mri was a dict, but could not be '
                               'written to disk as a transform file')
         elif isinstance(mri, (str, Path, PathLike)):
             _check_fname(mri, "read", must_exist=True, name="mri")

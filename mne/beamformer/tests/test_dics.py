@@ -58,6 +58,7 @@ def _load_forward():
 
 def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     """Simulate an oscillator on the cortex."""
+    pytest.importorskip('nibabel')
     source_vertno = fwd['src'][0]['vertno'][idx]
 
     sfreq = 50.  # Hz.

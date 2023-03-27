@@ -17,8 +17,8 @@ from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
 from .fixes import _safe_svd
-from ._freesurfer import (_import_nibabel, _get_mri_info_data,
-                          _get_atlas_values, read_freesurfer_lut)
+from ._freesurfer import (_get_mri_info_data, _get_atlas_values,
+                          read_freesurfer_lut)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .surface import (read_surface, _get_ico_surface, mesh_edges,
@@ -30,7 +30,7 @@ from .transforms import _get_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
-                    _check_stc_units, _check_pandas_installed,
+                    _check_stc_units, _check_pandas_installed, _import_nibabel,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _path_like,
                     sizeof_fmt, object_size, _check_fname, _import_h5io_funcs)
@@ -261,7 +261,7 @@ def read_source_estimate(fname, subject=None):
                 err = ("Invalid .stc filename: %r; needs to end with "
                        "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
                        % fname)
-                raise IOError(err)
+                raise OSError(err)
         elif fname.endswith('.w'):
             ftype = 'w'
             if fname.endswith(('-lh.w', '-rh.w')):
@@ -270,7 +270,7 @@ def read_source_estimate(fname, subject=None):
                 err = ("Invalid .w filename: %r; needs to end with "
                        "hemisphere tag ('...-lh.w' or '...-rh.w')"
                        % fname)
-                raise IOError(err)
+                raise OSError(err)
         elif fname.endswith('.h5'):
             ftype = 'h5'
             fname = fname[:-3]
@@ -292,9 +292,9 @@ def read_source_estimate(fname, subject=None):
             ftype = 'h5'
             fname += '-stc'
         elif any(stc_exist) or any(w_exist):
-            raise IOError("Hemisphere missing for %r" % fname_arg)
+            raise OSError("Hemisphere missing for %r" % fname_arg)
         else:
-            raise IOError("SourceEstimate File(s) not found for: %r"
+            raise OSError("SourceEstimate File(s) not found for: %r"
                           % fname_arg)
 
     # read the files
@@ -307,7 +307,7 @@ def read_source_estimate(fname, subject=None):
             kwargs['tmin'] = 0.0
             kwargs['tstep'] = 0.0
         else:
-            raise IOError('Volume source estimate must end with .stc or .w')
+            raise OSError('Volume source estimate must end with .stc or .w')
         kwargs['vertices'] = [kwargs['vertices']]
     elif ftype == 'surface':  # stc file with surface source spaces
         lh = _read_stc(fname + '-lh.stc')
@@ -2084,8 +2084,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        import nibabel as nib
-
+        nib = _import_nibabel()
         fname = _check_fname(fname=fname, overwrite=overwrite)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)

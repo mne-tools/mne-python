@@ -52,7 +52,10 @@ snirf_nirsport2_raw_path = (
 )
 
 
-class TstVTKPicker(object):
+pytest.importorskip('nibabel')
+
+
+class TstVTKPicker:
     """Class to test cell picking."""
 
     def __init__(self, mesh, cell_id, event_pos):

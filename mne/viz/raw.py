@@ -13,7 +13,9 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
 from ..io.pick import pick_types, pick_channels
+from ..time_frequency import Spectrum
 from ..utils import legacy, verbose, _validate_type, _check_option
+from ..utils.spectrum import _split_psd_kwargs
 from ..defaults import _handle_default
 from .utils import (_compute_scalings, _handle_decim, _check_cov,
                     _shorten_path_from_middle, _handle_precompute,
@@ -420,15 +422,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     -----
     %(notes_plot_*_psd_func)s
     """
-    fig = raw.plot_psd(
-        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-        proj=proj, reject_by_annotation=reject_by_annotation, method='welch',
-        ax=ax, color=color, xscale=xscale, area_mode=area_mode,
-        area_alpha=area_alpha, dB=dB, estimate=estimate, show=show,
-        line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-        exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
-        n_fft=n_fft, n_overlap=n_overlap, window=window)
-    return fig
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+    return raw.compute_psd(**init_kw).plot(**plot_kw)
 
 
 @legacy(alt='Raw.compute_psd().plot_topo()')
@@ -478,11 +473,8 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
-    return raw.plot_psd_topo(
-        tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj, method='welch',
-        dB=dB, layout=layout, color=color, fig_facecolor=fig_facecolor,
-        axis_facecolor=axis_facecolor, axes=axes, block=block, show=show,
-        n_jobs=n_jobs, verbose=verbose, n_fft=n_fft, n_overlap=n_overlap)
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
+    return raw.compute_psd(**init_kw).plot_topo(**plot_kw)
 
 
 def _setup_channel_selections(raw, kind, order):

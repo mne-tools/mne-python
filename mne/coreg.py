@@ -26,7 +26,6 @@ from .io._digitization import _get_data_as_dict_from_dig
 # namespace, too)
 from ._freesurfer import (_read_mri_info, get_mni_fiducials,  # noqa: F401
                           estimate_head_mri_t)  # noqa: F401
-from ._freesurfer import _import_nibabel
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
@@ -41,8 +40,8 @@ from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          rot_to_quat, _angle_between_quats)
 from .channels import make_dig_montage
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
-                    warn, has_nibabel, fill_doc, _validate_type,
-                    _check_subject, _check_option)
+                    warn, fill_doc, _validate_type,
+                    _check_subject, _check_option, _import_nibabel)
 from .viz._3d import _fiducial_coords
 
 # some path templates
@@ -183,24 +182,24 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None,
     # make sure freesurfer files exist
     fs_src = os.path.join(fs_home, 'subjects', 'fsaverage')
     if not os.path.exists(fs_src):
-        raise IOError('fsaverage not found at %r. Is fs_home specified '
+        raise OSError('fsaverage not found at %r. Is fs_home specified '
                       'correctly?' % fs_src)
     for name in ('label', 'mri', 'surf'):
         dirname = os.path.join(fs_src, name)
         if not os.path.isdir(dirname):
-            raise IOError("Freesurfer fsaverage seems to be incomplete: No "
+            raise OSError("Freesurfer fsaverage seems to be incomplete: No "
                           "directory named %s found in %s" % (name, fs_src))
 
     # make sure destination does not already exist
     dest = os.path.join(subjects_dir, 'fsaverage')
     if dest == fs_src:
-        raise IOError(
+        raise OSError(
             "Your subjects_dir points to the freesurfer subjects_dir (%r). "
             "The default subject can not be created in the freesurfer "
             "installation directory; please specify a different "
             "subjects_dir." % subjects_dir)
     elif (not update) and os.path.exists(dest):
-        raise IOError(
+        raise OSError(
             "Can not create fsaverage because %r already exists in "
             "subjects_dir %r. Delete or rename the existing fsaverage "
             "subject folder." % ('fsaverage', subjects_dir))
@@ -528,7 +527,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     subject : str
         Name of the mri subject.
     skip_fiducials : bool
-        Do not scale the MRI fiducials. If False, an IOError will be raised
+        Do not scale the MRI fiducials. If False, an OSError will be raised
         if no fiducials file can be found.
     subjects_dir : None | path-like
         Override the SUBJECTS_DIR environment variable
@@ -592,7 +591,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
         paths['fid'] = _find_fiducials_files(subject, subjects_dir)
         # check that we found at least one
         if len(paths['fid']) == 0:
-            raise IOError("No fiducials file found for %s. The fiducials "
+            raise OSError("No fiducials file found for %s. The fiducials "
                           "file should be named "
                           "{subject}/bem/{subject}-fiducials.fif. In "
                           "order to scale an MRI without fiducials set "
@@ -741,7 +740,7 @@ def read_mri_cfg(subject, subjects_dir=None):
     fname = subjects_dir / subject / "MRI scaling parameters.cfg"
 
     if not fname.exists():
-        raise IOError("%r does not seem to be a scaled mri subject: %r does "
+        raise OSError("%r does not seem to be a scaled mri subject: %r does "
                       "not exist." % (subject, fname))
 
     logger.info("Reading MRI cfg file %s" % fname)
@@ -865,7 +864,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
                            name=bem_name)
 
     if os.path.exists(dst):
-        raise IOError("File already exists: %s" % dst)
+        raise OSError("File already exists: %s" % dst)
 
     surfs = read_bem_surfaces(src, on_defects=on_defects)
     for surf in surfs:
@@ -950,7 +949,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
     subjects_dir : None | path-like
         Override the ``SUBJECTS_DIR`` environment variable.
     skip_fiducials : bool
-        Do not scale the MRI fiducials. If False (default), an IOError will be
+        Do not scale the MRI fiducials. If False (default), an OSError will be
         raised if no fiducials file can be found.
     labels : bool
         Also scale all labels (default True).
@@ -988,7 +987,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
                                   subjects_dir=subjects_dir)
     if os.path.exists(dest):
         if not overwrite:
-            raise IOError("Subject directory for %s already exists: %r"
+            raise OSError("Subject directory for %s already exists: %r"
                           % (subject_to, dest))
         shutil.rmtree(dest)
 
@@ -1194,9 +1193,6 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     # The nibabel warning should already be there in MRI step, if applicable,
     # as we only get here if T1.mgz is present (and thus a scaling was
     # attempted) so we can silently return here.
-    if not has_nibabel():
-        return
-
     fname_from = os.path.join(
         mri_transforms_dirname.format(
             subjects_dir=subjects_dir, subject=subject_from), xfm_fname)
@@ -1282,7 +1278,7 @@ def _read_surface(filename, *, on_defects):
 
 
 @fill_doc
-class Coregistration(object):
+class Coregistration:
     """Class for MRI<->head coregistration.
 
     Parameters
