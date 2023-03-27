@@ -44,7 +44,7 @@ from .viz import plot_dipole_locations
 
 @fill_doc
 class Dipole(TimeMixin):
-    u"""Dipole class for sequential dipole fits.
+    """Dipole class for sequential dipole fits.
 
     .. note::
         This class should usually not be instantiated directly via

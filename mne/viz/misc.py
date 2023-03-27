@@ -184,7 +184,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             axes[0, k].text(this_rank - 1, axes[0, k].get_ylim()[1],
                             'rank ≈ %d' % (this_rank,), ha='right', va='top',
                             color='r', alpha=0.5, zorder=4)
-            axes[0, k].set(ylabel=u'Noise σ (%s)' % unit, yscale='log',
+            axes[0, k].set(ylabel='Noise σ (%s)' % unit, yscale='log',
                            xlabel='Eigenvalue index', title=name,
                            xlim=[0, len(s) - 1])
         tight_layout(fig=fig_svd)
@@ -1357,9 +1357,9 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
         if colorbar:
             cb = plt.colorbar(im, ax=[a for ax_ in axes for a in ax_])
             if mode == 'csd':
-                label = u'CSD'
+                label = 'CSD'
                 if ch_type in units:
-                    label += u' (%s)' % units[ch_type]
+                    label += ' (%s)' % units[ch_type]
                 cb.set_label(label)
             elif mode == 'coh':
                 cb.set_label('Coherence')

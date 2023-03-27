@@ -72,7 +72,7 @@ def _get_valid_units():
                           'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
                           'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
                           'zetta', 'yotta']
-    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'µ', 'm', 'c', 'd',
+    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', 'µ', 'm', 'c', 'd',
                             'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
     valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin',
                         'mole', 'candela', 'radian', 'steradian', 'hertz',
@@ -81,8 +81,8 @@ def _get_valid_units():
                         'degree Celsius', 'lumen', 'lux', 'becquerel', 'gray',
                         'sievert', 'katal']
     valid_unit_symbols = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd', 'rad', 'sr',
-                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S',
-                          'Wb', 'T', 'H', u'°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
+                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', 'Ω', 'S',
+                          'Wb', 'T', 'H', '°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
                           'kat']
 
     # Valid units are all possible combinations of either prefix name or prefix

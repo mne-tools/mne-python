@@ -2000,7 +2000,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
 
 
 def _compute_sphere_activation_in(degrees):
-    u"""Compute the "in" power from random currents in a sphere.
+    """Compute the "in" power from random currents in a sphere.
 
     Parameters
     ----------
