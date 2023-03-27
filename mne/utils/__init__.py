@@ -5,7 +5,7 @@ _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
                         '__add__', '__sub__', '__mul__', '__div__',
                         '__neg__')
 
-from ._bunch import Bunch, BunchConst, BunchConstNamed
+from ._bunch import Bunch, BunchConst, BunchConstNamed, NamedInt
 from .check import (check_fname, check_version, check_random_state,
                     _check_fname, _check_subject, _check_pandas_installed,
                     _check_pandas_index_arguments,

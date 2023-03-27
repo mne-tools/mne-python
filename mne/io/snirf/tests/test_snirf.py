@@ -67,14 +67,15 @@ snirf_nirsport2_20219 = (
 nirx_nirsport2_20219 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 
 # Kernel
-kernel_hb = (
+kernel_path = (
     testing_path
     / "SNIRF"
     / "Kernel"
     / "Flow50"
     / "Portal_2021_11"
-    / "hb.snirf"
 )
+kernel_hb = kernel_path / "hb.snirf"
+kernel_td = kernel_path / "td_moments.snirf"
 
 h5py = pytest.importorskip("h5py")  # module-level
 
@@ -99,6 +100,7 @@ def _get_loc(raw, ch_name):
                                     nirx_nirsport2_103_2,
                                     nirx_nirsport2_103_2,
                                     kernel_hb,
+                                    kernel_td,
                                     lumo110
                                     ]))
 def test_basic_reading_and_min_process(fname):
@@ -109,8 +111,11 @@ def test_basic_reading_and_min_process(fname):
         raw = optical_density(raw)
     if 'fnirs_od' in raw:
         raw = beer_lambert_law(raw, ppf=6)
-    assert 'hbo' in raw
-    assert 'hbr' in raw
+    if 'fnirs_td_moments_amplitude' in raw:
+        pass
+    else:
+        assert 'hbo' in raw
+        assert 'hbr' in raw
 
 
 @requires_testing_data
@@ -378,19 +383,27 @@ def test_snirf_fieldtrip_od():
 
 
 @requires_testing_data
-def test_snirf_kernel_hb():
-    """Test reading Kernel SNIRF files with haemoglobin data."""
-    raw = read_raw_snirf(kernel_hb, preload=True)
-
-    # Test data import
-    assert raw._data.shape == (180 * 2, 14)
-    assert raw.copy().pick('hbo')._data.shape == (180, 14)
-    assert raw.copy().pick('hbr')._data.shape == (180, 14)
+@pytest.mark.parametrize('kind', ('hb', 'td'))
+def test_snirf_kernel(kind):
+    """Test reading Kernel SNIRF files with haemoglobin or TD data."""
+    fname = dict(hb=kernel_hb, td=kernel_td)[kind]
+    raw = read_raw_snirf(fname, preload=True)
+    if kind == 'hb':
+        # Test data import
+        assert raw._data.shape == (180 * 2, 14)
+        assert raw.copy().pick('hbo')._data.shape == (180, 14)
+        assert raw.copy().pick('hbr')._data.shape == (180, 14)
+        n_nan = 20
+    else:
+        assert raw._data.shape == (1080, 14)
+        assert raw.copy().pick('fnirs_td_moments_amplitude')._data.shape == \
+            raw._data.shape
+        n_nan = 60
 
     assert_allclose(raw.info['sfreq'], 8.257638)
 
     bad_nans = np.isnan(raw.get_data()).any(axis=1)
-    assert np.sum(bad_nans) == 20
+    assert np.sum(bad_nans) == n_nan
 
     assert len(raw.annotations.description) == 2
     assert raw.annotations.onset[0] == 0.036939
