@@ -153,6 +153,7 @@ def test_downloads(tmp_path, monkeypatch, capsys):
 @requires_good_network
 def test_fetch_parcellations(tmp_path):
     """Test fetching parcellations."""
+    pytest.importorskip('nibabel')
     this_subjects_dir = str(tmp_path)
     os.mkdir(op.join(this_subjects_dir, 'fsaverage'))
     os.mkdir(op.join(this_subjects_dir, 'fsaverage', 'label'))

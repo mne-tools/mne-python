@@ -88,7 +88,7 @@ def test_io_bem(tmp_path, ext):
     surf = read_bem_surfaces(fname_bem_3, patch_stats=True)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=False)
     write_bem_surfaces(temp_bem, surf[0])
-    with pytest.raises(IOError, match='exists'):
+    with pytest.raises(OSError, match='exists'):
         write_bem_surfaces(temp_bem, surf[0])
     write_bem_surfaces(temp_bem, surf[0], overwrite=True)
     if ext == 'h5':
@@ -149,6 +149,7 @@ def test_make_sphere_model():
 ])
 def test_make_bem_model(tmp_path, kwargs, fname):
     """Test BEM model creation from Python with I/O."""
+    pytest.importorskip('nibabel')
     fname_temp = tmp_path / 'temp-bem.fif'
     with catch_logging() as log:
         model = make_bem_model('sample', ico=2, subjects_dir=subjects_dir,
@@ -174,6 +175,7 @@ def test_make_bem_model(tmp_path, kwargs, fname):
 @testing.requires_testing_data
 def test_bem_model_topology(tmp_path):
     """Test BEM model topological checks."""
+    pytest.importorskip('nibabel')
     # bad topology (not enough neighboring tris)
     makedirs(tmp_path / 'foo' / 'bem')
     for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
@@ -203,6 +205,7 @@ def test_bem_model_topology(tmp_path):
 ])
 def test_bem_solution(tmp_path, cond, fname):
     """Test making a BEM solution from Python and OpenMEEG with I/O."""
+    pytest.importorskip('nibabel')
     # test degenerate conditions
     surf = read_bem_surfaces(fname_bem_1)[0]
     with pytest.raises(RuntimeError, match='2 or less'):
@@ -455,6 +458,7 @@ def test_io_head_bem(tmp_path):
 def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
     """Test topology checks for make_scalp_surfaces."""
     pytest.importorskip('pyvista')
+    pytest.importorskip('nibabel')
     subjects_dir = tmp_path
     subject = 'test'
     surf_dir = subjects_dir / subject / 'surf'

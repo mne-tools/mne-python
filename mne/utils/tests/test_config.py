@@ -5,7 +5,8 @@ from pathlib import Path
 
 from mne.utils import (set_config, get_config, get_config_path,
                        set_memmap_min_size, _get_stim_channel, sys_info,
-                       ClosingStringIO, get_subjects_dir)
+                       ClosingStringIO, get_subjects_dir,
+                       requires_mne_qt_browser)
 
 
 def test_config(tmp_path):
@@ -83,12 +84,21 @@ def test_sys_info():
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()
-    assert ('numpy:' in out)
+    assert ('numpy' in out)
 
     if platform.system() == 'Darwin':
-        assert 'Platform:         macOS-' in out
+        assert 'Platform             macOS-' in out
     elif platform.system() == 'Linux':
-        assert 'Platform:         Linux' in out
+        assert 'Platform             Linux' in out
+
+
+@requires_mne_qt_browser
+def test_sys_info_qt_browser():
+    """Test if mne_qt_browser is correctly detected."""
+    out = ClosingStringIO()
+    sys_info(fid=out)
+    out = out.getvalue()
+    assert ('mne-qt-browser' in out)
 
 
 def test_get_subjects_dir(tmp_path, monkeypatch):

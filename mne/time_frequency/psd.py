@@ -56,7 +56,7 @@ def _decomp_aggregate_mask(epoch, func, average, freq_sl):
     return spect
 
 
-def _spect_func(epoch, func, freq_sl, average):
+def _spect_func(epoch, func, freq_sl, average, *, output='power'):
     """Aux function."""
     # Decide if we should split this to save memory or not, since doing
     # multiple calls will incur some performance overhead. Eventually we might
@@ -91,7 +91,7 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                     n_per_seg=None, n_jobs=None, average='mean',
-                    window='hamming', *, verbose=None):
+                    window='hamming', *, output='power', verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Welch's method is described in :footcite:t:`Welch1967`.
@@ -122,6 +122,15 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     %(window_psd)s
 
         .. versionadded:: 0.22.0
+    output : str
+        The format of the returned ``psds`` array, ``'complex'`` or
+        ``'power'``:
+
+        * ``'power'`` : the power spectral density is returned.
+        * ``'complex'`` : the complex fourier coefficients are returned per
+          window.
+
+        .. versionadded:: 1.4.0
     %(verbose)s
 
     Returns
@@ -145,6 +154,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     .. footbibliography::
     """
     _check_option('average', average, (None, False, 'mean', 'median'))
+    _check_option('output', output, ('power', 'complex'))
+    mode = 'complex' if output == 'complex' else 'psd'
     n_fft = _ensure_int(n_fft, "n_fft")
     n_overlap = _ensure_int(n_overlap, "n_overlap")
     if n_per_seg is not None:
@@ -178,10 +189,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     from scipy.signal import spectrogram
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
     func = partial(spectrogram, noverlap=n_overlap, nperseg=n_per_seg,
-                   nfft=n_fft, fs=sfreq, window=window)
+                   nfft=n_fft, fs=sfreq, window=window, mode=mode)
     x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
     f_spect = parallel(my_spect_func(d, func=func, freq_sl=freq_sl,
-                                     average=average)
+                                     average=average, output=output)
                        for d in x_splits)
     psds = np.concatenate(f_spect, axis=0)
     shape = dshape + (len(freqs),)

@@ -25,7 +25,7 @@ from .surface import (complete_surface_info, read_surface, fast_cross_3d,
                       _mesh_borders, mesh_edges, mesh_dist)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
-                    _check_option, check_version, _check_fname)
+                    _check_option, _check_fname)
 
 
 def _blend_colors(color_1, color_2):
@@ -436,12 +436,7 @@ class Label:
                  "information is needed. To avoid this in the future, run "
                  "mne.add_source_space_distances() on the source space "
                  "and save it to disk.")
-            if check_version('scipy', '1.3'):
-                dist_limit = 0
-            else:
-                warn('SciPy < 1.3 detected, adding source space patch '
-                     'information will be slower. Consider upgrading SciPy.')
-                dist_limit = np.inf
+            dist_limit = 0
             add_source_space_distances(src, dist_limit=dist_limit)
         nearest = hemi_src['nearest']
 
@@ -810,9 +805,6 @@ class Label:
         .. versionadded:: 0.24
         """
         from scipy.sparse.csgraph import dijkstra
-        if not check_version('scipy', '1.3'):
-            raise RuntimeError(
-                'scipy >= 1.3 is required to calculate distances to the edge')
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -1962,7 +1954,7 @@ def _read_annot_cands(dir_name, raise_error=True):
     if not op.isdir(dir_name):
         if not raise_error:
             return list()
-        raise IOError('Directory for annotation does not exist: %s',
+        raise OSError('Directory for annotation does not exist: %s',
                       dir_name)
     cands = os.listdir(dir_name)
     cands = sorted(set(c.replace('lh.', '').replace('rh.', '').replace(
@@ -1998,10 +1990,10 @@ def _read_annot(fname):
         dir_name = op.split(fname)[0]
         cands = _read_annot_cands(dir_name)
         if len(cands) == 0:
-            raise IOError('No such file %s, no candidate parcellations '
+            raise OSError('No such file %s, no candidate parcellations '
                           'found in directory' % fname)
         else:
-            raise IOError('No such file %s, candidate parcellations in '
+            raise OSError('No such file %s, candidate parcellations in '
                           'that directory:\n%s' % (fname, '\n'.join(cands)))
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, '>i4', 1)[0]

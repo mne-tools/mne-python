@@ -21,7 +21,7 @@ from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, _check_fname, warn, _custom_lru_cache,
-                    _ensure_int, ProgressBar, use_log_level,
+                    _ensure_int, ProgressBar, use_log_level, _import_nibabel,
                     _import_h5io_funcs)
 
 
@@ -182,7 +182,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
     if kind in ('volume', 'mixed'):
         _check_dep(nibabel='2.1.0', dipy='0.10.1')
-        import nibabel as nib
+        nib = _import_nibabel('work with a volume source space')
 
         logger.info('Volume source space(s) present...')
 
@@ -198,7 +198,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # let's KISS and use `brain.mgz`, too
         mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
         if not op.isfile(mri_path_to):
-            raise IOError('cannot read file: %s' % mri_path_to)
+            raise OSError('cannot read file: %s' % mri_path_to)
         logger.info('    Loading %s as "to" volume' % mri_path_to)
         with warnings.catch_warnings():
             mri_to = nib.load(mri_path_to)
@@ -1187,10 +1187,6 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None,
 def _surf_nearest(vertices, adj_mat):
     from scipy import sparse
     from scipy.sparse.csgraph import dijkstra
-    if not check_version('scipy', '1.3'):
-        raise ValueError('scipy >= 1.3 is required to use nearest smoothing, '
-                         'consider upgrading SciPy or using a different '
-                         'smoothing value')
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
     vertices = vertices[order]

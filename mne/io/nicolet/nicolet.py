@@ -56,7 +56,7 @@ def read_raw_nicolet(input_fname, ch_type, eog=(),
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawNicolet(input_fname, ch_type, eog=eog, ecg=ecg,
                       emg=emg, misc=misc, preload=preload, verbose=verbose)
@@ -155,7 +155,7 @@ class RawNicolet(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     def __init__(self, input_fname, ch_type, eog=(),

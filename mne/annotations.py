@@ -1134,10 +1134,10 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     elif name.startswith('events_') and fname.endswith('mat'):
         annotations = _read_brainstorm_annotations(fname)
     else:
-        raise IOError('Unknown annotation file format "%s"' % fname)
+        raise OSError('Unknown annotation file format "%s"' % fname)
 
     if annotations is None:
-        raise IOError('No annotation data found in file "%s"' % fname)
+        raise OSError('No annotation data found in file "%s"' % fname)
     return annotations
 
 

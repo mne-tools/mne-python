@@ -13,7 +13,6 @@ from mne._freesurfer import (_get_mgz_header, _check_subject_dir, read_lta,
                              _estimate_talxfm_rigid)
 from mne.transforms import (apply_trans, _get_trans, rot_to_quat,
                             _angle_between_quats)
-from mne.utils import requires_nibabel
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"
@@ -32,12 +31,11 @@ def test_check_subject_dir():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_mgz_header():
     """Test MGZ header reading."""
-    import nibabel
+    nib = pytest.importorskip('nibabel')
     header = _get_mgz_header(fname_mri)
-    mri_hdr = nibabel.load(fname_mri).header
+    mri_hdr = nib.load(fname_mri).header
     assert_allclose(mri_hdr.get_data_shape(), header['dims'])
     assert_allclose(mri_hdr.get_vox2ras_tkr(), header['vox2ras_tkr'])
     assert_allclose(mri_hdr.get_ras2vox(), np.linalg.inv(header['vox2ras']))
@@ -46,6 +44,7 @@ def test_mgz_header():
 @testing.requires_testing_data
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates."""
+    pytest.importorskip('nibabel')
     # obtained using "tksurfer (sample) (l/r)h white"
     vertices = [100960, 7620, 150549, 96761]
     coords = np.array([[-60.86, -11.18, -3.19], [-36.46, -93.18, -2.36],
@@ -79,10 +78,10 @@ def test_head_to_mni():
     assert_allclose(coords_MNI, coords_MNI_2, atol=10.0)
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_vertex_to_mni_fs_nibabel(monkeypatch):
     """Test equivalence of vert_to_mni for nibabel and freesurfer."""
+    pytest.importorskip('nibabel')
     n_check = 1000
     subject = 'sample'
     vertices = rng.randint(0, 100000, n_check)
@@ -174,13 +173,13 @@ def test_read_lta(tmp_path):
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('fname', [
     None,
     Path(mne.__file__).parent / "data" / "FreeSurferColorLUT.txt",
 ])
 def test_read_freesurfer_lut(fname, tmp_path):
     """Test reading volume label names."""
+    pytest.importorskip('nibabel')
     atlas_ids, colors = read_freesurfer_lut(fname)
     assert list(atlas_ids).count('Brain-Stem') == 1
     assert len(colors) == len(atlas_ids) == 1266

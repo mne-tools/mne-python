@@ -450,8 +450,7 @@ class FilterEstimator(TransformerMixin):
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
     method : str
-        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-        forward-backward filtering (via filtfilt).
+        'fir' will use overlap-add FIR filtering, 'iir' will use IIR filtering.
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params

@@ -420,20 +420,29 @@ def _check_coefficients(system):
                            'coefficients.')
 
 
-def _filtfilt(x, iir_params, picks, n_jobs, copy):
-    """Call filtfilt."""
+def _iir_filter(x, iir_params, picks, n_jobs, copy, phase='zero'):
+    """Call filtfilt or lfilter."""
     # set up array for filtering, reshape to 2D, operate on last axis
-    from scipy.signal import filtfilt, sosfiltfilt
-    padlen = min(iir_params['padlen'], x.shape[-1] - 1)
+    from scipy.signal import filtfilt, sosfiltfilt, lfilter, sosfilt
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
-    if 'sos' in iir_params:
-        fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
-                      axis=-1)
-        _check_coefficients(iir_params['sos'])
+    if phase in ('zero', 'zero-double'):
+        padlen = min(iir_params['padlen'], x.shape[-1] - 1)
+        if 'sos' in iir_params:
+            fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
+                          axis=-1)
+            _check_coefficients(iir_params['sos'])
+        else:
+            fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
+                          padlen=padlen, axis=-1)
+            _check_coefficients((iir_params['b'], iir_params['a']))
     else:
-        fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
-                      padlen=padlen, axis=-1)
-        _check_coefficients((iir_params['b'], iir_params['a']))
+        if 'sos' in iir_params:
+            fun = partial(sosfilt, sos=iir_params['sos'], axis=-1)
+            _check_coefficients(iir_params['sos'])
+        else:
+            fun = partial(lfilter, b=iir_params['b'], a=iir_params['a'],
+                          axis=-1)
+            _check_coefficients((iir_params['b'], iir_params['a']))
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     if n_jobs == 1:
         for p in picks:
@@ -508,7 +517,8 @@ _ftype_dict = {
 
 @verbose
 def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
-                         btype=None, return_copy=True, verbose=None):
+                         btype=None, return_copy=True, *, phase='zero',
+                         verbose=None):
     """Use IIR parameters to get filtering coefficients.
 
     This function works like a wrapper for iirdesign and iirfilter in
@@ -563,6 +573,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         ``iir_params`` will be set inplace (if they weren't already).
         Otherwise, a new ``iir_params`` instance will be created and
         returned with these entries.
+    %(phase)s
     %(verbose)s
 
     Returns
@@ -659,12 +670,17 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
         ftype_nice = _ftype_dict.get(ftype, ftype)
+        _validate_type(phase, str, 'phase')
+        _check_option('phase', phase, ('zero', 'zero-double', 'forward'))
+        if phase in ('zero-double', 'zero'):
+            ptype = 'zero-phase (two-pass forward and reverse) non-causal'
+        else:
+            ptype = 'non-linear phase (one-pass forward) causal'
         logger.info('')
         logger.info('IIR filter parameters')
         logger.info('---------------------')
-        logger.info('%s %s zero-phase (two-pass forward and reverse) '
-                    'non-causal filter:' % (ftype_nice, btype))
-        # SciPy designs for -3dB but we do forward-backward, so this is -6dB
+        logger.info(f'{ftype_nice} {btype} {ptype} filter:')
+        # SciPy designs forward for -3dB, so forward-backward is -6dB
         if 'order' in iir_params:
             kwargs = dict(N=iir_params['order'], Wn=Wp, btype=btype,
                           ftype=ftype, output=output)
@@ -672,8 +688,12 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
                 if key in iir_params:
                     kwargs[key] = iir_params[key]
             system = iirfilter(**kwargs)
-            logger.info('- Filter order %d (effective, after forward-backward)'
-                        % (2 * iir_params['order'] * len(Wp),))
+            if phase in ('zero', 'zero-double'):
+                ptype, pmul = '(effective, after forward-backward)', 2
+            else:
+                ptype, pmul = '(forward)', 1
+            logger.info('- Filter order %d %s'
+                        % (pmul * iir_params['order'] * len(Wp), ptype))
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
@@ -694,8 +714,10 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
             cutoffs = sosfreqz(system, worN=Wp * np.pi)[1]
         else:
             cutoffs = freqz(system[0], system[1], worN=Wp * np.pi)[1]
+        cutoffs = 20 * np.log10(np.abs(cutoffs))
         # 2 * 20 here because we do forward-backward filtering
-        cutoffs = 40 * np.log10(np.abs(cutoffs))
+        if phase in ('zero', 'zero-double'):
+            cutoffs *= 2
         cutoffs = ', '.join(['%0.2f' % (c,) for c in cutoffs])
         logger.info('- Cutoff%s at %s Hz: %s dB'
                     % (_pl(f_pass), edge_freqs, cutoffs))
@@ -816,7 +838,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         data = _overlap_add_filter(data, filt, None, phase, picks, n_jobs,
                                    copy, pad)
     else:
-        data = _filtfilt(data, filt, picks, n_jobs, copy)
+        data = _iir_filter(data, filt, picks, n_jobs, copy, phase)
     return data
 
 
@@ -977,7 +999,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 data, sfreq, None, h_freq, None, h_trans_bandwidth,
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
-            out = construct_iir_filter(iir_params, f_p, f_s, sfreq, 'lowpass')
+            out = construct_iir_filter(iir_params, f_p, f_s, sfreq, 'lowpass',
+                                       phase=phase)
         else:  # 'fir'
             freq = [0, f_p, f_s]
             gain = [1, 1, 0]
@@ -992,7 +1015,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
             out = construct_iir_filter(iir_params, pass_, stop, sfreq,
-                                       'highpass')
+                                       'highpass', phase=phase)
         else:  # 'fir'
             freq = [stop, pass_, sfreq / 2.]
             gain = [0, 1, 1]
@@ -1010,7 +1033,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                     fir_window, fir_design)
             if method == 'iir':
                 out = construct_iir_filter(iir_params, [f_p1, f_p2],
-                                           [f_s1, f_s2], sfreq, 'bandpass')
+                                           [f_s1, f_s2], sfreq, 'bandpass',
+                                           phase=phase)
             else:  # 'fir'
                 freq = [f_s1, f_p1, f_p2, f_s2]
                 gain = [0, 1, 1, 0]
@@ -1041,7 +1065,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                                      'with FIR filtering')
                 out = construct_iir_filter(iir_params, [f_p1[0], f_p2[0]],
                                            [f_s1[0], f_s2[0]], sfreq,
-                                           'bandstop')
+                                           'bandstop', phase=phase)
             else:  # 'fir'
                 freq = np.r_[f_p1, f_s1, f_s2, f_p2]
                 gain = np.r_[np.ones_like(f_p1), np.zeros_like(f_s1),
@@ -1634,7 +1658,8 @@ _fir_window_dict = {
     'blackman': dict(name='Blackman', ripple=0.0017, attenuation=74),
 }
 _known_fir_windows = tuple(sorted(_fir_window_dict.keys()))
-_known_phases = ('linear', 'zero', 'zero-double', 'minimum')
+_known_phases_fir = ('linear', 'zero', 'zero-double', 'minimum')
+_known_phases_iir = ('zero', 'zero-double', 'forward')
 _known_fir_designs = ('firwin', 'firwin2')
 _fir_design_dict = {
     'firwin': 'Windowed time-domain',
@@ -1676,7 +1701,12 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           fir_design, bands='scalar', reverse=False):
     """Validate and automate filter parameter selection."""
     _validate_type(phase, 'str', 'phase')
-    _check_option('phase', phase, _known_phases)
+    if method == 'fir':
+        _check_option('phase', phase, _known_phases_fir,
+                      extra='when FIR filtering')
+    else:
+        _check_option('phase', phase, _known_phases_iir,
+                      extra='when IIR filtering')
     _validate_type(fir_window, 'str', 'fir_window')
     _check_option('fir_window', fir_window, _known_fir_windows)
     _validate_type(fir_design, 'str', 'fir_design')

@@ -7,9 +7,10 @@ import pytest
 
 from mne.utils import _check_qt_version
 
-# This will skip all tests in this scope
+# These will skip all tests in this scope
 pytestmark = pytest.mark.skipif(
     sys.platform.startswith('win'), reason='nbexec does not work on Windows')
+pytest.importorskip('nibabel')
 
 
 def test_gui_api(renderer_notebook, nbexec, *, n_warn=0, backend='qt'):
@@ -395,4 +396,9 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     _, api = _check_qt_version(return_api=True)
     n_warn = int(api in ('PySide6', 'PyQt6'))
+    # TODO: After merging https://github.com/mne-tools/mne-python/pull/11567
+    # The Qt CI run started failing about 50% of the time, so let's skip this
+    # for now.
+    if api == 'PySide6':
+        pytest.skip('PySide6 causes segfaults on CIs sometimes')
     test_gui_api(None, None, n_warn=n_warn, backend='qt')

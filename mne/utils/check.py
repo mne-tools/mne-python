@@ -16,6 +16,7 @@ import numbers
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
+from .docs import deprecated
 from ._logging import (warn, logger, verbose, _record_warnings,
                        _verbose_safe_false)
 
@@ -55,7 +56,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
                                      endings_err[-1]])
-        raise IOError('The filename (%s) for file type %s must end with %s'
+        raise OSError('The filename (%s) for file type %s must end with %s'
                       % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
@@ -233,13 +234,13 @@ def _check_fname(
         if must_exist:
             if need_dir:
                 if not fname.is_dir():
-                    raise IOError(
+                    raise OSError(
                         f"Need a directory for {name} but found a file "
                         f"at {fname}"
                     )
             else:
                 if not fname.is_file():
-                    raise IOError(
+                    raise OSError(
                         f"Need a file for {name} but found a directory "
                         f"at {fname}"
                     )
@@ -1086,3 +1087,17 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
+
+
+@deprecated('has_nibabel is deprecated and will be removed in 1.5')
+def has_nibabel():
+    return check_version('nibabel')  # pragma: no cover
+
+
+def _import_nibabel(why='use MRI files'):
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        raise exp.__class__(
+            'nibabel is required to %s, got:\n%s' % (why, exp)) from None
+    return nib

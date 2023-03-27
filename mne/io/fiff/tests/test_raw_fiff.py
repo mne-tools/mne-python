@@ -28,7 +28,7 @@ from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
-                 pick_info)
+                 pick_info, make_fixed_length_epochs)
 from mne.utils import (requires_pandas, assert_object_equal, _dt_to_stamp,
                        requires_mne, run_subprocess, _record_warnings,
                        assert_and_remove_boundary_annot)
@@ -220,7 +220,7 @@ def test_output_formats(tmp_path):
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
         # Let's test the overwriting error throwing while we're at it
         if ii > 0:
-            pytest.raises(IOError, raw.save, temp_file, fmt=fmt)
+            pytest.raises(OSError, raw.save, temp_file, fmt=fmt)
         raw.save(temp_file, fmt=fmt, overwrite=True)
         raw2 = read_raw_fif(temp_file)
         raw2_data = raw2[:, :][0]
@@ -380,6 +380,54 @@ def test_concatenate_raws(on_mismatch):
     elif on_mismatch == 'raise':
         with pytest.raises(ValueError, match='different head positions'):
             concatenate_raws(**kws)
+
+
+def _create_toy_data(n_channels=3, sfreq=250, seed=None):
+    rng = np.random.default_rng(seed)
+    data = rng.standard_normal(size=(n_channels, 50 * sfreq)) * 5e-6
+    info = create_info(n_channels, sfreq, "eeg")
+    return RawArray(data, info)
+
+
+def test_concatenate_raws_bads_order():
+    """Test concatenation of raw instances."""
+    raw0 = _create_toy_data()
+    raw1 = _create_toy_data()
+
+    # Test bad channel order
+    raw0.info["bads"] = ["0", "1"]
+    raw1.info["bads"] = ["1", "0"]
+
+    # raw0 is modified in-place and therefore copied
+    raw_concat = concatenate_raws([raw0.copy(), raw1])
+
+    # Check data are equal
+    data_concat = np.concatenate([raw0.get_data(), raw1.get_data()], 1)
+    assert np.all(raw_concat.get_data() == data_concat)
+
+    # Check bad channels
+    assert set(raw_concat.info["bads"]) == {"0", "1"}
+
+    # Bad channel mismatch raises
+    raw2 = raw1.copy()
+    raw2.info["bads"] = ["0", "2"]
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, raw2])
+
+    # Type mismatch raises
+    epochs1 = make_fixed_length_epochs(raw1)
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, epochs1])
+
+    # Sample rate mismatch
+    raw3 = _create_toy_data(sfreq=500)
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, raw3])
+
+    # Number of channels mismatch
+    raw4 = _create_toy_data(n_channels=4)
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, raw4])
 
 
 @testing.requires_testing_data
@@ -1420,7 +1468,7 @@ def test_save(tmp_path):
         raw.save(temp_fname)
     raw.load_data()
     # can't overwrite file without overwrite=True
-    with pytest.raises(IOError, match='file exists'):
+    with pytest.raises(OSError, match='file exists'):
         raw.save(fif_fname)
 
     # test abspath support and annotations

@@ -204,7 +204,6 @@ numpydoc_xref_aliases = {
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
-    'SourceMorph': 'mne.SourceMorph',
     'Epochs': 'mne.Epochs', 'Layout': 'mne.channels.Layout',
     'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.BiHemiLabel',
     'AverageTFR': 'mne.time_frequency.AverageTFR',
@@ -224,7 +223,7 @@ numpydoc_xref_aliases = {
     'CrossSpectralDensity': 'mne.time_frequency.CrossSpectralDensity',
     'SourceMorph': 'mne.SourceMorph',
     'Xdawn': 'mne.preprocessing.Xdawn',
-    'Report': 'mne.Report', 'Forward': 'mne.Forward',
+    'Report': 'mne.Report',
     'TimeDelayingRidge': 'mne.decoding.TimeDelayingRidge',
     'Vectorizer': 'mne.decoding.Vectorizer',
     'UnsupervisedSpatialFilter': 'mne.decoding.UnsupervisedSpatialFilter',

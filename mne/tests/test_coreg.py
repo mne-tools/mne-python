@@ -18,8 +18,7 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        coregister_fiducials, get_mni_fiducials, Coregistration)
 from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
-from mne.utils import (requires_nibabel, check_version, catch_logging,
-                       _record_warnings)
+from mne.utils import catch_logging
 from mne.source_space import write_source_spaces
 from mne.channels import DigMontage
 
@@ -62,12 +61,12 @@ def test_coregister_fiducials():
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
-@requires_nibabel()
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @pytest.mark.parametrize('scale', (.9, [1, .2, .8]))
 def test_scale_mri(tmp_path, few_surfaces, scale):
     """Test creating fsaverage and scaling it."""
+    pytest.importorskip('nibabel')
     # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
     # one
     fake_home = data_path
@@ -111,15 +110,14 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
     # scale fsaverage
     write_source_spaces(bem_path / (bem_fname % "ico-0"), src, overwrite=True)
-    with _record_warnings():  # sometimes missing nibabel
-        scale_mri(
-            "fsaverage",
-            "flachkopf",
-            scale,
-            True,
-            subjects_dir=tmp_path,
-            verbose="debug",
-        )
+    scale_mri(
+        "fsaverage",
+        "flachkopf",
+        scale,
+        True,
+        subjects_dir=tmp_path,
+        verbose="debug",
+    )
     assert _is_mri_subject("flachkopf", tmp_path), "Scaling failed"
     spath = tmp_path / "flachkopf" / "bem"
     spath_fname = "flachkopf-%s-src.fif"
@@ -158,27 +156,26 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
     assert ssrc[0]['nearest'] is not None
 
     # check patch info computation (only if SciPy is new enough to be fast)
-    if check_version('scipy', '1.3'):
-        for s in src_dist:
-            for key in ('dist', 'dist_limit'):
-                s[key] = None
-        write_source_spaces(
-            bem_path / (bem_fname % "ico-0"), src_dist, overwrite=True
-        )
+    for s in src_dist:
+        for key in ('dist', 'dist_limit'):
+            s[key] = None
+    write_source_spaces(
+        bem_path / (bem_fname % "ico-0"), src_dist, overwrite=True
+    )
 
-        # scale with distances
-        os.remove(spath / (spath_fname % "ico-0"))
-        scale_source_space('flachkopf', 'ico-0', subjects_dir=tmp_path)
-        ssrc = mne.read_source_spaces(spath / (spath_fname % "ico-0"))
-        assert ssrc[0]['dist'] is None
-        assert ssrc[0]['nearest'] is not None
+    # scale with distances
+    os.remove(spath / (spath_fname % "ico-0"))
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tmp_path)
+    ssrc = mne.read_source_spaces(spath / (spath_fname % "ico-0"))
+    assert ssrc[0]['dist'] is None
+    assert ssrc[0]['nearest'] is not None
 
 
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
-@requires_nibabel()
 def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
     """Test scale_mri transforms and MRI scaling."""
+    pytest.importorskip('nibabel')
     # scale fsaverage
     sample_dir = subjects_dir_tmp_few / 'sample'
     subject_to = 'flachkopf'
@@ -214,7 +211,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
         if subject_from == 'fsaverage':
             overwrite = skip_fiducials = False
         else:
-            with pytest.raises(IOError, match='No fiducials file'):
+            with pytest.raises(OSError, match='No fiducials file'):
                 scale_mri(
                     subject_from,
                     subject_to,
@@ -222,7 +219,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
                     subjects_dir=subjects_dir_tmp_few,
                 )
             skip_fiducials = True
-            with pytest.raises(IOError, match='already exists'):
+            with pytest.raises(OSError, match='already exists'):
                 scale_mri(
                     subject_from,
                     subject_to, scale,
@@ -350,9 +347,9 @@ def test_fit_matched_points():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_get_mni_fiducials():
     """Test get_mni_fiducials."""
+    pytest.importorskip('nibabel')
     fids, coord_frame = read_fiducials(fid_fname)
     assert coord_frame == FIFF.FIFFV_COORD_MRI
     assert [f['ident'] for f in fids] == list(range(1, 4))
@@ -377,6 +374,7 @@ def test_get_mni_fiducials():
 def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
                         fid_match):
     """Test automated coregistration."""
+    pytest.importorskip('nibabel')
     subject = 'sample'
     if fiducials is None:
         fiducials, coord_frame = read_fiducials(fid_fname)
@@ -451,6 +449,7 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
 @testing.requires_testing_data
 def test_coreg_class_gui_match():
     """Test that using Coregistration matches mne coreg."""
+    pytest.importorskip('nibabel')
     fiducials, _ = read_fiducials(fid_fname)
     info = read_info(raw_fname)
     coreg = Coregistration(info, subject='sample', subjects_dir=subjects_dir,
@@ -534,6 +533,7 @@ def test_coreg_class_gui_match():
                         FIFF.FIFFV_POINT_EXTRA, FIFF.FIFFV_POINT_EEG))
 def test_coreg_class_init(drop_point_kind):
     """Test that Coregistration can be instantiated with various digs."""
+    pytest.importorskip('nibabel')
     fiducials, _ = read_fiducials(fid_fname)
     info = read_info(raw_fname)
 

@@ -103,7 +103,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -2503,22 +2503,27 @@ def _check_raw_compatibility(raw):
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], type(raw[0])):
             raise ValueError(f'raw[{ri}] type must match')
-        for key in ('nchan', 'bads', 'sfreq'):
+        for key in ('nchan', 'sfreq'):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
                     f'raw[{ri}].info[{key}] must match:\n'
                     f'{repr(a)} != {repr(b)}')
-        if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
-            raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
-        if not all(raw[ri]._cals == raw[0]._cals):
+        for kind in ('bads', 'ch_names'):
+            set1 = set(raw[0].info[kind])
+            set2 = set(raw[ri].info[kind])
+            mismatch = set1.symmetric_difference(set2)
+            if mismatch:
+                raise ValueError(f'raw[{ri}][\'info\'][{kind}] do not match: '
+                                 f'{sorted(mismatch)}')
+        if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError('raw[%d]._cals must match' % ri)
         if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
             raise ValueError('SSP projectors in raw files must be the same')
         if not all(_proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
-    if not all(r.orig_format == raw[0].orig_format for r in raw):
+    if any(r.orig_format != raw[0].orig_format for r in raw):
         warn('raw files do not all have the same data format, could result in '
              'precision mismatch. Setting raw.orig_format="unknown"')
         raw[0].orig_format = 'unknown'
