@@ -570,7 +570,7 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
     bem_path = subjects_dir / subject / "bem"
 
     if not bem_path.is_dir():
-        raise IOError(f'Subject bem directory "{bem_path}" does not exist')
+        raise OSError(f'Subject bem directory "{bem_path}" does not exist')
 
     surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
@@ -584,7 +584,7 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
                 if surf_fname.exists():
                     surfaces.append((surf_fname, '#00DD00'))
                 else:
-                    raise IOError("Surface %s does not exist." % surf_fname)
+                    raise OSError("Surface %s does not exist." % surf_fname)
 
     if isinstance(src, (str, Path, os.PathLike)):
         src = Path(src)
@@ -592,7 +592,7 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
             # convert to Path until get_subjects_dir returns a Path object
             src_ = Path(subjects_dir) / subject / "bem" / src
             if not src_.exists():
-                raise IOError(f"{src} does not exist")
+                raise OSError(f"{src} does not exist")
             src = src_
         src = read_source_spaces(src)
     elif src is not None and not isinstance(src, SourceSpaces):
@@ -602,7 +602,7 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
         )
 
     if len(surfaces) == 0:
-        raise IOError('No surface files found. Surface files must end with '
+        raise OSError('No surface files found. Surface files must end with '
                       'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours

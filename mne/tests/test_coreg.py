@@ -211,7 +211,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
         if subject_from == 'fsaverage':
             overwrite = skip_fiducials = False
         else:
-            with pytest.raises(IOError, match='No fiducials file'):
+            with pytest.raises(OSError, match='No fiducials file'):
                 scale_mri(
                     subject_from,
                     subject_to,
@@ -219,7 +219,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
                     subjects_dir=subjects_dir_tmp_few,
                 )
             skip_fiducials = True
-            with pytest.raises(IOError, match='already exists'):
+            with pytest.raises(OSError, match='already exists'):
                 scale_mri(
                     subject_from,
                     subject_to, scale,

@@ -145,7 +145,7 @@ def _read_volume_info(fobj):
                 'zras', 'cras']:
         pair = fobj.readline().decode('utf-8').split('=')
         if pair[0].strip() != key or len(pair) != 2:
-            raise IOError('Error parsing volume info.')
+            raise OSError('Error parsing volume info.')
         if key in ('valid', 'filename'):
             volume_info[key] = pair[1].strip()
         elif key == 'volume':

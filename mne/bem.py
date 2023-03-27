@@ -2247,7 +2247,7 @@ def _ensure_bem_surfaces(bem, extra_allow=(), name='bem'):
 def _check_file(fname, overwrite):
     """Prevent overwrites."""
     if op.isfile(fname) and not overwrite:
-        raise IOError(f'File {fname} exists, use --overwrite to overwrite it')
+        raise OSError(f'File {fname} exists, use --overwrite to overwrite it')
 
 
 _tri_levels = dict(

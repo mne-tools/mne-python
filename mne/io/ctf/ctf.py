@@ -147,7 +147,7 @@ class RawCTF(BaseRaw):
             raw_extras.append(sample_info)
             first_samps = [0] * len(last_samps)
         if len(fnames) == 0:
-            raise IOError(
+            raise OSError(
                 f'Could not find any data, could not find the following '
                 f'file(s): {missing_names}, and the following file(s) had no '
                 f'valid samples: {no_samps}')

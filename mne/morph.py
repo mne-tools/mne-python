@@ -198,7 +198,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # let's KISS and use `brain.mgz`, too
         mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
         if not op.isfile(mri_path_to):
-            raise IOError('cannot read file: %s' % mri_path_to)
+            raise OSError('cannot read file: %s' % mri_path_to)
         logger.info('    Loading %s as "to" volume' % mri_path_to)
         with warnings.catch_warnings():
             mri_to = nib.load(mri_path_to)

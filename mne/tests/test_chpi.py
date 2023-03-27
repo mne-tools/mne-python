@@ -120,7 +120,7 @@ def test_read_write_head_pos(tmp_path):
     pytest.raises(ValueError, write_head_pos, temp_name, 'foo')  # not array
     pytest.raises(ValueError, write_head_pos, temp_name, head_pos_read[:, :9])
     pytest.raises(TypeError, read_head_pos, 0)
-    pytest.raises(IOError, read_head_pos, "101")
+    pytest.raises(OSError, read_head_pos, "101")
 
 
 @testing.requires_testing_data
