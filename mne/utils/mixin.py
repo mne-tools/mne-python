@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #

@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 # Authors: Jussi Nurminen <jnu@iki.fi>
 # License: BSD Style.
 

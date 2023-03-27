@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>

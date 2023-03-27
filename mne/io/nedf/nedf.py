@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy

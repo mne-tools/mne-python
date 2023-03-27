@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Freesurfer handling functions."""
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #          Eric Larson <larson.eric.d@gmail.com>

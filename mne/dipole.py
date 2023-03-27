@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Single-dipole functions and classes."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>

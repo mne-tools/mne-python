@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The config functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #

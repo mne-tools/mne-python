@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test reading of BrainVision format."""
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>

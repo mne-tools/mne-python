@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-clause

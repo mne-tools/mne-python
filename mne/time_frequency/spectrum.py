@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Container classes for spectral data."""
 
 # Authors: Dan McCloy <dan@mccloy.info>

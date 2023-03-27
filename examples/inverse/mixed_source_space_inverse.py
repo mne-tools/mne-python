@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-mixed-source-space-inverse:
 
