@@ -1278,7 +1278,7 @@ def _read_surface(filename, *, on_defects):
 
 
 @fill_doc
-class Coregistration(object):
+class Coregistration:
     """Class for MRI<->head coregistration.
 
     Parameters

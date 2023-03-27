@@ -249,7 +249,7 @@ def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
     return gui
 
 
-class _GUIScraper(object):
+class _GUIScraper:
     """Scrape GUI outputs."""
 
     def __repr__(self):

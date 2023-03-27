@@ -954,7 +954,7 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 @fill_doc
-class AcqParserFIF(object):
+class AcqParserFIF:
     """Parser for Elekta data acquisition settings.
 
     This class parses parameters (e.g. events and averaging categories) that

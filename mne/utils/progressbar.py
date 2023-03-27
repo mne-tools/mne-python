@@ -19,7 +19,7 @@ from .config import get_config
 from ._logging import logger
 
 
-class ProgressBar(object):
+class ProgressBar:
     """Generate a command-line progressbar.
 
     Parameters
@@ -181,7 +181,7 @@ class _UpdateThread(Thread):
             time.sleep(1. / 30.)  # 30 Hz refresh is plenty
 
 
-class _PBSubsetUpdater(object):
+class _PBSubsetUpdater:
 
     def __init__(self, pb, idx):
         self.mmap = pb._mmap

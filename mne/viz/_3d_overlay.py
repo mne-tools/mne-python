@@ -13,7 +13,7 @@ import numpy as np
 from ..utils import logger
 
 
-class _Overlay(object):
+class _Overlay:
     def __init__(self, scalars, colormap, rng, opacity, name):
         self._scalars = scalars
         self._colormap = colormap
@@ -54,7 +54,7 @@ class _Overlay(object):
         return (self._scalars - rng[0]) / factor
 
 
-class _LayeredMesh(object):
+class _LayeredMesh:
     def __init__(self, renderer, vertices, triangles, normals):
         self._renderer = renderer
         self._vertices = vertices

@@ -15,7 +15,7 @@ from ...surface import (complete_surface_info, read_surface, read_curvature,
                         _read_patch)
 
 
-class _Surface(object):
+class _Surface:
     """Container for a brain surface.
 
     It is used for storing vertices, faces and morphometric data

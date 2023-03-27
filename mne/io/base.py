@@ -2146,7 +2146,7 @@ def _get_scaling(ch_type, target_unit):
     return scaling
 
 
-class _ReadSegmentFileProtector(object):
+class _ReadSegmentFileProtector:
     """Ensure only _filenames, _raw_extras, and _read_segment_file are used."""
 
     def __init__(self, raw):
@@ -2160,7 +2160,7 @@ class _ReadSegmentFileProtector(object):
             self, data, idx, fi, start, stop, cals, mult)
 
 
-class _RawShell(object):
+class _RawShell:
     """Create a temporary raw object."""
 
     def __init__(self):  # noqa: D102

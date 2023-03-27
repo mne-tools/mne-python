@@ -928,7 +928,7 @@ def _compute_sph_harm(order, az, pol):
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-class _TPSWarp(object):
+class _TPSWarp:
     """Transform points using thin-plate spline (TPS) warping.
 
     Notes
@@ -1005,7 +1005,7 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class _SphericalSurfaceWarp(object):
+class _SphericalSurfaceWarp:
     """Warp surfaces via spherical harmonic smoothing and thin-plate splines.
 
     Notes
