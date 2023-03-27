@@ -136,7 +136,7 @@ def test_plot_cov():
 def test_plot_bem():
     """Test plotting of BEM contours."""
     pytest.importorskip('nibabel')
-    with pytest.raises(IOError, match='MRI file .* not found'):
+    with pytest.raises(OSError, match='MRI file .* not found'):
         plot_bem(subject='bad-subject', subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match="Invalid value for the 'orientation"):
         plot_bem(subject='sample', subjects_dir=subjects_dir,

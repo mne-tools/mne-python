@@ -42,7 +42,7 @@ def _check_eeglab_fname(fname, dataname):
             'Old data format .dat detected. Please update your EEGLAB '
             'version and resave the data in .fdt format')
     elif fmt != '.fdt':
-        raise IOError('Expected .fdt file format. Found %s format' % fmt)
+        raise OSError('Expected .fdt file format. Found %s format' % fmt)
 
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)

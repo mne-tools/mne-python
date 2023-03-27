@@ -165,7 +165,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
         mne_make_scalp_surfaces.run()
         assert op.isfile(dense_fname)
         assert op.isfile(medium_fname)
-        with pytest.raises(IOError, match='overwrite'):
+        with pytest.raises(OSError, match='overwrite'):
             mne_make_scalp_surfaces.run()
     # actually check the outputs
     head_py = read_bem_surfaces(dense_fname)

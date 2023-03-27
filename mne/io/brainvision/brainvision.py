@@ -469,7 +469,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     ext = op.splitext(hdr_fname)[-1]
     ahdr_format = (ext == '.ahdr')
     if ext not in ('.vhdr', '.ahdr'):
-        raise IOError("The header file must be given to read the data, "
+        raise OSError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
 
     settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)

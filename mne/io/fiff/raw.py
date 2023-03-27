@@ -436,7 +436,7 @@ def _get_fname_rep(fname):
 def _check_entry(first, nent):
     """Sanity check entries."""
     if first >= nent:
-        raise IOError('Could not read data, perhaps this is a corrupt file')
+        raise OSError('Could not read data, perhaps this is a corrupt file')
 
 
 @fill_doc

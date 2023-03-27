@@ -460,7 +460,7 @@ def _iterate_trans_views(function, alpha, **kwargs):
             return _itv(
                 function, fig, surfaces={'head-dense': alpha}, **kwargs
             )
-        except IOError:
+        except OSError:
             return _itv(function, fig, surfaces={'head': alpha}, **kwargs)
     finally:
         backend._close_3d_figure(fig)

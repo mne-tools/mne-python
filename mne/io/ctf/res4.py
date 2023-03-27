@@ -19,7 +19,7 @@ def _make_ctf_name(directory, extra, raise_error=True):
     found = True
     if not op.isfile(fname):
         if raise_error:
-            raise IOError('Standard file %s not found' % fname)
+            raise OSError('Standard file %s not found' % fname)
         found = False
     return fname, found
 

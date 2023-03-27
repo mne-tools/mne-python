@@ -462,7 +462,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
             )
         trans = Path(trans)
         if not trans.is_file():
-            raise IOError(f'trans file "{trans}" not found')
+            raise OSError(f'trans file "{trans}" not found')
         if trans.suffix in ['.fif', '.gz']:
             fro_to_t = read_trans(trans)
         else:
@@ -561,7 +561,7 @@ def read_trans(fname, return_all=False, verbose=None):
                 if not return_all:
                     break
     if len(trans) == 0:
-        raise IOError('This does not seem to be a -trans.fif file.')
+        raise OSError('This does not seem to be a -trans.fif file.')
     return trans if return_all else trans[0]
 
 

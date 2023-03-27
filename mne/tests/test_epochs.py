@@ -3250,7 +3250,7 @@ def test_save_overwrite(tmp_path):
 
     # scenario 2: overwrite=False and there is a file to overwrite
     # fname1 exists because of scenario 1 above
-    with pytest.raises(IOError, match='Destination file exists.'):
+    with pytest.raises(OSError, match='Destination file exists.'):
         epochs.save(fname1, overwrite=False)
 
     # scenario 3: overwrite=True and there isn't a file to overwrite
@@ -3260,7 +3260,7 @@ def test_save_overwrite(tmp_path):
     epochs.save(fname2, overwrite=True)
     # check that the file got written
     assert fname2.is_file()
-    with pytest.raises(IOError, match='exists'):
+    with pytest.raises(OSError, match='exists'):
         epochs.save(fname2)
 
     # scenario 4: overwrite=True and there is a file to overwrite
