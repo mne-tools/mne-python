@@ -332,9 +332,10 @@ def _reduce_pick_list(info, picks):
         warn(string)
         picks2 = [p for p in picks2 if p is not None]
         picks = [value for i, value in enumerate(picks) if i not in missing]
-        
     return picks2, picks
 
+
 def _remove_missing_picks(info, picks):
+    """Remove missing picks"""
     _, picks_filtered = _reduce_pick_list(info, picks)
     return picks_filtered
