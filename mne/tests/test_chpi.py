@@ -120,7 +120,7 @@ def test_read_write_head_pos(tmp_path):
     pytest.raises(ValueError, write_head_pos, temp_name, 'foo')  # not array
     pytest.raises(ValueError, write_head_pos, temp_name, head_pos_read[:, :9])
     pytest.raises(TypeError, read_head_pos, 0)
-    pytest.raises(IOError, read_head_pos, "101")
+    pytest.raises(OSError, read_head_pos, "101")
 
 
 @testing.requires_testing_data
@@ -438,7 +438,7 @@ def test_simulate_calculate_head_pos_chpi():
     # Read info dict from raw FIF file
     info = read_info(raw_fname)
     # Tune the info structure
-    chpi_channel = u'STI201'
+    chpi_channel = 'STI201'
     ncoil = len(info['hpi_results'][0]['order'])
     coil_freq = 10 + np.arange(ncoil) * 5
     hpi_subsystem = {'event_channel': chpi_channel,

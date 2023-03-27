@@ -352,7 +352,7 @@ def test_volume_source_morph_basic(tmp_path):
         **kwargs)
 
     # check wrong subject_to
-    with pytest.raises(IOError, match='cannot read file'):
+    with pytest.raises(OSError, match='cannot read file'):
         compute_source_morph(fwd['src'], 'sample', '42',
                              subjects_dir=subjects_dir)
 
@@ -363,7 +363,7 @@ def test_volume_source_morph_basic(tmp_path):
     source_morph_vol_r = read_source_morph(tmp_path / 'vol-morph.h5')
 
     # check for invalid file name handling ()
-    with pytest.raises(IOError, match='not found'):
+    with pytest.raises(OSError, match='not found'):
         read_source_morph(tmp_path / '42')
 
     # check morph

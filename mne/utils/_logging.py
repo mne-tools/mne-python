@@ -294,7 +294,7 @@ class ClosingStringIO(StringIO):
         return out
 
 
-class catch_logging(object):
+class catch_logging:
     """Store logging.
 
     This will remove all other logging handlers, and return the handler to
@@ -333,7 +333,7 @@ def _record_warnings():
         yield w
 
 
-class WrapStdOut(object):
+class WrapStdOut:
     """Dynamically wrap to sys.stdout.
 
     This makes packages that monkey-patch sys.stdout (e.g.doctest,

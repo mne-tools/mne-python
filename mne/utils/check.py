@@ -55,7 +55,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
                                      endings_err[-1]])
-        raise IOError('The filename (%s) for file type %s must end with %s'
+        raise OSError('The filename (%s) for file type %s must end with %s'
                       % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
@@ -233,13 +233,13 @@ def _check_fname(
         if must_exist:
             if need_dir:
                 if not fname.is_dir():
-                    raise IOError(
+                    raise OSError(
                         f"Need a directory for {name} but found a file "
                         f"at {fname}"
                     )
             else:
                 if not fname.is_file():
-                    raise IOError(
+                    raise OSError(
                         f"Need a file for {name} but found a directory "
                         f"at {fname}"
                     )
@@ -468,7 +468,7 @@ def _is_numeric(n):
     return isinstance(n, numbers.Number)
 
 
-class _IntLike(object):
+class _IntLike:
     @classmethod
     def __instancecheck__(cls, other):
         try:
@@ -483,7 +483,7 @@ int_like = _IntLike()
 path_like = (str, Path, os.PathLike)
 
 
-class _Callable(object):
+class _Callable:
     @classmethod
     def __instancecheck__(cls, other):
         return callable(other)

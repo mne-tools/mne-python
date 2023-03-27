@@ -304,7 +304,7 @@ class _GroupBox(_AbstractGroupBox, _Widget, Accordion, metaclass=_BaseWidget):
 
 # modified from:
 # https://gist.github.com/elkhadiy/284900b3ea8a13ed7b777ab93a691719
-class _FilePicker(object):
+class _FilePicker:
     def __init__(self, rows=20, directory_only=False, ignore_dotfiles=True):
         self._callback = None
         self._directory_only = directory_only
@@ -562,7 +562,7 @@ class _Popup(_AbstractPopup, _Widget, VBox, metaclass=_BaseWidget):
         self._buttons[value].click()
 
 
-class _BoxLayout(object):
+class _BoxLayout:
 
     def _handle_scroll(self, scroll=None):
         kwargs = _BASE_KWARGS.copy()

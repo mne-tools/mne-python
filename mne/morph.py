@@ -198,7 +198,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # let's KISS and use `brain.mgz`, too
         mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
         if not op.isfile(mri_path_to):
-            raise IOError('cannot read file: %s' % mri_path_to)
+            raise OSError('cannot read file: %s' % mri_path_to)
         logger.info('    Loading %s as "to" volume' % mri_path_to)
         with warnings.catch_warnings():
             mri_to = nib.load(mri_path_to)
@@ -632,8 +632,8 @@ class SourceMorph:
         return img_to
 
     def __repr__(self):  # noqa: D105
-        s = u"%s" % self.kind
-        s += u", %s -> %s" % (self.subject_from, self.subject_to)
+        s = "%s" % self.kind
+        s += ", %s -> %s" % (self.subject_from, self.subject_to)
         if self.kind == 'volume':
             s += ", zooms : {}".format(self.zooms)
             s += ", niter_affine : {}".format(self.niter_affine)

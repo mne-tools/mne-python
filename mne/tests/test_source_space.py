@@ -332,7 +332,7 @@ def test_volume_source_space(tmp_path):
         del src_new
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
-    with pytest.raises(IOError, match='surface file.*not exist'):
+    with pytest.raises(OSError, match='surface file.*not exist'):
         setup_volume_source_space(
             'sample', surface='foo', mri=fname_mri, subjects_dir=subjects_dir)
     bem['surfs'][-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD

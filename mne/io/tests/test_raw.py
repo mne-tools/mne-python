@@ -290,7 +290,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
 
     # Test saving with not correct extension
     out_fname_h5 = op.join(tempdir, 'test_raw.h5')
-    with pytest.raises(IOError, match='raw must end with .fif or .fif.gz'):
+    with pytest.raises(OSError, match='raw must end with .fif or .fif.gz'):
         raw.save(out_fname_h5)
 
     raw3 = read_raw_fif(out_fname)

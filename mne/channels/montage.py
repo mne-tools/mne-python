@@ -276,7 +276,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     return DigMontage(dig=dig, ch_names=ch_names)
 
 
-class DigMontage(object):
+class DigMontage:
     """Montage for digitized electrode and headshape position data.
 
     .. warning:: Montages are typically created using one of the helper

@@ -295,7 +295,7 @@ def test_check_missing_files():
     """Test checking for missing curry files (smoke test)."""
     invalid_fname = "/invalid/path/name.xy"
 
-    with pytest.raises(IOError, match="file type .*? must end with"):
+    with pytest.raises(OSError, match="file type .*? must end with"):
         _read_events_curry(invalid_fname)
 
     with pytest.raises(FileNotFoundError, match='does not exist'):

@@ -219,7 +219,7 @@ def test_output_formats(tmp_path):
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
         # Let's test the overwriting error throwing while we're at it
         if ii > 0:
-            pytest.raises(IOError, raw.save, temp_file, fmt=fmt)
+            pytest.raises(OSError, raw.save, temp_file, fmt=fmt)
         raw.save(temp_file, fmt=fmt, overwrite=True)
         raw2 = read_raw_fif(temp_file)
         raw2_data = raw2[:, :][0]
@@ -1467,7 +1467,7 @@ def test_save(tmp_path):
         raw.save(temp_fname)
     raw.load_data()
     # can't overwrite file without overwrite=True
-    with pytest.raises(IOError, match='file exists'):
+    with pytest.raises(OSError, match='file exists'):
         raw.save(fif_fname)
 
     # test abspath support and annotations

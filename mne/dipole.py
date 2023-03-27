@@ -43,7 +43,7 @@ from .viz import plot_dipole_locations
 
 @fill_doc
 class Dipole(TimeMixin):
-    u"""Dipole class for sequential dipole fits.
+    """Dipole class for sequential dipole fits.
 
     .. note::
         This class should usually not be instantiated directly via
@@ -541,7 +541,7 @@ def _read_dipole_text(fname):
         del line
     data = np.atleast_2d(np.array(data, float))
     if def_line is None:
-        raise IOError('Dipole text file is missing field definition '
+        raise OSError('Dipole text file is missing field definition '
                       'comment, cannot parse %s' % (fname,))
     # actually parse the fields
     def_line = def_line.lstrip('%').lstrip('#').strip()
@@ -574,7 +574,7 @@ def _read_dipole_text(fname):
     if len(ignored_fields) > 0:
         warn('Ignoring extra fields in dipole file: %s' % (ignored_fields,))
     if len(fields) != data.shape[1]:
-        raise IOError('More data fields (%s) found than data columns (%s): %s'
+        raise OSError('More data fields (%s) found than data columns (%s): %s'
                       % (len(fields), data.shape[1], fields))
 
     logger.info("%d dipole(s) found" % len(data))

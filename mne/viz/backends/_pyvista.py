@@ -136,7 +136,7 @@ class PyVistaFigure(Figure3D):
         return hasattr(self.plotter, 'ren_win')
 
 
-class _Projection(object):
+class _Projection:
     """Class storing projection information.
 
     Attributes

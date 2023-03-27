@@ -25,7 +25,7 @@ from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
 from .channels import _get_ch_info
 
 
-class Layout(object):
+class Layout:
     """Sensor layouts.
 
     Layouts are typically loaded from a file using

@@ -133,7 +133,7 @@ def _get_mgz_header(fname):
     fname = _check_fname(fname, overwrite='read', must_exist=True,
                          name='MRI image')
     if fname.suffix != ".mgz":
-        raise IOError('Filename must end with .mgz')
+        raise OSError('Filename must end with .mgz')
     header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
                   ('type', '>i4'), ('dof', '>i4'), ('goodRASFlag', '>i2'),
                   ('delta', '>f4', (3,)), ('Mdc', '>f4', (3, 3)),
@@ -568,7 +568,7 @@ def read_talxfm(subject, subjects_dir=None, verbose=None):
     if not path.is_file():
         path = subjects_dir / subject / "mri" / "T1.mgz"
     if not path.is_file():
-        raise IOError('mri not found: %s' % path)
+        raise OSError('mri not found: %s' % path)
     _, _, mri_ras_t, _, _ = _read_mri_info(path)
     mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
     return mri_mni_t
@@ -590,7 +590,7 @@ def _check_mri(mri, subject, subjects_dir):
     if op.basename(mri) == mri:
         err = (f'Ambiguous filename - found {mri!r} in current folder.\n'
                'If this is correct prefix name with relative or absolute path')
-        raise IOError(err)
+        raise OSError(err)
     return mri
 
 
@@ -745,7 +745,7 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
                 return read_bem_surfaces(fname, on_defects='warn')[0]
             else:
                 return _read_mri_surface(fname)
-    raise IOError('No head surface found for subject '
+    raise OSError('No head surface found for subject '
                   f'{subject} after trying:\n' + '\n'.join(try_fnames))
 
 

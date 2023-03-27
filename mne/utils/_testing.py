@@ -157,7 +157,7 @@ def run_command_if_main():
         local_vars['run']()
 
 
-class ArgvSetter(object):
+class ArgvSetter:
     """Temporarily set sys.argv."""
 
     def __init__(self, args=(), disable_stdout=True,
@@ -181,7 +181,7 @@ class ArgvSetter(object):
         sys.stderr = self.orig_stderr
 
 
-class SilenceStdout(object):
+class SilenceStdout:
     """Silence stdout."""
 
     def __init__(self, close=True):

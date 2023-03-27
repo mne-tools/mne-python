@@ -128,7 +128,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
 def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
                  mindist=1.0, interp='cos2', n_jobs=None, use_cps=True,
                  forward=None, first_samp=0, max_iter=10000, verbose=None):
-    u"""Simulate raw data.
+    """Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
     parameter.
@@ -585,7 +585,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     return raw
 
 
-class _HPIForwards(object):
+class _HPIForwards:
 
     def __init__(self, offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns):
         self.offsets = offsets
@@ -655,7 +655,7 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     return stc_data, stim_data, verts_
 
 
-class _SimForwards(object):
+class _SimForwards:
 
     def __init__(self, dev_head_ts, offsets, info, trans, src, bem, mindist,
                  n_jobs, meeg_picks, forward=None, use_cps=True):
