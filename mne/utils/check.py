@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The check functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -15,7 +16,6 @@ import numbers
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from .docs import deprecated
 from ._logging import (warn, logger, verbose, _record_warnings,
                        _verbose_safe_false)
 
@@ -55,7 +55,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
                                      endings_err[-1]])
-        raise OSError('The filename (%s) for file type %s must end with %s'
+        raise IOError('The filename (%s) for file type %s must end with %s'
                       % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
@@ -233,13 +233,13 @@ def _check_fname(
         if must_exist:
             if need_dir:
                 if not fname.is_dir():
-                    raise OSError(
+                    raise IOError(
                         f"Need a directory for {name} but found a file "
                         f"at {fname}"
                     )
             else:
                 if not fname.is_file():
-                    raise OSError(
+                    raise IOError(
                         f"Need a file for {name} but found a directory "
                         f"at {fname}"
                     )
@@ -468,7 +468,7 @@ def _is_numeric(n):
     return isinstance(n, numbers.Number)
 
 
-class _IntLike:
+class _IntLike(object):
     @classmethod
     def __instancecheck__(cls, other):
         try:
@@ -483,7 +483,7 @@ int_like = _IntLike()
 path_like = (str, Path, os.PathLike)
 
 
-class _Callable:
+class _Callable(object):
     @classmethod
     def __instancecheck__(cls, other):
         return callable(other)
@@ -549,6 +549,37 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *,
         raise TypeError(
             f"{_item_name} must be an instance of {type_name}{extra}, "
             f"got {type(item)} instead.")
+
+
+def _check_range(val, min_val, max_val, name, min_inclusive=True,
+                 max_inclusive=True):
+    """Check that item is within range.
+
+    Parameters
+    ----------
+    val : int | float
+        The value to be checked.
+    min_val : int | float
+        The minimum value allowed.
+    max_val : int | float
+        The maximum value allowed.
+    name : str
+        The name of the value.
+    min_inclusive : bool
+        Whether ``val`` is allowed to be ``min_val``.
+    max_inclusive : bool
+        Whether ``val`` is allowed to be ``max_val``.
+    """
+    below_min = val < min_val if min_inclusive else val <= min_val
+    above_max = val > max_val if max_inclusive else val >= max_val
+    if below_min or above_max:
+        error_str = f'The value of {name} must be between {min_val} '
+        if min_inclusive:
+            error_str += 'inclusive '
+        error_str += f'and {max_val}'
+        if max_inclusive:
+            error_str += 'inclusive '
+        raise ValueError(error_str)
 
 
 def _path_like(item):
@@ -1086,11 +1117,6 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
-
-
-@deprecated('has_nibabel is deprecated and will be removed in 1.5')
-def has_nibabel():
-    return check_version('nibabel')  # pragma: no cover
 
 
 def _import_nibabel(why='use MRI files'):
