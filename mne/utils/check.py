@@ -554,6 +554,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *,
 def _check_range(val, min_val, max_val, name, min_inclusive=True,
                  max_inclusive=True):
     """Check that item is within range.
+
     Parameters
     ----------
     val : int | float
