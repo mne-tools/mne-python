@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Federico Raimondo  <federaimondo@gmail.com>
 #          simplified BSD-3 license
 

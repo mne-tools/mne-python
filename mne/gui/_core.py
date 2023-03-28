@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Shared GUI classes and functions."""
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>

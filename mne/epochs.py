@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tools for working with epoched data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>

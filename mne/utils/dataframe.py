@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """inst.to_data_frame() helper functions."""
 # Authors: Daniel McCloy <dan@mccloy.info>
 #

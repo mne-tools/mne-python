@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Helpers for various transformations."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>

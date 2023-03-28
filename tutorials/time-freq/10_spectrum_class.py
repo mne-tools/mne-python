@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # noqa: E501
 """
 .. _tut-spectrum-class:

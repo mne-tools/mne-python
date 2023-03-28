@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Coregistration between different coordinate frames."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>

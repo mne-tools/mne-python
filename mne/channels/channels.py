@@ -203,7 +203,8 @@ _unit2human = {FIFF.FIFF_UNIT_V: 'V',
                FIFF.FIFF_UNIT_MOL: 'M',
                FIFF.FIFF_UNIT_NONE: 'NA',
                FIFF.FIFF_UNIT_CEL: 'C',
-               FIFF.FIFF_UNIT_S: 'S'}
+               FIFF.FIFF_UNIT_S: 'S',
+               FIFF.FIFF_UNIT_PX: 'px'}
 
 
 def _check_set(ch, projs, ch_type):
@@ -331,7 +332,8 @@ class SetChannelsMixin(MontageMixin):
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
             ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od, temperature, gsr
+            fnirs_fd_phase, fnirs_od, eyetrack_pos, eyetrack_pupil,
+            temperature, gsr
 
         .. versionadded:: 0.9.0
         """
@@ -379,6 +381,10 @@ class SetChannelsMixin(MontageMixin):
                 coil_type = FIFF.FIFFV_COIL_FNIRS_FD_PHASE
             elif ch_type == 'fnirs_od':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_OD
+            elif ch_type == 'eyetrack_pos':
+                coil_type = FIFF.FIFFV_COIL_EYETRACK_POS
+            elif ch_type == 'eyetrack_pupil':
+                coil_type = FIFF.FIFFV_COIL_EYETRACK_PUPIL
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
@@ -595,7 +601,7 @@ class UpdateChannelsMixin:
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False,
                    ecog=False, fnirs=False, csd=False, dbs=False,
-                   temperature=False, gsr=False,
+                   temperature=False, gsr=False, eyetrack=False,
                    include=(), exclude='bads', selection=None, verbose=None):
         """Pick some channels by type and names.
 
@@ -621,9 +627,9 @@ class UpdateChannelsMixin:
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
-            ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
-            exclude=exclude, selection=selection, temperature=temperature,
-            gsr=gsr)
+            ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, temperature=temperature,
+            gsr=gsr, eyetrack=eyetrack, include=include, exclude=exclude,
+            selection=selection)
 
         self._pick_drop_channels(idx)
 

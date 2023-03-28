@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 .. _tut-imorting-eeg-data:
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Authors: Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #

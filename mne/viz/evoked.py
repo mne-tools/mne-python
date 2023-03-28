@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions to plot evoked M/EEG data (besides topographies)."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
