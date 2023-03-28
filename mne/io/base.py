@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -103,7 +102,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -2146,7 +2145,7 @@ def _get_scaling(ch_type, target_unit):
     return scaling
 
 
-class _ReadSegmentFileProtector(object):
+class _ReadSegmentFileProtector:
     """Ensure only _filenames, _raw_extras, and _read_segment_file are used."""
 
     def __init__(self, raw):
@@ -2160,7 +2159,7 @@ class _ReadSegmentFileProtector(object):
             self, data, idx, fi, start, stop, cals, mult)
 
 
-class _RawShell(object):
+class _RawShell:
     """Create a temporary raw object."""
 
     def __init__(self):  # noqa: D102

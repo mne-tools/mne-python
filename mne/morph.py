@@ -198,7 +198,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # let's KISS and use `brain.mgz`, too
         mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
         if not op.isfile(mri_path_to):
-            raise IOError('cannot read file: %s' % mri_path_to)
+            raise OSError('cannot read file: %s' % mri_path_to)
         logger.info('    Loading %s as "to" volume' % mri_path_to)
         with warnings.catch_warnings():
             mri_to = nib.load(mri_path_to)
@@ -632,8 +632,8 @@ class SourceMorph:
         return img_to
 
     def __repr__(self):  # noqa: D105
-        s = u"%s" % self.kind
-        s += u", %s -> %s" % (self.subject_from, self.subject_to)
+        s = "%s" % self.kind
+        s += ", %s -> %s" % (self.subject_from, self.subject_to)
         if self.kind == 'volume':
             s += ", zooms : {}".format(self.zooms)
             s += ", niter_affine : {}".format(self.niter_affine)
@@ -1187,10 +1187,6 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None,
 def _surf_nearest(vertices, adj_mat):
     from scipy import sparse
     from scipy.sparse.csgraph import dijkstra
-    if not check_version('scipy', '1.3'):
-        raise ValueError('scipy >= 1.3 is required to use nearest smoothing, '
-                         'consider upgrading SciPy or using a different '
-                         'smoothing value')
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
     vertices = vertices[order]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -329,7 +328,7 @@ QToolBar::handle:vertical {
     else:
         try:
             file = open(theme, 'r')
-        except IOError:
+        except OSError:
             warn('Requested theme file not found, will use light instead: '
                  f'{repr(theme)}')
         else:

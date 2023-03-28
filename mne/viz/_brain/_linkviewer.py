@@ -7,7 +7,7 @@ import numpy as np
 from ...utils import warn
 
 
-class _LinkViewer(object):
+class _LinkViewer:
     """Class to link multiple Brain objects."""
 
     def __init__(self, brains, time=True, camera=False, colorbar=True,

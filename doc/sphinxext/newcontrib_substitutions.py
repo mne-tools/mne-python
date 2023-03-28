@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from docutils.nodes import reference, strong, target
 
 

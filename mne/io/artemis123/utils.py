@@ -13,7 +13,7 @@ def _load_mne_locs(fname=None):
         fname = op.join(resource_dir, 'Artemis123_mneLoc.csv')
 
     if not op.exists(fname):
-        raise IOError('MNE locs file "%s" does not exist' % (fname))
+        raise OSError('MNE locs file "%s" does not exist' % (fname))
 
     logger.info('Loading mne loc file {}'.format(fname))
     locs = dict()

@@ -261,7 +261,7 @@ def read_source_estimate(fname, subject=None):
                 err = ("Invalid .stc filename: %r; needs to end with "
                        "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
                        % fname)
-                raise IOError(err)
+                raise OSError(err)
         elif fname.endswith('.w'):
             ftype = 'w'
             if fname.endswith(('-lh.w', '-rh.w')):
@@ -270,7 +270,7 @@ def read_source_estimate(fname, subject=None):
                 err = ("Invalid .w filename: %r; needs to end with "
                        "hemisphere tag ('...-lh.w' or '...-rh.w')"
                        % fname)
-                raise IOError(err)
+                raise OSError(err)
         elif fname.endswith('.h5'):
             ftype = 'h5'
             fname = fname[:-3]
@@ -292,9 +292,9 @@ def read_source_estimate(fname, subject=None):
             ftype = 'h5'
             fname += '-stc'
         elif any(stc_exist) or any(w_exist):
-            raise IOError("Hemisphere missing for %r" % fname_arg)
+            raise OSError("Hemisphere missing for %r" % fname_arg)
         else:
-            raise IOError("SourceEstimate File(s) not found for: %r"
+            raise OSError("SourceEstimate File(s) not found for: %r"
                           % fname_arg)
 
     # read the files
@@ -307,7 +307,7 @@ def read_source_estimate(fname, subject=None):
             kwargs['tmin'] = 0.0
             kwargs['tstep'] = 0.0
         else:
-            raise IOError('Volume source estimate must end with .stc or .w')
+            raise OSError('Volume source estimate must end with .stc or .w')
         kwargs['vertices'] = [kwargs['vertices']]
     elif ftype == 'surface':  # stc file with surface source spaces
         lh = _read_stc(fname + '-lh.stc')

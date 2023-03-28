@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>

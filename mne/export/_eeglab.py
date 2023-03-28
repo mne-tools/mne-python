@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
