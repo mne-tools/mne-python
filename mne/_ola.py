@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
@@ -11,7 +10,7 @@ from .utils import _ensure_int, verbose, logger
 ###############################################################################
 # Class for interpolation between adjacent points
 
-class _Interp2(object):
+class _Interp2:
     r"""Interpolate between two points.
 
     Parameters
@@ -416,7 +415,7 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     return const
 
 
-class _Storer(object):
+class _Storer:
     """Store data in chunks."""
 
     def __init__(self, *outs, picks=None):

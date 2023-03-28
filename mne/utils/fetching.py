@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """File downloading functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #

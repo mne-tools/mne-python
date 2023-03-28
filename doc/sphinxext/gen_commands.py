@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import glob
 from importlib import import_module
 import os

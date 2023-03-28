@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # # Authors: MNE Developers
 #            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
@@ -248,7 +247,7 @@ def test_read_write_info(tmp_path):
     assert (len(info['chs']) == len(info2['chs']))
     assert_array_equal(t1, t2)
     # proc_history (e.g., GH#1875)
-    creator = u'é'
+    creator = 'é'
     info = read_info(chpi_fname)
     info['proc_history'][0]['creator'] = creator
     info['hpi_meas'][0]['creator'] = creator

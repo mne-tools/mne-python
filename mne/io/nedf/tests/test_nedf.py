@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test reading of NEDF format."""
 # Author: Tristan Stenner <nedf@nicht.dienstli.ch>
 #

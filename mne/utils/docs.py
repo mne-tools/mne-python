@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The documentation functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -2540,14 +2539,19 @@ per_sample : bool
 
 docdict['phase'] = """
 phase : str
-    Phase of the filter, only used if ``method='fir'``.
-    Symmetric linear-phase FIR filters are constructed, and if ``phase='zero'``
-    (default), the delay of this filter is compensated for, making it
-    non-causal. If ``phase='zero-double'``,
+    Phase of the filter.
+    When ``method='fir'``, symmetric linear-phase FIR filters are constructed,
+    and if ``phase='zero'`` (default), the delay of this filter is compensated
+    for, making it non-causal. If ``phase='zero-double'``,
     then this filter is applied twice, once forward, and once backward
     (also making it non-causal). If ``'minimum'``, then a minimum-phase filter
-    will be constricted and applied, which is causal but has weaker stop-band
+    will be constructed and applied, which is causal but has weaker stop-band
     suppression.
+    When ``method='iir'``, ``phase='zero'`` (default) or
+    ``phase='zero-double'`` constructs and applies IIR filter twice, once
+    forward, and once backward (making it non-causal) using filtfilt.
+    If ``phase='forward'``, it constructs and applies forward IIR filter using
+    lfilter.
 
     .. versionadded:: 0.13
 """
@@ -2656,6 +2660,11 @@ temperature : bool
     Temperature channels.
 gsr : bool
     Galvanic skin response channels.
+eyetrack : bool | str
+    Eyetracking channels. If True include all eyetracking channels. If False
+    (default) include none. If string it can be 'eyegaze' (to include
+    eye position channels) or 'pupil' (to include pupil-size
+    channels).
 include : list of str
     List of additional channels to include. If empty do not include
     any.

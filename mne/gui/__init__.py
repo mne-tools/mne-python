@@ -346,7 +346,7 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
     return gui
 
 
-class _GUIScraper(object):
+class _GUIScraper:
     """Scrape GUI outputs."""
 
     def __repr__(self):

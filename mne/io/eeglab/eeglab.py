@@ -42,7 +42,7 @@ def _check_eeglab_fname(fname, dataname):
             'Old data format .dat detected. Please update your EEGLAB '
             'version and resave the data in .fdt format')
     elif fmt != '.fdt':
-        raise IOError('Expected .fdt file format. Found %s format' % fmt)
+        raise OSError('Expected .fdt file format. Found %s format' % fmt)
 
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
@@ -273,10 +273,11 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
     -------
     raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawEEGLAB.
 
     Notes
     -----
@@ -330,7 +331,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----
@@ -364,7 +365,7 @@ class RawEEGLAB(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -494,7 +495,7 @@ class EpochsEEGLAB(BaseEpochs):
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----

@@ -95,7 +95,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
             # let's do a more sophisticated search
             path = op.join(subjects_dir, subject, 'bem')
             if not op.isdir(path):
-                raise IOError('Subject bem directory "%s" does not exist.'
+                raise OSError('Subject bem directory "%s" does not exist.'
                               % path)
             files = sorted(glob(op.join(path, '%s*%s.fif'
                                         % (subject, this_source))))
@@ -114,7 +114,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
 
     if surf is None:
         if raise_error:
-            raise IOError('No file matching "%s*%s" and containing a head '
+            raise OSError('No file matching "%s*%s" and containing a head '
                           'surface found.' % (subject, this_source))
         else:
             return surf
@@ -456,7 +456,7 @@ def _normalize_vectors(rr):
     return size
 
 
-class _CDist(object):
+class _CDist:
     """Wrapper for cdist that uses a Tree-like pattern."""
 
     def __init__(self, xhs):
@@ -513,7 +513,7 @@ def _safe_query(rr, func, reduce=False, **kwargs):
     return out
 
 
-class _DistanceQuery(object):
+class _DistanceQuery:
     """Wrapper for fast distance queries."""
 
     def __init__(self, xhs, method='BallTree', allow_kdtree=False):
@@ -596,7 +596,7 @@ def _polydata_to_surface(pd, normals=True):
     return out
 
 
-class _CheckInside(object):
+class _CheckInside:
     """Efficiently check if points are inside a surface."""
 
     @verbose
@@ -1621,7 +1621,7 @@ def read_tri(fname_in, swap=False, verbose=None):
     elif n_items in [4, 7]:
         inds = range(1, 4)
     else:
-        raise IOError('Unrecognized format of data.')
+        raise OSError('Unrecognized format of data.')
     rr = np.array([np.array([float(v) for v in line.split()])[inds]
                    for line in lines[1:n_nodes + 1]])
     tris = np.array([np.array([int(v) for v in line.split()])[inds]

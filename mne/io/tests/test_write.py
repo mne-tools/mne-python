@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Run tests for writing."""
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #

@@ -626,7 +626,7 @@ def _get_extra_points(pos, extrapolate, origin, radii):
     return new_pos, mask_pos, tri
 
 
-class _GridData(object):
+class _GridData:
     """Unstructured (x,y) data interpolator.
 
     This class allows optimized interpolation by computing parameters

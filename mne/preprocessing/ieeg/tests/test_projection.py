@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test the ieeg projection functions."""
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #

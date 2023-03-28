@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The config functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -43,7 +42,7 @@ def set_cache_dir(cache_dir):
         temporary file storage.
     """
     if cache_dir is not None and not op.exists(cache_dir):
-        raise IOError('Directory %s does not exist' % cache_dir)
+        raise OSError('Directory %s does not exist' % cache_dir)
 
     set_config('MNE_CACHE_DIR', cache_dir, set_env=False)
 
@@ -568,7 +567,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         '',
         '# Ecosystem (optional)',
         'mne-bids', 'mne-nirs', 'mne-features', 'mne-connectivity',
-        'mne-icalabel',
+        'mne-icalabel', 'mne-bids-pipeline',
         ''
     )
     if dependencies == 'developer':

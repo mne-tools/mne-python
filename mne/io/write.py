@@ -368,7 +368,7 @@ def check_fiff_length(fid, close=True):
     if fid.tell() > 2147483648:  # 2 ** 31, FIFF uses signed 32-bit locations
         if close:
             fid.close()
-        raise IOError('FIFF file exceeded 2GB limit, please split file, reduce'
+        raise OSError('FIFF file exceeded 2GB limit, please split file, reduce'
                       ' split_size (if possible), or save to a different '
                       'format')
 

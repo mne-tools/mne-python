@@ -475,6 +475,19 @@ standard.
 
     * :ref:`tut-ssvep`
 
+EYELINK
+=======
+:func:`mne.datasets.eyelink.data_path`
+
+A small example dataset in SR research's proprietary .asc format.
+1 participant fixated on the screen while short light flashes appeared.
+Monocular recording of gaze position and pupil size, 1000 Hz sampling 
+frequency.
+
+.. topic:: Examples
+
+    * :ref:`tut-eyetrack`
+
 References
 ==========
 
