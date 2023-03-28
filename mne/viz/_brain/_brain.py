@@ -51,7 +51,7 @@ _ARROW_MOVE = 10  # degrees per press
 
 
 @fill_doc
-class Brain(object):
+class Brain:
     """Class for visualizing a brain.
 
     .. warning::

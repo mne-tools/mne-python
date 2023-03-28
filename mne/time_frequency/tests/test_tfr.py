@@ -493,7 +493,7 @@ def test_io(tmp_path):
     assert_equal(tfr.comment, tfr2.comment)
     assert_equal(tfr.nave, tfr2.nave)
 
-    pytest.raises(IOError, tfr.save, fname)
+    pytest.raises(OSError, tfr.save, fname)
 
     tfr.comment = None
     # test old meas_date

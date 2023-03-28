@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-time-freq-global-field-power:
 

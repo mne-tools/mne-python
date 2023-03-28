@@ -38,10 +38,11 @@ def read_raw_fil(binfile, precision='single', preload=False, *, verbose=None):
     -------
     raw : instance of RawFIL
         The raw data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawFIL.
     """
     return RawFIL(binfile, precision=precision, preload=preload)
 
@@ -63,10 +64,11 @@ class RawFIL(BaseRaw):
     -------
     raw : instance of RawFIL
         The raw data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawFIL.
     """
 
     def __init__(self, binfile, precision='single', preload=False):

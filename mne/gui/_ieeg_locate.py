@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Intracranial elecrode localization GUI for finding contact locations."""
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>

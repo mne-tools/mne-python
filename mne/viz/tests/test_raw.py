@@ -961,6 +961,7 @@ def test_plotting_order_consistency():
     pick_data_set = set(_PICK_TYPES_DATA_DICT)
     pick_data_set.remove('meg')
     pick_data_set.remove('fnirs')
+    pick_data_set.remove('eyetrack')
     missing = pick_data_set.difference(set(_DATA_CH_TYPES_ORDER_DEFAULT))
     assert missing == set()
 

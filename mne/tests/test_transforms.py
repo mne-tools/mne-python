@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
@@ -87,7 +86,7 @@ def test_io_trans(tmp_path):
     assert trans0 == trans1
 
     # check reading non -trans.fif files
-    pytest.raises(IOError, read_trans, fname_eve)
+    pytest.raises(OSError, read_trans, fname_eve)
 
     # check warning on bad filenames
     fname2 = tmp_path / 'trans-test-bad-name.fif'

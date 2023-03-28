@@ -6,7 +6,6 @@ import glob
 import os
 import pickle
 import shutil
-from contextlib import nullcontext
 from itertools import product
 from pathlib import Path
 
@@ -29,8 +28,7 @@ from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 from mne.surface import _mesh_borders
-from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
-                       _record_warnings)
+from mne.utils import requires_sklearn, get_subjects_dir, _record_warnings
 
 
 data_path = testing.data_path(download=False)
@@ -266,7 +264,7 @@ def test_label_fill_restrict(fname):
     label_src = label.restrict(src)
     vert_in_src = label_src.vertices
     values_in_src = label_src.values
-    if check_version('scipy', '1.3') and fname == real_label_fname:
+    if fname == real_label_fname:
         # Check that we can auto-fill patch info quickly for one condition
         for s in src:
             s['nearest'] = None
@@ -361,7 +359,7 @@ def test_annot_io(tmp_path):
     shutil.copy(surf_src / "rh.white", surf_dir)
 
     # read original labels
-    with pytest.raises(IOError, match='\nPALS_B12_Lobes$'):
+    with pytest.raises(OSError, match='\nPALS_B12_Lobes$'):
         read_labels_from_annot(subject, 'PALS_B12_Lobesey',
                                subjects_dir=tmp_path)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
@@ -457,9 +455,9 @@ def test_read_labels_from_annot(tmp_path):
                   subjects_dir=subjects_dir)
     pytest.raises(ValueError, read_labels_from_annot, 'sample',
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
-    with pytest.raises(IOError, match='does not exist'):
+    with pytest.raises(OSError, match='does not exist'):
         _read_annot_cands('foo')
-    with pytest.raises(IOError, match='no candidate'):
+    with pytest.raises(OSError, match='no candidate'):
         _read_annot(str(tmp_path))
 
     # read labels using hemi specification
@@ -979,7 +977,7 @@ def test_label_center_of_mass():
                   restrict_vertices='foo')
     pytest.raises(TypeError, label.center_of_mass, subjects_dir=subjects_dir,
                   surf=1)
-    pytest.raises(IOError, label.center_of_mass, subjects_dir=subjects_dir,
+    pytest.raises(OSError, label.center_of_mass, subjects_dir=subjects_dir,
                   surf='foo')
 
 
@@ -1049,16 +1047,7 @@ def test_label_geometry(fname, area):
     assert 0 < len(label_sparse.vertices) < len(label.vertices)
     with pytest.warns(RuntimeWarning, match='No complete triangles'):
         assert label_sparse.compute_area(subjects_dir=subjects_dir) == 0.
-    if not check_version('scipy', '1.3'):
-        ctx = pytest.raises(RuntimeError, match='required to calculate')
-        stop = True
-    else:
-        ctx = nullcontext()
-        stop = False
-    with ctx:
-        dist, outside = label.distances_to_outside(subjects_dir=subjects_dir)
-    if stop:
-        return
+    dist, outside = label.distances_to_outside(subjects_dir=subjects_dir)
     rr, tris = read_surface(subjects_dir / "sample" / "surf" / "lh.white")
     mask = np.zeros(len(rr), bool)
     mask[label.vertices] = 1

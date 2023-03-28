@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Dipole viz specific functions."""
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

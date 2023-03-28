@@ -406,7 +406,7 @@ class CoregistrationUI(HasTraits):
                 info_file = _check_fname(
                     fname, overwrite='read', must_exist=True, need_dir=False)
             valid = True
-        except IOError:
+        except OSError:
             valid = False
         if valid:
             style = dict(border="initial")
@@ -1151,7 +1151,7 @@ class CoregistrationUI(HasTraits):
                 self._renderer, surface, self._subject,
                 self._subjects_dir, bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
-        except IOError:
+        except OSError:
             head_actor, head_surf, _ = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,

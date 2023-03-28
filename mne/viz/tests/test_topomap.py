@@ -36,7 +36,7 @@ from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_bridged_electrodes, plot_ch_adjacency)
 from mne.viz.utils import (_find_peaks, _fake_click, _fake_keypress,
                            _fake_scroll)
-from mne.utils import requires_sklearn, check_version
+from mne.utils import requires_sklearn
 
 from mne.viz.tests.test_raw import _proj_status
 
@@ -700,10 +700,7 @@ def test_plot_cov_topomap():
 
 def test_plot_topomap_cnorm():
     """Test colormap normalization."""
-    if check_version("matplotlib", "3.2.0"):
-        from matplotlib.colors import TwoSlopeNorm
-    else:
-        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
+    from matplotlib.colors import TwoSlopeNorm
     from matplotlib.colors import PowerNorm
 
     rng = np.random.default_rng(42)

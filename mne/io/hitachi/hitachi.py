@@ -30,10 +30,11 @@ def read_raw_hitachi(fname, preload=False, verbose=None):
     -------
     raw : instance of RawHitachi
         A Raw object containing Hitachi data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawHitachi.
 
     Notes
     -----
@@ -59,7 +60,7 @@ class RawHitachi(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----

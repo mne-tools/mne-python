@@ -76,7 +76,7 @@ test-doc: sample_data testing_data
 test-coverage: testing_data
 	rm -rf coverage .coverage
 	$(PYTESTS) --cov=mne --cov-report html:coverage
-# whats the difference with test-no-sample-with-coverage?
+# what's the difference with test-no-sample-with-coverage?
 
 test-mem: in testing_data
 	ulimit -v 1097152 && $(PYTESTS) mne

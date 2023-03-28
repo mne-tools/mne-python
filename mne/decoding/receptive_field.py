@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>

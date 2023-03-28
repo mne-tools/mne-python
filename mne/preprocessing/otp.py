@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Samu Taulu <staulu@uw.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 

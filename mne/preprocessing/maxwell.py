@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jussi Nurminen <jnu@iki.fi>
@@ -2000,7 +1999,7 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
 
 
 def _compute_sphere_activation_in(degrees):
-    u"""Compute the "in" power from random currents in a sphere.
+    """Compute the "in" power from random currents in a sphere.
 
     Parameters
     ----------

@@ -38,10 +38,11 @@ def read_raw_nihon(fname, preload=False, verbose=None):
     -------
     raw : instance of RawNihon
         A Raw object containing Nihon Kohden data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawNihon.
     """
     return RawNihon(fname, preload, verbose)
 
@@ -341,7 +342,7 @@ class RawNihon(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose

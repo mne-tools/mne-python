@@ -26,10 +26,11 @@ def read_raw_eximia(fname, preload=False, verbose=None):
     -------
     raw : instance of RawEximia
         A Raw object containing eXimia data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawEximia.
     """
     return RawEximia(fname, preload, verbose)
 
@@ -47,7 +48,7 @@ class RawEximia(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose

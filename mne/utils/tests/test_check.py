@@ -49,7 +49,7 @@ def test_check(tmp_path):
     os.chmod(fname, orig_perms)
     os.remove(fname)
     assert not fname.is_file()
-    pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
+    pytest.raises(OSError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
     pytest.raises(TypeError, _check_subject, 1, None)
@@ -57,8 +57,7 @@ def test_check(tmp_path):
     check_random_state(None).choice(1)
     check_random_state(0).choice(1)
     check_random_state(np.random.RandomState(0)).choice(1)
-    if check_version('numpy', '1.17'):
-        check_random_state(np.random.default_rng(0)).choice(1)
+    check_random_state(np.random.default_rng(0)).choice(1)
 
 
 @testing.requires_testing_data

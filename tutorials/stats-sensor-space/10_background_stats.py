@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _disc-stats:
 
@@ -263,7 +262,7 @@ p_type_I = 1 - (1 - alpha) ** N
 fig, ax = plt.subplots(figsize=(4, 3))
 ax.scatter(N, p_type_I, 3)
 ax.set(xlim=N[[0, -1]], ylim=[0, 1], xlabel=r'$N_{\mathrm{test}}$',
-       ylabel=u'Probability of at least\none type I error')
+       ylabel='Probability of at least\none type I error')
 ax.grid(True)
 fig.tight_layout()
 fig.show()
