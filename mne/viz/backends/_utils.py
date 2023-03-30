@@ -95,6 +95,9 @@ def _qt_disable_paint(widget):
         widget.paintEvent = paintEvent
 
 
+_QT_ICON_KEYS = dict(app=None)
+
+
 def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     """Get QApplication-instance for MNE-Python.
 
@@ -159,10 +162,12 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     if enable_icon or splash:
         icons_path = _qt_init_icons()
 
-    if enable_icon:
+    if enable_icon and app.windowIcon().cacheKey() != _QT_ICON_KEYS['app']:
         # Set icon
         kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else 'default_'
-        app.setWindowIcon(QIcon(f"{icons_path}/mne_{kind}icon.png"))
+        icon = QIcon(f"{icons_path}/mne_{kind}icon.png")
+        app.setWindowIcon(icon)
+        _QT_ICON_KEYS['app'] = app.windowIcon().cacheKey()
 
     out = app
     if splash:
