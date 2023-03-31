@@ -1911,6 +1911,7 @@ def apply_volume_registration_points(info, trans, moving, static, reg_affine,
     montage2 = make_dig_montage(**montage_kwargs)
 
     trans2 = compute_native_head_t(montage2)
-    info.set_montage(montage2)  # converts to head coordinates
+    info2 = info.copy()
+    info2.set_montage(montage2)  # converts to head coordinates
 
-    return info, trans2
+    return info2, trans2
