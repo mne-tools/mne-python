@@ -1,4 +1,4 @@
-.. _contributing:
+.. _configure_ide:
 
 IDE Configuration Guide
 =======================
@@ -23,26 +23,26 @@ Some of the basic settings include enabling linting, setting line margins, intro
 Spyder
 ------
 
-* :menuselection: `Preferences --> Completion and Linting --> Linting --> Enable Basic Linting`
-* :menuselection: `Preferences --> Completion and Linting --> Introspection --> Advanced -->Add "mne" to list of modules to preload for code completion`
-* :menuselection: `Preferences --> Editor --> Show Vertical Lines at == 79`
-* :menuselection: `Preferences --> Editor --> Advanced Settings --> Docstring Type == Numpy`
-* :menuselection: `Preferences --> Editor --> Code Introspection/Analysis and “Automatically remove trailing spaces when saving files”`
+* :menuselection:`Preferences --> Completion and Linting --> Linting --> Enable Basic Linting`
+* :menuselection:`Preferences --> Completion and Linting --> Introspection --> Advanced -->Add "mne" to list of modules to preload for code completion`
+* :menuselection:`Preferences --> Editor --> Show Vertical Lines at == 79`
+* :menuselection:`Preferences --> Editor --> Advanced Settings --> Docstring Type == Numpy`
+* :menuselection:`Preferences --> Editor --> Code Introspection/Analysis and “Automatically remove trailing spaces when saving files”`
 
 PyCharm
 -------
 
-* :menuselection: `Settings/Preferences (Ctrl+Alt+S) --> Languages and Frameworks --> JavaScript --> Code Quality Tools --> Closure Linter > Enable`
-* :menuselection: `View --> Tool Windows --> Python Packages --> Search (Enter Package) --> Select Required Version and press Install`
-* :menuselection: `File --> Settings --> Editor --> Code Style --> General: Right Margin (columns) Change to 79`
-* :menuselection: `File --> Settings --> Tools --> Python Integrated Tools --> Docstring = NumPy`
-* :menuselection: `Settings --> Editors --> General --> scroll to On Save --> change Remove trailing spaces on: to ``Modified Lines```
+* :menuselection:`Settings/Preferences (Ctrl+Alt+S) --> Languages and Frameworks --> JavaScript --> Code Quality Tools --> Closure Linter > Enable`
+* :menuselection:`View --> Tool Windows --> Python Packages --> Search (Enter Package) --> Select Required Version and press Install`
+* :menuselection:`File --> Settings --> Editor --> Code Style --> General: Right Margin (columns) Change to 79`
+* :menuselection:`File --> Settings --> Tools --> Python Integrated Tools --> Docstring = NumPy`
+* :menuselection:`Settings --> Editors --> General --> scroll to On Save --> change Remove trailing spaces on: to ``Modified Lines```
 
 VsCode
 ------
 
-* :menuselection: `Command Palette (Ctrl + Shift + P) --> Lint --> Python: Enable/Disable Linting (click on Enable)`
-* :menuselection: `Use ``python.autoComplete.preloadModules": ["numpy", "pandas", "matplotlib", "mne"]```
-* :menuselection: `File --> Preferences --> Settings --> Select Tab Option (User or Workspace) --> Search for rulers --> setting.json --> add line "editor.rulers": [79]`
-* :menuselection: `Preferences --> Keyboard Shortcuts --> Change autoDocstring.docstringFormat to NumPy`
-* :menuselection: `File --> Preferences --> Settings --> User Settings Tab --> Click the open document icon --> add files.trimTrailingWhitespace: true to User Settings Document --> Save`
+* :menuselection:`Command Palette (Ctrl + Shift + P) --> Lint --> Python: Enable/Disable Linting (click on Enable)`
+* :menuselection:`Use ``python.autoComplete.preloadModules": ["numpy", "pandas", "matplotlib", "mne"]```
+* :menuselection:`File --> Preferences --> Settings --> Select Tab Option (User or Workspace) --> Search for rulers --> setting.json --> add line "editor.rulers": [79]`
+* :menuselection:`Preferences --> Keyboard Shortcuts --> Change autoDocstring.docstringFormat to NumPy`
+* :menuselection:`File --> Preferences --> Settings --> User Settings Tab --> Click the open document icon --> add files.trimTrailingWhitespace: true to User Settings Document --> Save`
