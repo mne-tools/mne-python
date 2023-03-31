@@ -1,4 +1,4 @@
-.. _configure_ide:
+.. _configure-ide:
 
 IDE Configuration Guide
 =======================
