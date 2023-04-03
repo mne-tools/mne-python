@@ -1658,12 +1658,11 @@ _index_df_base = """
 index : {} | None
     Kind of index to use for the DataFrame. If ``None``, a sequential
     integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
-    ``pandas.Float64Index``, ``pandas.Int64Index``, {}or
-    :class:`pandas.TimedeltaIndex` will be used
+    ``pandas.Index``{} or :class:`pandas.TimedeltaIndex` will be used
     (depending on the value of ``time_format``). {}
 """
 
-datetime = ':class:`pandas.DatetimeIndex`, '
+datetime = ', :class:`pandas.DatetimeIndex`,'
 multiindex = ('If a list of two or more string values, a '
               ':class:`pandas.MultiIndex` will be created. ')
 raw = ("'time'", datetime, '')
