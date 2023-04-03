@@ -56,3 +56,4 @@ dependencies:
 - edflib-python
 - pybv
 - mamba
+- mne-gui-addons

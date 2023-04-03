@@ -50,12 +50,12 @@ Bugs
 - Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
 - Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)
 - Fix bug where having a different combination of volumes loaded into ``freeview`` caused different affines to be returned by :func:`mne.read_lta` for the same Linear Transform Array (LTA) (:gh:`11402` by `Alex Rockhill`_)
-- Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.gui.locate_ieeg` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11421` by `Alex Rockhill`_)
+- Fix how :class:`mne.channels.DigMontage` is set when using ``mne.gui.locate_ieeg`` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11421` by `Alex Rockhill`_)
 - Fix :func:`mne.io.read_raw_edf` when reading EDF data with different sampling rates and a mix of data channels when using ``infer_types=True`` (:gh:`11427` by `Alex Gramfort`_)
 - Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11436` by `Alex Rockhill`_)
 - Fix configuration folder discovery on Windows, which would fail in certain edge cases; and produce a helpful error message if discovery still fails (:gh:`11441` by `Richard Höchenberger`_)
 - Make :class:`~mne.decoding.SlidingEstimator` and :class:`~mne.decoding.GeneralizingEstimator` respect the ``verbose`` argument. Now with ``verbose=False``, the progress bar is not shown during fitting, scoring, etc. (:gh:`11450` by `Mikołaj Magnuski`_)
-- Fix bug with :func:`mne.gui.locate_ieeg` where Freesurfer ``?h.pial.T1`` was not recognized and suppress excess logging (:gh:`11489` by `Alex Rockhill`_)
+- Fix bug with ``mne.gui.locate_ieeg`` where Freesurfer ``?h.pial.T1`` was not recognized and suppress excess logging (:gh:`11489` by `Alex Rockhill`_)
 - All functions accepting paths can now correctly handle :class:`~pathlib.Path` as input. Historically, we expected strings (instead of "proper" path objects), and only added :class:`~pathlib.Path` support in a few select places, leading to inconsistent behavior. (:gh:`11473` and :gh:`11499` by `Mathieu Scheltienne`_)
 - Fix visualization dialog compatibility with matplotlib 3.7 (:gh:`11409` by `Daniel McCloy`_ and `Eric Larson`_)
 - Expand tilde (user directory) in config keys (:gh:`11537` by `Clemens Brunner`_)
@@ -71,5 +71,5 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - Deprecate arguments ``kind`` and ``path`` from :func:`mne.channels.read_layout` in favor of a common argument ``fname`` (:gh:`11500` by `Mathieu Scheltienne`_)
-- Change ``aligned_ct`` positional argument in :func:`mne.gui.locate_ieeg` to ``base_image`` to reflect that this can now be used with unaligned images (:gh:`11567` by `Alex Rockhill`_)
+- Change ``aligned_ct`` positional argument in ``mne.gui.locate_ieeg`` to ``base_image`` to reflect that this can now be used with unaligned images (:gh:`11567` by `Alex Rockhill`_)
 - ``mne.warp_montage_volume`` was deprecated in favor of :func:`mne.preprocessing.ieeg.warp_montage` (acts directly on points instead of using an intermediate volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (which makes a volume of ieeg contact locations which can still be useful) (:gh:`11572` by `Alex Rockhill`_)
