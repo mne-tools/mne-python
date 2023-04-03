@@ -739,8 +739,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         index : str | list of str | None
             Kind of index to use for the DataFrame. If ``None``, a sequential
             integer index (:class:`pandas.RangeIndex`) will be used. If a
-            :class:`str`, a :class:`pandas.Index`will be used (see Notes). If a
-            list of two or more string values, a :class:`pandas.MultiIndex`
+            :class:`str`, a :class:`pandas.Index` will be used (see Notes). If
+            a list of two or more string values, a :class:`pandas.MultiIndex`
             will be used. Defaults to ``None``.
         %(copy_df)s
         %(long_format_df_spe)s
