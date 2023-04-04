@@ -39,7 +39,7 @@ Spyder (v.5.4.2)
 * :menuselection:`Tools -->Preferences --> Editor --> Advanced Settings --> Convert end-of-line character to the following on save -> LF(Unix)`
 
 PyCharm (v.2023.1 Community)
-----------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * :menuselection:`View --> Tool Windows --> Python Packages --> Search (Enter Package) --> Select Required Version and press Install`
 * :menuselection:`File --> Settings --> Editor --> Code Style --> Python --> Wrapping and Braces --> Hard Wrap At --> Change to 79`
@@ -47,7 +47,7 @@ PyCharm (v.2023.1 Community)
 * :menuselection:`File --> Settings --> Editors --> General --> Scroll to On Save --> Remove trailing spaces: ``Modified Lines```
 
 VsCode
-------
+^^^^^^
 
 * :menuselection:`Command Palette (Ctrl + Shift + P) --> Lint --> Python: Enable/Disable Linting (click on Enable)`
 * :menuselection:`Use ``python.autoComplete.preloadModules": ["numpy", "pandas", "matplotlib", "mne"]```
