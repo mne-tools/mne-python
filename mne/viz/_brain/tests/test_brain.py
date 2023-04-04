@@ -846,7 +846,12 @@ something
 #                  interpolation='linear', time_viewer=True)
 #
 """, 1)
-    gallery_conf = dict(src_dir=str(tmp_path), compress_images=[])
+    gallery_conf = dict(
+        src_dir=str(tmp_path),
+        compress_images=[],
+        image_srcset=[],
+        matplotlib_animations=False,
+    )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
     assert brain.plotter is None  # closed
@@ -877,7 +882,12 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     block_vars = dict(image_path_iterator=iter(fnames),
                       example_globals=dict(brain=brain))
     block = ('code', '', 1)
-    gallery_conf = dict(src_dir=str(tmp_path), compress_images=[])
+    gallery_conf = dict(
+        src_dir=str(tmp_path),
+        compress_images=[],
+        image_srcset=[],
+        matplotlib_animations=False,
+    )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
     assert brain.plotter is None  # closed
