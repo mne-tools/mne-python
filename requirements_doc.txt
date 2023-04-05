@@ -2,7 +2,7 @@
 sphinx!=4.1.0,<6
 https://github.com/numpy/numpydoc/archive/main.zip
 pydata_sphinx_theme==0.13.1
-https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
+https://github.com/ArturoAmorQ/sphinx-gallery/archive/recommender_system.zip
 sphinxcontrib-bibtex>=2.5
 memory_profiler
 neo
