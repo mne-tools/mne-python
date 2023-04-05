@@ -1908,7 +1908,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     if not fname.suffix == ".fif":
         raise ValueError('Forward name does not end with .fif')
-    path = fname.parent.absolute()
+    path = fname.parent.resolve()
     fname = fname.name
 
     # deal with mindist
@@ -1950,9 +1950,9 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if bem is not None:
         cmd += ['--bem', bem]
     if mri is not None:
-        cmd += ['--mri', '%s' % str(mri.absolute())]
+        cmd += ['--mri', '%s' % str(mri.resolve())]
     if trans is not None:
-        cmd += ['--trans', '%s' % str(trans.absolute())]
+        cmd += ['--trans', '%s' % str(trans.resolve())]
     if not meg:
         cmd.append('--eegonly')
     if not eeg:
