@@ -3,6 +3,7 @@ pytest
 pytest-cov
 pytest-timeout
 pytest-harvest
+pytest-qt
 flake8
 flake8-array-spacing
 numpydoc
