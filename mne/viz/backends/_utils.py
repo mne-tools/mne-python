@@ -149,9 +149,14 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
 
     if pg_app:
         from pyqtgraph import mkQApp
-        app = mkQApp(app_name)
+        old_argv = sys.argv
+        try:
+            sys.argv = []
+            app = mkQApp(app_name)
+        finally:
+            sys.argv = old_argv
     else:
-        app = QApplication.instance() or QApplication(sys.argv or [app_name])
+        app = QApplication.instance() or QApplication([app_name])
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
     try:
