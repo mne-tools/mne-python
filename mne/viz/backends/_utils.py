@@ -144,7 +144,8 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
 
     # First we need to check to make sure the display is valid, otherwise
     # Qt might segfault on us
-    if not _display_is_valid():
+    app = QApplication.instance()
+    if not (app or _display_is_valid()):
         raise RuntimeError('Cannot connect to a valid display')
 
     if pg_app:
@@ -155,9 +156,9 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
             app = mkQApp(app_name)
         finally:
             sys.argv = old_argv
-    else:
-        app = QApplication.instance() or QApplication([app_name])
-        app.setApplicationName(app_name)
+    elif not app:
+        app = QApplication([app_name])
+    app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
     try:
         app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # works on PyQt5 and PySide2
