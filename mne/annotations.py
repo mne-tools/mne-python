@@ -22,7 +22,8 @@ from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_fname, int_like, _check_option, fill_doc,
                     _on_missing, _is_numeric, _check_dict_keys)
 
-from .io.write import (start_block, end_block, write_float, write_name_list,
+from .io.write import (start_block, end_block, write_float,
+                       write_name_list_sanitized, _safe_name_list,
                        write_double, start_file, write_string)
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -53,7 +54,7 @@ def _check_o_d_s_c(onset, duration, description, ch_names):
     if description.ndim != 1:
         raise ValueError('Description must be a one dimensional array, '
                          'got %d.' % (description.ndim,))
-    _prep_name_list(description, 'check', 'description')
+    _safe_name_list(description, 'write', 'description')
 
     # ch_names: convert to ndarray of tuples
     _validate_type(ch_names, (None, tuple, list, np.ndarray), 'ch_names')
@@ -86,7 +87,7 @@ def _ndarray_ch_names(ch_names):
 
 
 @fill_doc
-class Annotations(object):
+class Annotations:
     """Annotation object for annotating segments of raw data.
 
     .. note::
@@ -111,7 +112,7 @@ class Annotations(object):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
@@ -231,6 +232,14 @@ class Annotations(object):
              e                        +------+
          orig_time                 onset[0]'
 
+    .. warning::
+       This means that when ``raw.info['meas_date'] is None``, doing
+       ``raw.set_annotations(raw.annotations)`` will not alter ``raw`` if and
+       only if ``raw.first_samp == 0``. When it's non-zero,
+       ``raw.set_annotations`` will assume that the "new" annotations refer to
+       the original data (with ``first_samp==0``), and will be re-referenced to
+       the new time offset!
+
     **Specific annotation**
 
     ``BAD_ACQ_SKIP`` annotation leads to specific reading/writing file
@@ -303,16 +312,20 @@ class Annotations(object):
 
     def __iter__(self):
         """Iterate over the annotations."""
+        # Figure this out once ahead of time for consistency and speed (for
+        # thousands of annotations)
+        with_ch_names = self._any_ch_names()
         for idx in range(len(self.onset)):
-            yield self.__getitem__(idx)
+            yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key, *, with_ch_names=None):
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int_like):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            if self._any_ch_names():
+            if with_ch_names or (with_ch_names is None and
+                                 self._any_ch_names()):
                 out_keys += ('ch_names',)
                 out_vals += (self.ch_names[key],)
             return OrderedDict(zip(out_keys, out_vals))
@@ -449,7 +462,7 @@ class Annotations(object):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The filename to use.
         %(overwrite)s
 
@@ -468,9 +481,9 @@ class Annotations(object):
                                            '_annot.fif', '_annot.fif.gz',
                                            '.txt', '.csv'))
         fname = _check_fname(fname, overwrite=overwrite)
-        if fname.endswith(".txt"):
+        if fname.suffix == ".txt":
             _write_annotations_txt(fname, self)
-        elif fname.endswith(".csv"):
+        elif fname.suffix == ".csv":
             _write_annotations_csv(fname, self)
         else:
             with start_file(fname) as fid:
@@ -978,31 +991,14 @@ def _annotations_starts_stops(raw, kinds, name='skip_by_annotation',
     return onsets, ends
 
 
-def _prep_name_list(lst, operation, name='description'):
-    if operation == 'check':
-        if any(['{COLON}' in val for val in lst]):
-            raise ValueError(
-                f'The substring "{{COLON}}" in {name} not supported.')
-    elif operation == 'write':
-        # take a list of strings and return a sanitized string
-        return ':'.join(val.replace(':', '{COLON}') for val in lst)
-    else:
-        # take a sanitized string and return a list of strings
-        assert operation == 'read'
-        assert isinstance(lst, str)
-        if not len(lst):
-            return []
-        return [val.replace('{COLON}', ':') for val in lst.split(':')]
-
-
 def _write_annotations(fid, annotations):
     """Write annotations."""
     start_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
     write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, annotations.onset)
     write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
                 annotations.duration + annotations.onset)
-    write_name_list(fid, FIFF.FIFF_COMMENT, _prep_name_list(
-        annotations.description, 'write').split(':'))
+    write_name_list_sanitized(
+        fid, FIFF.FIFF_COMMENT, annotations.description, name='description')
     if annotations.orig_time is not None:
         write_double(fid, FIFF.FIFF_MEAS_DATE,
                      _dt_to_stamp(annotations.orig_time))
@@ -1016,7 +1012,8 @@ def _write_annotations_csv(fname, annot):
     annot = annot.to_data_frame()
     if 'ch_names' in annot:
         annot['ch_names'] = [
-            _prep_name_list(ch, 'write') for ch in annot['ch_names']]
+            _safe_name_list(ch, 'write', name=f'annot["ch_names"][{ci}')
+            for ci, ch in enumerate(annot['ch_names'])]
     annot.to_csv(fname, index=False)
 
 
@@ -1029,7 +1026,9 @@ def _write_annotations_txt(fname, annot):
     data = [annot.onset, annot.duration, annot.description]
     if annot._any_ch_names():
         content += ', ch_names'
-        data.append([_prep_name_list(ch, 'write') for ch in annot.ch_names])
+        data.append([
+            _safe_name_list(ch, 'write', f'annot.ch_names[{ci}]')
+            for ci, ch in enumerate(annot.ch_names)])
     content += '\n'
     data = np.array(data, dtype=str).T
     assert data.ndim == 2
@@ -1043,29 +1042,31 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vmrk, .edf, .txt, .csv .cnt, .cef,
-    or .set file and makes an :class:`mne.Annotations` object.
+    This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
+    ``.edf``, ``.txt``, ``.csv``, ``.cnt``, ``.cef``, or ``.set`` file and
+    makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename.
-    sfreq : float | 'auto'
+    sfreq : float | ``'auto'``
         The sampling frequency in the file. This parameter is necessary for
-        \*.vmrk and \*.cef files as Annotations are expressed in seconds and
-        \*.vmrk/\*.cef files are in samples. For any other file format,
-        ``sfreq`` is omitted. If set to 'auto' then the ``sfreq`` is taken
-        from the respective info file of the same name with according file
-        extension (\*.vhdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
-        Curry 8). So data.vmrk looks for sfreq in data.vhdr, data.cef looks in
-        data.dap and data.cdt.cef looks in data.cdt.dpa.
+        \*.vmrk, \*.amrk, and \*.cef files as Annotations are expressed in
+        seconds and \*.vmrk/\*.amrk/\*.cef files are in samples. For any other
+        file format, ``sfreq`` is omitted. If set to 'auto' then the ``sfreq``
+        is taken from the respective info file of the same name with according
+        file extension (\*.vhdr/\*.ahdr for brainvision; \*.dap for Curry 7;
+        \*.cdt.dpa for Curry 8). So data.vmrk/amrk looks for sfreq in
+        data.vhdr/ahdr, data.cef looks in data.dap and data.cdt.cef looks in
+        data.cdt.dpa.
     uint16_codec : str | None
         This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
+        ``'latin1'`` or ``'utf-8'``) should be used when reading character
+        arrays and can therefore help you solve this problem.
 
     Returns
     -------
@@ -1074,9 +1075,9 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
 
     Notes
     -----
-    The annotations stored in a .csv require the onset columns to be
+    The annotations stored in a ``.csv`` require the onset columns to be
     timestamps. If you have onsets as floats (in seconds), you should use the
-    .txt extension.
+    ``.txt`` extension.
     """
     from .io.brainvision.brainvision import _read_annotations_brainvision
     from .io.eeglab.eeglab import _read_annotations_eeglab
@@ -1084,11 +1085,16 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
-    _validate_type(fname, 'path-like', 'fname')
-    fname = _check_fname(
-        fname, overwrite='read', must_exist=True,
-        need_dir=str(fname).endswith('.ds'),  # for CTF
-        name='fname')
+
+    fname = str(
+        _check_fname(
+            fname,
+            overwrite="read",
+            must_exist=True,
+            need_dir=str(fname).endswith(".ds"),  # for CTF
+            name="fname",
+        )
+    )
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
         # Read FiF files
@@ -1102,7 +1108,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
                                   description=description, orig_time=orig_time,
                                   ch_names=ch_names)
 
-    elif name.endswith('vmrk'):
+    elif name.endswith(('vmrk', 'amrk')):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
 
     elif name.endswith('csv'):
@@ -1132,10 +1138,10 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     elif name.startswith('events_') and fname.endswith('mat'):
         annotations = _read_brainstorm_annotations(fname)
     else:
-        raise IOError('Unknown annotation file format "%s"' % fname)
+        raise OSError('Unknown annotation file format "%s"' % fname)
 
     if annotations is None:
-        raise IOError('No annotation data found in file "%s"' % fname)
+        raise OSError('No annotation data found in file "%s"' % fname)
     return annotations
 
 
@@ -1144,7 +1150,7 @@ def _read_annotations_csv(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename.
 
     Returns
@@ -1169,7 +1175,7 @@ def _read_annotations_csv(fname):
     description = df['description'].values
     ch_names = None
     if 'ch_names' in df.columns:
-        ch_names = [_prep_name_list(val, 'read')
+        ch_names = [_safe_name_list(val, 'read', 'annotation channel name')
                     for val in df['ch_names'].values]
     return Annotations(onset, duration, description, orig_time, ch_names)
 
@@ -1179,7 +1185,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename
     orig_time : float | int | instance of datetime | array of int | None
         A POSIX Timestamp, datetime or an array containing the timestamp as the
@@ -1187,7 +1193,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time.
 
     Returns
@@ -1252,8 +1258,9 @@ def _read_annotations_txt(fname):
     duration = [float(d.decode()) for d in np.atleast_1d(duration)]
     desc = [str(d.decode()).strip() for d in np.atleast_1d(desc)]
     if ch_names is not None:
-        ch_names = [_prep_name_list(ch.decode().strip(), 'read')
-                    for ch in ch_names]
+        ch_names = [
+            _safe_name_list(ch.decode().strip(), 'read', f'ch_names[{ci}]')
+            for ci, ch in enumerate(ch_names)]
     return onset, duration, desc, ch_names
 
 
@@ -1277,7 +1284,7 @@ def _read_annotations_fif(fid, tree):
                 duration = tag.data
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
-                description = _prep_name_list(tag.data, 'read')
+                description = _safe_name_list(tag.data, 'read', 'description')
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
                 try:
@@ -1405,7 +1412,7 @@ def events_from_annotations(raw, event_id="auto",
     ----------
     raw : instance of Raw
         The raw data for which Annotations are defined.
-    event_id : dict | callable | None | 'auto'
+    event_id : dict | callable | None | ``'auto'``
         Can be:
 
         - **dict**: map descriptions (keys) to integer event codes (values).

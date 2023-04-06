@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-source-space-morphing:
 
@@ -22,19 +21,17 @@ between subjects.
 
 # %%
 
-import os.path as op
-
 import mne
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-fname_trans = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_raw-trans.fif')
-fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                    'sample-5120-bem-sol.fif')
-fname_src_fs = op.join(subjects_dir, 'fsaverage', 'bem',
-                       'fsaverage-ico-5-src.fif')
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+subjects_dir = data_path / 'subjects'
+fname_trans = (
+    data_path / 'MEG' / 'sample' / 'sample_audvis_raw-trans.fif')
+fname_bem = (
+    subjects_dir / 'sample' / 'bem' / 'sample-5120-bem-sol.fif')
+fname_src_fs = (
+    subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif')
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
 
 # Get relevant channel information
 info = mne.io.read_info(raw_fname)

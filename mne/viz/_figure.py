@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Base classes and functions for 2D browser backends."""
 
 # Authors: Daniel McCloy <dan@mccloy.info>
@@ -254,6 +253,8 @@ class BrowserBase(ABC):
                            self.mne.ch_start + self.mne.n_channels)
             self.mne.picks = self.mne.ch_order[_slice]
             self.mne.n_channels = len(self.mne.picks)
+        assert isinstance(self.mne.picks, np.ndarray)
+        assert self.mne.picks.dtype.kind == 'i'
 
     def _make_butterfly_selections_dict(self):
         """Make an altered copy of the selections dict for butterfly mode."""
@@ -312,7 +313,7 @@ class BrowserBase(ABC):
 
     def _apply_filter(self, data, start, stop, picks):
         """Filter (with same defaults as raw.filter())."""
-        from ..filter import _overlap_add_filter, _filtfilt
+        from ..filter import _overlap_add_filter, _iir_filter
         starts, stops = self.mne.filter_bounds
         mask = (starts < stop) & (stops > start)
         starts = np.maximum(starts[mask], start) - start
@@ -326,7 +327,7 @@ class BrowserBase(ABC):
                 this_data = _overlap_add_filter(
                     this_data, self.mne.filter_coefs, copy=False)
             else:  # IIR
-                this_data = _filtfilt(
+                this_data = _iir_filter(
                     this_data, self.mne.filter_coefs, None, 1, False)
             data[_picks, _start:_stop] = this_data
 
@@ -394,6 +395,8 @@ class BrowserBase(ABC):
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
+        from matplotlib.pyplot import close
+
         logger.debug(f'Closing {self.mne.instance_type} browser...')
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == 'epochs':
@@ -420,6 +423,7 @@ class BrowserBase(ABC):
         # Clean up child figures (don't pop(), child figs remove themselves)
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]
+            close(fig)
             self._close_event(fig)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -555,8 +559,7 @@ class BrowserBase(ABC):
         return fig
 
     def _close_event(self, fig):
-        # This method is a fix for mpl issue #18609, which still seems to
-        # be a problem with matplotlib==3.4.
+        """Look at _close_event in mne.fixes.py for why this exists."""
         pass
 
     def fake_keypress(self, key, fig=None):  # noqa: D400

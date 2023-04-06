@@ -4,20 +4,35 @@
 
 import itertools
 import os
+from copy import deepcopy
 
-import numpy as np
-from numpy.testing import assert_allclose
-import pytest
-import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import backend_bases
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose
 
-from mne import pick_types, Annotations, create_info
+from mne import Annotations, create_info, pick_types
 from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
-from mne.utils import get_config, set_config, _dt_to_stamp, _record_warnings
-from mne.viz.utils import _fake_click
+from mne.io.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
+from mne.utils import (_dt_to_stamp, _record_warnings, get_config, set_config,
+                       _assert_no_instances)
 from mne.viz import plot_raw, plot_sensors
+from mne.viz.utils import _fake_click, _fake_keypress
+
+
+def _get_button_xy(buttons, idx):
+    from mne.viz._mpl_figure import _OLD_BUTTONS
+    if _OLD_BUTTONS:
+        return buttons.circles[idx].center
+    else:
+        # Each transform is to display coords, and our offsets are in Axes
+        # coords. We want data coords, so we go Axes -> display -> data.
+        return buttons.ax.transData.inverted().transform(
+            buttons.ax.transAxes.transform(
+                buttons.ax.collections[0].get_offsets()[idx]))
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -55,7 +70,7 @@ def _annotation_helper(raw, browse_backend, events=False):
             fig._fake_keypress(key, fig=ann_fig)
         # change annotation label
         for ix in (-1, 0):
-            xy = ann_fig.mne.radio_ax.buttons.circles[ix].center
+            xy = _get_button_xy(ann_fig.mne.radio_ax.buttons, ix)
             fig._fake_click(xy, fig=ann_fig, ax=ann_fig.mne.radio_ax,
                             xform='data')
     else:
@@ -151,10 +166,8 @@ def _annotation_helper(raw, browse_backend, events=False):
 
 
 def _proj_status(ssp_fig, browse_backend):
-    if browse_backend.name == 'matplotlib':
-        ax = ssp_fig.mne.proj_checkboxes.ax
-        return [line.get_visible() for line
-                in ax.findobj(matplotlib.lines.Line2D)][::2]
+    if browse_backend == 'matplotlib' or browse_backend.name == 'matplotlib':
+        return ssp_fig.mne.proj_checkboxes.get_status()
     else:
         return [chkbx.isChecked() for chkbx in ssp_fig.checkboxes]
 
@@ -169,17 +182,18 @@ def _proj_label(ssp_fig, browse_backend):
 def _proj_click(idx, fig, browse_backend):
     ssp_fig = fig.mne.fig_proj
     if browse_backend.name == 'matplotlib':
-        pos = np.array(ssp_fig.mne.proj_checkboxes.
-                       labels[idx].get_position()) + 0.01
-
+        text_lab = ssp_fig.mne.proj_checkboxes.labels[idx]
+        pos = np.mean(
+            text_lab.get_tightbbox(renderer=fig.canvas.get_renderer()),
+            axis=0)
         fig._fake_click(pos, fig=ssp_fig, ax=ssp_fig.mne.proj_checkboxes.ax,
-                        xform='data')
+                        xform='pix')
     else:
         # _fake_click on QCheckBox is inconsistent across platforms
         # (also see comment in test_plot_raw_selection).
         ssp_fig._proj_changed(not fig.mne.projs_on[idx], idx)
         # Update Checkbox
-        ssp_fig.checkboxes[idx].setChecked(fig.mne.projs_on[idx])
+        ssp_fig.checkboxes[idx].setChecked(bool(fig.mne.projs_on[idx]))
 
 
 def _proj_click_all(fig, browse_backend):
@@ -193,34 +207,46 @@ def _proj_click_all(fig, browse_backend):
         ssp_fig.toggle_all()
 
 
+def _spawn_child_fig(fig, attr, browse_backend, key):
+    # starting state
+    n_figs = browse_backend._get_n_figs()
+    n_children = len(fig.mne.child_figs)
+    # spawn the child fig
+    fig._fake_keypress(key)
+    # make sure the figure was actually spawned
+    assert len(fig.mne.child_figs) == n_children + 1
+    assert browse_backend._get_n_figs() == n_figs + 1
+    # make sure the parent fig knows the child fig's name
+    child_fig = getattr(fig.mne, attr)
+    assert child_fig is not None
+    return child_fig
+
+
+def _destroy_child_fig(fig, child_fig, attr, browse_backend, key, key_target):
+    # starting state
+    n_figs = browse_backend._get_n_figs()
+    n_children = len(fig.mne.child_figs)
+    # destroy child fig (_close_event is MPL agg backend workaround)
+    fig._fake_keypress(key, fig=key_target)
+    fig._close_event(child_fig)
+    # make sure the figure was actually destroyed
+    assert len(fig.mne.child_figs) == n_children - 1
+    assert browse_backend._get_n_figs() == n_figs - 1
+    assert getattr(fig.mne, attr) is None
+
+
 def _child_fig_helper(fig, key, attr, browse_backend):
     # Spawn and close child figs of raw.plot()
-    num_figs = browse_backend._get_n_figs()
     assert getattr(fig.mne, attr) is None
-    # spawn
-    fig._fake_keypress(key)
-    assert len(fig.mne.child_figs) == 1
-    assert browse_backend._get_n_figs() == num_figs + 1
-    child_fig = getattr(fig.mne, attr)
-    assert child_fig is not None
-    # close via main window toggle
-    fig._fake_keypress(key)
-    fig._close_event(child_fig)
-    assert len(fig.mne.child_figs) == 0
-    assert browse_backend._get_n_figs() == num_figs
-    assert getattr(fig.mne, attr) is None
-    # spawn again
-    fig._fake_keypress(key)
-    assert len(fig.mne.child_figs) == 1
-    assert browse_backend._get_n_figs() == num_figs + 1
-    child_fig = getattr(fig.mne, attr)
-    assert child_fig is not None
-    # close via child window
-    fig._fake_keypress(child_fig.mne.close_key, fig=child_fig)
-    fig._close_event(child_fig)
-    assert len(fig.mne.child_figs) == 0
-    assert browse_backend._get_n_figs() == num_figs
-    assert getattr(fig.mne, attr) is None
+    # spawn, then close via main window toggle
+    child_fig = _spawn_child_fig(fig, attr, browse_backend, key)
+    _destroy_child_fig(fig, child_fig, attr, browse_backend, key,
+                       key_target=fig)
+    # spawn again, then close via child window's close key
+    child_fig = _spawn_child_fig(fig, attr, browse_backend, key)
+    _destroy_child_fig(fig, child_fig, attr, browse_backend,
+                       key=child_fig.mne.close_key,
+                       key_target=child_fig)
 
 
 def test_scale_bar(browser_backend):
@@ -262,8 +288,9 @@ def test_plot_raw_selection(raw, browser_backend):
     sel_fig = fig.mne.fig_selection
     assert sel_fig is not None
     # test changing selection with arrow keys
+    left_temp = 'Left-temporal'
     sel_dict = fig.mne.ch_selections
-    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
+    assert len(fig.mne.traces) == len(sel_dict[left_temp])  # 6
     fig._fake_keypress('down', fig=sel_fig)
     assert len(fig.mne.traces) == len(sel_dict['Left-frontal'])  # 3
     fig._fake_keypress('down', fig=sel_fig)
@@ -286,7 +313,13 @@ def test_plot_raw_selection(raw, browser_backend):
     assert fig.mne.butterfly
     # test clicking on radio buttons → should cancel butterfly mode
     if ismpl:
-        xy = sel_fig.mne.radio_ax.buttons.circles[0].center
+        print(f'Clicking button: {repr(left_temp)}')
+        assert sel_fig.mne.radio_ax.buttons.labels[0].get_text() == left_temp
+        xy = _get_button_xy(sel_fig.mne.radio_ax.buttons, 0)
+        lim = sel_fig.mne.radio_ax.get_xlim()
+        assert lim[0] < xy[0] < lim[1]
+        lim = sel_fig.mne.radio_ax.get_ylim()
+        assert lim[0] < xy[1] < lim[1]
         fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
     else:
         # For an unknown reason test-clicking on checkboxes is inconsistent
@@ -294,12 +327,12 @@ def test_plot_raw_selection(raw, browser_backend):
         # (QTest.mouseClick works isolated on all platforms but somehow
         # not in this context. _fake_click isn't working on linux)
         sel_fig._chkbx_changed(list(sel_fig.chkbxs.keys())[0])
-    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # 6
     assert not fig.mne.butterfly
+    assert len(fig.mne.traces) == len(sel_dict[left_temp])  # 6
     # test clicking on "custom" when not defined: should be no-op
     if ismpl:
         before_state = sel_fig.mne.radio_ax.buttons.value_selected
-        xy = sel_fig.mne.radio_ax.buttons.circles[-1].center
+        xy = _get_button_xy(sel_fig.mne.radio_ax.buttons, -1)
         fig._fake_click(xy, fig=sel_fig, ax=sel_fig.mne.radio_ax, xform='data')
         lasso = sel_fig.lasso
         sensor_ax = sel_fig.mne.sensor_ax
@@ -311,7 +344,7 @@ def test_plot_raw_selection(raw, browser_backend):
         lasso = sel_fig.channel_fig.lasso
         sensor_ax = sel_fig.channel_widget
         assert before_state == sel_fig.mne.old_selection          # unchanged
-    assert len(fig.mne.traces) == len(sel_dict['Left-temporal'])  # unchanged
+    assert len(fig.mne.traces) == len(sel_dict[left_temp])  # unchanged
     # test marking bad channel in selection mode → should make sensor red
     assert lasso.ec[:, 0].sum() == 0   # R of RGBA zero for all chans
     fig._click_ch_name(ch_index=1, button=1)  # mark bad
@@ -321,6 +354,9 @@ def test_plot_raw_selection(raw, browser_backend):
     # test lasso
     # Testing lasso-interactivity of sensor-plot within Qt-backend
     # with QTest doesn't seem to work.
+    want = ['MEG 0111', 'MEG 0112', 'MEG 0113', 'MEG 0131', 'MEG 0132',
+            'MEG 0133']
+    assert want == sorted(fig.mne.ch_names[fig.mne.picks])
     want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
     if ismpl:
         sel_fig._set_custom_selection()  # lasso empty → should do nothing
@@ -381,18 +417,15 @@ def test_plot_raw_child_figures(raw, browser_backend):
     ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
-    browser_backend._close_all()  # make sure we start clean
+    # make sure we start clean
     assert browser_backend._get_n_figs() == 0
     fig = raw.plot()
     assert browser_backend._get_n_figs() == 1
     # test child fig toggles
     _child_fig_helper(fig, '?', 'fig_help', browser_backend)
     _child_fig_helper(fig, 'j', 'fig_proj', browser_backend)
-    # In Qt, this is a dock-widget instead of a separated window.
-    if ismpl:
+    if ismpl:  # in mne-qt-browser, annotation is a dock-widget, not a window
         _child_fig_helper(fig, 'a', 'fig_annotation', browser_backend)
-    assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
-    assert browser_backend._get_n_figs() == 1
     # test right-click → channel location popup
     fig._redraw()
     fig._click_ch_name(ch_index=2, button=3)
@@ -401,18 +434,30 @@ def test_plot_raw_child_figures(raw, browser_backend):
     fig._fake_keypress('escape', fig=fig.mne.child_figs[0])
     if ismpl:
         fig._close_event(fig.mne.child_figs[0])
+    assert len(fig.mne.child_figs) == 0
     assert browser_backend._get_n_figs() == 1
     # test right-click on non-data channel
     ix = raw.get_channel_types().index('ias')  # find the shielding channel
     trace_ix = fig.mne.ch_order.tolist().index(ix)  # get its plotting position
-    assert len(fig.mne.child_figs) == 0
-    assert browser_backend._get_n_figs() == 1
     fig._redraw()
     fig._click_ch_name(ch_index=trace_ix, button=3)  # should be no-op
     assert len(fig.mne.child_figs) == 0
     assert browser_backend._get_n_figs() == 1
     # test resize of main window
     fig._resize_by_factor(0.5)
+
+
+def test_orphaned_annot_fig(raw, browser_backend):
+    """Test that annotation window is not orphaned (GH #10454)."""
+    if browser_backend.name != 'matplotlib':
+        return
+    assert browser_backend._get_n_figs() == 0
+    fig = raw.plot()
+    _spawn_child_fig(fig, 'fig_annotation', browser_backend, 'a')
+    fig._fake_keypress(key=fig.mne.close_key)
+    fig._close_event()
+    assert len(fig.mne.child_figs) == 0
+    assert browser_backend._get_n_figs() == 0
 
 
 def _monkeypatch_fig(fig, browser_backend):
@@ -704,48 +749,50 @@ def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     # normal mode
-    fig = raw.plot_psd(average=False)
-    fig.canvas.resize_event()
+    spectrum = raw.compute_psd()
+    fig = spectrum.plot(average=False)
+    fig.canvas.callbacks.process(
+        'resize_event',
+        backend_bases.ResizeEvent('resize_event', fig.canvas))
     # specific mode
-    picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
-                 spatial_colors=True)
-    raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
-                 n_overlap=0.1, average=False)
+    picks = pick_types(spectrum.info, meg='mag', eeg=False)[:4]
+    spectrum.plot(picks=picks, ci='range', spatial_colors=True)
+    raw.compute_psd(tmax=20.).plot(color='yellow', dB=False, alpha=0.4)
     plt.close('all')
     # one axes supplied
     ax = plt.axes()
-    raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
+    spectrum.plot(picks=picks, axes=ax, average=True)
     plt.close('all')
     # two axes supplied
     _, axs = plt.subplots(2)
-    raw.plot_psd(tmax=None, ax=axs, average=True)
+    spectrum.plot(axes=axs, average=True)
     plt.close('all')
     # need 2, got 1
     ax = plt.axes()
-    with pytest.raises(ValueError, match='of length 2, while the length is 1'):
-        raw.plot_psd(ax=ax, average=True)
+    with pytest.raises(ValueError, match='of length 2.*the length is 1'):
+        spectrum.plot(axes=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()
-    raw.plot_psd_topo(axes=ax)
+    spectrum.plot_topo(axes=ax)
     plt.close('all')
     # with channel information not available
     for idx in range(len(raw.info['chs'])):
         raw.info['chs'][idx]['loc'] = np.zeros(12)
     with pytest.warns(RuntimeWarning, match='locations not available'):
-        raw.plot_psd(spatial_colors=True, average=False)
+        raw.compute_psd().plot(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
-    for dB, estimate in itertools.product((True, False),
-                                          ('power', 'amplitude')):
+    with pytest.warns(UserWarning, match='[Infinite|Zero]'):
+        spectrum = raw.compute_psd()
+    for dB, amplitude in itertools.product((True, False), (True, False)):
         with pytest.warns(UserWarning, match='[Infinite|Zero]'):
-            fig = raw.plot_psd(average=True, dB=dB, estimate=estimate)
+            fig = spectrum.plot(average=True, dB=dB, amplitude=amplitude)
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
         ends_dB = ylabel.endswith('mathrm{(dB)}$')
-        unit = '(fT/cm)²/Hz' if estimate == 'power' else r'fT/cm/\sqrt{Hz}'
+        unit = r'fT/cm/\sqrt{Hz}' if amplitude else '(fT/cm)²/Hz'
         assert title == 'Gradiometers', title
         assert unit in ylabel, ylabel
         if dB:
@@ -755,44 +802,39 @@ def test_plot_raw_psd(raw, raw_orig):
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
-        unit = 'fT²/Hz' if estimate == 'power' else r'fT/\sqrt{Hz}'
+        unit = r'fT/\sqrt{Hz}' if amplitude else 'fT²/Hz'
         assert title == 'Magnetometers', title
         assert unit in ylabel, ylabel
-    # test reject_by_annotation
-    raw = raw_unchanged
-    raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
-    raw.plot_psd(reject_by_annotation=True)
-    raw.plot_psd(reject_by_annotation=False)
-    plt.close('all')
-
-    # test fmax value checking
-    with pytest.raises(ValueError, match='must not exceed ½ the sampling'):
-        raw.plot_psd(fmax=50000)
 
     # test xscale value checking
+    raw = raw_unchanged
+    spectrum = raw.compute_psd()
     with pytest.raises(ValueError, match="Invalid value for the 'xscale'"):
-        raw.plot_psd(xscale='blah')
+        spectrum.plot(xscale='blah')
 
     # gh-5046
     raw = raw_orig.crop(0, 1)
     picks = pick_types(raw.info, meg=True)
-    raw.plot_psd(picks=picks, average=False)
-    raw.plot_psd(picks=picks, average=True)
+    spectrum = raw.compute_psd(picks=picks)
+    spectrum.plot(average=False)
+    spectrum.plot(average=True)
     plt.close('all')
     raw.set_channel_types({'MEG 0113': 'hbo', 'MEG 0112': 'hbr',
                            'MEG 0122': 'fnirs_cw_amplitude',
                            'MEG 0123': 'fnirs_od'},
                           verbose='error')
-    fig = raw.plot_psd()
+    fig = raw.compute_psd().plot()
     assert len(fig.axes) == 10
     plt.close('all')
 
     # gh-7631
-    data = 1e-3 * np.random.rand(2, 100)
-    info = create_info(['CH1', 'CH2'], 100)
+    n_times = sfreq = n_fft = 100
+    data = 1e-3 * np.random.rand(2, n_times)
+    info = create_info(['CH1', 'CH2'], sfreq)  # ch_types defaults to 'misc'
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
-    raw.plot_psd(picks=picks, spatial_colors=False)
+    spectrum = raw.compute_psd(picks=picks, n_fft=n_fft)
+    spectrum.plot(spatial_colors=False, picks=picks)
     plt.close('all')
 
 
@@ -808,6 +850,8 @@ def test_plot_sensors(raw):
     raw.plot_sensors(ch_groups='position', axes=ax)
     raw.plot_sensors(ch_groups='selection', to_sphere=False)
     raw.plot_sensors(ch_groups=[[0, 1, 2], [3, 4]])
+    raw.plot_sensors(ch_groups=np.array([[0, 1, 2], [3, 4, 5]]))
+    raw.plot_sensors(ch_groups=np.array([[0, 1, 2], [3, 4]], dtype=object))
     pytest.raises(ValueError, raw.plot_sensors, ch_groups='asd')
     pytest.raises(TypeError, plot_sensors, raw)  # needs to be info
     pytest.raises(ValueError, plot_sensors, raw.info, kind='sasaasd')
@@ -826,8 +870,8 @@ def test_plot_sensors(raw):
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(fig, ax, (0.65, 0.7), xform='ax', kind='motion')
-    fig.canvas.key_press_event('control')
-    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release')
+    _fake_keypress(fig, 'control')
+    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release', key='control')
     assert fig.lasso.selection == ['MEG 0121']
 
     # check that point appearance changes
@@ -836,17 +880,49 @@ def test_plot_sensors(raw):
     assert (fc[:, -1] == [0.5, 1., 0.5]).all()
     assert (ec[:, -1] == [0.25, 1., 0.25]).all()
 
-    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
+    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion', key='control')
     xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform='data')  # single selection
+    _fake_click(fig, ax, xy[2], xform='data', key='control')  # single sel
     assert fig.lasso.selection == ['MEG 0121', 'MEG 0131']
-    _fake_click(fig, ax, xy[2], xform='data')  # deselect
+    _fake_click(fig, ax, xy[2], xform='data', key='control')  # deselect
     assert fig.lasso.selection == ['MEG 0121']
     plt.close('all')
 
     raw.info['dev_head_t'] = None  # like empty room
     with pytest.warns(RuntimeWarning, match='identity'):
         raw.plot_sensors()
+
+    # Test plotting with sphere='eeglab'
+    info = create_info(
+        ch_names=['Fpz', 'Oz', 'T7', 'T8'],
+        sfreq=100,
+        ch_types='eeg'
+    )
+    data = 1e-6 * np.random.rand(4, 100)
+    raw_eeg = RawArray(data=data, info=info)
+    raw_eeg.set_montage('biosemi64')
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should work with "FPz" as well
+    raw_eeg.rename_channels({'Fpz': 'FPz'})
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should still work without Fpz/FPz, as long as we still have Oz
+    raw_eeg.drop_channels('FPz')
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should raise if Oz is missing too, as we cannot reconstruct Fpz anymore
+    raw_eeg.drop_channels('Oz')
+    with pytest.raises(ValueError, match='could not find: Fpz'):
+        raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should raise if we don't have a montage
+    chs = deepcopy(raw_eeg.info['chs'])
+    raw_eeg.set_montage(None)
+    with raw_eeg.info._unlock():
+        raw_eeg.info['chs'] = chs
+    with pytest.raises(ValueError, match='No montage was set'):
+        raw_eeg.plot_sensors(sphere='eeglab')
 
 
 @pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))
@@ -878,3 +954,36 @@ def test_clock_xticks(raw, dur, n_dec, browser_backend):
     assert tick_texts[0].startswith('19:01:53')
     if len(tick_texts[0].split('.')) > 1:
         assert len(tick_texts[0].split('.')[1]) == n_dec
+
+
+def test_plotting_order_consistency():
+    """Test that our internal variables have some consistency."""
+    pick_data_set = set(_PICK_TYPES_DATA_DICT)
+    pick_data_set.remove('meg')
+    pick_data_set.remove('fnirs')
+    pick_data_set.remove('eyetrack')
+    missing = pick_data_set.difference(set(_DATA_CH_TYPES_ORDER_DEFAULT))
+    assert missing == set()
+
+
+def test_plotting_temperature_gsr(browser_backend):
+    """Test that we can plot temperature and GSR."""
+    data = np.random.RandomState(0).randn(2, 1000)
+    data[0] += 37  # deg C
+    # no idea what the scale should be for GSR
+    info = create_info(2, 1000., ['temperature', 'gsr'])
+    raw = RawArray(data, info)
+    fig = raw.plot()
+    tick_texts = fig._get_ticklabels('y')
+    assert len(tick_texts) == 2
+
+
+@pytest.mark.pgtest
+def test_plotting_memory_garbage_collection(raw, pg_backend):
+    """Test that memory can be garbage collected properly."""
+    pytest.importorskip('mne_qt_browser', minversion='0.4')
+    raw.plot().close()
+    import mne_qt_browser
+    from mne_qt_browser._pg_figure import MNEQtBrowser
+    assert len(mne_qt_browser._browser_instances) == 0
+    _assert_no_instances(MNEQtBrowser, 'after closing')

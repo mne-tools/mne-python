@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
-import os.path as op
 import os
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -14,30 +13,30 @@ import pytest
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, pick_events, find_stim_steps, pick_channels,
                  read_evokeds, Epochs, create_info, compute_raw_covariance,
-                 Annotations)
+                 Annotations, count_events)
 from mne.io import read_raw_fif, RawArray
 from mne.event import (define_target_events, merge_events, AcqParserFIF,
                        shift_time_events, match_event_names)
 from mne.datasets import testing
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-fname = op.join(base_dir, 'test-eve.fif')
-fname_raw = op.join(base_dir, 'test_raw.fif')
-fname_gz = op.join(base_dir, 'test-eve.fif.gz')
-fname_1 = op.join(base_dir, 'test-1-eve.fif')
-fname_txt = op.join(base_dir, 'test-eve.eve')
-fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
-fname_c_annot = op.join(base_dir, 'test_raw-annot.fif')
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+fname = base_dir / "test-eve.fif"
+fname_raw = base_dir / "test_raw.fif"
+fname_gz = base_dir / "test-eve.fif.gz"
+fname_1 = base_dir / "test-1-eve.fif"
+fname_txt = base_dir / "test-eve.eve"
+fname_txt_1 = base_dir / "test-eve-1.eve"
+fname_c_annot = base_dir / "test_raw-annot.fif"
 
 # for testing Elekta averager
-elekta_base_dir = op.join(testing.data_path(download=False), 'misc')
-fname_raw_elekta = op.join(elekta_base_dir, 'test_elekta_3ch_raw.fif')
-fname_ave_elekta = op.join(elekta_base_dir, 'test_elekta-ave.fif')
+elekta_base_dir = testing.data_path(download=False) / "misc"
+fname_raw_elekta = elekta_base_dir / "test_elekta_3ch_raw.fif"
+fname_ave_elekta = elekta_base_dir / "test_elekta-ave.fif"
 
 # using mne_process_raw --raw test_raw.fif --eventsout test-mpr-eve.eve:
-fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
-fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
-raw_fname = op.join(base_dir, 'test_raw.fif')
+fname_txt_mpr = base_dir / "test-mpr-eve.eve"
+fname_old_txt = base_dir / "test-eve-old-style.eve"
+raw_fname = base_dir / "test_raw.fif"
 
 
 def test_fix_stim():
@@ -638,3 +637,11 @@ def test_match_event_names():
         event_names=event_names, keys=keys, on_missing='ignore'
     )
     assert matches == []
+
+
+def test_count_events():
+    """Test counting events."""
+    events = np.array([[0, 0, 1], [0, 0, 1], [0, 0, 5]])
+    assert count_events(events) == {1: 2, 5: 1}
+    assert count_events(events, ids=(1, 5)) == {1: 2, 5: 1}
+    assert count_events(events, ids=(1, 11)) == {1: 2, 11: 0}

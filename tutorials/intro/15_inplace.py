@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-inplace:
 
@@ -20,12 +19,11 @@ As usual we'll start by importing the modules we need and loading some
 
 # %%
 
-import os
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_raw.fif')
 # the preload flag loads the data into memory now
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
 raw.crop(tmax=10.)  # raw.crop() always happens in-place
@@ -102,6 +100,6 @@ fig_reref = rereferenced_raw.plot()
 # During the exploratory phase of your analysis, where you might want
 # to try out the effects of different data cleaning approaches, you should get
 # used to patterns like ``raw.copy().filter(...).plot()`` or
-# ``raw.copy().apply_proj().plot_psd()`` if you want to avoid having to re-load
-# data and repeat earlier steps each time you change a computation (see the
-# :ref:`sect-meth-chain` section for more info on method chaining).
+# ``raw.copy().apply_proj().compute_psd().plot()`` if you want to avoid having
+# to re-load data and repeat earlier steps each time you change a computation
+# (see the :ref:`sect-meth-chain` section for more info on method chaining).

@@ -7,7 +7,7 @@ import numpy as np
 from ...utils import warn
 
 
-class _LinkViewer(object):
+class _LinkViewer:
     """Class to link multiple Brain objects."""
 
     def __init__(self, brains, time=True, camera=False, colorbar=True,
@@ -134,7 +134,7 @@ class _LinkViewer(object):
     def link_widgets(self, name, callback, signal_type, actions=False):
         for brain in self.brains:
             if actions:
-                widget = brain._renderer.actions[name]
+                widget = brain._renderer.actions[name]._action
             else:
                 widget = brain.widgets[name].widget
             if widget is not None:

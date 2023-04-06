@@ -2,12 +2,13 @@
 #
 # License: BSD-3-Clause
 
+from inspect import signature
+
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn, _record_warnings
-from mne.fixes import _get_args
+from mne.utils import requires_sklearn, _record_warnings, use_log_level
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 
@@ -85,7 +86,7 @@ def test_search_light():
     with pytest.raises(ValueError, match='for two-class'):
         sl.score(X, y)
     # But check that valid ones should work with new enough sklearn
-    if 'multi_class' in _get_args(roc_auc_score):
+    if 'multi_class' in signature(roc_auc_score).parameters:
         scoring = make_scorer(
             roc_auc_score, needs_proba=True, multi_class='ovo')
         sl = SlidingEstimator(logreg, scoring=scoring)
@@ -121,7 +122,7 @@ def test_search_light():
     assert_array_equal(score_manual, score_sl)
 
     # n_jobs
-    sl = SlidingEstimator(logreg, n_jobs=1, scoring='roc_auc')
+    sl = SlidingEstimator(logreg, n_jobs=None, scoring='roc_auc')
     score_1job = sl.fit(X, y).score(X, y)
     sl.n_jobs = 2
     score_njobs = sl.fit(X, y).score(X, y)
@@ -133,19 +134,14 @@ def test_search_light():
     sl.predict(X[..., [0]])
 
     # pipeline
-
     class _LogRegTransformer(LogisticRegression):
-        # XXX needs transformer in pipeline to get first proba only
-        def __init__(self):
-            super(_LogRegTransformer, self).__init__()
-            self.multi_class = 'ovr'
-            self.random_state = 0
-            self.solver = 'liblinear'
-
         def transform(self, X):
             return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
 
-    pipe = make_pipeline(SlidingEstimator(_LogRegTransformer()),
+    logreg_transformer = _LogRegTransformer(
+        random_state=0, multi_class='ovr', solver='liblinear'
+    )
+    pipe = make_pipeline(SlidingEstimator(logreg_transformer),
                          logreg)
     pipe.fit(X, y)
     pipe.predict(X)
@@ -256,6 +252,32 @@ def test_generalization_light():
         features_shape = pipe.estimators_[0].steps[0][1].features_shape_
         assert_array_equal(features_shape, [3, 4])
     assert_array_equal(y_preds[0], y_preds[1])
+
+
+@requires_sklearn
+@pytest.mark.parametrize('n_jobs, verbose',
+                         [(1, False), (2, False), (1, True), (2, 'info')])
+def test_verbose_arg(capsys, n_jobs, verbose):
+    """Test controlling output with the ``verbose`` argument."""
+    from sklearn.svm import SVC
+
+    X, y = make_data()
+    clf = SVC()
+
+    # shows progress bar and prints other messages to the console
+    with use_log_level(True):
+        for estimator_object in [SlidingEstimator, GeneralizingEstimator]:
+            estimator = estimator_object(
+                clf, n_jobs=n_jobs, verbose=verbose)
+            estimator = estimator.fit(X, y)
+            estimator.score(X, y)
+            estimator.predict(X)
+
+            stdout, stderr = capsys.readouterr()
+            if isinstance(verbose, bool) and not verbose:
+                assert all(channel == '' for channel in (stdout, stderr))
+            else:
+                assert any(len(channel) > 0 for channel in (stdout, stderr))
 
 
 @requires_sklearn

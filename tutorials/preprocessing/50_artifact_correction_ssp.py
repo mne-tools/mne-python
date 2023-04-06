@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-ssp:
 
@@ -33,7 +32,6 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 #     enough you may not even need to repair them to get good analysis results.
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
-#
 #
 # What is SSP?
 # ^^^^^^^^^^^^
@@ -87,7 +85,7 @@ system_projs = raw.info['projs']
 raw.del_proj()
 empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                'ernoise_raw.fif')
-# cropped to 60 sec just for speed
+# cropped to 60 s just for speed
 empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 
 # %%
@@ -104,8 +102,9 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
+spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    empty_room_raw.plot_psd(average=average, dB=False, xscale='log')
+    spectrum.plot(average=average, dB=False, xscale='log')
 
 # %%
 # Creating the empty-room projectors
@@ -120,7 +119,6 @@ for average in (False, True):
 # smoothness. Note that for the function to know the types of channels in a
 # projector, you must also provide the corresponding `~mne.Info` object:
 
-# sphinx_gallery_thumbnail_number = 3
 empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
 mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True, vlim='joint',
                            info=empty_room_raw.info)
@@ -257,6 +255,29 @@ print(ecg_projs)
 mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 
 # %%
+# Moreover, because these projectors were created using epochs chosen
+# specifically because they contain time-locked artifacts, we can do a
+# joint plot of the projectors and their effect on the time-averaged epochs.
+# This figure has three columns:
+#
+# 1. The left shows the data traces before (black) and after (green)
+#    projection. We can see that the ECG artifact is well suppressed by one
+#    projector per channel type.
+# 2. The center shows the topomaps associated with the projectors, in this case
+#    just a single topography for our one projector per channel type.
+# 3. The right again shows the data traces (black), but this time with those
+#    traces also projected onto the first projector for each channel type (red)
+#    plus one surrogate ground truth for an ECG channel (MEG 0111).
+
+# sphinx_gallery_thumbnail_number = 17
+
+# ideally here we would just do `picks_trace='ecg'`, but this dataset did not
+# have a dedicated ECG channel recorded, so we just pick a channel that was
+# very sensitive to the artifact
+fig = mne.viz.plot_projs_joint(ecg_projs, ecg_evoked, picks_trace='MEG 0111')
+fig.suptitle('ECG projectors')
+
+# %%
 # Since no dedicated ECG sensor channel was detected in the
 # `~mne.io.Raw` object, by default
 # `~mne.preprocessing.compute_proj_ecg` used the magnetometers to
@@ -351,7 +372,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 # seen above the large deflections in frontal EEG channels in the raw data;
 # here is how the ocular artifacts manifests across all the sensors:
 
-eog_evoked = create_eog_epochs(raw).average()
+eog_evoked = create_eog_epochs(raw).average(picks='all')
 eog_evoked.apply_baseline((None, None))
 eog_evoked.plot_joint()
 
@@ -374,6 +395,33 @@ eog_projs, _ = compute_proj_eog(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None,
 # distribution:
 
 mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
+
+# %%
+# And we can do a joint image:
+
+fig = mne.viz.plot_projs_joint(eog_projs, eog_evoked, 'eog')
+fig.suptitle('EOG projectors')
+
+# %%
+# And finally, we can make a joint visualization with our EOG evoked. We will
+# also make a bad choice here and select *two* EOG projectors for EEG and
+# magnetometers, and we will see them show up as noise in the plot. Even though
+# the projected time course (left column) looks perhaps okay, problems show
+# up in the center (topomaps) and right plots (projection of channel data
+# onto the projection vector):
+#
+# 1. The second magnetometer topomap has a bilateral auditory field pattern.
+# 2. The uniformly-scaled projected temporal time course (solid lines) show
+#    that, while the first projector trace (red) has a large EOG-like
+#    amplitude, the second projector trace (blue-green) is much smaller.
+# 3. The re-normalized projected temporal time courses show that the
+#    second PCA trace is very noisy relative to the EOG channel data (yellow).
+
+eog_projs_bad, _ = compute_proj_eog(
+    raw, n_grad=1, n_mag=2, n_eeg=2, reject=None,
+    no_proj=True)
+fig = mne.viz.plot_projs_joint(eog_projs_bad, eog_evoked, picks_trace='eog')
+fig.suptitle('Too many EOG projectors')
 
 # %%
 # Now we repeat the plot from above (with empty room and ECG projectors) and
@@ -413,7 +461,8 @@ for title in ('Without', 'With'):
 #
 # Visualizing SSP sensor-space bias via signal reconstruction
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# .. sidebar:: SSP reconstruction
+# .. admonition:: SSP reconstruction
+#     :class: sidebar note
 #
 #     Internally, the reconstruction is performed by effectively using a
 #     minimum-norm source localization to a spherical source space with the
@@ -437,22 +486,17 @@ for title in ('Without', 'With'):
 
 evoked_eeg = epochs.average().pick('eeg')
 evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
-fig, axes = plt.subplots(1, 3, figsize=(8, 3), squeeze=False)
-for ii in range(axes.shape[0]):
-    axes[ii, 0].get_shared_y_axes().join(*axes[ii])
+fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
 for pi, proj in enumerate((False, True, 'reconstruct')):
-    evoked_eeg.plot(proj=proj, axes=axes[:, pi], spatial_colors=True)
-    if pi == 0:
-        for ax in axes[:, pi]:
-            parts = ax.get_title().split('(')
-            ax.set(ylabel=f'{parts[0]} ({ax.get_ylabel()})\n'
-                          f'{parts[1].replace(")", "")}')
-    axes[0, pi].set(title=f'proj={proj}')
-    for text in list(axes[0, pi].texts):
+    ax = axes[pi]
+    evoked_eeg.plot(proj=proj, axes=ax, spatial_colors=True)
+    parts = ax.get_title().split('(')
+    ylabel = (f'{parts[0]} ({ax.get_ylabel()})\n{parts[1].replace(")", "")}'
+              if pi == 0 else '')
+    ax.set(ylabel=ylabel, title=f'proj={proj}')
+    ax.yaxis.set_tick_params(labelbottom=True)
+    for text in list(ax.texts):
         text.remove()
-plt.setp(axes[1:, :].ravel(), title='')
-plt.setp(axes[:, 1:].ravel(), ylabel='')
-plt.setp(axes[:-1, :].ravel(), xlabel='')
 mne.viz.tight_layout()
 
 # %%

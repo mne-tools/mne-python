@@ -10,8 +10,7 @@ from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .parallel import parallel_func, check_n_jobs
-from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
+from .parallel import parallel_func
 from .utils import (logger, verbose, sum_squared, warn, _pl,
                     _check_preload, _validate_type, _check_option, _ensure_int)
 from ._ola import _COLA
@@ -123,7 +122,7 @@ def next_fast_len(target):
 
 
 def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
-                        n_jobs=1, copy=True, pad='reflect_limited'):
+                        n_jobs=None, copy=True, pad='reflect_limited'):
     """Filter the signal x using h with overlap-add FFTs.
 
     Parameters
@@ -132,19 +131,19 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
         Signals to filter.
     h : 1d array
         Filter impulse response (FIR filter coefficients). Must be odd length
-        if phase == 'linear'.
+        if ``phase='linear'``.
     n_fft : int
         Length of the FFT. If None, the best size is determined automatically.
     phase : str
-        If 'zero', the delay for the filter is compensated (and it must be
-        an odd-length symmetric filter). If 'linear', the response is
-        uncompensated. If 'zero-double', the filter is applied in the
+        If ``'zero'``, the delay for the filter is compensated (and it must be
+        an odd-length symmetric filter). If ``'linear'``, the response is
+        uncompensated. If ``'zero-double'``, the filter is applied in the
         forward and reverse directions. If 'minimum', a minimum-phase
         filter will be used.
     picks : list | None
         See calling functions.
     n_jobs : int | str
-        Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+        Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
         is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
@@ -157,7 +156,6 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     x : array, shape (n_signals, n_times)
         x filtered.
     """
-    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     # set up array for filtering, reshape to 2D, operate on last axis
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     # Extend the signal by mirroring the edges to reduce transient filter
@@ -197,17 +195,16 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
                          '2 * len(h) - 1 (%s), got %s' % (min_fft, n_fft))
 
     # Figure out if we should use CUDA
-    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(
-        n_jobs, h, n_fft)
+    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft)
 
     # Process each row separately
     picks = _picks_to_idx(len(x), picks)
+    parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
     if n_jobs == 1:
         for p in picks:
             x[p] = _1d_overlap_filter(x[p], len(h), n_edge, phase,
                                       cuda_dict, pad, n_fft)
     else:
-        parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
         data_new = parallel(p_fun(x[p], len(h), n_edge, phase,
                                   cuda_dict, pad, n_fft) for p in picks)
         for pp, p in enumerate(picks):
@@ -310,7 +307,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
                                  % (N, transition * sfreq / 2., this_N))
             # Construct a lowpass
             this_h = firwin(this_N, (prev_freq + this_freq) / 2.,
-                            window=window, pass_zero=True, nyq=freq[-1])
+                            window=window, pass_zero=True, fs=freq[-1] * 2)
             assert this_h.shape == (this_N,)
             offset = (N - this_N) // 2
             if this_gain == 0:
@@ -423,26 +420,34 @@ def _check_coefficients(system):
                            'coefficients.')
 
 
-def _filtfilt(x, iir_params, picks, n_jobs, copy):
-    """Call filtfilt."""
+def _iir_filter(x, iir_params, picks, n_jobs, copy, phase='zero'):
+    """Call filtfilt or lfilter."""
     # set up array for filtering, reshape to 2D, operate on last axis
-    from scipy.signal import filtfilt, sosfiltfilt
-    padlen = min(iir_params['padlen'], x.shape[-1] - 1)
-    n_jobs = check_n_jobs(n_jobs)
+    from scipy.signal import filtfilt, sosfiltfilt, lfilter, sosfilt
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
-    if 'sos' in iir_params:
-        fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
-                      axis=-1)
-        _check_coefficients(iir_params['sos'])
+    if phase in ('zero', 'zero-double'):
+        padlen = min(iir_params['padlen'], x.shape[-1] - 1)
+        if 'sos' in iir_params:
+            fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
+                          axis=-1)
+            _check_coefficients(iir_params['sos'])
+        else:
+            fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
+                          padlen=padlen, axis=-1)
+            _check_coefficients((iir_params['b'], iir_params['a']))
     else:
-        fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
-                      padlen=padlen, axis=-1)
-        _check_coefficients((iir_params['b'], iir_params['a']))
+        if 'sos' in iir_params:
+            fun = partial(sosfilt, sos=iir_params['sos'], axis=-1)
+            _check_coefficients(iir_params['sos'])
+        else:
+            fun = partial(lfilter, b=iir_params['b'], a=iir_params['a'],
+                          axis=-1)
+            _check_coefficients((iir_params['b'], iir_params['a']))
+    parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     if n_jobs == 1:
         for p in picks:
             x[p] = fun(x=x[p])
     else:
-        parallel, p_fun, _ = parallel_func(fun, n_jobs)
         data_new = parallel(p_fun(x=x[p]) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
@@ -512,7 +517,8 @@ _ftype_dict = {
 
 @verbose
 def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
-                         btype=None, return_copy=True, verbose=None):
+                         btype=None, return_copy=True, *, phase='zero',
+                         verbose=None):
     """Use IIR parameters to get filtering coefficients.
 
     This function works like a wrapper for iirdesign and iirfilter in
@@ -567,6 +573,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         ``iir_params`` will be set inplace (if they weren't already).
         Otherwise, a new ``iir_params`` instance will be created and
         returned with these entries.
+    %(phase)s
     %(verbose)s
 
     Returns
@@ -663,12 +670,17 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         Wp = f_pass / (float(sfreq) / 2)
         # IT will de designed
         ftype_nice = _ftype_dict.get(ftype, ftype)
+        _validate_type(phase, str, 'phase')
+        _check_option('phase', phase, ('zero', 'zero-double', 'forward'))
+        if phase in ('zero-double', 'zero'):
+            ptype = 'zero-phase (two-pass forward and reverse) non-causal'
+        else:
+            ptype = 'non-linear phase (one-pass forward) causal'
         logger.info('')
         logger.info('IIR filter parameters')
         logger.info('---------------------')
-        logger.info('%s %s zero-phase (two-pass forward and reverse) '
-                    'non-causal filter:' % (ftype_nice, btype))
-        # SciPy designs for -3dB but we do forward-backward, so this is -6dB
+        logger.info(f'{ftype_nice} {btype} {ptype} filter:')
+        # SciPy designs forward for -3dB, so forward-backward is -6dB
         if 'order' in iir_params:
             kwargs = dict(N=iir_params['order'], Wn=Wp, btype=btype,
                           ftype=ftype, output=output)
@@ -676,8 +688,12 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
                 if key in iir_params:
                     kwargs[key] = iir_params[key]
             system = iirfilter(**kwargs)
-            logger.info('- Filter order %d (effective, after forward-backward)'
-                        % (2 * iir_params['order'] * len(Wp),))
+            if phase in ('zero', 'zero-double'):
+                ptype, pmul = '(effective, after forward-backward)', 2
+            else:
+                ptype, pmul = '(forward)', 1
+            logger.info('- Filter order %d %s'
+                        % (pmul * iir_params['order'] * len(Wp), ptype))
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
@@ -698,8 +714,10 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
             cutoffs = sosfreqz(system, worN=Wp * np.pi)[1]
         else:
             cutoffs = freqz(system[0], system[1], worN=Wp * np.pi)[1]
+        cutoffs = 20 * np.log10(np.abs(cutoffs))
         # 2 * 20 here because we do forward-backward filtering
-        cutoffs = 40 * np.log10(np.abs(cutoffs))
+        if phase in ('zero', 'zero-double'):
+            cutoffs *= 2
         cutoffs = ', '.join(['%0.2f' % (c,) for c in cutoffs])
         logger.info('- Cutoff%s at %s Hz: %s dB'
                     % (_pl(f_pass), edge_freqs, cutoffs))
@@ -742,10 +760,10 @@ def _check_method(method, iir_params, extra_types=()):
 
 @verbose
 def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
-                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                method='fir', iir_params=None, copy=True, phase='zero',
-                fir_window='hamming', fir_design='firwin',
-                pad='reflect_limited', verbose=None):
+                l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                n_jobs=None, method='fir', iir_params=None, copy=True,
+                phase='zero', fir_window='hamming', fir_design='firwin',
+                pad='reflect_limited', *, verbose=None):
     """Filter a subset of channels.
 
     Parameters
@@ -805,7 +823,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
 
     .. note:: If n_jobs > 1, more memory is required as
               ``len(picks) * n_times`` additional time points need to
-              be temporaily stored in memory.
+              be temporarily stored in memory.
 
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample` and
@@ -820,7 +838,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
         data = _overlap_add_filter(data, filt, None, phase, picks, n_jobs,
                                    copy, pad)
     else:
-        data = _filtfilt(data, filt, picks, n_jobs, copy)
+        data = _iir_filter(data, filt, picks, n_jobs, copy, phase)
     return data
 
 
@@ -981,7 +999,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 data, sfreq, None, h_freq, None, h_trans_bandwidth,
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
-            out = construct_iir_filter(iir_params, f_p, f_s, sfreq, 'lowpass')
+            out = construct_iir_filter(iir_params, f_p, f_s, sfreq, 'lowpass',
+                                       phase=phase)
         else:  # 'fir'
             freq = [0, f_p, f_s]
             gain = [1, 1, 0]
@@ -996,7 +1015,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 filter_length, method, phase, fir_window, fir_design)
         if method == 'iir':
             out = construct_iir_filter(iir_params, pass_, stop, sfreq,
-                                       'highpass')
+                                       'highpass', phase=phase)
         else:  # 'fir'
             freq = [stop, pass_, sfreq / 2.]
             gain = [0, 1, 1]
@@ -1014,7 +1033,8 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                     fir_window, fir_design)
             if method == 'iir':
                 out = construct_iir_filter(iir_params, [f_p1, f_p2],
-                                           [f_s1, f_s2], sfreq, 'bandpass')
+                                           [f_s1, f_s2], sfreq, 'bandpass',
+                                           phase=phase)
             else:  # 'fir'
                 freq = [f_s1, f_p1, f_p2, f_s2]
                 gain = [0, 1, 1, 0]
@@ -1045,7 +1065,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                                      'with FIR filtering')
                 out = construct_iir_filter(iir_params, [f_p1[0], f_p2[0]],
                                            [f_s1[0], f_s2[0]], sfreq,
-                                           'bandstop')
+                                           'bandstop', phase=phase)
             else:  # 'fir'
                 freq = np.r_[f_p1, f_s1, f_s2, f_p2]
                 gain = np.r_[np.ones_like(f_p1), np.zeros_like(f_s1),
@@ -1071,9 +1091,9 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 @verbose
 def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                  trans_bandwidth=1, method='fir', iir_params=None,
-                 mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=1,
+                 mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=None,
                  copy=True, phase='zero', fir_window='hamming',
-                 fir_design='firwin', pad='reflect_limited',
+                 fir_design='firwin', pad='reflect_limited', *,
                  verbose=None):
     r"""Notch filter for the signal x.
 
@@ -1199,19 +1219,12 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
 
 
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
-    # max taper size chosen because it has an max error < 1e-3:
-    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
-    # 0.00099972447657578449
-    # so we use 1000 because it's the first "nice" number bigger than 953.
-    # but if we have a new enough scipy,
-    # it's only ~0.175 sec for 8 tapers even with 100000 samples
     from scipy import stats
-    dpss_n_times_max = 100000
+    from .time_frequency.multitaper import _compute_mt_params
 
     # figure out what tapers to use
     window_fun, _, _ = _compute_mt_params(
-        n_times, sfreq, mt_bandwidth, False, False,
-        interp_from=min(n_times, dpss_n_times_max), verbose=False)
+        n_times, sfreq, mt_bandwidth, False, False, verbose=False)
 
     # F-stat of 1-p point
     threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
@@ -1222,7 +1235,6 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy, filter_length):
     """Call _mt_spectrum_remove."""
     # set up array for filtering, reshape to 2D, operate on last axis
-    n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if isinstance(filter_length, str) and filter_length == 'auto':
         filter_length = '10s'
@@ -1233,6 +1245,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
         _get_window_thresh, sfreq=sfreq, mt_bandwidth=mt_bandwidth,
         p_value=p_value)
     window_fun, threshold = get_wt(filter_length)
+    parallel, p_fun, n_jobs = parallel_func(_mt_spectrum_remove_win, n_jobs)
     if n_jobs == 1:
         freq_list = list()
         for ii, x_ in enumerate(x):
@@ -1242,7 +1255,6 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                     get_wt)
                 freq_list.append(f)
     else:
-        parallel, p_fun, _ = parallel_func(_mt_spectrum_remove_win, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
                                   window_fun, threshold, get_wt)
                             for xi, x_ in enumerate(x)
@@ -1301,6 +1313,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
     """
+    from .time_frequency.multitaper import _mt_spectra
     assert x.ndim == 1
     if x.shape[-1] != window_fun.shape[-1]:
         window_fun, threshold = get_thresh(x.shape[-1])
@@ -1405,8 +1418,8 @@ def _resamp_ratio_len(up, down, n):
 
 
 @verbose
-def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
-             pad='reflect_limited', verbose=None):
+def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar',
+             n_jobs=None, pad='reflect_limited', *, verbose=None):
     """Resample an array.
 
     Operates along the last dimension of the array.
@@ -1515,13 +1528,13 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     # do the resampling using an adaptation of scipy's FFT-based resample()
     # use of the 'flat' window is recommended for minimal ringing
+    parallel, p_fun, n_jobs = parallel_func(_fft_resample, n_jobs)
     if n_jobs == 1:
         y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
         for xi, x_ in enumerate(x_flat):
             y[xi] = _fft_resample(x_, new_len, npads, to_removes,
                                   cuda_dict, pad)
     else:
-        parallel, p_fun, _ = parallel_func(_fft_resample, n_jobs)
         y = parallel(p_fun(x_, new_len, npads, to_removes, cuda_dict, pad)
                      for x_ in x_flat)
         y = np.array(y)
@@ -1645,7 +1658,8 @@ _fir_window_dict = {
     'blackman': dict(name='Blackman', ripple=0.0017, attenuation=74),
 }
 _known_fir_windows = tuple(sorted(_fir_window_dict.keys()))
-_known_phases = ('linear', 'zero', 'zero-double', 'minimum')
+_known_phases_fir = ('linear', 'zero', 'zero-double', 'minimum')
+_known_phases_iir = ('zero', 'zero-double', 'forward')
 _known_fir_designs = ('firwin', 'firwin2')
 _fir_design_dict = {
     'firwin': 'Windowed time-domain',
@@ -1687,7 +1701,12 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                           fir_design, bands='scalar', reverse=False):
     """Validate and automate filter parameter selection."""
     _validate_type(phase, 'str', 'phase')
-    _check_option('phase', phase, _known_phases)
+    if method == 'fir':
+        _check_option('phase', phase, _known_phases_fir,
+                      extra='when FIR filtering')
+    else:
+        _check_option('phase', phase, _known_phases_iir,
+                      extra='when IIR filtering')
     _validate_type(fir_window, 'str', 'fir_window')
     _check_option('fir_window', fir_window, _known_fir_windows)
     _validate_type(fir_design, 'str', 'fir_design')
@@ -1832,7 +1851,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
         if fir_design == 'firwin' or phase == 'zero':
             filter_length += (filter_length - 1) % 2
 
-        logger.info('- Filter length: %s samples (%0.3f sec)'
+        logger.info('- Filter length: %s samples (%0.3f s)'
                     % (filter_length, filter_length / sfreq))
         logger.info('')
 
@@ -1861,7 +1880,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
             fir_window, fir_design)
 
 
-class FilterMixin(object):
+class FilterMixin:
     """Object for Epoch/Evoked filtering."""
 
     @verbose
@@ -1925,10 +1944,10 @@ class FilterMixin(object):
 
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
-               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
+               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=None,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
-               skip_by_annotation=('edge', 'bad_acq_skip'), pad='edge',
+               skip_by_annotation=('edge', 'bad_acq_skip'), pad='edge', *,
                verbose=None):
         """Filter a subset of channels.
 
@@ -1946,15 +1965,7 @@ class FilterMixin(object):
         %(phase)s
         %(fir_window)s
         %(fir_design)s
-        skip_by_annotation : str | list of str
-            If a string (or list of str), any annotation segment that begins
-            with the given string will not be included in filtering, and
-            segments on either side of the given excluded annotated segment
-            will be filtered separately (i.e., as independent signals).
-            The default (``('edge', 'bad_acq_skip')`` will separately filter
-            any segments that were concatenated by :func:`mne.concatenate_raws`
-            or :meth:`mne.io.Raw.append`, or separated during acquisition.
-            To disable, provide an empty list. Only used if ``inst`` is raw.
+        %(skip_by_annotation)s
 
             .. versionadded:: 0.16.
         %(pad_fir)s
@@ -1997,7 +2008,7 @@ class FilterMixin(object):
 
         .. note:: If n_jobs > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
+                  be temporarily stored in memory.
 
         For more information, see the tutorials
         :ref:`disc-filtering` and :ref:`tut-filter-resample` and
@@ -2036,8 +2047,8 @@ class FilterMixin(object):
         return self
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
-                 pad='edge', verbose=None):  # lgtm
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
+                 pad='edge', *, verbose=None):
         """Resample data.
 
         If appropriate, an anti-aliasing filter is applied before resampling.
@@ -2093,17 +2104,14 @@ class FilterMixin(object):
         new_times = (np.arange(self._data.shape[-1], dtype=np.float64) /
                      sfreq + self.times[0])
         # adjust indirectly affected variables
-        if isinstance(self, BaseEpochs):
-            self._set_times(new_times)
-            self._raw_times = self.times
-        else:  # isinstance(self, Evoked)
-            self.times = new_times
-            self._update_first_last()
+        self._set_times(new_times)
+        self._raw_times = self.times
+        self._update_first_last()
         return self
 
     @verbose
-    def apply_hilbert(self, picks=None, envelope=False, n_jobs=1, n_fft='auto',
-                      verbose=None):
+    def apply_hilbert(self, picks=None, envelope=False, n_jobs=None,
+                      n_fft='auto', *, verbose=None):
         """Compute analytic signal or envelope for a subset of channels.
 
         Parameters
@@ -2146,7 +2154,7 @@ class FilterMixin(object):
         If envelope=False, more memory is required since the original raw data
         as well as the analytic signal have temporarily to be stored in memory.
         If n_jobs > 1, more memory is required as ``len(picks) * n_times``
-        additional time points need to be temporaily stored in memory.
+        additional time points need to be temporarily stored in memory.
 
         Also note that the ``n_fft`` parameter will allow you to pad the signal
         with zeros before performing the Hilbert transform. This padding
@@ -2187,6 +2195,7 @@ class FilterMixin(object):
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
@@ -2194,7 +2203,6 @@ class FilterMixin(object):
                     _my_hilbert, data_in[..., idx, :], *args, **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
             data_picks_new = parallel(
                 p_fun(_my_hilbert, data_in[..., p, :], *args, **kwargs)
                 for p in picks)

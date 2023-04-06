@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
@@ -51,7 +50,7 @@ def fetch_phantom(kind, subjects_dir=None, *, verbose=None):
     _check_option('kind', kind, list(phantoms))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     subject = f'phantom_{kind}'
-    subject_dir = op.join(subjects_dir, subject)
+    subject_dir = subjects_dir / subject
     os.makedirs(subject_dir, exist_ok=True)
     _manifest_check_download(
         manifest_path=op.join(PHANTOM_MANIFEST_PATH, f'{subject}.txt'),

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-forward:
 
@@ -14,16 +13,15 @@ modeling, see :ref:`ch_forward`.
 
 # %%
 
-import os.path as op
 import mne
 from mne.datasets import sample
 data_path = sample.data_path()
 
 # the raw file containing the channel location + types
-sample_dir = op.join(data_path, 'MEG', 'sample',)
-raw_fname = op.join(sample_dir, 'sample_audvis_raw.fif')
+sample_dir = data_path / 'MEG' / 'sample'
+raw_fname = sample_dir / 'sample_audvis_raw.fif'
 # The paths to Freesurfer reconstructions
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 subject = 'sample'
 
 # %%
@@ -83,7 +81,7 @@ mne.viz.plot_bem(**plot_bem_kwargs)
 # alignment with the following code.
 
 # The transformation file obtained by coregistration
-trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
+trans = sample_dir / 'sample_audvis_raw-trans.fif'
 
 info = mne.io.read_info(raw_fname)
 # Here we look at the dense head, which isn't used for BEM computations but
@@ -150,7 +148,7 @@ mne.viz.plot_bem(src=vol_src, **plot_bem_kwargs)
 # dipoles inside the brain (requires the :term:`BEM` surfaces) you can use the
 # following.
 
-surface = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
+surface = subjects_dir / subject / 'bem' / 'inner_skull.surf'
 vol_src = mne.setup_volume_source_space(
     subject, subjects_dir=subjects_dir, surface=surface,
     add_interpolator=False)  # Just for speed!
@@ -207,7 +205,7 @@ bem = mne.make_bem_solution(model)
 # parameter.
 
 fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
-                                meg=True, eeg=False, mindist=5.0, n_jobs=1,
+                                meg=True, eeg=False, mindist=5.0, n_jobs=None,
                                 verbose=True)
 print(fwd)
 

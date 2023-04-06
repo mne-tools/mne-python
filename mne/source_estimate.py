@@ -16,8 +16,9 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
-from ._freesurfer import (_import_nibabel, _get_mri_info_data,
-                          _get_atlas_values, read_freesurfer_lut)
+from .fixes import _safe_svd
+from ._freesurfer import (_get_mri_info_data, _get_atlas_values,
+                          read_freesurfer_lut)
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .surface import (read_surface, _get_ico_surface, mesh_edges,
@@ -29,11 +30,10 @@ from .transforms import _get_trans, apply_trans
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
-                    _check_stc_units, _check_pandas_installed,
+                    _check_stc_units, _check_pandas_installed, _import_nibabel,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _path_like,
-                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs,
-                    _VerboseDep)
+                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -91,7 +91,7 @@ def _write_stc(filename, tmin, tstep, vertices, data):
 
     Parameters
     ----------
-    filename : string
+    filename : path-like
         The name of the STC file.
     tmin : float
         The first time point of the data in seconds.
@@ -102,7 +102,6 @@ def _write_stc(filename, tmin, tstep, vertices, data):
     data : 2D array
         The data matrix (nvert * ntime).
     """
-    filename
     with open(filename, 'wb') as fid:
         # write start time in ms
         fid.write(np.array(1000 * tmin, dtype='>f4').tobytes())
@@ -135,7 +134,7 @@ def _read_w(filename):
 
     Parameters
     ----------
-    filename : string
+    filename : path-like
         The name of the w file.
 
     Returns
@@ -184,7 +183,7 @@ def _write_w(filename, vertices, data):
 
     Parameters
     ----------
-    filename: string
+    filename: path-like
         The name of the w file.
     vertices: array of int
         Vertex indices (0 based).
@@ -213,7 +212,7 @@ def read_source_estimate(fname, subject=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to (a) source-estimate file(s).
     subject : str | None
         Name of the subject the source estimate(s) is (are) from.
@@ -230,25 +229,24 @@ def read_source_estimate(fname, subject=None):
     Notes
     -----
      - for volume source estimates, ``fname`` should provide the path to a
-       single file named '*-vl.stc` or '*-vol.stc'
+       single file named ``'*-vl.stc``` or ``'*-vol.stc'``
      - for surface source estimates, ``fname`` should either provide the
-       path to the file corresponding to a single hemisphere ('*-lh.stc',
-       '*-rh.stc') or only specify the asterisk part in these patterns. In any
-       case, the function expects files for both hemisphere with names
+       path to the file corresponding to a single hemisphere (``'*-lh.stc'``,
+       ``'*-rh.stc'``) or only specify the asterisk part in these patterns. In
+       any case, the function expects files for both hemisphere with names
        following this pattern.
      - for vector surface source estimates, only HDF5 files are supported.
      - for mixed source estimates, only HDF5 files are supported.
-     - for single time point .w files, ``fname`` should follow the same
+     - for single time point ``.w`` files, ``fname`` should follow the same
        pattern as for surface estimates, except that files are named
-       '*-lh.w' and '*-rh.w'.
+       ``'*-lh.w'`` and ``'*-rh.w'``.
     """  # noqa: E501
     fname_arg = fname
-    _validate_type(fname, 'path-like', 'fname')
 
     # expand `~` without checking whether the file actually exists – we'll
     # take care of that later, as it's complicated by the different suffixes
     # STC files can have
-    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
+    fname = str(_check_fname(fname=fname, overwrite="read", must_exist=False))
 
     # make sure corresponding file(s) can be found
     ftype = None
@@ -263,7 +261,7 @@ def read_source_estimate(fname, subject=None):
                 err = ("Invalid .stc filename: %r; needs to end with "
                        "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
                        % fname)
-                raise IOError(err)
+                raise OSError(err)
         elif fname.endswith('.w'):
             ftype = 'w'
             if fname.endswith(('-lh.w', '-rh.w')):
@@ -272,7 +270,7 @@ def read_source_estimate(fname, subject=None):
                 err = ("Invalid .w filename: %r; needs to end with "
                        "hemisphere tag ('...-lh.w' or '...-rh.w')"
                        % fname)
-                raise IOError(err)
+                raise OSError(err)
         elif fname.endswith('.h5'):
             ftype = 'h5'
             fname = fname[:-3]
@@ -294,9 +292,9 @@ def read_source_estimate(fname, subject=None):
             ftype = 'h5'
             fname += '-stc'
         elif any(stc_exist) or any(w_exist):
-            raise IOError("Hemisphere missing for %r" % fname_arg)
+            raise OSError("Hemisphere missing for %r" % fname_arg)
         else:
-            raise IOError("SourceEstimate File(s) not found for: %r"
+            raise OSError("SourceEstimate File(s) not found for: %r"
                           % fname_arg)
 
     # read the files
@@ -309,7 +307,7 @@ def read_source_estimate(fname, subject=None):
             kwargs['tmin'] = 0.0
             kwargs['tstep'] = 0.0
         else:
-            raise IOError('Volume source estimate must end with .stc or .w')
+            raise OSError('Volume source estimate must end with .stc or .w')
         kwargs['vertices'] = [kwargs['vertices']]
     elif ftype == 'surface':  # stc file with surface source spaces
         lh = _read_stc(fname + '-lh.stc')
@@ -447,7 +445,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(TimeMixin, _VerboseDep):
+class _BaseSourceEstimate(TimeMixin):
 
     _data_ndim = 2
 
@@ -611,11 +609,11 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The file name to write the source estimate to, should end in
-            '-stc.h5'.
+            ``'-stc.h5'``.
         ftype : str
-            File format to use. Currently, the only allowed values is "h5".
+            File format to use. Currently, the only allowed values is ``"h5"``.
         %(overwrite)s
 
             .. versionadded:: 1.0
@@ -626,8 +624,8 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
             raise ValueError('%s objects can only be written as HDF5 files.'
                              % (self.__class__.__name__,))
         _, write_hdf5 = _import_h5io_funcs()
-        if not fname.endswith('.h5'):
-            fname += '-stc.h5'
+        if fname.suffix != ".h5":
+            fname = fname.with_name(f"{fname.name}-stc.h5")
         fname = _check_fname(fname=fname, overwrite=overwrite)
         write_hdf5(fname,
                    dict(vertices=self.vertices, data=self.data,
@@ -706,7 +704,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
                  verbose=None):
         """Resample data.
 
@@ -1202,7 +1200,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
     @verbose
     def to_data_frame(self, index=None, scalings=None,
-                      long_format=False, time_format='ms', *,
+                      long_format=False, time_format=None, *,
                       verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
@@ -1265,8 +1263,7 @@ def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
         raise ValueError('All values must be non-negative and at least one '
                          'must be non-zero, cannot compute COM')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    surf = read_surface(op.join(subjects_dir, subject, 'surf',
-                                hemi + '.' + surf))
+    surf = read_surface(subjects_dir / subject / "surf" / f"{hemi}.{surf}")
     if restrict_vertices is True:
         restrict_vertices = vertices
     elif restrict_vertices is False:
@@ -1568,8 +1565,9 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
     See Also
     --------
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
+    VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
     """
@@ -1580,20 +1578,21 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The stem of the file name. The file names used for surface source
-            spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
-            and "-rh.w") to the stem provided, for the left and the right
-            hemisphere, respectively.
+            spaces are obtained by adding ``"-lh.stc"`` and ``"-rh.stc"`` (or
+            ``"-lh.w"`` and ``"-rh.w"``) to the stem provided, for the left and
+            the right hemisphere, respectively.
         ftype : str
-            File format to use. Allowed values are "stc" (default), "w",
-            and "h5". The "w" format only supports a single time point.
+            File format to use. Allowed values are ``"stc"`` (default),
+            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
+            time point.
         %(overwrite)s
 
             .. versionadded:: 1.0
         %(verbose)s
         """
-        fname = _check_fname(fname=fname, overwrite=True)  # checked below
+        fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
 
         lh_data = self.data[:len(self.lh_vertno)]
@@ -1606,8 +1605,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                                  "in HDF5 format instead, or cast the data to "
                                  "real numbers before saving.")
             logger.info('Writing STC to disk...')
-            fname_l = _check_fname(fname + '-lh.stc', overwrite=overwrite)
-            fname_r = _check_fname(fname + '-rh.stc', overwrite=overwrite)
+            fname_l = str(_check_fname(fname + "-lh.stc", overwrite=overwrite))
+            fname_r = str(_check_fname(fname + "-rh.stc", overwrite=overwrite))
             _write_stc(fname_l, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.lh_vertno, data=lh_data)
             _write_stc(fname_r, tmin=self.tmin, tstep=self.tstep,
@@ -1617,8 +1616,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                 raise ValueError('w files can only contain a single time '
                                  'point')
             logger.info('Writing STC to disk (w format)...')
-            fname_l = _check_fname(fname + '-lh.w', overwrite=overwrite)
-            fname_r = _check_fname(fname + '-rh.w', overwrite=overwrite)
+            fname_l = str(_check_fname(fname + "-lh.w", overwrite=overwrite))
+            fname_r = str(_check_fname(fname + "-rh.w", overwrite=overwrite))
             _write_w(fname_l, vertices=self.lh_vertno, data=lh_data[:, 0])
             _write_w(fname_r, vertices=self.rh_vertno, data=rh_data[:, 0])
         elif ftype == 'h5':
@@ -2052,21 +2051,21 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the generated nifti file.
         src : list
             The list of source spaces (should all be of type volume).
-        dest : 'mri' | 'surf'
-            If 'mri' the volume is defined in the coordinate system of
-            the original T1 image. If 'surf' the coordinate system
+        dest : ``'mri'`` | ``'surf'``
+            If ``'mri'`` the volume is defined in the coordinate system of
+            the original T1 image. If ``'surf'`` the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning:: If you have many time points, the file produced can be
-                         huge.
+            .. warning: If you have many time points the file produced can be
+                        huge. The default is ``mri_resolution=False``.
         format : str
-            Either 'nifti1' (default) or 'nifti2'.
+            Either ``'nifti1'`` (default) or ``'nifti2'``.
 
             .. versionadded:: 0.17
         %(overwrite)s
@@ -2085,8 +2084,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         -----
         .. versionadded:: 0.9.0
         """
-        import nibabel as nib
-        _validate_type(fname, 'path-like', 'fname')
+        nib = _import_nibabel()
         fname = _check_fname(fname=fname, overwrite=overwrite)
         img = self.as_volume(src, dest=dest, mri_resolution=mri_resolution,
                              format=format)
@@ -2101,15 +2099,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         src : instance of SourceSpaces
             The source spaces (should all be of type volume, or part of a
             mixed source space).
-        dest : 'mri' | 'surf'
-            If 'mri' the volume is defined in the coordinate system of
+        dest : ``'mri'`` | ``'surf'``
+            If ``'mri'`` the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
         mri_resolution : bool
             It True the image is saved in MRI resolution.
 
-            .. warning:: If you have many time points, the file produced can be
-                         huge.
+            .. warning: If you have many time points the file produced can be
+                        huge. The default is ``mri_resolution=False``.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
@@ -2160,6 +2158,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
@@ -2175,19 +2174,20 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
 
         Parameters
         ----------
-        fname : str
-            The stem of the file name. The stem is extended with "-vl.stc"
-            or "-vl.w".
+        fname : path-like
+            The stem of the file name. The stem is extended with ``"-vl.stc"``
+            or ``"-vl.w"``.
         ftype : str
-            File format to use. Allowed values are "stc" (default), "w",
-            and "h5". The "w" format only supports a single time point.
+            File format to use. Allowed values are ``"stc"`` (default),
+            ``"w"``, and ``"h5"``. The ``"w"`` format only supports a single
+            time point.
         %(overwrite)s
 
             .. versionadded:: 1.0
         %(verbose)s
         """
         # check overwrite individually below
-        fname = _check_fname(fname=fname, overwrite=True)  # checked below
+        fname = str(_check_fname(fname=fname, overwrite=True))  # checked below
         _check_option('ftype', ftype, ['stc', 'w', 'h5'])
         if ftype != 'h5' and len(self.vertices) != 1:
             raise ValueError('Can only write to .stc or .w if a single volume '
@@ -2199,14 +2199,14 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             logger.info('Writing STC to disk...')
             if not fname.endswith(('-vl.stc', '-vol.stc')):
                 fname += '-vl.stc'
-            fname = _check_fname(fname, overwrite=overwrite)
+            fname = str(_check_fname(fname, overwrite=overwrite))
             _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.vertices[0], data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
             if not fname.endswith(('-vl.w', '-vol.w')):
                 fname += '-vl.w'
-            fname = _check_fname(fname, overwrite=overwrite)
+            fname = str(_check_fname(fname, overwrite=overwrite))
             _write_w(fname, vertices=self.vertices[0], data=self.data)
         elif ftype == 'h5':
             super().save(fname, 'h5', overwrite=overwrite)
@@ -2244,7 +2244,8 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
+    VolSourceEstimate : A container for volume source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
 
@@ -2421,7 +2422,7 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
     VolVectorSourceEstimate : A container for Volume vector source estimates.
 
@@ -2810,8 +2811,7 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
-    from scipy import linalg
-    U, s, V = linalg.svd(data, full_matrices=False)
+    U, s, V = _safe_svd(data, full_matrices=False)
     # determine sign-flip
     sign = np.sign(np.dot(U[:, 0], flip))
     # use average power in label for scaling
@@ -3213,16 +3213,18 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     evoked : instance of Evoked
         The evoked data. Must contain ECoG, sEEG or DBS channels.
     %(trans)s
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     subject : str
         The subject name.
     distance : float
         Distance (m) defining the activation "ball" of the sensor.
     mode : str
-        Can be "sum" to do a linear sum of weights, "weighted" to make this
-        a weighted sum, "nearest" to
-        use only the weight of the nearest sensor, or "single" to
-        do a distance-weight of the nearest sensor. Default is "sum".
-        See Notes.
+        Can be ``"sum"`` to do a linear sum of weights, ``"weighted"`` to make
+        this a weighted sum, ``"nearest"`` to use only the weight of the
+        nearest sensor, or ``"single"`` to do a distance-weight of the nearest
+        sensor. Default is ``"sum"``. See Notes.
 
         .. versionchanged:: 0.24
            Added "weighted" option.
@@ -3326,9 +3328,12 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     subject = _check_subject(None, subject, raise_error=False)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if surface is not None:
-        surf_rr = [read_surface(op.join(subjects_dir, subject, 'surf',
-                                        f'{hemi}.{surface}'))[0] / 1000.
-                   for hemi in ('lh', 'rh')]
+        surf_rr = [
+            read_surface(
+                subjects_dir / subject / "surf" / f"{hemi}.{surface}"
+            )[0] / 1000.
+            for hemi in ("lh", "rh")
+        ]
     if src is None:  # fake a full surface one
         _validate_type(surface, str, 'surface', 'when src is None')
         src = SourceSpaces([

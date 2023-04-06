@@ -1,7 +1,7 @@
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Eric Larson <larsoner@uw.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from contextlib import contextmanager
+from pathlib import Path
 import os
 import os.path as op
 
@@ -17,20 +18,21 @@ import numpy as np
 
 from ._compute_forward import _compute_forwards
 from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
+from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import _has_kit_refs, pick_types, pick_info
 from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform, invert_transform)
-from ..utils import logger, verbose, warn, _pl, _validate_type
-from ..parallel import check_n_jobs
+from ..utils import logger, verbose, warn, _pl, _validate_type, _check_fname
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, _complete_vol_src)
 from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors, _CheckInside
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 
-from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
+from .forward import (Forward, _merge_fwds, convert_forward_solution,
+                      _FWD_ORDER)
 
 
 _accuracy_dict = dict(normal=FWD.COIL_ACCURACY_NORMAL,
@@ -102,7 +104,7 @@ def _read_coil_def_file(fname, use_registry=True):
             for p in range(npts):
                 # get next non-comment line
                 line = lines.pop()
-                while(line[0] == '#'):
+                while line[0] == '#':
                     line = lines.pop()
                 vals = np.fromstring(line, sep=' ')
                 if len(vals) != 7:
@@ -265,79 +267,57 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
 
 
 @verbose
-def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
-                       head_frame=True, do_es=False, do_picking=True,
+def _prep_meg_channels(info, accuracy='accurate', exclude=(), *,
+                       ignore_ref=False, head_frame=True, do_es=False,
                        verbose=None):
-    """Prepare MEG coil definitions for forward calculation.
-
-    Parameters
-    ----------
-    %(info_not_none)s
-    accuracy : str
-        Can be "normal" or "accurate" (default).
-    exclude : list of str | str
-        List of channels to exclude. If 'bads', exclude channels in
-        info['bads']
-    ignore_ref : bool
-        If true, ignore compensation coils
-    head_frame : bool
-        If True (default), use head frame coords. Otherwise, use device frame.
-    do_es : bool
-        If True, compute and store ex, ey, ez, and r0_exey.
-    do_picking : bool
-        If True, pick info and return it.
-    %(verbose)s
-
-    Returns
-    -------
-    megcoils : list of dict
-        Information for each prepped MEG coil
-    compcoils : list of dict
-        Information for each prepped MEG coil
-    megnames : list of str
-        Name of each prepped MEG coil
-    meginfo : instance of Info
-        Information subselected for just the set of MEG coils
-    """
-    info_extra = 'info'
-    megnames, megcoils, compcoils = [], [], []
-
+    """Prepare MEG coil definitions for forward calculation."""
     # Find MEG channels
-    picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                       exclude=exclude)
+    ref_meg = True if not ignore_ref else False
+    picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
 
     # Make sure MEG coils exist
-    nmeg = len(picks)
-    if nmeg <= 0:
+    if len(picks) <= 0:
         raise RuntimeError('Could not find any MEG channels')
+    info_meg = pick_info(info, picks)
+    del picks
 
     # Get channel info and names for MEG channels
-    megchs = [info['chs'][pick] for pick in picks]
-    megnames = [info['ch_names'][p] for p in picks]
-    logger.info('Read %3d MEG channels from %s'
-                % (len(picks), info_extra))
+    logger.info(f'Read {len(info_meg["chs"])} MEG channels from info')
 
     # Get MEG compensation channels
+    compensator = post_picks = None
+    ch_names = info_meg['ch_names']
     if not ignore_ref:
-        picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
-        ncomp = len(picks)
+        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
+        ncomp = len(ref_picks)
         if (ncomp > 0):
-            compchs = pick_info(info, picks)['chs']
-            logger.info('Read %3d MEG compensation channels from %s'
-                        % (ncomp, info_extra))
+            logger.info(f'Read {ncomp} MEG compensation channels from info')
             # We need to check to make sure these are NOT KIT refs
-            if _has_kit_refs(info, picks):
+            if _has_kit_refs(info, ref_picks):
                 raise NotImplementedError(
                     'Cannot create forward solution with KIT reference '
                     'channels. Consider using "ignore_ref=True" in '
                     'calculation')
-    else:
-        ncomp = 0
-
-    # Make info structure to allow making compensator later
-    ncomp_data = len(info['comps'])
-    ref_meg = True if not ignore_ref else False
-    picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
+            logger.info(
+                f'{len(info["comps"])} compensation data sets in info')
+            # Compose a compensation data set if necessary
+            # adapted from mne_make_ctf_comp() from mne_ctf_comp.c
+            logger.info('Setting up compensation data...')
+            comp_num = get_current_comp(info)
+            if comp_num is None or comp_num == 0:
+                logger.info('    No compensation set. Nothing more to do.')
+            else:
+                compensator = make_compensator(
+                    info_meg, 0, comp_num, exclude_comp_chs=False)
+                logger.info(
+                    f'    Desired compensation data ({comp_num}) found.')
+                logger.info('    All compensation channels found.')
+                logger.info('    Preselector created.')
+                logger.info('    Compensation data matrix created.')
+                logger.info('    Postselector created.')
+            post_picks = pick_types(
+                info_meg, meg=True, ref_meg=False, exclude=exclude)
+            ch_names = [ch_names[pick] for pick in post_picks]
 
     # Create coil descriptions with transformation to head or device frame
     templates = _read_coil_defs()
@@ -348,14 +328,8 @@ def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
     else:
         transform = None
 
-    megcoils = _create_meg_coils(megchs, accuracy, transform, templates,
-                                 do_es=do_es)
-
-    if ncomp > 0:
-        logger.info('%d compensation data sets in %s' % (ncomp_data,
-                                                         info_extra))
-        compcoils = _create_meg_coils(compchs, 'normal', transform, templates,
-                                      do_es=do_es)
+    megcoils = _create_meg_coils(
+        info_meg['chs'], accuracy, transform, templates, do_es=do_es)
 
     # Check that coordinate frame is correct and log it
     if head_frame:
@@ -365,31 +339,14 @@ def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
         assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_DEVICE
         logger.info('MEG coil definitions created in device coordinate.')
 
-    out = (megcoils, compcoils, megnames)
-    if do_picking:
-        out = out + (pick_info(info, picks),)
-    return out
+    return dict(
+        defs=megcoils, ch_names=ch_names, compensator=compensator,
+        info=info_meg, post_picks=post_picks)
 
 
 @verbose
 def _prep_eeg_channels(info, exclude=(), verbose=None):
-    """Prepare EEG electrode definitions for forward calculation.
-
-    Parameters
-    ----------
-    %(info_not_none)s
-    exclude : list of str | str
-        List of channels to exclude. If 'bads', exclude channels in
-        info['bads']
-    %(verbose)s
-
-    Returns
-    -------
-    eegels : list of dict
-        Information for each prepped EEG electrode
-    eegnames : list of str
-        Name of each prepped EEG electrode
-    """
+    """Prepare EEG electrode definitions for forward calculation."""
     info_extra = 'info'
 
     # Find EEG electrodes
@@ -410,7 +367,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     eegels = _create_eeg_els(eegchs)
     logger.info('Head coordinate coil definitions created.')
 
-    return eegels, eegnames
+    return dict(defs=eegels, ch_names=eegnames)
 
 
 @verbose
@@ -418,7 +375,18 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                          bem_extra='', trans='', info_extra='',
                          meg=True, eeg=True, ignore_ref=False,
                          allow_bem_none=False, verbose=None):
-    """Prepare for forward computation."""
+    """Prepare for forward computation.
+
+    The sensors dict contains keys for each sensor type, e.g. 'meg', 'eeg'.
+    The vale for each of these is a dict that comes from _prep_meg_channels or
+    _prep_eeg_channels. Each dict contains:
+
+    - defs : a list of dicts (one per channel) with 'rmag', 'cosmag', etc.
+    - ch_names: a list of str channel names corresponding to the defs
+    - compensator (optional): the ndarray compensation matrix to apply
+    - post_picks (optional): the ndarray of indices to pick after applying the
+      compensator
+    """
     # Read the source locations
     logger.info('')
     # let's make a copy in case we modify something
@@ -444,26 +412,24 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
 
+    info_trans = str(trans) if isinstance(trans, Path) else trans
     info = Info(chs=info['chs'], comps=info['comps'],
-                dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
+                dev_head_t=info['dev_head_t'], mri_file=info_trans,
+                mri_id=mri_id,
                 meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
     info._update_redundant()
     info._check_consistency()
     logger.info('')
 
-    megcoils, compcoils, megnames, meg_info = [], [], [], []
-    eegels, eegnames = [], []
-
+    sensors = dict()
     if meg and len(pick_types(info, meg=True, ref_meg=False, exclude=[])) > 0:
-        megcoils, compcoils, megnames, meg_info = \
-            _prep_meg_channels(info, ignore_ref=ignore_ref)
-    if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False,
-                              exclude=[])) > 0:
-        eegels, eegnames = _prep_eeg_channels(info)
+        sensors['meg'] = _prep_meg_channels(info, ignore_ref=ignore_ref)
+    if eeg and len(pick_types(info, eeg=True, exclude=[])) > 0:
+        sensors['eeg'] = _prep_eeg_channels(info)
 
     # Check that some channels were found
-    if len(megcoils + eegels) == 0:
+    if len(sensors) == 0:
         raise RuntimeError('No MEG or EEG channels found.')
 
     # pick out final info
@@ -478,8 +444,10 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 % _coord_frame_name(s['coord_frame']))
 
     # Prepare the BEM model
+    eegnames = sensors.get('eeg', dict()).get('ch_names', [])
     bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t,
                      allow_none=allow_bem_none)
+    del eegnames
 
     # Circumvent numerical problems by excluding points too close to the skull,
     # and check that sensors are not inside any BEM surface
@@ -492,8 +460,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
             logger.info('')
             if len(bem['surfs']) == 3:
                 check_surface = 'scalp surface'
-                check_inside = _CheckInside(
-                    _bem_find_surface(bem, 'head'))
+                check_inside = _CheckInside(_bem_find_surface(bem, 'head'))
         else:
             check_surface = 'outermost sphere shell'
             if len(bem['layers']) == 0:
@@ -503,10 +470,10 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 def check_inside(x):
                     return (np.linalg.norm(x - bem['r0'], axis=1) <
                             bem['layers'][-1]['rad'])
-        if len(megcoils):
+        if 'meg' in sensors:
             meg_loc = apply_trans(
                 invert_transform(mri_head_t),
-                np.array([coil['r0'] for coil in megcoils]))
+                np.array([coil['r0'] for coil in sensors['meg']['defs']]))
             n_inside = check_inside(meg_loc).sum()
             if n_inside:
                 raise RuntimeError(
@@ -524,13 +491,12 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     update_kwargs = dict(nchan=len(info['ch_names']), nsource=len(rr),
                          info=info, src=src, source_nn=source_nn,
                          source_rr=rr, surf_ori=False, mri_head_t=mri_head_t)
-    return megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, \
-        info, update_kwargs, bem
+    return sensors, rr, info, update_kwargs, bem
 
 
 @verbose
-def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
-                          mindist=0.0, ignore_ref=False, n_jobs=1,
+def make_forward_solution(info, trans, src, bem, meg=True, eeg=True, *,
+                          mindist=0.0, ignore_ref=False, n_jobs=None,
                           verbose=None):
     """Calculate a forward solution for a subject.
 
@@ -538,11 +504,14 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     ----------
     %(info_str)s
     %(trans)s
-    src : str | instance of SourceSpaces
-        If string, should be a source space filename. Can also be an
-        instance of loaded or generated SourceSpaces.
-    bem : dict | str
-        Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
+
+        .. versionchanged:: 0.19
+            Support for ``'fsaverage'`` argument.
+    src : path-like | instance of SourceSpaces
+        Either a path to a source space file or a loaded or generated
+        `~mne.source_space.SourceSpaces`.
+    bem : path-like | dict
+        Filename of the BEM (e.g., ``"sample-5120-5120-5120-bem-sol.fif"``) to
         use, or a loaded sphere model (dict).
     meg : bool
         If True (Default), include MEG computations.
@@ -573,6 +542,14 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
     To create a fixed-orientation forward solution, use this function
     followed by :func:`mne.convert_forward_solution`.
+
+    .. note::
+        If the BEM solution was computed with :doc:`OpenMEEG <openmeeg:index>`
+        in :func:`mne.make_bem_solution`, then OpenMEEG will automatically
+        be used to compute the forward solution.
+
+    .. versionchanged:: 1.2
+       Added support for OpenMEEG-based forward solution calculations.
     """
     # Currently not (sup)ported:
     # 1. --grad option (gradients of the field, not used much)
@@ -586,14 +563,14 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         bem_extra = 'instance of ConductorModel'
     else:
         bem_extra = bem
-    if not isinstance(info, (Info, str)):
-        raise TypeError('info should be an instance of Info or string')
-    if isinstance(info, str):
+    _validate_type(info, ('path-like', Info), 'info')
+    if not isinstance(info, Info):
         info_extra = op.split(info)[1]
+        info = _check_fname(info, must_exist=True, overwrite='read',
+                            name='info')
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
-    n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
     logger.info('Source space          : %s' % src)
@@ -610,25 +587,21 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
                 _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
     logger.info('Free source orientations')
 
-    megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
-        update_kwargs, bem = _prepare_for_forward(
-            src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
-            info_extra, meg, eeg, ignore_ref)
+    # Create MEG coils and EEG electrodes in the head coordinate frame
+    sensors, rr, info, update_kwargs, bem = _prepare_for_forward(
+        src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
+        info_extra, meg, eeg, ignore_ref)
     del (src, mri_head_t, trans, info_extra, bem_extra, mindist,
          meg, eeg, ignore_ref)
 
     # Time to do the heavy lifting: MEG first, then EEG
-    coil_types = ['meg', 'eeg']
-    coils = [megcoils, eegels]
-    ccoils = [compcoils, None]
-    infos = [meg_info, None]
-    megfwd, eegfwd = _compute_forwards(rr, bem, coils, ccoils,
-                                       infos, coil_types, n_jobs)
+    fwds = _compute_forwards(rr, bem=bem, sensors=sensors, n_jobs=n_jobs)
 
     # merge forwards
-    fwd = _merge_meg_eeg_fwds(_to_forward_dict(megfwd, megnames),
-                              _to_forward_dict(eegfwd, eegnames),
-                              verbose=False)
+    fwds = {key: _to_forward_dict(fwds[key], sensors[key]['ch_names'])
+            for key in _FWD_ORDER if key in fwds}
+    fwd = _merge_fwds(fwds, verbose=False)
+    del fwds
     logger.info('')
 
     # Don't transform the source spaces back into MRI coordinates (which is
@@ -640,7 +613,8 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
 
 @verbose
-def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
+def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *,
+                        verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
     The instance of Dipole is converted to a discrete source space,
@@ -768,8 +742,6 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
                      source_ori=FIFF.FIFFV_MNE_FREE_ORI):
     """Convert forward solution matrices to dicts."""
     assert names is not None
-    if len(fwd) == 0:
-        return None
     sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
                row_names=names, col_names=[])
     fwd = Forward(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
@@ -791,7 +763,7 @@ def use_coil_def(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename of the coil definition file.
 
     Returns

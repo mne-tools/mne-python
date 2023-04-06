@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
 
 import numpy as np
 
-from .utils import _ensure_int, verbose, logger, _VerboseDep
+from .utils import _ensure_int, verbose, logger
 
 
 ###############################################################################
 # Class for interpolation between adjacent points
 
-class _Interp2(object):
+class _Interp2:
     r"""Interpolate between two points.
 
     Parameters
@@ -218,7 +217,7 @@ def _check_store(store):
     return store
 
 
-class _COLA(_VerboseDep):
+class _COLA:
     r"""Constant overlap-add processing helper.
 
     Parameters
@@ -302,13 +301,13 @@ class _COLA(_VerboseDep):
         self.stops[-1] = n_total
         sfreq = float(sfreq)
         pl = 's' if len(self.starts) != 1 else ''
-        logger.info('    Processing %4d data chunk%s of (at least) %0.1f sec '
-                    'with %0.1f sec overlap and %s windowing'
+        logger.info('    Processing %4d data chunk%s of (at least) %0.1f s '
+                    'with %0.1f s overlap and %s windowing'
                     % (len(self.starts), pl, self._n_samples / sfreq,
                        self._n_overlap / sfreq, window_name))
         del window, window_name
         if delta > 0:
-            logger.info('    The final %0.3f sec will be lumped into the '
+            logger.info('    The final %0.3f s will be lumped into the '
                         'final window' % (delta / sfreq,))
 
     @property
@@ -416,7 +415,7 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     return const
 
 
-class _Storer(object):
+class _Storer:
     """Store data in chunks."""
 
     def __init__(self, *outs, picks=None):

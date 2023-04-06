@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Generic tests that all raw classes should run."""
 # Authors: MNE Developers
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
@@ -18,10 +17,13 @@ import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal, assert_array_less)
 
+import mne
 from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
+from mne.io._digitization import _dig_kind_dict
 from mne.io.base import _get_scaling
+from mne.io.pick import _ELECTRODE_CH_TYPES, _FNIRS_CH_TYPES_SPLIT
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
                        object_diff, check_version, requires_pandas,
                        _import_h5io_funcs)
@@ -30,6 +32,9 @@ from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
 from mne.io.utils import _mult_cal_one
 from mne.io.constants import FIFF
+
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
+                    'data', 'test_raw.fif')
 
 
 def assert_named_constants(info):
@@ -115,7 +120,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             data1, times1 = raw[picks, sl_time]
             for other_raw in other_raws:
                 data2, times2 = other_raw[picks, sl_time]
-                assert_allclose(data1, data2)
+                assert_allclose(
+                    data1, data2, err_msg='Data mismatch with preload')
                 assert_allclose(times1, times2)
 
         # test projection vs cals and data units
@@ -284,7 +290,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
 
     # Test saving with not correct extension
     out_fname_h5 = op.join(tempdir, 'test_raw.h5')
-    with pytest.raises(IOError, match='raw must end with .fif or .fif.gz'):
+    with pytest.raises(OSError, match='raw must end with .fif or .fif.gz'):
         raw.save(out_fname_h5)
 
     raw3 = read_raw_fif(out_fname)
@@ -392,8 +398,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         # len(kwargs) == 0 for the fake arange reader
         if len(kwargs):
             assert key is not None, sorted(kwargs.keys())
-            dirname = op.dirname(fname)
-            these_kwargs[key] = op.basename(fname)
+            this_fname = fname[0] if isinstance(fname, list) else fname
+            dirname = op.dirname(this_fname)
+            these_kwargs[key] = op.basename(this_fname)
             these_kwargs['preload'] = False
             orig_dir = os.getcwd()
             try:
@@ -411,6 +418,36 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 use_kwargs = kwargs.copy()
                 use_kwargs['preload'] = True
                 _test_raw_crop(reader, t_prop, use_kwargs)
+
+    # make sure electrode-like sensor locations show up as dig points
+    eeg_dig = [d for d in (raw.info['dig'] or [])
+               if d['kind'] == _dig_kind_dict['eeg']]
+    pick_kwargs = dict()
+    for t in _ELECTRODE_CH_TYPES + ('fnirs',):
+        pick_kwargs[t] = True
+    dig_picks = pick_types(raw.info, exclude=(), **pick_kwargs)
+    dig_types = _ELECTRODE_CH_TYPES + _FNIRS_CH_TYPES_SPLIT
+    assert (len(dig_picks) > 0) == any(t in raw for t in dig_types)
+    if len(dig_picks):
+        eeg_loc = np.array([  # eeg_loc a bit of a misnomer to match eeg_dig
+            raw.info['chs'][pick]['loc'][:3] for pick in dig_picks])
+        eeg_loc = eeg_loc[np.isfinite(eeg_loc).all(axis=1)]
+        if len(eeg_loc):
+            if 'fnirs_cw_amplitude' in raw:
+                assert 2 * len(eeg_dig) >= len(eeg_loc)
+            else:
+                assert len(eeg_dig) >= len(eeg_loc)  # could have some excluded
+    # make sure that dig points in head coords implies that fiducials are
+    # present
+    if len(raw.info['dig'] or []) > 0:
+        card_pts = [d for d in raw.info['dig']
+                    if d['kind'] == _dig_kind_dict['cardinal']]
+        eeg_dig_head = [
+            d for d in eeg_dig if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+        if len(eeg_dig_head):
+            assert len(card_pts) == 3, 'Cardinal points missing'
+        if len(card_pts) == 3:  # they should all be in head coords then
+            assert len(eeg_dig_head) == len(eeg_dig)
 
     return raw
 
@@ -493,17 +530,46 @@ def _test_concat(reader, *args):
 @testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
-    raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                        'data', 'test_raw.fif')
     raw = read_raw_fif(raw_fname)
 
     # Test original (non-rounding) indexing behavior
     orig_inds = raw.time_as_index(raw.times)
-    assert(len(set(orig_inds)) != len(orig_inds))
+    assert len(set(orig_inds)) != len(orig_inds)
 
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
     assert_array_equal(new_inds, np.arange(len(raw.times)))
+
+
+@pytest.mark.parametrize('meas_date', [None, "orig"])
+@pytest.mark.parametrize('first_samp', [0, 10000])
+def test_crop_by_annotations(meas_date, first_samp):
+    """Test crop by annotations of raw."""
+    raw = read_raw_fif(raw_fname)
+
+    if meas_date is None:
+        raw.set_meas_date(None)
+
+    raw = mne.io.RawArray(raw.get_data(), raw.info, first_samp=first_samp)
+
+    onset = np.array([0, 1.5], float)
+    if meas_date is not None:
+        onset += raw.first_time
+    annot = mne.Annotations(
+        onset=onset,
+        duration=[1, 0.5],
+        description=["a", "b"],
+        orig_time=raw.info['meas_date'])
+
+    raw.set_annotations(annot)
+    raws = raw.crop_by_annotations()
+    assert len(raws) == 2
+    assert len(raws[0].annotations) == 1
+    assert raws[0].times[-1] == pytest.approx(annot[:1].duration[0], rel=1e-3)
+    assert raws[0].annotations.description[0] == annot.description[0]
+    assert len(raws[1].annotations) == 1
+    assert raws[1].times[-1] == pytest.approx(annot[1:2].duration[0], rel=5e-3)
+    assert raws[1].annotations.description[0] == annot.description[1]
 
 
 @pytest.mark.parametrize('offset, origin', [

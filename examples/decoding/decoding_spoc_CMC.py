@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-spoc-cmc:
 
@@ -24,7 +23,6 @@ electromyogram from MEG beta activity using data from
 # License: BSD-3-Clause
 
 # %%
-
 import matplotlib.pyplot as plt
 
 import mne

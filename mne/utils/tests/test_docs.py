@@ -1,19 +1,17 @@
 import pytest
 
 from mne import open_docs, grade_to_tris
-from mne.epochs import add_channels_epochs
 from mne.utils import (copy_function_doc_to_method_doc, copy_doc,
-                       linkcode_resolve, deprecated, deprecated_alias)
+                       linkcode_resolve, deprecated, deprecated_alias, legacy,
+                       catch_logging)
 import webbrowser
 
 
-@pytest.mark.parametrize('obj', (grade_to_tris, add_channels_epochs))
+@pytest.mark.parametrize('obj', (grade_to_tris,))
 def test_doc_filling(obj):
     """Test that docs are filled properly."""
     doc = obj.__doc__
     assert 'verbose : ' in doc
-    if obj is add_channels_epochs:
-        assert 'passed as a keyword' in doc
 
 
 def test_deprecated_alias():
@@ -28,35 +26,65 @@ def test_deprecated_alias():
     assert 'deprecated' not in new_func.__doc__
 
 
-@deprecated('bad func')
+@deprecated('deprecated func')
 def deprecated_func():
     """Do something."""
     pass
 
 
-@deprecated('bad class')
-class deprecated_class(object):
+@legacy('replacement_func')
+def legacy_func():
+    """Do something."""
+    pass
+
+
+@deprecated('deprecated class')
+class deprecated_class():
 
     def __init__(self):
         pass
 
-    @deprecated('bad method')
+    @deprecated('deprecated method')
     def bad(self):
         pass
 
 
-def test_deprecated():
-    """Test deprecated function."""
-    assert 'DEPRECATED' in deprecated_func.__doc__
-    with pytest.deprecated_call(match='bad func'):
-        deprecated_func()
-    assert 'DEPRECATED' in deprecated_class.__init__.__doc__
-    with pytest.deprecated_call(match='bad class'):
-        dep = deprecated_class()
-    assert 'DEPRECATED' in deprecated_class.bad.__doc__
-    assert 'DEPRECATED' in dep.bad.__doc__
-    with pytest.deprecated_call(match='bad method'):
-        dep.bad()
+@legacy('replacement_class')
+class legacy_class():  # noqa D101
+
+    def __init__(self):
+        pass
+
+    @legacy('replacement_method')
+    def bad(self):  # noqa D102
+        pass
+
+
+@pytest.mark.parametrize(
+    ('msg', 'klass', 'func'),
+    (('deprecated', deprecated_class, deprecated_func),
+     ('legacy', legacy_class, legacy_func)))
+def test_deprecated_and_legacy(msg, func, klass):
+    """Test deprecated and legacy decorators."""
+    if msg == 'deprecated':
+        with pytest.warns(FutureWarning, match=f'{msg} class'):
+            _klass = klass()
+        with pytest.warns(FutureWarning, match=f'{msg} method'):
+            _klass.bad()
+        with pytest.warns(FutureWarning, match=f'{msg} func'):
+            func()
+    else:
+        with catch_logging(verbose='info') as log:
+            _klass = klass()
+            _klass.bad()
+            func()
+        log = log.getvalue()
+        for kind in ('class', 'method', 'func'):
+            assert f'New code should use replacement_{kind}' in log
+    assert msg.upper() in klass.__init__.__doc__
+    assert msg.upper() in klass.bad.__doc__
+    assert msg.upper() in _klass.bad.__doc__
+    assert msg.upper() in func.__doc__
 
 
 def test_copy_doc():

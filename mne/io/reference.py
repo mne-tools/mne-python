@@ -10,13 +10,14 @@ from .constants import FIFF
 from .meas_info import _check_ch_keys
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .proj import setup_proj
-from .pick import pick_types, pick_channels, pick_channels_forward
+from .pick import (pick_types, pick_channels, pick_channels_forward,
+                   _ELECTRODE_CH_TYPES)
 from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
 from ..fixes import pinv
 from ..utils import (logger, warn, verbose, _validate_type, _check_preload,
-                     _check_option, fill_doc)
+                     _check_option, fill_doc, _on_missing)
 from ..defaults import DEFAULTS
 
 
@@ -181,7 +182,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
             raise ValueError("Channel %s already specified in inst." % ch)
 
     # Once CAR is applied (active), don't allow adding channels
-    if _has_eeg_average_ref_proj(inst.info['projs'], check_active=True):
+    if _has_eeg_average_ref_proj(inst.info, check_active=True):
         raise RuntimeError('Average reference already applied to data.')
 
     if copy:
@@ -241,12 +242,16 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'loc': ref_dig_array}
         inst.info['chs'].append(chan_info)
         inst.info._update_redundant()
+    range_ = np.arange(1, len(ref_channels) + 1)
     if isinstance(inst, BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
-        range_ = np.arange(1, len(ref_channels) + 1)
         for pi, picks in enumerate(inst._read_picks):
             inst._read_picks[pi] = np.concatenate(
                 [picks, np.max(picks) + range_])
+    elif isinstance(inst, BaseEpochs):
+        picks = inst.picks
+        inst.picks = np.concatenate(
+            [picks, np.max(picks) + range_])
     inst.info._check_consistency()
     set_eeg_reference(inst, ref_channels=ref_channels, copy=False,
                       verbose=False)
@@ -272,13 +277,17 @@ def _check_can_reref(inst):
 @verbose
 def set_eeg_reference(inst, ref_channels='average', copy=True,
                       projection=False, ch_type='auto', forward=None,
-                      verbose=None):
+                      *, joint=False, verbose=None):
     """Specify which reference to use for EEG data.
 
     Use this function to explicitly specify the desired reference for EEG.
     This can be either an existing electrode or a new virtual channel.
     This function will re-reference the data according to the desired
     reference.
+
+    Note that it is also possible to re-reference the signal using a
+    Laplacian (LAP) "reference-free" transformation using the
+    :func:`.compute_current_source_density` function.
 
     Parameters
     ----------
@@ -291,6 +300,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     %(projection_set_eeg_reference)s
     %(ch_type_set_eeg_reference)s
     %(forward_set_eeg_reference)s
+    %(joint_set_eeg_reference)s
     %(verbose)s
 
     Returns
@@ -307,24 +317,37 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     from ..forward import Forward
     _check_can_reref(inst)
 
+    ch_type = _get_ch_type(inst, ch_type)
+
     if projection:  # average reference projector
         if ref_channels != 'average':
             raise ValueError('Setting projection=True is only supported for '
                              'ref_channels="average", got %r.'
                              % (ref_channels,))
-        if _has_eeg_average_ref_proj(inst.info['projs']):
+        # We need verbose='error' here in case we add projs sequentially
+        if _has_eeg_average_ref_proj(
+                inst.info, ch_type=ch_type, verbose='error'):
             warn('An average reference projection was already added. The data '
                  'has been left untouched.')
         else:
             # Creating an average reference may fail. In this case, make
             # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
+
             try:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = \
                         FIFF.FIFFV_MNE_CUSTOM_REF_OFF
-                inst.add_proj(make_eeg_average_ref_proj(inst.info,
-                                                        activate=False))
+                if joint:
+                    inst.add_proj(
+                        make_eeg_average_ref_proj(
+                            inst.info, ch_type=ch_type, activate=False))
+                else:
+                    for this_ch_type in ch_type:
+                        inst.add_proj(
+                            make_eeg_average_ref_proj(
+                                inst.info, ch_type=this_ch_type,
+                                activate=False))
             except Exception:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = custom_ref_applied
@@ -339,7 +362,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     del projection  # not used anymore
 
     inst = inst.copy() if copy else inst
-    ch_type = _get_ch_type(inst, ch_type)
     ch_dict = {**{type_: True for type_ in ch_type},
                'meg': False, 'ref_meg': False}
     ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
@@ -367,7 +389,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
 def _get_ch_type(inst, ch_type):
     _validate_type(ch_type, (str, list, tuple), 'ch_type')
-    valid_ch_types = ('auto', 'eeg', 'ecog', 'seeg', 'dbs')
+    valid_ch_types = ('auto',) + _ELECTRODE_CH_TYPES
     if isinstance(ch_type, str):
         _check_option('ch_type', ch_type, valid_ch_types)
         if ch_type != 'auto':
@@ -381,7 +403,7 @@ def _get_ch_type(inst, ch_type):
     # if ch_type is 'auto', search through list to find first reasonable
     # reference-able channel type.
     if ch_type == 'auto':
-        for type_ in ['eeg', 'ecog', 'seeg', 'dbs']:
+        for type_ in _ELECTRODE_CH_TYPES:
             if type_ in inst:
                 ch_type = [type_]
                 logger.info('%s channel type selected for '
@@ -396,7 +418,8 @@ def _get_ch_type(inst, ch_type):
 
 @verbose
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
-                          drop_refs=True, copy=True, verbose=None):
+                          drop_refs=True, copy=True, on_bad="warn",
+                          verbose=None):
     """Re-reference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -432,6 +455,11 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.
+    on_bad : str
+        If a bipolar channel is created from a bad anode or a bad cathode, mne
+        warns if on_bad="warns", raises ValueError if on_bad="raise", and does
+        nothing if on_bad="ignore". For "warn" and "ignore", the new bipolar
+        channel will be marked as bad. Defaults to on_bad="warns".
     %(verbose)s
 
     Returns
@@ -528,6 +556,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     # Set other info-keys from original instance.
     pick_info = {k: v for k, v in inst.info.items() if k not in
                  ['chs', 'ch_names', 'bads', 'nchan', 'sfreq']}
+
     with ref_info._unlock():
         ref_info.update(pick_info)
 
@@ -548,6 +577,18 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Add referenced instance to original instance.
     inst.add_channels([ref_inst], force_update_info=True)
+
+    # Handle bad channels.
+    bad_bipolar_chs = []
+    for ch_idx, (a, c) in enumerate(zip(anode, cathode)):
+        if a in inst.info['bads'] or c in inst.info['bads']:
+            bad_bipolar_chs.append(ch_name[ch_idx])
+
+    # Add warnings if bad channels are present.
+    if bad_bipolar_chs:
+        msg = f'Bipolar channels are based on bad channels: {bad_bipolar_chs}.'
+        _on_missing(on_bad, msg)
+        inst.info['bads'] += bad_bipolar_chs
 
     added_channels = ', '.join([name for name in ch_name])
     logger.info(f'Added the following bipolar channels:\n{added_channels}')

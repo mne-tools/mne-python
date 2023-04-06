@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-ems-filtering:
 
@@ -14,7 +13,7 @@ between two conditions. By projecting the trial onto the corresponding spatial
 filters, surrogate single trials are created in which multi-sensor activity is
 reduced to one time series which exposes experimental effects, if present.
 
-We will first plot a trials x times image of the single trials and order the
+We will first plot a trials × times image of the single trials and order the
 trials by condition. A second plot shows the average time series for each
 condition. Finally a topographic plot is created which exhibits the temporal
 evolution of the spatial filters.
@@ -120,7 +119,7 @@ plt.show()
 
 # Visualize spatial filters across time
 evoked = EvokedArray(filters, epochs.info, tmin=epochs.tmin)
-evoked.plot_topomap(time_unit='s', scalings=1)
+evoked.plot_topomap(scalings=1)
 
 #############################################################################
 # Note that a similar transformation can be applied with ``compute_ems``

@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 # Authors: Adam Li  <adam2392@gmail.com>
 #
 # License: BSD-3-Clause
 
 import os
-import os.path as op
 import shutil
 
 import pytest
@@ -16,12 +14,16 @@ from mne.io import read_raw_persyst
 from mne.io.tests.test_raw import _test_raw_reader
 
 testing_path = data_path(download=False)
-fname_lay = op.join(
-    testing_path, 'Persyst',
-    'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay')
-fname_dat = op.join(
-    testing_path, 'Persyst',
-    'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat')
+fname_lay = (
+    testing_path
+    / "Persyst"
+    / "sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay"
+)
+fname_dat = (
+    testing_path
+    / "Persyst"
+    / "sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat"
+)
 
 
 @requires_testing_data
@@ -81,9 +83,8 @@ def test_persyst_raw():
 def test_persyst_dates(tmp_path):
     """Test different Persyst date formats for meas date."""
     # now test what if you change contents of the lay file
-    out_dir = str(tmp_path)
-    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
-    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    new_fname_lay = tmp_path / fname_lay.name
+    new_fname_dat = tmp_path / fname_dat.name
     shutil.copy(fname_dat, new_fname_dat)
 
     # reformat the lay file to have testdate with
@@ -124,9 +125,8 @@ def test_persyst_wrong_file(tmp_path):
     with pytest.raises(FileNotFoundError, match='The path you'):
         read_raw_persyst(fname_dat, preload=True)
 
-    out_dir = str(tmp_path)
-    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
-    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    new_fname_lay = tmp_path / fname_lay.name
+    new_fname_dat = tmp_path / fname_dat.name
     shutil.copy(fname_lay, new_fname_lay)
 
     # without a .dat file, reader should break
@@ -145,9 +145,8 @@ def test_persyst_wrong_file(tmp_path):
 @requires_testing_data
 def test_persyst_moved_file(tmp_path):
     """Test reader - Persyst files need to be in same directory."""
-    out_dir = str(tmp_path)
-    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
-    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    new_fname_lay = tmp_path / fname_lay.name
+    new_fname_dat = tmp_path / fname_dat.name
     shutil.copy(fname_lay, new_fname_lay)
 
     # original file read should work
@@ -172,8 +171,7 @@ def test_persyst_moved_file(tmp_path):
             for idx, line in enumerate(fin):
                 if line.startswith('File='):
                     # give it the full path to the old data
-                    test_fpath = op.join(op.dirname(fname_dat),
-                                         line.split('=')[1])
+                    test_fpath = fname_dat.parent / line.split('=')[1]
                     line = f'File={test_fpath}\n'
                 fout.write(line)
     with pytest.raises(FileNotFoundError, match=desired_err_msg):
@@ -194,8 +192,8 @@ def test_persyst_standard():
 @requires_testing_data
 def test_persyst_annotations(tmp_path):
     """Test annotations reading in Persyst."""
-    new_fname_lay = tmp_path / op.basename(fname_lay)
-    new_fname_dat = tmp_path / op.basename(fname_dat)
+    new_fname_lay = tmp_path / fname_lay.name
+    new_fname_dat = tmp_path / fname_dat.name
     shutil.copy(fname_dat, new_fname_dat)
     shutil.copy(fname_lay, new_fname_lay)
 
@@ -215,9 +213,8 @@ def test_persyst_annotations(tmp_path):
 @requires_testing_data
 def test_persyst_errors(tmp_path):
     """Test reading Persyst files when passed in wrong file path."""
-    out_dir = str(tmp_path)
-    new_fname_lay = op.join(out_dir, op.basename(fname_lay))
-    new_fname_dat = op.join(out_dir, op.basename(fname_dat))
+    new_fname_lay = tmp_path / fname_lay.name
+    new_fname_dat = tmp_path / fname_dat.name
     shutil.copy(fname_dat, new_fname_dat)
 
     # reformat the lay file

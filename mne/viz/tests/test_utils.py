@@ -2,7 +2,7 @@
 #
 # License: Simplified BSD
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -18,10 +18,10 @@ from mne.io import read_raw_fif
 from mne.event import read_events
 from mne.epochs import Epochs
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
-ev_fname = op.join(base_dir, 'test_raw-eve.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+cov_fname = base_dir / "test-cov.fif"
+ev_fname = base_dir / "test_raw-eve.fif"
 
 
 def test_setup_vmin_vmax_warns():
@@ -143,12 +143,12 @@ def test_validate_if_list_of_axes():
     _validate_if_list_of_axes(ax_flat, 4)
     pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
     pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
-    pytest.raises(ValueError, _validate_if_list_of_axes, 'error')
-    pytest.raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
-    pytest.raises(ValueError, _validate_if_list_of_axes, ax[0])
+    pytest.raises(TypeError, _validate_if_list_of_axes, 'error')
+    pytest.raises(TypeError, _validate_if_list_of_axes, ['error'] * 2)
+    pytest.raises(TypeError, _validate_if_list_of_axes, ax[0])
     pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
     ax_flat[2] = 23
-    pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat)
+    pytest.raises(TypeError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
     plt.close('all')
 

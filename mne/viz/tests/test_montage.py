@@ -5,7 +5,9 @@
 # License: Simplified BSD
 
 # Set our plotters to test mode
-import os.path as op
+
+from pathlib import Path
+
 import numpy as np
 
 import pytest
@@ -14,13 +16,13 @@ import matplotlib.pyplot as plt
 from mne.channels import (read_dig_fif, make_dig_montage,
                           make_standard_montage)
 
-p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
-elp = op.join(p_dir, 'test_elp.txt')
-hsp = op.join(p_dir, 'test_hsp.txt')
-hpi = op.join(p_dir, 'test_mrk.sqd')
-point_names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-fif_fname = op.join(io_dir, 'test_raw.fif')
+p_dir = Path(__file__).parent.parent.parent / "io" / "kit" / "tests" / "data"
+elp = p_dir / "test_elp.txt"
+hsp = p_dir / "test_hsp.txt"
+hpi = p_dir / "test_mrk.sqd"
+point_names = ["nasion", "lpa", "rpa", "1", "2", "3", "4", "5"]
+io_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+fif_fname = io_dir / "test_raw.fif"
 
 
 def test_plot_montage():
@@ -35,6 +37,8 @@ def test_plot_montage():
     m.plot(kind='topomap')
     plt.close('all')
     m.plot(kind='topomap', show_names=True)
+    plt.close('all')
+    m.plot(sphere='eeglab')
     plt.close('all')
 
     N_HSP, N_HPI = 2, 1

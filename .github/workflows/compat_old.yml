@@ -12,26 +12,29 @@ on:
 
 jobs:
   job:
-    name: 'old 3.7'
-    runs-on: ubuntu-18.04
+    name: 'old 3.8'
+    runs-on: ubuntu-20.04
     defaults:
       run:
         shell: bash
     env:
-      CONDA_DEPENDENCIES: 'numpy=1.18 scipy=1.4 matplotlib=3.1 pandas=1.0 scikit-learn=0.22'
+      CONDA_DEPENDENCIES: 'numpy=1.20.2 scipy=1.6.3 matplotlib=3.4 pandas=1.2.4 scikit-learn=0.24.2'
       DISPLAY: ':99.0'
       MNE_LOGGING_LEVEL: 'warning'
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
-      PYTHON_VERSION: '3.7'
+      PYTHON_VERSION: '3.8'
+      MNE_IGNORE_WARNINGS_IN_TESTS: 'true'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-        name: 'Setup conda'
+          miniforge-version: latest
+          miniforge-variant: Mambaforge
+          use-mamba: true
       - shell: bash -el {0}
         run: |
           ./tools/github_actions_dependencies.sh
@@ -46,7 +49,7 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
@@ -60,6 +63,6 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'

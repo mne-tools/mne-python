@@ -41,6 +41,7 @@ MNE-brainstorm-data*
 physionet-sleep-data*
 MEGSIM*
 build
+mne/_version.py
 coverage
 htmlcov
 .cache/
@@ -90,3 +91,6 @@ cover
 .venv/
 venv/
 *.json
+.hypothesis/
+
+.ipynb_checkpoints/

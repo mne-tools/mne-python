@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -88,11 +87,11 @@ def test_progressbar_parallel_advanced(capsys):
         with ProgressBar(len(arr)) as pb:
             out = parallel(p_fun(x, pb.subset(pb_idx))
                            for pb_idx, x in array_split_idx(arr, 2))
-            assert op.isfile(pb._mmap_fname)
+            assert Path(pb._mmap_fname).is_file()
             sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r',
                              shape=10).sum()
             assert sum_ == len(arr)
-    assert not op.isfile(pb._mmap_fname), '__exit__ not called?'
+    assert not Path(pb._mmap_fname).is_file(), '__exit__ not called?'
     out = np.concatenate(out)
     assert_array_equal(out, arr)
     cap = capsys.readouterr()
@@ -122,11 +121,11 @@ def test_progressbar_parallel_more(capsys):
             idxs = np.concatenate([o[1] for o in out])
             assert_array_equal(idxs, np.arange(len(arr) * 2))
             out = np.concatenate([o[0] for o in out])
-            assert op.isfile(pb._mmap_fname)
+            assert Path(pb._mmap_fname).is_file()
             sum_ = np.memmap(pb._mmap_fname, dtype='bool', mode='r',
                              shape=len(arr) * 2).sum()
             assert sum_ == len(arr) * 2
-    assert not op.isfile(pb._mmap_fname), '__exit__ not called?'
+    assert not Path(pb._mmap_fname).is_file(), '__exit__ not called?'
     cap = capsys.readouterr()
     out = cap.err
     assert '100%' in out

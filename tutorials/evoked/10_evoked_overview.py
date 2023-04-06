@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-evoked-class:
 
@@ -13,7 +12,7 @@ including how to load, query, subset, export, and plot data from an
 object from (possibly simulated) data in a :class:`NumPy array
 <numpy.ndarray>`, see :ref:`tut-creating-data-structures`.
 
-As usual, we'll start by importing the modules we need:
+As usual, we start by importing the modules we need:
 """
 
 # %%
@@ -83,7 +82,8 @@ evoked.plot()
 # Subsetting ``Evoked`` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Evokeds are not memory-mapped
+# .. admonition:: Evokeds are not memory-mapped
+#   :class: sidebar note
 #
 #   :class:`~mne.Evoked` objects use a :attr:`~mne.Evoked.data` *attribute*
 #   rather than a :meth:`~mne.Epochs.get_data` *method*; this reflects the fact
@@ -257,7 +257,7 @@ evokeds_list[0].plot(picks='eeg')
 # :ref:`tut-section-subselect-epochs` for more information):
 
 left_right_aud = epochs['auditory'].average()
-print(left_right_aud)
+left_right_aud
 
 # %%
 # This approach will weight each epoch equally and create a single

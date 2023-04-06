@@ -1,6 +1,6 @@
-import os.path as op
-import numpy as np
+from pathlib import Path
 
+import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
@@ -9,16 +9,16 @@ from mne import (vertex_to_mni, head_to_mni,
                  read_talxfm, read_freesurfer_lut,
                  get_volume_labels_from_aseg)
 from mne.datasets import testing
-from mne._freesurfer import _get_mgz_header, _check_subject_dir, read_lta
-from mne.transforms import apply_trans, _get_trans
-from mne.utils import requires_nibabel
+from mne._freesurfer import (_get_mgz_header, _check_subject_dir, read_lta,
+                             _estimate_talxfm_rigid)
+from mne.transforms import (apply_trans, _get_trans, rot_to_quat,
+                            _angle_between_quats)
 
 data_path = testing.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
-aseg_fname = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
-trans_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
+subjects_dir = data_path / "subjects"
+fname_mri = data_path / "subjects" / "sample" / "mri" / "T1.mgz"
+aseg_fname = data_path / "subjects" / "sample" / "mri" / "aseg.mgz"
+trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
 rng = np.random.RandomState(0)
 
 
@@ -31,12 +31,11 @@ def test_check_subject_dir():
 
 
 @testing.requires_testing_data
-@requires_nibabel()
 def test_mgz_header():
     """Test MGZ header reading."""
-    import nibabel
+    nib = pytest.importorskip('nibabel')
     header = _get_mgz_header(fname_mri)
-    mri_hdr = nibabel.load(fname_mri).header
+    mri_hdr = nib.load(fname_mri).header
     assert_allclose(mri_hdr.get_data_shape(), header['dims'])
     assert_allclose(mri_hdr.get_vox2ras_tkr(), header['vox2ras_tkr'])
     assert_allclose(mri_hdr.get_ras2vox(), np.linalg.inv(header['vox2ras']))
@@ -45,6 +44,7 @@ def test_mgz_header():
 @testing.requires_testing_data
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates."""
+    pytest.importorskip('nibabel')
     # obtained using "tksurfer (sample) (l/r)h white"
     vertices = [100960, 7620, 150549, 96761]
     coords = np.array([[-60.86, -11.18, -3.19], [-36.46, -93.18, -2.36],
@@ -78,10 +78,10 @@ def test_head_to_mni():
     assert_allclose(coords_MNI, coords_MNI_2, atol=10.0)
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_vertex_to_mni_fs_nibabel(monkeypatch):
     """Test equivalence of vert_to_mni for nibabel and freesurfer."""
+    pytest.importorskip('nibabel')
     n_check = 1000
     subject = 'sample'
     vertices = rng.randint(0, 100000, n_check)
@@ -98,7 +98,7 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
 
 def test_read_lta(tmp_path):
     """Test reading a Freesurfer linear transform array file."""
-    with open(op.join(tmp_path, 'test.lta'), 'w') as fid:
+    with open(tmp_path / "test.lta", "w") as fid:
         fid.write("""type      = 0 # LINEAR_VOX_TO_VOX
                      nxforms   = 1
                      mean      = 0.0000 0.0000 0.0000
@@ -125,23 +125,61 @@ def test_read_lta(tmp_path):
                      xras   = -1 0 0
                      yras   = 0 0 -1
                      zras   = 0 1 0
-                     cras   = -1.19374 -3.31686 3.25835)""")
+                     cras   = -1.19374 -3.31686 3.25835""")
     assert_array_equal(
-        read_lta(op.join(tmp_path, 'test.lta')),
+        read_lta(tmp_path / "test.lta"),
         np.array([[0.99221027, -0.05494503, 0.11180324, -3.84350586],
                   [0.05233596, 0.99828744, 0.02614108, -9.77523804],
                   [-0.11304809, -0.02008611, 0.99338663, 15.25457001],
                   [0., 0., 0., 1.]]))
 
+    # test when dst volume != src_volume
+    with open(tmp_path / "test2.lta", "w") as fid:
+        fid.write("""type      = 0 # LINEAR_VOX_TO_VOX
+                     nxforms   = 1
+                     mean      = 0.0000 0.0000 0.0000
+                     sigma     = 1.0000
+                     1 4 4
+                     0.41397345  -0.02919456  -0.00069703  26.37020874
+                     -0.02894894 -0.40985453  -0.06119149 212.38204956
+                     0.00361269   0.0611503   -0.41046342 203.33338928
+                     0 0 0 1
+                     src volume info
+                     valid = 1  # volume info valid
+                     filename = tmp2.mgz
+                     volume = 512 385 512
+                     voxelsize = 0.41499999 0.41541821 0.41499999
+                     xras   = -1 0 0
+                     yras   = 0 0 1
+                     zras   = 0 -1 0
+                     cras   = -106.23999786 105.82500458 -79.55259705
+                     dst volume info
+                     valid = 1  # volume info valid
+                     filename = tmp.mgz
+                     volume = 256 256 256
+                     voxelsize = 1 1 1
+                     xras   = -1 0 0
+                     yras   = 0 0 -1
+                     zras   = 0 1 0
+                     cras   = -3.68961334 -0.12011719 3.4160614""")
+    assert_allclose(
+        read_lta(tmp_path / "test2.lta"),
+        np.array([[0.99752641, -0.07034834, -0.00167959, -236.00043542],
+                  [0.06968626, 0.98660704, 0.14730093, 189.09766694],
+                  [-0.00870528, -0.14735012, 0.98906851, 329.7632126],
+                  [0., 0., 0., 1.]]),
+        atol=1e-8,
+    )
+
 
 @testing.requires_testing_data
-@requires_nibabel()
 @pytest.mark.parametrize('fname', [
     None,
-    op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
+    Path(mne.__file__).parent / "data" / "FreeSurferColorLUT.txt",
 ])
 def test_read_freesurfer_lut(fname, tmp_path):
     """Test reading volume label names."""
+    pytest.importorskip('nibabel')
     atlas_ids, colors = read_freesurfer_lut(fname)
     assert list(atlas_ids).count('Brain-Stem') == 1
     assert len(colors) == len(atlas_ids) == 1266
@@ -187,3 +225,16 @@ def test_read_freesurfer_lut(fname, tmp_path):
             fid.write(line)
     with pytest.raises(RuntimeError, match='formatted'):
         read_freesurfer_lut(fname)
+
+
+@testing.requires_testing_data
+def test_talxfm_rigid():
+    """Test that talxfm_rigid gives reasonable results."""
+    rigid = _estimate_talxfm_rigid('fsaverage', subjects_dir=subjects_dir)
+    assert_allclose(rigid, np.eye(4), atol=1e-6)
+    rigid = _estimate_talxfm_rigid('sample', subjects_dir=subjects_dir)
+    assert_allclose(np.linalg.norm(rigid[:3, :3], axis=1), 1., atol=1e-6)
+    move = 1000 * np.linalg.norm(rigid[:3, 3])
+    assert 30 < move < 70
+    ang = np.rad2deg(_angle_between_quats(rot_to_quat(rigid[:3, :3])))
+    assert 20 < ang < 25

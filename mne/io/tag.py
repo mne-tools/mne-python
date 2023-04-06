@@ -17,7 +17,7 @@ from ..utils.numerics import _julian_to_cal
 ##############################################################################
 # HELPERS
 
-class Tag(object):
+class Tag:
     """Tag in FIF tree structure.
 
     Parameters

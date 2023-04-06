@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
 from functools import partial, wraps
 import os
 import inspect
@@ -19,8 +17,8 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 from ._logging import warn, ClosingStringIO
+from .check import check_version
 from .numerics import object_diff
-from ..fixes import _compare_version
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -57,41 +55,12 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_nibabel():
-    """Wrap to requires_module with a function call (fewer lines to change)."""
-    return partial(requires_module, name='nibabel')
-
-
-def requires_dipy():
-    """Check for dipy."""
-    import pytest
-    # for some strange reason on CIs we can get:
-    #
-    #     can get weird ImportError: dlopen: cannot load any more object
-    #     with static TLS
-    #
-    # so let's import everything in the decorator.
-    try:
-        from dipy.align import imaffine, imwarp, metrics, transforms  # noqa, analysis:ignore
-        from dipy.align.reslice import reslice  # noqa, analysis:ignore
-        from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
-        from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
-    except Exception as exc:
-        have = False
-        why = str(exc)
-    else:
-        why = ''
-        have = True
-    return pytest.mark.skipif(
-        not have, reason=f'Requires dipy >= 0.10.1, got: {why}')
-
-
 def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
     reason = f'Requires {library}'
     if min_version != '0.0':
-        reason += ' version >= {min_version}'
+        reason += f' version >= {min_version}'
     return pytest.mark.skipif(not check_version(library, min_version),
                               reason=reason)
 
@@ -131,6 +100,20 @@ requires_pandas = partial(requires_module, name='pandas')
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn')
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
+requires_mne_qt_browser = partial(requires_module, name='mne_qt_browser')
+
+
+def requires_mne_mark():
+    """Mark pytest tests that require MNE-C."""
+    import pytest
+    return pytest.mark.skipif(not has_mne_c(), reason='Requires MNE-C')
+
+
+def requires_openmeeg_mark():
+    """Mark pytest tests that require OpenMEEG."""
+    import pytest
+    return pytest.mark.skipif(
+        not check_version('openmeeg', '2.5.5'), reason='Requires OpenMEEG')
 
 
 def requires_freesurfer(arg):
@@ -153,7 +136,6 @@ run_subprocess([%r, '--version'])
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
-requires_vtk = partial(requires_module, name='vtk')
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
@@ -168,36 +150,6 @@ def requires_numpydoc(func):
     return requires_version('numpydoc', '1.0')(func)  # validate needs 1.0
 
 
-def check_version(library, min_version):
-    r"""Check minimum library version required.
-
-    Parameters
-    ----------
-    library : str
-        The library name to import. Must have a ``__version__`` property.
-    min_version : str
-        The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
-        check (just check for library presence).
-
-    Returns
-    -------
-    ok : bool
-        True if the library exists with at least the specified version.
-    """
-    ok = True
-    try:
-        library = __import__(library)
-    except ImportError:
-        ok = False
-    else:
-        if min_version:
-            this_version = getattr(library, '__version__', '0.0').lstrip('v')
-            if _compare_version(this_version, '<', min_version):
-                ok = False
-    return ok
-
-
 def run_command_if_main():
     """Run a given command if it's __main__."""
     local_vars = inspect.currentframe().f_back.f_locals
@@ -205,7 +157,7 @@ def run_command_if_main():
         local_vars['run']()
 
 
-class ArgvSetter(object):
+class ArgvSetter:
     """Temporarily set sys.argv."""
 
     def __init__(self, args=(), disable_stdout=True,
@@ -229,7 +181,7 @@ class ArgvSetter(object):
         sys.stderr = self.orig_stderr
 
 
-class SilenceStdout(object):
+class SilenceStdout:
     """Silence stdout."""
 
     def __init__(self, close=True):
@@ -244,22 +196,6 @@ class SilenceStdout(object):
         if self.close:
             sys.stdout.close()
         sys.stdout = self.stdout
-
-
-def has_nibabel():
-    """Determine if nibabel is installed.
-
-    Returns
-    -------
-    has : bool
-        True if the user has nibabel.
-    """
-    try:
-        import nibabel  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
 
 
 def has_mne_c():
@@ -441,36 +377,6 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
         assert_allclose(r_py, r_bin, atol=1e-6)
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
-
-
-@contextmanager
-def modified_env(**d):
-    """Use a modified os.environ with temporarily replaced key/value pairs.
-
-    Parameters
-    ----------
-    **kwargs : dict
-        The key/value pairs of environment variables to replace.
-    """
-    warn('modified_env is deprecated and will be removed in 1.1. In tests, '
-         'use monkeypatch from pytest instead. In subprocess calls, pass '
-         'modified environments directly.', DeprecationWarning)
-    orig_env = dict()
-    for key, val in d.items():
-        orig_env[key] = os.getenv(key)
-        if val is not None:
-            assert isinstance(val, str)
-            os.environ[key] = val
-        elif key in os.environ:
-            del os.environ[key]
-    try:
-        yield
-    finally:
-        for key, val in orig_env.items():
-            if val is not None:
-                os.environ[key] = val
-            elif key in os.environ:
-                del os.environ[key]
 
 
 def _click_ch_name(fig, ch_index=0, button=1):

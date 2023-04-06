@@ -14,15 +14,13 @@ import pytest
 
 from mne import (SourceEstimate, VolSourceEstimate, MixedSourceEstimate,
                  SourceSpaces)
-from mne.parallel import _force_serial
 from mne.stats import ttest_ind_no_p, combine_adjacency
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import (catch_logging, check_version, requires_sklearn,
-                       _record_warnings)
+from mne.utils import catch_logging, requires_sklearn, _record_warnings
 
 
 n_space = 50
@@ -121,10 +119,7 @@ def test_cache_dir(tmp_path, numba_conditional):
         assert 'independently' not in log_file.getvalue()
         # ensure that non-independence yields warning
         stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
-        if check_version('numpy', '1.17'):
-            random_state = np.random.default_rng(0)
-        else:
-            random_state = 0
+        random_state = np.random.default_rng(0)
         with pytest.warns(RuntimeWarning, match='independently'):
             permutation_cluster_1samp_test(
                 X, buffer_size=10, n_jobs=2, n_permutations=1,
@@ -272,7 +267,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
 
 
 @requires_sklearn
-def test_cluster_permutation_with_adjacency(numba_conditional):
+def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
     """Test cluster level permutations with adjacency matrix."""
     from sklearn.feature_extraction.image import grid_to_graph
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
@@ -371,10 +366,11 @@ def test_cluster_permutation_with_adjacency(numba_conditional):
         sums_5 = np.sort(sums_5)
         assert_array_almost_equal(sums_4, sums_5)
 
-        if not _force_serial:
-            pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                          n_permutations=1, adjacency=adjacency,
-                          max_step=1, threshold=1.67, n_jobs=-1000)
+        monkeypatch.delenv('MNE_FORCE_SERIAL', raising=False)
+        with pytest.raises(ValueError, match='must not be less'):
+            spatio_temporal_func(
+                X1d_3, n_permutations=1, adjacency=adjacency,
+                max_step=1, threshold=1.67, n_jobs=-1000)
 
         # not enough TFCE params
         with pytest.raises(KeyError, match='threshold, if dict, must have'):

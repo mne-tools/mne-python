@@ -68,7 +68,7 @@ Changelog
 
 - Add ``drop_refs=True`` parameter to :func:`set_bipolar_reference` to drop/keep anode and cathode channels after applying the reference by `Cristóbal Moënne-Loccoz`_.
 
-- Add processing of reference MEG channels to :class:`mne.preprocessing.ICA` by `Jeff Hanna`_
+- Add processing of reference MEG channels to :class:`mne.preprocessing.ICA` by `Jevri Hanna`_
 
 - Add use of :func:`scipy.signal.windows.dpss` for faster multitaper window computations in PSD functions by `Eric Larson`_
 

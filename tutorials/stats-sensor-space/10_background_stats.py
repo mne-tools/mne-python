@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _disc-stats:
 
@@ -11,6 +10,7 @@ introductory manner, and demonstrate how to use some MNE statistical functions.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
+#
 # License: BSD-3-Clause
 
 # %%
@@ -25,8 +25,6 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa, analysis:ignore
 import mne
 from mne.stats import (ttest_1samp_no_p, bonferroni_correction, fdr_correction,
                        permutation_t_test, permutation_cluster_1samp_test)
-
-print(__doc__)
 
 # %%
 # Hypothesis testing
@@ -44,7 +42,7 @@ print(__doc__)
 # significance level :math:`\alpha`.
 # To think about what this means, let's follow the illustrative example from
 # :footcite:`RidgwayEtAl2012` and construct a toy dataset consisting of a
-# 40 x 40 square with a "signal" present in the center with white noise added
+# 40 × 40 square with a "signal" present in the center with white noise added
 # and a Gaussian smoothing kernel applied.
 
 width = 40
@@ -124,9 +122,13 @@ def plot_t_p(t, p, title, mcc, axes=None):
         show = True
     else:
         show = False
-    p_lims = [0.1, 0.001]
-    t_lims = -stats.distributions.t.ppf(p_lims, n_subjects - 1)
+
+    # calculate critical t-value thresholds (2-tailed)
+    p_lims = np.array([0.1, 0.001])
+    df = n_subjects - 1  # degrees of freedom
+    t_lims = stats.distributions.t.ppf(1 - p_lims / 2, df=df)
     p_lims = [-np.log10(p) for p in p_lims]
+
     # t plot
     x, y = np.mgrid[0:width, 0:width]
     surf = axes[0].plot_surface(x, y, np.reshape(t, (width, width)),
@@ -260,7 +262,7 @@ p_type_I = 1 - (1 - alpha) ** N
 fig, ax = plt.subplots(figsize=(4, 3))
 ax.scatter(N, p_type_I, 3)
 ax.set(xlim=N[[0, -1]], ylim=[0, 1], xlabel=r'$N_{\mathrm{test}}$',
-       ylabel=u'Probability of at least\none type I error')
+       ylabel='Probability of at least\none type I error')
 ax.grid(True)
 fig.tight_layout()
 fig.show()
@@ -348,7 +350,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # Each of the aforementioned multiple comparisons corrections have the
 # disadvantage of not fully incorporating the correlation structure of the
 # data, namely that points close to one another (e.g., in space or time) tend
-# to be correlated. However, by defining the adjacency/adjacency/neighbor
+# to be correlated. However, by defining the adjacency (or "neighbor")
 # structure in our data, we can use **clustering** to compensate.
 #
 # To use this, we need to rethink our null hypothesis. Instead
@@ -392,7 +394,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # multidimensional (e.g., spatio-temporal) -- because the null distribution
 # will be derived from data in a way that preserves these correlations.
 #
-# .. sidebar:: Effect size
+# .. admonition:: Effect size
+#     :class: sidebar note
 #
 #     For a nice description of how to compute the effect size obtained
 #     in a cluster test, see this
@@ -414,9 +417,9 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # which voxels are adjacent to each other. In our case this
 # is quite simple, as our data are aligned on a rectangular grid.
 #
-# Let's pretend that our data were smaller -- a 3 x 3 grid. Thinking about
+# Let's pretend that our data were smaller -- a 3 × 3 grid. Thinking about
 # each voxel as being connected to the other voxels it touches, we would
-# need a 9 x 9 adjacency matrix. The first row of this matrix contains the
+# need a 9 × 9 adjacency matrix. The first row of this matrix contains the
 # voxels in the flattened data that the first voxel touches. Since it touches
 # the second element in the first row and the first element in the second row
 # (and is also a neighbor to itself), this would be::
@@ -434,8 +437,24 @@ print(mini_adjacency[0])
 # In general the adjacency between voxels can be more complex, such as
 # those between sensors in 3D space, or time-varying activation at brain
 # vertices on a cortical surface. MNE provides several convenience functions
-# for computing adjacency matrices (see the
-# :ref:`Statistics API <api_reference_statistics>`).
+# for computing adjacency matrices, for example:
+#
+# * :func:`mne.channels.find_ch_adjacency`
+# * :func:`mne.stats.combine_adjacency`
+#
+# See the :ref:`Statistics API <api_reference_statistics>` for a full list.
+#
+# MNE also ships with numerous built-in channel adjacency matrices from the
+# FieldTrip project (called "neighbors" there). You can get an overview of
+# them by using :func:`mne.channels.get_builtin_ch_adjacencies`:
+
+builtin_ch_adj = mne.channels.get_builtin_ch_adjacencies(descriptions=True)
+for adj_name, adj_description in builtin_ch_adj:
+    print(f'{adj_name}: {adj_description}')
+
+# %%
+# These built-in channel adjacency matrices can be loaded via
+# :func:`mne.channels.read_ch_adjacency`.
 #
 # Standard clustering
 # ~~~~~~~~~~~~~~~~~~~
@@ -443,13 +462,22 @@ print(mini_adjacency[0])
 # trigger optimized grid-based code, and run the clustering algorithm.
 
 titles.append('Clustering')
+
 # Reshape data to what is equivalent to (n_samples, n_space, n_time)
 X.shape = (n_subjects, width, width)
+
 # Compute threshold from t distribution (this is also the default)
-threshold = stats.distributions.t.ppf(1 - alpha, n_subjects - 1)
+# Here we use a two-tailed test, hence we need to divide alpha by 2.
+# Subtracting alpha from 1 guarantees that we get a positive threshold,
+# which MNE-Python expects for two-tailed tests.
+df = n_subjects - 1  # degrees of freedom
+t_thresh = stats.distributions.t.ppf(1 - alpha / 2, df=df)
+
+# run the cluster test
 t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold, adjacency=None,
+    X, n_jobs=None, threshold=t_thresh, adjacency=None,
     n_permutations=n_permutations, out_type='mask')
+
 # Put the cluster data in a viewable format
 p_clust = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
@@ -467,7 +495,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 titles.append(r'$\mathbf{C_{hat}}$')
 stat_fun_hat = partial(ttest_1samp_no_p, sigma=sigma)
 t_hat, clusters, p_values, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold, adjacency=None, out_type='mask',
+    X, n_jobs=None, threshold=t_thresh, adjacency=None, out_type='mask',
     n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 p_hat = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
@@ -503,7 +531,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 titles.append(r'$\mathbf{C_{TFCE}}$')
 threshold_tfce = dict(start=0, step=0.2)
 t_tfce, _, p_tfce, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold_tfce, adjacency=None,
+    X, n_jobs=None, threshold=threshold_tfce, adjacency=None,
     n_permutations=n_permutations, out_type='mask')
 ts.append(t_tfce)
 ps.append(p_tfce)
@@ -514,7 +542,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # We can also combine TFCE and the "hat" correction:
 titles.append(r'$\mathbf{C_{hat,TFCE}}$')
 t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=1, threshold=threshold_tfce, adjacency=None, out_type='mask',
+    X, n_jobs=None, threshold=threshold_tfce, adjacency=None, out_type='mask',
     n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
 ts.append(t_tfce_hat)
 ps.append(p_tfce_hat)

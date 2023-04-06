@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-cluster-spatiotemporal-source:
 
@@ -75,7 +74,7 @@ print('Computing adjacency.')
 adjacency = spatial_src_adjacency(src)
 
 #    Note that X needs to be a list of multi-dimensional array of shape
-#    samples (subjects_k) x time x space, so we permute dimensions
+#    samples (subjects_k) × time × space, so we permute dimensions
 X1 = np.transpose(X1, [2, 1, 0])
 X2 = np.transpose(X2, [2, 1, 0])
 X = [X1, X2]
@@ -90,7 +89,7 @@ f_threshold = stats.distributions.f.ppf(1. - p_threshold / 2.,
 print('Clustering.')
 F_obs, clusters, cluster_p_values, H0 = clu =\
     spatio_temporal_cluster_test(
-        X, adjacency=adjacency, n_jobs=1, n_permutations=n_permutations,
+        X, adjacency=adjacency, n_jobs=None, n_permutations=n_permutations,
         threshold=f_threshold, buffer_size=None)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).

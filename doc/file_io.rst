@@ -24,6 +24,7 @@ File I/O
    read_epochs_fieldtrip
    read_events
    read_evokeds
+   read_evoked_besa
    read_evoked_fieldtrip
    read_evokeds_mff
    read_freesurfer_lut
@@ -58,5 +59,6 @@ Base class:
 
 .. autosummary::
    :toctree: generated
+   :template: autosummary/class_no_members.rst
 
    BaseEpochs

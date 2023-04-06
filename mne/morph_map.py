@@ -9,7 +9,6 @@
 # C code.
 
 import os
-import os.path as op
 
 import numpy as np
 
@@ -37,11 +36,11 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
     Parameters
     ----------
     subject_from : str
-        Name of the original subject as named in the SUBJECTS_DIR.
+        Name of the original subject as named in the ``SUBJECTS_DIR``.
     subject_to : str
-        Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    subjects_dir : str
-        Path to SUBJECTS_DIR is not set in the environment.
+        Name of the subject on which to morph as named in the ``SUBJECTS_DIR``.
+    subjects_dir : path-like
+        Path to ``SUBJECTS_DIR`` is not set in the environment.
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
         ``subject_to == subject_from``. See notes of
@@ -56,8 +55,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # First check for morph-map dir existence
-    mmap_dir = op.join(subjects_dir, 'morph-maps')
-    if not op.isdir(mmap_dir):
+    mmap_dir = subjects_dir / "morph-maps"
+    if not mmap_dir.is_dir():
         try:
             os.mkdir(mmap_dir)
         except Exception:
@@ -81,8 +80,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
     # find existing file
     fname = None
     for map_name in map_names:
-        fname = op.join(mmap_dir, '%s-morph.fif' % map_name)
-        if op.exists(fname):
+        fname = mmap_dir / f"{map_name}-morph.fif"
+        if fname.exists():
             return _read_morph_map(fname, subject_from, subject_to)
     # if file does not exist, make it
     logger.info('Morph map "%s" does not exist, creating it and saving it to '
@@ -195,14 +194,14 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from,
     from scipy.sparse import csr_matrix, eye as speye
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
-        fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
+        fname = subjects_dir / subject_from / "surf" / reg_from
         n_pts = len(read_surface(fname, verbose=False)[0])
         return speye(n_pts, n_pts, format='csr')
 
     # load surfaces and normalize points to be on unit sphere
-    fname = op.join(subjects_dir, subject_from, 'surf', reg_from)
+    fname = subjects_dir / subject_from / "surf" / reg_from
     from_rr, from_tri = read_surface(fname, verbose=False)
-    fname = op.join(subjects_dir, subject_to, 'surf', reg_to)
+    fname = subjects_dir / subject_to / "surf" / reg_to
     to_rr = read_surface(fname, verbose=False)[0]
     _normalize_vectors(from_rr)
     _normalize_vectors(to_rr)

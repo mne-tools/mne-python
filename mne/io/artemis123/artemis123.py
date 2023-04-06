@@ -24,13 +24,13 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the data file (extension ``.bin``). The header file with the
         same file name stem and an extension ``.txt`` is expected to be found
         in the same directory.
     %(preload)s
     %(verbose)s
-    pos_fname : str or None (default None)
+    pos_fname : path-like | None
         If not None, load digitized head points from this file.
     add_head_trans : bool (default True)
         If True attempt to perform initial head localization. Compute initial
@@ -45,7 +45,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
     return RawArtemis123(input_fname, preload=preload, verbose=verbose,
                          pos_fname=pos_fname, add_head_trans=add_head_trans)
@@ -107,7 +107,7 @@ def _get_artemis123_info(fname, pos_fname=None):
                 elif sectionFlag == 2:
                     values = line.strip().split('\t')
                     if len(values) != 7:
-                        raise IOError('Error parsing line \n\t:%s\n' % line +
+                        raise OSError('Error parsing line \n\t:%s\n' % line +
                                       'from file %s' % header)
                     tmp = dict()
                     for k, v in zip(chan_keys, values):
@@ -123,9 +123,9 @@ def _get_artemis123_info(fname, pos_fname=None):
 
     for k in ['Temporal Filter Active?', 'Decimation Active?',
               'Spatial Filter Active?']:
-        if(header_info[k] != 'FALSE'):
+        if header_info[k] != 'FALSE':
             warn('%s - set to but is not supported' % k)
-    if(header_info['filter_hist']):
+    if header_info['filter_hist']:
         warn('Non-Empty Filter history found, BUT is not supported' % k)
 
     # build mne info struct
@@ -292,14 +292,14 @@ class RawArtemis123(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the Artemis123 data file (ending in ``'.bin'``).
     %(preload)s
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
@@ -308,7 +308,9 @@ class RawArtemis123(BaseRaw):
         from scipy.spatial.distance import cdist
         from ...chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                              _fit_coil_order_dev_head_trans)
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
+        input_fname = str(
+            _check_fname(input_fname, "read", True, "input_fname")
+        )
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'
@@ -326,7 +328,7 @@ class RawArtemis123(BaseRaw):
 
         super(RawArtemis123, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
-            last_samps=last_samps, orig_format=np.float32,
+            last_samps=last_samps, orig_format="single",
             verbose=verbose)
 
         if add_head_trans:

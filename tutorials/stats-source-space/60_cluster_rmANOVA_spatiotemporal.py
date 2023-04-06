@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-cluster-rm-anova-spatiotemporal:
 
@@ -24,7 +23,6 @@ across space and time.
 
 # %%
 
-import os.path as op
 import numpy as np
 from numpy.random import randn
 import matplotlib.pyplot as plt
@@ -143,7 +141,7 @@ X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 # Now we need to prepare the group matrix for the ANOVA statistic. To make the
 # clustering function work correctly with the ANOVA function X needs to be a
 # list of multi-dimensional arrays (one per condition) of shape: samples
-# (subjects) x time x space.
+# (subjects) × time × space.
 #
 # First we permute dimensions, then split the array into a list of conditions
 # and discard the empty dimension resulting from the split using numpy squeeze.
@@ -183,7 +181,7 @@ n_conditions = 4
 #
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
-# input array of dimensions: subjects X conditions X observations (optional).
+# input array of dimensions: subjects × conditions × observations (optional).
 #
 # The following function catches the list input and swaps the first and the
 # second dimension, and finally calls ANOVA.
@@ -220,7 +218,7 @@ n_permutations = 50  # ... run way fewer permutations (reduces sensitivity)
 
 print('Clustering.')
 F_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
+    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=None,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
                                  buffer_size=None)
@@ -243,7 +241,7 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
 
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 # The brighter the color, the stronger the interaction between
 # stimulus modality and stimulus location
 

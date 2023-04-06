@@ -18,12 +18,15 @@ import warnings
 import numpy as np
 
 from .raw import _setup_channel_selections
+from ..fixes import _sharex
 from ..defaults import _handle_default
-from ..utils import verbose, logger, warn, fill_doc, _check_option
+from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
+from ..utils.spectrum import _split_psd_kwargs
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
+from ..time_frequency import Spectrum
 from .utils import (tight_layout, _setup_vmin_vmax, plt_show,
                     _check_cov, _handle_precompute,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
@@ -231,7 +234,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             # one fig per ch_type
             group_by = {ch_type: picks[np.array(ch_types) == ch_type]
                         for ch_type in set(ch_types)
-                        if ch_type in _DATA_CH_TYPES_SPLIT}
+                        if ch_type in _DATA_CH_TYPES_SPLIT + ('ref_meg',)}
         elif combine is None:
             # one fig per pick
             group_by = {epochs.ch_names[pick]: [pick] for pick in picks}
@@ -540,7 +543,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         ax['evoked'].set_xlim(tmin, tmax)
         ax['evoked'].lines[0].set_clip_on(True)
         ax['evoked'].collections[0].set_clip_on(True)
-        ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
+        _sharex(ax['evoked'], ax_im)
         # fix the axes for proper updating during interactivity
         loc = ax_im.xaxis.get_major_locator()
         ax['evoked'].xaxis.set_major_locator(loc)
@@ -669,8 +672,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     n_channels : int
         The number of channels per view. Defaults to 20.
     title : str | None
-        The title of the window. If None, epochs name will be displayed.
-        Defaults to None.
+        The title of the window. If None, the event names (from
+        ``epochs.event_id``) will be displayed. Defaults to None.
     events : None | array, shape (n_events, 3)
         Events to show with vertical bars. You can use `~mne.viz.plot_events`
         as a legend for the colors. By default, the coloring scheme is the
@@ -757,6 +760,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     plot can be toggled with ``b`` key. Left mouse click adds a vertical line
     to the plot. Click 'help' button at bottom left corner of the plotter to
     view all the options.
+
+    %(notes_2d_backend)s
 
     .. versionadded:: 0.10.0
     """
@@ -851,7 +856,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     # generate window title
     if title is None:
-        title = epochs._name
+        title = epochs._get_name(count='total', sep='•', ms=None)
         if title is None or len(title) == 0:
             title = 'Epochs'
     elif not isinstance(title, str):
@@ -919,12 +924,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     return fig
 
 
+@legacy(alt='Epochs.compute_psd().plot()')
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
                     normalization='length', picks=None, ax=None, color='black',
                     xscale='linear', area_mode='std', area_alpha=0.33,
-                    dB=True, estimate='auto', show=True, n_jobs=1,
+                    dB=True, estimate='auto', show=True, n_jobs=None,
                     average=False, line_alpha=None, spatial_colors=True,
                     sphere=None, exclude='bads', verbose=None):
     """%(plot_psd_doc)s.
@@ -933,16 +939,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     epochs : instance of Epochs
         The epochs object.
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
-    proj : bool
-        Apply projection.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(proj_psd)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -953,9 +952,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    %(picks_plot_psd_good_data)s
-    ax : instance of Axes | None
-        Axes to plot into. If None, axes will be created.
+    %(picks_good_data_noref)s
+    %(ax_plot_psd)s
     %(color_plot_psd)s
     %(xscale_plot_psd)s
     %(area_mode_plot_psd)s
@@ -966,7 +964,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(n_jobs)s
     %(average_plot_psd)s
     %(line_alpha_plot_psd)s
-    %(spatial_colors_plot_psd)s
+    %(spatial_colors_psd)s
     %(sphere_topomap_auto)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the bad channels
@@ -980,19 +978,10 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -------
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
-    """
-    from ._mpl_figure import _psd_figure
 
-    # generate figure
-    # epochs always use multitaper, not Welch, so no need to allow "window"
-    # param above
-    fig = _psd_figure(
-        inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
-        average=average, estimate=estimate, area_mode=area_mode,
-        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
-        spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, normalization=normalization,
-        window='hamming', exclude=exclude)
-    plt_show(show)
-    return fig
+    Notes
+    -----
+    %(notes_plot_*_psd_func)s
+    """
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+    return epochs.compute_psd(**init_kw).plot(**plot_kw)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Helpers for various transformations."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -7,8 +6,8 @@
 # License: BSD-3-Clause
 
 import os
-import os.path as op
 import glob
+from pathlib import Path
 
 import numpy as np
 from copy import deepcopy
@@ -21,7 +20,8 @@ from .io.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _path_like, get_subjects_dir, fill_doc, _check_fname,
-                    _check_option, _require_version, wrapped_stdout)
+                    _check_option, _require_version, wrapped_stdout,
+                    _import_nibabel)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -82,14 +82,15 @@ class Transform(dict):
         The starting coordinate frame. See notes for valid coordinate frames.
     to : str | int
         The ending coordinate frame. See notes for valid coordinate frames.
-    trans : array-like, shape (4, 4) | None
+    trans : array of shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
 
     Notes
     -----
-    Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
-    'fs_tal','ctf_head','ctf_meg','unknown'
+    Valid coordinate frames are ``'meg'``, ``'mri'``, ``'mri_voxel'``,
+    ``'head'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``, ``'ctf_head'``,
+    ``'ctf_meg'``, ``'unknown'``.
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102
@@ -168,8 +169,8 @@ class Transform(dict):
 
         Parameters
         ----------
-        fname : str
-            The name of the file, which should end in '-trans.fif'.
+        fname : path-like
+            The name of the file, which should end in ``-trans.fif``.
         """
         write_trans(fname, self)
 
@@ -203,14 +204,14 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
+    trans_fnames = glob.glob(str(subjects_dir / subject / "*-trans.fif"))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
     elif len(trans_fnames) > 1:
         raise RuntimeError('Found multiple transformations for '
                            '{subject}'.format(subject=subject))
-    return trans_fnames[0]
+    return Path(trans_fnames[0])
 
 
 def apply_trans(trans, pts, move=True):
@@ -333,10 +334,10 @@ def rotation3d_align_z_axis(target_z_axis):
                             target_z_axis[1] * target_z_axis[1])
 
     # assert that r is a rotation matrix r^t * r = I and det(r) = 1
-    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
-    assert((np.linalg.det(r) - 1.0) < 1E-12)
+    assert np.any((r.dot(r.T) - np.identity(3)) < 1E-12)
+    assert (np.linalg.det(r) - 1.0) < 1E-12
     # assert that r maps [0 0 1] on the device z axis (target_z_axis)
-    assert(np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+    assert np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12
 
     return r
 
@@ -451,13 +452,17 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
         types += (None,)
     _validate_type(trans, types, 'trans')
     if _path_like(trans):
-        trans = str(trans)
         if trans == 'fsaverage':
-            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
-                            'fsaverage-trans.fif')
-        if not op.isfile(trans):
-            raise IOError(f'trans file "{trans}" not found')
-        if op.splitext(trans)[1] in ['.fif', '.gz']:
+            trans = (
+                Path(__file__).parent
+                / "data"
+                / "fsaverage"
+                / "fsaverage-trans.fif"
+            )
+        trans = Path(trans)
+        if not trans.is_file():
+            raise OSError(f'trans file "{trans}" not found')
+        if trans.suffix in ['.fif', '.gz']:
             fro_to_t = read_trans(trans)
         else:
             # convert "-trans.txt" to "-trans.fif" mri-type equivalent
@@ -555,20 +560,20 @@ def read_trans(fname, return_all=False, verbose=None):
                 if not return_all:
                     break
     if len(trans) == 0:
-        raise IOError('This does not seem to be a -trans.fif file.')
+        raise OSError('This does not seem to be a -trans.fif file.')
     return trans if return_all else trans[0]
 
 
 @verbose
 def write_trans(fname, trans, *, overwrite=False, verbose=None):
-    """Write a -trans.fif file.
+    """Write a transformation FIF file.
 
     Parameters
     ----------
     fname : path-like
         The name of the file, which should end in ``-trans.fif``.
     trans : dict
-        Trans file data, as returned by read_trans.
+        Trans file data, as returned by `~mne.read_trans`.
     %(overwrite)s
     %(verbose)s
 
@@ -721,8 +726,8 @@ def _cart_to_sph(cart):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-    assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
+    assert cart.ndim == 2 and cart.shape[1] == 3
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
@@ -746,8 +751,8 @@ def _sph_to_cart(sph_pts):
         Array containing points in Cartesian coordinates (x, y, z)
 
     """
-    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     sph_pts = np.atleast_2d(sph_pts)
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     cart_pts = np.empty((len(sph_pts), 3))
     cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
     xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
@@ -922,7 +927,7 @@ def _compute_sph_harm(order, az, pol):
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-class _TPSWarp(object):
+class _TPSWarp:
     """Transform points using thin-plate spline (TPS) warping.
 
     Notes
@@ -999,7 +1004,7 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class _SphericalSurfaceWarp(object):
+class _SphericalSurfaceWarp:
     """Warp surfaces via spherical harmonic smoothing and thin-plate splines.
 
     Notes
@@ -1281,11 +1286,12 @@ def _quat_to_affine(quat):
     return affine
 
 
-def _angle_between_quats(x, y):
+def _angle_between_quats(x, y=None):
     """Compute the ang between two quaternions w/3-element representations."""
     # z = conj(x) * y
     # conjugate just negates all but the first element in a 4-element quat,
     # so it's just a negative for us
+    y = np.zeros(3) if y is None else y
     z = _quat_mult(-x, y)
     z0 = _quat_real(z)
     return 2 * np.arctan2(np.linalg.norm(z, axis=-1), z0)
@@ -1462,13 +1468,19 @@ def read_ras_mni_t(subject, subjects_dir=None):
     ras_mni_t : instance of Transform
         The transform from RAS to MNI (in mm).
     """
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = Path(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     _validate_type(subject, 'str', 'subject')
-    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
-                    'talairach.xfm')
-    fname = _check_fname(
-        fname, 'read', True, 'FreeSurfer Talairach transformation file')
+    fname = subjects_dir / subject / "mri" / "transforms" / "talairach.xfm"
+    fname = str(
+        _check_fname(
+            fname,
+            "read",
+            True,
+            "FreeSurfer Talairach transformation file",
+        )
+    )
     return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
 
 
@@ -1625,7 +1637,8 @@ def _reslice_normalize(img, zooms):
 
 @verbose
 def compute_volume_registration(moving, static, pipeline='all', zooms=None,
-                                niter=None, verbose=None):
+                                niter=None, *, starting_affine=None,
+                                verbose=None):
     """Align two volumes using an affine and, optionally, SDR.
 
     Parameters
@@ -1641,6 +1654,10 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
         (each with values that are float`, tuple, or None) to provide separate
         reslicing/accuracy for the steps.
     %(niter)s
+    starting_affine : ndarray
+        The affine to initialize the registration with.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -1657,13 +1674,14 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     .. versionadded:: 0.24
     """
     return _compute_volume_registration(
-        moving, static, pipeline, zooms, niter)[:2]
+        moving, static, pipeline, zooms, niter,
+        starting_affine=starting_affine)[:2]
 
 
-def _compute_volume_registration(moving, static, pipeline, zooms, niter):
-    _require_version('nibabel', 'SDR morph', '2.1.0')
+def _compute_volume_registration(moving, static, pipeline, zooms, niter, *,
+                                 starting_affine=None):
+    nib = _import_nibabel('SDR morph')
     _require_version('dipy', 'SDR morph', '0.10.1')
-    import nibabel as nib
     with np.testing.suppress_warnings():
         from dipy.align.imaffine import AffineMap
         from dipy.align import (affine_registration, center_of_mass,
@@ -1681,7 +1699,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     logger.info('Computing registration...')
 
     # affine optimizations
-    reg_affine = None
+    reg_affine = starting_affine
     sdr_morph = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
@@ -1759,7 +1777,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     %(sdr_morph)s
     interpolation : str
         Interpolation to be used during the interpolation.
-        Can be "linear" (default) or "nearest".
+        Can be ``"linear"`` (default) or ``"nearest"``.
     cval : float | str
         The constant value to assume exists outside the bounds of the
         ``moving`` image domain. Can be a string percentage like ``'1%%'``
@@ -1775,8 +1793,8 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     -----
     .. versionadded:: 0.24
     """
-    _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
+    _import_nibabel('SDR morph')
     from nibabel.spatialimages import SpatialImage
     from dipy.align.imwarp import DiffeomorphicMap
     from dipy.align.imaffine import AffineMap
@@ -1813,3 +1831,87 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     reg_img = SpatialImage(reg_data, static_affine)
     logger.info('[done]')
     return reg_img
+
+
+@verbose
+def apply_volume_registration_points(info, trans, moving, static, reg_affine,
+                                     sdr_morph=None, verbose=None):
+    """Apply volume registration.
+
+    Uses registration parameters computed by
+    :func:`~mne.transforms.compute_volume_registration`.
+
+    Parameters
+    ----------
+    %(info_not_none)s
+    %(trans_not_none)s
+    %(moving)s
+    %(static)s
+    %(reg_affine)s
+    %(sdr_morph)s
+    %(verbose)s
+
+    Returns
+    -------
+    %(info_not_none)s
+    trans2 : instance of Transform
+        The head->mri (surface RAS) transform for the static image.
+
+    Notes
+    -----
+    .. versionadded:: 1.4.0
+    """
+    from .channels import compute_native_head_t, make_dig_montage
+    _require_version('nibabel', 'volume registration', '2.1.0')
+    from nibabel import MGHImage
+    from nibabel.spatialimages import SpatialImage
+    from dipy.align.imwarp import DiffeomorphicMap
+
+    _validate_type(moving, SpatialImage, 'moving')
+    _validate_type(static, SpatialImage, 'static')
+    _validate_type(reg_affine, np.ndarray, 'reg_affine')
+    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+
+    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32),
+                          moving.affine)
+    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32),
+                          static.affine)
+
+    montage = info.get_montage()
+    montage_kwargs = montage.get_positions()
+    trans = _ensure_trans(trans, 'head', 'mri')
+    montage.apply_trans(trans)  # to moving surface RAS
+
+    locs = np.array(list(montage.get_positions()['ch_pos'].values()))
+
+    locs = apply_trans(Transform(  # to moving voxels
+        fro='mri', to='mri_voxel',
+        trans=np.linalg.inv(moving_mgh.header.get_vox2ras_tkr())),
+        locs * 1000)
+    locs = apply_trans(Transform(  # to moving ras
+        fro='mri_voxel', to='ras',
+        trans=moving_mgh.header.get_vox2ras()), locs)
+    locs = apply_trans(Transform(  # to static ras
+        fro='ras', to='ras', trans=np.linalg.inv(reg_affine)), locs)
+    if sdr_morph is not None:
+        _require_version('dipy', 'SDR morph', '1.6.0')
+        locs = sdr_morph.transform_points(
+            locs, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid)
+    locs = apply_trans(Transform(  # to static voxels
+        fro='ras', to='mri_voxel',
+        trans=np.linalg.inv(static_mgh.header.get_vox2ras())), locs)
+    locs = apply_trans(Transform(  # to static surface RAS
+        fro='mri_voxel', to='mri',
+        trans=static_mgh.header.get_vox2ras_tkr()), locs) / 1000
+
+    montage_kwargs['coord_frame'] = 'mri'
+    montage_kwargs['ch_pos'] = {ch: loc for ch, loc in
+                                zip(montage.ch_names, locs)}
+    montage2 = make_dig_montage(**montage_kwargs)
+
+    trans2 = compute_native_head_t(montage2)
+    info2 = info.copy()
+    info2.set_montage(montage2)  # converts to head coordinates
+
+    return info2, trans2

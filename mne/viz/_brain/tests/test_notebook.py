@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -19,8 +18,10 @@ pytestmark = pytest.mark.skipif(
 @testing.requires_testing_data
 def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     """Test plot alignment in a notebook."""
+    import pytest
     import mne
-    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+    with pytest.MonkeyPatch().context() as mp:
+        mp.delenv('_MNE_FAKE_HOME_DIR')
         data_path = mne.datasets.testing.data_path(download=False)
     raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
     subjects_dir = data_path / 'subjects'
@@ -39,19 +40,22 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
 @testing.requires_testing_data
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""
-    import os
     import tempfile
     from contextlib import contextmanager
+    from pathlib import Path
+    import pytest
     from numpy.testing import assert_allclose
     from ipywidgets import Button
     import matplotlib.pyplot as plt
     import mne
     from mne.datasets import testing
-    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+
+    with pytest.MonkeyPatch().context() as mp:
+        mp.delenv('_MNE_FAKE_HOME_DIR')
         data_path = testing.data_path(download=False)
-    sample_dir = os.path.join(data_path, 'MEG', 'sample')
-    subjects_dir = os.path.join(data_path, 'subjects')
-    fname_stc = os.path.join(sample_dir, 'sample_audvis_trunc-meg')
+    sample_dir = data_path / "MEG" / "sample"
+    subjects_dir = data_path / "subjects"
+    fname_stc = sample_dir / "sample_audvis_trunc-meg"
     stc = mne.read_source_estimate(fname_stc, subject='sample')
     stc.crop(0.1, 0.11)
     initial_time = 0.13
@@ -77,23 +81,25 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         assert brain._renderer.figure.notebook
         assert brain._renderer.figure.display is not None
         brain._renderer._update()
-        tmp_path = tempfile.mkdtemp()
-        movie_path = os.path.join(tmp_path, 'test.gif')
-        screenshot_path = os.path.join(tmp_path, 'test.png')
-        brain._renderer.actions['movie_field'].value = movie_path
-        brain._renderer.actions['screenshot_field'].value = screenshot_path
+        tmp_path = Path(tempfile.mkdtemp())
+        movie_path = tmp_path / "test.gif"
+        screenshot_path = tmp_path / "test.png"
+        brain._renderer.actions['movie_field'].value = str(movie_path)
+        brain._renderer.actions['screenshot_field'].value = \
+            str(screenshot_path)
         total_number_of_buttons = sum(
             '_field' not in k for k in brain._renderer.actions.keys())
         assert 'play' in brain._renderer.actions
         # play is not a button widget, it does not have a click() method
         number_of_buttons = 1
         for action in brain._renderer.actions.values():
-            if isinstance(action, Button):
-                action.click()
+            widget = action._action
+            if isinstance(widget, Button):
+                widget.click()
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
-        assert os.path.isfile(movie_path)
-        assert os.path.isfile(screenshot_path)
+        assert movie_path.is_file()
+        assert screenshot_path.is_file()
         img_nv = brain.screenshot()
         assert img_nv.shape == (300, 300, 3), img_nv.shape
         img_v = brain.screenshot(time_viewer=True)
@@ -121,8 +127,9 @@ def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
         '_field' not in k for k in rend.actions.keys())
     number_of_buttons = 0
     for action in rend.actions.values():
-        if isinstance(action, Button):
-            action.click()
+        widget = action._action
+        if isinstance(widget, Button):
+            widget.click()
             number_of_buttons += 1
     assert number_of_buttons == total_number_of_buttons
     assert fig.display is not None

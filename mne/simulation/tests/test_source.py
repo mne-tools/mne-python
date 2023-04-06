@@ -3,8 +3,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
-
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
@@ -15,15 +13,14 @@ from mne import (read_label, read_forward_solution, pick_types_forward,
                  convert_forward_solution)
 from mne.label import Label
 from mne.simulation import simulate_stc, simulate_sparse_stc, SourceSimulator
-from mne.utils import check_version
 
 
 data_path = testing.data_path(download=False)
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
-
-subjects_dir = op.join(data_path, 'subjects')
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+)
+label_names = ["Aud-lh", "Aud-rh", "Vis-rh"]
+subjects_dir = data_path / "subjects"
 
 
 @pytest.fixture(scope="module", params=[testing._pytest_param()])
@@ -31,8 +28,10 @@ def _get_fwd_labels():
     fwd = read_forward_solution(fname_fwd)
     fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=False)
-    labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
-                         '%s.label' % label)) for label in label_names]
+    labels = [
+        read_label(data_path / "MEG" / "sample" / "labels" / f"{label}.label")
+        for label in label_names
+    ]
     return fwd, labels
 
 
@@ -108,6 +107,7 @@ def test_simulate_stc(_get_fwd_labels):
 
 def test_simulate_sparse_stc(_get_fwd_labels):
     """Test generation of sparse source estimate."""
+    pytest.importorskip('nibabel')
     fwd, labels = _get_fwd_labels
     n_times = 10
     tmin = 0
@@ -234,12 +234,6 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
-
-    # smoke test for new API
-    if check_version('numpy', '1.17'):
-        simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
-                            labels=labels_single_hemi,
-                            random_state=np.random.default_rng(0))
 
 
 @testing.requires_testing_data

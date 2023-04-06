@@ -22,8 +22,8 @@ def read_raw_persyst(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to the Persyst header (.lay) file.
+    fname : path-like
+        Path to the Persyst header ``.lay`` file.
     %(preload)s
     %(verbose)s
 
@@ -31,10 +31,11 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     -------
     raw : instance of RawPersyst
         A Raw object containing Persyst data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawPersyst.
 
     Notes
     -----
@@ -53,19 +54,19 @@ class RawPersyst(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the Persyst header (.lay) file.
     %(preload)s
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        fname = _check_fname(fname, 'read', True, 'fname')
+        fname = str(_check_fname(fname, "read", True, "fname"))
         logger.info('Loading %s' % fname)
 
         # make sure filename is the Lay file

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-eeg-fsaverage-source-modeling:
 
@@ -10,8 +9,8 @@ This tutorial explains how to compute the forward operator from EEG data
 using the standard template MRI subject ``fsaverage``.
 
 .. caution:: Source reconstruction without an individual T1 MRI from the
-             subject will be less accurate. Do not over interpret
-             activity locations which can be off by multiple centimeters.
+             subject will be less accurate. Do not over interpret activity
+             locations which can be off by multiple centimeters.
 
 Adult template MRI (fsaverage)
 ------------------------------
@@ -76,7 +75,7 @@ mne.viz.plot_alignment(
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 fwd = mne.make_forward_solution(raw.info, trans=trans, src=src,
-                                bem=bem, eeg=True, mindist=5.0, n_jobs=1)
+                                bem=bem, eeg=True, mindist=5.0, n_jobs=None)
 print(fwd)
 
 ##############################################################################

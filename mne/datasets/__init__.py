@@ -26,6 +26,8 @@ from . import refmeg_noise
 from . import ssvep
 from . import erp_core
 from . import epilepsy_ecog
+from . import eyelink
+from . import ucl_opm_auditory
 from ._fetch import fetch_dataset
 from .utils import (_download_all_example_data, fetch_hcp_mmp_parcellation,
                     fetch_aparc_sub_parcellation, has_dataset)
@@ -41,5 +43,5 @@ __all__ = [
     'sleep_physionet', 'somato', 'spm_face', 'ssvep', 'testing',
     'visual_92_categories', 'limo', 'erp_core', 'epilepsy_ecog',
     'fetch_dataset', 'fetch_phantom', 'has_dataset', 'refmeg_noise',
-    'fnirs_motor'
+    'fnirs_motor', 'eyelink'
 ]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-metadata:
 
@@ -20,21 +19,20 @@ need and loading the data:
 
 # %%
 
-import os
 import numpy as np
 import pandas as pd
 import mne
 
 kiloword_data_folder = mne.datasets.kiloword.data_path()
-kiloword_data_file = os.path.join(kiloword_data_folder,
-                                  'kword_metadata-epo.fif')
+kiloword_data_file = kiloword_data_folder / 'kword_metadata-epo.fif'
 epochs = mne.read_epochs(kiloword_data_file)
 
 # %%
 # Viewing ``Epochs`` metadata
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Restrictions on metadata DataFrames
+# .. admonition:: Restrictions on metadata DataFrames
+#    :class: sidebar warning
 #
 #    Metadata dataframes are less flexible than typical
 #    :class:`Pandas DataFrames <pandas.DataFrame>`. For example, the allowed
@@ -116,7 +114,7 @@ print(epochs['Concreteness > 6 and WordFrequency < 1'])
 # MNE-Python will try the traditional method first before falling back on rich
 # metadata querying.
 
-epochs['solenoid'].plot_psd()
+epochs['solenoid'].compute_psd().plot()
 
 # %%
 # One use of the Pandas query string approach is to select specific words for

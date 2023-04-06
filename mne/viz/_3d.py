@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions to make 3D plots with M/EEG data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -10,16 +9,20 @@
 #
 # License: Simplified BSD
 
-from itertools import cycle
+import os
 import os.path as op
 import warnings
 from collections.abc import Iterable
-from functools import partial
 from dataclasses import dataclass
+from functools import partial
+from itertools import cycle
 from typing import Optional
+from pathlib import Path
 
 import numpy as np
 
+from ._dipole import (_check_concat_dipoles, _plot_dipole_mri_outlines,
+                      _plot_dipole_3d)
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata
 from .._freesurfer import (_read_mri_info, _check_mri, _get_head_surface,
@@ -40,9 +43,10 @@ from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
                           transform_surface_to, _frame_to_str,
                           _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     has_nibabel, check_version, fill_doc, _pl, get_config,
+                     check_version, fill_doc, _pl, get_config, _import_nibabel,
                      _ensure_int, _validate_type, _check_option, _to_rgb)
-from .utils import (mne_analyze_colormap, _get_color_list,
+from ._3d_overlay import _LayeredMesh
+from .utils import (mne_analyze_colormap, _get_color_list, _get_cmap,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 
@@ -302,8 +306,8 @@ def _set_aspect_equal(ax):
 
 @verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1, fig=None, vmax=None, n_contours=21,
-                      verbose=None):
+                      n_jobs=None, fig=None, vmax=None, n_contours=21,
+                      *, interaction='terrain', verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -331,6 +335,10 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         The number of contours.
 
         .. versionadded:: 0.21
+    %(interaction_scene)s
+        Defaults to ``'terrain'``.
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
@@ -343,6 +351,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
     _validate_type(vmax, (None, 'numeric'), 'vmax')
     n_contours = _ensure_int(n_contours, 'n_contours')
+    _check_option('interaction', interaction, ['trackball', 'terrain'])
 
     time_idx = None
     if time is None:
@@ -362,6 +371,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
     renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer.set_interaction(interaction)
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -395,18 +405,37 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
             vmax = np.max(np.abs(data))
         vmax = float(vmax)
         alpha = alphas[ii]
-        renderer.surface(surface=surf, color=colors[ii],
-                         opacity=alpha)
-
+        mesh = _LayeredMesh(
+            renderer=renderer,
+            vertices=surf['rr'],
+            triangles=surf['tris'],
+            normals=surf['nn'],
+        )
+        mesh.map()
+        color = _to_rgb(colors[ii], alpha=True)
+        cmap = np.array([(0, 0, 0, 0,), color])
+        ctable = np.round(cmap * 255).astype(np.uint8)
+        mesh.add_overlay(
+            scalars=np.ones(len(data)),
+            colormap=ctable,
+            rng=[0, 1],
+            opacity=alpha,
+            name='surf',
+        )
         # Now show our field pattern
-        renderer.surface(surface=surf, vmin=-vmax, vmax=vmax,
-                         scalars=data, colormap=colormap,
-                         polygon_offset=-1)
+        mesh.add_overlay(
+            scalars=data,
+            colormap=colormap,
+            rng=[-vmax, vmax],
+            opacity=1.,
+            name='field',
+        )
 
         # And the field lines on top
-        renderer.contour(surface=surf, scalars=data, contours=n_contours,
-                         vmin=-vmax, vmax=vmax, opacity=alpha,
-                         colormap=colormap_lines)
+        if n_contours > 0:
+            renderer.contour(surface=surf, scalars=data, contours=n_contours,
+                             vmin=-vmax, vmax=vmax, opacity=alpha,
+                             colormap=colormap_lines)
 
     if time_label is not None:
         if '%' in time_label:
@@ -423,13 +452,18 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
-                   fig=None, interaction='terrain', verbose=None):
+                   fig=None, interaction='terrain',
+                   sensor_colors=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
     ----------
     %(info)s If None (default), no sensor information will be shown.
-    %(trans)s
+    %(trans)s "auto" will load trans from the FreeSurfer directory
+        specified by ``subject`` and ``subjects_dir`` parameters.
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     %(subject)s Can be omitted if ``src`` is provided.
     %(subjects_dir)s
     surfaces : str | list | dict
@@ -467,7 +501,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     %(ecog)s
     src : instance of SourceSpaces | None
         If not None, also plot the source space points.
-    mri_fiducials : bool | str
+    mri_fiducials : bool | str | path-like
         Plot MRI fiducials (default False). If ``True``, look for a file with
         the canonical name (``bem/{subject}-fiducials.fif``). If ``str``,
         it can be ``'estimated'`` to use :func:`mne.coreg.get_mni_fiducials`,
@@ -505,6 +539,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
+    sensor_colors : array-like | None
+        Colors to use for the sensor glyphs. Can be list-like of color strings
+        (length ``n_sensors``) or array-like of RGB(A) values (shape
+        ``(n_sensors, 3)`` or ``(n_sensors, 4)``). ``None`` (the default) uses
+        the default sensor colors for the :func:`~mne.viz.plot_alignment` GUI.
     %(verbose)s
 
     Returns
@@ -575,14 +614,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             raise ValueError(f'subject ("{subject}") did not match the '
                              f'subject name in src ("{src_subject}")')
     # configure transforms
-    if trans == 'auto':
+    if isinstance(trans, str) and trans == 'auto':
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         trans = _find_trans(subject, subjects_dir)
+    trans, trans_type = _get_trans(trans, fro='head', to='mri')
 
     picks = pick_types(info, meg=('sensors' in meg), ref_meg=('ref' in meg),
                        eeg=(len(eeg) > 0), ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(len(fnirs) > 0))
-    if trans is None:
+    if trans_type == 'identity':
         # Some stuff is natively in head coords, others in MRI coords
         msg = ('A head<->mri transformation matrix (trans) is required '
                f'to plot %s in {coord_frame} coordinates, '
@@ -636,13 +676,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             brain = 'pial' if brain == 'brain' else brain
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             for hemi in ['lh', 'rh']:
-                brain_fname = op.join(subjects_dir, subject, 'surf',
-                                      f'{hemi}.{brain}')
-                if not op.isfile(brain_fname):
+                brain_fname = (
+                    subjects_dir / subject / "surf" / f"{hemi}.{brain}"
+                )
+                if not brain_fname.is_file():
                     raise RuntimeError(
                         f'No brain surface found for subject {subject}, '
                         f'expected {brain_fname} to exist')
                 surfs[hemi] = _read_mri_surface(brain_fname)
+            subjects_dir = str(subjects_dir)
 
     # Head surface:
     head_keys = ('auto', 'head', 'outer_skin', 'head-dense', 'seghead')
@@ -750,7 +792,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     # plotted being the sensors, so we need to do this after the surfaces)
     if picks.size > 0:
         _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
-                      warn_meg, head_surf, 'm')
+                      warn_meg, head_surf, 'm', sensor_colors=sensor_colors)
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
@@ -975,15 +1017,15 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
         if subject is None:
             raise ValueError("Subject needs to be specified to "
                              "automatically find the fiducials file.")
-        mri_fiducials = op.join(subjects_dir, subject, 'bem',
-                                subject + '-fiducials.fif')
-    if isinstance(mri_fiducials, str):
-        if mri_fiducials == 'estimated':
-            mri_fiducials = get_mni_fiducials(subject, subjects_dir)
-        else:
-            mri_fiducials, cf = read_fiducials(mri_fiducials)
-            if cf != FIFF.FIFFV_COORD_MRI:
-                raise ValueError("Fiducials are not in MRI space")
+        mri_fiducials = (
+            subjects_dir / subject / "bem" / (subject + "-fiducials.fif")
+        )
+    if isinstance(mri_fiducials, str) and mri_fiducials == "estimated":
+        mri_fiducials = get_mni_fiducials(subject, subjects_dir)
+    elif isinstance(mri_fiducials, (str, Path, os.PathLike)):
+        mri_fiducials, cf = read_fiducials(mri_fiducials)
+        if cf != FIFF.FIFFV_COORD_MRI:
+            raise ValueError("Fiducials are not in MRI space")
     if isinstance(mri_fiducials, np.ndarray):
         fid_loc = mri_fiducials
     else:
@@ -1145,7 +1187,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                   warn_meg, head_surf, units, sensor_opacity=0.8,
                   orient_glyphs=False, scale_by_distance=False,
                   project_points=False, surf=None, check_inside=None,
-                  nearest=None):
+                  nearest=None, sensor_colors=None):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1194,19 +1236,53 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
         if len(locs[sensor_type]) > 0:
             sens_loc = np.array(locs[sensor_type])
             sens_loc = sens_loc[~np.isnan(sens_loc).any(axis=1)]
-            color = defaults[sensor_type + '_color']
             scale = defaults[sensor_type + '_scale']
-            actor, _ = _plot_glyphs(renderer=renderer, loc=sens_loc * scalar,
-                                    color=color, scale=scale * scalar,
-                                    opacity=sensor_opacity,
-                                    orient_glyphs=orient_glyphs,
-                                    scale_by_distance=scale_by_distance,
-                                    project_points=project_points,
-                                    surf=surf, check_inside=check_inside,
-                                    nearest=nearest)
-            if sensor_type in ('source', 'detector'):
-                sensor_type = 'fnirs'
-            actors[sensor_type].append(actor)
+            if sensor_colors is None:
+                color = defaults[sensor_type + '_color']
+                actor, _ = _plot_glyphs(
+                    renderer=renderer,
+                    loc=sens_loc * scalar,
+                    color=color,
+                    scale=scale * scalar,
+                    opacity=sensor_opacity,
+                    orient_glyphs=orient_glyphs,
+                    scale_by_distance=scale_by_distance,
+                    project_points=project_points,
+                    surf=surf, check_inside=check_inside,
+                    nearest=nearest
+                )
+                if sensor_type in ('source', 'detector'):
+                    sensor_type = 'fnirs'
+                actors[sensor_type].append(actor)
+            else:
+                actor_list = []
+                for idx_sen in range(sens_loc.shape[0]):
+                    sensor_colors = np.asarray(sensor_colors)
+                    if (sensor_colors.ndim not in (1, 2) or
+                            sensor_colors.shape[0] != sens_loc.shape[0]):
+                        raise ValueError(
+                            'sensor_colors should either be None or be '
+                            'array-like with shape (n_sensors,) or '
+                            '(n_sensors, 3) or (n_sensors, 4). Got shape '
+                            f'{sensor_colors.shape}.'
+                        )
+                    color = sensor_colors[idx_sen]
+
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=(sens_loc * scalar)[idx_sen, :],
+                        color=color, scale=scale * scalar,
+                        opacity=sensor_opacity,
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf, check_inside=check_inside,
+                        nearest=nearest
+                    )
+                    actor_list.append(actor)
+                if sensor_type in ('source', 'detector'):
+                    sensor_type = 'fnirs'
+                actors[sensor_type].append(actor_list)
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
@@ -1341,15 +1417,6 @@ def _sensor_shape(coil):
         rrs = np.pad(rrs, ((0, 0), (0, 1)), mode='constant')
     assert rrs.ndim == 2 and rrs.shape[1] == 3
     return rrs, tris
-
-
-def _get_cmap(colormap):
-    import matplotlib.pyplot as plt
-    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-    else:
-        colormap = plt.get_cmap(colormap)
-    return colormap
 
 
 def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
@@ -1587,7 +1654,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
     from scipy import stats
@@ -1629,7 +1695,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     else:
         fig.add_axes(ax)
     hemi_idx = 0 if hemi == 'lh' else 1
-    surf = op.join(subjects_dir, subject, 'surf', '%s.%s' % (hemi, surface))
+    surf = subjects_dir / subject / "surf" / f"{hemi}.{surface}"
     if spacing == 'all':
         coords, faces = nib.freesurfer.read_geometry(surf)
         inuse = slice(None)
@@ -1647,11 +1713,12 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
     tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-    cmap = cm.get_cmap(colormap)
-    greymap = cm.get_cmap('Greys')
+    cmap = _get_cmap(colormap)
+    greymap = _get_cmap('Greys')
 
     curv = nib.freesurfer.read_morph_data(
-        op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
+        subjects_dir / subject / "surf" / f"{hemi}.curv"
+    )[inuse]
     curv = np.clip(np.array(curv > 0, np.int64), 0.33, 0.66)
     params = dict(ax=ax, stc=stc, coords=coords, faces=faces,
                   hemi_idx=hemi_idx, vertices=vertices, tris=tris,
@@ -1736,7 +1803,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
                             " {} was given.".format(type(brain)))
         # enable time viewer if necessary
         brain.setup_time_viewer()
-    subjects = [brain._subject_id for brain in brains]
+    subjects = [brain._subject for brain in brains]
     if subjects.count(subjects[0]) != len(subjects):
         raise RuntimeError("Cannot link brains from different subjects.")
 
@@ -1791,12 +1858,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str
-        Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
-        of 'both', both hemispheres are shown in the same window.
-        In the case of 'split' hemispheres are displayed side-by-side
+        Hemisphere id (ie ``'lh'``, ``'rh'``, ``'both'``, or ``'split'``). In
+        the case of ``'both'``, both hemispheres are shown in the same window.
+        In the case of ``'split'`` hemispheres are displayed side-by-side
         in different viewing panes.
     %(colormap)s
-        The default ('auto') uses 'hot' for one-sided data and
+        The default ('auto') uses ``'hot'`` for one-sided data and
         'mne' for two-sided data.
     %(time_label)s
     smoothing_steps : int
@@ -1831,12 +1898,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     colorbar : bool
         If True, display colorbar on scene.
     %(clim)s
-    cortex : str or tuple
+    cortex : str | tuple
         Specifies how binarized curvature values are rendered.
         Either the name of a preset Brain cortex colorscheme (one of
-        'classic', 'bone', 'low_contrast', or 'high_contrast'), or the name of
-        a colormap, or a tuple with values (colormap, min, max, reverse)
-        to fully specify the curvature colors. Has no effect with mpl backend.
+        ``'classic'``, ``'bone'``, ``'low_contrast'``, or ``'high_contrast'``),
+        or the name of a colormap, or a tuple with values
+        ``(colormap, min, max, reverse)`` to fully specify the curvature
+        colors. Has no effect with the matplotlib backend.
     size : float or tuple of float
         The size of the window, in pixels. can be one number to specify
         a square window, or the (width, height) of a rectangular window.
@@ -1849,10 +1917,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     initial_time : float | None
         The time to display on the plot initially. ``None`` to display the
         first time sample (default).
-    time_unit : 's' | 'ms'
+    time_unit : ``'s'`` | ``'ms'``
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    backend : 'auto' | 'pyvistaqt' | 'matplotlib'
+    backend : ``'auto'`` | ``'pyvistaqt'`` | ``'matplotlib'``
         Which backend to use. If ``'auto'`` (default), tries to plot with
         pyvistaqt, but resorts to matplotlib if no 3d backend is available.
 
@@ -1895,10 +1963,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     """  # noqa: E501
     from .backends.renderer import _get_3d_backend, use_3d_backend
     from ..source_estimate import _BaseSourceEstimate, _check_stc_src
+
     _check_stc_src(stc, src)
     _validate_type(stc, _BaseSourceEstimate, 'stc', 'source estimate')
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = (
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     subject = _check_subject(stc.subject, subject)
     _check_option('backend', backend,
                   ['auto', 'matplotlib', 'pyvistaqt', 'notebook'])
@@ -1938,9 +2008,11 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
               view_layout, add_data_kwargs, brain_kwargs):
     from .backends.renderer import _get_3d_backend, get_brain_class
     from ..source_estimate import _BaseVolSourceEstimate
+
     vec = stc._data_ndim == 3
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = str(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     subject = _check_subject(stc.subject, subject)
 
     backend = _get_3d_backend()
@@ -1981,7 +2053,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     kwargs = {
-        "subject_id": subject, "hemi": hemi, "surf": surface,
+        "subject": subject, "hemi": hemi, "surf": surface,
         "title": title, "cortex": cortex, "size": size,
         "background": background, "foreground": foreground,
         "figure": figure, "subjects_dir": subjects_dir,
@@ -2188,7 +2260,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
     """  # noqa: E501
     from matplotlib import pyplot as plt, colors
-    from matplotlib.cbook import mplDeprecation
     import nibabel as nib
     from ..source_estimate import VolSourceEstimate
     from ..morph import SourceMorph
@@ -2235,7 +2306,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                      % (stc.vertices[0][loc_idx], dist))
         return loc_idx
 
-    ax_name = dict(x='X (saggital)', y='Y (coronal)', z='Z (axial)')
+    ax_name = dict(x='X (sagittal)', y='Y (coronal)', z='Z (axial)')
 
     def _click_to_cut_coords(event, params):
         """Get voxel coordinates from mouse click."""
@@ -2297,8 +2368,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         params['fig'].canvas.draw()
 
     def _update_timeslice(idx, params):
-        params['lx'].set_xdata(idx / params['stc'].sfreq +
-                               params['stc'].tmin)
+        params['lx'].set_xdata([idx / params['stc'].sfreq +
+                                params['stc'].tmin])
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_func']
         # Crosshairs are the first thing plotted in stat_map, and the last
@@ -2344,7 +2415,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         if loc_idx is not None:
             ax_time.lines[0].set_ydata(ydata)
         else:
-            ax_time.lines[0].set_ydata(0.)
+            ax_time.lines[0].set_ydata([0.])
         _update_vertlabel(loc_idx)
         params['fig'].canvas.draw()
 
@@ -2372,7 +2443,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         time_sl = slice(0, None)
     else:
         initial_time = float(initial_time)
-        logger.info('Fixing initial time: %s sec' % (initial_time,))
+        logger.info('Fixing initial time: %s s' % (initial_time,))
         initial_time = np.argmin(np.abs(stc.times - initial_time))
         time_sl = slice(initial_time, initial_time + 1)
     if initial_pos is None:  # find max pos and (maybe) time
@@ -2457,7 +2528,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                              'sign of your data for visualization purposes')
         # due to nilearn plotting weirdness, extend this to go
         # -scale_pts[2]->scale_pts[2] instead of scale_pts[0]->scale_pts[2]
-        colormap = plt.get_cmap(colormap)
+        colormap = _get_cmap(colormap)
         colormap = colormap(
             np.interp(np.linspace(-1, 1, 256),
                       scale_pts / scale_pts[2],
@@ -2479,7 +2550,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         if params.get('fig_anat') is not None and plot_kwargs['colorbar']:
             params['fig_anat']._cbar.ax.clear()
         with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-            warnings.simplefilter('ignore', mplDeprecation)
+            warnings.simplefilter('ignore', DeprecationWarning)
             params['fig_anat'] = partial(
                 plot_func, **plot_kwargs)(*args, **kwargs)
         params['fig_anat']._cbar.outline.set_visible(False)
@@ -2850,14 +2921,13 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
-                          scale=5e-3, color=None, highlight_color='r',
-                          fig=None, verbose=None, title=None):
+                          scale=None, color=None, *, highlight_color='r',
+                          fig=None, title=None, head_source='seghead',
+                          surf='pial', width=None, verbose=None):
     """Plot dipole locations.
 
     If mode is set to 'arrow' or 'sphere', only the location of the first
     time point of each dipole is shown else use the show_all parameter.
-
-    The option mode='orthoview' was added in version 0.14.
 
     Parameters
     ----------
@@ -2866,19 +2936,34 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     trans : dict | None
         The mri to head trans.
         Can be None with mode set to '3d'.
-    subject : str | None
+    subject : str | None
         The FreeSurfer subject name (will be used to set the FreeSurfer
         environment variable ``SUBJECT``).
         Can be ``None`` with mode set to ``'3d'``.
     %(subjects_dir)s
     mode : str
-        Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
+        Can be:
 
-        .. versionadded:: 0.19.0
+        ``'arrow'`` or ``'sphere'``
+            Plot in 3D mode using PyVista with the given glyph type.
+        ``'orthoview'``
+            Plot in matplotlib ``Axes3D`` using matplotlib with MRI slices
+            shown on the sides of a cube, with the dipole(s) shown as arrows
+            extending outward from a dot (i.e., the arrows pivot on the tail).
+        ``'outlines'``
+            Plot in matplotlib ``Axes`` using a quiver of arrows for the
+            dipoles in three axes (axial, coronal, and sagittal views),
+            with the arrow pivoting in the middle of the arrow.
+
+        .. versionchanged:: 1.1
+           Added support for ``'outlines'``.
     coord_frame : str
-        Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
+        Coordinate frame to use: 'head' or 'mri'. Can also be 'mri_rotated'
+        when mode equals ``'outlines'``. Defaults to 'mri'.
 
         .. versionadded:: 0.14.0
+        .. versionchanged:: 1.1
+           Added support for ``'mri_rotated'``.
     idx : int | 'gof' | 'amplitude'
         Index of the initially plotted dipole. Can also be 'gof' to plot the
         dipole with highest goodness of fit value or 'amplitude' to plot the
@@ -2895,9 +2980,10 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         Only used if ``mode='orthoview'``.
 
         .. versionadded:: 0.14.0
-    ax : instance of matplotlib Axes3D | None
+    ax : instance of matplotlib Axes3D | list of matplotlib Axes | None
         Axes to plot into. If None (default), axes will be created.
-        Only used if mode equals 'orthoview'.
+        If mode equals ``'orthoview'``, must be a single ``Axes3D``.
+        If mode equals ``'outlines'``, must be a list of three ``Axes``.
 
         .. versionadded:: 0.14.0
     block : bool
@@ -2910,11 +2996,14 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         Show figure if True. Defaults to True.
         Only used if mode equals 'orthoview'.
     scale : float
-        The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
+        The scale (size in meters) of the dipoles if ``mode`` is not
+        ``'orthoview'``. The default is 0.03 when mode is ``'outlines'`` and
+        0.005 otherwise.
     color : tuple
         The color of the dipoles.
         The default (None) will use ``'y'`` if mode is ``'orthoview'`` and
-        ``show_all`` is True, else 'r'.
+        ``show_all`` is True, else 'r'. Can also be a list of colors to use
+        when mode is ``'outlines'``.
 
         .. versionchanged:: 0.19.0
            Color is now passed in orthoview mode.
@@ -2926,12 +3015,30 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     fig : instance of Figure3D | None
         3D figure in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
+        Only used when mode is ``'arrow'`` or ``'sphere'``.
 
         .. versionadded:: 0.19.0
-    %(verbose)s
-    %(title_dipole_locs_fig)s
+    title : str | None
+        The title of the figure if ``mode='orthoview'`` (ignored for all other
+        modes). If ``None``, dipole number and its properties (amplitude,
+        orientation etc.) will be shown. Defaults to ``None``.
 
         .. versionadded:: 0.21.0
+    %(head_source)s
+        Only used when mode equals ``'outlines'``.
+
+        .. versionadded:: 1.1
+    surf : str | None
+        Brain surface to show outlines for, can be ``'white'``, ``'pial'``, or
+        ``None``. Only used when mode is ``'outlines'``.
+
+        .. versionadded:: 1.1
+    width : float | None
+        Width of the matplotlib quiver arrow, see
+        :meth:`matplotlib:matplotlib.axes.Axes.quiver`. If None (default),
+        when mode is ``'outlines'`` 0.015 will be used, and when mode is
+        ``'orthoview'`` the matplotlib default is used.
+    %(verbose)s
 
     Returns
     -------
@@ -2942,34 +3049,28 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     -----
     .. versionadded:: 0.9.0
     """
+    _validate_type(mode, str, 'mode')
+    _validate_type(coord_frame, str, 'coord_frame')
+    _check_option('mode', mode, ('orthoview', 'outlines', 'arrow', 'sphere'))
+    if mode in ('orthoview', 'outlines'):
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+    kwargs = dict(
+        trans=trans, subject=subject, subjects_dir=subjects_dir,
+        coord_frame=coord_frame, ax=ax, block=block, show=show, color=color,
+        title=title, width=width)
+    dipoles = _check_concat_dipoles(dipoles)
     if mode == 'orthoview':
         fig = _plot_dipole_mri_orthoview(
-            dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
-            coord_frame=coord_frame, idx=idx, show_all=show_all,
-            ax=ax, block=block, show=show, color=color,
-            highlight_color=highlight_color, title=title)
-    elif mode in ['arrow', 'sphere']:
-        from .backends.renderer import _get_renderer
-        color = (1., 0., 0.) if color is None else color
-        renderer = _get_renderer(fig=fig, size=(600, 600))
-        pos = dipoles.pos
-        ori = dipoles.ori
-        if coord_frame != 'head':
-            trans = _get_trans(trans, fro='head', to=coord_frame)[0]
-            pos = apply_trans(trans, pos)
-            ori = apply_trans(trans, ori)
-
-        renderer.sphere(center=pos, color=color, scale=scale)
-        if mode == 'arrow':
-            x, y, z = pos.T
-            u, v, w = ori.T
-            renderer.quiver3d(x, y, z, u, v, w, scale=3 * scale,
-                              color=color, mode='arrow')
-        renderer.show()
-        fig = renderer.scene()
+            dipoles, idx=idx, show_all=show_all,
+            highlight_color=highlight_color, **kwargs)
+    elif mode == 'outlines':
+        fig = _plot_dipole_mri_outlines(
+            dipoles, head_source=head_source, surf=surf, scale=scale, **kwargs)
     else:
-        raise ValueError('Mode must be "cone", "arrow" or orthoview", '
-                         'got %s.' % (mode,))
+        assert mode in ('arrow', 'sphere'), mode
+        fig = _plot_dipole_3d(
+            dipoles, trans=trans, coord_frame=coord_frame, color=color,
+            fig=fig, scale=scale, mode=mode)
 
     return fig
 
@@ -3040,19 +3141,14 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
                                ax=None, block=False, show=True, color=None,
-                               highlight_color='r', title=None):
+                               highlight_color='r', title=None, width=None):
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from .. import Dipole
-    if not has_nibabel():
-        raise ImportError('This function requires nibabel.')
+    _import_nibabel('plotting MRI slices')
 
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
-    if not isinstance(dipole, Dipole):
-        from ..dipole import _concatenate_dipoles
-        dipole = _concatenate_dipoles(dipole)
     if idx == 'gof':
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
@@ -3068,7 +3164,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     if ax is None:
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
     else:
-        _validate_type(ax, Axes3D, "ax", "Axes3D")
+        _validate_type(ax, Axes3D, "ax", "Axes3D",
+                       extra='when mode is "orthoview"')
         fig = ax.get_figure()
 
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
@@ -3078,7 +3175,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
               'ori': ori, 'coord_frame': coord_frame,
               'show_all': show_all, 'pos': pos,
               'color': color, 'highlight_color': highlight_color,
-              'title': title}
+              'title': title, 'width': width}
     _plot_dipole(**params)
     ax.view_init(elev=30, azim=-140)
 
@@ -3101,8 +3198,9 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     from nibabel.processing import resample_from_to
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                    raise_error=True)
+    subjects_dir = str(
+        get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+    )
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
     # Do everything in mm here to make life slightly easier
@@ -3146,7 +3244,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
 
 
 def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
-                 show_all, pos, color, highlight_color, title):
+                 show_all, pos, color, highlight_color, title, width):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     xidx, yidx, zidx = np.round(vox[idx]).astype(int)
@@ -3186,6 +3284,8 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color=highlight_color)
     q_kwargs = dict(length=50, color=highlight_color, pivot='tail')
+    if width is not None:
+        q_kwargs['width'] = width
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1], ori[2],
               **q_kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])

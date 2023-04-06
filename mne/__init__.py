@@ -16,7 +16,14 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-from ._version import __version__
+try:
+    from importlib.metadata import version
+    __version__ = version("mne")
+except Exception:
+    try:
+        from ._version import __version__
+    except ImportError:
+        __version__ = '0.0.0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
@@ -43,7 +50,7 @@ from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
                   compute_covariance, whiten_evoked, make_ad_hoc_cov)
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
-                    find_stim_steps, AcqParserFIF)
+                    find_stim_steps, AcqParserFIF, count_events)
 from ._freesurfer import (head_to_mni, head_to_mri, read_talxfm,
                           get_volume_labels_from_aseg, read_freesurfer_lut,
                           vertex_to_mni, read_lta)
@@ -98,7 +105,8 @@ from .channels import (equalize_channels, rename_channels, find_layout,
                        read_vectorview_selection)
 from .report import Report, open_report
 
-from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
+from .io import (read_epochs_fieldtrip, read_evoked_besa,
+                 read_evoked_fieldtrip, read_evokeds_mff)
 from .rank import compute_rank
 
 from . import beamformer

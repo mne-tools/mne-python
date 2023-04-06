@@ -12,6 +12,7 @@
 # License: Simplified BSD
 
 from collections import OrderedDict
+from dataclasses import dataclass
 from copy import deepcopy
 import os.path as op
 import re
@@ -25,7 +26,7 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
                           _verbose_frames, _fit_matched_points,
                           _quat_to_affine, _ensure_trans)
-from ..io._digitization import (_count_points_by_type,
+from ..io._digitization import (_count_points_by_type, _ensure_fiducials_head,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const,
@@ -41,18 +42,132 @@ from ..utils import (warn, copy_function_doc_to_method_doc, _pl, verbose,
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 
-_BUILT_IN_MONTAGES = [
-    'EGI_256',
-    'GSN-HydroCel-128', 'GSN-HydroCel-129', 'GSN-HydroCel-256',
-    'GSN-HydroCel-257', 'GSN-HydroCel-32', 'GSN-HydroCel-64_1.0',
-    'GSN-HydroCel-65_1.0',
-    'biosemi128', 'biosemi16', 'biosemi160', 'biosemi256',
-    'biosemi32', 'biosemi64',
-    'easycap-M1', 'easycap-M10',
-    'mgh60', 'mgh70',
-    'standard_1005', 'standard_1020', 'standard_alphabetic',
-    'standard_postfixed', 'standard_prefixed', 'standard_primed',
-    'artinis-octamon', 'artinis-brite23'
+
+@dataclass
+class _BuiltinStandardMontage:
+    name: str
+    description: str
+
+
+_BUILTIN_STANDARD_MONTAGES = [
+    _BuiltinStandardMontage(
+        name='standard_1005',
+        description='Electrodes are named and positioned according to the '
+                    'international 10-05 system (343+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='standard_1020',
+        description='Electrodes are named and positioned according to the '
+                    'international 10-20 system (94+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='standard_alphabetic',
+        description='Electrodes are named with LETTER-NUMBER combinations '
+                    '(A1, B2, F4, …) (65+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='standard_postfixed',
+        description='Electrodes are named according to the international '
+                    '10-20 system using postfixes for intermediate positions '
+                    '(100+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='standard_prefixed',
+        description='Electrodes are named according to the international '
+                    '10-20 system using prefixes for intermediate positions '
+                    '(74+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='standard_primed',
+        description="Electrodes are named according to the international "
+                    "10-20 system using prime marks (' and '') for "
+                    "intermediate positions (100+3 locations)",
+    ),
+    _BuiltinStandardMontage(
+        name='biosemi16',
+        description='BioSemi cap with 16 electrodes (16+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='biosemi32',
+        description='BioSemi cap with 32 electrodes (32+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='biosemi64',
+        description='BioSemi cap with 64 electrodes (64+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='biosemi128',
+        description='BioSemi cap with 128 electrodes (128+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='biosemi160',
+        description='BioSemi cap with 160 electrodes (160+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='biosemi256',
+        description='BioSemi cap with 256 electrodes (256+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='easycap-M1',
+        description='EasyCap with 10-05 electrode names (74 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='easycap-M10',
+        description='EasyCap with numbered electrodes (61 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='EGI_256',
+        description='Geodesic Sensor Net (256 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='GSN-HydroCel-32',
+        description='HydroCel Geodesic Sensor Net and Cz (33+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='GSN-HydroCel-64_1.0',
+        description='HydroCel Geodesic Sensor Net (64+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='GSN-HydroCel-65_1.0',
+        description='HydroCel Geodesic Sensor Net and Cz (65+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='GSN-HydroCel-128',
+        description='HydroCel Geodesic Sensor Net (128+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='GSN-HydroCel-129',
+        description='HydroCel Geodesic Sensor Net and Cz (129+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='GSN-HydroCel-256',
+        description='HydroCel Geodesic Sensor Net (256+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='GSN-HydroCel-257',
+        description='HydroCel Geodesic Sensor Net and Cz (257+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='mgh60',
+        description='The (older) 60-channel cap used at MGH (60+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='mgh70',
+        description='The (newer) 70-channel BrainVision cap used at MGH '
+                    '(70+3 locations)',
+    ),
+    _BuiltinStandardMontage(
+        name='artinis-octamon',
+        description='Artinis OctaMon fNIRS (8 sources, 2 detectors)',
+    ),
+    _BuiltinStandardMontage(
+        name='artinis-brite23',
+        description='Artinis Brite23 fNIRS (11 sources, 7 detectors)',
+    ),
+    _BuiltinStandardMontage(
+        name='brainproducts-RNP-BA-128',
+        description='Brain Products with 10-10 electrode names (128 channels)',
+    )
 ]
 
 
@@ -65,16 +180,36 @@ def _check_get_coord_frame(dig):
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
-def get_builtin_montages():
-    """Get a list of all builtin montages.
+def get_builtin_montages(*, descriptions=False):
+    """Get a list of all standard montages shipping with MNE-Python.
+
+    The names of the montages can be passed to :func:`make_standard_montage`.
+
+    Parameters
+    ----------
+    descriptions : bool
+        Whether to return not only the montage names, but also their
+        corresponding descriptions. If ``True``, a list of tuples is returned,
+        where the first tuple element is the montage name and the second is
+        the montage description. If ``False`` (default), only the names are
+        returned.
+
+        .. versionadded:: 1.1
 
     Returns
     -------
-    montages : list
-        Names of all builtin montages that can be used by
-        :func:`make_standard_montage`.
+    montages : list of str | list of tuple
+        If ``descriptions=False``, the names of all builtin montages that can
+        be used by :func:`make_standard_montage`.
+
+        If ``descriptions=True``, a list of tuples ``(name, description)``.
     """
-    return _BUILT_IN_MONTAGES
+    if descriptions:
+        return [
+            (m.name, m.description) for m in _BUILTIN_STANDARD_MONTAGES
+        ]
+    else:
+        return [m.name for m in _BUILTIN_STANDARD_MONTAGES]
 
 
 def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
@@ -107,7 +242,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         The coordinate frame of the points. Usually this is ``'unknown'``
         for native digitizer space.
         Other valid values are: ``'head'``, ``'meg'``, ``'mri'``,
-        ``'mri_voxel'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``,
+        ``'mri_voxel'``, ``'mni_tal'``, ``'ras'``, ``'fs_tal'``,
         ``'ctf_head'``, and ``'ctf_meg'``.
 
         .. note::
@@ -141,7 +276,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     return DigMontage(dig=dig, ch_names=ch_names)
 
 
-class DigMontage(object):
+class DigMontage:
     """Montage for digitized electrode and headshape position data.
 
     .. warning:: Montages are typically created using one of the helper
@@ -193,10 +328,10 @@ class DigMontage(object):
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=True, kind='topomap', show=True,
-             sphere=None, verbose=None):
+             sphere=None, *, axes=None, verbose=None):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show,
-                            sphere=sphere)
+                            sphere=sphere, axes=axes)
 
     @fill_doc
     def rename_channels(self, mapping, allow_duplicates=False):
@@ -222,7 +357,7 @@ class DigMontage(object):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The filename to use. Should end in .fif or .fif.gz.
         %(overwrite)s
         %(verbose)s
@@ -240,7 +375,7 @@ class DigMontage(object):
         system and location values.
         """
         def is_fid_defined(fid):
-            return not(
+            return not (
                 fid.nasion is None and fid.lpa is None and fid.rpa is None
             )
 
@@ -296,6 +431,15 @@ class DigMontage(object):
         out = self.copy()
         out += other
         return out
+
+    def __eq__(self, other):
+        """Compare different DigMontage objects for equality.
+
+        Returns
+        -------
+        Boolean output from comparison of .dig
+        """
+        return self.dig == other.dig and self.ch_names == other.ch_names
 
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
@@ -504,12 +648,6 @@ def _check_unit_and_get_scaling(unit):
 def transform_to_head(montage):
     """Transform a DigMontage object into head coordinate.
 
-    It requires that the LPA, RPA and Nasion fiducial
-    point are available. It requires that all fiducial
-    points are in the same coordinate e.g. 'unknown'
-    and it will convert all the point in this coordinate
-    system to Neuromag head coordinate system.
-
     Parameters
     ----------
     montage : instance of DigMontage
@@ -520,6 +658,21 @@ def transform_to_head(montage):
     montage : instance of DigMontage
         The montage after transforming the points to head
         coordinate system.
+
+    Notes
+    -----
+    This function requires that the LPA, RPA and Nasion fiducial
+    points are available. If they are not, they will be added based by
+    projecting the fiducials onto a sphere with radius equal to the average
+    distance of each point to the origin (in the given coordinate frame).
+
+    This function assumes that all fiducial points are in the same coordinate
+    frame (e.g. 'unknown') and it will convert all the point in this coordinate
+    system to Neuromag head coordinate system.
+
+    .. versionchanged:: 1.2
+       Fiducial points will be added automatically if the montage does not
+       have them.
     """
     # Get fiducial points and their coord_frame
     native_head_t = compute_native_head_t(montage)
@@ -529,6 +682,7 @@ def transform_to_head(montage):
             if d['coord_frame'] == native_head_t['from']:
                 d['r'] = apply_trans(native_head_t, d['r'])
                 d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    _ensure_fiducials_head(montage.dig)
     return montage
 
 
@@ -645,14 +799,14 @@ def read_dig_fif(fname):
 
 
 def read_dig_hpts(fname, unit='mm'):
-    """Read historical .hpts mne-c files.
+    """Read historical ``.hpts`` MNE-C files.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .hpts file.
-    unit : 'm' | 'cm' | 'mm'
-        Unit of the positions. Defaults to 'mm'.
+    unit : ``'m'`` | ``'cm'`` | ``'mm'``
+        Unit of the positions. Defaults to ``'mm'``.
 
     Returns
     -------
@@ -713,6 +867,8 @@ def read_dig_hpts(fname, unit='mm'):
         ...
     """
     from ._standard_montage_utils import _str_names, _str
+
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     _scale = _check_unit_and_get_scaling(unit)
 
     out = np.genfromtxt(fname, comments='#',
@@ -850,10 +1006,12 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
 
 def _get_montage_in_head(montage):
     coords = set([d['coord_frame'] for d in montage.dig])
+    montage = montage.copy()
     if len(coords) == 1 and coords.pop() == FIFF.FIFFV_COORD_HEAD:
+        _ensure_fiducials_head(montage.dig)
         return montage
     else:
-        return transform_to_head(montage.copy())
+        return transform_to_head(montage)
 
 
 def _set_montage_fnirs(info, montage):
@@ -923,7 +1081,10 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
             ch['loc'] = np.full(12, np.nan)
         return
     if isinstance(montage, str):  # load builtin montage
-        _check_option('montage', montage, _BUILT_IN_MONTAGES)
+        _check_option(
+            parameter='montage', value=montage,
+            allowed_values=[m.name for m in _BUILTIN_STANDARD_MONTAGES]
+        )
         montage = make_standard_montage(montage)
 
     mnt_head = _get_montage_in_head(montage)
@@ -964,7 +1125,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     if not custom_eeg_ref_dig:
         refs = set(ch_pos) & {'EEG000', 'REF'}
         assert len(refs) <= 1
-        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
+        eeg_ref_pos = np.zeros(3) if not refs else ch_pos.pop(refs.pop())
 
     # This raises based on info being subset/superset of montage
     info_names = [ch['ch_name'] for ch in chs]
@@ -1023,14 +1184,17 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     missing = np.where([use not in ch_pos for use in info_names_use])[0]
     if len(missing):  # DigMontage is subset of info
         missing_names = [info_names[ii] for ii in missing]
+        pl = _pl(missing)
+        are_is = "are" if pl else "is"
         missing_coord_msg = (
-            'DigMontage is only a subset of info. There are '
-            f'{len(missing)} channel position{_pl(missing)} '
-            'not present in the DigMontage. The required channels are:\n\n'
-            f'{missing_names}.\n\nConsider using inst.set_channel_types '
-            'if these are not EEG channels, or use the on_missing '
-            'parameter if the channel positions are allowed to be unknown '
-            'in your analyses.'
+            f"DigMontage is only a subset of info. There {are_is} "
+            f"{len(missing)} channel position{pl} not present in the "
+            f"DigMontage. The channel{pl} missing from the montage {are_is}:"
+            f"\n\n{missing_names}.\n\nConsider using inst.rename_channels to "
+            "match the montage nomenclature, or inst.set_channel_types if "
+            f"{'these' if pl else 'this'} {are_is} not {'' if pl else 'an '}"
+            f"EEG channel{pl}, or use the on_missing parameter if the channel "
+            f"position{pl} {are_is} allowed to be unknown in your analyses."
         )
         _on_missing(on_missing, missing_coord_msg)
 
@@ -1089,6 +1253,19 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     # Next line modifies info['dig'] in place
     with info._unlock():
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+    del digpoints
+
+    # TODO: Ideally we would have a check like this, but read_raw_bids for ECoG
+    # allows for a montage to be set without any fiducials, then silently the
+    # info['dig'] can end up in the MNI_TAL frame... only because in our
+    # conversion code, UNKNOWN is treated differently from any other frame
+    # (e.g., MNI_TAL). We should clean this up at some point...
+    # missing_fids = sum(
+    #     d['kind'] == FIFF.FIFFV_POINT_CARDINAL for d in info['dig'][:3]) != 3
+    # if missing_fids:
+    #     raise RuntimeError(
+    #         'Could not find all three fiducials in the montage, this should '
+    #         'not happen. Please contact MNE-Python developers.')
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
@@ -1101,7 +1278,7 @@ def _read_isotrak_elp_points(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .elp Polhemus Isotrak file.
 
     Returns
@@ -1131,7 +1308,7 @@ def _read_isotrak_hsp_points(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .hsp Polhemus Isotrak file.
 
     Returns
@@ -1173,17 +1350,17 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of Polhemus ISOTrak formatted file.
-        File extension is expected to be '.hsp', '.elp' or '.eeg'.
+        File extension is expected to be ``'.hsp'``, ``'.elp'`` or ``'.eeg'``.
     ch_names : None | list of str
         The names of the points. This will make the points
         considered as EEG channels. If None, channels will be assumed
         to be HPI if the extension is ``'.elp'``, and extra headshape
         points otherwise.
-    unit : 'm' | 'cm' | 'mm'
+    unit : ``'m'`` | ``'cm'`` | ``'mm'``
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
-        exported in meters. Defaults to 'm'.
+        exported in meters. Defaults to ``'m'``.
 
     Returns
     -------
@@ -1202,6 +1379,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     read_dig_localite
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
@@ -1256,11 +1434,11 @@ def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
 
     Parameters
     ----------
-    fname : str
-        The filepath of .txt Polhemus FastSCAN file.
-    unit : 'm' | 'cm' | 'mm'
+    fname : path-like
+        The path of ``.txt`` Polhemus FastSCAN file.
+    unit : ``'m'`` | ``'cm'`` | ``'mm'``
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
-        exported in millimeters. Defaults to 'mm'.
+        exported in millimeters. Defaults to ``'mm'``.
     %(on_header_missing)s
     %(verbose)s
 
@@ -1275,6 +1453,7 @@ def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
     make_dig_montage
     """
     VALID_FILE_EXT = ['.txt']
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
@@ -1304,20 +1483,20 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File extension is expected to be:
-        '.loc' or '.locs' or '.eloc' (for EEGLAB files),
-        '.sfp' (BESA/EGI files), '.csd',
-        '.elc', '.txt', '.csd', '.elp' (BESA spherical),
-        '.bvef' (BrainVision files),
-        '.csv', '.tsv', '.xyz' (XYZ coordinates).
+        ``'.loc'`` or ``'.locs'`` or ``'.eloc'`` (for EEGLAB files),
+        ``'.sfp'`` (BESA/EGI files), ``'.csd'``,
+        ``'.elc'``, ``'.txt'``, ``'.csd'``, ``'.elp'`` (BESA spherical),
+        ``'.bvef'`` (BrainVision files),
+        ``'.csv'``, ``'.tsv'``, ``'.xyz'`` (XYZ coordinates).
     head_size : float | None
         The size of the head (radius, in [m]). If ``None``, returns the values
         read from the montage file with no modification. Defaults to 0.095m.
     coord_frame : str | None
-        The coordinate frame of the points. Usually this is "unknown"
-        for native digitizer space. Defaults to None, which is "unknown" for
-        most readers but "head" for EEGLAB.
+        The coordinate frame of the points. Usually this is ``"unknown"``
+        for native digitizer space. Defaults to None, which is ``"unknown"``
+        for most readers but ``"head"`` for EEGLAB.
 
         .. versionadded:: 0.20
 
@@ -1357,6 +1536,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         'xyz': ('.csv', '.tsv', '.xyz'),
     }
 
+    fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     _, ext = op.splitext(fname)
     _check_option('fname', ext, list(sum(SUPPORTED_FILE_EXT.values(), ())))
 
@@ -1411,14 +1591,14 @@ def compute_dev_head_t(montage):
 
     Parameters
     ----------
-    montage : instance of DigMontage
-        The DigMontage must contain the fiducials in head
+    montage : DigMontage
+        The `~mne.channels.DigMontage` must contain the fiducials in head
         coordinate system and hpi points in both head and
         meg device coordinate system.
 
     Returns
     -------
-    dev_head_t : instance of Transform
+    dev_head_t : Transform
         A Device-to-Head transformation matrix.
     """
     _, coord_frame = _get_fid_coords(montage.dig)
@@ -1446,7 +1626,8 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
-def compute_native_head_t(montage):
+@verbose
+def compute_native_head_t(montage, *, on_missing='warn', verbose=None):
     """Compute the native-to-head transformation for a montage.
 
     This uses the fiducials in the native space to transform to compute the
@@ -1456,6 +1637,10 @@ def compute_native_head_t(montage):
     ----------
     montage : instance of DigMontage
         The montage.
+    %(on_missing_fiducials)s
+
+        .. versionadded:: 1.2
+    %(verbose)s
 
     Returns
     -------
@@ -1472,9 +1657,10 @@ def compute_native_head_t(montage):
         fid_keys = ('nasion', 'lpa', 'rpa')
         for key in fid_keys:
             if fid_coords[key] is None:
-                warn('Fiducial point %s not found, assuming identity %s to '
-                     'head transformation'
-                     % (key, _verbose_frames[coord_frame],))
+                msg = (
+                    f'Fiducial point {key} not found, assuming identity '
+                    f'{_verbose_frames[coord_frame]} to head transformation')
+                _on_missing(on_missing, msg, error_klass=RuntimeError)
                 native_head_t = np.eye(4)
                 break
         else:
@@ -1484,12 +1670,16 @@ def compute_native_head_t(montage):
 
 
 def make_standard_montage(kind, head_size='auto'):
-    """Read a generic (built-in) montage.
+    """Read a generic (built-in) standard montage that ships with MNE-Python.
 
     Parameters
     ----------
     kind : str
-        The name of the montage to use. See notes for valid kinds.
+        The name of the montage to use.
+
+        .. note::
+            You can retrieve the names of all
+            built-in montages via :func:`mne.channels.get_builtin_montages`.
     head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
         Can be None to not scale the read sizes. ``'auto'`` (default) will
@@ -1504,7 +1694,7 @@ def make_standard_montage(kind, head_size='auto'):
 
     See Also
     --------
-    DigMontage
+    get_builtin_montages
     make_dig_montage
     read_custom_montage
 
@@ -1513,64 +1703,16 @@ def make_standard_montage(kind, head_size='auto'):
     Individualized (digitized) electrode positions should be read in using
     :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
     :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
-    :func:`read_dig_hpts` or made with :func:`make_dig_montage`.
-
-    Valid ``kind`` arguments are:
-
-    ===================   =====================================================
-    Kind                  Description
-    ===================   =====================================================
-    standard_1005         Electrodes are named and positioned according to the
-                          international 10-05 system (343+3 locations)
-    standard_1020         Electrodes are named and positioned according to the
-                          international 10-20 system (94+3 locations)
-    standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
-                          (A1, B2, F4, ...) (65+3 locations)
-    standard_postfixed    Electrodes are named according to the international
-                          10-20 system using postfixes for intermediate
-                          positions (100+3 locations)
-    standard_prefixed     Electrodes are named according to the international
-                          10-20 system using prefixes for intermediate
-                          positions (74+3 locations)
-    standard_primed       Electrodes are named according to the international
-                          10-20 system using prime marks (' and '') for
-                          intermediate positions (100+3 locations)
-
-    biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
-    biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
-    biosemi64             BioSemi cap with 64 electrodes (64+3 locations)
-    biosemi128            BioSemi cap with 128 electrodes (128+3 locations)
-    biosemi160            BioSemi cap with 160 electrodes (160+3 locations)
-    biosemi256            BioSemi cap with 256 electrodes (256+3 locations)
-
-    easycap-M1            EasyCap with 10-05 electrode names (74 locations)
-    easycap-M10           EasyCap with numbered electrodes (61 locations)
-
-    EGI_256               Geodesic Sensor Net (256 locations)
-
-    GSN-HydroCel-32       HydroCel Geodesic Sensor Net and Cz (33+3 locations)
-    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (64+3 locations)
-    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net and Cz (65+3 locations)
-    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (128+3 locations)
-    GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
-    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
-    GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
-
-    mgh60                 The (older) 60-channel cap used at
-                          MGH (60+3 locations)
-    mgh70                 The (newer) 70-channel BrainVision cap used at
-                          MGH (70+3 locations)
-
-    artinis-octamon       Artinis OctaMon fNIRS (8 sources, 2 detectors)
-
-    artinis-brite23       Artinis Brite23 fNIRS (11 sources, 7 detectors)
-    ===================   =====================================================
+    :func:`read_dig_hpts`, or manually made with :func:`make_dig_montage`.
 
     .. versionadded:: 0.19.0
     """
     from ._standard_montage_utils import standard_montage_look_up_table
     _validate_type(kind, str, 'kind')
-    _check_option('kind', kind, _BUILT_IN_MONTAGES)
+    _check_option(
+        parameter='kind', value=kind,
+        allowed_values=[m.name for m in _BUILTIN_STANDARD_MONTAGES]
+    )
     _validate_type(head_size, ('numeric', str, None), 'head_size')
     if isinstance(head_size, str):
         _check_option('head_size', head_size, ('auto',), extra='when str')

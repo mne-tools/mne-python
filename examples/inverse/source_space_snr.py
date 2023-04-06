@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-source-space-snr:
 
@@ -55,7 +54,7 @@ ave = np.mean(snr_stc.data, axis=0)
 
 fig, ax = plt.subplots()
 ax.plot(evoked.times, ave)
-ax.set(xlabel='Time (sec)', ylabel='SNR MEG-EEG')
+ax.set(xlabel='Time (s)', ylabel='SNR MEG-EEG')
 fig.tight_layout()
 
 # Find time point of maximum SNR

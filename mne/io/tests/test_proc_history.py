@@ -2,7 +2,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: Simplified BSD
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -10,8 +10,8 @@ from numpy.testing import assert_array_equal
 from mne.io import read_info
 from mne.io.constants import FIFF
 
-base_dir = op.join(op.dirname(__file__), 'data')
-raw_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+base_dir = Path(__file__).parent / "data"
+raw_fname = base_dir / "test_chpi_raw_sss.fif"
 
 
 def test_maxfilter_io():

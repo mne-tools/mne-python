@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
@@ -17,7 +16,8 @@ def _export_raw(fname, raw):
 
     # remove extra epoc and STI channels
     drop_chs = ['epoc']
-    if not (raw.filenames[0].endswith('.fif')):
+    # filenames attribute of RawArray is filled with None
+    if raw.filenames[0] and not (raw.filenames[0].endswith('.fif')):
         drop_chs.append('STI 014')
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
@@ -41,11 +41,17 @@ def _export_epochs(fname, epochs):
     ch_names = [ch for ch in epochs.ch_names if ch not in drop_chs]
     cart_coords = _get_als_coords_from_chs(epochs.info['chs'], drop_chs)
 
+    if epochs.annotations:
+        annot = [epochs.annotations.description, epochs.annotations.onset,
+                 epochs.annotations.duration]
+    else:
+        annot = None
+
     eeglabio.epochs.export_set(
         fname, data=epochs.get_data(picks=ch_names),
         sfreq=epochs.info['sfreq'], events=epochs.events,
         tmin=epochs.tmin, tmax=epochs.tmax, ch_names=ch_names,
-        event_id=epochs.event_id, ch_locs=cart_coords)
+        event_id=epochs.event_id, ch_locs=cart_coords, annotations=annot)
 
 
 def _get_als_coords_from_chs(chs, drop_chs=None):

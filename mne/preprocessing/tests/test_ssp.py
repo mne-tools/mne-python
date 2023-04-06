@@ -1,4 +1,4 @@
-import os.path as op
+from pathlib import Path
 
 import pytest
 from numpy.testing import assert_array_almost_equal
@@ -10,13 +10,11 @@ from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
 from mne.datasets import testing
 from mne import pick_types
 
-data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_path, 'test_raw.fif')
+data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_path / "test_raw.fif"
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])
-
-ctf_fname = op.join(testing.data_path(download=False), 'CTF',
-                    'testdata_ctf.ds')
+ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 
 
 @pytest.fixture()
@@ -120,7 +118,7 @@ def test_compute_proj_parallel(short_raw):
     with pytest.warns(RuntimeWarning, match='Attenuation'):
         projs, _ = compute_proj_eog(
             raw, n_eeg=2, bads=raw.ch_names[1:2], average=False,
-            avg_ref=True, no_proj=False, n_jobs=1, l_freq=None, h_freq=None,
+            avg_ref=True, no_proj=False, n_jobs=None, l_freq=None, h_freq=None,
             reject=None, tmax=dur_use, filter_length=100)
     raw_2 = short_raw.copy()
     with pytest.warns(RuntimeWarning, match='Attenuation'):

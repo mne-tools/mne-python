@@ -14,7 +14,7 @@ import re
 import numpy as np
 
 from .morph_map import read_morph_map
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
@@ -25,7 +25,7 @@ from .surface import (complete_surface_info, read_surface, fast_cross_3d,
                       _mesh_borders, mesh_edges, mesh_dist)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
-                    _check_option, check_version, _check_fname, _VerboseDep)
+                    _check_option, _check_fname)
 
 
 def _blend_colors(color_1, color_2):
@@ -125,8 +125,8 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
         raise NotImplementedError("Can't produce more than %i unique "
                                   "colors" % n_max)
 
-    from matplotlib.cm import get_cmap
-    cm = get_cmap(cmap, n_max)
+    from .viz.utils import _get_cmap
+    cm = _get_cmap(cmap)
     pos = np.linspace(0, 1, n, False)
     colors = cm(pos, bytes=bytes_)
     if bytes_:
@@ -140,7 +140,7 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
 
 
 @fill_doc
-class Label(_VerboseDep):
+class Label:
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
     Labels can be combined with the ``+`` operator:
@@ -376,7 +376,7 @@ class Label(_VerboseDep):
 
         Parameters
         ----------
-        filename : str
+        filename : path-like
             Path to label file to produce.
 
         Notes
@@ -436,12 +436,7 @@ class Label(_VerboseDep):
                  "information is needed. To avoid this in the future, run "
                  "mne.add_source_space_distances() on the source space "
                  "and save it to disk.")
-            if check_version('scipy', '1.3'):
-                dist_limit = 0
-            else:
-                warn('SciPy < 1.3 detected, adding source space patch '
-                     'information will be slower. Consider upgrading SciPy.')
-                dist_limit = np.inf
+            dist_limit = 0
             add_source_space_distances(src, dist_limit=dist_limit)
         nearest = hemi_src['nearest']
 
@@ -495,7 +490,7 @@ class Label(_VerboseDep):
 
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, verbose=None):
+               subjects_dir=None, n_jobs=None, verbose=None):
         """Smooth the label.
 
         Useful for filling in labels made in a
@@ -541,7 +536,7 @@ class Label(_VerboseDep):
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
-              subjects_dir=None, n_jobs=1, verbose=None):
+              subjects_dir=None, n_jobs=None, verbose=None):
         """Morph the label.
 
         Useful for transforming a label from one subject to another.
@@ -810,9 +805,6 @@ class Label(_VerboseDep):
         .. versionadded:: 0.24
         """
         from scipy.sparse.csgraph import dijkstra
-        if not check_version('scipy', '1.3'):
-            raise RuntimeError(
-                'scipy >= 1.3 is required to calculate distances to the edge')
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -861,9 +853,10 @@ class Label(_VerboseDep):
     def _load_surface(self, subject, subjects_dir, surface, **kwargs):
         subject = _check_subject(self.subject, subject)
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        fname = op.join(
-            subjects_dir, subject, 'surf', f'{self.hemi}.{surface}')
-        _check_fname(fname, overwrite='read', must_exist=True, name='Surface')
+        fname = subjects_dir / subject / "surf" / f"{self.hemi}.{surface}"
+        fname = _check_fname(
+            fname, overwrite="read", must_exist=True, name="Surface"
+        )
         return read_surface(fname, **kwargs)
 
 
@@ -879,7 +872,7 @@ def _get_label_src(label, src):
     return hemi_src
 
 
-class BiHemiLabel(object):
+class BiHemiLabel:
     """A freesurfer/MNE label with vertices in both hemispheres.
 
     Parameters
@@ -1107,7 +1100,7 @@ def _prep_label_split(label, subject=None, subjects_dir=None):
         label = read_label(label)
 
     # Find the subject
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     if label.subject is None and subject is None:
         raise ValueError("The subject needs to be specified.")
     elif subject is None:
@@ -1437,9 +1430,9 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
                    "instance of SourceSpace")
             raise ValueError(msg)
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        surf_path_from = op.join(subjects_dir, src, 'surf')
-        rr_lh, tris_lh = read_surface(op.join(surf_path_from, 'lh.white'))
-        rr_rh, tris_rh = read_surface(op.join(surf_path_from, 'rh.white'))
+        surf_path_from = subjects_dir / src / "surf"
+        rr_lh, tris_lh = read_surface(surf_path_from / "lh.white")
+        rr_rh, tris_rh = read_surface(surf_path_from / "rh.white")
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
     else:
@@ -1587,7 +1580,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 
 @fill_doc
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=None,
                 overlap=True, names=None, surface='white', colors=None):
     """Generate circular labels in source space with region growing.
 
@@ -1639,7 +1632,6 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     used for each label.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
     if np.isscalar(seeds):
@@ -1698,14 +1690,13 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
     for hemi in set(hemis):
-        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' +
-                             surface)
+        surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surface}"
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     if overlap:
         # create the patches
-        parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
+        parallel, my_grow_labels, n_jobs = parallel_func(_grow_labels, n_jobs)
         seeds = np.array_split(np.array(seeds, dtype='O'), n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)
@@ -1817,8 +1808,8 @@ def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
     n_parcel : int
         Total number of cortical parcels.
     hemi : str
-        Hemisphere id (ie 'lh', 'rh', 'both'). In the case
-        of 'both', both hemispheres are processed with (n_parcel // 2)
+        Hemisphere id (ie ``'lh'``, ``'rh'``, ``'both'``). In the case
+        of ``'both'``, both hemispheres are processed with ``(n_parcel // 2)``
         parcels per hemisphere.
     %(subjects_dir)s
     %(surface)s
@@ -1837,8 +1828,7 @@ def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
     for hemi in set(hemis):
-        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' +
-                             surface)
+        surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surface}"
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
@@ -1964,7 +1954,7 @@ def _read_annot_cands(dir_name, raise_error=True):
     if not op.isdir(dir_name):
         if not raise_error:
             return list()
-        raise IOError('Directory for annotation does not exist: %s',
+        raise OSError('Directory for annotation does not exist: %s',
                       dir_name)
     cands = os.listdir(dir_name)
     cands = sorted(set(c.replace('lh.', '').replace('rh.', '').replace(
@@ -2000,10 +1990,10 @@ def _read_annot(fname):
         dir_name = op.split(fname)[0]
         cands = _read_annot_cands(dir_name)
         if len(cands) == 0:
-            raise IOError('No such file %s, no candidate parcellations '
+            raise OSError('No such file %s, no candidate parcellations '
                           'found in directory' % fname)
         else:
-            raise IOError('No such file %s, candidate parcellations in '
+            raise OSError('No such file %s, candidate parcellations in '
                           'that directory:\n%s' % (fname, '\n'.join(cands)))
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, '>i4', 1)[0]
@@ -2070,7 +2060,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
             hemis = [hemi]
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        dst = op.join(subjects_dir, subject, 'label', '%%s.%s.annot' % parc)
+        dst = str(subjects_dir / subject / "label" / ("%%s.%s.annot" % parc))
         annot_fname = [dst % hemi_ for hemi_ in hemis]
 
     return annot_fname, hemis
@@ -2102,18 +2092,18 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     ----------
     %(subject)s
     parc : str
-        The parcellation to use, e.g., 'aparc' or 'aparc.a2009s'.
+        The parcellation to use, e.g., ``'aparc'`` or ``'aparc.a2009s'``.
     hemi : str
-        The hemisphere from which to read the parcellation, can be 'lh', 'rh',
-        or 'both'.
+        The hemisphere from which to read the parcellation, can be ``'lh'``,
+        ``'rh'``, or ``'both'``.
     surf_name : str
-        Surface used to obtain vertex locations, e.g., 'white', 'pial'.
-    annot_fname : str or None
-        Filename of the .annot file. If not None, only this file is read
-        and 'parc' and 'hemi' are ignored.
+        Surface used to obtain vertex locations, e.g., ``'white'``, ``'pial'``.
+    annot_fname : path-like | None
+        Filename of the ``.annot`` file. If not None, only this file is read
+        and the arguments ``parc`` and ``hemi`` are ignored.
     regexp : str
         Regular expression or substring to select particular labels from the
-        parcellation. E.g. 'superior' will return all labels in which this
+        parcellation. E.g. ``'superior'`` will return all labels in which this
         substring is contained.
     %(subjects_dir)s
     sort : bool
@@ -2135,6 +2125,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     logger.info('Reading labels from parcellation...')
 
     subjects_dir = get_subjects_dir(subjects_dir)
+    if subjects_dir is not None:
+        subjects_dir = str(subjects_dir)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
@@ -2180,7 +2172,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
 
     # sort the labels by label name
     if sort:
-        labels = sorted(labels, key=lambda l: l.name)
+        labels = sorted(labels, key=lambda label: label.name)
 
     if len(labels) == 0:
         msg = 'No labels found.'
@@ -2229,7 +2221,7 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
         have the ``.subject`` property defined.
     %(subjects_dir)s
     surf_name : str
-        Surface used to obtain vertex locations, e.g., 'white', 'pial'.
+        Surface used to obtain vertex locations, e.g., ``'white'``, ``'pial'``.
     %(verbose)s
 
     Returns
@@ -2250,7 +2242,7 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
 
     .. versionadded:: 0.18
     """
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     subject_from = _check_labels_subject(labels, subject_from, 'subject_from')
     mmaps = read_morph_map(subject_from, subject_to, subjects_dir)
     vert_poss = [_load_vert_pos(subject_to, subjects_dir, surf_name, hemi,
@@ -2437,12 +2429,12 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         Overwrite files if they already exist.
     %(subjects_dir)s
     annot_fname : str | None
-        Filename of the .annot file. If not None, only this file is written
-        and 'parc' and 'subject' are ignored.
+        Filename of the ``.annot file``. If not None, only this file is written
+        and the arguments ``parc`` and ``subject`` are ignored.
     colormap : str
         Colormap to use to generate label colors for labels that do not
         have a color specified.
-    hemi : 'both' | 'lh' | 'rh'
+    hemi : ``'both'`` | ``'lh'`` | ``'rh'``
         The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
     sort : bool
@@ -2462,11 +2454,13 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     Notes
     -----
     Vertices that are not covered by any of the labels are assigned to a label
-    named "unknown".
+    named ``"unknown"``.
     """
     logger.info('Writing labels to parcellation...')
 
     subjects_dir = get_subjects_dir(subjects_dir)
+    if subjects_dir is not None:
+        subjects_dir = str(subjects_dir)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,

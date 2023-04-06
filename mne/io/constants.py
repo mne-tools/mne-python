@@ -202,6 +202,10 @@ FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus c
 FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
 FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 FIFF.FIFFV_FNIRS_CH     = 1100  # Functional near-infrared spectroscopy
+FIFF.FIFFV_TEMPERATURE_CH = 1200  # Functional near-infrared spectroscopy
+FIFF.FIFFV_GALVANIC_CH  = 1300  # Galvanic skin response
+FIFF.FIFFV_EYETRACK_CH  = 1400  # Eye-tracking
+
 _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_BIO_CH,
     FIFF.FIFFV_MEG_CH,
@@ -223,6 +227,9 @@ _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_DIPOLE_WAVE,
     FIFF.FIFFV_GOODNESS_FIT,
     FIFF.FIFFV_FNIRS_CH,
+    FIFF.FIFFV_GALVANIC_CH,
+    FIFF.FIFFV_TEMPERATURE_CH,
+    FIFF.FIFFV_EYETRACK_CH
 )}
 
 #
@@ -764,10 +771,6 @@ FWD.COIL_ACCURACY_POINT          = 0
 FWD.COIL_ACCURACY_NORMAL         = 1
 FWD.COIL_ACCURACY_ACCURATE       = 2
 
-FWD.BEM_UNKNOWN                  = -1
-FWD.BEM_CONSTANT_COLL            = 1
-FWD.BEM_LINEAR_COLL              = 2
-
 FWD.BEM_IP_APPROACH_LIMIT        = 0.1
 
 FWD.BEM_LIN_FIELD_SIMPLE         = 1
@@ -839,7 +842,7 @@ FIFF.FIFF_UNIT_C   = 106  # coulomb
 FIFF.FIFF_UNIT_V   = 107  # volt
 FIFF.FIFF_UNIT_F   = 108  # farad
 FIFF.FIFF_UNIT_OHM = 109  # ohm
-FIFF.FIFF_UNIT_MHO = 110  # one per ohm
+FIFF.FIFF_UNIT_S   = 110  # Siemens (same as Moh, what fiff-constants calls it)
 FIFF.FIFF_UNIT_WB  = 111  # weber
 FIFF.FIFF_UNIT_T   = 112  # tesla
 FIFF.FIFF_UNIT_H   = 113  # Henry
@@ -854,6 +857,8 @@ FIFF.FIFF_UNIT_T_M   = 201  # T/m
 FIFF.FIFF_UNIT_AM    = 202  # Am
 FIFF.FIFF_UNIT_AM_M2 = 203  # Am/m^2
 FIFF.FIFF_UNIT_AM_M3 = 204  # Am/m^3
+
+FIFF.FIFF_UNIT_PX = 210     # Pixel
 _ch_unit_named = {key: key for key in(
     FIFF.FIFF_UNIT_NONE, FIFF.FIFF_UNIT_UNITLESS, FIFF.FIFF_UNIT_M,
     FIFF.FIFF_UNIT_KG, FIFF.FIFF_UNIT_SEC, FIFF.FIFF_UNIT_A, FIFF.FIFF_UNIT_K,
@@ -861,10 +866,11 @@ _ch_unit_named = {key: key for key in(
     FIFF.FIFF_UNIT_CD, FIFF.FIFF_UNIT_MOL_M3, FIFF.FIFF_UNIT_HZ,
     FIFF.FIFF_UNIT_N, FIFF.FIFF_UNIT_PA, FIFF.FIFF_UNIT_J, FIFF.FIFF_UNIT_W,
     FIFF.FIFF_UNIT_C, FIFF.FIFF_UNIT_V, FIFF.FIFF_UNIT_F, FIFF.FIFF_UNIT_OHM,
-    FIFF.FIFF_UNIT_MHO, FIFF.FIFF_UNIT_WB, FIFF.FIFF_UNIT_T, FIFF.FIFF_UNIT_H,
+    FIFF.FIFF_UNIT_S, FIFF.FIFF_UNIT_WB, FIFF.FIFF_UNIT_T, FIFF.FIFF_UNIT_H,
     FIFF.FIFF_UNIT_CEL, FIFF.FIFF_UNIT_LM, FIFF.FIFF_UNIT_LX,
     FIFF.FIFF_UNIT_V_M2, FIFF.FIFF_UNIT_T_M, FIFF.FIFF_UNIT_AM,
     FIFF.FIFF_UNIT_AM_M2, FIFF.FIFF_UNIT_AM_M3,
+    FIFF.FIFF_UNIT_PX,
 )}
 #
 # Multipliers
@@ -916,6 +922,11 @@ FIFF.FIFFV_COIL_FNIRS_OD              = 303  # fNIRS optical density
 FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE = 304  # fNIRS frequency domain AC amplitude
 FIFF.FIFFV_COIL_FNIRS_FD_PHASE        = 305  # fNIRS frequency domain phase
 FIFF.FIFFV_COIL_FNIRS_RAW = FIFF.FIFFV_COIL_FNIRS_CW_AMPLITUDE  # old alias
+FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE   = 306 # fNIRS time-domain gated amplitude
+FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE = 307 # fNIRS time-domain moments amplitude
+
+FIFF.FIFFV_COIL_EYETRACK_POS = 400       # Eye-tracking gaze position
+FIFF.FIFFV_COIL_EYETRACK_PUPIL = 401     # Eye-tracking pupil size
 
 FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
@@ -1002,7 +1013,9 @@ _ch_coil_type_named = {key: key for key in (
     FIFF.FIFFV_COIL_DIPOLE, FIFF.FIFFV_COIL_FNIRS_HBO,
     FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFFV_COIL_FNIRS_RAW,
     FIFF.FIFFV_COIL_FNIRS_OD, FIFF.FIFFV_COIL_FNIRS_FD_AC_AMPLITUDE,
-    FIFF.FIFFV_COIL_FNIRS_FD_PHASE, FIFF.FIFFV_COIL_MCG_42,
+    FIFF.FIFFV_COIL_FNIRS_FD_PHASE, FIFF.FIFFV_COIL_FNIRS_TD_GATED_AMPLITUDE,
+    FIFF.FIFFV_COIL_FNIRS_TD_MOMENTS_AMPLITUDE, FIFF.FIFFV_COIL_MCG_42,
+    FIFF.FIFFV_COIL_EYETRACK_POS, FIFF.FIFFV_COIL_EYETRACK_PUPIL,
     FIFF.FIFFV_COIL_POINT_MAGNETOMETER, FIFF.FIFFV_COIL_AXIAL_GRAD_5CM,
     FIFF.FIFFV_COIL_VV_PLANAR_W, FIFF.FIFFV_COIL_VV_PLANAR_T1,
     FIFF.FIFFV_COIL_VV_PLANAR_T2, FIFF.FIFFV_COIL_VV_PLANAR_T3,
@@ -1056,7 +1069,11 @@ CHANNEL_LOC_ALIASES = {
     'T5': 'T9',
     'T6': 'T10',
     'M1': 'TP9',
-    'M2': 'TP10'
+    'M2': 'TP10',
+    # EGI ref chan is named VREF/Vertex Ref.
+    # In the standard montages for EGI, the ref is named Cz
+    'VREF': 'Cz',
+    'Vertex Reference': 'Cz'
     # add a comment here (with doi of a published source) above any new
     # aliases, as they are added
 }

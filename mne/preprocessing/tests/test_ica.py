@@ -3,10 +3,10 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 import os
-import os.path as op
 import shutil
+from contextlib import nullcontext
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -33,27 +33,25 @@ from mne.utils import (catch_logging, requires_sklearn, _record_warnings,
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
-data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_dir, 'test_raw.fif')
-event_name = op.join(data_dir, 'test-eve.fif')
-test_cov_name = op.join(data_dir, 'test-cov.fif')
+data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
+test_cov_name = data_dir / "test-cov.fif"
 
 test_base_dir = testing.data_path(download=False)
-ctf_fname = op.join(test_base_dir, 'CTF', 'testdata_ctf.ds')
+ctf_fname = test_base_dir / "CTF" / "testdata_ctf.ds"
 
-fif_fname = op.join(test_base_dir, 'MEG', 'sample',
-                    'sample_audvis_trunc_raw.fif')
-eeglab_fname = op.join(test_base_dir, 'EEGLAB', 'test_raw.set')
-eeglab_montage = op.join(test_base_dir, 'EEGLAB', 'test_chans.locs')
-
-ctf_fname2 = op.join(test_base_dir, 'CTF', 'catch-alp-good-f.ds')
-
+fif_fname = test_base_dir / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+eeglab_fname = test_base_dir / "EEGLAB" / "test_raw.set"
+eeglab_montage = test_base_dir / "EEGLAB" / "test_chans.locs"
+ctf_fname2 = test_base_dir / "CTF" / "catch-alp-good-f.ds"
 event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 6
-score_funcs_unsuited = ['pointbiserialr', 'ansari']
+score_funcs_unsuited = ["pointbiserialr", "ansari"]
 pymatreader_mark = pytest.mark.skipif(
-    not check_version('pymatreader'), reason='Requires pymatreader')
+    not check_version("pymatreader"), reason="Requires pymatreader"
+)
 
 
 def ICA(*args, **kwargs):
@@ -244,15 +242,17 @@ def test_ica_noop(n_components, n_pca_components, tmp_path):
     # and with I/O
     fname = tmp_path / 'temp-ica.fif'
     ica.save(fname)
-    ica = read_ica(fname)
-    raw_new = ica.apply(raw.copy())
+    ica_new = read_ica(fname)
+    raw_new = ica_new.apply(raw.copy())
     assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='I/O failure')
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(ica_new)
+    assert ica.reject_ == ica_new.reject_
 
 
 @requires_sklearn
 @pytest.mark.parametrize("method, max_iter_default", [("fastica", 1000),
-                         ("infomax", 500), ("picard", 500)])
+                                                      ("infomax", 500),
+                                                      ("picard", 500)])
 def test_ica_max_iter_(method, max_iter_default):
     """Test that ICA.max_iter is set to the right defaults."""
     _skip_check_picard(method)
@@ -328,7 +328,7 @@ def test_ica_rank_reduction(method):
 
 
 # This is a lot of parameters but they interact so they matter. Also they in
-# total take < 2 sec on a workstation.
+# total take < 2 s on a workstation.
 @pytest.mark.parametrize('n_pca_components', (None, 0.999999))
 @pytest.mark.parametrize('proj', (True, False))
 @pytest.mark.parametrize('cov', (False, True))
@@ -414,15 +414,20 @@ def test_ica_reset(method):
         'pca_mean_',
         'n_iter_'
     )
+
+    ica = ICA(n_components=3, method=method, max_iter=1)
+    assert ica.current_fit == 'unfitted'
     with pytest.warns(UserWarning, match='did not converge'):
-        ica = ICA(
-            n_components=3, method=method, max_iter=1).fit(raw, picks=picks)
+        ica.fit(raw, picks=picks)
 
     assert (all(hasattr(ica, attr) for attr in run_time_attrs))
     assert ica.labels_ is not None
+    assert ica.current_fit == 'raw'
+
     ica._reset()
     assert (not any(hasattr(ica, attr) for attr in run_time_attrs))
     assert ica.labels_ is not None
+    assert ica.current_fit == 'unfitted'
 
 
 @requires_sklearn
@@ -484,8 +489,6 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components,
     assert 'raw data decomposition' in repr_
     assert f'{ica.n_components_} ICA components' in repr_
     assert 'Available PCA components' in repr_html_
-    assert 'Explained variance' in repr_html_
-
     assert ('mag' in ica)  # should now work without error
 
     # test re-fit
@@ -893,7 +896,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_equal(len(ica_raw._filenames), 1)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert (ica.n_components_ == len(ica_chans))
-    test_ica_fname = op.join(op.abspath(op.curdir), 'test-ica_raw.fif')
+    test_ica_fname = Path.cwd() / "test-ica_raw.fif"
     ica.n_components = np.int32(ica.n_components)
     ica_raw.save(test_ica_fname, overwrite=True)
     ica_raw2 = read_raw_fif(test_ica_fname, preload=True)
@@ -941,6 +944,95 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     picks = pick_types(raw_.info, eeg=True, exclude=[])
     ica = ICA(n_components=0.99, max_iter='auto')
     ica.fit(raw_, picks=picks, reject_by_annotation=True)
+
+
+@requires_sklearn
+def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
+    """Test ICA.get_explained_variance_ratio()."""
+    raw, epochs, _ = short_raw_epochs
+    ica = ICA(max_iter=1)
+
+    # Unfitted ICA should raise an exception
+    with pytest.raises(ValueError, match='ICA must be fitted first'):
+        ica.get_explained_variance_ratio(epochs)
+
+    with pytest.warns(RuntimeWarning, match='were baseline-corrected'):
+        ica.fit(epochs)
+
+    # components = int, ch_type = None
+    explained_var_comp_0 = ica.get_explained_variance_ratio(
+        epochs, components=0
+    )
+    # components = int, ch_type = str
+    explained_var_comp_0_eeg = ica.get_explained_variance_ratio(
+        epochs, components=0, ch_type='eeg'
+    )
+    # components = int, ch_type = list of str
+    explained_var_comp_0_eeg_mag = ica.get_explained_variance_ratio(
+        epochs, components=0, ch_type=['eeg', 'mag']
+    )
+    # components = list of int, single element, ch_type = None
+    explained_var_comp_1 = ica.get_explained_variance_ratio(
+        epochs, components=[1]
+    )
+    # components = list of int, multiple elements, ch_type = None
+    explained_var_comps_01 = ica.get_explained_variance_ratio(
+        epochs, components=[0, 1]
+    )
+    # components = None, i.e., all components, ch_type = None
+    explained_var_comps_all = ica.get_explained_variance_ratio(
+        epochs, components=None
+    )
+
+    assert 'grad' in explained_var_comp_0
+    assert 'mag' in explained_var_comp_0
+    assert 'eeg' in explained_var_comp_0
+
+    assert len(explained_var_comp_0_eeg) == 1
+    assert 'eeg' in explained_var_comp_0_eeg
+
+    assert 'mag' in explained_var_comp_0_eeg_mag
+    assert 'eeg' in explained_var_comp_0_eeg_mag
+    assert 'grad' not in explained_var_comp_0_eeg_mag
+
+    assert round(explained_var_comp_0['grad'], 4) == 0.1784
+    assert round(explained_var_comp_0['mag'], 4) == 0.0259
+    assert round(explained_var_comp_0['eeg'], 4) == 0.0229
+
+    assert np.isclose(
+        explained_var_comp_0['eeg'],
+        explained_var_comp_0_eeg['eeg']
+    )
+    assert np.isclose(
+        explained_var_comp_0['mag'],
+        explained_var_comp_0_eeg_mag['mag']
+    )
+    assert np.isclose(
+        explained_var_comp_0['eeg'],
+        explained_var_comp_0_eeg_mag['eeg']
+    )
+
+    assert round(explained_var_comp_1['eeg'], 4) == 0.0231
+    assert round(explained_var_comps_01['eeg'], 4) == 0.0459
+    assert (
+        explained_var_comps_all['grad'] ==
+        explained_var_comps_all['mag'] ==
+        explained_var_comps_all['eeg'] ==
+        1
+    )
+
+    # Test Raw
+    ica.get_explained_variance_ratio(raw)
+    # Test Evoked
+    evoked = epochs.average()
+    ica.get_explained_variance_ratio(evoked)
+    # Test Evoked without baseline correction
+    evoked.baseline = None
+    ica.get_explained_variance_ratio(evoked)
+
+    # Test invalid ch_type
+    with pytest.raises(ValueError, match='only the following channel types'):
+        ica.get_explained_variance_ratio(raw, ch_type='foobar')
 
 
 @requires_sklearn
@@ -1051,8 +1143,7 @@ def test_fit_methods(method, tmp_path):
     # Only picard and infomax support the "extended" keyword, so limit the
     # tests to those.
     if method in ['picard', 'infomax']:
-        tmp_path = str(tmp_path)
-        output_fname = op.join(tmp_path, 'test_ica-ica.fif')
+        output_fname = tmp_path / "test_ica-ica.fif"
 
         raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
         n_components = 3
@@ -1083,7 +1174,7 @@ def test_fit_methods(method, tmp_path):
         ('flat', dict(eeg=1e-6))
     )
 )
-def test_fit_params_epochs_vs_raw(param_name, param_val):
+def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     """Check that we get a warning when passing parameters that get ignored."""
     method = 'infomax'
     n_components = 3
@@ -1091,12 +1182,20 @@ def test_fit_params_epochs_vs_raw(param_name, param_val):
 
     raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True)
     events = read_events(event_name)
-    epochs = Epochs(raw, events=events)
+    reject = param_val if param_name == 'reject' else None
+    epochs = Epochs(raw, events=events, reject=reject)
     ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
 
     fit_params = {param_name: param_val}
     with pytest.warns(RuntimeWarning, match='parameters.*will be ignored'):
         ica.fit(inst=epochs, **fit_params)
+    assert ica.reject_ == reject
+    _assert_ica_attributes(ica)
+    tmp_fname = tmp_path / 'test-ica.fif'
+    ica.save(tmp_fname)
+    ica = read_ica(tmp_fname)
+    assert ica.reject_ == reject
+    _assert_ica_attributes(ica)
 
 
 @requires_sklearn
@@ -1128,22 +1227,24 @@ def test_bad_channels(method, allow_ref_meg):
               allow_ref_meg=allow_ref_meg)
     for inst in [raw, epochs]:
         for ch in chs_bad:
+            picks_dict = {('eyetrack' if ch in ('eyegaze', 'pupil')
+                           else str(ch)): True}
             if allow_ref_meg:
                 # Test case for only bad channels
                 picks_bad1 = pick_types(inst.info, meg=False,
                                         ref_meg=False,
-                                        **{str(ch): True})
+                                        **picks_dict)
                 # Test case for good and bad channels
                 picks_bad2 = pick_types(inst.info, meg=True,
                                         ref_meg=True,
-                                        **{str(ch): True})
+                                        **picks_dict)
             else:
                 # Test case for only bad channels
                 picks_bad1 = pick_types(inst.info, meg=False,
-                                        **{str(ch): True})
+                                        **picks_dict)
                 # Test case for good and bad channels
                 picks_bad2 = pick_types(inst.info, meg=True,
-                                        **{str(ch): True})
+                                        **picks_dict)
 
             with pytest.raises(ValueError, match='Invalid channel type'):
                 ica.fit(inst, picks=picks_bad1)
@@ -1321,6 +1422,25 @@ def test_ica_labels():
     for key in ('ecg', 'eog', 'ref_meg', 'ecg/ECG-MAG'):
         assert key in ica.labels_
 
+    labels, scores = ica.find_bads_muscle(raw, threshold=0.4)
+    assert 'muscle' in ica.labels_
+    assert labels == [0]
+    assert_allclose(scores, [0.5, 0.01, 0.02, 0.002], atol=0.001, rtol=0.1)
+
+    events = np.array([[6000, 0, 0], [8000, 0, 0]])
+    epochs = Epochs(raw, events=events, baseline=None, preload=True)
+    # move up threhsold more noise because less data
+    scores = ica.find_bads_muscle(epochs, threshold=0.8)[1]
+    assert 'muscle' in ica.labels_
+    assert ica.labels_['muscle'] == [0]
+    assert_allclose(scores, [0.81, 0.14, 0.37, 0.05], atol=0.03)
+
+    ica = ICA(n_components=4, max_iter=2, method='fastica', allow_ref_meg=True)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw, picks="eeg")
+    ica.find_bads_muscle(raw)
+    assert 'muscle' in ica.labels_
+
 
 @requires_sklearn
 @testing.requires_testing_data
@@ -1333,11 +1453,11 @@ def test_ica_labels():
 def test_ica_eeg(fname, grade):
     """Test ICA on EEG."""
     method = 'fastica'
-    if fname.endswith('.fif'):
+    if fname.suffix == ".fif":
         raw = read_raw_fif(fif_fname)
         raw.pick(raw.ch_names[::5]).load_data()
         raw.info.normalize_proj()
-    elif fname.endswith('.set'):
+    elif fname.suffix == ".set":
         raw = read_raw_eeglab(input_fname=eeglab_fname, preload=True)
     else:
         with pytest.warns(RuntimeWarning, match='MISC channel'):
@@ -1377,9 +1497,8 @@ def test_ica_eeg(fname, grade):
 @testing.requires_testing_data
 def test_read_ica_eeglab():
     """Test read_ica_eeglab function."""
-    fname = op.join(test_base_dir, "EEGLAB", "test_raw.set")
-    fname_cleaned_matlab = op.join(test_base_dir, "EEGLAB",
-                                   "test_raw.cleaned.set")
+    fname = test_base_dir / "EEGLAB" / "test_raw.set"
+    fname_cleaned_matlab = test_base_dir / "EEGLAB" / "test_raw.cleaned.set"
 
     raw = read_raw_eeglab(fname, preload=True)
     raw_eeg = _check_load_mat(fname, None)
@@ -1410,15 +1529,18 @@ def test_read_ica_eeglab():
 @testing.requires_testing_data
 def test_read_ica_eeglab_mismatch(tmp_path):
     """Test read_ica_eeglab function when there is a mismatch."""
-    fname_orig = op.join(test_base_dir, "EEGLAB", "test_raw.set")
-    base = op.basename(fname_orig)[:-3]
-    shutil.copyfile(fname_orig[:-3] + 'fdt', tmp_path / (base + 'fdt'))
+    fname_orig = test_base_dir / "EEGLAB" / "test_raw.set"
+    base = fname_orig.stem + "."
+    shutil.copyfile(
+        fname_orig.with_suffix(".fdt"),
+        tmp_path / fname_orig.with_suffix(".fdt").name,
+    )
     fname = tmp_path / base
     data = loadmat(fname_orig)
     w = data['EEG']['icaweights'][0][0]
     w[:] = np.random.RandomState(0).randn(*w.shape)
-    savemat(str(fname), data, appendmat=False)
-    assert op.isfile(fname)
+    savemat(fname, data, appendmat=False)
+    assert fname.is_file()
     with pytest.warns(RuntimeWarning, match='Mismatch.*removal.*icawinv.*'):
         ica = read_ica_eeglab(fname)
     _assert_ica_attributes(ica)
@@ -1429,6 +1551,7 @@ def test_read_ica_eeglab_mismatch(tmp_path):
     assert 'unmixing_matrix_' in attrs
     assert ica.labels_ == ica_correct.labels_ == {}
     attrs.pop(attrs.index('labels_'))
+    attrs.pop(attrs.index('reject_'))
     for attr in attrs:
         a, b = getattr(ica, attr), getattr(ica_correct, attr)
         assert_allclose(a, b, rtol=1e-12, atol=1e-12, err_msg=attr)
@@ -1478,6 +1601,7 @@ def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):
         # at least close to normal
         assert norms.min() > limits[0], 'Not roughly unity'
         assert norms.max() < limits[1], 'Not roughly unity'
+    assert hasattr(ica, 'reject_')
 
 
 @pytest.mark.parametrize("ch_type", ["dbs", "seeg"])

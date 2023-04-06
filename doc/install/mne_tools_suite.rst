@@ -35,7 +35,8 @@ Related software
 There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including packages for:
 
-.. sidebar:: Something missing?
+.. note:: Something missing?
+    :class: sidebar
 
     If you know of a package that is related but not listed here, feel free to
     :ref:`make a pull request <contributing>` to add it to this list.
@@ -62,7 +63,7 @@ MNE-Python, including packages for:
 - automatic multi-dipole localization and uncertainty quantification with
   the Bayesian algorithm SESAME (`sesameeg`_)
 - GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
-- M/EEG inverse solutions using artificial neural networks (`ESINet`_)
+- High-level EEG Python library for all kinds of EEG inverse solutions (`invertmeeg`_)
 - All-Resolutions Inference (ARI) for statistically valid circular inference
   and effect localization (`MNE-ARI`_)
 
@@ -101,7 +102,7 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _alphaCSC: https://alphacsc.github.io/
 .. _picard: https://pierreablin.github.io/picard/
 .. _pactools: https://pactools.github.io/
-.. _rsa: https://github.com/wmvanvliet/rsa
+.. _rsa: https://github.com/wmvanvliet/mne-rsa
 .. _microstate: https://github.com/wmvanvliet/mne_microstates
 .. _conpy: https://aaltoimaginglanguage.github.io/conpy/
 .. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html
@@ -109,5 +110,5 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _pyprep: https://github.com/sappelhoff/pyprep
 .. _sesameeg: https://pybees.github.io/sesameeg
 .. _mne-nirs: https://github.com/mne-tools/mne-nirs
-.. _ESINet: https://github.com/LukeTheHecker/ESINet
+.. _invertmeeg: https://github.com/LukeTheHecker/invert
 .. _MNE-ARI: https://github.com/john-veillette/mne_ari

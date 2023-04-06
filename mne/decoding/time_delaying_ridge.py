@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """TimeDelayingRidge class."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Ross Maddox <ross.maddox@rochester.edu>
@@ -11,11 +10,10 @@ from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
-from ..parallel import check_n_jobs
 from ..utils import warn, ProgressBar, logger
 
 
-def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
+def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
                    edge_correction=True):
     """Compute auto- and cross-correlations."""
     if fit_intercept:
@@ -42,8 +40,9 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
 
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 
-    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(
+    _, cuda_dict = _setup_cuda_fft_multiply_repeated(
         n_jobs, [1.], n_fft, 'correlation calculations')
+    del n_jobs  # only used to set as CUDA
 
     # create our Toeplitz indexer
     ij = np.empty((len_trf, len_trf), int)
@@ -212,7 +211,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         # Note: we must use overwrite_a=False in order to be able to
         #       use the fall-back solution below in case a LinAlgError
         #       is raised
-        w = linalg.solve(mat, x_y, sym_pos=True, overwrite_a=False)
+        w = linalg.solve(mat, x_y, overwrite_a=False, assume_a='pos')
     except np.linalg.LinAlgError:
         warn('Singular matrix in solving dual problem. Using '
              'least-squares solution instead.')
@@ -238,7 +237,7 @@ class TimeDelayingRidge(BaseEstimator):
     alpha : float
         The ridge (or laplacian) regularization factor.
     reg_type : str | list
-        Can be "ridge" (default) or "laplacian".
+        Can be ``"ridge"`` (default) or ``"laplacian"``.
         Can also be a 2-element list specifying how to regularize in time
         and across adjacent features.
     fit_intercept : bool
@@ -272,7 +271,7 @@ class TimeDelayingRidge(BaseEstimator):
     _estimator_type = "regressor"
 
     def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
-                 fit_intercept=True, n_jobs=1, edge_correction=True):
+                 fit_intercept=True, n_jobs=None, edge_correction=True):
         if tmin > tmax:
             raise ValueError('tmin must be <= tmax, got %s and %s'
                              % (tmin, tmax))
@@ -314,12 +313,11 @@ class TimeDelayingRidge(BaseEstimator):
         else:
             assert X.ndim == 2 and y.ndim == 2
             assert X.shape[0] == y.shape[0]
-        n_jobs = check_n_jobs(self.n_jobs, allow_cuda=True)
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
         self.cov_, x_y_, n_ch_x, X_offset, y_offset = _compute_corrs(
-            X, y, self._smin, self._smax, n_jobs, self.fit_intercept,
+            X, y, self._smin, self._smax, self.n_jobs, self.fit_intercept,
             self.edge_correction)
         self.coef_ = _fit_corrs(self.cov_, x_y_, n_ch_x,
                                 self.reg_type, self.alpha, n_ch_x)

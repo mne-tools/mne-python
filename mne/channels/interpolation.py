@@ -64,9 +64,9 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     Parameters
     ----------
     pos_from : np.ndarray of float, shape(n_good_sensors, 3)
-        The positions to interpoloate from.
+        The positions to interpolate from.
     pos_to : np.ndarray of float, shape(n_bad_sensors, 3)
-        The positions to interpoloate.
+        The positions to interpolate.
     alpha : float
         Regularization parameter. Defaults to 1e-5.
 
@@ -207,11 +207,11 @@ def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
     from scipy.spatial.distance import pdist, squareform
     from mne.preprocessing.nirs import _validate_nirs_info
 
-    # Returns pick of all nirs and ensures channels are correctly ordered
-    picks_nirs = _validate_nirs_info(inst.info)
-    if len(picks_nirs) == 0:
+    if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
         return
 
+    # Returns pick of all nirs and ensures channels are correctly ordered
+    picks_nirs = _validate_nirs_info(inst.info)
     nirs_ch_names = [inst.info['ch_names'][p] for p in picks_nirs]
     nirs_ch_names = [ch for ch in nirs_ch_names if ch not in exclude]
     bads_nirs = [ch for ch in inst.info['bads'] if ch in nirs_ch_names]

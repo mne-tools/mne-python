@@ -21,8 +21,8 @@ from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, _check_fname, warn, _custom_lru_cache,
-                    _ensure_int, ProgressBar, use_log_level,
-                    _import_h5io_funcs, _VerboseDep)
+                    _ensure_int, ProgressBar, use_log_level, _import_nibabel,
+                    _import_h5io_funcs)
 
 
 @verbose
@@ -31,7 +31,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
                          spacing=5, smooth=None, warn=True, xhemi=False,
                          sparse=False, src_to=None, precompute=False,
-                         verbose=False):
+                         verbose=None):
     """Create a SourceMorph from one subject to another.
 
     Method is based on spherical morphing by FreeSurfer for surface
@@ -176,13 +176,13 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         raise ValueError('Only surface source estimates can compute a '
                          'sparse morph.')
 
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     shape = affine = pre_affine = sdr_morph = morph_mat = None
     vertices_to_surf, vertices_to_vol = list(), list()
 
     if kind in ('volume', 'mixed'):
         _check_dep(nibabel='2.1.0', dipy='0.10.1')
-        import nibabel as nib
+        nib = _import_nibabel('work with a volume source space')
 
         logger.info('Volume source space(s) present...')
 
@@ -198,7 +198,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # let's KISS and use `brain.mgz`, too
         mri_path_to = op.join(subjects_dir, subject_to, mri_subpath)
         if not op.isfile(mri_path_to):
-            raise IOError('cannot read file: %s' % mri_path_to)
+            raise OSError('cannot read file: %s' % mri_path_to)
         logger.info('    Loading %s as "to" volume' % mri_path_to)
         with warnings.catch_warnings():
             mri_to = nib.load(mri_path_to)
@@ -297,11 +297,13 @@ _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
 
 
 @fill_doc
-class SourceMorph(_VerboseDep):
+class SourceMorph:
     """Morph source space data from one subject to another.
 
-    .. note:: This class should not be instantiated directly.
-              Use :func:`mne.compute_source_morph` instead.
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.SourceMorph(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Parameters
     ----------
@@ -313,7 +315,7 @@ class SourceMorph(_VerboseDep):
         subject_to can be the path to a MRI volume. Can also be a list of
         two arrays if morphing to hemisphere surfaces.
     kind : str | None
-        Kind of source estimate. E.g. 'volume' or 'surface'.
+        Kind of source estimate. E.g. ``'volume'`` or ``'surface'``.
     zooms : float | tuple
         See :func:`mne.compute_source_morph`.
     niter_affine : tuple of int
@@ -351,6 +353,11 @@ class SourceMorph(_VerboseDep):
         The volumetric morph matrix, if :meth:`compute_vol_morph_mat`
         was used.
     %(verbose)s
+
+    See Also
+    --------
+    compute_source_morph
+    read_source_morph
 
     Notes
     -----
@@ -423,13 +430,14 @@ class SourceMorph(_VerboseDep):
         stc_from : VolSourceEstimate | VolVectorSourceEstimate | SourceEstimate | VectorSourceEstimate
             The source estimate to morph.
         output : str
-            Can be 'stc' (default) or possibly 'nifti1', or 'nifti2'
-            when working with a volume source space defined on a regular
-            grid.
+            Can be ``'stc'`` (default) or possibly ``'nifti1'``, or
+            ``'nifti2'`` when working with a volume source space defined on a
+            regular grid.
         mri_resolution : bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
-            WARNING: if you have many time points the file produced can be
-            huge. The default is mri_resolution=False.
+
+            .. warning: If you have many time points the file produced can be
+                        huge. The default is ``mri_resolution=False``.
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.
@@ -624,8 +632,8 @@ class SourceMorph(_VerboseDep):
         return img_to
 
     def __repr__(self):  # noqa: D105
-        s = u"%s" % self.kind
-        s += u", %s -> %s" % (self.subject_from, self.subject_to)
+        s = "%s" % self.kind
+        s += ", %s -> %s" % (self.subject_from, self.subject_to)
         if self.kind == 'volume':
             s += ", zooms : {}".format(self.zooms)
             s += ", niter_affine : {}".format(self.niter_affine)
@@ -643,16 +651,16 @@ class SourceMorph(_VerboseDep):
 
         Parameters
         ----------
-        fname : str
-            The stem of the file name. '-morph.h5' will be added if fname does
-            not end with '.h5'.
+        fname : path-like
+            The path to the file. ``'-morph.h5'`` will be added if fname does
+            not end with ``'.h5'``.
         %(overwrite)s
         %(verbose)s
         """
         _, write_hdf5 = _import_h5io_funcs()
         fname = _check_fname(fname, overwrite=overwrite, must_exist=False)
-        if not fname.endswith('.h5'):
-            fname = '%s-morph.h5' % fname
+        if fname.suffix != ".h5":
+            fname = fname.with_name(f"{fname.name}-morph.h5")
 
         out_dict = {k: getattr(self, k) for k in _SOURCE_MORPH_ATTRIBUTES}
         for key in ('pre_affine', 'sdr_morph'):  # classes
@@ -737,8 +745,8 @@ def read_source_morph(fname):
 
     Parameters
     ----------
-    fname : str
-        Full filename including path.
+    fname : path-like
+        Path to the file containing the morph source estimates.
 
     Returns
     -------
@@ -1099,7 +1107,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
 
 
 @verbose
-def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
+def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None,
                       verbose=None):
     """Convert a grade to source space vertices for a given subject.
 
@@ -1132,8 +1140,10 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         return [np.arange(10242), np.arange(10242)]
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
-    spheres_to = [op.join(subjects_dir, subject, 'surf',
-                          xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres_to = [
+        subjects_dir / subject / "surf" / (xh + ".sphere.reg")
+        for xh in ["lh", "rh"]
+    ]
     lhs, rhs = [read_surface(s)[0] for s in spheres_to]
 
     if grade is not None:  # fill a subset of vertices
@@ -1177,10 +1187,6 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
 def _surf_nearest(vertices, adj_mat):
     from scipy import sparse
     from scipy.sparse.csgraph import dijkstra
-    if not check_version('scipy', '1.3'):
-        raise ValueError('scipy >= 1.3 is required to use nearest smoothing, '
-                         'consider upgrading SciPy or using a different '
-                         'smoothing value')
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
     vertices = vertices[order]
@@ -1267,8 +1273,10 @@ def _sparse_argmax_nnz_row(csr_mat):
 
 
 def _get_subject_sphere_tris(subject, subjects_dir):
-    spheres = [op.join(subjects_dir, subject, 'surf',
-                       xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    spheres = [
+        subjects_dir / subject / "surf" / (xh + ".sphere.reg")
+        for xh in ["lh", "rh"]
+    ]
     tris = [read_surface(s)[1] for s in spheres]
     return tris
 

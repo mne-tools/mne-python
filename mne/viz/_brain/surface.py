@@ -15,7 +15,7 @@ from ...surface import (complete_surface_info, read_surface, read_curvature,
                         _read_patch)
 
 
-class _Surface(object):
+class _Surface:
     """Container for a brain surface.
 
     It is used for storing vertices, faces and morphometric data
@@ -23,7 +23,7 @@ class _Surface(object):
 
     Parameters
     ----------
-    subject_id : string
+    subject : string
         Name of subject
     hemi : {'lh', 'rh'}
         Which hemisphere to load
@@ -62,7 +62,7 @@ class _Surface(object):
     offset : float | None
         If float, align inside edge of each hemisphere to center + offset.
         If None, do not change coordinates (default).
-    subject_id : string
+    subject : string
         Name of subject.
     surf : string
         Name of the surface to load (eg. inflated, orig ...).
@@ -70,7 +70,7 @@ class _Surface(object):
         Can be 'm' or 'mm' (default).
     """
 
-    def __init__(self, subject_id, hemi, surf, subjects_dir=None, offset=None,
+    def __init__(self, subject, hemi, surf, subjects_dir=None, offset=None,
                  units='mm', x_dir=None):
 
         x_dir = np.array([1., 0, 0]) if x_dir is None else x_dir
@@ -80,7 +80,7 @@ class _Surface(object):
         _validate_type(offset, (None, 'numeric'), 'offset')
 
         self.units = _check_option('units', units, ('mm', 'm'))
-        self.subject_id = subject_id
+        self.subject = subject
         self.hemi = hemi
         self.surf = surf
         self.offset = offset
@@ -93,8 +93,8 @@ class _Surface(object):
         self.labels = dict()
         self.x_dir = x_dir
 
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        self.data_path = path.join(subjects_dir, subject_id)
+        subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
+        self.data_path = path.join(subjects_dir, subject)
         if surf == 'seghead':
             raise ValueError('`surf` cannot be seghead, use '
                              '`mne.viz.Brain.add_head` to plot the seghead')
@@ -121,9 +121,14 @@ class _Surface(object):
             coords = coords[:, [1, 0, 2]]
             coords[:, 1] *= -1
         else:
-            coords, faces = read_surface(
-                path.join(self.data_path, 'surf',
-                          '%s.%s' % (self.hemi, self.surf)))
+            # allow ?h.pial.T1 if ?h.pial doesn't exist for instance
+            # end with '' for better file not found error
+            for img in ('', '.T1', '.T2', ''):
+                surf_fname = path.join(self.data_path, 'surf',
+                                       f'{self.hemi}.{self.surf}{img}')
+                if path.isfile(surf_fname):
+                    break
+            coords, faces = read_surface(surf_fname)
             orig_faces = faces
         if self.units == 'm':
             coords /= 1000.

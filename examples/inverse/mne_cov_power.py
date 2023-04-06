@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-cov-power:
 
@@ -24,7 +23,6 @@ References
 
 # %%
 
-import os.path as op
 import numpy as np
 
 import mne
@@ -43,8 +41,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 # First we compute an empty-room covariance, which captures noise from the
 # sensors and environment.
 
-raw_empty_room_fname = op.join(
-    data_path, 'MEG', 'sample', 'ernoise_raw.fif')
+raw_empty_room_fname = data_path / 'MEG' / 'sample' / 'ernoise_raw.fif'
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_empty_room.crop(0, 30)  # cropped just for speed
 raw_empty_room.info['bads'] = ['MEG 2443']
@@ -98,10 +95,13 @@ evoked = epochs.average().pick('meg')
 evoked.drop_channels(evoked.info['bads'])
 evoked.plot(time_unit='s')
 evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag')
-noise_cov.plot_topomap(evoked.info, 'grad', title='Noise')
-data_cov.plot_topomap(evoked.info, 'grad', title='Data')
-data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
-                      title='Whitened data')
+
+loop = {'Noise': (noise_cov, dict()),
+        'Data': (data_cov, dict()),
+        'Whitened data': (data_cov, dict(noise_cov=noise_cov))}
+for title, (_cov, _kw) in loop.items():
+    fig = _cov.plot_topomap(evoked.info, 'grad', **_kw)
+    fig.suptitle(title)
 
 # %%
 # Apply inverse operator to covariance
@@ -111,7 +111,6 @@ data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
 # Read the forward solution and compute the inverse operator
 fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fname_fwd)
-
 # make an MEG inverse operator
 info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,

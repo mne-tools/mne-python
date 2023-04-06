@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
-from collections import Counter
+import importlib
 import inspect
-from inspect import getsource
-import os.path as op
 from pathlib import Path
 from pkgutil import walk_packages
 import re
-import sys
 
 import pytest
 
@@ -120,6 +116,31 @@ def check_parameters_match(func, cls=None):
                  for err in validate(name)['errors']
                  if err[0] not in error_ignores and
                  (name.split('.')[-1], err[0]) not in error_ignores_specific]
+    # Add a check that all public functions and methods that have "verbose"
+    # set the default verbose=None
+    if cls is None:
+        mod_or_class = importlib.import_module('.'.join(name.split('.')[:-1]))
+    else:
+        mod_or_class = importlib.import_module('.'.join(name.split('.')[:-2]))
+        mod_or_class = getattr(mod_or_class, cls.__name__.split('.')[-1])
+    callable_ = getattr(mod_or_class, name.split('.')[-1])
+    try:
+        sig = inspect.signature(callable_)
+    except ValueError as exc:
+        msg = str(exc)
+        # E   ValueError: no signature found for builtin type
+        #     <class 'mne.forward.forward.Forward'>
+        if inspect.isclass(callable_) and 'no signature found for buil' in msg:
+            pass
+        else:
+            raise
+    else:
+        if 'verbose' in sig.parameters:
+            verbose_default = sig.parameters['verbose'].default
+            if verbose_default is not None:
+                incorrect += [
+                    f'{name} : verbose default is not None, '
+                    f'got: {verbose_default}']
     return incorrect
 
 
@@ -169,17 +190,11 @@ def test_tabs():
     for _, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         # because we don't import e.g. mne.tests w/mne
         if not ispkg and modname not in tab_ignores:
-            # mod = importlib.import_module(modname)  # not py26 compatible!
             try:
-                with _record_warnings():
-                    __import__(modname)
-            except Exception:  # can't import properly
+                mod = importlib.import_module(modname)
+            except Exception:  # e.g., mne.export not having pybv
                 continue
-            mod = sys.modules[modname]
-            try:
-                source = getsource(mod)
-            except IOError:  # user probably should have run "make clean"
-                continue
+            source = inspect.getsource(mod)
             assert '\t' not in source, ('"%s" has tabs, please remove them '
                                         'or add it to the ignore list'
                                         % modname)
@@ -207,7 +222,6 @@ adjust_axes
 apply_maxfilter
 apply_trans
 channel_type
-check_n_jobs
 combine_kit_markers
 combine_tfr
 combine_transforms
@@ -251,9 +265,9 @@ write_info
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
-    doc_file = op.join(doc_dir, 'python_reference.rst')
-    if not op.isfile(doc_file):
+    doc_dir = (Path(__file__).parent.parent.parent / "doc").absolute()
+    doc_file = doc_dir / "python_reference.rst"
+    if not doc_file.is_file():
         pytest.skip('Documentation file not found: %s' % doc_file)
     api_files = (
         'covariance', 'creating_from_arrays', 'datasets',
@@ -263,7 +277,7 @@ def test_documented():
         'statistics', 'time_frequency', 'visualization', 'export')
     known_names = list()
     for api_file in api_files:
-        with open(op.join(doc_dir, f'{api_file}.rst'), 'rb') as fid:
+        with open(doc_dir / f'{api_file}.rst', 'rb') as fid:
             for line in fid:
                 line = line.decode('utf-8')
                 if not line.startswith('  '):  # at least two spaces
@@ -299,18 +313,15 @@ def test_documented():
 
 def test_docdict_order():
     """Test that docdict is alphabetical."""
+    from mne.utils.docs import docdict
+
+    # read the file as text, and get entries via regex
     docs_path = Path(__file__).parent.parent / 'utils' / 'docs.py'
     assert docs_path.is_file(), docs_path
-    with open(docs_path, 'r') as fid:
+    with open(docs_path, 'r', encoding='UTF-8') as fid:
         docs = fid.read()
-    entries = re.findall(r'docdict\[["\']([a-z_\-0-9]+)["\']\] = ', docs)
-    # We can always modify the upper or lower bounds here as entries are made.
-    # This just makes sure our regex is reasonable.
-    # As of 2022/03/02 we're at 346
-    assert 340 < len(entries) < 500
-    # no dups (verbosely describe the error)
-    for key, count in Counter(entries).items():
-        assert count == 1, key
-    # this should be redundant, but why not
-    assert len(set(entries)) == len(entries)
+    entries = re.findall(r'docdict\[["\'](.+)["\']\] = ', docs)
+    # test length & uniqueness
+    assert len(docdict) == len(entries)
+    # test order
     assert sorted(entries) == entries

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
@@ -134,7 +133,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
                     '(averaging over %s time intervals)'
                     % (len(mag_picks), len(time_idxs) - 1))
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info('    Processing interval %0.3f - %0.3f sec'
+            logger.info('    Processing interval %0.3f - %0.3f s'
                         % (start / info['sfreq'], stop / info['sfreq']))
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -168,7 +167,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
                     % (len(grad_picks), extra))
         imb_list = list()
         for start, stop in zip(time_idxs[:-1], time_idxs[1:]):
-            logger.info('    Processing interval %0.3f - %0.3f sec'
+            logger.info('    Processing interval %0.3f - %0.3f s'
                         % (start / info['sfreq'], stop / info['sfreq']))
             data = raw[picks, start:stop][0]
             if ctc is not None:
@@ -425,14 +424,14 @@ def _estimate_imbalance(info, data, cals, n_imbalance, origin, ext_order):
 
 
 def read_fine_calibration(fname):
-    """Read fine calibration information from a .dat file.
+    """Read fine calibration information from a ``.dat`` file.
 
     The fine calibration typically includes improved sensor locations,
     calibration coefficients, and gradiometer imbalance information.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename.
 
     Returns
@@ -481,11 +480,11 @@ def read_fine_calibration(fname):
 
 
 def write_fine_calibration(fname, calibration):
-    """Write fine calibration information to a .dat file.
+    """Write fine calibration information to a ``.dat`` file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to write out.
     calibration : dict
         Fine calibration information.

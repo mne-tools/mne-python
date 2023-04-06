@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _plot_montage:
 
@@ -16,6 +15,7 @@ shipped in MNE-python, and display it on the fsaverage template subject.
 # %%
 
 import os.path as op
+import numpy as np
 
 import mne
 from mne.channels.montage import get_builtin_montages
@@ -35,6 +35,7 @@ for current_montage in get_builtin_montages():
     fig = mne.viz.plot_alignment(
         # Plot options
         show_axes=True, dig='fiducials', surfaces='head',
+        trans=mne.Transform("head", "mri", trans=np.eye(4)),  # identity
         bem=sphere, info=info)
     set_3d_view(figure=fig, azimuth=135, elevation=80)
     set_3d_title(figure=fig, title=current_montage)

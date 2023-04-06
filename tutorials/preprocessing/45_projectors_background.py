@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-projectors-background:
 
@@ -203,7 +202,8 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # :math:`y`, and :math:`z` directions, the set of projected points have only
 # two *effective* dimensions (i.e., they are constrained to a plane).
 #
-# .. sidebar:: Terminology
+# .. admonition:: Terminology
+#     :class: sidebar note
 #
 #     In MNE-Python, the matrix used to project a raw signal into a subspace is
 #     usually called a :term:`projector` or a *projection

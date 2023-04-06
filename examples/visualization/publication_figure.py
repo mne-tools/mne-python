@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-publication-figure:
 
@@ -21,8 +20,6 @@ customize them for a more publication-ready look.
 # -------
 # We are importing everything we need for this example:
 
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import (make_axes_locatable, ImageGrid,
@@ -39,9 +36,9 @@ import mne
 # start by loading some :ref:`example data <sample-dataset>`.
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-eeg-lh.stc')
-fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+subjects_dir = data_path / 'subjects'
+fname_stc = data_path / 'MEG' / 'sample' / 'sample_audvis-meg-eeg-lh.stc'
+fname_evoked = data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
 
 evoked = mne.read_evokeds(fname_evoked, 'Left Auditory')
 evoked.pick_types(meg='grad').apply_baseline((None, 0.))
@@ -195,7 +192,7 @@ for ax, label in zip(axes, 'AB'):
 # Let's start by loading some :ref:`example data <sample-dataset>`.
 
 data_path = mne.datasets.sample.data_path()
-fname_raw = op.join(data_path, "MEG", "sample", "sample_audvis_raw.fif")
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(fname_raw)
 
 # For the sake of the example, we focus on EEG data

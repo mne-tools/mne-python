@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-ica:
 
@@ -23,8 +22,8 @@ and classes from that submodule:
 
 import os
 import mne
-from mne.preprocessing import (ICA, create_eog_epochs, create_ecg_epochs,
-                               corrmap)
+from mne.preprocessing import (ICA, corrmap, create_ecg_epochs,
+                               create_eog_epochs)
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
@@ -67,7 +66,8 @@ raw.load_data()
 # ICA in MNE-Python
 # ~~~~~~~~~~~~~~~~~
 #
-# .. sidebar:: ICA and dimensionality reduction
+# .. admonition:: ICA and dimensionality reduction
+#     :class: sidebar hint
 #
 #     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
@@ -212,22 +212,17 @@ ecg_evoked.plot_joint()
 filt_raw = raw.copy().filter(l_freq=1., h_freq=None)
 
 # %%
-# Fitting and plotting the ICA solution
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Fitting ICA
+# ~~~~~~~~~~~
 #
-# .. sidebar:: Ignoring the time domain
+# .. admonition:: Ignoring the time domain
+#     :class: sidebar hint
 #
 #     The ICA algorithms implemented in MNE-Python find patterns across
 #     channels, but ignore the time domain. This means you can compute ICA on
 #     discontinuous `~mne.Epochs` or `~mne.Evoked` objects (not
 #     just continuous `~mne.io.Raw` objects), or only use every Nth
 #     sample by passing the ``decim`` parameter to ``ICA.fit()``.
-#
-#     .. note:: `~mne.Epochs` used for fitting ICA should not be
-#               baseline-corrected. Because cleaning the data via ICA may
-#               introduce DC offsets, we suggest to baseline correct your data
-#               **after** cleaning (and not before), should you require
-#               baseline correction.
 #
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
@@ -246,6 +241,14 @@ filt_raw = raw.copy().filter(l_freq=1., h_freq=None)
 # flip on different runs, or may not always be returned in the same order), so
 # we'll also specify a `random seed`_ so that we get identical results each
 # time this tutorial is built by our web servers.
+#
+# .. warning::
+#
+#     `~mne.Epochs` used for fitting ICA should not be
+#     baseline-corrected. Because cleaning the data via ICA may
+#     introduce DC offsets, we suggest to baseline correct your data
+#     **after** cleaning (and not before), should you require
+#     baseline correction.
 
 ica = ICA(n_components=15, max_iter='auto', random_state=97)
 ica.fit(filt_raw)
@@ -258,11 +261,49 @@ ica
 # speed-up) and ``reject`` (for providing a rejection dictionary for maximum
 # acceptable peak-to-peak amplitudes for each channel type, just like we used
 # when creating epoched data in the :ref:`tut-overview` tutorial).
-#
+
+# %%
+# Looking at the ICA solution
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Now we can examine the ICs to see what they captured.
+#
+# Using :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio`, we can
+# retrieve the fraction of variance in the original data that is explained by
+# our ICA components in the form of a dictionary:
+
+explained_var_ratio = ica.get_explained_variance_ratio(filt_raw)
+for channel_type, ratio in explained_var_ratio.items():
+    print(
+        f'Fraction of {channel_type} variance explained by all components: '
+        f'{ratio}'
+    )
+
+# %%
+# The values were calculated for all ICA components jointly, but separately for
+# each channel type (here: magnetometers and EEG).
+#
+# We can also explicitly request for which component(s) and channel type(s) to
+# perform the computation:
+explained_var_ratio = ica.get_explained_variance_ratio(
+    filt_raw,
+    components=[0],
+    ch_type='eeg'
+)
+# This time, print as percentage.
+ratio_percent = round(100 * explained_var_ratio['eeg'])
+print(
+    f'Fraction of variance in EEG signal explained by first component: '
+    f'{ratio_percent}%'
+)
+
+# %%
 # `~mne.preprocessing.ICA.plot_sources` will show the time series of the
 # ICs. Note that in our call to `~mne.preprocessing.ICA.plot_sources` we
-# can use the original, unfiltered `~mne.io.Raw` object:
+# can use the original, unfiltered `~mne.io.Raw` object. A helpful tip is that
+# right clicking (or control + click with a trackpad) on the name of the
+# component will bring up a plot of its properties. In this plot, you can
+# also toggle the channel type in the topoplot (if you have multiple channel
+# types) with 't' and whether the spectrum is log-scaled or not with 'l'.
 
 raw.load_data()
 ica.plot_sources(raw, show_scrollbars=False)
@@ -459,6 +500,11 @@ new_ica.plot_sources(ecg_evoked)
 # of automated approaches like `~mne.preprocessing.ICA.find_bads_ecg`
 # before accepting them.
 
+# %%
+# For EEG, activation of muscles for postural control of the head and neck
+# contaminate the signal as well. This is usually not detected by MEG. For
+# an example showing how to remove these components, see :ref:`ex-muscle-ica`.
+
 # clean up memory before moving on
 del raw, ica, new_ica
 
@@ -485,22 +531,6 @@ del raw, ica, new_ica
 # dataset has 109 subjects, we'll just download one run (a left/right hand
 # movement task) from each of the first 4 subjects:
 
-mapping = {
-    'Fc5.': 'FC5', 'Fc3.': 'FC3', 'Fc1.': 'FC1', 'Fcz.': 'FCz', 'Fc2.': 'FC2',
-    'Fc4.': 'FC4', 'Fc6.': 'FC6', 'C5..': 'C5', 'C3..': 'C3', 'C1..': 'C1',
-    'Cz..': 'Cz', 'C2..': 'C2', 'C4..': 'C4', 'C6..': 'C6', 'Cp5.': 'CP5',
-    'Cp3.': 'CP3', 'Cp1.': 'CP1', 'Cpz.': 'CPz', 'Cp2.': 'CP2', 'Cp4.': 'CP4',
-    'Cp6.': 'CP6', 'Fp1.': 'Fp1', 'Fpz.': 'Fpz', 'Fp2.': 'Fp2', 'Af7.': 'AF7',
-    'Af3.': 'AF3', 'Afz.': 'AFz', 'Af4.': 'AF4', 'Af8.': 'AF8', 'F7..': 'F7',
-    'F5..': 'F5', 'F3..': 'F3', 'F1..': 'F1', 'Fz..': 'Fz', 'F2..': 'F2',
-    'F4..': 'F4', 'F6..': 'F6', 'F8..': 'F8', 'Ft7.': 'FT7', 'Ft8.': 'FT8',
-    'T7..': 'T7', 'T8..': 'T8', 'T9..': 'T9', 'T10.': 'T10', 'Tp7.': 'TP7',
-    'Tp8.': 'TP8', 'P7..': 'P7', 'P5..': 'P5', 'P3..': 'P3', 'P1..': 'P1',
-    'Pz..': 'Pz', 'P2..': 'P2', 'P4..': 'P4', 'P6..': 'P6', 'P8..': 'P8',
-    'Po7.': 'PO7', 'Po3.': 'PO3', 'Poz.': 'POz', 'Po4.': 'PO4', 'Po8.': 'PO8',
-    'O1..': 'O1', 'Oz..': 'Oz', 'O2..': 'O2', 'Iz..': 'Iz'
-}
-
 raws = list()
 icas = list()
 
@@ -509,7 +539,7 @@ for subj in range(4):
     fname = mne.datasets.eegbci.load_data(subj + 1, runs=[3])[0]
     raw = mne.io.read_raw_edf(fname).load_data().resample(50)
     # remove trailing `.` from channel names so we can set montage
-    raw.rename_channels(mapping)
+    mne.datasets.eegbci.standardize(raw)
     raw.set_montage('standard_1005')
     # high-pass filter
     raw_filt = raw.copy().load_data().filter(l_freq=1., h_freq=None)

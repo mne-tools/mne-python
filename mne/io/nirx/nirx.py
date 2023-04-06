@@ -29,7 +29,7 @@ def read_raw_nirx(fname, saturated='annotate', preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
@@ -39,10 +39,11 @@ def read_raw_nirx(fname, saturated='annotate', preload=False, verbose=None):
     -------
     raw : instance of RawNIRX
         A Raw object containing NIRX data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawNIRX.
 
     Notes
     -----
@@ -61,7 +62,7 @@ class RawNIRX(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the NIRX data folder or header file.
     %(saturated)s
     %(preload)s
@@ -69,7 +70,7 @@ class RawNIRX(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -87,7 +88,7 @@ class RawNIRX(BaseRaw):
         if fname.endswith('.hdr'):
             fname = op.dirname(op.abspath(fname))
 
-        fname = _check_fname(fname, 'read', True, 'fname', need_dir=True)
+        fname = str(_check_fname(fname, "read", True, "fname", need_dir=True))
 
         json_config = glob.glob('%s/*%s' % (fname, "config.json"))
         if len(json_config):
@@ -161,7 +162,8 @@ class RawNIRX(BaseRaw):
         if is_aurora:
             # We may need to ease this requirement back
             if hdr['GeneralInfo']['Version'] not in ['2021.4.0-34-ge9fdbbc8',
-                                                     '2021.9.0-5-g3eb32851']:
+                                                     '2021.9.0-5-g3eb32851',
+                                                     '2021.9.0-6-g14ef4a71']:
                 warn("MNE has not been tested with Aurora version "
                      f"{hdr['GeneralInfo']['Version']}")
         else:
@@ -444,10 +446,12 @@ class RawNIRX(BaseRaw):
         if op.isfile(files['tri']):
             with _open(files['tri']) as fid:
                 t = [re.findall(r'(\d+)', line) for line in fid]
+            if is_aurora:
+                tf_idx, desc_idx = _determine_tri_idxs(t[0])
             for t_ in t:
                 if is_aurora:
-                    trigger_frame = float(t_[7])
-                    desc = float(t_[8])
+                    trigger_frame = float(t_[tf_idx])
+                    desc = float(t_[desc_idx])
                 else:
                     binary_value = ''.join(t_[1:])[::-1]
                     desc = float(int(binary_value, 2))
@@ -510,3 +514,19 @@ def _convert_fnirs_to_head(trans, fro, to, src_locs, det_locs, ch_locs):
     det_locs = apply_trans(mri_head_t, det_locs)
     ch_locs = apply_trans(mri_head_t, ch_locs)
     return src_locs, det_locs, ch_locs, mri_head_t
+
+
+def _determine_tri_idxs(trigger):
+    """Determine tri file indexes for frame and description."""
+    if len(trigger) == 12:
+        # Aurora version 2021.9.6 or greater
+        trigger_frame_idx = 7
+        desc_idx = 10
+    elif len(trigger) == 9:
+        # Aurora version 2021.9.5 or earlier
+        trigger_frame_idx = 7
+        desc_idx = 8
+    else:
+        raise RuntimeError("Unable to read trigger file.")
+
+    return trigger_frame_idx, desc_idx

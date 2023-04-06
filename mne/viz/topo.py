@@ -9,15 +9,14 @@
 
 from copy import deepcopy
 from functools import partial
-from itertools import cycle
 
 import numpy as np
 
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc, _to_rgb
+from ..utils import _clean_names, _check_option, Bunch, fill_doc, _to_rgb
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
-from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
+from .utils import (_check_delayed_ssp, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
                     DraggableColorbar, _setup_ax_spines,
                     _check_cov, _plot_masked_image)
@@ -659,23 +658,8 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     import matplotlib.pyplot as plt
     from ..cov import whiten_evoked
 
-    if not type(evoked) in (tuple, list):
+    if type(evoked) not in (tuple, list):
         evoked = [evoked]
-
-    if type(color) in (tuple, list):
-        if len(color) != len(evoked):
-            raise ValueError('Lists of evoked objects and colors'
-                             ' must have the same length')
-    elif color is None:
-        colors = ['w'] + _get_color_list
-        stop = (slice(len(evoked)) if len(evoked) < len(colors)
-                else slice(len(colors)))
-        color = cycle(colors[stop])
-        if len(evoked) > len(colors):
-            warn('More evoked objects than colors available. You should pass '
-                 'a list of unique colors.')
-    else:
-        color = cycle([color])
 
     noise_cov = _check_cov(noise_cov, evoked[0].info)
     if noise_cov is not None:
@@ -810,8 +794,12 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     if legend is not False:
         legend_loc = 0 if legend is True else legend
         labels = [e.comment if e.comment else 'Unknown' for e in evoked]
-        legend = plt.legend(labels, loc=legend_loc,
-                            prop={'size': 10})
+        handles = fig.axes[0].lines[:len(evoked)]
+        legend = plt.legend(
+            labels=labels,
+            handles=handles,
+            loc=legend_loc,
+            prop={'size': 10})
         legend.get_frame().set_facecolor(axis_facecolor)
         txts = legend.get_texts()
         for txt, col in zip(txts, color):

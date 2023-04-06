@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-working-with-seeg:
 
@@ -39,8 +38,6 @@ see :ref:`manual-install`.
 
 # %%
 
-import os.path as op
-
 import numpy as np
 
 import mne
@@ -50,7 +47,7 @@ from mne.datasets import fetch_fsaverage
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
+subjects_dir = sample_path / 'subjects'
 
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
@@ -58,7 +55,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # %%
 # Let's load some sEEG data with channel locations and make epochs.
 
-raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
+raw = mne.io.read_raw(misc_path / 'seeg' / 'sample_seeg_ieeg.fif')
 
 events, event_id = mne.events_from_annotations(raw)
 epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
@@ -72,13 +69,13 @@ montage = epochs.get_montage()
 
 # first we need a head to mri transform since the data is stored in "head"
 # coordinates, let's load the mri to head transform and invert it
-this_subject_dir = op.join(misc_path, 'seeg')
+this_subject_dir = misc_path / 'seeg'
 head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', this_subject_dir)
 # apply the transform to our montage
 montage.apply_trans(head_mri_t)
 
 # now let's load our Talairach transform and apply it
-mri_mni_t = mne.read_talxfm('sample_seeg', op.join(misc_path, 'seeg'))
+mri_mni_t = mne.read_talxfm('sample_seeg', misc_path / 'seeg')
 montage.apply_trans(mri_mni_t)  # mri to mni_tal (MNI Taliarach)
 
 # for fsaverage, "mri" and "mni_tal" are equivalent and, since
@@ -105,9 +102,31 @@ trans = mne.channels.compute_native_head_t(montage)
 # ``mne.transforms.invert_transform(
 #      mne.transforms.combine_transforms(head_mri_t, mri_mni_t))``
 
-fig = mne.viz.plot_alignment(epochs.info, trans, 'fsaverage',
-                             subjects_dir=subjects_dir, show_axes=True,
-                             surfaces=['pial', 'head'], coord_frame='mri')
+view_kwargs = dict(azimuth=105, elevation=100, focalpoint=(0, 0, -15))
+brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
+                      cortex='low_contrast', alpha=0.25, background='white')
+brain.add_sensors(epochs.info, trans=trans)
+brain.add_head(alpha=0.25, color='tan')
+brain.show_view(distance=400, **view_kwargs)
+
+# %%
+# Now, let's project onto the inflated brain surface for visualization.
+# This video may be helpful for understanding the how the annotations on
+# the pial surface translate to the inflated brain and flat map:
+#
+# .. youtube:: OOy7t1yq8IM
+brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
+                      surf='inflated', background='black')
+brain.add_annotation('aparc.a2009s')
+brain.add_sensors(epochs.info, trans=trans)
+brain.show_view(distance=500, **view_kwargs)
+
+# %%
+# Let's also show the sensors on a flat brain.
+brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
+                      surf='flat', background='black')
+brain.add_annotation('aparc.a2009s')
+brain.add_sensors(epochs.info, trans=trans)
 
 # %%
 # Let's also look at which regions of interest are nearby our electrode
@@ -160,8 +179,8 @@ epochs.plot()
 # to visualize source activity on the brain in various different formats.
 
 # get standard fsaverage volume (5mm grid) source space
-fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
-                    'fsaverage-vol-5-src.fif')
+fname_src = (subjects_dir / 'fsaverage' / 'bem' /
+             'fsaverage-vol-5-src.fif')
 vol_src = mne.read_source_spaces(fname_src)
 
 evoked = epochs.average()

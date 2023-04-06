@@ -27,10 +27,12 @@ from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
+from ..viz.backends._utils import _qt_app_exec, _qt_safe_window
+from ..viz.utils import safe_event
 from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
-                     warn, verbose, logger, _validate_type)
+                     verbose, logger, _validate_type)
 from ..surface import _DistanceQuery, _CheckInside
 from ..channels import read_dig_fif
 
@@ -85,7 +87,7 @@ class CoregistrationUI(HasTraits):
         with a different color. Defaults to True.
     sensor_opacity : float
         The opacity of the sensors between 0 and 1. Defaults to 1.0.
-    trans : str
+    trans : path-like
         The path to the Head<->MRI transform FIF file ("-trans.fif").
     size : tuple
         The dimensions (width, height) of the rendering view. The default is
@@ -97,7 +99,12 @@ class CoregistrationUI(HasTraits):
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
-        If True, start the Qt application event loop. Default to False.
+        Whether to halt program execution until the GUI has been closed
+        (``True``) or not (``False``, default).
+    %(fullscreen)s
+        The default is False.
+
+        .. versionadded:: 1.1
     %(interaction_scene)s
         Defaults to ``'terrain'``.
 
@@ -129,6 +136,8 @@ class CoregistrationUI(HasTraits):
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
+    @_qt_safe_window(splash='_renderer.figure.splash',
+                     window='_renderer.figure.plotter')
     @verbose
     def __init__(self, info_file, *, subject=None, subjects_dir=None,
                  fiducials='auto', head_resolution=None,
@@ -136,35 +145,9 @@ class CoregistrationUI(HasTraits):
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, block=False, interaction='terrain',
-                 project_eeg=None, head_transparency=None, standalone=None,
-                 verbose=None):
-        if standalone is not None:
-            depr_message = ('standalone is deprecated and will be replaced by '
-                            'block in 1.1.')
-            if block is None:
-                block = standalone
-                warn(depr_message, DeprecationWarning)
-            else:
-                warn(depr_message + ' Since you passed values for both '
-                     'standalone and block, standalone will be ignored.',
-                     DeprecationWarning)
-        if head_transparency is not None:
-            depr_message = ('head_transparency is deprecated and will be'
-                            ' replaced by head_opacity in 1.1.')
-            if head_opacity is None:
-                head_opacity = 0.8 if head_transparency else 1.0
-                warn(depr_message, DeprecationWarning)
-            else:
-                warn(depr_message + ' Since you passed values for both '
-                     'head_transparency and head_opacity, '
-                     'head_transparency will be ignored.',
-                     DeprecationWarning)
-        if project_eeg is not None:
-            warn('project_eeg is deprecated and will be removed in 1.1.',
-                 DeprecationWarning)
+                 show=True, block=False, fullscreen=False,
+                 interaction='terrain', verbose=None):
         from ..viz.backends.renderer import _get_renderer
-        from ..viz.backends._utils import _qt_app_exec
 
         def _get_default(var, val):
             return var if var is not None else val
@@ -232,15 +215,19 @@ class CoregistrationUI(HasTraits):
 
         # process requirements
         info = None
-        subjects_dir = get_subjects_dir(
-            subjects_dir=subjects_dir, raise_error=True)
+        subjects_dir = str(
+            get_subjects_dir(subjects_dir=subjects_dir, raise_error=True)
+        )
         subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window
         splash = 'Initializing coregistration GUI...' if show else False
         self._renderer = _get_renderer(
-            size=self._defaults["size"], bgcolor=self._defaults["bgcolor"],
-            splash=splash)
+            size=self._defaults["size"],
+            bgcolor=self._defaults["bgcolor"],
+            splash=splash,
+            fullscreen=fullscreen,
+        )
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_close_connect(self._close_callback, after=False)
         self._renderer.set_interaction(interaction)
@@ -334,12 +321,20 @@ class CoregistrationUI(HasTraits):
         if subjects_dir is None or not subjects_dir:
             return
         try:
-            subjects_dir = _check_fname(
-                subjects_dir, overwrite='read', must_exist=True, need_dir=True)
+            subjects_dir = str(
+                _check_fname(
+                    subjects_dir,
+                    overwrite="read",
+                    must_exist=True,
+                    need_dir=True,
+                )
+            )
             subjects = _get_subjects(subjects_dir)
             low_res_path = _find_head_bem(
                 subjects[0], subjects_dir, high_res=False)
-            valid = low_res_path is not None
+            high_res_path = _find_head_bem(
+                subjects[0], subjects_dir, high_res=True)
+            valid = low_res_path is not None or high_res_path is not None
         except Exception:
             valid = False
         if valid:
@@ -359,8 +354,13 @@ class CoregistrationUI(HasTraits):
         if fname is None:
             fids = 'auto'
         else:
-            fname = _check_fname(
-                fname, overwrite='read', must_exist=True, need_dir=False
+            fname = str(
+                _check_fname(
+                    fname,
+                    overwrite="read",
+                    must_exist=True,
+                    need_dir=False,
+                )
             )
             fids, _ = read_fiducials(fname)
 
@@ -396,7 +396,7 @@ class CoregistrationUI(HasTraits):
         try:
             check_fname(fname, 'info', tuple(raw_supported_types.keys()),
                         endings_err=tuple(raw_supported_types.keys()))
-            fname = _check_fname(fname, overwrite='read')  # convert to str
+            fname = str(_check_fname(fname, overwrite="read"))  # cast to str
 
             # ctf ds `files` are actually directories
             if fname.endswith(('.ds',)):
@@ -406,11 +406,11 @@ class CoregistrationUI(HasTraits):
                 info_file = _check_fname(
                     fname, overwrite='read', must_exist=True, need_dir=False)
             valid = True
-        except IOError:
+        except OSError:
             valid = False
         if valid:
             style = dict(border="initial")
-            self._info_file = info_file
+            self._info_file = str(info_file)
         else:
             style = dict(border="2px solid #ff0000")
         self._forward_widget_command("info_file_field", "set_style", style)
@@ -715,7 +715,7 @@ class CoregistrationUI(HasTraits):
         for name, buttons in zip(
                 ["overwrite_subject", "overwrite_subject_exit"],
                 [["Yes", "No"], ["Yes", "Discard", "Cancel"]]):
-            self._widgets[name] = self._renderer._dialog_warning(
+            self._widgets[name] = self._renderer._dialog_create(
                 title="CoregistrationUI",
                 text="The name of the output subject used to "
                      "save the scaled anatomy already exists.",
@@ -756,7 +756,7 @@ class CoregistrationUI(HasTraits):
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @verbose
-    def _redraw(self, verbose=None):
+    def _redraw(self, *, verbose=None):
         if not self._redraws_pending:
             return
         draw_map = dict(
@@ -1151,7 +1151,7 @@ class CoregistrationUI(HasTraits):
                 self._renderer, surface, self._subject,
                 self._subjects_dir, bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
-        except IOError:
+        except OSError:
             head_actor, head_surf, _ = _plot_head_surface(
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,
@@ -1175,6 +1175,7 @@ class CoregistrationUI(HasTraits):
 
     def _add_helmet(self):
         if self._helmet:
+            logger.debug('Drawing helmet')
             head_mri_t = _get_trans(self.coreg.trans, 'head', 'mri')[0]
             helmet_actor, _, _ = _plot_helmet(
                 self._renderer, self._info, self._to_cf_t, head_mri_t,
@@ -1213,7 +1214,7 @@ class CoregistrationUI(HasTraits):
     def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
-            updates = ['hsp', 'hpi', 'eeg', 'head_fids']
+            updates = ['hsp', 'hpi', 'eeg', 'head_fids', 'helmet']
             if update_head:
                 updates.insert(0, 'head')
 
@@ -1838,11 +1839,15 @@ class CoregistrationUI(HasTraits):
         self._surfaces.clear()
         self._defaults.clear()
         self._head_geo = None
+        self._check_inside = None
+        self._nearest = None
         self._redraw = None
 
+    @safe_event
     def close(self):
         """Close interface and cleanup data structure."""
-        self._renderer.close()
+        if self._renderer is not None:
+            self._renderer.close()
 
     def _close_dialog_callback(self, button_name):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -1861,7 +1866,7 @@ class CoregistrationUI(HasTraits):
                 if self._subject_to:
                     self._save_subject(exit_mode=True)
                 else:
-                    dialog = self._renderer._dialog_warning(
+                    dialog = self._renderer._dialog_create(
                         title="CoregistrationUI",
                         text="The name of the output subject used to "
                              "save the scaled anatomy is not set.",
@@ -1891,7 +1896,7 @@ class CoregistrationUI(HasTraits):
             if self._mri_scale_modified:
                 text += "<li>scaled subject MRI</li>"
             text += "</ul>"
-            self._widgets["close_dialog"] = self._renderer._dialog_warning(
+            self._widgets["close_dialog"] = self._renderer._dialog_create(
                 title="CoregistrationUI",
                 text=text,
                 info_text="Do you want to save?",

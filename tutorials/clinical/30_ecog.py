@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-working-with-ecog:
 
@@ -34,11 +33,9 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 # %%
 
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.cm import get_cmap
+from matplotlib import colormaps
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
@@ -49,7 +46,7 @@ print(__doc__)
 # paths to mne datasets - sample ECoG and FreeSurfer subject
 bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
+subjects_dir = sample_path / 'subjects'
 
 # %%
 # Load in data and perform basic preprocessing
@@ -64,12 +61,12 @@ subjects_dir = op.join(sample_path, 'subjects')
 
 # first define the bids path
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
-                     task='ictal', datatype='ieeg', extension='vhdr')
+                     task='ictal', datatype='ieeg', extension='.vhdr')
 
-# then we'll use it to load in the sample dataset
-# Here we use a format (iEEG) that is only available in MNE-BIDS 0.7+, so it
-# will emit a warning on versions <= 0.6
-raw = read_raw_bids(bids_path=bids_path, verbose=False)
+# Then we'll use it to load in the sample dataset. This function changes the
+# units of some channels, so we suppress a related warning here by using
+# verbose='error'.
+raw = read_raw_bids(bids_path=bids_path, verbose='error')
 
 # Pick only the ECoG channels, removing the EKG channels
 raw.pick_types(ecog=True)
@@ -120,7 +117,7 @@ del epochs
 
 fig = plot_alignment(raw.info, trans='fsaverage',
                      subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], coord_frame='head')
+                     surfaces=['pial'], coord_frame='head', sensor_colors=None)
 mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
@@ -138,6 +135,31 @@ gamma_power_t = evoked.copy().filter(30, 90).apply_hilbert(
 gamma_info = gamma_power_t.info
 
 # %%
+# Plot Gamma Power on cortical sensors
+# --------------------------------------
+#
+# We will now use evoked gamma power to plot on the cortical surface.
+# Therefore we extract the evoked time sample at 15s and normalize
+# it in a range of 0 to 1 in order to map it using a matplotlib colormap.
+
+gamma_power_at_15s = gamma_power_t.to_data_frame(index='time').loc[15]
+# scale values to be between 0 and 1, then map to colors
+gamma_power_at_15s -= gamma_power_at_15s.min()
+gamma_power_at_15s /= gamma_power_at_15s.max()
+rgba = colormaps.get_cmap("viridis")
+sensor_colors = gamma_power_at_15s.map(rgba).tolist()
+
+fig = plot_alignment(raw.info, trans='fsaverage',
+                     subject='fsaverage', subjects_dir=subjects_dir,
+                     surfaces=['pial'], coord_frame='head',
+                     sensor_colors=sensor_colors)
+
+mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
+
+xy, im = snapshot_brain_montage(fig, raw.info)
+
+
+# %%
 # Visualize the time-evolution of the gamma power on the brain
 # ------------------------------------------------------------
 #
@@ -150,7 +172,7 @@ gamma_info = gamma_power_t.info
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 
 # get a colormap to color nearby points similar colors
-cmap = get_cmap('viridis')
+cmap = plt.colormaps['viridis']
 
 # create the figure of the brain with the electrode positions
 fig, ax = plt.subplots(figsize=(5, 5))
@@ -181,8 +203,8 @@ for i, pos in enumerate(xy_pts):
 
 xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
 
-src = mne.read_source_spaces(
-    op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
+src = mne.read_source_spaces(subjects_dir / 'fsaverage' / 'bem' /
+                             'fsaverage-ico-5-src.fif')
 stc = mne.stc_near_sensors(gamma_power_t, trans='fsaverage',
                            subject='fsaverage', subjects_dir=subjects_dir,
                            src=src, surface='pial', mode='nearest',
@@ -194,6 +216,7 @@ brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
                  size=(250, 250), smoothing_steps='nearest',
                  time_viewer=False)
 brain.add_sensors(raw.info, trans='fsaverage')
+del brain
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=1, interpolation='linear', framerate=3,

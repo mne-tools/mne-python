@@ -1,5 +1,3 @@
-import os.path as op
-
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose,
@@ -30,9 +28,8 @@ def test_filter_array():
 @requires_mne
 def test_mne_c_design(tmp_path):
     """Test MNE-C filter design."""
-    tempdir = str(tmp_path)
-    temp_fname = op.join(tempdir, 'test_raw.fif')
-    out_fname = op.join(tempdir, 'test_c_raw.fif')
+    temp_fname = tmp_path / "test_raw.fif"
+    out_fname = tmp_path / "test_c_raw.fif"
     x = np.zeros((1, 10001))
     x[0, 5000] = 1.
     time_sl = slice(5000 - 4096, 5000 + 4097)
@@ -149,8 +146,10 @@ def test_iir_stability():
     pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(ftype='butter', order=8,
                                                 output='ba'))
-    # This one should work just fine
+    # These ones should work just fine
     filter_data(sig, sfreq, 0.6, None, method='iir',
+                iir_params=dict(ftype='butter', order=8, output='sos'))
+    filter_data(sig, sfreq, 0.6, None, method='iir', phase='forward',
                 iir_params=dict(ftype='butter', order=8, output='sos'))
     # bad system type
     pytest.raises(ValueError, filter_data, sig, sfreq, 0.6, None, method='iir',
@@ -195,6 +194,31 @@ def test_iir_stability():
     # Note that this will fail for higher orders (e.g., 6) showing the
     # hopefully decreased numerical error of SOS
     assert_allclose(x_sos[100:-100], x_ba[100:-100])
+
+
+def test_iir_phase():
+    """Test IIR filter phase."""
+    sig, sfreq, ind_one = np.zeros(101), 10, 50
+    sig[ind_one] = 1
+    iir_params = dict(ftype='butter', order=2, output='sos')
+
+    # forward IIR
+    sig_f = filter_data(sig, sfreq, 0.6, None, method='iir', phase='forward',
+                        iir_params=iir_params)
+    # test if output is zero before peak
+    assert_allclose(sig_f[:ind_one], np.zeros(ind_one))
+    # test if power is lower after filtering
+    assert np.linalg.norm(sig) > np.linalg.norm(sig_f)
+
+    # forward-backward IIR
+    sig_fb = filter_data(sig, sfreq, 0.6, None, method='iir', phase='zero',
+                         iir_params=iir_params)
+    # test if filtered signal is symmetric
+    assert_allclose(sig_fb, sig_fb[::-1], rtol=1e-5, atol=1e-6)
+    # test if peak is not shifted
+    assert np.argmax(sig_fb) == ind_one
+    # test if power is lower after bilateral filtering
+    assert np.linalg.norm(sig_f) > np.linalg.norm(sig_fb)
 
 
 line_freqs = tuple(range(60, 241, 60))
@@ -282,10 +306,10 @@ def test_resample_scipy():
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
     x = np.random.RandomState(0).randn(4, 100)
-    y1 = resample(x, 2, 1, n_jobs=1)
+    y1 = resample(x, 2, 1, n_jobs=None)
     y2 = resample(x, 2, 1, n_jobs=n_jobs)
     assert_allclose(y1, y2)
-    y1 = filter_data(x, 100., 0, 40, n_jobs=1)
+    y1 = filter_data(x, 100., 0, 40, n_jobs=None)
     y2 = filter_data(x, 100., 0, 40, n_jobs=n_jobs)
     assert_allclose(y1, y2)
 
@@ -366,9 +390,12 @@ def test_filters():
         pytest.raises((ValueError, TypeError),
                       filter_data, a, sfreq, 4, 8, None, fl,
                       1.0, 1.0, fir_design='firwin')
-    for nj in ['blah', 0.5]:
-        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
-                      1.0, 1.0, n_jobs=nj, phase='zero', fir_design='firwin')
+    with pytest.raises(TypeError, match='got <class'):
+        filter_data(a, sfreq, 4, 8, None, 1000, 1.0, 1.0, n_jobs=0.5,
+                    phase='zero', fir_design='firwin')
+    with pytest.raises(ValueError, match='Invalid value'):
+        filter_data(a, sfreq, 4, 8, None, 1000, 1.0, 1.0, n_jobs='blah',
+                    phase='zero', fir_design='firwin')
     pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
                   1., 1., fir_window='foo')
     pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
@@ -426,7 +453,7 @@ def test_filters():
     assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
     # note that on systems without CUDA, this line serves as a test for a
-    # graceful fallback to n_jobs=1
+    # graceful fallback to n_jobs=None
     bp_up_dn = resample(resample(bp, 2, 1, n_jobs='cuda'), 1, 2, n_jobs='cuda')
     assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
@@ -552,7 +579,7 @@ def test_filter_auto():
 def test_cuda_fir():
     """Test CUDA-based filtering."""
     # Using `n_jobs='cuda'` on a non-CUDA system should be fine,
-    # as it should fall back to using n_jobs=1.
+    # as it should fall back to using n_jobs=None.
     rng = np.random.RandomState(0)
     sfreq = 500
     sig_len_secs = 20
@@ -598,7 +625,7 @@ def test_cuda_resampling():
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
-                a1 = resample(a, fro, to, n_jobs=1, npad='auto',
+                a1 = resample(a, fro, to, n_jobs=None, npad='auto',
                               window=window)
                 a2 = resample(a, fro, to, n_jobs='cuda', npad='auto',
                               window=window)
@@ -615,11 +642,12 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
 
 
+@pytest.mark.parametrize('phase', ('zero', 'zero-double', 'forward'))
 @pytest.mark.parametrize('output', ('ba', 'sos'))
 @pytest.mark.parametrize('ftype', ('butter', 'bessel', 'ellip'))
 @pytest.mark.parametrize('btype', ('lowpass', 'bandpass'))
 @pytest.mark.parametrize('order', (1, 4))
-def test_reporting_iir(ftype, btype, order, output):
+def test_reporting_iir(phase, ftype, btype, order, output):
     """Test IIR filter reporting."""
     fs = 1000.
     l_freq = 1. if btype == 'bandpass' else None
@@ -632,31 +660,34 @@ def test_reporting_iir(ftype, btype, order, output):
     else:
         pass_tol = 0.2
     with catch_logging() as log:
-        x = create_filter(None, fs, l_freq, 40., method='iir',
+        x = create_filter(None, fs, l_freq, 40., method='iir', phase=phase,
                           iir_params=iir_params, verbose=True)
     order_eff = order * (1 + (btype == 'bandpass'))
     if output == 'ba':
         assert len(x['b']) == order_eff + 1
+    order_mult = 1. if phase == 'forward' else 2.
     log = log.getvalue()
     keys = [
         'IIR',
-        'zero-phase',
-        'two-pass forward and reverse',
-        'non-causal',
         btype,
         ftype,
-        'Filter order %d' % (order_eff * 2,),
+        'Filter order %d' % (order_eff * order_mult,),
         'Cutoff ' if btype == 'lowpass' else 'Cutoffs ',
     ]
+    if phase == 'forward':
+        keys += ['non-linear phase', 'one-pass forward', 'causal']
+    else:
+        keys += ['zero-phase', 'two-pass forward and reverse', 'non-causal']
     dB_decade = -27.74
     if ftype == 'ellip':
-        dB_cutoff = -6.0
+        dB_cutoff = -3.0
     elif order == 1 or ftype == 'butter':
-        dB_cutoff = -6.02
+        dB_cutoff = -3.01
     else:
         assert ftype == 'bessel'
         assert order == 4
-        dB_cutoff = -15.16
+        dB_cutoff = -7.58
+    dB_cutoff *= order_mult
     if btype == 'lowpass':
         keys += ['%0.2f dB' % (dB_cutoff,)]
     for key in keys:
@@ -684,7 +715,7 @@ def test_reporting_iir(ftype, btype, order, output):
     else:
         passes += [idx_0p1, idx_1]
 
-    edge_val = 10 ** (dB_cutoff / 40.)
+    edge_val = 10 ** (dB_cutoff / (order_mult * 20.))
     assert_allclose(h[edges], edge_val, atol=0.01)
     assert_allclose(h[passes], 1., atol=pass_tol)
     if ftype == 'butter' and btype == 'lowpass':

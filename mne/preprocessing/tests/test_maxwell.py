@@ -2,10 +2,10 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
-import os.path as op
 import pathlib
 import re
+from contextlib import contextmanager
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -24,7 +24,9 @@ from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
 from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
-                               annotate_amplitude, compute_maxwell_basis)
+                               annotate_amplitude, compute_maxwell_basis,
+                               maxwell_filter_prepare_emptyroom,
+                               annotate_movement)
 from mne.preprocessing.maxwell import (
     _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -33,77 +35,83 @@ from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
 from mne.utils import (assert_meg_snr, catch_logging, _record_warnings,
                        object_diff, buggy_mkl_svd, use_log_level)
 
-io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_small_fname = op.join(io_path, 'test_raw.fif')
+io_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_small_fname = io_path / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
-sss_path = op.join(data_path, 'SSS')
-pre = op.join(sss_path, 'test_move_anon_')
-raw_fname = pre + 'raw.fif'
-sss_std_fname = pre + 'stdOrigin_raw_sss.fif'
-sss_nonstd_fname = pre + 'nonStdOrigin_raw_sss.fif'
-sss_bad_recon_fname = pre + 'badRecon_raw_sss.fif'
-sss_reg_in_fname = pre + 'regIn_raw_sss.fif'
-sss_fine_cal_fname = pre + 'fineCal_raw_sss.fif'
-sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
-sss_trans_default_fname = pre + 'transDefault_raw_sss.fif'
-sss_trans_sample_fname = pre + 'transSample_raw_sss.fif'
-sss_st1FineCalCrossTalkRegIn_fname = \
-    pre + 'st1FineCalCrossTalkRegIn_raw_sss.fif'
-sss_st1FineCalCrossTalkRegInTransSample_fname = \
-    pre + 'st1FineCalCrossTalkRegInTransSample_raw_sss.fif'
-sss_movecomp_fname = pre + 'movecomp_raw_sss.fif'
-sss_movecomp_reg_in_fname = pre + 'movecomp_regIn_raw_sss.fif'
-sss_movecomp_reg_in_st4s_fname = pre + 'movecomp_regIn_st4s_raw_sss.fif'
-skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
+sss_path = data_path / "SSS"
+raw_fname = sss_path / "test_move_anon_raw.fif"
+sss_std_fname = sss_path / "test_move_anon_stdOrigin_raw_sss.fif"
+sss_nonstd_fname = sss_path / "test_move_anon_nonStdOrigin_raw_sss.fif"
+sss_bad_recon_fname = sss_path / "test_move_anon_badRecon_raw_sss.fif"
+sss_reg_in_fname = sss_path / "test_move_anon_regIn_raw_sss.fif"
+sss_fine_cal_fname = sss_path / "test_move_anon_fineCal_raw_sss.fif"
+sss_ctc_fname = sss_path / "test_move_anon_crossTalk_raw_sss.fif"
+sss_trans_default_fname = sss_path / "test_move_anon_transDefault_raw_sss.fif"
+sss_trans_sample_fname = sss_path / "test_move_anon_transSample_raw_sss.fif"
+sss_st1FineCalCrossTalkRegIn_fname = (
+    sss_path / "test_move_anon_st1FineCalCrossTalkRegIn_raw_sss.fif"
+)
+sss_st1FineCalCrossTalkRegInTransSample_fname = (
+    sss_path / "test_move_anon_st1FineCalCrossTalkRegInTransSample_raw_sss.fif"
+)
+sss_movecomp_fname = sss_path / "test_move_anon_movecomp_raw_sss.fif"
+sss_movecomp_reg_in_fname = (
+    sss_path / "test_move_anon_movecomp_regIn_raw_sss.fif"
+)
+sss_movecomp_reg_in_st4s_fname = (
+    sss_path / "test_move_anon_movecomp_regIn_st4s_raw_sss.fif"
+)
+skip_fname = data_path / "misc" / "intervalrecording_raw.fif"
+erm_fname = sss_path / "test_move_anon_erm_raw.fif"
+sss_erm_std_fname = sss_path / "test_move_anon_erm_devOrigin_raw_sss.fif"
+sss_erm_reg_in_fname = sss_path / "test_move_anon_erm_regIn_raw_sss.fif"
+sss_erm_fine_cal_fname = sss_path / "test_move_anon_erm_fineCal_raw_sss.fif"
+sss_erm_ctc_fname = sss_path / "test_move_anon_erm_crossTalk_raw_sss.fif"
+sss_erm_st_fname = sss_path / "test_move_anon_erm_st1_raw_sss.fif"
+sss_erm_st1FineCalCrossTalk_fname = (
+    sss_path / "test_move_anon_erm_st1FineCalCrossTalk_raw_sss.fif"
+)
+sss_erm_st1FineCalCrossTalkRegIn_fname = (
+    sss_path / "test_move_anon_erm_st1FineCalCrossTalkRegIn_raw_sss.fif"
+)
 
-erm_fname = pre + 'erm_raw.fif'
-sss_erm_std_fname = pre + 'erm_devOrigin_raw_sss.fif'
-sss_erm_reg_in_fname = pre + 'erm_regIn_raw_sss.fif'
-sss_erm_fine_cal_fname = pre + 'erm_fineCal_raw_sss.fif'
-sss_erm_ctc_fname = pre + 'erm_crossTalk_raw_sss.fif'
-sss_erm_st_fname = pre + 'erm_st1_raw_sss.fif'
-sss_erm_st1FineCalCrossTalk_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'
-sss_erm_st1FineCalCrossTalkRegIn_fname = \
-    pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'
+sample_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+sss_samp_reg_in_fname = (
+    data_path / "SSS" / "sample_audvis_trunc_regIn_raw_sss.fif"
+)
+sss_samp_fname = data_path / "SSS" / "sample_audvis_trunc_raw_sss.fif"
 
-sample_fname = op.join(
-    data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-sss_samp_reg_in_fname = op.join(data_path, 'SSS',
-                                'sample_audvis_trunc_regIn_raw_sss.fif')
-sss_samp_fname = op.join(data_path, 'SSS', 'sample_audvis_trunc_raw_sss.fif')
+pos_fname = data_path / "SSS" / "test_move_anon_raw.pos"
 
-pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
+bases_fname = sss_path / "sss_data.mat"
+fine_cal_fname = sss_path / "sss_cal_3053.dat"
+fine_cal_fname_3d = sss_path / "sss_cal_3053_3d.dat"
+ctc_fname = sss_path / "ct_sparse.fif"
+fine_cal_mgh_fname = sss_path / "sss_cal_mgh.dat"
+ctc_mgh_fname = sss_path / "ct_sparse_mgh.fif"
 
-bases_fname = op.join(sss_path, 'sss_data.mat')
-fine_cal_fname = op.join(sss_path, 'sss_cal_3053.dat')
-fine_cal_fname_3d = op.join(sss_path, 'sss_cal_3053_3d.dat')
-ctc_fname = op.join(sss_path, 'ct_sparse.fif')
-fine_cal_mgh_fname = op.join(sss_path, 'sss_cal_mgh.dat')
-ctc_mgh_fname = op.join(sss_path, 'ct_sparse_mgh.fif')
+triux_path = data_path / "SSS" / "TRIUX"
+tri_fname = triux_path / "triux_bmlhus_erm_raw.fif"
+tri_sss_fname = triux_path / "triux_bmlhus_erm_raw_sss.fif"
+tri_sss_reg_fname = triux_path / "triux_bmlhus_erm_regIn_raw_sss.fif"
+tri_sss_st4_fname = triux_path / "triux_bmlhus_erm_st4_raw_sss.fif"
+tri_sss_ctc_fname = triux_path / "triux_bmlhus_erm_ctc_raw_sss.fif"
+tri_sss_cal_fname = triux_path / "triux_bmlhus_erm_cal_raw_sss.fif"
+tri_sss_ctc_cal_fname = triux_path / "triux_bmlhus_erm_ctc_cal_raw_sss.fif"
+tri_sss_ctc_cal_reg_in_fname = (
+    triux_path / "triux_bmlhus_erm_ctc_cal_regIn_raw_sss.fif"
+)
+tri_ctc_fname = triux_path / "ct_sparse_BMLHUS.fif"
+tri_cal_fname = triux_path / "sss_cal_BMLHUS.dat"
 
-triux_path = op.join(data_path, 'SSS', 'TRIUX')
-tri_fname = op.join(triux_path, 'triux_bmlhus_erm_raw.fif')
-tri_sss_fname = op.join(triux_path, 'triux_bmlhus_erm_raw_sss.fif')
-tri_sss_reg_fname = op.join(triux_path, 'triux_bmlhus_erm_regIn_raw_sss.fif')
-tri_sss_st4_fname = op.join(triux_path, 'triux_bmlhus_erm_st4_raw_sss.fif')
-tri_sss_ctc_fname = op.join(triux_path, 'triux_bmlhus_erm_ctc_raw_sss.fif')
-tri_sss_cal_fname = op.join(triux_path, 'triux_bmlhus_erm_cal_raw_sss.fif')
-tri_sss_ctc_cal_fname = op.join(
-    triux_path, 'triux_bmlhus_erm_ctc_cal_raw_sss.fif')
-tri_sss_ctc_cal_reg_in_fname = op.join(
-    triux_path, 'triux_bmlhus_erm_ctc_cal_regIn_raw_sss.fif')
-tri_ctc_fname = op.join(triux_path, 'ct_sparse_BMLHUS.fif')
-tri_cal_fname = op.join(triux_path, 'sss_cal_BMLHUS.dat')
-
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
-fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
-ctf_fname_continuous = op.join(data_path, 'CTF', 'testdata_ctf.ds')
+io_dir = Path(__file__).parent.parent.parent / "io"
+fname_ctf_raw = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
+ctf_fname_continuous = data_path / "CTF" / "testdata_ctf.ds"
 
 # In some of the tests, use identical coil defs to what is used in
 # MaxFilter
-elekta_def_fname = op.join(op.dirname(mne.__file__), 'data',
-                           'coil_def_Elekta.dat')
+elekta_def_fname = Path(mne.__file__).parent / "data" / "coil_def_Elekta.dat"
 
 int_order, ext_order = 8, 3
 mf_head_origin = (0., 0., 0.04)
@@ -141,7 +149,6 @@ def read_crop(fname, lims=(0, None)):
 @testing.requires_testing_data
 def test_movement_compensation(tmp_path):
     """Test movement compensation."""
-    temp_dir = str(tmp_path)
     lims = (0, 4)
     raw = read_crop(raw_fname, lims).load_data()
     head_pos = read_head_pos(pos_fname)
@@ -158,7 +165,7 @@ def test_movement_compensation(tmp_path):
     assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
                    4.6, 12.4, chpi_med_tol=58)
     # IO
-    temp_fname = op.join(temp_dir, 'test_raw_sss.fif')
+    temp_fname = tmp_path / "test_raw_sss.fif"
     raw_sss.save(temp_fname)
     raw_sss = read_crop(temp_fname)
     assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
@@ -182,7 +189,7 @@ def test_movement_compensation(tmp_path):
     # Neither match is particularly good because our algorithm actually differs
     assert_meg_snr(raw_sss_mv, read_crop(sss_movecomp_reg_in_st4s_fname, lims),
                    0.6, 1.3)
-    tSSS_fname = op.join(sss_path, 'test_move_anon_st4s_raw_sss.fif')
+    tSSS_fname = sss_path / "test_move_anon_st4s_raw_sss.fif"
     assert_meg_snr(raw_sss_mv, read_crop(tSSS_fname, lims),
                    0.6, 1.0, chpi_med_tol=None)
     assert_meg_snr(read_crop(sss_movecomp_reg_in_st4s_fname),
@@ -232,12 +239,14 @@ def test_movement_compensation(tmp_path):
 def test_other_systems():
     """Test Maxwell filtering on KIT, BTI, and CTF files."""
     # KIT
-    kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
-    sqd_path = op.join(kit_dir, 'test.sqd')
-    mrk_path = op.join(kit_dir, 'test_mrk.sqd')
-    elp_path = op.join(kit_dir, 'test_elp.txt')
-    hsp_path = op.join(kit_dir, 'test_hsp.txt')
-    raw_kit = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    kit_dir = io_dir / "kit" / "tests" / "data"
+    sqd_path = kit_dir / "test.sqd"
+    mrk_path = kit_dir / "test_mrk.sqd"
+    elp_path = kit_dir / "test_elp.txt"
+    hsp_path = kit_dir / "test_hsp.txt"
+    raw_kit = read_raw_kit(
+        sqd_path, str(mrk_path), str(elp_path), str(hsp_path)
+    )
     with pytest.warns(RuntimeWarning, match='fit'):
         pytest.raises(RuntimeError, maxwell_filter, raw_kit)
     with catch_logging() as log:
@@ -280,10 +289,10 @@ def test_other_systems():
     _assert_n_free(raw_sss, 65)
 
     # BTi
-    bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
-    bti_pdf = op.join(bti_dir, 'test_pdf_linux')
-    bti_config = op.join(bti_dir, 'test_config_linux')
-    bti_hs = op.join(bti_dir, 'test_hs_linux')
+    bti_dir = io_dir / "bti" / "tests" / "data"
+    bti_pdf = bti_dir / "test_pdf_linux"
+    bti_config = bti_dir / "test_config_linux"
+    bti_hs = bti_dir / "test_hs_linux"
     raw_bti = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
     picks = pick_types(raw_bti.info, meg='mag', exclude=())
     power = np.sqrt(np.sum(raw_bti[picks][0] ** 2))
@@ -366,7 +375,7 @@ def test_multipolar_bases():
     # Test our basis calculations
     info = read_info(raw_fname)
     with use_coil_def(elekta_def_fname):
-        coils = _prep_meg_channels(info, do_es=True)[0]
+        coils = _prep_meg_channels(info, do_es=True)['defs']
     # Check against a known benchmark
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)
@@ -510,7 +519,7 @@ def test_maxwell_filter_additional(tmp_path):
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     file_name = 'test_move_anon'
-    raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
+    raw_fname = data_path / "SSS" / (file_name + "_raw.fif")
 
     # Use 2.0 seconds of data to get stable cov. estimate
     raw = read_crop(raw_fname, (0., 2.))
@@ -523,8 +532,7 @@ def test_maxwell_filter_additional(tmp_path):
                              bad_condition='ignore')
 
     # Test io on processed data
-    tempdir = str(tmp_path)
-    test_outname = op.join(tempdir, 'test_raw_sss.fif')
+    test_outname = tmp_path / "test_raw_sss.fif"
     raw_sss.save(test_outname)
     raw_sss_loaded = read_crop(test_outname).load_data()
 
@@ -558,6 +566,7 @@ def test_bads_reconstruction():
     assert_meg_snr(raw_sss, read_crop(sss_bad_recon_fname), 300.)
 
 
+@pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
 def test_spatiotemporal():
@@ -571,15 +580,16 @@ def test_spatiotemporal():
 
     # We could check both 4 and 10 seconds because Elekta handles them
     # differently (to ensure that std/non-std tSSS windows are correctly
-    # handled), but the 4-sec case should hopefully be sufficient.
+    # handled), but the 4-s case should hopefully be sufficient.
     st_durations = [4.]  # , 10.]
     tols = [(80, 100)]  # , 200.]
     kwargs = dict(origin=mf_head_origin, regularize=None,
                   bad_condition='ignore')
     for st_duration, tol in zip(st_durations, tols):
         # Load tSSS data depending on st_duration and get data
-        tSSS_fname = op.join(sss_path,
-                             'test_move_anon_st%0ds_raw_sss.fif' % st_duration)
+        tSSS_fname = (
+            sss_path / ("test_move_anon_st%0ds_raw_sss.fif" % st_duration)
+        )
         tsss_bench = read_crop(tSSS_fname)
         # Because Elekta's tSSS sometimes(!) lumps the tail window of data
         # onto the previous buffer if it's shorter than st_duration, we have to
@@ -672,7 +682,7 @@ def test_fine_calibration():
                                      bad_condition='ignore', verbose=True)
     log = log.getvalue()
     assert 'Using fine calibration' in log
-    assert op.basename(fine_cal_fname) in log
+    assert fine_cal_fname.stem in log
     assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
     py_cal = raw_sss.info['proc_history'][0]['max_info']['sss_cal']
     assert (py_cal is not None)
@@ -775,8 +785,7 @@ def test_cross_talk(tmp_path):
     assert_array_equal(py_ctc['decoupler'].toarray(),
                        mf_ctc['decoupler'].toarray())
     # I/O roundtrip
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'test_sss_raw.fif')
+    fname = tmp_path / "test_sss_raw.fif"
     sss_ctc.save(fname)
     sss_ctc_read = read_raw_fif(fname)
     mf_ctc_read = sss_ctc_read.info['proc_history'][0]['max_info']['sss_ctc']
@@ -805,9 +814,13 @@ def test_head_translation():
     raw = read_crop(raw_fname, (0., 1.))
     # First try with an unchanged destination
     with use_coil_def(elekta_def_fname):
-        raw_sss = maxwell_filter(raw, destination=raw_fname,
-                                 origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore')
+        raw_sss = maxwell_filter(
+            raw,
+            destination=raw_fname,
+            origin=mf_head_origin,
+            regularize=None,
+            bad_condition="ignore",
+        )
     assert_meg_snr(raw_sss, read_crop(sss_std_fname, (0., 1.)), 200.)
     # Now with default
     with use_coil_def(elekta_def_fname):
@@ -821,9 +834,14 @@ def test_head_translation():
     assert_allclose(raw_sss.info['dev_head_t']['trans'], destination)
     # Now to sample's head pos
     with pytest.warns(RuntimeWarning, match='= 25.6 mm'):
-        raw_sss = maxwell_filter(raw, destination=sample_fname,
-                                 origin=mf_head_origin, regularize=None,
-                                 bad_condition='ignore', verbose=True)
+        raw_sss = maxwell_filter(
+            raw,
+            destination=str(sample_fname),
+            origin=mf_head_origin,
+            regularize=None,
+            bad_condition="ignore",
+            verbose=True,
+        )
     assert_meg_snr(raw_sss, read_crop(sss_trans_sample_fname), 13., 100.)
     assert_allclose(raw_sss.info['dev_head_t']['trans'],
                     read_info(sample_fname)['dev_head_t']['trans'])
@@ -1096,15 +1114,15 @@ def test_shielding_factor(tmp_path):
     _assert_shielding(raw_sss, erm_power_grad, 1.5, 1.6, 'grad')
     assert counts[0] == 3
     with get_n_projected() as counts:
-        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
-                                 cross_talk=ctc_fname, st_duration=1.,
-                                 coord_frame='meg', regularize='in')
+        with _record_warnings():  # SVD convergence on arm64
+            raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
+                                     cross_talk=ctc_fname, st_duration=1.,
+                                     coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
     _assert_shielding(raw_sss, erm_power, 57, 58)
     assert counts[0] == 3
     # Show it by rewriting the 3D as 1D and testing it
-    temp_dir = str(tmp_path)
-    temp_fname = op.join(temp_dir, 'test_cal.dat')
+    temp_fname = tmp_path / "test_cal.dat"
     with open(fine_cal_fname_3d, 'r') as fid:
         with open(temp_fname, 'w') as fid_out:
             for line in fid:
@@ -1292,7 +1310,7 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
                                    want_bads, return_scores, h_freq,
                                    meas_date):
     """Test automatic bad channel detection."""
-    if fname.endswith('.ds'):
+    if fname.suffix == ".ds":
         raw = read_raw_ctf(fname).load_data()
         flat_idx = 33
     else:
@@ -1407,7 +1425,7 @@ def test_find_bads_maxwell_flat():
     assert noisy == ['MEG 1032', 'MEG 2313', 'MEG 2443']
     assert flat == []
     n = int(round(raw.info['sfreq'] * 10))
-    assert (len(raw.times) - n) / raw.info['sfreq'] > 10  # at least 10 sec
+    assert (len(raw.times) - n) / raw.info['sfreq'] > 10  # at least 10 s
     with catch_logging() as log:
         want_noisy, want_flat = find_bad_channels_maxwell(
             raw.copy().crop(n / raw.info['sfreq'], None), min_count=1,
@@ -1432,7 +1450,7 @@ def test_find_bads_maxwell_flat():
     raw.info['bads'] = []
     raw.set_annotations(annot)
     data_good = raw.get_data(reject_by_annotation='omit')
-    assert data_good.shape[1] / raw.info['sfreq'] / 5. > 2  # at least 10 sec
+    assert data_good.shape[1] / raw.info['sfreq'] / 5. > 2  # at least 10 s
     with catch_logging() as log:
         noisy, flat = find_bad_channels_maxwell(
             raw, min_count=1, skip_by_annotation='bad_flat', verbose='debug')
@@ -1442,11 +1460,13 @@ def test_find_bads_maxwell_flat():
     assert noisy == want_noisy
 
 
-@pytest.mark.parametrize('regularize, n', [
-    (None, 80),
-    ('in', 71),
+@pytest.mark.parametrize('regularize, n, int_order', [
+    (None, 80, 8),
+    ('in', 71, 8),
+    (None, 0, 0),
+    ('in', 0, 0),
 ])
-def test_compute_maxwell_basis(regularize, n):
+def test_compute_maxwell_basis(regularize, n, int_order):
     """Test compute_maxwell_basis."""
     raw = read_raw_fif(raw_small_fname).crop(0, 2)
     assert raw.info['bads'] == []
@@ -1454,7 +1474,7 @@ def test_compute_maxwell_basis(regularize, n):
     rank = compute_rank(raw)['meg']
     assert rank == 306
     raw.info['bads'] = ['MEG 2443']
-    kwargs = dict(regularize=regularize, verbose=True)
+    kwargs = dict(regularize=regularize, int_order=int_order, verbose=True)
     raw_sss = maxwell_filter(raw, **kwargs)
     want = raw_sss.get_data('meg')
     rank = compute_rank(raw_sss)['meg']
@@ -1465,3 +1485,112 @@ def test_compute_maxwell_basis(regularize, n):
     xform = S[:, :n_use_in] @ pS[:n_use_in]
     got = xform @ raw.pick_types(meg=True, exclude='bads').get_data()
     assert_allclose(got, want)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('bads', ('from_raw', 'union', 'keep'))
+def test_prepare_emptyroom_bads(bads):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
+    names = [name for name in raw.ch_names if 'EEG' not in name]
+    raw.pick_channels(names)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw_er.info['dev_head_t'] is None
+    assert raw.info['dev_head_t'] is not None
+    raw_er.set_montage(None)
+
+    if bads == 'from_raw':
+        raw_bads_orig = ['MEG0113', 'MEG2313']
+        raw_er_bads_orig = []
+    elif bads == 'union':
+        raw_bads_orig = ['MEG0113']
+        raw_er_bads_orig = ['MEG2313']
+    elif bads == 'keep':
+        raw_bads_orig = []
+        raw_er_bads_orig = ['MEG0113', 'MEG2313']
+
+    raw.info['bads'] = raw_bads_orig
+    raw_er.info['bads'] = raw_er_bads_orig
+
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er,
+        raw=raw,
+        bads=bads
+    )
+    assert raw_er_prepared.info['bads'] == ['MEG0113', 'MEG2313']
+    assert raw_er_prepared.info['dev_head_t'] == raw.info['dev_head_t']
+
+    montage_expected = raw.copy().pick_types(meg=True).get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
+
+    # Ensure the originals were not modified
+    assert raw.info['bads'] == raw_bads_orig
+    assert raw_er.info['bads'] == raw_er_bads_orig
+    assert raw_er.info['dev_head_t'] is None
+    assert raw_er.get_montage() is None
+
+
+@testing.requires_testing_data
+@pytest.mark.slowtest  # lots of params
+@pytest.mark.parametrize('set_annot_when', ('before', 'after'))
+@pytest.mark.parametrize('raw_meas_date', ('orig', None))
+@pytest.mark.parametrize('raw_er_meas_date', ('orig', None))
+def test_prepare_emptyroom_annot_first_samp(set_annot_when, raw_meas_date,
+                                            raw_er_meas_date):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
+    names = raw.ch_names[:3]  # make it faster
+    raw.pick_channels(names)
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw.info['meas_date'] != raw_er.info['meas_date']
+    if raw_meas_date is None:
+        raw.set_meas_date(None)
+    if raw_er_meas_date is None:
+        raw_er.set_meas_date(None)
+    # to make life easier, make it the same duration
+    n_rep = max(int(np.ceil(len(raw.times) / len(raw_er.times))), 1)
+    raw_er = mne.concatenate_raws([raw_er] * n_rep).crop(0, raw.times[-1])
+    assert_allclose(raw.times, raw_er.times)
+    raw_er_first_samp_orig = raw_er.first_samp
+    assert len(raw.annotations) == 0
+    pos = mne.chpi.read_head_pos(pos_fname)
+    annot, _ = annotate_movement(raw, pos, 1.)
+    # Add an annotation right at the beginning and end to make sure nothing
+    # gets cropped
+    onset = raw.times[[0, -1]]
+    duration = 1. / raw.info['sfreq']
+    annot.append(onset + raw.first_time * (raw.info['meas_date'] is not None),
+                 duration, ['BAD_CUSTOM'])
+    want_annot = 7  # 5 from annotate_movement plus our first and last samps
+    if set_annot_when == 'before':
+        raw.set_annotations(annot)
+        meas_date = 'keep'
+        want_date = raw_er.info['meas_date']
+    else:
+        assert set_annot_when == 'after'
+        meas_date = 'from_raw'
+        want_date = raw.info['meas_date']
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er, raw=raw, meas_date=meas_date, emit_warning=True)
+    assert raw_er.first_samp == raw_er_first_samp_orig
+    assert raw_er_prepared.info['meas_date'] == want_date
+    assert raw_er_prepared.first_samp == raw.first_samp
+
+    # Ensure (movement) annotations carry over regardless of whether they're
+    # set before or after preparation
+    assert len(annot) == want_annot
+    if set_annot_when == 'after':
+        raw.set_annotations(annot)
+        raw_er_prepared.set_annotations(annot)
+    assert len(raw.annotations) == want_annot
+    prop_bad = np.isnan(
+        raw.get_data([0], reject_by_annotation='nan')).mean()
+    assert 0.3 < prop_bad < 0.4
+    assert len(raw_er_prepared.annotations) == want_annot
+    prop_bad_er = np.isnan(
+        raw_er_prepared.get_data([0], reject_by_annotation='nan')).mean()
+    assert_allclose(prop_bad, prop_bad_er)

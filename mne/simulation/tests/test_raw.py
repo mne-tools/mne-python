@@ -4,8 +4,8 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -31,26 +31,28 @@ from mne.label import Label
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
-from mne.time_frequency import psd_welch
-from mne.utils import catch_logging, check_version
+from mne.utils import catch_logging
 
-base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname_short = op.join(base_path, 'test_raw.fif')
+raw_fname_short = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test_raw.fif"
+)
 
 data_path = testing.data_path(download=False)
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-cov_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-cov.fif')
-trans_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc-trans.fif')
-subjects_dir = op.join(data_path, 'subjects')
-bem_path = op.join(subjects_dir, 'sample', 'bem')
-src_fname = op.join(bem_path, 'sample-oct-2-src.fif')
-bem_fname = op.join(bem_path, 'sample-320-320-320-bem-sol.fif')
-bem_1_fname = op.join(bem_path, 'sample-320-bem-sol.fif')
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+cov_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-cov.fif"
+trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
+subjects_dir = data_path / "subjects"
+bem_path = subjects_dir / "sample" / "bem"
+src_fname = bem_path / "sample-oct-2-src.fif"
+bem_fname = bem_path / "sample-320-320-320-bem-sol.fif"
+bem_1_fname = bem_path / "sample-320-bem-sol.fif"
 
-raw_chpi_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
-pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_subsampled.pos')
+raw_chpi_fname = data_path / "SSS" / "test_move_anon_raw.fif"
+pos_fname = data_path / "SSS" / "test_move_anon_raw_subsampled.pos"
 
 
 def _assert_iter_sim(raw_sim, raw_new, new_event_id):
@@ -198,7 +200,7 @@ def raw_data():
 
 def _get_head_pos_sim(raw):
     head_pos_sim = dict()
-    # these will be at 1., 2., ... sec
+    # these will be at 1., 2., ... s
     shifts = [[0.001, 0., -0.001], [-0.001, 0.001, 0.]]
 
     for time_key, shift in enumerate(shifts):
@@ -211,10 +213,10 @@ def _get_head_pos_sim(raw):
 
 def test_simulate_raw_sphere(raw_data, tmp_path):
     """Test simulation of raw data with sphere model."""
+    pytest.importorskip('nibabel')
     seed = 42
     raw, src, stc, trans, sphere = raw_data
     assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
-    tempdir = str(tmp_path)
 
     # head pos
     head_pos_sim = _get_head_pos_sim(raw)
@@ -231,7 +233,7 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     raw_sim = simulate_raw(raw_meg.info, stc, trans, src, sphere_norad,
                            head_pos=head_pos_sim)
     # Test IO on processed data
-    test_outname = op.join(tempdir, 'sim_test_raw.fif')
+    test_outname = tmp_path / "sim_test_raw.fif"
     raw_sim.save(test_outname)
 
     raw_sim_loaded = read_raw_fif(test_outname, preload=True)
@@ -281,12 +283,6 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
     del raw_sim_hann
 
-    # check that new Generator objects can be used
-    if check_version('numpy', '1.17'):
-        random_state = np.random.default_rng(seed)
-        add_ecg(raw_sim, random_state=random_state)
-        add_eog(raw_sim, random_state=random_state)
-
 
 def test_degenerate(raw_data):
     """Test degenerate conditions."""
@@ -329,6 +325,7 @@ def test_degenerate(raw_data):
 @pytest.mark.slowtest
 def test_simulate_raw_bem(raw_data):
     """Test simulation of raw data with BEM."""
+    pytest.importorskip('nibabel')
     raw, src_ss, stc, trans, sphere = raw_data
     src = setup_source_space('sample', 'oct1', subjects_dir=subjects_dir)
     for s in src:
@@ -463,9 +460,9 @@ def test_simulate_round_trip(raw_data):
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI."""
     raw = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')
-    picks = np.arange(len(raw.ch_names))
-    picks = np.setdiff1d(picks, pick_types(raw.info, meg=True, eeg=True)[::4])
-    raw.load_data().pick_channels([raw.ch_names[pick] for pick in picks])
+    drops = pick_types(raw.info, meg=True, eeg=True)[::4]  # for speed
+    picks = np.setdiff1d(range(len(raw.ch_names)), drops)
+    raw.pick(picks).load_data()
     raw.info.normalize_proj()
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
@@ -474,29 +471,36 @@ def test_simulate_raw_chpi():
                                     sphere_units='m')
     stcs = [_make_stc(raw, src)] * 15
     # simulate data with cHPI on
-    raw_sim = simulate_raw(raw.info, stcs, None, src, sphere,
-                           head_pos=pos_fname, interp='zero',
-                           first_samp=raw.first_samp)
+    raw_sim = simulate_raw(
+        raw.info,
+        stc=stcs,
+        trans=None,
+        src=src,
+        bem=sphere,
+        head_pos=pos_fname,
+        interp="zero",
+        first_samp=raw.first_samp,
+    )
     # need to trim extra samples off this one
-    raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp='zero')
+    raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp="zero")
     # test cHPI indication
     hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(raw.info, on_missing='raise')
     assert_allclose(raw_sim[hpi_pick][0], 0.)
     assert_allclose(raw_chpi[hpi_pick][0], hpi_ons.sum())
     # test that the cHPI signals make some reasonable values
-    picks_meg = pick_types(raw.info, meg=True, eeg=False)
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-
-    for picks in [picks_meg[:3], picks_eeg[:3]]:
-        psd_sim, freqs_sim = psd_welch(raw_sim, picks=picks)
-        psd_chpi, freqs_chpi = psd_welch(raw_chpi, picks=picks)
-
+    picks_meg = pick_types(raw.info, meg=True)[:3]
+    picks_eeg = pick_types(raw.info, eeg=True)[:3]
+    for picks in (picks_meg, picks_eeg):
+        psd_sim, freqs_sim = (
+            raw_sim.compute_psd(picks=picks).get_data(return_freqs=True))
+        psd_chpi, freqs_chpi = (
+            raw_chpi.compute_psd(picks=picks).get_data(return_freqs=True))
         assert_array_equal(freqs_sim, freqs_chpi)
-        freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f))
-                            for f in hpi_freqs])
+        # bins closest to cHPI freqs should have very high energy in MEG chans
         if picks is picks_meg:
-            assert (psd_chpi[:, freq_idx] >
-                    100 * psd_sim[:, freq_idx]).all()
+            freq_idx = np.argmin(np.abs(freqs_sim - hpi_freqs[:, np.newaxis]),
+                                 axis=1)
+            assert (psd_chpi[:, freq_idx] > 100 * psd_sim[:, freq_idx]).all()
         else:
             assert_allclose(psd_sim, psd_chpi, atol=1e-20)
 

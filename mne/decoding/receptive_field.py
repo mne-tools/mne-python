@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 
@@ -11,11 +10,11 @@ import numpy as np
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
-from ..utils import _validate_type, verbose, fill_doc, _VerboseDep
+from ..utils import _validate_type, verbose, fill_doc
 
 
 @fill_doc
-class ReceptiveField(BaseEstimator, _VerboseDep):
+class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
     This allows you to fit an encoding model (stimulus to brain) or a decoding
@@ -106,7 +105,7 @@ class ReceptiveField(BaseEstimator, _VerboseDep):
     @verbose
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
                  fit_intercept=None, scoring='r2', patterns=False,
-                 n_jobs=1, edge_correction=True, verbose=None):
+                 n_jobs=None, edge_correction=True, verbose=None):
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin

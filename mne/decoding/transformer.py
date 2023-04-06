@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
@@ -11,10 +10,9 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator
 
 from .. import pick_types
-from ..filter import filter_data, _triage_filter_params
-from ..time_frequency.psd import psd_array_multitaper
-from ..utils import (fill_doc, _check_option, _validate_type, verbose,
-                     _VerboseDep)
+from ..filter import filter_data
+from ..time_frequency import psd_array_multitaper
+from ..utils import fill_doc, _check_option, _validate_type, verbose
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -68,7 +66,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
 
 @fill_doc
 class Scaler(TransformerMixin, BaseEstimator):
-    u"""Standardize channel data.
+    """Standardize channel data.
 
     This class scales data for each channel. It differs from scikit-learn
     classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that
@@ -330,7 +328,7 @@ class Vectorizer(TransformerMixin):
 
 
 @fill_doc
-class PSDEstimator(TransformerMixin, _VerboseDep):
+class PSDEstimator(TransformerMixin):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -356,12 +354,15 @@ class PSDEstimator(TransformerMixin, _VerboseDep):
 
     See Also
     --------
-    mne.time_frequency.psd_multitaper
+    mne.time_frequency.psd_array_multitaper
+    mne.io.Raw.compute_psd
+    mne.Epochs.compute_psd
+    mne.Evoked.compute_psd
     """
 
     @verbose
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1,
+                 adaptive=False, low_bias=True, n_jobs=None,
                  normalization='length', *, verbose=None):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
@@ -418,7 +419,7 @@ class PSDEstimator(TransformerMixin, _VerboseDep):
 
 
 @fill_doc
-class FilterEstimator(TransformerMixin, _VerboseDep):
+class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -448,8 +449,7 @@ class FilterEstimator(TransformerMixin, _VerboseDep):
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
     method : str
-        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-        forward-backward filtering (via filtfilt).
+        'fir' will use overlap-add FIR filtering, 'iir' will use IIR filtering.
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
@@ -470,9 +470,9 @@ class FilterEstimator(TransformerMixin, _VerboseDep):
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
-                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fir', iir_params=None, fir_design='firwin', *,
-                 verbose=None):  # noqa: D102
+                 l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                 n_jobs=None, method='fir', iir_params=None,
+                 fir_design='firwin', *, verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -770,7 +770,7 @@ class TemporalFilter(TransformerMixin):
     @verbose
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
-                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
+                 h_trans_bandwidth='auto', n_jobs=None, method='fir',
                  iir_params=None, fir_window='hamming', fir_design='firwin',
                  *, verbose=None):  # noqa: D102
         self.l_freq = l_freq
@@ -829,15 +829,6 @@ class TemporalFilter(TransformerMixin):
 
         shape = X.shape
         X = X.reshape(-1, shape[-1])
-        (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _, self.fir_window,
-         self.fir_design) = \
-            _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
-                                  self.l_trans_bandwidth,
-                                  self.h_trans_bandwidth, self.filter_length,
-                                  self.method, phase='zero',
-                                  fir_window=self.fir_window,
-                                  fir_design=self.fir_design)
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,

@@ -18,7 +18,10 @@ jobs:
           type: string
           default: "false"
       docker:
-        - image: cimg/base:stable-20.04
+        - image: cimg/base:current-22.04
+      # medium 2 vCPUs, 4GB mem; medium+ 3vCPUs 6GB mem; large 4 vCPUs 8GB mem
+      # https://circleci.com/docs/configuration-reference#resourceclass
+      resource_class: medium+
       steps:
         - restore_cache:
             keys:
@@ -87,9 +90,10 @@ jobs:
             name: Set BASH_ENV
             command: |
               set -e
+              set -o pipefail
               ./tools/setup_xvfb.sh
-              sudo apt install -qq graphviz optipng python3.8-venv python3-venv libxft2 ffmpeg
-              python3.8 -m venv ~/python_env
+              sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
+              python3.10 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
@@ -127,7 +131,7 @@ jobs:
               - pip-cache
         - restore_cache:
             keys:
-              - user-install-bin-cache
+              - user-install-bin-cache-310
 
         # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
         - run:
@@ -140,15 +144,15 @@ jobs:
             paths:
               - ~/.cache/pip
         - save_cache:
-            key: user-install-bin-cache
+            key: user-install-bin-cache-310
             paths:
-              - ~/.local/lib/python3.8/site-packages
+              - ~/.local/lib/python3.10/site-packages
               - ~/.local/bin
 
         - run:
             name: Check Qt
-            command: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([])"
-
+            command: |
+              ./tools/check_qt_import.sh PyQt6
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
             keys:
@@ -221,6 +225,9 @@ jobs:
         - restore_cache:
             keys:
               - data-cache-visual
+        - restore_cache:
+            keys:
+              - data-cache-ucl-opm-auditory
         - run:
             name: Get data
             command: |
@@ -378,6 +385,10 @@ jobs:
             key: data-cache-visual
             paths:
               - ~/mne_data/MNE-visual_92_categories-data  # (6 G)
+        - save_cache:
+            key: data-cache-ucl-opm-auditory
+            paths:
+              - ~/mne_data/auditory_OPM_stationary  # (4 G)
 
 
     linkcheck:
@@ -508,7 +519,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/1.0
+                - maint/1.3
 
   main:
     jobs:
@@ -521,8 +532,7 @@ workflows:
             - build_docs_main
     triggers:
       - schedule:
-          # "At 00:00" (once a day) should be enough "0 0 * * *",
-          # But for testing at first, let's do once an hour (6 AM GMT)
+          # "At 6:00 AM GMT every day"
           cron: "0 6 * * *"
           filters:
             branches:
@@ -536,8 +546,8 @@ workflows:
           scheduled: "true"
     triggers:
       - schedule:
-          # "At 00:00 on Sunday" should be often enough
-          cron: "0 0 * * 0"
+          # "At 6:00 AM GMT on the first day of each month" is often enough
+          cron: "0 6 1 * *"
           filters:
             branches:
               only:

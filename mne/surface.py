@@ -13,15 +13,13 @@ from functools import partial, lru_cache
 from collections import OrderedDict
 from glob import glob
 from os import path as op
-from struct import pack
 import time
 import warnings
 
 import numpy as np
 
 from .channels.channels import _get_meg_system
-from .fixes import (_serialize_volume_info, _get_read_geometry, jit,
-                    prange, bincount)
+from .fixes import jit, prange, bincount
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .parallel import parallel_func
@@ -31,7 +29,8 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
 from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
                     _check_option, _ensure_int, _TempDir, run_subprocess,
                     _check_freesurfer_home, _hashable_ndarray, fill_doc,
-                    _validate_type, _require_version, _pl)
+                    _validate_type, _require_version, _pl, _import_nibabel,
+                    deprecated)
 
 
 ###############################################################################
@@ -53,9 +52,9 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
         through all files matching the pattern. The head surface will be read
         from the first file containing a head surface. Can also be a list
         to try multiple strings.
-    subjects_dir : str, or None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    subjects_dir : path-like | None
+        Path to the ``SUBJECTS_DIR``. If None, the path is obtained by using
+        the environment variable ``SUBJECTS_DIR``.
     %(on_defects)s
 
         .. versionadded:: 1.0
@@ -75,8 +74,9 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
                       raise_error=True):
     """Load the subject head surface."""
     from .bem import read_bem_surfaces
+
     # Load the head surface from the BEM
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
     if not isinstance(subject, str):
         raise TypeError('subject must be a string, not %s.' % (type(subject,)))
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
@@ -95,7 +95,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
             # let's do a more sophisticated search
             path = op.join(subjects_dir, subject, 'bem')
             if not op.isdir(path):
-                raise IOError('Subject bem directory "%s" does not exist.'
+                raise OSError('Subject bem directory "%s" does not exist.'
                               % path)
             files = sorted(glob(op.join(path, '%s*%s.fif'
                                         % (subject, this_source))))
@@ -114,7 +114,7 @@ def _get_head_surface(subject, source, subjects_dir, on_defects,
 
     if surf is None:
         if raise_error:
-            raise IOError('No file matching "%s*%s" and containing a head '
+            raise OSError('No file matching "%s*%s" and containing a head '
                           'surface found.' % (subject, this_source))
         else:
             return surf
@@ -331,9 +331,12 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
         idx = _compute_nearest(surf['rr'], rrs)
         out = (None, None, surf['rr'][idx])
         if return_nn:
+            surf_geom = _get_tri_supp_geom(surf)
             nn = _accumulate_normals(surf['tris'].astype(int), surf_geom['nn'],
                                      len(surf['rr']))
-            out += (nn[idx],)
+            nn = nn[idx]
+            _normalize_vectors(nn)
+            out += (nn,)
     return out
 
 
@@ -453,7 +456,7 @@ def _normalize_vectors(rr):
     return size
 
 
-class _CDist(object):
+class _CDist:
     """Wrapper for cdist that uses a Tree-like pattern."""
 
     def __init__(self, xhs):
@@ -510,7 +513,7 @@ def _safe_query(rr, func, reduce=False, **kwargs):
     return out
 
 
-class _DistanceQuery(object):
+class _DistanceQuery:
     """Wrapper for fast distance queries."""
 
     def __init__(self, xhs, method='BallTree', allow_kdtree=False):
@@ -549,7 +552,7 @@ class _DistanceQuery(object):
 
 
 @verbose
-def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
+def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     """Check whether points are outside a surface.
 
     Parameters
@@ -566,25 +569,34 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     """
     rr = np.atleast_2d(rr)
     assert rr.shape[1] == 3
-    assert n_jobs > 0
-    parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_get_solids, n_jobs)
     tot_angles = parallel(p_fun(surf['rr'][tris], rr)
                           for tris in np.array_split(surf['tris'], n_jobs))
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
-def _surface_to_polydata(rr, tris=None):
+def _surface_to_polydata(surf):
     import pyvista as pv
-    vertices = np.array(rr)
-    if tris is None:
+    vertices = np.array(surf['rr'])
+    if 'tris' not in surf:
         return pv.PolyData(vertices)
     else:
-        triangles = np.array(tris)
+        triangles = np.array(surf['tris'])
         triangles = np.c_[np.full(len(triangles), 3), triangles]
         return pv.PolyData(vertices, triangles)
 
 
-class _CheckInside(object):
+def _polydata_to_surface(pd, normals=True):
+    from pyvista import PolyData
+    if not isinstance(pd, PolyData):
+        pd = PolyData(pd)
+    out = dict(rr=pd.points, tris=pd.faces.reshape(-1, 4)[:, 1:])
+    if normals:
+        out['nn'] = pd.point_normals
+    return out
+
+
+class _CheckInside:
     """Efficiently check if points are inside a surface."""
 
     @verbose
@@ -618,16 +630,12 @@ class _CheckInside(object):
     def _init_pyvista(self):
         if not isinstance(self.surf, dict):
             self.pdata = self.surf
-            self.surf = dict(
-                rr=self.pdata.points,
-                tris=self.pdata.faces.reshape(-1, 4)[:, 1:],
-                nn=self.pdata.point_normals)
+            self.surf = _polydata_to_surface(self.pdata)
         else:
-            self.pdata = _surface_to_polydata(
-                self.surf['rr'], self.surf['tris']).clean()
+            self.pdata = _surface_to_polydata(self.surf).clean()
 
     @verbose
-    def __call__(self, rr, n_jobs=1, verbose=None):
+    def __call__(self, rr, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(f'Checking surface interior status for '
                     f'{n_orig} point{_pl(n_orig, " ")}...')
@@ -644,7 +652,7 @@ class _CheckInside(object):
         return inside
 
     def _call_pyvista(self, rr):
-        pdata = _surface_to_polydata(rr)
+        pdata = _surface_to_polydata(dict(rr=rr))
         out = pdata.select_enclosed_points(self.pdata, check_surface=False)
         return out['SelectedPoints'].astype(bool)
 
@@ -721,14 +729,14 @@ def read_curvature(filepath, binary=True):
 
     Parameters
     ----------
-    filepath : str
-        Input path to the .curv file.
+    filepath : path-like
+        Input path to the ``.curv`` file.
     binary : bool
         Specify if the output array is to hold binary values. Defaults to True.
 
     Returns
     -------
-    curv : array, shape=(n_vertices,)
+    curv : array of shape (n_vertices,)
         The curvature values loaded from the user given file.
     """
     with open(filepath, "rb") as fobj:
@@ -753,7 +761,7 @@ def read_surface(fname, read_metadata=False, return_dict=False,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file containing the surface.
     read_metadata : bool
         Read metadata as key-value pairs. Only works when reading a FreeSurfer
@@ -805,23 +813,27 @@ def read_surface(fname, read_metadata=False, return_dict=False,
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'
 
     if file_format == 'freesurfer':
-        ret = _get_read_geometry()(fname, read_metadata=read_metadata)
+        _import_nibabel('read surface geometry')
+        from nibabel.freesurfer import read_geometry
+        ret = read_geometry(fname, read_metadata=read_metadata)
     elif file_format == 'obj':
         ret = _read_wavefront_obj(fname)
         if read_metadata:
             ret += (dict(),)
 
     if return_dict:
-        ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
-                     np=len(ret[0])),)
+        ret += (_rr_tris_dict(ret[0], ret[1]),)
     return ret
+
+
+def _rr_tris_dict(rr, tris):
+    return dict(rr=rr, tris=tris, ntri=len(tris), use_tris=tris, np=len(rr))
 
 
 def _read_mri_surface(fname):
@@ -1041,7 +1053,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, ico_surf, subjects_dir):
         del surf['neighbor_vert']
     else:  # ico or oct
         # ## from mne_ico_downsample.c ## #
-        surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
+        surf_name = subjects_dir / subject / "surf" / f"{hemi}.sphere"
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = read_surface(surf_name, return_dict=True)[-1]
         _normalize_vectors(from_surf['rr'])
@@ -1134,7 +1146,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File to write.
     coords : array, shape=(n_vertices, 3)
         Coordinate points.
@@ -1178,42 +1190,19 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
     _check_option('file_format', file_format, ['auto', 'freesurfer', 'obj'])
 
     if file_format == 'auto':
-        _, ext = op.splitext(fname)
-        if ext.lower() == '.obj':
+        if fname.suffix.lower() == ".obj":
             file_format = 'obj'
         else:
             file_format = 'freesurfer'
 
     if file_format == 'freesurfer':
-        try:
-            import nibabel as nib
-            has_nibabel = True
-        except ImportError:
-            has_nibabel = False
-        if has_nibabel:
-            nib.freesurfer.io.write_geometry(fname, coords, faces,
-                                             create_stamp=create_stamp,
-                                             volume_info=volume_info)
-            return
-        if len(create_stamp.splitlines()) > 1:
-            raise ValueError("create_stamp can only contain one line")
-
-        with open(fname, 'wb') as fid:
-            fid.write(pack('>3B', 255, 255, 254))
-            strs = ['%s\n' % create_stamp, '\n']
-            strs = [s.encode('utf-8') for s in strs]
-            fid.writelines(strs)
-            vnum = len(coords)
-            fnum = len(faces)
-            fid.write(pack('>2i', vnum, fnum))
-            fid.write(np.array(coords, dtype='>f4').tobytes())
-            fid.write(np.array(faces, dtype='>i4').tobytes())
-
-            # Add volume info, if given
-            if volume_info is not None and len(volume_info) > 0:
-                fid.write(_serialize_volume_info(volume_info))
-
-    elif file_format == 'obj':
+        _import_nibabel('write surface geometry')
+        from nibabel.freesurfer import write_geometry
+        write_geometry(
+            fname, coords, faces, create_stamp=create_stamp,
+            volume_info=volume_info)
+    else:
+        assert file_format == 'obj'
         with open(fname, 'w') as fid:
             for line in create_stamp.splitlines():
                 fid.write(f'# {line}\n')
@@ -1229,11 +1218,11 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 def _decimate_surface_vtk(points, triangles, n_triangles):
     """Aux function."""
     try:
-        from vtk.util.numpy_support import \
+        from vtkmodules.util.numpy_support import \
             numpy_to_vtk, numpy_to_vtkIdTypeArray
-        from vtk.numpy_interface.dataset_adapter import WrapDataObject
-        from vtk import \
-            vtkPolyData, vtkQuadricDecimation, vtkPoints, vtkCellArray
+        from vtkmodules.vtkCommonDataModel import vtkPolyData, vtkCellArray
+        from vtkmodules.vtkCommonCore import vtkPoints
+        from vtkmodules.vtkFiltersCore import vtkQuadricDecimation
     except ImportError:
         raise ValueError('This function requires the VTK package to be '
                          'installed')
@@ -1262,10 +1251,9 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
     reduction = 1 - (float(n_triangles) / len(triangles))
     decimate.SetTargetReduction(reduction)
     decimate.Update()
-    out = WrapDataObject(decimate.GetOutput())
-    rrs = out.Points
-    tris = out.Polygons.reshape(-1, 4)[:, 1:]
-    return rrs, tris
+
+    out = _polydata_to_surface(decimate.GetOutput(), normals=False)
+    return out['rr'], out['tris']
 
 
 def _decimate_surface_sphere(rr, tris, n_triangles):
@@ -1318,7 +1306,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
 
 
 @verbose
-def decimate_surface(points, triangles, n_triangles, method='quadric',
+def decimate_surface(points, triangles, n_triangles, method='quadric', *,
                      verbose=None):
     """Decimate surface data.
 
@@ -1540,7 +1528,7 @@ def mesh_edges(tris):
 
     Returns
     -------
-    edges : sparse matrix
+    edges : scipy.sparse.spmatrix
         The adjacency matrix.
     """
     tris = _hashable_ndarray(tris)
@@ -1599,8 +1587,8 @@ def read_tri(fname_in, swap=False, verbose=None):
 
     Parameters
     ----------
-    fname_in : str
-        Path to surface ASCII file (ending with '.tri').
+    fname_in : path-like
+        Path to surface ASCII file (ending with ``'.tri'``).
     swap : bool
         Assume the ASCII file vertex ordering is clockwise instead of
         counterclockwise.
@@ -1633,7 +1621,7 @@ def read_tri(fname_in, swap=False, verbose=None):
     elif n_items in [4, 7]:
         inds = range(1, 4)
     else:
-        raise IOError('Unrecognized format of data.')
+        raise OSError('Unrecognized format of data.')
     rr = np.array([np.array([float(v) for v in line.split()])[inds]
                    for line in lines[1:n_nodes + 1]])
     tris = np.array([np.array([int(v) for v in line.split()])[inds]
@@ -1747,7 +1735,8 @@ def _mesh_borders(tris, mask):
     return np.unique(edges.row[border_edges])
 
 
-def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
+def _marching_cubes(image, level, smooth=0, fill_hole_size=None,
+                    use_flying_edges=True):
     """Compute marching cubes on a 3D image."""
     # vtkDiscreteMarchingCubes would be another option, but it merges
     # values at boundaries which is not what we want
@@ -1755,16 +1744,14 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
-    from vtk import (vtkImageData, vtkThreshold,
-                     vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
-                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
-    from vtk.util import numpy_support
+    from vtkmodules.vtkCommonDataModel import \
+        vtkImageData, vtkDataSetAttributes
+    from vtkmodules.vtkFiltersCore import vtkThreshold
+    from vtkmodules.vtkFiltersGeneral import (vtkDiscreteFlyingEdges3D,
+                                              vtkDiscreteMarchingCubes)
+    from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
+    from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
     from scipy.ndimage import binary_dilation
-    _validate_type(smooth, 'numeric', smooth)
-    smooth = float(smooth)
-    if not 0 <= smooth < 1:
-        raise ValueError('smooth must be between 0 (inclusive) and 1 '
-                         f'(exclusive), got {smooth}')
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
@@ -1788,11 +1775,12 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
 
     # force double as passing integer types directly can be problematic!
     image_shape = image.shape
-    data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    # use order='A' to automatically detect when Fortran ordering is needed
+    data_vtk = numpy_to_vtk(image.ravel(order='A').astype(float), deep=True)
     del image
 
-    mc = vtkDiscreteFlyingEdges3D()
+    mc = vtkDiscreteFlyingEdges3D() if use_flying_edges else \
+        vtkDiscreteMarchingCubes()
     # create image
     imdata = vtkImageData()
     imdata.SetDimensions(image_shape)
@@ -1800,31 +1788,21 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     imdata.SetOrigin([0, 0, 0])
     imdata.GetPointData().SetScalars(data_vtk)
 
-    # compute marching cubes
+    # compute marching cubes on smoothed data
     mc.SetNumberOfContours(len(level))
     for li, lev in enumerate(level):
         mc.SetValue(li, lev)
     mc.SetInputData(imdata)
-    sel_input = mc
-    if smooth:
-        smoother = vtkWindowedSincPolyDataFilter()
-        smoother.SetInputConnection(sel_input.GetOutputPort())
-        smoother.SetNumberOfIterations(100)
-        smoother.BoundarySmoothingOff()
-        smoother.FeatureEdgeSmoothingOff()
-        smoother.SetFeatureAngle(120.0)
-        smoother.SetPassBand(1 - smooth)
-        smoother.NonManifoldSmoothingOn()
-        smoother.NormalizeCoordinatesOff()
-        sel_input = smoother
-    sel_input.Update()
+    mc.Update()
+    mc = _vtk_smooth(mc.GetOutput(), smooth)
 
     # get verts and triangles
     selector = vtkThreshold()
-    selector.SetInputConnection(sel_input.GetOutputPort())
+    selector.SetInputData(mc)
     dsa = vtkDataSetAttributes()
     selector.SetInputArrayToProcess(
-        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
+        0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS if use_flying_edges else
+        imdata.FIELD_ASSOCIATION_CELLS, dsa.SCALARS)
     geometry = vtkGeometryFilter()
     geometry.SetInputConnection(selector.GetOutputPort())
 
@@ -1840,8 +1818,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
             selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
-        rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
-        tris = numpy_support.vtk_to_numpy(
+        rr = vtk_to_numpy(polydata.GetPoints().GetData())
+        tris = vtk_to_numpy(
             polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
         rr = np.ascontiguousarray(rr[:, ::-1])
         tris = np.ascontiguousarray(tris[:, ::-1])
@@ -1849,19 +1827,40 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     return out
 
 
-def _warn_missing_chs(info, dig_image, after_warp, verbose=None):
-    """Warn that channels are missing."""
-    # ensure that each electrode contact was marked in at least one voxel
-    missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
-        set(np.unique(np.array(dig_image.dataobj))))
-    missing_ch = [info.ch_names[idx - 1] for idx in missing]
-    if missing_ch and verbose != 'error':
-        warn(f'Channel{_pl(missing_ch)} '
-             f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
-             'voxels ' +
-             (f' after applying {after_warp}' if after_warp else ''))
+def _vtk_smooth(pd, smooth):
+    _validate_type(smooth, 'numeric', smooth)
+    smooth = float(smooth)
+    if not 0 <= smooth < 1:
+        raise ValueError('smoothing factor must be between 0 (inclusive) and '
+                         f'1 (exclusive), got {smooth}')
+    if smooth == 0:
+        return pd
+    from vtkmodules.vtkFiltersCore import vtkWindowedSincPolyDataFilter
+    logger.info(f'    Smoothing by a factor of {smooth}')
+    return_ndarray = False
+    if isinstance(pd, dict):
+        pd = _surface_to_polydata(pd)
+        return_ndarray = True
+    smoother = vtkWindowedSincPolyDataFilter()
+    smoother.SetInputData(pd)
+    smoother.SetNumberOfIterations(100)
+    smoother.BoundarySmoothingOff()
+    smoother.FeatureEdgeSmoothingOff()
+    smoother.SetFeatureAngle(120.0)
+    smoother.SetPassBand(1 - smooth)
+    smoother.NonManifoldSmoothingOn()
+    smoother.NormalizeCoordinatesOff()
+    smoother.Update()
+    out = smoother.GetOutput()
+    if return_ndarray:
+        out = _polydata_to_surface(out, normals=False)
+    return out
 
 
+@deprecated('warp_montage_volume will be deprecated in favor of '
+            'warp_montage (and optionally '
+            'mne.preprocessing.ieeg.make_montage_volume) in version '
+            '1.5.0')
 @verbose
 def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                         subject_from, subject_to='fsaverage',
@@ -1928,11 +1927,11 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
         The warped image with voxel values corresponding to the index
         of the channel. The background is 0s and this index starts at 1.
     """
-    _require_version('nibabel', 'SDR morph', '2.1.0')
+    nib = _import_nibabel('SDR morph')
     _require_version('dipy', 'SDR morph', '0.10.1')
     from .channels import DigMontage, make_dig_montage
     from ._freesurfer import _check_subject_dir
-    import nibabel as nib
+    from .preprocessing.ieeg._volume import _warn_missing_chs
 
     _validate_type(montage, DigMontage, 'montage')
     _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')
@@ -2003,7 +2002,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                 image_from[voxel] = i + 1
 
     # apply the mapping
-    image_from = nib.Nifti1Image(image_from, fs_from_img.affine)
+    image_from = nib.spatialimages.SpatialImage(image_from, fs_from_img.affine)
     _warn_missing_chs(montage, image_from, after_warp=False)
 
     template_brain = nib.load(

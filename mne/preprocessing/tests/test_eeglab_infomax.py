@@ -1,4 +1,4 @@
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -13,14 +13,13 @@ from mne.preprocessing.infomax_ import infomax
 from mne.utils import random_permutation
 from mne.datasets import testing
 
-base_dir = op.join(op.dirname(__file__), 'data')
+base_dir = Path(__file__).parent / "data"
 testing_path = testing.data_path(download=False)
 
 
 def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     """Generate data."""
-    data_dir = op.join(testing_path, 'MEG', 'sample')
-    raw_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
+    raw_fname = testing_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 
     raw = read_raw_fif(raw_fname, preload=True)
 
@@ -76,7 +75,7 @@ def test_mne_python_vs_eeglab():
                                    % (method,
                                       dict(eeg='eeg', mag='meg')[ch_type]))
 
-            # For comparasion against eeglab, make sure the following
+            # For comparison against eeglab, make sure the following
             # parameters have the same value in mne_python and eeglab:
             #
             # - starting point
@@ -169,7 +168,7 @@ def test_mne_python_vs_eeglab():
             # the \ell_inf norm:
             # ||unmixing_mne_python - unmixing_eeglab||_inf
 
-            eeglab_data = sio.loadmat(op.join(base_dir, eeglab_results_file))
+            eeglab_data = sio.loadmat(base_dir / eeglab_results_file)
             unmixing_eeglab = eeglab_data['unmixing_eeglab']
 
             maximum_difference = np.max(np.abs(unmixing_ordered -

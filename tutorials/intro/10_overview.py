@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-overview:
 
@@ -17,7 +16,6 @@ We begin by importing the necessary Python modules:
 """
 # %%
 
-import os
 import numpy as np
 import mne
 
@@ -45,8 +43,8 @@ import mne
 # could be substituted here when running the tutorial locally.
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_filt-0-40_raw.fif')
+sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # %%
@@ -77,7 +75,7 @@ print(raw.info)
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
 
-raw.plot_psd(fmax=50)
+raw.compute_psd(fmax=50).plot()
 raw.plot(duration=5, n_channels=30)
 
 # %%
@@ -339,8 +337,8 @@ evoked_diff.pick_types(meg='mag').plot_topo(color='r', legend=False)
 # baseline activity level across all of cortex).
 
 # load inverse operator
-inverse_operator_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                     'sample_audvis-meg-oct-6-meg-inv.fif')
+inverse_operator_file = (sample_data_folder / 'MEG' / 'sample' /
+                         'sample_audvis-meg-oct-6-meg-inv.fif')
 inv_operator = mne.minimum_norm.read_inverse_operator(inverse_operator_file)
 # set signal-to-noise ratio (SNR) to compute regularization parameter (λ²)
 snr = 3.
@@ -356,7 +354,7 @@ stc = mne.minimum_norm.apply_inverse(vis_evoked, inv_operator,
 # (the ``subjects_dir``):
 
 # path to subjects' MRI files
-subjects_dir = os.path.join(sample_data_folder, 'subjects')
+subjects_dir = sample_data_folder / 'subjects'
 # plot the STC
 stc.plot(initial_time=0.1, hemi='split', views=['lat', 'med'],
          subjects_dir=subjects_dir)

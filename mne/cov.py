@@ -10,7 +10,8 @@ from math import log
 
 import numpy as np
 
-from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT, DEFAULTS)
 from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
@@ -22,11 +23,12 @@ from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _DATA_CH_TYPES_SPLIT)
 
 from .io.constants import FIFF
-from .io.meas_info import _read_bad_channels, create_info
+from .io.meas_info import _read_bad_channels, create_info, _write_bad_channels
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
-from .io.write import (start_block, end_block, write_int, write_name_list,
-                       write_double, write_float_matrix, write_string)
+from .io.write import (start_block, end_block, write_int, write_double,
+                       write_float_matrix, write_string, _safe_name_list,
+                       write_name_list_sanitized)
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
@@ -36,7 +38,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing, _check_fname, _VerboseDep)
+                    _check_on_missing, _check_fname, _verbose_safe_false)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -64,12 +66,13 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 @fill_doc
-class Covariance(dict, _VerboseDep):
+class Covariance(dict):
     """Noise covariance matrix.
 
-    .. warning:: This class should not be instantiated directly, but
-                 instead should be created using a covariance reading or
-                 computation function.
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.Covariance(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Parameters
     ----------
@@ -147,7 +150,7 @@ class Covariance(dict, _VerboseDep):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             Output filename.
         %(overwrite)s
 
@@ -251,47 +254,51 @@ class Covariance(dict, _VerboseDep):
                                  show, verbose)
 
     @verbose
-    def plot_topomap(self, info, ch_type=None, vmin=None,
-                     vmax=None, cmap=None, sensors=True, colorbar=True,
-                     scalings=None, units=None, res=64,
-                     size=1, cbar_fmt="%3.1f",
-                     proj=False, show=True, show_names=False, title=None,
-                     mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp='bilinear',
-                     axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                     border=_BORDER_DEFAULT,
-                     noise_cov=None, verbose=None):
+    def plot_topomap(
+            self, info, ch_type=None, *, scalings=None, proj=False,
+            noise_cov=None, sensors=True, show_names=False, mask=None,
+            mask_params=None, contours=6, outlines='head', sphere=None,
+            image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=True,
+            cbar_fmt='%3.1f', units=None, axes=None, show=True, verbose=None):
         """Plot a topomap of the covariance diagonal.
 
         Parameters
         ----------
         %(info_not_none)s
         %(ch_type_topomap)s
-        %(vmin_vmax_topomap)s
-        %(cmap_topomap)s
-        %(sensors_topomap)s
-        %(colorbar_topomap)s
+
+            .. versionadded:: 0.21
         %(scalings_topomap)s
-        %(units_topomap)s
-        %(res_topomap)s
-        %(size_topomap)s
-        %(cbar_fmt_topomap)s
         %(proj_plot)s
-        %(show)s
-        %(show_names_topomap)s
-        %(title_none)s
-        %(mask_topomap)s
-        %(mask_params_topomap)s
-        %(outlines_topomap)s
-        %(contours_topomap)s
-        %(image_interp_topomap)s
-        %(axes_topomap)s
-        %(extrapolate_topomap)s
-        %(sphere_topomap_auto)s
-        %(border_topomap)s
         noise_cov : instance of Covariance | None
             If not None, whiten the instance with ``noise_cov`` before
             plotting.
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap)s
+
+            .. versionadded:: 1.2
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+        %(units_topomap_evoked)s
+        %(axes_cov_plot_topomap)s
+        %(show)s
         %(verbose)s
 
         Returns
@@ -304,6 +311,7 @@ class Covariance(dict, _VerboseDep):
         .. versionadded:: 0.21
         """
         from .viz.misc import _index_info_cov
+
         info, C, _, _ = _index_info_cov(info, self, exclude=())
         evoked = EvokedArray(np.diag(C)[:, np.newaxis], info)
         if noise_cov is not None:
@@ -319,10 +327,10 @@ class Covariance(dict, _VerboseDep):
         if scalings is None:
             scalings = {k: v * v for k, v in DEFAULTS['scalings'].items()}
         return evoked.plot_topomap(
-            times=[0], ch_type=ch_type, vmin=vmin, vmax=vmax, cmap=cmap,
-            sensors=sensors, colorbar=colorbar, scalings=scalings,
+            times=[0], ch_type=ch_type, vlim=vlim, cmap=cmap,
+            sensors=sensors, cnorm=cnorm, colorbar=colorbar, scalings=scalings,
             units=units, res=res, size=size, cbar_fmt=cbar_fmt,
-            proj=proj, show=show, show_names=show_names, title=title,
+            proj=proj, show=show, show_names=show_names,
             mask=mask, mask_params=mask_params, outlines=outlines,
             contours=contours, image_interp=image_interp, axes=axes,
             extrapolate=extrapolate, sphere=sphere, border=border,
@@ -363,9 +371,9 @@ def read_cov(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of file containing the covariance matrix. It should end with
-        -cov.fif or -cov.fif.gz.
+    fname : path-like
+        The path-like of file containing the covariance matrix. It should end
+        with ``-cov.fif`` or ``-cov.fif.gz``.
     %(verbose)s
 
     Returns
@@ -380,7 +388,7 @@ def read_cov(fname, verbose=None):
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz',
                                       '_cov.fif', '_cov.fif.gz'))
     fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
-    f, tree = fiff_open(fname)[:2]
+    f, tree, _ = fiff_open(fname)
     with f as fid:
         return Covariance(**_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV,
                                       limited=True))
@@ -390,7 +398,7 @@ def read_cov(fname, verbose=None):
 # Estimate from data
 
 @verbose
-def make_ad_hoc_cov(info, std=None, verbose=None):
+def make_ad_hoc_cov(info, std=None, *, verbose=None):
     """Create an ad hoc noise covariance.
 
     Parameters
@@ -439,9 +447,9 @@ def _check_n_samples(n_samples, n_chan):
 @verbose
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
-                           method_params=None, cv=3, scalings=None, n_jobs=1,
-                           return_estimators=False, reject_by_annotation=True,
-                           rank=None, verbose=None):
+                           method_params=None, cv=3, scalings=None,
+                           n_jobs=None, return_estimators=False,
+                           reject_by_annotation=True, rank=None, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -567,7 +575,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
         picks = _picks_to_idx(raw.info, picks)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
-                    picks=picks, reject=reject, flat=flat, verbose=False,
+                    picks=picks, reject=reject, flat=flat,
+                    verbose=_verbose_safe_false(),
                     preload=False, proj=False,
                     reject_by_annotation=reject_by_annotation)
     if method is None:
@@ -678,8 +687,9 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
-                       cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       on_mismatch='raise', rank=None, verbose=None):
+                       cv=3, scalings=None, n_jobs=None,
+                       return_estimators=False, on_mismatch='raise',
+                       rank=None, verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
@@ -1016,8 +1026,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
     orig_rank = rank
-    rank = compute_rank(RawArray(data.T, info, copy=None, verbose=False),
-                        rank, scalings, info)
+    rank = compute_rank(
+        RawArray(data.T, info, copy=None, verbose=_verbose_safe_false()),
+        rank, scalings, info)
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
         _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True,
@@ -1368,8 +1379,9 @@ def write_cov(fname, cov, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. It should end with -cov.fif or -cov.fif.gz.
+    fname : path-like
+        The name of the file. It should end with ``-cov.fif`` or
+        ``-cov.fif.gz``.
     cov : Covariance
         The noise covariance matrix.
     %(overwrite)s
@@ -1529,7 +1541,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
         # XXX : also handle ref for sEEG and ECoG
         if ch_type == 'eeg' and _needs_eeg_average_ref_proj(info) and not \
-                _has_eeg_average_ref_proj(projs):
+                _has_eeg_average_ref_proj(info, projs=projs):
             warn('No average EEG reference present in info["projs"], '
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '
@@ -1748,7 +1760,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     scalings = _handle_default('scalings_cov_rank', None)
     cov = _compute_covariance_auto(
         data.T, method=method, method_params=method_params,
-        info=info, cv=None, n_jobs=1, stop_early=True,
+        info=info, cv=None, n_jobs=None, stop_early=True,
         picks_list=picks_list, scalings=scalings,
         rank=rank)[reg]['data']
     return cov
@@ -1955,7 +1967,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
             if tag is None:
                 names = []
             else:
-                names = tag.data.split(':')
+                names = _safe_name_list(tag.data, 'read', 'names')
                 if len(names) != dim:
                     raise ValueError('Number of names does not match '
                                      'covariance matrix dimension')
@@ -2038,7 +2050,8 @@ def _write_cov(fid, cov):
 
     #   Channel names
     if cov['names'] is not None and len(cov['names']) > 0:
-        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, cov['names'])
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_MNE_ROW_NAMES, cov['names'], 'cov["names"]')
 
     #   Data
     if cov['diag']:
@@ -2060,10 +2073,7 @@ def _write_cov(fid, cov):
         _write_proj(fid, cov['projs'])
 
     #   Bad channels
-    if cov['bads'] is not None and len(cov['bads']) > 0:
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, cov['bads'])
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    _write_bad_channels(fid, cov['bads'], None)
 
     # estimator method
     if 'method' in cov:
@@ -2083,5 +2093,5 @@ def _ensure_cov(cov, name='cov', *, verbose=None):
     _validate_type(cov, ('path-like', Covariance), name)
     logger.info('Noise covariance  : %s' % (cov,))
     if not isinstance(cov, Covariance):
-        cov = read_cov(cov, verbose=False)
+        cov = read_cov(cov, verbose=_verbose_safe_false())
     return cov

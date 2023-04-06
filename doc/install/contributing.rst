@@ -14,7 +14,7 @@ There are lots of ways to contribute, such as:
 
 .. rst-class:: icon-bullets
 
-- |bug| Use the software, and when you find bugs, tell us about them! We can
+- |computer-mouse| Use the software, and when you find bugs, tell us about them! We can
   only fix the bugs we know about.
 - |discourse| Answer questions on `our user forum`_.
 - |comment| Tell us about parts of the documentation that you find confusing or
@@ -22,10 +22,10 @@ There are lots of ways to contribute, such as:
 - |hand-sparkles| Tell us about things you wish MNE-Python could do, or things
   it can do but you wish they were easier.
 - |universal-access| Improve the accessibility of our website.
-- |fix-bug| Fix bugs.
-- |remove-format| Fix mistakes in our function documentation strings.
-- |magic| Implement new features.
-- |pencil-alt| Improve existing tutorials or write new ones.
+- |bug-slash| Fix bugs.
+- |text-slash| Fix mistakes in our function documentation strings.
+- |wand-magic-sparkles| Implement new features.
+- |pencil| Improve existing tutorials or write new ones.
 - |python| Contribute to one of the many Python packages that MNE-Python
   depends on.
 
@@ -46,15 +46,15 @@ docstrings/tutorials/website, those kinds of contributions are made through
 how to set up your workflow to make contributing via GitHub as easy as
 possible.
 
-.. collapse:: |rocket| Want an example to work through?
-   :class: success
 
-   Feel free to just read through the rest of the page, but if you find it
-   easier to "learn by doing", take a look at our
-   `GitHub issues marked "easy"`_, pick one that looks interesting, and work
-   through it while reading this guide!
+.. dropdown:: Want an example to work through?
+    :color: success
+    :icon: rocket
 
-.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
+    Feel free to just read through the rest of the page, but if you find it
+    easier to "learn by doing", take a look at our
+    `GitHub issues marked "easy"`_, pick one that looks interesting, and work
+    through it while reading this guide!
 
 
 Overview of contribution process
@@ -94,7 +94,8 @@ Setting up your local development environment
 Configuring git
 ~~~~~~~~~~~~~~~
 
-.. sidebar:: Git GUI alternative
+.. note:: Git GUI alternative
+    :class: sidebar
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -153,30 +154,59 @@ into a terminal and you should see ::
 
    make: *** No targets specified and no makefile found.  Stop.
 
-If you don't see this or something similar:
+If you don't see this or something similar, you may not have ``make`` installed.
 
-.. sidebar:: If you get:
+.. tab-set::
 
-   *bash: conda: command not found*
+    .. tab-item:: Linux
+        :class-content: text-center
 
-   you need to add
+        .. button-link:: https://www.gnu.org/software/make/
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
 
-   - :file:`{path_to_Anaconda}`
-   - :file:`{path_to_Anaconda}\\Scripts`
+            |cloud-arrow-down| |ensp| Get make for Linux
 
-   to Windows-PATH.
+    .. tab-item:: macOS
+        :class-content: text-center
 
-- For Linux/MacOS, get `GNU Make`_
-- For Windows, you can install make for git BASH (which comes with `git for Windows`_):
+        .. button-link:: https://www.gnu.org/software/make/
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
 
-  1. Download :file:`make-{newest.version}-without-guile-w32-bin.zip` from `ezwinports`_
-  2. Extract zip-folder
-  3. Copy the contents into :file:`{path_to_git}\\mingw64\\` (e.g. by merging the
-     folders with the equivalent ones already inside)
-  4. For the first time using git BASH, you need to run once (to be able to
-     activate your mnedev-environment): ::
+            |cloud-arrow-down| |ensp| Get make for macOS
 
-      $ conda init bash
+    .. tab-item:: Windows
+
+        If you see: ::
+
+            bash: make: command not found
+
+        Install ``make`` for git BASH (which comes with `git for Windows`_):
+
+        1. Download :file:`make-{newest.version}-without-guile-w32-bin.zip` from `ezwinports`_
+        2. Extract zip-folder
+        3. Copy the contents into :file:`{path_to_git}\\mingw64\\` (e.g. by merging the
+           folders with the equivalent ones already inside)
+        4. For the first time using git BASH, you need to run once (to be able to
+           activate your ``mnedev`` environment): ::
+
+            $ conda init bash
+
+        If instead you see an error like: ::
+
+                bash: conda: command not found
+
+        at the top of your git BASH window, you need to add
+
+        - :file:`{path_to_Anaconda}`
+        - :file:`{path_to_Anaconda}\\Scripts`
+
+        to Windows-PATH first.
 
 
 Forking the MNE-Python repository
@@ -186,7 +216,7 @@ Once you have git installed and configured, and before creating your local copy
 of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
 your GitHub user account.
 
-.. image:: https://help.github.com/assets/images/help/repository/fork_button.jpg
+.. image:: https://docs.github.com/assets/cb-28613/images/help/repository/fork_button.png
 
 This will create a copy of the MNE-Python codebase inside your GitHub user
 account (this is called "your fork"). Changes you make to MNE-Python will
@@ -203,7 +233,8 @@ of how that structure is set up is given here:
 Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: Supported Python environments
+.. note:: Supported Python environments
+    :class: sidebar
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -215,7 +246,7 @@ Creating the virtual environment
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
 This lets you switch between different versions of Python (MNE-Python requires
-version 3.7 or higher) and also switch between the stable and development
+version 3.8 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
@@ -340,7 +371,8 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
-.. sidebar:: Alternative
+.. note:: Alternative
+    :class: sidebar
 
     You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
@@ -418,7 +450,7 @@ in the pull request you should describe how the tests are failing and ask for
 advice about how to fix them.
 
 To learn more about git, check out the `GitHub help`_ website, the `GitHub
-Learning Lab`_ tutorial series, and the `pro git book`_.
+skills`_ tutorial series, and the `pro git book`_.
 
 
 .. _github-ssh:
@@ -514,11 +546,11 @@ like this:
                             'new_param in 0.XX.')
             if new_param is None:
                 new_param = old_param
-                warn(depr_message, DeprecationWarning)
+                warn(depr_message, FutureWarning)
             else:
                 warn(depr_message + ' Since you passed values for both '
                      'old_param and new_param, old_param will be ignored.',
-                     DeprecationWarning)
+                     FutureWarning)
         # Do whatever you have to do with new_param
         return 'foo'
 
@@ -529,13 +561,13 @@ conditions you expect:
 .. code-block:: python
 
     # test deprecation warning for function
-    with pytest.warns(DeprecationWarning, match='my_function is deprecated'):
+    with pytest.warns(FutureWarning, match='my_function is deprecated'):
         my_function()
 
     # test deprecation warning for parameter
-    with pytest.warns(DeprecationWarning, match='values for both old_param'):
+    with pytest.warns(FutureWarning, match='values for both old_param'):
         my_other_function(new_param=1, old_param=2)
-    with pytest.warns(DeprecationWarning, match='old_param is deprecated and'):
+    with pytest.warns(FutureWarning, match='old_param is deprecated and'):
         my_other_function(old_param=2)
 
 You should also search the codebase for any cases where the deprecated function
@@ -570,23 +602,21 @@ First-time contributors
 
 Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
 get proper credit for your work, please add a changelog entry with the
-following pattern **at the top** of the respective subsection (bugfix,
-new feature etc.):
+following pattern **at the top** of the respective subsection (bugs,
+enhancements, etc.):
 
 .. code-block:: rst
 
 
-  Bug
-  ---
+  Bugs
+  ----
 
-  .. |Your Name| replace:: **Your Name**
-
-  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  - Short description of the changes (:gh:`0000` by :newcontrib:`Firstname Lastname`)
 
   - ...
 
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number.
+number, and ``Firstname Lastname`` must be replaced with your full name.
 
 It is usually best to wait to add a line to the changelog until your PR is
 finalized, to avoid merge conflicts (since the changelog is updated with
@@ -828,7 +858,8 @@ to both visualization functions and tutorials/examples.
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: pytest flags
+.. note:: pytest flags
+    :class: sidebar
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.
@@ -884,17 +915,24 @@ all the documentation and additionally execute just your example or tutorial
 you expect).
 
 .. note::
-   On Windows, to use the pattern approach, use the following two lines:
+   If you are using a *Windows command shell*, to use the pattern approach,
+   use the following two lines:
 
-   .. code-block:: python
+   .. code-block:: doscon
 
-      set PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>}
-      make html_dev-pattern
+      > set PATTERN=<REGEX_TO_SELECT_MY_TUTORIAL>
+      > make html_dev-pattern
+
+   If you are on Windows but using the `git BASH`_ shell, use the same two
+   commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
-locally-rendered documentation site in your browser. Additional ``make``
-recipes are available; run ``make help`` from the :file:`doc` directory or
-consult the `Sphinx-Gallery`_ documentation for additional details.
+locally-rendered documentation site in your browser. If you see many warnings
+that seem unrelated to your contributions, it might be that your output folder
+for the documentation build contains old, now irrelevant, files. Running
+``make clean`` will clean those up. Additional ``make`` recipes are available;
+run ``make help`` from the :file:`doc` directory or consult the
+`Sphinx-Gallery`_ documentation for additional details.
 
 
 Modifying command-line tools
@@ -935,7 +973,7 @@ common to many open-source software projects, so learning to follow them while
 working on MNE-Python will bear fruit when you contribute to other projects
 down the road. Here are the guidelines:
 
-- Search the `MNE-Python issues page`_ (both open and closed issues) in case
+- Search the `GitHub issues page`_ (both open and closed issues) in case
   someone else has already started work on the same bugfix or feature. If you
   don't find anything, `open a new issue`_ to discuss changes with maintainers
   before starting work on your proposed changes.
@@ -1007,8 +1045,7 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. MNE
 
-.. _MNE-Python GitHub: https://github.com/mne-tools/mne-python
-.. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
+.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
 .. _our user forum: https://mne.discourse.group
@@ -1016,7 +1053,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. git installation
 
 .. _the .dmg installer: https://git-scm.com/download/mac
-.. _git for Windows: https://gitforwindows.org/
 .. _official Linux instructions: https://git-scm.com/download/linux
 .. _more detailed instructions and alternatives: https://www.atlassian.com/git/tutorials/install-git
 .. _Windows subsystem for Linux: https://docs.microsoft.com/en-us/windows/wsl/about
@@ -1026,8 +1062,6 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. github help pages
 
-.. _GitHub Help: https://help.github.com
-.. _GitHub learning lab: https://lab.github.com/
 .. _fork: https://help.github.com/en/articles/fork-a-repo
 .. _clone: https://help.github.com/en/articles/cloning-a-repository
 .. _push: https://help.github.com/en/articles/pushing-to-a-remote
@@ -1056,14 +1090,12 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. sphinx
 
-.. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _intersphinx: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 .. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
 
-.. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _Flake8: http://flake8.pycqa.org/

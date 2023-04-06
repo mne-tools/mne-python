@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
@@ -9,7 +8,6 @@ from pathlib import Path
 from functools import partial
 from io import BytesIO
 import os
-import os.path as op
 import pathlib
 import pickle
 import shutil
@@ -29,28 +27,28 @@ from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
-                 pick_info)
+                 pick_info, make_fixed_length_epochs)
 from mne.utils import (requires_pandas, assert_object_equal, _dt_to_stamp,
                        requires_mne, run_subprocess, _record_warnings,
                        assert_and_remove_boundary_annot)
 from mne.annotations import Annotations
 
 testing_path = testing.data_path(download=False)
-data_dir = op.join(testing_path, 'MEG', 'sample')
-fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
-ms_fname = op.join(testing_path, 'SSS', 'test_move_anon_raw.fif')
-skip_fname = op.join(testing_path, 'misc', 'intervalrecording_raw.fif')
+data_dir = testing_path / "MEG" / "sample"
+fif_fname = data_dir / "sample_audvis_trunc_raw.fif"
+ms_fname = testing_path / "SSS" / "test_move_anon_raw.fif"
+skip_fname = testing_path / "misc" / "intervalrecording_raw.fif"
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
-test_fif_fname = op.join(base_dir, 'test_raw.fif')
-test_fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
-ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
-ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
-fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
-bad_file_works = op.join(base_dir, 'test_bads.txt')
-bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
-hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
-hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+base_dir = Path(__file__).parent.parent.parent / "tests" / "data"
+test_fif_fname = base_dir / "test_raw.fif"
+test_fif_gz_fname = base_dir / "test_raw.fif.gz"
+ctf_fname = base_dir / "test_ctf_raw.fif"
+ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
+fif_bad_marked_fname = base_dir / "test_withbads_raw.fif"
+bad_file_works = base_dir / "test_bads.txt"
+bad_file_wrong = base_dir / "test_wrong_bads.txt"
+hp_fname = base_dir / "test_chpi_raw_hp.txt"
+hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
 
 
 @testing.requires_testing_data
@@ -88,8 +86,8 @@ def test_acq_skip(tmp_path):
     # first: file size should not increase much (orig data is missing
     # 7 of 17 buffers, so if we write them out it should increase the file
     # size quite a bit.
-    orig_size = op.getsize(skip_fname)
-    new_size = op.getsize(fname)
+    orig_size = skip_fname.lstat().st_size
+    new_size = fname.lstat().st_size
     max_size = int(1.05 * orig_size)  # almost the same + annotations
     assert new_size < max_size, (new_size, max_size)
     raw_read = read_raw_fif(fname)
@@ -107,10 +105,14 @@ def test_acq_skip(tmp_path):
 
 def test_fix_types():
     """Test fixing of channel types."""
-    for fname, change in ((hp_fif_fname, True), (test_fif_fname, False),
-                          (ctf_fname, False)):
+    for fname, change, bads in (
+        (hp_fif_fname, True, ["MEG0111"]),
+        (test_fif_fname, False, []),
+        (ctf_fname, False, [])
+    ):
         raw = read_raw_fif(fname)
-        mag_picks = pick_types(raw.info, meg='mag')
+        raw.info["bads"] = bads
+        mag_picks = pick_types(raw.info, meg='mag', exclude=[])
         other_picks = np.setdiff1d(np.arange(len(raw.ch_names)), mag_picks)
         # we don't actually have any files suffering from this problem, so
         # fake it
@@ -217,7 +219,7 @@ def test_output_formats(tmp_path):
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
         # Let's test the overwriting error throwing while we're at it
         if ii > 0:
-            pytest.raises(IOError, raw.save, temp_file, fmt=fmt)
+            pytest.raises(OSError, raw.save, temp_file, fmt=fmt)
         raw.save(temp_file, fmt=fmt, overwrite=True)
         raw2 = read_raw_fif(temp_file)
         raw2_data = raw2[:, :][0]
@@ -379,6 +381,54 @@ def test_concatenate_raws(on_mismatch):
             concatenate_raws(**kws)
 
 
+def _create_toy_data(n_channels=3, sfreq=250, seed=None):
+    rng = np.random.default_rng(seed)
+    data = rng.standard_normal(size=(n_channels, 50 * sfreq)) * 5e-6
+    info = create_info(n_channels, sfreq, "eeg")
+    return RawArray(data, info)
+
+
+def test_concatenate_raws_bads_order():
+    """Test concatenation of raw instances."""
+    raw0 = _create_toy_data()
+    raw1 = _create_toy_data()
+
+    # Test bad channel order
+    raw0.info["bads"] = ["0", "1"]
+    raw1.info["bads"] = ["1", "0"]
+
+    # raw0 is modified in-place and therefore copied
+    raw_concat = concatenate_raws([raw0.copy(), raw1])
+
+    # Check data are equal
+    data_concat = np.concatenate([raw0.get_data(), raw1.get_data()], 1)
+    assert np.all(raw_concat.get_data() == data_concat)
+
+    # Check bad channels
+    assert set(raw_concat.info["bads"]) == {"0", "1"}
+
+    # Bad channel mismatch raises
+    raw2 = raw1.copy()
+    raw2.info["bads"] = ["0", "2"]
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, raw2])
+
+    # Type mismatch raises
+    epochs1 = make_fixed_length_epochs(raw1)
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, epochs1])
+
+    # Sample rate mismatch
+    raw3 = _create_toy_data(sfreq=500)
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, raw3])
+
+    # Number of channels mismatch
+    raw4 = _create_toy_data(n_channels=4)
+    with pytest.raises(ValueError):
+        concatenate_raws([raw0, raw4])
+
+
 @testing.requires_testing_data
 @pytest.mark.parametrize('mod', (
     'meg',
@@ -403,8 +453,8 @@ def test_split_files(tmp_path, mod, monkeypatch):
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
     raw_1.save(split_fname, split_naming='bids', verbose=True)
-    assert op.isfile(split_fname)
-    assert not op.isfile(split_fname_bids_part1)
+    assert split_fname.is_file()
+    assert not split_fname_bids_part1.is_file()
     for split_naming in ('neuromag', 'bids'):
         with pytest.raises(FileExistsError, match='Destination file'):
             raw_1.save(split_fname, split_naming=split_naming, verbose=True)
@@ -413,7 +463,7 @@ def test_split_files(tmp_path, mod, monkeypatch):
         pass
     with pytest.raises(FileExistsError, match='Destination file'):
         raw_1.save(split_fname, split_naming='bids', verbose=True)
-    assert not op.isfile(split_fname)
+    assert not split_fname.is_file()
     raw_1.save(split_fname, split_naming='neuromag', verbose=True)  # okay
     os.remove(split_fname)
     os.remove(split_fname_bids_part1)
@@ -422,17 +472,17 @@ def test_split_files(tmp_path, mod, monkeypatch):
                verbose=True)
 
     # check that the filenames match the intended pattern
-    assert op.isfile(split_fname)
-    assert op.isfile(split_fname_elekta_part2)
+    assert split_fname.is_file()
+    assert split_fname_elekta_part2.is_file()
     # check that filenames are being formatted correctly for BIDS
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB',
                split_naming='bids', overwrite=True, verbose=True)
-    assert op.isfile(split_fname_bids_part1)
-    assert op.isfile(split_fname_bids_part2)
+    assert split_fname_bids_part1.is_file()
+    assert split_fname_bids_part2.is_file()
 
     annot = Annotations(np.arange(20), np.ones((20,)), 'test')
     raw_1.set_annotations(annot)
-    split_fname = op.join(tmp_path, 'split_raw.fif')
+    split_fname = tmp_path / "split_raw.fif"
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
@@ -512,7 +562,7 @@ def test_split_files(tmp_path, mod, monkeypatch):
     assert_allclose(raw_crop[:][0], raw_read[:][0])
 
     # proper ending
-    assert op.isdir(tmp_path)
+    assert tmp_path.is_dir()
     with pytest.raises(ValueError, match='must end with an underscore'):
         raw_crop.save(
             tmp_path / 'test.fif', split_naming='bids', verbose='error')
@@ -522,8 +572,8 @@ def test_split_files(tmp_path, mod, monkeypatch):
     monkeypatch.setattr(base, '_write_raw_fid', _err)
     with pytest.raises(RuntimeError, match='Killed mid-write'):
         raw_1.save(fname, split_size='10MB', split_naming='bids')
-    assert op.isfile(fname)
-    assert not op.isfile(tmp_path / 'test_split-01_raw.fif')
+    assert fname.is_file()
+    assert not (tmp_path / "test_split-01_raw.fif").is_file()
 
 
 def _err(*args, **kwargs):
@@ -543,9 +593,9 @@ def test_split_numbers(tmp_path, monkeypatch):
     dashes_fname = tmp_path / 'sub-1_ses-2_task-3_raw.fif'
     raw.save(dashes_fname, split_size='5MB',
              buffer_size_sec=1.)
-    assert op.isfile(dashes_fname)
-    next_fname = str(dashes_fname)[:-4] + '-1.fif'
-    assert op.isfile(next_fname)
+    assert dashes_fname.is_file()
+    next_fname = Path(str(dashes_fname)[:-4] + "-1.fif")
+    assert next_fname.is_file()
     raw_read = read_raw_fif(dashes_fname)
     assert_allclose(raw.times, raw_read.times)
     assert_allclose(raw.get_data(), raw_read.get_data(), atol=1e-16)
@@ -597,7 +647,7 @@ def test_io_raw(tmp_path):
     for chars in [u'äöé', 'a']:
         with read_raw_fif(fif_fname) as r:
             assert ('Raw' in repr(r))
-            assert (op.basename(fif_fname) in repr(r))
+            assert (fif_fname.name in repr(r))
             r.info['description'] = chars
             temp_file = tmp_path / 'raw.fif'
             r.save(temp_file, overwrite=True)
@@ -617,7 +667,7 @@ def test_io_raw(tmp_path):
     # read it in, make sure the whole thing matches
     raw = read_raw_fif(fname)
     assert_allclose(data, raw[:, :][0], rtol=1e-6, atol=1e-20)
-    # let's read portions across the 1-sec tag boundary, too
+    # let's read portions across the 1-s tag boundary, too
     inds = raw.time_as_index([1.75, 2.25])
     sl = slice(inds[0], inds[1])
     assert_allclose(data[:, sl], raw[:, sl][0], rtol=1e-6, atol=1e-20)
@@ -661,7 +711,9 @@ def test_io_raw_additional(fname_in, fname_out, tmp_path):
     # Writing
     raw.save(fname_out, picks, tmin=0, tmax=5, overwrite=True)
 
-    if fname_in in (fif_fname, fif_fname + '.gz'):
+    if fname_in in (
+        fif_fname, fif_fname.with_suffix(fif_fname.suffix + ".gz")
+    ):
         assert len(raw.info['dig']) == 146
 
     raw2 = read_raw_fif(fname_out)
@@ -694,7 +746,9 @@ def test_io_raw_additional(fname_in, fname_out, tmp_path):
                 assert raw_.info[trans]['from'] == from_id
                 assert raw_.info[trans]['to'] == to_id
 
-    if fname_in == fif_fname or fname_in == fif_fname + '.gz':
+    if fname_in in (
+        fif_fname, fif_fname.with_suffix(fif_fname.suffix + ".gz")
+    ):
         assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
     # test warnings on bad filenames
@@ -1045,7 +1099,8 @@ def test_crop():
     tmaxs /= sfreq
     tmins /= sfreq
 
-    # going in revere order so the last fname is the first file (need it later)
+    # going in reverse order so the last fname is the first file (need it
+    # later)
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
         raws[ri] = raw.copy().crop(tmin, tmax)
@@ -1069,6 +1124,19 @@ def test_crop():
     # degenerate
     with pytest.raises(ValueError, match='No samples.*when include_tmax=Fals'):
         raw.crop(0, 0, include_tmax=False)
+
+    # edge cases cropping to exact duration +/- 1 sample
+    data = np.zeros((1, 100))
+    info = create_info(1, 100)
+    raw = RawArray(data, info)
+    with pytest.raises(ValueError, match='tmax \\(1\\) must be less than or '):
+        raw.copy().crop(tmax=1, include_tmax=True)
+    raw1 = raw.copy().crop(tmax=1 - 1 / raw.info['sfreq'], include_tmax=True)
+    assert raw.n_times == raw1.n_times
+    raw2 = raw.copy().crop(tmax=1, include_tmax=False)
+    assert raw.n_times == raw2.n_times
+    raw3 = raw.copy().crop(tmax=1 - 1 / raw.info['sfreq'], include_tmax=False)
+    assert raw.n_times - 1 == raw3.n_times
 
 
 @testing.requires_testing_data
@@ -1106,7 +1174,7 @@ def test_resample(tmp_path, preload, n, npad):
     assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
     assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=1, npad=npad)
+    raw_resamp.resample(sfreq, n_jobs=None, npad=npad)
     assert raw_resamp.info['sfreq'] == sfreq
     assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp
@@ -1280,17 +1348,15 @@ def test_to_data_frame():
     """Test raw Pandas exporter."""
     from pandas import Timedelta
     raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
-    _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
     assert ((df.columns == raw.ch_names).all())
-    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None)
     assert ('time' in df.columns)
     assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
     assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
     # test long format
     df_long = raw.to_data_frame(long_format=True)
-    assert(len(df_long) == raw.get_data().size)
+    assert len(df_long) == raw.get_data().size
     expected = ('time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     # test bad time format
@@ -1307,24 +1373,39 @@ def test_to_data_frame():
 @pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta', 'datetime'))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
-    from pandas import Timedelta, Timestamp
+    from pandas import Timedelta, Timestamp, to_timedelta
     raw = read_raw_fif(test_fif_fname, preload=True)
     # test time_format
     df = raw.to_data_frame(time_format=time_format)
     dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta,
               'datetime': Timestamp}
     assert isinstance(df['time'].iloc[0], dtypes[time_format])
+    # test values
+    _, times = raw[0, :10]
+    offset = 0.
+    if time_format == 'datetime':
+        times += raw.first_time
+        offset = raw.info['meas_date']
+    elif time_format == 'timedelta':
+        offset = Timedelta(0.)
+    funcs = {None: lambda x: x,
+             'ms': lambda x: np.rint(x * 1e3).astype(int),  # s → ms
+             'timedelta': partial(to_timedelta, unit='s'),
+             'datetime': partial(to_timedelta, unit='s')
+             }
+    assert_array_equal(funcs[time_format](times) + offset, df['time'][:10])
 
 
 def test_add_channels():
     """Test raw splitting / re-appending channel types."""
     rng = np.random.RandomState(0)
     raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
+    assert raw._orig_units == {}
     raw_nopre = read_raw_fif(test_fif_fname, preload=False)
     raw_eeg_meg = raw.copy().pick_types(meg=True, eeg=True)
-    raw_eeg = raw.copy().pick_types(meg=False, eeg=True)
-    raw_meg = raw.copy().pick_types(meg=True, eeg=False)
-    raw_stim = raw.copy().pick_types(meg=False, eeg=False, stim=True)
+    raw_eeg = raw.copy().pick_types(eeg=True)
+    raw_meg = raw.copy().pick_types(meg=True)
+    raw_stim = raw.copy().pick_types(stim=True)
     raw_new = raw_meg.copy().add_channels([raw_eeg, raw_stim])
     assert (
         all(ch in raw_new.ch_names
@@ -1370,7 +1451,7 @@ def test_add_channels():
 
     pytest.raises(RuntimeError, raw_meg.add_channels, [raw_nopre])
     pytest.raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
-    pytest.raises(AssertionError, raw_meg.add_channels, [raw_eeg])
+    pytest.raises(ValueError, raw_meg.add_channels, [raw_eeg])
     pytest.raises(ValueError, raw_meg.add_channels, [raw_meg])
     pytest.raises(TypeError, raw_meg.add_channels, raw_badsf)
 
@@ -1386,7 +1467,7 @@ def test_save(tmp_path):
         raw.save(temp_fname)
     raw.load_data()
     # can't overwrite file without overwrite=True
-    with pytest.raises(IOError, match='file exists'):
+    with pytest.raises(OSError, match='file exists'):
         raw.save(fif_fname)
 
     # test abspath support and annotations
@@ -1593,13 +1674,20 @@ def test_drop_channels_mixin():
 
     # Test that dropping all channels a projector applies to will lead to the
     # removal of said projector.
-    raw = read_raw_fif(fif_fname)
+    raw = read_raw_fif(fif_fname).crop(0, 1)
     n_projs = len(raw.info['projs'])
     eeg_names = raw.info['projs'][-1]['data']['col_names']
     with pytest.raises(RuntimeError, match='loaded'):
         raw.copy().apply_proj().drop_channels(eeg_names)
     raw.load_data().drop_channels(eeg_names)  # EEG proj
     assert len(raw.info['projs']) == n_projs - 1
+
+    # Dropping EEG channels with custom ref removes info['custom_ref_applied']
+    raw = read_raw_fif(fif_fname).crop(0, 1).load_data()
+    raw.set_eeg_reference()
+    assert raw.info['custom_ref_applied']
+    raw.drop_channels(eeg_names)
+    assert not raw.info['custom_ref_applied']
 
 
 @testing.requires_testing_data
@@ -1701,8 +1789,8 @@ def test_file_like(kind, preload, split, tmp_path):
     if split:
         fname = tmp_path / 'test_raw.fif'
         read_raw_fif(test_fif_fname).save(fname, split_size='5MB')
-        assert op.isfile(fname)
-        assert op.isfile(str(fname)[:-4] + '-1.fif')
+        assert fname.is_file()
+        assert Path(str(fname)[:-4] + '-1.fif').is_file()
     else:
         fname = test_fif_fname
     if preload is str:
@@ -1761,9 +1849,9 @@ def test_split_symlink(tmp_path):
     first = tmp_path / 'first' / 'test_raw.fif'
     raw = read_raw_fif(fif_fname).pick('meg').load_data()
     raw.save(first, buffer_size_sec=1, split_size='10MB', verbose=True)
-    second = str(first)[:-4] + '-1.fif'
-    assert op.isfile(second)
-    assert not op.isfile(str(first)[:-4] + '-2.fif')
+    second = Path(str(first)[:-4] + '-1.fif')
+    assert second.is_file()
+    assert not Path(str(first)[:-4] + '-2.fif').is_file()
     (tmp_path / 'a').mkdir()
     (tmp_path / 'b').mkdir()
     new_first = tmp_path / 'a' / 'test_raw.fif'

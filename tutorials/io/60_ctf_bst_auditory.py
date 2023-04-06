@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-brainstorm-auditory:
 
@@ -31,7 +30,6 @@ The specifications of this dataset were discussed initially on the
 
 # %%
 
-import os.path as op
 import pandas as pd
 import numpy as np
 
@@ -57,11 +55,11 @@ use_precomputed = True
 data_path = bst_auditory.data_path()
 
 subject = 'bst_auditory'
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 
-raw_fname1 = op.join(data_path, 'MEG', subject, 'S01_AEF_20131218_01.ds')
-raw_fname2 = op.join(data_path, 'MEG', subject, 'S01_AEF_20131218_02.ds')
-erm_fname = op.join(data_path, 'MEG', subject, 'S01_Noise_20131218_01.ds')
+raw_fname1 = data_path / 'MEG' / subject / 'S01_AEF_20131218_01.ds'
+raw_fname2 = data_path / 'MEG' / subject / 'S01_AEF_20131218_02.ds'
+erm_fname = data_path / 'MEG' / subject / 'S01_Noise_20131218_01.ds'
 
 # %%
 # In the memory saving mode we use ``preload=False`` and use the memory
@@ -108,8 +106,7 @@ if not use_precomputed:
 annotations_df = pd.DataFrame()
 offset = n_times_run1
 for idx in [1, 2]:
-    csv_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                        'events_bad_0%s.csv' % idx)
+    csv_fname = data_path / 'MEG' / 'bst_auditory' / f'events_bad_0{idx}.csv'
     df = pd.read_csv(csv_fname, header=None,
                      names=['onset', 'duration', 'id', 'label'])
     print('Events from run {0}:'.format(idx))
@@ -139,8 +136,9 @@ saccade_epochs = mne.Epochs(raw, saccades_events, 1, 0., 0.5, preload=True,
 projs_saccade = mne.compute_proj_epochs(saccade_epochs, n_mag=1, n_eeg=0,
                                         desc_prefix='saccade')
 if use_precomputed:
-    proj_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                         'bst_auditory-eog-proj.fif')
+    proj_fname = (
+        data_path / 'MEG' / 'bst_auditory' / 'bst_auditory-eog-proj.fif'
+    )
     projs_eog = mne.read_proj(proj_fname)[0]
 else:
     projs_eog, _ = mne.preprocessing.compute_proj_eog(raw.load_data(),
@@ -166,10 +164,10 @@ raw.plot(block=True)
 # saving mode we do the filtering at evoked stage, which is not something you
 # usually would do.
 if not use_precomputed:
-    raw.plot_psd(tmax=np.inf, picks='meg')
+    raw.compute_psd(tmax=np.inf, picks='meg').plot()
     notches = np.arange(60, 181, 60)
     raw.notch_filter(notches, phase='zero-double', fir_design='firwin2')
-    raw.plot_psd(tmax=np.inf, picks='meg')
+    raw.compute_psd(tmax=np.inf, picks='meg').plot()
 
 # %%
 # We also lowpass filter the data at 100 Hz to remove the hf components.
@@ -272,11 +270,13 @@ evoked_dev.plot(window_title='Deviant', gfp=True, time_unit='s')
 # %%
 # Show activations as topography figures.
 times = np.arange(0.05, 0.301, 0.025)
-evoked_std.plot_topomap(times=times, title='Standard', time_unit='s')
+fig = evoked_std.plot_topomap(times=times)
+fig.suptitle('Standard')
 
 # %%
 
-evoked_dev.plot_topomap(times=times, title='Deviant', time_unit='s')
+fig = evoked_dev.plot_topomap(times=times)
+fig.suptitle('Deviant')
 
 # %%
 # We can see the MMN effect more clearly by looking at the difference between
@@ -296,8 +296,7 @@ del raw_erm
 
 # %%
 # The transformation is read from a file:
-trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                      'bst_auditory-trans.fif')
+trans_fname = data_path / 'MEG' / 'bst_auditory' / 'bst_auditory-trans.fif'
 trans = mne.read_trans(trans_fname)
 
 # %%
@@ -309,8 +308,9 @@ trans = mne.read_trans(trans_fname)
 # information: :ref:`CHDBBCEJ`, :func:`mne.setup_source_space`,
 # :ref:`bem-model`, :func:`mne.bem.make_watershed_bem`.
 if use_precomputed:
-    fwd_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                        'bst_auditory-meg-oct-6-fwd.fif')
+    fwd_fname = (
+        data_path / 'MEG' / 'bst_auditory' / 'bst_auditory-meg-oct-6-fwd.fif'
+    )
     fwd = mne.read_forward_solution(fwd_fname)
 else:
     src = mne.setup_source_space(subject, spacing='ico4',

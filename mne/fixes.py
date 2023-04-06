@@ -12,11 +12,11 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-import functools
 import inspect
 from math import log
+from pprint import pprint
+from io import StringIO
 import os
-from pathlib import Path
 import warnings
 
 import numpy as np
@@ -71,21 +71,6 @@ def _median_complex(data, axis):
     return data
 
 
-# helpers to get function arguments
-def _get_args(function, varargs=False):
-    params = inspect.signature(function).parameters
-    args = [key for key, param in params.items()
-            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)]
-    if varargs:
-        varargs = [param.name for param in params.values()
-                   if param.kind == param.VAR_POSITIONAL]
-        if len(varargs) == 0:
-            varargs = None
-        return args, varargs
-    else:
-        return args
-
-
 def _safe_svd(A, **kwargs):
     """Wrapper to get around the SVD did not converge error of death"""
     # Intel has a bug with their GESVD driver:
@@ -107,84 +92,6 @@ def _safe_svd(A, **kwargs):
 def _csc_matrix_cast(x):
     from scipy.sparse import csc_matrix
     return csc_matrix(x)
-
-
-###############################################################################
-# Backporting nibabel's read_geometry
-
-def _get_read_geometry():
-    """Get the geometry reading function."""
-    try:
-        import nibabel as nib
-        has_nibabel = True
-    except ImportError:
-        has_nibabel = False
-    if has_nibabel:
-        from nibabel.freesurfer import read_geometry
-    else:
-        read_geometry = _read_geometry
-    return read_geometry
-
-
-def _read_geometry(filepath, read_metadata=False, read_stamp=False):
-    """Backport from nibabel."""
-    from .surface import _fread3, _fread3_many
-    volume_info = dict()
-
-    TRIANGLE_MAGIC = 16777214
-    QUAD_MAGIC = 16777215
-    NEW_QUAD_MAGIC = 16777213
-    with open(filepath, "rb") as fobj:
-        magic = _fread3(fobj)
-        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):  # Quad file
-            nvert = _fread3(fobj)
-            nquad = _fread3(fobj)
-            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
-            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float64) / div
-            coords = coords.reshape(-1, 3)
-            quads = _fread3_many(fobj, nquad * 4)
-            quads = quads.reshape(nquad, 4)
-            #
-            #   Face splitting follows
-            #
-            faces = np.zeros((2 * nquad, 3), dtype=np.int64)
-            nface = 0
-            for quad in quads:
-                if (quad[0] % 2) == 0:
-                    faces[nface] = quad[0], quad[1], quad[3]
-                    nface += 1
-                    faces[nface] = quad[2], quad[3], quad[1]
-                    nface += 1
-                else:
-                    faces[nface] = quad[0], quad[1], quad[2]
-                    nface += 1
-                    faces[nface] = quad[0], quad[2], quad[3]
-                    nface += 1
-
-        elif magic == TRIANGLE_MAGIC:  # Triangle file
-            create_stamp = fobj.readline().rstrip(b'\n').decode('utf-8')
-            fobj.readline()
-            vnum = np.fromfile(fobj, ">i4", 1)[0]
-            fnum = np.fromfile(fobj, ">i4", 1)[0]
-            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
-            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
-
-            if read_metadata:
-                volume_info = _read_volume_info(fobj)
-        else:
-            raise ValueError("File does not appear to be a Freesurfer surface")
-
-    coords = coords.astype(np.float64)
-
-    ret = (coords, faces)
-    if read_metadata:
-        if len(volume_info) == 0:
-            warnings.warn('No volume information contained in the file')
-        ret += (volume_info,)
-    if read_stamp:
-        ret += (create_stamp,)
-
-    return ret
 
 
 ###############################################################################
@@ -238,7 +145,7 @@ def _read_volume_info(fobj):
                 'zras', 'cras']:
         pair = fobj.readline().decode('utf-8').split('=')
         if pair[0].strip() != key or len(pair) != 2:
-            raise IOError('Error parsing volume info.')
+            raise OSError('Error parsing volume info.')
         if key in ('valid', 'filename'):
             volume_info[key] = pair[1].strip()
         elif key == 'volume':
@@ -247,36 +154,6 @@ def _read_volume_info(fobj):
             volume_info[key] = np.array(pair[1].split()).astype(float)
     # Ignore the rest
     return volume_info
-
-
-def _serialize_volume_info(volume_info):
-    """An implementation of nibabel.freesurfer.io._serialize_volume_info, since
-    old versions of nibabel (<=2.1.0) don't have it."""
-    keys = ['head', 'valid', 'filename', 'volume', 'voxelsize', 'xras', 'yras',
-            'zras', 'cras']
-    diff = set(volume_info.keys()).difference(keys)
-    if len(diff) > 0:
-        raise ValueError('Invalid volume info: %s.' % diff.pop())
-
-    strings = list()
-    for key in keys:
-        if key == 'head':
-            if not (np.array_equal(volume_info[key], [20]) or np.array_equal(
-                    volume_info[key], [2, 0, 20])):
-                warnings.warn("Unknown extension code.")
-            strings.append(np.array(volume_info[key], dtype='>i4').tobytes())
-        elif key in ('valid', 'filename'):
-            val = volume_info[key]
-            strings.append('{} = {}\n'.format(key, val).encode('utf-8'))
-        elif key == 'volume':
-            val = volume_info[key]
-            strings.append('{} = {} {} {}\n'.format(
-                key, val[0], val[1], val[2]).encode('utf-8'))
-        else:
-            val = volume_info[key]
-            strings.append('{} = {:0.10g} {:0.10g} {:0.10g}\n'.format(
-                key.ljust(6), val[0], val[1], val[2]).encode('utf-8'))
-    return b''.join(strings)
 
 
 ##############################################################################
@@ -337,7 +214,7 @@ _DEFAULT_TAGS = {
 }
 
 
-class BaseEstimator(object):
+class BaseEstimator:
     """Base class for all estimators in scikit-learn.
 
     Notes
@@ -456,10 +333,11 @@ class BaseEstimator(object):
         return self
 
     def __repr__(self):
-        from sklearn.base import _pprint
+        params = StringIO()
+        pprint(self.get_params(deep=False), params)
+        params.seek(0)
         class_name = self.__class__.__name__
-        return '%s(%s)' % (class_name, _pprint(self.get_params(deep=False),
-                                               offset=len(class_name),),)
+        return '%s(%s)' % (class_name, params.read().strip())
 
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
@@ -891,27 +769,8 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     return out
 
 
-# This shim can be removed once NumPy 1.19.0+ is required (1.18.4 has sign bug)
-def svd(a, hermitian=False):
-    if hermitian:  # faster
-        s, u = np.linalg.eigh(a)
-        sgn = np.sign(s)
-        s = np.abs(s)
-        sidx = np.argsort(s)[..., ::-1]
-        sgn = np.take_along_axis(sgn, sidx, axis=-1)
-        s = np.take_along_axis(s, sidx, axis=-1)
-        u = np.take_along_axis(u, sidx[..., None, :], axis=-1)
-        # singular values are unsigned, move the sign into v
-        vt = (u * sgn[..., np.newaxis, :]).swapaxes(-2, -1).conj()
-        np.abs(s, out=s)
-        return u, s, vt
-    else:
-        return np.linalg.svd(a)
-
-
 ###############################################################################
 # From nilearn
-
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     """
@@ -929,31 +788,18 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
     new_tick_locs = np.linspace(cbar_vmin, cbar_vmax,
                                 len(cbar_tick_locs))
 
-    # matplotlib >= 3.2.0 no longer normalizes axes between 0 and 1
-    # See https://matplotlib.org/3.2.1/api/prev_api_changes/api_changes_3.2.0.html
-    # _outline was removed in
-    # https://github.com/matplotlib/matplotlib/commit/03a542e875eba091a027046d5ec652daa8be6863
-    # so we use the code from there
-    if _compare_version(matplotlib.__version__, '>=', '3.2.0'):
-        cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
-        X = cbar._mesh()[0]
-        X = np.array([X[0], X[-1]])
-        Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
-        N = X.shape[0]
-        ii = [0, 1, N - 2, N - 1, 2 * N - 1, 2 * N - 2, N + 1, N, 0]
-        x = X.T.reshape(-1)[ii]
-        y = Y.T.reshape(-1)[ii]
-        xy = (np.column_stack([y, x])
-              if cbar.orientation == 'horizontal' else
-              np.column_stack([x, y]))
-        cbar.outline.set_xy(xy)
-    else:
-        cbar.ax.set_ylim(cbar.norm(cbar_vmin), cbar.norm(cbar_vmax))
-        outline = cbar.outline.get_xy()
-        outline[:2, 1] += cbar.norm(cbar_vmin)
-        outline[2:6, 1] -= (1. - cbar.norm(cbar_vmax))
-        outline[6:, 1] += cbar.norm(cbar_vmin)
-        cbar.outline.set_xy(outline)
+    cbar.ax.set_ylim(cbar_vmin, cbar_vmax)
+    X = cbar._mesh()[0]
+    X = np.array([X[0], X[-1]])
+    Y = np.array([[cbar_vmin, cbar_vmin], [cbar_vmax, cbar_vmax]])
+    N = X.shape[0]
+    ii = [0, 1, N - 2, N - 1, 2 * N - 1, 2 * N - 2, N + 1, N, 0]
+    x = X.T.reshape(-1)[ii]
+    y = Y.T.reshape(-1)[ii]
+    xy = (np.column_stack([y, x])
+            if cbar.orientation == 'horizontal' else
+            np.column_stack([x, y]))
+    cbar.outline.set_xy(xy)
 
     cbar.set_ticks(new_tick_locs)
     cbar.update_ticks()
@@ -965,14 +811,14 @@ def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
 # Here we choose different defaults to speed things up by default
 try:
     import numba
-    if _compare_version(numba.__version__, '<', '0.48'):
+    if _compare_version(numba.__version__, '<', '0.53.1'):
         raise ImportError
     prange = numba.prange
     def jit(nopython=True, nogil=True, fastmath=True, cache=True,
             **kwargs):  # noqa
         return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
                          cache=cache, **kwargs)
-except ImportError:
+except Exception:  # could be ImportError, SystemError, etc.
     has_numba = False
 else:
     has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
@@ -1016,14 +862,22 @@ else:
 
 
 ###############################################################################
-# workaround: plt.close() doesn't spawn close_event on Agg backend
-# (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+# Matplotlib
 
+# workaround: plt.close() doesn't spawn close_event on Agg backend
+# https://github.com/matplotlib/matplotlib/issues/18609
+# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
+    from .utils import logger
+    from matplotlib import backend_bases
     try:
-        fig.canvas.close_event()
+        fig.canvas.callbacks.process(
+            'close_event', backend_bases.CloseEvent(
+                name='close_event', canvas=fig.canvas))
+        logger.debug(f'Called {fig!r}.canvas.close_event()')
     except ValueError:  # old mpl with Qt
+        logger.debug(f'Calling {fig!r}.canvas.close_event() failed')
         pass  # pragma: no cover
 
 
@@ -1033,6 +887,13 @@ def _is_last_row(ax):
     except AttributeError:
         return ax.is_last_row()
     return ax.get_subplotspec().is_last_row()
+
+
+def _sharex(ax1, ax2):
+    if hasattr(ax1.axes, 'sharex'):
+        ax1.axes.sharex(ax2)
+    else:
+        ax1.get_shared_x_axes().join(ax1, ax2)
 
 
 ###############################################################################
@@ -1062,23 +923,3 @@ def pinv(a, rtol=None):
     u = u[:, :rank]
     u /= s[:rank]
     return (u @ vh[:rank]).conj().T
-
-
-###############################################################################
-# PyVista
-
-# Deal with pyvista deprecation of point_data and cell_data
-# (can be removed once we require 0.31+)
-
-def _point_data(obj):
-    try:
-        return obj.point_data
-    except AttributeError:
-        return obj.point_arrays
-
-
-def _cell_data(obj):
-    try:
-        return obj.cell_data
-    except AttributeError:
-        return obj.cell_arrays

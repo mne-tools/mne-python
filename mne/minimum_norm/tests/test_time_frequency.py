@@ -1,5 +1,3 @@
-import os.path as op
-
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -20,11 +18,14 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
 from mne.time_frequency.multitaper import psd_array_multitaper
 
 data_path = testing.data_path(download=False)
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
-fname_data = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc_raw.fif')
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+fname_inv = (
+    data_path
+    / "MEG"
+    / "sample"
+    / "sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif"
+)
+fname_data = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_label = data_path / "MEG" / "sample" / "labels" / "Aud-lh.label"
 
 
 @testing.requires_testing_data
@@ -85,7 +86,7 @@ def test_tfr_with_inverse_operator(method):
     freqs = np.arange(7, 30, 2)  # define frequencies of interest
     power, phase_lock = source_induced_power(
         epochs, inv, freqs, label, baseline=(-0.1, 0), baseline_mode='percent',
-        n_cycles=2, n_jobs=1, method=method, prepared=True)
+        n_cycles=2, n_jobs=None, method=method, prepared=True)
     assert np.all(phase_lock > 0)
     assert np.all(phase_lock <= 1)
     assert 5 < np.max(power) < 7

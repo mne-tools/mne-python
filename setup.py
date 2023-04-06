@@ -22,17 +22,6 @@ def parse_requirements_file(fname):
     return requirements
 
 
-# get the version (don't import mne here, so dependencies are not needed)
-version = None
-with open(op.join('mne', '_version.py'), 'r') as fid:
-    for line in (line.strip() for line in fid):
-        if line.startswith('__version__'):
-            version = line.split('=')[1].strip().strip('\'')
-            break
-if version is None:
-    raise RuntimeError('Could not determine version')
-
-
 DISTNAME = 'mne'
 DESCRIPTION = 'MNE-Python project for MEG and EEG data analysis.'
 MAINTAINER = 'Alexandre Gramfort'
@@ -40,7 +29,6 @@ MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
 URL = 'https://mne.tools/dev/'
 LICENSE = 'BSD-3-Clause'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
-VERSION = version
 
 
 def package_tree(pkgroot):
@@ -74,7 +62,6 @@ if __name__ == "__main__":
           description=DESCRIPTION,
           license=LICENSE,
           url=URL,
-          version=VERSION,
           download_url=DOWNLOAD_URL,
           long_description=long_description,
           long_description_content_type='text/x-rst',
@@ -98,8 +85,13 @@ if __name__ == "__main__":
               'Tracker': 'https://github.com/mne-tools/mne-python/issues/',
           },
           platforms='any',
-          python_requires='>=3.7',
+          python_requires='>=3.8',
           install_requires=install_requires,
+          setup_requires=["setuptools>=45", "setuptools_scm>=6.2"],
+          use_scm_version={
+              "write_to": "mne/_version.py",
+              "version_scheme": "release-branch-semver",
+          },
           extras_require={
               'data': data_requires,
               'hdf5': hdf5_requires,

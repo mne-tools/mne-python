@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-brainstorm-elekta-phantom:
 
@@ -19,7 +18,6 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 
 # %%
 
-import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -37,7 +35,7 @@ print(__doc__)
 # are read to construct instances of :class:`mne.io.Raw`.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 
-raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
+raw_fname = data_path / 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif'
 raw = read_raw_fif(raw_fname)
 
 # %%
@@ -50,11 +48,11 @@ raw.plot(events=events)
 raw.info['bads'] = ['MEG1933', 'MEG2421']
 
 # %%
-# The data have strong line frequency (60 Hz and harmonics) and cHPI coil
-# noise (five peaks around 300 Hz). Here we plot only out to 60 seconds
+# The data has strong line frequency (60 Hz and harmonics) and cHPI coil
+# noise (five peaks around 300 Hz). Here, we use only the first 30 seconds
 # to save memory:
 
-raw.plot_psd(tmax=30., average=False)
+raw.compute_psd(tmax=30).plot(average=False)
 
 # %%
 # Our phantom produces sinusoidal bursts at 20 Hz:
@@ -115,7 +113,7 @@ for ii in event_id:
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
 del epochs
-dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
+dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 
 # %%
 # Do a quick visualization of how much variance we explained, putting the
@@ -137,7 +135,8 @@ residual.plot(axes=axes)
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
 actual_amp = 100.  # nAm
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7))
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7),
+                                    constrained_layout=True)
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
 print('mean(position error) = %0.1f mm' % (np.mean(diffs),))
@@ -156,9 +155,6 @@ print('mean(abs amplitude error) = %0.1f nAm' % (np.mean(np.abs(amps)),))
 ax3.bar(event_id, amps)
 ax3.set_xlabel('Dipole index')
 ax3.set_ylabel('Amplitude error (nAm)')
-
-fig.tight_layout()
-plt.show()
 
 # %%
 # Let's plot the positions and the orientations of the actual and the estimated

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -18,7 +17,7 @@ import string
 
 import numpy as np
 
-from .pick import (channel_type, pick_channels, pick_info, _get_channel_types,
+from .pick import (channel_type, _get_channel_types,
                    get_channel_type_constants, pick_types, _contains_ch_type)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
@@ -30,15 +29,16 @@ from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_and_end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
-                    write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix, write_id, DATE_NONE)
+                    write_coord_trans, write_ch_info,
+                    write_julian, write_float_matrix, write_id, DATE_NONE,
+                    _safe_name_list, write_name_list_sanitized)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans, _frame_to_str)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric, deprecated,
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
                      _check_option, _on_missing, _check_on_missing, fill_doc,
-                     _check_fname)
+                     _check_fname, repr_html)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig, _get_data_as_dict_from_dig
@@ -71,7 +71,7 @@ def _get_valid_units():
                           'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
                           'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
                           'zetta', 'yotta']
-    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'µ', 'm', 'c', 'd',
+    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', 'µ', 'm', 'c', 'd',
                             'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
     valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin',
                         'mole', 'candela', 'radian', 'steradian', 'hertz',
@@ -80,8 +80,8 @@ def _get_valid_units():
                         'degree Celsius', 'lumen', 'lux', 'becquerel', 'gray',
                         'sievert', 'katal']
     valid_unit_symbols = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd', 'rad', 'sr',
-                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S',
-                          'Wb', 'T', 'H', u'°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
+                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', 'Ω', 'S',
+                          'Wb', 'T', 'H', '°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
                           'kat']
 
     # Valid units are all possible combinations of either prefix name or prefix
@@ -146,7 +146,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
     return ch_names
 
 
-class MontageMixin(object):
+class MontageMixin:
     """Mixin for Montage getting and setting."""
 
     @fill_doc
@@ -174,6 +174,17 @@ class MontageMixin(object):
         # channel positions from dig do not match ch_names one to one,
         # so use loc[:3] instead
         ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
+
+        # fNIRS uses multiple channels for the same sensors, we use
+        # a private function to format these for dig montage.
+        fnirs_picks = pick_types(info, fnirs=True, exclude=[])
+        if len(ch_pos) == len(fnirs_picks):
+            ch_pos = _get_fnirs_ch_pos(info)
+        elif len(fnirs_picks) > 0:
+            raise ValueError("MNE does not support getting the montage "
+                             "for a mix of fNIRS and other data types. "
+                             "Please raise a GitHub issue if you "
+                             "require this feature.")
 
         # create montage
         montage = make_dig_montage(
@@ -203,12 +214,16 @@ class MontageMixin(object):
         Returns
         -------
         inst : instance of Raw | Epochs | Evoked
-            The instance.
+            The instance, modified in-place.
+
+        See Also
+        --------
+        mne.channels.make_standard_montage
+        mne.channels.make_dig_montage
+        mne.channels.read_custom_montage
 
         Notes
         -----
-        Operates in place.
-
         .. warning::
             Only %(montage_types)s channels can have their positions set using
             a montage. Other channel types (e.g., MEG channels) should have
@@ -224,7 +239,7 @@ class MontageMixin(object):
         return self
 
 
-class ContainsMixin(object):
+class ContainsMixin:
     """Mixin class for Raw, Evoked, Epochs and Info."""
 
     def __contains__(self, ch_type):
@@ -233,7 +248,8 @@ class ContainsMixin(object):
         Parameters
         ----------
         ch_type : str
-            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+            Channel type to check for. Can be e.g. ``'meg'``, ``'eeg'``,
+            ``'stim'``, etc.
 
         Returns
         -------
@@ -362,19 +378,21 @@ class Info(dict, MontageMixin, ContainsMixin):
     `FIF format specification <https://github.com/mne-tools/fiff-constants>`__,
     so new entries should not be manually added.
 
-    .. warning:: The only entries that should be manually changed by the user
-                 are ``info['bads']``, ``info['description']``,
-                 ``info['device_info']``, ``info['dev_head_t']``,
-                 ``info['experimenter']``, info['helium_info'],
-                 ``info['line_freq']``, ``info['temp']`` and
-                 ``info['subject_info']``. All other entries should be
-                 considered read-only, though they can be modified by various
-                 MNE-Python functions or methods (which have safeguards to
-                 ensure all fields remain in sync).
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.Info(...)``. Instead, use :func:`mne.create_info` to create
+        measurement information from scratch.
 
-    .. warning:: This class should not be instantiated directly. To create a
-                 measurement information structure, use
-                 :func:`mne.create_info`.
+    .. warning::
+        The only entries that should be manually changed by the user are:
+        ``info['bads']``, ``info['description']``, ``info['device_info']``
+        ``info['dev_head_t']``, ``info['experimenter']``,
+        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
+        and ``info['subject_info']``.
+
+        All other entries should be considered read-only, though they can be
+        modified by various MNE-Python functions or methods (which have
+        safeguards to ensure all fields remain in sync).
 
     Parameters
     ----------
@@ -404,7 +422,7 @@ class Info(dict, MontageMixin, ContainsMixin):
     comps : list of dict
         CTF software gradient compensation data.
         See Notes for more information.
-    ctf_head_t : dict | None
+    ctf_head_t : Transform | None
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
     custom_ref_applied : int
@@ -413,10 +431,10 @@ class Info(dict, MontageMixin, ContainsMixin):
         average reference to be set.
     description : str | None
         String description of the recording.
-    dev_ctf_t : dict | None
+    dev_ctf_t : Transform | None
         The transformation from device coordinates to 4D/CTF head coordinates.
         This is only present in 4D/CTF data.
-    dev_head_t : dict | None
+    dev_head_t : Transform | None
         The device to head transformation.
     device_info : dict | None
         Information about the acquisition device. See Notes for details.
@@ -723,7 +741,7 @@ class Info(dict, MontageMixin, ContainsMixin):
         smartshield : dict
             MaxShield information. This dictionary is (always?) empty,
             but its presence implies that MaxShield was used during
-            acquisiton.
+            acquisition.
 
     * ``subject_info`` dict:
 
@@ -743,6 +761,10 @@ class Info(dict, MontageMixin, ContainsMixin):
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
             Handedness (1=right, 2=left, 3=ambidextrous).
+        weight : float
+            Weight in kilograms.
+        height : float
+            Height in meters.
     """
 
     _attributes = {
@@ -1114,33 +1136,6 @@ class Info(dict, MontageMixin, ContainsMixin):
             self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
             self['nchan'] = len(self['chs'])
 
-    @deprecated('use inst.pick_channels instead.')
-    def pick_channels(self, ch_names, ordered=False):
-        """Pick channels from this Info object.
-
-        Parameters
-        ----------
-        ch_names : list of str
-            List of channels to keep. All other channels are dropped.
-        ordered : bool
-            If True (default False), ensure that the order of the channels
-            matches the order of ``ch_names``.
-
-        Returns
-        -------
-        info : instance of Info.
-            The modified Info object.
-
-        Notes
-        -----
-        Operates in-place.
-
-        .. versionadded:: 0.20.0
-        """
-        sel = pick_channels(self.ch_names, ch_names, exclude=[],
-                            ordered=ordered)
-        return pick_info(self, sel, copy=False, verbose=False)
-
     @property
     def ch_names(self):
         return self['ch_names']
@@ -1182,6 +1177,7 @@ class Info(dict, MontageMixin, ContainsMixin):
 
         return good_channels, bad_channels, ecg, eog
 
+    @repr_html
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
         from ..html_templates import repr_templates_env
@@ -1202,14 +1198,12 @@ class Info(dict, MontageMixin, ContainsMixin):
         # repr).
 
         # meas date
-        if 'meas_date' in self and self['meas_date'] is not None:
-            meas_date = self['meas_date'].strftime(
-                "%B %d, %Y  %H:%M:%S"
-            ) + ' GMT'
-        else:
-            meas_date = None
+        meas_date = self.get('meas_date')
+        if meas_date is not None:
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
-        if 'projs' in self and self['projs']:
+        projs = self.get('projs')
+        if projs:
             projs = [
                 f'{p["desc"]} : {"on" if p["active"] else "off"}'
                 for p in self['projs']
@@ -1217,39 +1211,32 @@ class Info(dict, MontageMixin, ContainsMixin):
         else:
             projs = None
 
-        if 'subject_info' in self:
-            subject_info = self['subject_info']
-        else:
-            subject_info = None
-
-        if 'lowpass' in self:
-            lowpass = self['lowpass']
-        else:
-            lowpass = None
-
-        if 'highpass' in self:
-            highpass = self['highpass']
-        else:
-            highpass = None
-
-        if 'sfreq' in self:
-            sfreq = self['sfreq']
-        else:
-            sfreq = None
-
-        if 'experimenter' in self:
-            experimenter = self['experimenter']
-        else:
-            experimenter = None
-
         info_template = repr_templates_env.get_template('info.html.jinja')
-        html += info_template.render(
-            caption=caption, meas_date=meas_date, ecg=ecg,
-            eog=eog, good_channels=good_channels, bad_channels=bad_channels,
-            projs=projs, subject_info=subject_info, lowpass=lowpass,
-            highpass=highpass, sfreq=sfreq, experimenter=experimenter
+        return html + info_template.render(
+            caption=caption,
+            meas_date=meas_date,
+            projs=projs,
+            ecg=ecg,
+            eog=eog,
+            good_channels=good_channels,
+            bad_channels=bad_channels,
+            dig=self.get('dig'),
+            subject_info=self.get('subject_info'),
+            lowpass=self.get('lowpass'),
+            highpass=self.get('highpass'),
+            sfreq=self.get('sfreq'),
+            experimenter=self.get('experimenter'),
         )
-        return html
+
+    def save(self, fname):
+        """Write measurement info in fif file.
+
+        Parameters
+        ----------
+        fname : path-like
+            The name of the file. Should end by ``'-info.fif'``.
+        """
+        write_info(fname, self)
 
 
 def _simplify_info(info):
@@ -1344,7 +1331,7 @@ def read_info(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File name.
     %(verbose)s
 
@@ -1385,9 +1372,19 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = tag.data.split(':')
-    bads[:] = _rename_list(bads, ch_names_mapping)
+                bads = _safe_name_list(tag.data, 'read', 'bads')
+        bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
+
+
+def _write_bad_channels(fid, bads, ch_names_mapping):
+    if bads is not None and len(bads) > 0:
+        ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
+        bads = _rename_list(bads, ch_names_mapping)
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, 'bads')
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
 
 @verbose
@@ -2083,11 +2080,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proj(fid, info['projs'], ch_names_mapping=ch_names_mapping)
 
     #   Bad channels
-    if len(info['bads']) > 0:
-        bads = _rename_list(info['bads'], ch_names_mapping)
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    _write_bad_channels(fid, info['bads'], ch_names_mapping=ch_names_mapping)
 
     #   General
     if info.get('experimenter') is not None:
@@ -2213,8 +2206,8 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. Should end by -info.fif.
+    fname : path-like
+        The name of the file. Should end by ``-info.fif``.
     %(info_not_none)s
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
@@ -2437,7 +2430,8 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
         :term:`data channel <data channels>`.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'dbs', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr'
-        or 'hbo'. If str, then all channels are assumed to be of the same type.
+        'eyetrack' or 'hbo'.
+        If str, then all channels are assumed to be of the same type.
     %(verbose)s
 
     Returns
@@ -2455,6 +2449,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     be initialized to the identity transform.
 
     Proper units of measure:
+
     * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
@@ -2930,3 +2925,19 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
                f"runs to a common head position.")
         _on_missing(on_missing=on_mismatch, msg=msg,
                     name='on_mismatch')
+
+
+def _get_fnirs_ch_pos(info):
+    """Return positions of each fNIRS optode.
+
+    fNIRS uses two types of optodes, sources and detectors.
+    There can be multiple connections between each source
+    and detector at different wavelengths. This function
+    returns the location of each source and detector.
+    """
+    from ..preprocessing.nirs import _fnirs_optode_names, _optode_position
+    srcs, dets = _fnirs_optode_names(info)
+    ch_pos = {}
+    for optode in [*srcs, *dets]:
+        ch_pos[optode] = _optode_position(info, optode)
+    return ch_pos

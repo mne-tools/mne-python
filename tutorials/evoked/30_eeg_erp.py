@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-erp:
 
@@ -608,7 +607,7 @@ mean_amp_roi_df = pd.DataFrame({
 })
 
 # Print the data frame
-print(mean_amp_roi_df.groupby('hemisphere').mean())
+print(mean_amp_roi_df.groupby('hemisphere').mean(numeric_only=True))
 
 # %%
 # As demonstrated in this example, the mean amplitude was higher and

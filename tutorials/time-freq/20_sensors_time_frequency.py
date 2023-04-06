@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-sensors-time-freq:
 
@@ -19,22 +18,20 @@ related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
 from mne.datasets import somato
+from mne.time_frequency import tfr_morlet
 
 # %%
 # Set parameters
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / f'sub-{subject}' / 'meg' /
+             f'sub-{subject}_task-{task}_meg.fif')
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)
@@ -61,42 +58,42 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
+epochs.compute_psd(fmin=2., fmax=40.).plot(average=True)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged
 # across epochs and frequency bands.
-epochs.plot_psd_topomap(ch_type='grad', normalize=False)
+epochs.compute_psd().plot_topomap(ch_type='grad', normalize=False, contours=0)
 
 # %%
-# Alternatively, you can also create PSDs from `~mne.Epochs` with functions
-# that start with ``psd_`` such as
-# :func:`mne.time_frequency.psd_multitaper` and
-# :func:`mne.time_frequency.psd_welch`.
+# Alternatively, you can also create PSDs from `~mne.Epochs` methods directly.
 #
 # .. note::
-#    In contrast to the methods for visualization, those ``psd_*`` functions do
-#    **not** scale the data from SI units to more "convenient" values. So when
-#    e.g. calculating the PSD of gradiometers via
-#    :func:`~mne.time_frequency.psd_multitaper`, you will get the power as
+#    In contrast to the methods for visualization, the ``compute_psd`` methods
+#    do **not** scale the data from SI units to more "convenient" values. So
+#    when e.g. calculating the PSD of gradiometers via
+#    :meth:`~mne.Epochs.compute_psd`, you will get the power as
 #    ``(T/m)²/Hz`` (instead of ``(fT/cm)²/Hz`` via
 #    :meth:`~mne.Epochs.plot_psd`).
 
-f, ax = plt.subplots()
-psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
-psds = 10 * np.log10(psds)  # convert to dB
-psds_mean = psds.mean(0).mean(0)
-psds_std = psds.mean(0).std(0)
+_, ax = plt.subplots()
+spectrum = epochs.compute_psd(fmin=2., fmax=40., tmax=3., n_jobs=None)
+# average across epochs first
+mean_spectrum = spectrum.average()
+psds, freqs = mean_spectrum.get_data(return_freqs=True)
+# then convert to dB and take mean & standard deviation across channels
+psds = 10 * np.log10(psds)
+psds_mean = psds.mean(axis=0)
+psds_std = psds.std(axis=0)
 
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
-                color='k', alpha=.5)
+                color='k', alpha=.5, edgecolor='none')
 ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
-plt.show()
 
 # %%
-# Notably, :func:`mne.time_frequency.psd_welch` supports the keyword argument
+# Notably, :meth:`mne.Epochs.compute_psd` supports the keyword argument
 # ``average``, which specifies how to estimate the PSD based on the individual
 # windowed segments. The default is ``average='mean'``, which simply calculates
 # the arithmetic mean across segments. Specifying ``average='median'``, in
@@ -104,9 +101,11 @@ plt.show()
 # bias relative to the mean), which is a more robust measure.
 
 # Estimate PSDs based on "mean" and "median" averaging for comparison.
-kwargs = dict(fmin=2, fmax=40, n_jobs=1)
-psds_welch_mean, freqs_mean = psd_welch(epochs, average='mean', **kwargs)
-psds_welch_median, freqs_median = psd_welch(epochs, average='median', **kwargs)
+kwargs = dict(fmin=2, fmax=40, n_jobs=None)
+psds_welch_mean, freqs_mean = epochs.compute_psd(
+    'welch', average='mean', **kwargs).get_data(return_freqs=True)
+psds_welch_median, freqs_median = epochs.compute_psd(
+    'welch', average='median', **kwargs).get_data(return_freqs=True)
 
 # Convert power to dB scale.
 psds_welch_mean = 10 * np.log10(psds_welch_mean)
@@ -123,18 +122,17 @@ ax.plot(freqs_mean, psds_welch_mean[epo_idx, ch_idx, :], color='k',
 ax.plot(freqs_median, psds_welch_median[epo_idx, ch_idx, :], color='k',
         ls='--', label='median of segments')
 
-ax.set(title='Welch PSD ({}, Epoch {})'.format(ch_name, epo_idx),
+ax.set(title=f'Welch PSD ({ch_name}, Epoch {epo_idx})',
        xlabel='Frequency (Hz)', ylabel='Power Spectral Density (dB)')
 ax.legend(loc='upper right')
-plt.show()
 
 # %%
 # Lastly, we can also retrieve the unaggregated segments by passing
-# ``average=None`` to :func:`mne.time_frequency.psd_welch`. The dimensions of
+# ``average=None`` to :meth:`mne.Epochs.compute_psd`. The dimensions of
 # the returned array are ``(n_epochs, n_sensors, n_freqs, n_segments)``.
 
-psds_welch_unagg, freqs_unagg = psd_welch(epochs, average=None, **kwargs)
-print(psds_welch_unagg.shape)
+welch_unagg = epochs.compute_psd('welch', average=None, **kwargs)
+print(welch_unagg.shape)
 
 # %%
 # .. _inter-trial-coherence:
@@ -159,7 +157,7 @@ print(psds_welch_unagg.shape)
 freqs = np.logspace(*np.log10([6, 35]), num=8)
 n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                        return_itc=True, decim=3, n_jobs=1)
+                        return_itc=True, decim=3, n_jobs=None)
 
 # %%
 # Inspect power
@@ -173,15 +171,13 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio', title=power.ch_names[82])
 
-fig, axis = plt.subplots(1, 2, figsize=(7, 4))
-power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
-                   baseline=(-0.5, 0), mode='logratio', axes=axis[0],
-                   title='Alpha', show=False)
-power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
-                   baseline=(-0.5, 0), mode='logratio', axes=axis[1],
-                   title='Beta', show=False)
-mne.viz.tight_layout()
-plt.show()
+fig, axes = plt.subplots(1, 2, figsize=(7, 4), constrained_layout=True)
+topomap_kw = dict(ch_type='grad', tmin=0.5, tmax=1.5, baseline=(-0.5, 0),
+                  mode='logratio', show=False)
+plot_dict = dict(Alpha=dict(fmin=8, fmax=12), Beta=dict(fmin=13, fmax=25))
+for ax, (title, fmin_fmax) in zip(axes, plot_dict.items()):
+    power.plot_topomap(**fmin_fmax, axes=ax, **topomap_kw)
+    ax.set_title(title)
 
 # %%
 # Joint Plot
@@ -191,7 +187,7 @@ plt.show()
 # a quick overview regarding oscillatory effects across time and space.
 
 power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
-                 timefreqs=[(.5, 10), (1.3, 8)])
+                 timefreqs=[(0.5, 10), (1.3, 8)])
 
 # %%
 # Inspect ITC
@@ -202,7 +198,9 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 # .. note::
 #     Baseline correction can be applied to power or done in plots.
 #     To illustrate the baseline correction in plots, the next line is
-#     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
+#     commented::
+#
+#     # power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
 #
 # Exercise
 # --------

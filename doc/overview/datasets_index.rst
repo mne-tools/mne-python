@@ -3,7 +3,8 @@
 Datasets Overview
 #################
 
-.. sidebar:: Contributing datasets to MNE-Python
+.. note:: Contributing datasets to MNE-Python
+    :class: sidebar
 
     Do not hesitate to contact MNE-Python developers on the
     `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
@@ -96,6 +97,19 @@ in the sample data set:
   see :ref:`bem_watershed_algorithm`.
 
 The **sample** dataset is distributed with :ref:`fsaverage` for convenience.
+
+.. _ucl-opm-auditory-dataset:
+
+UCL OPM Auditory
+================
+:func:`mne.datasets.ucl_opm_auditory.data_path`.
+
+A basic auditory evoked field experiment using an OPM setup from FIL at UCL.
+See :footcite:`SeymourEtAl2022` for details.
+
+.. topic:: Examples
+
+    * :ref:`tut-opm-processing`
 
 Brainstorm
 ==========
@@ -460,6 +474,19 @@ standard.
 .. topic:: Examples
 
     * :ref:`tut-ssvep`
+
+EYELINK
+=======
+:func:`mne.datasets.eyelink.data_path`
+
+A small example dataset in SR research's proprietary .asc format.
+1 participant fixated on the screen while short light flashes appeared.
+Monocular recording of gaze position and pupil size, 1000 Hz sampling 
+frequency.
+
+.. topic:: Examples
+
+    * :ref:`tut-eyetrack`
 
 References
 ==========

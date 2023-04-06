@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
@@ -16,7 +15,7 @@ from .constants import FIFF
 from ..utils import logger, verbose, _file_like, warn
 
 
-class _NoCloseRead(object):
+class _NoCloseRead:
     """Create a wrapper that will not close when used as a context manager."""
 
     def __init__(self, fid):
@@ -103,7 +102,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str | fid
+    fname : path-like | fid
         Name of the fif file, or an opened file (will seek back to 0).
     preload : bool
         If True, all data from the file is read into a memory buffer. This
@@ -140,19 +139,20 @@ def _fiff_open(fname, fid, preload):
     tag = read_tag_info(fid)
 
     #   Check that this looks like a fif file
+    prefix = f'file {repr(fname)} does not'
     if tag.kind != FIFF.FIFF_FILE_ID:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     if tag.type != FIFF.FIFFT_ID_STRUCT:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     if tag.size != 20:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     tag = read_tag(fid)
 
     if tag.kind != FIFF.FIFF_DIR_POINTER:
-        raise ValueError('file does not have a directory pointer')
+        raise ValueError(f'{prefix} have a directory pointer')
 
     #   Read or create the directory tree
     logger.debug('    Creating tag directory for %s...' % fname)
@@ -198,7 +198,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to evaluate.
     indent : str
         How to indent the lines.
@@ -309,7 +309,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                         '/'.join(this_type) +
                         ' (' + str(size) + 'b %s)' % type_ +
                         postpend]
-                out[-1] = out[-1].replace('\n', u'¶')
+                out[-1] = out[-1].replace('\n', '¶')
                 counter = 0
                 good = True
         if tag_id in kinds:

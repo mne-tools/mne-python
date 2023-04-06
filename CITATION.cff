@@ -1,0 +1,704 @@
+cff-version: 1.2.0
+title: "MNE-Python"
+message: "If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field."
+version: 1.3.0
+date-released: "2022-12-22"
+commit: ea0f80614ca01f71333cbdfa4d06ee8932058cfe
+doi: 10.5281/zenodo.592483
+keywords:
+  - MEG
+  - magnetoencephalography
+  - EEG
+  - electroencephalography
+  - fNIRS
+  - "functional near-infrared spectroscopy"
+  - iEEG
+  - "intracranial EEG"
+  - eCoG
+  - electrocorticography
+  - DBS
+  - "deep brain stimulation"
+authors:
+  - family-names: Larson
+    given-names: Eric
+  - family-names: Gramfort
+    given-names: Alexandre
+  - family-names: Engemann
+    given-names: Denis A
+  - family-names: Leppakangas
+    given-names: Jaakko
+  - family-names: Brodbeck
+    given-names: Christian
+  - family-names: Jas
+    given-names: Mainak
+  - family-names: Brooks
+    given-names: Teon
+  - family-names: Sassenhagen
+    given-names: Jona
+  - family-names: Luessi
+    given-names: Martin
+  - family-names: McCloy
+    given-names: Daniel
+  - family-names: King
+    given-names: Jean-Remi
+  - family-names: Goj
+    given-names: Roman
+  - family-names: Favelier
+    given-names: Guillaume
+  - family-names: Höchenberger
+    given-names: Richard
+  - family-names: Brunner
+    given-names: Clemens
+  - family-names: van Vliet
+    given-names: Marijn
+  - family-names: Wronkiewicz
+    given-names: Mark
+  - family-names: Holdgraf
+    given-names: Chris
+  - family-names: Massich
+    given-names: Joan
+  - family-names: Bekhti
+    given-names: Yousra
+  - family-names: Rockhill
+    given-names: Alex
+  - family-names: Appelhoff
+    given-names: Stefan
+  - family-names: Leggitt
+    given-names: Alan
+  - family-names: Dykstra
+    given-names: Andrew
+  - family-names: Luke
+    given-names: Rob
+  - family-names: Trachel
+    given-names: Romain
+  - family-names: De Santis
+    given-names: Lorenzo
+  - family-names: Panda
+    given-names: Asish
+  - family-names: Magnuski
+    given-names: Mikołaj
+  - family-names: Scheltienne
+    given-names: Mathieu
+  - family-names: Westner
+    given-names: Britta
+  - family-names: Billinger
+    given-names: Martin
+  - family-names: Wakeman
+    given-names: Dan G
+  - family-names: Strohmeier
+    given-names: Daniel
+  - family-names: Bharadwaj
+    given-names: Hari
+  - family-names: Linzen
+    given-names: Tal
+  - family-names: Barachant
+    given-names: Alexandre
+  - family-names: Ruzich
+    given-names: Emily
+  - family-names: Bailey
+    given-names: Christopher J
+  - family-names: Li
+    given-names: Adam
+  - family-names: Moutard
+    given-names: Clément
+  - family-names: Bloy
+    given-names: Luke
+  - family-names: Raimondo
+    given-names: Fede
+  - family-names: Nurminen
+    given-names: Jussi
+  - family-names: Montoya
+    given-names: Jair
+  - family-names: Woodman
+    given-names: Marmaduke
+  - family-names: Lee
+    given-names: Ingoo
+  - family-names: Schulz
+    given-names: Martin
+  - family-names: Foti
+    given-names: Nick
+  - family-names: Nangini
+    given-names: Cathy
+  - family-names: García Alanis
+    given-names: José C
+  - family-names: Hauk
+    given-names: Olaf
+  - family-names: Maddox
+    given-names: Ross
+  - family-names: LaPlante
+    given-names: Roan
+  - family-names: Drew
+    given-names: Ashley
+  - family-names: Dinh
+    given-names: Christoph
+  - family-names: Dumas
+    given-names: Guillaume
+  - family-names: Hartmann
+    given-names: Thomas
+  - family-names: Ort
+    given-names: Eduard
+  - family-names: Benerradi
+    given-names: Johann
+  - family-names: Pasler
+    given-names: Paul
+  - family-names: Repplinger
+    given-names: Stefan
+  - family-names: Rudiuk
+    given-names: Alexander
+  - family-names: Radanovic
+    given-names: Ana
+  - family-names: Buran
+    given-names: Brad
+  - family-names: Massias
+    given-names: Mathurin
+  - family-names: Hämäläinen
+    given-names: Matti
+  - family-names: Sripad
+    given-names: Praveen
+  - family-names: Chirkov
+    given-names: Valerii
+  - family-names: Mullins
+    given-names: Christopher
+  - family-names: Raimundo
+    given-names: Félix
+  - family-names: Alday
+    given-names: Phillip
+  - family-names: Pari
+    given-names: Ram
+  - family-names: Kornblith
+    given-names: Simon
+  - family-names: Halchenko
+    given-names: Yaroslav
+  - family-names: Luo
+    given-names: Yu-Han
+  - family-names: Kasper
+    given-names: Johannes
+  - family-names: Doelling
+    given-names: Keith
+  - family-names: Jensen
+    given-names: Mads
+  - family-names: Gahlot
+    given-names: Tanay
+  - family-names: Nunes
+    given-names: Adonay
+  - family-names: Gütlin
+    given-names: Dirk
+  - name: kjs
+  - family-names: Weinstein
+    given-names: Alejandro
+  - family-names: Lamus
+    given-names: Camilo
+  - family-names: Galván
+    given-names: Catalina María
+  - family-names: Moënne-Loccoz
+    given-names: Cristóbal
+  - family-names: Heinila
+    given-names: Erkka
+  - family-names: Hanna
+    given-names: Jevri
+  - family-names: Houck
+    given-names: Jon
+  - family-names: Klein
+    given-names: Natalie
+  - family-names: Rantala
+    given-names: Antti
+  - family-names: Maess
+    given-names: Burkhard
+  - family-names: O'Reilly
+    given-names: Christian
+  - family-names: Peterson
+    given-names: Erica
+  - family-names: Kolkhorst
+    given-names: Henrich
+  - family-names: Banville
+    given-names: Hubert
+  - family-names: Maksymenko
+    given-names: Kostiantyn
+  - family-names: Clarke
+    given-names: Maggie
+  - family-names: Anelli
+    given-names: Matteo
+  - family-names: Kaneda
+    given-names: Michiru
+  - family-names: Bannier
+    given-names: Pierre-Antoine
+  - family-names: Choudhary
+    given-names: Saket
+  - family-names: Huberty
+    given-names: Scott
+  - family-names: Kern
+    given-names: Simon
+  - family-names: Forster
+    given-names: Carina
+  - family-names: Kim
+    given-names: Cora
+  - family-names: Klotzsche
+    given-names: Felix
+  - family-names: Wong
+    given-names: Fu-Te
+  - family-names: Kojcic
+    given-names: Ivana
+  - family-names: Zhang
+    given-names: Jack
+  - family-names: Nielsen
+    given-names: Jesper Duemose
+  - family-names: Lankinen
+    given-names: Kaisu
+  - family-names: Tabavi
+    given-names: Kambiz
+  - family-names: Thibault
+    given-names: Louis
+  - family-names: Gayraud
+    given-names: Nathalie
+  - family-names: Ward
+    given-names: Nick
+  - name: dependabot[bot]
+  - family-names: Quinn
+    given-names: Andrew
+  - family-names: Gauthier
+    given-names: Antoine
+  - family-names: Pinsard
+    given-names: Basile
+  - family-names: Welke
+    given-names: Dominik
+  - family-names: Stephen
+    given-names: Emily
+  - family-names: Hornberger
+    given-names: Erik
+  - family-names: Hathaway
+    given-names: Evan
+  - family-names: Kalenkovich
+    given-names: Evgenii
+  - family-names: Mamashli
+    given-names: Fahimeh
+  - family-names: Marinato
+    given-names: Giorgio
+  - family-names: Anevar
+    given-names: Hafeza
+  - family-names: Sosulski
+    given-names: Jan
+  - family-names: Stout
+    given-names: Jeff
+  - family-names: Eisenman
+    given-names: Larry
+  - family-names: Esch
+    given-names: Lorenz
+  - family-names: Dovgialo
+    given-names: Marian
+  - family-names: Barascud
+    given-names: Nicolas
+  - family-names: Legrand
+    given-names: Nicolas
+  - family-names: Falach
+    given-names: Rotem
+  - family-names: Deslauriers-Gauthier
+    given-names: Samuel
+  - family-names: Cotroneo
+    given-names: Silvia
+  - family-names: Matindi
+    given-names: Steve
+  - family-names: Bierer
+    given-names: Steven
+  - family-names: Férat
+    given-names: Victor
+  - family-names: Peterson
+    given-names: Victoria
+  - family-names: Tonin
+    given-names: Alessandro
+  - family-names: Kovrig
+    given-names: Alexander
+  - family-names: Pascarella
+    given-names: Annalisa
+  - family-names: Karekal
+    given-names: Apoorva
+  - family-names: de la Torre
+    given-names: Carlos
+  - family-names: Gohil
+    given-names: Chetan
+  - family-names: Zhao
+    given-names: Christina
+  - family-names: Krzemiński
+    given-names: Dominik
+  - family-names: Welke
+    given-names: Dominik
+  - family-names: Makowski
+    given-names: Dominique
+  - family-names: Mikulan
+    given-names: Ezequiel
+  - family-names: Schiratti
+    given-names: Jean-Baptiste
+  - family-names: Evans
+    given-names: Jen
+  - family-names: Drew
+    given-names: Jordan
+  - family-names: Teves
+    given-names: Joshua
+  - family-names: Mathewson
+    given-names: Kyle
+  - family-names: Gwilliams
+    given-names: Laura
+  - family-names: Varghese
+    given-names: Lenny
+  - family-names: Gemein
+    given-names: Lukas
+  - family-names: Hecker
+    given-names: Lukas
+  - name: Lx37
+  - family-names: van Es
+    given-names: Mats
+  - family-names: Boggess
+    given-names: Matt
+  - family-names: Eberlein
+    given-names: Matthias
+  - family-names: Sherif
+    given-names: Mohamed
+  - family-names: Gerster
+    given-names: Moritz
+  - family-names: Kozhemiako
+    given-names: Nataliia
+  - family-names: Srinivasan
+    given-names: Naveen
+  - family-names: Wilming
+    given-names: Niklas
+  - family-names: Chapochnikov
+    given-names: Nikolai
+  - family-names: Kozynets
+    given-names: Oleh
+  - family-names: Ablin
+    given-names: Pierre
+  - family-names: Bertrand
+    given-names: Quentin
+  - family-names: Shoorangiz
+    given-names: Reza
+  - family-names: Hübner
+    given-names: Rodrigo
+  - family-names: Sommariva
+    given-names: Sara
+  - family-names: Er
+    given-names: Sena
+  - family-names: Khan
+    given-names: Sheraz
+  - family-names: Herbst
+    given-names: Sophie
+  - family-names: Datta
+    given-names: Sumalyo
+  - family-names: Jochmann
+    given-names: Thomas
+  - family-names: Merk
+    given-names: Timon
+  - family-names: Flak
+    given-names: Tod
+  - family-names: Dupré la Tour
+    given-names: Tom
+  - family-names: Stenner
+    given-names: Tristan
+  - family-names: NessAiver
+    given-names: Tziona
+  - name: akshay0724
+  - name: sviter
+  - family-names: Hindle
+    given-names: Abram
+  - family-names: Koutsou
+    given-names: Achilleas
+  - family-names: Fecker
+    given-names: Adeline
+  - family-names: Wagner
+    given-names: Adina
+  - family-names: Ciok
+    given-names: Alex
+  - family-names: Gramfort
+    given-names: Alexandre
+  - family-names: Pradhan
+    given-names: Aniket
+  - family-names: Padee
+    given-names: Anna
+  - family-names: Dubarry
+    given-names: Anne-Sophie
+  - family-names: Waniek
+    given-names: Anton Nikolas
+  - family-names: Singhal
+    given-names: Archit
+  - family-names: Rokem
+    given-names: Ariel
+  - family-names: Hurst
+    given-names: Austin
+  - family-names: Beasley
+    given-names: Ben
+  - family-names: Nicenboim
+    given-names: Bruno
+  - family-names: de la Torre
+    given-names: Carlos
+  - family-names: Clauss
+    given-names: Christian
+  - family-names: Mista
+    given-names: Christian
+  - family-names: Li
+    given-names: Chun-Hui
+  - family-names: Braboszcz
+    given-names: Claire
+  - family-names: Schad
+    given-names: Daniel Carlström
+  - family-names: Hasegan
+    given-names: Daniel
+  - family-names: Sleiter
+    given-names: Darin Erat
+  - family-names: Haslacher
+    given-names: David
+  - family-names: Sabbagh
+    given-names: David
+  - family-names: Kostas
+    given-names: Demetres
+  - family-names: Petkova
+    given-names: Desislava
+  - family-names: Issagaliyeva
+    given-names: Dinara
+  - family-names: Altukhov
+    given-names: Dmitrii
+  - family-names: Wetzel
+    given-names: Dominik
+  - family-names: Eich
+    given-names: Eberhard
+  - family-names: DuPre
+    given-names: Elizabeth
+  - family-names: Lau
+    given-names: Ellen
+  - family-names: Olivetti
+    given-names: Emanuele
+  - family-names: Varano
+    given-names: Enrico
+  - family-names: Altamiranda
+    given-names: Enzo
+  - family-names: Brayet
+    given-names: Eric
+  - family-names: de Montalivet
+    given-names: Etienne
+  - family-names: Goldstein
+    given-names: Evgeny
+  - family-names: Zamberlan
+    given-names: Federico
+  - family-names: Weber
+    given-names: Frederik D
+  - family-names: Tan
+    given-names: Gansheng
+  - family-names: Brookshire
+    given-names: Geoff
+  - family-names: Maymandi
+    given-names: Hamid
+  - family-names: Sonntag
+    given-names: Hermann
+  - family-names: Ye
+    given-names: Hongjiang
+  - family-names: Elmas
+    given-names: Hüseyin Orkun
+  - family-names: Machairas
+    given-names: Ilias
+  - family-names: Kaczmarzyk
+    given-names: Jakub
+  - family-names: Zerfowski
+    given-names: Jan
+  - family-names: van den Bosch
+    given-names: Jasper J F
+  - family-names: Behnke
+    given-names: Jennifer
+  - family-names: Van Der Donckt
+    given-names: Jeroen
+  - family-names: van der Meer
+    given-names: Johan
+  - family-names: Niediek
+    given-names: Johannes
+  - family-names: Veillette
+    given-names: John
+  - family-names: Koen
+    given-names: Josh
+  - family-names: Bear
+    given-names: Joshua J
+  - family-names: Zhu
+    given-names: Judy D
+  - family-names: Dammers
+    given-names: Juergen
+  - family-names: Galán
+    given-names: Julia Guiomar Niso
+  - family-names: Welzel
+    given-names: Julius
+  - family-names: Slama
+    given-names: Katarina
+  - family-names: Leinweber
+    given-names: Katrin
+  - family-names: Grabot
+    given-names: Laetitia
+  - family-names: Andersen
+    given-names: Lau Møller
+  - family-names: Barbosa
+    given-names: Leonardo S
+  - family-names: Hamilton
+    given-names: Liberty
+  - family-names: Alfine
+    given-names: Lorenzo
+  - family-names: Hejtmánek
+    given-names: Lukáš
+  - family-names: Kitzbichler
+    given-names: Manfred
+  - family-names: Kumar
+    given-names: Manoj
+  - family-names: Kadwani
+    given-names: Manorama
+  - family-names: Sutela
+    given-names: Manu
+  - family-names: Koculak
+    given-names: Marcin
+  - family-names: Henney
+    given-names: Mark Alexander
+  - family-names: van Harmelen
+    given-names: Martin
+  - name: MartinBaBer
+  - family-names: Courtemanche
+    given-names: Matt
+  - family-names: Tucker
+    given-names: Matt
+  - family-names: Visconti di Oleggio Castello
+    given-names: Matteo
+  - family-names: Dold
+    given-names: Matthias
+  - family-names: Toivonen
+    given-names: Matti
+  - family-names: Shader
+    given-names: Maureen
+  - family-names: Cespedes
+    given-names: Mauricio
+  - family-names: Krause
+    given-names: Michael
+  - family-names: Rybář
+    given-names: Milan
+  - family-names: He
+    given-names: Mingjian
+  - family-names: Daneshzand
+    given-names: Mohammad
+  - family-names: Gensollen
+    given-names: Nicolas
+  - family-names: Proulx
+    given-names: Nicole
+  - family-names: Chalas
+    given-names: Nikolas
+  - family-names: Shubi
+    given-names: Omer
+  - family-names: Sundaram
+    given-names: Padma
+  - family-names: Roujansky
+    given-names: Paul
+  - family-names: Silva
+    given-names: Pedro
+  - family-names: Molfese
+    given-names: Peter J
+  - family-names: Li
+    given-names: Quanliang
+  - family-names: Nadkarni
+    given-names: Rahul
+  - family-names: Gatti
+    given-names: Ramiro
+  - family-names: Apariciogarcia
+    given-names: Ramonapariciog
+  - family-names: Nasri
+    given-names: Reza
+  - family-names: Koehler
+    given-names: Richard
+  - family-names: Stargardsky
+    given-names: Riessarius
+  - family-names: Oostenveld
+    given-names: Robert
+  - family-names: Seymour
+    given-names: Robert
+  - family-names: Schirrmeister
+    given-names: Robin Tibor
+  - family-names: Law
+    given-names: Ryan
+  - family-names: Pai
+    given-names: Sagun
+  - family-names: Perry
+    given-names: Sam
+  - family-names: Ruuskanen
+    given-names: Santeri
+  - family-names: Mathot
+    given-names: Sebastiaan
+  - family-names: Major
+    given-names: Sebastian
+  - family-names: Treguer
+    given-names: Sebastien
+  - family-names: Castaño
+    given-names: Sebastián
+  - family-names: Deng
+    given-names: Senwen
+  - family-names: Antopolskiy
+    given-names: Sergey
+  - family-names: Wong
+    given-names: Simeon
+  - family-names: Wong
+    given-names: Simeon
+  - family-names: Poil
+    given-names: Simon-Shlomo
+  - family-names: Foslien
+    given-names: Sondre
+  - family-names: Singh
+    given-names: Sourav
+  - family-names: Chambon
+    given-names: Stanislas
+  - family-names: Bethard
+    given-names: Steven
+  - family-names: Gutstein
+    given-names: Steven M
+  - family-names: Meyer
+    given-names: Svea Marie
+  - family-names: Wang
+    given-names: T
+  - family-names: Papadopoulo
+    given-names: Theodore
+  - family-names: Donoghue
+    given-names: Thomas
+  - family-names: Radman
+    given-names: Thomas
+  - family-names: Gates
+    given-names: Timothy
+  - family-names: Ma
+    given-names: Tom
+  - family-names: Clausner
+    given-names: Tommy
+  - family-names: Anijärv
+    given-names: Toomas Erik
+  - family-names: Xia
+    given-names: Xiaokai
+  - family-names: Zhang
+    given-names: Zhi
+  - name: buildqa
+  - name: luzpaz
+preferred-citation:
+  title: "MEG and EEG Data Analysis with MNE-Python"
+  journal: "Frontiers in Neuroscience"
+  type: article
+  year: 2013
+  volume: 7
+  issue: 267
+  start: 1
+  end: 13
+  doi: 10.3389/fnins.2013.00267
+  authors:
+    - family-names: Gramfort
+      given-names: Alexandre
+    - family-names: Luessi
+      given-names: Martin
+    - family-names: Larson
+      given-names: Eric
+    - family-names: Engemann
+      given-names: Denis A.
+    - family-names: Strohmeier
+      given-names: Daniel
+    - family-names: Brodbeck
+      given-names: Christian
+    - family-names: Goj
+      given-names: Roman
+    - family-names: Jas
+      given-names: Mainak
+    - family-names: Brooks
+      given-names: Teon
+    - family-names: Parkkonen
+      given-names: Lauri
+    - family-names: Hämäläinen
+      given-names: Matti S.

@@ -150,6 +150,9 @@ to raw data. To reflect the decrease of noise due to averaging, this matrix,
 :math:`C_0`, is scaled by the number of averages, :math:`L`, *i.e.*, :math:`C =
 C_0 / L`.
 
+.. note::
+   When EEG data are included, the gain matrix :math:`G` needs to be average referenced when computing the linear inverse operator :math:`M`. This is incorporated during creating the spatial whitening operator :math:`C^{-^1/_2}`, which includes any projectors on the data. EEG data average reference (using a projector) is mandatory for source modeling and is checked when calculating the inverse operator. 
+
 As shown above, regularization of the inverse solution is equivalent to a
 change in the variance of the current amplitudes in the Bayesian *a priori*
 distribution.

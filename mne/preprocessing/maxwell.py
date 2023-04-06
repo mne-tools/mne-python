@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jussi Nurminen <jnu@iki.fi>
@@ -10,6 +9,7 @@ from collections import Counter, OrderedDict
 from functools import partial
 from math import factorial
 from os import path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -42,6 +42,144 @@ from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 # differences between algorithms
 
 
+@verbose
+def maxwell_filter_prepare_emptyroom(
+    raw_er, *, raw, bads='from_raw', annotations='from_raw', meas_date='keep',
+    emit_warning=False, verbose=None
+):
+    """Prepare an empty-room recording for Maxwell filtering.
+
+    Empty-room data by default lacks certain properties that are required to
+    ensure running :func:`~mne.preprocessing.maxwell_filter` will process the
+    empty-room recording the same way as the experimental data. This function
+    preconditions an empty-room raw data instance accordingly so it can be used
+    for Maxwell filtering. Please see the ``Notes`` section for details.
+
+    Parameters
+    ----------
+    raw_er : instance of Raw
+        The empty-room recording. It will not be modified.
+    raw : instance of Raw
+        The experimental recording, typically this will be the reference run
+        used for Maxwell filtering.
+    bads : 'from_raw' | 'union' | 'keep'
+        How to populate the list of bad channel names to be injected into
+        the empty-room recording. If ``'from_raw'`` (default) the list of bad
+        channels will be overwritten with that of ``raw``. If ``'union'``, will
+        use the union of bad channels in ``raw`` and ``raw_er``. Note that
+        this may lead to additional bad channels in the empty-room in
+        comparison to the experimental recording. If ``'keep'``, don't alter
+        the existing list of bad channels.
+
+        .. note::
+           Non-MEG channels are silently dropped from the list of bads.
+    annotations : 'from_raw' | 'union' | 'keep'
+        Whether to copy the annotations over from ``raw`` (default),
+        use the union of the annotations, or to keep them unchanged.
+    meas_date : 'keep' | 'from_raw'
+        Whether to transfer the measurement date from ``raw`` or to keep
+        it as is (default). If you intend to manually transfer annotations
+        from ``raw`` **after** running this function, you should set this to
+        ``'from_raw'``.
+    %(emit_warning)s
+        Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
+        default here is ``False``, as empty-room recordings are often shorter
+        than raw.
+    %(verbose)s
+
+    Returns
+    -------
+    raw_er_prepared : instance of Raw
+        A copy of the passed empty-room recording, ready for Maxwell filtering.
+
+    Notes
+    -----
+    This function will:
+
+    * Compile the list of bad channels according to the ``bads`` parameter.
+    * Inject the device-to-head transformation matrix from the experimental
+      recording into the empty-room recording.
+    * Set the following properties of the empty-room recording to match the
+      experimental recording:
+
+      * Montage
+      * ``raw.first_time`` and ``raw.first_samp``
+
+    * Adjust annotations according to the ``annotations`` parameter.
+    * Adjust the measurement date according to the ``meas_date`` parameter.
+
+    .. versionadded:: 1.1
+    """  # noqa: E501
+    _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
+    _validate_type(item=raw, types=BaseRaw, item_name='raw')
+    _validate_type(item=bads, types=str, item_name='bads')
+    _check_option(
+        parameter='bads', value=bads,
+        allowed_values=['from_raw', 'union', 'keep']
+    )
+    _validate_type(item=annotations, types=str, item_name='annotations')
+    _check_option(
+        parameter='annotations', value=annotations,
+        allowed_values=['from_raw', 'union', 'keep']
+    )
+    _validate_type(item=meas_date, types=str, item_name='meas_date')
+    _check_option(
+        parameter='meas_date', value=annotations,
+        allowed_values=['from_raw', 'keep']
+    )
+
+    raw_er_prepared = raw_er.copy()
+    del raw_er  # just to be sure
+
+    # handle bads; only keep MEG channels
+    if bads == 'from_raw':
+        bads = raw.info['bads']
+    elif bads == 'union':
+        bads = sorted(
+            set(raw.info['bads'] + raw_er_prepared.info['bads'])
+        )
+    elif bads == 'keep':
+        bads = raw_er_prepared.info['bads']
+
+    bads = [ch_name for ch_name in bads
+            if ch_name.startswith('MEG')]
+    raw_er_prepared.info['bads'] = bads
+
+    # handle dev_head_t
+    raw_er_prepared.info['dev_head_t'] = raw.info['dev_head_t']
+
+    # handle montage
+    montage = raw.get_montage()
+    raw_er_prepared.set_montage(montage)
+
+    # handle first_samp
+    raw_er_prepared.annotations.onset += (
+        raw.first_time - raw_er_prepared.first_time
+    )
+    raw_er_prepared._cropped_samp = raw._cropped_samp
+
+    # handle annotations
+    if annotations != 'keep':
+        er_annot = raw_er_prepared.annotations
+        if annotations == 'from_raw':
+            er_annot.delete(np.arange(len(er_annot)))
+        er_annot.append(
+            raw.annotations.onset,
+            raw.annotations.duration,
+            raw.annotations.description,
+            raw.annotations.ch_names
+        )
+        if raw_er_prepared.info['meas_date'] is None:
+            er_annot.onset -= raw_er_prepared.first_time
+        raw_er_prepared.set_annotations(er_annot, emit_warning)
+
+    # handle measurement date
+    if meas_date == 'from_raw':
+        raw_er_prepared.set_meas_date(raw.info['meas_date'])
+
+    return raw_er_prepared
+
+
 # Changes to arguments here should also be made in find_bad_channels_maxwell
 @verbose
 def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
@@ -55,7 +193,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered.
 
         .. warning:: It is critical to mark bad channels in
@@ -79,7 +217,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         buffer window will be lumped into the previous buffer.
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
-        ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
+        overlapping intersecting inner/outer signals during spatiotemporal SSS.
     %(coord_frame_maxwell)s
     %(destination_maxwell_dest)s
     %(regularize_maxwell_reg)s
@@ -100,7 +238,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Returns
     -------
-    raw_sss : instance of mne.io.Raw
+    raw_sss : instance of Raw
         The raw data with Maxwell filtering applied.
 
     See Also
@@ -482,7 +620,7 @@ def _run_maxwell_filter(
             continue  # Skip zero-length annotations
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
-        t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
+        t_str = '%8.3f - %8.3f s' % tuple(rel_times[[0, -1]])
         t_str += ('(#%d/%d)' % (ii + 1, len(starts))).rjust(2 * n_sig + 5)
 
         # Get original data
@@ -648,7 +786,7 @@ def _check_destination(destination, info, head_frame):
     if not head_frame:
         raise RuntimeError('destination can only be set if using the '
                            'head coordinate frame')
-    if isinstance(destination, str):
+    if isinstance(destination, (str, Path)):
         recon_trans = _get_trans(destination, 'meg', 'head')[0]
     elif isinstance(destination, Transform):
         recon_trans = destination
@@ -670,21 +808,10 @@ def _check_destination(destination, info, head_frame):
 @verbose
 def _prep_mf_coils(info, ignore_ref=True, verbose=None):
     """Get all coil integration information loaded and sorted."""
-    coils, comp_coils = _prep_meg_channels(
-        info, head_frame=False,
-        ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
+    meg_sensors = _prep_meg_channels(
+        info, head_frame=False, ignore_ref=ignore_ref, verbose=False)
+    coils = meg_sensors['defs']
     mag_mask = _get_mag_mask(coils)
-    if len(comp_coils) > 0:
-        meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
-        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-        inserts = np.searchsorted(meg_picks, ref_picks)
-        # len(inserts) == len(comp_coils)
-        for idx, comp_coil in zip(inserts[::-1], comp_coils[::-1]):
-            coils.insert(idx, comp_coil)
-        # Now we have:
-        # [c['chname'] for c in coils] ==
-        # [info['ch_names'][ii]
-        #  for ii in pick_types(info, meg=True, ref_meg=True)]
 
     # Now coils is a sorted list of coils. Time to do some vectorization.
     n_coils = len(coils)
@@ -1508,7 +1635,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered
     origin : array-like, shape (3,)
         Origin of internal and external multipolar moment space in head coords
@@ -1875,23 +2002,29 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
     # Pick the components that give at least 98% of max info
     # This is done because the curves can be quite flat, and we err on the
     # side of including rather than excluding components
-    max_info = np.max(I_tots)
-    lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
-    in_removes = remove_order[:lim_idx]
-    for ii, ri in enumerate(in_removes):
-        logger.debug('            Condition %0.3f/%0.3f = %03.1f, '
-                     'Removing in component %s: l=%s, m=%+0.0f'
-                     % (tuple(eigs[ii]) + (eigs[ii, 0] / eigs[ii, 1],
-                                           ri, degrees[ri], orders[ri])))
-    logger.debug('        Resulting information: %0.1f bits/sample '
-                 '(%0.1f%% of peak %0.1f)'
-                 % (I_tots[lim_idx], 100 * I_tots[lim_idx] / max_info,
-                    max_info))
+    if n_in:
+        max_info = np.max(I_tots)
+        lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
+        in_removes = remove_order[:lim_idx]
+        for ii, ri in enumerate(in_removes):
+            eig = eigs[ii]
+            logger.debug(
+                f'            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = '
+                f'{eig[0] / eig[1]:03.1f}, Removing in component '
+                f'{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}'
+            )
+        logger.debug(
+            f'        Resulting information: {I_tots[lim_idx]:0.1f} '
+            f'bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak '
+            f'{max_info:0.1f})'
+        )
+    else:
+        in_removes = remove_order[:0]
     return in_removes, out_removes
 
 
 def _compute_sphere_activation_in(degrees):
-    u"""Compute the "in" power from random currents in a sphere.
+    """Compute the "in" power from random currents in a sphere.
 
     Parameters
     ----------
@@ -2102,11 +2235,12 @@ def find_bad_channels_maxwell(
     .. versionadded:: 0.20
     """
     if h_freq is not None:
-        if raw.info.get('lowpass') and raw.info['lowpass'] < h_freq:
+        if raw.info.get('lowpass') and raw.info['lowpass'] <= h_freq:
+            freq_loc = 'below' if raw.info['lowpass'] < h_freq else 'equal to'
             msg = (f'The input data has already been low-pass filtered with a '
                    f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
-                   f'below the requested cutoff of {h_freq} Hz. Not applying '
-                   f'low-pass filter.')
+                   f'{freq_loc} the requested cutoff of {h_freq} Hz. Not '
+                   f'applying low-pass filter.')
             logger.info(msg)
         else:
             logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
@@ -2129,7 +2263,7 @@ def find_bad_channels_maxwell(
             ss[-1] = end
             stops.extend(ss)
     min_count = min(_ensure_int(min_count, 'min_count'), len(starts))
-    logger.info('Scanning for bad channels in %d interval%s (%0.1f sec) ...'
+    logger.info('Scanning for bad channels in %d interval%s (%0.1f s) ...'
                 % (len(starts), _pl(starts), step / raw.info['sfreq']))
     params = _prep_maxwell_filter(
         raw, skip_by_annotation=[],  # already accounted for

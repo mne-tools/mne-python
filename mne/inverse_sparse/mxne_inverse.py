@@ -394,8 +394,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
-    if not(isinstance(sure_alpha_grid, (np.ndarray, list)) or
-           sure_alpha_grid == "auto"):
+    if not (isinstance(sure_alpha_grid, (np.ndarray, list)) or
+            sure_alpha_grid == "auto"):
         raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
                          'array. Got %s' % type(sure_alpha_grid))
     if ((isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto")

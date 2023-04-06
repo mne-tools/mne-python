@@ -70,7 +70,7 @@ as well as:
     Kymata atlas. The participants are healthy human adults listening to the
     radio and/or watching films, and the data is comprised of (averaged) EEG
     and MEG sensor data and source current reconstructions.
-- `BNCI Horizon <http://bnci-horizon-2020.eu/database/data-sets>`__
+- `BNCI Horizon <https://bnci-horizon-2020.eu/database/data-sets>`__
     BCI datasets.
 
 Integrate OpenMEEG via improved Python bindings

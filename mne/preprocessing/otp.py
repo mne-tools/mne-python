@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Samu Taulu <staulu@uw.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 
@@ -100,7 +99,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
         len(raw.times), n_samples, n_overlap, raw.info['sfreq'])
     read_lims = list(range(0, len(raw.times), n_samples)) + [len(raw.times)]
     for start, stop in zip(read_lims[:-1], read_lims[1:]):
-        logger.info('    Denoising % 8.2f - % 8.2f sec'
+        logger.info('    Denoising % 8.2f – % 8.2f s'
                     % tuple(raw.times[[start, stop - 1]]))
         otp.feed(raw[picks, start:stop][0])
     return raw_otp

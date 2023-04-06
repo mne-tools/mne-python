@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 import pytest as pytest
 import numpy as np
 from numpy.testing import assert_allclose
@@ -15,9 +14,12 @@ from mne.preprocessing.nirs import optical_density
 from mne.utils import _validate_type
 from mne.datasets import testing
 
-
-fname_nirx = op.join(data_path(download=False),
-                     'NIRx', 'nirscout', 'nirx_15_2_recording_w_short')
+fname_nirx = (
+    data_path(download=False)
+    / "NIRx"
+    / "nirscout"
+    / "nirx_15_2_recording_w_short"
+)
 
 
 @testing.requires_testing_data
@@ -30,6 +32,8 @@ def test_optical_density():
     _validate_type(raw, BaseRaw, 'raw')
     assert 'fnirs_cw_amplitude' not in raw
     assert 'fnirs_od' in raw
+    with pytest.raises(RuntimeError, match='on continuous wave'):
+        optical_density(raw)
 
 
 @testing.requires_testing_data

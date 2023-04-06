@@ -18,7 +18,7 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose, _validate_type,
 
 @verbose
 def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
-                           filter_freq=(110, 140), n_jobs=1, verbose=None):
+                           filter_freq=(110, 140), n_jobs=None, verbose=None):
     """Create annotations for segments that likely contain muscle artifacts.
 
     Detects data segments containing activity in the frequency range given by
@@ -174,15 +174,15 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     t_tot = raw.times[-1]
     if rotation_velocity_limit is not None:
         assert rotation_velocity_limit > 0
-        # Rotational velocity (radians / sec)
+        # Rotational velocity (radians / s)
         r = _angle_between_quats(pos[:-1, 1:4], pos[1:, 1:4])
         r /= dt
         bad_mask = (r >= np.deg2rad(rotation_velocity_limit))
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        logger.info(u'Omitting %5.1f%% (%3d segments): '
-                    u'ω >= %5.1f°/s (max: %0.1f°/s)'
+        logger.info('Omitting %5.1f%% (%3d segments): '
+                    'ω >= %5.1f°/s (max: %0.1f°/s)'
                     % (bad_pct, len(onsets), rotation_velocity_limit,
                        np.rad2deg(r.max())))
         annot += _annotations_from_mask(
@@ -197,8 +197,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        logger.info(u'Omitting %5.1f%% (%3d segments): '
-                    u'v >= %5.4fm/s (max: %5.4fm/s)'
+        logger.info('Omitting %5.1f%% (%3d segments): '
+                    'v >= %5.4fm/s (max: %5.4fm/s)'
                     % (bad_pct, len(onsets), translation_velocity_limit,
                        v.max()))
         annot += _annotations_from_mask(
@@ -242,8 +242,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        logger.info(u'Omitting %5.1f%% (%3d segments): '
-                    u'disp >= %5.4fm (max: %5.4fm)'
+        logger.info('Omitting %5.1f%% (%3d segments): '
+                    'disp >= %5.4fm (max: %5.4fm)'
                     % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
         annot += _annotations_from_mask(
             hp_ts, bad_mask, 'BAD_mov_dist', orig_time=orig_time)
@@ -266,7 +266,7 @@ def compute_average_dev_head_t(raw, pos):
 
     Returns
     -------
-    dev_head_t : array
+    dev_head_t : array of shape (4, 4)
         New trans matrix using the averaged good head positions.
     """
     sfreq = raw.info['sfreq']
@@ -554,7 +554,7 @@ def annotate_break(raw, events=None,
     # Log some info
     n_breaks = len(break_annotations)
     break_times = [
-        f'{o:.1f} – {o+d:.1f} sec [{d:.1f} sec]'
+        f'{o:.1f} – {o+d:.1f} s [{d:.1f} s]'
         for o, d in zip(break_annotations.onset,
                         break_annotations.duration)
     ]
@@ -562,9 +562,9 @@ def annotate_break(raw, events=None,
     total_break_dur = sum(break_annotations.duration)
     fraction_breaks = total_break_dur / raw.times[-1]
     logger.info(f'\nDetected {n_breaks} break period{_pl(n_breaks)} of >= '
-                f'{min_break_duration} sec duration:\n    {break_times}\n'
+                f'{min_break_duration} s duration:\n    {break_times}\n'
                 f'In total, {round(100 * fraction_breaks, 1):.1f}% of the '
-                f'data ({round(total_break_dur, 1):.1f} sec) have been marked '
+                f'data ({round(total_break_dur, 1):.1f} s) have been marked '
                 f'as a break.\n')
     _adjust_onset_meas_date(break_annotations, raw)
 

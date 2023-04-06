@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The check functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -9,23 +8,23 @@ from difflib import get_close_matches
 from importlib import import_module
 import operator
 import os
-import os.path as op
 from pathlib import Path
 import re
-import sys
-import warnings
 import numbers
 
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from ._logging import warn, logger, verbose
+from .docs import deprecated
+from ._logging import (warn, logger, verbose, _record_warnings,
+                       _verbose_safe_false)
 
 
-def _ensure_int(x, name='unknown', must_be='an int'):
+def _ensure_int(x, name='unknown', must_be='an int', *, extra=''):
     """Ensure a variable is an integer."""
     # This is preferred over numbers.Integral, see:
     # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
+    extra = f' {extra}' if extra else extra
     try:
         # someone passing True/False is much more likely to be an error than
         # intentional usage
@@ -33,7 +32,7 @@ def _ensure_int(x, name='unknown', must_be='an int'):
             raise TypeError()
         x = int(operator.index(x))
     except TypeError:
-        raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
+        raise TypeError(f'{name} must be {must_be}{extra}, got {type(x)}')
     return x
 
 
@@ -56,7 +55,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
                                      endings_err[-1]])
-        raise IOError('The filename (%s) for file type %s must end with %s'
+        raise OSError('The filename (%s) for file type %s must end with %s'
                       % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
@@ -210,38 +209,46 @@ def _check_event_id(event_id, events):
 
 
 @verbose
-def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 need_dir=False, *, verbose=None):
+def _check_fname(
+    fname,
+    overwrite=False,
+    must_exist=False,
+    name="File",
+    need_dir=False,
+    *,
+    verbose=None,
+):
     """Check for file existence, and return string of its absolute path."""
-    _validate_type(fname, 'path-like', name)
-    fname = str(
-        Path(fname)
-        .expanduser()
-        .absolute()
-    )
+    _validate_type(fname, "path-like", name)
+    fname = Path(fname).expanduser().absolute()
 
-    if op.exists(fname):
+    if fname.exists():
         if not overwrite:
-            raise FileExistsError('Destination file exists. Please use option '
-                                  '"overwrite=True" to force overwriting.')
-        elif overwrite != 'read':
-            logger.info('Overwriting existing file.')
+            raise FileExistsError(
+                "Destination file exists. Please use option "
+                '"overwrite=True" to force overwriting.'
+            )
+        elif overwrite != "read":
+            logger.info("Overwriting existing file.")
         if must_exist:
             if need_dir:
-                if not op.isdir(fname):
-                    raise IOError(
-                        f'Need a directory for {name} but found a file '
-                        f'at {fname}')
+                if not fname.is_dir():
+                    raise OSError(
+                        f"Need a directory for {name} but found a file "
+                        f"at {fname}"
+                    )
             else:
-                if not op.isfile(fname):
-                    raise IOError(
-                        f'Need a file for {name} but found a directory '
-                        f'at {fname}')
+                if not fname.is_file():
+                    raise OSError(
+                        f"Need a file for {name} but found a directory "
+                        f"at {fname}"
+                    )
             if not os.access(fname, os.R_OK):
                 raise PermissionError(
-                    f'{name} does not have read permissions: {fname}')
+                    f"{name} does not have read permissions: {fname}"
+                )
     elif must_exist:
-        raise FileNotFoundError(f'{name} does not exist: {fname}')
+        raise FileNotFoundError(f"{name} does not exist: {fname}")
 
     return fname
 
@@ -272,8 +279,9 @@ def _check_preload(inst, msg):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..time_frequency import _BaseTFR
+    from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (_BaseTFR, Evoked)):
+    if isinstance(inst, (_BaseTFR, Evoked, BaseSpectrum)):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else 'raw'
@@ -331,13 +339,34 @@ def _soft_import(name, purpose, strict=True):
     strict : bool
         Whether to raise an error if module import fails.
     """
+    # so that error msg lines are aligned
+    def indent(x):
+        return x.rjust(len(x) + 14)
+
+    # Mapping import namespaces to their pypi package name
+    pip_name = dict(
+        sklearn='scikit-learn',
+        EDFlib='EDFlib-Python',
+        mne_bids='mne-bids',
+        mne_nirs='mne-nirs',
+        mne_features='mne-features',
+        mne_qt_browser='mne-qt-browser',
+        mne_connectivity='mne-connectivity',
+        pyvista='pyvistaqt').get(name, name)
+
     try:
         mod = import_module(name)
         return mod
     except (ImportError, ModuleNotFoundError):
         if strict:
-            raise RuntimeError(f'For {purpose} to work, the {name} module is '
-                               'needed, but it could not be imported.')
+            raise RuntimeError(
+                f'For {purpose} to work, the {name} module is needed, ' +
+                'but it could not be imported.\n' +
+                '\n'.join((indent('use the following installation method '
+                                  'appropriate for your environment:'),
+                           indent(f"'pip install {pip_name}'"),
+                           indent(f"'conda install -c conda-forge {pip_name}'")
+                           )))
         else:
             return False
 
@@ -355,6 +384,20 @@ def _check_eeglabio_installed(strict=True):
 def _check_edflib_installed(strict=True):
     """Aux function."""
     return _soft_import('EDFlib', 'exporting to EDF', strict=strict)
+
+
+def _check_pybv_installed(strict=True):
+    """Aux function."""
+    return _soft_import('pybv', 'exporting to BrainVision', strict=strict)
+
+
+def _check_pymatreader_installed(strict=True):
+    """Aux function."""
+    return _soft_import(
+        'pymatreader',
+        'loading v7.3 (HDF5) .MAT files',
+        strict=strict
+    )
 
 
 def _check_pandas_index_arguments(index, valid):
@@ -425,7 +468,7 @@ def _is_numeric(n):
     return isinstance(n, numbers.Number)
 
 
-class _IntLike(object):
+class _IntLike:
     @classmethod
     def __instancecheck__(cls, other):
         try:
@@ -440,7 +483,7 @@ int_like = _IntLike()
 path_like = (str, Path, os.PathLike)
 
 
-class _Callable(object):
+class _Callable:
     @classmethod
     def __instancecheck__(cls, other):
         return callable(other)
@@ -455,7 +498,8 @@ _multi = {
 }
 
 
-def _validate_type(item, types=None, item_name=None, type_name=None):
+def _validate_type(item, types=None, item_name=None, type_name=None, *,
+                   extra=''):
     """Validate that `item` is an instance of `types`.
 
     Parameters
@@ -473,9 +517,11 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     type_name : str | None
         Possible types to show inside the error message that the checked item
         can be.
+    extra : str
+        Extra text to append to the warning.
     """
     if types == "int":
-        _ensure_int(item, name=item_name)
+        _ensure_int(item, name=item_name, extra=extra)
         return  # terminate prematurely
     elif types == "info":
         from mne.io import Info as types
@@ -486,6 +532,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     check_types = sum(((type(None),) if type_ is None else (type_,)
                        if not isinstance(type_, str) else _multi[type_]
                        for type_ in types), ())
+    extra = f' {extra}' if extra else extra
     if not isinstance(item, check_types):
         if type_name is None:
             type_name = ['None' if cls_ is None else cls_.__name__
@@ -499,8 +546,40 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                 type_name[-1] = 'or ' + type_name[-1]
                 type_name = ', '.join(type_name)
         _item_name = 'Item' if item_name is None else item_name
-        raise TypeError(f"{_item_name} must be an instance of {type_name}, "
-                        f"got {type(item)} instead.")
+        raise TypeError(
+            f"{_item_name} must be an instance of {type_name}{extra}, "
+            f"got {type(item)} instead.")
+
+
+def _check_range(val, min_val, max_val, name, min_inclusive=True,
+                 max_inclusive=True):
+    """Check that item is within range.
+
+    Parameters
+    ----------
+    val : int | float
+        The value to be checked.
+    min_val : int | float
+        The minimum value allowed.
+    max_val : int | float
+        The maximum value allowed.
+    name : str
+        The name of the value.
+    min_inclusive : bool
+        Whether ``val`` is allowed to be ``min_val``.
+    max_inclusive : bool
+        Whether ``val`` is allowed to be ``max_val``.
+    """
+    below_min = val < min_val if min_inclusive else val <= min_val
+    above_max = val > max_val if max_inclusive else val >= max_val
+    if below_min or above_max:
+        error_str = f'The value of {name} must be between {min_val} '
+        if min_inclusive:
+            error_str += 'inclusive '
+        error_str += f'and {max_val}'
+        if max_inclusive:
+            error_str += 'inclusive '
+        raise ValueError(error_str)
 
 
 def _path_like(item):
@@ -715,7 +794,7 @@ def _check_option(parameter, value, allowed_values, extra=''):
         return value
 
     # Prepare a nice error message for the user
-    extra = ' ' + extra if extra else extra
+    extra = f' {extra}' if extra else extra
     msg = ("Invalid value for the '{parameter}' parameter{extra}. "
            '{options}, but got {value!r} instead.')
     allowed_values = list(allowed_values)  # e.g., if a dict was given
@@ -781,6 +860,7 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
 
 def _check_qt_version(*, return_api=False):
     """Check if Qt is installed."""
+    from ..viz.backends._utils import _init_mne_qtapp
     try:
         from qtpy import QtCore, API_NAME as api
     except Exception:
@@ -790,11 +870,13 @@ def _check_qt_version(*, return_api=False):
             version = QtCore.__version__
         except AttributeError:
             version = QtCore.QT_VERSION_STR
-        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
-            if not _compare_version(version, '>=', '5.10'):
-                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
-                     f'got {version}. Please upgrade e.g. with:\n\n'
-                     f'    pip install "{api}>=5.10,<5.14"\n')
+        # Having Qt installed is not enough -- sometimes the app is unusable
+        # for example because there is no usable display (e.g., on a server),
+        # so we have to try instantiating one to actually know.
+        try:
+            _init_mne_qtapp()
+        except Exception:
+            api = version = None
     if return_api:
         return version, api
     else:
@@ -814,13 +896,87 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                 pass
             else:
                 sphere = 'auto'
+
     if isinstance(sphere, str):
-        if sphere != 'auto':
-            raise ValueError('sphere, if str, must be "auto", got %r'
-                             % (sphere))
-        R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
-        sphere = tuple(r0) + (R,)
-        sphere_units = 'm'
+        if sphere not in ('auto', 'eeglab'):
+            raise ValueError(
+                f'sphere, if str, must be "auto" or "eeglab", got {sphere}'
+            )
+        assert info is not None
+
+        if sphere == 'auto':
+            R, r0, _ = fit_sphere_to_headshape(
+                info, verbose=_verbose_safe_false(), units='m')
+            sphere = tuple(r0) + (R,)
+            sphere_units = 'm'
+        elif sphere == 'eeglab':
+            # We need coordinates for the 2D plane formed by
+            # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
+            # will determine the location of the head circle).
+            #
+            # We implement some special-handling in case Fpz is missing, as
+            # this seems to be a quite common situation in numerous EEG labs.
+            montage = info.get_montage()
+            if montage is None:
+                raise ValueError(
+                    'No montage was set on your data, but sphere="eeglab" '
+                    'can only work if digitization points for the EEG '
+                    'channels are available. Consider calling set_montage() '
+                    'to apply a montage.'
+                )
+            ch_pos = montage.get_positions()['ch_pos']
+            horizon_ch_names = ('Fpz', 'Oz', 'T7', 'T8')
+
+            if 'FPz' in ch_pos:  # "fix" naming
+                ch_pos['Fpz'] = ch_pos['FPz']
+                del ch_pos['FPz']
+            elif 'Fpz' not in ch_pos and 'Oz' in ch_pos:
+                logger.info(
+                    'Approximating Fpz location by mirroring Oz along '
+                    'the X and Y axes.'
+                )
+                # This assumes Fpz and Oz have the same Z coordinate
+                ch_pos['Fpz'] = ch_pos['Oz'] * [-1, -1, 1]
+
+            for ch_name in horizon_ch_names:
+                if ch_name not in ch_pos:
+                    msg = (
+                        f'sphere="eeglab" requires digitization points of '
+                        f'the following electrode locations in the data: '
+                        f'{", ".join(horizon_ch_names)}, but could not find: '
+                        f'{ch_name}'
+                    )
+                    if ch_name == 'Fpz':
+                        msg += (
+                            ', and was unable to approximate its location '
+                            'from Oz'
+                        )
+                    raise ValueError(msg)
+
+            # Calculate the radius from: T7<->T8, Fpz<->Oz
+            radius = np.abs([
+                ch_pos['T7'][0],   # X axis
+                ch_pos['T8'][0],   # X axis
+                ch_pos['Fpz'][1],  # Y axis
+                ch_pos['Oz'][1]    # Y axis
+            ]).mean()
+
+            # Calculate the center of the head sphere
+            # Use 4 digpoints for each of the 3 axes to hopefully get a better
+            # approximation than when using just 2 digpoints.
+            sphere_locs = dict()
+            for idx, axis in enumerate(('X', 'Y', 'Z')):
+                sphere_locs[axis] = np.mean([
+                    ch_pos['T7'][idx],
+                    ch_pos['T8'][idx],
+                    ch_pos['Fpz'][idx],
+                    ch_pos['Oz'][idx]
+                ])
+            sphere = (
+                sphere_locs['X'], sphere_locs['Y'], sphere_locs['Z'], radius
+            )
+            sphere_units = 'm'
+            del sphere_locs, radius, montage, ch_pos
     elif isinstance(sphere, ConductorModel):
         if not sphere['is_sphere'] or len(sphere['layers']) == 0:
             raise ValueError('sphere, if a ConductorModel, must be spherical '
@@ -842,6 +998,47 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
     return sphere
 
 
+def _check_head_radius(radius, add_info=''):
+    """Check that head radius is within a reasonable range (5. - 10.85 cm).
+
+    Parameters
+    ----------
+    radius : float
+        Head radius in meters.
+    add_info : str
+        Additional info to add to the warning message.
+
+    Notes
+    -----
+    The maximum value was taken from the head size percentiles given in the
+    following Wikipedia infographic:
+    https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
+
+    the maximum radius is taken from the 99th percentile for men Glabella
+    to back of the head measurements (Glabella is a point just above the
+    Nasion):
+
+        21.7cm / 2 = 10.85 cm = 0.1085 m
+
+    The minimum value was taken from The National Center for Health Statistics
+    (USA) infant head circumference percentiles:
+    https://www.cdc.gov/growthcharts/html_charts/hcageinf.htm
+    we take the minimum to be the radius corresponding to the 3rd percentile
+    head circumference of female 0-month infant, rounded down:
+    31.9302 cm circumference / (2 * pi) = 5.08 cm radius -> 0.05 m
+    """
+    min_radius = 0.05
+    max_radius = 0.1085
+    if radius > max_radius:
+        msg = (f'Estimated head radius ({1e2 * radius:0.1f} cm) is '
+               'above the 99th percentile for adult head size.')
+        warn(msg + add_info)
+    elif radius < min_radius:
+        msg = (f'Estimated head radius ({1e2 * radius:0.1f} cm) is '
+               'below the 3rd percentile for infant head size.')
+        warn(msg + add_info)
+
+
 def _check_freesurfer_home():
     from .config import get_config
     fs_home = get_config('FREESURFER_HOME')
@@ -861,9 +1058,9 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _check_on_missing(on_missing, name='on_missing'):
+def _check_on_missing(on_missing, name='on_missing', *, extras=()):
     _validate_type(on_missing, str, name)
-    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'] + list(extras))
 
 
 def _on_missing(on_missing, msg, name='on_missing', error_klass=None):
@@ -891,13 +1088,19 @@ def _safe_input(msg, *, alt=None, use=None):
 
 
 def _ensure_events(events):
-    events_type = type(events)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')  # deprecation for object array
-        events = np.asarray(events)
+    err_msg = f'events should be a NumPy array of integers, got {type(events)}'
+    with _record_warnings():
+        try:
+            events = np.asarray(events)
+        except ValueError as np_err:
+            if str(np_err).startswith(
+                    'setting an array element with a sequence. The requested '
+                    'array has an inhomogeneous shape'):
+                raise TypeError(err_msg) from None
+            else:
+                raise
     if not np.issubdtype(events.dtype, np.integer):
-        raise TypeError('events should be a NumPy array of integers, '
-                        f'got {events_type}')
+        raise TypeError(err_msg)
     if events.ndim != 2 or events.shape[1] != 3:
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')
@@ -914,3 +1117,17 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
+
+
+@deprecated('has_nibabel is deprecated and will be removed in 1.5')
+def has_nibabel():
+    return check_version('nibabel')  # pragma: no cover
+
+
+def _import_nibabel(why='use MRI files'):
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        raise exp.__class__(
+            'nibabel is required to %s, got:\n%s' % (why, exp)) from None
+    return nib

@@ -1,4 +1,5 @@
 from os import path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.polynomial import legendre
@@ -39,8 +40,8 @@ def test_field_map_ctf():
     events = make_fixed_length_events(raw, duration=0.5)
     evoked = Epochs(raw, events).average()
     evoked.pick_channels(evoked.ch_names[:50])  # crappy mapping but faster
-    # smoke test
-    make_field_map(evoked, trans=trans_fname, subject='sample',
+    # smoke test - passing trans_fname as pathlib.Path as additional check
+    make_field_map(evoked, trans=Path(trans_fname), subject='sample',
                    subjects_dir=subjects_dir)
 
 
@@ -192,7 +193,7 @@ def test_make_field_map_meeg():
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     maps = make_field_map(evoked, trans_fname, subject='sample',
-                          subjects_dir=subjects_dir, n_jobs=1, verbose='debug')
+                          subjects_dir=subjects_dir, verbose='debug')
     assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]['data'].shape, (304, 31))  # MEG->Helmet
     # reasonable ranges

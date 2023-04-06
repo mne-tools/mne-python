@@ -8,7 +8,7 @@ from ..io._digitization import _get_fid_coords
 
 @verbose
 def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
-                 show=True, sphere=None, verbose=None):
+                 show=True, sphere=None, *, axes=None, verbose=None):
     """Plot a montage.
 
     Parameters
@@ -25,6 +25,9 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     show : bool
         Show figure if True.
     %(sphere_topomap_auto)s
+    %(axes_montage)s
+
+        .. versionadded:: 1.4
     %(verbose)s
 
     Returns
@@ -34,7 +37,6 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     """
     from scipy.spatial.distance import cdist
     from ..channels import DigMontage, make_dig_montage
-    from ..io import RawArray
     from .. import create_info
 
     _check_option('kind', kind, ['topomap', '3d'])
@@ -68,10 +70,9 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         montage = make_dig_montage(ch_pos=ch_pos, **fid)
 
     info = create_info(ch_names, sfreq=256, ch_types="eeg")
-    raw = RawArray(np.zeros((len(ch_names), 1)), info, copy=None)
-    raw.set_montage(montage, on_missing='ignore')
+    info.set_montage(montage, on_missing='ignore')
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
-                       title=title, sphere=sphere)
+                       title=title, sphere=sphere, axes=axes)
     collection = fig.axes[0].collections[0]
     collection.set_sizes([scale_factor])
     return fig

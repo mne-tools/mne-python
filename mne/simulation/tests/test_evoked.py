@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -17,17 +17,33 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
 from mne.io.pick import pick_channels_cov
 from mne.cov import regularize, whiten_evoked
-from mne.utils import catch_logging, check_version
+from mne.utils import catch_logging
 
 data_path = testing.data_path(download=False)
-fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                    'data', 'test_raw.fif')
-ave_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                    'data', 'test-ave.fif')
-cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                    'data', 'test-cov.fif')
+fwd_fname = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+)
+raw_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test_raw.fif"
+)
+ave_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test-ave.fif"
+)
+cov_fname = (
+    Path(__file__).parent.parent.parent
+    / "io"
+    / "tests"
+    / "data"
+    / "test-cov.fif"
+)
 
 
 @testing.requires_testing_data
@@ -58,7 +74,8 @@ def test_simulate_evoked():
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
     evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                             iir_filter=iir_filter, nave=nave)
+                             iir_filter=iir_filter, nave=nave,
+                             random_state=0)
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd['sol']['data'])
     assert_equal(evoked.nave, nave)
@@ -91,10 +108,7 @@ def test_simulate_evoked():
 @pytest.mark.filterwarnings('ignore:Epochs are not baseline corrected')
 def test_add_noise():
     """Test noise addition."""
-    if check_version('numpy', '1.17'):
-        rng = np.random.default_rng(0)
-    else:
-        rng = np.random.RandomState(0)
+    rng = np.random.default_rng(0)
     raw = read_raw_fif(raw_fname)
     raw.del_proj()
     picks = pick_types(raw.info, meg=True, eeg=True, exclude=())
@@ -153,7 +167,7 @@ def test_rank_deficiency():
     cov = regularize(cov, evoked.info, rank=None)
     cov = pick_channels_cov(cov, evoked.ch_names)
     evoked.data[:] = 0
-    add_noise(evoked, cov)
+    add_noise(evoked, cov, random_state=0)
     cov_new = compute_covariance(
         EpochsArray(evoked.data[np.newaxis], evoked.info), verbose='error')
     assert cov['names'] == cov_new['names']

@@ -11,6 +11,7 @@ import numpy as np
 from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
+from .._digitization import _make_dig_points
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
 from ..meas_info import _empty_info
 from ..base import BaseRaw
@@ -31,8 +32,8 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
     Parameters
     ----------
-    fname: str
-        path to cnt file containing the annotations.
+    fname: path-like
+        Path to CNT file containing the annotations.
     data_format : 'int16' | 'int32'
         Defines the data format the data is read in.
 
@@ -120,30 +121,30 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the data file.
-    eog : list | tuple | 'auto' | 'header'
+    eog : list | tuple | ``'auto'`` | ``'header'``
         Names of channels or list of indices that should be designated
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
-        header are used. If 'auto', channel names containing 'EOG' are used.
-        Defaults to empty tuple.
+        header are used. If ``'auto'``, channel names containing ``'EOG'`` are
+        used. Defaults to empty tuple.
     misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    ecg : list | tuple | 'auto'
+    ecg : list | tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        ECG channels. If 'auto', the channel names containing 'ECG' are used.
-        Defaults to empty tuple.
+        ECG channels. If ``'auto'``, the channel names containing ``'ECG'`` are
+        used. Defaults to empty tuple.
     emg : list | tuple
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names containing 'EMG' are used.
         Defaults to empty tuple.
-    data_format : 'auto' | 'int16' | 'int32'
-        Defines the data format the data is read in. If 'auto', it is
+    data_format : ``'auto'`` | ``'int16'`` | ``'int32'``
+        Defines the data format the data is read in. If ``'auto'``, it is
         determined from the file header using ``numsamples`` field.
-        Defaults to 'auto'.
-    date_format : 'mm/dd/yy' | 'dd/mm/yy'
-        Format of date in the header. Defaults to 'mm/dd/yy'.
+        Defaults to ``'auto'``.
+    date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
+        Format of date in the header. Defaults to ``'mm/dd/yy'``.
     %(preload)s
     %(verbose)s
 
@@ -151,10 +152,11 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
     -------
     raw : instance of RawCNT.
         The raw data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawCNT.
 
     Notes
     -----
@@ -301,6 +303,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords
+    dig = _make_dig_points(
+        dig_ch_pos=dict(zip(ch_names, coords)),
+        coord_frame="head", add_missing_fiducials=True,
+    )
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
 
@@ -308,7 +314,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                     n_bytes=n_bytes)
 
     session_label = None if str(session_label) == '' else str(session_label)
-    info.update(meas_date=meas_date,
+    info.update(meas_date=meas_date, dig=dig,
                 description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
     info._unlocked = False
@@ -333,29 +339,29 @@ class RawCNT(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the CNT file.
     eog : list | tuple
         Names of channels or list of indices that should be designated
-        EOG channels. If 'auto', the channel names beginning with
+        EOG channels. If ``'auto'``, the channel names beginning with
         ``EOG`` are used. Defaults to empty tuple.
     misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
     ecg : list | tuple
         Names of channels or list of indices that should be designated
-        ECG channels. If 'auto', the channel names beginning with
+        ECG channels. If ``'auto'``, the channel names beginning with
         ``ECG`` are used. Defaults to empty tuple.
     emg : list | tuple
         Names of channels or list of indices that should be designated
-        EMG channels. If 'auto', the channel names beginning with
+        EMG channels. If ``'auto'``, the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
-    data_format : 'auto' | 'int16' | 'int32'
-        Defines the data format the data is read in. If 'auto', it is
+    data_format : ``'auto'`` | ``'int16'`` | ``'int32'``
+        Defines the data format the data is read in. If ``'auto'``, it is
         determined from the file header using ``numsamples`` field.
-        Defaults to 'auto'.
-    date_format : 'mm/dd/yy' | 'dd/mm/yy'
-        Format of date in the header. Defaults to 'mm/dd/yy'.
+        Defaults to ``'auto'``.
+    date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
+        Format of date in the header. Defaults to ``'mm/dd/yy'``.
     %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
@@ -371,7 +377,7 @@ class RawCNT(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     def __init__(self, input_fname, eog=(), misc=(),

@@ -18,6 +18,7 @@ Inverse Solutions
    apply_inverse_cov
    apply_inverse_epochs
    apply_inverse_raw
+   apply_inverse_tfr_epochs
    compute_source_psd
    compute_source_psd_epochs
    compute_rank_inverse
@@ -71,6 +72,7 @@ Inverse Solutions
    apply_dics
    apply_dics_csd
    apply_dics_epochs
+   apply_dics_tfr_epochs
    rap_music
    make_lcmv_resolution_matrix
 

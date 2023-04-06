@@ -40,8 +40,9 @@ MNE-Python and its dependencies. Typical output looks like this::
     qtpy:          2.0.1 {PySide6=6.2.4}
 
 
-.. collapse:: |hand-paper| If you get an error...
-    :class: danger
+.. dropdown:: If you get an error...
+    :color: danger
+    :icon: alert-fill
 
     .. rubric:: If you see an error like:
 
@@ -71,7 +72,6 @@ troubleshooting installation problems.
 .. LINKS
 
 .. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
-.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb

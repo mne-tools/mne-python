@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
 from collections import OrderedDict
+from inspect import signature
 
-from ..fixes import _get_args
 from ..utils import _check_fname, logger
 
 
@@ -14,8 +13,8 @@ def what(fname):
 
     Parameters
     ----------
-    fname : str
-        The filename. Should end in .fif or .fif.gz.
+    fname : path-like
+        The filename. Should end in ``.fif`` or ``.fif.gz``.
 
     Returns
     -------
@@ -56,7 +55,7 @@ def what(fname):
     checks['fiducials'] = read_fiducials
     checks['proj'] = read_proj
     for what, func in checks.items():
-        args = _get_args(func)
+        args = signature(func).parameters
         assert 'verbose' in args, func
         kwargs = dict(verbose='error')
         if 'preload' in args:

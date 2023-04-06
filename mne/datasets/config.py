@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.133', misc='0.23')
+RELEASES = dict(testing='0.144', misc='0.26')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -110,16 +110,20 @@ MNE_DATASETS = dict()
 
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS['testing'] = dict(
-    archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
-    hash='md5:32173080843e20558f664df1531ae4c6',
+    archive_name=f'{TESTING_VERSIONED}.tar.gz',
+    hash='md5:fb546f44dba3310945225ed8fdab4a91',
     url=('https://codeload.github.com/mne-tools/mne-testing-data/'
          f'tar.gz/{RELEASES["testing"]}'),
+    # In case we ever have to resort to osf.io again...
+    # archive_name='mne-testing-data.tar.gz',
+    # hash='md5:c805a5fed8ca46f723e7eec828d90824',
+    # url='https://osf.io/dqfgy/download?version=1',  # 0.136
     folder_name='MNE-testing-data',
     config_key='MNE_DATASETS_TESTING_PATH',
 )
 MNE_DATASETS['misc'] = dict(
     archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
-    hash='md5:01e409d82ff11ca8b19a27c4f7ee6794',
+    hash='md5:868b484fadd73b1d1a3535b7194a0d03',
     url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
          f'{RELEASES["misc"]}'),
     folder_name='MNE-misc-data',
@@ -132,6 +136,14 @@ MNE_DATASETS['fnirs_motor'] = dict(
     url='https://osf.io/dj3eh/download?version=1',
     folder_name='MNE-fNIRS-motor-data',
     config_key='MNE_DATASETS_FNIRS_MOTOR_PATH',
+)
+
+MNE_DATASETS['ucl_opm_auditory'] = dict(
+    archive_name='auditory_OPM_stationary.zip',
+    hash='md5:9ed0d8d554894542b56f8e7c4c0041fe',
+    url='https://osf.io/download/mwrt3/?version=1',
+    folder_name='auditory_OPM_stationary',
+    config_key='MNE_DATASETS_UCL_OPM_AUDITORY_PATH',
 )
 
 MNE_DATASETS['kiloword'] = dict(
@@ -322,4 +334,13 @@ MNE_DATASETS['fake'] = dict(
          'datasets/foo.tgz'),
     folder_name='foo',
     config_key='MNE_DATASETS_FAKE_PATH'
+)
+
+# eyelink dataset
+MNE_DATASETS['eyelink'] = dict(
+    archive_name='eyelink_example_data.zip',
+    hash='md5:081950c05f35267458d9c751e178f161',
+    url=('https://osf.io/r5ndq/download?version=1'),
+    folder_name='eyelink-example-data',
+    config_key='MNE_DATASETS_EYELINK_PATH'
 )

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: Simplified BSD
@@ -9,7 +8,8 @@ from .open import read_tag, fiff_open
 from .tree import dir_tree_find
 from .write import (start_block, end_block, write_int, write_float,
                     write_string, write_float_matrix, write_int_matrix,
-                    write_float_sparse, write_id)
+                    write_float_sparse, write_id, write_name_list_sanitized,
+                    _safe_name_list)
 from .tag import find_tag
 from .constants import FIFF
 from ..fixes import _csc_matrix_cast
@@ -225,9 +225,9 @@ def _read_maxfilter_record(fid, tree):
             else:
                 if kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
                     tag = read_tag(fid, pos)
-                    chs = tag.data.split(':')
+                    chs = _safe_name_list(tag.data, 'read', 'proj_items_chs')
                     # This list can null chars in the last entry, e.g.:
-                    # [..., u'MEG2642', u'MEG2643', u'MEG2641\x00 ... \x00']
+                    # [..., 'MEG2642', 'MEG2643', 'MEG2641\x00 ... \x00']
                     chs[-1] = chs[-1].split('\x00')[0]
                     sss_ctc['proj_items_chs'] = chs
 
@@ -278,8 +278,9 @@ def _write_maxfilter_record(fid, record):
             if key in sss_ctc:
                 writer(fid, id_, sss_ctc[key])
         if 'proj_items_chs' in sss_ctc:
-            write_string(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
-                         ':'.join(sss_ctc['proj_items_chs']))
+            write_name_list_sanitized(
+                fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
+                sss_ctc['proj_items_chs'], 'proj_items_chs')
         end_block(fid, FIFF.FIFFB_CHANNEL_DECOUPLER)
 
     sss_cal = record['sss_cal']

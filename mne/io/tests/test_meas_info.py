@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 # # Authors: MNE Developers
 #            Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
 
-from datetime import datetime, timedelta, timezone, date
 import hashlib
-import os.path as op
 import pickle
+from datetime import datetime, timedelta, timezone, date
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -40,24 +39,26 @@ from mne.io._digitization import _write_dig_points, _make_dig_points, DigPoint
 from mne.transforms import Transform
 from mne.utils import catch_logging, assert_object_equal, _record_warnings
 
-fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
-                          'fsaverage', 'fsaverage-fiducials.fif')
-base_dir = op.join(op.dirname(__file__), 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+fiducials_fname = (
+    Path(__file__).parent.parent.parent
+    / "data"
+    / "fsaverage"
+    / "fsaverage-fiducials.fif"
+)
+base_dir = Path(__file__).parent / "data"
+raw_fname = base_dir / "test_raw.fif"
+chpi_fname = base_dir / "test_chpi_raw_sss.fif"
+event_name = base_dir / "test-eve.fif"
 
-kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
-hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
-elp_fname = op.join(kit_data_dir, 'test_elp.txt')
+kit_data_dir = Path(__file__).parent.parent / "kit" / "tests" / "data"
+hsp_fname = kit_data_dir / "test_hsp.txt"
+elp_fname = kit_data_dir / "test_elp.txt"
 
 data_path = testing.data_path(download=False)
-sss_path = op.join(data_path, 'SSS')
-pre = op.join(sss_path, 'test_move_anon_')
-sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
-ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
-raw_invalid_bday_fname = op.join(data_path, 'misc',
-                                 'sample_invalid_birthday_raw.fif')
+sss_path = data_path / "SSS"
+sss_ctc_fname = sss_path / "test_move_anon_crossTalk_raw_sss.fif"
+ctf_fname = data_path / "CTF" / "testdata_ctf.ds"
+raw_invalid_bday_fname = data_path / "misc" / "sample_invalid_birthday_raw.fif"
 
 
 @pytest.mark.parametrize('kwargs, want', [
@@ -246,7 +247,7 @@ def test_read_write_info(tmp_path):
     assert (len(info['chs']) == len(info2['chs']))
     assert_array_equal(t1, t2)
     # proc_history (e.g., GH#1875)
-    creator = u'é'
+    creator = 'é'
     info = read_info(chpi_fname)
     info['proc_history'][0]['creator'] = creator
     info['hpi_meas'][0]['creator'] = creator
@@ -809,7 +810,7 @@ def test_check_compensation_consistency():
         with catch_logging() as log:
             Epochs(raw, events, None, -0.2, 0.2, preload=False,
                    picks=picks, verbose=True)
-            assert'Removing 5 compensators' in log.getvalue()
+            assert 'Removing 5 compensators' in log.getvalue()
 
 
 def test_field_round_trip(tmp_path):
@@ -885,13 +886,13 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     #
     # raw
     #
-    if fname.endswith('fif'):
+    if fname.suffix == ".fif":
         raw = read_raw_fif(fname)
         raw.pick_channels(raw.ch_names[:3])
         ref_names = []
         data_names = raw.ch_names
     else:
-        assert fname.endswith('.ds')
+        assert fname.suffix == ".ds"
         raw = read_raw_ctf(fname)
         ref_names = [raw.ch_names[pick]
                      for pick in pick_types(raw.info, meg=False, ref_meg=True)]
@@ -932,7 +933,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     assert 'truncated to 15' in log
     for name in raw.ch_names:
         assert len(name) > 15
-    # first read the full way
+    # first read the full waytmp_path
     with catch_logging() as log:
         raw_read = read_raw_fif(fname, verbose=True)
     log = log.getvalue()
@@ -1059,13 +1060,6 @@ def test_info_bad():
             info[key] = info[key]
     with pytest.raises(ValueError, match='between meg<->head'):
         info['dev_head_t'] = Transform('mri', 'head', np.eye(4))
-
-
-def test_info_pick_channels():
-    """Test that info.pick_channels emits a deprecation warning."""
-    info = create_info(2, 1000., 'eeg')
-    with pytest.deprecated_call(match='use inst.pick_channels instead.'):
-        info.pick_channels(['0'])
 
 
 def test_get_montage():

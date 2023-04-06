@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-sim-raw-sub:
 
@@ -21,8 +20,6 @@ using dynamic statistical parametric mapping (dSPM) inverse operator.
 
 # %%
 
-import os.path as op
-
 import numpy as np
 
 import mne
@@ -30,34 +27,41 @@ from mne.datasets import sample
 
 print(__doc__)
 
+# %%
 # In this example, raw data will be simulated for the sample subject, so its
 # information needs to be loaded. This step will download the data if it not
 # already on your machine. Subjects directory is also set so it doesn't need
 # to be given to functions.
-data_path = sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-subject = 'sample'
-meg_path = op.join(data_path, 'MEG', subject)
 
+data_path = sample.data_path()
+subjects_dir = data_path / 'subjects'
+subject = 'sample'
+meg_path = data_path / 'MEG' / subject
+
+# %%
 # First, we get an info structure from the sample subject.
-fname_info = op.join(meg_path, 'sample_audvis_raw.fif')
+
+fname_info = meg_path / 'sample_audvis_raw.fif'
 info = mne.io.read_info(fname_info)
 tstep = 1 / info['sfreq']
 
+# %%
 # To simulate sources, we also need a source space. It can be obtained from the
 # forward solution of the sample subject.
-fwd_fname = op.join(meg_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
+
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fwd_fname)
 src = fwd['src']
 
+# %%
 # To simulate raw data, we need to define when the activity occurs using events
 # matrix and specify the IDs of each event.
 # Noise covariance matrix also needs to be defined.
 # Here, both are loaded from the sample dataset, but they can also be specified
 # by the user.
 
-fname_event = op.join(meg_path, 'sample_audvis_raw-eve.fif')
-fname_cov = op.join(meg_path, 'sample_audvis-cov.fif')
+fname_event = meg_path / 'sample_audvis_raw-eve.fif'
+fname_cov = meg_path / 'sample_audvis-cov.fif'
 
 events = mne.read_events(fname_event)
 noise_cov = mne.read_cov(fname_cov)

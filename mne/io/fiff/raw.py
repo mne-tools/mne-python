@@ -34,7 +34,7 @@ class Raw(BaseRaw):
 
     Parameters
     ----------
-    fname : str | file-like
+    fname : path-like | file-like
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames not ending with
         ``raw.fif``, ``raw_sss.fif``, ``raw_tsss.fif``, ``_meg.fif``,
@@ -143,7 +143,7 @@ class Raw(BaseRaw):
                 endings += tuple([f'{e}.gz' for e in endings])
                 check_fname(fname, 'raw', endings)
             # filename
-            fname = _check_fname(fname, 'read', True, 'fname')
+            fname = str(_check_fname(fname, "read", True, "fname"))
             ext = os.path.splitext(fname)[1].lower()
             whole_file = preload if '.gz' in ext else False
             del ext
@@ -436,7 +436,7 @@ def _get_fname_rep(fname):
 def _check_entry(first, nent):
     """Sanity check entries."""
     if first >= nent:
-        raise IOError('Could not read data, perhaps this is a corrupt file')
+        raise OSError('Could not read data, perhaps this is a corrupt file')
 
 
 @fill_doc
@@ -446,7 +446,7 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
 
     Parameters
     ----------
-    fname : str | file-like
+    fname : path-like | file-like
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,

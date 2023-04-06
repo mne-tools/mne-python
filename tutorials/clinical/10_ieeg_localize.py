@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-ieeg-localize:
 
@@ -21,6 +20,11 @@ be warped to a template space such as ``fsaverage`` for group comparisons.
 Please note that this tutorial requires ``nibabel``, ``nilearn`` and ``dipy``
 which can be installed using ``pip`` as well as 3D plotting
 (see :ref:`manual-install`).
+
+Support for intracranial electrophysiology analysis in MNE was added after
+the original publication, so please cite :footcite:`RockhillEtAl2022` if you
+use this module in your analysis to support the addition of new projects to
+MNE.
 """
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
@@ -29,9 +33,6 @@ which can be installed using ``pip`` as well as 3D plotting
 # License: BSD-3-Clause
 
 # %%
-
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -46,7 +47,7 @@ from mne.datasets import fetch_fsaverage
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
+subjects_dir = sample_path / 'subjects'
 
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
@@ -66,7 +67,7 @@ mne.viz.set_3d_backend('pyvistaqt')
 # coordinate frame an ACPC coordinate frame. This can be done using
 # Freesurfer's freeview:
 #
-# .. code-block:: bash
+# .. code-block:: console
 #
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz
 #
@@ -95,7 +96,7 @@ mne.viz.set_3d_backend('pyvistaqt')
 # after you're finished using ``Save Volume As`` in the transform popup
 # :footcite:`HamiltonEtAl2017`.
 
-T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'T1.mgz'))
+T1 = nib.load(misc_path / 'seeg' / 'sample_seeg' / 'mri' / 'T1.mgz')
 viewer = T1.orthoview()
 viewer.set_position(0, 9.9, 5.8)
 viewer.figs[0].axes[0].annotate(
@@ -118,7 +119,7 @@ viewer.figs[0].axes[0].annotate(
 # The example dataset contains the data from completed reconstruction so
 # we will proceed using that.
 #
-# .. code-block:: bash
+# .. code-block:: console
 #
 #     $ export SUBJECT=sample_seeg
 #     $ export SUBJECTS_DIR=$MY_DATA_DIRECTORY
@@ -128,7 +129,7 @@ viewer.figs[0].axes[0].annotate(
 # .. note::
 #     You may need to include an additional ``-cw256`` flag which can be added
 #     to the end of the recon-all command if your MR scan is not
-#     ``256 x 256 x 256`` voxels.
+#     ``256 × 256 × 256`` voxels.
 #
 # .. note::
 #     Using the ``-deface`` flag will create a defaced, anonymized T1 image
@@ -168,7 +169,7 @@ def plot_overlay(image, compare, title, thresh=None):
     fig.tight_layout()
 
 
-CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
+CT_orig = nib.load(misc_path / 'seeg' / 'sample_seeg_CT.mgz')
 
 # resample to T1's definition of world coordinates
 CT_resampled = resample(moving=np.asarray(CT_orig.dataobj),
@@ -187,7 +188,7 @@ del CT_resampled
 # here::
 #
 #    reg_affine, _ = mne.transforms.compute_volume_registration(
-#         CT_orig, T1, pipeline='rigids', zooms=dict(translation=5)))
+#         CT_orig, T1, pipeline='rigids')
 #
 # Instead we just hard-code the resulting 4x4 matrix:
 
@@ -196,6 +197,7 @@ reg_affine = np.array([
     [0.04374389, 0.99439665, -0.09623816, -97.58320673],
     [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
     [0., 0., 0., 1.]])
+
 # use a cval='1%' here to make the values outside the domain of the CT
 # the same as the background level during interpolation
 CT_aligned = mne.transforms.apply_volume_registration(
@@ -208,7 +210,7 @@ del CT_orig
 #     Alignment failures sometimes occur which requires manual pre-alignment.
 #     Freesurfer's ``freeview`` can be used to to align manually
 #
-#     .. code-block:: bash
+#     .. code-block:: console
 #
 #         $ freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz \
 #            $MISC_PATH/seeg/sample_seeg_CT.mgz:colormap=heat:opacity=0.6
@@ -228,21 +230,18 @@ del CT_orig
 #
 #     .. code-block:: python
 #
-#         from dipy.align import affine_registration
 #         # load transform
 #         manual_reg_affine_vox = mne.read_lta(op.join(  # the path used above
 #             misc_path, 'seeg', 'sample_seeg_CT_aligned_manual.mgz.lta'))
 #         # convert from vox->vox to ras->ras
 #         manual_reg_affine = \
 #             CT_orig.affine @ np.linalg.inv(manual_reg_affine_vox) \
-#             @ np.linalg.inv(T1.affine)
-#         CT_aligned_fix_img = affine_registration(
-#             moving=np.array(CT_orig.dataobj), static=np.array(T1.dataobj),
-#             moving_affine=CT_orig.affine, static_affine=T1.affine,
-#             pipeline=['rigid'], starting_affine=manual_reg_affine,
-#             level_iters=[100], sigmas=[0], factors=[1])[0]
-#         CT_aligned = nib.MGHImage(
-#             CT_aligned_fix_img.astype(np.float32), T1.affine)
+#             @ np.linalg.inv(CT_orig.affine)
+#         reg_affine, _ = mne.transforms.compute_volume_registration(
+#             CT_orig, T1, pipeline=['rigid'],
+#             starting_affine=manual_reg_affine)
+#         CT_aligned = mne.transforms.apply_volume_registration(
+#             CT_orig, T1, reg_affine, cval='1%')
 #
 #     The rest of the tutorial can then be completed using ``CT_aligned``
 #     from this point on.
@@ -295,7 +294,7 @@ del CT_data, T1
 
 # estimate head->mri transform
 subj_trans = mne.coreg.estimate_head_mri_t(
-    'sample_seeg', op.join(misc_path, 'seeg'))
+    'sample_seeg', misc_path / 'seeg')
 
 # %%
 # Marking the Location of Each Electrode Contact
@@ -314,7 +313,9 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 #           useful for finding the brain structures nearby each contact and
 #           plotting the results.
 #
-# To operate the GUI:
+# See the following video on how to operate the GUI or follow the steps below:
+#
+# .. youtube:: 8JWDJhXq0VY
 #
 # - Click in each image to navigate to each electrode contact
 # - Select the contact name in the right panel
@@ -339,20 +340,21 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 # load electrophysiology data to find channel locations for
 # (the channels are already located in the example)
 
-raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
+raw = mne.io.read_raw(misc_path / 'seeg' / 'sample_seeg_ieeg.fif')
 
-gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
-                          subject='sample_seeg',
-                          subjects_dir=op.join(misc_path, 'seeg'))
+# you may want to add `block=True` to halt execution until you have interacted
+# with the GUI to find the channel positions, that way the raw object can
+# be used later in the script (e.g. saved with channel positions)
+mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
+                    subject='sample_seeg',
+                    subjects_dir=misc_path / 'seeg')
 # The `raw` object is modified to contain the channel locations
-# after closing the GUI and can now be saved
-# gui.close()  # typically you close when done
 
 # %%
 # Let's do a quick sidebar and show what this looks like for ECoG as well.
 
-T1_ecog = nib.load(op.join(misc_path, 'ecog', 'sample_ecog', 'mri', 'T1.mgz'))
-CT_orig_ecog = nib.load(op.join(misc_path, 'ecog', 'sample_ecog_CT.mgz'))
+T1_ecog = nib.load(misc_path / 'ecog' / 'sample_ecog' / 'mri' / 'T1.mgz')
+CT_orig_ecog = nib.load(misc_path / 'ecog' / 'sample_ecog_CT.mgz')
 
 # pre-computed affine from `mne.transforms.compute_volume_registration`
 reg_affine = np.array([
@@ -364,16 +366,16 @@ reg_affine = np.array([
 CT_aligned_ecog = mne.transforms.apply_volume_registration(
     CT_orig_ecog, T1_ecog, reg_affine, cval='1%')
 
-raw_ecog = mne.io.read_raw(op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif'))
+raw_ecog = mne.io.read_raw(misc_path / 'ecog' / 'sample_ecog_ieeg.fif')
 # use estimated `trans` which was used when the locations were found previously
 subj_trans_ecog = mne.coreg.estimate_head_mri_t(
-    'sample_ecog', op.join(misc_path, 'ecog'))
-gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
-                          subject='sample_ecog',
-                          subjects_dir=op.join(misc_path, 'ecog'))
+    'sample_ecog', misc_path / 'ecog')
+mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
+                    subject='sample_ecog',
+                    subjects_dir=misc_path / 'ecog')
 
 # %%
-# for ECoG, we typically want to account for "brain shift" or shrinking of the
+# For ECoG, we typically want to account for "brain shift" or shrinking of the
 # brain away from the skull/dura due to changes in pressure during the
 # craniotomy
 # Note: this requires the BEM surfaces to have been computed e.g. using
@@ -382,7 +384,7 @@ gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
 
 # plot projected sensors
 brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
-brain = mne.viz.Brain('sample_ecog', subjects_dir=op.join(misc_path, 'ecog'),
+brain = mne.viz.Brain('sample_ecog', subjects_dir=misc_path / 'ecog',
                       title='Before Projection', **brain_kwargs)
 brain.add_sensors(raw_ecog.info, trans=subj_trans_ecog)
 view_kwargs = dict(azimuth=60, elevation=100, distance=350,
@@ -395,10 +397,10 @@ brain.show_view(**view_kwargs)
 # project sensors to the brain surface
 raw_ecog.info = mne.preprocessing.ieeg.project_sensors_onto_brain(
     raw_ecog.info, subj_trans_ecog, 'sample_ecog',
-    subjects_dir=op.join(misc_path, 'ecog'))
+    subjects_dir=misc_path / 'ecog')
 
 # plot projected sensors
-brain = mne.viz.Brain('sample_ecog', subjects_dir=op.join(misc_path, 'ecog'),
+brain = mne.viz.Brain('sample_ecog', subjects_dir=misc_path / 'ecog',
                       title='After Projection', **brain_kwargs)
 brain.add_sensors(raw_ecog.info, trans=subj_trans_ecog)
 brain.show_view(**view_kwargs)
@@ -416,7 +418,7 @@ brain.show_view(**view_kwargs)
 # when the electrode contacts were localized so we need to use it again here.
 
 # plot the alignment
-brain = mne.viz.Brain('sample_seeg', subjects_dir=op.join(misc_path, 'seeg'),
+brain = mne.viz.Brain('sample_seeg', subjects_dir=misc_path / 'seeg',
                       **brain_kwargs)
 brain.add_sensors(raw.info, trans=subj_trans)
 brain.show_view(**view_kwargs)
@@ -437,9 +439,9 @@ brain.show_view(**view_kwargs)
 
 # load the subject's brain and the Freesurfer "fsaverage" template brain
 subject_brain = nib.load(
-    op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
+    misc_path / 'seeg' / 'sample_seeg' / 'mri' / 'brain.mgz')
 template_brain = nib.load(
-    op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
+    subjects_dir / 'fsaverage' / 'mri' / 'brain.mgz')
 
 plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
@@ -463,8 +465,6 @@ subject_brain_sdr = mne.transforms.apply_volume_registration(
 plot_overlay(template_brain, subject_brain_sdr,
              'Alignment with fsaverage after SDR Registration')
 
-del subject_brain, template_brain
-
 # %%
 # Finally, we'll apply the registrations to the electrode contact coordinates.
 # The brain image is warped to the template but the goal was to warp the
@@ -481,10 +481,18 @@ del subject_brain, template_brain
 montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
-montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.25,
-    subject_from='sample_seeg', subjects_dir_from=op.join(misc_path, 'seeg'),
-    subject_to='fsaverage', subjects_dir_to=subjects_dir)
+# warp the montage
+montage_warped = mne.preprocessing.ieeg.warp_montage(
+    montage, subject_brain, template_brain, reg_affine, sdr_morph)
+
+# visualize using an image of the electrode contacts to see their sizes
+elec_image = mne.preprocessing.ieeg.make_montage_volume(
+    montage, CT_aligned, thresh=0.25)
+
+# warp image using transforms
+warped_elec_image = mne.transforms.apply_volume_registration(
+    elec_image, template_brain, reg_affine, sdr_morph,
+    interpolation='nearest')
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
@@ -494,7 +502,7 @@ nilearn.plotting.plot_glass_brain(warped_elec_image, axes=axes[1],
 fig.text(0.1, 0.25, 'fsaverage', rotation='vertical')
 fig.suptitle('Electrodes warped to fsaverage')
 
-del CT_aligned
+del CT_aligned, subject_brain, template_brain
 
 # %%
 # We can now plot the result. You can compare this to the plot in

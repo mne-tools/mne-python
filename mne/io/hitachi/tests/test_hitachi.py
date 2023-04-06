@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
@@ -185,18 +184,31 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
     ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r'),
     ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\n'),
     ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r\n'),
+    # Fake a dual-probe file
+    (['1.18', '1.18'], 92, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
 ])
 def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
                        end, tmp_path):
     """Test NIRSport1 file with no saturation."""
-    fname = tmp_path / 'test.csv'
-    contents = CONTENTS[version]
-    if end is not None:
-        contents = contents.replace(b'\r', b'\n').replace(b'\n\n', b'\n')
-        contents = contents.replace(b'\n', end)
-    with open(fname, 'wb') as fid:
-        fid.write(CONTENTS[version])
-    raw = read_raw_hitachi(fname, preload=preload, verbose=True)
+    if not isinstance(version, list):
+        versions = [version]
+    else:
+        versions = version
+    del version
+    fnames = list()
+    for vi, v in enumerate(versions, 1):
+        fname = tmp_path / f'test{vi}.csv'
+        contents = CONTENTS[v].replace(
+            f'Probe{vi - 1}'.encode(),
+            f'Probe{vi}'.encode())
+        if end is not None:
+            contents = contents.replace(b'\r', b'\n').replace(b'\n\n', b'\n')
+            contents = contents.replace(b'\n', end)
+        with open(fname, 'wb') as fid:
+            fid.write(CONTENTS[v])
+        fnames.append(fname)
+        del fname
+    raw = read_raw_hitachi(fnames, preload=preload, verbose=True)
     data = raw.get_data()
     assert data.shape == (n_ch, n_times)
     assert raw.info['sfreq'] == 10
@@ -206,13 +218,13 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     assert raw.info['meas_date'] == dt.datetime(*date, tzinfo=dt.timezone.utc)
     # bad distances (zero)
     distances = source_detector_distances(raw.info)
-    want = [0.] * (n_ch - 4)
+    want = [np.nan] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.)
     raw_od_bad = optical_density(raw)
     with pytest.warns(RuntimeWarning, match='will be zero'):
         beer_lambert_law(raw_od_bad, ppf=6)
     # bad distances (too big)
-    if version == '1.18':
+    if versions[0] == '1.18' and len(fnames) == 1:
         need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 9)), [])[:-1]
         have = 'P7 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 F3'.split()
         assert len(need) == len(have)
@@ -224,22 +236,37 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
             beer_lambert_law(raw_od_bad, ppf=6)
     # good distances
     mon = make_standard_montage('standard_1020')
-    if version == '1.18':
+    if versions[0] == '1.18':
+        assert len(fnames) in (1, 2)
         need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 9)), [])[:-1]
         have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
+        assert len(need) == 15
+        if len(fnames) == 2:
+            need.extend(sum((
+                [f'S{ii}', f'D{jj}']
+                for ii, jj in zip(range(9, 17), range(8, 16))), [])[:-1])
+            have.extend(
+                'F4 FC4 C4 CP4 P4 F6 FC6 C6 CP6 P6 F8 FT8 T8 TP8 P8'.split())
+            assert len(need) == 30
     else:
+        assert len(fnames) == 1
         need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 18)), [])[:-1]
         have = ('FT9 FT7 FC5 FC3 FC1 FCz FC2 FC4 FC6 FT8 FT10 '
                 'T9 T7 C5 C3 C1 Cz C2 C4 C6 T8 T10 '
                 'TP9 TP7 CP5 CP3 CP1 CPz CP2 CP4 CP6 TP8 TP10').split()
+        assert len(need) == 33
     assert len(need) == len(have)
+    for h in have:
+        assert h in mon.ch_names
     mon.rename_channels(dict(zip(have, need)))
+    for n in need:
+        assert n in mon.ch_names
     raw.set_montage(mon)
     distances = source_detector_distances(raw.info)
     want = [0.03] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.01)
     test_rank = 'less' if n_times < n_ch else True
-    _test_raw_reader(read_raw_hitachi, fname=fname,
+    _test_raw_reader(read_raw_hitachi, fname=fnames,
                      boundary_decimal=1, test_rank=test_rank)  # low fs
 
     # TODO: eventually we should refactor these to be in
@@ -250,7 +277,7 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     assert np.isfinite(raw_od.get_data()).all()
     sci = scalp_coupling_index(raw_od, verbose='error')
     lo, mi, hi = np.percentile(sci, [5, 50, 95])
-    if version == '1.18':
+    if versions[0] == '1.18':
         assert -0.1 < lo < 0.1  # not great
         assert 0.4 < mi < 0.5
         assert 0.8 < hi < 0.9

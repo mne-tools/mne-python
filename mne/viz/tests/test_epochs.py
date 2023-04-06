@@ -98,8 +98,12 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
     fig = epochs.plot()
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
-    assert len(texts) == 2
-    wants = ('800.0 fT/cm', '2000.0 fT')
+    if browser_backend.name == 'pyqtgraph':
+        assert len(texts) == 2
+        wants = ('800.0 fT/cm', '2000.0 fT')
+    elif browser_backend.name == 'matplotlib':
+        assert len(texts) == 4
+        wants = ('800.0 fT/cm', '0.55 s', '2000.0 fT', '0.55 s')
     assert texts == wants
 
 
@@ -121,7 +125,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys,
     # test vline
     fig._fake_keypress('escape')  # close and drop epochs
     fig._close_event()  # XXX workaround, MPL Agg doesn't trigger close event
-    assert(n_epochs - 1 == len(epochs))
+    assert n_epochs - 1 == len(epochs)
     # test marking bad channels
     # need more than 1 epoch this time
     fig = epochs_full.plot(n_epochs=3)
@@ -298,7 +302,19 @@ def test_plot_epochs_image(epochs):
     # mismatched picks and order
     with pytest.raises(ValueError, match='must match the length of the data'):
         epochs.plot_image(picks=[1], order=[0, 1])
+    # with a ref MEG channel (that we "convert" from a grad channel)
+    with pytest.warns(RuntimeWarning, match='.* from T/m to T.$'):
+        epochs.set_channel_types({epochs.ch_names[0]: 'ref_meg'})
+    epochs.plot_image()
     plt.close('all')
+
+
+def test_plot_epochs_image_emg():
+    """Test plotting epochs image with EMG."""
+    info = create_info(['EMG 001'], sfreq=100, ch_types='emg')
+    data = np.ones((2, 1, 10))
+    epochs = EpochsArray(data=data, info=info)
+    epochs.plot_image('EMG 001', ts_args={"show_sensors": False})
 
 
 def test_plot_drop_log(epochs_unloaded):
@@ -318,36 +334,37 @@ def test_plot_drop_log(epochs_unloaded):
 
 def test_plot_psd_epochs(epochs):
     """Test plotting epochs psd (+topomap)."""
-    epochs.plot_psd(average=True, spatial_colors=False)
-    epochs.plot_psd(average=False, spatial_colors=True)
-    epochs.plot_psd(average=False, spatial_colors=False)
+    spectrum = epochs.compute_psd()
+    spectrum.plot(average=True, spatial_colors=False)
+    spectrum.plot(average=False, spatial_colors=True)
+    spectrum.plot(average=False, spatial_colors=False)
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match='No frequencies in band'):
-        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+        spectrum.plot_topomap(bands=dict(foo=(0, 0.01)))
     plt.close('all')
     # test defaults
-    fig = epochs.plot_psd_topomap()
+    fig = spectrum.plot_topomap()
     assert len(fig.axes) == 10  # default: 5 bands (δ, θ, α, β, γ) + colorbars
     # test joint vlim
-    fig = epochs.plot_psd_topomap(vlim='joint')
+    fig = spectrum.plot_topomap(vlim='joint')
     vmin_0 = fig.axes[0].images[0].norm.vmin
     vmax_0 = fig.axes[0].images[0].norm.vmax
     assert all(vmin_0 == ax.images[0].norm.vmin for ax in fig.axes[1:5])
     assert all(vmax_0 == ax.images[0].norm.vmax for ax in fig.axes[1:5])
-    # test support for single-bin bands
-    fig = epochs.plot_psd_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
+    # test support for single-bin bands and old-style list-of-tuple input
+    fig = spectrum.plot_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
     # test with a flat channel
     err_str = 'for channel %s' % epochs.ch_names[2]
     epochs.get_data()[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
-            epochs.plot_psd(dB=dB)
+            epochs.compute_psd().plot(dB=dB)
 
 
 def test_plot_psdtopo_nirs(fnirs_epochs):
     """Test plotting of PSD topography for nirs data."""
-    bands = [(0.2, '0.2 Hz'), (0.4, '0.4 Hz'), (0.8, '0.8 Hz')]
-    fig = fnirs_epochs.plot_psd_topomap(bands=bands)
+    bands = {'0.2 Hz': 0.2, '0.4 Hz': 0.4, '0.8 Hz': 0.8}
+    fig = fnirs_epochs.compute_psd().plot_topomap(bands=bands)
     assert len(fig.axes) == 6  # 3 band x (plot + cmap)
 
 
@@ -382,16 +399,16 @@ def test_plot_psd_epochs_ctf(raw_ctf):
     """Test plotting CTF epochs psd (+topomap)."""
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
-    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
-                  bands=[(0, 0.01, 'foo')])  # no freqs in range
-    epochs.plot_psd_topomap()
-
     # EEG060 is flat in this dataset
-    for dB in [True, False]:
-        with pytest.warns(UserWarning, match='for channel EEG060'):
-            epochs.plot_psd(dB=dB)
-    epochs.drop_channels(['EEG060'])
-    epochs.plot_psd(spatial_colors=False, average=False)
+    with pytest.warns(UserWarning, match='for channel EEG060'):
+        spectrum = epochs.compute_psd()
+        for dB in [True, False]:
+            spectrum.plot(dB=dB)
+    spectrum.drop_channels(['EEG060'])
+    spectrum.plot(spatial_colors=False, average=False)
+    with pytest.raises(RuntimeError, match='No frequencies in band'):
+        spectrum.plot_topomap(bands=[(0, 0.01, 'foo')])
+    spectrum.plot_topomap()
 
 
 def test_plot_epochs_selection_butterfly(raw, browser_backend):
