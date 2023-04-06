@@ -6,7 +6,7 @@ if [ "${TEST_MODE}" == "pip" ]; then
 	python -m pip install --upgrade --only-binary ":all:" numpy scipy vtk
 	python -m pip install --upgrade --only-binary="numba,llvmlite" -r requirements.txt
 	# This can be removed once PyVistaQt 0.6 is out (including https://github.com/pyvista/pyvistaqt/pull/127)
-	python -m pip install --upgrade https://github.com/pyvista/pyvistaqt/zipball/main
+	python -m pip install --upgrade git+https://github.com/pyvista/pyvistaqt
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off --upgrade pip setuptools wheel
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six cycler kiwisolver pyparsing patsy
@@ -19,8 +19,8 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -i "https://test.pypi.org/simple" openmeeg
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps vtk
-	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
-	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
+	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvista
+	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvistaqt
 	python -m pip install --progress-bar off --upgrade --pre imageio-ffmpeg xlrd mffpy python-picard patsy pillow
 	EXTRA_ARGS="--pre"
 	./tools/check_qt_import.sh PyQt6
