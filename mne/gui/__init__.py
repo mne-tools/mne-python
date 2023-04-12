@@ -200,8 +200,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     )
 
 
-@deprecated('Use the :mod:`mne-gui-addons` package instead, will be '
-            'removed in version 1.5.0')
+@deprecated('Use the :mod:`mne-gui-addons:mne_gui_addons` package instead, '
+            'will be removed in version 1.5.0')
 @verbose
 def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
                 groups=None, show=True, block=False, verbose=None):
