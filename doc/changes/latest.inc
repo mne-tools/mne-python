@@ -71,6 +71,7 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
+- Deprecate ``mne.gui.locate_ieeg`` in favor of :func:`mne-gui-addons:mne_gui_addons.locate_ieeg` (:gh:`11616` by `Alex Rockhill`_)
 - Deprecate arguments ``kind`` and ``path`` from :func:`mne.channels.read_layout` in favor of a common argument ``fname`` (:gh:`11500` by `Mathieu Scheltienne`_)
 - Change ``aligned_ct`` positional argument in ``mne.gui.locate_ieeg`` to ``base_image`` to reflect that this can now be used with unaligned images (:gh:`11567` by `Alex Rockhill`_)
 - ``mne.warp_montage_volume`` was deprecated in favor of :func:`mne.preprocessing.ieeg.warp_montage` (acts directly on points instead of using an intermediate volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (which makes a volume of ieeg contact locations which can still be useful) (:gh:`11572` by `Alex Rockhill`_)
