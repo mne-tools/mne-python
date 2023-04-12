@@ -122,9 +122,9 @@ psd_post_reg = raw.compute_psd(**psd_kwargs)
 # only requires that the sensors on the helmet stationary relative to each
 # other. Which in a well-designed rigid helmet is the case.
 
-hfc = mne.preprocessing.FieldCorrector()
+hfc = mne.preprocessing.FieldCorrector(order=2)  # include gradients
 hfc.fit(raw)
-hfc.apply(raw, copy=None)
+hfc.apply(raw)
 
 # plot
 data_ds, _ = raw[picks[::5], :stop]
@@ -187,14 +187,14 @@ ax.set(xlim=(0, 20), title='Reference regression & HFC shielding',
 # to the neural signals we are interested in).
 #
 # We are going to remove the 50 Hz mains signal with a notch filter,
-# followed by a bandpass filter between 1 and 48 Hz. From here it becomes clear
+# followed by a bandpass filter between 2 and 40 Hz. From here it becomes clear
 # that the variance in our signal has been reduced from 100s of pT to 10s of
 # pT instead.
 
 # notch
-raw.notch_filter(np.arange(50, 251, 50))
+raw.notch_filter(np.arange(50, 251, 50), notch_widths=4)
 # bandpass
-raw.filter(2, 48, picks='meg')
+raw.filter(2, 40, picks='meg')
 # plot
 data_ds, _ = raw[picks[::5], :stop]
 data_ds = data_ds[:, ::step] * amp_scale
@@ -213,7 +213,7 @@ ax.set(title='After regression, HFC and filtering', **set_kwargs)
 # With the data preprocessed, it is now possible to see an auditory evoked
 # response at the sensor level.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 7
 
 events = mne.find_events(raw, min_duration=0.1)
 epochs = mne.Epochs(raw, events, tmin=-0.1, tmax=0.4, baseline=(-0.1, 0.))

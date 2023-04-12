@@ -20,6 +20,7 @@ fname_root = "sub-noise_ses-001_task-noise220622_run-001"
 # TODO: Ignore this warning in all these tests until we deal with this properly
 pytestmark = pytest.mark.filterwarnings(
     'ignore:.*problems later!:RuntimeWarning',
+    'ignore:.*Projection vector.*'
 )
 
 
@@ -43,7 +44,7 @@ def _unpack_mat(matin):
 
 
 def _angle_between(A, B):
-    """Measure the angle between two vectors"""
+    """Measure the angle between two vectors."""
     A = A[:, np.newaxis]
     nA = np.linalg.norm(A, axis=0)
     nB = np.linalg.norm(B, axis=1)
@@ -69,7 +70,7 @@ def _match_str(A_list, B_list):
 
 
 def _compare_hfc_results(order, rtol=1e-7):
-    """Apply HFC and compare to previous computed solutions"""
+    """Apply HFC and compare to previous computed solutions."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     raw = read_raw_fil(binname, verbose=False)
     raw.load_data(verbose=False)
@@ -94,7 +95,7 @@ def _compare_hfc_results(order, rtol=1e-7):
 
 @testing.requires_testing_data
 def test_l1_basis_orientations():
-    """Test that angles between the basis components matches orientations"""
+    """Test that angles between the basis components matches orientations."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     raw = read_raw_fil(binname)
     raw.load_data(verbose=False)
@@ -115,17 +116,17 @@ def test_l1_basis_orientations():
 
 @testing.requires_testing_data
 def test_l1_correction():
-    """Compare HFC (l=1) to previous computed results in another language"""
+    """Compare HFC (l=1) to previous computed results in another language."""
     _compare_hfc_results(1)
 
 
 @testing.requires_testing_data
 def test_l2_correction():
-    """Compare HFC (l=2) to previous computed results in another language"""
+    """Compare HFC (l=2) to previous computed results in another language."""
     _compare_hfc_results(2)
 
 
 @testing.requires_testing_data
 def test_l3_correction():
-    """Compare HFC (l=3) to previous computed results in another language"""
+    """Compare HFC (l=3) to previous computed results in another language."""
     _compare_hfc_results(3)
