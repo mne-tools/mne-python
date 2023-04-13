@@ -352,8 +352,8 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
        Note. Overrides `exclude` parameter.
     exclude : None | list
        The event channels to be ignored when creating the synthetic
-       trigger. Defaults to None. If None, channels that have more than
-       one event and the ``sync`` and ``TREV`` channels will be
+       trigger. Defaults to None. If None, channels that have only one event
+       and the ``sync`` and ``TREV`` channels will be
        ignored.
     %(preload)s
     channel_naming : str
@@ -431,7 +431,7 @@ class RawMff(BaseRaw):
                 more_excludes = []
                 if exclude is None:
                     for ii, event in enumerate(egi_events):
-                        if event.sum() <= 1 and event_codes[ii]:
+                        if np.count_nonzero(event) <= 1 and event_codes[ii]:
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn('Did not find any event code with more than one '
