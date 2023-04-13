@@ -16,8 +16,8 @@ def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
     """Generate projectors to perform homogeneous/harmonic correction to data.
 
     Remove evironmental fields from magentometer data by assuming it is
-    explained as a homogeneous (footcite`TierneyEtAl2021`) or harmonic field
-    (footcite`TierneyEtAl2022`). Useful for arrays of OPMs.
+    explained as a homogeneous :footcite:`TierneyEtAl2021` or harmonic field
+    :footcite:`TierneyEtAl2022`. Useful for arrays of OPMs.
 
     Parameters
     ----------

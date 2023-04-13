@@ -34,7 +34,7 @@ opm_file = (opm_data_folder / 'sub-002' / 'ses-001' / 'meg' /
 # For now we are going to assume the device and head coordinate frames are
 # identical (even though this is incorrect), so we pass verbose='error' for now
 raw = mne.io.read_raw_fil(opm_file, verbose='error')
-raw.crop(120, 240).load_data()  # crop for speed
+raw.crop(120, 210).load_data()  # crop for speed
 
 # %%
 # Examining raw data
@@ -74,6 +74,7 @@ ax.set(title='No preprocessing', **set_kwargs)
 # To do this in our current dataset, we require a bit of housekeeping.
 # There are a set of channels beginning with the name "Flux" which do not
 # contain any evironmental data, these need to be set to as bad channels.
+# Another channel -- G2-17-TAN -- will also be set to bad.
 #
 # For now we are only interested in removing artefacts seen below 5 Hz, so we
 # initially low-pass filter the good reference channels in this dataset prior
@@ -88,6 +89,7 @@ ax.set(title='No preprocessing', **set_kwargs)
 # set flux channels to bad
 bad_picks = mne.pick_channels_regexp(raw.ch_names, regexp='Flux.')
 raw.info['bads'].extend([raw.ch_names[ii] for ii in bad_picks])
+raw.info['bads'].extend(['G2-17-TAN'])
 
 # compute the PSD for later using 1 Hz resolution
 psd_kwargs = dict(fmax=20, n_fft=int(round(raw.info['sfreq'])))
@@ -122,9 +124,11 @@ psd_post_reg = raw.compute_psd(**psd_kwargs)
 # only requires that the sensors on the helmet stationary relative to each
 # other. Which in a well-designed rigid helmet is the case.
 
+
 # include gradients by setting order to 2
 projs = mne.preprocessing.compute_proj_hfc(raw.info, order=2)
-raw.add_proj(projs).apply_proj()
+raw.add_proj(projs).apply_proj(verbose='error')
+raw.info.normalize_proj()
 
 # plot
 data_ds, _ = raw[picks[::5], :stop]
