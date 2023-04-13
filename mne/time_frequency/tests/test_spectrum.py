@@ -137,8 +137,6 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
-# TODO: Fix this warning
-@pytest.mark.filterwarnings("ignore:.*columns to operate on.*:FutureWarning")
 @pytest.mark.parametrize('long_format', (False, True))
 @pytest.mark.parametrize('method, output', [
     ('welch', 'complex'),
