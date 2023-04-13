@@ -122,9 +122,9 @@ psd_post_reg = raw.compute_psd(**psd_kwargs)
 # only requires that the sensors on the helmet stationary relative to each
 # other. Which in a well-designed rigid helmet is the case.
 
-hfc = mne.preprocessing.FieldCorrector(order=2)  # include gradients
-hfc.fit(raw)
-hfc.apply(raw)
+# include gradients by setting order to 2
+projs = mne.preprocessing.compute_proj_hfc(raw.info, order=2)
+raw.add_proj(projs).apply_proj()
 
 # plot
 data_ds, _ = raw[picks[::5], :stop]

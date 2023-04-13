@@ -8,7 +8,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fil
-from mne.preprocessing.hfc import (FieldCorrector, apply_hfc,
+from mne.preprocessing.hfc import (compute_proj_hfc,
                                    _filter_channels_with_positions)
 from mne.io.pick import pick_types, pick_info
 
@@ -74,23 +74,23 @@ def _compare_hfc_results(order, rtol=1e-7):
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     raw = read_raw_fil(binname, verbose=False)
     raw.load_data(verbose=False)
-    raw1, model = apply_hfc(raw, order=order, accuracy='point')
+    projs = compute_proj_hfc(raw.info, order=order, accuracy='point')
+    raw.add_proj(projs).apply_proj()
 
     fname = fname_root + "_hfc_l{0}.mat".format(order)
     matname = fil_path / fname
     tmp = scipy.io.loadmat(matname)
     mat = _unpack_mat(tmp)
 
-    test_inds = pick_types(raw1.info, meg="mag",
-                           ref_meg=False, exclude="bads")
-    test_list = list(raw1.info["ch_names"][i] for i in test_inds)
+    test_list = projs[0]['data']['col_names']
+    test_inds = _match_str(test_list, raw.ch_names)
     mat_list = mat["coil_label"]
     mat_inds = _match_str(test_list, mat_list)
 
     a = mat['trial'][mat_inds]
-    b = raw1._data[model.picks, 0:300] * 1e15
+    b = raw._data[test_inds, 0:300] * 1e15
 
-    np.testing.assert_allclose(a, b, rtol=rtol, verbose=False)
+    np.testing.assert_allclose(a, b, verbose=False)
 
 
 @testing.requires_testing_data
@@ -98,10 +98,10 @@ def test_l1_basis_orientations():
     """Test that angles between the basis components matches orientations."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     raw = read_raw_fil(binname)
-    raw.load_data(verbose=False)
-    model = FieldCorrector(accuracy='point').fit(raw)
-    ang_model = np.concatenate([_angle_between(b, model.basis)
-                                for b in model.basis])
+    projs = compute_proj_hfc(raw.info, accuracy='point')
+    basis = np.hstack([p['data']['data'].T for p in projs])
+    ang_model = np.concatenate([_angle_between(b, basis)
+                                for b in basis])
 
     idx = pick_types(raw.info, meg='mag')
     idx_loc = _filter_channels_with_positions(raw.info, idx)

@@ -7,28 +7,31 @@ from .maxwell import _prep_mf_coils, _sss_basis
 from ..forward import _prep_meg_channels
 from ..io.pick import pick_types
 from ..io.proj import Projection
-from ..utils import fill_doc, verbose
+from ..utils import verbose
 
 
 @verbose
-def apply_hfc(
-        raw, order=1, exclude_bads=True, accuracy='accurate', verbose=None):
-    """Apply homgenous/harmonic field correction to magnetometer data.
+def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
+                     accuracy='accurate', verbose=None):
+    """Generate projectors to perform homogeneous/harmonic correction to data.
 
     Remove evironmental fields from magentometer data by assuming it is
-    explained as a homogeneous or harmonic field. Useful for arrays of OPMs.
+    explained as a homogeneous (footcite`TierneyEtAl2021`) or harmonic field
+    (footcite`TierneyEtAl2022`). Useful for arrays of OPMs.
 
     Parameters
     ----------
-    raw : instance of Raw
-        The data instance to process.
+    info : instance of Info
+        Info from an instance of Raw (preferable).
     order : int
         The order of the spherical harmonic basis set to use. Set to 1 to use
         only the homogeneous field component (default), 2 to add gradients, 3
         to add quadrature terms etc.
+    picks : int | array-like
+        List of channels indices to compute projeciton on. Default behaviour
+        is to select meg (non-reference) with known positions.
     exclude_bads : bool
-        Do not include bad channels in the projection, or alter their data
-        (default: True).
+        Do not include bad channels in the projection, (default: True).
     accuracy : str
         Can be ``"point"``, ``"normal"`` or ``"accurate"`` (default), defines
         which level of coil definition accuracy is used to generate model.
@@ -36,221 +39,35 @@ def apply_hfc(
 
     Returns
     -------
-    proc : Raw
-        The processed data.
-    model: FieldCorrector
-        Field correction model used.
-    """
-    if exclude_bads is True:
-        picks_idx = pick_types(raw.info, meg=True)
-    else:
-        picks_idx = pick_types(raw.info, meg=True, exclude=None)
-    sens_idx = _filter_channels_with_positions(raw.info, picks_idx)
-    model = FieldCorrector(picks=sens_idx, order=order,
-                           accuracy=accuracy).fit(raw)
-    proc = model.apply(raw)
+    projs: list
+        List of projection vectors.
 
-    return proc, model
+    Notes
+    -----
+    To apply the projectors to a dataset, use
+    `[DATA].add_proj(projs).apply_proj()`.
 
-
-@fill_doc
-class FieldCorrector():
-    """Constructor for homogeneous/harmonic field correction.
-
-    FieldCorrector contains assets required for offline subtraction of
-    the modelled environmental interference, and forward model compensation.
-
-    Parameters
+    References
     ----------
-    picks : list
-        List of sensor indices to build model with. Default of None will
-        automatically select only good magnetometers with a known location and
-        orientation.
-    order : int
-        The order of the spherical harmonic basis set to use. Set to 1 to use
-        only the homogeneous field component (default), 2 to add gradients, 3
-        to add quadrature terms etc.
-    accuracy : str
-        Can be ``"point"``, ``"normal"`` or ``"accurate"`` (default), defines
-        which level of coil definition accuracy is used to generate model.
-
-    Attributes
-    ----------
-    picks : list | array-like
-        Channels to perform the correction on.
-    order : int
-        Selected model order
-    basis : ndarray, shape (n, order ** 2 + 2 * order)
-        The channels designated as containing the artifacts of interest.
-    channels : list
-        List of channels basis vectors were generated with, may be different
-        to the initial picks (e.g. if picked sensor is classed as a refmag).
-    labels: list
-        Names of the basis vectors, based on their sphrical harmonic content.
+    .. footbibliography::
     """
+    if picks is None:
+        if exclude_bads is True:
+            picks = pick_types(info, meg=True)
+        else:
+            picks = pick_types(info, meg=True, exclude=None)
+    picks = _filter_channels_with_positions(info, picks)
+    basis, channels = _generate_basis_set(info, picks, order, accuracy)
+    labels = _label_basis(order)
+    projs = []
+    for ii in range(len(labels)):
+        data = basis[:, ii]
+        proj_data = dict(col_names=channels, row_names=None,
+                         data=data[np.newaxis, :], ncol=len(channels), nrow=1)
+        proj = Projection(active=False, data=proj_data, desc=labels[ii])
+        projs.append(proj)
 
-    def __init__(self, picks=None, order=1, accuracy='accurate'):
-        self.picks = picks
-        self.order = order
-        self.accuracy = accuracy
-
-    def fit(self, inst):
-        """Fit HFC model to MEG sensors.
-
-        Parameters
-        ----------
-        inst : Raw
-            The data on which the HFC should be applied.
-
-        Returns
-        -------
-        self : FieldCorrector
-            FieldCorrector instance updated with
-            fitted basis set and projector.
-        """
-        if self.picks is None:
-            self.picks = _pick_sensors_auto(inst.info)
-        # self.picks = _remove_missing_picks(inst.info, self.picks)
-        self.basis, self.channels = _generate_basis_set(inst.info,
-                                                        self.picks,
-                                                        self.order,
-                                                        accuracy=self.accuracy)
-        self.labels = _label_basis(self.order)
-        # self.proj = _generate_projector(self.basis)
-        # self.rank = estimate_rank(self.proj, verbose=False)
-        return self
-
-    @fill_doc
-    def apply(self, inst, copy=False, activate=True):
-        """Apply basis set as series of projectors.
-
-        Parameters
-        ----------
-        inst : Raw
-            The data on which the HFC should be applied.
-        %(copy_df)s
-        activate : bool
-            Turn on the correction now (default: True) or wait until later.
-
-        Returns
-        -------
-        inst : raw
-            Processed instance of data.
-
-        Notes
-        -----
-        Only works after ``.fit()`` has been used.
-        """
-        if copy:
-            inst = inst.copy()
-        projs = []
-        for ii in range(len(self.labels)):
-            data = self.basis[:, ii]
-            proj_data = dict(col_names=self.channels, row_names=None,
-                             data=data[np.newaxis, :], ncol=len(self.channels),
-                             nrow=1)
-            proj = Projection(active=False, data=proj_data,
-                              desc=self.labels[ii])
-            projs.append(proj)
-        inst.add_proj(projs, remove_existing=False)
-        if activate:
-            inst.apply_proj(verbose=False)
-        return inst
-
-    # @fill_doc
-    # def apply(self, inst, copy=True, memsize=100):
-    #     """Apply HFC to MEG data based on generated model.
-
-    #     Parameters
-    #     ----------
-    #     inst : Raw
-    #         The data on which the HFC should be applied.
-    #     %(copy_df)s
-    #     memsize : int
-    #         Size in MB of block of data to be corrected in one go
-    #         (default 100).
-
-    #     Returns
-    #     -------
-    #     inst : raw
-    #         Processed instance of data.
-
-    #     Notes
-    #     -----
-    #     Only works after ``.fit()`` has been used.
-    #     """
-    #     if copy:
-    #         inst = inst.copy()
-    #     _check_preload(inst, 'field correction')
-    #     tis, tfs = _get_chunks(inst, memsize)
-    #     _, picks = _filter_list(self.channels, inst.ch_names)
-    #     for start, stop in zip(tis, tfs):
-    #         this_data = inst._data[picks, start:stop]
-    #         inst._data[picks, start:stop] = self.proj @ this_data
-    #     return inst
-
-    # def custom(self, basis=None, proj=None):
-    #     """Use a custom basis set or projector, useful for debugging.
-
-    #     Parameters
-    #     ----------
-    #     basis : ndarray, shape (n, nvectors)
-    #         The channels designated as containing the artifacts of interest.
-    #     proj : ndarray, shape (n, n)
-    #         Projection matrix, which data will be multiplied with to subtract
-    #         environmental signal.
-
-    #     Returns
-    #     -------
-    #     self : FieldCorrector
-    #         FieldCorrector instance updated with basis set or projector.
-    #     """
-    #     self.order = None
-    #     if basis is not None:
-    #         self.basis = basis
-    #         self.proj = _generate_projector(self.basis)
-    #     elif proj is not None:
-    #         self.proj = proj
-    #     self.ranks = estimate_rank(self.proj, verbose=False)
-    #     return self
-
-    # @fill_doc
-    # def save(self, fname, overwrite=False):
-    #     """Save the regression model to an HDF5 file.
-
-    #     Parameters
-    #     ----------
-    #     fname : path-like
-    #         The file to write the regression weights to.
-    #         Should end in ``.h5``.
-    #     %(overwrite)s
-    #     """
-    #     _, write_hdf5 = _import_h5io_funcs()
-    #     _validate_type(fname, 'path-like', 'fname')
-    #     fname = _check_fname(fname, overwrite=overwrite, name='fname')
-    #     write_hdf5(fname, self.__dict__, overwrite=overwrite)
-
-
-# def read_field_corrector(fname):
-#     """Read a field correction from an HDF5 file.
-
-#     Parameters
-#     ----------
-#     fname : path-like
-#         The file to read the regression model from. Should end in ``.h5``.
-
-#     Returns
-#     -------
-#     model : FieldCorrector
-#         The field correction model read from the file.
-#     """
-#     read_hdf5, _ = _import_h5io_funcs()
-#     _validate_type(fname, 'path-like', 'fname')
-#     fname = _check_fname(fname, overwrite='read', must_exist=True,
-#                          name='fname')
-#     model = FieldCorrector()
-#     model.__dict__.update(read_hdf5(fname))
-#     return model
+    return projs
 
 
 def _filter_channels_with_positions(info, indsin):
@@ -283,36 +100,6 @@ def _label_basis(order):
         for m in np.arange(-1 * L, L + 1):
             labels.append("HFC: l=%d m=%d" % (L, m))
     return labels
-
-# def _generate_projector(S):
-#     """Generate a projection matrix used for HFC."""
-#     if np.any(np.isnan(S)):
-#         warn('\nFound NaNs in basis set, setting these to 0')
-#         S = np.nan_to_num(S)
-#     M = _make_projection_matrix(S)
-#     return M
-
-
-# def _make_projection_matrix(S):
-#     """Turn basis set into a projector matrix"""
-#     M = np.eye(len(S)) - S @ np.linalg.pinv(S)
-#     return M
-
-
-# def _get_chunks(raw, size=100):
-#     """Get slices for blocks of data for a given amount of memory"""
-#     chunk_samples = round(size * 1e6 / (8 * len(raw.info['chs'])))
-
-#     start = np.arange(0, len(raw), chunk_samples)
-#     stop = np.zeros(np.shape(start), dtype=int)
-#     if len(start) == 1:
-#         pass
-#     else:
-#         for ii in range(1, len(start)):
-#             stop[ii - 1] = start[ii]
-#     stop[-1] = len(raw)
-
-#     return start, stop
 
 
 def _pick_sensors_auto(info):

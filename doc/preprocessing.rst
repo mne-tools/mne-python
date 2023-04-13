@@ -71,13 +71,11 @@ Projections:
    ICA
    Xdawn
    EOGRegression
-   FieldCorrector
    annotate_amplitude
    annotate_break
    annotate_movement
    annotate_muscle_zscore
    annotate_nan
-   apply_hfc
    compute_average_dev_head_t
    compute_current_source_density
    compute_bridged_electrodes
@@ -85,6 +83,7 @@ Projections:
    compute_maxwell_basis
    compute_proj_ecg
    compute_proj_eog
+   compute_proj_hfc
    cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
@@ -103,7 +102,6 @@ Projections:
    peak_finder
    read_ica
    read_eog_regression
-   read_field_corrector
    realign_raw
    regress_artifact
    corrmap
