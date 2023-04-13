@@ -18,8 +18,8 @@ from mne.io.pick import pick_channels_cov, _picks_to_idx
 from mne.utils import (check_random_state, _check_fname, check_fname, _suggest,
                        _check_subject, _check_info_inv, _check_option, Bunch,
                        check_version, _path_like, _validate_type, _on_missing,
-                       requires_nibabel, _safe_input, _check_ch_locs,
-                       _check_sphere)
+                       _safe_input, _check_ch_locs, _check_sphere,
+                       _check_range)
 
 data_path = testing.data_path(download=False)
 base_dir = data_path / "MEG" / "sample"
@@ -49,7 +49,7 @@ def test_check(tmp_path):
     os.chmod(fname, orig_perms)
     os.remove(fname)
     assert not fname.is_file()
-    pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
+    pytest.raises(OSError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
     pytest.raises(TypeError, _check_subject, 1, None)
@@ -57,8 +57,7 @@ def test_check(tmp_path):
     check_random_state(None).choice(1)
     check_random_state(0).choice(1)
     check_random_state(np.random.RandomState(0)).choice(1)
-    if check_version('numpy', '1.17'):
-        check_random_state(np.random.default_rng(0)).choice(1)
+    check_random_state(np.random.default_rng(0)).choice(1)
 
 
 @testing.requires_testing_data
@@ -186,10 +185,19 @@ def test_validate_type():
         _validate_type(False, 'int-like')
 
 
-@requires_nibabel()
+def test_check_range():
+    """Test _check_range."""
+    _check_range(10, 1, 100, 'value')
+    with pytest.raises(ValueError, match='must be between'):
+        _check_range(0, 1, 10, 'value')
+    with pytest.raises(ValueError, match='must be between'):
+        _check_range(1, 1, 10, 'value', False, False)
+
+
 @testing.requires_testing_data
 def test_suggest():
     """Test suggestions."""
+    pytest.importorskip('nibabel')
     names = mne.get_volume_labels_from_aseg(fname_mgz)
     sug = _suggest('', names)
     assert sug == ''  # nothing

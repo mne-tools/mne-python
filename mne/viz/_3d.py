@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions to make 3D plots with M/EEG data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -44,7 +43,7 @@ from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
                           transform_surface_to, _frame_to_str,
                           _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
-                     has_nibabel, check_version, fill_doc, _pl, get_config,
+                     check_version, fill_doc, _pl, get_config, _import_nibabel,
                      _ensure_int, _validate_type, _check_option, _to_rgb)
 from ._3d_overlay import _LayeredMesh
 from .utils import (mne_analyze_colormap, _get_color_list, _get_cmap,
@@ -3146,8 +3145,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    if not has_nibabel():
-        raise ImportError('This function requires nibabel.')
+    _import_nibabel('plotting MRI slices')
 
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 

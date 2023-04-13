@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-clause
@@ -11,7 +10,7 @@ import pytest
 import mne
 from mne.datasets import testing
 from mne.transforms import apply_trans
-from mne.utils import requires_nibabel, requires_version, use_log_level
+from mne.utils import requires_version, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -22,11 +21,10 @@ raw_path = sample_dir / "sample_audvis_trunc_raw.fif"
 fname_trans = sample_dir / "sample_audvis_trunc-trans.fif"
 
 
-@requires_nibabel()
 @pytest.fixture
 def _fake_CT_coords(skull_size=5, contact_size=2):
     """Make somewhat realistic CT data with contacts."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     brain = nib.load(subjects_dir / subject / "mri" / "brain.mgz")
     verts = mne.read_surface(
         subjects_dir / subject / "bem" / "outer_skull.surf"
@@ -59,10 +57,9 @@ def _fake_CT_coords(skull_size=5, contact_size=2):
     return ct, coords
 
 
-@requires_nibabel()
 def test_ieeg_elec_locate_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the intracranial location GUI."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     import mne.gui
     info = mne.create_info([], 1000)
 
@@ -142,8 +139,12 @@ def test_ieeg_elec_locate_display(renderer_interactive_pyvistaqt,
 
     with pytest.raises(ValueError, match='read-only'):
         gui._ras[:] = coords[0]  # start in the right position
-    gui._set_ras(coords[0])
-    gui._mark_ch()
+    gui.set_RAS(coords[0])
+    gui.mark_channel()
+
+    with pytest.raises(ValueError, match='not found'):
+        gui.mark_channel('foo')
+
     assert not gui._lines and not gui._lines_2D  # no lines for one contact
     for ci, coord in enumerate(coords[1:], 1):
         coord_vox = apply_trans(gui._ras_vox_t, coord)
@@ -154,32 +155,33 @@ def test_ieeg_elec_locate_display(renderer_interactive_pyvistaqt,
                         err_msg=f'coords[{ci}][:2]')
         assert_allclose(coord[2], gui._ras[2], atol=2,
                         err_msg=f'coords[{ci}][2]')
-        gui._mark_ch()
+        gui.mark_channel()
 
     # ensure a 3D line was made for each group
     assert len(gui._lines) == 2
 
     # test snap to center
     gui._ch_index = 0
-    gui._set_ras(coords[0])  # move to first position
-    gui._mark_ch()
+    gui.set_RAS(coords[0])  # move to first position
+    gui.mark_channel()
     assert_allclose(coords[0], gui._chs['LAMY 1'], atol=0.2)
     gui._snap_button.click()
     assert gui._snap_button.text() == 'Off'
     # now make sure no snap happens
     gui._ch_index = 0
-    gui._set_ras(coords[1] + 1)
-    gui._mark_ch()
+    gui.set_RAS(coords[1] + 1)
+    gui.mark_channel()
     assert_allclose(coords[1] + 1, gui._chs['LAMY 1'], atol=0.01)
     # check that it turns back on
     gui._snap_button.click()
     assert gui._snap_button.text() == 'On'
 
     # test remove
-    gui._ch_index = 1
-    gui._update_ch_selection()
-    gui._remove_ch()
+    gui.remove_channel('LAMY 2')
     assert np.isnan(gui._chs['LAMY 2']).all()
+
+    with pytest.raises(ValueError, match='not found'):
+        gui.remove_channel('foo')
 
     # check that raw object saved
     assert not np.isnan(raw.info['chs'][0]['loc'][:3]).any()  # LAMY 1

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
@@ -67,7 +66,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
 
 @fill_doc
 class Scaler(TransformerMixin, BaseEstimator):
-    u"""Standardize channel data.
+    """Standardize channel data.
 
     This class scales data for each channel. It differs from scikit-learn
     classes (e.g., :class:`sklearn.preprocessing.StandardScaler`) in that
@@ -450,8 +449,7 @@ class FilterEstimator(TransformerMixin):
         Number of jobs to run in parallel.
         Can be 'cuda' if ``cupy`` is installed properly and method='fir'.
     method : str
-        'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-        forward-backward filtering (via filtfilt).
+        'fir' will use overlap-add FIR filtering, 'iir' will use IIR filtering.
     iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params

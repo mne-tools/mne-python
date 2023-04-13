@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #

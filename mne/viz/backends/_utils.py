@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -96,6 +95,9 @@ def _qt_disable_paint(widget):
         widget.paintEvent = paintEvent
 
 
+_QT_ICON_KEYS = dict(app=None)
+
+
 def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     """Get QApplication-instance for MNE-Python.
 
@@ -142,15 +144,21 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
 
     # First we need to check to make sure the display is valid, otherwise
     # Qt might segfault on us
-    if not _display_is_valid():
+    app = QApplication.instance()
+    if not (app or _display_is_valid()):
         raise RuntimeError('Cannot connect to a valid display')
 
     if pg_app:
         from pyqtgraph import mkQApp
-        app = mkQApp(app_name)
-    else:
-        app = QApplication.instance() or QApplication(sys.argv or [app_name])
-        app.setApplicationName(app_name)
+        old_argv = sys.argv
+        try:
+            sys.argv = []
+            app = mkQApp(app_name)
+        finally:
+            sys.argv = old_argv
+    elif not app:
+        app = QApplication([app_name])
+    app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
     try:
         app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # works on PyQt5 and PySide2
@@ -160,10 +168,12 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     if enable_icon or splash:
         icons_path = _qt_init_icons()
 
-    if enable_icon:
+    if enable_icon and app.windowIcon().cacheKey() != _QT_ICON_KEYS['app']:
         # Set icon
         kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else 'default_'
-        app.setWindowIcon(QIcon(f"{icons_path}/mne_{kind}icon.png"))
+        icon = QIcon(f"{icons_path}/mne_{kind}icon.png")
+        app.setWindowIcon(icon)
+        _QT_ICON_KEYS['app'] = app.windowIcon().cacheKey()
 
     out = app
     if splash:
@@ -329,7 +339,7 @@ QToolBar::handle:vertical {
     else:
         try:
             file = open(theme, 'r')
-        except IOError:
+        except OSError:
             warn('Requested theme file not found, will use light instead: '
                  f'{repr(theme)}')
         else:
@@ -415,7 +425,10 @@ def _qt_safe_window(
                     try:
                         for n in attr.split('.')[:-1]:
                             parent = getattr(parent, n)
-                        widget = getattr(parent, name, False)
+                        if name:
+                            widget = getattr(parent, name, False)
+                        else:  # empty string means "self"
+                            widget = parent
                         if widget:
                             widget.close()
                         del widget

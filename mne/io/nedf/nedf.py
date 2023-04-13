@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy
@@ -211,9 +210,10 @@ def read_raw_nedf(filename, preload=False, verbose=None):
     -------
     raw : instance of RawNedf
         A Raw object containing NEDF data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawNedf.
     """
     return RawNedf(filename, preload, verbose)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -56,35 +55,6 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_nibabel():
-    """Wrap to requires_module with a function call (fewer lines to change)."""
-    return partial(requires_module, name='nibabel')
-
-
-def requires_dipy():
-    """Check for dipy."""
-    import pytest
-    # for some strange reason on CIs we can get:
-    #
-    #     can get weird ImportError: dlopen: cannot load any more object
-    #     with static TLS
-    #
-    # so let's import everything in the decorator.
-    try:
-        from dipy.align import imaffine, imwarp, metrics, transforms  # noqa, analysis:ignore
-        from dipy.align.reslice import reslice  # noqa, analysis:ignore
-        from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
-        from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
-    except Exception as exc:
-        have = False
-        why = str(exc)
-    else:
-        why = ''
-        have = True
-    return pytest.mark.skipif(
-        not have, reason=f'Requires dipy >= 0.10.1, got: {why}')
-
-
 def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
@@ -130,6 +100,7 @@ requires_pandas = partial(requires_module, name='pandas')
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn')
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
+requires_mne_qt_browser = partial(requires_module, name='mne_qt_browser')
 
 
 def requires_mne_mark():
@@ -186,7 +157,7 @@ def run_command_if_main():
         local_vars['run']()
 
 
-class ArgvSetter(object):
+class ArgvSetter:
     """Temporarily set sys.argv."""
 
     def __init__(self, args=(), disable_stdout=True,
@@ -210,7 +181,7 @@ class ArgvSetter(object):
         sys.stderr = self.orig_stderr
 
 
-class SilenceStdout(object):
+class SilenceStdout:
     """Silence stdout."""
 
     def __init__(self, close=True):
@@ -225,22 +196,6 @@ class SilenceStdout(object):
         if self.close:
             sys.stdout.close()
         sys.stdout = self.stdout
-
-
-def has_nibabel():
-    """Determine if nibabel is installed.
-
-    Returns
-    -------
-    has : bool
-        True if the user has nibabel.
-    """
-    try:
-        import nibabel  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
 
 
 def has_mne_c():

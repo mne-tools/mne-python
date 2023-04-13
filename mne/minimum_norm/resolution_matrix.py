@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Compute resolution matrix for linear estimators."""
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #

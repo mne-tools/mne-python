@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-eeg-csd:
 
@@ -50,8 +49,8 @@ raw_csd.plot()
 # %%
 # Also look at the power spectral densities:
 
-raw.plot_psd()
-raw_csd.plot_psd()
+raw.compute_psd().plot()
+raw_csd.compute_psd().plot()
 
 # %%
 # CSD can also be computed on Evoked (averaged) data.

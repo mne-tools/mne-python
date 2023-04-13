@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
@@ -65,7 +64,7 @@ def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
     return csd
 
 
-class CrossSpectralDensity(object):
+class CrossSpectralDensity:
     """Cross-spectral density.
 
     Given a list of time series, the CSD matrix denotes for each pair of time

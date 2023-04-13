@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Intracranial elecrode localization GUI for finding contact locations."""
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
@@ -60,7 +59,7 @@ class ComboBox(QComboBox):
 class IntracranialElectrodeLocator(SliceBrowser):
     """Locate electrode contacts using a coregistered MRI and CT."""
 
-    def __init__(self, info, trans, aligned_ct, subject=None,
+    def __init__(self, info, trans, base_image, subject=None,
                  subjects_dir=None, groups=None, show=True, verbose=None):
         """GUI for locating intracranial electrodes.
 
@@ -100,7 +99,7 @@ class IntracranialElectrodeLocator(SliceBrowser):
 
         # Initialize GUI
         super(IntracranialElectrodeLocator, self).__init__(
-            base_image=aligned_ct, subject=subject, subjects_dir=subjects_dir)
+            base_image=base_image, subject=subject, subjects_dir=subjects_dir)
 
         # set current position as current contact location if exists
         if not np.isnan(self._chs[self._ch_names[self._ch_index]]).any():
@@ -163,7 +162,7 @@ class IntracranialElectrodeLocator(SliceBrowser):
         ch_list.clicked.connect(self._go_to_ch)
         ch_list.setCurrentIndex(
             self._ch_list_model.index(self._ch_index, 0))
-        ch_list.keyPressEvent = self._key_press_event
+        ch_list.keyPressEvent = self.keyPressEvent
         return ch_list
 
     def _make_ch_image(self, axis, proj=False):
@@ -278,11 +277,11 @@ class IntracranialElectrodeLocator(SliceBrowser):
 
         mark_button = QPushButton('Mark')
         hbox.addWidget(mark_button)
-        mark_button.released.connect(self._mark_ch)
+        mark_button.released.connect(self.mark_channel)
 
         remove_button = QPushButton('Remove')
         hbox.addWidget(remove_button)
-        remove_button.released.connect(self._remove_ch)
+        remove_button.released.connect(self.remove_channel)
 
         self._group_selector = ComboBox()
         group_model = self._group_selector.model()
@@ -321,7 +320,7 @@ class IntracranialElectrodeLocator(SliceBrowser):
             slider.setTracking(False)  # only update on release
             if sfun is not None:
                 slider.valueChanged.connect(sfun)
-            slider.keyPressEvent = self._key_press_event
+            slider.keyPressEvent = self.keyPressEvent
             return slider
 
         slider_hbox = QHBoxLayout()
@@ -525,13 +524,23 @@ class IntracranialElectrodeLocator(SliceBrowser):
             self._snap_button.setStyleSheet("background-color: red")
 
     @Slot()
-    def _mark_ch(self):
-        """Mark the current channel as being located at the crosshair."""
-        name = self._ch_names[self._ch_index]
+    def mark_channel(self, ch=None):
+        """Mark a channel as being located at the crosshair.
+
+        Parameters
+        ----------
+        ch : str
+            The channel name. If ``None``, the current channel
+            is marked.
+        """
+        if ch is not None and ch not in self._ch_names:
+            raise ValueError(f'Channel {ch} not found')
+        name = self._ch_names[self._ch_index if ch is None else
+                              self._ch_names.index(ch)]
         if self._snap_button.text() == 'Off':
             self._chs[name][:] = self._ras
         else:
-            shape = np.mean(self._mri_data.shape)  # Freesurfer shape (256)
+            shape = np.mean(self._voxel_sizes)  # Freesurfer shape (256)
             voxels_max = int(
                 4 / 3 * np.pi * (shape * self._radius / _CH_PLOT_SIZE)**3)
             neighbors = _voxel_neighbors(
@@ -548,9 +557,19 @@ class IntracranialElectrodeLocator(SliceBrowser):
         self._ch_list.setFocus()
 
     @Slot()
-    def _remove_ch(self):
-        """Remove the location data for the current channel."""
-        name = self._ch_names[self._ch_index]
+    def remove_channel(self, ch=None):
+        """Remove the location data for the current channel.
+
+        Parameters
+        ----------
+        ch : str
+            The channel name. If ``None``, the current channel
+            is removed.
+        """
+        if ch is not None and ch not in self._ch_names:
+            raise ValueError(f'Channel {ch} not found')
+        name = self._ch_names[self._ch_index if ch is None else
+                              self._ch_names.index(ch)]
         self._chs[name] *= np.nan
         self._color_list_item()
         self._save_ch_coords()
@@ -735,15 +754,15 @@ class IntracranialElectrodeLocator(SliceBrowser):
             self._toggle_brain_button.setText('Hide Brain')
         self._draw()
 
-    def _key_press_event(self, event):
+    def keyPressEvent(self, event):
         """Execute functions when the user presses a key."""
-        super(IntracranialElectrodeLocator, self)._key_press_event(event)
+        super(IntracranialElectrodeLocator, self).keyPressEvent(event)
 
         if event.text() == 'm':
-            self._mark_ch()
+            self.mark_channel()
 
         if event.text() == 'r':
-            self._remove_ch()
+            self.remove_channel()
 
         if event.text() == 'b':
             self._toggle_show_brain()

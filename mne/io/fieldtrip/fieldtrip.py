@@ -43,6 +43,11 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
     -------
     raw : instance of RawArray
         A Raw Object containing the loaded data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods of RawArray.
     """
     read_mat = _import_pymatreader_funcs('FieldTrip I/O')
     fname = _check_fname(fname, overwrite='read', must_exist=True)

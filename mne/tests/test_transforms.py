@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
@@ -29,7 +28,6 @@ from mne.transforms import (invert_transform, _get_trans,
                             _write_fs_xfm, _quat_real, _fit_matched_points,
                             _quat_to_euler, _euler_to_quat,
                             _quat_to_affine, _compute_r2, _validate_pipeline)
-from mne.utils import requires_nibabel, requires_dipy
 
 data_path = testing.data_path(download=False)
 fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
@@ -88,7 +86,7 @@ def test_io_trans(tmp_path):
     assert trans0 == trans1
 
     # check reading non -trans.fif files
-    pytest.raises(IOError, read_trans, fname_eve)
+    pytest.raises(OSError, read_trans, fname_eve)
 
     # check warning on bad filenames
     fname2 = tmp_path / 'trans-test-bad-name.fif'
@@ -522,13 +520,12 @@ def test_euler(quats):
     assert_allclose(quat_rot, euler_rot, atol=1e-14)
 
 
-@requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_registration():
     """Test volume registration."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     from dipy.align import resample
     T1 = nib.load(fname_t1)
     affine = np.eye(4)
@@ -563,3 +560,15 @@ def test_volume_registration():
     with pytest.raises(ValueError,
                        match='Steps in pipeline should not be repeated'):
         _validate_pipeline(('affine', 'affine'))
+
+    # test points
+    info = read_info(test_fif_fname)
+    trans = read_trans(fname)
+    info2, trans2 = mne.transforms.apply_volume_registration_points(
+        info, trans, T1_resampled, T1, reg_affine, sdr_morph)
+    assert_allclose(trans2['trans'], np.eye(4), atol=0.001)  # same before
+    ch_pos = info2.get_montage().get_positions()['ch_pos']
+    assert_allclose([ch_pos['EEG 001'], ch_pos['EEG 002'], ch_pos['EEG 003']],
+                    [[-0.04136687, 0.05402692, 0.09491907],
+                     [-0.01874947, 0.05656526, 0.09966554],
+                     [0.00828519, 0.05535511, 0.09869323]], atol=0.001)

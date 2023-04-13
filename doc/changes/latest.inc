@@ -28,15 +28,20 @@ Enhancements
 - Changed suggested type for ``ch_groups``` in `mne.viz.plot_sensors` from array to list of list(s) (arrays are still supported). (:gh:`11465` by `Hyonyoung Shin`_)
 - Add support for UCL/FIL OPM data using :func:`mne.io.read_raw_fil` (:gh:`11366` by :newcontrib:`George O'Neill` and `Robert Seymour`_)
 - Forward argument ``axes`` from `mne.viz.plot_sensors` to `mne.channels.DigMontage.plot` (:gh:`11470` by :newcontrib:`Jan Ebert` and `Mathieu Scheltienne`_)
+- Add forward IIR filtering, using parameters ``method='iir', phase='forward'`` (:gh:`11078` by :newcontrib:`Quentin Barthélemy`)
 - Added ability to read stimulus durations from SNIRF files when using :func:`mne.io.read_raw_snirf` (:gh:`11397` by `Robert Luke`_)
 - Add :meth:`mne.Info.save` to save an :class:`mne.Info` object to a fif file (:gh:`11401` by `Alex Rockhill`_)
 - Improved error message when downloads are corrupted for :func:`mne.datasets.sample.data_path` and related functions (:gh:`11407` by `Eric Larson`_)
 - Add support for ``skip_by_annotation`` in :func:`mne.io.Raw.notch_filter` (:gh:`11388` by `Mainak Jas`_)
-- Add new inverse method in :func:`mne.beamformer.alternating_projections` (:gh:'11349' by 'Yuval Realpe'_)
+- Add support for ``output='complex'`` to :func:`mne.time_frequency.psd_array_welch` and when using ``method='welch'`` with :meth:`mne.Epochs.compute_psd` (:gh:`11556` by `Eric Larson`_)
 - Slightly adjusted the window title for :func:`mne.Epochs.plot` (:gh:`11419` by `Richard Höchenberger`_ and `Daniel McCloy`_)
 - Add :func:`mne.count_events` to count unique event types in a given event array (:gh:`11430` by `Clemens Brunner`_)
 - Add a video to :ref:`tut-freesurfer-mne` of a brain inflating from the pial surface to aid in understanding the inflated brain (:gh:`11440` by `Alex Rockhill`_)
 - Add automatic projection of sEEG contact onto the inflated surface for :meth:`mne.viz.Brain.add_sensors` (:gh:`11436` by `Alex Rockhill`_)
+- Allow an image with intracranial electrode contacts (e.g. computed tomography) to be used without the freesurfer recon-all surfaces to locate contacts so that it doesn't have to be downsampled to freesurfer dimensions (for microelectrodes) and show an example :ref:`ex-ieeg-micro` with :func:`mne.transforms.apply_volume_registration_points` added to aid this transform (:gh:`11567` by `Alex Rockhill`_)
+- Use new :meth:`dipy.workflows.align.DiffeomorphicMap.transform_points` to transform a montage of intracranial contacts more efficiently (:gh:`11572` by `Alex Rockhill`_)
+- Improve performance of raw data browsing with many annotations (:gh:`11614` by `Eric Larson`_)
+- Add support for eyetracking data using :func:`mne.io.read_raw_eyelink` (:gh:`11152` by `Dominik Welke`_ and `Scott Huberty`_)
 
 Bugs
 ~~~~
@@ -56,8 +61,16 @@ Bugs
 - Fix visualization dialog compatibility with matplotlib 3.7 (:gh:`11409` by `Daniel McCloy`_ and `Eric Larson`_)
 - Expand tilde (user directory) in config keys (:gh:`11537` by `Clemens Brunner`_)
 - Fix bug in :func:`mne.preprocessing.compute_maxwell_basis` where using ``int_order=0`` would raise an error (:gh:`11562` by `Eric Larson`_)
+- In the legacy function :func:`mne.viz.plot_epochs_psd_topomap`, the parameter ``names`` now works again (:gh:`11563` by `Daniel McCloy`_)
 - Fix :func:`mne.io.read_raw` for file names containing multiple dots (:gh:`11521` by `Clemens Brunner`_)
+- Fix bug in :func:`mne.export.export_raw` when exporting to EDF with a physical range set smaller than the data range (:gh:`11569` by `Mathieu Scheltienne`_)
+- Fix bug in :func:`mne.concatenate_raws` where two raws could not be merged if the order of the bad channel lists did not match (:gh:`11502` by `Moritz Gerster`_)
+- Fix bug where :meth:`mne.Evoked.plot_topomap` opened an extra figure (:gh:`11607` by `Alex Rockhill`_)
+- Fix bug where :func:`mne.transforms.apply_volume_registration_points` modified info in place (:gh:`11612` by `Alex Rockhill`_)
+
 
 API changes
 ~~~~~~~~~~~
 - Deprecate arguments ``kind`` and ``path`` from :func:`mne.channels.read_layout` in favor of a common argument ``fname`` (:gh:`11500` by `Mathieu Scheltienne`_)
+- Change ``aligned_ct`` positional argument in :func:`mne.gui.locate_ieeg` to ``base_image`` to reflect that this can now be used with unaligned images (:gh:`11567` by `Alex Rockhill`_)
+- ``mne.warp_montage_volume`` was deprecated in favor of :func:`mne.preprocessing.ieeg.warp_montage` (acts directly on points instead of using an intermediate volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (which makes a volume of ieeg contact locations which can still be useful) (:gh:`11572` by `Alex Rockhill`_)

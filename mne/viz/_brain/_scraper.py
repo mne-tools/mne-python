@@ -4,7 +4,7 @@ import os.path as op
 from ._brain import Brain
 
 
-class _BrainScraper(object):
+class _BrainScraper:
     """Scrape Brain objects."""
 
     def __repr__(self):

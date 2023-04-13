@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-class:
 
@@ -51,16 +50,18 @@ import mne
 #
 # - Both :class:`~mne.Epochs` and :class:`~mne.io.Raw` objects have
 #   :meth:`~mne.Epochs.copy`, :meth:`~mne.Epochs.crop`,
-#   :meth:`~mne.Epochs.time_as_index`, :meth:`~mne.Epochs.filter`, and
-#   :meth:`~mne.Epochs.resample` methods.
+#   :meth:`~mne.Epochs.time_as_index`, :meth:`~mne.Epochs.filter`,
+#   :meth:`~mne.Epochs.resample`, and :meth:`~mne.Epochs.compute_psd` methods.
 #
 # - Both :class:`~mne.Epochs` and :class:`~mne.io.Raw` objects have
 #   :attr:`~mne.Epochs.times`, :attr:`~mne.Epochs.ch_names`,
 #   :attr:`~mne.Epochs.proj`, and :class:`info <mne.Info>` attributes.
 #
 # - Both :class:`~mne.Epochs` and :class:`~mne.io.Raw` objects have built-in
-#   plotting methods :meth:`~mne.Epochs.plot`, :meth:`~mne.Epochs.plot_psd`,
-#   and :meth:`~mne.Epochs.plot_psd_topomap`.
+#   plotting methods :meth:`~mne.Epochs.plot`, and legacy plotting methods
+#   :meth:`~mne.Epochs.plot_psd` and :meth:`~mne.Epochs.plot_psd_topomap`
+#   (in new code, PSD plotting is done via the
+#   :class:`~mne.time_frequency.Spectrum` class).
 #
 #
 # Creating Epoched data from a ``Raw`` object

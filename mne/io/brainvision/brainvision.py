@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Conversion tool from BrainVision EEG to FIF."""
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -59,7 +58,7 @@ class RawBrainVision(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
@@ -469,7 +468,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     ext = op.splitext(hdr_fname)[-1]
     ahdr_format = (ext == '.ahdr')
     if ext not in ('.vhdr', '.ahdr'):
-        raise IOError("The header file must be given to read the data, "
+        raise OSError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
 
     settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
@@ -880,10 +879,11 @@ def read_raw_brainvision(vhdr_fname,
     -------
     raw : instance of RawBrainVision
         A Raw object containing BrainVision data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawBrainVision.
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, eog=eog,
                           misc=misc, scale=scale, preload=preload,

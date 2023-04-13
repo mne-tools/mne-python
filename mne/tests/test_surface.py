@@ -22,8 +22,7 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          _project_onto_surface, _get_ico_surface)
 from mne.transforms import (_get_trans, compute_volume_registration,
                             apply_trans)
-from mne.utils import (catch_logging, object_diff,
-                       requires_freesurfer, requires_nibabel, requires_dipy,
+from mne.utils import (catch_logging, object_diff, requires_freesurfer,
                        _record_warnings)
 
 data_path = testing.data_path(download=False)
@@ -259,10 +258,10 @@ def test_marching_cubes(dtype, value, smooth):
         _marching_cubes(data[0], [1])
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_get_montage_volume_labels():
     """Test finding ROI labels near montage channel locations."""
+    pytest.importorskip('nibabel')
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
                           [-14.03007764, 19.69978401, 12.07236939],
                           [-21.1130506, 21.98310911, 13.25658887]])
@@ -306,13 +305,12 @@ def test_voxel_neighbors():
     assert true_volume.difference(volume) == set()
 
 
-@requires_nibabel()
-@requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_warp_montage_volume():
     """Test warping an montage based on intracranial electrode positions."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
+    pytest.importorskip('dipy')
     subject_brain = nib.load(subjects_dir / "sample" / "mri" / "brain.mgz")
     template_brain = nib.load(subjects_dir / "fsaverage" / "mri" / "brain.mgz")
     zooms = dict(translation=10, rigid=10, sdr=10)
@@ -340,16 +338,11 @@ def test_warp_montage_volume():
         # then, make the center even higher intensity
         CT_data[x, y, z] = 1000
     CT = nib.Nifti1Image(CT_data, subject_brain.affine)
-    ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
-                          [-14.03007764, 19.69978401, 12.07236939],
-                          [-21.1130506, 21.98310911, 13.25658887]])
-    ch_pos = dict(zip(['1', '2', '3'], ch_coords / 1000))  # mm -> m
-    lpa, nasion, rpa = get_mni_fiducials('sample', subjects_dir)
-    montage = make_dig_montage(ch_pos, lpa=lpa['r'], nasion=nasion['r'],
-                               rpa=rpa['r'], coord_frame='mri')
-    montage_warped, image_from, image_to = warp_montage_volume(
-        montage, CT, reg_affine, sdr_morph, 'sample',
-        subjects_dir_from=subjects_dir, thresh=0.99)
+
+    with pytest.warns(FutureWarning, match='deprecated'):
+        montage_warped, image_from, image_to = warp_montage_volume(
+            montage, CT, reg_affine, sdr_morph, 'sample',
+            subjects_dir_from=subjects_dir, thresh=0.99)
     # checked with nilearn plot from `tut-ieeg-localize`
     # check montage in surface RAS
     ground_truth_warped = np.array([[-0.009, -0.00133333, -0.033],
@@ -374,24 +367,28 @@ def test_warp_montage_volume():
                      ).mean(axis=1) - ground_truth_warped_voxels[i]) < 8
     # test inputs
     with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
-        warp_montage_volume(
-            montage, CT, reg_affine, sdr_morph, 'sample', thresh=11.)
+        with pytest.warns(FutureWarning, match='deprecated'):
+            warp_montage_volume(
+                montage, CT, reg_affine, sdr_morph, 'sample', thresh=11.)
     with pytest.raises(ValueError, match='subject folder is incorrect'):
-        warp_montage_volume(
-            montage, CT, reg_affine, sdr_morph, subject_from='foo',
-            subjects_dir_from=subjects_dir)
+        with pytest.warns(FutureWarning, match='deprecated'):
+            warp_montage_volume(
+                montage, CT, reg_affine, sdr_morph, subject_from='foo',
+                subjects_dir_from=subjects_dir)
     CT_unaligned = nib.Nifti1Image(CT_data, template_brain.affine)
     with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
-        warp_montage_volume(montage, CT_unaligned, reg_affine,
-                            sdr_morph, 'sample',
-                            subjects_dir_from=subjects_dir)
+        with pytest.warns(FutureWarning, match='deprecated'):
+            warp_montage_volume(montage, CT_unaligned, reg_affine,
+                                sdr_morph, 'sample',
+                                subjects_dir_from=subjects_dir)
     bad_montage = montage.copy()
     for d in bad_montage.dig:
         d['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='Coordinate frame not supported'):
-        warp_montage_volume(bad_montage, CT, reg_affine,
-                            sdr_morph, 'sample',
-                            subjects_dir_from=subjects_dir)
+        with pytest.warns(FutureWarning, match='deprecated'):
+            warp_montage_volume(bad_montage, CT, reg_affine,
+                                sdr_morph, 'sample',
+                                subjects_dir_from=subjects_dir)
 
     # check channel not warped
     ch_pos_doubled = ch_pos.copy()

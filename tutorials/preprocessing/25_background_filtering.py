@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 .. _disc-filtering:
 
@@ -21,7 +20,6 @@ Widmann *et al.* (2015) :footcite:`WidmannEtAl2015`.
    how to apply the default filters in MNE-Python to your data, skip this
    tutorial and read :ref:`tut-filter-resample` instead (but someday, you
    should come back and read this one too 🙂).
-
 
 Problem statement
 =================
@@ -593,6 +591,15 @@ filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 verbose=True)
 plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
             compensate=True, **kwargs)
+
+# %%
+# Similarly to FIR filters, we can define causal IIR filters.
+
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                                method='iir', phase='forward',
+                                iir_params=iir_params, verbose=True)
+plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
+            compensate=False, **kwargs)
 
 # %%
 # Applying IIR filters

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Run tests for the utilities."""
 # Author: Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
