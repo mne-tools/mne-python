@@ -267,11 +267,20 @@ class _GUIScraper:
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
+        gui_classes = (
+            IntracranialElectrodeLocator,
+            CoregistrationUI,
+        )
+        try:
+            from mne_gui_addons._ieeg_locate import IntracranialElectrodeLocator  # noqa: E501
+        except Exception:
+            pass
+        else:
+            gui_classes = gui_classes + (IntracranialElectrodeLocator,)
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
-            if (isinstance(gui, (IntracranialElectrodeLocator,
-                                 CoregistrationUI)) and
+            if (isinstance(gui, gui_classes) and
                     not getattr(gui, '_scraped', False) and
                     gallery_conf['builder_name'] == 'html'):
                 gui._scraped = True  # monkey-patch but it's easy enough
