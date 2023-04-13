@@ -997,6 +997,7 @@ _phase_report_key = StashKey()
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    """Stash the status of each item."""
     outcome = yield
     rep = outcome.get_result()
     item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
