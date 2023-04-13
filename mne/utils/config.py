@@ -567,7 +567,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
         '',
         '# Ecosystem (optional)',
         'mne-bids', 'mne-nirs', 'mne-features', 'mne-connectivity',
-        'mne-icalabel',
+        'mne-icalabel', 'mne-bids-pipeline',
         ''
     )
     if dependencies == 'developer':

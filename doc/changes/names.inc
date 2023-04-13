@@ -172,7 +172,7 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
-.. _Guillaume Dumas: http://www.extrospection.eu
+.. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
