@@ -13,6 +13,7 @@ import shutil
 import sys
 import warnings
 import pytest
+from pytest import StashKey
 from unittest import mock
 
 import numpy as np
@@ -981,6 +982,21 @@ def qt_windows_closed(request):
         return
     if 'allow_unclosed_pyside2' in marks and API_NAME.lower() == 'pyside2':
         return
+    # Don't check when the test fails
+    report = request.node.stash[_phase_report_key]
+    if ("call" not in report) or report["call"].failed:
+        return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
+
+
+# https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures  # noqa: E501
+_phase_report_key = StashKey()
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
