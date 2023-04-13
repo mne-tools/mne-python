@@ -230,24 +230,10 @@ def matplotlib_config():
 
 
 @pytest.fixture(scope='session')
-def ci_macos():
-    """Determine if running on MacOS CI."""
-    return (os.getenv('CI', 'false').lower() == 'true' and
-            sys.platform == 'darwin')
-
-
-@pytest.fixture(scope='session')
 def azure_windows():
     """Determine if running on Azure Windows."""
     return (os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true' and
             sys.platform.startswith('win'))
-
-
-@pytest.fixture()
-def check_gui_ci(ci_macos, azure_windows):
-    """Skip tests that are not reliable on CIs."""
-    if azure_windows or ci_macos:
-        pytest.skip('Skipping GUI tests on MacOS CIs and Azure Windows')
 
 
 @pytest.fixture(scope='function')
