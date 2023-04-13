@@ -25,7 +25,6 @@ pytestmark = pytest.mark.filterwarnings(
     'ignore:.*locate_ieeg.*deprecated.*:FutureWarning')
 
 
-
 @pytest.fixture
 def _fake_CT_coords(skull_size=5, contact_size=2):
     """Make somewhat realistic CT data with contacts."""
@@ -62,7 +61,6 @@ def _fake_CT_coords(skull_size=5, contact_size=2):
     return ct, coords
 
 
-@ignore_dep
 def test_ieeg_elec_locate_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the intracranial location GUI."""
     nib = pytest.importorskip('nibabel')
