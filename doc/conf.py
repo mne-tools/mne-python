@@ -146,6 +146,7 @@ intersphinx_mapping = {
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
     'mne-connectivity': ('https://mne.tools/mne-connectivity/stable', None),
+    'mne-gui-addons': ('https://mne.tools/mne-gui-addons', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'seaborn': ('https://seaborn.pydata.org/', None),
     'statsmodels': ('https://www.statsmodels.org/dev', None),

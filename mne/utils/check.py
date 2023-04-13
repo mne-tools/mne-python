@@ -352,6 +352,7 @@ def _soft_import(name, purpose, strict=True):
         mne_features='mne-features',
         mne_qt_browser='mne-qt-browser',
         mne_connectivity='mne-connectivity',
+        mne_gui_addons='mne-gui-addons',
         pyvista='pyvistaqt').get(name, name)
 
     try:

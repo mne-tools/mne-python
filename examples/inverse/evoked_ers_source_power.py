@@ -79,9 +79,10 @@ active_cov = compute_covariance(epochs, tmin=active_win[0], tmax=active_win[1],
 
 # Weighted averaging is already in the addition of covariance objects.
 common_cov = baseline_cov + active_cov
-mne.viz.plot_cov(baseline_cov, epochs.info)
+baseline_cov.plot(epochs.info)
 
 # %%
+
 # Compute some source estimates
 # -----------------------------
 # Here we will use DICS, LCMV beamformer, and dSPM.
@@ -152,3 +153,7 @@ brain_lcmv = stc_lcmv.plot(
 brain_dspm = stc_dspm.plot(
     hemi='rh', subjects_dir=subjects_dir, subject=subject,
     time_label='dSPM source power in the 12-30 Hz frequency band')
+
+# %%
+# For more advanced usage, see
+# :ref:`mne-gui-addons:sphx_glr_auto_examples_evoked_ers_source_power.py`.

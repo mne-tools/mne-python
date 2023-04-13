@@ -13,6 +13,7 @@ import shutil
 import sys
 import warnings
 import pytest
+from pytest import StashKey
 from unittest import mock
 
 import numpy as np
@@ -229,24 +230,10 @@ def matplotlib_config():
 
 
 @pytest.fixture(scope='session')
-def ci_macos():
-    """Determine if running on MacOS CI."""
-    return (os.getenv('CI', 'false').lower() == 'true' and
-            sys.platform == 'darwin')
-
-
-@pytest.fixture(scope='session')
 def azure_windows():
     """Determine if running on Azure Windows."""
     return (os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true' and
             sys.platform.startswith('win'))
-
-
-@pytest.fixture()
-def check_gui_ci(ci_macos, azure_windows):
-    """Skip tests that are not reliable on CIs."""
-    if azure_windows or ci_macos:
-        pytest.skip('Skipping GUI tests on MacOS CIs and Azure Windows')
 
 
 @pytest.fixture(scope='function')
@@ -981,6 +968,22 @@ def qt_windows_closed(request):
         return
     if 'allow_unclosed_pyside2' in marks and API_NAME.lower() == 'pyside2':
         return
+    # Don't check when the test fails
+    report = request.node.stash[_phase_report_key]
+    if ("call" not in report) or report["call"].failed:
+        return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
+
+
+# https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures  # noqa: E501
+_phase_report_key = StashKey()
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Stash the status of each item."""
+    outcome = yield
+    rep = outcome.get_result()
+    item.stash.setdefault(_phase_report_key, {})[rep.when] = rep
