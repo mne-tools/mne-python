@@ -113,7 +113,7 @@ psd_post_reg = raw.compute_psd(**psd_kwargs)
 
 # %%
 # Denoising: Regressing via homogeneous field correction
-# -----------------------------------------------------
+# ------------------------------------------------------
 #
 # Regression of a reference channel is a start, but in this instance assumes
 # the relatiship between the references and a given sensor on the head as

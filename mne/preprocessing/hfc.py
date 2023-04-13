@@ -45,7 +45,7 @@ def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
     Notes
     -----
     To apply the projectors to a dataset, use
-    `[DATA].add_proj(projs).apply_proj()`.
+    ``[DATA].add_proj(projs).apply_proj()``.
 
     References
     ----------
