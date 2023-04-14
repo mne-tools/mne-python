@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Container classes for spectral data."""
 
 # Authors: Dan McCloy <dan@mccloy.info>
@@ -740,10 +739,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         index : str | list of str | None
             Kind of index to use for the DataFrame. If ``None``, a sequential
             integer index (:class:`pandas.RangeIndex`) will be used. If a
-            :class:`str`, a :class:`pandas.Index`, :class:`pandas.Int64Index`,
-            or :class:`pandas.Float64Index` will be used (see Notes). If a list
-            of two or more string values, a :class:`pandas.MultiIndex` will be
-            used. Defaults to ``None``.
+            :class:`str`, a :class:`pandas.Index` will be used (see Notes). If
+            a list of two or more string values, a :class:`pandas.MultiIndex`
+            will be used. Defaults to ``None``.
         %(copy_df)s
         %(long_format_df_spe)s
         %(verbose)s

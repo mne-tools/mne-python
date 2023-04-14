@@ -1,4 +1,3 @@
-
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: BSD-3-Clause

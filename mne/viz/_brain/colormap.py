@@ -64,7 +64,7 @@ def get_fill_colors(cols, n_fill):
 
 def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
                   transparent=True):
-    u"""Transparent color map calculation.
+    """Transparent color map calculation.
 
     A colormap may be sequential or divergent. When the colormap is
     divergent indicate this by providing a value for 'center'. The

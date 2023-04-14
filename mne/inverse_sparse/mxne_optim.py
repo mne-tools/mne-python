@@ -662,7 +662,7 @@ def safe_max_abs_diff(A, ia, B, ib):
     return np.max(np.abs(A - B))
 
 
-class _Phi(object):
+class _Phi:
     """Have phi stft as callable w/o using a lambda that does not pickle."""
 
     def __init__(self, wsize, tstep, n_coefs, n_times):  # noqa: D102
@@ -705,7 +705,7 @@ class _Phi(object):
         return norm
 
 
-class _PhiT(object):
+class _PhiT:
     """Have phi.T istft as callable w/o using a lambda that does not pickle."""
 
     def __init__(self, tstep, n_freqs, n_steps, n_times):  # noqa: D102

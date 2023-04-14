@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Test exporting functions."""
 # Authors: MNE Developers
 #

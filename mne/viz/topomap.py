@@ -626,7 +626,7 @@ def _get_extra_points(pos, extrapolate, origin, radii):
     return new_pos, mask_pos, tri
 
 
-class _GridData(object):
+class _GridData:
     """Unstructured (x,y) data interpolator.
 
     This class allows optimized interpolation by computing parameters
@@ -908,7 +908,6 @@ def _plot_topomap(
         border=_BORDER_DEFAULT, res=64, cmap=None, vmin=None, vmax=None,
         cnorm=None, show=True, onselect=None):
     from matplotlib.colors import Normalize
-    import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
     logger.debug(f'Plotting topomap for {ch_type} data shape {data.shape}')
@@ -1050,7 +1049,7 @@ def _plot_topomap(
                       verticalalignment='center', size='x-small')
 
     if not axes.figure.get_constrained_layout():
-        plt.subplots_adjust(top=.95)
+        axes.figure.subplots_adjust(top=.95)
 
     if onselect is not None:
         lim = axes.dataLim

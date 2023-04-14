@@ -366,6 +366,7 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
     -------
     raw : instance of RawMff
         A Raw object containing EGI mff data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     Notes
     -----
@@ -384,7 +385,7 @@ def _read_raw_egi_mff(input_fname, eog=None, misc=None,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawMff.
 
     .. versionadded:: 0.15.0
     """

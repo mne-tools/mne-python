@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -52,7 +51,7 @@ src_fname = subjects_dir / subject / "bem" / "sample-oct-6-src.fif"
 pytest.importorskip("nibabel")
 
 
-class _Collection(object):
+class _Collection:
     def __init__(self, actors):
         self._actors = actors
 
@@ -63,7 +62,7 @@ class _Collection(object):
         return self._actors[ii]
 
 
-class TstVTKPicker(object):
+class TstVTKPicker:
     """Class to test cell picking."""
 
     def __init__(self, mesh, cell_id, hemi, brain):
@@ -887,7 +886,12 @@ something
 #                  interpolation='linear', time_viewer=True)
 #
 """, 1)
-    gallery_conf = dict(src_dir=str(tmp_path), compress_images=[])
+    gallery_conf = dict(
+        src_dir=str(tmp_path),
+        compress_images=[],
+        image_srcset=[],
+        matplotlib_animations=False,
+    )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
     assert brain.plotter is None  # closed
@@ -919,7 +923,12 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     block_vars = dict(image_path_iterator=iter(fnames),
                       example_globals=dict(brain=brain))
     block = ('code', '', 1)
-    gallery_conf = dict(src_dir=str(tmp_path), compress_images=[])
+    gallery_conf = dict(
+        src_dir=str(tmp_path),
+        compress_images=[],
+        image_srcset=[],
+        matplotlib_animations=False,
+    )
     scraper = _BrainScraper()
     rst = scraper(block, block_vars, gallery_conf)
     assert brain.plotter is None  # closed

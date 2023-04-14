@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Base classes and functions for 2D browser backends."""
 
 # Authors: Daniel McCloy <dan@mccloy.info>
@@ -314,7 +313,7 @@ class BrowserBase(ABC):
 
     def _apply_filter(self, data, start, stop, picks):
         """Filter (with same defaults as raw.filter())."""
-        from ..filter import _overlap_add_filter, _filtfilt
+        from ..filter import _overlap_add_filter, _iir_filter
         starts, stops = self.mne.filter_bounds
         mask = (starts < stop) & (stops > start)
         starts = np.maximum(starts[mask], start) - start
@@ -328,7 +327,7 @@ class BrowserBase(ABC):
                 this_data = _overlap_add_filter(
                     this_data, self.mne.filter_coefs, copy=False)
             else:  # IIR
-                this_data = _filtfilt(
+                this_data = _iir_filter(
                     this_data, self.mne.filter_coefs, None, 1, False)
             data[_picks, _start:_stop] = this_data
 

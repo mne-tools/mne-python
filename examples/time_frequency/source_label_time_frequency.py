@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-source-space-power-phase-locking:
 

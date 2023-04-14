@@ -102,7 +102,7 @@ class RawKIT(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
@@ -318,7 +318,7 @@ class EpochsKIT(BaseEpochs):
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
     """
 
     @verbose
@@ -573,7 +573,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             elif channel_type == KIT.CHANNEL_NULL:
                 channels.append({'type': channel_type})
             else:
-                raise IOError("Unknown KIT channel type: %i" % channel_type)
+                raise OSError("Unknown KIT channel type: %i" % channel_type)
         exg_gains = np.array(exg_gains)
 
         #
@@ -639,7 +639,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             else:
                 sqd['n_samples'] = sqd['frame_length'] * sqd['n_epochs']
         else:
-            raise IOError("Invalid acquisition type: %i. Your file is neither "
+            raise OSError("Invalid acquisition type: %i. Your file is neither "
                           "continuous nor epoched data." % (acq_type,))
 
         #
@@ -707,7 +707,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     # precompute conversion factor for reading data
     if unsupported_format:
         if sysid not in LEGACY_AMP_PARAMS:
-            raise IOError("Legacy parameters for system ID %i unavailable" %
+            raise OSError("Legacy parameters for system ID %i unavailable" %
                           (sysid,))
         adc_range, adc_stored = LEGACY_AMP_PARAMS[sysid]
     is_meg = np.array([ch['type'] in KIT.CHANNELS_MEG for ch in channels])
@@ -827,10 +827,11 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     -------
     raw : instance of RawKIT
         A Raw object containing KIT data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawKIT.
 
     Notes
     -----

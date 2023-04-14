@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-ieeg-localize:
 
@@ -27,7 +26,6 @@ the original publication, so please cite :footcite:`RockhillEtAl2022` if you
 use this module in your analysis to support the addition of new projects to
 MNE.
 """
-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -42,6 +40,7 @@ import nilearn.plotting
 from dipy.align import resample
 
 import mne
+import mne_gui_addons as mne_gui
 from mne.datasets import fetch_fsaverage
 
 # paths to mne datasets: sample sEEG and FreeSurfer's fsaverage subject,
@@ -346,7 +345,7 @@ raw = mne.io.read_raw(misc_path / 'seeg' / 'sample_seeg_ieeg.fif')
 # you may want to add `block=True` to halt execution until you have interacted
 # with the GUI to find the channel positions, that way the raw object can
 # be used later in the script (e.g. saved with channel positions)
-mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
+mne_gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
                     subject='sample_seeg',
                     subjects_dir=misc_path / 'seeg')
 # The `raw` object is modified to contain the channel locations
@@ -371,7 +370,7 @@ raw_ecog = mne.io.read_raw(misc_path / 'ecog' / 'sample_ecog_ieeg.fif')
 # use estimated `trans` which was used when the locations were found previously
 subj_trans_ecog = mne.coreg.estimate_head_mri_t(
     'sample_ecog', misc_path / 'ecog')
-mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
+mne_gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
                     subject='sample_ecog',
                     subjects_dir=misc_path / 'ecog')
 

@@ -10,7 +10,6 @@ from mne.io import RawArray
 from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.utils import requires_h5py, requires_pandas
 
 
 def test_spectrum_errors(raw):
@@ -63,10 +62,10 @@ def _get_inst(inst, request, evoked):
     return evoked if inst == 'evoked' else request.getfixturevalue(inst)
 
 
-@requires_h5py
 @pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
+    pytest.importorskip('h5py')
     fname = tmp_path / f'{inst}-spectrum.h5'
     inst = _get_inst(inst, request, evoked)
     orig = inst.compute_psd()
@@ -138,7 +137,6 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
-@requires_pandas
 @pytest.mark.parametrize('long_format', (False, True))
 @pytest.mark.parametrize('method, output', [
     ('welch', 'complex'),
@@ -147,6 +145,7 @@ def _agg_helper(df, weights, group_cols):
 ])
 def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     """Test converting complex multitaper spectra to data frame."""
+    pytest.importorskip('pandas')
     from pandas.testing import assert_frame_equal
 
     from mne.utils.dataframe import _inplace
@@ -175,8 +174,8 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # sorting at the agg step *sigh*
     _inplace(orig_df, 'sort_values', by=grouping_cols, ignore_index=True)
     # aggregate
-    gb = df.drop(columns=drop_cols).groupby(
-        grouping_cols, as_index=False, observed=False)
+    df = df.drop(columns=drop_cols)
+    gb = df.groupby(grouping_cols, as_index=False, observed=False)
     if method == 'welch':
         if output == 'complex':
             def _fun(x):
@@ -185,6 +184,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
             _fun = np.nanmean
         agg_df = gb.aggregate(_fun)
     else:
+        gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
         agg_df = gb.apply(_agg_helper, spectrum._mt_weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
@@ -192,10 +192,10 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     assert_frame_equal(agg_df, orig_df, check_categorical=False)
 
 
-@requires_pandas
 @pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
 def test_spectrum_to_data_frame(inst, request, evoked):
     """Test the to_data_frame method for Spectrum."""
+    pytest.importorskip('pandas')
     from pandas.testing import assert_frame_equal
 
     # setup

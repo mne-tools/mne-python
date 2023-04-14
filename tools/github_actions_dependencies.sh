@@ -26,15 +26,15 @@ else
 	pip install $STD_ARGS --pre --only-binary ":all:" pillow
 	# We don't install Numba here because it forces an old NumPy version
 	echo "nilearn and openmeeg"
-	pip install $STD_ARGS --pre https://github.com/nilearn/nilearn/zipball/main
+	pip install $STD_ARGS --pre git+https://github.com/nilearn/nilearn
 	pip install $STD_ARGS --pre --only-binary ":all:" -i "https://test.pypi.org/simple" openmeeg
 	echo "VTK"
-	pip install $STD_ARGS --pre --only-binary ":all:" vtk
+	pip install $STD_ARGS --pre --only-binary ":all:" -i "https://wheels.vtk.org" vtk
 	python -c "import vtk"
 	echo "PyVista"
-	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
+	pip install --progress-bar off git+https://github.com/pyvista/pyvista
 	echo "pyvistaqt"
-	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
+	pip install --progress-bar off git+https://github.com/pyvista/pyvistaqt
 	echo "imageio-ffmpeg, xlrd, mffpy, python-picard"
 	pip install --progress-bar off --pre imageio-ffmpeg xlrd mffpy python-picard patsy
 	if [ "$OSTYPE" == "darwin"* ]; then
@@ -42,7 +42,7 @@ else
 	  pip install --progress-bar off pyobjc-framework-Cocoa>=5.2.0
 	fi
 	echo "mne-qt-browser"
-	pip install --progress-bar off https://github.com/mne-tools/mne-qt-browser/zipball/main
+	pip install --progress-bar off git+https://github.com/mne-tools/mne-qt-browser
 	EXTRA_ARGS="--pre"
 fi
 # for compat_minimal and compat_old, we don't want to --upgrade

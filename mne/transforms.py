@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Helpers for various transformations."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -462,7 +461,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
             )
         trans = Path(trans)
         if not trans.is_file():
-            raise IOError(f'trans file "{trans}" not found')
+            raise OSError(f'trans file "{trans}" not found')
         if trans.suffix in ['.fif', '.gz']:
             fro_to_t = read_trans(trans)
         else:
@@ -561,7 +560,7 @@ def read_trans(fname, return_all=False, verbose=None):
                 if not return_all:
                     break
     if len(trans) == 0:
-        raise IOError('This does not seem to be a -trans.fif file.')
+        raise OSError('This does not seem to be a -trans.fif file.')
     return trans if return_all else trans[0]
 
 
@@ -928,7 +927,7 @@ def _compute_sph_harm(order, az, pol):
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-class _TPSWarp(object):
+class _TPSWarp:
     """Transform points using thin-plate spline (TPS) warping.
 
     Notes
@@ -1005,7 +1004,7 @@ def _tps(distsq):
 ###############################################################################
 # Spherical harmonic approximation + TPS warp
 
-class _SphericalSurfaceWarp(object):
+class _SphericalSurfaceWarp:
     """Warp surfaces via spherical harmonic smoothing and thin-plate splines.
 
     Notes
@@ -1912,6 +1911,7 @@ def apply_volume_registration_points(info, trans, moving, static, reg_affine,
     montage2 = make_dig_montage(**montage_kwargs)
 
     trans2 = compute_native_head_t(montage2)
-    info.set_montage(montage2)  # converts to head coordinates
+    info2 = info.copy()
+    info2.set_montage(montage2)  # converts to head coordinates
 
-    return info, trans2
+    return info2, trans2

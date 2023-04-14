@@ -66,7 +66,7 @@ def test_basics():
     raw = read_raw_fif(fif_fname)
     assert raw.annotations is not None
     assert len(raw.annotations.onset) == 0
-    pytest.raises(IOError, read_annotations, fif_fname)
+    pytest.raises(OSError, read_annotations, fif_fname)
     onset = np.array(range(10))
     duration = np.ones(10)
     description = np.repeat('test', 10)
@@ -234,7 +234,7 @@ def test_crop(tmp_path):
     assert_array_equal(annot_read.description, raw.annotations.description)
     annot = Annotations((), (), ())
     annot.save(fname, overwrite=True)
-    pytest.raises(IOError, read_annotations, fif_fname)  # none in old raw
+    pytest.raises(OSError, read_annotations, fif_fname)  # none in old raw
     annot = read_annotations(fname)
     assert isinstance(annot, Annotations)
     assert len(annot) == 0

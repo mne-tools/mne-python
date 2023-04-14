@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -103,7 +102,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -282,8 +281,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self._dtype_
 
     @verbose
-    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-                      projector=None, verbose=None):
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None, *,
+                      verbose=None):
         """Read a chunk of raw data.
 
         Parameters
@@ -345,26 +344,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # set up cals and mult (cals, compensation, and projector)
         n_out = len(np.arange(len(self.ch_names))[idx])
-        cals = self._cals.ravel()[np.newaxis, :]
-        if projector is not None:
-            assert projector.shape[0] == projector.shape[1] == cals.shape[1]
-        if self._comp is not None:
+        cals = self._cals.ravel()
+        projector, comp = self._projector, self._comp
+        if comp is not None:
+            mult = comp
             if projector is not None:
-                mult = self._comp * cals
-                mult = np.dot(projector[idx], mult)
-            else:
-                mult = self._comp[idx] * cals
-        elif projector is not None:
-            mult = projector[idx] * cals
+                mult = projector @ mult
         else:
-            mult = None
-        del projector
+            mult = projector
+        del projector, comp
 
         if mult is None:
-            cals = cals.T[idx]
+            cals = cals[idx, np.newaxis]
             assert cals.shape == (n_out, 1)
             need_idx = idx  # sufficient just to read the given channels
         else:
+            mult = mult[idx] * cals
             cals = None  # shouldn't be used
             assert mult.shape == (n_out, len(self.ch_names))
             # read all necessary for proj
@@ -505,8 +500,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data_buffer = None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
-        self._data = self._read_segment(
-            data_buffer=data_buffer, projector=self._projector)
+        self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self._comp = None  # no longer needed
@@ -753,8 +747,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if self.preload:
             data = self._data[sel, start:stop]
         else:
-            data = self._read_segment(start=start, stop=stop, sel=sel,
-                                      projector=self._projector)
+            data = self._read_segment(start=start, stop=stop, sel=sel)
 
         if return_times:
             # Rather than compute the entire thing just compute the subset
@@ -1670,7 +1663,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment(projector=self._projector)
+                this_data = self._read_segment()
             else:
                 this_data = self._data
 
@@ -1682,8 +1675,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 if not raws[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    raws[ri]._read_segment(data_buffer=data_buffer,
-                                           projector=self._projector)
+                    raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
@@ -2146,7 +2138,7 @@ def _get_scaling(ch_type, target_unit):
     return scaling
 
 
-class _ReadSegmentFileProtector(object):
+class _ReadSegmentFileProtector:
     """Ensure only _filenames, _raw_extras, and _read_segment_file are used."""
 
     def __init__(self, raw):
@@ -2160,7 +2152,7 @@ class _ReadSegmentFileProtector(object):
             self, data, idx, fi, start, stop, cals, mult)
 
 
-class _RawShell(object):
+class _RawShell:
     """Create a temporary raw object."""
 
     def __init__(self):  # noqa: D102

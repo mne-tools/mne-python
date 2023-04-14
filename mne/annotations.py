@@ -87,7 +87,7 @@ def _ndarray_ch_names(ch_names):
 
 
 @fill_doc
-class Annotations(object):
+class Annotations:
     """Annotation object for annotating segments of raw data.
 
     .. note::
@@ -312,16 +312,20 @@ class Annotations(object):
 
     def __iter__(self):
         """Iterate over the annotations."""
+        # Figure this out once ahead of time for consistency and speed (for
+        # thousands of annotations)
+        with_ch_names = self._any_ch_names()
         for idx in range(len(self.onset)):
-            yield self.__getitem__(idx)
+            yield self.__getitem__(idx, with_ch_names=with_ch_names)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key, *, with_ch_names=None):
         """Propagate indexing and slicing to the underlying numpy structure."""
         if isinstance(key, int_like):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            if self._any_ch_names():
+            if with_ch_names or (with_ch_names is None and
+                                 self._any_ch_names()):
                 out_keys += ('ch_names',)
                 out_vals += (self.ch_names[key],)
             return OrderedDict(zip(out_keys, out_vals))
@@ -1134,10 +1138,10 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     elif name.startswith('events_') and fname.endswith('mat'):
         annotations = _read_brainstorm_annotations(fname)
     else:
-        raise IOError('Unknown annotation file format "%s"' % fname)
+        raise OSError('Unknown annotation file format "%s"' % fname)
 
     if annotations is None:
-        raise IOError('No annotation data found in file "%s"' % fname)
+        raise OSError('No annotation data found in file "%s"' % fname)
     return annotations
 
 
