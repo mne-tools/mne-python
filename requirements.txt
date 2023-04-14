@@ -43,4 +43,3 @@ mne-qt-browser
 darkdetect
 qdarkstyle
 threadpoolctl
-mne-gui-addons
