@@ -29,7 +29,7 @@ else
 	pip install $STD_ARGS --pre git+https://github.com/nilearn/nilearn
 	pip install $STD_ARGS --pre --only-binary ":all:" -i "https://test.pypi.org/simple" openmeeg
 	echo "VTK"
-	pip install $STD_ARGS --pre --only-binary ":all:" vtk
+	pip install $STD_ARGS --pre --only-binary ":all:" -i "https://wheels.vtk.org" vtk
 	python -c "import vtk"
 	echo "PyVista"
 	pip install --progress-bar off git+https://github.com/pyvista/pyvista
