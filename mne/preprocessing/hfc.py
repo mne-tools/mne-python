@@ -39,13 +39,13 @@ def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
 
     Returns
     -------
-    projs: list
+    projs : list of Projection
         List of projection vectors.
 
     Notes
     -----
-    To apply the projectors to a dataset, use
-    ``[DATA].add_proj(projs).apply_proj()``.
+    To apply the projectors to a dataset, use ``inst.add_proj(projs).apply
+    _proj()``.
 
     References
     ----------
@@ -60,11 +60,11 @@ def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
     basis, channels = _generate_basis_set(info, picks, order, accuracy)
     labels = _label_basis(order)
     projs = []
-    for ii in range(len(labels)):
+    for ii, label in enumerate(labels):
         data = basis[:, ii]
         proj_data = dict(col_names=channels, row_names=None,
                          data=data[np.newaxis, :], ncol=len(channels), nrow=1)
-        proj = Projection(active=False, data=proj_data, desc=labels[ii])
+        proj = Projection(active=False, data=proj_data, desc=label)
         projs.append(proj)
 
     return projs
@@ -98,7 +98,7 @@ def _label_basis(order):
     labels = list()
     for L in np.arange(1, order + 1):
         for m in np.arange(-1 * L, L + 1):
-            labels.append("HFC: l=%d m=%d" % (L, m))
+            labels.append(f"HFC: l={L} m={m}")
     return labels
 
 
