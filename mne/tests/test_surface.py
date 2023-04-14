@@ -164,7 +164,8 @@ def test_read_curv():
     assert np.logical_or(bin_curv == 0, bin_curv == 1).all()
 
 
-def test_decimate_surface_vtk():
+@pytest.mark.parametrize('n_tri', (4, 3, 2))
+def test_decimate_surface_vtk(n_tri):
     """Test triangular surface decimation."""
     pytest.importorskip('pyvista')
     points = np.array([[-0.00686118, -0.10369860, 0.02615170],
@@ -172,14 +173,17 @@ def test_decimate_surface_vtk():
                        [-0.00686208, -0.10368247, 0.02588313],
                        [-0.00713987, -0.10368724, 0.02587745]])
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, 0]])
-    for n_tri in [4, 3, 2]:  # quadric decimation creates even numbered output.
-        _, this_tris = decimate_surface(points, tris, n_tri)
-        assert len(this_tris) == n_tri if not n_tri % 2 else 2
+    _, this_tris = decimate_surface(points, tris, n_tri)
+    want = (n_tri, n_tri - 1)
+    if n_tri == 3:
+        want = want + (1,)
+    assert len(this_tris) in want
     with pytest.raises(ValueError, match='exceeds number of original'):
         decimate_surface(points, tris, len(tris) + 1)
     nirvana = 5
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
-    pytest.raises(ValueError, decimate_surface, points, tris, n_tri)
+    with pytest.raises(ValueError, match='undefined points'):
+        decimate_surface(points, tris, n_tri)
 
 
 @requires_freesurfer('mris_sphere')
@@ -238,7 +242,9 @@ def test_marching_cubes(dtype, value, smooth):
     # verts and faces are rather large so use checksum
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
-    assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    tri_sum = triangles.sum(axis=0).tolist()
+    # old VTK (9.2.6), new VTK
+    assert tri_sum in [[363402, 360865, 350588], [364089, 359867, 350408]]
     # test fill holes
     data[24:27, 24:27, 24:27] = 0
     verts, triangles = _marching_cubes(data, level, smooth=smooth,
