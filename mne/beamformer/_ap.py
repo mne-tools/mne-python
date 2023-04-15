@@ -33,7 +33,7 @@ def _active_subspace(Mat):
     return multi_dot([Mat, pinv(Mat.T @ Mat), Mat.T])
 
 
-def _fixed_phase1a(n_dipoles, data_cov, gain):
+def _fixed_phase1a(data_cov, gain):
     """Calculate phase 1a of fixed oriented AP.
 
     Initialization: search the 1st source location over the entire
@@ -41,8 +41,6 @@ def _fixed_phase1a(n_dipoles, data_cov, gain):
 
     Parameters
     ----------
-    n_dipoles : int
-        Number of dipoles throughout the model.
     data_cov : array
         Data Covariance.
     gain : array, shape (nchannels, n_dipoles)
@@ -55,16 +53,7 @@ def _fixed_phase1a(n_dipoles, data_cov, gain):
 
     """
     s_ap = []
-    ap_val1 = np.zeros(n_dipoles)
-    for dip in range(n_dipoles):
-        l_p = gain[:, dip:dip + 1]
-        ap_val1[dip] = multi_dot([l_p.T, data_cov, l_p]) / (l_p.T @ l_p)[0, 0]
-    s1_idx = np.argmax(ap_val1)
-    # s1_idx = np.argmax(
-    #                    np.diagonal(
-    #                                multi_dot([gain.T,data_cov,gain])
-    #                                ) / np.diagonal(np.dot(gain.T,gain))
-    #                    )
+    s1_idx = np.argmax(np.diagonal(multi_dot([gain.T,data_cov,gain])) / np.diagonal(np.dot(gain.T,gain)))
     s_ap.append(s1_idx)
     return s_ap
 
