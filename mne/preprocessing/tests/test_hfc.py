@@ -8,14 +8,16 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fil
-from mne.preprocessing.hfc import (compute_proj_hfc,
-                                   _filter_channels_with_positions)
+from mne.preprocessing.hfc import compute_proj_hfc
 from mne.io.pick import pick_types, pick_info
 
 import scipy.io
 
 fil_path = testing.data_path(download=False) / 'FIL'
 fname_root = "sub-noise_ses-001_task-noise220622_run-001"
+
+# The below channels in the test data do not have positions, set to bad
+bads = ['G2-DS-Y','G2-DS-Z','G2-DT-Y','G2-DT-Z','G2-MW-Y','G2-MW-Z']
 
 # TODO: Ignore this warning in all these tests until we deal with this properly
 pytestmark = pytest.mark.filterwarnings(
@@ -73,8 +75,9 @@ def _compare_hfc_results(order, rtol=1e-7):
     """Apply HFC and compare to previous computed solutions."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     raw = read_raw_fil(binname, verbose=False)
-    raw.load_data(verbose=False)
-    projs = compute_proj_hfc(raw.info, order=order, accuracy='point')
+    raw.load_data()
+    raw.info['bads'].extend([b for b in bads])
+    projs = compute_proj_hfc(raw.info, order=order, accuracy="point")
     raw.add_proj(projs).apply_proj()
 
     fname = fname_root + "_hfc_l{0}.mat".format(order)
@@ -98,16 +101,16 @@ def test_l1_basis_orientations():
     """Test that angles between the basis components matches orientations."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     raw = read_raw_fil(binname)
+    raw.info['bads'].extend([b for b in bads])
     projs = compute_proj_hfc(raw.info, accuracy='point')
     basis = np.hstack([p['data']['data'].T for p in projs])
     ang_model = np.concatenate([_angle_between(b, basis)
                                 for b in basis])
 
     idx = pick_types(raw.info, meg='mag')
-    idx_loc = _filter_channels_with_positions(raw.info, idx)
-    chs = pick_info(raw.info, idx_loc)['chs']
+    chs = pick_info(raw.info, idx)['chs']
     ori_sens = np.concatenate([ch['loc'][-3:] for ch in chs])
-    ori_sens = np.reshape(ori_sens, (len(idx_loc), 3))
+    ori_sens = np.reshape(ori_sens, (len(idx), 3))
     ang_sens = np.concatenate([_angle_between(o, ori_sens)
                                for o in ori_sens])
 

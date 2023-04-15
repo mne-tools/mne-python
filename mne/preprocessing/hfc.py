@@ -4,15 +4,14 @@
 
 import numpy as np
 from .maxwell import _prep_mf_coils, _sss_basis
-from ..forward import _prep_meg_channels
-from ..io.pick import pick_types
+from ..io.pick import _picks_to_idx
 from ..io.proj import Projection
 from ..utils import verbose
 
 
 @verbose
-def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
-                     accuracy='accurate', verbose=None):
+def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
+                     ignore_ref=True, accuracy='accurate', verbose=None):
     """Generate projectors to perform homogeneous/harmonic correction to data.
 
     Remove evironmental fields from magentometer data by assuming it is
@@ -27,11 +26,16 @@ def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
         The order of the spherical harmonic basis set to use. Set to 1 to use
         only the homogeneous field component (default), 2 to add gradients, 3
         to add quadrature terms etc.
-    picks : int | array-like
-        List of channels indices to compute projeciton on. Default behaviour
-        is to select meg (non-reference) with known positions.
-    exclude_bads : bool
-        Do not include bad channels in the projection, (default: True).
+    picks : str | array_like | slice | None
+        Channels to include. Default of ``'meg'`` will select all non-reference
+        MEC channels.
+    exclude : list | 'bads'
+        List of channels to exclude from HFC, only used when picking
+        based on types (e.g., exclude="bads" when picks="meg").
+        Specify ``'bads'`` (the default) to exclude all channels marked as bad.
+    ignore_ref : bool
+        Specify whether reference MEG channels should be ignored when
+        calculating the basis set (default: ``True``).
     accuracy : str
         Can be ``"point"``, ``"normal"`` or ``"accurate"`` (default), defines
         which level of coil definition accuracy is used to generate model.
@@ -51,14 +55,14 @@ def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
     ----------
     .. footbibliography::
     """
-    if picks is None:
-        if exclude_bads is True:
-            picks = pick_types(info, meg=True)
-        else:
-            picks = pick_types(info, meg=True, exclude=None)
-    picks = _filter_channels_with_positions(info, picks)
-    basis, channels = _generate_basis_set(info, picks, order, accuracy)
+    idx = _picks_to_idx(info, picks, exclude=exclude)
+    if not ignore_ref:
+        idx = np.union1d(idx,
+                         _picks_to_idx(info, picks='ref_meg', exclude=exclude))
+    basis, channels = _generate_basis_set(info, idx, order,
+                                          accuracy, ignore_ref)
     labels = _label_basis(order)
+    _assert_isfinite(basis, channels)
     projs = []
     for ii, label in enumerate(labels):
         data = basis[:, ii]
@@ -70,21 +74,14 @@ def compute_proj_hfc(info, order=1, picks=None, exclude_bads=True,
     return projs
 
 
-def _filter_channels_with_positions(info, indsin):
-    """Keep indices of channels with position information."""
-    ch_inds = list()
-    for ii in indsin:
-        if not (any(np.isnan(info['chs'][ii]['loc']))):
-            ch_inds.append(ii)
-    return ch_inds
-
-
-def _generate_basis_set(info, picks=None, order=1,
-                        accuracy='accurate', origin=(0, 0, 0)):
+def _generate_basis_set(info, picks=None, order=1, accuracy='accurate',
+                        ignore_ref=True, origin=(0, 0, 0)):
     """Generate the basis set used for HFC."""
-    exp = dict(origin=(0, 0, 0), int_order=0, ext_order=order)
-    coils = _prep_mf_coils(info, accuracy=accuracy)
-    mf_names = _get_mf_names(info, accuracy=accuracy)
+    exp = dict(origin=origin, int_order=0, ext_order=order)
+    mf_coils = _prep_mf_coils(info, ignore_ref=ignore_ref,
+                              accuracy=accuracy, return_names=True)
+    coils = mf_coils[:-1]
+    mf_names = mf_coils[-1]
     S = _sss_basis(exp, coils)
     if picks is not None:
         pick_names = [info['chs'][i]['ch_name'] for i in picks]
@@ -102,23 +99,6 @@ def _label_basis(order):
     return labels
 
 
-def _pick_sensors_auto(info):
-    """Pick of good magnetometors with known positions."""
-    mags_idx = pick_types(info, meg=True)
-    picks = _filter_channels_with_positions(info, mags_idx)
-    return picks
-
-
-def _get_mf_names(info, ignore_ref=True, accuracy='accurate', verbose=None):
-    """Get names of coils used in MaxFilter basis set generation."""
-    meg_sensors = _prep_meg_channels(
-        info, head_frame=False, ignore_ref=ignore_ref, accuracy=accuracy,
-        verbose=False)
-    coils = meg_sensors['defs']
-    names = [coil['chname'] for coil in coils]
-    return names
-
-
 def _filter_list(A_list, B_list):
     """Locate where one list matches another."""
     hit_inds = list()
@@ -133,3 +113,16 @@ def _filter_list(A_list, B_list):
             string = '\t' + ii + ' not in basis set, ignoring.'
             print(string)
     return hit_list, hit_inds
+
+
+def _assert_isfinite(basis, channels):
+    """Check all basis values are finite, error and report which are not."""
+    infs = np.isfinite(basis)
+    bad_chans = np.where(~infs.any(axis=1))[0]
+    if bad_chans.size > 0:
+        string = "The following channels generate non-finite projectors"
+        string += " for HFC:"
+        for b in bad_chans:
+            string += "\n\t" + channels[b]
+        string += "\nPlease exclude from selection!"
+        raise ValueError(string)

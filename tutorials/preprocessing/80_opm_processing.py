@@ -125,10 +125,9 @@ psd_post_reg = raw.compute_psd(**psd_kwargs)
 # other. Which in a well-designed rigid helmet is the case.
 
 
-# include gradients by setting order to 2
+# include gradients by setting order to 2, set to 1 for homgenous components only
 projs = mne.preprocessing.compute_proj_hfc(raw.info, order=2)
 raw.add_proj(projs).apply_proj(verbose='error')
-raw.info.normalize_proj()
 
 # plot
 data_ds, _ = raw[picks[::5], :stop]
@@ -220,7 +219,8 @@ ax.set(title='After regression, HFC and filtering', **set_kwargs)
 # sphinx_gallery_thumbnail_number = 7
 
 events = mne.find_events(raw, min_duration=0.1)
-epochs = mne.Epochs(raw, events, tmin=-0.1, tmax=0.4, baseline=(-0.1, 0.))
+epochs = mne.Epochs(raw, events, tmin=-0.1, tmax=0.4,
+                    baseline=(-0.1, 0.), verbose='error')
 evoked = epochs.average()
 evoked.plot()
 

@@ -783,12 +783,14 @@ def _check_destination(destination, info, head_frame):
 
 
 @verbose
-def _prep_mf_coils(info, ignore_ref=True, accuracy='accurate', verbose=None):
+def _prep_mf_coils(info, ignore_ref=True, accuracy='accurate',
+                   return_names=False, verbose=None):
     """Get all coil integration information loaded and sorted."""
     meg_sensors = _prep_meg_channels(
         info, head_frame=False, ignore_ref=ignore_ref, accuracy=accuracy,
         verbose=False)
     coils = meg_sensors['defs']
+    names = [coil['chname'] for coil in coils]
     mag_mask = _get_mag_mask(coils)
 
     # Now coils is a sorted list of coils. Time to do some vectorization.
@@ -803,6 +805,8 @@ def _prep_mf_coils(info, ignore_ref=True, accuracy='accurate', verbose=None):
     bd = np.concatenate(([0], np.cumsum(n_int)))
     slice_map = {ii: slice(start, stop)
                  for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:]))}
+    if return_names:
+        return rmags, cosmags, bins, n_coils, mag_mask, slice_map, names
     return rmags, cosmags, bins, n_coils, mag_mask, slice_map
 
 
