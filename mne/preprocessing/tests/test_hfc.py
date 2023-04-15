@@ -17,7 +17,7 @@ fil_path = testing.data_path(download=False) / 'FIL'
 fname_root = "sub-noise_ses-001_task-noise220622_run-001"
 
 # The below channels in the test data do not have positions, set to bad
-bads = ['G2-DS-Y','G2-DS-Z','G2-DT-Y','G2-DT-Z','G2-MW-Y','G2-MW-Z']
+bads = ['G2-DS-Y', 'G2-DS-Z', 'G2-DT-Y', 'G2-DT-Z', 'G2-MW-Y', 'G2-MW-Z']
 
 # TODO: Ignore this warning in all these tests until we deal with this properly
 pytestmark = pytest.mark.filterwarnings(
