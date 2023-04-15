@@ -4,7 +4,7 @@
 
 import os.path as op
 
-from random import choice
+from numpy.random import choice
 
 import mne
 from mne.beamformer import alternating_projections

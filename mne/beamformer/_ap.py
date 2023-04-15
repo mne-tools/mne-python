@@ -53,12 +53,13 @@ def _fixed_phase1a(data_cov, gain):
 
     """
     s_ap = []
-    s1_idx = np.argmax(np.diagonal(multi_dot([gain.T,data_cov,gain])) / np.diagonal(np.dot(gain.T,gain)))
+    s1_idx = np.argmax(np.diagonal(multi_dot([gain.T,data_cov,gain]))\
+                       / np.diagonal(np.dot(gain.T,gain)))
     s_ap.append(s1_idx)
     return s_ap
 
 
-def _fixed_phase1b(gain, s_ap, data_cov, n_sources, n_dipoles):
+def _fixed_phase1b(gain, s_ap, data_cov, n_sources):
     """Calculate phase 1b of fixed oriented AP.
 
     Adding one source at a time.
@@ -73,8 +74,6 @@ def _fixed_phase1b(gain, s_ap, data_cov, n_sources, n_dipoles):
         Data Covariance.
     n_sources : int
         The number of dipoles to estimate.
-    n_dipoles : int
-        Number of dipoles throughout the model.
 
     Returns
     -------
@@ -83,22 +82,17 @@ def _fixed_phase1b(gain, s_ap, data_cov, n_sources, n_dipoles):
 
     """
     for _ in range(1, n_sources):
-        ap_val2 = np.zeros(n_dipoles)
         sub_g = gain[:, s_ap]
         act_spc = _active_subspace(sub_g)
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-        for dip in range(n_dipoles):
-            l_p = np.expand_dims(gain[:, dip], axis=1)
-            ap_val2[dip] = multi_dot(
-                [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
-            ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
-        s2_idx = np.argmax(ap_val2)
+        s2_idx = np.argmax(np.diagonal(multi_dot([gain.T, perpend_spc, data_cov, perpend_spc, gain]))\
+                           / np.diagonal(multi_dot([gain.T, perpend_spc, gain])))
         s_ap.append(s2_idx)
     logger.info('current s_ap = {}'.format(s_ap))
     return s_ap
 
 
-def _fixed_phase2(n_sources, n_dipoles, max_iter, s_ap_2, gain, data_cov):
+def _fixed_phase2(n_sources, max_iter, s_ap_2, gain, data_cov):
     """Calculate phase 2 of fixed oriented AP.
 
     Altering the projection of current estimated dipoles.
@@ -107,8 +101,6 @@ def _fixed_phase2(n_sources, n_dipoles, max_iter, s_ap_2, gain, data_cov):
     ----------
     n_sources : int
         The number of dipoles to estimate.
-    n_dipoles : int
-        Number of dipoles throughout the model.
     max_iter : int
         Maximal iteration number of AP.
     s_ap_2 : list of int
@@ -129,18 +121,13 @@ def _fixed_phase2(n_sources, n_dipoles, max_iter, s_ap_2, gain, data_cov):
         s_ap_2_prev = copy(s_ap_2)
         for src in range(n_sources):
             # AP localization of src-th source
-            ap_val2 = np.zeros(n_dipoles)
             s_ap_temp = copy(s_ap_2)
             s_ap_temp.pop(src)
             sub_g = gain[:, s_ap_temp]
             act_spc = _active_subspace(sub_g)
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-            for dip in range(n_dipoles):
-                l_p = np.expand_dims(gain[:, dip], axis=1)
-                ap_val2[dip] = multi_dot(
-                    [l_p.T, perpend_spc, data_cov, perpend_spc, l_p]
-                ) / ((multi_dot([l_p.T, perpend_spc, l_p]))[0, 0])
-            s2_idx = np.argmax(ap_val2)
+            s2_idx = np.argmax(np.diagonal(multi_dot([gain.T, perpend_spc, data_cov, perpend_spc, gain]))\
+                               / np.diagonal(multi_dot([gain.T, perpend_spc, gain])))
             s_ap_2[src] = s2_idx
         logger.info('current s_ap_2 = {}'.format(s_ap_2))
         if (itr > 0) & (s_ap_2_prev == s_ap_2):
@@ -175,7 +162,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
     """
     s_ap = []
-    n_dipoles = gain.shape[1]
+    n_dipoles = gain.shape[1] #un-used: Number of dipoles throughout the model.
     logger.info('calculating fixed-orientation alternating projection')
     data_cov = _produce_data_cov(data_arr, n_sources)
 
@@ -186,13 +173,13 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
     # ######################################
 
     logger.info(' 1st phase : ')
-    s_ap = _fixed_phase1a(n_dipoles, data_cov, gain)
+    s_ap = _fixed_phase1a(data_cov, gain)
 
     # ######################################
     # (b) Now, add one source at a time
     # ######################################
 
-    s_ap = _fixed_phase1b(gain, s_ap, data_cov, n_sources, n_dipoles)
+    s_ap = _fixed_phase1b(gain, s_ap, data_cov, n_sources)
 
     # #####################################
     # 2nd phase
@@ -200,7 +187,7 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
     logger.info(' 2nd phase : ')
     s_ap_2 = copy(s_ap)
-    s_ap_2 = _fixed_phase2(n_sources, n_dipoles, max_iter,
+    s_ap_2 = _fixed_phase2(n_sources, max_iter,
                            s_ap_2, gain, data_cov)
 
     return s_ap_2
@@ -208,13 +195,13 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
 def _solve_active_gain_eig(ind, gain, data_cov, eig, perpend_spc):
     """Eigen values and vector of the projection."""
-    gain_idx = list(range(ind * 3, ind * 3 + 3))
+    gain_idx = slice(ind * 3, ind * 3 + 3)
     l_p = gain[:, gain_idx]
     eig_a = multi_dot(
         [l_p.T, perpend_spc, data_cov, perpend_spc, l_p])
     eig_b = multi_dot(
         [l_p.T, perpend_spc, perpend_spc, l_p])
-    eig_b = eig_b + 1e-3 * eig_b.trace() * np.eye(3)
+    eig_b += 1e-3 * eig_b.trace() * np.eye(3)
     eig_val, eig_vec = eig(eig_a, eig_b)
 
     return eig_val, eig_vec, l_p
@@ -247,7 +234,7 @@ def _free_phase1a(n_sources, n_dipoles, gain, data_cov):
         Sub space projected by estimated dipoles.
 
     """
-    from scipy.linalg import eig
+    from scipy import linalg
 
     s_ap = []
     oris = np.empty((n_sources, 3))
@@ -255,7 +242,7 @@ def _free_phase1a(n_sources, n_dipoles, gain, data_cov):
     perpend_spc = np.eye(gain.shape[0])
     for dip in range(n_dipoles):
         sol_tuple = _solve_active_gain_eig(
-            dip, gain, data_cov, eig, perpend_spc)
+            dip, gain, data_cov, linalg.eig, perpend_spc)
         ap_val1[dip] = np.max([x.real for x in sol_tuple[0]])
 
     # obtain the 1st source location
@@ -264,7 +251,7 @@ def _free_phase1a(n_sources, n_dipoles, gain, data_cov):
 
     # obtain the 1st source orientation
     sol_tuple = _solve_active_gain_eig(
-        s1_idx, gain, data_cov, eig, perpend_spc)
+        s1_idx, gain, data_cov, linalg.eig, perpend_spc)
 
     oris[0] = (
         sol_tuple[1][:, [np.argmax([x.real for x in sol_tuple[0]])]][:, 0])
@@ -305,7 +292,7 @@ def _free_phase1b(n_sources, n_dipoles, gain, data_cov,
 
     """
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
-    from scipy.linalg import eig
+    from scipy import linalg
 
     s_ap, oris, sub_g_proj = copy(ap_temp_tuple)
     for src in range(1, n_sources):
@@ -316,13 +303,13 @@ def _free_phase1b(n_sources, n_dipoles, gain, data_cov,
             if force_no_rep and (dip in s_ap):
                 continue
             sol_tuple = _solve_active_gain_eig(
-                dip, gain, data_cov, eig, perpend_spc)
+                dip, gain, data_cov, linalg.eig, perpend_spc)
             ap_val2[dip] = np.max([x.real for x in sol_tuple[0]])
 
         s2_idx = np.argmax(ap_val2)
         s_ap.append(s2_idx)
         sol_tuple = _solve_active_gain_eig(
-            s2_idx, gain, data_cov, eig, perpend_spc)
+            s2_idx, gain, data_cov, linalg.eig, perpend_spc)
 
         oris[src] = (
             sol_tuple[1][:, [np.argmax([x.real for x in sol_tuple[0]])]][:, 0])
@@ -366,7 +353,7 @@ def _free_phase2(ap_temp_tuple, n_sources, n_dipoles,
 
     """
     # ap_temp_tuple = (s_ap, oris, sub_g_proj)
-    from scipy.linalg import eig
+    from scipy import linalg
 
     s_ap_2, oris, sub_g_proj = copy(ap_temp_tuple)
     logger.info(' 2nd phase : ')
@@ -384,13 +371,13 @@ def _free_phase2(ap_temp_tuple, n_sources, n_dipoles,
                 if force_no_rep and (dip in np.delete(s_ap_2, src, 0)):
                     continue
                 sol_tuple = _solve_active_gain_eig(
-                    dip, gain, data_cov, eig, perpend_spc)
+                    dip, gain, data_cov, linalg.eig, perpend_spc)
                 ap_val2[dip] = np.max([x.real for x in sol_tuple[0]])
 
             sq_idx = np.argmax(ap_val2)
             s_ap_2[src] = sq_idx
             sol_tuple = _solve_active_gain_eig(
-                sq_idx, gain, data_cov, eig, perpend_spc)
+                sq_idx, gain, data_cov, linalg.eig, perpend_spc)
 
             oris[src] = sol_tuple[1][:, [np.argmax([x.real for x
                                                     in sol_tuple[0]])]][:, 0]
@@ -596,7 +583,7 @@ def _apply_ap(data, info, times, forward, noise_cov,
     return dipoles, explained_data, var_exp, dip_ind, oris, poss
 
 
-def _make_explained_evoke(evoked, picks, explained_data_mat, residual=False):
+def _make_explained_evoked(evoked, picks, explained_data_mat, residual=False):
     """Create a new Evoked object containing explained/residual data."""
     n_evoked = evoked.copy()
     n_evoked = n_evoked.pick(picks)
@@ -691,11 +678,11 @@ def alternating_projections(evoked, forward, n_sources, noise_cov=None,
     if return_residual:
 
         # treating residual
-        residual = _make_explained_evoke(
+        residual = _make_explained_evoked(
             evoked, picks, explained_data_mat, residual=True)
 
         # treating explained data
-        explained_data = _make_explained_evoke(
+        explained_data = _make_explained_evoked(
             evoked, picks, explained_data_mat)
 
         for item in [residual, explained_data, var_exp]:
