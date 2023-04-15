@@ -201,7 +201,7 @@ Bugs
 
 - Add a video on how to operate the coregistration GUI in :ref:`tut-source-alignment` (:gh:`10802` by `Alex Rockhill`_)
 
-- Add ``show`` and ``block`` arguments to :func:`mne.gui.coregistration` and :func:`mne.gui.locate_ieeg` to pop up the GUIs and halt execution of subsequent code respectively (:gh:`10802` by `Alex Rockhill`_)
+- Add ``show`` and ``block`` arguments to :func:`mne.gui.coregistration` and ``mne.gui.locate_ieeg`` to pop up the GUIs and halt execution of subsequent code respectively (:gh:`10802` by `Alex Rockhill`_)
 
 - Correctly report the number of available projections when printing measurement info in a Jupyter notebook (:gh:`10471` by `Clemens Brunner`_)
 

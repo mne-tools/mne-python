@@ -544,14 +544,4 @@
 
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
-.. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
-
-.. _Jennifer Behnke: https://github.com/JKBehnke
-
-.. _Hakimeh Pourakbari: https://github.com/Hpakbari
-
-.. _Pavel Navratil: https://github.com/navrpa13
-
-.. _Tom Ma: https://github.com/myd7349
-
-.. _Yuval Realpe: https://github.com/eskimOpigeon
+.. _Zvi Baratz: https://github.com/ZviBaratz

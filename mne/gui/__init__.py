@@ -4,7 +4,7 @@
 #
 # License: BSD-3-Clause
 
-from ..utils import verbose, get_config, warn
+from ..utils import verbose, get_config, warn, deprecated
 
 
 @verbose
@@ -200,6 +200,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     )
 
 
+@deprecated('Use the :mod:`mne-gui-addons:mne_gui_addons` package instead, '
+            'will be removed in version 1.5.0')
 @verbose
 def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
                 groups=None, show=True, block=False, verbose=None):
@@ -234,19 +236,26 @@ def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
     gui : instance of IntracranialElectrodeLocator
         The graphical user interface (GUI) window.
     """
-    from ..viz.backends._utils import _qt_app_exec
-    from ._ieeg_locate import IntracranialElectrodeLocator
-    from qtpy.QtWidgets import QApplication
-    # get application
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(["Intracranial Electrode Locator"])
-    gui = IntracranialElectrodeLocator(
-        info, trans, base_image, subject=subject, subjects_dir=subjects_dir,
-        groups=groups, show=show, verbose=verbose)
-    if block:
-        _qt_app_exec(app)
-    return gui
+    try:
+        import mne_gui_addons as mne_gui
+    except ImportError:
+        from ..viz.backends._utils import _qt_app_exec
+        from ._ieeg_locate import IntracranialElectrodeLocator
+        from qtpy.QtWidgets import QApplication
+        mne_gui = None
+        # get application
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(["Intracranial Electrode Locator"])
+        gui = IntracranialElectrodeLocator(
+            info, trans, base_image, subject=subject, subjects_dir=subjects_dir,
+            groups=groups, show=show, verbose=verbose)
+        if block:
+            _qt_app_exec(app)
+    return mne_gui.locate_ieeg(
+        info=info, trans=trans, base_image=base_image,
+        subject=subject, subjects_dir=subjects_dir,
+        groups=groups, show=show, block=block) if mne_gui else gui
 
 
 class _GUIScraper:
@@ -258,11 +267,20 @@ class _GUIScraper:
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
+        gui_classes = (
+            IntracranialElectrodeLocator,
+            CoregistrationUI,
+        )
+        try:
+            from mne_gui_addons._ieeg_locate import IntracranialElectrodeLocator  # noqa: E501
+        except Exception:
+            pass
+        else:
+            gui_classes = gui_classes + (IntracranialElectrodeLocator,)
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
-            if (isinstance(gui, (IntracranialElectrodeLocator,
-                                 CoregistrationUI)) and
+            if (isinstance(gui, gui_classes) and
                     not getattr(gui, '_scraped', False) and
                     gallery_conf['builder_name'] == 'html'):
                 gui._scraped = True  # monkey-patch but it's easy enough
