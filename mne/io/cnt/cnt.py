@@ -72,32 +72,28 @@ def _read_annotations_cnt(fname, data_format='int16'):
         return event_time - 1
 
     def _bad_span_offset(accept_reject, onset, duration, description):
+        # Create list of bad and good span markers
+        bad_good_span_markers = [marker for marker in accept_reject if marker in ('bad', 'good')]
 
-        #Create list of bad and good span markers
-        bad_good_span_markers = []
-        for i in range(len(accept_reject)):
-            if accept_reject[i] == 'bad':
-                bad_good_span_markers.append(i)
-            elif accept_reject[i] == 'good':
-                bad_good_span_markers.append(i)
-        #calculate duration of bad span
+        # Calculate duration of bad span
         first_bad_index = bad_good_span_markers.index('bad')
-        duration_list = []
-        for i in range(first_bad_index, len(bad_good_span_markers), 2):
-            duration_list.append(onset[i+1] - onset[i])
-        #Remove good event marker
-        for i in range(len(accept_reject)):
-            if accept_reject[i] == 'good':
-                del accept_reject[i]
-                del onset[i]
-                del duration[i]
-                del description[i]
-        #Add bad event marker duration and description
-        for i in range(len(onset)):
-            if accept_reject[i] == 'bad':
-                duration[i] = duration_list[i]
-                description[i] = 'bad_' + description[i]
-        return onset, duration, description
+        duration_list = [(onset[i + 1] - onset[i]) for i in range(first_bad_index, len(bad_good_span_markers), 2)]
+
+        # Filter out 'good' events
+        filtered_events = [(accept_reject[i], onset[i], duration[i], description[i]) for i in range(len(accept_reject)) if accept_reject[i] != 'good']
+
+        # Add bad event marker duration and description
+        updated_events = []
+        duration_list_index = 0
+        for accept, onset, dur, desc in filtered_events:
+            if accept == 'bad':
+                dur = duration_list[duration_list_index]
+                desc = 'bad_' + desc
+                duration_list_index += 1
+            updated_events.append((onset, dur, desc))
+
+        return zip(*updated_events)
+
 
     with open(fname, 'rb') as fid:
         fid.seek(SETUP_NCHANNELS_OFFSET)
