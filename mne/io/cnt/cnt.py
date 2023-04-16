@@ -79,7 +79,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
         description = description.tolist()
         # If there are no bad spans, return original onset, duration, description
         if 'bad' not in accept_reject:
-            return onset, duration, description
+            return np.array(onset), np.array(duration), np.array(description)
         #print description
         print(f'description: {description}')
          # Create lists of bad and good span markers and onset
