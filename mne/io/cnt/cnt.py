@@ -121,6 +121,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
                                       n_channels=n_channels,
                                       event_type=type(my_events[0]),
                                       data_format=data_format)
+        print(onset)
         duration = np.array([getattr(e, 'Latency', 0.) for e in my_events],
                             dtype=float)
         accept_reject = _accept_reject_function(np.array([e.KeyPad_Accept for e in my_events]))
@@ -128,8 +129,8 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
         description = np.array([str(e.StimType) for e in my_events])
 
-        onset, duration, description = _update_bad_span_onset(accept_reject, onset, duration, description)
-        return Annotations(onset=onset / sfreq,
+        onset, duration, description = _update_bad_span_onset(accept_reject, onset/sfreq, duration, description)
+        return Annotations(onset=onset,
                            duration=duration,
                            description=description,
                            orig_time=None)
