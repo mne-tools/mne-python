@@ -71,29 +71,26 @@ def _read_annotations_cnt(fname, data_format='int16'):
         
         return event_time - 1
 
-    def _bad_span_offset(accept_reject, onset, duration, description):
-        # Create list of bad and good span markers
-        bad_good_span_markers = [marker for marker in accept_reject if marker in ('bad', 'good')]
+    def _efficient_span_onset(accept_reject, onset, duration, description):
+
+        # Create lists of bad and good span markers and onset
+        bad_good_span_markers = [i for i in accept_reject if i in ['bad', 'good']]
+        bad_good_onset = [onset[i] for i, value in enumerate(accept_reject) if value in ['bad', 'good']]
 
         # Calculate duration of bad span
         first_bad_index = bad_good_span_markers.index('bad')
-        duration_list = [(onset[i + 1] - onset[i]) for i in range(first_bad_index, len(bad_good_span_markers), 2)]
+        duration_list = [bad_good_onset[i + 1] - bad_good_onset[i] for i in range(first_bad_index, len(bad_good_span_markers), 2)]
 
-        # Filter out 'good' events
+        # Filter the events
         filtered_events = [(accept_reject[i], onset[i], duration[i], description[i]) for i in range(len(accept_reject)) if accept_reject[i] != 'good']
 
-        # Add bad event marker duration and description
-        updated_events = []
-        duration_list_index = 0
-        for accept, onset, dur, desc in filtered_events:
-            if accept == 'bad':
-                dur = duration_list[duration_list_index]
-                desc = 'bad_' + desc
-                duration_list_index += 1
-            updated_events.append((onset, dur, desc))
+        # Update duration and description for bad events
+        updated_events = [(event[0], event[1], duration_list[i] if event[0] == 'bad' else event[2], 'bad_' + event[3] if event[0] == 'bad' else event[3]) for i, event in enumerate(filtered_events)]
 
-        return zip(*updated_events)
+        # Unpack the filtered and updated events
+        result_onset, result_duration, result_description = [list(t) for t in zip(*[(event[1], event[2], event[3]) for event in updated_events])]
 
+        return result_onset, result_duration, result_description
 
     with open(fname, 'rb') as fid:
         fid.seek(SETUP_NCHANNELS_OFFSET)
@@ -131,7 +128,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
         description = np.array([str(e.StimType) for e in my_events])
 
-        onset, duration, description = _bad_span_offset(accept_reject, onset, duration, description)
+        onset, duration, description = _bad_span_onset(accept_reject, onset, duration, description)
         return Annotations(onset=onset / sfreq,
                            duration=duration,
                            description=description,
