@@ -80,7 +80,6 @@ def _read_annotations_cnt(fname, data_format='int16'):
                 bad_good_span_markers.append(i)
             elif accept_reject[i] == 'good':
                 bad_good_span_markers.append(i)
-
         #calculate duration of bad span
         first_bad_index = bad_good_span_markers.index('bad')
         duration_list = []
