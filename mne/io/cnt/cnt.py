@@ -59,9 +59,10 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
     def _translating_function(offset, n_channels, event_type,
                               data_format=data_format):
-        #Preve
-        if offset < 3665:
-            return 0
+        #Prevent negative event times
+        for i in range(len(offset)):
+            if offset < 3665:
+                return 0
         n_bytes = 2 if data_format == 'int16' else 4
         if event_type == CNTEventType3:
             offset *= n_bytes * n_channels
