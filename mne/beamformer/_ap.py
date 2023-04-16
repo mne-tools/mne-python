@@ -33,6 +33,15 @@ def _active_subspace(Mat):
     return multi_dot([Mat, pinv(Mat.T @ Mat), Mat.T])
 
 
+def _argmax_of_remaining_dipoles(gain, perpend_spc, data_cov):
+    """Find best fitting dipole index over remaining sub-space."""
+    numerator = np.diagonal(
+        multi_dot([gain.T, perpend_spc, data_cov, perpend_spc, gain]))
+    denominator = np.diagonal(
+        multi_dot([gain.T, perpend_spc, gain]))
+    return np.argmax(numerator / denominator)
+
+
 def _fixed_phase1a(data_cov, gain):
     """Calculate phase 1a of fixed oriented AP.
 
@@ -53,8 +62,8 @@ def _fixed_phase1a(data_cov, gain):
 
     """
     s_ap = []
-    s1_idx = np.argmax(np.diagonal(multi_dot([gain.T,data_cov,gain]))\
-                       / np.diagonal(np.dot(gain.T,gain)))
+    s1_idx = np.argmax(np.diagonal(multi_dot([gain.T, data_cov, gain]))
+                       / np.diagonal(np.dot(gain.T, gain)))
     s_ap.append(s1_idx)
     return s_ap
 
@@ -85,8 +94,7 @@ def _fixed_phase1b(gain, s_ap, data_cov, n_sources):
         sub_g = gain[:, s_ap]
         act_spc = _active_subspace(sub_g)
         perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-        s2_idx = np.argmax(np.diagonal(multi_dot([gain.T, perpend_spc, data_cov, perpend_spc, gain]))\
-                           / np.diagonal(multi_dot([gain.T, perpend_spc, gain])))
+        s2_idx = _argmax_of_remaining_dipoles(gain, perpend_spc, data_cov)
         s_ap.append(s2_idx)
     logger.info('current s_ap = {}'.format(s_ap))
     return s_ap
@@ -126,8 +134,7 @@ def _fixed_phase2(n_sources, max_iter, s_ap_2, gain, data_cov):
             sub_g = gain[:, s_ap_temp]
             act_spc = _active_subspace(sub_g)
             perpend_spc = np.eye(act_spc.shape[0]) - act_spc
-            s2_idx = np.argmax(np.diagonal(multi_dot([gain.T, perpend_spc, data_cov, perpend_spc, gain]))\
-                               / np.diagonal(multi_dot([gain.T, perpend_spc, gain])))
+            s2_idx = _argmax_of_remaining_dipoles(gain, perpend_spc, data_cov)
             s_ap_2[src] = s2_idx
         logger.info('current s_ap_2 = {}'.format(s_ap_2))
         if (itr > 0) & (s_ap_2_prev == s_ap_2):
@@ -162,7 +169,8 @@ def _calculate_fixed_alternating_projections(data_arr, gain,
 
     """
     s_ap = []
-    n_dipoles = gain.shape[1] #un-used: Number of dipoles throughout the model.
+    # n_dipoles = gain.shape[1]
+    # n_dipoles is un-used: Number of dipoles throughout the model.
     logger.info('calculating fixed-orientation alternating projection')
     data_cov = _produce_data_cov(data_arr, n_sources)
 
