@@ -132,6 +132,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
         duration = np.array([getattr(e, 'Latency', 0.) for e in my_events],
                             dtype=float)
         accept_reject = _accept_reject_function(np.array([e.KeyPad_Accept for e in my_events]))
+        print(accept_reject)
 
         description = np.array([str(e.StimType) for e in my_events])
 
