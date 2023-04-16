@@ -71,7 +71,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
         
         return event_time - 1
 
-    def _efficient_span_onset(accept_reject, onset, duration, description):
+    def _update_bad_span_onset(accept_reject, onset, duration, description):
 
         # Create lists of bad and good span markers and onset
         bad_good_span_markers = [i for i in accept_reject if i in ['bad', 'good']]
@@ -128,7 +128,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
         description = np.array([str(e.StimType) for e in my_events])
 
-        onset, duration, description = _bad_span_onset(accept_reject, onset, duration, description)
+        onset, duration, description = _update_bad_span_onset(accept_reject, onset, duration, description)
         return Annotations(onset=onset / sfreq,
                            duration=duration,
                            description=description,
