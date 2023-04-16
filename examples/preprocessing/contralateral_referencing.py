@@ -12,7 +12,6 @@ common in sleep research for example). Here we demonstrate how to set a
 contralateral EEG reference.
 """
 
-import numpy as np
 import mne
 
 ssvep_folder = mne.datasets.ssvep.data_path()
@@ -31,11 +30,9 @@ raw.rename_channels({
 })
 
 # this splits electrodes into 3 groups; left, midline, and right
-ch_indices = mne.channels.make_1020_channel_selections(raw.info)
-
-# convert indices to names
-orig_names = np.array(raw.ch_names)
-ch_names = {key: orig_names[idxs].tolist() for key, idxs in ch_indices.items()}
+ch_names = mne.channels.make_1020_channel_selections(
+    raw.info, return_ch_names=True
+)
 
 # remove the ref channels from the lists of to-be-rereferenced channels
 ch_names['Left'].remove('M1')

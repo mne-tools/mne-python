@@ -43,6 +43,7 @@ Enhancements
 - Improve performance of raw data browsing with many annotations (:gh:`11614` by `Eric Larson`_)
 - Add support for :func:`mne.preprocessing.maxwell_filter` with gradient-compensated CTF data, e.g., for tSSS-only mode (:gh:`10554` by `Eric Larson`_)
 - Add support for eyetracking data using :func:`mne.io.read_raw_eyelink` (:gh:`11152` by `Dominik Welke`_ and `Scott Huberty`_)
+- :func:`mne.channels.make_1020_channel_selections` gained a new parameter, ``return_ch_names``, to allow for easy retrieval of EEG channel names corresponding to the left, right, and midline portions of the montage (:gh:`11632` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
