@@ -285,7 +285,7 @@ def _free_phase1b(n_sources, n_dipoles, gain, data_cov,
     data_cov : array
         Data Covariance.
     ap_temp_tuple : tuple
-        See: _free_phase1a.
+        See: _free_phase1a Returns.
     force_no_rep : bool
         Forces no repetition of estinated dipoles.
 
