@@ -8,6 +8,7 @@ import os
 import os.path as op
 from pathlib import Path
 from shutil import rmtree
+import time
 
 from .. import __version__ as mne_version
 from ..utils import logger, warn, _safe_input
@@ -130,6 +131,7 @@ def fetch_dataset(
     pass a list of dicts.
     """  # noqa E501
     import pooch
+    t = time.time()
 
     if auth is not None:
         if len(auth) != 2:
@@ -241,8 +243,9 @@ def fetch_dataset(
         registry[archive_name] = dataset_hash
 
     # create the download manager
+    use_path = final_path if processor is None else Path(path)
     fetcher = pooch.create(
-        path=str(final_path) if processor is None else path,
+        path=str(use_path),
         base_url="",  # Full URLs are given in the `urls` dict.
         version=None,  # Data versioning is decoupled from MNE-Python version.
         urls=urls,
@@ -252,6 +255,7 @@ def fetch_dataset(
 
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
+    sz = 0
 
     for idx in range(len(names)):
         # fetch and unpack the data
@@ -268,9 +272,11 @@ def fetch_dataset(
                     'the dataset to be downloaded again.') from None
             else:
                 raise
+        fname = use_path / archive_name
+        sz += fname.stat().st_size
         # after unpacking, remove the archive file
         if processor is not None:
-            os.remove(op.join(path, archive_name))
+            fname.unlink()
 
     # remove version number from "misc" and "testing" datasets folder names
     if name == "misc":
@@ -299,4 +305,13 @@ def fetch_dataset(
                 name=name, current=data_version, newest=mne_version
             )
         )
+    t = time.time() - t
+    fmt = '%Ss'
+    if t > 60:
+        fmt = f'%Mm{fmt}'
+    if t > 3600:
+        fmt = f'%Hh{fmt}'
+    sz = sz / 1048576  # 1024 ** 2
+    t = time.strftime(fmt, time.gmtime(time.time() - t))
+    logger.info(f'Download complete in {t} ({sz:.1f} MB)')
     return (final_path, data_version) if return_version else final_path
