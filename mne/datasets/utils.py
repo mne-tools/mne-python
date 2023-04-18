@@ -299,49 +299,52 @@ def _download_all_example_data(verbose=True):
     #
     # verbose=True by default so we get nice status messages.
     # Consider adding datasets from here to CircleCI for PR-auto-build
-    from . import (sample, testing, misc, spm_face, somato, brainstorm,
-                   eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor, refmeg_noise, fetch_infant_template,
-                   fetch_fsaverage, ssvep, erp_core, epilepsy_ecog,
-                   fetch_phantom, eyelink, ucl_opm_auditory)
-    sample_path = sample.data_path()
-    testing.data_path()
-    misc.data_path()
-    spm_face.data_path()
-    somato.data_path()
-    hf_sef.data_path()
-    multimodal.data_path()
-    fnirs_motor.data_path()
-    opm.data_path()
-    mtrf.data_path()
-    fieldtrip_cmc.data_path()
-    kiloword.data_path()
-    phantom_4dbti.data_path()
-    refmeg_noise.data_path()
-    ssvep.data_path()
-    epilepsy_ecog.data_path()
-    ucl_opm_auditory.data_path()
-    brainstorm.bst_raw.data_path(accept=True)
-    brainstorm.bst_auditory.data_path(accept=True)
-    brainstorm.bst_resting.data_path(accept=True)
-    phantom_path = brainstorm.bst_phantom_elekta.data_path(accept=True)
-    fetch_phantom('otaniemi', subjects_dir=phantom_path)
-    eyelink.data_path()
-    brainstorm.bst_phantom_ctf.data_path(accept=True)
+    paths = dict()
+    for kind in ('sample testing misc spm_face somato hf_sef multimodal '
+                 'fnirs_motor opm mtrf fieldtrip_cmc kiloword phantom_4dbti '
+                 'refmeg_noise ssvep epilepsy_ecog ucl_opm_auditory eyelink '
+                 'erp_core brainstorm.bst_raw brainstorm.bst_auditory '
+                 'brainstorm.bst_resting brainstorm.bst_phantom_ctf '
+                 'brainstorm.bst_phantom_elekta'
+                 ).split():
+        mod = importlib.import_module(f'mne.datasets.{kind}')
+        data_path_func = getattr(mod, 'data_path')
+        kwargs = dict()
+        if 'accept' in inspect.getfullargspec(data_path_func).args:
+            kwargs['accept'] = True
+        paths[kind] = data_path_func(**kwargs)
+        logger.info(f'[done {kind}]')
+
+    # Now for the exceptions:
+    from . import (
+        eegbci, sleep_physionet, limo, fetch_fsaverage, fetch_infant_template,
+        fetch_hcp_mmp_parcellation, fetch_phantom)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     for subj in range(4):
         eegbci.load_data(subj + 1, runs=[3], update_path=True)
+    logger.info('[done eegbci]')
+
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
+    logger.info('[done sleep_physionet]')
+
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)
-    fetch_infant_template('6mo')
-    fetch_hcp_mmp_parcellation(
-        subjects_dir=sample_path / 'subjects', accept=True)
-    limo.load_data(subject=1, update_path=True)
+    logger.info('[done fsaverage]')
 
-    erp_core.data_path()
+    fetch_infant_template('6mo')
+    logger.info('[done infant_template]')
+
+    fetch_hcp_mmp_parcellation(
+        subjects_dir=paths['sample'] / 'subjects', accept=True)
+    logger.info('[done hcp_mmp_parcellation]')
+
+    fetch_phantom(
+        'otaniemi', subjects_dir=paths['brainstorm.bst_phantom_elekta'])
+    logger.info('[done phantom]')
+
+    limo.load_data(subject=1, update_path=True)
+    logger.info('[done limo]')
 
 
 @verbose

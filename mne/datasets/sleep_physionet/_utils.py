@@ -30,18 +30,19 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
     # Fetch the file
     url = base_url + '/' + fname
     destination = op.join(path, fname)
-    if not op.isfile(destination) or force_update:
-        if op.isfile(destination):
-            os.remove(destination)
-        if not op.isdir(op.dirname(destination)):
-            os.makedirs(op.dirname(destination))
-        pooch.retrieve(
-            url=url,
-            known_hash=f"sha1:{hashsum}",
-            path=path,
-            fname=fname
-        )
-    return destination
+    if op.isfile(destination) and not force_update:
+        return destination, False
+    if op.isfile(destination):
+        os.remove(destination)
+    if not op.isdir(op.dirname(destination)):
+        os.makedirs(op.dirname(destination))
+    pooch.retrieve(
+        url=url,
+        known_hash=f"sha1:{hashsum}",
+        path=path,
+        fname=fname
+    )
+    return destination, True
 
 
 @verbose

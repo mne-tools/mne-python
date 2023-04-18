@@ -7,9 +7,11 @@ import os
 import re
 from os import path as op
 from pathlib import Path
+import time
 
-from ...utils import _url_to_local_path, verbose
+from ...utils import _url_to_local_path, verbose, logger
 from ..utils import _do_path_update, _get_path
+from .._fetch import _log_time_size
 
 # TODO: remove try/except when our min version is py 3.9
 try:
@@ -162,6 +164,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     .. footbibliography::
     """  # noqa: E501
     import pooch
+    t0 = time.time()
 
     if not hasattr(runs, '__iter__'):
         runs = [runs]
@@ -195,14 +198,23 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
 
     # fetch the file(s)
     data_paths = []
+    sz = 0
     for run in runs:
         file_part = f'S{subject:03d}/S{subject:03d}R{run:02d}.edf'
-        destination = op.join(base_path, file_part)
-        if force_update and op.isfile(destination):
-            os.remove(destination)
+        destination = Path(op.join(base_path, file_part))
+        if destination.exists():
+            if force_update:
+                destination.unlink()
+            else:
+                continue
+        if sz == 0:  # log once
+            logger.info('Downloading EEGBCI data')
         data_paths.append(fetcher.fetch(file_part))
         # update path in config if desired
         _do_path_update(path, update_path, config_key, name)
+        sz += destination.stat().st_size
+    if sz > 0:
+        _log_time_size(t0, sz)
     return data_paths
 
 

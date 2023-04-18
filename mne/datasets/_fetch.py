@@ -131,7 +131,7 @@ def fetch_dataset(
     pass a list of dicts.
     """  # noqa E501
     import pooch
-    t = time.time()
+    t0 = time.time()
 
     if auth is not None:
         if len(auth) != 2:
@@ -305,7 +305,12 @@ def fetch_dataset(
                 name=name, current=data_version, newest=mne_version
             )
         )
-    t = time.time() - t
+    _log_time_size(t0, sz)
+    return (final_path, data_version) if return_version else final_path
+
+
+def _log_time_size(t0, sz):
+    t = time.time() - t0
     fmt = '%Ss'
     if t > 60:
         fmt = f'%Mm{fmt}'
@@ -314,4 +319,3 @@ def fetch_dataset(
     sz = sz / 1048576  # 1024 ** 2
     t = time.strftime(fmt, time.gmtime(time.time() - t))
     logger.info(f'Download complete in {t} ({sz:.1f} MB)')
-    return (final_path, data_version) if return_version else final_path
