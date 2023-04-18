@@ -317,5 +317,5 @@ def _log_time_size(t0, sz):
     if t > 3600:
         fmt = f'%Hh{fmt}'
     sz = sz / 1048576  # 1024 ** 2
-    t = time.strftime(fmt, time.gmtime(time.time() - t))
+    t = time.strftime(fmt, time.gmtime(t))
     logger.info(f'Download complete in {t} ({sz:.1f} MB)')
