@@ -88,7 +88,6 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
         pooch.retrieve(
-            # URL to one of Pooch's test files
             url=url,
             path=destination,
             downloader=downloader,
@@ -203,7 +202,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     sz = 0
     for run in runs:
         file_part = f'S{subject:03d}/S{subject:03d}R{run:02d}.edf'
-        destination = Path(op.join(base_path, file_part))
+        destination = Path(base_path, file_part)
         if destination.exists():
             if force_update:
                 destination.unlink()

@@ -173,7 +173,7 @@ def data_path(subject, path=None, force_update=False, update_path=None, *,
     # fetch the data
     sz = 0
     for fname in ('LIMO.mat', 'Yr.mat'):
-        destination = Path(op.join(subject_path, fname))
+        destination = Path(subject_path, fname)
         if destination.exists():
             if force_update:
                 destination.unlink()

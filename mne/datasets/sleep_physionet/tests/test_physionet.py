@@ -3,11 +3,9 @@
 #
 # License: BSD Style.
 
-import os.path as op
-import numpy as np
+from pathlib import Path
 import pytest
 
-from numpy.testing import assert_array_equal
 import pooch
 
 from mne.utils import requires_good_network
@@ -32,14 +30,15 @@ class _FakeFetch:
 
     def __call__(self, *args, **kwargs):
         self.call_args_list.append((args, kwargs))
+        Path(kwargs['path'], kwargs['fname']).write_text('test')
 
     @property
     def call_count(self):
         return len(self.call_args_list)
 
 
-def _keep_basename_only(path_structure):
-    return np.vectorize(op.basename)(np.array(path_structure))
+def _keep_basename_only(paths):
+    return [Path(p).name for p in paths]
 
 
 def _get_expected_url(name):
@@ -49,7 +48,7 @@ def _get_expected_url(name):
 
 
 def _get_expected_path(base, name):
-    return op.join(base, name)
+    return Path(base, name)
 
 
 def _check_mocked_function_calls(mocked_func, call_fname_hash_pairs,
@@ -62,8 +61,8 @@ def _check_mocked_function_calls(mocked_func, call_fname_hash_pairs,
     for idx, current in enumerate(call_fname_hash_pairs):
         _, call_kwargs = mocked_func.call_args_list[idx]
         hash_type, hash = call_kwargs['known_hash'].split(':')
-        assert call_kwargs['url'] == _get_expected_url(current['name'])
-        assert op.join(call_kwargs['path'], call_kwargs['fname']) == \
+        assert call_kwargs['url'] == _get_expected_url(current['name']), idx
+        assert Path(call_kwargs['path'], call_kwargs['fname']) == \
             _get_expected_path(base_path, current['name'])
         assert hash == current['hash']
         assert hash_type == 'sha1'
@@ -130,26 +129,24 @@ def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
     monkeypatch.setattr(pooch, 'retrieve', my_func)
 
     paths = age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
-    assert_array_equal(_keep_basename_only(paths),
-                       [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']])
+    assert _keep_basename_only(paths[0]) == \
+        ['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']
 
     paths = age.fetch_data(subjects=[0, 1], recording=[1],
                            path=physionet_tmpdir)
-    assert_array_equal(_keep_basename_only(paths),
-                       [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
-                        ['SC4011E0-PSG.edf', 'SC4011EH-Hypnogram.edf']])
+    assert _keep_basename_only(paths[0]) == \
+        ['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']
+    assert _keep_basename_only(paths[1]) == \
+        ['SC4011E0-PSG.edf', 'SC4011EH-Hypnogram.edf']
 
     paths = age.fetch_data(subjects=[0], recording=[1, 2],
                            path=physionet_tmpdir)
-    assert_array_equal(_keep_basename_only(paths),
-                       [['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf'],
-                        ['SC4002E0-PSG.edf', 'SC4002EC-Hypnogram.edf']])
+    assert _keep_basename_only(paths[0]) == \
+        ['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']
+    assert _keep_basename_only(paths[1]) == \
+        ['SC4002E0-PSG.edf', 'SC4002EC-Hypnogram.edf']
 
     EXPECTED_CALLS = (
-        {'name': 'SC4001E0-PSG.edf',
-         'hash': 'adabd3b01fc7bb75c523a974f38ee3ae4e57b40f'},
-        {'name': 'SC4001EC-Hypnogram.edf',
-         'hash': '21c998eadc8b1e3ea6727d3585186b8f76e7e70b'},
         {'name': 'SC4001E0-PSG.edf',
          'hash': 'adabd3b01fc7bb75c523a974f38ee3ae4e57b40f'},
         {'name': 'SC4001EC-Hypnogram.edf',
@@ -158,14 +155,11 @@ def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
          'hash': '4d17451f7847355bcab17584de05e7e1df58c660'},
         {'name': 'SC4011EH-Hypnogram.edf',
          'hash': 'd582a3cbe2db481a362af890bc5a2f5ca7c878dc'},
-        {'name': 'SC4001E0-PSG.edf',
-         'hash': 'adabd3b01fc7bb75c523a974f38ee3ae4e57b40f'},
-        {'name': 'SC4001EC-Hypnogram.edf',
-         'hash': '21c998eadc8b1e3ea6727d3585186b8f76e7e70b'},
         {'name': 'SC4002E0-PSG.edf',
          'hash': 'c6b6d7a8605cc7e7602b6028ee77f6fbf5f7581d'},
         {'name': 'SC4002EC-Hypnogram.edf',
-         'hash': '386230188a3552b1fc90bba0fb7476ceaca174b6'})
+         'hash': '386230188a3552b1fc90bba0fb7476ceaca174b6'},
+    )
     base_path = age.data_path(path=physionet_tmpdir)
     _check_mocked_function_calls(my_func, EXPECTED_CALLS, base_path)
 
@@ -192,8 +186,8 @@ def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):
     monkeypatch.setattr(pooch, 'retrieve', my_func)
 
     paths = temazepam.fetch_data(subjects=[0], path=physionet_tmpdir)
-    assert_array_equal(_keep_basename_only(paths),
-                       [['ST7011J0-PSG.edf', 'ST7011JP-Hypnogram.edf']])
+    assert _keep_basename_only(paths[0]) == \
+        ['ST7011J0-PSG.edf', 'ST7011JP-Hypnogram.edf']
 
     EXPECTED_CALLS = (
         {'name': 'ST7011J0-PSG.edf',
