@@ -9,7 +9,7 @@ import time
 import numpy as np
 
 from ...utils import verbose
-from .._fetch import _log_time_size
+from ..utils import _log_time_size
 from ._utils import _fetch_one, _data_path, TEMAZEPAM_SLEEP_RECORDS
 from ._utils import _check_subjects
 

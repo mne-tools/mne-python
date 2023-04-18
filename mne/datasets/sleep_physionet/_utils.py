@@ -10,7 +10,7 @@ import numpy as np
 
 from ...utils import (verbose, _TempDir, _check_pandas_installed,
                       _on_missing)
-from ..utils import _get_path
+from ..utils import _get_path, _downloader_params
 
 AGE_SLEEP_RECORDS = op.join(op.dirname(__file__), 'age_records.csv')
 TEMAZEPAM_SLEEP_RECORDS = op.join(op.dirname(__file__),
@@ -36,10 +36,12 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
         os.remove(destination)
     if not op.isdir(op.dirname(destination)):
         os.makedirs(op.dirname(destination))
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     pooch.retrieve(
         url=url,
         known_hash=f"sha1:{hashsum}",
         path=path,
+        downloader=downloader,
         fname=fname
     )
     return destination, True
@@ -88,11 +90,13 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
     # Download subjects info.
     subjects_fname = op.join(tmp, 'ST-subjects.xls')
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     pooch.retrieve(
         url=TEMAZEPAM_RECORDS_URL,
         known_hash=f"sha1:{TEMAZEPAM_RECORDS_URL_SHA1}",
         path=tmp,
-        fname=op.basename(subjects_fname)
+        downloader=downloader,
+        fname=op.basename(subjects_fname),
     )
 
     # Load and Massage the checksums.
@@ -147,11 +151,13 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
 
     # Download subjects info.
     subjects_fname = op.join(tmp, 'SC-subjects.xls')
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     pooch.retrieve(
         url=AGE_RECORDS_URL,
         known_hash=f"sha1:{AGE_RECORDS_URL_SHA1}",
         path=tmp,
-        fname=op.basename(subjects_fname)
+        downloader=downloader,
+        fname=op.basename(subjects_fname),
     )
 
     # Load and Massage the checksums.

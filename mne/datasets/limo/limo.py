@@ -11,9 +11,9 @@ import numpy as np
 from ...channels import make_standard_montage
 from ...epochs import EpochsArray
 from ...io.meas_info import create_info
-from ...utils import _check_pandas_installed, verbose
-from ..utils import _get_path, _do_path_update, logger
-from .._fetch import _log_time_size
+from ...utils import _check_pandas_installed, verbose, logger
+from ..utils import (_get_path, _do_path_update, _log_time_size,
+                     _downloader_params)
 
 
 # root url for LIMO files
@@ -71,7 +71,7 @@ def data_path(subject, path=None, force_update=False, update_path=None, *,
     import pooch
     t0 = time.time()
 
-    downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
+    downloader = pooch.HTTPDownloader(**_downloader_params())
 
     # local storage patch
     config_key = 'MNE_DATASETS_LIMO_PATH'

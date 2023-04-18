@@ -10,8 +10,8 @@ from pathlib import Path
 import time
 
 from ...utils import _url_to_local_path, verbose, logger
-from ..utils import _do_path_update, _get_path
-from .._fetch import _log_time_size
+from ..utils import (_do_path_update, _get_path, _log_time_size,
+                     _downloader_params)
 
 # TODO: remove try/except when our min version is py 3.9
 try:
@@ -81,6 +81,7 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
     destinations = [destination]
 
     # Fetch the file
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     if not op.isfile(destination) or force_update:
         if op.isfile(destination):
             os.remove(destination)
@@ -90,7 +91,8 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
             # URL to one of Pooch's test files
             url=url,
             path=destination,
-            fname=fname
+            downloader=downloader,
+            fname=fname,
         )
 
     # Offer to update the path

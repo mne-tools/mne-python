@@ -11,12 +11,14 @@
 from collections import OrderedDict
 import importlib
 import inspect
+import logging
 import os
 import os.path as op
 from pathlib import Path
 import sys
-import zipfile
+import time
 import tempfile
+import zipfile
 
 import numpy as np
 
@@ -374,6 +376,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
                 rh='https://osf.io/4kxny/download')
     hashes = dict(lh='9e4d8d6b90242b7e4b0145353436ef77',
                   rh='dd6464db8e7762d969fc1d8087cd211b')
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     for hemi in ('lh', 'rh'):
         fname = f'{hemi}.aparc_sub.annot'
         fpath = destination / fname
@@ -382,6 +385,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
+                downloader=downloader,
                 fname=fname,
             )
 
@@ -433,6 +437,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
         if answer.lower() != 'y':
             raise RuntimeError('You must agree to the license to use this '
                                'dataset')
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     for hemi, fpath in zip(('lh', 'rh'), fnames):
         if not op.isfile(fpath):
             fname = fpath.name
@@ -440,6 +445,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
+                downloader=downloader,
                 fname=fname,
             )
 
@@ -556,6 +562,7 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
     logger.info('%d file%s missing from %s in %s'
                 % (len(need), _pl(need), manifest_path, destination))
     if len(need) > 0:
+        downloader = pooch.HTTPDownloader(**_downloader_params())
         with tempfile.TemporaryDirectory() as path:
             logger.info('Downloading missing files remotely')
 
@@ -564,7 +571,8 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                 url=url,
                 known_hash=f"md5:{hash_}",
                 path=path,
-                fname=op.basename(fname_path)
+                downloader=downloader,
+                fname=op.basename(fname_path),
             )
 
             logger.info('Extracting missing file%s' % (_pl(need),))
@@ -578,3 +586,28 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                     ff.extract(name, path=destination)
         logger.info('Successfully extracted %d file%s'
                     % (len(need), _pl(need)))
+
+
+def _log_time_size(t0, sz):
+    t = time.time() - t0
+    fmt = '%Ss'
+    if t > 60:
+        fmt = f'%Mm{fmt}'
+    if t > 3600:
+        fmt = f'%Hh{fmt}'
+    sz = sz / 1048576  # 1024 ** 2
+    t = time.strftime(fmt, time.gmtime(t))
+    logger.info(f'Download complete in {t} ({sz:.1f} MB)')
+
+
+def _downloader_params(*, auth=None, token=None):
+    params = dict()
+    params['progressbar'] = (
+        logger.level <= logging.INFO and
+        get_config('MNE_TQDM', 'tqdm.auto') != 'off'
+    )
+    if auth is not None:
+        params["auth"] = auth
+    if token is not None:
+        params["headers"] = {"Authorization": f"token {token}"}
+    return params
