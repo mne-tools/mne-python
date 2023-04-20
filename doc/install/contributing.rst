@@ -694,7 +694,7 @@ Adhere to standard Python style guidelines
 All contributions to MNE-Python are checked against style guidelines described
 in `PEP 8`_. We also check for common coding errors (such as variables that are
 defined but never used). We allow very few exceptions to these guidelines, and
-use tools such as pep8_, pyflakes_, and flake8_ to check code style
+use tools such as ruff_ to check code style
 automatically. From the :file:`mne-python` root directory, you can check for
 style violations by running::
 
@@ -1097,8 +1097,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. linting
 
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _pyflakes: https://pypi.org/project/pyflakes
-.. _Flake8: http://flake8.pycqa.org/
+.. _ruff: https://beta.ruff.rs/docs
 
 .. misc
 

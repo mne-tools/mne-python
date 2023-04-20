@@ -55,12 +55,8 @@ stages:
         python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
       displayName: Install dependencies
     - bash: |
-        make pydocstyle
-      displayName: make pydocstyle
-      condition: always()
-    - bash: |
-        make docstring
-      displayName: make docstring
+        make pre-commit
+      displayName: make ruff
       condition: always()
     - bash: |
         make nesting

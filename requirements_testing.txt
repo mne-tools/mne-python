@@ -3,11 +3,9 @@ pytest
 pytest-cov
 pytest-timeout
 pytest-harvest
-flake8
-flake8-array-spacing
+ruff
 numpydoc
 codespell
-pydocstyle
 check-manifest
 twine
 wheel
