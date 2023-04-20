@@ -8,9 +8,16 @@ repos:
 #     - id: black
 #       args: [--quiet]
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.254
+  rev: v0.0.262
   hooks:
     - id: ruff
+      files: ^mne/
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: v0.0.262
+  hooks:
+    - id: ruff
+      args: ["--ignore=D103,D400"]
+      files: ^tutorials/|^examples/
 - repo: https://github.com/codespell-project/codespell
   rev: v2.2.3
   hooks:
