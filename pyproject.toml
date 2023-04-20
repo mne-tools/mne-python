@@ -21,3 +21,12 @@ ignore-decorators = [
 
 [tool.ruff.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = ["E501"]
+
+[tool.pytest.ini_options]
+addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
+    --doctest-ignore-import-errors --junit-xml=junit-results.xml \
+    --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
+    --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
+    --ignore=mne/report/js_and_css \
+    --color=yes --capture=sys"""
+junit_family = "xunit2"
