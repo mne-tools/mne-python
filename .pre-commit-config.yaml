@@ -7,17 +7,23 @@ repos:
 #   hooks:
 #     - id: black
 #       args: [--quiet]
+
+# Ruff mne
 - repo: https://github.com/charliermarsh/ruff-pre-commit
   rev: v0.0.262
   hooks:
     - id: ruff
       files: ^mne/
+
+# Ruff tutorials and examples
 - repo: https://github.com/charliermarsh/ruff-pre-commit
   rev: v0.0.262
   hooks:
     - id: ruff
       args: ["--ignore=D103,D400"]
       files: ^tutorials/|^examples/
+
+# Codespell
 - repo: https://github.com/codespell-project/codespell
   rev: v2.2.3
   hooks:
