@@ -135,6 +135,7 @@ def test_ref_degenerate():
 
     # Degenerate
     info = read_info(fif_fname)
+    compute_proj_hfc(info)  # smoke test
     with pytest.raises(ValueError, match='Only.*could be interpreted as MEG'):
         compute_proj_hfc(info, picks=[0, 330])  # one MEG, one EEG
     info['chs'][0]['loc'][:] = np.nan  # first MEG proj
