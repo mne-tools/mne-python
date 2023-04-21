@@ -51,9 +51,9 @@ def _unpack_mat(matin):
 
 
 def _angle_between_each(A):
-    """Measure the angle between each column vector in a matrix."""
+    """Measure the angle between each row vector in a matrix."""
     assert A.ndim == 2
-    A = A / np.linalg.norm(A, axis=0, keepdims=True)
+    A = A / np.linalg.norm(A, axis=1, keepdims=True)
     d = (A @ A.T).ravel()
     np.clip(d, -1, 1, out=d)
     ang = np.abs(np.arccos(d))
@@ -97,14 +97,16 @@ def test_l1_basis_orientations():
     raw.info['bads'].extend([b for b in bads])
     projs = compute_proj_hfc(raw.info, accuracy='point')
     basis = np.hstack([p['data']['data'].T for p in projs])
-    assert basis.shape == (68, 3)
-    ang_model = _angle_between_each(basis)
     picks = pick_types(raw.info, meg='mag')
+    assert len(picks) == 68
+    assert basis.shape == (len(picks), 3)
+    ang_model = _angle_between_each(basis)
     n_ang = len(picks) ** 2
     assert ang_model.shape == (n_ang,)
 
     chs = pick_info(raw.info, picks)['chs']
     ori_sens = np.array([ch['loc'][-3:] for ch in chs])
+    ori_sens /= np.linalg.norm(ori_sens, axis=0, keepdims=True)
     assert ori_sens.shape == (len(picks), 3)
     ang_sens = _angle_between_each(ori_sens)
     assert ang_sens.shape == (n_ang,)
