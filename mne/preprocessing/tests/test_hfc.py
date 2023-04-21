@@ -2,27 +2,32 @@
 #
 # License: BSD-3-Clause
 
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-from mne.datasets import testing
-from mne.io import read_raw_fil
-from mne.preprocessing.hfc import compute_proj_hfc
-from mne.io.pick import pick_types, pick_info
+from numpy.testing import assert_allclose
+from scipy.io import loadmat
 
-import scipy.io
+from mne.datasets import testing
+from mne.io import read_raw_fil, read_info
+from mne.preprocessing.hfc import compute_proj_hfc
+from mne.io.pick import pick_types, pick_info, pick_channels
 
 fil_path = testing.data_path(download=False) / 'FIL'
 fname_root = "sub-noise_ses-001_task-noise220622_run-001"
+
+io_dir = Path(__file__).parent.parent.parent / "io"
+ctf_fname = io_dir / "tests" / "data" / "test_ctf_raw.fif"
+fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 
 # The below channels in the test data do not have positions, set to bad
 bads = ['G2-DS-Y', 'G2-DS-Z', 'G2-DT-Y', 'G2-DT-Z', 'G2-MW-Y', 'G2-MW-Z']
 
 # TODO: Ignore this warning in all these tests until we deal with this properly
 pytestmark = pytest.mark.filterwarnings(
-    'ignore:.*problems later!:RuntimeWarning',
-    'ignore:.*Projection vector.*'
+    'ignore:No fiducials.*problems later!:RuntimeWarning',
 )
 
 
@@ -45,55 +50,43 @@ def _unpack_mat(matin):
     return matout
 
 
-def _angle_between(A, B):
-    """Measure the angle between two vectors."""
-    A = A[:, np.newaxis]
-    nA = np.linalg.norm(A, axis=0)
-    nB = np.linalg.norm(B, axis=1)
-    A = A / nA
-    B = B / nB[:, np.newaxis]
-    d = np.dot(B, A)
-    idh = [i for i in range(len(d)) if d[i] > 1.]
-    d[idh] = 1
-    idl = [i for i in range(len(d)) if d[i] < -1.]
-    d[idl] = -1
-    ang = np.arccos(d)
-    ang = np.minimum(ang, (2 * np.pi) - ang)
+def _angle_between_each(A):
+    """Measure the angle between each column vector in a matrix."""
+    assert A.ndim == 2
+    A = A / np.linalg.norm(A, axis=0, keepdims=True)
+    d = (A @ A.T).ravel()
+    np.clip(d, -1, 1, out=d)
+    ang = np.abs(np.arccos(d))
     return ang
 
 
-def _match_str(A_list, B_list):
-    """Locate where in a list matches another."""
-    B_inds = list()
-    for ii in A_list:
-        if ii in B_list:
-            B_inds.append(B_list.index(ii))
-    return B_inds
-
-
-def _compare_hfc_results(order, rtol=1e-7):
+@testing.requires_testing_data
+@pytest.mark.parametrize('order', [1, 2, 3])
+def test_l1_correction(order):
     """Apply HFC and compare to previous computed solutions."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
-    raw = read_raw_fil(binname, verbose=False)
+    raw = read_raw_fil(binname)
     raw.load_data()
     raw.info['bads'].extend([b for b in bads])
     projs = compute_proj_hfc(raw.info, order=order, accuracy="point")
     raw.add_proj(projs).apply_proj()
 
-    fname = fname_root + "_hfc_l{0}.mat".format(order)
-    matname = fil_path / fname
-    tmp = scipy.io.loadmat(matname)
-    mat = _unpack_mat(tmp)
+    mat = _unpack_mat(loadmat(fil_path / f"{fname_root}_hfc_l{order}.mat"))
 
-    test_list = projs[0]['data']['col_names']
-    test_inds = _match_str(test_list, raw.ch_names)
+    proj_list = projs[0]['data']['col_names']
+    picks = pick_channels(raw.ch_names, proj_list, ordered=True)
     mat_list = mat["coil_label"]
-    mat_inds = _match_str(test_list, mat_list)
+    mat_inds = pick_channels(mat_list, proj_list, ordered=True)
 
-    a = mat['trial'][mat_inds]
-    b = raw._data[test_inds, 0:300] * 1e15
+    want = mat['trial'][mat_inds]
+    got = raw.copy().add_proj(projs).apply_proj()[picks, 0:300][0] * 1e15
+    assert_allclose(got, want, rtol=1e-7)
 
-    np.testing.assert_allclose(a, b, verbose=False)
+    # Now with default accuracy: not super close with tol but corr is good
+    projs = compute_proj_hfc(raw.info, order=order)
+    got = raw.copy().add_proj(projs).apply_proj()[picks, 0:300][0] * 1e15
+    corr = np.corrcoef(got.ravel(), want.ravel())[0, 1]
+    assert 0.999999 < corr <= 1.
 
 
 @testing.requires_testing_data
@@ -104,32 +97,49 @@ def test_l1_basis_orientations():
     raw.info['bads'].extend([b for b in bads])
     projs = compute_proj_hfc(raw.info, accuracy='point')
     basis = np.hstack([p['data']['data'].T for p in projs])
-    ang_model = np.concatenate([_angle_between(b, basis)
-                                for b in basis])
+    assert basis.shape == (68, 3)
+    ang_model = _angle_between_each(basis)
+    picks = pick_types(raw.info, meg='mag')
+    n_ang = len(picks) ** 2
+    assert ang_model.shape == (n_ang,)
 
-    idx = pick_types(raw.info, meg='mag')
-    chs = pick_info(raw.info, idx)['chs']
-    ori_sens = np.concatenate([ch['loc'][-3:] for ch in chs])
-    ori_sens = np.reshape(ori_sens, (len(idx), 3))
-    ang_sens = np.concatenate([_angle_between(o, ori_sens)
-                               for o in ori_sens])
+    chs = pick_info(raw.info, picks)['chs']
+    ori_sens = np.array([ch['loc'][-3:] for ch in chs])
+    assert ori_sens.shape == (len(picks), 3)
+    ang_sens = _angle_between_each(ori_sens)
+    assert ang_sens.shape == (n_ang,)
 
-    np.testing.assert_allclose(ang_sens, ang_model, atol=1e-7)
-
-
-@testing.requires_testing_data
-def test_l1_correction():
-    """Compare HFC (l=1) to previous computed results in another language."""
-    _compare_hfc_results(1)
+    assert_allclose(ang_sens, ang_model, atol=1e-7)
 
 
-@testing.requires_testing_data
-def test_l2_correction():
-    """Compare HFC (l=2) to previous computed results in another language."""
-    _compare_hfc_results(2)
+def test_ref_degenerate():
+    """Test reference channel handling and degenerate conditions."""
+    info = read_info(ctf_fname)
+    # exclude ref by default
+    projs = compute_proj_hfc(info)
+    meg_names = [
+        info['ch_names'][pick]
+        for pick in pick_types(info, meg=True, ref_meg=False, exclude=[])
+    ]
+    assert len(projs) == 3
+    assert projs[0]['desc'] == 'HFC: l=1 m=-1'
+    assert projs[1]['desc'] == 'HFC: l=1 m=0'
+    assert projs[2]['desc'] == 'HFC: l=1 m=1'
+    assert projs[0]['data']['col_names'] == meg_names
+    meg_ref_names = [
+        info['ch_names'][pick]
+        for pick in pick_types(info, meg=True, ref_meg=True, exclude=[])
+    ]
+    projs = compute_proj_hfc(info, ignore_ref=False)
+    assert projs[0]['data']['col_names'] == meg_ref_names
 
-
-@testing.requires_testing_data
-def test_l3_correction():
-    """Compare HFC (l=3) to previous computed results in another language."""
-    _compare_hfc_results(3)
+    # Degenerate
+    info = read_info(fif_fname)
+    with pytest.raises(ValueError, match='Only.*could be interpreted as MEG'):
+        compute_proj_hfc(info, picks=[0, 330])  # one MEG, one EEG
+    info['chs'][0]['loc'][:] = np.nan  # first MEG proj
+    with pytest.raises(ValueError, match='non-finite projectors'):
+        compute_proj_hfc(info)
+    info_eeg = pick_info(info, pick_types(info, meg=False, eeg=True))
+    with pytest.raises(ValueError, match=r'picks \(\'meg\'\) could not be'):
+        compute_proj_hfc(info_eeg)

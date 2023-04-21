@@ -3,15 +3,16 @@
 # License: BSD-3-Clause
 
 import numpy as np
+
 from .maxwell import _prep_mf_coils, _sss_basis
-from ..io.pick import _picks_to_idx
+from ..io.pick import _picks_to_idx, pick_info
 from ..io.proj import Projection
 from ..utils import verbose
 
 
 @verbose
 def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
-                     ignore_ref=True, accuracy='accurate', verbose=None):
+                     ignore_ref=True, *, accuracy='accurate', verbose=None):
     """Generate projectors to perform homogeneous/harmonic correction to data.
 
     Remove evironmental fields from magentometer data by assuming it is
@@ -28,7 +29,7 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
         to add quadrature terms etc.
     picks : str | array_like | slice | None
         Channels to include. Default of ``'meg'`` will select all non-reference
-        MEC channels.
+        MEG channels.
     exclude : list | 'bads'
         List of channels to exclude from HFC, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
@@ -55,74 +56,42 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
     ----------
     .. footbibliography::
     """
-    idx = _picks_to_idx(info, picks, exclude=exclude)
-    if not ignore_ref:
-        idx = np.union1d(idx,
-                         _picks_to_idx(info, picks='ref_meg', exclude=exclude))
-    basis, channels = _generate_basis_set(info, idx, order,
-                                          accuracy, ignore_ref)
-    labels = _label_basis(order)
-    _assert_isfinite(basis, channels)
-    projs = []
-    for ii, label in enumerate(labels):
-        data = basis[:, ii]
-        proj_data = dict(col_names=channels, row_names=None,
-                         data=data[np.newaxis, :], ncol=len(channels), nrow=1)
-        proj = Projection(active=False, data=proj_data, desc=label)
-        projs.append(proj)
-
-    return projs
-
-
-def _generate_basis_set(info, picks=None, order=1, accuracy='accurate',
-                        ignore_ref=True, origin=(0, 0, 0)):
-    """Generate the basis set used for HFC."""
-    exp = dict(origin=origin, int_order=0, ext_order=order)
-    mf_coils = _prep_mf_coils(info, ignore_ref=ignore_ref,
-                              accuracy=accuracy, return_names=True)
-    coils = mf_coils[:-1]
-    mf_names = mf_coils[-1]
+    picks = _picks_to_idx(
+        info, picks, exclude=exclude, with_ref_meg=not ignore_ref)
+    info = pick_info(info, picks)
+    del picks
+    exp = dict(origin=(0., 0., 0.), int_order=0, ext_order=order)
+    coils = _prep_mf_coils(info, ignore_ref=False, accuracy=accuracy)
+    n_chs = len(coils[5])
+    if n_chs != info['nchan']:
+        raise ValueError(
+            f'Only {n_chs}/{info["nchan"]} picks could be interpreted '
+            'as MEG channels.')
     S = _sss_basis(exp, coils)
-    if picks is not None:
-        pick_names = [info['chs'][i]['ch_name'] for i in picks]
-        basis_chans, basis_picks = _filter_list(pick_names, mf_names)
-        S = S[basis_picks]
-    return S, basis_chans
+    del coils
+    bad_chans = [
+        info['ch_names'][pick]
+        for pick in np.where((~np.isfinite(S)).any(axis=1))[0]
+    ]
+    if bad_chans:
+        raise ValueError(
+            "The following channel(s) generate non-finite projectors:\n"
+            f"    {bad_chans}\nPlease exclude from picks!")
+    S /= np.linalg.norm(S, axis=0)
+    labels = _label_basis(order)
+    assert len(labels) == S.shape[1]
+    projs = []
+    for label, vec in zip(labels, S.T):
+        proj_data = dict(col_names=info['ch_names'], row_names=None,
+                         data=vec[np.newaxis, :], ncol=info['nchan'], nrow=1)
+        projs.append(Projection(active=False, data=proj_data, desc=label))
+    return projs
 
 
 def _label_basis(order):
     """Give basis vectors names for Projection() class."""
-    labels = list()
-    for L in np.arange(1, order + 1):
-        for m in np.arange(-1 * L, L + 1):
-            labels.append(f"HFC: l={L} m={m}")
-    return labels
-
-
-def _filter_list(A_list, B_list):
-    """Locate where one list matches another."""
-    hit_inds = list()
-    hit_list = list()
-    for ii in A_list:
-        hit = False
-        if ii in B_list:
-            hit_inds.append(B_list.index(ii))
-            hit_list.append(ii)
-            hit = True
-        if not hit:
-            string = '\t' + ii + ' not in basis set, ignoring.'
-            print(string)
-    return hit_list, hit_inds
-
-
-def _assert_isfinite(basis, channels):
-    """Check all basis values are finite, error and report which are not."""
-    infs = np.isfinite(basis)
-    bad_chans = np.where(~infs.any(axis=1))[0]
-    if bad_chans.size > 0:
-        string = "The following channels generate non-finite projectors"
-        string += " for HFC:"
-        for b in bad_chans:
-            string += "\n\t" + channels[b]
-        string += "\nPlease exclude from selection!"
-        raise ValueError(string)
+    return [
+        f"HFC: l={L} m={m}"
+        for L in np.arange(1, order + 1)
+        for m in np.arange(-1 * L, L + 1)
+    ]
