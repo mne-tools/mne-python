@@ -12,7 +12,7 @@ from ..utils import verbose
 
 @verbose
 def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
-                     ignore_ref=True, *, accuracy='accurate', verbose=None):
+                     *, accuracy='accurate', verbose=None):
     """Generate projectors to perform homogeneous/harmonic correction to data.
 
     Remove evironmental fields from magentometer data by assuming it is
@@ -28,15 +28,13 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
         only the homogeneous field component (default), 2 to add gradients, 3
         to add quadrature terms etc.
     picks : str | array_like | slice | None
-        Channels to include. Default of ``'meg'`` will select all non-reference
-        MEG channels.
+        Channels to include. Default of ``'meg'`` (same as None) will select
+        all non-reference MEG channels. Use ``('meg', 'ref_meg')`` to include
+        reference sensors as well.
     exclude : list | 'bads'
         List of channels to exclude from HFC, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
         Specify ``'bads'`` (the default) to exclude all channels marked as bad.
-    ignore_ref : bool
-        Specify whether reference MEG channels should be ignored when
-        calculating the basis set (default: ``True``).
     accuracy : str
         Can be ``"point"``, ``"normal"`` or ``"accurate"`` (default), defines
         which level of coil definition accuracy is used to generate model.
@@ -57,7 +55,7 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
     .. footbibliography::
     """
     picks = _picks_to_idx(
-        info, picks, exclude=exclude, with_ref_meg=not ignore_ref)
+        info, picks, none='meg', exclude=exclude, with_ref_meg=False)
     info = pick_info(info, picks)
     del picks
     exp = dict(origin=(0., 0., 0.), int_order=0, ext_order=order)

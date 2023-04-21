@@ -130,7 +130,7 @@ def test_ref_degenerate():
         info['ch_names'][pick]
         for pick in pick_types(info, meg=True, ref_meg=True, exclude=[])
     ]
-    projs = compute_proj_hfc(info, ignore_ref=False)
+    projs = compute_proj_hfc(info, picks=('meg', 'ref_meg'))
     assert projs[0]['data']['col_names'] == meg_ref_names
 
     # Degenerate
