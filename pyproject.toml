@@ -21,6 +21,9 @@ ignore-decorators = [
 
 [tool.ruff.per-file-ignores]
 "tutorials/time-freq/10_spectrum_class.py" = ["E501"]
+"mne/datasets/*/*.py" = ["D103"]
+"mne/utils/tests/test_docs.py" = ["D101", "D411", "D410", "D414"]
+"examples/*/*.py" = ["D205"]
 
 [tool.pytest.ini_options]
 addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \

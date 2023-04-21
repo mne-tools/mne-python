@@ -55,7 +55,7 @@ rng = np.random.RandomState(42)
 
 
 def data_fun(times):
-    """Function to generate random source time courses"""
+    """Generate random source time courses."""
     return (50e-9 * np.sin(30. * times) *
             np.exp(- (times - 0.15 + 0.05 * rng.randn(1)) ** 2 / 0.01))
 
