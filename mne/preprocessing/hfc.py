@@ -43,17 +43,17 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
     -------
     %(projs)s
 
+    See Also
+    --------
+    mne.io.Raw.add_proj
+    mne.io.Raw.apply_proj
+
     Notes
     -----
     To apply the projectors to a dataset, use
     ``inst.add_proj(projs).apply_proj()``.
 
     .. versionadded:: 1.4
-
-    See Also
-    --------
-    mne.io.Raw.add_proj
-    mne.io.Raw.apply_proj
 
     References
     ----------
