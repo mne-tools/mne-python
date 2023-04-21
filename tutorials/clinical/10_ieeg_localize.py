@@ -26,7 +26,6 @@ the original publication, so please cite :footcite:`RockhillEtAl2022` if you
 use this module in your analysis to support the addition of new projects to
 MNE.
 """
-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #          Eric Larson <larson.eric.d@gmail.com>
 #

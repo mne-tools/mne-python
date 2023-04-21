@@ -137,8 +137,6 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
-# TODO: Fix this warning
-@pytest.mark.filterwarnings("ignore:.*columns to operate on.*:FutureWarning")
 @pytest.mark.parametrize('long_format', (False, True))
 @pytest.mark.parametrize('method, output', [
     ('welch', 'complex'),
@@ -176,8 +174,8 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # sorting at the agg step *sigh*
     _inplace(orig_df, 'sort_values', by=grouping_cols, ignore_index=True)
     # aggregate
-    gb = df.drop(columns=drop_cols).groupby(
-        grouping_cols, as_index=False, observed=False)
+    df = df.drop(columns=drop_cols)
+    gb = df.groupby(grouping_cols, as_index=False, observed=False)
     if method == 'welch':
         if output == 'complex':
             def _fun(x):
@@ -186,6 +184,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
             _fun = np.nanmean
         agg_df = gb.aggregate(_fun)
     else:
+        gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
         agg_df = gb.apply(_agg_helper, spectrum._mt_weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the

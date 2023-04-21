@@ -41,7 +41,9 @@ Enhancements
 - Allow an image with intracranial electrode contacts (e.g. computed tomography) to be used without the freesurfer recon-all surfaces to locate contacts so that it doesn't have to be downsampled to freesurfer dimensions (for microelectrodes) and show an example :ref:`ex-ieeg-micro` with :func:`mne.transforms.apply_volume_registration_points` added to aid this transform (:gh:`11567` by `Alex Rockhill`_)
 - Use new :meth:`dipy.workflows.align.DiffeomorphicMap.transform_points` to transform a montage of intracranial contacts more efficiently (:gh:`11572` by `Alex Rockhill`_)
 - Improve performance of raw data browsing with many annotations (:gh:`11614` by `Eric Larson`_)
+- Add support for :func:`mne.preprocessing.maxwell_filter` with gradient-compensated CTF data, e.g., for tSSS-only mode (:gh:`10554` by `Eric Larson`_)
 - Add support for eyetracking data using :func:`mne.io.read_raw_eyelink` (:gh:`11152` by `Dominik Welke`_ and `Scott Huberty`_)
+- :func:`mne.channels.make_1020_channel_selections` gained a new parameter, ``return_ch_names``, to allow for easy retrieval of EEG channel names corresponding to the left, right, and midline portions of the montage (:gh:`11632` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
@@ -55,6 +57,7 @@ Bugs
 - Fix :func:`mne.io.read_raw_edf` when reading EDF data with different sampling rates and a mix of data channels when using ``infer_types=True`` (:gh:`11427` by `Alex Gramfort`_)
 - Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11436` by `Alex Rockhill`_)
 - Fix configuration folder discovery on Windows, which would fail in certain edge cases; and produce a helpful error message if discovery still fails (:gh:`11441` by `Richard Höchenberger`_)
+- Fix :meth:`mne.time_frequency.Spectrum.to_data_frame`'s docstring to reflect the correct name for the appended frequencies column (:gh:`11457` by :newcontrib:`Zvi Baratz`)
 - Make :class:`~mne.decoding.SlidingEstimator` and :class:`~mne.decoding.GeneralizingEstimator` respect the ``verbose`` argument. Now with ``verbose=False``, the progress bar is not shown during fitting, scoring, etc. (:gh:`11450` by `Mikołaj Magnuski`_)
 - Fix bug with ``mne.gui.locate_ieeg`` where Freesurfer ``?h.pial.T1`` was not recognized and suppress excess logging (:gh:`11489` by `Alex Rockhill`_)
 - All functions accepting paths can now correctly handle :class:`~pathlib.Path` as input. Historically, we expected strings (instead of "proper" path objects), and only added :class:`~pathlib.Path` support in a few select places, leading to inconsistent behavior. (:gh:`11473` and :gh:`11499` by `Mathieu Scheltienne`_)
