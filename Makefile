@@ -24,6 +24,9 @@ clean-cache:
 
 clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
+wheel_quiet:
+	$(PYTHON) setup.py -q sdist bdist_wheel
+
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
 

@@ -9,3 +9,4 @@ codespell
 check-manifest
 twine
 wheel
+pre-commit
