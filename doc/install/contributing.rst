@@ -703,7 +703,7 @@ style violations by first installing pre-commit hook
 
 Then running::
 
-    $ make ruff
+    $ make ruff  # alias for `pre-commit run -a`
 
 in the shell. Several text editors or IDEs also have Python style checking,
 which can highlight style errors while you code (and train you to make those
