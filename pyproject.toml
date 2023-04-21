@@ -7,7 +7,12 @@ skip = "doc/references.bib"
 [tool.ruff]
 select = ["E", "F", "W", "D"]
 exclude = ["__init__.py", "constants.py", "fixes.py", "resources.py"]
-ignore = ["D100", "D104", "D107", "D413"]
+ignore = [
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D107", # Missing docstring in __init__
+    "D413", # Missing blank line after last section
+]
 
 [tool.ruff.pydocstyle]
 convention = "numpy"

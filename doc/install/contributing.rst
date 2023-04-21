@@ -696,7 +696,7 @@ in `PEP 8`_. We also check for common coding errors (such as variables that are
 defined but never used). We allow very few exceptions to these guidelines, and
 use tools such as ruff_ to check code style
 automatically. From the :file:`mne-python` root directory, you can check for
-style violations by first installing pre-commit hook
+style violations by first installing our pre-commit hook::
 
     $ pip install pre-commit
     $ pre-commit install --install-hooks
