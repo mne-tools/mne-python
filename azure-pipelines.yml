@@ -39,7 +39,7 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     variables:
-      PYTHON_VERSION: '3.9'
+      PYTHON_VERSION: '3.11'
       PYTHON_ARCH: 'x64'
     steps:
     - bash: echo $(COMMIT_MSG)
