@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #

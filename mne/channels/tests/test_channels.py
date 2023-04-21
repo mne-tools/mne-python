@@ -384,6 +384,11 @@ def test_1020_selection():
     for channel, roi in zip(fz_c3_c4, ("Midline", "Left", "Right")):
         assert channel in sels[roi]
 
+    # ensure returning channel names works as expected
+    sels_names = make_1020_channel_selections(raw.info, return_ch_names=True)
+    for selection, ch_names in sels_names.items():
+        assert ch_names == [raw.ch_names[idx] for idx in sels[selection]]
+
 
 @testing.requires_testing_data
 def test_find_ch_adjacency():

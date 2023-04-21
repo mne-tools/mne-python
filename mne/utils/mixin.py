@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -20,7 +19,7 @@ logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
-class SizeMixin(object):
+class SizeMixin:
     """Estimate MNE object sizes."""
 
     def __eq__(self, other):
@@ -72,7 +71,7 @@ class SizeMixin(object):
             raise RuntimeError('Hashing unknown object type: %s' % type(self))
 
 
-class GetEpochsMixin(object):
+class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
     def __getitem__(self, item):
@@ -448,7 +447,7 @@ def _check_decim(info, decim, offset, check_filter=True):
     return decim, offset, new_sfreq
 
 
-class TimeMixin(object):
+class TimeMixin:
     """Class to handle operations on time for MNE objects."""
 
     @property
@@ -709,7 +708,7 @@ def _prepare_read_metadata(metadata):
     return metadata
 
 
-class _FakeNoPandas(object):  # noqa: D101
+class _FakeNoPandas:  # noqa: D101
     def __enter__(self):  # noqa: D105
 
         def _check(strict=True):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
@@ -142,11 +141,15 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
         # check that physical min and max is not exceeded
         if data.max() > pmax:
-            raise RuntimeError(f'The maximum μV of the data {data.max()} is '
-                               f'more than the physical max passed in {pmax}.')
+            warn(
+                f"The maximum μV of the data {data.max()} is "
+                f"more than the physical max passed in {pmax}.",
+            )
         if data.min() < pmin:
-            raise RuntimeError(f'The minimum μV of the data {data.min()} is '
-                               f'less than the physical min passed in {pmin}.')
+            warn(
+                f"The minimum μV of the data {data.min()} is "
+                f"less than the physical min passed in {pmin}.",
+            )
 
     # create instance of EDF Writer
     with _auto_close(EDFwriter(fname, file_type, n_channels)) as hdl:

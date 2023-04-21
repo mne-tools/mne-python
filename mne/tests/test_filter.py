@@ -146,8 +146,10 @@ def test_iir_stability():
     pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(ftype='butter', order=8,
                                                 output='ba'))
-    # This one should work just fine
+    # These ones should work just fine
     filter_data(sig, sfreq, 0.6, None, method='iir',
+                iir_params=dict(ftype='butter', order=8, output='sos'))
+    filter_data(sig, sfreq, 0.6, None, method='iir', phase='forward',
                 iir_params=dict(ftype='butter', order=8, output='sos'))
     # bad system type
     pytest.raises(ValueError, filter_data, sig, sfreq, 0.6, None, method='iir',
@@ -192,6 +194,31 @@ def test_iir_stability():
     # Note that this will fail for higher orders (e.g., 6) showing the
     # hopefully decreased numerical error of SOS
     assert_allclose(x_sos[100:-100], x_ba[100:-100])
+
+
+def test_iir_phase():
+    """Test IIR filter phase."""
+    sig, sfreq, ind_one = np.zeros(101), 10, 50
+    sig[ind_one] = 1
+    iir_params = dict(ftype='butter', order=2, output='sos')
+
+    # forward IIR
+    sig_f = filter_data(sig, sfreq, 0.6, None, method='iir', phase='forward',
+                        iir_params=iir_params)
+    # test if output is zero before peak
+    assert_allclose(sig_f[:ind_one], np.zeros(ind_one))
+    # test if power is lower after filtering
+    assert np.linalg.norm(sig) > np.linalg.norm(sig_f)
+
+    # forward-backward IIR
+    sig_fb = filter_data(sig, sfreq, 0.6, None, method='iir', phase='zero',
+                         iir_params=iir_params)
+    # test if filtered signal is symmetric
+    assert_allclose(sig_fb, sig_fb[::-1], rtol=1e-5, atol=1e-6)
+    # test if peak is not shifted
+    assert np.argmax(sig_fb) == ind_one
+    # test if power is lower after bilateral filtering
+    assert np.linalg.norm(sig_f) > np.linalg.norm(sig_fb)
 
 
 line_freqs = tuple(range(60, 241, 60))
@@ -615,11 +642,12 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
 
 
+@pytest.mark.parametrize('phase', ('zero', 'zero-double', 'forward'))
 @pytest.mark.parametrize('output', ('ba', 'sos'))
 @pytest.mark.parametrize('ftype', ('butter', 'bessel', 'ellip'))
 @pytest.mark.parametrize('btype', ('lowpass', 'bandpass'))
 @pytest.mark.parametrize('order', (1, 4))
-def test_reporting_iir(ftype, btype, order, output):
+def test_reporting_iir(phase, ftype, btype, order, output):
     """Test IIR filter reporting."""
     fs = 1000.
     l_freq = 1. if btype == 'bandpass' else None
@@ -632,31 +660,34 @@ def test_reporting_iir(ftype, btype, order, output):
     else:
         pass_tol = 0.2
     with catch_logging() as log:
-        x = create_filter(None, fs, l_freq, 40., method='iir',
+        x = create_filter(None, fs, l_freq, 40., method='iir', phase=phase,
                           iir_params=iir_params, verbose=True)
     order_eff = order * (1 + (btype == 'bandpass'))
     if output == 'ba':
         assert len(x['b']) == order_eff + 1
+    order_mult = 1. if phase == 'forward' else 2.
     log = log.getvalue()
     keys = [
         'IIR',
-        'zero-phase',
-        'two-pass forward and reverse',
-        'non-causal',
         btype,
         ftype,
-        'Filter order %d' % (order_eff * 2,),
+        'Filter order %d' % (order_eff * order_mult,),
         'Cutoff ' if btype == 'lowpass' else 'Cutoffs ',
     ]
+    if phase == 'forward':
+        keys += ['non-linear phase', 'one-pass forward', 'causal']
+    else:
+        keys += ['zero-phase', 'two-pass forward and reverse', 'non-causal']
     dB_decade = -27.74
     if ftype == 'ellip':
-        dB_cutoff = -6.0
+        dB_cutoff = -3.0
     elif order == 1 or ftype == 'butter':
-        dB_cutoff = -6.02
+        dB_cutoff = -3.01
     else:
         assert ftype == 'bessel'
         assert order == 4
-        dB_cutoff = -15.16
+        dB_cutoff = -7.58
+    dB_cutoff *= order_mult
     if btype == 'lowpass':
         keys += ['%0.2f dB' % (dB_cutoff,)]
     for key in keys:
@@ -684,7 +715,7 @@ def test_reporting_iir(ftype, btype, order, output):
     else:
         passes += [idx_0p1, idx_1]
 
-    edge_val = 10 ** (dB_cutoff / 40.)
+    edge_val = 10 ** (dB_cutoff / (order_mult * 20.))
     assert_allclose(h[edges], edge_val, atol=0.01)
     assert_allclose(h[passes], 1., atol=pass_tol)
     if ftype == 'butter' and btype == 'lowpass':

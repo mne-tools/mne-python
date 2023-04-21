@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-autogenerate-metadata:
 
@@ -21,7 +20,7 @@ performing an active visual task (Eriksen flanker task).
 
 This tutorial is loosely divided into two parts:
 
-1. We will first focus on producing ERP time-locked to the **visual
+1. We will first focus on producing ERPs time-locked to the **visual
    stimulation**, conditional on response correctness and response time in
    order to familiarize ourselves with the `~mne.epochs.make_metadata`
    function.
@@ -114,19 +113,19 @@ metadata
 # a value of ``NaN``, simply indicating that no event latency could be
 # extracted.
 #
-# Now, there's a problem here. We want investigate the visual ERPs only,
+# Now, there's a problem here. We want to investigate the visual ERPs
 # conditional on responses. But the metadata that was just created contains
 # one row for **every** event, including responses. While we **could** create
 # epochs for all events, allowing us to pass those metadata, and later subset
-# the created events, there's a more elegant way to handle things:
+# the created events, there's a more elegant way to handle this:
 # `~mne.epochs.make_metadata` has a ``row_events`` parameter that
 # allows us to specify for which events to create metadata **rows**, while
 # still creating **columns for all events** in the ``event_id`` dictionary.
 #
 # Because the metadata, then, only pertains to a subset of our original events,
 # it's important to keep the returned ``events`` and ``event_id`` around for
-# later use when we're actually going to create our epochs, to ensure that
-# metadata, events, and event descriptions stay in sync.
+# later use when we actually create our epochs, to ensure that metadata,
+# events, and event descriptions stay in sync.
 
 row_events = ['stimulus/compatible/target_left',
               'stimulus/compatible/target_right',
@@ -157,12 +156,13 @@ metadata
 # parameter. For example, in the case of the HEDs ``response/left`` and
 # ``response/right``, we could pass ``keep_first='response'`` to generate a new
 # column, ``response``, containing the latency of the respective event. This
-# value pertains only the first (or, in this specific example: the only)
+# value represents the first (or, in this specific example: the only)
 # response, regardless of side (left or right). To indicate **which** event
-# type (here: response side) was matched, a second column is added:
-# ``first_response``. The values in this column are the event types without the
-# string used for matching, as it is already encoded as the column name, i.e.
-# in our example, we expect it to only contain ``'left'`` and ``'right'``.
+# type (here: response side) was matched, a second column named
+# ``first_response`` is added. The values in this column are the event types
+# without the string used for matching, as it is already encoded as the column
+# name, i.e. in our example, we expect it to only contain ``'left'`` and
+# ``'right'``.
 
 keep_first = 'response'
 metadata, events, event_id = mne.epochs.make_metadata(
@@ -182,10 +182,10 @@ print(metadata['first_response'])
 # We're facing a similar issue with the stimulus events, and now there are not
 # only two, but **four** different types: ``stimulus/compatible/target_left``,
 # ``stimulus/compatible/target_right``, ``stimulus/incompatible/target_left``,
-# and ``stimulus/incompatible/target_right``. Even more, because in the present
-# paradigm stimuli were presented in rapid succession, sometimes multiple
-# stimulus events occurred within the 1.5 second time window we're using to
-# generate our metadata. See for example:
+# and ``stimulus/incompatible/target_right``. What's more, because in the
+# present paradigm stimuli were presented in rapid succession, sometimes
+# multiple stimulus events occurred within the 1.5 second time window we used
+# to generate our metadata. See for example:
 
 metadata.loc[metadata['stimulus/compatible/target_left'].notna() &
              metadata['stimulus/compatible/target_right'].notna(),
@@ -246,12 +246,12 @@ print(f'Correct responses: {correct_response_count}\n'
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # It's finally time to create our epochs! We set the metadata directly on
-# instantiation via the ``metadata`` parameter. Also it is important to
+# instantiation via the ``metadata`` parameter. Also, it is important to
 # remember to pass ``events`` and ``event_id`` as returned from
 # `~mne.epochs.make_metadata`, as we only created metadata for a subset of
 # our original events by passing ``row_events``. Otherwise, the length
-# of the metadata and the number of epochs would not match and MNE-Python
-# would raise an error.
+# of the metadata and the number of epochs would not match, which would raise
+# an error.
 
 epochs_tmin, epochs_tmax = -0.1, 0.4  # epochs range: [-0.1, 0.4] s
 reject = {'eeg': 250e-6}  # exclude epochs with strong artifacts
@@ -260,21 +260,19 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
                     reject=reject, preload=True)
 
 # %%
-# Lastly, let's visualize the ERPs evoked by the visual stimulation, once for
-# all trials with correct responses, and once for all trials with correct
+# Lastly, let's visualize the ERPs associated with the visual stimulation, once
+# for all trials with correct responses, and once for all trials with correct
 # responses and a response time greater than 0.5 seconds
 # (i.e., slow responses).
 vis_erp = epochs['response_correct'].average()
 vis_erp_slow = epochs['(not response_correct) & '
                       '(response > 0.3)'].average()
 
-fig, ax = plt.subplots(2, figsize=(6, 6))
+fig, ax = plt.subplots(2, figsize=(6, 6), layout='constrained')
 vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0])
 vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1])
 ax[0].set_title('Visual ERPs – All Correct Responses')
 ax[1].set_title('Visual ERPs – Slow Correct Responses')
-fig.tight_layout()
-fig
 
 # %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
@@ -298,11 +296,11 @@ fig
 #
 # We only wish to consider the **last** stimulus and response in each time
 # window: Remember that we're dealing with rapid stimulus presentations in
-# this paradigm; taking the last response – at time point zero – and the last
-# stimulus – the one closest to the response – ensures we actually create
+# this paradigm; taking the last response (at time point zero) and the last
+# stimulus (the one closest to the response) ensures that we actually create
 # the right stimulus-response pairings. We can achieve this by passing the
-# ``keep_last`` parameter, which works exactly like ``keep_first`` we got to
-# know above, only that it keeps the **last** occurrences of the specified
+# ``keep_last`` parameter, which works exactly like ``keep_first`` we used
+# previously, only that it keeps the **last** occurrences of the specified
 # events and stores them in columns whose names start with ``last_``.
 
 metadata_tmin, metadata_tmax = -1.5, 0
@@ -316,7 +314,7 @@ metadata, events, event_id = mne.epochs.make_metadata(
     keep_last=keep_last)
 
 # %%
-# Exactly like in the previous example, create new columns ``stimulus_side``
+# Exactly like in the previous example, we create new columns ``stimulus_side``
 # and ``response_correct``.
 
 # left-side stimulation
@@ -339,8 +337,8 @@ metadata
 
 # %%
 # Now it's already time to epoch the data! When deciding upon the epochs
-# duration for this specific analysis, we need to ensure we see quite a bit of
-# signal from before and after the motor response. We also must be aware of
+# duration for this specific analysis, we need to ensure to include quite a bit
+# of signal from before and after the motor response. We also must be aware of
 # the fact that motor-/muscle-related signals will most likely be present
 # **before** the response button trigger pulse appears in our data, so the time
 # period close to the response event should not be used for baseline

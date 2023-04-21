@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-annotate-raw:
 

@@ -153,6 +153,7 @@ def test_downloads(tmp_path, monkeypatch, capsys):
 @requires_good_network
 def test_fetch_parcellations(tmp_path):
     """Test fetching parcellations."""
+    pytest.importorskip('nibabel')
     this_subjects_dir = str(tmp_path)
     os.mkdir(op.join(this_subjects_dir, 'fsaverage'))
     os.mkdir(op.join(this_subjects_dir, 'fsaverage', 'label'))
@@ -188,7 +189,7 @@ def test_fetch_parcellations(tmp_path):
 _zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
 
 
-def _fake_zip_fetch(url, path, fname, known_hash):
+def _fake_zip_fetch(url, path, fname, *args, **kwargs):
     fname = op.join(path, fname)
     with zipfile.ZipFile(fname, 'w') as zipf:
         with zipf.open('foo/', 'w'):

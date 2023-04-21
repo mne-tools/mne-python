@@ -1303,10 +1303,11 @@ def read_raw_bti(pdf_fname, config_fname='config',
     -------
     raw : instance of RawBTi
         A Raw object containing BTI data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawBTi.
     """
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,

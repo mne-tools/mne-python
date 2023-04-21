@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Alan Leggitt <alan.leggitt@ucsf.edu>

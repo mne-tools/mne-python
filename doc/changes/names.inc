@@ -172,7 +172,7 @@
 
 .. _George O'Neill: https://georgeoneill.github.io
 
-.. _Guillaume Dumas: http://www.extrospection.eu
+.. _Guillaume Dumas: https://mila.quebec/en/person/guillaume-dumas
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
@@ -398,6 +398,8 @@
 
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 
+.. _Quentin Barthélemy: https://github.com/qbarthelemy
+
 .. _Quentin Bertrand: https://github.com/QB3
 
 .. _Qunxi Dong: https://github.com/dongqunxi
@@ -541,3 +543,5 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+
+.. _Zvi Baratz: https://github.com/ZviBaratz

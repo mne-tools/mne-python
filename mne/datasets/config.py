@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.142', misc='0.24')
+RELEASES = dict(testing='0.144', misc='0.26')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -111,7 +111,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS['testing'] = dict(
     archive_name=f'{TESTING_VERSIONED}.tar.gz',
-    hash='md5:44b857ddb34aefd752e4f5b19d625dee',
+    hash='md5:fb546f44dba3310945225ed8fdab4a91',
     url=('https://codeload.github.com/mne-tools/mne-testing-data/'
          f'tar.gz/{RELEASES["testing"]}'),
     # In case we ever have to resort to osf.io again...
@@ -123,7 +123,7 @@ MNE_DATASETS['testing'] = dict(
 )
 MNE_DATASETS['misc'] = dict(
     archive_name=f'{MISC_VERSIONED}.tar.gz',  # 'mne-misc-data',
-    hash='md5:eb017a919939511932bd683f26f97490',
+    hash='md5:868b484fadd73b1d1a3535b7194a0d03',
     url=('https://codeload.github.com/mne-tools/mne-misc-data/tar.gz/'
          f'{RELEASES["misc"]}'),
     folder_name='MNE-misc-data',
@@ -320,8 +320,10 @@ MNE_DATASETS['hf_sef_raw'] = dict(
 MNE_DATASETS['hf_sef_evoked'] = dict(
     archive_name='hf_sef_evoked.tar.gz',
     hash='md5:13d34cb5db584e00868677d8fb0aab2b',
-    url=('https://zenodo.org/record/3523071/files/'
-         'hf_sef_evoked.tar.gz'),
+    # Zenodo can be slow, so we use the OSF mirror
+    # url=('https://zenodo.org/record/3523071/files/'
+    #      'hf_sef_evoked.tar.gz'),
+    url='https://osf.io/25f8d/download?version=2',
     folder_name='hf_sef',
     config_key='MNE_DATASETS_HF_SEF_PATH',
 )
@@ -334,4 +336,13 @@ MNE_DATASETS['fake'] = dict(
          'datasets/foo.tgz'),
     folder_name='foo',
     config_key='MNE_DATASETS_FAKE_PATH'
+)
+
+# eyelink dataset
+MNE_DATASETS['eyelink'] = dict(
+    archive_name='eyelink_example_data.zip',
+    hash='md5:081950c05f35267458d9c751e178f161',
+    url=('https://osf.io/r5ndq/download?version=1'),
+    folder_name='eyelink-example-data',
+    config_key='MNE_DATASETS_EYELINK_PATH'
 )

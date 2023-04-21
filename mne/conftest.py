@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
@@ -14,6 +13,7 @@ import shutil
 import sys
 import warnings
 import pytest
+from pytest import StashKey
 from unittest import mock
 
 import numpy as np
@@ -78,7 +78,8 @@ collect_ignore = [
 def pytest_configure(config):
     """Configure pytest options."""
     # Markers
-    for marker in ('slowtest', 'ultraslowtest', 'pgtest'):
+    for marker in ('slowtest', 'ultraslowtest', 'pgtest', 'allow_unclosed',
+                   'allow_unclosed_pyside2'):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
@@ -131,6 +132,7 @@ def pytest_configure(config):
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
+    ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
@@ -228,24 +230,10 @@ def matplotlib_config():
 
 
 @pytest.fixture(scope='session')
-def ci_macos():
-    """Determine if running on MacOS CI."""
-    return (os.getenv('CI', 'false').lower() == 'true' and
-            sys.platform == 'darwin')
-
-
-@pytest.fixture(scope='session')
 def azure_windows():
     """Determine if running on Azure Windows."""
     return (os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true' and
             sys.platform.startswith('win'))
-
-
-@pytest.fixture()
-def check_gui_ci(ci_macos, azure_windows):
-    """Skip tests that are not reliable on CIs."""
-    if azure_windows or ci_macos:
-        pytest.skip('Skipping GUI tests on MacOS CIs and Azure Windows')
 
 
 @pytest.fixture(scope='function')
@@ -725,6 +713,47 @@ def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
     import pooch
     monkeypatch.setattr(pooch, 'retrieve', _fail)
+    yield
+
+
+@pytest.fixture()
+def fake_retrieve(monkeypatch, download_is_error):
+    """Monkeypatch pooch.retrieve to avoid downloading (just touch files)."""
+    import pooch
+    my_func = _FakeFetch()
+    monkeypatch.setattr(pooch, 'retrieve', my_func)
+    monkeypatch.setattr(pooch, 'create', my_func)
+    yield my_func
+
+
+class _FakeFetch:
+
+    def __init__(self):
+        self.call_args_list = list()
+
+    @property
+    def call_count(self):
+        return len(self.call_args_list)
+
+    # Wrapper for pooch.retrieve(...) and pooch.create(...)
+    def __call__(self, *args, **kwargs):
+        assert 'path' in kwargs
+        if 'fname' in kwargs:  # pooch.retrieve(...)
+            self.call_args_list.append((args, kwargs))
+            path = Path(kwargs['path'], kwargs['fname'])
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('test')
+            return path
+        else:  # pooch.create(...) has been called
+            self.path = kwargs['path']
+            return self
+
+    # Wrappers for Pooch instances (e.g., in eegbci we pooch.create)
+    def fetch(self, fname):
+        self(path=self.path, fname=fname)
+
+    def load_registry(self, registry):
+        assert Path(registry).exists(), registry
 
 
 # We can't use monkeypatch because its scope (function-level) conflicts with
@@ -968,18 +997,34 @@ def qt_windows_closed(request):
     """Ensure that no new Qt windows are open after a test."""
     _check_skip_backend('pyvistaqt')
     app = _init_mne_qtapp()
+    from qtpy import API_NAME
+    app.processEvents()
     gc.collect()
     n_before = len(app.topLevelWidgets())
+    marks = set(mark.name for mark in request.node.iter_markers())
     yield
+    app.processEvents()
     gc.collect()
-    if 'allow_unclosed' in request.fixturenames:
+    if 'allow_unclosed' in marks:
+        return
+    if 'allow_unclosed_pyside2' in marks and API_NAME.lower() == 'pyside2':
+        return
+    # Don't check when the test fails
+    report = request.node.stash[_phase_report_key]
+    if ("call" not in report) or report["call"].failed:
         return
     widgets = app.topLevelWidgets()
     n_after = len(widgets)
     assert n_before == n_after, widgets[-4:]
 
 
-@pytest.fixture
-def allow_unclosed():
-    """Allow unclosed Qt Windows."""
-    pass
+# https://docs.pytest.org/en/latest/example/simple.html#making-test-result-information-available-in-fixtures  # noqa: E501
+_phase_report_key = StashKey()
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Stash the status of each item."""
+    outcome = yield
+    rep = outcome.get_result()
+    item.stash.setdefault(_phase_report_key, {})[rep.when] = rep

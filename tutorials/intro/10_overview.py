@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-overview:
 
@@ -76,7 +75,7 @@ print(raw.info)
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
 
-raw.plot_psd(fmax=50)
+raw.compute_psd(fmax=50).plot()
 raw.plot(duration=5, n_channels=30)
 
 # %%

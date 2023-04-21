@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-sensors-time-freq:
 
@@ -59,12 +58,12 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.plot_psd(fmin=2., fmax=40., average=True)
+epochs.compute_psd(fmin=2., fmax=40.).plot(average=True)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged
 # across epochs and frequency bands.
-epochs.plot_psd_topomap(ch_type='grad', normalize=False)
+epochs.compute_psd().plot_topomap(ch_type='grad', normalize=False, contours=0)
 
 # %%
 # Alternatively, you can also create PSDs from `~mne.Epochs` methods directly.
@@ -172,15 +171,13 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio', title=power.ch_names[82])
 
-fig, axes = plt.subplots(1, 2, figsize=(7, 4))
+fig, axes = plt.subplots(1, 2, figsize=(7, 4), constrained_layout=True)
 topomap_kw = dict(ch_type='grad', tmin=0.5, tmax=1.5, baseline=(-0.5, 0),
                   mode='logratio', show=False)
 plot_dict = dict(Alpha=dict(fmin=8, fmax=12), Beta=dict(fmin=13, fmax=25))
 for ax, (title, fmin_fmax) in zip(axes, plot_dict.items()):
     power.plot_topomap(**fmin_fmax, axes=ax, **topomap_kw)
     ax.set_title(title)
-fig.tight_layout()
-fig.show()
 
 # %%
 # Joint Plot

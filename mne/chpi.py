@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions for fitting head positions with (c)HPI coils."""
 
 # Next, ``compute_head_pos`` can be used to:

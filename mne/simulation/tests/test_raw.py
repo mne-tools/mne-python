@@ -31,7 +31,7 @@ from mne.label import Label
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
-from mne.utils import catch_logging, check_version
+from mne.utils import catch_logging
 
 raw_fname_short = (
     Path(__file__).parent.parent.parent
@@ -213,6 +213,7 @@ def _get_head_pos_sim(raw):
 
 def test_simulate_raw_sphere(raw_data, tmp_path):
     """Test simulation of raw data with sphere model."""
+    pytest.importorskip('nibabel')
     seed = 42
     raw, src, stc, trans, sphere = raw_data
     assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
@@ -282,12 +283,6 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     assert_allclose(raw_sim[:][0], raw_sim_hann[:][0], rtol=1e-1, atol=1e-14)
     del raw_sim_hann
 
-    # check that new Generator objects can be used
-    if check_version('numpy', '1.17'):
-        random_state = np.random.default_rng(seed)
-        add_ecg(raw_sim, random_state=random_state)
-        add_eog(raw_sim, random_state=random_state)
-
 
 def test_degenerate(raw_data):
     """Test degenerate conditions."""
@@ -330,6 +325,7 @@ def test_degenerate(raw_data):
 @pytest.mark.slowtest
 def test_simulate_raw_bem(raw_data):
     """Test simulation of raw data with BEM."""
+    pytest.importorskip('nibabel')
     raw, src_ss, stc, trans, sphere = raw_data
     src = setup_source_space('sample', 'oct1', subjects_dir=subjects_dir)
     for s in src:

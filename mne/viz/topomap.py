@@ -626,7 +626,7 @@ def _get_extra_points(pos, extrapolate, origin, radii):
     return new_pos, mask_pos, tri
 
 
-class _GridData(object):
+class _GridData:
     """Unstructured (x,y) data interpolator.
 
     This class allows optimized interpolation by computing parameters
@@ -908,7 +908,6 @@ def _plot_topomap(
         border=_BORDER_DEFAULT, res=64, cmap=None, vmin=None, vmax=None,
         cnorm=None, show=True, onselect=None):
     from matplotlib.colors import Normalize
-    import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
     logger.debug(f'Plotting topomap for {ch_type} data shape {data.shape}')
@@ -1050,7 +1049,7 @@ def _plot_topomap(
                       verticalalignment='center', size='x-small')
 
     if not axes.figure.get_constrained_layout():
-        plt.subplots_adjust(top=.95)
+        axes.figure.subplots_adjust(top=.95)
 
     if onselect is not None:
         lim = axes.dataLim
@@ -1963,16 +1962,18 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     fig : instance of Figure
         Figure showing one scalp topography per frequency band.
     """
-    return epochs.plot_psd_topomap(
-        bands=bands, tmin=tmin, tmax=tmax, proj=proj, method='multitaper',
-        ch_type=ch_type, normalize=normalize, agg_fun=agg_fun, dB=dB,
-        sensors=sensors, names=names, mask=mask, mask_params=mask_params,
-        contours=contours, outlines=outlines, sphere=sphere,
-        image_interp=image_interp, extrapolate=extrapolate, border=border,
-        res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
-        colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=None,
-        show=True, n_jobs=None, verbose=None, bandwidth=bandwidth,
-        low_bias=low_bias, adaptive=adaptive, normalization=normalization)
+    from ..channels import rename_channels
+    from ..time_frequency import Spectrum
+    from ..utils.spectrum import _split_psd_kwargs
+
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
+    spectrum = epochs.compute_psd(**init_kw)
+    plot_kw.setdefault('show_names', False)
+    if names is not None:
+        rename_channels(spectrum.info, dict(zip(spectrum.ch_names, names)),
+                        verbose=verbose)
+        plot_kw['show_names'] = True
+    return spectrum.plot_topomap(**plot_kw)
 
 
 @fill_doc

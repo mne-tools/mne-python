@@ -749,50 +749,50 @@ def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
     # normal mode
-    fig = raw.plot_psd(average=False)
+    spectrum = raw.compute_psd()
+    fig = spectrum.plot(average=False)
     fig.canvas.callbacks.process(
         'resize_event',
         backend_bases.ResizeEvent('resize_event', fig.canvas))
     # specific mode
-    picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
-                 spatial_colors=True)
-    raw.plot_psd(tmax=20., color='yellow', dB=False, line_alpha=0.4,
-                 average=False)
+    picks = pick_types(spectrum.info, meg='mag', eeg=False)[:4]
+    spectrum.plot(picks=picks, ci='range', spatial_colors=True)
+    raw.compute_psd(tmax=20.).plot(color='yellow', dB=False, alpha=0.4)
     plt.close('all')
     # one axes supplied
     ax = plt.axes()
-    raw.plot_psd(tmax=None, picks=picks, ax=ax, average=True)
+    spectrum.plot(picks=picks, axes=ax, average=True)
     plt.close('all')
     # two axes supplied
     _, axs = plt.subplots(2)
-    raw.plot_psd(tmax=None, ax=axs, average=True)
+    spectrum.plot(axes=axs, average=True)
     plt.close('all')
     # need 2, got 1
     ax = plt.axes()
     with pytest.raises(ValueError, match='of length 2.*the length is 1'):
-        raw.plot_psd(ax=ax, average=True)
+        spectrum.plot(axes=ax, average=True)
     plt.close('all')
     # topo psd
     ax = plt.subplot()
-    raw.plot_psd_topo(axes=ax)
+    spectrum.plot_topo(axes=ax)
     plt.close('all')
     # with channel information not available
     for idx in range(len(raw.info['chs'])):
         raw.info['chs'][idx]['loc'] = np.zeros(12)
     with pytest.warns(RuntimeWarning, match='locations not available'):
-        raw.plot_psd(spatial_colors=True, average=False)
+        raw.compute_psd().plot(spatial_colors=True, average=False)
     # with a flat channel
     raw[5, :] = 0
-    for dB, estimate in itertools.product((True, False),
-                                          ('power', 'amplitude')):
+    with pytest.warns(UserWarning, match='[Infinite|Zero]'):
+        spectrum = raw.compute_psd()
+    for dB, amplitude in itertools.product((True, False), (True, False)):
         with pytest.warns(UserWarning, match='[Infinite|Zero]'):
-            fig = raw.plot_psd(average=True, dB=dB, estimate=estimate)
+            fig = spectrum.plot(average=True, dB=dB, amplitude=amplitude)
         # check grad axes
         title = fig.axes[0].get_title()
         ylabel = fig.axes[0].get_ylabel()
         ends_dB = ylabel.endswith('mathrm{(dB)}$')
-        unit = '(fT/cm)²/Hz' if estimate == 'power' else r'fT/cm/\sqrt{Hz}'
+        unit = r'fT/cm/\sqrt{Hz}' if amplitude else '(fT/cm)²/Hz'
         assert title == 'Gradiometers', title
         assert unit in ylabel, ylabel
         if dB:
@@ -802,35 +802,28 @@ def test_plot_raw_psd(raw, raw_orig):
         # check mag axes
         title = fig.axes[1].get_title()
         ylabel = fig.axes[1].get_ylabel()
-        unit = 'fT²/Hz' if estimate == 'power' else r'fT/\sqrt{Hz}'
+        unit = r'fT/\sqrt{Hz}' if amplitude else 'fT²/Hz'
         assert title == 'Magnetometers', title
         assert unit in ylabel, ylabel
-    # test reject_by_annotation
-    raw = raw_unchanged
-    raw.set_annotations(Annotations([1, 5], [3, 3], ['test', 'test']))
-    raw.plot_psd(reject_by_annotation=True)
-    raw.plot_psd(reject_by_annotation=False)
-    plt.close('all')
-
-    # test fmax value checking
-    with pytest.raises(ValueError, match='must not exceed ½ the sampling'):
-        raw.plot_psd(fmax=50000)
 
     # test xscale value checking
+    raw = raw_unchanged
+    spectrum = raw.compute_psd()
     with pytest.raises(ValueError, match="Invalid value for the 'xscale'"):
-        raw.plot_psd(xscale='blah')
+        spectrum.plot(xscale='blah')
 
     # gh-5046
     raw = raw_orig.crop(0, 1)
     picks = pick_types(raw.info, meg=True)
-    raw.plot_psd(picks=picks, average=False)
-    raw.plot_psd(picks=picks, average=True)
+    spectrum = raw.compute_psd(picks=picks)
+    spectrum.plot(average=False)
+    spectrum.plot(average=True)
     plt.close('all')
     raw.set_channel_types({'MEG 0113': 'hbo', 'MEG 0112': 'hbr',
                            'MEG 0122': 'fnirs_cw_amplitude',
                            'MEG 0123': 'fnirs_od'},
                           verbose='error')
-    fig = raw.plot_psd()
+    fig = raw.compute_psd().plot()
     assert len(fig.axes) == 10
     plt.close('all')
 
@@ -840,7 +833,8 @@ def test_plot_raw_psd(raw, raw_orig):
     info = create_info(['CH1', 'CH2'], sfreq)  # ch_types defaults to 'misc'
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
-    raw.plot_psd(picks=picks, spatial_colors=False, n_fft=n_fft)
+    spectrum = raw.compute_psd(picks=picks, n_fft=n_fft)
+    spectrum.plot(spatial_colors=False, picks=picks)
     plt.close('all')
 
 
@@ -967,6 +961,7 @@ def test_plotting_order_consistency():
     pick_data_set = set(_PICK_TYPES_DATA_DICT)
     pick_data_set.remove('meg')
     pick_data_set.remove('fnirs')
+    pick_data_set.remove('eyetrack')
     missing = pick_data_set.difference(set(_DATA_CH_TYPES_ORDER_DEFAULT))
     assert missing == set()
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Robert Luke  <mail@robertluke.net>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          simplified BSD-3 license

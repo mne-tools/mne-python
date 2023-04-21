@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The config functions."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -6,6 +5,7 @@
 
 import atexit
 import json
+import multiprocessing
 import os
 import os.path as op
 import platform
@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 from functools import partial
+from importlib import import_module
 from pathlib import Path
 
 from .check import (_validate_type, _check_qt_version, _check_option,
@@ -41,7 +42,7 @@ def set_cache_dir(cache_dir):
         temporary file storage.
     """
     if cache_dir is not None and not op.exists(cache_dir):
-        raise IOError('Directory %s does not exist' % cache_dir)
+        raise OSError('Directory %s does not exist' % cache_dir)
 
     set_config('MNE_CACHE_DIR', cache_dir, set_env=False)
 
@@ -103,6 +104,7 @@ known_config_types = (
     'MNE_DATASETS_BRAINSTORM_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_EPILEPSY_ECOG_PATH',
+    'MNE_DATASETS_EYELINK_PATH',
     'MNE_DATASETS_HF_SEF_PATH',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_MISC_PATH',
@@ -500,59 +502,29 @@ def _get_gpu_info():
     return out
 
 
-def sys_info(fid=None, show_paths=False, *, dependencies='user'):
-    """Print the system information for debugging.
+def sys_info(fid=None, show_paths=False, *, dependencies='user', unicode=True):
+    """Print system information.
 
-    This function is useful for printing system information
-    to help triage bugs.
+    This function prints system information useful when triaging bugs.
 
     Parameters
     ----------
     fid : file-like | None
-        The file to write to. Will be passed to :func:`print()`.
-        Can be None to use :data:`sys.stdout`.
+        The file to write to. Will be passed to :func:`print()`. Can be None to
+        use :data:`sys.stdout`.
     show_paths : bool
         If True, print paths for each module.
     dependencies : 'user' | 'developer'
         Show dependencies relevant for users (default) or for developers
         (i.e., output includes additional dependencies).
+    unicode : bool
+        Include Unicode symbols in output.
 
         .. versionadded:: 0.24
-
-    Examples
-    --------
-    Running this function with no arguments prints an output that is
-    useful when submitting bug reports::
-
-        >>> import mne
-        >>> mne.sys_info() # doctest: +SKIP
-        Platform:      Linux-4.15.0-1067-aws-x86_64-with-glibc2.2.5
-        Python:        3.8.1 (default, Feb  2 2020, 08:37:37)  [GCC 8.3.0]
-        Executable:    /usr/local/bin/python
-        CPU:           : 36 cores
-        Memory:        68.7 GB
-
-        mne:           0.21.dev0
-        numpy:         1.19.0 {blas=openblas, lapack=openblas}
-        scipy:         1.5.1
-        matplotlib:    3.2.2 {backend=Qt5Agg}
-
-        sklearn:       0.23.1
-        numba:         0.50.1
-        nibabel:       3.1.1
-        nilearn:       0.7.0
-        dipy:          1.1.1
-        cupy:          Not found
-        pandas:        1.0.5
-        pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
-        vtk:           9.0.1
-        qtpy:          2.0.1 {PySide6=6.2.4}
-        pyqtgraph:     0.12.4
-        pooch:         v1.5.1
-    """  # noqa: E501
+    """
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 21 if dependencies == 'developer' else 18
+    ljust = 24 if dependencies == 'developer' else 21
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call
@@ -566,18 +538,12 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         del macos_ver, macos_architecture
 
     out = partial(print, end='', file=fid)
-    out('Platform:'.ljust(ljust) + platform_str + '\n')
-    out('Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
-    out('Executable:'.ljust(ljust) + sys.executable + '\n')
-    out('CPU:'.ljust(ljust) + f'{platform.processor()}: ')
-    try:
-        import multiprocessing
-    except ImportError:
-        out('number of processors unavailable '
-            '(requires "multiprocessing" package)\n')
-    else:
-        out(f'{multiprocessing.cpu_count()} cores\n')
-    out('Memory:'.ljust(ljust))
+    out('Platform'.ljust(ljust) + platform_str + '\n')
+    out('Python'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
+    out('Executable'.ljust(ljust) + sys.executable + '\n')
+    out('CPU'.ljust(ljust) + f'{platform.processor()} ')
+    out(f'({multiprocessing.cpu_count()} cores)\n')
+    out('Memory'.ljust(ljust))
     try:
         import psutil
     except ImportError:
@@ -585,27 +551,65 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     else:
         out(f'{psutil.virtual_memory().total / float(2 ** 30):0.1f} GB\n')
     out('\n')
+    ljust -= 3  # account for +/- symbols
     libs = _get_numpy_libs()
-    use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
-                     'pandas', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
-                     'mne_nirs', 'mne_features', 'mne_qt_browser',
-                     'mne_connectivity', 'mne_icalabel')
+    unavailable = []
+    use_mod_names = (
+        '# Core',
+        'mne', 'numpy', 'scipy', 'matplotlib', 'pooch', 'jinja2',
+        '',
+        '# Numerical (optional)',
+        'sklearn', 'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
+        'pandas',
+        '',
+        '# Visualization (optional)',
+        'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk', 'qtpy', 'ipympl',
+        'pyqtgraph', 'mne-qt-browser',
+        '',
+        '# Ecosystem (optional)',
+        'mne-bids', 'mne-nirs', 'mne-features', 'mne-connectivity',
+        'mne-icalabel', 'mne-bids-pipeline',
+        ''
+    )
     if dependencies == 'developer':
         use_mod_names += (
-            '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
-            'pytest', 'nbclient')
-    for mod_name in use_mod_names:
-        if mod_name == '':
-            out('\n')
+            '# Testing',
+            'pytest', 'nbclient', 'numpydoc', 'flake8', 'pydocstyle',
+            '',
+            '# Documentation',
+            'sphinx', 'sphinx-gallery', 'pydata-sphinx-theme',
+            '',
+        )
+    try:
+        unicode = unicode and (sys.stdout.encoding.lower().startswith('utf'))
+    except Exception:  # in case someone overrides sys.stdout in an unsafe way
+        unicode = False
+    for mi, mod_name in enumerate(use_mod_names):
+        # upcoming break
+        if mod_name == '':  # break
+            if unavailable:
+                out('└☐ ' if unicode else ' - ')
+                out('unavailable'.ljust(ljust))
+                out(f"{', '.join(unavailable)}\n")
+                unavailable = []
+            if mi != len(use_mod_names) - 1:
+                out('\n')
             continue
-        out(f'{mod_name}:'.ljust(ljust))
+        elif mod_name.startswith('# '):  # header
+            mod_name = mod_name.replace('# ', '')
+            out(f'{mod_name}\n')
+            continue
+        pre = '├'
+        last = use_mod_names[mi + 1] == '' and not unavailable
+        if last:
+            pre = '└'
         try:
-            mod = __import__(mod_name)
+            mod = import_module(mod_name.replace("-", "_"))
         except Exception:
-            out('Not found\n')
+            unavailable.append(mod_name)
         else:
+            out(f'{pre}☑ ' if unicode else ' + ')
+            out(f'{mod_name}'.ljust(ljust))
             if mod_name == 'vtk':
                 vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
@@ -618,20 +622,26 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                 else:
                     out('unknown')
             else:
-                out(mod.__version__)
+                out(mod.__version__.lstrip("v"))
             if mod_name == 'numpy':
-                out(f' {{{libs}}}')
+                out(f' ({libs})')
             elif mod_name == 'qtpy':
                 version, api = _check_qt_version(return_api=True)
-                out(f' {{{api}={version}}}')
+                out(f' ({api}={version})')
             elif mod_name == 'matplotlib':
-                out(f' {{backend={mod.get_backend()}}}')
+                out(f' (backend={mod.get_backend()})')
             elif mod_name == 'pyvista':
                 version, renderer = _get_gpu_info()
                 if version is None:
-                    out(' {OpenGL could not be initialized}')
+                    out(' (OpenGL unavailable)')
                 else:
-                    out(f' {{OpenGL {version} via {renderer}}}')
+                    out(f' (OpenGL {version} via {renderer})')
             if show_paths:
-                out(f'\n{" " * ljust}•{op.dirname(mod.__file__)}')
+                if last:
+                    pre = '   '
+                elif unicode:
+                    pre = '│  '
+                else:
+                    pre = ' | '
+                out(f'\n{pre}{" " * ljust}{op.dirname(mod.__file__)}')
             out('\n')

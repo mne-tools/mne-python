@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """The check functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -11,12 +10,12 @@ import operator
 import os
 from pathlib import Path
 import re
-import sys
 import numbers
 
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
+from .docs import deprecated
 from ._logging import (warn, logger, verbose, _record_warnings,
                        _verbose_safe_false)
 
@@ -56,7 +55,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
     if len(endings_err) > 0 and not fname.endswith(endings_err):
         print_endings = ' or '.join([', '.join(endings_err[:-1]),
                                      endings_err[-1]])
-        raise IOError('The filename (%s) for file type %s must end with %s'
+        raise OSError('The filename (%s) for file type %s must end with %s'
                       % (fname, filetype, print_endings))
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
@@ -234,13 +233,13 @@ def _check_fname(
         if must_exist:
             if need_dir:
                 if not fname.is_dir():
-                    raise IOError(
+                    raise OSError(
                         f"Need a directory for {name} but found a file "
                         f"at {fname}"
                     )
             else:
                 if not fname.is_file():
-                    raise IOError(
+                    raise OSError(
                         f"Need a file for {name} but found a directory "
                         f"at {fname}"
                     )
@@ -353,6 +352,7 @@ def _soft_import(name, purpose, strict=True):
         mne_features='mne-features',
         mne_qt_browser='mne-qt-browser',
         mne_connectivity='mne-connectivity',
+        mne_gui_addons='mne-gui-addons',
         pyvista='pyvistaqt').get(name, name)
 
     try:
@@ -469,7 +469,7 @@ def _is_numeric(n):
     return isinstance(n, numbers.Number)
 
 
-class _IntLike(object):
+class _IntLike:
     @classmethod
     def __instancecheck__(cls, other):
         try:
@@ -484,7 +484,7 @@ int_like = _IntLike()
 path_like = (str, Path, os.PathLike)
 
 
-class _Callable(object):
+class _Callable:
     @classmethod
     def __instancecheck__(cls, other):
         return callable(other)
@@ -550,6 +550,37 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *,
         raise TypeError(
             f"{_item_name} must be an instance of {type_name}{extra}, "
             f"got {type(item)} instead.")
+
+
+def _check_range(val, min_val, max_val, name, min_inclusive=True,
+                 max_inclusive=True):
+    """Check that item is within range.
+
+    Parameters
+    ----------
+    val : int | float
+        The value to be checked.
+    min_val : int | float
+        The minimum value allowed.
+    max_val : int | float
+        The maximum value allowed.
+    name : str
+        The name of the value.
+    min_inclusive : bool
+        Whether ``val`` is allowed to be ``min_val``.
+    max_inclusive : bool
+        Whether ``val`` is allowed to be ``max_val``.
+    """
+    below_min = val < min_val if min_inclusive else val <= min_val
+    above_max = val > max_val if max_inclusive else val >= max_val
+    if below_min or above_max:
+        error_str = f'The value of {name} must be between {min_val} '
+        if min_inclusive:
+            error_str += 'inclusive '
+        error_str += f'and {max_val}'
+        if max_inclusive:
+            error_str += 'inclusive '
+        raise ValueError(error_str)
 
 
 def _path_like(item):
@@ -840,11 +871,6 @@ def _check_qt_version(*, return_api=False):
             version = QtCore.__version__
         except AttributeError:
             version = QtCore.QT_VERSION_STR
-        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
-            if not _compare_version(version, '>=', '5.10'):
-                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
-                     f'got {version}. Please upgrade e.g. with:\n\n'
-                     f'    pip install "{api}>=5.10"\n')
         # Having Qt installed is not enough -- sometimes the app is unusable
         # for example because there is no usable display (e.g., on a server),
         # so we have to try instantiating one to actually know.
@@ -1092,3 +1118,17 @@ def _to_rgb(*args, name='color', alpha=False):
         raise ValueError(
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f'{repr(args)}') from None
+
+
+@deprecated('has_nibabel is deprecated and will be removed in 1.5')
+def has_nibabel():
+    return check_version('nibabel')  # pragma: no cover
+
+
+def _import_nibabel(why='use MRI files'):
+    try:
+        import nibabel as nib
+    except ImportError as exp:
+        raise exp.__class__(
+            'nibabel is required to %s, got:\n%s' % (why, exp)) from None
+    return nib

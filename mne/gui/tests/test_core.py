@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-clause
@@ -9,7 +8,7 @@ from numpy.testing import assert_allclose
 import pytest
 
 from mne.datasets import testing
-from mne.utils import requires_nibabel, catch_logging, use_log_level
+from mne.utils import catch_logging, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -17,11 +16,10 @@ subject = "sample"
 subjects_dir = data_path / "subjects"
 
 
-@requires_nibabel()
 @testing.requires_testing_data
 def test_slice_browser_io(renderer_interactive_pyvistaqt):
     """Test the input/output of the slice browser GUI."""
-    import nibabel as nib
+    nib = pytest.importorskip('nibabel')
     from mne.gui._core import SliceBrowser
     with pytest.raises(ValueError, match='Base image is not aligned to MRI'):
         SliceBrowser(nib.MGHImage(
@@ -30,9 +28,11 @@ def test_slice_browser_io(renderer_interactive_pyvistaqt):
 
 
 # TODO: For some reason this leaves some stuff un-closed, we should fix it
+@pytest.mark.allow_unclosed
 @testing.requires_testing_data
-def test_slice_browser_display(renderer_interactive_pyvistaqt, allow_unclosed):
+def test_slice_browser_display(renderer_interactive_pyvistaqt):
     """Test that the slice browser GUI displays properly."""
+    pytest.importorskip('nibabel')
     from mne.gui._core import SliceBrowser
     # test no seghead, fsaverage doesn't have seghead
     with pytest.warns(RuntimeWarning, match='`seghead` not found'):
@@ -49,11 +49,13 @@ def test_slice_browser_display(renderer_interactive_pyvistaqt, allow_unclosed):
         gui = SliceBrowser(subject=subject, subjects_dir=subjects_dir)
 
     # test RAS
-    gui._RAS_textbox.setPlainText('10 10 10\n')
+    gui._RAS_textbox.setText('10 10 10')
+    gui._RAS_textbox.focusOutEvent(event=None)
     assert_allclose(gui._ras, [10, 10, 10])
 
     # test vox
-    gui._VOX_textbox.setPlainText('150, 150, 150\n')
+    gui._VOX_textbox.setText('150, 150, 150')
+    gui._VOX_textbox.focusOutEvent(event=None)
     assert_allclose(gui._ras, [23, 22, 23])
 
     # test click

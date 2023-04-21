@@ -22,6 +22,7 @@ subjects_dir = data_path / "subjects"
 @testing.requires_testing_data
 def test_make_morph_maps(tmp_path):
     """Test reading and creating morph maps."""
+    pytest.importorskip('nibabel')
     # make a new fake subjects_dir
     for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
         os.mkdir(tmp_path / subject)
