@@ -106,6 +106,7 @@ def test_l1_basis_orientations():
 
     chs = pick_info(raw.info, picks)['chs']
     ori_sens = np.array([ch['loc'][-3:] for ch in chs])
+    # match the normalization that our projectors get
     ori_sens /= np.linalg.norm(ori_sens, axis=0, keepdims=True)
     assert ori_sens.shape == (len(picks), 3)
     ang_sens = _angle_between_each(ori_sens)
