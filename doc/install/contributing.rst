@@ -696,9 +696,14 @@ in `PEP 8`_. We also check for common coding errors (such as variables that are
 defined but never used). We allow very few exceptions to these guidelines, and
 use tools such as ruff_ to check code style
 automatically. From the :file:`mne-python` root directory, you can check for
-style violations by running::
+style violations by first installing pre-commit hook
 
-    $ make flake
+    $ pip install pre-commit
+    $ pre-commit install --install-hooks
+
+Then running::
+
+    $ make ruff
 
 in the shell. Several text editors or IDEs also have Python style checking,
 which can highlight style errors while you code (and train you to make those
@@ -748,7 +753,7 @@ but complete docstrings are appropriate when private functions/methods are
 relatively complex. To run some basic tests on documentation, you can use::
 
     $ pytest mne/tests/test_docstring_parameters.py
-    $ make docstyle
+    $ make ruff
 
 
 Cross-reference everywhere
