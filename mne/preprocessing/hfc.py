@@ -21,8 +21,7 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
 
     Parameters
     ----------
-    info : instance of Info
-        Info from an instance of Raw (preferable).
+    %(info)s
     order : int
         The order of the spherical harmonic basis set to use. Set to 1 to use
         only the homogeneous field component (default), 2 to add gradients, 3
@@ -42,13 +41,19 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
 
     Returns
     -------
-    projs : list of Projection
-        List of projection vectors.
+    %(projs)s
 
     Notes
     -----
-    To apply the projectors to a dataset, use ``inst.add_proj(projs).apply
-    _proj()``.
+    To apply the projectors to a dataset, use
+    ``inst.add_proj(projs).apply_proj()``.
+
+    .. versionadded:: 1.4
+
+    See Also
+    --------
+    mne.io.Raw.add_proj
+    mne.io.Raw.apply_proj
 
     References
     ----------

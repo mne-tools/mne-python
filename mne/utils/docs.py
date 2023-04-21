@@ -2866,6 +2866,11 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 
+docdict['projs'] = """
+projs : list of Projection
+    List of computed projection vectors.
+"""
+
 docdict['projs_report'] = """
 projs : bool | None
     Whether to add SSP projector plots if projectors are present in
