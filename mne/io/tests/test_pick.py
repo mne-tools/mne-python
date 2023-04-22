@@ -550,6 +550,22 @@ def test_picks_to_idx():
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
+    # MEG reference sensors
+    info_ref = read_info(ctf_fname)
+    picks_meg = pick_types(info_ref, meg=True, ref_meg=False)
+    assert len(picks_meg) == 275
+    picks_ref = pick_types(info_ref, meg=False, ref_meg=True)
+    assert len(picks_ref) == 29
+    picks_meg_ref = np.sort(np.concatenate([picks_meg, picks_ref]))
+    assert len(picks_meg_ref) == 275 + 29
+    assert_array_equal(
+        picks_meg_ref, pick_types(info_ref, meg=True, ref_meg=True))
+    assert_array_equal(
+        picks_meg, _picks_to_idx(info_ref, 'meg', with_ref_meg=False))
+    assert_array_equal(  # explicit trumps implicit
+        picks_ref, _picks_to_idx(info_ref, 'ref_meg', with_ref_meg=False))
+    assert_array_equal(
+        picks_meg_ref, _picks_to_idx(info_ref, 'meg', with_ref_meg=True))
 
 
 def test_pick_channels_cov():
