@@ -93,7 +93,7 @@ jobs:
       - run: ./tools/github_actions_infos.sh
       # Check Qt on non-notebook
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
-        if: env.MNE_QT_BACKEND != ''
+        if: ${{ env.MNE_QT_BACKEND != '' }}
       - name: Run tests with no testing data
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         if: matrix.kind == 'minimal'
