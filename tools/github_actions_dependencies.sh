@@ -18,13 +18,11 @@ else
 	# https://pip.pypa.io/en/latest/user_guide/#possible-ways-to-reduce-backtracking-occurring
 	pip install $STD_ARGS --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six
 	echo "PyQt6"
-	# Broken as of 2022/09/20
-	# pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 PyQt6-sip PyQt6-Qt6
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps PyQt6 PyQt6-sip PyQt6-Qt6
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 PyQt6-sip PyQt6-Qt6
 	echo "NumPy/SciPy/pandas etc."
 	# No statsmodels for 3.11 here yet:
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy scikit-learn dipy pandas matplotlib
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
+	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy scikit-learn dipy pandas matplotlib
+	pip install $STD_ARGS --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
 	pip install $STD_ARGS --pre --only-binary ":all:" pillow
 	# No Numba because it forces an old NumPy version
 	# No opengmeeg until https://github.com/openmeeg/openmeeg/pull/609
