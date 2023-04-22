@@ -85,9 +85,9 @@ def test_resolution_matrix_lcmv():
     # Some rows are off by about 0.1 - not yet clear why
     corr = []
 
-    for (f, l) in zip(resmat_fwd, resmat_lcmv):
+    for (f, lf) in zip(resmat_fwd, resmat_lcmv):
 
-        corr.append(np.corrcoef(f, l)[0, 1])
+        corr.append(np.corrcoef(f, lf)[0, 1])
 
     # all row correlations should at least be above ~0.8
     assert_allclose(corr, 1., atol=0.2)

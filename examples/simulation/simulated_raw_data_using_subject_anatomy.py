@@ -124,8 +124,7 @@ region_names = list(activations.keys())
 
 
 def data_fun(times, latency, duration):
-    """Function to generate source time courses for evoked responses,
-    parametrized by latency and duration."""
+    """Generate source time courses for evoked responses."""
     f = 15  # oscillating frequency, beta band [Hz]
     sigma = 0.375 * duration
     sinusoid = np.sin(2 * np.pi * f * (times - latency))
