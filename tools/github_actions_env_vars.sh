@@ -11,7 +11,10 @@ elif [[ "$MNE_CI_KIND" == "minimal" ]]; then
     echo "Setting conda env vars for minimal"
     echo "CONDA_ACTIVATE_ENV=true" >> $GITHUB_ENV
     echo "CONDA_DEPENDENCIES=numpy scipy matplotlib" >> $GITHUB_ENV
-elif [[ "$MNE_CI_KIND" != "pip"* ]]; then  # notebook, conda, mamba
+elif [[ "$MNE_CI_KIND" == "notebook" ]]; then
+    echo "CONDA_ENV=environment.yml" >> $GITHUB_ENV
+    echo "CONDA_ACTIVATE_ENV=mne" >> $GITHUB_ENV
+elif [[ "$MNE_CI_KIND" != "pip"* ]]; then  # conda, mamba
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" >> $GITHUB_ENV
     echo "CONDA_ACTIVATE_ENV=mne" >> $GITHUB_ENV
