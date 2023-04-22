@@ -1,4 +1,4 @@
-name: 'pytest'
+name: 'Tests'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   style:
-    name: style
+    name: Style
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
