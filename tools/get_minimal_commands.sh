@@ -1,6 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
 
-set -o pipefail
+set -eo pipefail
 
 if [ "${DEPS}" == "minimal" ]; then
 	return 0 2>/dev/null || exit "0"
@@ -21,7 +21,7 @@ if [ "${CIRCLECI}" == "true" ]; then
 	echo "export MNE_ROOT=${MNE_ROOT}" >> "$BASH_ENV";
 	echo "export PATH=${MNE_ROOT}/bin:$PATH" >> "$BASH_ENV";
 fi;
-if [ "${CI_OS_NAME}" != "osx" ]; then
+if [ "${CI_OS_NAME}" == "ubuntu"* ]; then
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
 		curl -L https://osf.io/g7dzs/download?version=5 | tar xz
 	else
@@ -68,5 +68,8 @@ else
 	fi;
 fi
 popd > /dev/null
+set -x
 mne_process_raw --version
+mne_surf2bem --version
 mri_average --version
+set +x

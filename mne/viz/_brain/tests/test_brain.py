@@ -490,7 +490,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
 
 @testing.requires_testing_data
-@pytest.mark.skipif(os.getenv('CI_OS_NAME', '') == 'osx',
+@pytest.mark.skipif(os.getenv('CI_OS_NAME', '').startswith('macos'),
                     reason='Unreliable/segfault on macOS CI')
 @pytest.mark.parametrize('hemi', ('lh', 'rh'))
 def test_single_hemi(hemi, renderer_interactive_pyvistaqt, brain_gc):
