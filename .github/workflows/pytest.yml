@@ -1,4 +1,4 @@
-name: 'linux / pip-pre'
+name: 'pytest'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
   cancel-in-progress: true
@@ -25,7 +25,7 @@ jobs:
     - uses: pre-commit/action@v3.0.0
 
   pytest:
-    name: '${{ matrix.os }} ${{ matrix.kind }} ${{ matrix.python }}'
+    name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
     continue-on-error: true
     runs-on: ${{ matrix.os }}
