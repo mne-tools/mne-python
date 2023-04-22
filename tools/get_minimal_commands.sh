@@ -21,7 +21,7 @@ if [ "${CIRCLECI}" == "true" ]; then
 	echo "export MNE_ROOT=${MNE_ROOT}" >> "$BASH_ENV";
 	echo "export PATH=${MNE_ROOT}/bin:$PATH" >> "$BASH_ENV";
 fi;
-if [ "${CI_OS_NAME}" == "ubuntu"* ]; then
+if [ "${CI_OS_NAME}" != "macos"* ]; then
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
 		curl -L https://osf.io/g7dzs/download?version=5 | tar xz
 	else
