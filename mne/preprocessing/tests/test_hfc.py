@@ -62,7 +62,7 @@ def _angle_between_each(A):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('order', [1, 2, 3])
-def test_l1_correction(order):
+def test_correction(order):
     """Apply HFC and compare to previous computed solutions."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     raw = read_raw_fil(binname)
