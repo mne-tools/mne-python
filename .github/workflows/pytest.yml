@@ -81,7 +81,7 @@ jobs:
           environment-file: ${{ env.CONDA_ENV }}
           miniforge-version: latest
           miniforge-variant: Mambaforge
-          use-mamba: ${{ matrix.kind != conda" }}
+          use-mamba: ${{ matrix.kind != 'conda' }}
         if: ${{ !startswith(matrix.kind, 'pip') }}
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Unix
