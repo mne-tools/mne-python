@@ -1122,6 +1122,7 @@ def _to_rgb(*args, name='color', alpha=False):
 
 @deprecated('has_nibabel is deprecated and will be removed in 1.5')
 def has_nibabel():
+    """Check if nibabel is installed."""
     return check_version('nibabel')  # pragma: no cover
 
 
