@@ -19,7 +19,5 @@ elif [[ "$MNE_CI_KIND" != "pip"* ]]; then  # notebook, conda, mamba
 else  # pip-like
     echo "Setting pip env vars for $MNE_CI_KIND"
     echo "MNE_QT_BACKEND=PyQt6" >> $GITHUB_ENV
-else
-    echo "Setting pip env vars for $MNE_CI_KIND"
 fi
 set +x
