@@ -85,7 +85,7 @@ jobs:
         if: ${{ !startswith(matrix.kind, 'pip') }}
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Unix
-      - run: ./get_minimal_commands.sh
+      - run: ./tools/get_minimal_commands.sh
         if: ${{ !startswith(matrix.os, 'windows') }}
       - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
