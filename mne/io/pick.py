@@ -1146,8 +1146,12 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
             bad_type = pick
             break
     else:
+        # bad_type is None but this could still be empty
+        bad_type = list(picks)
         # triage MEG and FNIRS, which are complicated due to non-bool entries
         extra_picks = set()
+        if 'ref_meg' not in picks and not with_ref_meg:
+            kwargs['ref_meg'] = False
         if len(meg) > 0 and not kwargs.get('meg', False):
             # easiest just to iterate
             for use_meg in meg:
@@ -1172,7 +1176,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
             raise ValueError(
                 'picks (%s) could not be interpreted as '
                 'channel names (no channel "%s"), channel types (no '
-                'type "%s"), or a generic type (just "all" or "data")'
+                'type "%s" present), or a generic type (just "all" or "data")'
                 % (repr(orig_picks) + extra_repr, str(bad_names), bad_type))
         picks = np.array([], int)
     elif sum(any_found) > 1:
