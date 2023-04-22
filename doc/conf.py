@@ -1019,6 +1019,8 @@ def reset_warnings(gallery_conf, fname):
     # matplotlib 3.6 in nilearn and pyvista
     warnings.filterwarnings(
         'ignore', message='.*cmap function will be deprecated.*')
+    warnings.filterwarnings(
+        'ignore', message='.*Matplotlib is currently using agg.*')
     # xarray/netcdf4
     warnings.filterwarnings(
         'ignore', message=r'numpy\.ndarray size changed, may indicate.*',
