@@ -31,7 +31,7 @@ Got any questions? Let us know on the `MNE Forum`_!
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.1.1_0-Linux.sh
+            $ sh ./MNE-Python-1.3.1_0-Linux.sh
 
 
     .. tab-item:: macOS (Intel)
