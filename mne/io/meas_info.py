@@ -1622,11 +1622,11 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_HPI_FIT_GOODNESS:
                 hr['goodness'] = read_tag(fid, pos).data
             elif kind == FIFF.FIFF_HPI_FIT_GOOD_LIMIT:
-                hr['good_limit'] = float(read_tag(fid, pos).data)
+                hr['good_limit'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_FIT_DIST_LIMIT:
-                hr['dist_limit'] = float(read_tag(fid, pos).data)
+                hr['dist_limit'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_FIT_ACCEPT:
-                hr['accept'] = int(read_tag(fid, pos).data)
+                hr['accept'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_COORD_TRANS:
                 hr['coord_trans'] = read_tag(fid, pos).data
         hrs.append(hr)
@@ -1643,17 +1643,17 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if kind == FIFF.FIFF_CREATOR:
                 hm['creator'] = str(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
-                hm['sfreq'] = float(read_tag(fid, pos).data)
+                hm['sfreq'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_NCHAN:
-                hm['nchan'] = int(read_tag(fid, pos).data)
+                hm['nchan'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_NAVE:
-                hm['nave'] = int(read_tag(fid, pos).data)
+                hm['nave'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_NCOIL:
-                hm['ncoil'] = int(read_tag(fid, pos).data)
+                hm['ncoil'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_FIRST_SAMPLE:
-                hm['first_samp'] = int(read_tag(fid, pos).data)
+                hm['first_samp'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_LAST_SAMPLE:
-                hm['last_samp'] = int(read_tag(fid, pos).data)
+                hm['last_samp'] = int(read_tag(fid, pos).data.item())
         hpi_coils = dir_tree_find(hpi_meas, FIFF.FIFFB_HPI_COIL)
         hcs = []
         for hpi_coil in hpi_coils:
@@ -1662,7 +1662,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 kind = hpi_coil['directory'][k].kind
                 pos = hpi_coil['directory'][k].pos
                 if kind == FIFF.FIFF_HPI_COIL_NO:
-                    hc['number'] = int(read_tag(fid, pos).data)
+                    hc['number'] = int(read_tag(fid, pos).data.item())
                 elif kind == FIFF.FIFF_EPOCH:
                     hc['epoch'] = read_tag(fid, pos).data
                     hc['epoch'].flags.writeable = False
@@ -1673,7 +1673,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                     hc['corr_coeff'] = read_tag(fid, pos).data
                     hc['corr_coeff'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_COIL_FREQ:
-                    hc['coil_freq'] = float(read_tag(fid, pos).data)
+                    hc['coil_freq'] = float(read_tag(fid, pos).data.item())
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)

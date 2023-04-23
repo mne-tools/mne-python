@@ -212,7 +212,10 @@ def read_inverse_operator(fname, *, verbose=None):
         unit_dict = {FIFF.FIFF_UNIT_AM: 'Am',
                      FIFF.FIFF_UNIT_AM_M2: 'Am/m^2',
                      FIFF.FIFF_UNIT_AM_M3: 'Am/m^3'}
-        inv['units'] = unit_dict.get(int(getattr(tag, 'data', -1)), None)
+        inv['units'] = unit_dict.get(
+            int(
+                getattr(tag, 'data', np.array([-1])).item()
+            ), None)
 
         #
         #   The actual source orientation vectors
