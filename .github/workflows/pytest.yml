@@ -17,6 +17,7 @@ jobs:
   style:
     name: Style
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -27,6 +28,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
+    timeout-minutes: 60
     continue-on-error: true
     runs-on: ${{ matrix.os }}
     defaults:
