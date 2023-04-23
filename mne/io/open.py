@@ -62,7 +62,7 @@ def _get_next_fname(fid, fname, tree):
         for ent in nodes['directory']:
             if ent.kind == FIFF.FIFF_REF_ROLE:
                 tag = read_tag(fid, ent.pos)
-                role = int(tag.data)
+                role = int(tag.data.item())
                 if role != FIFF.FIFFV_ROLE_NEXT_FILE:
                     next_fname = None
                     break
@@ -157,7 +157,7 @@ def _fiff_open(fname, fid, preload):
     #   Read or create the directory tree
     logger.debug('    Creating tag directory for %s...' % fname)
 
-    dirpos = int(tag.data)
+    dirpos = int(tag.data.item())
     read_slow = True
     if dirpos > 0:
         dir_tag = read_tag(fid, dirpos)
