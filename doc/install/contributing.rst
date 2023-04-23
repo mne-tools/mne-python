@@ -694,11 +694,16 @@ Adhere to standard Python style guidelines
 All contributions to MNE-Python are checked against style guidelines described
 in `PEP 8`_. We also check for common coding errors (such as variables that are
 defined but never used). We allow very few exceptions to these guidelines, and
-use tools such as pep8_, pyflakes_, and flake8_ to check code style
+use tools such as ruff_ to check code style
 automatically. From the :file:`mne-python` root directory, you can check for
-style violations by running::
+style violations by first installing our pre-commit hook::
 
-    $ make flake
+    $ pip install pre-commit
+    $ pre-commit install --install-hooks
+
+Then running::
+
+    $ make ruff  # alias for `pre-commit run -a`
 
 in the shell. Several text editors or IDEs also have Python style checking,
 which can highlight style errors while you code (and train you to make those
@@ -748,7 +753,7 @@ but complete docstrings are appropriate when private functions/methods are
 relatively complex. To run some basic tests on documentation, you can use::
 
     $ pytest mne/tests/test_docstring_parameters.py
-    $ make docstyle
+    $ make ruff
 
 
 Cross-reference everywhere
@@ -1097,8 +1102,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. linting
 
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _pyflakes: https://pypi.org/project/pyflakes
-.. _Flake8: http://flake8.pycqa.org/
+.. _ruff: https://beta.ruff.rs/docs
 
 .. misc
 

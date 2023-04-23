@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.144', misc='0.26')
+RELEASES = dict(testing='0.145', misc='0.26')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -111,7 +111,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS['testing'] = dict(
     archive_name=f'{TESTING_VERSIONED}.tar.gz',
-    hash='md5:fb546f44dba3310945225ed8fdab4a91',
+    hash='md5:2036f7d7616129c624b757fbb019be24',
     url=('https://codeload.github.com/mne-tools/mne-testing-data/'
          f'tar.gz/{RELEASES["testing"]}'),
     # In case we ever have to resort to osf.io again...
@@ -320,8 +320,10 @@ MNE_DATASETS['hf_sef_raw'] = dict(
 MNE_DATASETS['hf_sef_evoked'] = dict(
     archive_name='hf_sef_evoked.tar.gz',
     hash='md5:13d34cb5db584e00868677d8fb0aab2b',
-    url=('https://zenodo.org/record/3523071/files/'
-         'hf_sef_evoked.tar.gz'),
+    # Zenodo can be slow, so we use the OSF mirror
+    # url=('https://zenodo.org/record/3523071/files/'
+    #      'hf_sef_evoked.tar.gz'),
+    url='https://osf.io/25f8d/download?version=2',
     folder_name='hf_sef',
     config_key='MNE_DATASETS_HF_SEF_PATH',
 )

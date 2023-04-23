@@ -570,7 +570,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @property
     def _raw_lengths(self):
-        return [l - f + 1 for f, l in zip(self._first_samps, self._last_samps)]
+        return [
+            last - first + 1
+            for first, last in zip(self._first_samps, self._last_samps)
+        ]
 
     @property
     def annotations(self):  # noqa: D401
