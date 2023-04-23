@@ -142,6 +142,8 @@ def pytest_configure(config):
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
     # h5py
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
+    # TODO: This one we should fix with .item()s
+    ignore:Conversion of an array with ndim > 0 to a scalar.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
