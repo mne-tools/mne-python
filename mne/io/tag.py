@@ -181,7 +181,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
-        ndim = int(np.frombuffer(fid.read(4), dtype='>i4'))
+        ndim = int(np.frombuffer(fid.read(4), dtype='>i4').item())
         fid.seek(-(ndim + 1) * 4, 1)
         dims = np.frombuffer(fid.read(4 * ndim), dtype='>i4')[::-1]
         #
@@ -211,7 +211,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
-        ndim = int(np.frombuffer(fid.read(4), dtype='>i4'))
+        ndim = int(np.frombuffer(fid.read(4), dtype='>i4').item())
         fid.seek(-(ndim + 2) * 4, 1)
         dims = np.frombuffer(fid.read(4 * (ndim + 1)), dtype='>i4')
         if ndim != 2:
@@ -296,17 +296,17 @@ def _read_complex_double(fid, tag, shape, rlims):
 def _read_id_struct(fid, tag, shape, rlims):
     """Read ID struct tag."""
     return dict(
-        version=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        version=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
         machid=np.frombuffer(fid.read(8), dtype=">i4"),
-        secs=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        usecs=int(np.frombuffer(fid.read(4), dtype=">i4")))
+        secs=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
+        usecs=int(np.frombuffer(fid.read(4), dtype=">i4").item()))
 
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
     """Read dig point struct tag."""
-    kind = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    kind = int(np.frombuffer(fid.read(4), dtype=">i4").item())
     kind = _dig_kind_named.get(kind, kind)
-    ident = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    ident = int(np.frombuffer(fid.read(4), dtype=">i4").item())
     if kind == FIFF.FIFFV_POINT_CARDINAL:
         ident = _dig_cardinal_named.get(ident, ident)
     return dict(
@@ -318,8 +318,8 @@ def _read_dig_point_struct(fid, tag, shape, rlims):
 def _read_coord_trans_struct(fid, tag, shape, rlims):
     """Read coord trans struct tag."""
     from ..transforms import Transform
-    fro = int(np.frombuffer(fid.read(4), dtype=">i4"))
-    to = int(np.frombuffer(fid.read(4), dtype=">i4"))
+    fro = int(np.frombuffer(fid.read(4), dtype=">i4").item())
+    to = int(np.frombuffer(fid.read(4), dtype=">i4").item())
     rot = np.frombuffer(fid.read(36), dtype=">f4").reshape(3, 3)
     move = np.frombuffer(fid.read(12), dtype=">f4")
     trans = np.r_[np.c_[rot, move],
@@ -343,17 +343,17 @@ _ch_coord_dict = {
 def _read_ch_info_struct(fid, tag, shape, rlims):
     """Read channel info struct tag."""
     d = dict(
-        scanno=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        logno=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        kind=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        range=float(np.frombuffer(fid.read(4), dtype=">f4")),
-        cal=float(np.frombuffer(fid.read(4), dtype=">f4")),
-        coil_type=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        scanno=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
+        logno=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
+        kind=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
+        range=float(np.frombuffer(fid.read(4), dtype=">f4").item()),
+        cal=float(np.frombuffer(fid.read(4), dtype=">f4").item()),
+        coil_type=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
         # deal with really old OSX Anaconda bug by casting to float64
         loc=np.frombuffer(fid.read(48), dtype=">f4").astype(np.float64),
         # unit and exponent
-        unit=int(np.frombuffer(fid.read(4), dtype=">i4")),
-        unit_mul=int(np.frombuffer(fid.read(4), dtype=">i4")),
+        unit=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
+        unit_mul=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
     )
     # channel name
     ch_name = np.frombuffer(fid.read(16), dtype=">c")
@@ -374,8 +374,8 @@ def _update_ch_info_named(d):
 
 def _read_old_pack(fid, tag, shape, rlims):
     """Read old pack tag."""
-    offset = float(np.frombuffer(fid.read(4), dtype=">f4"))
-    scale = float(np.frombuffer(fid.read(4), dtype=">f4"))
+    offset = float(np.frombuffer(fid.read(4), dtype=">f4").item())
+    scale = float(np.frombuffer(fid.read(4), dtype=">f4").item())
     data = np.frombuffer(fid.read(tag.size - 8), dtype=">i2")
     data = data * scale  # to float64
     data += offset
@@ -389,7 +389,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4")))
+    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4").item()))
 
 
 # Read types call dict

@@ -14,7 +14,8 @@ elif [[ "$MNE_CI_KIND" == "minimal" ]]; then
 elif [[ "$MNE_CI_KIND" == "notebook" ]]; then
     echo "CONDA_ENV=environment.yml" >> $GITHUB_ENV
     echo "CONDA_ACTIVATE_ENV=mne" >> $GITHUB_ENV
-    echo "MNE_3D_BACKEND=notebook" >> $GITHUB_ENV
+    # TODO: This should work but breaks stuff...
+    # echo "MNE_3D_BACKEND=notebook" >> $GITHUB_ENV
 elif [[ "$MNE_CI_KIND" != "pip"* ]]; then  # conda, mamba (use warning level for completeness)
     echo "Setting conda env vars for $MNE_CI_KIND"
     echo "CONDA_ENV=environment.yml" >> $GITHUB_ENV
