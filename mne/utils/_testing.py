@@ -113,7 +113,8 @@ def requires_openmeeg_mark():
     """Mark pytest tests that require OpenMEEG."""
     import pytest
     return pytest.mark.skipif(
-        not check_version('openmeeg', '2.5.5'), reason='Requires OpenMEEG')
+        not check_version(
+            'openmeeg', '2.5.6'), reason='Requires OpenMEEG >= 2.5.6')
 
 
 def requires_freesurfer(arg):

@@ -17,10 +17,10 @@ import os
 import os.path as op
 from pathlib import Path
 import shutil
-import tempfile
 
 import numpy as np
 
+from .fixes import _compare_version
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_and_end_file, start_block, write_float, write_int,
@@ -313,6 +313,8 @@ def _import_openmeeg(what='compute a BEM solution using OpenMEEG'):
         raise ImportError(
             f'The OpenMEEG module must be installed to {what}, but '
             f'"import openmeeg" resulted in: {exc}') from None
+    if not _compare_version(om.__version__, '>=', '2.5.6'):
+        raise ImportError(f'OpenMEEG 2.5.6+ is required, got {om.__version__}')
     return om
 
 
@@ -328,96 +330,7 @@ def _make_openmeeg_geometry(bem, mri_head_t=None):
         meshes.append((points, faces))
 
     conductivity = bem['sigma'][::-1]
-    # We should be able to do this:
-    #
-    # geom = om.make_nested_geometry(meshes, conductivity)
-    #
-    # But OpenMEEG's NumPy support is iffy. So let's use file IO for now :(
-
-    def _write_tris(fname, mesh):
-        from .surface import complete_surface_info
-        mesh = dict(rr=mesh[0], tris=mesh[1])
-        complete_surface_info(mesh, copy=False, do_neighbor_tri=False)
-        with open(fname, 'w') as fid:
-            fid.write(f'- {len(mesh["rr"])}\n')
-            for r, n in zip(mesh['rr'], mesh['nn']):
-                fid.write(f'{r[0]:.8f} {r[1]:.8f} {r[2]:.8f} '
-                          f'{n[0]:.8f} {n[1]:.8f} {n[2]:.8f}\n')
-            n_tri = len(mesh['tris'])
-            fid.write(f'- {n_tri} {n_tri} {n_tri}\n')
-            for t in mesh['tris']:
-                fid.write(f'{t[0]} {t[1]} {t[2]}\n')
-
-    assert len(conductivity) in (1, 3)
-    # on Windows, the dir can't be cleaned up, presumably because OpenMEEG
-    # does not let go of the file pointer (?). This is not great but hopefully
-    # writing files is temporary, and/or we can fix the file pointer bug
-    # in OpenMEEG soon.
-    tmp_dir = tempfile.TemporaryDirectory(prefix='openmeeg-io-')
-    tmp_path = Path(tmp_dir.name)
-    # In 3.10+ we could use this as a context manager as there is a
-    # ignore_cleanup_errors arg, but before this there is not.
-    # so let's just try/finally
-    try:
-        tmp_path = Path(tmp_path)
-        # write geom_file and three .tri files
-        geom_file = tmp_path / 'tmp.geom'
-        names = ['inner_skull', 'outer_skull', 'outer_skin']
-        lines = [
-            '# Domain Description 1.1',
-            '',
-            f'Interfaces {len(conductivity)}'
-            '',
-            f'Interface Cortex: "{names[0]}.tri"',
-        ]
-        if len(conductivity) == 3:
-            lines.extend([
-                f'Interface Skull: "{names[1]}.tri"',
-                f'Interface Head: "{names[2]}.tri"',
-            ])
-        lines.extend([
-            '',
-            f'Domains {len(conductivity) + 1}',
-            '',
-            'Domain Brain: -Cortex',
-        ])
-        if len(conductivity) == 1:
-            lines.extend([
-                'Domain Air: Cortex',
-            ])
-        else:
-            lines.extend([
-                'Domain Skull: Cortex -Skull',
-                'Domain Scalp: Skull -Head',
-                'Domain Air: Head',
-            ])
-        with open(geom_file, 'w') as fid:
-            fid.write('\n'.join(lines))
-        for mesh, name in zip(meshes, names):
-            _write_tris(tmp_path / f'{name}.tri', mesh)
-        # write cond_file
-        cond_file = tmp_path / 'tmp.cond'
-        lines = [
-            '# Properties Description 1.0 (Conductivities)',
-            '',
-            f'Brain       {conductivity[0]}',
-        ]
-        if len(conductivity) == 3:
-            lines.extend([
-                f'Skull       {conductivity[1]}',
-                f'Scalp       {conductivity[2]}',
-            ])
-        lines.append('Air         0.0')
-        with open(cond_file, 'w') as fid:
-            fid.write('\n'.join(lines))
-        geom = om.Geometry(str(geom_file), str(cond_file))
-    finally:
-        try:
-            tmp_dir.cleanup()
-        except Exception:
-            pass  # ignore any cleanup errors (esp. on Windows)
-
-    return geom
+    return om.make_nested_geometry(meshes, conductivity)
 
 
 def _fwd_bem_openmeeg_solution(bem):

@@ -356,14 +356,13 @@ def test_brainvision_data_highpass_filters():
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
             eog=eog)
 
-    lowpass_warning = ['different lowpass filters' in str(ww.message)
-                       for ww in w]
-    highpass_warning = ['different highpass filters' in str(ww.message)
-                        for ww in w]
+    w = [str(ww.message) for ww in w]
+    lowpass_warning = ['different lowpass filters' in ww for ww in w]
+    highpass_warning = ['different highpass filters' in ww for ww in w]
 
     expected_warnings = zip(lowpass_warning, highpass_warning)
 
-    assert (all(any([lp, hp]) for lp, hp in expected_warnings))
+    assert (all(any([lp, hp]) for lp, hp in expected_warnings)), w
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
@@ -382,12 +381,10 @@ def test_brainvision_data_highpass_filters():
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
             eog=eog)
 
-    trigger_warning = ['will be dropped' in str(ww.message)
-                       for ww in w]
-    lowpass_warning = ['different lowpass filters' in str(ww.message)
-                       for ww in w]
-    highpass_warning = ['different highpass filters' in str(ww.message)
-                        for ww in w]
+    w = [str(ww.message) for ww in w]
+    trigger_warning = ['will be dropped' in ww for ww in w]
+    lowpass_warning = ['different lowpass filters' in ww for ww in w]
+    highpass_warning = ['different highpass filters' in ww for ww in w]
 
     expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
 
