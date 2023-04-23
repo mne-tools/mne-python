@@ -45,8 +45,6 @@ jobs:
         - os: ubuntu-latest
           python: '3.10'
           kind: conda
-          env:
-            MNE_LOGGING_LEVEL: 'warning'
         - os: ubuntu-latest
           python: '3.10'
           kind: notebook
@@ -88,6 +86,12 @@ jobs:
           miniforge-variant: Mambaforge
           use-mamba: ${{ matrix.kind != 'conda' }}
         if: ${{ !startswith(matrix.kind, 'pip') }}
+      - name: 'Install OSMesa VTK variant'
+        run: |
+          # TODO: As of 2023/02/28, notebook tests need a pinned mesalib
+          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
+          mamba list
+        if: matrix.kind == 'notebook'
       - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Unix
       - run: ./tools/get_minimal_commands.sh
