@@ -6,51 +6,89 @@ IDE Configuration Guide
 .. include:: ../links.inc
 .. highlight:: console
 
-This guide steps through various IDE settings that are helpful when contributing to MNE-Python.
+This page describes the most common IDE settings that are recommended for MNE-Python contributors.
 
 Basic Settings
 --------------
+With the right configuration, using an Integrated Development Environment (IDE) can make contributing to MNE-Python much
+easier. Basic settings include syntax highlighting, enabling linting, setting line margins, introspection, and docstring
+type. Steps for each configuration differ with their respective IDE and versioning so the settings will only be reviewed
+at a high level.
 
-Some of the basic settings include enabling linting, setting line margins, introspection, and docstring type:
 
-* Linting is the automated checking of your source code for programmatic and stylistic errors. Most of the time, basic linting is already enabled but it is a good idea to double check.
+Syntax Highlighting
+^^^^^^^^^^^^^^^^^^^
+Syntax highlighting is a feature that determines the color and style of source code displayed in the IDE. Most users
+find it helpful and is usually enabled by default. If not, search "python syntax highlight [name of IDE]" to learn how
+to do it.
 
-* Line margins - we have code style rules that forbid lines longer than 79 characters, so having a ruler at 79 characters helps coders adhere to that rule.
+Linting
+^^^^^^^
+Linting is the automated checking of your source code for programmatic and stylistic errors. Most of the time, basic
+linting is already enabled but it is a good idea to double-check. Search "python [name of IDE] linting" to learn how to
+configure it.
 
-* Introspection helps by removing trailing whitespaces that can be problematic when compiling or building.
+Rulers
+^^^^^^
+We have code style rules that forbid lines longer than 79 characters, so having a ruler at 79 characters helps coders
+adhere to that rule. Search "python line margins [name of IDE]" to learn how to configure it.
 
-* Docstring is a string literal specified in source code that is used, like a comment, to document a specific segment of code. PyDoc is the standard documentation module for Python and supported by Sphinx but we use NumPy because it supports a combination of reStructured, which is used in most of our documentation, and GoogleDocstrings and supported is by Sphinx.
+Code Completion
+^^^^^^^^^^^^^^^
+Code completion is a context-aware feature that speeds up the process of coding applications by reducing typos and other
+common mistakes. Basic code completion helps with completing names of classes, methods, and more. Some IDE's
+specifically catered towards Python have a default language server, but we recommend Jedi and Pylance if it is not
+already configured. Simply search "code completion [name of IDE]" to learn how to configure it.
 
-IDE Settings
-------------
-
-.. note:: The IDE configurations recommended below are catered towards specified versions of the IDE. If the recommended features are not found, check the versioning of your IDE.
-
-Spyder (v.5.4.2)
-^^^^^^^^^^^^^^^^
-
-* :menuselection:`Tools --> Preferences --> Completion and Linting --> Code Style and Formatting --> Enable Code Style Linting`
-* :menuselection:`Tools --> Preferences --> Completion and Linting --> Introspection --> Advanced -->Add "mne" to list of modules to preload for code completion`
-* :menuselection:`Tools --> Preferences --> Completion and Linting --> Code Style and Formatting --> Line Length --> Show Vertical Lines at == 79`
-* :menuselection:`Tools --> Preferences --> Completion and Linting --> Enable docstring style linting and choose the numpy convention`
-* :menuselection:`Tools -->Preferences --> Editor --> Source Code --> Automatically remove trailing spaces when saving files.`
-* :menuselection:`Tools -->Preferences --> Editor --> Source Code --> Insert a newline at the end if one does not exist when saving a file.`
-* :menuselection:`Tools -->Preferences --> Editor --> Source Code --> Trim all newlines after the final one when saving a file.`
-* :menuselection:`Tools -->Preferences --> Editor --> Advanced Settings --> Convert end-of-line character to the following on save -> LF(Unix)`
-
-PyCharm (v.2023.1 Community)
+Line endings and Whitespaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Fore whitespaces, make sure that whitespaces around classes/functions/methods and in docstrings
+are taken care of. Removing trailing whitespaces that can be problematic when compiling or building helps reduce the
+numbers of issues when debugging. Search "python trailing whitespaces [name of IDE]" to learn how to do it.
 
-* :menuselection:`View --> Tool Windows --> Python Packages --> Search (Enter Package) --> Select Required Version and press Install`
-* :menuselection:`File --> Settings --> Editor --> Code Style --> Python --> Wrapping and Braces --> Hard Wrap At --> Change to 79`
-* :menuselection:`File --> Settings --> Tools --> Python Integrated Tools --> Docstring Format = NumPy`
-* :menuselection:`File --> Settings --> Editors --> General --> Scroll to On Save --> Remove trailing spaces: ``Modified Lines```
+For lines, make sure you are using 4 spaces (not tabs) for indentation, line feed (LF) and not carriage return line feed
+(CLRF), and remove trailing newlines at end of file (EOF). Search "python/git line formatting [name of IDE]" for more
+information.
+
+.. note:: In Git, CRLF and LF are used to indicate the end of a line of text in a file. This is important because
+    different operating systems use different line endings. If the wrong line endings are used, the code may not be
+    properly formatted and may not be readable by other developers. Therefore, it is important to understand the
+    differences between CRLF and LF and how to use them in Git.
+
+Docstring
+^^^^^^^^^
+A docstring is a string literal specified in source code that is used, like a comment, to document a specific segment of
+code. PyDoc is the standard documentation module for Python and supported by Sphinx but we use NumPy because it supports
+a combination of reStructured, which is used in most of our documentation, and GoogleDocstrings and supported is by
+Sphinx. Search "python [name of IDE] docstring" to learn how to configure it.
+
+Configuring Specific IDEs
+-------------------------
+
+.. note:: The IDE configurations recommended below are not catered towards specified versions of the IDE, but rather a
+    general guide of where these settings may be found regardless of versioning.
+
+Spyder
+^^^^^^
+
+For Spyder, most of the configuration changes mentioned above can be found within:
+
+* :menuselection:`Tools --> Preferences --> {Completion and Linting/Editor}`
+
+PyCharm
+^^^^^^^
+
+For PyCharm, most of the configuration changes mentioned above can be found within:
+
+* :menuselection:`File --> Settings --> {Editor/Tools}`
+
+Additional extensions can be downloaded from the marketplace, i.e. Closure (Linter).
 
 VsCode
 ^^^^^^
 
-* :menuselection:`Command Palette (Ctrl + Shift + P) --> Lint --> Python: Enable/Disable Linting (click on Enable)`
-* :menuselection:`Use ``python.autoComplete.preloadModules": ["numpy", "pandas", "matplotlib", "mne"]```
-* :menuselection:`File --> Preferences --> Settings --> Select Tab Option (User or Workspace) --> Search for rulers --> setting.json --> add line "editor.rulers": [79]`
-* :menuselection:`Preferences --> Keyboard Shortcuts --> Change autoDocstring.docstringFormat to NumPy`
-* :menuselection:`File --> Preferences --> Settings --> User Settings Tab --> Click the open document icon --> add files.trimTrailingWhitespace: true to User Settings Document --> Save`
+For VsCode, most of the configuration changes mentioned above can be found within:
+
+* :menuselection:`File --> Preferences --> {Settings/Keyboard Shortcuts}`
+
+Additional extensions can be downloaded, i.e. Pylance (Python Language server if not already default).
