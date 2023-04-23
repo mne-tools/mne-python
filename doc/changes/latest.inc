@@ -27,6 +27,7 @@ Enhancements
 - Adjusted the algorithm used in :class:`mne.decoding.SSD` to support non-full rank data (:gh:`11458` by :newcontrib:`Thomas Binns`)
 - Changed suggested type for ``ch_groups``` in `mne.viz.plot_sensors` from array to list of list(s) (arrays are still supported). (:gh:`11465` by `Hyonyoung Shin`_)
 - Add support for UCL/FIL OPM data using :func:`mne.io.read_raw_fil` (:gh:`11366` by :newcontrib:`George O'Neill` and `Robert Seymour`_)
+- Add harmonic field correction (HFC) for OPM sensors in :func:`mne.preprocessing.compute_proj_hfc` (:gh:`11536` by :newcontrib:`George O'Neill` and `Eric Larson`_)
 - Forward argument ``axes`` from `mne.viz.plot_sensors` to `mne.channels.DigMontage.plot` (:gh:`11470` by :newcontrib:`Jan Ebert` and `Mathieu Scheltienne`_)
 - Add forward IIR filtering, using parameters ``method='iir', phase='forward'`` (:gh:`11078` by :newcontrib:`Quentin Barthélemy`)
 - Added ability to read stimulus durations from SNIRF files when using :func:`mne.io.read_raw_snirf` (:gh:`11397` by `Robert Luke`_)

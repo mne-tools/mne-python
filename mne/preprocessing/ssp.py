@@ -228,8 +228,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 
     Returns
     -------
-    proj : list
-        Computed SSP projectors.
+    %(projs)s
     ecg_events : ndarray
         Detected ECG events.
     drop_log : list
@@ -339,8 +338,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
 
     Returns
     -------
-    proj: list
-        Computed SSP projectors.
+    %(projs)s
     eog_events: ndarray
         Detected EOG events.
     drop_log : list
