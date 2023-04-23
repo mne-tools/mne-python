@@ -1173,6 +1173,8 @@ needed_plot_redirects = {
 ex = 'auto_examples'
 co = 'connectivity'
 mne_conn = 'https://mne.tools/mne-connectivity/stable'
+mne_gui = 'https://mne.tools/mne-gui-addons'
+cl = 'clinical'
 tu = 'auto_tutorials'
 di = 'discussions'
 sm = 'source-modeling'
@@ -1182,6 +1184,7 @@ sn = 'stats-sensor-space'
 sr = 'stats-source-space'
 sd = 'sample-datasets'
 ml = 'machine-learning'
+pr = 'preprocessing'
 tf = 'time-freq'
 si = 'simulation'
 custom_redirects = {
@@ -1240,6 +1243,9 @@ custom_redirects = {
     f'{ex}/{co}/mne_inverse_envelope_correlation.html': f'{mne_conn}/{ex}/mne_inverse_envelope_correlation.html',  # noqa E501
     f'{ex}/{co}/mne_inverse_psi_visual.html': f'{mne_conn}/{ex}/mne_inverse_psi_visual.html',  # noqa E501
     f'{ex}/{co}/sensor_connectivity.html': f'{mne_conn}/{ex}/sensor_connectivity.html',  # noqa E501
+    f'{tu}/{cl}/10_ieeg_localize.html': f'{mne_gui}/{ex}/ieeg_locate.html',  # noqa E501
+    f'{ex}/{pr}/locate_ieeg_micro.html': f'{mne_gui}/{ex}/locate_ieeg_micro.html',  # noqa E501
+    f'{ex}/{pr}/locate_ieeg_micro.html': f'{mne_gui}/{ex}/locate_ieeg_micro.html',  # noqa E501
 }
 
 
