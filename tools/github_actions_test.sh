@@ -13,6 +13,5 @@ else
   USE_DIRS="mne/"
 fi
 set -x
-# TODO: Remove -x before merge!
-pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS} -x
+pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
 set +x
