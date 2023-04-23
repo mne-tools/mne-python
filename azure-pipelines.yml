@@ -39,7 +39,7 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     variables:
-      PYTHON_VERSION: '3.9'
+      PYTHON_VERSION: '3.11'
       PYTHON_ARCH: 'x64'
     steps:
     - bash: echo $(COMMIT_MSG)
@@ -50,23 +50,14 @@ stages:
         addToPath: true
       displayName: 'Get Python'
     - bash: |
-        set -e
+        set -eo pipefail
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
+        pre-commit install --install-hooks
       displayName: Install dependencies
     - bash: |
-        make flake
-      displayName: make flake
-    - bash: |
-        make codespell-error
-      displayName: make codespell
-    - bash: |
-        make pydocstyle
-      displayName: make pydocstyle
-      condition: always()
-    - bash: |
-        make docstring
-      displayName: make docstring
+        make pre-commit
+      displayName: make ruff
       condition: always()
     - bash: |
         make nesting

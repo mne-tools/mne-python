@@ -189,7 +189,7 @@ def test_fetch_parcellations(tmp_path):
 _zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
 
 
-def _fake_zip_fetch(url, path, fname, known_hash):
+def _fake_zip_fetch(url, path, fname, *args, **kwargs):
     fname = op.join(path, fname)
     with zipfile.ZipFile(fname, 'w') as zipf:
         with zipf.open('foo/', 'w'):

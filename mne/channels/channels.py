@@ -1837,31 +1837,39 @@ def _get_ch_info(info):
 
 
 @fill_doc
-def make_1020_channel_selections(info, midline="z"):
-    """Return dict mapping from ROI names to lists of picks for 10/20 setups.
+def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
+    """Map hemisphere names to corresponding EEG channel names or indices.
 
-    This passes through all channel names, and uses a simple heuristic to
-    separate channel names into three Region of Interest-based selections:
-    Left, Midline and Right. The heuristic is that channels ending on any of
-    the characters in ``midline`` are filed under that heading, otherwise those
-    ending in odd numbers under "Left", those in even numbers under "Right".
-    Other channels are ignored. This is appropriate for 10/20 files, but not
-    for other channel naming conventions.
-    If an info object is provided, lists are sorted from posterior to anterior.
+    This function uses a simple heuristic to separate channel names into three
+    Region of Interest-based selections: ``Left``, ``Midline`` and ``Right``.
+
+    The heuristic is that any of the channel names ending
+    with odd numbers are filed under ``Left``; those ending with even numbers
+    are filed under ``Right``; and those ending with the character(s) specified
+    in ``midline`` are filed under ``Midline``. Other channels are ignored.
+
+    This is appropriate for 10/20, 10/10, 10/05, …, sensor arrangements, but
+    not for other naming conventions.
 
     Parameters
     ----------
-    %(info_not_none)s If possible, the channel lists will be sorted
-        posterior-to-anterior; otherwise they default to the order specified in
-        ``info["ch_names"]``.
+    %(info_not_none)s If channel locations are present, the channel lists will
+        be sorted from posterior to anterior; otherwise, the order specified in
+        ``info["ch_names"]`` will be kept.
     midline : str
         Names ending in any of these characters are stored under the
-        ``Midline`` key. Defaults to 'z'. Note that capitalization is ignored.
+        ``Midline`` key. Defaults to ``'z'``. Capitalization is ignored.
+    return_ch_names : bool
+        Whether to return channel names instead of channel indices.
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------
     selections : dict
-        A dictionary mapping from ROI names to lists of picks (integers).
+        A dictionary mapping from region of interest name to a list of channel
+        indices (if ``return_ch_names=False``) or to a list of channel names
+        (if ``return_ch_names=True``).
     """
     _validate_type(info, "info")
 
@@ -1890,6 +1898,11 @@ def make_1020_channel_selections(info, midline="z"):
         # (y-coordinate of the position info in the layout)
         selections = {selection: np.array(picks)[pos[picks, 1].argsort()]
                       for selection, picks in selections.items()}
+
+    # convert channel indices to names if requested
+    if return_ch_names:
+        for selection, ch_indices in selections.items():
+            selections[selection] = [info.ch_names[idx] for idx in ch_indices]
 
     return selections
 

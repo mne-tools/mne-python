@@ -2,16 +2,18 @@
 #
 # License: BSD-3-Clause
 
-import os
 import os.path as op
+from pathlib import Path
+import time
 
 import numpy as np
 
 from ...channels import make_standard_montage
 from ...epochs import EpochsArray
 from ...io.meas_info import create_info
-from ...utils import _check_pandas_installed, verbose
-from ..utils import _get_path, _do_path_update, logger
+from ...utils import _check_pandas_installed, verbose, logger
+from ..utils import (_get_path, _do_path_update, _log_time_size,
+                     _downloader_params)
 
 
 # root url for LIMO files
@@ -67,8 +69,9 @@ def data_path(subject, path=None, force_update=False, update_path=None, *,
     .. footbibliography::
     """  # noqa: E501
     import pooch
+    t0 = time.time()
 
-    downloader = pooch.HTTPDownloader(progressbar=True)  # use tqdm
+    downloader = pooch.HTTPDownloader(**_downloader_params())
 
     # local storage patch
     config_key = 'MNE_DATASETS_LIMO_PATH'
@@ -168,14 +171,23 @@ def data_path(subject, path=None, force_update=False, update_path=None, *,
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
     # fetch the data
+    sz = 0
     for fname in ('LIMO.mat', 'Yr.mat'):
-        destination = op.join(subject_path, fname)
-        if force_update and op.isfile(destination):
-            os.remove(destination)
+        destination = Path(subject_path, fname)
+        if destination.exists():
+            if force_update:
+                destination.unlink()
+            else:
+                continue
+        if sz == 0:  # log once
+            logger.info('Downloading LIMO data')
         # fetch the remote file (if local file missing or has hash mismatch)
         fetcher.fetch(fname=fname, downloader=downloader)
+        sz += destination.stat().st_size
     # update path in config if desired
     _do_path_update(path, update_path, config_key, name)
+    if sz > 0:
+        _log_time_size(t0, sz)
     return base_path
 
 
@@ -282,7 +294,8 @@ def load_data(subject, path=None, force_update=False, update_path=None,
     metadata = pd.DataFrame(metadata)
 
     # -- 6) Create custom epochs array
-    epochs = EpochsArray(data, info, events, tmin, event_id, metadata=metadata)
+    epochs = EpochsArray(data, info, events, tmin, event_id, metadata=metadata,
+                         verbose=False)
     epochs.info['bads'] = missing_chans  # missing channels are marked as bad.
 
     return epochs
