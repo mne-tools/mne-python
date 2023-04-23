@@ -1463,24 +1463,24 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
     else:
-        res['id'] = int(tag.data)
+        res['id'] = int(tag.data.item())
 
     if s_id is not None and res['id'] != s_id:
         return None
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SIGMA)
-    res['sigma'] = 1.0 if tag is None else float(tag.data)
+    res['sigma'] = 1.0 if tag is None else float(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NNODE)
     if tag is None:
         raise ValueError('Number of vertices not found')
 
-    res['np'] = int(tag.data)
+    res['np'] = int(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
     if tag is None:
         raise ValueError('Number of triangles not found')
-    res['ntri'] = int(tag.data)
+    res['ntri'] = int(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
@@ -1488,9 +1488,9 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
         if tag is None:
             res['coord_frame'] = def_coord_frame
         else:
-            res['coord_frame'] = tag.data
+            res['coord_frame'] = int(tag.data.item())
     else:
-        res['coord_frame'] = tag.data
+        res['coord_frame'] = int(tag.data.item())
 
     # Vertices, normals, and triangles
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NODES)

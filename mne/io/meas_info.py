@@ -1449,21 +1449,21 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         pos = meas_info['directory'][k].pos
         if kind == FIFF.FIFF_NCHAN:
             tag = read_tag(fid, pos)
-            nchan = int(tag.data)
+            nchan = int(tag.data.item())
         elif kind == FIFF.FIFF_SFREQ:
             tag = read_tag(fid, pos)
-            sfreq = float(tag.data)
+            sfreq = float(tag.data.item())
         elif kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
-            if not np.isnan(tag.data):
-                lowpass = float(tag.data)
+            if not np.isnan(tag.data.item()):
+                lowpass = float(tag.data.item())
         elif kind == FIFF.FIFF_HIGHPASS:
             tag = read_tag(fid, pos)
             if not np.isnan(tag.data):
-                highpass = float(tag.data)
+                highpass = float(tag.data.item())
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
             meas_date = tuple(tag.data)
@@ -1503,19 +1503,19 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             proj_name = tag.data
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
-            line_freq = float(tag.data)
+            line_freq = float(tag.data.item())
         elif kind == FIFF.FIFF_GANTRY_ANGLE:
             tag = read_tag(fid, pos)
-            gantry_angle = float(tag.data)
+            gantry_angle = float(tag.data.item())
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
-            custom_ref_applied = int(tag.data)
+            custom_ref_applied = int(tag.data.item())
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
         elif kind == FIFF.FIFF_MNE_KIT_SYSTEM_ID:
             tag = read_tag(fid, pos)
-            kit_system_id = int(tag.data)
+            kit_system_id = int(tag.data.item())
     ch_names_mapping = _read_extended_ch_info(chs, meas_info, fid)
 
     # Check that we have everything we need
@@ -1690,7 +1690,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = subject_info['directory'][k].pos
             if kind == FIFF.FIFF_SUBJ_ID:
                 tag = read_tag(fid, pos)
-                si['id'] = int(tag.data)
+                si['id'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HIS_ID:
                 tag = read_tag(fid, pos)
                 si['his_id'] = str(tag.data)
@@ -1715,10 +1715,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 si['birthday'] = tag.data
             elif kind == FIFF.FIFF_SUBJ_SEX:
                 tag = read_tag(fid, pos)
-                si['sex'] = int(tag.data)
+                si['sex'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HAND:
                 tag = read_tag(fid, pos)
-                si['hand'] = int(tag.data)
+                si['hand'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_WEIGHT:
                 tag = read_tag(fid, pos)
                 si['weight'] = tag.data
@@ -1761,10 +1761,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = helium_info['directory'][k].pos
             if kind == FIFF.FIFF_HE_LEVEL_RAW:
                 tag = read_tag(fid, pos)
-                hi['he_level_raw'] = float(tag.data)
+                hi['he_level_raw'] = float(tag.data.item())
             elif kind == FIFF.FIFF_HELIUM_LEVEL:
                 tag = read_tag(fid, pos)
-                hi['helium_level'] = float(tag.data)
+                hi['helium_level'] = float(tag.data.item())
             elif kind == FIFF.FIFF_ORIG_FILE_GUID:
                 tag = read_tag(fid, pos)
                 hi['orig_file_guid'] = str(tag.data)
@@ -1784,7 +1784,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = hpi_subsystem['directory'][k].pos
             if kind == FIFF.FIFF_HPI_NCOIL:
                 tag = read_tag(fid, pos)
-                hs['ncoil'] = int(tag.data)
+                hs['ncoil'] = int(tag.data.item())
             elif kind == FIFF.FIFF_EVENT_CHANNEL:
                 tag = read_tag(fid, pos)
                 hs['event_channel'] = str(tag.data)

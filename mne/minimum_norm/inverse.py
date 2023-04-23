@@ -182,19 +182,19 @@ def read_inverse_operator(fname, *, verbose=None):
             raise Exception('Modalities not found')
 
         inv = dict()
-        inv['methods'] = int(tag.data)
+        inv['methods'] = int(tag.data.item())
 
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
         if tag is None:
             raise Exception('Source orientation constraints not found')
 
-        inv['source_ori'] = int(tag.data)
+        inv['source_ori'] = int(tag.data.item())
 
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
         if tag is None:
             raise Exception('Number of sources not found')
 
-        inv['nsource'] = int(tag.data)
+        inv['nsource'] = int(tag.data.item())
         inv['nchan'] = 0
         #
         #   Coordinate frame

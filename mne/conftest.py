@@ -140,6 +140,8 @@ def pytest_configure(config):
     ignore:Implementing implicit namespace packages.*:DeprecationWarning
     ignore:Deprecated call to `pkg_resources.*:DeprecationWarning
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
+    # TODO: This one we should fix with .item()s
+    ignore:Conversion of an array with ndim > 0 to a scalar.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
