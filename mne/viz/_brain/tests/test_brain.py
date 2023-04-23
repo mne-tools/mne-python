@@ -578,7 +578,7 @@ def tiny(tmp_path):
     sz = brain.plotter.size()
     sz = (sz.width(), sz.height())
     sz_ren = brain.plotter.renderer.GetSize()
-    ratio = np.median(np.array(sz_ren) / np.array(sz))
+    ratio = np.round(np.median(np.array(sz_ren) / np.array(sz))).astype(int)
     return brain, ratio
 
 
