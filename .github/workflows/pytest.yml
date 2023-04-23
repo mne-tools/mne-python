@@ -69,6 +69,9 @@ jobs:
       - run: ./tools/github_actions_env_vars.sh
       # Xvfb/OpenGL
       - uses: pyvista/setup-headless-display-action@main
+        with:
+          qt: true
+          pyvista: false
         if: matrix.kind != 'notebook'
       # Python (if pip)
       - uses: actions/setup-python@v4
