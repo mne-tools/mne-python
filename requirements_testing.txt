@@ -7,6 +7,7 @@ ruff
 numpydoc
 codespell
 check-manifest
+tomli
 twine
 wheel
 pre-commit
