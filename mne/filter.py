@@ -1793,7 +1793,7 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                                l_freq)
             l_trans_rep = np.array(l_trans_bandwidth, float)
             if l_trans_rep.size == 1:
-                l_trans_rep = f'{l_trans_rep:0.2f}'
+                l_trans_rep = f'{l_trans_rep.item():0.2f}'
             with np.printoptions(precision=2, floatmode='fixed'):
                 msg = f'- Lower transition bandwidth: {l_trans_rep} Hz'
                 if dB_cutoff:
