@@ -35,7 +35,8 @@ from .forward import (Forward, _merge_fwds, convert_forward_solution,
                       _FWD_ORDER)
 
 
-_accuracy_dict = dict(normal=FWD.COIL_ACCURACY_NORMAL,
+_accuracy_dict = dict(point=FWD.COIL_ACCURACY_POINT,
+                      normal=FWD.COIL_ACCURACY_NORMAL,
                       accurate=FWD.COIL_ACCURACY_ACCURATE)
 _extra_coil_def_fname = None
 
