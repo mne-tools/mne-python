@@ -230,10 +230,6 @@ jobs:
               - data-cache-ucl-opm-auditory
         - run:
             name: Get data
-            # This limit could be increased, but this is helpful for finding slow ones
-            # (even ~2GB datasets should be downloadable in this time from good
-            # providers)
-            no_output_timeout: 10m
             command: |
               ./tools/circleci_download.sh
         - run:

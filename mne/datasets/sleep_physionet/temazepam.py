@@ -3,13 +3,9 @@
 #
 # License: BSD Style.
 
-import os
-import time
-
 import numpy as np
 
 from ...utils import verbose
-from ..utils import _log_time_size
 from ._utils import _fetch_one, _data_path, TEMAZEPAM_SLEEP_RECORDS
 from ._utils import _check_subjects
 
@@ -71,7 +67,6 @@ def fetch_data(subjects, path=None, force_update=False, base_url=BASE_URL, *,
     ----------
     .. footbibliography::
     """
-    t0 = time.time()
     records = np.loadtxt(TEMAZEPAM_SLEEP_RECORDS,
                          skiprows=1,
                          delimiter=',',
@@ -88,23 +83,15 @@ def fetch_data(subjects, path=None, force_update=False, base_url=BASE_URL, *,
     params = [path, force_update, base_url]
 
     fnames = []
-    sz = 0
     for subject in subjects:  # all the subjects are present at this point
         for idx in np.where(records['subject'] == subject)[0]:
             if records['record'][idx] == b'Placebo':
-                psg_fname, pdl = _fetch_one(
-                    records['psg fname'][idx].decode(),
-                    records['psg sha'][idx].decode(),
-                    *params)
-                hyp_fname, hdl = _fetch_one(
-                    records['hyp fname'][idx].decode(),
-                    records['hyp sha'][idx].decode(),
-                    *params)
+                psg_fname = _fetch_one(records['psg fname'][idx].decode(),
+                                       records['psg sha'][idx].decode(),
+                                       *params)
+                hyp_fname = _fetch_one(records['hyp fname'][idx].decode(),
+                                       records['hyp sha'][idx].decode(),
+                                       *params)
                 fnames.append([psg_fname, hyp_fname])
-                if pdl:
-                    sz += os.path.getsize(psg_fname)
-                if hdl:
-                    sz += os.path.getsize(hyp_fname)
-    if sz > 0:
-        _log_time_size(t0, sz)
+
     return fnames

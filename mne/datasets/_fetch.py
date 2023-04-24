@@ -2,12 +2,12 @@
 #
 # License: BSD Style.
 
+import logging
 import sys
 import os
 import os.path as op
 from pathlib import Path
 from shutil import rmtree
-import time
 
 from .. import __version__ as mne_version
 from ..utils import logger, warn, _safe_input
@@ -17,8 +17,7 @@ from .config import (
     TESTING_VERSIONED,
     MISC_VERSIONED,
 )
-from .utils import (_dataset_version, _do_path_update, _get_path,
-                    _log_time_size, _downloader_params)
+from .utils import _dataset_version, _do_path_update, _get_path
 from ..fixes import _compare_version
 
 
@@ -131,7 +130,6 @@ def fetch_dataset(
     pass a list of dicts.
     """  # noqa E501
     import pooch
-    t0 = time.time()
 
     if auth is not None:
         if len(auth) != 2:
@@ -222,9 +220,13 @@ def fetch_dataset(
                     "You must agree to the license to use this " "dataset"
                 )
     # downloader & processors
-    download_params = _downloader_params(auth=auth, token=token)
+    download_params = dict(progressbar=logger.level <= logging.INFO)
     if name == "fake":
         download_params["progressbar"] = False
+    if auth is not None:
+        download_params["auth"] = auth
+    if token is not None:
+        download_params["headers"] = {"Authorization": f"token {token}"}
     downloader = pooch.HTTPDownloader(**download_params)
 
     # make mappings from archive names to urls and to checksums
@@ -239,9 +241,8 @@ def fetch_dataset(
         registry[archive_name] = dataset_hash
 
     # create the download manager
-    use_path = final_path if processor is None else Path(path)
     fetcher = pooch.create(
-        path=str(use_path),
+        path=str(final_path) if processor is None else path,
         base_url="",  # Full URLs are given in the `urls` dict.
         version=None,  # Data versioning is decoupled from MNE-Python version.
         urls=urls,
@@ -251,7 +252,6 @@ def fetch_dataset(
 
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
-    sz = 0
 
     for idx in range(len(names)):
         # fetch and unpack the data
@@ -268,11 +268,9 @@ def fetch_dataset(
                     'the dataset to be downloaded again.') from None
             else:
                 raise
-        fname = use_path / archive_name
-        sz += fname.stat().st_size
         # after unpacking, remove the archive file
         if processor is not None:
-            fname.unlink()
+            os.remove(op.join(path, archive_name))
 
     # remove version number from "misc" and "testing" datasets folder names
     if name == "misc":
@@ -301,5 +299,4 @@ def fetch_dataset(
                 name=name, current=data_version, newest=mne_version
             )
         )
-    _log_time_size(t0, sz)
     return (final_path, data_version) if return_version else final_path

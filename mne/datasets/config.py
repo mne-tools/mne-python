@@ -320,10 +320,8 @@ MNE_DATASETS['hf_sef_raw'] = dict(
 MNE_DATASETS['hf_sef_evoked'] = dict(
     archive_name='hf_sef_evoked.tar.gz',
     hash='md5:13d34cb5db584e00868677d8fb0aab2b',
-    # Zenodo can be slow, so we use the OSF mirror
-    # url=('https://zenodo.org/record/3523071/files/'
-    #      'hf_sef_evoked.tar.gz'),
-    url='https://osf.io/25f8d/download?version=2',
+    url=('https://zenodo.org/record/3523071/files/'
+         'hf_sef_evoked.tar.gz'),
     folder_name='hf_sef',
     config_key='MNE_DATASETS_HF_SEF_PATH',
 )
