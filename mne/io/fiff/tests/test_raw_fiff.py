@@ -389,7 +389,7 @@ def _create_toy_data(n_channels=3, sfreq=250, seed=None):
 
 
 def test_concatenate_raws_bads_order():
-    """Test concatenation of raw instances."""
+    """Test concatenation of raw instances when the order of bad chs varies."""
     raw0 = _create_toy_data()
     raw1 = _create_toy_data()
 
@@ -427,6 +427,28 @@ def test_concatenate_raws_bads_order():
     raw4 = _create_toy_data(n_channels=4)
     with pytest.raises(ValueError):
         concatenate_raws([raw0, raw4])
+
+
+def test_concatenate_raws_order():
+    """Test concatenation of raw instances when the order of chs varies."""
+    raw0 = _create_toy_data(n_channels=2)
+    raw0._data[0] = np.zeros_like(raw0._data[0])  # set one channel zero
+
+    # Create copy and concatenate raws
+    raw1 = raw0.copy()
+    raw_concat = concatenate_raws([raw0, raw1])
+    assert raw0.ch_names == raw1.ch_names == raw_concat.ch_names == ["0", "1"]
+    ch0 = raw_concat.copy().pick(picks=["0"]).get_data()
+    assert np.all(ch0 == 0)
+
+    # Change the order of the channels and concatenate again
+    raw1.reorder_channels(["1", "0"])
+    assert raw1.ch_names == ["1", "0"]
+    raw_concat = concatenate_raws([raw0, raw1])
+    assert raw0.ch_names == raw_concat.ch_names == ["0", "1"]
+    msg = "The order of the channels is not preserved"
+    ch0 = raw_concat.copy().pick(picks=["0"]).get_data()
+    assert np.all(ch0 == 0), msg
 
 
 @testing.requires_testing_data
