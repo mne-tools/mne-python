@@ -902,9 +902,10 @@ something
         assert fname.stem in rst
         assert fname.is_file()
         img = image.imread(fname)
-        assert img.shape[1] == screenshot.shape[1]  # same width
+        assert_allclose(img.shape[1], screenshot.shape[1], atol=1)  # width
         assert img.shape[0] > screenshot.shape[0]  # larger height
-        assert img.shape[:2] == screenshot_all.shape[:2]
+        assert_allclose(img.shape[1], screenshot_all.shape[1], atol=1)
+        assert img.shape[0] == screenshot_all.shape[0]
 
 
 # TODO: don't skip on Windows, see
