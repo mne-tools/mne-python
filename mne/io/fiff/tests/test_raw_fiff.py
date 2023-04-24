@@ -416,7 +416,7 @@ def test_concatenate_raws_bads_order():
     # Type mismatch raises
     epochs1 = make_fixed_length_epochs(raw1)
     with pytest.raises(ValueError):
-        concatenate_raws([raw0, epochs1])
+        concatenate_raws([raw0, epochs1.load_data()])
 
     # Sample rate mismatch
     raw3 = _create_toy_data(sfreq=500)
@@ -436,7 +436,7 @@ def test_concatenate_raws_order():
 
     # Create copy and concatenate raws
     raw1 = raw0.copy()
-    raw_concat = concatenate_raws([raw0, raw1])
+    raw_concat = concatenate_raws([raw0.copy(), raw1])
     assert raw0.ch_names == raw1.ch_names == raw_concat.ch_names == ["0", "1"]
     ch0 = raw_concat.copy().pick(picks=["0"]).get_data()
     assert np.all(ch0 == 0)
@@ -444,7 +444,7 @@ def test_concatenate_raws_order():
     # Change the order of the channels and concatenate again
     raw1.reorder_channels(["1", "0"])
     assert raw1.ch_names == ["1", "0"]
-    raw_concat = concatenate_raws([raw0, raw1])
+    raw_concat = concatenate_raws([raw0.copy(), raw1])
     assert raw0.ch_names == raw_concat.ch_names == ["0", "1"]
     msg = "The order of the channels is not preserved"
     ch0 = raw_concat.copy().pick(picks=["0"]).get_data()
