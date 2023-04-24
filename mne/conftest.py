@@ -713,47 +713,6 @@ def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
     import pooch
     monkeypatch.setattr(pooch, 'retrieve', _fail)
-    yield
-
-
-@pytest.fixture()
-def fake_retrieve(monkeypatch, download_is_error):
-    """Monkeypatch pooch.retrieve to avoid downloading (just touch files)."""
-    import pooch
-    my_func = _FakeFetch()
-    monkeypatch.setattr(pooch, 'retrieve', my_func)
-    monkeypatch.setattr(pooch, 'create', my_func)
-    yield my_func
-
-
-class _FakeFetch:
-
-    def __init__(self):
-        self.call_args_list = list()
-
-    @property
-    def call_count(self):
-        return len(self.call_args_list)
-
-    # Wrapper for pooch.retrieve(...) and pooch.create(...)
-    def __call__(self, *args, **kwargs):
-        assert 'path' in kwargs
-        if 'fname' in kwargs:  # pooch.retrieve(...)
-            self.call_args_list.append((args, kwargs))
-            path = Path(kwargs['path'], kwargs['fname'])
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text('test')
-            return path
-        else:  # pooch.create(...) has been called
-            self.path = kwargs['path']
-            return self
-
-    # Wrappers for Pooch instances (e.g., in eegbci we pooch.create)
-    def fetch(self, fname):
-        self(path=self.path, fname=fname)
-
-    def load_registry(self, registry):
-        assert Path(registry).exists(), registry
 
 
 # We can't use monkeypatch because its scope (function-level) conflicts with

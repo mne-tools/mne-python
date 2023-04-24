@@ -203,7 +203,6 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     for run in runs:
         file_part = f'S{subject:03d}/S{subject:03d}R{run:02d}.edf'
         destination = Path(base_path, file_part)
-        data_paths.append(destination)
         if destination.exists():
             if force_update:
                 destination.unlink()
@@ -211,10 +210,10 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
                 continue
         if sz == 0:  # log once
             logger.info('Downloading EEGBCI data')
-        fetcher.fetch(file_part)
+        data_paths.append(fetcher.fetch(file_part))
         # update path in config if desired
+        _do_path_update(path, update_path, config_key, name)
         sz += destination.stat().st_size
-    _do_path_update(path, update_path, config_key, name)
     if sz > 0:
         _log_time_size(t0, sz)
     return data_paths

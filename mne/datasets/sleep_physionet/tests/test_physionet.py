@@ -6,6 +6,7 @@
 from pathlib import Path
 import pytest
 
+import pooch
 
 from mne.utils import requires_good_network
 from mne.utils import requires_pandas, requires_version
@@ -20,6 +21,20 @@ from mne.datasets.sleep_physionet._utils import TEMAZEPAM_SLEEP_RECORDS
 def physionet_tmpdir(tmp_path_factory):
     """Fixture exposing a temporary directory for testing."""
     return str(tmp_path_factory.mktemp('physionet_files'))
+
+
+class _FakeFetch:
+
+    def __init__(self):
+        self.call_args_list = list()
+
+    def __call__(self, *args, **kwargs):
+        self.call_args_list.append((args, kwargs))
+        Path(kwargs['path'], kwargs['fname']).write_text('test')
+
+    @property
+    def call_count(self):
+        return len(self.call_args_list)
 
 
 def _keep_basename_only(paths):
@@ -104,8 +119,15 @@ def test_sleep_physionet_age_missing_recordings(physionet_tmpdir, subject,
     assert paths == []
 
 
-def test_sleep_physionet_age(physionet_tmpdir, fake_retrieve):
+def test_sleep_physionet_age(physionet_tmpdir, monkeypatch, download_is_error):
     """Test Sleep Physionet URL handling."""
+    # check download_is_error patching
+    with pytest.raises(AssertionError, match='Test should not download'):
+        age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
+    # then patch
+    my_func = _FakeFetch()
+    monkeypatch.setattr(pooch, 'retrieve', my_func)
+
     paths = age.fetch_data(subjects=[0], recording=[1], path=physionet_tmpdir)
     assert _keep_basename_only(paths[0]) == \
         ['SC4001E0-PSG.edf', 'SC4001EC-Hypnogram.edf']
@@ -139,7 +161,7 @@ def test_sleep_physionet_age(physionet_tmpdir, fake_retrieve):
          'hash': '386230188a3552b1fc90bba0fb7476ceaca174b6'},
     )
     base_path = age.data_path(path=physionet_tmpdir)
-    _check_mocked_function_calls(fake_retrieve, EXPECTED_CALLS, base_path)
+    _check_mocked_function_calls(my_func, EXPECTED_CALLS, base_path)
 
 
 @pytest.mark.xfail(strict=False)
@@ -158,8 +180,11 @@ def test_run_update_temazepam_records(tmp_path):
         data, pd.read_csv(TEMAZEPAM_SLEEP_RECORDS))
 
 
-def test_sleep_physionet_temazepam(physionet_tmpdir, fake_retrieve):
+def test_sleep_physionet_temazepam(physionet_tmpdir, monkeypatch):
     """Test Sleep Physionet URL handling."""
+    my_func = _FakeFetch()
+    monkeypatch.setattr(pooch, 'retrieve', my_func)
+
     paths = temazepam.fetch_data(subjects=[0], path=physionet_tmpdir)
     assert _keep_basename_only(paths[0]) == \
         ['ST7011J0-PSG.edf', 'ST7011JP-Hypnogram.edf']
@@ -170,7 +195,7 @@ def test_sleep_physionet_temazepam(physionet_tmpdir, fake_retrieve):
         {'name': 'ST7011JP-Hypnogram.edf',
          'hash': 'ff28e5e01296cefed49ae0c27cfb3ebc42e710bf'})
     base_path = temazepam.data_path(path=physionet_tmpdir)
-    _check_mocked_function_calls(fake_retrieve, EXPECTED_CALLS, base_path)
+    _check_mocked_function_calls(my_func, EXPECTED_CALLS, base_path)
 
     with pytest.raises(
             ValueError, match='This dataset contains subjects 0 to 21'):
