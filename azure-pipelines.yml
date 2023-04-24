@@ -352,7 +352,7 @@ stages:
         versionSpec: '3.10'
     - bash: |
         set -eo pipefail
-        PYTHONUTF8=1 pip install --progress-bar off -r requirements.txt -r requirements_doc.txt pygments==2.15.0 psutil==5.9.4 jupyterlab-widgets==3.0.7 ipyvtklink==0.2.2 ipywidgets==8.0.6 jupyterlab-widgets==3.0.7 tornado=6.2 widgetsnbextension==4.0.7 xarray==2023.4.0
+        PYTHONUTF8=1 pip install --progress-bar off -r requirements.txt -r requirements_doc.txt pygments==2.15.0 psutil==5.9.4 jupyterlab-widgets==3.0.7 ipyvtklink==0.2.2 ipywidgets==8.0.6 jupyterlab-widgets==3.0.7 tornado==6.2 widgetsnbextension==4.0.7 xarray==2023.4.0
       displayName: Install documentation dependencies
     - script: pip install -e .
       displayName: Install dev MNE
