@@ -95,14 +95,18 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         assert 'play' in brain._renderer.actions
         # play is not a button widget, it does not have a click() method
         number_of_buttons = 1
-        for action in brain._renderer.actions.values():
+        button_names = list()
+        for name, action in brain._renderer.actions.items():
             widget = action._action
             if isinstance(widget, Button):
                 widget.click()
+                button_names.append(name)
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
         time.sleep(0.5)
+        assert 'movie' in button_names, button_names
         assert movie_path.is_file()
+        assert 'screenshot' in button_names, button_names
         assert screenshot_path.is_file()
         img_nv = brain.screenshot()
         assert img_nv.shape == (300, 300, 3), img_nv.shape
