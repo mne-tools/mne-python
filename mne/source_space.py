@@ -1023,7 +1023,7 @@ def _read_one_source_space(fid, this):
         res['dist_limit'] = None
     else:
         res['dist'] = tag1.data
-        res['dist_limit'] = tag2.data
+        res['dist_limit'] = tag2.data.item()
         #   Add the upper triangle
         res['dist'] = res['dist'] + res['dist'].T
     if (res['dist'] is not None):

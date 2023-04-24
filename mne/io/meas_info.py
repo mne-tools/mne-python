@@ -23,7 +23,7 @@ from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
 from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
-                  _rename_list)
+                  _rename_list, _int_item, _float_item)
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
                    _proj_equal, Projection)
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
@@ -2794,17 +2794,17 @@ _DIG_CAST = dict(
     kind=int, ident=int, r=lambda x: x, coord_frame=int)
 # key -> const, cast, write
 _CH_INFO_MAP = OrderedDict(
-    scanno=(FIFF.FIFF_CH_SCAN_NO, int, write_int),
-    logno=(FIFF.FIFF_CH_LOGICAL_NO, int, write_int),
-    kind=(FIFF.FIFF_CH_KIND, int, write_int),
-    range=(FIFF.FIFF_CH_RANGE, float, write_float),
-    cal=(FIFF.FIFF_CH_CAL, float, write_float),
-    coil_type=(FIFF.FIFF_CH_COIL_TYPE, int, write_int),
+    scanno=(FIFF.FIFF_CH_SCAN_NO, _int_item, write_int),
+    logno=(FIFF.FIFF_CH_LOGICAL_NO, _int_item, write_int),
+    kind=(FIFF.FIFF_CH_KIND, _int_item, write_int),
+    range=(FIFF.FIFF_CH_RANGE, _float_item, write_float),
+    cal=(FIFF.FIFF_CH_CAL, _float_item, write_float),
+    coil_type=(FIFF.FIFF_CH_COIL_TYPE, _int_item, write_int),
     loc=(FIFF.FIFF_CH_LOC, lambda x: x, write_float),
-    unit=(FIFF.FIFF_CH_UNIT, int, write_int),
-    unit_mul=(FIFF.FIFF_CH_UNIT_MUL, int, write_int),
+    unit=(FIFF.FIFF_CH_UNIT, _int_item, write_int),
+    unit_mul=(FIFF.FIFF_CH_UNIT_MUL, _int_item, write_int),
     ch_name=(FIFF.FIFF_CH_DACQ_NAME, str, write_string),
-    coord_frame=(FIFF.FIFF_CH_COORD_FRAME, int, write_int),
+    coord_frame=(FIFF.FIFF_CH_COORD_FRAME, _int_item, write_int),
 )
 # key -> cast
 _CH_CAST = OrderedDict((key, val[1]) for key, val in _CH_INFO_MAP.items())

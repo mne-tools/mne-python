@@ -74,7 +74,7 @@ def _get_next_fname(fid, fname, tree):
                 # we construct the name from the current name.
                 if next_fname is not None:
                     continue
-                next_num = read_tag(fid, ent.pos).data
+                next_num = read_tag(fid, ent.pos).data.item()
                 path, base = op.split(fname)
                 idx = base.find('.')
                 idx2 = base.rfind('-')

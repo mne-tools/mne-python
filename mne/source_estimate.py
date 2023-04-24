@@ -50,19 +50,18 @@ def _read_stc(filename):
     num_bytes = 4
 
     # read tmin in ms
-    stc['tmin'] = float(np.frombuffer(buf, dtype=">f4", count=1,
-                                      offset=offset))
-    stc['tmin'] /= 1000.0
+    stc['tmin'] = float(
+        np.frombuffer(buf, dtype=">f4", count=1, offset=offset).item()) / 1000.
     offset += num_bytes
 
     # read sampling rate in ms
-    stc['tstep'] = float(np.frombuffer(buf, dtype=">f4", count=1,
-                                       offset=offset))
-    stc['tstep'] /= 1000.0
+    stc['tstep'] = float(
+        np.frombuffer(buf, dtype=">f4", count=1, offset=offset).item()) / 1000.
     offset += num_bytes
 
     # read number of vertices/sources
-    vertices_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
+    vertices_n = int(
+        np.frombuffer(buf, dtype=">u4", count=1, offset=offset).item())
     offset += num_bytes
 
     # read the source vector
@@ -71,7 +70,8 @@ def _read_stc(filename):
     offset += num_bytes * vertices_n
 
     # read the number of timepts
-    data_n = int(np.frombuffer(buf, dtype=">u4", count=1, offset=offset))
+    data_n = int(
+        np.frombuffer(buf, dtype=">u4", count=1, offset=offset).item())
     offset += num_bytes
 
     if (vertices_n and  # vertices_n can be 0 (empty stc)
@@ -157,7 +157,7 @@ def _read_w(filename):
         # read the vertices and data
         for i in range(vertices_n):
             vertices[i] = _read_3(fid)
-            data[i] = np.fromfile(fid, dtype='>f4', count=1)[0]
+            data[i] = np.fromfile(fid, dtype='>f4', count=1).item()
 
         w = dict()
         w['vertices'] = vertices

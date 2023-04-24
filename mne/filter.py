@@ -682,7 +682,9 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
         logger.info(f'{ftype_nice} {btype} {ptype} filter:')
         # SciPy designs forward for -3dB, so forward-backward is -6dB
         if 'order' in iir_params:
-            kwargs = dict(N=iir_params['order'], Wn=Wp, btype=btype,
+            singleton = btype in ('low', 'lowpass', 'high', 'highpass')
+            use_Wp = Wp.item() if singleton else Wp
+            kwargs = dict(N=iir_params['order'], Wn=use_Wp, btype=btype,
                           ftype=ftype, output=output)
             for key in ('rp', 'rs'):
                 if key in iir_params:
@@ -993,6 +995,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
             freq = [0, sfreq / 2.]
             gain = [1., 1.]
     if l_freq is None and h_freq is not None:
+        h_freq = h_freq.item()
         logger.info('Setting up low-pass filter at %0.2g Hz' % (h_freq,))
         data, sfreq, _, f_p, _, f_s, filter_length, phase, fir_window, \
             fir_design = _triage_filter_params(
@@ -1008,6 +1011,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 freq += [sfreq / 2.]
                 gain += [0]
     elif l_freq is not None and h_freq is None:
+        l_freq = l_freq.item()
         logger.info('Setting up high-pass filter at %0.2g Hz' % (l_freq,))
         data, sfreq, pass_, _, stop, _, filter_length, phase, fir_window, \
             fir_design = _triage_filter_params(
@@ -1024,6 +1028,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 gain = [0] + gain
     elif l_freq is not None and h_freq is not None:
         if (l_freq < h_freq).any():
+            l_freq, h_freq = l_freq.item(), h_freq.item()
             logger.info('Setting up band-pass filter from %0.2g - %0.2g Hz'
                         % (l_freq, h_freq))
             data, sfreq, f_p1, f_p2, f_s1, f_s2, filter_length, phase, \
@@ -1051,6 +1056,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
                 raise ValueError('l_freq and h_freq must be the same length')
             msg = 'Setting up band-stop filter'
             if len(l_freq) == 1:
+                l_freq, h_freq = l_freq.item(), h_freq.item()
                 msg += ' from %0.2g - %0.2g Hz' % (h_freq, l_freq)
             logger.info(msg)
             # Note: order of outputs is intentionally switched here!
@@ -1785,12 +1791,22 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % l_trans_bandwidth)
                 l_trans_bandwidth = np.minimum(np.maximum(0.25 * l_freq, 2.),
                                                l_freq)
-            msg = ('- Lower transition bandwidth: %0.2f Hz'
-                   % (l_trans_bandwidth))
-            if dB_cutoff:
-                logger.info('- Lower passband edge: %0.2f' % (l_freq,))
-                msg += ' (%s cutoff frequency: %0.2f Hz)' % (
-                    dB_cutoff, l_freq - l_trans_bandwidth / 2.)
+            l_trans_rep = np.array(l_trans_bandwidth, float)
+            if l_trans_rep.size == 1:
+                l_trans_rep = f'{l_trans_rep:0.2f}'
+            with np.printoptions(precision=2, floatmode='fixed'):
+                msg = f'- Lower transition bandwidth: {l_trans_rep} Hz'
+                if dB_cutoff:
+                    l_freq_rep = np.array(l_freq, float)
+                    if l_freq_rep.size == 1:
+                        l_freq_rep = f'{l_freq_rep.item():0.2f}'
+                    cutoff_rep = np.array(
+                        l_freq - l_trans_bandwidth / 2., float)
+                    if cutoff_rep.size == 1:
+                        cutoff_rep = f'{cutoff_rep.item():0.2f}'
+                    # Could be an array
+                    logger.info(f'- Lower passband edge: {l_freq_rep}')
+                    msg += f' ({dB_cutoff} cutoff frequency: {cutoff_rep} Hz)'
             logger.info(msg)
             l_trans_bandwidth = cast(l_trans_bandwidth)
             if np.any(l_trans_bandwidth <= 0):
@@ -1812,12 +1828,21 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
                                      'string, got "%s"' % h_trans_bandwidth)
                 h_trans_bandwidth = np.minimum(np.maximum(0.25 * h_freq, 2.),
                                                sfreq / 2. - h_freq)
-            msg = ('- Upper transition bandwidth: %0.2f Hz'
-                   % (h_trans_bandwidth))
-            if dB_cutoff:
-                logger.info('- Upper passband edge: %0.2f Hz' % (h_freq,))
-                msg += ' (%s cutoff frequency: %0.2f Hz)' % (
-                    dB_cutoff, h_freq + h_trans_bandwidth / 2.)
+            h_trans_rep = np.array(h_trans_bandwidth, float)
+            if h_trans_rep.size == 1:
+                h_trans_rep = f'{h_trans_rep.item():0.2f}'
+            with np.printoptions(precision=2, floatmode='fixed'):
+                msg = f'- Upper transition bandwidth: {h_trans_rep} Hz'
+                if dB_cutoff:
+                    h_freq_rep = np.array(h_freq, float)
+                    if h_freq_rep.size == 1:
+                        h_freq_rep = f'{h_freq_rep.item():0.2f}'
+                    cutoff_rep = np.array(
+                        h_freq + h_trans_bandwidth / 2., float)
+                    if cutoff_rep.size == 1:
+                        cutoff_rep = f'{cutoff_rep.item():0.2f}'
+                    logger.info(f'- Upper passband edge: {h_freq_rep} Hz')
+                    msg += f' ({dB_cutoff} cutoff frequency: {cutoff_rep} Hz)'
             logger.info(msg)
             h_trans_bandwidth = cast(h_trans_bandwidth)
             if np.any(h_trans_bandwidth <= 0):
@@ -1834,8 +1859,11 @@ def _triage_filter_params(x, sfreq, l_freq, h_freq,
 
         if isinstance(filter_length, str) and filter_length.lower() == 'auto':
             filter_length = filter_length.lower()
-            h_check = h_trans_bandwidth if h_freq is not None else np.inf
-            l_check = l_trans_bandwidth if l_freq is not None else np.inf
+            h_check = l_check = np.inf
+            if h_freq is not None:
+                h_check = min(np.atleast_1d(h_trans_bandwidth))
+            if l_freq is not None:
+                l_check = min(np.atleast_1d(l_trans_bandwidth))
             mult_fact = 2. if fir_design == 'firwin2' else 1.
             filter_length = '%ss' % (_length_factors[fir_window] * mult_fact /
                                      float(min(h_check, l_check)),)

@@ -515,3 +515,11 @@ def has_tag(node, kind):
 
 def _rename_list(bads, ch_names_mapping):
     return [ch_names_mapping.get(bad, bad) for bad in bads]
+
+
+def _int_item(x):
+    return int(x.item())
+
+
+def _float_item(x):
+    return float(x.item())

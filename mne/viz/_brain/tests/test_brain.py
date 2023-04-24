@@ -905,7 +905,7 @@ something
         assert_allclose(img.shape[1], screenshot.shape[1], atol=1)  # width
         assert img.shape[0] > screenshot.shape[0]  # larger height
         assert_allclose(img.shape[1], screenshot_all.shape[1], atol=1)
-        assert img.shape[0] == screenshot_all.shape[0]
+        assert_allclose(img.shape[0], screenshot_all.shape[0], atol=1)
 
 
 # TODO: don't skip on Windows, see
