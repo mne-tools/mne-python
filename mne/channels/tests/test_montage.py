@@ -848,6 +848,50 @@ def test_set_dig_montage():
                              [6., 7., 8., 42., 42., 42.]])
 
 
+def test_set_dig_montage_with_nan_positions():
+    """Test that setting a montage with some NaN positions does not produce
+    NaN fiducials.
+    """
+    def _ensure_fid_not_nan(info, ch_pos):
+        montage_kwargs = dict(ch_pos=dict(), coord_frame='head')
+        for ch_idx, ch in enumerate(info.ch_names):
+            montage_kwargs['ch_pos'][ch] = ch_pos[ch_idx]
+
+        new_montage = make_dig_montage(**montage_kwargs)
+        info = info.copy()
+        info.set_montage(new_montage)
+
+        recovered_montage = info.get_montage()
+        fid_coords, coord_frame = _get_fid_coords(
+            recovered_montage.dig, raise_error=False)
+
+        for fid_coord in fid_coords.values():
+            if fid_coord is not None:
+                assert not np.isnan(fid_coord).any()
+
+        return fid_coords, coord_frame
+
+    channels = list('ABCDEF')
+    info = create_info(channels, 1000, ch_types='seeg')
+
+    # if all positions are NaN, the fiducials should not be NaN, but None
+    ch_pos = [info['chs'][ch_idx]['loc'][:3]
+              for ch_idx in range(len(channels))]
+    fid_coords, coord_frame = _ensure_fid_not_nan(info, ch_pos)
+    for fid_coord in fid_coords.values():
+        assert fid_coord is None
+    assert coord_frame is None
+
+    # if some positions are not NaN, the fiducials should be a non-NaN array
+    ch_pos[0] = np.array([1., 1.5, 1.])
+    ch_pos[1] = np.array([2., 1.5, 1.5])
+    ch_pos[2] = np.array([1.25, 1., 1.25])
+    fid_coords, coord_frame = _ensure_fid_not_nan(info, ch_pos)
+    for fid_coord in fid_coords.values():
+        assert isinstance(fid_coord, np.ndarray)
+    assert coord_frame == FIFF.FIFFV_COORD_HEAD
+
+
 @testing.requires_testing_data
 def test_fif_dig_montage(tmp_path):
     """Test FIF dig montage support."""
