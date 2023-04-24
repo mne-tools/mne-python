@@ -4531,7 +4531,7 @@ def %(name)s(%(signature)s):\n
 def deprecated_alias(dep_name, func, removed_in=None):
     """Inject a deprecated alias into the namespace."""
     if removed_in is None:
-        from .._version import __version__
+        from .. import __version__
         removed_in = __version__.split('.')[:2]
         removed_in[1] = str(int(removed_in[1]) + 1)
         removed_in = '.'.join(removed_in)

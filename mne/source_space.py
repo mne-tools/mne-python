@@ -1299,7 +1299,7 @@ def _write_one_source_space(fid, this, verbose=None):
         dists = sparse.triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT,
-                           this['dist_limit'])
+                           np.array(this['dist_limit'], float))
 
     #   Segmentation data
     if this['type'] == 'vol' and ('seg_name' in this):

@@ -2207,7 +2207,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
             if not fname.endswith(('-vl.w', '-vol.w')):
                 fname += '-vl.w'
             fname = str(_check_fname(fname, overwrite=overwrite))
-            _write_w(fname, vertices=self.vertices[0], data=self.data)
+            _write_w(fname, vertices=self.vertices[0], data=self.data[:, 0])
         elif ftype == 'h5':
             super().save(fname, 'h5', overwrite=overwrite)
         logger.info('[done]')
