@@ -642,25 +642,23 @@ def alternating_projections(evoked, forward, n_sources, noise_cov=None,
 
     Returns
     -------
-    output : list
-        Default:
-            dipoles : list of instance of Dipole
-                The dipole fits.
-        If return_residual:
-            residual : instance of Evoked
-                Data not explained by the estimated dipoles.
-            explained_data : instance of Evoked
-                Data explained by the estimated dipoles.
-            var_exp : float
-                Percentile of data variation explained
-                (see: mne.minimum_norm.inverse._log_exp_var).
-        If return_active_info :
-            idx : list of int
-                List of indices of dipole source estimated.
-            poss : array, shape (n_sources, 3)
-                Coordinates array of estimated sources (sorted by idx).
-            oris : array, shape (n_sources, 3)
-                Orientations array of estimated sources (sorted by idx).
+
+
+    dipoles : list of instance of Dipole
+        The dipole fits.
+    residual : instance of Evoked
+        Data not explained by the estimated dipoles.
+    explained_data : instance of Evoked
+        Data explained by the estimated dipoles.
+    var_exp : float
+        Percentile of data variation explained
+        (see: mne.minimum_norm.inverse._log_exp_var).
+    idx : list of int
+        List of indices of dipole source estimated.
+    poss : array, shape (n_sources, 3)
+        Coordinates array of estimated sources (sorted by idx).
+    oris : array, shape (n_sources, 3)
+        Orientations array of estimated sources (sorted by idx).
 
     References
     ----------
