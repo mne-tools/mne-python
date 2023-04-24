@@ -17,7 +17,6 @@ from numbers import Integral
 import warnings
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 from ..baseline import rescale
 from ..channels.channels import _get_ch_type
@@ -1200,6 +1199,8 @@ def plot_ica_components(
     topomap (this option is only available when the ``inst`` argument is
     supplied).
     """  # noqa E501
+    from matplotlib.pyplot import Axes
+
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
@@ -1268,7 +1269,7 @@ def plot_ica_components(
         fig.suptitle(title)
     else:
         axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
-        axes = [axes] if isinstance(axes, plt.Axes) else axes
+        axes = [axes] if isinstance(axes, Axes) else axes
         fig = axes[0].figure
 
     subplot_titles = list()
