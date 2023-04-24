@@ -17,6 +17,7 @@ from numbers import Integral
 import warnings
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from ..baseline import rescale
 from ..channels.channels import _get_ch_type
@@ -1227,6 +1228,11 @@ def plot_ica_components(
         cut_points = range(max_subplots, n_components, max_subplots)
         pick_groups = np.split(range(n_components), cut_points)
         for k, _picks in enumerate(pick_groups):
+            _axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
+            try:  # either an iterable, 1D numpy array or others
+                _axes = _axes[k * max_subplots: (k + 1) * max_subplots]
+            except TypeError:  # None or Axes
+                _axes = axes
             fig = plot_ica_components(
                 ica, picks=_picks, ch_type=ch_type, inst=inst,
                 plot_std=plot_std, reject=reject, sensors=sensors,
@@ -1234,9 +1240,7 @@ def plot_ica_components(
                 sphere=sphere, image_interp=image_interp,
                 extrapolate=extrapolate, border=border, res=res, size=size,
                 cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
-                cbar_fmt=cbar_fmt,
-                axes=axes.flatten()[k * max_subplots: (k + 1) * max_subplots],
-                title=title, nrows=nrows,
+                cbar_fmt=cbar_fmt, axes=_axes, title=title, nrows=nrows,
                 ncols=ncols, show=show, image_args=image_args,
                 psd_args=psd_args, verbose=verbose)
             figs.append(fig)
@@ -1263,10 +1267,12 @@ def plot_ica_components(
         fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
         fig.suptitle(title)
     else:
-        fig = axes[(0,) * axes.ndim].figure
+        axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
+        axes = [axes] if isinstance(axes, plt.Axes) else axes
+        fig = axes[0].figure
 
     subplot_titles = list()
-    for ii, data_, ax in zip(picks, data, axes.flatten()):
+    for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
         comp_title = ica._ica_names[ii]
         if len(set(ica.get_channel_types())) > 1:
