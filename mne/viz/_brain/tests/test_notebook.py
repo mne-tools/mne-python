@@ -41,6 +41,7 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""
     import tempfile
+    import time
     from contextlib import contextmanager
     from pathlib import Path
     import pytest
@@ -85,8 +86,10 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         movie_path = tmp_path / "test.gif"
         screenshot_path = tmp_path / "test.png"
         brain._renderer.actions['movie_field'].value = str(movie_path)
+        assert not movie_path.is_file()
         brain._renderer.actions['screenshot_field'].value = \
             str(screenshot_path)
+        assert not screenshot_path.is_file()
         total_number_of_buttons = sum(
             '_field' not in k for k in brain._renderer.actions.keys())
         assert 'play' in brain._renderer.actions
@@ -98,6 +101,7 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
                 widget.click()
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
+        time.sleep(0.5)
         assert movie_path.is_file()
         assert screenshot_path.is_file()
         img_nv = brain.screenshot()
