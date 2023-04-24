@@ -1266,7 +1266,7 @@ def plot_ica_components(
         fig = axes[(0,) * axes.ndim].figure
 
     subplot_titles = list()
-    for ii, data_, ax in zip(picks, data, axes):
+    for ii, data_, ax in zip(picks, data, axes.flatten()):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
         comp_title = ica._ica_names[ii]
         if len(set(ica.get_channel_types())) > 1:
