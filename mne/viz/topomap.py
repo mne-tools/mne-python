@@ -1226,7 +1226,7 @@ def plot_ica_components(
         figs = []
         cut_points = range(max_subplots, n_components, max_subplots)
         pick_groups = np.split(range(n_components), cut_points)
-        for _picks in pick_groups:
+        for k, _picks in enumerate(pick_groups):
             fig = plot_ica_components(
                 ica, picks=_picks, ch_type=ch_type, inst=inst,
                 plot_std=plot_std, reject=reject, sensors=sensors,
@@ -1234,7 +1234,9 @@ def plot_ica_components(
                 sphere=sphere, image_interp=image_interp,
                 extrapolate=extrapolate, border=border, res=res, size=size,
                 cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
-                cbar_fmt=cbar_fmt, axes=axes, title=title, nrows=nrows,
+                cbar_fmt=cbar_fmt,
+                axes=axes.flatten()[k * max_subplots: (k + 1) * max_subplots],
+                title=title, nrows=nrows,
                 ncols=ncols, show=show, image_args=image_args,
                 psd_args=psd_args, verbose=verbose)
             figs.append(fig)
