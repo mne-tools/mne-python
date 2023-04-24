@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_array_equal
-from sklearn.exceptions import ConvergenceWarning
 
 from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
@@ -112,10 +111,9 @@ def test_plot_ica_components():
         ica.plot_components(1, ch_type='mag')
 
     # test provided axes
-    ica = ICA(n_components=None, max_iter=3)
+    ica = ICA(n_components=None)
     ica_picks = _get_picks(raw)  # 9 channels
-    with pytest.warns(ConvergenceWarning, match='FastICA did not converge'):
-        ica.fit(raw, picks=ica_picks)
+    ica.fit(raw, picks=ica_picks)
     _, ax = plt.subplots(1, 1)
     ica.plot_components(axes=ax, picks=0, **fast_test)
     _, ax = plt.subplots(2, 1)
