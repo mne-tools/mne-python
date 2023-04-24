@@ -1262,6 +1262,8 @@ def plot_ica_components(
     if not user_passed_axes:
         fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
         fig.suptitle(title)
+    else:
+        fig = axes[(0,) * axes.ndim].figure
 
     subplot_titles = list()
     for ii, data_, ax in zip(picks, data, axes):
