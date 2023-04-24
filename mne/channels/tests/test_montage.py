@@ -849,7 +849,9 @@ def test_set_dig_montage():
 
 
 def test_set_dig_montage_with_nan_positions():
-    """Test that setting a montage with some NaN positions does not produce
+    """Test that fiducials are not NaN.
+
+    Test that setting a montage with some NaN positions does not produce
     NaN fiducials.
     """
     def _ensure_fid_not_nan(info, ch_pos):
