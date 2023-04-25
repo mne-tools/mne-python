@@ -2572,7 +2572,7 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
 
 def match_channel_orders(raws, copy=True):
     """Ensure consistent channel order across raws."""
-    raws = raws.copy() if copy else raws
+    raws = deepcopy(raws) if copy else raws
     ch_order = raws[0].ch_names
     for raw in raws[1:]:
         raw.reorder_channels(ch_order)
