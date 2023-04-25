@@ -473,7 +473,7 @@ def _extract_sampling_rate(dat):
         fs_diff = np.around(np.diff(time_data), decimals=4)
         if len(np.unique(fs_diff)) == 1:
             # Uniformly sampled data
-            sampling_rate = 1. / np.unique(fs_diff)
+            sampling_rate = 1. / np.unique(fs_diff).item()
         else:
             warn("MNE does not currently support reading "
                  "SNIRF files with non-uniform sampled data.")

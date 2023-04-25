@@ -116,7 +116,7 @@ def _read_ctf_comp(fid, node, chs, ch_names_mapping):
             raise Exception('Compensation type not found')
 
         #   Get the compensation kind and map it to a simple number
-        one = dict(ctfkind=tag.data)
+        one = dict(ctfkind=tag.data.item())
         del tag
         _add_kind(one)
         for p in range(node['nent']):

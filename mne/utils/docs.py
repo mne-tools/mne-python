@@ -2866,6 +2866,11 @@ projection : bool
     must be set to ``False`` (the default in this case).
 """
 
+docdict['projs'] = """
+projs : list of Projection
+    List of computed projection vectors.
+"""
+
 docdict['projs_report'] = """
 projs : bool | None
     Whether to add SSP projector plots if projectors are present in
@@ -4526,7 +4531,7 @@ def %(name)s(%(signature)s):\n
 def deprecated_alias(dep_name, func, removed_in=None):
     """Inject a deprecated alias into the namespace."""
     if removed_in is None:
-        from .._version import __version__
+        from .. import __version__
         removed_in = __version__.split('.')[:2]
         removed_in[1] = str(int(removed_in[1]) + 1)
         removed_in = '.'.join(removed_in)

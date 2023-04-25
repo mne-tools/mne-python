@@ -1936,20 +1936,20 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     for p in range(len(covs)):
         tag = find_tag(fid, covs[p], FIFF.FIFF_MNE_COV_KIND)
 
-        if tag is not None and int(tag.data) == cov_kind:
+        if tag is not None and int(tag.data.item()) == cov_kind:
             this = covs[p]
 
             #   Find all the necessary data
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_DIM)
             if tag is None:
                 raise ValueError('Covariance matrix dimension not found')
-            dim = int(tag.data)
+            dim = int(tag.data.item())
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_NFREE)
             if tag is None:
                 nfree = -1
             else:
-                nfree = int(tag.data)
+                nfree = int(tag.data.item())
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_METHOD)
             if tag is None:
