@@ -243,6 +243,7 @@ def test_movement_compensation(tmp_path):
                    chpi_med_tol=5)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_movement_compensation_smooth():
     """Test movement compensation with smooth interpolation."""
@@ -251,19 +252,21 @@ def test_movement_compensation_smooth():
     mag_picks = pick_types(raw.info, meg='mag', exclude=())
     power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
     head_pos = read_head_pos(pos_fname)
-    raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
-                             regularize=None, bad_condition='ignore')
-    assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
-                   3.9, 10.8, chpi_med_tol=58)
-    # MC increases noise
-    _assert_shielding(raw_sss, power, 0.25, max_factor=0.26)
-    raw_sss = _maxwell_filter_ola(
-        raw, head_pos=head_pos, origin=mf_head_origin,
-        regularize=None, bad_condition='ignore',
-        st_overlap=False, mc_interp='hann')
-    assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
-                   2.49, 9.8, chpi_med_tol=58)
-    _assert_shielding(raw_sss, power, 0.26, max_factor=0.27)
+    kwargs = dict(
+        head_pos=head_pos, origin=mf_head_origin,
+        regularize=None, bad_condition='ignore')
+    # MC increases noise relative to raw
+    raw_sss = maxwell_filter(raw, **kwargs)
+    _assert_shielding(raw_sss, power, 0.258, max_factor=0.259)
+    raw_sss_smooth = _maxwell_filter_ola(raw, mc_interp='hann', **kwargs)
+    _assert_shielding(raw_sss_smooth, raw_sss, 1.01, max_factor=1.02)
+
+    # now with time-varying regularization
+    kwargs['regularize'] = 'in'
+    raw_sss = maxwell_filter(raw, **kwargs)
+    _assert_shielding(raw_sss, power, 0.84, max_factor=0.85)
+    raw_sss_smooth = _maxwell_filter_ola(raw, mc_interp='hann', **kwargs)
+    _assert_shielding(raw_sss_smooth, raw_sss, 1.008, max_factor=1.012)
 
 
 @pytest.mark.slowtest
