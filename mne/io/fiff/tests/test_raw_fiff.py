@@ -431,7 +431,7 @@ def test_concatenate_raws_bads_order():
 
 
 def test_concatenate_raws_order():
-    """Test concatenation of raw instances when the order of chs varies."""
+    """Test concatenation of raws when the order of *good* channels varies."""
     raw0 = _create_toy_data(n_channels=2)
     raw0._data[0] = np.zeros_like(raw0._data[0])  # set one channel zero
 
