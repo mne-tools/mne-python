@@ -2570,6 +2570,7 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
         return raws[0], events
 
 
+@fill_doc
 def match_channel_orders(raws, copy=True):
     """Ensure consistent channel order across raws.
 
