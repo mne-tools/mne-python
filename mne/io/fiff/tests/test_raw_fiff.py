@@ -411,22 +411,22 @@ def test_concatenate_raws_bads_order():
     # Bad channel mismatch raises
     raw2 = raw1.copy()
     raw2.info["bads"] = ["0", "2"]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="must match"):
         concatenate_raws([raw0, raw2])
 
     # Type mismatch raises
     epochs1 = make_fixed_length_epochs(raw1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="type must match"):
         concatenate_raws([raw0, epochs1.load_data()])
 
     # Sample rate mismatch
     raw3 = _create_toy_data(sfreq=500)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="must match"):
         concatenate_raws([raw0, raw3])
 
     # Number of channels mismatch
     raw4 = _create_toy_data(n_channels=4)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="must match"):
         concatenate_raws([raw0, raw4])
 
 
