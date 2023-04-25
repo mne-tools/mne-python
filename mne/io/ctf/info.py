@@ -298,8 +298,7 @@ def _conv_comp(comp, first, last, chs):
     col_names = np.array(col_names)[mask].tolist()
     n_col = len(col_names)
     n_row = len(row_names)
-    ccomp = dict(ctfkind=np.array([comp[first]['coeff_type']]),
-                 save_calibrated=False)
+    ccomp = dict(ctfkind=comp[first]['coeff_type'], save_calibrated=False)
     _add_kind(ccomp)
 
     data = np.empty((n_row, n_col))

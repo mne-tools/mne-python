@@ -187,7 +187,7 @@ class Raw(BaseRaw):
             #   Get first sample tag if it is there
             if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, directory[first].pos)
-                first_samp = int(tag.data)
+                first_samp = int(tag.data.item())
                 first += 1
                 _check_entry(first, nent)
 
@@ -195,7 +195,7 @@ class Raw(BaseRaw):
             if directory[first].kind == FIFF.FIFF_DATA_SKIP:
                 # This first skip can be applied only after we know the bufsize
                 tag = read_tag(fid, directory[first].pos)
-                first_skip = int(tag.data)
+                first_skip = int(tag.data.item())
                 first += 1
                 _check_entry(first, nent)
 
@@ -220,7 +220,7 @@ class Raw(BaseRaw):
                 # an re-clicked the button
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
-                    nskip = int(tag.data)
+                    nskip = int(tag.data.item())
                 elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                     #   Figure out the number of samples in this buffer
                     if ent.type == FIFF.FIFFT_DAU_PACK16:
