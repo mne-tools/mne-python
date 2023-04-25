@@ -21,7 +21,8 @@ import pytest
 from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io.constants import FIFF
-from mne.io import RawArray, concatenate_raws, read_raw_fif, base
+from mne.io import (RawArray, concatenate_raws, read_raw_fif,
+                    match_channel_orders, base)
 from mne.io.open import read_tag, read_tag_info
 from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
@@ -444,8 +445,21 @@ def test_concatenate_raws_order():
     # Change the order of the channels and concatenate again
     raw1.reorder_channels(["1", "0"])
     assert raw1.ch_names == ["1", "0"]
+    raws = [raw0.copy(), raw1]
     with pytest.raises(ValueError):
-        raw_concat = concatenate_raws([raw0.copy(), raw1])
+        # Fails now due to wrong order of channels
+        raw_concat = concatenate_raws(raws)
+
+    with pytest.raises(ValueError):
+        # still fails, because raws is copied and not changed in place
+        match_channel_orders(raws, copy=True)
+        raw_concat = concatenate_raws(raws)
+
+    # Now passes because all raws have the same order
+    match_channel_orders(raws, copy=False)
+    raw_concat = concatenate_raws(raws)
+    ch0 = raw_concat.copy().pick(picks=["0"]).get_data()
+    assert np.all(ch0 == 0)
 
 
 @testing.requires_testing_data
