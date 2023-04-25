@@ -27,6 +27,7 @@ Enhancements
 - Adjusted the algorithm used in :class:`mne.decoding.SSD` to support non-full rank data (:gh:`11458` by :newcontrib:`Thomas Binns`)
 - Changed suggested type for ``ch_groups``` in `mne.viz.plot_sensors` from array to list of list(s) (arrays are still supported). (:gh:`11465` by `Hyonyoung Shin`_)
 - Add support for UCL/FIL OPM data using :func:`mne.io.read_raw_fil` (:gh:`11366` by :newcontrib:`George O'Neill` and `Robert Seymour`_)
+- Add harmonic field correction (HFC) for OPM sensors in :func:`mne.preprocessing.compute_proj_hfc` (:gh:`11536` by :newcontrib:`George O'Neill` and `Eric Larson`_)
 - Forward argument ``axes`` from `mne.viz.plot_sensors` to `mne.channels.DigMontage.plot` (:gh:`11470` by :newcontrib:`Jan Ebert` and `Mathieu Scheltienne`_)
 - Add forward IIR filtering, using parameters ``method='iir', phase='forward'`` (:gh:`11078` by :newcontrib:`Quentin Barthélemy`)
 - Added ability to read stimulus durations from SNIRF files when using :func:`mne.io.read_raw_snirf` (:gh:`11397` by `Robert Luke`_)
@@ -43,6 +44,7 @@ Enhancements
 - Improve performance of raw data browsing with many annotations (:gh:`11614` by `Eric Larson`_)
 - Add support for :func:`mne.preprocessing.maxwell_filter` with gradient-compensated CTF data, e.g., for tSSS-only mode (:gh:`10554` by `Eric Larson`_)
 - Add support for eyetracking data using :func:`mne.io.read_raw_eyelink` (:gh:`11152` by `Dominik Welke`_ and `Scott Huberty`_)
+- :func:`mne.channels.make_1020_channel_selections` gained a new parameter, ``return_ch_names``, to allow for easy retrieval of EEG channel names corresponding to the left, right, and midline portions of the montage (:gh:`11632` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~

@@ -290,7 +290,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
     with np.errstate(invalid='ignore'):
         local_minimum = float(minimize_scalar(
-            lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x)
+            lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x.item())
     logger.info(f'Local minimum {local_minimum} found')
 
     # find electrodes that are below the cutoff local minimum on

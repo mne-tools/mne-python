@@ -519,6 +519,7 @@ class RawMff(BaseRaw):
 
         ref_idx = np.flatnonzero(np.in1d(mon.ch_names, REFERENCE_NAMES))
         if len(ref_idx):
+            ref_idx = ref_idx.item()
             ref_coords = info['chs'][int(ref_idx)]['loc'][:3]
             for chan in info['chs']:
                 is_eeg = chan['kind'] == FIFF.FIFFV_EEG_CH

@@ -186,7 +186,7 @@ def _read_dig_fif(fid, meas_info):
                 dig.append(tag.data)
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
-                coord_frame = _coord_frame_named.get(int(tag.data))
+                coord_frame = _coord_frame_named.get(int(tag.data.item()))
         for d in dig:
             d['coord_frame'] = coord_frame
     return _format_dig_points(dig)
@@ -254,7 +254,8 @@ def _ensure_fiducials_head(dig):
             if radius is None:
                 radius = [
                     np.linalg.norm(d['r']) for d in dig
-                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+                    and not np.isnan(d['r']).any()]
                 if not radius:
                     return  # can't complete, no head points
                 radius = np.mean(radius)
