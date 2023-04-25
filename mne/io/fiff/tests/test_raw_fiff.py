@@ -446,11 +446,11 @@ def test_concatenate_raws_order():
     raw1.reorder_channels(["1", "0"])
     assert raw1.ch_names == ["1", "0"]
     raws = [raw0.copy(), raw1]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Channel order must match."):
         # Fails now due to wrong order of channels
         raw_concat = concatenate_raws(raws)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Channel order must match."):
         # still fails, because raws is copied and not changed in place
         match_channel_orders(raws, copy=True)
         raw_concat = concatenate_raws(raws)
