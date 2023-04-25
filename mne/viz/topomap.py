@@ -1170,10 +1170,9 @@ def plot_ica_components(
     axes : Axes | array of Axes | None
         The subplot(s) to plot to. Either a single Axes or an iterable of Axes
         if more than one subplot is needed. The number of subplots must match
-        the number of selected components. If None, a new figure will be
-        created. The number of subplots must match the number of selected
-        components. If None, new figures will be created with the number
-        of subplots per figure controlled by ``nrows`` and ``ncols``.
+        the number of selected components. If None, new figures will be created
+        with the number of subplots per figure controlled by ``nrows`` and
+        ``ncols``.
     title : str | None
         The title of the generated figure. If ``None`` (default) and
         ``axes=None``, a default title of "ICA Components" will be used.
