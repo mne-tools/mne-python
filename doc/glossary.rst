@@ -222,10 +222,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         :term:`eLORETA`. See :func:`minimum_norm.apply_inverse`.
 
     label
-        A :class:`Label` refers to a defined region in the cortex, often called
-        a region of interest (ROI) in the literature. Labels can be defined
-        anatomically (based on the physical structure of the cortex) or functionally
-        (based on cortical responses to specific stimuli). See also :term:`ROI`.
+        A :class:`mne.label.Label` refers to a defined region in the cortex,
+        often called a region of interest (ROI) in the literature. Labels can
+        be defined anatomically (based on the physical structure of the cortex)
+        or functionally (based on cortical responses to specific stimuli).
+        See also :term:`ROI`.
 
     last_samp
         The :attr:`~io.Raw.last_samp` attribute of :class:`~io.Raw`

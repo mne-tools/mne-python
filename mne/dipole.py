@@ -390,9 +390,9 @@ class DipoleFixed(TimeMixin):
 
     See Also
     --------
-    read_dipole
-    Dipole
-    fit_dipole
+    mne.read_dipole
+    mne.dipole.Dipole
+    mne.fit_dipole
 
     Notes
     -----

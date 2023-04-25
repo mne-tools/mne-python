@@ -753,8 +753,8 @@ class Label:
 
         See Also
         --------
-        SourceEstimate.center_of_mass
-        vertex_to_mni
+        mne.SourceEstimate.center_of_mass
+        mne.vertex_to_mni
 
         Notes
         -----
@@ -1000,8 +1000,8 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
 
     See Also
     --------
-    read_labels_from_annot
-    write_labels_to_annot
+    mne.read_labels_from_annot
+    mne.write_labels_to_annot
     """
     if subject is not None and not isinstance(subject, str):
         raise TypeError('subject must be a string')
@@ -1062,7 +1062,7 @@ def write_label(filename, label, verbose=None):
 
     See Also
     --------
-    write_labels_to_annot
+    mne.write_labels_to_annot
 
     Notes
     -----
@@ -2119,8 +2119,8 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
 
     See Also
     --------
-    write_labels_to_annot
-    morph_labels
+    mne.write_labels_to_annot
+    mne.morph_labels
     """
     logger.info('Reading labels from parcellation...')
 
