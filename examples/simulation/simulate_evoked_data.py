@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-sim-evoked:
 
@@ -27,7 +26,7 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 print(__doc__)
 
 # %%
-# Load real data as templates:
+# Load real data as templates
 data_path = sample.data_path()
 meg_path = data_path / 'MEG' / 'sample'
 raw = mne.io.read_raw_fif(meg_path / 'sample_audvis_raw.fif')
@@ -49,14 +48,14 @@ labels = [mne.read_label(meg_path / 'labels' / f'{ln}.label')
           for ln in label_names]
 
 # %%
-# Generate source time courses from 2 dipoles and the correspond evoked data
+# Generate source time courses from 2 dipoles and the corresponding evoked data
 
 times = np.arange(300, dtype=np.float64) / raw.info['sfreq'] - 0.1
 rng = np.random.RandomState(42)
 
 
 def data_fun(times):
-    """Function to generate random source time courses"""
+    """Generate random source time courses."""
     return (50e-9 * np.sin(30. * times) *
             np.exp(- (times - 0.15 + 0.05 * rng.randn(1)) ** 2 / 0.01))
 

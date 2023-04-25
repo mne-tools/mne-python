@@ -4,13 +4,20 @@
 # License: BSD Style.
 
 import os
-from os import path as op
-import pkg_resources
 import re
+from os import path as op
 from pathlib import Path
+import time
 
-from ..utils import _get_path, _do_path_update
-from ...utils import _url_to_local_path, verbose
+from ...utils import _url_to_local_path, verbose, logger
+from ..utils import (_do_path_update, _get_path, _log_time_size,
+                     _downloader_params)
+
+# TODO: remove try/except when our min version is py 3.9
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
 
 
 EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
@@ -74,16 +81,17 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
     destinations = [destination]
 
     # Fetch the file
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     if not op.isfile(destination) or force_update:
         if op.isfile(destination):
             os.remove(destination)
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
         pooch.retrieve(
-            # URL to one of Pooch's test files
             url=url,
             path=destination,
-            fname=fname
+            downloader=downloader,
+            fname=fname,
         )
 
     # Offer to update the path
@@ -157,6 +165,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     .. footbibliography::
     """  # noqa: E501
     import pooch
+    t0 = time.time()
 
     if not hasattr(runs, '__iter__'):
         runs = [runs]
@@ -185,20 +194,29 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     )
 
     # load the checksum registry
-    registry = pkg_resources.resource_stream(
-        'mne', op.join('data', 'eegbci_checksums.txt'))
+    registry = files('mne').joinpath('data', 'eegbci_checksums.txt')
     fetcher.load_registry(registry)
 
     # fetch the file(s)
     data_paths = []
+    sz = 0
     for run in runs:
         file_part = f'S{subject:03d}/S{subject:03d}R{run:02d}.edf'
-        destination = op.join(base_path, file_part)
-        if force_update and op.isfile(destination):
-            os.remove(destination)
-        data_paths.append(fetcher.fetch(file_part))
+        destination = Path(base_path, file_part)
+        data_paths.append(destination)
+        if destination.exists():
+            if force_update:
+                destination.unlink()
+            else:
+                continue
+        if sz == 0:  # log once
+            logger.info('Downloading EEGBCI data')
+        fetcher.fetch(file_part)
         # update path in config if desired
-        _do_path_update(path, update_path, config_key, name)
+        sz += destination.stat().st_size
+    _do_path_update(path, update_path, config_key, name)
+    if sz > 0:
+        _log_time_size(t0, sz)
     return data_paths
 
 

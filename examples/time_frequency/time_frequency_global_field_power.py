@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-time-freq-global-field-power:
 
@@ -15,7 +14,7 @@ of spatial patterns by using the :term:`global field power` (GFP).
 We first bandpass filter the signals and then apply a Hilbert transform. To
 reveal oscillatory activity the evoked response is then subtracted from every
 single trial. Finally, we rectify the signals prior to averaging across trials
-by taking the magniude of the Hilbert.
+by taking the magnitude of the Hilbert.
 Then the :term:`GFP` is computed as described in
 :footcite:`EngemannGramfort2015`, using the sum of the
 squares but without normalization by the rank.

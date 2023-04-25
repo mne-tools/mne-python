@@ -33,3 +33,5 @@ from .annotate_nan import annotate_nan
 from .interpolate import equalize_bads, interpolate_bridged_electrodes
 from . import ieeg
 from ._css import cortical_signal_suppression
+from .hfc import compute_proj_hfc
+from . import eyetracking

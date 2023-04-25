@@ -246,7 +246,7 @@ Creating the virtual environment
 These instructions will set up a Python environment that is separated from your
 system-level Python and any other managed Python environments on your computer.
 This lets you switch between different versions of Python (MNE-Python requires
-version 3.7 or higher) and also switch between the stable and development
+version 3.8 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). Even if you've already
@@ -450,7 +450,7 @@ in the pull request you should describe how the tests are failing and ask for
 advice about how to fix them.
 
 To learn more about git, check out the `GitHub help`_ website, the `GitHub
-Learning Lab`_ tutorial series, and the `pro git book`_.
+skills`_ tutorial series, and the `pro git book`_.
 
 
 .. _github-ssh:
@@ -694,11 +694,16 @@ Adhere to standard Python style guidelines
 All contributions to MNE-Python are checked against style guidelines described
 in `PEP 8`_. We also check for common coding errors (such as variables that are
 defined but never used). We allow very few exceptions to these guidelines, and
-use tools such as pep8_, pyflakes_, and flake8_ to check code style
+use tools such as ruff_ to check code style
 automatically. From the :file:`mne-python` root directory, you can check for
-style violations by running::
+style violations by first installing our pre-commit hook::
 
-    $ make flake
+    $ pip install pre-commit
+    $ pre-commit install --install-hooks
+
+Then running::
+
+    $ make ruff  # alias for `pre-commit run -a`
 
 in the shell. Several text editors or IDEs also have Python style checking,
 which can highlight style errors while you code (and train you to make those
@@ -748,7 +753,7 @@ but complete docstrings are appropriate when private functions/methods are
 relatively complex. To run some basic tests on documentation, you can use::
 
     $ pytest mne/tests/test_docstring_parameters.py
-    $ make docstyle
+    $ make ruff
 
 
 Cross-reference everywhere
@@ -927,9 +932,12 @@ you expect).
    commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
-locally-rendered documentation site in your browser. Additional ``make``
-recipes are available; run ``make help`` from the :file:`doc` directory or
-consult the `Sphinx-Gallery`_ documentation for additional details.
+locally-rendered documentation site in your browser. If you see many warnings
+that seem unrelated to your contributions, it might be that your output folder
+for the documentation build contains old, now irrelevant, files. Running
+``make clean`` will clean those up. Additional ``make`` recipes are available;
+run ``make help`` from the :file:`doc` directory or consult the
+`Sphinx-Gallery`_ documentation for additional details.
 
 
 Modifying command-line tools
@@ -1094,8 +1102,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. linting
 
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _pyflakes: https://pypi.org/project/pyflakes
-.. _Flake8: http://flake8.pycqa.org/
+.. _ruff: https://beta.ruff.rs/docs
 
 .. misc
 

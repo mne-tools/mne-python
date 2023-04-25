@@ -5,7 +5,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -16,10 +16,9 @@ from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP, _ajd_pham, SPoC
 from mne.utils import requires_sklearn
 
-data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_dir, 'test_raw.fif')
-event_name = op.join(data_dir, 'test-eve.fif')
-
+data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_dir / "test_raw.fif"
+event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 # if stop is too small pca may fail in some cases, but we're okay on this file
@@ -261,7 +260,7 @@ def test_csp_pipeline():
 
 def test_ajd():
     """Test approximate joint diagonalization."""
-    # The implementation shuold obtain the same
+    # The implementation should obtain the same
     # results as the Matlab implementation by Pham Dinh-Tuan.
     # Generate a set of cavariances matrices for test purpose
     n_times, n_channels = 10, 3

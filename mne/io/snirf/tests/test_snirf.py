@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 # Authors: Robert Luke  <mail@robertluke.net>
 #          simplified BSD-3 license
 
-import os.path as op
 import numpy as np
 from numpy.testing import assert_allclose, assert_almost_equal, assert_equal
 import shutil
@@ -19,40 +17,71 @@ from mne.io.constants import FIFF
 
 
 testing_path = data_path(download=False)
-
 # SfNIRS files
-sfnirs_homer_103_wShort = op.join(testing_path, 'SNIRF', 'SfNIRS',
-                                  'snirf_homer3', '1.0.3',
-                                  'snirf_1_3_nirx_15_2_'
-                                  'recording_w_short.snirf')
-sfnirs_homer_103_wShort_original = op.join(testing_path, 'NIRx', 'nirscout',
-                                           'nirx_15_2_recording_w_short')
-
-sfnirs_homer_103_153 = op.join(testing_path, 'SNIRF', 'SfNIRS', 'snirf_homer3',
-                               '1.0.3', 'nirx_15_3_recording.snirf')
+sfnirs_homer_103_wShort = (
+    testing_path
+    / "SNIRF"
+    / "SfNIRS"
+    / "snirf_homer3"
+    / "1.0.3"
+    / "snirf_1_3_nirx_15_2_recording_w_short.snirf"
+)
+sfnirs_homer_103_wShort_original = (
+    testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
+)
+sfnirs_homer_103_153 = (
+    testing_path
+    / "SNIRF"
+    / "SfNIRS"
+    / "snirf_homer3"
+    / "1.0.3"
+    / "nirx_15_3_recording.snirf"
+)
 
 # NIRSport2 files
-nirx_nirsport2_103 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
-                             '1.0.3', '2021-04-23_005.snirf')
-nirx_nirsport2_103_2 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
-                               '1.0.3', '2021-05-05_001.snirf')
-snirf_nirsport2_20219 = op.join(testing_path, 'SNIRF', 'NIRx', 'NIRSport2',
-                                '2021.9', '2021-10-01_002.snirf')
-nirx_nirsport2_20219 = op.join(testing_path, 'NIRx', 'nirsport_v2',
-                               'aurora_2021_9')
+nirx_nirsport2_103 = (
+    testing_path
+    / "SNIRF"
+    / "NIRx"
+    / "NIRSport2"
+    / "1.0.3"
+    / "2021-04-23_005.snirf"
+)
+nirx_nirsport2_103_2 = (
+    testing_path
+    / "SNIRF"
+    / "NIRx"
+    / "NIRSport2"
+    / "1.0.3"
+    / "2021-05-05_001.snirf"
+)
+snirf_nirsport2_20219 = (
+    testing_path
+    / "SNIRF"
+    / "NIRx"
+    / "NIRSport2"
+    / "2021.9"
+    / "2021-10-01_002.snirf"
+)
+nirx_nirsport2_20219 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
 
 # Kernel
-kernel_hb = op.join(testing_path, 'SNIRF', 'Kernel', 'Flow50',
-                    'Portal_2021_11', 'hb.snirf')
+kernel_hb = (
+    testing_path
+    / "SNIRF"
+    / "Kernel"
+    / "Flow50"
+    / "Portal_2021_11"
+    / "hb.snirf"
+)
 
-h5py = pytest.importorskip('h5py')  # module-level
+h5py = pytest.importorskip("h5py")  # module-level
 
 # Fieldtrip
-ft_od = op.join(testing_path, 'SNIRF', 'FieldTrip',
-                '220307_opticaldensity.snirf')
+ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 
 # GowerLabs
-lumo110 = op.join(testing_path, 'SNIRF', 'GowerLabs', 'lumomat-1-1-0.snirf')
+lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
 
 
 def _get_loc(raw, ch_name):
@@ -153,29 +182,31 @@ def test_snirf_basic():
 
 @requires_testing_data
 def test_snirf_against_nirx():
-    """Test against file snirf was created from."""
-    raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
-    _reorder_nirx(raw)
+    """Test Homer generated against file snirf was created from."""
+    raw_homer = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    _reorder_nirx(raw_homer)
     raw_orig = read_raw_nirx(sfnirs_homer_103_wShort_original, preload=True)
 
     # Check annotations are the same
-    assert_allclose(raw.annotations.onset, raw_orig.annotations.onset)
-    assert_allclose([float(d) for d in raw.annotations.description],
+    assert_allclose(raw_homer.annotations.onset, raw_orig.annotations.onset)
+    assert_allclose([float(d) for d in raw_homer.annotations.description],
                     [float(d) for d in raw_orig.annotations.description])
-    assert_allclose(raw.annotations.duration, raw_orig.annotations.duration)
+    # Homer writes durations as 5s regardless of the true duration.
+    # So we will not test that the nirx file stim durations equal
+    # the homer file stim durations.
 
     # Check names are the same
-    assert raw.info['ch_names'] == raw_orig.info['ch_names']
+    assert raw_homer.info['ch_names'] == raw_orig.info['ch_names']
 
     # Check frequencies are the same
-    num_chans = len(raw.ch_names)
-    new_chs = raw.info['chs']
+    num_chans = len(raw_homer.ch_names)
+    new_chs = raw_homer.info['chs']
     ori_chs = raw_orig.info['chs']
     assert_allclose([new_chs[idx]['loc'][9] for idx in range(num_chans)],
                     [ori_chs[idx]['loc'][9] for idx in range(num_chans)])
 
     # Check data is the same
-    assert_allclose(raw.get_data(), raw_orig.get_data())
+    assert_allclose(raw_homer.get_data(), raw_orig.get_data())
 
 
 @requires_testing_data
@@ -388,3 +419,18 @@ def test_annotation_description_from_stim_groups():
     raw = read_raw_snirf(nirx_nirsport2_103_2, preload=True)
     expected_descriptions = ['1', '2', '6']
     assert_equal(expected_descriptions, raw.annotations.description)
+
+
+@requires_testing_data
+def test_annotation_duration_from_stim_groups():
+    """Test annotation durations extracted correctly from stim group."""
+    raw = read_raw_snirf(snirf_nirsport2_20219, preload=True)
+    # Specify the expected SNIRF stim durations.
+    # We can verify these values should be 10 by using the official
+    # SNIRF package pysnirf2 and running the following script.
+    # You will see that the print statement shows the middle column,
+    # which represents duration, will be all 10s.
+    # from snirf import Snirf
+    # a = Snirf(snirf_nirsport2_20219, "r+"); print(a.nirs[0].stim[0].data)
+    expected_durations = np.full((10,), 10.)
+    assert_equal(expected_durations, raw.annotations.duration)

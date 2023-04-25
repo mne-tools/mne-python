@@ -11,12 +11,14 @@
 from collections import OrderedDict
 import importlib
 import inspect
+import logging
 import os
 import os.path as op
 from pathlib import Path
 import sys
-import zipfile
+import time
 import tempfile
+import zipfile
 
 import numpy as np
 
@@ -98,12 +100,13 @@ def _get_path(path, key, name):
     # 3. get_config('MNE_DATA')
     path = get_config(key or 'MNE_DATA', get_config('MNE_DATA'))
     if path is not None:
-        if not op.exists(path):
+        path = Path(path).expanduser()
+        if not path.exists():
             msg = (f"Download location {path} as specified by MNE_DATA does "
                    f"not exist. Either create this directory manually and try "
                    f"again, or set MNE_DATA to an existing directory.")
             raise FileNotFoundError(msg)
-        return Path(path)
+        return path
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
     logger.info('Using default location ~/mne_data for %s...' % name)
@@ -298,47 +301,52 @@ def _download_all_example_data(verbose=True):
     #
     # verbose=True by default so we get nice status messages.
     # Consider adding datasets from here to CircleCI for PR-auto-build
-    from . import (sample, testing, misc, spm_face, somato, brainstorm,
-                   eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti, sleep_physionet, limo,
-                   fnirs_motor, refmeg_noise, fetch_infant_template,
-                   fetch_fsaverage, ssvep, erp_core, epilepsy_ecog,
-                   fetch_phantom)
-    sample_path = sample.data_path()
-    testing.data_path()
-    misc.data_path()
-    spm_face.data_path()
-    somato.data_path()
-    hf_sef.data_path()
-    multimodal.data_path()
-    fnirs_motor.data_path()
-    opm.data_path()
-    mtrf.data_path()
-    fieldtrip_cmc.data_path()
-    kiloword.data_path()
-    phantom_4dbti.data_path()
-    refmeg_noise.data_path()
-    ssvep.data_path()
-    epilepsy_ecog.data_path()
-    brainstorm.bst_raw.data_path(accept=True)
-    brainstorm.bst_auditory.data_path(accept=True)
-    brainstorm.bst_resting.data_path(accept=True)
-    phantom_path = brainstorm.bst_phantom_elekta.data_path(accept=True)
-    fetch_phantom('otaniemi', subjects_dir=phantom_path)
-    brainstorm.bst_phantom_ctf.data_path(accept=True)
+    paths = dict()
+    for kind in ('sample testing misc spm_face somato hf_sef multimodal '
+                 'fnirs_motor opm mtrf fieldtrip_cmc kiloword phantom_4dbti '
+                 'refmeg_noise ssvep epilepsy_ecog ucl_opm_auditory eyelink '
+                 'erp_core brainstorm.bst_raw brainstorm.bst_auditory '
+                 'brainstorm.bst_resting brainstorm.bst_phantom_ctf '
+                 'brainstorm.bst_phantom_elekta'
+                 ).split():
+        mod = importlib.import_module(f'mne.datasets.{kind}')
+        data_path_func = getattr(mod, 'data_path')
+        kwargs = dict()
+        if 'accept' in inspect.getfullargspec(data_path_func).args:
+            kwargs['accept'] = True
+        paths[kind] = data_path_func(**kwargs)
+        logger.info(f'[done {kind}]')
+
+    # Now for the exceptions:
+    from . import (
+        eegbci, sleep_physionet, limo, fetch_fsaverage, fetch_infant_template,
+        fetch_hcp_mmp_parcellation, fetch_phantom)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
     for subj in range(4):
         eegbci.load_data(subj + 1, runs=[3], update_path=True)
+    logger.info('[done eegbci]')
+
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1])
+    logger.info('[done sleep_physionet]')
+
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one
     # (probably on CircleCI, or otherwise advanced user)
     fetch_fsaverage(None)
-    fetch_infant_template('6mo')
-    fetch_hcp_mmp_parcellation(
-        subjects_dir=sample_path / 'subjects', accept=True)
-    limo.load_data(subject=1, update_path=True)
+    logger.info('[done fsaverage]')
 
-    erp_core.data_path()
+    fetch_infant_template('6mo')
+    logger.info('[done infant_template]')
+
+    fetch_hcp_mmp_parcellation(
+        subjects_dir=paths['sample'] / 'subjects', accept=True)
+    logger.info('[done hcp_mmp_parcellation]')
+
+    fetch_phantom(
+        'otaniemi', subjects_dir=paths['brainstorm.bst_phantom_elekta'])
+    logger.info('[done phantom]')
+
+    limo.load_data(subject=1, update_path=True)
+    logger.info('[done limo]')
 
 
 @verbose
@@ -351,7 +359,7 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
     %(verbose)s
@@ -363,20 +371,22 @@ def fetch_aparc_sub_parcellation(subjects_dir=None, verbose=None):
     import pooch
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    destination = op.join(subjects_dir, 'fsaverage', 'label')
+    destination = subjects_dir / "fsaverage" / "label"
     urls = dict(lh='https://osf.io/p92yb/download',
                 rh='https://osf.io/4kxny/download')
     hashes = dict(lh='9e4d8d6b90242b7e4b0145353436ef77',
                   rh='dd6464db8e7762d969fc1d8087cd211b')
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     for hemi in ('lh', 'rh'):
         fname = f'{hemi}.aparc_sub.annot'
-        fpath = op.join(destination, fname)
-        if not op.isfile(fpath):
+        fpath = destination / fname
+        if not fpath.is_file():
             pooch.retrieve(
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
-                fname=fname
+                downloader=downloader,
+                fname=fname,
             )
 
 
@@ -391,7 +401,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
 
     Parameters
     ----------
-    subjects_dir : str | None
+    subjects_dir : path-like | None
         The subjects directory to use. The file will be placed in
         ``subjects_dir + '/fsaverage/label'``.
     combine : bool
@@ -413,14 +423,13 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
     import pooch
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    destination = op.join(subjects_dir, 'fsaverage', 'label')
-    fnames = [op.join(destination, '%s.HCPMMP1.annot' % hemi)
-              for hemi in ('lh', 'rh')]
+    destination = subjects_dir / "fsaverage" / "label"
+    fnames = [destination / f"{hemi}.HCPMMP1.annot" for hemi in ("lh", "rh")]
     urls = dict(lh='https://ndownloader.figshare.com/files/5528816',
                 rh='https://ndownloader.figshare.com/files/5528819')
     hashes = dict(lh='46a102b59b2fb1bb4bd62d51bf02e975',
                   rh='75e96b331940227bbcb07c1c791c2463')
-    if not all(op.isfile(fname) for fname in fnames):
+    if not all(fname.exists() for fname in fnames):
         if accept or '--accept-hcpmmp-license' in sys.argv:
             answer = 'y'
         else:
@@ -428,14 +437,16 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, *,
         if answer.lower() != 'y':
             raise RuntimeError('You must agree to the license to use this '
                                'dataset')
+    downloader = pooch.HTTPDownloader(**_downloader_params())
     for hemi, fpath in zip(('lh', 'rh'), fnames):
         if not op.isfile(fpath):
-            fname = op.basename(fpath)
+            fname = fpath.name
             pooch.retrieve(
                 url=urls[hemi],
                 known_hash=f"md5:{hashes[hemi]}",
                 path=destination,
-                fname=fname
+                downloader=downloader,
+                fname=fname,
             )
 
     if combine:
@@ -551,6 +562,7 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
     logger.info('%d file%s missing from %s in %s'
                 % (len(need), _pl(need), manifest_path, destination))
     if len(need) > 0:
+        downloader = pooch.HTTPDownloader(**_downloader_params())
         with tempfile.TemporaryDirectory() as path:
             logger.info('Downloading missing files remotely')
 
@@ -559,7 +571,8 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                 url=url,
                 known_hash=f"md5:{hash_}",
                 path=path,
-                fname=op.basename(fname_path)
+                downloader=downloader,
+                fname=op.basename(fname_path),
             )
 
             logger.info('Extracting missing file%s' % (_pl(need),))
@@ -573,3 +586,28 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                     ff.extract(name, path=destination)
         logger.info('Successfully extracted %d file%s'
                     % (len(need), _pl(need)))
+
+
+def _log_time_size(t0, sz):
+    t = time.time() - t0
+    fmt = '%Ss'
+    if t > 60:
+        fmt = f'%Mm{fmt}'
+    if t > 3600:
+        fmt = f'%Hh{fmt}'
+    sz = sz / 1048576  # 1024 ** 2
+    t = time.strftime(fmt, time.gmtime(t))
+    logger.info(f'Download complete in {t} ({sz:.1f} MB)')
+
+
+def _downloader_params(*, auth=None, token=None):
+    params = dict()
+    params['progressbar'] = (
+        logger.level <= logging.INFO and
+        get_config('MNE_TQDM', 'tqdm.auto') != 'off'
+    )
+    if auth is not None:
+        params["auth"] = auth
+    if token is not None:
+        params["headers"] = {"Authorization": f"token {token}"}
+    return params

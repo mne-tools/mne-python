@@ -20,8 +20,7 @@ from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import (catch_logging, check_version, requires_sklearn,
-                       _record_warnings)
+from mne.utils import catch_logging, requires_sklearn, _record_warnings
 
 
 n_space = 50
@@ -120,10 +119,7 @@ def test_cache_dir(tmp_path, numba_conditional):
         assert 'independently' not in log_file.getvalue()
         # ensure that non-independence yields warning
         stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
-        if check_version('numpy', '1.17'):
-            random_state = np.random.default_rng(0)
-        else:
-            random_state = 0
+        random_state = np.random.default_rng(0)
         with pytest.warns(RuntimeWarning, match='independently'):
             permutation_cluster_1samp_test(
                 X, buffer_size=10, n_jobs=2, n_permutations=1,

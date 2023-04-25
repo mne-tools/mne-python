@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
 """Test reading of BrainVision format."""
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
-import os.path as op
+
 import re
 import shutil
+from pathlib import Path
 
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose, assert_equal)
+from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 
 import datetime
@@ -22,56 +21,55 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.annotations import events_from_annotations
 
-data_dir = op.join(op.dirname(__file__), 'data')
-vhdr_path = op.join(data_dir, 'test.vhdr')
-vmrk_path = op.join(data_dir, 'test.vmrk')
-eeg_path = op.join(data_dir, 'test.eeg')
+data_dir = Path(__file__).parent / "data"
+vhdr_path = data_dir / "test.vhdr"
+vmrk_path = data_dir / "test.vmrk"
+eeg_path = data_dir / "test.eeg"
 
-vhdr_partially_disabled_hw_filter_path = op.join(data_dir,
-                                                 'test_partially_disabled'
-                                                 '_hw_filter.vhdr')
+vhdr_partially_disabled_hw_filter_path = (
+    data_dir / "test_partially_disabled_hw_filter.vhdr"
+)
 
-vhdr_old_path = op.join(
-    data_dir, 'test_old_layout_latin1_software_filter.vhdr')
-vhdr_old_longname_path = op.join(
-    data_dir, 'test_old_layout_latin1_software_filter_longname.vhdr')
+vhdr_old_path = data_dir / "test_old_layout_latin1_software_filter.vhdr"
+vhdr_old_longname_path = (
+    data_dir / "test_old_layout_latin1_software_filter_longname.vhdr"
+)
+vhdr_v2_path = data_dir / "testv2.vhdr"
 
-vhdr_v2_path = op.join(data_dir, 'testv2.vhdr')
-
-vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
-vhdr_mixed_highpass_path = op.join(data_dir, 'test_mixed_highpass.vhdr')
-vhdr_highpass_hz_path = op.join(data_dir, 'test_highpass_hz.vhdr')
-vhdr_mixed_highpass_hz_path = op.join(data_dir, 'test_mixed_highpass_hz.vhdr')
+vhdr_highpass_path = data_dir / "test_highpass.vhdr"
+vhdr_mixed_highpass_path = data_dir / "test_mixed_highpass.vhdr"
+vhdr_highpass_hz_path = data_dir / "test_highpass_hz.vhdr"
+vhdr_mixed_highpass_hz_path = data_dir / "test_mixed_highpass_hz.vhdr"
 
 # Not a typo: we can reuse the highpass file for the lowpass (Hz) test
-vhdr_lowpass_path = op.join(data_dir, 'test_highpass.vhdr')
-vhdr_mixed_lowpass_path = op.join(data_dir, 'test_mixed_lowpass.vhdr')
-vhdr_lowpass_s_path = op.join(data_dir, 'test_lowpass_s.vhdr')
-vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
+vhdr_lowpass_path = data_dir / "test_highpass.vhdr"
+vhdr_mixed_lowpass_path = data_dir / "test_mixed_lowpass.vhdr"
+vhdr_lowpass_s_path = data_dir / "test_lowpass_s.vhdr"
+vhdr_mixed_lowpass_s_path = data_dir / "test_mixed_lowpass_s.vhdr"
 
 # VHDR exported with neuroone
 data_path = testing.data_path(download=False)
-neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
+neuroone_vhdr = data_path / "Brainvision" / "test_NO.vhdr"
 
 # AHDR exported with VAmp
 data_path = testing.data_path(download=False)
-vamp_ahdr = op.join(data_path, 'Brainvision', 'test_VAmp.ahdr')
+vamp_ahdr = data_path / "Brainvision" / "test_VAmp.ahdr"
 
 # Test for nanovolts as unit
-vhdr_units_path = op.join(data_dir, 'test_units.vhdr')
+vhdr_units_path = data_dir / "test_units.vhdr"
 
 # Test bad date
-vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
+vhdr_bad_date = data_dir / "test_bad_date.vhdr"
 
-eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
-eog = ['HL', 'HR', 'Vb']
+eeg_bin = data_dir / "test_bin_raw.fif"
+eog = ["HL", "HR", "Vb"]
 
 # XXX: BUG we cannot parse test.hpts FastSCAN file to create a DigMontage
 #      (plus I've removed montage from all the read_raw_brainvision and nothing
 #       broke, so we were not testing that set_montage in brainvision was
 #       working)
 #      This should be amend in its own PR.
-montage = op.join(data_dir, 'test.hpts')
+montage = data_dir / "test.hpts"
 
 
 def test_orig_units(recwarn):
@@ -124,9 +122,9 @@ DATE_TEST_CASES = np.array([
 def _mocked_meas_date_data(tmp_path_factory):
     """Prepare files for mocked_meas_date_file fixture."""
     # Prepare the files
-    tmp_path = str(tmp_path_factory.mktemp('brainvision_mocked_meas_date'))
+    tmp_path = tmp_path_factory.mktemp("brainvision_mocked_meas_date")
     vhdr_fname, vmrk_fname, eeg_fname = [
-        op.join(tmp_path, op.basename(ff))
+        tmp_path / ff.name
         for ff in [vhdr_path, vmrk_path, eeg_path]
     ]
     for orig, dest in zip([vhdr_path, eeg_path], [vhdr_fname, eeg_fname]):
@@ -170,10 +168,9 @@ def test_vhdr_codepage_ansi(tmp_path):
     """Test BV reading with ANSI codepage."""
     raw_init = read_raw_brainvision(vhdr_path)
     data_expected, times_expected = raw_init[:]
-    tempdir = str(tmp_path)
-    ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
-    ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
-    ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
+    ansi_vhdr_path = tmp_path / vhdr_path.name
+    ansi_vmrk_path = tmp_path / vmrk_path.name
+    ansi_eeg_path = tmp_path / eeg_path.name
     # copy data file
     shutil.copy(eeg_path, ansi_eeg_path)
     # modify header file
@@ -196,7 +193,7 @@ def test_vhdr_codepage_ansi(tmp_path):
     raw = read_raw_brainvision(ansi_vhdr_path)
     data_new, times_new = raw[:]
 
-    assert_equal(raw_init.ch_names, raw.ch_names)
+    assert raw_init.ch_names == raw.ch_names
     assert_allclose(data_new, data_expected, atol=1e-15)
     assert_allclose(times_new, times_expected, atol=1e-15)
 
@@ -214,9 +211,9 @@ def test_vhdr_versions(tmp_path, header):
     """Test BV reading with different header variants."""
     raw_init = read_raw_brainvision(vhdr_path)
     data_expected, times_expected = raw_init[:]
-    use_vhdr_path = op.join(tmp_path, op.split(vhdr_path)[-1])
-    use_vmrk_path = op.join(tmp_path, op.split(vmrk_path)[-1])
-    use_eeg_path = op.join(tmp_path, op.split(eeg_path)[-1])
+    use_vhdr_path = tmp_path / vhdr_path.name
+    use_vmrk_path = tmp_path / vmrk_path.name
+    use_eeg_path = tmp_path / eeg_path.name
     shutil.copy(eeg_path, use_eeg_path)
     with open(use_vhdr_path, 'wb') as fout:
         with open(vhdr_path, 'rb') as fin:
@@ -257,10 +254,12 @@ def test_vhdr_versions(tmp_path, header):
 def test_ascii(tmp_path, data_sep):
     """Test ASCII BV reading."""
     raw = read_raw_brainvision(vhdr_path)
-    ascii_vhdr_path = op.join(tmp_path, op.split(vhdr_path)[-1])
+    ascii_vhdr_path = tmp_path / vhdr_path.name
     # copy marker file
-    shutil.copy(vhdr_path.replace('.vhdr', '.vmrk'),
-                ascii_vhdr_path.replace('.vhdr', '.vmrk'))
+    shutil.copy(
+        vhdr_path.with_suffix(".vmrk"),
+        ascii_vhdr_path.with_suffix(".vmrk"),
+    )
     # modify header file
     skipping = False
     with open(ascii_vhdr_path, 'wb') as fout:
@@ -282,7 +281,7 @@ def test_ascii(tmp_path, data_sep):
                     fout.write(line)
     # create the .dat file
     data, times = raw[:]
-    with open(ascii_vhdr_path.replace('.vhdr', '.dat'), 'wb') as fid:
+    with open(ascii_vhdr_path.with_suffix(".dat"), "wb") as fid:
         fid.write(data_sep.join(ch_name.encode('ASCII')
                                 for ch_name in raw.ch_names) + b'\n')
         fid.write(b'\n'.join(b' '.join(b'%.3f' % dd for dd in d)
@@ -340,6 +339,7 @@ def test_ch_names_comma(tmp_path):
     assert "F4,foo" in raw.ch_names
 
 
+@pytest.mark.filterwarnings('ignore:.*different.*:RuntimeWarning')
 def test_brainvision_data_highpass_filters():
     """Test reading raw Brain Vision files with amplifier filter settings."""
     # Homogeneous highpass in seconds (default measurement unit)
@@ -347,8 +347,8 @@ def test_brainvision_data_highpass_filters():
         read_raw_brainvision, vhdr_fname=vhdr_highpass_path, eog=eog
     )
 
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
-    assert_equal(raw.info['lowpass'], 250.)
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 10)
+    assert raw.info['lowpass'] == 250.
 
     # Heterogeneous highpass in seconds (default measurement unit)
     with pytest.warns(RuntimeWarning, match='different .*pass filters') as w:
@@ -356,25 +356,20 @@ def test_brainvision_data_highpass_filters():
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
             eog=eog)
 
-    lowpass_warning = ['different lowpass filters' in str(ww.message)
-                       for ww in w]
-    highpass_warning = ['different highpass filters' in str(ww.message)
-                        for ww in w]
+    w = [str(ww.message) for ww in w]
+    assert not any('different lowpass filters' in ww for ww in w), w
+    assert all('different highpass filters' in ww for ww in w), w
 
-    expected_warnings = zip(lowpass_warning, highpass_warning)
-
-    assert (all(any([lp, hp]) for lp, hp in expected_warnings))
-
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
-    assert_equal(raw.info['lowpass'], 250.)
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 10)
+    assert raw.info['lowpass'] == 250.
 
     # Homogeneous highpass in Hertz
     raw = _test_raw_reader(
         read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path,
         eog=eog)
 
-    assert_equal(raw.info['highpass'], 10.)
-    assert_equal(raw.info['lowpass'], 250.)
+    assert raw.info['highpass'] == 10.
+    assert raw.info['lowpass'] == 250.
 
     # Heterogeneous highpass in Hertz
     with pytest.warns(RuntimeWarning, match='different .*pass filters') as w:
@@ -382,19 +377,13 @@ def test_brainvision_data_highpass_filters():
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
             eog=eog)
 
-    trigger_warning = ['will be dropped' in str(ww.message)
-                       for ww in w]
-    lowpass_warning = ['different lowpass filters' in str(ww.message)
-                       for ww in w]
-    highpass_warning = ['different highpass filters' in str(ww.message)
-                        for ww in w]
+    w = [str(ww.message) for ww in w]
+    assert not any('will be dropped' in ww for ww in w), w
+    assert not any('different lowpass filters' in ww for ww in w), w
+    assert all('different highpass filters' in ww for ww in w), w
 
-    expected_warnings = zip(trigger_warning, lowpass_warning, highpass_warning)
-
-    assert (all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
-
-    assert_equal(raw.info['highpass'], 5.)
-    assert_equal(raw.info['lowpass'], 250.)
+    assert raw.info['highpass'] == 5.
+    assert raw.info['lowpass'] == 250.
 
 
 def test_brainvision_data_lowpass_filters():
@@ -404,8 +393,8 @@ def test_brainvision_data_lowpass_filters():
         read_raw_brainvision, vhdr_fname=vhdr_lowpass_path, eog=eog
     )
 
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
-    assert_equal(raw.info['lowpass'], 250.)
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 10)
+    assert raw.info['lowpass'] == 250.
 
     # Heterogeneous lowpass in Hertz (default measurement unit)
     with pytest.warns(RuntimeWarning) as w:  # event parsing
@@ -422,16 +411,16 @@ def test_brainvision_data_lowpass_filters():
 
     assert (all(any([lp, hp]) for lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
-    assert_equal(raw.info['lowpass'], 250.)
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 10)
+    assert raw.info['lowpass'] == 250.
 
     # Homogeneous lowpass in seconds
     raw = _test_raw_reader(
         read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path, eog=eog
     )
 
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
-    assert_equal(raw.info['lowpass'], 1. / (2 * np.pi * 0.004))
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 10)
+    assert raw.info['lowpass'] == 1. / (2 * np.pi * 0.004)
 
     # Heterogeneous lowpass in seconds
     with pytest.warns(RuntimeWarning) as w:  # filter settings
@@ -448,8 +437,8 @@ def test_brainvision_data_lowpass_filters():
 
     assert (all(any([lp, hp]) for lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
-    assert_equal(raw.info['lowpass'], 1. / (2 * np.pi * 0.004))
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 10)
+    assert raw.info['lowpass'] == 1. / (2 * np.pi * 0.004)
 
 
 def test_brainvision_data_partially_disabled_hw_filters():
@@ -471,8 +460,8 @@ def test_brainvision_data_partially_disabled_hw_filters():
 
     assert (all(any([trg, lp, hp]) for trg, lp, hp in expected_warnings))
 
-    assert_equal(raw.info['highpass'], 0.)
-    assert_equal(raw.info['lowpass'], 500.)
+    assert raw.info['highpass'] == 0.
+    assert raw.info['lowpass'] == 500.
 
 
 def test_brainvision_data_software_filters_latin1_global_units():
@@ -482,8 +471,8 @@ def test_brainvision_data_software_filters_latin1_global_units():
             read_raw_brainvision, vhdr_fname=vhdr_old_path,
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
 
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
-    assert_equal(raw.info['lowpass'], 50.)
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 0.9)
+    assert raw.info['lowpass'] == 50.
 
     # test sensor name with spaces (#9299)
     with pytest.warns(RuntimeWarning, match='software filter'):
@@ -491,13 +480,13 @@ def test_brainvision_data_software_filters_latin1_global_units():
             read_raw_brainvision, vhdr_fname=vhdr_old_longname_path,
             eog=("VEOGo", "VEOGu", "HEOGli", "HEOGre"), misc=("A2",))
 
-    assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 0.9))
-    assert_equal(raw.info['lowpass'], 50.)
+    assert raw.info['highpass'] == 1. / (2 * np.pi * 0.9)
+    assert raw.info['lowpass'] == 50.
 
 
 def test_brainvision_data():
     """Test reading raw Brain Vision files."""
-    pytest.raises(IOError, read_raw_brainvision, vmrk_path)
+    pytest.raises(OSError, read_raw_brainvision, vmrk_path)
     pytest.raises(ValueError, read_raw_brainvision, vhdr_path,
                   preload=True, scale="foo")
 
@@ -507,8 +496,8 @@ def test_brainvision_data():
 
     assert ('RawBrainVision' in repr(raw_py))
 
-    assert_equal(raw_py.info['highpass'], 0.)
-    assert_equal(raw_py.info['lowpass'], 250.)
+    assert raw_py.info['highpass'] == 0.
+    assert raw_py.info['lowpass'] == 250.
 
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, times_py = raw_py[picks]
@@ -518,24 +507,24 @@ def test_brainvision_data():
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_bin, times_bin = raw_bin[picks]
 
-    assert_array_almost_equal(data_py, data_bin)
-    assert_array_almost_equal(times_py, times_bin)
+    assert_allclose(data_py, data_bin)
+    assert_allclose(times_py, times_bin)
 
     # Make sure EOG channels are marked correctly
     for ch in raw_py.info['chs']:
         if ch['ch_name'] in eog:
-            assert_equal(ch['kind'], FIFF.FIFFV_EOG_CH)
+            assert ch['kind'] == FIFF.FIFFV_EOG_CH
         elif ch['ch_name'] == 'STI 014':
-            assert_equal(ch['kind'], FIFF.FIFFV_STIM_CH)
+            assert ch['kind'] == FIFF.FIFFV_STIM_CH
         elif ch['ch_name'] in ('CP5', 'CP6'):
-            assert_equal(ch['kind'], FIFF.FIFFV_MISC_CH)
-            assert_equal(ch['unit'], FIFF.FIFF_UNIT_NONE)
+            assert ch['kind'] == FIFF.FIFFV_MISC_CH
+            assert ch['unit'] == FIFF.FIFF_UNIT_NONE
         elif ch['ch_name'] == 'ReRef':
-            assert_equal(ch['kind'], FIFF.FIFFV_MISC_CH)
-            assert_equal(ch['unit'], FIFF.FIFF_UNIT_CEL)
+            assert ch['kind'] == FIFF.FIFFV_MISC_CH
+            assert ch['unit'] == FIFF.FIFF_UNIT_CEL
         elif ch['ch_name'] in raw_py.info['ch_names']:
-            assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
-            assert_equal(ch['unit'], FIFF.FIFF_UNIT_V)
+            assert ch['kind'] == FIFF.FIFFV_EEG_CH
+            assert ch['unit'] == FIFF.FIFF_UNIT_V
         else:
             raise RuntimeError("Unknown Channel: %s" % ch['ch_name'])
 
@@ -546,20 +535,20 @@ def test_brainvision_data():
     raw_units = _test_raw_reader(
         read_raw_brainvision, vhdr_fname=vhdr_units_path, eog=eog, misc='auto'
     )
-    assert_equal(raw_units.info['chs'][0]['ch_name'], 'FP1')
-    assert_equal(raw_units.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
+    assert raw_units.info['chs'][0]['ch_name'] == 'FP1'
+    assert raw_units.info['chs'][0]['kind'] == FIFF.FIFFV_EEG_CH
     data_units, _ = raw_units[0]
-    assert_array_almost_equal(data_py[0, :], data_units.squeeze())
+    assert_allclose(data_py[0, :], data_units.squeeze())
 
-    assert_equal(raw_units.info['chs'][1]['ch_name'], 'FP2')
-    assert_equal(raw_units.info['chs'][1]['kind'], FIFF.FIFFV_EEG_CH)
+    assert raw_units.info['chs'][1]['ch_name'] == 'FP2'
+    assert raw_units.info['chs'][1]['kind'] == FIFF.FIFFV_EEG_CH
     data_units, _ = raw_units[1]
-    assert_array_almost_equal(data_py[1, :], data_units.squeeze())
+    assert_allclose(data_py[1, :], data_units.squeeze())
 
-    assert_equal(raw_units.info['chs'][2]['ch_name'], 'F3')
-    assert_equal(raw_units.info['chs'][2]['kind'], FIFF.FIFFV_EEG_CH)
+    assert raw_units.info['chs'][2]['ch_name'] == 'F3'
+    assert raw_units.info['chs'][2]['kind'] == FIFF.FIFFV_EEG_CH
     data_units, _ = raw_units[2]
-    assert_array_almost_equal(data_py[2, :], data_units.squeeze())
+    assert_allclose(data_py[2, :], data_units.squeeze())
 
 
 def test_brainvision_vectorized_data():
@@ -600,7 +589,7 @@ def test_brainvision_vectorized_data():
                                           [-7.35999985e-06, -7.18000031e-06],
                                           ])
 
-    assert_array_almost_equal(raw._data[:, :2], first_two_samples_all_chs)
+    assert_allclose(raw._data[:, :2], first_two_samples_all_chs)
 
 
 def test_coodinates_extraction():

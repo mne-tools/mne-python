@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
 # Authors: Mark Wronkiewicz <wronk@uw.edu>
 #          Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
+import os
 from collections.abc import Iterable
+from pathlib import Path
 
 import numpy as np
 
@@ -79,7 +80,7 @@ def _log_ch(start, info, ch):
 def _check_head_pos(head_pos, info, first_samp, times=None):
     if head_pos is None:  # use pos from info['dev_head_t']
         head_pos = dict()
-    if isinstance(head_pos, str):  # can be a head pos file
+    if isinstance(head_pos, (str, Path, os.PathLike)):
         head_pos = read_head_pos(head_pos)
     if isinstance(head_pos, np.ndarray):  # can be head_pos quats
         head_pos = head_pos_to_trans_rot_t(head_pos)
@@ -104,7 +105,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
         bad = ts > times[-1]
         if bad.any():
             raise RuntimeError('All position times must be <= t_end (%0.1f '
-                               'sec), found %s/%s bad values (is this a split '
+                               's), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
     # If it starts close to zero, make it zero (else unique(offset) fails)
     if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
@@ -127,7 +128,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
 def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
                  mindist=1.0, interp='cos2', n_jobs=None, use_cps=True,
                  forward=None, first_samp=0, max_iter=10000, verbose=None):
-    u"""Simulate raw data.
+    """Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
     parameter.
@@ -156,11 +157,11 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         be in FIF format, any other ending will be assumed to be a text
         file with a 4x4 transformation matrix (like the ``--trans`` MNE-C
         option). If trans is None, an identity transform will be used.
-    src : str | instance of SourceSpaces | None
+    src : path-like | instance of SourceSpaces | None
         Source space corresponding to the stc. If string, should be a source
         space filename. Can also be an instance of loaded or generated
         SourceSpaces. Can be None if ``forward`` is provided.
-    bem : str | dict | None
+    bem : path-like | dict | None
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
@@ -296,7 +297,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         else:
             this_n = stc_counted[1].data.shape[1]
         this_stop = this_start + this_n
-        logger.info('    Interval %0.3f-%0.3f sec'
+        logger.info('    Interval %0.3f–%0.3f s'
                     % (this_start / info['sfreq'],
                         this_stop / info['sfreq']))
         n_doing = this_stop - this_start
@@ -584,7 +585,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     return raw
 
 
-class _HPIForwards(object):
+class _HPIForwards:
 
     def __init__(self, offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns):
         self.offsets = offsets
@@ -654,7 +655,7 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     return stc_data, stim_data, verts_
 
 
-class _SimForwards(object):
+class _SimForwards:
 
     def __init__(self, dev_head_ts, offsets, info, trans, src, bem, mindist,
                  n_jobs, meeg_picks, forward=None, use_cps=True):

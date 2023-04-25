@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-opm-resting-state:
 
@@ -16,7 +15,7 @@ The steps we use are:
 1. Filtering: downsample heavily.
 2. Artifact detection: use SSP for EOG and ECG.
 3. Source localization: dSPM, depth weighting, cortically constrained.
-4. Frequency: power spectral density (Welch), 4 sec window, 50% overlap.
+4. Frequency: power spectral density (Welch), 4 s window, 50% overlap.
 5. Standardize: normalize by relative power for each source.
 
 Preprocessing
@@ -77,9 +76,9 @@ assert raws['opm'].info['sfreq'] == raws['vv'].info['sfreq']
 titles = dict(vv='VectorView', opm='OPM')
 kinds = ('vv', 'opm')
 n_fft = next_fast_len(int(round(4 * new_sfreq)))
-print('Using n_fft=%d (%0.1f sec)' % (n_fft, n_fft / raws['vv'].info['sfreq']))
+print('Using n_fft=%d (%0.1f s)' % (n_fft, n_fft / raws['vv'].info['sfreq']))
 for kind in kinds:
-    fig = raws[kind].plot_psd(n_fft=n_fft, proj=True)
+    fig = raws[kind].compute_psd(n_fft=n_fft, proj=True).plot()
     fig.suptitle(titles[kind])
     fig.subplots_adjust(0.1, 0.1, 0.95, 0.85)
 

@@ -4,7 +4,7 @@
 #
 # License: BSD-3-Clause
 
-from ..utils import verbose, get_config, warn
+from ..utils import verbose, get_config, warn, deprecated
 
 
 @verbose
@@ -59,7 +59,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Use a high resolution head surface.
         Default is None, which uses ``MNE_COREG_HEAD_HIGH_RES`` config value
         (which defaults to True).
-    trans : str | None
+    trans : path-like | None
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
@@ -124,7 +124,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Step by step instructions for the coregistrations are shown below:
 
-    .. youtube:: uK4n5g6DBcg
+    .. youtube:: ALV5qqMHLlQ
     """
     unsupported_params = {
         'tabbed': (tabbed, False),
@@ -200,8 +200,10 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     )
 
 
+@deprecated('Use the :mod:`mne-gui-addons:mne_gui_addons` package instead, '
+            'will be removed in version 1.5.0')
 @verbose
-def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
+def locate_ieeg(info, trans, base_image, subject=None, subjects_dir=None,
                 groups=None, show=True, block=False, verbose=None):
     """Locate intracranial electrode contacts.
 
@@ -209,9 +211,11 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     ----------
     %(info_not_none)s
     %(trans_not_none)s
-    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
-        The CT image that has been aligned to the Freesurfer T1. Path-like
-        inputs and nibabel image objects are supported.
+    base_image : path-like | nibabel.spatialimages.SpatialImage
+        The CT or MR image on which the electrode contacts can located. It
+        must be aligned to the Freesurfer T1 if ``subject`` and
+        ``subjects_dir`` are provided. Path-like inputs and nibabel image
+        objects are supported.
     %(subject)s
     %(subjects_dir)s
     groups : dict | None
@@ -232,22 +236,29 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     gui : instance of IntracranialElectrodeLocator
         The graphical user interface (GUI) window.
     """
-    from ..viz.backends._utils import _qt_app_exec
-    from ._ieeg_locate import IntracranialElectrodeLocator
-    from qtpy.QtWidgets import QApplication
-    # get application
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(["Intracranial Electrode Locator"])
-    gui = IntracranialElectrodeLocator(
-        info, trans, aligned_ct, subject=subject, subjects_dir=subjects_dir,
-        groups=groups, show=show, verbose=verbose)
-    if block:
-        _qt_app_exec(app)
-    return gui
+    try:
+        import mne_gui_addons as mne_gui
+    except ImportError:
+        from ..viz.backends._utils import _qt_app_exec
+        from ._ieeg_locate import IntracranialElectrodeLocator
+        from qtpy.QtWidgets import QApplication
+        mne_gui = None
+        # get application
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(["Intracranial Electrode Locator"])
+        gui = IntracranialElectrodeLocator(
+            info, trans, base_image, subject=subject, subjects_dir=subjects_dir,
+            groups=groups, show=show, verbose=verbose)
+        if block:
+            _qt_app_exec(app)
+    return mne_gui.locate_ieeg(
+        info=info, trans=trans, base_image=base_image,
+        subject=subject, subjects_dir=subjects_dir,
+        groups=groups, show=show, block=block) if mne_gui else gui
 
 
-class _GUIScraper(object):
+class _GUIScraper:
     """Scrape GUI outputs."""
 
     def __repr__(self):
@@ -256,11 +267,20 @@ class _GUIScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
+        gui_classes = (
+            IntracranialElectrodeLocator,
+            CoregistrationUI,
+        )
+        try:
+            from mne_gui_addons._ieeg_locate import IntracranialElectrodeLocator  # noqa: E501
+        except Exception:
+            pass
+        else:
+            gui_classes = gui_classes + (IntracranialElectrodeLocator,)
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
-            if (isinstance(gui, (IntracranialElectrodeLocator,
-                                 CoregistrationUI)) and
+            if (isinstance(gui, gui_classes) and
                     not getattr(gui, '_scraped', False) and
                     gallery_conf['builder_name'] == 'html'):
                 gui._scraped = True  # monkey-patch but it's easy enough

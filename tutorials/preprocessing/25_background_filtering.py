@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 .. _disc-filtering:
 
@@ -6,10 +5,9 @@ r"""
 Background information on filtering
 ===================================
 
-Here we give some background information on filtering in general, and
-how it is done in MNE-Python in particular.
-Recommended reading for practical applications of digital
-filter design can be found in
+Here we give some background information on filtering in general, and how it is
+done in MNE-Python in particular. Recommended reading for practical
+applications of digital filter design can be found in
 Parks & Burrus (1987) :footcite:`ParksBurrus1987`
 and Ifeachor & Jervis (2002) :footcite:`IfeachorJervis2002`,
 and for filtering in an M/EEG context we recommend reading
@@ -22,7 +20,6 @@ Widmann *et al.* (2015) :footcite:`WidmannEtAl2015`.
    how to apply the default filters in MNE-Python to your data, skip this
    tutorial and read :ref:`tut-filter-resample` instead (but someday, you
    should come back and read this one too 🙂).
-
 
 Problem statement
 =================
@@ -394,7 +391,7 @@ f_s = f_p + transition_band
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent:
-# filter_dur = 6.6 / transition_band  # sec
+# filter_dur = 6.6 / transition_band  # s
 # n = int(sfreq * filter_dur)
 # h = signal.firwin2(n, freq, gain, nyq=sfreq / 2.)
 h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
@@ -410,7 +407,7 @@ plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default',
 
 transition_band = 0.5  # Hz
 f_s = f_p + transition_band
-filter_dur = 10.  # sec
+filter_dur = 10.  # s
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
 # This would be equivalent
@@ -448,7 +445,7 @@ h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
 x_min = np.convolve(h, x)
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
-filter_dur = 6.6 / transition_band  # sec
+filter_dur = 6.6 / transition_band  # s
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
@@ -596,6 +593,15 @@ plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
             compensate=True, **kwargs)
 
 # %%
+# Similarly to FIR filters, we can define causal IIR filters.
+
+filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
+                                method='iir', phase='forward',
+                                iir_params=iir_params, verbose=True)
+plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
+            compensate=False, **kwargs)
+
+# %%
 # Applying IIR filters
 # --------------------
 #
@@ -709,7 +715,7 @@ x_hp_2 = signal.filtfilt(iir_hp_2[0], iir_hp_2[1], x, padlen=0)
 
 xlim = t[[0, -1]]
 ylim = [-2, 6]
-xlabel = 'Time (sec)'
+xlabel = 'Time (s)'
 ylabel = r'Amplitude ($\mu$V)'
 tticks = [0, 0.5, 1.3, t[-1]]
 axes = plt.subplots(2, 2)[1].ravel()
@@ -719,6 +725,7 @@ for ax, x_f, title in zip(axes, [x_lp_2, x_lp_30, x_hp_2, x_hp_p1],
     ax.plot(t, x_f, color='k', linestyle='--')
     ax.set(ylim=ylim, xlim=xlim, xticks=tticks,
            title=title, xlabel=xlabel, ylabel=ylabel)
+
 mne.viz.adjust_axes(axes)
 mne.viz.tight_layout()
 plt.show()
@@ -726,12 +733,12 @@ plt.show()
 # %%
 # Similarly, in a P300 paradigm reported by
 # Kappenman & Luck (2010) :footcite:`KappenmanLuck2010`,
-# they found that applying a 1&nbsp;Hz high-pass decreased the probability of
-# finding a significant difference in the N100 response, likely because
-# the P300 response was smeared (and inverted) in time by the high-pass
-# filter such that it tended to cancel out the increased N100. However,
-# they nonetheless noted that some high-passing can still be useful to deal
-# with drifts in the data.
+# of they found that applying a :unit:`1 Hz` high-pass decreased the
+# probability finding a significant difference in the N100 response, likely
+# because the P300 response was smeared (and inverted) in time by the
+# high-pass filter such that it tended to cancel out the increased N100.
+# However, they nonetheless noted that some high-passing can still be useful
+# to deal with drifts in the data.
 #
 # Even though these papers generally advise a 0.1 Hz or lower frequency for
 # a high-pass, it is important to keep in mind (as most authors note) that

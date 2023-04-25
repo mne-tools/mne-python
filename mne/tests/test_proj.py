@@ -1,5 +1,5 @@
 import copy as cp
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
@@ -14,7 +14,7 @@ from mne import (compute_proj_epochs, compute_proj_evoked, compute_proj_raw,
 from mne.cov import regularize, compute_whitener
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
-from mne.io.proj import (make_projector, activate_proj,
+from mne.io.proj import (make_projector, activate_proj, setup_proj,
                          _needs_eeg_average_ref_proj, _EEG_AVREF_PICK_DICT)
 from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
@@ -22,20 +22,17 @@ from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
 from mne.rank import _compute_rank_int
 from mne.utils import _record_warnings
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_fname = op.join(base_dir, 'test-eve.fif')
-proj_fname = op.join(base_dir, 'test-proj.fif')
-proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
-bads_fname = op.join(base_dir, 'test_bads.txt')
-
-sample_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
-fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-sensmap_fname = op.join(sample_path,
-                        'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
-
-eog_fname = op.join(sample_path, 'sample_audvis_eog-proj.fif')
-ecg_fname = op.join(sample_path, 'sample_audvis_ecg-proj.fif')
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+event_fname = base_dir / "test-eve.fif"
+proj_fname = base_dir / "test-proj.fif"
+proj_gz_fname = base_dir / "test-proj.fif.gz"
+bads_fname = base_dir / "test_bads.txt"
+sample_path = testing.data_path(download=False) / "MEG" / "sample"
+fwd_fname = sample_path / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+sensmap_fname = sample_path / "sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w"
+eog_fname = sample_path / "sample_audvis_eog-proj.fif"
+ecg_fname = sample_path / "sample_audvis_ecg-proj.fif"
 
 
 def test_bad_proj():
@@ -104,7 +101,9 @@ def test_sensitivity_maps():
     projs.extend(read_proj(ecg_fname))
     decim = 6
     for ch_type in ['eeg', 'grad', 'mag']:
-        w = read_source_estimate(sensmap_fname % (ch_type, 'lh')).data
+        w = read_source_estimate(
+            Path(str(sensmap_fname) % (ch_type, 'lh'))
+        ).data
         stc = sensitivity_map(fwd, projs=None, ch_type=ch_type,
                               mode='free', exclude='bads')
         assert_array_almost_equal(stc.data, w, decim)
@@ -112,13 +111,17 @@ def test_sensitivity_maps():
         # let's just make sure the others run
         if ch_type == 'grad':
             # fixed (2)
-            w = read_source_estimate(sensmap_fname % (ch_type, '2-lh')).data
+            w = read_source_estimate(
+                str(sensmap_fname) % (ch_type, '2-lh')
+            ).data
             stc = sensitivity_map(fwd, projs=None, mode='fixed',
                                   ch_type=ch_type, exclude='bads')
             assert_array_almost_equal(stc.data, w, decim)
         if ch_type == 'mag':
             # ratio (3)
-            w = read_source_estimate(sensmap_fname % (ch_type, '3-lh')).data
+            w = read_source_estimate(
+                str(sensmap_fname) % (ch_type, '3-lh')
+            ).data
             stc = sensitivity_map(fwd, projs=None, mode='ratio',
                                   ch_type=ch_type, exclude='bads')
             assert_array_almost_equal(stc.data, w, decim)
@@ -127,7 +130,9 @@ def test_sensitivity_maps():
             modes = ['radiality', 'angle', 'remaining', 'dampening']
             ends = ['4-lh', '5-lh', '6-lh', '7-lh']
             for mode, end in zip(modes, ends):
-                w = read_source_estimate(sensmap_fname % (ch_type, end)).data
+                w = read_source_estimate(
+                    str(sensmap_fname) % (ch_type, end)
+                ).data
                 stc = sensitivity_map(fwd, projs=projs, mode=mode,
                                       ch_type=ch_type, exclude='bads')
                 assert_array_almost_equal(stc.data, w, decim)
@@ -139,14 +144,13 @@ def test_sensitivity_maps():
     pytest.raises(ValueError, sensitivity_map, fwd, projs=None, mode='angle')
     pytest.raises(RuntimeError, sensitivity_map, fwd, projs=[], mode='angle')
     # test volume source space
-    fname = op.join(sample_path, 'sample_audvis_trunc-meg-vol-7-fwd.fif')
+    fname = sample_path / "sample_audvis_trunc-meg-vol-7-fwd.fif"
     fwd = read_forward_solution(fname)
     sensitivity_map(fwd)
 
 
 def test_compute_proj_epochs(tmp_path):
     """Test SSP computation on epochs."""
-    tempdir = str(tmp_path)
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = read_raw_fif(raw_fname, preload=True)
@@ -159,11 +163,9 @@ def test_compute_proj_epochs(tmp_path):
 
     evoked = epochs.average()
     projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0)
-    write_proj(op.join(tempdir, 'test-proj.fif.gz'), projs)
-    for p_fname in [proj_fname, proj_gz_fname,
-                    op.join(tempdir, 'test-proj.fif.gz')]:
+    write_proj(tmp_path / "test-proj.fif.gz", projs)
+    for p_fname in [proj_fname, proj_gz_fname, tmp_path / "test-proj.fif.gz"]:
         projs2 = read_proj(p_fname)
-
         assert len(projs) == len(projs2)
 
         for p1, p2 in zip(projs, projs2):
@@ -197,7 +199,7 @@ def test_compute_proj_epochs(tmp_path):
     with epochs.info._unlock():
         epochs.info['projs'] += projs
     evoked = epochs.average()
-    evoked.save(op.join(tempdir, 'foo-ave.fif'))
+    evoked.save(tmp_path / "foo-ave.fif")
 
     projs = read_proj(proj_fname)
 
@@ -214,14 +216,14 @@ def test_compute_proj_epochs(tmp_path):
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
 
     # test warnings on bad filenames
-    proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    proj_badname = tmp_path / "test-bad-name.fif.gz"
     with pytest.warns(RuntimeWarning, match='-proj.fif'):
         write_proj(proj_badname, projs)
     with pytest.warns(RuntimeWarning, match='-proj.fif'):
         read_proj(proj_badname)
 
     # bad inputs
-    fname = op.join(tempdir, 'out-proj.fif')
+    fname = tmp_path / "out-proj.fif"
     with pytest.raises(TypeError, match='projs'):
         write_proj(fname, 'foo')
     with pytest.raises(TypeError, match=r'projs\[0\] must be .*'):
@@ -231,7 +233,6 @@ def test_compute_proj_epochs(tmp_path):
 @pytest.mark.slowtest
 def test_compute_proj_raw(tmp_path):
     """Test SSP computation on raw."""
-    tempdir = str(tmp_path)
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
     raw = read_raw_fif(raw_fname).crop(0, raw_time)
@@ -251,7 +252,7 @@ def test_compute_proj_raw(tmp_path):
         # test that you can save them
         with raw.info._unlock():
             raw.info['projs'] += projs
-        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
+        raw.save(tmp_path / f"foo_{ii}_raw.fif", overwrite=True)
 
     # Test that purely continuous (no duration) raw projection works
     with pytest.warns(RuntimeWarning, match='Too few samples'):
@@ -268,7 +269,7 @@ def test_compute_proj_raw(tmp_path):
     # test that you can save them
     with raw.info._unlock():
         raw.info['projs'] += projs
-    raw.save(op.join(tempdir, 'foo_rawproj_continuous_raw.fif'))
+    raw.save(tmp_path / "foo_rawproj_continuous_raw.fif")
 
     # test resampled-data projector, upsampling instead of downsampling
     # here to save an extra filtering (raw would have to be LP'ed to be equiv)
@@ -496,3 +497,29 @@ def test_sss_proj():
         else:
             mag_names = ch_names[2::3]
             assert this_raw.info['projs'][3]['data']['col_names'] == mag_names
+
+
+def test_eq_ne():
+    """Test == and != between projectors."""
+    raw = read_raw_fif(raw_fname, preload=False)
+    assert len(raw.info["projs"]) == 3
+    raw.set_eeg_reference(projection=True)
+
+    pca1 = cp.deepcopy(raw.info["projs"][0])
+    pca2 = cp.deepcopy(raw.info["projs"][1])
+    car = cp.deepcopy(raw.info["projs"][3])
+
+    assert pca1 != pca2
+    assert pca1 != car
+    assert pca2 != car
+    assert pca1 == raw.info["projs"][0]
+    assert pca2 == raw.info["projs"][1]
+    assert car == raw.info["projs"][3]
+
+
+def test_setup_proj():
+    """Test setup_proj."""
+    raw = read_raw_fif(raw_fname)
+    assert _needs_eeg_average_ref_proj(raw.info)
+    raw.del_proj()
+    setup_proj(raw.info)

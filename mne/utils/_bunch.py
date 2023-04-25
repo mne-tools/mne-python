@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Bunch-related classes."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -52,7 +51,7 @@ class BunchConstNamed(BunchConst):
         super().__setattr__(attr, val)
 
 
-class _Named(object):
+class _Named:
     """Provide shared methods for giving named-representation subclasses."""
 
     def __new__(cls, name, val):  # noqa: D102,D105

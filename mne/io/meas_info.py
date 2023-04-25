@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -24,14 +23,15 @@ from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
 from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
-                  _rename_list)
+                  _rename_list, _int_item, _float_item)
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
                    _proj_equal, Projection)
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
 from .write import (start_and_end_file, start_block, end_block,
                     write_string, write_dig_points, write_float, write_int,
-                    write_coord_trans, write_ch_info, write_name_list,
-                    write_julian, write_float_matrix, write_id, DATE_NONE)
+                    write_coord_trans, write_ch_info,
+                    write_julian, write_float_matrix, write_id, DATE_NONE,
+                    _safe_name_list, write_name_list_sanitized)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans, _frame_to_str)
@@ -71,7 +71,7 @@ def _get_valid_units():
                           'micro', 'milli', 'centi', 'deci', 'deca', 'hecto',
                           'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
                           'zetta', 'yotta']
-    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', u'µ', 'm', 'c', 'd',
+    valid_prefix_symbols = ['y', 'z', 'a', 'f', 'p', 'n', 'µ', 'm', 'c', 'd',
                             'da', 'h', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']
     valid_unit_names = ['metre', 'kilogram', 'second', 'ampere', 'kelvin',
                         'mole', 'candela', 'radian', 'steradian', 'hertz',
@@ -80,8 +80,8 @@ def _get_valid_units():
                         'degree Celsius', 'lumen', 'lux', 'becquerel', 'gray',
                         'sievert', 'katal']
     valid_unit_symbols = ['m', 'kg', 's', 'A', 'K', 'mol', 'cd', 'rad', 'sr',
-                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', u'Ω', 'S',
-                          'Wb', 'T', 'H', u'°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
+                          'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', 'Ω', 'S',
+                          'Wb', 'T', 'H', '°C', 'lm', 'lx', 'Bq', 'Gy', 'Sv',
                           'kat']
 
     # Valid units are all possible combinations of either prefix name or prefix
@@ -146,7 +146,7 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
     return ch_names
 
 
-class MontageMixin(object):
+class MontageMixin:
     """Mixin for Montage getting and setting."""
 
     @fill_doc
@@ -239,7 +239,7 @@ class MontageMixin(object):
         return self
 
 
-class ContainsMixin(object):
+class ContainsMixin:
     """Mixin class for Raw, Evoked, Epochs and Info."""
 
     def __contains__(self, ch_type):
@@ -248,7 +248,8 @@ class ContainsMixin(object):
         Parameters
         ----------
         ch_type : str
-            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+            Channel type to check for. Can be e.g. ``'meg'``, ``'eeg'``,
+            ``'stim'``, etc.
 
         Returns
         -------
@@ -1227,6 +1228,16 @@ class Info(dict, MontageMixin, ContainsMixin):
             experimenter=self.get('experimenter'),
         )
 
+    def save(self, fname):
+        """Write measurement info in fif file.
+
+        Parameters
+        ----------
+        fname : path-like
+            The name of the file. Should end by ``'-info.fif'``.
+        """
+        write_info(fname, self)
+
 
 def _simplify_info(info):
     """Return a simplified info structure to speed up picking."""
@@ -1320,7 +1331,7 @@ def read_info(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File name.
     %(verbose)s
 
@@ -1361,9 +1372,19 @@ def _read_bad_channels(fid, node, ch_names_mapping):
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag is not None and tag.data is not None:
-                bads = tag.data.split(':')
-    bads[:] = _rename_list(bads, ch_names_mapping)
+                bads = _safe_name_list(tag.data, 'read', 'bads')
+        bads[:] = _rename_list(bads, ch_names_mapping)
     return bads
+
+
+def _write_bad_channels(fid, bads, ch_names_mapping):
+    if bads is not None and len(bads) > 0:
+        ch_names_mapping = {} if ch_names_mapping is None else ch_names_mapping
+        bads = _rename_list(bads, ch_names_mapping)
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads, 'bads')
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
 
 @verbose
@@ -1428,21 +1449,21 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         pos = meas_info['directory'][k].pos
         if kind == FIFF.FIFF_NCHAN:
             tag = read_tag(fid, pos)
-            nchan = int(tag.data)
+            nchan = int(tag.data.item())
         elif kind == FIFF.FIFF_SFREQ:
             tag = read_tag(fid, pos)
-            sfreq = float(tag.data)
+            sfreq = float(tag.data.item())
         elif kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
-            if not np.isnan(tag.data):
-                lowpass = float(tag.data)
+            if not np.isnan(tag.data.item()):
+                lowpass = float(tag.data.item())
         elif kind == FIFF.FIFF_HIGHPASS:
             tag = read_tag(fid, pos)
             if not np.isnan(tag.data):
-                highpass = float(tag.data)
+                highpass = float(tag.data.item())
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
             meas_date = tuple(tag.data)
@@ -1482,19 +1503,19 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             proj_name = tag.data
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
-            line_freq = float(tag.data)
+            line_freq = float(tag.data.item())
         elif kind == FIFF.FIFF_GANTRY_ANGLE:
             tag = read_tag(fid, pos)
-            gantry_angle = float(tag.data)
+            gantry_angle = float(tag.data.item())
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
-            custom_ref_applied = int(tag.data)
+            custom_ref_applied = int(tag.data.item())
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
         elif kind == FIFF.FIFF_MNE_KIT_SYSTEM_ID:
             tag = read_tag(fid, pos)
-            kit_system_id = int(tag.data)
+            kit_system_id = int(tag.data.item())
     ch_names_mapping = _read_extended_ch_info(chs, meas_info, fid)
 
     # Check that we have everything we need
@@ -1601,11 +1622,11 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_HPI_FIT_GOODNESS:
                 hr['goodness'] = read_tag(fid, pos).data
             elif kind == FIFF.FIFF_HPI_FIT_GOOD_LIMIT:
-                hr['good_limit'] = float(read_tag(fid, pos).data)
+                hr['good_limit'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_FIT_DIST_LIMIT:
-                hr['dist_limit'] = float(read_tag(fid, pos).data)
+                hr['dist_limit'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_FIT_ACCEPT:
-                hr['accept'] = int(read_tag(fid, pos).data)
+                hr['accept'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_COORD_TRANS:
                 hr['coord_trans'] = read_tag(fid, pos).data
         hrs.append(hr)
@@ -1622,17 +1643,17 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if kind == FIFF.FIFF_CREATOR:
                 hm['creator'] = str(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
-                hm['sfreq'] = float(read_tag(fid, pos).data)
+                hm['sfreq'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_NCHAN:
-                hm['nchan'] = int(read_tag(fid, pos).data)
+                hm['nchan'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_NAVE:
-                hm['nave'] = int(read_tag(fid, pos).data)
+                hm['nave'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_NCOIL:
-                hm['ncoil'] = int(read_tag(fid, pos).data)
+                hm['ncoil'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_FIRST_SAMPLE:
-                hm['first_samp'] = int(read_tag(fid, pos).data)
+                hm['first_samp'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_LAST_SAMPLE:
-                hm['last_samp'] = int(read_tag(fid, pos).data)
+                hm['last_samp'] = int(read_tag(fid, pos).data.item())
         hpi_coils = dir_tree_find(hpi_meas, FIFF.FIFFB_HPI_COIL)
         hcs = []
         for hpi_coil in hpi_coils:
@@ -1641,7 +1662,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 kind = hpi_coil['directory'][k].kind
                 pos = hpi_coil['directory'][k].pos
                 if kind == FIFF.FIFF_HPI_COIL_NO:
-                    hc['number'] = int(read_tag(fid, pos).data)
+                    hc['number'] = int(read_tag(fid, pos).data.item())
                 elif kind == FIFF.FIFF_EPOCH:
                     hc['epoch'] = read_tag(fid, pos).data
                     hc['epoch'].flags.writeable = False
@@ -1652,7 +1673,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                     hc['corr_coeff'] = read_tag(fid, pos).data
                     hc['corr_coeff'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_COIL_FREQ:
-                    hc['coil_freq'] = float(read_tag(fid, pos).data)
+                    hc['coil_freq'] = float(read_tag(fid, pos).data.item())
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
@@ -1669,7 +1690,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = subject_info['directory'][k].pos
             if kind == FIFF.FIFF_SUBJ_ID:
                 tag = read_tag(fid, pos)
-                si['id'] = int(tag.data)
+                si['id'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HIS_ID:
                 tag = read_tag(fid, pos)
                 si['his_id'] = str(tag.data)
@@ -1694,10 +1715,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 si['birthday'] = tag.data
             elif kind == FIFF.FIFF_SUBJ_SEX:
                 tag = read_tag(fid, pos)
-                si['sex'] = int(tag.data)
+                si['sex'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HAND:
                 tag = read_tag(fid, pos)
-                si['hand'] = int(tag.data)
+                si['hand'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_WEIGHT:
                 tag = read_tag(fid, pos)
                 si['weight'] = tag.data
@@ -1740,10 +1761,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = helium_info['directory'][k].pos
             if kind == FIFF.FIFF_HE_LEVEL_RAW:
                 tag = read_tag(fid, pos)
-                hi['he_level_raw'] = float(tag.data)
+                hi['he_level_raw'] = float(tag.data.item())
             elif kind == FIFF.FIFF_HELIUM_LEVEL:
                 tag = read_tag(fid, pos)
-                hi['helium_level'] = float(tag.data)
+                hi['helium_level'] = float(tag.data.item())
             elif kind == FIFF.FIFF_ORIG_FILE_GUID:
                 tag = read_tag(fid, pos)
                 hi['orig_file_guid'] = str(tag.data)
@@ -1763,7 +1784,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = hpi_subsystem['directory'][k].pos
             if kind == FIFF.FIFF_HPI_NCOIL:
                 tag = read_tag(fid, pos)
-                hs['ncoil'] = int(tag.data)
+                hs['ncoil'] = int(tag.data.item())
             elif kind == FIFF.FIFF_EVENT_CHANNEL:
                 tag = read_tag(fid, pos)
                 hs['event_channel'] = str(tag.data)
@@ -2059,11 +2080,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     _write_proj(fid, info['projs'], ch_names_mapping=ch_names_mapping)
 
     #   Bad channels
-    if len(info['bads']) > 0:
-        bads = _rename_list(info['bads'], ch_names_mapping)
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, bads)
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    _write_bad_channels(fid, info['bads'], ch_names_mapping=ch_names_mapping)
 
     #   General
     if info.get('experimenter') is not None:
@@ -2189,8 +2206,8 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
     Parameters
     ----------
-    fname : str
-        The name of the file. Should end by -info.fif.
+    fname : path-like
+        The name of the file. Should end by ``-info.fif``.
     %(info_not_none)s
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
@@ -2413,7 +2430,8 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
         :term:`data channel <data channels>`.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'dbs', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr'
-        or 'hbo'. If str, then all channels are assumed to be of the same type.
+        'eyetrack' or 'hbo'.
+        If str, then all channels are assumed to be of the same type.
     %(verbose)s
 
     Returns
@@ -2776,17 +2794,17 @@ _DIG_CAST = dict(
     kind=int, ident=int, r=lambda x: x, coord_frame=int)
 # key -> const, cast, write
 _CH_INFO_MAP = OrderedDict(
-    scanno=(FIFF.FIFF_CH_SCAN_NO, int, write_int),
-    logno=(FIFF.FIFF_CH_LOGICAL_NO, int, write_int),
-    kind=(FIFF.FIFF_CH_KIND, int, write_int),
-    range=(FIFF.FIFF_CH_RANGE, float, write_float),
-    cal=(FIFF.FIFF_CH_CAL, float, write_float),
-    coil_type=(FIFF.FIFF_CH_COIL_TYPE, int, write_int),
+    scanno=(FIFF.FIFF_CH_SCAN_NO, _int_item, write_int),
+    logno=(FIFF.FIFF_CH_LOGICAL_NO, _int_item, write_int),
+    kind=(FIFF.FIFF_CH_KIND, _int_item, write_int),
+    range=(FIFF.FIFF_CH_RANGE, _float_item, write_float),
+    cal=(FIFF.FIFF_CH_CAL, _float_item, write_float),
+    coil_type=(FIFF.FIFF_CH_COIL_TYPE, _int_item, write_int),
     loc=(FIFF.FIFF_CH_LOC, lambda x: x, write_float),
-    unit=(FIFF.FIFF_CH_UNIT, int, write_int),
-    unit_mul=(FIFF.FIFF_CH_UNIT_MUL, int, write_int),
+    unit=(FIFF.FIFF_CH_UNIT, _int_item, write_int),
+    unit_mul=(FIFF.FIFF_CH_UNIT_MUL, _int_item, write_int),
     ch_name=(FIFF.FIFF_CH_DACQ_NAME, str, write_string),
-    coord_frame=(FIFF.FIFF_CH_COORD_FRAME, int, write_int),
+    coord_frame=(FIFF.FIFF_CH_COORD_FRAME, _int_item, write_int),
 )
 # key -> cast
 _CH_CAST = OrderedDict((key, val[1]) for key, val in _CH_INFO_MAP.items())

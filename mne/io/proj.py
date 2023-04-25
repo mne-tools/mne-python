@@ -15,8 +15,9 @@ from .constants import FIFF
 from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
 from .tag import find_tag, _rename_list
 from .tree import dir_tree_find
-from .write import (write_int, write_float, write_string, write_name_list,
-                    write_float_matrix, end_block, start_block)
+from .write import (write_int, write_float, write_string, write_float_matrix,
+                    end_block, start_block, write_name_list_sanitized,
+                    _safe_name_list)
 from ..defaults import (_INTERPOLATION_DEFAULT, _BORDER_DEFAULT,
                         _EXTRAPOLATE_DEFAULT)
 from ..utils import (logger, verbose, warn, fill_doc, _validate_type,
@@ -140,7 +141,7 @@ class Projection(dict):
             show=show)
 
 
-class ProjMixin(object):
+class ProjMixin:
     """Mixin class for Raw, Evoked, Epochs.
 
     Notes
@@ -460,7 +461,7 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
     # global_nchan = None
     # tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
     # if tag is not None:
-    #     global_nchan = int(tag.data)
+    #     global_nchan = int(tag.data.item())
 
     items = dir_tree_find(nodes[0], FIFF.FIFFB_PROJ_ITEM)
     for item in items:
@@ -470,7 +471,7 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
         # sometimes
         # tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
         # if tag is not None:
-        #     nchan = int(tag.data)
+        #     nchan = int(tag.data.item())
         # else:
         #     nchan = global_nchan
 
@@ -486,19 +487,19 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_KIND)
         if tag is not None:
-            kind = int(tag.data)
+            kind = int(tag.data.item())
         else:
             raise ValueError('Projection item kind missing')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_NVEC)
         if tag is not None:
-            nvec = int(tag.data)
+            nvec = int(tag.data.item())
         else:
             raise ValueError('Number of projection vectors not specified')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
         if tag is not None:
-            names = tag.data.split(':')
+            names = _safe_name_list(tag.data, 'read', 'names')
         else:
             raise ValueError('Projection item channel list missing')
 
@@ -510,13 +511,13 @@ def _read_proj(fid, node, *, ch_names_mapping=None, verbose=None):
 
         tag = find_tag(fid, item, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE)
         if tag is not None:
-            active = bool(tag.data)
+            active = bool(tag.data.item())
         else:
             active = False
 
         tag = find_tag(fid, item, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR)
         if tag is not None:
-            explained_var = float(tag.data)
+            explained_var = float(tag.data.item())
         else:
             explained_var = None
 
@@ -579,7 +580,8 @@ def _write_proj(fid, projs, *, ch_names_mapping=None):
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
         write_int(fid, FIFF.FIFF_NCHAN, len(proj['data']['col_names']))
         names = _rename_list(proj['data']['col_names'], ch_names_mapping)
-        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names)
+        write_name_list_sanitized(
+            fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST, names, 'col_names')
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
@@ -871,7 +873,7 @@ def make_eeg_average_ref_proj(info, activate=True, *, ch_type='eeg',
         If True projections are activated.
     ch_type : str
         The channel type to use for reference projection.
-        Valid types are 'eeg', 'ecog', 'seeg' and 'dbs'.
+        Valid types are ``'eeg'``, ``'ecog'``, ``'seeg'`` and ``'dbs'``.
 
         .. versionadded:: 1.2
     %(verbose)s
@@ -1006,7 +1008,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, *, eeg_ref_ch_type='eeg',
     # Add EEG ref reference proj if necessary
     if add_eeg_ref and _needs_eeg_average_ref_proj(info):
         eeg_proj = make_eeg_average_ref_proj(
-            info, activate=activate, eeg_ref_ch_type=eeg_ref_ch_type)
+            info, activate=activate, ch_type=eeg_ref_ch_type)
         info['projs'].append(eeg_proj)
 
     # Create the projector

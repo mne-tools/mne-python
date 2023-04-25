@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tools for working with epoched data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -49,7 +47,8 @@ from .parallel import parallel_func
 from .event import (_read_events_fif, make_fixed_length_events,
                     match_event_names)
 from .fixes import rng_uniform
-from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin
+from .time_frequency.spectrum import (EpochsSpectrum, SpectrumMixin,
+                                      _validate_method)
 from .viz import (plot_epochs, plot_epochs_image,
                   plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose, repr_html,
@@ -564,7 +563,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                         sfreq=self.info['sfreq'])
         if self.baseline is not None and self.baseline != baseline:
             logger.info(f'Setting baseline interval to '
-                        f'[{self.baseline[0]}, {self.baseline[1]}] sec')
+                        f'[{self.baseline[0]}, {self.baseline[1]}] s')
 
         logger.info(_log_rescale(self.baseline))
 
@@ -1066,15 +1065,47 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     @property
     def _name(self):
         """Give a nice string representation based on event ids."""
+        return self._get_name()
+
+    def _get_name(self, count='frac', ms='×', sep='+'):
+        """Generate human-readable name for epochs and evokeds from event_id.
+
+        Parameters
+        ----------
+        count : 'frac' | 'total'
+            Whether to include the fraction or total number of epochs that each
+            event type contributes to the number of all epochs.
+            Ignored if only one event type is present.
+        ms : str | None
+            The multiplication sign to use. Pass ``None`` to omit the sign.
+            Ignored if only one event type is present.
+        sep : str
+            How to separate the different events names. Ignored if only one
+            event type is present.
+        """
+        _check_option('count', value=count, allowed_values=['frac', 'total'])
+
         if len(self.event_id) == 1:
             comment = next(iter(self.event_id.keys()))
         else:
-            count = Counter(self.events[:, 2])
+            counter = Counter(self.events[:, 2])
             comments = list()
-            for key, value in self.event_id.items():
-                comments.append('%.2f × %s' % (
-                    float(count[value]) / len(self.events), key))
-            comment = ' + '.join(comments)
+
+            # Take care of padding
+            if ms is None:
+                ms = ' '
+            else:
+                ms = f' {ms} '
+
+            for event_name, event_code in self.event_id.items():
+                if count == 'frac':
+                    frac = float(counter[event_code]) / len(self.events)
+                    comment = f'{frac:.2f}{ms}{event_name}'
+                else:  # 'total'
+                    comment = f'{counter[event_code]}{ms}{event_name}'
+                comments.append(comment)
+
+            comment = f' {sep} '.join(comments)
         return comment
 
     def _evoked_from_epoch_data(self, data, info, picks, n_events, kind,
@@ -1573,12 +1604,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Build string representation."""
         s = ' %s events ' % len(self.events)
         s += '(all good)' if self._bad_dropped else '(good & bad)'
-        s += ', %g - %g sec' % (self.tmin, self.tmax)
+        s += ', %g – %g s' % (self.tmin, self.tmax)
         s += ', baseline '
         if self.baseline is None:
             s += 'off'
         else:
-            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} sec'
+            s += f'{self.baseline[0]:g} – {self.baseline[1]:g} s'
             if self.baseline != _check_baseline(
                     self.baseline, times=self.times, sfreq=self.info['sfreq'],
                     on_baseline_outside_data='adjust'):
@@ -1606,7 +1637,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             baseline = 'off'
         else:
             baseline = tuple([f'{b:.3f}' for b in self.baseline])
-            baseline = f'{baseline[0]} – {baseline[1]} sec'
+            baseline = f'{baseline[0]} – {baseline[1]} s'
 
         if isinstance(self.event_id, dict):
             event_strings = []
@@ -1659,12 +1690,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if self.reject_tmin is not None and self.reject_tmin < self.tmin:
             logger.info(
                 f'reject_tmin is not in epochs time interval. '
-                f'Setting reject_tmin to epochs.tmin ({self.tmin} sec)')
+                f'Setting reject_tmin to epochs.tmin ({self.tmin} s)')
             self.reject_tmin = self.tmin
         if self.reject_tmax is not None and self.reject_tmax > self.tmax:
             logger.info(
                 f'reject_tmax is not in epochs time interval. '
-                f'Setting reject_tmax to epochs.tmax ({self.tmax} sec)')
+                f'Setting reject_tmax to epochs.tmax ({self.tmax} s)')
             self.reject_tmax = self.tmax
         return self
 
@@ -1699,7 +1730,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The name of the file, which should end with ``-epo.fif`` or
             ``-epo.fif.gz``.
         split_size : str | int
@@ -1737,7 +1768,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       '_epo.fif', '_epo.fif.gz'))
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite)
+        fname = str(_check_fname(fname=fname, overwrite=overwrite))
 
         split_size_bytes = _get_split_size(split_size)
 
@@ -2025,6 +2056,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ----------
         .. footbibliography::
         """
+        method = _validate_method(method, type(self).__name__)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
         return EpochsSpectrum(
             self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose,
@@ -3056,10 +3090,10 @@ def _read_one_epoch_file(f, tree, preload):
             pos = my_epochs['directory'][k].pos
             if kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, pos)
-                first = int(tag.data)
+                first = int(tag.data.item())
             elif kind == FIFF.FIFF_LAST_SAMPLE:
                 tag = read_tag(fid, pos)
-                last = int(tag.data)
+                last = int(tag.data.item())
             elif kind == FIFF.FIFF_EPOCH:
                 # delay reading until later
                 fid.seek(pos, 0)
@@ -3069,11 +3103,11 @@ def _read_one_epoch_file(f, tree, preload):
             elif kind in [FIFF.FIFF_MNE_BASELINE_MIN, 304]:
                 # Constant 304 was used before v0.11
                 tag = read_tag(fid, pos)
-                bmin = float(tag.data)
+                bmin = float(tag.data.item())
             elif kind in [FIFF.FIFF_MNE_BASELINE_MAX, 305]:
                 # Constant 305 was used before v0.11
                 tag = read_tag(fid, pos)
-                bmax = float(tag.data)
+                bmax = float(tag.data.item())
             elif kind == FIFF.FIFF_MNE_EPOCHS_SELECTION:
                 tag = read_tag(fid, pos)
                 selection = np.array(tag.data)
@@ -3175,7 +3209,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     return EpochsFIF(fname, proj, preload, verbose)
 
 
-class _RawContainer(object):
+class _RawContainer:
     """Helper for a raw data container."""
 
     def __init__(self, fid, data_tag, event_samps, epoch_shape,
@@ -3220,8 +3254,9 @@ class EpochsFIF(BaseEpochs):
                 fname=fname, filetype='epochs',
                 endings=('-epo.fif', '-epo.fif.gz', '_epo.fif', '_epo.fif.gz')
             )
-            fname = _check_fname(fname=fname, must_exist=True,
-                                 overwrite='read')
+            fname = str(
+                _check_fname(fname=fname, must_exist=True, overwrite="read")
+            )
         elif not preload:
             raise ValueError('preload must be used with file-like objects')
 
@@ -3636,7 +3671,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks_fix_mags,
                                         _prep_mf_coils, _check_destination,
-                                        _remove_meg_projs, _get_coil_scale)
+                                        _remove_meg_projs_comps,
+                                        _get_coil_scale, _get_sensor_operator)
     if head_pos is None:
         raise TypeError('head_pos must be provided and cannot be None')
     from .chpi import head_pos_to_trans_rot_t
@@ -3649,7 +3685,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         head_pos = head_pos_to_trans_rot_t(head_pos)
     trn, rot, t = head_pos
     del head_pos
-    _check_usable(epochs)
+    _check_usable(epochs, ignore_ref)
     origin = _check_origin(origin, epochs.info, 'head')
     recon_trans = _check_destination(destination, epochs.info, 'head')
 
@@ -3662,6 +3698,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         _get_mf_picks_fix_mags(info_to, int_order, ext_order, ignore_ref)
     coil_scale, mag_scale = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, info_to)
+    mult = _get_sensor_operator(epochs, meg_picks)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
     other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
     data = np.zeros((n_channels, n_times))
@@ -3726,6 +3763,9 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         # (We would need to include external here for regularization to work)
         exp['ext_order'] = 0
         S_recon = _trans_sss_basis(exp, all_coils_recon, recon_trans)
+        if mult is not None:
+            S_decomp = mult @ S_decomp
+            S_recon = mult @ S_recon
         exp['ext_order'] = ext_order
         # We could determine regularization on basis of destination basis
         # matrix, restricted to good channels, as regularizing individual
@@ -3744,7 +3784,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
                                             n_events=count, kind='average',
                                             comment=epochs._name)
-    _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
+    _remove_meg_projs_comps(evoked, ignore_ref)
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
 

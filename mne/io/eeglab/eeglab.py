@@ -5,6 +5,8 @@
 # License: BSD-3-Clause
 
 import os.path as op
+from os import PathLike
+from pathlib import Path
 
 import numpy as np
 
@@ -40,7 +42,7 @@ def _check_eeglab_fname(fname, dataname):
             'Old data format .dat detected. Please update your EEGLAB '
             'version and resave the data in .fdt format')
     elif fmt != '.fdt':
-        raise IOError('Expected .fdt file format. Found %s format' % fmt)
+        raise OSError('Expected .fdt file format. Found %s format' % fmt)
 
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
@@ -253,16 +255,16 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    eog : list | tuple | 'auto'
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    eog : list | tuple | ``'auto'``
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
     %(preload)s
-        Note that preload=False will be effective only if the data is stored
-        in a separate binary file.
+        Note that ``preload=False`` will be effective only if the data is
+        stored in a separate binary file.
     %(uint16_codec)s
     %(montage_units)s
     %(verbose)s
@@ -271,10 +273,11 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
     -------
     raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawEEGLAB.
 
     Notes
     -----
@@ -293,10 +296,10 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    events : str | array, shape (n_events, 3) | None
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    events : path-like | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
         of interest as specified by event_id, they will be marked as 'IGNORED'
@@ -328,7 +331,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----
@@ -346,9 +349,9 @@ class RawEEGLAB(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
@@ -362,7 +365,7 @@ class RawEEGLAB(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -373,7 +376,9 @@ class RawEEGLAB(BaseRaw):
     def __init__(self, input_fname, eog=(),
                  preload=False, *, uint16_codec=None, montage_units='mm',
                  verbose=None):  # noqa: D102
-        input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
+        input_fname = str(
+            _check_fname(input_fname, "read", True, "input_fname")
+        )
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
@@ -431,10 +436,10 @@ class EpochsEEGLAB(BaseEpochs):
 
     Parameters
     ----------
-    input_fname : str
-        Path to the .set file. If the data is stored in a separate .fdt file,
-        it is expected to be in the same folder as the .set file.
-    events : str | array, shape (n_events, 3) | None
+    input_fname : path-like
+        Path to the ``.set`` file. If the data is stored in a separate ``.fdt``
+        file, it is expected to be in the same folder as the ``.set`` file.
+    events : path-like | array, shape (n_events, 3) | None
         Path to events file. If array, it is the events typically returned
         by the read_events function. If some events don't match the events
         of interest as specified by event_id, they will be marked as 'IGNORED'
@@ -490,7 +495,7 @@ class EpochsEEGLAB(BaseEpochs):
 
     See Also
     --------
-    mne.Epochs : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attributes and methods.
 
     Notes
     -----
@@ -502,8 +507,9 @@ class EpochsEEGLAB(BaseEpochs):
                  baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, eog=(), uint16_codec=None,
                  montage_units='mm', verbose=None):  # noqa: D102
-        input_fname = _check_fname(fname=input_fname, must_exist=True,
-                                   overwrite='read')
+        input_fname = str(
+            _check_fname(fname=input_fname, must_exist=True, overwrite="read")
+        )
         eeg = _check_load_mat(input_fname, uint16_codec)
 
         if not ((events is None and event_id is None) or
@@ -561,7 +567,7 @@ class EpochsEEGLAB(BaseEpochs):
                 events[idx, 0] = event_latencies[idx]
                 events[idx, 1] = prev_stim
                 events[idx, 2] = event_id[event_name[idx]]
-        elif isinstance(events, str):
+        elif isinstance(events, (str, Path, PathLike)):
             events = read_events(events)
 
         logger.info('Extracting parameters from %s...' % input_fname)

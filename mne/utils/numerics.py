@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Clemens Brunner <clemens.brunner@gmail.com>
@@ -144,8 +143,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     n = x.shape[-1]
 
     # Decompose the matrix, not necessarily positive semidefinite
-    from mne.fixes import svd
-    U, s, Vh = svd(x, hermitian=True)
+    U, s, Vh = np.linalg.svd(x, hermitian=True)
 
     # Estimate the rank before regularization
     tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
@@ -154,7 +152,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s, axis=-1)
     if reg:
-        U, s, Vh = svd(
+        U, s, Vh = np.linalg.svd(
             x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n),
             hermitian=True)
 
@@ -826,7 +824,7 @@ def object_diff(a, b, pre='', *, allclose=False):
             if c.nnz > 0:
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
-    elif hasattr(a, '__getstate__'):
+    elif hasattr(a, '__getstate__') and a.__getstate__() is not None:
         out += object_diff(a.__getstate__(), b.__getstate__(), pre,
                            allclose=allclose)
     else:
@@ -834,7 +832,7 @@ def object_diff(a, b, pre='', *, allclose=False):
     return out
 
 
-class _PCA(object):
+class _PCA:
     """Principal component analysis (PCA)."""
 
     # Adapted from sklearn and stripped down to just use linalg.svd
@@ -1056,7 +1054,7 @@ def _stamp_to_dt(utc_stamp):
             timedelta(seconds=stamp[0], microseconds=stamp[1]))
 
 
-class _ReuseCycle(object):
+class _ReuseCycle:
     """Cycle over a variable, preferring to reuse earlier indices.
 
     Requires the values in ``x`` to be hashable and unique. This holds

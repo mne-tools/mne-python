@@ -26,7 +26,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
 
     Parameters
     ----------
-    in_fif_fname : str
+    in_fif_fname : path-like
         Raw fif File
     eog_event_fname : str
         name of EOG event file required.

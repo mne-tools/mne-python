@@ -34,7 +34,7 @@ class Raw(BaseRaw):
 
     Parameters
     ----------
-    fname : str | file-like
+    fname : path-like | file-like
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames not ending with
         ``raw.fif``, ``raw_sss.fif``, ``raw_tsss.fif``, ``_meg.fif``,
@@ -143,7 +143,7 @@ class Raw(BaseRaw):
                 endings += tuple([f'{e}.gz' for e in endings])
                 check_fname(fname, 'raw', endings)
             # filename
-            fname = _check_fname(fname, 'read', True, 'fname')
+            fname = str(_check_fname(fname, "read", True, "fname"))
             ext = os.path.splitext(fname)[1].lower()
             whole_file = preload if '.gz' in ext else False
             del ext
@@ -187,7 +187,7 @@ class Raw(BaseRaw):
             #   Get first sample tag if it is there
             if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, directory[first].pos)
-                first_samp = int(tag.data)
+                first_samp = int(tag.data.item())
                 first += 1
                 _check_entry(first, nent)
 
@@ -195,7 +195,7 @@ class Raw(BaseRaw):
             if directory[first].kind == FIFF.FIFF_DATA_SKIP:
                 # This first skip can be applied only after we know the bufsize
                 tag = read_tag(fid, directory[first].pos)
-                first_skip = int(tag.data)
+                first_skip = int(tag.data.item())
                 first += 1
                 _check_entry(first, nent)
 
@@ -220,7 +220,7 @@ class Raw(BaseRaw):
                 # an re-clicked the button
                 if ent.kind == FIFF.FIFF_DATA_SKIP:
                     tag = read_tag(fid, ent.pos)
-                    nskip = int(tag.data)
+                    nskip = int(tag.data.item())
                 elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                     #   Figure out the number of samples in this buffer
                     if ent.type == FIFF.FIFFT_DAU_PACK16:
@@ -436,7 +436,7 @@ def _get_fname_rep(fname):
 def _check_entry(first, nent):
     """Sanity check entries."""
     if first >= nent:
-        raise IOError('Could not read data, perhaps this is a corrupt file')
+        raise OSError('Could not read data, perhaps this is a corrupt file')
 
 
 @fill_doc
@@ -446,7 +446,7 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
 
     Parameters
     ----------
-    fname : str | file-like
+    fname : path-like | file-like
         The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
         with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,

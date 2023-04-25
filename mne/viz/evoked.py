@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions to plot evoked M/EEG data (besides topographies)."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -911,7 +910,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
     fig : instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations.
     """
-    if not type(evoked) in (tuple, list):
+    if type(evoked) not in (tuple, list):
         evoked = [evoked]
 
     background_color = _to_rgb(background_color, name='background_color')
@@ -2334,8 +2333,13 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     picks, picked_types = _picks_to_idx(info, picks, return_kind=True)
     # some things that depend on picks:
     ch_names = np.array(one_evoked.ch_names)[picks].tolist()
+    all_types = _DATA_CH_TYPES_SPLIT + (
+        'misc',  # from ICA
+        'emg',
+        'ref_meg',
+    )
     ch_types = [t for t in _get_channel_types(info, picks=picks, unique=True)
-                if t in _DATA_CH_TYPES_SPLIT + ('misc', 'emg')]  # miscICA
+                if t in all_types]
     picks_by_type = channel_indices_by_type(info, picks)
     # discard picks from non-data channels (e.g., ref_meg)
     good_picks = sum([picks_by_type[ch_type] for ch_type in ch_types], [])

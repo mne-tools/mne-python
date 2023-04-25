@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Alan Leggitt <alan.leggitt@ucsf.edu>
@@ -10,8 +9,7 @@
 
 from contextlib import nullcontext
 from functools import partial
-import os.path as op
-import inspect
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -34,34 +32,34 @@ from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()
 
-FILE = inspect.getfile(inspect.currentframe())
-data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
-montage_path = op.join(data_dir, 'biosemi.hpts')  # XXX: missing reader
-bdf_path = op.join(data_dir, 'test.bdf')
-edf_path = op.join(data_dir, 'test.edf')
-duplicate_channel_labels_path = op.join(data_dir,
-                                        'duplicate_channel_labels.edf')
-edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
-bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
-edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
-edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
-edf_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.edf')
-edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
+data_dir = Path(__file__).parent / "data"
+montage_path = data_dir / "biosemi.hpts"  # XXX: missing reader
+bdf_path = data_dir / "test.bdf"
+edf_path = data_dir / "test.edf"
+duplicate_channel_labels_path = data_dir / "duplicate_channel_labels.edf"
+edf_uneven_path = data_dir / "test_uneven_samp.edf"
+bdf_eeglab_path = data_dir / "test_bdf_eeglab.mat"
+edf_eeglab_path = data_dir / "test_edf_eeglab.mat"
+edf_uneven_eeglab_path = data_dir / "test_uneven_samp.mat"
+edf_stim_channel_path = data_dir / "test_edf_stim_channel.edf"
+edf_txt_stim_channel_path = data_dir / "test_edf_stim_channel.txt"
 
 data_path = testing.data_path(download=False)
-edf_stim_resamp_path = op.join(data_path, 'EDF', 'test_edf_stim_resamp.edf')
-edf_overlap_annot_path = op.join(data_path, 'EDF',
-                                 'test_edf_overlapping_annotations.edf')
-edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
-edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
-bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
-bdf_multiple_annotations_path = op.join(data_path, 'BDF',
-                                        'multiple_annotation_chans.bdf')
-test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
-test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
-edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
-edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
-edf_utf8_annotations = op.join(data_path, 'EDF', 'test_utf8_annotations.edf')
+edf_stim_resamp_path = data_path / "EDF" / "test_edf_stim_resamp.edf"
+edf_overlap_annot_path = (
+    data_path / "EDF" / "test_edf_overlapping_annotations.edf"
+)
+edf_reduced = data_path / "EDF" / "test_reduced.edf"
+edf_annot_only = data_path / "EDF" / "SC4001EC-Hypnogram.edf"
+bdf_stim_channel_path = data_path / "BDF" / "test_bdf_stim_channel.bdf"
+bdf_multiple_annotations_path = (
+    data_path / "BDF" / "multiple_annotation_chans.bdf"
+)
+test_generator_bdf = data_path / "BDF" / "test_generator_2.bdf"
+test_generator_edf = data_path / "EDF" / "test_generator_2.edf"
+edf_annot_sub_s_path = data_path / "EDF" / "subsecond_starttime.edf"
+edf_chtypes_path = data_path / "EDF" / "chtypes_edf.edf"
+edf_utf8_annotations = data_path / "EDF" / "test_utf8_annotations.edf"
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -192,7 +190,7 @@ def test_edf_data_broken(tmp_path):
     assert_equal(len(raw.ch_names) + 2, len(raw_py.ch_names))
 
     # Test with number of records not in header (-1).
-    broken_fname = op.join(tmp_path, 'broken.edf')
+    broken_fname = tmp_path / "broken.edf"
     with open(edf_path, 'rb') as fid_in:
         fid_in.seek(0, 2)
         n_bytes = fid_in.tell()
@@ -312,10 +310,10 @@ def test_no_data_channels():
 @pytest.mark.parametrize('fname', [edf_path, bdf_path])
 def test_to_data_frame(fname):
     """Test EDF/BDF Raw Pandas exporter."""
-    ext = op.splitext(fname)[1].lstrip('.').lower()
-    if ext == 'edf':
+    ext = fname.suffix
+    if ext == ".edf":
         raw = read_raw_edf(fname, preload=True, verbose='error')
-    elif ext == 'bdf':
+    elif ext == ".bdf":
         raw = read_raw_bdf(fname, preload=True, verbose='error')
     _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
@@ -461,10 +459,9 @@ def test_edf_prefilter_parse():
 @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
 def test_load_generator(fname, recwarn):
     """Test IO of annotations from edf and bdf files with raw info."""
-    ext = op.splitext(fname)[1][1:].lower()
-    if ext == 'edf':
+    if fname.suffix == ".edf":
         raw = read_raw_edf(fname)
-    elif ext == 'bdf':
+    elif fname.suffix == ".bdf":
         raw = read_raw_bdf(fname)
     assert len(raw.annotations.onset) == 2
     found_types = [k for k, v in
@@ -500,7 +497,7 @@ def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     KIND_DICT = get_channel_type_constants()
     TYPE_LUT = {v['kind']: k for k, v in KIND_DICT.items() if k not in
                 ('csd', 'chpi')}  # chpi not needed, and unhashable (a list)
-    fname = op.join(data_dir, 'test_stim_channel.edf')
+    fname = data_dir / "test_stim_channel.edf"
 
     raw = read_raw_edf(fname, stim_channel=test_input)
     ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
@@ -547,7 +544,7 @@ def test_invalid_date(tmp_path):
     # one wrong: no warning
     edf[101:104] = b'FEB'
     assert edf[172] == ord('4')
-    fname = op.join(str(tmp_path), "temp.edf")
+    fname = tmp_path / "temp.edf"
     with open(fname, "wb") as f:
         f.write(edf)
     read_raw_edf(fname)

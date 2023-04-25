@@ -17,10 +17,10 @@ import os
 import os.path as op
 from pathlib import Path
 import shutil
-import tempfile
 
 import numpy as np
 
+from .fixes import _compare_version
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_and_end_file, start_block, write_float, write_int,
@@ -36,7 +36,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname, has_nibabel, _check_option, path_like,
+                    _check_fname, _check_option, path_like, _import_nibabel,
                     _on_missing, _import_h5io_funcs, _ensure_int,
                     _path_like, _verbose_safe_false, _check_head_radius)
 
@@ -313,6 +313,8 @@ def _import_openmeeg(what='compute a BEM solution using OpenMEEG'):
         raise ImportError(
             f'The OpenMEEG module must be installed to {what}, but '
             f'"import openmeeg" resulted in: {exc}') from None
+    if not _compare_version(om.__version__, '>=', '2.5.6'):
+        raise ImportError(f'OpenMEEG 2.5.6+ is required, got {om.__version__}')
     return om
 
 
@@ -328,96 +330,7 @@ def _make_openmeeg_geometry(bem, mri_head_t=None):
         meshes.append((points, faces))
 
     conductivity = bem['sigma'][::-1]
-    # We should be able to do this:
-    #
-    # geom = om.make_nested_geometry(meshes, conductivity)
-    #
-    # But OpenMEEG's NumPy support is iffy. So let's use file IO for now :(
-
-    def _write_tris(fname, mesh):
-        from .surface import complete_surface_info
-        mesh = dict(rr=mesh[0], tris=mesh[1])
-        complete_surface_info(mesh, copy=False, do_neighbor_tri=False)
-        with open(fname, 'w') as fid:
-            fid.write(f'- {len(mesh["rr"])}\n')
-            for r, n in zip(mesh['rr'], mesh['nn']):
-                fid.write(f'{r[0]:.8f} {r[1]:.8f} {r[2]:.8f} '
-                          f'{n[0]:.8f} {n[1]:.8f} {n[2]:.8f}\n')
-            n_tri = len(mesh['tris'])
-            fid.write(f'- {n_tri} {n_tri} {n_tri}\n')
-            for t in mesh['tris']:
-                fid.write(f'{t[0]} {t[1]} {t[2]}\n')
-
-    assert len(conductivity) in (1, 3)
-    # on Windows, the dir can't be cleaned up, presumably because OpenMEEG
-    # does not let go of the file pointer (?). This is not great but hopefully
-    # writing files is temporary, and/or we can fix the file pointer bug
-    # in OpenMEEG soon.
-    tmp_dir = tempfile.TemporaryDirectory(prefix='openmeeg-io-')
-    tmp_path = Path(tmp_dir.name)
-    # In 3.10+ we could use this as a context manager as there is a
-    # ignore_cleanup_errors arg, but before this there is not.
-    # so let's just try/finally
-    try:
-        tmp_path = Path(tmp_path)
-        # write geom_file and three .tri files
-        geom_file = tmp_path / 'tmp.geom'
-        names = ['inner_skull', 'outer_skull', 'outer_skin']
-        lines = [
-            '# Domain Description 1.1',
-            '',
-            f'Interfaces {len(conductivity)}'
-            '',
-            f'Interface Cortex: "{names[0]}.tri"',
-        ]
-        if len(conductivity) == 3:
-            lines.extend([
-                f'Interface Skull: "{names[1]}.tri"',
-                f'Interface Head: "{names[2]}.tri"',
-            ])
-        lines.extend([
-            '',
-            f'Domains {len(conductivity) + 1}',
-            '',
-            'Domain Brain: -Cortex',
-        ])
-        if len(conductivity) == 1:
-            lines.extend([
-                'Domain Air: Cortex',
-            ])
-        else:
-            lines.extend([
-                'Domain Skull: Cortex -Skull',
-                'Domain Scalp: Skull -Head',
-                'Domain Air: Head',
-            ])
-        with open(geom_file, 'w') as fid:
-            fid.write('\n'.join(lines))
-        for mesh, name in zip(meshes, names):
-            _write_tris(tmp_path / f'{name}.tri', mesh)
-        # write cond_file
-        cond_file = tmp_path / 'tmp.cond'
-        lines = [
-            '# Properties Description 1.0 (Conductivities)',
-            '',
-            f'Brain       {conductivity[0]}',
-        ]
-        if len(conductivity) == 3:
-            lines.extend([
-                f'Skull       {conductivity[1]}',
-                f'Scalp       {conductivity[2]}',
-            ])
-        lines.append('Air         0.0')
-        with open(cond_file, 'w') as fid:
-            fid.write('\n'.join(lines))
-        geom = om.Geometry(str(geom_file), str(cond_file))
-    finally:
-        try:
-            tmp_dir.cleanup()
-        except Exception:
-            pass  # ignore any cleanup errors (esp. on Windows)
-
-    return geom
+    return om.make_nested_geometry(meshes, conductivity)
 
 
 def _fwd_bem_openmeeg_solution(bem):
@@ -447,7 +360,7 @@ def make_bem_solution(surfs, *, solver='mne', verbose=None):
     surfs : list of dict
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
     solver : str
-        Can be 'mne' (default) to use MNE-Python, or 'openmeeg' to use
+        Can be ``'mne'`` (default) to use MNE-Python, or ``'openmeeg'`` to use
         the :doc:`OpenMEEG <openmeeg:index>` package.
 
         .. versionadded:: 1.2
@@ -631,7 +544,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
         raise ValueError('surfs, ids, and sigmas must all have the same '
                          'number of elements (1 or 3)')
     for si, surf in enumerate(surfs):
-        if isinstance(surf, str):
+        if isinstance(surf, (str, Path, os.PathLike)):
             surfs[si] = surf = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
@@ -677,8 +590,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
     subject : str
         The subject.
     ico : int | None
-        The surface ico downsampling to use, e.g. 5=20484, 4=5120, 3=1280.
-        If None, no subsampling is applied.
+        The surface ico downsampling to use, e.g. ``5=20484``, ``4=5120``,
+        ``3=1280``. If None, no subsampling is applied.
     conductivity : array of int, shape (3,) or (1,)
         The conductivities to use for each shell. Should be a single element
         for a one-layer model, or three elements for a three-layer model.
@@ -709,11 +622,11 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         raise ValueError('conductivity must be 1D array-like with 1 or 3 '
                          'elements')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    subject_dir = op.join(subjects_dir, subject)
-    bem_dir = op.join(subject_dir, 'bem')
-    inner_skull = op.join(bem_dir, 'inner_skull.surf')
-    outer_skull = op.join(bem_dir, 'outer_skull.surf')
-    outer_skin = op.join(bem_dir, 'outer_skin.surf')
+    subject_dir = subjects_dir / subject
+    bem_dir = subject_dir / "bem"
+    inner_skull = bem_dir / "inner_skull.surf"
+    outer_skull = bem_dir / "outer_skull.surf"
+    outer_skin = bem_dir / "outer_skin.surf"
     surfaces = [inner_skull, outer_skull, outer_skin]
     ids = [FIFF.FIFFV_BEM_SURF_ID_BRAIN,
            FIFF.FIFFV_BEM_SURF_ID_SKULL,
@@ -975,7 +888,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     %(info_not_none)s
     %(dig_kinds)s
     units : str
-        Can be "m" (default) or "mm".
+        Can be ``"m"`` (default) or ``"mm"``.
 
         .. versionadded:: 0.12
     %(verbose)s
@@ -1283,7 +1196,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     run_subprocess_env(cmd)
     del tempdir  # clean up directory
     if op.isfile(T1_mgz):
-        new_info = _extract_volume_info(T1_mgz) if has_nibabel() else dict()
+        new_info = _extract_volume_info(T1_mgz)
         if not new_info:
             warn('nibabel is not available or the volume info is invalid.'
                  'Volume info not updated in the written surface.')
@@ -1339,8 +1252,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
 def _extract_volume_info(mgz):
     """Extract volume info from a mgz file."""
-    import nibabel
-    header = nibabel.load(mgz).header
+    nib = _import_nibabel()
+    header = nib.load(mgz).header
     version = header['version']
     vol_info = dict()
     if version == 1:
@@ -1365,7 +1278,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file containing the surfaces.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
@@ -1391,7 +1304,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
     # Open the file, create directory
     _validate_type(s_id, ('int-like', None), 's_id')
     fname = _check_fname(fname, 'read', True, 'fname')
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         surf = _read_bem_surfaces_h5(fname, s_id)
     else:
         surf = _read_bem_surfaces_fif(fname, s_id)
@@ -1463,24 +1376,24 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
     else:
-        res['id'] = int(tag.data)
+        res['id'] = int(tag.data.item())
 
     if s_id is not None and res['id'] != s_id:
         return None
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SIGMA)
-    res['sigma'] = 1.0 if tag is None else float(tag.data)
+    res['sigma'] = 1.0 if tag is None else float(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NNODE)
     if tag is None:
         raise ValueError('Number of vertices not found')
 
-    res['np'] = int(tag.data)
+    res['np'] = int(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
     if tag is None:
         raise ValueError('Number of triangles not found')
-    res['ntri'] = int(tag.data)
+    res['ntri'] = int(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
@@ -1488,9 +1401,9 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
         if tag is None:
             res['coord_frame'] = def_coord_frame
         else:
-            res['coord_frame'] = tag.data
+            res['coord_frame'] = int(tag.data.item())
     else:
-        res['coord_frame'] = tag.data
+        res['coord_frame'] = int(tag.data.item())
 
     # Vertices, normals, and triangles
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NODES)
@@ -1528,7 +1441,7 @@ def read_bem_solution(fname, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file containing the BEM solution.
     %(verbose)s
 
@@ -1546,7 +1459,7 @@ def read_bem_solution(fname, *, verbose=None):
     """
     fname = _check_fname(fname, 'read', True, 'fname')
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         read_hdf5, _ = _import_h5io_funcs()
         logger.info('Loading surfaces and solution...')
         bem = read_hdf5(fname)
@@ -1713,11 +1626,11 @@ def _bem_find_surface(bem, id_):
 
 @verbose
 def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
-    """Write BEM surfaces to a fiff file.
+    """Write BEM surfaces to a FIF file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to write. Can end with ``.h5`` to write using HDF5.
     surfs : dict | list of dict
         The surfaces, or a single surface.
@@ -1728,7 +1641,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
         surfs = [surfs]
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
 
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         _, write_hdf5 = _import_h5io_funcs()
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
@@ -1742,11 +1655,11 @@ def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
 @verbose
 def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
                    *, verbose=None):
-    """Write a head surface to a fiff file.
+    """Write a head surface to a FIF file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Filename to write.
     rr : array, shape (n_vertices, 3)
         Coordinate points in the MRI coordinate system.
@@ -1787,7 +1700,7 @@ def write_bem_solution(fname, bem, overwrite=False, *, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to use. Can end with ``.h5`` to write using HDF5.
     bem : instance of ConductorModel
         The BEM model with solution to save.
@@ -1799,7 +1712,7 @@ def write_bem_solution(fname, bem, overwrite=False, *, verbose=None):
     read_bem_solution
     """
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
-    if fname.endswith('.h5'):
+    if fname.suffix == ".h5":
         _, write_hdf5 = _import_h5io_funcs()
         bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
         write_hdf5(fname, bem, overwrite=True)
@@ -1843,24 +1756,19 @@ def _prepare_env(subject, subjects_dir):
     _validate_type(subject, "str")
 
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    subjects_dir = op.abspath(subjects_dir)  # force use of an absolute path
-    subjects_dir = op.expanduser(subjects_dir)
-    if not op.isdir(subjects_dir):
-        raise RuntimeError('Could not find the MRI data directory "%s"'
-                           % subjects_dir)
-    subject_dir = op.join(subjects_dir, subject)
-    if not op.isdir(subject_dir):
+    subject_dir = subjects_dir / subject
+    if not subject_dir.is_dir():
         raise RuntimeError('Could not find the subject data directory "%s"'
                            % (subject_dir,))
-    env.update(SUBJECT=subject, SUBJECTS_DIR=subjects_dir,
+    env.update(SUBJECT=subject, SUBJECTS_DIR=str(subjects_dir),
                FREESURFER_HOME=fs_home)
-    mri_dir = op.join(subject_dir, 'mri')
-    bem_dir = op.join(subject_dir, 'bem')
+    mri_dir = subject_dir / "mri"
+    bem_dir = subject_dir / "bem"
     return env, mri_dir, bem_dir
 
 
 def _write_echos(mri_dir, flash_echos, angle):
-    import nibabel as nib
+    nib = _import_nibabel('write echoes')
     from nibabel.spatialimages import SpatialImage
     if _path_like(flash_echos):
         flash_echos = nib.load(flash_echos)
@@ -2082,7 +1990,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             raise ValueError(f'Flash 5 image cannot be found at {flash5}.')
     else:
         logger.info(f"Writing flash 5 image at {flash5}")
-        import nibabel as nib
+        nib = _import_nibabel('write an MRI image')
         nib.save(flash5_img, flash5)
 
     if register:
@@ -2252,7 +2160,7 @@ def _ensure_bem_surfaces(bem, extra_allow=(), name='bem'):
 def _check_file(fname, overwrite):
     """Prevent overwrites."""
     if op.isfile(fname) and not overwrite:
-        raise IOError(f'File {fname} exists, use --overwrite to overwrite it')
+        raise OSError(f'File {fname} exists, use --overwrite to overwrite it')
 
 
 _tri_levels = dict(
@@ -2286,7 +2194,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         create surfaces for all three types of decimations.
     threshold : int
         The threshold to use with the MRI in the call to ``mkheadsurf``.
-        The default is 20.
+        The default is ``20``.
 
         .. versionadded:: 1.1
     mri : str
@@ -2297,23 +2205,23 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     incomplete = 'warn' if force else 'raise'
-    subj_path = op.join(subjects_dir, subject)
-    if not op.exists(subj_path):
+    subj_path = subjects_dir / subject
+    if not subj_path.exists():
         raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
     # Backward compat for old FreeSurfer (?)
     _validate_type(mri, str, 'mri')
     if mri == 'T1.mgz':
-        mri = mri if op.exists(op.join(subj_path, 'mri', mri)) else 'T1'
+        mri = mri if (subj_path / "mri" / mri).exists() else "T1"
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
-    def check_seghead(surf_path=op.join(subj_path, 'surf')):
+    def check_seghead(surf_path=subj_path / "surf"):
         surf = None
         for k in ['lh.seghead', 'lh.smseghead']:
-            this_surf = op.join(surf_path, k)
-            if op.exists(this_surf):
+            this_surf = surf_path / k
+            if this_surf.exists():
                 surf = this_surf
                 break
         return surf
@@ -2322,9 +2230,9 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     threshold = _ensure_int(threshold, 'threshold')
     if my_seghead is None:
         this_env = deepcopy(os.environ)
-        this_env['SUBJECTS_DIR'] = subjects_dir
+        this_env['SUBJECTS_DIR'] = str(subjects_dir)
         this_env['SUBJECT'] = subject
-        this_env['subjdir'] = subjects_dir + '/' + subject
+        this_env['subjdir'] = str(subj_path)
         if 'FREESURFER_HOME' not in this_env:
             raise RuntimeError(
                 'The FreeSurfer environment needs to be set up to use '
@@ -2340,11 +2248,11 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         raise RuntimeError('mkheadsurf did not produce the standard output '
                            'file.')
 
-    bem_dir = op.join(subjects_dir, subject, 'bem')
-    if not op.isdir(bem_dir):
+    bem_dir = subjects_dir / subject / "bem"
+    if not bem_dir.is_dir():
         os.mkdir(bem_dir)
-    fname_template = op.join(bem_dir, '%s-head-{}.fif' % subject)
-    dense_fname = fname_template.format('dense')
+    fname_template = bem_dir / ("%s-head-{}.fif" % subject)
+    dense_fname = str(fname_template).format('dense')
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
@@ -2365,7 +2273,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         points, tris = decimate_surface(points=surf['rr'],
                                         triangles=surf['tris'],
                                         n_triangles=n_tri)
-        dec_fname = fname_template.format(level)
+        dec_fname = str(fname_template).format(level)
         logger.info('%i.2 Creating %s' % (ii, dec_fname))
         _check_file(dec_fname, overwrite)
         dec_surf = _surfaces_to_bem(

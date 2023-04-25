@@ -416,7 +416,7 @@ def test_missing_res4(tmp_path):
                     tmp_path / ctf_fname_continuous)
     read_raw_ctf(use_ds)
     os.remove(use_ds / (ctf_fname_continuous[:-2] + 'meg4'))
-    with pytest.raises(IOError, match='could not find the following'):
+    with pytest.raises(OSError, match='could not find the following'):
         read_raw_ctf(use_ds)
 
 

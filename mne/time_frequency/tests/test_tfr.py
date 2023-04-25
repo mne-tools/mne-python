@@ -1,12 +1,13 @@
-from itertools import product
 import datetime
-import os.path as op
 import re
+from itertools import product
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose)
 import pytest
 import matplotlib.pyplot as plt
+from scipy.signal import morlet2
 
 import mne
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
@@ -17,15 +18,15 @@ from mne.utils import (requires_version, requires_pandas, grand_average,
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
-                                    EpochsTFR)
+                                    EpochsTFR, fwhm)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 from mne.tests.test_epochs import assert_metadata_equal
 
-data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(data_path, 'test_raw.fif')
-event_fname = op.join(data_path, 'test-eve.fif')
-raw_ctf_fname = op.join(data_path, 'test_ctf_raw.fif')
+data_path = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = data_path / "test_raw.fif"
+event_fname = data_path / "test-eve.fif"
+raw_ctf_fname = data_path / "test_ctf_raw.fif"
 
 
 def test_tfr_ctf():
@@ -38,13 +39,35 @@ def test_tfr_ctf():
         method(epochs, [10], 1)  # smoke test
 
 
-def test_morlet():
+@pytest.mark.parametrize('sfreq', [1000., 100 + np.pi])
+@pytest.mark.parametrize('freq', [10., np.pi])
+@pytest.mark.parametrize('n_cycles', [7, 2])
+def test_morlet(sfreq, freq, n_cycles):
     """Test morlet with and without zero mean."""
-    Wz = morlet(1000, [10], 2., zero_mean=True)
-    W = morlet(1000, [10], 2., zero_mean=False)
+    Wz = morlet(sfreq, freq, n_cycles, zero_mean=True)
+    W = morlet(sfreq, freq, n_cycles, zero_mean=False)
 
-    assert (np.abs(np.mean(np.real(Wz[0]))) < 1e-5)
-    assert (np.abs(np.mean(np.real(W[0]))) > 1e-3)
+    assert np.abs(np.mean(np.real(Wz))) < 1e-5
+    if n_cycles == 2:
+        assert np.abs(np.mean(np.real(W))) > 1e-3
+    else:
+        assert np.abs(np.mean(np.real(W))) < 1e-5
+
+    assert_allclose(np.linalg.norm(W), np.sqrt(2), atol=1e-6)
+
+    # Convert to SciPy nomenclature and compare
+    M = len(W)
+    w = n_cycles
+    s = w * sfreq / (2 * freq * np.pi)  # from SciPy docs
+    Ws = morlet2(M, s, w) * np.sqrt(2)
+    assert_allclose(W, Ws)
+
+    # Check FWHM
+    fwhm_formula = fwhm(freq, n_cycles)
+    half_max = np.abs(W).max() / 2.
+    fwhm_empirical = (np.abs(W) >= half_max).sum() / sfreq
+    # Could be off by a few samples
+    assert_allclose(fwhm_formula, fwhm_empirical, atol=3 / sfreq)
 
 
 def test_time_frequency():
@@ -101,7 +124,8 @@ def test_time_frequency():
                    freqs=freqs, n_cycles=n_cycles, use_fft=True,
                    return_itc=False, picks=picks, average=False)
     assert_allclose(
-        epochs_power_picks.data[0, 0, 0, 0], 9.130315e-23, rtol=1e-4)
+        epochs_power_picks.data[0, 0, 0, 0], 9.130315e-23,
+        rtol=1e-4)
     power_picks_avg = epochs_power_picks.average()
     # the actual data arrays here are equivalent, too...
     assert_allclose(power.data, power_picks.data)
@@ -445,8 +469,8 @@ def test_decim():
 def test_io(tmp_path):
     """Test TFR IO capacities."""
     from pandas import DataFrame
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'test-tfr.h5')
+
+    fname = tmp_path / "test-tfr.h5"
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
@@ -469,7 +493,7 @@ def test_io(tmp_path):
     assert_equal(tfr.comment, tfr2.comment)
     assert_equal(tfr.nave, tfr2.nave)
 
-    pytest.raises(IOError, tfr.save, fname)
+    pytest.raises(OSError, tfr.save, fname)
 
     tfr.comment = None
     # test old meas_date
@@ -480,7 +504,7 @@ def test_io(tmp_path):
     tfr.comment = 'test-A'
     tfr2.comment = 'test-B'
 
-    fname = op.join(tempdir, 'test2-tfr.h5')
+    fname = tmp_path / "test2-tfr.h5"
     write_tfrs(fname, [tfr, tfr2])
     tfr3 = read_tfrs(fname, condition='test-A')
     assert_equal(tfr.comment, tfr3.comment)
@@ -520,7 +544,7 @@ def test_io(tmp_path):
                     metadata=meta)
     fname_save = fname
     tfr.save(fname_save, True)
-    fname_write = op.join(tempdir, 'test3-tfr.h5')
+    fname_write = tmp_path / "test3-tfr.h5"
     write_tfrs(fname_write, tfr, overwrite=True)
     for fname in [fname_save, fname_write]:
         read_tfr = read_tfrs(fname)[0]

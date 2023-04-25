@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-ica:
 
@@ -23,13 +22,14 @@ and classes from that submodule:
 
 import os
 import mne
-from mne.preprocessing import (ICA, create_eog_epochs, create_ecg_epochs,
-                               corrmap)
+from mne.preprocessing import (ICA, corrmap, create_ecg_epochs,
+                               create_eog_epochs)
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
+
 # Here we'll crop to 60 seconds and drop gradiometer channels for speed
 raw.crop(tmax=60.).pick_types(meg='mag', eeg=True, stim=True, eog=True)
 raw.load_data()

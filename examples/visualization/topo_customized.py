@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-topo-custom:
 
@@ -48,7 +47,8 @@ psds = 20 * np.log10(psds)  # scale to dB
 
 
 def my_callback(ax, ch_idx):
-    """
+    """Handle axes callback.
+
     This block of code is executed once you click on one of the channel axes
     in the plot. To work with the viz internals, this function should only take
     two parameters, the axis and the channel or data index.

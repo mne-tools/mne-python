@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -47,11 +46,12 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div, TimeMixin, repr_html)
+                     _check_time_format, _arange_div, TimeMixin, repr_html,
+                     _pl)
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
-from ..time_frequency.spectrum import Spectrum, SpectrumMixin
+from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 
 @fill_doc
@@ -102,7 +102,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
 
     Notes
     -----
@@ -281,8 +281,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self._dtype_
 
     @verbose
-    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-                      projector=None, verbose=None):
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None, *,
+                      verbose=None):
         """Read a chunk of raw data.
 
         Parameters
@@ -344,26 +344,22 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # set up cals and mult (cals, compensation, and projector)
         n_out = len(np.arange(len(self.ch_names))[idx])
-        cals = self._cals.ravel()[np.newaxis, :]
-        if projector is not None:
-            assert projector.shape[0] == projector.shape[1] == cals.shape[1]
-        if self._comp is not None:
+        cals = self._cals.ravel()
+        projector, comp = self._projector, self._comp
+        if comp is not None:
+            mult = comp
             if projector is not None:
-                mult = self._comp * cals
-                mult = np.dot(projector[idx], mult)
-            else:
-                mult = self._comp[idx] * cals
-        elif projector is not None:
-            mult = projector[idx] * cals
+                mult = projector @ mult
         else:
-            mult = None
-        del projector
+            mult = projector
+        del projector, comp
 
         if mult is None:
-            cals = cals.T[idx]
+            cals = cals[idx, np.newaxis]
             assert cals.shape == (n_out, 1)
             need_idx = idx  # sufficient just to read the given channels
         else:
+            mult = mult[idx] * cals
             cals = None  # shouldn't be used
             assert mult.shape == (n_out, len(self.ch_names))
             # read all necessary for proj
@@ -504,8 +500,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data_buffer = None
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (0, len(self.times) - 1, 0., self.times[-1]))
-        self._data = self._read_segment(
-            data_buffer=data_buffer, projector=self._projector)
+        self._data = self._read_segment(data_buffer=data_buffer)
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self._comp = None  # no longer needed
@@ -575,7 +570,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @property
     def _raw_lengths(self):
-        return [l - f + 1 for f, l in zip(self._first_samps, self._last_samps)]
+        return [
+            last - first + 1
+            for first, last in zip(self._first_samps, self._last_samps)
+        ]
 
     @property
     def annotations(self):  # noqa: D401
@@ -752,8 +750,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if self.preload:
             data = self._data[sel, start:stop]
         else:
-            data = self._read_segment(start=start, stop=stop, sel=sel,
-                                      projector=self._projector)
+            data = self._read_segment(start=start, stop=stop, sel=sel)
 
         if return_times:
             # Rather than compute the entire thing just compute the subset
@@ -987,7 +984,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=None,
                      method='fir', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
-                     fir_design='firwin', pad='reflect_limited', verbose=None):
+                     fir_design='firwin', pad='reflect_limited',
+                     skip_by_annotation=('edge', 'bad_acq_skip'),
+                     verbose=None):
         """Notch filter a subset of channels.
 
         Parameters
@@ -1024,6 +1023,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
+        %(skip_by_annotation)s
         %(verbose)s
 
         Returns
@@ -1053,13 +1053,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         fs = float(self.info['sfreq'])
         picks = _picks_to_idx(self.info, picks, exclude=(), none='data_or_ica')
         _check_preload(self, 'raw.notch_filter')
-        self._data = notch_filter(
-            self._data, fs, freqs, filter_length=filter_length,
-            notch_widths=notch_widths, trans_bandwidth=trans_bandwidth,
-            method=method, iir_params=iir_params, mt_bandwidth=mt_bandwidth,
-            p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
-            phase=phase, fir_window=fir_window, fir_design=fir_design,
-            pad=pad)
+        onsets, ends = _annotations_starts_stops(
+            self, skip_by_annotation, invert=True)
+        logger.info('Filtering raw data in %d contiguous segment%s'
+                    % (len(onsets), _pl(onsets)))
+        for si, (start, stop) in enumerate(zip(onsets, ends)):
+            notch_filter(
+                self._data[:, start:stop], fs, freqs,
+                filter_length=filter_length, notch_widths=notch_widths,
+                trans_bandwidth=trans_bandwidth, method=method,
+                iir_params=iir_params, mt_bandwidth=mt_bandwidth,
+                p_value=p_value, picks=picks, n_jobs=n_jobs, copy=False,
+                phase=phase, fir_window=fir_window, fir_design=fir_design,
+                pad=pad)
         return self
 
     @verbose
@@ -1266,7 +1272,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('tmin (%s) must be >= 0' % (tmin,))
         elif tmax - int(not include_tmax) / self.info['sfreq'] > max_time:
             raise ValueError('tmax (%s) must be less than or equal to the max '
-                             'time (%0.4f sec)' % (tmax, max_time))
+                             'time (%0.4f s)' % (tmax, max_time))
 
         smin, smax = np.where(_time_mask(
             self.times, tmin, tmax, sfreq=self.info['sfreq'],
@@ -1348,7 +1354,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
             ``raw.fif`` (common raw data), ``raw_sss.fif``
@@ -1415,7 +1421,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         endings_err = ('.fif', '.fif.gz')
 
         # convert to str, check for overwrite a few lines later
-        fname = _check_fname(fname, overwrite=True, verbose="error")
+        fname = str(_check_fname(fname, overwrite=True, verbose="error"))
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1443,8 +1449,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              '"double", not "short"')
 
         # check for file existence and expand `~` if present
-        fname = _check_fname(fname=fname, overwrite=overwrite,
-                             verbose="error")
+        fname = str(
+            _check_fname(fname=fname, overwrite=overwrite, verbose="error")
+        )
 
         if proj:
             info = deepcopy(self.info)
@@ -1659,7 +1666,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             nsamp = c_ns[-1]
 
             if not self.preload:
-                this_data = self._read_segment(projector=self._projector)
+                this_data = self._read_segment()
             else:
                 this_data = self._data
 
@@ -1671,8 +1678,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 if not raws[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    raws[ri]._read_segment(data_buffer=data_buffer,
-                                           projector=self._projector)
+                    raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
@@ -1775,7 +1781,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stim_channel : str | None
             Name of the stim channel to add to. If None, the config variable
             'MNE_STIM_CHANNEL' is used. If this is not found, it will default
-            to 'STI 014'.
+            to ``'STI 014'``.
         replace : bool
             If True the old events on the stim channel are removed before
             adding the new ones.
@@ -1843,6 +1849,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         .. footbibliography::
         """
+        method = _validate_method(method, type(self).__name__)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
         return Spectrum(
             self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
@@ -2132,7 +2141,7 @@ def _get_scaling(ch_type, target_unit):
     return scaling
 
 
-class _ReadSegmentFileProtector(object):
+class _ReadSegmentFileProtector:
     """Ensure only _filenames, _raw_extras, and _read_segment_file are used."""
 
     def __init__(self, raw):
@@ -2146,7 +2155,7 @@ class _ReadSegmentFileProtector(object):
             self, data, idx, fi, start, stop, cals, mult)
 
 
-class _RawShell(object):
+class _RawShell:
     """Create a temporary raw object."""
 
     def __init__(self):  # noqa: D102
@@ -2185,7 +2194,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                            '(max: %s) requested' % (start, stop, n_times_max))
 
     # Expand `~` if present
-    fname = _check_fname(fname=fname, overwrite=overwrite)
+    fname = str(_check_fname(fname=fname, overwrite=overwrite))
 
     base, ext = op.splitext(fname)
     if part_idx > 0:
@@ -2489,22 +2498,27 @@ def _check_raw_compatibility(raw):
     for ri in range(1, len(raw)):
         if not isinstance(raw[ri], type(raw[0])):
             raise ValueError(f'raw[{ri}] type must match')
-        for key in ('nchan', 'bads', 'sfreq'):
+        for key in ('nchan', 'sfreq'):
             a, b = raw[ri].info[key], raw[0].info[key]
             if a != b:
                 raise ValueError(
                     f'raw[{ri}].info[{key}] must match:\n'
                     f'{repr(a)} != {repr(b)}')
-        if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
-            raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
-        if not all(raw[ri]._cals == raw[0]._cals):
+        for kind in ('bads', 'ch_names'):
+            set1 = set(raw[0].info[kind])
+            set2 = set(raw[ri].info[kind])
+            mismatch = set1.symmetric_difference(set2)
+            if mismatch:
+                raise ValueError(f'raw[{ri}][\'info\'][{kind}] do not match: '
+                                 f'{sorted(mismatch)}')
+        if any(raw[ri]._cals != raw[0]._cals):
             raise ValueError('raw[%d]._cals must match' % ri)
         if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
             raise ValueError('SSP projectors in raw files must be the same')
         if not all(_proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
-    if not all(r.orig_format == raw[0].orig_format for r in raw):
+    if any(r.orig_format != raw[0].orig_format for r in raw):
         warn('raw files do not all have the same data format, could result in '
              'precision mismatch. Setting raw.orig_format="unknown"')
         raw[0].orig_format = 'unknown'

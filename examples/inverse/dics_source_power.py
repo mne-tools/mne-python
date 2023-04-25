@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-inverse-source-power:
 
@@ -39,7 +38,7 @@ raw_fname = (data_path / f'sub-{subject}' / 'meg' /
 
 # Use a shorter segment of raw just for speed here
 raw = mne.io.read_raw_fif(raw_fname)
-raw.crop(0, 120)  # one minute for speed (looks similar to using all ~800 sec)
+raw.crop(0, 120)  # one minute for speed (looks similar to using all ~800 s)
 
 # Read epochs
 events = mne.find_events(raw)

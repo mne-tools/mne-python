@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 # Authors: Robert Luke  <mail@robertluke.net>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          simplified BSD-3 license
 
-import os.path as op
 import shutil
 import os
 import datetime as dt
@@ -23,35 +21,41 @@ from mne.preprocessing.nirs import source_detector_distances,\
 from mne.io.constants import FIFF
 
 testing_path = data_path(download=False)
-fname_nirx_15_0 = op.join(
-    testing_path, 'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(
-    testing_path, 'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(
-    testing_path, 'NIRx', 'nirscout', 'nirx_15_2_recording_w_short')
-fname_nirx_15_3_short = op.join(
-    testing_path, 'NIRx', 'nirscout', 'nirx_15_3_recording')
+fname_nirx_15_0 = testing_path / "NIRx" / "nirscout" / "nirx_15_0_recording"
+fname_nirx_15_2 = testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording"
+fname_nirx_15_2_short = (
+    testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
+)
+fname_nirx_15_3_short = (
+    testing_path / "NIRx" / "nirscout" / "nirx_15_3_recording"
+)
 
 
 # This file has no saturated sections
-nirsport1_wo_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
-                           'nirx_15_3_recording_wo_saturation')
-# This file has saturation, but not on the optode pairing in montage
-nirsport1_w_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
-                          'nirx_15_3_recording_w_saturation_'
-                          'not_on_montage_channels')
+nirsport1_wo_sat = (
+    testing_path / "NIRx" / "nirsport_v1" / "nirx_15_3_recording_wo_saturation"
+)
+# This file has saturation / but not on the optode pairing in montage
+nirsport1_w_sat = (
+    testing_path
+    / "NIRx"
+    / "nirsport_v1"
+    / "nirx_15_3_recording_w_saturation_not_on_montage_channels"
+)
 # This file has saturation in channels of interest
-nirsport1_w_fullsat = op.join(
-    testing_path, 'NIRx', 'nirsport_v1', 'nirx_15_3_recording_w_'
-    'saturation_on_montage_channels')
+nirsport1_w_fullsat = (
+    testing_path
+    / "NIRx"
+    / "nirsport_v1"
+    / "nirx_15_3_recording_w_saturation_on_montage_channels"
+)
 
 # NIRSport2 device using Aurora software
-nirsport2 = op.join(
-    testing_path, 'NIRx', 'nirsport_v2', 'aurora_recording _w_short_and_acc')
-nirsport2_2021_9 = op.join(
-    testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9')
-nirsport2_2021_9_6 = op.join(
-    testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9_6')
+nirsport2 = (
+    testing_path / "NIRx" / "nirsport_v2" / "aurora_recording _w_short_and_acc"
+)
+nirsport2_2021_9 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9"
+nirsport2_2021_9_6 = testing_path / "NIRx" / "nirsport_v2" / "aurora_2021_9_6"
 
 
 def test_nirsport_v2_matches_snirf(nirx_snirf):
@@ -228,7 +232,7 @@ def test_nirsport_v1_w_bad_sat(preload, meas_date):
 @requires_testing_data
 def test_nirx_hdr_load():
     """Test reading NIRX files using path to header file."""
-    fname = fname_nirx_15_2_short + "/NIRS-2019-08-23_001.hdr"
+    fname = fname_nirx_15_2_short / "NIRS-2019-08-23_001.hdr"
     raw = read_raw_nirx(fname, preload=True)
 
     # Test data import
@@ -240,7 +244,7 @@ def test_nirx_hdr_load():
 def test_nirx_missing_warn():
     """Test reading NIRX files when missing data."""
     with pytest.raises(FileNotFoundError, match='does not exist'):
-        read_raw_nirx(fname_nirx_15_2_short + "1", preload=True)
+        read_raw_nirx(fname_nirx_15_2_short / "1", preload=True)
 
 
 @requires_testing_data
@@ -452,7 +456,7 @@ def test_locale_encoding(tmp_path):
     """Test NIRx encoding."""
     fname = tmp_path / 'latin'
     shutil.copytree(fname_nirx_15_2, fname)
-    hdr_fname = op.join(fname, 'NIRS-2019-10-02_003.hdr')
+    hdr_fname = fname / "NIRS-2019-10-02_003.hdr"
     hdr = list()
     with open(hdr_fname, 'rb') as fid:
         hdr.extend(line for line in fid)

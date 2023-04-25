@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Import NeuroElectrics DataFormat (NEDF) files."""
 
 from copy import deepcopy
@@ -131,7 +130,7 @@ class RawNedf(BaseRaw):
     """Raw object from NeuroElectrics nedf file."""
 
     def __init__(self, filename, preload=False, verbose=None):
-        filename = _check_fname(filename, 'read', True, 'filename')
+        filename = str(_check_fname(filename, "read", True, "filename"))
         with open(filename, mode='rb') as fid:
             header = fid.read(_HDRLEN)
         header, dt, dt_last, n_samp, n_full = _parse_nedf_header(header)
@@ -202,8 +201,8 @@ def read_raw_nedf(filename, preload=False, verbose=None):
 
     Parameters
     ----------
-    filename : str
-        Path to the .nedf file.
+    filename : path-like
+        Path to the ``.nedf`` file.
     %(preload)s
     %(verbose)s
 
@@ -211,9 +210,10 @@ def read_raw_nedf(filename, preload=False, verbose=None):
     -------
     raw : instance of RawNedf
         A Raw object containing NEDF data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawNedf.
     """
     return RawNedf(filename, preload, verbose)

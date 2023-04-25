@@ -22,7 +22,7 @@ def read_raw_boxy(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the BOXY data file.
     %(preload)s
     %(verbose)s
@@ -31,10 +31,11 @@ def read_raw_boxy(fname, preload=False, verbose=None):
     -------
     raw : instance of RawBOXY
         A Raw object containing BOXY data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawBOXY.
     """
     return RawBOXY(fname, preload, verbose)
 
@@ -45,14 +46,14 @@ class RawBOXY(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the BOXY data file.
     %(preload)s
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
@@ -65,7 +66,7 @@ class RawBOXY(BaseRaw):
         raw_extras = dict()
         raw_extras['offsets'] = list()  # keep track of our offsets
         sfreq = None
-        fname = _check_fname(fname, 'read', True, 'fname')
+        fname = str(_check_fname(fname, "read", True, "fname"))
         with open(fname, 'r') as fid:
             line_num = 0
             i_line = fid.readline()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-filter-resample:
 
@@ -109,8 +108,11 @@ mne.viz.plot_filter(filter_params, raw.info['sfreq'], flim=(0.01, 5))
 # Power line noise is an environmental artifact that manifests as persistent
 # oscillations centered around the `AC power line frequency`_. Power line
 # artifacts are easiest to see on plots of the spectrum, so we'll use
-# :meth:`~mne.io.Raw.plot_psd` to illustrate. We'll also write a little
-# function that adds arrows to the spectrum plot to highlight the artifacts:
+# :meth:`~mne.io.Raw.compute_psd` to get a
+# :class:`~mne.time_frequency.Spectrum` object, and use its
+# :meth:`~mne.time_frequency.Spectrum.plot` method to illustrate. We'll also
+# write a little function that adds arrows to the spectrum plot to highlight
+# the artifacts:
 
 
 def add_arrows(axes):
@@ -126,7 +128,7 @@ def add_arrows(axes):
                      width=0.1, head_width=3, length_includes_head=True)
 
 
-fig = raw.plot_psd(fmax=250, average=True)
+fig = raw.compute_psd(fmax=250).plot(average=True)
 add_arrows(fig.axes[:2])
 
 # %%
@@ -142,7 +144,7 @@ meg_picks = mne.pick_types(raw.info, meg=True)
 freqs = (60, 120, 180, 240)
 raw_notch = raw.copy().notch_filter(freqs=freqs, picks=meg_picks)
 for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
-    fig = data.plot_psd(fmax=250, average=True)
+    fig = data.compute_psd(fmax=250).plot(average=True)
     fig.subplots_adjust(top=0.85)
     fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
     add_arrows(fig.axes[:2])
@@ -161,7 +163,7 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
 raw_notch_fit = raw.copy().notch_filter(
     freqs=freqs, picks=meg_picks, method='spectrum_fit', filter_length='10s')
 for title, data in zip(['Un', 'spectrum_fit '], [raw, raw_notch_fit]):
-    fig = data.plot_psd(fmax=250, average=True)
+    fig = data.compute_psd(fmax=250).plot(average=True)
     fig.subplots_adjust(top=0.85)
     fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
     add_arrows(fig.axes[:2])
@@ -197,7 +199,7 @@ for title, data in zip(['Un', 'spectrum_fit '], [raw, raw_notch_fit]):
 raw_downsampled = raw.copy().resample(sfreq=200)
 
 for data, title in zip([raw, raw_downsampled], ['Original', 'Downsampled']):
-    fig = data.plot_psd(average=True)
+    fig = data.compute_psd().plot(average=True)
     fig.subplots_adjust(top=0.9)
     fig.suptitle(title)
     plt.setp(fig.axes, xlim=(0, 300))

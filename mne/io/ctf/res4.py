@@ -19,7 +19,7 @@ def _make_ctf_name(directory, extra, raise_error=True):
     found = True
     if not op.isfile(fname):
         if raise_error:
-            raise IOError('Standard file %s not found' % fname)
+            raise OSError('Standard file %s not found' % fname)
         found = False
     return fname, found
 
@@ -88,8 +88,8 @@ def _read_comp_coeff(fid, d):
         d['comp'].append(comp)
         comp['sensor_name'] = \
             comps['sensor_name'][k].split(b'\x00')[0].decode('utf-8')
-        comp['coeff_type'] = comps['coeff_type'][k]
-        comp['ncoeff'] = comps['ncoeff'][k]
+        comp['coeff_type'] = comps['coeff_type'][k].item()
+        comp['ncoeff'] = comps['ncoeff'][k].item()
         comp['sensors'] = [s.split(b'\x00')[0].decode('utf-8')
                            for s in comps['sensors'][k][:comp['ncoeff']]]
         comp['coeffs'] = comps['coeffs'][k][:comp['ncoeff']]

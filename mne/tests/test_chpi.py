@@ -2,7 +2,7 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 from numpy.testing import (assert_allclose, assert_array_less,
@@ -29,34 +29,39 @@ from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.utils import catch_logging, assert_meg_snr, verbose, object_diff
 from mne.viz import plot_head_positions
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
-hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
-raw_fname = op.join(base_dir, 'test_raw.fif')
+base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+ctf_fname = base_dir / "test_ctf_raw.fif"
+hp_fif_fname = base_dir / "test_chpi_raw_sss.fif"
+hp_fname = base_dir / "test_chpi_raw_hp.txt"
+raw_fname = base_dir / "test_raw.fif"
 
 data_path = testing.data_path(download=False)
-sample_fname = op.join(
-    data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
-pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
-sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
-sss_hpisubt_fname = op.join(data_path, 'SSS', 'test_move_anon_hpisubt_raw.fif')
-chpi5_fif_fname = op.join(data_path, 'SSS', 'chpi5_raw.fif')
-chpi5_pos_fname = op.join(data_path, 'SSS', 'chpi5_raw_mc.pos')
-ctf_chpi_fname = op.join(data_path, 'CTF', 'testdata_ctf_mc.ds')
-ctf_chpi_pos_fname = op.join(data_path, 'CTF', 'testdata_ctf_mc.pos')
+sample_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+chpi_fif_fname = data_path / "SSS" / "test_move_anon_raw.fif"
+pos_fname = data_path / "SSS" / "test_move_anon_raw.pos"
+sss_fif_fname = data_path / "SSS" / "test_move_anon_raw_sss.fif"
+sss_hpisubt_fname = data_path / "SSS" / "test_move_anon_hpisubt_raw.fif"
+chpi5_fif_fname = data_path / "SSS" / "chpi5_raw.fif"
+chpi5_pos_fname = data_path / "SSS" / "chpi5_raw_mc.pos"
+ctf_chpi_fname = data_path / "CTF" / "testdata_ctf_mc.ds"
+ctf_chpi_pos_fname = data_path / "CTF" / "testdata_ctf_mc.pos"
 
-art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
-                    '-15h-44m-22s_Motion_Translation-z.bin')
-art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
-                       '-15h-44m-22s_Motion_Translation-z_mc.pos')
+art_fname = (
+    data_path
+    / "ARTEMIS123"
+    / "Artemis_Data_2017-04-04-15h-44m-22s_Motion_Translation-z.bin"
+)
+art_mc_fname = (
+    data_path
+    / "ARTEMIS123"
+    / "Artemis_Data_2017-04-04-15h-44m-22s_Motion_Translation-z_mc.pos"
+)
 
-con_fname = op.join(data_path, 'KIT', 'MQKIT_125_2sec.con')
-mrk_fname = op.join(data_path, 'KIT', 'MQKIT_125.mrk')
-elp_fname = op.join(data_path, 'KIT', 'MQKIT_125.elp')
-hsp_fname = op.join(data_path, 'KIT', 'MQKIT_125.hsp')
-berlin_fname = op.join(data_path, 'KIT', 'data_berlin.con')
+con_fname = data_path / "KIT" / "MQKIT_125_2sec.con"
+mrk_fname = data_path / "KIT" / "MQKIT_125.mrk"
+elp_fname = data_path / "KIT" / "MQKIT_125.elp"
+hsp_fname = data_path / "KIT" / "MQKIT_125.hsp"
+berlin_fname = data_path / "KIT" / "data_berlin.con"
 
 
 @testing.requires_testing_data
@@ -101,7 +106,7 @@ def test_chpi_adjust():
 @testing.requires_testing_data
 def test_read_write_head_pos(tmp_path):
     """Test reading and writing head position quaternion parameters."""
-    temp_name = op.join(str(tmp_path), 'temp.pos')
+    temp_name = tmp_path / "temp.pos"
     # This isn't a 100% valid quat matrix but it should be okay for tests
     head_pos_rand = np.random.RandomState(0).randn(20, 10)
     # This one is valid
@@ -115,13 +120,13 @@ def test_read_write_head_pos(tmp_path):
     pytest.raises(ValueError, write_head_pos, temp_name, 'foo')  # not array
     pytest.raises(ValueError, write_head_pos, temp_name, head_pos_read[:, :9])
     pytest.raises(TypeError, read_head_pos, 0)
-    pytest.raises(IOError, read_head_pos, temp_name + 'foo')
+    pytest.raises(OSError, read_head_pos, "101")
 
 
 @testing.requires_testing_data
 def test_hpi_info(tmp_path):
     """Test getting HPI info."""
-    temp_name = op.join(str(tmp_path), 'temp_raw.fif')
+    temp_name = tmp_path / "temp_raw.fif"
     for fname in (chpi_fif_fname, sss_fif_fname):
         raw = read_raw_fif(fname, allow_maxshield='yes').crop(0, 0.1)
         assert len(raw.info['hpi_subsystem']) > 0
@@ -402,8 +407,8 @@ def test_calculate_head_pos_chpi_on_chpi5_in_one_second_steps():
     mf_quats = read_head_pos(chpi5_pos_fname)
     raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes')
     # the last two seconds contain a maxfilter problem!
-    # fiff file timing: 26. to 43. seconds
-    # maxfilter estimates a wrong head position for interval 16: 41.-42. sec
+    # fiff file timing: 26. to 43. s
+    # maxfilter estimates a wrong head position for interval 16: 41.-42. s
     raw = _decimate_chpi(raw.crop(0., 10.).load_data(), decim=8)
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
     py_quats = _calculate_chpi_positions(
@@ -433,7 +438,7 @@ def test_simulate_calculate_head_pos_chpi():
     # Read info dict from raw FIF file
     info = read_info(raw_fname)
     # Tune the info structure
-    chpi_channel = u'STI201'
+    chpi_channel = 'STI201'
     ncoil = len(info['hpi_results'][0]['order'])
     coil_freq = 10 + np.arange(ncoil) * 5
     hpi_subsystem = {'event_channel': chpi_channel,
@@ -555,7 +560,7 @@ def test_calculate_chpi_coil_locs_artemis():
     times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
 
     assert len(np.setdiff1d(times, raw.times + raw.first_time)) == 0
-    # Should be somewhere around 1.5 sec, depending on coil GOF values
+    # Should be somewhere around 1.5 s, depending on coil GOF values
     # around 0.98 it can change
     assert_allclose(times[5], 1.5, atol=2e-1)
     assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)

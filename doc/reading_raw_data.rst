@@ -20,6 +20,7 @@ Reading raw data
    read_raw_ctf
    read_raw_curry
    read_raw_edf
+   read_raw_eyelink
    read_raw_bdf
    read_raw_gdf
    read_raw_kit
@@ -37,6 +38,7 @@ Reading raw data
    read_raw_boxy
    read_raw_persyst
    read_raw_nihon
+   read_raw_fil
 
 Base class:
 

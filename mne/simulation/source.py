@@ -112,9 +112,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
         The labels. The default is None, otherwise its size must be n_dipoles.
     %(random_state)s
     location : str
-        The label location to choose. Can be 'random' (default) or 'center'
-        to use :func:`mne.Label.center_of_mass`. Note that for 'center'
-        mode the label values are used as weights.
+        The label location to choose. Can be ``'random'`` (default) or
+        ``'center'`` to use :func:`mne.Label.center_of_mass`. Note that for
+        ``'center'`` mode the label values are used as weights.
 
         .. versionadded:: 0.13
     subject : str | None
@@ -316,7 +316,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
     return stc
 
 
-class SourceSimulator(object):
+class SourceSimulator:
     """Class to generate simulated Source Estimates.
 
     Parameters
@@ -324,7 +324,7 @@ class SourceSimulator(object):
     src : instance of SourceSpaces
         Source space.
     tstep : float
-        Time step between successive samples in data. Default is 0.001 sec.
+        Time step between successive samples in data. Default is 0.001 s.
     duration : float | None
         Time interval during which the simulation takes place in seconds.
         If None, it is computed using existing events and waveform lengths.

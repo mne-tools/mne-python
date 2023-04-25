@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # Authors: Federico Raimondo  <federaimondo@gmail.com>
 #          simplified BSD-3 license
-import os.path as op
 
 from numpy.testing import assert_array_equal
 from scipy import io as sio
@@ -16,13 +14,13 @@ testing_path = data_path(download=False)
 @requires_testing_data
 def test_eximia_nxe():
     """Test reading Eximia NXE files."""
-    fname = op.join(testing_path, 'eximia', 'test_eximia.nxe')
+    fname = testing_path / "eximia" / "test_eximia.nxe"
     raw = read_raw_eximia(fname, preload=True)
     assert 'RawEximia' in repr(raw)
     _test_raw_reader(read_raw_eximia, fname=fname,
                      test_scaling=False,  # XXX probably a scaling problem
                      )
-    fname_mat = op.join(testing_path, 'eximia', 'test_eximia.mat')
+    fname_mat = testing_path / "eximia" / "test_eximia.mat"
     mc = sio.loadmat(fname_mat)
     m_data = mc['data']
     m_header = mc['header']

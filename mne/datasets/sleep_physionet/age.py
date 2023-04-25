@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD Style.
 
+import os
+import time
+
 import numpy as np
 
 from ...utils import verbose
+from ..utils import _log_time_size
 from ._utils import _fetch_one, _data_path, _on_missing, AGE_SLEEP_RECORDS
 from ._utils import _check_subjects
 
@@ -80,6 +83,7 @@ def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
     ----------
     .. footbibliography::
     """  # noqa: E501
+    t0 = time.time()
     records = np.loadtxt(AGE_SLEEP_RECORDS,
                          skiprows=1,
                          delimiter=',',
@@ -108,15 +112,23 @@ def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
         _on_missing(on_missing, msg)
 
     fnames = []
+    sz = 0
     for subject in subjects:
         for idx in np.where(psg_records['subject'] == subject)[0]:
             if psg_records['record'][idx] in recording:
-                psg_fname = _fetch_one(psg_records['fname'][idx].decode(),
-                                       psg_records['sha'][idx].decode(),
-                                       *params)
-                hyp_fname = _fetch_one(hyp_records['fname'][idx].decode(),
-                                       hyp_records['sha'][idx].decode(),
-                                       *params)
+                psg_fname, pdl = _fetch_one(
+                    psg_records['fname'][idx].decode(),
+                    psg_records['sha'][idx].decode(),
+                    *params)
+                hyp_fname, hdl = _fetch_one(
+                    hyp_records['fname'][idx].decode(),
+                    hyp_records['sha'][idx].decode(),
+                    *params)
                 fnames.append([psg_fname, hyp_fname])
-
+                if pdl:
+                    sz += os.path.getsize(psg_fname)
+                if hdl:
+                    sz += os.path.getsize(hyp_fname)
+    if sz > 0:
+        _log_time_size(t0, sz)
     return fnames

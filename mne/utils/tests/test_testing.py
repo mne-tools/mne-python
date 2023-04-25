@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
 import os.path as op
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -32,10 +32,10 @@ def test_buggy_mkl():
 def test_tempdir():
     """Test TempDir."""
     tempdir2 = _TempDir()
-    assert (op.isdir(tempdir2))
+    assert (Path(tempdir2).is_dir())
     x = str(tempdir2)
     del tempdir2
-    assert (not op.isdir(x))
+    assert (not Path(x).is_dir())
 
 
 def test_datasets(monkeypatch, tmp_path):

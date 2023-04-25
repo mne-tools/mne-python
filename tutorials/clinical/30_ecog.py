@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-working-with-ecog:
 
@@ -36,7 +35,7 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
+from matplotlib import colormaps
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
@@ -64,10 +63,10 @@ subjects_dir = sample_path / 'subjects'
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
                      task='ictal', datatype='ieeg', extension='.vhdr')
 
-# then we'll use it to load in the sample dataset
-# Here we use a format (iEEG) that is only available in MNE-BIDS 0.7+, so it
-# will emit a warning on versions <= 0.6
-raw = read_raw_bids(bids_path=bids_path, verbose=False)
+# Then we'll use it to load in the sample dataset. This function changes the
+# units of some channels, so we suppress a related warning here by using
+# verbose='error'.
+raw = read_raw_bids(bids_path=bids_path, verbose='error')
 
 # Pick only the ECoG channels, removing the EKG channels
 raw.pick_types(ecog=True)
@@ -147,7 +146,7 @@ gamma_power_at_15s = gamma_power_t.to_data_frame(index='time').loc[15]
 # scale values to be between 0 and 1, then map to colors
 gamma_power_at_15s -= gamma_power_at_15s.min()
 gamma_power_at_15s /= gamma_power_at_15s.max()
-rgba = cm.get_cmap("viridis")
+rgba = colormaps.get_cmap("viridis")
 sensor_colors = gamma_power_at_15s.map(rgba).tolist()
 
 fig = plot_alignment(raw.info, trans='fsaverage',

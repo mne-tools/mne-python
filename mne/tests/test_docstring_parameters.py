@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
 
 import importlib
 import inspect
-from inspect import getsource
-import os.path as op
 from pathlib import Path
 from pkgutil import walk_packages
 import re
@@ -197,7 +194,7 @@ def test_tabs():
                 mod = importlib.import_module(modname)
             except Exception:  # e.g., mne.export not having pybv
                 continue
-            source = getsource(mod)
+            source = inspect.getsource(mod)
             assert '\t' not in source, ('"%s" has tabs, please remove them '
                                         'or add it to the ignore list'
                                         % modname)
@@ -268,9 +265,9 @@ write_info
 
 def test_documented():
     """Test that public functions and classes are documented."""
-    doc_dir = op.abspath(op.join(op.dirname(__file__), '..', '..', 'doc'))
-    doc_file = op.join(doc_dir, 'python_reference.rst')
-    if not op.isfile(doc_file):
+    doc_dir = (Path(__file__).parent.parent.parent / "doc").absolute()
+    doc_file = doc_dir / "python_reference.rst"
+    if not doc_file.is_file():
         pytest.skip('Documentation file not found: %s' % doc_file)
     api_files = (
         'covariance', 'creating_from_arrays', 'datasets',
@@ -280,7 +277,7 @@ def test_documented():
         'statistics', 'time_frequency', 'visualization', 'export')
     known_names = list()
     for api_file in api_files:
-        with open(op.join(doc_dir, f'{api_file}.rst'), 'rb') as fid:
+        with open(doc_dir / f'{api_file}.rst', 'rb') as fid:
             for line in fid:
                 line = line.decode('utf-8')
                 if not line.startswith('  '):  # at least two spaces

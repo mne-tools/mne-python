@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
@@ -14,8 +13,8 @@ def what(fname):
 
     Parameters
     ----------
-    fname : str
-        The filename. Should end in .fif or .fif.gz.
+    fname : path-like
+        The filename. Should end in ``.fif`` or ``.fif.gz``.
 
     Returns
     -------

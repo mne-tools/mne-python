@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 """Test reading of NEDF format."""
 # Author: Tristan Stenner <nedf@nicht.dienstli.ch>
 #
 # License: BSD-3-Clause
-
-import os.path as op
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -16,7 +13,7 @@ from mne.datasets import testing
 from mne.io.tests.test_raw import _test_raw_reader
 
 eeg_path = testing.data_path(download=False, verbose=True)
-eegfile = op.join(eeg_path, 'nedf', 'testdata.nedf')
+eegfile = eeg_path / "nedf" / "testdata.nedf"
 
 stimhdr = b"""
 <nedf>

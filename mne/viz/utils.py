@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utility functions for plotting M/EEG data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -481,20 +480,27 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     ax_temp = fig_proj.add_axes((0, offset, 1, 0.8 - offset), frameon=False)
     ax_temp.set_title('Projectors marked with "X" are active')
 
-    proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
-    # make edges around checkbox areas
-    for rect in proj_checks.rectangles:
-        rect.set_edgecolor('0.5')
-        rect.set_linewidth(1.)
+    # make edges around checkbox areas and change already-applied projectors
+    # to red
+    from ._mpl_figure import _OLD_BUTTONS
+    check_kwargs = dict()
+    if not _OLD_BUTTONS:
+        checkcolor = ['#ff0000' if p['active'] else 'k' for p in projs]
+        check_kwargs['check_props'] = dict(facecolor=checkcolor)
+        check_kwargs['frame_props'] = dict(edgecolor='0.5', linewidth=1)
+    proj_checks = widgets.CheckButtons(
+        ax_temp, labels=labels, actives=actives, **check_kwargs)
+    if _OLD_BUTTONS:
+        for rect in proj_checks.rectangles:
+            rect.set_edgecolor('0.5')
+            rect.set_linewidth(1.)
+        for ii, p in enumerate(projs):
+            if p['active']:
+                for x in proj_checks.lines[ii]:
+                    x.set_color('#ff0000')
 
-    # change already-applied projectors to red
-    for ii, p in enumerate(projs):
-        if p['active']:
-            for x in proj_checks.lines[ii]:
-                x.set_color('#ff0000')
     # make minimal size
     # pass key presses from option dialog over
-
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
     fig_proj.canvas.mpl_connect('key_press_event', _key_press)
@@ -537,11 +543,11 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
     Parameters
     ----------
-    fname_1 : str
+    fname_1 : path-like
         First file to compare.
-    fname_2 : str
+    fname_2 : path-like
         Second file to compare.
-    fname_out : str | None
+    fname_out : path-like | None
         Filename to store the resulting diff. If None, a temporary
         file will be created.
     show : bool
@@ -647,7 +653,7 @@ def _key_press(event):
         plt.close(event.canvas.figure)
 
 
-class ClickableImage(object):
+class ClickableImage:
     """Display an image so you can click on it and store x/y positions.
 
     Takes as input an image array (can be any array that works with imshow,
@@ -771,6 +777,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
             assert kind == 'motion'
             kind = 'motion_notify_event'
             button = None
+        logger.debug(
+            f'Faking {kind} @ ({x}, {y}) with button={button} and key={key}')
         fig.canvas.callbacks.process(
             kind,
             backend_bases.MouseEvent(
@@ -907,38 +915,39 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
-        sensor selection dialog. Available options 'topomap', '3d', 'select'.
-        If 'select', a set of channels can be selected interactively by using
-        lasso selector or clicking while holding control key. The selected
-        channels are returned along with the figure instance. Defaults to
-        'topomap'.
+        sensor selection dialog. Available options ``'topomap'``, ``'3d'``,
+        ``'select'``. If ``'select'``, a set of channels can be selected
+        interactively by using lasso selector or clicking while holding control
+        key. The selected channels are returned along with the figure instance.
+        Defaults to ``'topomap'``.
     ch_type : None | str
-        The channel type to plot. Available options 'mag', 'grad', 'eeg',
-        'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
-        grad, eeg, seeg, dbs and ecog channels are plotted. If None (default),
-        then channels are chosen in the order given above.
+        The channel type to plot. Available options ``'mag'``, ``'grad'``,
+        ``'eeg'``, ``'seeg'``, ``'dbs'``, ``'ecog'``, ``'all'``. If ``'all'``,
+        all the available mag, grad, eeg, seeg, dbs and ecog channels are
+        plotted. If None (default), then channels are chosen in the order given
+        above.
     title : str | None
         Title for the figure. If None (default), equals to
         ``'Sensor positions (%%s)' %% ch_type``.
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
-    ch_groups : 'position' | array of shape (n_ch_groups, n_picks) | None
+    ch_groups : 'position' | list of list | None
         Channel groups for coloring the sensors. If None (default), default
         coloring scheme is used. If 'position', the sensors are divided
         into 8 regions. See ``order`` kwarg of :func:`mne.viz.plot_raw`. If
-        array, the channels are divided by picks given in the array.
+        array, the channels are divided by picks given in the array. Also
+        accepts a list of lists to allow channel groups of the same or
+        different sizes.
 
         .. versionadded:: 0.13.0
     to_sphere : bool
         Whether to project the 3d locations to a sphere. When False, the
         sensor array appears similar as to looking downwards straight above the
-        subject's head. Has no effect when kind='3d'. Defaults to True.
+        subject's head. Has no effect when ``kind='3d'``. Defaults to True.
 
         .. versionadded:: 0.14.0
-    axes : instance of Axes | instance of Axes3D | None
-        Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
-        of Axes3D. If None (default), a new axes will be created.
+    %(axes_montage)s
 
         .. versionadded:: 0.13.0
     block : bool
@@ -950,10 +959,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         Show figure if True. Defaults to True.
     %(sphere_topomap_auto)s
     pointsize : float | None
-        The size of the points. If None (default), will bet set to 75 if
-        ``kind='3d'``, or 25 otherwise.
+        The size of the points. If None (default), will bet set to ``75`` if
+        ``kind='3d'``, or ``25`` otherwise.
     linewidth : float
-        The width of the outline. If 0, the outline will not be drawn.
+        The width of the outline. If ``0``, the outline will not be drawn.
     %(verbose)s
 
     Returns
@@ -977,8 +986,25 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     """
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
-    if not isinstance(info, Info):
-        raise TypeError(f'info must be an instance of Info not {type(info)}')
+    if axes is not None:
+        from matplotlib.axes import Axes
+        from mpl_toolkits.mplot3d.axes3d import Axes3D
+
+        if kind == "3d":
+            _validate_type(axes, Axes3D, "axes", extra="when 'kind' is '3d'")
+        elif kind in ("topomap", "select"):
+            _validate_type(
+                axes,
+                Axes,
+                "axes",
+                extra="when 'kind' is 'topomap' or 'select'"
+            )
+            if isinstance(axes, Axes3D):
+                raise TypeError(
+                    "axes must be an instance of Axes when 'kind' is "
+                    f"'topomap' or 'select', got {type(axes)} instead."
+                )
+    _validate_type(info, Info, "info")
     ch_indices = channel_indices_by_type(info)
     allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
@@ -1018,12 +1044,16 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
+    _validate_type(ch_groups, (list, np.ndarray, str, None), 'ch_groups')
     if ch_groups is None:
         def_colors = _handle_default('color')
         colors = ['red' if i in bads else def_colors[channel_type(info, pick)]
                   for i, pick in enumerate(picks)]
     else:
-        if ch_groups in ['position', 'selection']:
+        if isinstance(ch_groups, str):
+            _check_option(
+                'ch_groups', ch_groups, ['position', 'selection'],
+                extra='when str')
             # Avoid circular import
             from ..channels import (read_vectorview_selection, _SELECTIONS,
                                     _EEG_SELECTIONS, _divide_to_regions)
@@ -1047,13 +1077,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 x, y, z = pos[color_picks].T
                 color = np.mean(_rgb(x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
-        else:
+        else:  # array-like
             import matplotlib.pyplot as plt
             colors = np.linspace(0, 1, len(ch_groups))
             color_vals = [plt.cm.jet(colors[i]) for i in range(len(ch_groups))]
-        if not isinstance(ch_groups, (np.ndarray, list)):
-            raise ValueError("ch_groups must be None, 'position', "
-                             "'selection', or an array. Got %s." % ch_groups)
         colors = np.zeros((len(picks), 4))
         for pick_idx, pick in enumerate(picks):
             for ind, value in enumerate(ch_groups):
@@ -1343,7 +1370,7 @@ def _prepare_joint_axes(n_maps, figsize=None):
     return fig, main_ax, map_ax, cbar_ax
 
 
-class DraggableColorbar(object):
+class DraggableColorbar:
     """Enable interactive colorbar.
 
     See http://www.ster.kuleuven.be/~pieterd/python/html/plotting/interactive_colorbar.html
@@ -1661,7 +1688,7 @@ def _connection_line(x, fig, sourceax, targetax, y=1.,
                   clip_on=False)
 
 
-class DraggableLine(object):
+class DraggableLine:
     """Custom matplotlib line for moving around by drag and drop.
 
     Parameters
@@ -1751,7 +1778,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
         closer_idx = np.argmin(np.abs(xlims - temp_ticks))
         further_idx = np.argmax(np.abs(xlims - temp_ticks))
         start_stop = [temp_ticks[closer_idx], xlims[further_idx]]
-        step = np.sign(np.diff(start_stop)) * np.max(np.abs(temp_ticks))
+        step = np.sign(np.diff(start_stop)).item() * np.max(np.abs(temp_ticks))
         tts = np.arange(*start_stop, step)
         xticks = np.array(sorted(xticks + [tts[0], tts[-1]]))
     axes.set_xticks(xticks)

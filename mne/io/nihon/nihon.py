@@ -28,7 +28,7 @@ def read_raw_nihon(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the Nihon Kohden data file (``.EEG``).
     preload : bool
         If True, all data are loaded at initialization.
@@ -38,10 +38,11 @@ def read_raw_nihon(fname, preload=False, verbose=None):
     -------
     raw : instance of RawNihon
         A Raw object containing Nihon Kohden data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawNihon.
     """
     return RawNihon(fname, preload, verbose)
 
@@ -333,21 +334,20 @@ class RawNihon(BaseRaw):
 
     Parameters
     ----------
-    fname : str
-        Path to the Nihon Kohden data file (.eeg).
+    fname : path-like
+        Path to the Nihon Kohden data ``.eeg`` file.
     preload : bool
         If True, all data are loaded at initialization.
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         fname = _check_fname(fname, 'read', True, 'fname')
-        fname = _ensure_path(fname)
         data_name = fname.name
         logger.info('Loading %s' % data_name)
 

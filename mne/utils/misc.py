@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Some miscellaneous utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -21,6 +20,12 @@ import numpy as np
 
 from ..utils import _check_option, _validate_type
 from ._logging import logger, verbose, warn
+
+# TODO: remove try/except when our min version is py 3.9
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
 
 
 def _pl(x, non_pl='', pl='s'):
@@ -436,12 +441,7 @@ def _resource_path(submodule, filename):
     path : str
         The full system path to the requested file.
     """
-    try:
-        from importlib.resources import files
-        return files(submodule).joinpath(filename)
-    except ImportError:
-        from pkg_resources import resource_filename
-        return resource_filename(submodule, filename)
+    return files(submodule).joinpath(filename)
 
 
 def repr_html(f):

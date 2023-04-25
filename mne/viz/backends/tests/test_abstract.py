@@ -1,11 +1,16 @@
-# -*- coding: utf-8 -*-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: Simplified BSD
 
-from mne.viz import set_3d_backend
+from pathlib import Path
+import sys
+
+import pytest
+
 from mne.viz.backends.renderer import _get_backend
 from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
+
+from mne.utils import check_version
 
 
 def _do_widget_tests(backend):
@@ -106,9 +111,33 @@ def _do_widget_tests(backend):
 
 
 @skips_if_not_pyvistaqt
-def test_widget_abstraction_pyvistaqt():
+def test_widget_abstraction_pyvistaqt(renderer_pyvistaqt):
     """Test the GUI widgets abstraction."""
-    set_3d_backend('pyvistaqt')
     backend = _get_backend()
+    assert Path(backend.__file__).stem == '_qt'
+    _do_widget_tests(backend)
 
+
+nb_skip_mark = pytest.mark.skipif(
+    sys.platform.startswith('win') or not check_version('ipympl'),
+    reason='need ipympl and nbexec does not work on Windows')
+
+
+# Marking directly with skipif causes problems for nbexec, so let's get it in
+# via a param
+@pytest.mark.parametrize('skippy', [pytest.param('', marks=nb_skip_mark)])
+def test_widget_abstraction_notebook(renderer_notebook, nbexec, skippy):
+    """Test the GUI widgets abstraction in notebook."""
+    from pathlib import Path
+    from mne.viz import set_3d_backend
+    from mne.viz.backends.renderer import _get_backend
+    from mne.viz.backends.tests.test_abstract import _do_widget_tests
+    from IPython import get_ipython
+
+    set_3d_backend('notebook')
+    backend = _get_backend()
+    assert Path(backend.__file__).stem == '_notebook'
+
+    ipython = get_ipython()
+    ipython.magic('%matplotlib widget')
     _do_widget_tests(backend)

@@ -25,13 +25,13 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     func : callable
         A function.
     %(n_jobs)s
-    max_nbytes : int, str, or None
+    max_nbytes : int | str | None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memory mapping. Can be an int in Bytes,
         or a human-readable string, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays. Use 'auto' to
         use the value set using mne.set_memmap_min_size.
-    pre_dispatch : int, or str, optional
+    pre_dispatch : int | str
         See :class:`joblib.Parallel`.
     total : int | None
         If int, use a progress bar to display the progress of dispatched
@@ -39,7 +39,8 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
         using ``split_list`` or :func:`np.array_split`.
         If None (default), do not add a progress bar.
     prefer : str | None
-        If str, can be "processes" or "threads". See :class:`joblib.Parallel`.
+        If str, can be ``"processes"`` or ``"threads"``.
+        See :class:`joblib.Parallel`.
 
         .. versionadded:: 0.18
     max_jobs : int | None

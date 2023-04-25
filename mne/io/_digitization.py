@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -187,7 +186,7 @@ def _read_dig_fif(fid, meas_info):
                 dig.append(tag.data)
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
-                coord_frame = _coord_frame_named.get(int(tag.data))
+                coord_frame = _coord_frame_named.get(int(tag.data.item()))
         for d in dig:
             d['coord_frame'] = coord_frame
     return _format_dig_points(dig)
@@ -255,7 +254,8 @@ def _ensure_fiducials_head(dig):
             if radius is None:
                 radius = [
                     np.linalg.norm(d['r']) for d in dig
-                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+                    and not np.isnan(d['r']).any()]
                 if not radius:
                     return  # can't complete, no head points
                 radius = np.mean(radius)
@@ -348,7 +348,7 @@ def _write_dig_points(fname, dig_points):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the file to write. The kind of file to write is determined
         based on the extension: '.txt' for tab separated text file.
     dig_points : numpy.ndarray, shape (n_points, 3)

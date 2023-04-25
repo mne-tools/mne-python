@@ -16,7 +16,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_mat_pow, warn,
+                     _pl, _check_src_normal, _sym_mat_pow, warn,
                      _import_h5io_funcs)
 from ..time_frequency.csd import CrossSpectralDensity
 
@@ -214,9 +214,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     assert Gk.shape == (n_sources, n_channels, n_orient)
     sk = np.reshape(orient_std, (n_sources, n_orient))
     del G, orient_std
-    pinv_kwargs = dict()
-    if check_version('numpy', '1.17'):
-        pinv_kwargs['hermitian'] = True
 
     _check_option('reduce_rank', reduce_rank, (True, False))
 
@@ -331,7 +328,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if weight_norm is not None:
         # Three different ways to calculate the normalization factors here.
         # Only matters when in vector mode, as otherwise n_orient == 1 and
-        # they are all equivalent. Sekihara 2008 says to use
+        # they are all equivalent.
         #
         # In MNE < 0.21, we just used the Frobenius matrix norm:
         #
@@ -455,7 +452,7 @@ class Beamformer(dict):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The filename to use to write the HDF5 data.
             Should end in ``'-lcmv.h5'`` or ``'-dics.h5'``.
         %(overwrite)s
@@ -481,7 +478,7 @@ def read_beamformer(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename of the HDF5 file.
 
     Returns

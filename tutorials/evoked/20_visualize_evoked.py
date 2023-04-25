@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-visualize-evoked:
 
@@ -30,8 +29,8 @@ import mne
 # that when loading:
 
 root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
-evk_file = root / 'sample_audvis-ave.fif'
-evokeds_list = mne.read_evokeds(evk_file, baseline=(None, 0), proj=True,
+evoked_file = root / 'sample_audvis-ave.fif'
+evokeds_list = mne.read_evokeds(evoked_file, baseline=(None, 0), proj=True,
                                 verbose=False)
 
 # Show condition names and baseline intervals

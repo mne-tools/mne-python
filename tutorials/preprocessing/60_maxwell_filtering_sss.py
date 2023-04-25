@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-sss:
 
@@ -9,7 +8,7 @@ Signal-space separation (SSS) and Maxwell filtering
 This tutorial covers reducing environmental noise and compensating for head
 movement with SSS and Maxwell filtering.
 
-As usual we'll start by importing the modules we need, loading some
+As usual, we'll start by importing the modules we need, loading some
 :ref:`example data <sample-dataset>`, and cropping it to save on memory:
 """
 

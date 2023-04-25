@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-ieeg-localize:
 
@@ -27,7 +26,6 @@ the original publication, so please cite :footcite:`RockhillEtAl2022` if you
 use this module in your analysis to support the addition of new projects to
 MNE.
 """
-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -42,6 +40,7 @@ import nilearn.plotting
 from dipy.align import resample
 
 import mne
+import mne_gui_addons as mne_gui
 from mne.datasets import fetch_fsaverage
 
 # paths to mne datasets: sample sEEG and FreeSurfer's fsaverage subject,
@@ -198,6 +197,7 @@ reg_affine = np.array([
     [0.04374389, 0.99439665, -0.09623816, -97.58320673],
     [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
     [0., 0., 0., 1.]])
+
 # use a cval='1%' here to make the values outside the domain of the CT
 # the same as the background level during interpolation
 CT_aligned = mne.transforms.apply_volume_registration(
@@ -345,7 +345,7 @@ raw = mne.io.read_raw(misc_path / 'seeg' / 'sample_seeg_ieeg.fif')
 # you may want to add `block=True` to halt execution until you have interacted
 # with the GUI to find the channel positions, that way the raw object can
 # be used later in the script (e.g. saved with channel positions)
-mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
+mne_gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
                     subject='sample_seeg',
                     subjects_dir=misc_path / 'seeg')
 # The `raw` object is modified to contain the channel locations
@@ -370,7 +370,7 @@ raw_ecog = mne.io.read_raw(misc_path / 'ecog' / 'sample_ecog_ieeg.fif')
 # use estimated `trans` which was used when the locations were found previously
 subj_trans_ecog = mne.coreg.estimate_head_mri_t(
     'sample_ecog', misc_path / 'ecog')
-mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
+mne_gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
                     subject='sample_ecog',
                     subjects_dir=misc_path / 'ecog')
 
@@ -465,8 +465,6 @@ subject_brain_sdr = mne.transforms.apply_volume_registration(
 plot_overlay(template_brain, subject_brain_sdr,
              'Alignment with fsaverage after SDR Registration')
 
-del subject_brain, template_brain
-
 # %%
 # Finally, we'll apply the registrations to the electrode contact coordinates.
 # The brain image is warped to the template but the goal was to warp the
@@ -483,10 +481,18 @@ del subject_brain, template_brain
 montage = raw.get_montage()
 montage.apply_trans(subj_trans)
 
-montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
-    montage, CT_aligned, reg_affine, sdr_morph, thresh=0.25,
-    subject_from='sample_seeg', subjects_dir_from=misc_path / 'seeg',
-    subject_to='fsaverage', subjects_dir_to=subjects_dir)
+# warp the montage
+montage_warped = mne.preprocessing.ieeg.warp_montage(
+    montage, subject_brain, template_brain, reg_affine, sdr_morph)
+
+# visualize using an image of the electrode contacts to see their sizes
+elec_image = mne.preprocessing.ieeg.make_montage_volume(
+    montage, CT_aligned, thresh=0.25)
+
+# warp image using transforms
+warped_elec_image = mne.transforms.apply_volume_registration(
+    elec_image, template_brain, reg_affine, sdr_morph,
+    interpolation='nearest')
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))
 nilearn.plotting.plot_glass_brain(elec_image, axes=axes[0], cmap='Dark2')
@@ -496,7 +502,7 @@ nilearn.plotting.plot_glass_brain(warped_elec_image, axes=axes[1],
 fig.text(0.1, 0.25, 'fsaverage', rotation='vertical')
 fig.suptitle('Electrodes warped to fsaverage')
 
-del CT_aligned
+del CT_aligned, subject_brain, template_brain
 
 # %%
 # We can now plot the result. You can compare this to the plot in

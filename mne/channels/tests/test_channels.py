@@ -3,7 +3,6 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 from pathlib import Path
 from copy import deepcopy
 from functools import partial
@@ -31,12 +30,11 @@ from mne.datasets import testing
 from mne.utils import requires_pandas, requires_version
 from mne.parallel import parallel_func
 
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
-base_dir = op.join(io_dir, 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-eve_fname = op.join(base_dir, 'test-eve.fif')
-fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
-
+io_dir = Path(__file__).parent.parent.parent / "io"
+base_dir = io_dir / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+eve_fname = base_dir / "test-eve.fif"
+fname_kit_157 = io_dir / "kit" / "tests" / "data" / "test.sqd"
 testing_path = testing.data_path(download=False)
 
 
@@ -199,7 +197,6 @@ def test_get_builtin_ch_adjacencies():
 
 def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
-    tempdir = str(tmp_path)
     a = partial(np.array, dtype='<U7')
     # no pep8
     nbh = np.array([[(['MEG0111'], [[a(['MEG0131'])]]),
@@ -209,7 +206,7 @@ def test_read_ch_adjacency(tmp_path):
                                     [a(['MEG0121'])]])]],
                    dtype=[('label', 'O'), ('neighblabel', 'O')])
     mat = dict(neighbours=nbh)
-    mat_fname = op.join(tempdir, 'test_mat.mat')
+    mat_fname = tmp_path / "test_mat.mat"
     savemat(mat_fname, mat, oned_as='row')
 
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
@@ -248,7 +245,7 @@ def test_read_ch_adjacency(tmp_path):
                                [a(['E2'])]])]],
                    dtype=[('label', 'O'), ('neighblabel', 'O')])
     mat = dict(neighbours=nbh)
-    mat_fname = op.join(tempdir, 'test_isolated_mat.mat')
+    mat_fname = tmp_path / "test_isolated_mat.mat"
     savemat(mat_fname, mat, oned_as='row')
     ch_adjacency, ch_names = read_ch_adjacency(mat_fname)
     x = ch_adjacency.todense()
@@ -270,7 +267,7 @@ def test_read_ch_adjacency(tmp_path):
                                [a(['E2'])]])]],
                    dtype=[('label', 'O'), ('neighblabel', 'O')])
     mat = dict(neighbours=nbh)
-    mat_fname = op.join(tempdir, 'test_error_mat.mat')
+    mat_fname = tmp_path / "test_error_mat.mat"
     savemat(mat_fname, mat, oned_as='row')
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
 
@@ -363,8 +360,8 @@ def test_get_set_sensor_positions():
 @testing.requires_testing_data
 def test_1020_selection():
     """Test making a 10/20 selection dict."""
-    raw_fname = op.join(testing_path, 'EEGLAB', 'test_raw.set')
-    loc_fname = op.join(testing_path, 'EEGLAB', 'test_chans.locs')
+    raw_fname = testing_path / "EEGLAB" / "test_raw.set"
+    loc_fname = testing_path / "EEGLAB" / "test_chans.locs"
     raw = read_raw_eeglab(raw_fname, preload=True)
     montage = read_custom_montage(loc_fname)
     raw = raw.rename_channels(dict(zip(raw.ch_names, montage.ch_names)))
@@ -386,6 +383,11 @@ def test_1020_selection():
     fz_c3_c4 = [raw.ch_names.index(ch) for ch in ("Fz", "C3", "C4")]
     for channel, roi in zip(fz_c3_c4, ("Midline", "Left", "Right")):
         assert channel in sels[roi]
+
+    # ensure returning channel names works as expected
+    sels_names = make_1020_channel_selections(raw.info, return_ch_names=True)
+    for selection, ch_names in sels_names.items():
+        assert ch_names == [raw.ch_names[idx] for idx in sels[selection]]
 
 
 @testing.requires_testing_data
@@ -409,13 +411,13 @@ def test_find_ch_adjacency():
     raw.pick_types(meg='mag')
     find_ch_adjacency(raw.info, None)
 
-    bti_fname = op.join(testing_path, 'BTi', 'erm_HFH', 'c,rfDC')
-    bti_config_name = op.join(testing_path, 'BTi', 'erm_HFH', 'config')
+    bti_fname = testing_path / "BTi" / "erm_HFH" / "c,rfDC"
+    bti_config_name = testing_path / "BTi" / "erm_HFH" / "config"
     raw = read_raw_bti(bti_fname, bti_config_name, None)
     _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'A1' in ch_names
 
-    ctf_fname = op.join(testing_path, 'CTF', 'testdata_ctf_short.ds')
+    ctf_fname = testing_path / "CTF" / "testdata_ctf_short.ds"
     raw = read_raw_ctf(ctf_fname)
     _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'MLC11' in ch_names
@@ -431,8 +433,7 @@ def test_find_ch_adjacency():
 @testing.requires_testing_data
 def test_neuromag122_adjacency():
     """Test computing the adjacency matrix of Neuromag122-Data."""
-    nm122_fname = op.join(testing_path, 'misc',
-                          'neuromag122_test_file-raw.fif')
+    nm122_fname = testing_path / "misc" / "neuromag122_test_file-raw.fif"
     raw = read_raw_fif(nm122_fname, preload=True)
     conn, ch_names = find_ch_adjacency(raw.info, 'grad')
     assert conn.getnnz() == 1564

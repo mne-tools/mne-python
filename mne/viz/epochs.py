@@ -21,10 +21,12 @@ from .raw import _setup_channel_selections
 from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
+from ..utils.spectrum import _split_psd_kwargs
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
+from ..time_frequency import Spectrum
 from .utils import (tight_layout, _setup_vmin_vmax, plt_show,
                     _check_cov, _handle_precompute,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
@@ -232,7 +234,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             # one fig per ch_type
             group_by = {ch_type: picks[np.array(ch_types) == ch_type]
                         for ch_type in set(ch_types)
-                        if ch_type in _DATA_CH_TYPES_SPLIT}
+                        if ch_type in _DATA_CH_TYPES_SPLIT + ('ref_meg',)}
         elif combine is None:
             # one fig per pick
             group_by = {epochs.ch_names[pick]: [pick] for pick in picks}
@@ -670,8 +672,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     n_channels : int
         The number of channels per view. Defaults to 20.
     title : str | None
-        The title of the window. If None, epochs name will be displayed.
-        Defaults to None.
+        The title of the window. If None, the event names (from
+        ``epochs.event_id``) will be displayed. Defaults to None.
     events : None | array, shape (n_events, 3)
         Events to show with vertical bars. You can use `~mne.viz.plot_events`
         as a legend for the colors. By default, the coloring scheme is the
@@ -854,7 +856,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     # generate window title
     if title is None:
-        title = epochs._name
+        title = epochs._get_name(count='total', sep='•', ms=None)
         if title is None or len(title) == 0:
             title = 'Epochs'
     elif not isinstance(title, str):
@@ -981,14 +983,5 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -----
     %(notes_plot_*_psd_func)s
     """
-    fig = epochs.plot_psd(
-        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-        proj=proj, method='multitaper',
-        ax=ax, color=color, xscale=xscale, area_mode=area_mode,
-        area_alpha=area_alpha, dB=dB, estimate=estimate, show=show,
-        line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-        exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
-        # these are **method_kw:
-        window='hamming', bandwidth=bandwidth, adaptive=adaptive,
-        low_bias=low_bias, normalization=normalization)
-    return fig
+    init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+    return epochs.compute_psd(**init_kw).plot(**plot_kw)

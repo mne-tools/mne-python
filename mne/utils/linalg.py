@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utility functions to speed up linear algebraic operations.
 
 In general, things like np.dot and linalg.svd should be used directly

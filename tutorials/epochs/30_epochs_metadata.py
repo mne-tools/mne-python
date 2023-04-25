@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-metadata:
 
@@ -115,7 +114,7 @@ print(epochs['Concreteness > 6 and WordFrequency < 1'])
 # MNE-Python will try the traditional method first before falling back on rich
 # metadata querying.
 
-epochs['solenoid'].plot_psd()
+epochs['solenoid'].compute_psd().plot()
 
 # %%
 # One use of the Pandas query string approach is to select specific words for

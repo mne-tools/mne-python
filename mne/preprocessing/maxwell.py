@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Jussi Nurminen <jnu@iki.fi>
@@ -10,6 +9,7 @@ from collections import Counter, OrderedDict
 from functools import partial
 from math import factorial
 from os import path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -24,6 +24,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
                           quat_to_rot, rot_to_quat)
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
+from ..io.compensator import make_compensator
 from ..io.constants import FIFF, FWD
 from ..io.meas_info import _simplify_info, Info
 from ..io.proc_history import _read_ctc
@@ -194,7 +195,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered.
 
         .. warning:: It is critical to mark bad channels in
@@ -218,7 +219,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         buffer window will be lumped into the previous buffer.
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
-        ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
+        overlapping intersecting inner/outer signals during spatiotemporal SSS.
     %(coord_frame_maxwell)s
     %(destination_maxwell_dest)s
     %(regularize_maxwell_reg)s
@@ -246,7 +247,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Returns
     -------
-    raw_sss : instance of mne.io.Raw
+    raw_sss : instance of Raw
         The raw data with Maxwell filtering applied.
 
     See Also
@@ -391,7 +392,7 @@ def _prep_maxwell_filter(
 
     # triage inputs ASAP to avoid late-thrown errors
     _validate_type(raw, BaseRaw, 'raw')
-    _check_usable(raw)
+    _check_usable(raw, ignore_ref)
     _check_regularize(regularize)
     st_correlation = float(st_correlation)
     if st_correlation <= 0. or st_correlation > 1.:
@@ -506,7 +507,6 @@ def _prep_maxwell_filter(
     exp['extended_proj'] = extended_proj
     del extended_proj
     # Reconstruct data from internal space only (Eq. 38), and rescale S_recon
-    S_recon /= coil_scale
     if recon_trans is not None:
         # warn if we have translated too far
         diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
@@ -547,13 +547,20 @@ def _prep_maxwell_filter(
             np.zeros(3)])
     else:
         this_pos_quat = None
+
+    # Figure out our linear operator
+    mult = _get_sensor_operator(raw, meg_picks)
+    if mult is not None:
+        S_recon = mult @ S_recon
+    S_recon /= coil_scale
+
     _get_this_decomp_trans = partial(
         _get_decomp, all_coils=all_coils,
         cal=calibration, regularize=regularize,
         exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
         grad_picks=grad_picks, mag_picks=mag_picks, good_mask=good_mask,
         mag_or_fine=mag_or_fine, bad_condition=bad_condition,
-        mag_scale=mag_scale)
+        mag_scale=mag_scale, mult=mult)
     update_kwargs.update(
         nchan=good_mask.sum(), st_only=st_only, recon_trans=recon_trans)
     params = dict(
@@ -563,7 +570,7 @@ def _prep_maxwell_filter(
         this_pos_quat=this_pos_quat, meg_picks=meg_picks,
         good_mask=good_mask, grad_picks=grad_picks, head_pos=head_pos,
         info=info, _get_this_decomp_trans=_get_this_decomp_trans,
-        S_recon=S_recon, update_kwargs=update_kwargs,
+        S_recon=S_recon, update_kwargs=update_kwargs, ignore_ref=ignore_ref,
         add_channels=add_channels, st_fixed=st_fixed, st_overlap=st_overlap,
         mc=mc)
     return params
@@ -573,8 +580,9 @@ def _run_maxwell_filter(
         raw, skip_by_annotation, st_duration, st_correlation, st_only,
         st_when, ctc, coil_scale, this_pos_quat, meg_picks, good_mask,
         grad_picks, head_pos, info, _get_this_decomp_trans, S_recon,
-        update_kwargs, add_channels, st_fixed, st_overlap, mc,
-        count_msg=True, copy=True):
+        update_kwargs, *, ignore_ref=False,
+        reconstruct='in', copy=True, add_channels, st_fixed,
+        st_overlap, mc, count_msg=True):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
     # on which channels are being used, so easier just to include it here.
@@ -590,7 +598,7 @@ def _run_maxwell_filter(
     del raw
     if not st_only:
         # remove MEG projectors, they won't apply now
-        _remove_meg_projs(raw_sss)
+        _remove_meg_projs_comps(raw_sss, ignore_ref)
 
     # Figure out smooth overlap-add and interp params
     if st_fixed and not st_only:
@@ -679,7 +687,7 @@ def _run_maxwell_filter(
 
 
 def _get_t_str(raw, start, stop):
-    return ('%8.3f - %8.3f sec' % tuple(raw.times[start:stop][[0, -1]]))
+    return ('%8.3f - %8.3f s' % tuple(raw.times[start:stop][[0, -1]]))
 
 
 class _MoveComp(object):
@@ -850,7 +858,19 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
     return coil_scale, mag_scale
 
 
-def _remove_meg_projs(inst):
+def _get_sensor_operator(raw, meg_picks):
+    comp = raw.compensation_grade
+    if comp not in (0, None):
+        mult = make_compensator(raw.info, 0, comp)
+        logger.info(f'    Accounting for compensation grade {comp}')
+        assert mult.shape[0] == mult.shape[1] == len(raw.ch_names)
+        mult = mult[np.ix_(meg_picks, meg_picks)]
+    else:
+        mult = None
+    return mult
+
+
+def _remove_meg_projs_comps(inst, ignore_ref):
     """Remove inplace existing MEG projectors (assumes inactive)."""
     meg_picks = pick_types(inst.info, meg=True, exclude=[])
     meg_channels = [inst.ch_names[pi] for pi in meg_picks]
@@ -859,6 +879,10 @@ def _remove_meg_projs(inst):
         if not any(c in meg_channels for c in proj['data']['col_names']):
             non_meg_proj.append(proj)
     inst.add_proj(non_meg_proj, remove_existing=True, verbose=False)
+    if ignore_ref and inst.info['comps']:
+        assert inst.compensation_grade in (None, 0)
+        with inst.info._unlock():
+            inst.info['comps'] = []
 
 
 def _check_destination(destination, info, coord_frame):
@@ -868,7 +892,7 @@ def _check_destination(destination, info, coord_frame):
     if coord_frame != 'head':
         raise RuntimeError('destination can only be set if using the '
                            'head coordinate frame')
-    if isinstance(destination, str):
+    if isinstance(destination, (str, Path)):
         recon_trans = _get_trans(destination, 'meg', 'head')[0]
     elif isinstance(destination, Transform):
         recon_trans = destination
@@ -888,10 +912,12 @@ def _check_destination(destination, info, coord_frame):
 
 
 @verbose
-def _prep_mf_coils(info, ignore_ref=True, verbose=None):
+def _prep_mf_coils(info, ignore_ref=True, *, accuracy='accurate',
+                   verbose=None):
     """Get all coil integration information loaded and sorted."""
     meg_sensors = _prep_meg_channels(
-        info, head_frame=False, ignore_ref=ignore_ref, verbose=False)
+        info, head_frame=False, ignore_ref=ignore_ref, accuracy=accuracy,
+        verbose=False)
     coils = meg_sensors['defs']
     mag_mask = _get_mag_mask(coils)
 
@@ -1076,9 +1102,9 @@ def _check_pos(pos, coord_frame, raw, st_fixed):
     return pos
 
 
-def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
+def _get_decomp(trans, *, all_coils, cal, regularize, exp, ignore_ref,
                 coil_scale, grad_picks, mag_picks, good_mask, mag_or_fine,
-                bad_condition, t, mag_scale):
+                bad_condition, t, mag_scale, mult):
     """Get a decomposition matrix and pseudoinverse matrices."""
     from scipy import linalg
     #
@@ -1087,6 +1113,8 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
     S_decomp_full = _get_s_decomp(
         exp, all_coils, trans, coil_scale, cal, ignore_ref, grad_picks,
         mag_picks, mag_scale)
+    if mult is not None:
+        S_decomp_full = mult @ S_decomp_full
     S_decomp = S_decomp_full[good_mask]
     #
     # Extended SSS basis (eSSS)
@@ -1261,16 +1289,16 @@ def _check_regularize(regularize):
         raise ValueError('regularize must be None or "in"')
 
 
-def _check_usable(inst):
+def _check_usable(inst, ignore_ref):
     """Ensure our data are clean."""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data during '
                            'Maxwell filtering.')
     current_comp = inst.compensation_grade
-    if current_comp not in (0, None):
+    if current_comp not in (0, None) and ignore_ref:
         raise RuntimeError('Maxwell filter cannot be done on compensated '
-                           'channels, but data have been compensated with '
-                           'grade %s.' % current_comp)
+                           'channels (data have been compensated with '
+                           'grade {current_comp}) when ignore_ref=True')
 
 
 def _col_norm_pinv(x):
@@ -1728,7 +1756,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
 
     Parameters
     ----------
-    raw : instance of mne.io.Raw
+    raw : instance of Raw
         Data to be filtered
     origin : array-like, shape (3,)
         Origin of internal and external multipolar moment space in head coords
@@ -2095,23 +2123,29 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
     # Pick the components that give at least 98% of max info
     # This is done because the curves can be quite flat, and we err on the
     # side of including rather than excluding components
-    max_info = np.max(I_tots)
-    lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
-    in_removes = remove_order[:lim_idx]
-    for ii, ri in enumerate(in_removes):
-        logger.debug('            Condition %0.3f/%0.3f = %03.1f, '
-                     'Removing in component %s: l=%s, m=%+0.0f'
-                     % (tuple(eigs[ii]) + (eigs[ii, 0] / eigs[ii, 1],
-                                           ri, degrees[ri], orders[ri])))
-    logger.debug('        Resulting information: %0.1f bits/sample '
-                 '(%0.1f%% of peak %0.1f)'
-                 % (I_tots[lim_idx], 100 * I_tots[lim_idx] / max_info,
-                    max_info))
+    if n_in:
+        max_info = np.max(I_tots)
+        lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
+        in_removes = remove_order[:lim_idx]
+        for ii, ri in enumerate(in_removes):
+            eig = eigs[ii]
+            logger.debug(
+                f'            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = '
+                f'{eig[0] / eig[1]:03.1f}, Removing in component '
+                f'{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}'
+            )
+        logger.debug(
+            f'        Resulting information: {I_tots[lim_idx]:0.1f} '
+            f'bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak '
+            f'{max_info:0.1f})'
+        )
+    else:
+        in_removes = remove_order[:0]
     return in_removes, out_removes
 
 
 def _compute_sphere_activation_in(degrees):
-    u"""Compute the "in" power from random currents in a sphere.
+    """Compute the "in" power from random currents in a sphere.
 
     Parameters
     ----------
@@ -2351,7 +2385,7 @@ def find_bad_channels_maxwell(
             ss[-1] = end
             stops.extend(ss)
     min_count = min(_ensure_int(min_count, 'min_count'), len(starts))
-    logger.info('Scanning for bad channels in %d interval%s (%0.1f sec) ...'
+    logger.info('Scanning for bad channels in %d interval%s (%0.1f s) ...'
                 % (len(starts), _pl(starts), step / raw.info['sfreq']))
     params = _prep_maxwell_filter(
         raw, skip_by_annotation=[],  # already accounted for

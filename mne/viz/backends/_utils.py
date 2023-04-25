@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -6,10 +5,12 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
+from ctypes import cdll, c_void_p, c_char_p
 import collections.abc
 from colorsys import rgb_to_hls
 from contextlib import contextmanager
 import functools
+import os
 import platform
 import signal
 import sys
@@ -94,6 +95,9 @@ def _qt_disable_paint(widget):
         widget.paintEvent = paintEvent
 
 
+_QT_ICON_KEYS = dict(app=None)
+
+
 def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     """Get QApplication-instance for MNE-Python.
 
@@ -138,12 +142,23 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         except ModuleNotFoundError:
             pass
 
+    # First we need to check to make sure the display is valid, otherwise
+    # Qt might segfault on us
+    app = QApplication.instance()
+    if not (app or _display_is_valid()):
+        raise RuntimeError('Cannot connect to a valid display')
+
     if pg_app:
         from pyqtgraph import mkQApp
-        app = mkQApp(app_name)
-    else:
-        app = QApplication.instance() or QApplication(sys.argv or [app_name])
-        app.setApplicationName(app_name)
+        old_argv = sys.argv
+        try:
+            sys.argv = []
+            app = mkQApp(app_name)
+        finally:
+            sys.argv = old_argv
+    elif not app:
+        app = QApplication([app_name])
+    app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
     try:
         app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # works on PyQt5 and PySide2
@@ -153,10 +168,12 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     if enable_icon or splash:
         icons_path = _qt_init_icons()
 
-    if enable_icon:
+    if enable_icon and app.windowIcon().cacheKey() != _QT_ICON_KEYS['app']:
         # Set icon
         kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else 'default_'
-        app.setWindowIcon(QIcon(f"{icons_path}/mne_{kind}icon.png"))
+        icon = QIcon(f"{icons_path}/mne_{kind}icon.png")
+        app.setWindowIcon(icon)
+        _QT_ICON_KEYS['app'] = app.windowIcon().cacheKey()
 
     out = app
     if splash:
@@ -177,6 +194,35 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         out = (out, qsplash)
 
     return out
+
+
+def _display_is_valid():
+    # Adapted from matplotilb _c_internal_utils.py
+    if sys.platform != 'linux':
+        return True
+    if os.getenv('DISPLAY'):  # if it's not there, don't bother
+        libX11 = cdll.LoadLibrary('libX11.so.6')
+        libX11.XOpenDisplay.restype = c_void_p
+        libX11.XOpenDisplay.argtypes = [c_char_p]
+        display = libX11.XOpenDisplay(None)
+        if display is not None:
+            libX11.XCloseDisplay.argtypes = [c_void_p]
+            libX11.XCloseDisplay(display)
+            return True
+    # not found, try Wayland
+    if os.getenv('WAYLAND_DISPLAY'):
+        libwayland = cdll.LoadLibrary('libwayland-client.so.0')
+        if libwayland is not None:
+            if all(hasattr(libwayland, f'wl_display_{kind}connect')
+                   for kind in ('', 'dis')):
+                libwayland.wl_display_connect.restype = c_void_p
+                libwayland.wl_display_connect.argtypes = [c_char_p]
+                display = libwayland.wl_display_connect(None)
+                if display:
+                    libwayland.wl_display_disconnect.argtypes = [c_void_p]
+                    libwayland.wl_display_disconnect(display)
+                    return True
+    return False
 
 
 # https://stackoverflow.com/questions/5160577/ctrl-c-doesnt-work-with-pyqt
@@ -293,7 +339,7 @@ QToolBar::handle:vertical {
     else:
         try:
             file = open(theme, 'r')
-        except IOError:
+        except OSError:
             warn('Requested theme file not found, will use light instead: '
                  f'{repr(theme)}')
         else:
@@ -333,3 +379,65 @@ def _pixmap_to_ndarray(pixmap):
     data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
     data.shape = (img.height(), img.width(), 4)
     return data / 255.
+
+
+def _notebook_vtk_works():
+    if sys.platform != 'linux':
+        return True
+    # check if it's OSMesa -- if it is, continue
+    try:
+        from vtkmodules import vtkRenderingOpenGL2
+        vtkRenderingOpenGL2.vtkOSOpenGLRenderWindow
+    except Exception:
+        pass
+    else:
+        return True  # has vtkOSOpenGLRenderWindow (OSMesa build)
+
+    # if it's not OSMesa, we need to check display validity
+    if _display_is_valid():
+        return True
+    return False
+
+
+def _qt_safe_window(
+    *,
+    splash='figure.splash',
+    window='figure.plotter.app_window',
+    always_close=True
+):
+    def dec(meth, splash=splash, always_close=always_close):
+        @functools.wraps(meth)
+        def func(self, *args, **kwargs):
+            close_splash = always_close
+            error = False
+            try:
+                meth(self, *args, **kwargs)
+            except Exception:
+                close_splash = error = True
+                raise
+            finally:
+                for attr, do_close in ((splash, close_splash),
+                                       (window, error)):
+                    if attr is None or not do_close:
+                        continue
+                    parent = self
+                    name = attr.split('.')[-1]
+                    try:
+                        for n in attr.split('.')[:-1]:
+                            parent = getattr(parent, n)
+                        if name:
+                            widget = getattr(parent, name, False)
+                        else:  # empty string means "self"
+                            widget = parent
+                        if widget:
+                            widget.close()
+                        del widget
+                    except Exception:
+                        pass
+                    finally:
+                        try:
+                            delattr(parent, name)
+                        except Exception:
+                            pass
+        return func
+    return dec

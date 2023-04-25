@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 
 # License: BSD-3-Clause
@@ -78,12 +77,12 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         logger.info(msg)
     dr_ms_s = 1000 * abs(1 - first_ord)
     logger.info(
-        f'Drift rate: {1000 * dr_ms_s:0.1f} μs/sec '
-        f'(total drift over {raw.times[-1]:0.1f} sec recording: '
+        f'Drift rate: {1000 * dr_ms_s:0.1f} μs/s '
+        f'(total drift over {raw.times[-1]:0.1f} s recording: '
         f'{raw.times[-1] * dr_ms_s:0.1f} ms)')
 
     # 2. Crop start of recordings to match using the zero-order term
-    msg = f'Cropping {zero_ord:0.3f} sec from the start of '
+    msg = f'Cropping {zero_ord:0.3f} s from the start of '
     if zero_ord > 0:  # need to crop start of raw to match other
         logger.info(msg + 'raw')
         raw.crop(zero_ord, None)
@@ -102,7 +101,7 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
 
     # 4. Crop the end of one of the recordings if necessary
     delta = raw.times[-1] - other.times[-1]
-    msg = f'Cropping {abs(delta):0.3f} sec from the end of '
+    msg = f'Cropping {abs(delta):0.3f} s from the end of '
     if delta > 0:
         logger.info(msg + 'raw')
         raw.crop(0, other.times[-1])

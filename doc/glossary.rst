@@ -55,6 +55,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
         .. mne:: data channels list
 
+    DC
+    direct current
+        The part of a signal that stays constant over time. The "DC offset"
+        of electrophysiological signals is often dealt with by high-pass
+        filtering or by subtracting some suitable baseline.
+
     DICS
     dynamic imaging of coherent sources
         Dynamic Imaging of Coherent Sources is a method for computing source
@@ -283,6 +289,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
         data into a common space for statistical analysis.
         See :ref:`ch_morph` for more details.
 
+    OPM
+    optically pumped magnetometer
+        An optically pumped magnetometer (OPM) is a type of magnetometer
+        that uses a laser passing through a gas (e.g., rubidium) to sense
+        magnetic fluctuations. OPMs can operate near room temperature.
+
     noise covariance
         The noise covariance is a matrix that contains the covariance between data
         channels. It is a square matrix with shape ``n_channels`` :math:`\times`
@@ -363,6 +375,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
         to read about how to compute a forward operator in a source space.
         See :class:`SourceSpaces` for the class definition and information
         about the data it contains.
+
+    SQUID
+    superconducting quantum interference device
+        A superconducting quantum interference device (SQUID) is a type of
+        magnetometer that uses superconducting materials to sense magnetic
+        fluctuations. Standard low-temperature SQUID sensors typically found
+        in MEG systems operate at temperatures within a few degrees of
+        absolute zero (e.g., below 4 K).
 
     stim channel
     trigger channel

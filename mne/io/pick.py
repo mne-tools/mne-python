@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -33,12 +32,12 @@ def get_channel_type_constants(include_defaults=False):
 
     Notes
     -----
-        Values which might vary within a channel type across real data
-        recordings are excluded unless ``include_defaults=True``. For example,
-        "ref_meg" channels may have coil type
-        ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
-        (depending on the recording system), so no "coil_type" entry is given
-        for "ref_meg" unless ``include_defaults`` is requested.
+    Values which might vary within a channel type across real data
+    recordings are excluded unless ``include_defaults=True``. For example,
+    "ref_meg" channels may have coil type
+    ``FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD``, ``FIFFV_COIL_VV_MAG_T3``, etc
+    (depending on the recording system), so no "coil_type" entry is given
+    for "ref_meg" unless ``include_defaults`` is requested.
     """
     base = dict(grad=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T_M),
                 mag=dict(kind=FIFF.FIFFV_MEG_CH, unit=FIFF.FIFF_UNIT_T),
@@ -99,6 +98,10 @@ def get_channel_type_constants(include_defaults=False):
                                  unit=FIFF.FIFF_UNIT_CEL),
                 gsr=dict(kind=FIFF.FIFFV_GALVANIC_CH,
                          unit=FIFF.FIFF_UNIT_S),
+                eyegaze=dict(kind=FIFF.FIFFV_EYETRACK_CH,
+                             coil_type=FIFF.FIFFV_COIL_EYETRACK_POS),
+                pupil=dict(kind=FIFF.FIFFV_EYETRACK_CH,
+                           coil_type=FIFF.FIFFV_COIL_EYETRACK_PUPIL)
                 )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
@@ -115,6 +118,8 @@ def get_channel_type_constants(include_defaults=False):
             emg=coil_none,
             bio=coil_none,
             fnirs_od=unit_none,
+            pupil=unit_none,
+            eyegaze=dict(unit=FIFF.FIFF_UNIT_PX),
         )
         for key, value in defaults.items():
             base[key].update(value)
@@ -153,6 +158,7 @@ _first_rule = {
     FIFF.FIFFV_FNIRS_CH: 'fnirs',
     FIFF.FIFFV_TEMPERATURE_CH: 'temperature',
     FIFF.FIFFV_GALVANIC_CH: 'gsr',
+    FIFF.FIFFV_EYETRACK_CH: 'eyetrack',
 }
 # How to reduce our categories in channel_type (originally)
 _second_rules = {
@@ -172,7 +178,10 @@ _second_rules = {
                           FIFF.FIFFV_COIL_EEG_BIPOLAR: 'eeg',
                           FIFF.FIFFV_COIL_NONE: 'eeg',  # MNE-C backward compat
                           FIFF.FIFFV_COIL_EEG_CSD: 'csd',
-                          })
+                          }),
+    'eyetrack': ('coil_type', {FIFF.FIFFV_COIL_EYETRACK_POS: 'eyegaze',
+                               FIFF.FIFFV_COIL_EYETRACK_PUPIL: 'pupil'
+                               })
 }
 
 
@@ -194,7 +203,7 @@ def channel_type(info, idx):
             {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
              'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
               'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr',
-              'temperature', 'gsr'}
+              'temperature', 'gsr', 'eyetrack'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -350,6 +359,21 @@ def _triage_fnirs_pick(ch, fnirs, warned):
     return False
 
 
+def _triage_eyetrack_pick(ch, eyetrack):
+    """Triage an eyetrack pick type."""
+    if eyetrack is False:
+        return False
+    elif eyetrack is True:
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_PUPIL and \
+            'pupil' in eyetrack:
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_EYETRACK_POS and \
+            'eyegaze' in eyetrack:
+        return True
+    return False
+
+
 def _check_meg_type(meg, allow_auto=False):
     """Ensure a valid meg type."""
     if isinstance(meg, str):
@@ -380,7 +404,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                chpi=False, exci=False, ias=False, syst=False, seeg=False,
                dipole=False, gof=False, bio=False, ecog=False, fnirs=False,
                csd=False, dbs=False, temperature=False, gsr=False,
-               include=(), exclude='bads', selection=None):
+               eyetrack=False, include=(), exclude='bads', selection=None):
     """Pick channels by type and names.
 
     Parameters
@@ -412,14 +436,16 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                   temperature, gsr):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception of '
-                 '"meg", "ref_meg" and "fnirs") must be of type bool, not {}.')
+                 '"meg", "ref_meg", "fnirs", and "eyetrack") must be of type '
+                 'bool, not {}.')
             raise ValueError(w.format(type(param)))
 
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
                       misc=misc, resp=resp, chpi=chpi, exci=exci,
                       ias=ias, syst=syst, seeg=seeg, dbs=dbs, dipole=dipole,
                       gof=gof, bio=bio, ecog=ecog, csd=csd,
-                      temperature=temperature, gsr=gsr)
+                      temperature=temperature, gsr=gsr, eyetrack=eyetrack)
+
     # avoid triage if possible
     if isinstance(meg, bool):
         for key in ('grad', 'mag'):
@@ -433,12 +459,14 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in (
-                'grad', 'mag', 'ref_meg') + _FNIRS_CH_TYPES_SPLIT
+            assert ch_type in ('grad', 'mag', 'ref_meg') + \
+                   _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
                 pick[k] = _triage_meg_pick(info['chs'][k], ref_meg)
+            elif ch_type in ('eyegaze', 'pupil'):
+                pick[k] = _triage_eyetrack_pick(info['chs'][k], eyetrack)
             else:  # ch_type in ('hbo', 'hbr')
                 pick[k] = _triage_fnirs_pick(info['chs'][k], fnirs, warned)
 
@@ -730,10 +758,11 @@ def channel_indices_by_type(info, picks=None):
         channel indices.
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
-                   key not in ('meg', 'fnirs')}
+                   key not in ('meg', 'fnirs', 'eyetrack')}
     idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(),
                        fnirs_cw_amplitude=list(), fnirs_fd_ac_amplitude=list(),
-                       fnirs_fd_phase=list(), fnirs_od=list())
+                       fnirs_fd_phase=list(), fnirs_od=list(),
+                       eyegaze=list(), pupil=list())
     picks = _picks_to_idx(info, picks,
                           none='all', exclude=(), allow_empty=True)
     for k in picks:
@@ -823,8 +852,10 @@ def _contains_ch_type(info, ch_type):
 
     meg_extras = list(_MEG_CH_TYPES_SPLIT)
     fnirs_extras = list(_FNIRS_CH_TYPES_SPLIT)
+    et_extras = list(_EYETRACK_CH_TYPES_SPLIT)
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
-                                  if key != 'meg'] + meg_extras + fnirs_extras)
+                                  if key != 'meg']
+                                 + meg_extras + fnirs_extras + et_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
     if info is None:
         raise ValueError('Cannot check for channels of type "%s" because info '
@@ -925,22 +956,26 @@ _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True,
-    dbs=True, temperature=False, gsr=False)
+    dbs=True, temperature=False, gsr=False, eyetrack=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
                          'fnirs_fd_ac_amplitude', 'fnirs_fd_phase', 'fnirs_od')
+_EYETRACK_CH_TYPES_SPLIT = ('eyegaze', 'pupil')
 _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
     'dbs', 'temperature', 'gsr', 'gof', 'dipole',
-) + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
+) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT + ('whitened',)
+
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
     'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
-    'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
+    'bio', 'ecog', 'dbs'
+) + _FNIRS_CH_TYPES_SPLIT + _EYETRACK_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
-    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
+    'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs'
+) + _FNIRS_CH_TYPES_SPLIT
 # Electrode types (e.g., can be average-referenced together or separately)
 _ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
 
@@ -970,8 +1005,15 @@ def _pick_data_or_ica(info, exclude=()):
 
 
 def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
-                  with_ref_meg=True, return_kind=False):
-    """Convert and check pick validity."""
+                  with_ref_meg=True, return_kind=False, picks_on="channels"):
+    """Convert and check pick validity.
+
+    Parameters
+    ----------
+    picks_on : str
+        'channels' (default) for error messages about selection of channels.
+        'components' for error messages about selection of components.
+    """
     from .meas_info import Info
     picked_ch_type_or_generic = False
     #
@@ -1017,8 +1059,12 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
     if picks.dtype.kind not in ['i', 'u']:
-        raise TypeError('picks must be a list of int or list of str, got '
-                        'a data type of %s' % (picks.dtype,))
+        extra_ch = " or list of str (names)" if picks_on == "channels" else ""
+        msg = (
+            f"picks must be a list of int (indices){extra_ch}. "
+            f"The provided data type {picks.dtype} is invalid."
+        )
+        raise TypeError(msg)
     del extra_repr
     picks = picks.astype(int)
 
@@ -1026,14 +1072,14 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
     # ensure we have (optionally non-empty) ndarray of valid int
     #
     if len(picks) == 0 and not allow_empty:
-        raise ValueError('No appropriate channels found for the given picks '
-                         '(%r)' % (orig_picks,))
+        raise ValueError('No appropriate %s found for the given picks '
+                         '(%r)' % (picks_on, orig_picks))
     if (picks < -n_chan).any():
         raise ValueError('All picks must be >= %d, got %r'
                          % (-n_chan, orig_picks))
     if (picks >= n_chan).any():
-        raise ValueError('All picks must be < n_channels (%d), got %r'
-                         % (n_chan, orig_picks))
+        raise ValueError('All picks must be < n_%s (%d), got %r'
+                         % (picks_on, n_chan, orig_picks))
     picks %= n_chan  # ensure positive
     if return_kind:
         return picks, picked_ch_type_or_generic
@@ -1100,8 +1146,12 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
             bad_type = pick
             break
     else:
+        # bad_type is None but this could still be empty
+        bad_type = list(picks)
         # triage MEG and FNIRS, which are complicated due to non-bool entries
         extra_picks = set()
+        if 'ref_meg' not in picks and not with_ref_meg:
+            kwargs['ref_meg'] = False
         if len(meg) > 0 and not kwargs.get('meg', False):
             # easiest just to iterate
             for use_meg in meg:
@@ -1126,7 +1176,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
             raise ValueError(
                 'picks (%s) could not be interpreted as '
                 'channel names (no channel "%s"), channel types (no '
-                'type "%s"), or a generic type (just "all" or "data")'
+                'type "%s" present), or a generic type (just "all" or "data")'
                 % (repr(orig_picks) + extra_repr, str(bad_names), bad_type))
         picks = np.array([], int)
     elif sum(any_found) > 1:

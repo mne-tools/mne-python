@@ -4,10 +4,10 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 import copy
 import itertools
-import os.path
+import os
+from contextlib import nullcontext
 
 import pytest
 import numpy as np
@@ -71,8 +71,7 @@ def test_read_evoked(cur_system, version, use_info):
         info = None
         ctx = pytest.warns(**no_info_warning)
 
-    cur_fname = os.path.join(test_data_folder_ft,
-                             'averaged_%s.mat' % (version,))
+    cur_fname = test_data_folder_ft / f"averaged_{version}.mat"
     with ctx:
         avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
 
@@ -108,8 +107,7 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
         info = None
         ctx = pytest.warns(**no_info_warning)
 
-    cur_fname = os.path.join(test_data_folder_ft,
-                             'epoched_%s.mat' % (version,))
+    cur_fname = test_data_folder_ft / f"epoched_{version}.mat"
     if has_pandas:
         with ctx:
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
@@ -162,8 +160,7 @@ def test_read_raw_fieldtrip(cur_system, version, use_info):
         info = None
         ctx = pytest.warns(**no_info_warning)
 
-    cur_fname = os.path.join(test_data_folder_ft,
-                             'raw_%s.mat' % (version,))
+    cur_fname = test_data_folder_ft / f"raw_{version}.mat"
 
     with ctx:
         raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname, info)
@@ -196,7 +193,7 @@ def test_load_epoched_as_raw():
     """Test whether exception is thrown when loading epochs as raw."""
     test_data_folder_ft = get_data_paths('neuromag306')
     info = get_raw_info('neuromag306')
-    cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
+    cur_fname = test_data_folder_ft / "epoched_v7.mat"
 
     with pytest.raises(RuntimeError):
         mne.io.read_raw_fieldtrip(cur_fname, info)
@@ -207,7 +204,7 @@ def test_invalid_trialinfocolumn():
     """Test for exceptions when using wrong values for trialinfo parameter."""
     test_data_folder_ft = get_data_paths('neuromag306')
     info = get_raw_info('neuromag306')
-    cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
+    cur_fname = test_data_folder_ft / "epoched_v7.mat"
 
     with pytest.raises(ValueError):
         mne.io.read_epochs_fieldtrip(cur_fname, info, trialinfo_column=-1)
@@ -220,7 +217,7 @@ def test_invalid_trialinfocolumn():
 def test_create_events():
     """Test 2dim trialinfo fields."""
     test_data_folder_ft = get_data_paths('neuromag306')
-    cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
+    cur_fname = test_data_folder_ft / "epoched_v7.mat"
     original_data = pymatreader.read_mat(cur_fname, ['data', ])
 
     new_data = copy.deepcopy(original_data)
@@ -243,8 +240,11 @@ def test_create_events():
 @pytest.mark.parametrize('version', all_versions)
 def test_one_channel_elec_bug(version):
     """Test if loading data having only one elec in the elec field works."""
-    fname = os.path.join(testing_path, 'fieldtrip',
-                         'one_channel_elec_bug_data_%s.mat' % (version, ))
+    fname = (
+        testing_path
+        / "fieldtrip"
+        / f"one_channel_elec_bug_data_{version}.mat"
+    )
 
     with pytest.warns(**no_info_warning):
         mne.io.read_raw_fieldtrip(fname, info=None)
@@ -259,11 +259,8 @@ def test_one_channel_elec_bug(version):
 @pytest.mark.parametrize('type', ['averaged', 'epoched', 'raw'])
 def test_throw_exception_on_cellarray(version, type):
     """Test for a meaningful exception when the data is a cell array."""
-    fname = os.path.join(get_data_paths('cellarray'),
-                         '%s_%s.mat' % (type, version))
-
+    fname = get_data_paths("cellarray") / f"{type}_{version}.mat"
     info = get_raw_info('CNT')
-
     with pytest.raises(RuntimeError, match='Loading of data in cell arrays '
                                            'is not supported'):
         if type == 'averaged':
@@ -284,12 +281,10 @@ def test_with_missing_channels():
     info._update_redundant()
 
     with pytest.warns(RuntimeWarning):
-        mne.io.read_raw_fieldtrip(
-            os.path.join(test_data_folder_ft, 'raw_v7.mat'), info)
+        mne.io.read_raw_fieldtrip(test_data_folder_ft / "raw_v7.mat", info)
         mne.read_evoked_fieldtrip(
-            os.path.join(test_data_folder_ft, 'averaged_v7.mat'), info)
-        mne.read_epochs_fieldtrip(
-            os.path.join(test_data_folder_ft, 'epoched_v7.mat'), info)
+            test_data_folder_ft / "averaged_v7.mat", info)
+        mne.read_epochs_fieldtrip(test_data_folder_ft / "epoched_v7.mat", info)
 
 
 @testing.requires_testing_data
@@ -297,7 +292,7 @@ def test_with_missing_channels():
 @pytest.mark.filterwarnings('ignore: Cannot guess the correct type')
 def test_throw_error_on_non_uniform_time_field():
     """Test if an error is thrown when time fields are not uniform."""
-    fname = os.path.join(testing_path, 'fieldtrip', 'not_uniform_time.mat')
+    fname = testing_path / "fieldtrip" / "not_uniform_time.mat"
 
     with pytest.raises(RuntimeError, match='Loading data with non-uniform '
                                            'times per epoch is not supported'):
@@ -308,7 +303,7 @@ def test_throw_error_on_non_uniform_time_field():
 @pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
 def test_throw_error_when_importing_old_ft_version_data():
     """Test if an error is thrown if the data was saved with an old version."""
-    fname = os.path.join(testing_path, 'fieldtrip', 'old_version.mat')
+    fname = testing_path / "fieldtrip" / "old_version.mat"
 
     with pytest.raises(RuntimeError, match='This file was created with '
                                            'an old version of FieldTrip. You '

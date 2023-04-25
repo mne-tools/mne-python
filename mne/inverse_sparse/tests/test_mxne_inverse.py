@@ -3,8 +3,6 @@
 #
 # License: Simplified BSD
 
-import os.path as op
-
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_array_less, assert_array_equal)
@@ -30,13 +28,14 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 
 data_path = testing.data_path(download=False)
 # NOTE: These use the ave and cov from sample dataset (no _trunc)
-fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-label = 'Aud-rh'
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+fname_data = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
+fname_cov = data_path / "MEG" / "sample" / "sample_audvis-cov.fif"
+fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
+fname_fwd = (
+    data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-6-fwd.fif"
+)
+label = "Aud-rh"
+fname_label = data_path / "MEG" / "sample" / "labels" / ("%s.label" % label)
 
 
 @pytest.fixture(scope='module', params=[testing._pytest_param])
@@ -47,7 +46,7 @@ def forward():
 
 
 @testing.requires_testing_data
-@pytest.mark.timeout(150)  # ~30 sec on Travis Linux
+@pytest.mark.timeout(150)  # ~30 s on Travis Linux
 @pytest.mark.slowtest
 def test_mxne_inverse_standard(forward):
     """Test (TF-)MxNE inverse computation."""
@@ -396,8 +395,12 @@ def test_mxne_inverse_sure():
     labels = [
         mne.read_label(data_path / 'MEG' / 'sample' / 'labels' / f'{ln}.label')
         for ln in label_names]
-    fname_fwd = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+    fname_fwd = (
+        data_path
+        / "MEG"
+        / "sample"
+        / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+    )
     forward = mne.read_forward_solution(fname_fwd)
     forward = mne.pick_types_forward(forward, meg="grad", eeg=False,
                                      exclude=raw.info['bads'])
@@ -419,8 +422,12 @@ def test_mxne_inverse_empty():
     """Tests solver with too high alpha."""
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.pick("grad", exclude="bads")
-    fname_fwd = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+    fname_fwd = (
+        data_path
+        / "MEG"
+        / "sample"
+        / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
+    )
     forward = mne.read_forward_solution(fname_fwd)
     forward = mne.pick_types_forward(forward, meg="grad", eeg=False,
                                      exclude=evoked.info['bads'])

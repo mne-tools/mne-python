@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
@@ -39,7 +38,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(export_eeglab_note)s
     %(export_edf_note)s
     """
-    fname = _check_fname(fname, overwrite=overwrite)
+    fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {  # format : (extensions,)
         'eeglab': ('set',),
         'edf': ('edf',),
@@ -89,7 +88,7 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     %(export_warning_note_epochs)s
     %(export_eeglab_note)s
     """
-    fname = _check_fname(fname, overwrite=overwrite)
+    fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {
         'eeglab': ('set',),
     }
@@ -142,7 +141,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
 
     %(export_warning_note_evoked)s
     """
-    fname = _check_fname(fname, overwrite=overwrite)
+    fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {
         'mff': ('mff',),
     }

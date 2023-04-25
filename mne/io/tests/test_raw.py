@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Generic tests that all raw classes should run."""
 # Authors: MNE Developers
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
@@ -21,6 +20,7 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
 import mne
 from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
+from mne.fixes import _numpy_h5py_dep
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.io._digitization import _dig_kind_dict
 from mne.io.base import _get_scaling
@@ -291,7 +291,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
 
     # Test saving with not correct extension
     out_fname_h5 = op.join(tempdir, 'test_raw.h5')
-    with pytest.raises(IOError, match='raw must end with .fif or .fif.gz'):
+    with pytest.raises(OSError, match='raw must end with .fif or .fif.gz'):
         raw.save(out_fname_h5)
 
     raw3 = read_raw_fif(out_fname)
@@ -374,9 +374,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     if check_version('h5io'):
         read_hdf5, write_hdf5 = _import_h5io_funcs()
         fname_h5 = op.join(tempdir, 'info.h5')
-        with _writing_info_hdf5(raw.info):
+        with _writing_info_hdf5(raw.info), _numpy_h5py_dep():
             write_hdf5(fname_h5, raw.info)
-        new_info = Info(read_hdf5(fname_h5))
+            new_info = Info(read_hdf5(fname_h5))
         assert object_diff(new_info, raw.info) == ''
 
     # Make sure that changing directory does not break anything

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Container classes for spectral data."""
 
 # Authors: Dan McCloy <dan@mccloy.info>
@@ -24,6 +23,7 @@ from ..utils import (GetEpochsMixin, _build_data_frame,
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
+from ..utils.spectrum import _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
@@ -92,30 +92,8 @@ class SpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
-        from ..io import BaseRaw
-
-        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
-        # triage reject_by_annotation
-        rba = dict()
-        if isinstance(self, BaseRaw):
-            rba = dict(reject_by_annotation=reject_by_annotation)
-
-        spectrum = self.compute_psd(
-            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose, **rba,
-            **method_kw)
-
-        # translate kwargs
-        amplitude = 'auto' if estimate == 'auto' else (estimate == 'amplitude')
-        ci = 'sd' if area_mode == 'std' else area_mode
-        # ↓ here picks="all" because we've already restricted the `info` to
-        # ↓ have only `picks` channels
-        fig = spectrum.plot(
-            picks='all', average=average, dB=dB, amplitude=amplitude,
-            xscale=xscale, ci=ci, ci_alpha=area_alpha, color=color,
-            alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-            exclude=exclude, axes=ax, show=show)
-        return fig
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
+        return self.compute_psd(**init_kw).plot(**plot_kw)
 
     @legacy(alt='.compute_psd().plot_topo()')
     @verbose
@@ -149,15 +127,8 @@ class SpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
-
-        spectrum = self.compute_psd(
-            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            proj=proj, n_jobs=n_jobs, verbose=verbose, **method_kw)
-
-        return spectrum.plot_topo(
-            dB=dB, layout=layout, color=color, fig_facecolor=fig_facecolor,
-            axis_facecolor=axis_facecolor, axes=axes, block=block, show=show)
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
+        return self.compute_psd(**init_kw).plot_topo(**plot_kw)
 
     @legacy(alt='.compute_psd().plot_topomap()')
     @verbose
@@ -215,19 +186,8 @@ class SpectrumMixin():
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        spectrum = self.compute_psd(
-            method=method, tmin=tmin, tmax=tmax, proj=proj,
-            n_jobs=n_jobs, verbose=verbose, **method_kw)
-
-        fig = spectrum.plot_topomap(
-            bands=bands, ch_type=ch_type, normalize=normalize, agg_fun=agg_fun,
-            dB=dB, sensors=sensors, show_names=show_names, mask=mask,
-            mask_params=mask_params, contours=contours, outlines=outlines,
-            sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
-            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, units=units,
-            axes=axes, show=show)
-        return fig
+        init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
+        return self.compute_psd(**init_kw).plot_topomap(**plot_kw)
 
     def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
         """Update method_kw with legacy n_fft default for plot_psd[_topo]().
@@ -253,10 +213,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                 f'frequency of the data ({0.5 * inst.info["sfreq"]} Hz).')
         # method
         self._inst_type = type(inst)
-        if method == 'auto':
-            method = ('welch' if self._get_instance_type_string() == 'Raw'
-                      else 'multitaper')
-        _check_option('method', method, ('welch', 'multitaper'))
+        method = _validate_method(method, self._get_instance_type_string())
 
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
@@ -294,7 +251,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._dims = ('channel', 'freq',)
         if method_kw.get('average', '') in (None, False):
             self._dims += ('segment',)
-        if method_kw.get('output', '') == 'complex':
+        if self._returns_complex_tapers(**method_kw):
             self._dims = self._dims[:-1] + ('taper',) + self._dims[-1:]
         # record data type (for repr and html_repr)
         self._data_type = ('Fourier Coefficients' if 'taper' in self._dims
@@ -358,7 +315,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def _check_values(self):
         """Check PSD results for correct shape and bad values."""
-        assert len(self._dims) == self._data.ndim
+        assert len(self._dims) == self._data.ndim, \
+            (self._dims, self._data.ndim)
         assert self._data.shape == self._shape
         # negative values OK if the spectrum is really fourier coefficients
         if 'taper' in self._dims:
@@ -375,13 +333,19 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}',
                  UserWarning)
 
+    def _returns_complex_tapers(self, **method_kw):
+        return (
+            method_kw.get('output', '') == 'complex' and
+            self.method == 'multitaper'
+        )
+
     def _compute_spectra(self, data, fmin, fmax, n_jobs, method_kw, verbose):
         # make the spectra
         result = self._psd_func(
             data, self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs,
             verbose=verbose)
         # assign ._data (handling unaggregated multitaper output)
-        if method_kw.get('output', '') == 'complex':
+        if self._returns_complex_tapers(**method_kw):
             fourier_coefs, freqs, weights = result
             self._data = fourier_coefs
             self._mt_weights = weights
@@ -399,7 +363,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                                                          method_kw)
             self._shape += (n_welch_segments,)
         # insert n_tapers
-        if method_kw.get('output', '') == 'complex':
+        if self._returns_complex_tapers(**method_kw):
             self._shape = (
                 self._shape[:-1] + (self._mt_weights.size,) + self._shape[-1:])
         # we don't need these anymore, and they make save/load harder
@@ -766,7 +730,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
-        an additional column "frequency" is added, unless ``index='freq'``
+        an additional column "freq" is added, unless ``index='freq'``
         (in which case frequency values form the DataFrame's index).
 
         Parameters
@@ -775,10 +739,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         index : str | list of str | None
             Kind of index to use for the DataFrame. If ``None``, a sequential
             integer index (:class:`pandas.RangeIndex`) will be used. If a
-            :class:`str`, a :class:`pandas.Index`, :class:`pandas.Int64Index`,
-            or :class:`pandas.Float64Index` will be used (see Notes). If a list
-            of two or more string values, a :class:`pandas.MultiIndex` will be
-            used. Defaults to ``None``.
+            :class:`str`, a :class:`pandas.Index` will be used (see Notes). If
+            a list of two or more string values, a :class:`pandas.MultiIndex`
+            will be used. Defaults to ``None``.
         %(copy_df)s
         %(long_format_df_spe)s
         %(verbose)s
@@ -918,9 +881,8 @@ class Spectrum(BaseSpectrum):
     .. footbibliography::
     """
 
-    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, reject_by_annotation, *, n_jobs, verbose=None,
-                 **method_kw):
+    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj,
+                 reject_by_annotation, *, n_jobs, verbose=None, **method_kw):
         from ..io import BaseRaw
 
         # triage reading from file
@@ -1188,3 +1150,11 @@ def _compute_n_welch_segments(n_times, method_kw):
     # compute expected number of segments
     step = n_per_seg - n_overlap
     return (n_times - n_overlap) // step
+
+
+def _validate_method(method, instance_type):
+    """Convert 'auto' to a real method name, and validate."""
+    if method == 'auto':
+        method = 'welch' if instance_type.startswith('Raw') else 'multitaper'
+    _check_option('method', method, ('welch', 'multitaper'))
+    return method

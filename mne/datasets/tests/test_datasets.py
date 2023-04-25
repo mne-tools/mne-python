@@ -59,7 +59,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
     assert get_subjects_dir(None) is None
     _set_montage_coreg_path()
     sd = get_subjects_dir()
-    assert sd.endswith('MNE-fsaverage-data')
+    assert sd.name.endswith('MNE-fsaverage-data')
     monkeypatch.setenv('MNE_DATA', str(tmp_path / 'foo'))
     with pytest.raises(FileNotFoundError, match='as specified by MNE_DAT'):
         testing.data_path(download=False)
@@ -131,12 +131,29 @@ def test_downloads(tmp_path, monkeypatch, capsys):
     out, _ = capsys.readouterr()
     assert re.match(r'.* 0\.1 .*out of date.* 0\.2.*', out, re.MULTILINE), out
 
+    # Hash mismatch suggestion
+    # https://mne.discourse.group/t/fsaverage-hash-value-mismatch/4663/3
+    want_msg = 'MD5 hash of downloaded file (MNE-sample-data-processed.tar.gz) does not match the known hash: expected md5:e8f30c4516abdc12a0c08e6bae57409c but got a9dfc7e8843fd7f8a928901e12fb3d25. Deleted download for safety. The downloaded file may have been corrupted or the known hash may be outdated.'  # noqa: E501
+
+    def _error_download_2(self, fname, downloader, processor):
+        url = self.get_url(fname)
+        full_path = self.abspath / fname
+        assert 'foo.tgz' in url
+        assert str(tmp_path) in str(full_path)
+        raise ValueError(want_msg)
+
+    shutil.rmtree(tmp_path / 'foo')
+    monkeypatch.setattr(pooch.Pooch, 'fetch', _error_download_2)
+    with pytest.raises(ValueError, match='.*known hash.*force_update=True.*'):
+        datasets._fake.data_path(download=True, force_update=True, **kwargs)
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @requires_good_network
 def test_fetch_parcellations(tmp_path):
     """Test fetching parcellations."""
+    pytest.importorskip('nibabel')
     this_subjects_dir = str(tmp_path)
     os.mkdir(op.join(this_subjects_dir, 'fsaverage'))
     os.mkdir(op.join(this_subjects_dir, 'fsaverage', 'label'))
@@ -172,7 +189,7 @@ def test_fetch_parcellations(tmp_path):
 _zip_fnames = ['foo/foo.txt', 'foo/bar.txt', 'foo/baz.txt']
 
 
-def _fake_zip_fetch(url, path, fname, known_hash):
+def _fake_zip_fetch(url, path, fname, *args, **kwargs):
     fname = op.join(path, fname)
     with zipfile.ZipFile(fname, 'w') as zipf:
         with zipf.open('foo/', 'w'):
@@ -224,7 +241,7 @@ def _fake_mcd(manifest_path, destination, url, hash_, name=None,
     if name is None:
         name = url.split('/')[-1].split('.')[0]
         assert name in url
-        assert name in destination
+        assert name in str(destination)
     assert name in manifest_path
     assert len(hash_) == 32
     if fake_files:

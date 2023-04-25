@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
@@ -65,7 +64,7 @@ def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
     return csd
 
 
-class CrossSpectralDensity(object):
+class CrossSpectralDensity:
     """Cross-spectral density.
 
     Given a list of time series, the CSD matrix denotes for each pair of time
@@ -449,9 +448,9 @@ class CrossSpectralDensity(object):
 
         Parameters
         ----------
-        fname : str
-            The name of the file to save the CSD to. The extension '.h5' will
-            be appended if the given filename doesn't have it already.
+        fname : path-like
+            The name of the file to save the CSD to. The extension ``'.h5'``
+            will be appended if the given filename doesn't have it already.
         %(overwrite)s
 
             .. versionadded:: 1.0
@@ -464,9 +463,9 @@ class CrossSpectralDensity(object):
         read_csd : For reading CSD objects from a file.
         """
         _, write_hdf5 = _import_h5io_funcs()
-        if not fname.endswith('.h5'):
-            fname += '.h5'
-
+        fname = _check_fname(fname, overwrite=True)
+        if fname.suffix != ".h5":
+            fname = fname.with_name(f"{fname.name}.h5")
         fname = _check_fname(fname, overwrite=overwrite)
         write_hdf5(fname, self.__getstate__(), overwrite=True,
                    title='conpy')
@@ -589,9 +588,9 @@ def read_csd(fname):
 
     Parameters
     ----------
-    fname : str
-        The name of the file to read the CSD from. The extension '.h5' will be
-        appended if the given filename doesn't have it already.
+    fname : path-like
+        The name of the file to read the CSD from. The extension ``'.h5'`` will
+        be appended if the given filename doesn't have it already.
 
     Returns
     -------

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-ssp:
 
@@ -33,7 +32,6 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 #     enough you may not even need to repair them to get good analysis results.
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
-#
 #
 # What is SSP?
 # ^^^^^^^^^^^^
@@ -87,7 +85,7 @@ system_projs = raw.info['projs']
 raw.del_proj()
 empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                'ernoise_raw.fif')
-# cropped to 60 sec just for speed
+# cropped to 60 s just for speed
 empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 
 # %%
@@ -104,8 +102,9 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
+spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    empty_room_raw.plot_psd(average=average, dB=False, xscale='log')
+    spectrum.plot(average=average, dB=False, xscale='log')
 
 # %%
 # Creating the empty-room projectors

@@ -32,8 +32,8 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
     Parameters
     ----------
-    fname: str
-        path to cnt file containing the annotations.
+    fname: path-like
+        Path to CNT file containing the annotations.
     data_format : 'int16' | 'int32'
         Defines the data format the data is read in.
 
@@ -121,30 +121,30 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the data file.
-    eog : list | tuple | 'auto' | 'header'
+    eog : list | tuple | ``'auto'`` | ``'header'``
         Names of channels or list of indices that should be designated
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
-        header are used. If 'auto', channel names containing 'EOG' are used.
-        Defaults to empty tuple.
+        header are used. If ``'auto'``, channel names containing ``'EOG'`` are
+        used. Defaults to empty tuple.
     misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    ecg : list | tuple | 'auto'
+    ecg : list | tuple | ``'auto'``
         Names of channels or list of indices that should be designated
-        ECG channels. If 'auto', the channel names containing 'ECG' are used.
-        Defaults to empty tuple.
+        ECG channels. If ``'auto'``, the channel names containing ``'ECG'`` are
+        used. Defaults to empty tuple.
     emg : list | tuple
         Names of channels or list of indices that should be designated
         EMG channels. If 'auto', the channel names containing 'EMG' are used.
         Defaults to empty tuple.
-    data_format : 'auto' | 'int16' | 'int32'
-        Defines the data format the data is read in. If 'auto', it is
+    data_format : ``'auto'`` | ``'int16'`` | ``'int32'``
+        Defines the data format the data is read in. If ``'auto'``, it is
         determined from the file header using ``numsamples`` field.
-        Defaults to 'auto'.
-    date_format : 'mm/dd/yy' | 'dd/mm/yy'
-        Format of date in the header. Defaults to 'mm/dd/yy'.
+        Defaults to ``'auto'``.
+    date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
+        Format of date in the header. Defaults to ``'mm/dd/yy'``.
     %(preload)s
     %(verbose)s
 
@@ -152,10 +152,11 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
     -------
     raw : instance of RawCNT.
         The raw data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawCNT.
 
     Notes
     -----
@@ -202,32 +203,32 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
         meas_date = _session_date_2_meas_date(session_date, date_format)
 
         fid.seek(370)
-        n_channels = np.fromfile(fid, dtype='<u2', count=1)[0]
+        n_channels = np.fromfile(fid, dtype='<u2', count=1).item()
         fid.seek(376)
-        sfreq = np.fromfile(fid, dtype='<u2', count=1)[0]
+        sfreq = np.fromfile(fid, dtype='<u2', count=1).item()
         if eog == 'header':
             fid.seek(402)
             eog = [idx for idx in np.fromfile(fid, dtype='i2', count=2) if
                    idx >= 0]
         fid.seek(438)
-        lowpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
-        highpass_toggle = np.fromfile(fid, 'i1', count=1)[0]
+        lowpass_toggle = np.fromfile(fid, 'i1', count=1).item()
+        highpass_toggle = np.fromfile(fid, 'i1', count=1).item()
 
         # Header has a field for number of samples, but it does not seem to be
         # too reliable. That's why we have option for setting n_bytes manually.
         fid.seek(864)
-        n_samples = np.fromfile(fid, dtype='<i4', count=1)[0]
+        n_samples = np.fromfile(fid, dtype='<i4', count=1).item()
         fid.seek(869)
-        lowcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
+        lowcutoff = np.fromfile(fid, dtype='f4', count=1).item()
         fid.seek(2, 1)
-        highcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
+        highcutoff = np.fromfile(fid, dtype='f4', count=1).item()
 
         event_offset = _compute_robust_event_table_position(
             fid=fid, data_format=data_format
         )
         fid.seek(890)
-        cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
-                                                     count=1)[0]
+        cnt_info['continuous_seconds'] = np.fromfile(
+            fid, dtype='<f4', count=1).item()
 
         if event_offset < data_offset:  # no events
             data_size = n_samples * n_channels
@@ -249,7 +250,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             n_samples = data_size // (n_bytes * n_channels)
 
         # Channel offset refers to the size of blocks per channel in the file.
-        cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
+        cnt_info['channel_offset'] = np.fromfile(
+            fid, dtype='<i4', count=1).item()
         if cnt_info['channel_offset'] > 1:
             cnt_info['channel_offset'] //= n_bytes
         else:
@@ -265,7 +267,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             ch_name = read_str(fid, 10)
             ch_names.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 4)
-            if np.fromfile(fid, dtype='u1', count=1)[0]:
+            if np.fromfile(fid, dtype='u1', count=1).item():
                 bads.append(ch_name)
             fid.seek(data_offset + 75 * ch_idx + 19)
             xy = np.fromfile(fid, dtype='f4', count=2)
@@ -273,11 +275,11 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             pos.append(xy)
             fid.seek(data_offset + 75 * ch_idx + 47)
             # Baselines are subtracted before scaling the data.
-            baselines.append(np.fromfile(fid, dtype='i2', count=1)[0])
+            baselines.append(np.fromfile(fid, dtype='i2', count=1).item())
             fid.seek(data_offset + 75 * ch_idx + 59)
-            sensitivity = np.fromfile(fid, dtype='f4', count=1)[0]
+            sensitivity = np.fromfile(fid, dtype='f4', count=1).item()
             fid.seek(data_offset + 75 * ch_idx + 71)
-            cal = np.fromfile(fid, dtype='f4', count=1)[0]
+            cal = np.fromfile(fid, dtype='f4', count=1).item()
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
     info = _empty_info(sfreq)
@@ -338,29 +340,29 @@ class RawCNT(BaseRaw):
 
     Parameters
     ----------
-    input_fname : str
+    input_fname : path-like
         Path to the CNT file.
     eog : list | tuple
         Names of channels or list of indices that should be designated
-        EOG channels. If 'auto', the channel names beginning with
+        EOG channels. If ``'auto'``, the channel names beginning with
         ``EOG`` are used. Defaults to empty tuple.
     misc : list | tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
     ecg : list | tuple
         Names of channels or list of indices that should be designated
-        ECG channels. If 'auto', the channel names beginning with
+        ECG channels. If ``'auto'``, the channel names beginning with
         ``ECG`` are used. Defaults to empty tuple.
     emg : list | tuple
         Names of channels or list of indices that should be designated
-        EMG channels. If 'auto', the channel names beginning with
+        EMG channels. If ``'auto'``, the channel names beginning with
         ``EMG`` are used. Defaults to empty tuple.
-    data_format : 'auto' | 'int16' | 'int32'
-        Defines the data format the data is read in. If 'auto', it is
+    data_format : ``'auto'`` | ``'int16'`` | ``'int32'``
+        Defines the data format the data is read in. If ``'auto'``, it is
         determined from the file header using ``numsamples`` field.
-        Defaults to 'auto'.
-    date_format : 'mm/dd/yy' | 'dd/mm/yy'
-        Format of date in the header. Defaults to 'mm/dd/yy'.
+        Defaults to ``'auto'``.
+    date_format : ``'mm/dd/yy'`` | ``'dd/mm/yy'``
+        Format of date in the header. Defaults to ``'mm/dd/yy'``.
     %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
@@ -376,7 +378,7 @@ class RawCNT(BaseRaw):
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     def __init__(self, input_fname, eog=(), misc=(),

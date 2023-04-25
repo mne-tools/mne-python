@@ -12,7 +12,7 @@
 import logging
 from collections import defaultdict
 from itertools import combinations
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -21,11 +21,11 @@ from ..io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
-                     _check_option, _check_sphere, logger)
+                     _check_fname, _check_option, _check_sphere, logger)
 from .channels import _get_ch_info
 
 
-class Layout(object):
+class Layout:
     """Sensor layouts.
 
     Layouts are typically loaded from a file using
@@ -54,13 +54,15 @@ class Layout(object):
         self.ids = ids
         self.kind = kind
 
-    def save(self, fname):
+    def save(self, fname, overwrite=False):
         """Save Layout to disk.
 
         Parameters
         ----------
-        fname : str
-            The file name (e.g. 'my_layout.lout').
+        fname : path-like
+            The file name (e.g. ``'my_layout.lout'``).
+        overwrite : bool
+            If True, overwrites the destination file if it exists.
 
         See Also
         --------
@@ -70,9 +72,10 @@ class Layout(object):
         y = self.pos[:, 1]
         width = self.pos[:, 2]
         height = self.pos[:, 3]
-        if fname.endswith('.lout'):
+        fname = _check_fname(fname, overwrite=overwrite, name=fname)
+        if fname.suffix == ".lout":
             out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
-        elif fname.endswith('.lay'):
+        elif fname.suffix == ".lay":
             out_str = ''
         else:
             raise ValueError('Unknown layout type. Should be of type '
@@ -160,22 +163,33 @@ def _read_lay(fname):
     return box, pos, names, ids
 
 
-def read_layout(kind, path=None, scale=True):
+def read_layout(fname=None, path="", scale=True, *, kind=None):
     """Read layout from a file.
 
     Parameters
     ----------
-    kind : str
-        The name of the .lout file (e.g. kind='Vectorview-all' for
-        'Vectorview-all.lout').
-
-    path : str | None
+    fname : path-like | str
+        Either the path to a ``.lout`` or ``.lay`` file or the name of a
+        built-in layout. c.f. Notes for a list of the available built-in
+        layouts.
+    path : path-like | None
         The path of the folder containing the Layout file. Defaults to the
-        mne/channels/data/layouts folder inside your mne-python installation.
+        ``mne/channels/data/layouts`` folder inside your mne-python
+        installation.
 
+        .. deprecated:: v1.4
+           The ``kind`` and ``path`` parameters will be removed in version
+           1.5. Please use the ``fname`` parameter instead.
     scale : bool
-        Apply useful scaling for out the box plotting using layout.pos.
+        Apply useful scaling for out the box plotting using ``layout.pos``.
         Defaults to True.
+    kind : str | None
+        The name of the ``.lout`` file (e.g. ``kind='Vectorview-all'`` for
+        ``'Vectorview-all.lout'``).
+
+        .. deprecated:: v1.4
+           The ``kind`` and ``path`` parameters will be removed in version
+           1.5. Please use the ``fname`` parameter instead.
 
     Returns
     -------
@@ -188,7 +202,7 @@ def read_layout(kind, path=None, scale=True):
 
     Notes
     -----
-    Valid ``kind`` arguments are:
+    Valid ``fname`` arguments are:
 
     .. table::
        :widths: auto
@@ -237,25 +251,58 @@ def read_layout(kind, path=None, scale=True):
        | Vectorview-mag       |
        +----------------------+
     """
-    if path is None:
-        path = op.join(op.dirname(__file__), 'data', 'layouts')
-    if not kind.endswith('.lout') and op.exists(op.join(path, kind + '.lout')):
-        kind += '.lout'
-    elif not kind.endswith('.lay') and op.exists(op.join(path, kind + '.lay')):
-        kind += '.lay'
+    readers = {".lout": _read_lout, ".lay": _read_lay}
 
-    if kind.endswith('.lout'):
-        fname = op.join(path, kind)
-        kind = kind[:-5]
-        box, pos, names, ids = _read_lout(fname)
-    elif kind.endswith('.lay'):
-        fname = op.join(path, kind)
-        kind = kind[:-4]
-        box, pos, names, ids = _read_lay(fname)
-        kind.endswith('.lay')
+    if fname is None:  # deprecated in 1.4
+        warn(
+            "Argument 'kind' and 'path' are deprecated in favor of 'fname'.",
+            DeprecationWarning,
+        )
+        if path == "" or path is None:
+            path = Path(__file__).parent / "data" / "layouts"
+        # kind should be the name as a string, but let's consider the case
+        # where the path to the file is provided instead.
+        kind = Path(kind)
+        if (
+            len(kind.suffix) == 0
+            and (path / kind.with_suffix(".lout")).exists()
+        ):
+            kind = kind.with_suffix(".lout")
+        elif (
+            len(kind.suffix) == 0
+            and (path / kind.with_suffix(".lay")).exists()
+        ):
+            kind = kind.with_suffix(".lay")
+
+        fname = kind if kind.exists() else path / kind.name
+        if fname.suffix not in (".lout", ".lay"):
+            raise ValueError(
+                "Unknown layout type. Should be of type .lout or .lay."
+            )
+        kind = fname.stem
     else:
-        raise ValueError('Unknown layout type. Should be of type '
-                         '.lout or .lay.')
+        # to be removed along the deprecated argument
+        if kind is not None or path != "":
+            warn(
+                "Argument 'kind' and 'path' are deprecated in favor of "
+                "'fname' and should not be provided alongside 'fname'.",
+                DeprecationWarning,
+            )
+        if isinstance(fname, str):
+            # is it a built-in layout?
+            directory = Path(__file__).parent / "data" / "layouts"
+            if (directory / fname).exists():
+                fname = directory / fname
+            elif (directory / fname).with_suffix(".lout").exists():
+                fname = (directory / fname).with_suffix(".lout")
+            elif (directory / fname).with_suffix(".lay").exists():
+                fname = (directory / fname).with_suffix(".lay")
+        # if not, it must be a valid path provided as str or Path
+        fname = _check_fname(fname, "read", must_exist=True, name="layout")
+        # and it must have a valid extension
+        _check_option("fname extension", fname.suffix, readers)
+        kind = fname.stem
+    box, pos, names, ids = readers[fname.suffix](fname)
 
     if scale:
         pos[:, 0] -= np.min(pos[:, 0])
@@ -493,7 +540,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
         return generate_2d_layout(xy, ch_names=ch_names, name='custom',
                                   normalize=True)
 
-    layout = read_layout(layout_name)
+    layout = read_layout(fname=layout_name)
     if not is_old_vv:
         layout.names = _clean_names(layout.names, remove_whitespace=True)
     if has_CTF_grad:
@@ -1066,7 +1113,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         one index per channel.
     name : str
         The name of this layout type.
-    bg_image : str | ndarray
+    bg_image : path-like | ndarray
         The image over which sensor axes will be plotted. Either a path to an
         image file, or an array that can be plotted with plt.imshow. If
         provided, xy points will be normalized by the width/height of this
