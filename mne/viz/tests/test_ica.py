@@ -59,9 +59,11 @@ def test_plot_ica_components():
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8)
     ica_picks = _get_picks(raw)
-    with pytest.warns(RuntimeWarning, match='projection'):
+    with pytest.warns(
+        RuntimeWarning, match="(projection)|(unstable mixing matrix)"
+    ):
         ica.fit(raw, picks=ica_picks)
 
     for components in [0, [0], [0, 1], [0, 1] * 2, None]:
@@ -106,14 +108,7 @@ def test_plot_ica_components():
     title = topomap_ax.get_title()
     assert (lbl.split(' ')[0] == title.split(' ')[0])
 
-    ica.info = None
-    with pytest.raises(RuntimeError, match='fit the ICA'):
-        ica.plot_components(1, ch_type='mag')
-
     # test provided axes
-    ica = ICA(n_components=None)
-    ica_picks = _get_picks(raw)  # 9 channels
-    ica.fit(raw, picks=ica_picks)
     _, ax = plt.subplots(1, 1)
     ica.plot_components(axes=ax, picks=0, **fast_test)
     _, ax = plt.subplots(2, 1)
@@ -124,6 +119,10 @@ def test_plot_ica_components():
     ica.plot_components(
         axes=ax, picks=[0, 1, 2, 3, 4, 5], nrows=2, ncols=2, **fast_test
     )
+
+    ica.info = None
+    with pytest.raises(RuntimeError, match='fit the ICA'):
+        ica.plot_components(1, ch_type='mag')
 
 
 @pytest.mark.slowtest
