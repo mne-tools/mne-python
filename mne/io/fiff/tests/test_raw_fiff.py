@@ -390,7 +390,7 @@ def _create_toy_data(n_channels=3, sfreq=250, seed=None):
 
 
 def test_concatenate_raws_bads_order():
-    """Test concatenation of raw instances when the order of bad chs varies."""
+    """Test concatenation of raws when the order of *bad* channels varies."""
     raw0 = _create_toy_data()
     raw1 = _create_toy_data()
 
