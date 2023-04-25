@@ -28,7 +28,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 60
+    timeout-minutes: 70
     continue-on-error: true
     runs-on: ${{ matrix.os }}
     defaults:
@@ -95,9 +95,9 @@ jobs:
           mamba list
         if: matrix.kind == 'notebook'
       - run: ./tools/github_actions_dependencies.sh
-      # Minimal commands on Unix
+      # Minimal commands on Linux (macOS stalls)
       - run: ./tools/get_minimal_commands.sh
-        if: ${{ !startswith(matrix.os, 'windows') }}
+        if: ${{ startswith(matrix.os, 'ubuntu') }}
       - run: ./tools/github_actions_install.sh
       - run: ./tools/github_actions_infos.sh
       # Check Qt on non-notebook
