@@ -439,7 +439,7 @@ def test_concatenate_raws_order():
     raw1 = raw0.copy()
     raw_concat = concatenate_raws([raw0.copy(), raw1])
     assert raw0.ch_names == raw1.ch_names == raw_concat.ch_names == ["0", "1"]
-    ch0 = raw_concat.copy().pick(picks=["0"]).get_data()
+    ch0 = raw_concat.get_data(picks=["0"])
     assert np.all(ch0 == 0)
 
     # Change the order of the channels and concatenate again
