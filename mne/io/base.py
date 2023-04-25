@@ -2571,7 +2571,19 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
 
 
 def match_channel_orders(raws, copy=True):
-    """Ensure consistent channel order across raws."""
+    """Ensure consistent channel order across raws.
+
+    Parameters
+    ----------
+    raws : list
+        List of `~mne.io.Raw` instances to order.
+    %(copy_df)s
+
+    Returns
+    -------
+    list of Raw
+        List of Raws with matched channel orders.
+    """
     raws = deepcopy(raws) if copy else raws
     ch_order = raws[0].ch_names
     for raw in raws[1:]:
