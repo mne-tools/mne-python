@@ -254,7 +254,8 @@ def _ensure_fiducials_head(dig):
             if radius is None:
                 radius = [
                     np.linalg.norm(d['r']) for d in dig
-                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+                    and not np.isnan(d['r']).any()]
                 if not radius:
                     return  # can't complete, no head points
                 radius = np.mean(radius)

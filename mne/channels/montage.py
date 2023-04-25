@@ -1656,7 +1656,8 @@ def compute_native_head_t(montage, *, on_missing='warn', verbose=None):
     else:
         fid_keys = ('nasion', 'lpa', 'rpa')
         for key in fid_keys:
-            if fid_coords[key] is None:
+            this_coord = fid_coords[key]
+            if this_coord is None or np.any(np.isnan(this_coord)):
                 msg = (
                     f'Fiducial point {key} not found, assuming identity '
                     f'{_verbose_frames[coord_frame]} to head transformation')
