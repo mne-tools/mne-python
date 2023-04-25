@@ -1136,7 +1136,7 @@ def plot_ica_components(
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
         plotted. For example 2.5 will plot 2.5 standard deviation above/below.
-    reject : 'auto' | dict | None
+    reject : ``'auto'`` | dict | None
         Allows to specify rejection parameters used to drop epochs
         (or segments if continuous signal is passed as inst).
         If None, no rejection is applied. The default is 'auto',
@@ -1167,7 +1167,13 @@ def plot_ica_components(
         .. versionadded:: 1.3
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
-    %(axes_evoked_plot_topomap)s
+    axes : Axes | array of Axes | None
+        The subplot(s) to plot to. Either a single Axes or an iterable of Axes
+        if more than one subplot is needed. The number of subplots must match
+        the number of selected components. If None, a new figure will be
+        created. The number of subplots must match the number of selected
+        components. If None, new figures will be created with the number
+        of subplots per figure controlled by ``nrows`` and ``ncols``.
     title : str | None
         The title of the generated figure. If ``None`` (default) and
         ``axes=None``, a default title of "ICA Components" will be used.
@@ -1270,7 +1276,7 @@ def plot_ica_components(
     else:
         axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
         axes = [axes] if isinstance(axes, Axes) else axes
-        fig = axes[0].figure
+        fig = axes[0].get_figure()
 
     subplot_titles = list()
     for ii, data_, ax in zip(picks, data, axes):
