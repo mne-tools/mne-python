@@ -90,7 +90,7 @@ Enhancements
 
 - Allow using ``pick_ori='vector'`` with a fixed-orientation inverse to facilitate visualization with :func:`mne.viz.plot_vector_source_estimates` by `Eric Larson`_
 
-- :func:`mne.viz.plot_dipole_locations` and :meth:`mne.Dipole.plot_locations` gained a ``title`` argument to specify a custom figure title in ``orthoview`` mode by `Richard Höchenberger`_
+- :func:`mne.viz.plot_dipole_locations` and :meth:`mne.dipole.Dipole.plot_locations` gained a ``title`` argument to specify a custom figure title in ``orthoview`` mode by `Richard Höchenberger`_
 
 - Add orientations projected onto the MRI slices in :func:`mne.viz.plot_dipole_locations` in ``'orthoview'`` mode by `Eric Larson`_
 
@@ -237,7 +237,7 @@ Bugs
 
 - Fix bug with non-preloaded data when using ``raw.apply_proj().load_data().get_data()`` where projectors were not applied by `Eric Larson`_
 
-- Fix bug to permit :meth:`stc.project('nn', src) <mne.VectorSourceEstimate.project>` to be applied after ``stc`` was restricted to an :class:`mne.Label` by `Luke Bloy`_
+- Fix bug to permit :meth:`stc.project('nn', src) <mne.VectorSourceEstimate.project>` to be applied after ``stc`` was restricted to an :class:`mne.label.Label` by `Luke Bloy`_
 
 - Fix bug with :func:`mne.io.Raw.set_meas_date` to support setting ``meas_date`` to ``None``, by `Luke Bloy`_
 

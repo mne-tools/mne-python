@@ -51,7 +51,7 @@ Enhancements
 
 - The :func:`mne.make_forward_dipole` function can now take a list of dipoles to make a multi-dipole forward models (:gh:`10464` by `Marijn van Vliet`_)
 
-- Add ``mode='outlines'`` support to :meth:`mne.Dipole.plot_locations` and :func:`mne.viz.plot_dipole_locations` (:gh:`10699` by `Eric Larson`_)
+- Add ``mode='outlines'`` support to :meth:`mne.dipole.Dipole.plot_locations` and :func:`mne.viz.plot_dipole_locations` (:gh:`10699` by `Eric Larson`_)
 
 - Add :meth:`mne.preprocessing.ICA.find_bads_muscle` to find muscle-related ICA components with an example, :ref:`ex-muscle-ica` (:gh:`10534` by `Alex Rockhill`_)
 

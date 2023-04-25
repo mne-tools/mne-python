@@ -83,7 +83,7 @@ Enhancements
 
 - Add ``overlap`` parameter to :func:`mne.make_fixed_length_epochs` to allow creating overlapping fixed length epochs (:gh:`9096` **by new contributor** |Silvia Cotroneo|_)
 
-- Add :meth:`mne.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
+- Add :meth:`mne.dipole.Dipole.to_mni` for more convenient  dipole.pos to MNI conversion (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
 - Update citations in maxwell.py (:gh:`9043` **by new contributor** |Valerii Chirkov|_)
 
@@ -300,7 +300,7 @@ Bugs
 
 - Fix bug with mne.channels.find_ch_adjacency() returning wrong adjacency for Neuromag122-Data (:gh:`8891` by `Martin Schulz`_)
 
-- Fix :func:`mne.read_dipole` yielding :class:`mne.Dipole` objects that could not be indexed (:gh:`8963` by `Marijn van Vliet`_)
+- Fix :func:`mne.read_dipole` yielding :class:`mne.dipole.Dipole` objects that could not be indexed (:gh:`8963` by `Marijn van Vliet`_)
 
 - Fix bug when setting n_jobs > 1 in :meth:`mne.Report.parse_folder` (:gh:`9109` by `Martin Schulz`_)
 

@@ -199,7 +199,8 @@ numpydoc_xref_aliases = {
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',
     'SpatialImage': 'nibabel.spatialimages.SpatialImage',
     # MNE
-    'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
+    'Label': 'mne.label.Label', 'Forward': 'mne.Forward',
+    'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
     'Epochs': 'mne.Epochs', 'Layout': 'mne.channels.Layout',
     'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.BiHemiLabel',
@@ -215,7 +216,7 @@ numpydoc_xref_aliases = {
     'MixedVectorSourceEstimate': 'mne.MixedVectorSourceEstimate',
     'SourceEstimate': 'mne.SourceEstimate', 'Projection': 'mne.Projection',
     'ConductorModel': 'mne.bem.ConductorModel',
-    'Dipole': 'mne.Dipole', 'DipoleFixed': 'mne.DipoleFixed',
+    'Dipole': 'mne.dipole.Dipole', 'DipoleFixed': 'mne.dipole.DipoleFixed',
     'InverseOperator': 'mne.minimum_norm.InverseOperator',
     'CrossSpectralDensity': 'mne.time_frequency.CrossSpectralDensity',
     'SourceMorph': 'mne.SourceMorph',

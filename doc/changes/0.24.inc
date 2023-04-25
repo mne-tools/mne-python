@@ -57,7 +57,7 @@ Enhancements
 
 - Add support for NIRSport and NIRSport2 devices to `mne.io.read_raw_nirx` (:gh:`9348` and :gh:`9401` **by new contributor** |David Julien|_, **new contributor** |Romain Derollepot|_, `Robert Luke`_, and `Eric Larson`_)
 
-- New function :func:`mne.Dipole.to_volume_labels` to get atlas label for MRI coordinates.  (:gh:`9376` by **new contributor** |Marian Dovgialo|_)
+- New function :func:`mne.dipole.Dipole.to_volume_labels` to get atlas label for MRI coordinates.  (:gh:`9376` by **new contributor** |Marian Dovgialo|_)
 
 - Add support for SURE parameter selection in :func:`mne.inverse_sparse.mixed_norm` and make ``alpha`` parameter now default to ``'sure'`` (:gh:`9430` by **new contributor** |Pierre-Antoine Bannier|_ and `Alex Gramfort`_)
 
@@ -89,7 +89,7 @@ Enhancements
 
 - Add support for ``picks`` in :func:`mne.stc_near_sensors` (:gh:`9396` by `Eric Larson`_)
 
-- Add label methods `mne.Label.compute_area` and `mne.Label.distances_to_outside` (:gh:`9424` by `Eric Larson`_)
+- Add label methods `mne.label.Label.compute_area` and `mne.label.Label.distances_to_outside` (:gh:`9424` by `Eric Larson`_)
 
 - Add projections when printing a :class:`mne.Info` in the notebook (:gh:`9403` by `Alex Gramfort`_)
 
