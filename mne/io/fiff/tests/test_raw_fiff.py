@@ -458,7 +458,7 @@ def test_concatenate_raws_order():
     # Now passes because all raws have the same order
     match_channel_orders(raws, copy=False)
     raw_concat = concatenate_raws(raws)
-    ch0 = raw_concat.copy().pick(picks=["0"]).get_data()
+    ch0 = raw_concat.get_data(picks=["0"])
     assert np.all(ch0 == 0)
 
 
