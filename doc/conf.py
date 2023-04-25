@@ -1185,6 +1185,8 @@ si = 'simulation'
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
+    'generated/mne.Label.html': 'generated/mne.label.Label.html',
+    'generated/mne.Dipole.html': 'generated/mne.dipole.Dipole.html',
     f'{tu}/evoked/plot_eeg_erp.html': f'{tu}/evoked/30_eeg_erp.html',
     f'{tu}/evoked/plot_whitened.html': f'{tu}/evoked/40_whitened.html',
     f'{tu}/misc/plot_modifying_data_inplace.html': f'{tu}/intro/15_inplace.html',  # noqa E501
