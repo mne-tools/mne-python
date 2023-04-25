@@ -365,7 +365,6 @@ stages:
         sed -i 's/.. graphviz::/.. graphviz/g' doc/install/contributing.rst
         sed -i 's/.. graphviz::/.. graphviz/g' tutorials/preprocessing/40_artifact_correction_ica.py
         sed -i '/sphinx\.ext\.graphviz/d' doc/conf.py
-        git clean -xdf
       displayName: Skip graph that we cannot render
     - bash: cd doc && python -c "import mne; print(mne.__version__); print(mne)"
       displayName: Ensure MNE-Python is importable

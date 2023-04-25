@@ -36,9 +36,7 @@ os.environ['MNE_3D_OPTION_THEME'] = 'light'
 
 # -- Path setup --------------------------------------------------------------
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
+# Make sure our gen_examples can be found
 this_path = Path(__file__).parent
 sys.path.append(str((this_path / 'sphinxext').absolute()))
 
