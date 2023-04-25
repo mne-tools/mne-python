@@ -7,6 +7,7 @@ if [[ "$MNE_CI_KIND" == "old" ]]; then
     echo "CONDA_ACTIVATE_ENV=true" >> $GITHUB_ENV
     echo "CONDA_DEPENDENCIES=numpy=1.20.2 scipy=1.6.3 matplotlib=3.4 pandas=1.2.4 scikit-learn=0.24.2" >> $GITHUB_ENV
     echo "MNE_IGNORE_WARNINGS_IN_TESTS=true" >> $GITHUB_ENV
+    echo "MNE_SKIP_NETWORK_TESTS=1" >> $GITHUB_ENV
 elif [[ "$MNE_CI_KIND" == "minimal" ]]; then
     echo "Setting conda env vars for minimal"
     echo "CONDA_ACTIVATE_ENV=true" >> $GITHUB_ENV
