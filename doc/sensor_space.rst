@@ -9,6 +9,7 @@ Sensor Space Data
 
    combine_evoked
    concatenate_raws
+   match_channel_orders
    equalize_channels
    grand_average
    pick_channels

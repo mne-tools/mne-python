@@ -35,7 +35,7 @@ from .io.pick import (pick_types, pick_channels,
                       pick_types_forward, pick_channels_cov,
                       pick_channels_evoked, pick_info,
                       channel_type, channel_indices_by_type)
-from .io.base import concatenate_raws
+from .io.base import concatenate_raws, match_channel_orders
 from .io.meas_info import create_info, Info
 from .io.proj import Projection
 from .io.kit import read_epochs_kit
