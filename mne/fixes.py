@@ -12,6 +12,7 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
+from contextlib import contextmanager
 import inspect
 from math import log
 from pprint import pprint
@@ -923,3 +924,14 @@ def pinv(a, rtol=None):
     u = u[:, :rank]
     u /= s[:rank]
     return (u @ vh[:rank]).conj().T
+
+
+###############################################################################
+# h5py uses np.product which is deprecated in NumPy 1.25
+
+@contextmanager
+def _numpy_h5py_dep():
+    # h5io uses np.product
+    with warnings.catch_warnings(record=True):
+        warnings.filterwarnings('ignore', '`product` is deprecated.*', DeprecationWarning)
+        yield

@@ -105,7 +105,7 @@ For full functionality, some functions require:
 
 - Numba >= 0.53.1
 - NiBabel >= 3.2.1
-- OpenMEEG >= 2.5.5
+- OpenMEEG >= 2.5.6
 - Pandas >= 1.2.4
 - Picard >= 0.3
 - CuPy >= 9.0.0 (for NVIDIA CUDA acceleration)

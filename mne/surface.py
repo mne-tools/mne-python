@@ -897,10 +897,10 @@ def _read_patch(fname):
     # and PyCortex (BSD)
     patch = dict()
     with open(fname, 'r') as fid:
-        ver = np.fromfile(fid, dtype='>i4', count=1)[0]
+        ver = np.fromfile(fid, dtype='>i4', count=1).item()
         if ver != -1:
             raise RuntimeError(f'incorrect version # {ver} (not -1) found')
-        npts = np.fromfile(fid, dtype='>i4', count=1)[0]
+        npts = np.fromfile(fid, dtype='>i4', count=1).item()
         dtype = np.dtype(
             [('vertno', '>i4'), ('x', '>f'), ('y', '>f'), ('z', '>f')])
         recs = np.fromfile(fid, dtype=dtype, count=npts)
