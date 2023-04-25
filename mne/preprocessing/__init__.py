@@ -21,7 +21,7 @@ from .stim import fix_stim_artifact
 from .maxwell import (maxwell_filter, find_bad_channels_maxwell,
                       compute_maxwell_basis, maxwell_filter_prepare_emptyroom)
 from .realign import realign_raw
-from .xdawn import Xdawn
+from ._xdawn import Xdawn
 from ._csd import compute_current_source_density, compute_bridged_electrodes
 from . import nirs
 from .artifact_detection import (annotate_movement, compute_average_dev_head_t,

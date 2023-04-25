@@ -354,7 +354,7 @@ stages:
         set -eo pipefail
         PYTHONUTF8=1 pip install --progress-bar off -r requirements.txt -r requirements_doc.txt
       displayName: Install documentation dependencies
-    - script: pip install -e .
+    - script: pip install -ve .
       displayName: Install dev MNE
     - script: mne sys_info -pd
       displayName: Print config and test access to commands
@@ -365,7 +365,9 @@ stages:
         sed -i 's/.. graphviz::/.. graphviz/g' doc/install/contributing.rst
         sed -i 's/.. graphviz::/.. graphviz/g' tutorials/preprocessing/40_artifact_correction_ica.py
         sed -i '/sphinx\.ext\.graphviz/d' doc/conf.py
+        git clean -xdf
       displayName: Skip graph that we cannot render
-    # TODO: Reenable this once we can get it to work!
-    # - bash: make -C doc html_dev-noplot
-    #   displayName: 'Build doc'
+    - bash: cd doc && python -c "import mne; print(mne.__version__); print(mne)"
+      displayName: Ensure MNE-Python is importable
+    - bash: make -C doc html_dev-noplot
+      displayName: 'Build doc'

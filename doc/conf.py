@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import faulthandler
 import gc
 import os
+from pathlib import Path
 import subprocess
 import sys
 import time
@@ -38,9 +39,8 @@ os.environ['MNE_3D_OPTION_THEME'] = 'light'
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-curdir = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(curdir, '..', 'mne')))
-sys.path.append(os.path.abspath(os.path.join(curdir, 'sphinxext')))
+this_path = Path(__file__).parent
+sys.path.append(str((this_path / 'sphinxext').absolute()))
 
 
 # -- Project information -----------------------------------------------------

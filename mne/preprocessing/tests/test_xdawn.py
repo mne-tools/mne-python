@@ -17,7 +17,7 @@ from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
 from mne.decoding import Vectorizer
 from mne.io import read_raw_fif
 from mne.utils import requires_sklearn
-from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
+from mne.preprocessing._xdawn import Xdawn, _XdawnTransformer
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"

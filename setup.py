@@ -6,7 +6,7 @@
 import os
 import os.path as op
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def parse_requirements_file(fname):
@@ -29,16 +29,6 @@ MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
 URL = 'https://mne.tools/dev/'
 LICENSE = 'BSD-3-Clause'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
-
-
-def package_tree(pkgroot):
-    """Get the submodule list."""
-    # Adapted from VisPy
-    path = op.dirname(__file__)
-    subdirs = [op.relpath(i[0], path).replace(op.sep, '.')
-               for i in os.walk(op.join(path, pkgroot))
-               if '__init__.py' in i[2]]
-    return sorted(subdirs)
 
 
 if __name__ == "__main__":
@@ -87,7 +77,7 @@ if __name__ == "__main__":
           platforms='any',
           python_requires='>=3.8',
           install_requires=install_requires,
-          setup_requires=["setuptools>=45", "setuptools_scm>=6.2"],
+          setup_requires=["setuptools>=61", "setuptools_scm>=6.2"],
           use_scm_version={
               "write_to": "mne/_version.py",
               "version_scheme": "release-branch-semver",
@@ -97,7 +87,10 @@ if __name__ == "__main__":
               'hdf5': hdf5_requires,
               'test': test_requires,
           },
-          packages=package_tree('mne'),
+          packages=find_packages(
+            include='mne*'
+            exclude=('doc', 'examples', 'tutorials', 'logo', 'tools', '.*'),
+          ),
           package_data={'mne': [
               op.join('data', 'eegbci_checksums.txt'),
               op.join('data', '*.sel'),
