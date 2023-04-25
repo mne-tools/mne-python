@@ -1747,7 +1747,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         See Also
         --------
-        mne.Label.center_of_mass
+        mne.label.Label.center_of_mass
         mne.vertex_to_mni
 
         References

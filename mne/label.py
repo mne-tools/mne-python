@@ -2231,8 +2231,8 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
 
     See Also
     --------
-    read_labels_from_annot
-    mne.Label.morph
+    mne.read_labels_from_annot
+    mne.label.Label.morph
 
     Notes
     -----
@@ -2420,7 +2420,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
     Parameters
     ----------
-    labels : list with instances of mne.Label
+    labels : list with instances of mne.label.Label
         The labels to create a parcellation from.
     %(subject)s
     parc : str | None

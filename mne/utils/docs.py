@@ -895,7 +895,7 @@ dipole : instance of Dipole | list of Dipole
     dipoles may also be specified as a list of Dipole objects.
 
     .. versionchanged:: 1.1
-        Added support for a list of :class:`mne.Dipole` instances.
+        Added support for a list of :class:`mne.dipole.Dipole` instances.
 """
 
 docdict['distance'] = """
@@ -1862,7 +1862,7 @@ label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_
 docdict['labels_eltc'] = """
 labels : Label | BiHemiLabel | list | tuple | str
     If using a surface or mixed source space, this should be the
-    :class:`~mne.Label`'s for which to extract the time course.
+    :class:`~mne.label.Label`'s for which to extract the time course.
     If working with whole-brain volume source estimates, this must be one of:
 
     - a string path to a FreeSurfer atlas for the subject (e.g., their

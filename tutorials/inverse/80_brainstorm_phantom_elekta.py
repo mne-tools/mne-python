@@ -162,8 +162,8 @@ ax3.set_ylabel('Amplitude error (nAm)')
 
 actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
 actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
-dip_true = \
-    mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
+dip_true = mne.dipole.Dipole(
+    dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
 fig = mne.viz.plot_alignment(
     evoked.info, trans, subject, bem=sphere, surfaces={'head-dense': 0.2},

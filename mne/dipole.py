@@ -47,7 +47,7 @@ class Dipole(TimeMixin):
 
     .. note::
         This class should usually not be instantiated directly via
-        ``mne.Dipole(...)``. Instead, use one of the functions
+        ``mne.dipole.Dipole(...)``. Instead, use one of the functions
         listed in the See Also section below.
 
     Used to store positions, orientations, amplitudes, times, goodness of fit
@@ -89,15 +89,16 @@ class Dipole(TimeMixin):
 
     See Also
     --------
-    fit_dipole
-    DipoleFixed
-    read_dipole
+    mne.fit_dipole
+    mne.dipole.DipoleFixed
+    mne.read_dipole
 
     Notes
     -----
     This class is for sequential dipole fits, where the position
     changes as a function of time. For fixed dipole fits, where the
-    position is fixed as a function of time, use :class:`mne.DipoleFixed`.
+    position is fixed as a function of time, use
+    :class:`mne.dipole.DipoleFixed`.
     """
 
     @verbose
@@ -369,7 +370,7 @@ class DipoleFixed(TimeMixin):
 
     .. note::
         This class should usually not be instantiated directly
-        via ``mne.DipoleFixed(...)``. Instead, use one of the functions
+        via ``mne.dipole.DipoleFixed(...)``. Instead, use one of the functions
         listed in the See Also section below.
 
     Parameters
@@ -397,7 +398,8 @@ class DipoleFixed(TimeMixin):
     -----
     This class is for fixed-position dipole fits, where the position
     (and maybe orientation) is static over time. For sequential dipole fits,
-    where the position can change a function of time, use :class:`mne.Dipole`.
+    where the position can change a function of time, use
+    :class:`mne.dipole.Dipole`.
 
     .. versionadded:: 0.12
     """
@@ -500,9 +502,9 @@ def read_dipole(fname, verbose=None):
 
     See Also
     --------
-    Dipole
-    DipoleFixed
-    fit_dipole
+    mne.dipole.Dipole
+    mne.dipole.DipoleFixed
+    mne.fit_dipole
 
     Notes
     -----
@@ -1201,18 +1203,18 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
     Returns
     -------
     dip : instance of Dipole or DipoleFixed
-        The dipole fits. A :class:`mne.DipoleFixed` is returned if
+        The dipole fits. A :class:`mne.dipole.DipoleFixed` is returned if
         ``pos`` and ``ori`` are both not None, otherwise a
-        :class:`mne.Dipole` is returned.
+        :class:`mne.dipole.Dipole` is returned.
     residual : instance of Evoked
         The M-EEG data channels with the fitted dipolar activity removed.
 
     See Also
     --------
     mne.beamformer.rap_music
-    Dipole
-    DipoleFixed
-    read_dipole
+    mne.dipole.Dipole
+    mne.dipole.DipoleFixed
+    mne.read_dipole
 
     Notes
     -----

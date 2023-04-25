@@ -56,7 +56,8 @@ white = (1.0, 1.0, 1.0)  # RGB values for a white color
 
 actual_amp = np.ones(dip_len)  # misc amp to create Dipole instance
 actual_gof = np.ones(dip_len)  # misc GOF to create Dipole instance
-dipoles = mne.Dipole(dip_times, dip_pos, actual_amp, dip_ori, actual_gof)
+dipoles = mne.dipole.Dipole(
+    dip_times, dip_pos, actual_amp, dip_ori, actual_gof)
 trans = mne.read_trans(trans_fname)
 
 fig = mne.viz.create_3d_figure(size=(600, 400), bgcolor=white)

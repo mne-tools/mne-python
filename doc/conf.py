@@ -203,7 +203,7 @@ numpydoc_xref_aliases = {
     'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
     'Epochs': 'mne.Epochs', 'Layout': 'mne.channels.Layout',
-    'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.BiHemiLabel',
+    'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.label.BiHemiLabel',
     'AverageTFR': 'mne.time_frequency.AverageTFR',
     'EpochsTFR': 'mne.time_frequency.EpochsTFR',
     'Raw': 'mne.io.Raw', 'ICA': 'mne.preprocessing.ICA',
