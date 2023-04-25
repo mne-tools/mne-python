@@ -2552,12 +2552,6 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
-    # consistent channel order across raws (not checked by _ensure_infos_match)
-    ch_order = raws[0].ch_names
-    for raw in raws[1:]:
-        raw.reorder_channels(ch_order)
-    # [raw.reorder_channels(raws[0].ch_names) for raw in raws[1:]]
-
     for idx, raw in enumerate(raws[1:], start=1):
         _ensure_infos_match(info1=raws[0].info, info2=raw.info,
                             name=f'raws[{idx}]', on_mismatch=on_mismatch)

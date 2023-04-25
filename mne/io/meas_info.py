@@ -2906,6 +2906,10 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
         raise ValueError(f'{name}.info[\'sfreq\'] must match')
     if set(info1['ch_names']) != set(info2['ch_names']):
         raise ValueError(f'{name}.info[\'ch_names\'] must match')
+    if info1['ch_names'] != info2['ch_names']:
+        msg = (f'{name}.info[\'ch_names\']: Channel order must match. Use '
+                'mne.match_channel_orders() to sort channels.')
+        raise ValueError(msg)
     if len(info2['projs']) != len(info1['projs']):
         raise ValueError(f'SSP projectors in {name} must be the same')
     if any(not _proj_equal(p1, p2) for p1, p2 in
