@@ -121,9 +121,9 @@ from . import epochs
 from . import event
 from . import io
 from . import filter
-from . import label
 from . import gui
 from . import inverse_sparse
+from . import label
 from . import minimum_norm
 from . import preprocessing
 from . import simulation

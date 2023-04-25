@@ -22,7 +22,7 @@ Changelog
 
 - ``mne.viz.plot_trans`` now also shows head position indicators by `Christian Brodbeck`_
 
-- Add label center of mass function :func:`mne.Label.center_of_mass` by `Eric Larson`_
+- Add label center of mass function :func:`mne.label.Label.center_of_mass` by `Eric Larson`_
 
 - Added :func:`mne.viz.plot_ica_properties` that allows plotting of independent component properties similar to ``pop_prop`` in EEGLAB. Also :class:`mne.preprocessing.ICA` has :func:`mne.preprocessing.ICA.plot_properties` method now. Added by `Mikołaj Magnuski`_
 

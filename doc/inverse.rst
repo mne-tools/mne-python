@@ -81,8 +81,6 @@ Inverse Solutions
 .. autosummary::
    :toctree: generated/
 
-   Dipole
-   DipoleFixed
    fit_dipole
 
 :py:mod:`mne.dipole`:
@@ -96,4 +94,6 @@ Inverse Solutions
 .. autosummary::
    :toctree: generated/
 
+   Dipole
+   DipoleFixed
    get_phantom_dipoles

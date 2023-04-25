@@ -88,7 +88,7 @@ if __name__ == "__main__":
               'test': test_requires,
           },
           packages=find_packages(
-            include='mne*'
+            include='mne*',
             exclude=('doc', 'examples', 'tutorials', 'logo', 'tools', '.*'),
           ),
           package_data={'mne': [

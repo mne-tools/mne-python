@@ -8,7 +8,7 @@ import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal)
 from mne import io
 from mne.time_frequency import psd_array_welch
-from mne.decoding.ssd import SSD
+from mne.decoding import SSD
 from mne.utils import requires_sklearn
 from mne.filter import filter_data
 from mne import create_info

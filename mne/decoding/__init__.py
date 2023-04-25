@@ -5,9 +5,9 @@ from .transformer import (PSDEstimator, Vectorizer,
                           Scaler, FilterEstimator)
 from .mixin import TransformerMixin
 from .base import BaseEstimator, LinearModel, get_coef, cross_val_multiscore
-from .csp import CSP, SPoC
-from .ssd import SSD
-from .ems import compute_ems, EMS
+from ._csp import CSP, SPoC
+from ._ssd import SSD
+from ._ems import compute_ems, EMS
 from .time_frequency import TimeFrequency
 from .receptive_field import ReceptiveField
 from .time_delaying_ridge import TimeDelayingRidge

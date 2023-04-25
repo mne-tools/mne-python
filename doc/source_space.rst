@@ -7,8 +7,6 @@ Source Space Data
 .. autosummary::
    :toctree: generated/
 
-   BiHemiLabel
-   Label
    MixedSourceEstimate
    MixedVectorSourceEstimate
    SourceEstimate
@@ -20,7 +18,6 @@ Source Space Data
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
-   label.select_sources
    grow_labels
    label_sign_flip
    labels_to_stc
@@ -39,3 +36,18 @@ Source Space Data
    write_label
    source_space.compute_distance_to_sensors
    source_space.get_decimated_surfaces
+
+:py:mod:`mne.label`:
+
+.. automodule:: mne.label
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.label
+
+.. autosummary::
+   :toctree: generated/
+
+   BiHemiLabel
+   Label
+   select_sources

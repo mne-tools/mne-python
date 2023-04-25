@@ -13,7 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 
 from mne import io, Epochs, read_events, pick_types
-from mne.decoding.csp import CSP, _ajd_pham, SPoC
+from mne.decoding._csp import CSP, _ajd_pham, SPoC
 from mne.utils import requires_sklearn
 
 data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
