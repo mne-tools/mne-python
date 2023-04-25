@@ -2576,7 +2576,7 @@ def match_channel_orders(raws, copy=True):
     Parameters
     ----------
     raws : list
-        List of `~mne.io.Raw` instances to order.
+        List of :class:`~mne.io.Raw` instances to order.
     %(copy_df)s
 
     Returns
