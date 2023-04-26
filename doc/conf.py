@@ -33,8 +33,6 @@ os.environ['MNE_BROWSER_OVERVIEW_MODE'] = 'hidden'
 os.environ['MNE_BROWSER_THEME'] = 'light'
 os.environ['MNE_3D_OPTION_THEME'] = 'light'
 sphinx_logger = sphinx.util.logging.getLogger('mne')
-sphinx_logger.info(
-    f'Building documentation for MNE {release} ({mne.__file__})')
 
 # -- Path setup --------------------------------------------------------------
 
@@ -65,6 +63,8 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 #
 # The full version, including alpha/beta/rc tags.
 release = mne.__version__
+sphinx_logger.info(
+    f'Building documentation for MNE {release} ({mne.__file__})')
 # The short X.Y version.
 version = '.'.join(release.split('.')[:2])
 
@@ -381,34 +381,22 @@ examples_dirs = ['../tutorials', '../examples']
 gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 scrapers = ('matplotlib',)
-try:
-    mne.viz.set_3d_backend(mne.viz.get_3d_backend())
-except Exception:
-    report_scraper = None
-else:
-    backend = mne.viz.get_3d_backend()
-    if backend in ('notebook', 'pyvistaqt'):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            import pyvista
-        pyvista.OFF_SCREEN = False
-        pyvista.BUILDING_GALLERY = True
-        scrapers += (
-            mne.gui._GUIScraper(),
-            mne.viz._brain._BrainScraper(),
-            'pyvista',
-        )
-    report_scraper = mne.report._ReportScraper()
-    scrapers += (report_scraper,)
-    del backend
-try:
-    import mne_qt_browser
-    _min_ver = _compare_version(mne_qt_browser.__version__, '>=', '0.2')
-    if mne.viz.get_browser_backend() == 'qt' and _min_ver:
-        scrapers += (mne.viz._scraper._MNEQtBrowserScraper(),)
-except ImportError:
-    pass
-sphinx_logger.info(f'Building with scrapers={scrapers}')
+mne.viz.set_3d_backend('pyvistaqt')
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import pyvista
+pyvista.OFF_SCREEN = False
+pyvista.BUILDING_GALLERY = True
+
+report_scraper = mne.report._ReportScraper()
+scrapers = (
+    'matplotlib',
+    mne.gui._GUIScraper(),
+    mne.viz._brain._BrainScraper(),
+    'pyvista',
+    report_scraper,
+    mne.viz._scraper._MNEQtBrowserScraper(),
+)
 
 compress_images = ('images', 'thumbnails')
 # let's make things easier on Windows users
@@ -1343,8 +1331,7 @@ def setup(app):
     """Set up the Sphinx app."""
     app.connect('autodoc-process-docstring', append_attr_meth_examples)
     app.config.rst_prolog = prolog
-    if report_scraper is not None:
-        report_scraper.app = app
-        app.connect('builder-inited', report_scraper.copyfiles)
+    report_scraper.app = app
+    app.connect('builder-inited', report_scraper.copyfiles)
     app.connect('build-finished', make_redirects)
     app.connect('build-finished', make_version)
