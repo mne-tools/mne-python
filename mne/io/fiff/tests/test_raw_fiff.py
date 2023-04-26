@@ -411,7 +411,8 @@ def test_concatenate_raws_bads_order():
     # Bad channel mismatch raises
     raw2 = raw1.copy()
     raw2.info["bads"] = ["0", "2"]
-    with pytest.raises(ValueError, match="must match"):
+    match = r"raws\[1\].info\['bads'\] must match"
+    with pytest.raises(ValueError, match=match):
         concatenate_raws([raw0, raw2])
 
     # Type mismatch raises
@@ -422,12 +423,14 @@ def test_concatenate_raws_bads_order():
     # Sample rate mismatch
     raw3 = _create_toy_data(sfreq=500)
     raw3.info["bads"] = ["0", "1"]
-    with pytest.raises(ValueError, match="must match"):
+    match = r"raws\[1\].info\['sfreq'\] must match"
+    with pytest.raises(ValueError, match=match):
         concatenate_raws([raw0, raw3])
 
     # Number of channels mismatch
     raw4 = _create_toy_data(n_channels=4)
-    with pytest.raises(ValueError, match="must match"):
+    match = r"raws\[1\].info\['nchan'\] must match"
+    with pytest.raises(ValueError, match=match):
         concatenate_raws([raw0, raw4])
 
 
