@@ -124,7 +124,7 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
         _, calibration, _ = _prep_fine_cal(info, calibration)
         for pi, pick in enumerate(mag_picks):
             idx = calibration['ch_names'].index(info['ch_names'][pick])
-            cals[pick] = calibration['imb_cals'][idx]
+            cals[pick] = calibration['imb_cals'][idx].item()
             zs[pi] = calibration['locs'][idx][-3:]
     elif len(mag_picks) > 0:
         cal_list = list()

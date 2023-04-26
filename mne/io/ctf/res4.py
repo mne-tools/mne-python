@@ -88,8 +88,8 @@ def _read_comp_coeff(fid, d):
         d['comp'].append(comp)
         comp['sensor_name'] = \
             comps['sensor_name'][k].split(b'\x00')[0].decode('utf-8')
-        comp['coeff_type'] = comps['coeff_type'][k]
-        comp['ncoeff'] = comps['ncoeff'][k]
+        comp['coeff_type'] = comps['coeff_type'][k].item()
+        comp['ncoeff'] = comps['ncoeff'][k].item()
         comp['sensors'] = [s.split(b'\x00')[0].decode('utf-8')
                            for s in comps['sensors'][k][:comp['ncoeff']]]
         comp['coeffs'] = comps['coeffs'][k][:comp['ncoeff']]

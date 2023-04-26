@@ -54,7 +54,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
 
     if directory[start].kind == FIFF_BLOCK_START:
         tag = read_tag(fid, directory[start].pos)
-        block = tag.data
+        block = tag.data.item()
     else:
         block = 0
 

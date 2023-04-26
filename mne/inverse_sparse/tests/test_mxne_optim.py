@@ -142,7 +142,7 @@ def test_norm_epsilon():
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs, n_times)
 
-    Y = np.zeros(n_steps * n_freqs)
+    Y = np.zeros((n_steps * n_freqs).item())
     l1_ratio = 0.03
     assert_allclose(norm_epsilon(Y, l1_ratio, phi), 0.)
 
@@ -152,7 +152,7 @@ def test_norm_epsilon():
     l1_ratio = 1.
     assert_allclose(norm_epsilon(Y, l1_ratio, phi), np.max(Y))
     # dummy value without random:
-    Y = np.arange(n_steps * n_freqs).reshape(-1, )
+    Y = np.arange((n_steps * n_freqs).item())
     l1_ratio = 0.0
     assert_allclose(norm_epsilon(Y, l1_ratio, phi) ** 2,
                     stft_norm2(Y.reshape(-1, n_freqs[0], n_steps[0])))
@@ -166,13 +166,13 @@ def test_norm_epsilon():
 
     # scaling w_time and w_space by the same amount should divide
     # epsilon norm by the same amount
-    Y = np.arange(n_coefs) + 1
+    Y = np.arange(n_coefs.item()) + 1
     mult = 2.
     assert_allclose(
         norm_epsilon(Y, l1_ratio, phi, w_space=1,
-                     w_time=np.ones(n_coefs)) / mult,
+                     w_time=np.ones(n_coefs.item())) / mult,
         norm_epsilon(Y, l1_ratio, phi, w_space=mult,
-                     w_time=mult * np.ones(n_coefs)))
+                     w_time=mult * np.ones(n_coefs.item())))
 
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX

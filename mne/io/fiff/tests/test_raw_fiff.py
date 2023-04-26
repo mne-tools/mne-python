@@ -1907,7 +1907,7 @@ def test_corrupted(tmp_path):
     with open(skip_fname, 'rb') as fid:
         tag = read_tag_info(fid)
         tag = read_tag(fid)
-        dirpos = int(tag.data)
+        dirpos = int(tag.data.item())
         assert dirpos == 12641532
         fid.seek(0)
         data = fid.read(dirpos)

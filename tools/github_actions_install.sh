@@ -1,4 +1,5 @@
-#!/bin/bash -ef
+#!/bin/bash
 
-python setup.py build
-python setup.py install
+set -eo pipefail
+
+pip install -ve .
