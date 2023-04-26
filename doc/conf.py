@@ -338,7 +338,7 @@ class Resetter(object):
         gc.collect()
         when = f'mne/conf.py:Resetter.__call__:{when}:{fname}'
         # Support stuff like
-        # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html_dev-memory  # noqa: E501
+        # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
         # to just test MNEQtBrowser
         skips = os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', '').lower()
         prefix = ''
@@ -690,7 +690,6 @@ xl = '5'
 xxl = '6'
 # variables to pass to HTML templating engine
 html_context = {
-    'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'default_mode': 'auto',
     'pygment_light_style': 'tango',
     'pygment_dark_style': 'native',
