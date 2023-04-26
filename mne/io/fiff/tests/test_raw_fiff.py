@@ -421,6 +421,7 @@ def test_concatenate_raws_bads_order():
 
     # Sample rate mismatch
     raw3 = _create_toy_data(sfreq=500)
+    raw3.info["bads"] = ["0", "1"]
     with pytest.raises(ValueError, match="must match"):
         concatenate_raws([raw0, raw3])
 
