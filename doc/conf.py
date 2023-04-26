@@ -32,6 +32,9 @@ os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
 os.environ['MNE_BROWSER_OVERVIEW_MODE'] = 'hidden'
 os.environ['MNE_BROWSER_THEME'] = 'light'
 os.environ['MNE_3D_OPTION_THEME'] = 'light'
+sphinx_logger = sphinx.util.logging.getLogger('mne')
+sphinx_logger.info(
+    f'Building documentation for MNE {release} ({mne.__file__})')
 
 # -- Path setup --------------------------------------------------------------
 
@@ -405,6 +408,7 @@ try:
         scrapers += (mne.viz._scraper._MNEQtBrowserScraper(),)
 except ImportError:
     pass
+sphinx_logger.info(f'Building with scrapers={scrapers}')
 
 compress_images = ('images', 'thumbnails')
 # let's make things easier on Windows users
@@ -1284,7 +1288,7 @@ def make_redirects(app, exception):
             assert os.path.isfile(to_path), (fname, to_path)
             with open(fr_path, 'w') as fid:
                 fid.write(TEMPLATE.format(to=to_fname))
-        logger.info(
+        sphinx_logger.info(
             f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
     # custom redirects
     for fr, to in custom_redirects.items():
@@ -1312,7 +1316,7 @@ def make_redirects(app, exception):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)
         with open(fr_path, 'w') as fid:
             fid.write(TEMPLATE.format(to=to))
-    logger.info(
+    sphinx_logger.info(
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
 
@@ -1326,11 +1330,11 @@ def make_version(app, exception):
     try:
         stdout, _ = run_subprocess(['git', 'rev-parse', 'HEAD'], verbose=False)
     except Exception as exc:
-        logger.warning(f'Failed to write _version.txt: {exc}')
+        sphinx_logger.warning(f'Failed to write _version.txt: {exc}')
         return
     with open(os.path.join(app.outdir, '_version.txt'), 'w') as fid:
         fid.write(stdout)
-    logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
+    sphinx_logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
 
 
 # -- Connect our handlers to the main Sphinx app ---------------------------
@@ -1338,13 +1342,9 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect('autodoc-process-docstring', append_attr_meth_examples)
+    app.config.rst_prolog = prolog
     if report_scraper is not None:
         report_scraper.app = app
-        app.config.rst_prolog = prolog
         app.connect('builder-inited', report_scraper.copyfiles)
-    sphinx_logger = sphinx.util.logging.getLogger('mne')
-    sphinx_logger.info(
-        f'Building documentation for MNE {release} ({mne.__file__})')
-    sphinx_logger.info(f'Building with scrapers={scrapers}')
     app.connect('build-finished', make_redirects)
     app.connect('build-finished', make_version)
