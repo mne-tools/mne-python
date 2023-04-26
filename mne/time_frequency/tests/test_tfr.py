@@ -18,7 +18,7 @@ from mne.utils import (requires_version, requires_pandas, grand_average,
 from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     tfr_multitaper, AverageTFR, read_tfrs,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
-                                    EpochsTFR, fwhm)
+                                    EpochsTFR, fwhm as fwhm_func)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 from mne.tests.test_epochs import assert_metadata_equal
@@ -41,15 +41,21 @@ def test_tfr_ctf():
 
 @pytest.mark.parametrize('sfreq', [1000., 100 + np.pi])
 @pytest.mark.parametrize('freq', [10., np.pi])
-@pytest.mark.parametrize('n_cycles', [7, 2])
-def test_morlet(sfreq, freq, n_cycles):
+@pytest.mark.parametrize('n_cycles,fwhm',
+    [(7, None), (2, None), (None, 0.25)])
+def test_morlet(sfreq, freq, n_cycles, fwhm):
     """Test morlet with and without zero mean."""
-    Wz = morlet(sfreq, freq, n_cycles, zero_mean=True)
-    W = morlet(sfreq, freq, n_cycles, zero_mean=False)
+    Wz = morlet(sfreq, freq, n_cycles, fwhm=fwhm, zero_mean=True)
+    W = morlet(sfreq, freq, n_cycles, fwhm=fwhm, zero_mean=False)
+
+    if n_cycles is None:
+        n_cycles = fwhm * np.pi * freq / np.sqrt(2 * np.log(2))
 
     assert np.abs(np.mean(np.real(Wz))) < 1e-5
-    if n_cycles == 2:
+    # this should capture `n_cycles=2` & `n_cycles=None, freq=pi, fwhm=0.25`
+    if n_cycles < 2.5:
         assert np.abs(np.mean(np.real(W))) > 1e-3
+    # this should capture `n_cycles=7` & `n_cycles=None, freq=1000, fwhm=0.25`
     else:
         assert np.abs(np.mean(np.real(W))) < 1e-5
 
@@ -63,7 +69,7 @@ def test_morlet(sfreq, freq, n_cycles):
     assert_allclose(W, Ws)
 
     # Check FWHM
-    fwhm_formula = fwhm(freq, n_cycles)
+    fwhm_formula = fwhm_func(freq, n_cycles)
     half_max = np.abs(W).max() / 2.
     fwhm_empirical = (np.abs(W) >= half_max).sum() / sfreq
     # Could be off by a few samples

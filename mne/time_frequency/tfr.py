@@ -40,7 +40,8 @@ from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
 
 
 @fill_doc
-def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
+def morlet(sfreq, freqs, n_cycles=7.0, *, fwhm=None, sigma=None,
+           zero_mean=False):
     """Compute Morlet wavelets for the given frequency range.
 
     Parameters
@@ -49,9 +50,15 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         The sampling Frequency.
     freqs : float | array-like, shape (n_freqs,)
         Frequencies to compute Morlet wavelets for.
-    n_cycles : float | array-like, shape (n_freqs,)
-        Number of cycles. Can be a fixed number (float) or one per frequency
-        (array-like).
+    n_cycles : float | array-like, shape (n_freqs,) | None
+        Number of cycles. Can be the same value for all frequencies (float) or
+        a potentially different value for each frequency (array-like). Only one
+        of ``n_cycles`` or ``fwhm`` may be non-``None``.
+    fwhm : float | array-like, shape (n_freqs,) | None
+        Full-width half-maximum of the gaussian envelope of the wavelet, in
+        seconds. Can be the same value for all frequencies (float) or a
+        potentially different value for each frequency (array-like). If
+        ``None``, wavelet duration is computed from ``n_cycles``.
     sigma : float, default None
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
@@ -125,9 +132,19 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         ax.set(xlabel='Time (s)', ylabel='Amplitude')
     """  # noqa: E501
     Ws = list()
-    n_cycles = np.array(n_cycles, float).ravel()
 
     freqs = np.array(freqs, float)
+
+    if n_cycles is not None and fwhm is not None:
+        raise ValueError(
+            'only one of `n_cycles` or `fwhm` may be non-None; got'
+            f'n_cycles={n_cycles}, fwhm={fwhm}')
+    elif n_cycles is None:
+        fwhm = np.array(fwhm, dtype=float).ravel()  # ensure 1D
+        n_cycles = fwhm * np.pi * freqs / np.sqrt(2 * np.log(2))
+    else:
+        n_cycles = np.array(n_cycles, dtype=float).ravel()  # ensure 1D
+
     if np.any(freqs <= 0):
         raise ValueError("all frequencies in 'freqs' must be "
                          "greater than 0.")
