@@ -1064,15 +1064,15 @@ for icon in brand_icons + fixed_width_icons + other_icons:
     icon_class[icon] = ('fa-brands',) if icon in brand_icons else ('fa-solid',)
     icon_class[icon] += ('fa-fw',) if icon in fixed_width_icons else ()
 
-prolog = ''
+rst_prolog = ''
 for icon, classes in icon_class.items():
-    prolog += f'''
+    rst_prolog += f'''
 .. |{icon}| raw:: html
 
     <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
 '''
 
-prolog += '''
+rst_prolog += '''
 .. |ensp| unicode:: U+2002 .. EN SPACE
 '''
 
@@ -1088,7 +1088,7 @@ except ModuleNotFoundError:
         if line.strip().startswith('Requires-Python'):
             min_py = line.split(':')[1]
 min_py = min_py.lstrip(' =<>')
-prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
+rst_prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
 
 # -- website redirects --------------------------------------------------------
 
@@ -1330,7 +1330,6 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect('autodoc-process-docstring', append_attr_meth_examples)
-    app.config.rst_prolog = prolog
     report_scraper.app = app
     app.connect('builder-inited', report_scraper.copyfiles)
     app.connect('build-finished', make_redirects)
