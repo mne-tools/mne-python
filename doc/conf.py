@@ -1173,7 +1173,6 @@ sn = 'stats-sensor-space'
 sr = 'stats-source-space'
 sd = 'sample-datasets'
 ml = 'machine-learning'
-pr = 'preprocessing'
 tf = 'time-freq'
 si = 'simulation'
 custom_redirects = {
