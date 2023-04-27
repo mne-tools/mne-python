@@ -3090,10 +3090,10 @@ def _read_one_epoch_file(f, tree, preload):
             pos = my_epochs['directory'][k].pos
             if kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, pos)
-                first = int(tag.data)
+                first = int(tag.data.item())
             elif kind == FIFF.FIFF_LAST_SAMPLE:
                 tag = read_tag(fid, pos)
-                last = int(tag.data)
+                last = int(tag.data.item())
             elif kind == FIFF.FIFF_EPOCH:
                 # delay reading until later
                 fid.seek(pos, 0)
@@ -3103,11 +3103,11 @@ def _read_one_epoch_file(f, tree, preload):
             elif kind in [FIFF.FIFF_MNE_BASELINE_MIN, 304]:
                 # Constant 304 was used before v0.11
                 tag = read_tag(fid, pos)
-                bmin = float(tag.data)
+                bmin = float(tag.data.item())
             elif kind in [FIFF.FIFF_MNE_BASELINE_MAX, 305]:
                 # Constant 305 was used before v0.11
                 tag = read_tag(fid, pos)
-                bmax = float(tag.data)
+                bmax = float(tag.data.item())
             elif kind == FIFF.FIFF_MNE_EPOCHS_SELECTION:
                 tag = read_tag(fid, pos)
                 selection = np.array(tag.data)

@@ -6,10 +6,10 @@
 import sys
 from pathlib import Path
 
-import numpy as np
-from numpy.testing import assert_equal, assert_array_equal
-import pytest
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_equal, assert_array_equal
 
 from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
@@ -59,9 +59,11 @@ def test_plot_ica_components():
     res = 8
     fast_test = {"res": res, "contours": 0, "sensors": False}
     raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=8)
     ica_picks = _get_picks(raw)
-    with pytest.warns(RuntimeWarning, match='projection'):
+    with pytest.warns(
+        RuntimeWarning, match="(projection)|(unstable mixing matrix)"
+    ):
         ica.fit(raw, picks=ica_picks)
 
     for components in [0, [0], [0, 1], [0, 1] * 2, None]:
@@ -105,6 +107,18 @@ def test_plot_ica_components():
     topomap_ax = c_fig.axes[labels.index('topomap')]
     title = topomap_ax.get_title()
     assert (lbl.split(' ')[0] == title.split(' ')[0])
+
+    # test provided axes
+    _, ax = plt.subplots(1, 1)
+    ica.plot_components(axes=ax, picks=0, **fast_test)
+    _, ax = plt.subplots(2, 1)
+    ica.plot_components(axes=ax, picks=[0, 1], **fast_test)
+    _, ax = plt.subplots(2, 2)
+    ica.plot_components(axes=ax, picks=[0, 1, 2, 3], **fast_test)
+    _, ax = plt.subplots(3, 2)
+    ica.plot_components(
+        axes=ax, picks=[0, 1, 2, 3, 4, 5], nrows=2, ncols=2, **fast_test
+    )
 
     ica.info = None
     with pytest.raises(RuntimeError, match='fit the ICA'):

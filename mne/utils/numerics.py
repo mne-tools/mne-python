@@ -824,7 +824,7 @@ def object_diff(a, b, pre='', *, allclose=False):
             if c.nnz > 0:
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
-    elif hasattr(a, '__getstate__'):
+    elif hasattr(a, '__getstate__') and a.__getstate__() is not None:
         out += object_diff(a.__getstate__(), b.__getstate__(), pre,
                            allclose=allclose)
     else:

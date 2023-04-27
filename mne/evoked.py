@@ -976,7 +976,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
             pos = my_aspect['directory'][k].pos
             if my_kind == FIFF.FIFF_ASPECT_KIND:
                 tag = read_tag(fid, pos)
-                aspect_kinds.append(int(tag.data))
+                aspect_kinds.append(int(tag.data.item()))
     comments = np.atleast_1d(comments)
     aspect_kinds = np.atleast_1d(aspect_kinds)
     if len(comments) != len(aspect_kinds) or len(comments) == 0:
@@ -1281,31 +1281,31 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                 comment = tag.data
             elif my_kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, pos)
-                first = int(tag.data)
+                first = int(tag.data.item())
             elif my_kind == FIFF.FIFF_LAST_SAMPLE:
                 tag = read_tag(fid, pos)
-                last = int(tag.data)
+                last = int(tag.data.item())
             elif my_kind == FIFF.FIFF_NCHAN:
                 tag = read_tag(fid, pos)
-                nchan = int(tag.data)
+                nchan = int(tag.data.item())
             elif my_kind == FIFF.FIFF_SFREQ:
                 tag = read_tag(fid, pos)
-                sfreq = float(tag.data)
+                sfreq = float(tag.data.item())
             elif my_kind == FIFF.FIFF_CH_INFO:
                 tag = read_tag(fid, pos)
                 chs.append(tag.data)
             elif my_kind == FIFF.FIFF_FIRST_TIME:
                 tag = read_tag(fid, pos)
-                first_time = float(tag.data)
+                first_time = float(tag.data.item())
             elif my_kind == FIFF.FIFF_NO_SAMPLES:
                 tag = read_tag(fid, pos)
-                nsamp = int(tag.data)
+                nsamp = int(tag.data.item())
             elif my_kind == FIFF.FIFF_MNE_BASELINE_MIN:
                 tag = read_tag(fid, pos)
-                bmin = float(tag.data)
+                bmin = float(tag.data.item())
             elif my_kind == FIFF.FIFF_MNE_BASELINE_MAX:
                 tag = read_tag(fid, pos)
-                bmax = float(tag.data)
+                bmax = float(tag.data.item())
 
         if comment is None:
             comment = 'No comment'
@@ -1344,10 +1344,10 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                 comment = tag.data
             elif kind == FIFF.FIFF_ASPECT_KIND:
                 tag = read_tag(fid, pos)
-                aspect_kind = int(tag.data)
+                aspect_kind = int(tag.data.item())
             elif kind == FIFF.FIFF_NAVE:
                 tag = read_tag(fid, pos)
-                nave = int(tag.data)
+                nave = int(tag.data.item())
             elif kind == FIFF.FIFF_EPOCH:
                 tag = read_tag(fid, pos)
                 epoch.append(tag)

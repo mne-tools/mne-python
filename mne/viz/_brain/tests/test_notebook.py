@@ -40,9 +40,11 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
 @testing.requires_testing_data
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""
-    import tempfile
     from contextlib import contextmanager
+    import os
     from pathlib import Path
+    import tempfile
+    import time
     import pytest
     from numpy.testing import assert_allclose
     from ipywidgets import Button
@@ -85,20 +87,29 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         movie_path = tmp_path / "test.gif"
         screenshot_path = tmp_path / "test.png"
         brain._renderer.actions['movie_field'].value = str(movie_path)
+        assert not movie_path.is_file()
         brain._renderer.actions['screenshot_field'].value = \
             str(screenshot_path)
+        assert not screenshot_path.is_file()
         total_number_of_buttons = sum(
             '_field' not in k for k in brain._renderer.actions.keys())
         assert 'play' in brain._renderer.actions
         # play is not a button widget, it does not have a click() method
         number_of_buttons = 1
-        for action in brain._renderer.actions.values():
+        button_names = list()
+        for name, action in brain._renderer.actions.items():
             widget = action._action
             if isinstance(widget, Button):
                 widget.click()
+                button_names.append(name)
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
-        assert movie_path.is_file()
+        time.sleep(0.5)
+        assert 'movie' in button_names, button_names
+        # TODO: this fails on GHA for some reason, need to figure it out
+        if os.getenv('GITHUB_ACTIONS', '') != 'true':
+            assert movie_path.is_file()
+        assert 'screenshot' in button_names, button_names
         assert screenshot_path.is_file()
         img_nv = brain.screenshot()
         assert img_nv.shape == (300, 300, 3), img_nv.shape

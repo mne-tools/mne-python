@@ -827,13 +827,13 @@ def _read_one_source_space(fid, this):
     if tag is None:
         res['id'] = int(FIFF.FIFFV_MNE_SURF_UNKNOWN)
     else:
-        res['id'] = int(tag.data)
+        res['id'] = int(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE)
     if tag is None:
         raise ValueError('Unknown source space type')
     else:
-        src_type = int(tag.data)
+        src_type = int(tag.data.item())
         if src_type == FIFF.FIFFV_MNE_SPACE_SURFACE:
             res['type'] = 'surf'
         elif src_type == FIFF.FIFFV_MNE_SPACE_VOLUME:
@@ -889,15 +889,15 @@ def _read_one_source_space(fid, this):
 
         tag = find_tag(fid, mri, FIFF.FIFF_MRI_WIDTH)
         if tag is not None:
-            res['mri_width'] = int(tag.data)
+            res['mri_width'] = int(tag.data.item())
 
         tag = find_tag(fid, mri, FIFF.FIFF_MRI_HEIGHT)
         if tag is not None:
-            res['mri_height'] = int(tag.data)
+            res['mri_height'] = int(tag.data.item())
 
         tag = find_tag(fid, mri, FIFF.FIFF_MRI_DEPTH)
         if tag is not None:
-            res['mri_depth'] = int(tag.data)
+            res['mri_depth'] = int(tag.data.item())
 
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_FILE_NAME)
         if tag is not None:
@@ -922,7 +922,7 @@ def _read_one_source_space(fid, this):
     if tag is None:
         raise ValueError('Number of vertices not found')
 
-    res['np'] = int(tag.data)
+    res['np'] = int(tag.data.item())
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
     if tag is None:
@@ -930,7 +930,7 @@ def _read_one_source_space(fid, this):
         if tag is None:
             res['ntri'] = 0
         else:
-            res['ntri'] = int(tag.data)
+            res['ntri'] = int(tag.data.item())
     else:
         res['ntri'] = tag.data
 
@@ -980,7 +980,7 @@ def _read_one_source_space(fid, this):
         res['inuse'] = np.zeros(res['nuse'], dtype=np.int64)
         res['vertno'] = None
     else:
-        res['nuse'] = int(tag.data)
+        res['nuse'] = int(tag.data.item())
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION)
         if tag is None:
             raise ValueError('Source selection information missing')
@@ -1023,7 +1023,7 @@ def _read_one_source_space(fid, this):
         res['dist_limit'] = None
     else:
         res['dist'] = tag1.data
-        res['dist_limit'] = tag2.data
+        res['dist_limit'] = tag2.data.item()
         #   Add the upper triangle
         res['dist'] = res['dist'] + res['dist'].T
     if (res['dist'] is not None):
@@ -1299,7 +1299,7 @@ def _write_one_source_space(fid, this, verbose=None):
         dists = sparse.triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT,
-                           this['dist_limit'])
+                           np.array(this['dist_limit'], float))
 
     #   Segmentation data
     if this['type'] == 'vol' and ('seg_name' in this):
