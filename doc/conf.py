@@ -1245,7 +1245,6 @@ custom_redirects = {
     f'{ex}/{co}/sensor_connectivity.html': f'{mne_conn}/{ex}/sensor_connectivity.html',  # noqa E501
     f'{tu}/{cl}/10_ieeg_localize.html': f'{mne_gui}/{ex}/ieeg_locate.html',  # noqa E501
     f'{ex}/{pr}/locate_ieeg_micro.html': f'{mne_gui}/{ex}/locate_ieeg_micro.html',  # noqa E501
-    f'{ex}/{pr}/locate_ieeg_micro.html': f'{mne_gui}/{ex}/locate_ieeg_micro.html',  # noqa E501
 }
 
 
