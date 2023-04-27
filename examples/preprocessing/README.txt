@@ -10,7 +10,7 @@ Examples related to data preprocessing (artifact detection / rejection etc.)
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="When intracranial electrode contacts are very small, sometimes...">
+    <div class="sphx-glr-thumbcontainer" tooltip="When intracranial electrode contacts are very small, sometimes..." onclick="window.location.href = 'https://mne.tools/mne-gui-addons/auto_examples/locate_ieeg_micro.html';">
 
 .. only:: html
 

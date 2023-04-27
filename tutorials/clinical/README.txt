@@ -9,7 +9,7 @@ These tutorials illustrate clinical uses of MNE-Python.
 
 .. raw:: html
 
-    <div class="sphx-glr-thumbcontainer" tooltip="MNE supports working with more than just MEG and EEG data. Here we show some of the functions t...">
+    <div class="sphx-glr-thumbcontainer" tooltip="MNE supports working with more than just MEG and EEG data. Here we show some of the functions t..." onclick="window.location.href = 'https://mne.tools/mne-gui-addons/auto_examples/ieeg_locate.html';">
 
 .. only:: html
 
