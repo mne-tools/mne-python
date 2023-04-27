@@ -1778,7 +1778,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
         closer_idx = np.argmin(np.abs(xlims - temp_ticks))
         further_idx = np.argmax(np.abs(xlims - temp_ticks))
         start_stop = [temp_ticks[closer_idx], xlims[further_idx]]
-        step = np.sign(np.diff(start_stop)) * np.max(np.abs(temp_ticks))
+        step = np.sign(np.diff(start_stop)).item() * np.max(np.abs(temp_ticks))
         tts = np.arange(*start_stop, step)
         xticks = np.array(sorted(xticks + [tts[0], tts[-1]]))
     axes.set_xticks(xticks)

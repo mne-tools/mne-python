@@ -23,7 +23,7 @@ from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
 from .tag import (read_tag, find_tag, _ch_coord_dict, _update_ch_info_named,
-                  _rename_list)
+                  _rename_list, _int_item, _float_item)
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
                    _proj_equal, Projection)
 from .ctf_comp import _read_ctf_comp, write_ctf_comp
@@ -1449,21 +1449,21 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         pos = meas_info['directory'][k].pos
         if kind == FIFF.FIFF_NCHAN:
             tag = read_tag(fid, pos)
-            nchan = int(tag.data)
+            nchan = int(tag.data.item())
         elif kind == FIFF.FIFF_SFREQ:
             tag = read_tag(fid, pos)
-            sfreq = float(tag.data)
+            sfreq = float(tag.data.item())
         elif kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
-            if not np.isnan(tag.data):
-                lowpass = float(tag.data)
+            if not np.isnan(tag.data.item()):
+                lowpass = float(tag.data.item())
         elif kind == FIFF.FIFF_HIGHPASS:
             tag = read_tag(fid, pos)
             if not np.isnan(tag.data):
-                highpass = float(tag.data)
+                highpass = float(tag.data.item())
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
             meas_date = tuple(tag.data)
@@ -1503,19 +1503,19 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             proj_name = tag.data
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
-            line_freq = float(tag.data)
+            line_freq = float(tag.data.item())
         elif kind == FIFF.FIFF_GANTRY_ANGLE:
             tag = read_tag(fid, pos)
-            gantry_angle = float(tag.data)
+            gantry_angle = float(tag.data.item())
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
-            custom_ref_applied = int(tag.data)
+            custom_ref_applied = int(tag.data.item())
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
         elif kind == FIFF.FIFF_MNE_KIT_SYSTEM_ID:
             tag = read_tag(fid, pos)
-            kit_system_id = int(tag.data)
+            kit_system_id = int(tag.data.item())
     ch_names_mapping = _read_extended_ch_info(chs, meas_info, fid)
 
     # Check that we have everything we need
@@ -1622,11 +1622,11 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             elif kind == FIFF.FIFF_HPI_FIT_GOODNESS:
                 hr['goodness'] = read_tag(fid, pos).data
             elif kind == FIFF.FIFF_HPI_FIT_GOOD_LIMIT:
-                hr['good_limit'] = float(read_tag(fid, pos).data)
+                hr['good_limit'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_FIT_DIST_LIMIT:
-                hr['dist_limit'] = float(read_tag(fid, pos).data)
+                hr['dist_limit'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_FIT_ACCEPT:
-                hr['accept'] = int(read_tag(fid, pos).data)
+                hr['accept'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_COORD_TRANS:
                 hr['coord_trans'] = read_tag(fid, pos).data
         hrs.append(hr)
@@ -1643,17 +1643,17 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if kind == FIFF.FIFF_CREATOR:
                 hm['creator'] = str(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
-                hm['sfreq'] = float(read_tag(fid, pos).data)
+                hm['sfreq'] = float(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_NCHAN:
-                hm['nchan'] = int(read_tag(fid, pos).data)
+                hm['nchan'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_NAVE:
-                hm['nave'] = int(read_tag(fid, pos).data)
+                hm['nave'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_HPI_NCOIL:
-                hm['ncoil'] = int(read_tag(fid, pos).data)
+                hm['ncoil'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_FIRST_SAMPLE:
-                hm['first_samp'] = int(read_tag(fid, pos).data)
+                hm['first_samp'] = int(read_tag(fid, pos).data.item())
             elif kind == FIFF.FIFF_LAST_SAMPLE:
-                hm['last_samp'] = int(read_tag(fid, pos).data)
+                hm['last_samp'] = int(read_tag(fid, pos).data.item())
         hpi_coils = dir_tree_find(hpi_meas, FIFF.FIFFB_HPI_COIL)
         hcs = []
         for hpi_coil in hpi_coils:
@@ -1662,7 +1662,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 kind = hpi_coil['directory'][k].kind
                 pos = hpi_coil['directory'][k].pos
                 if kind == FIFF.FIFF_HPI_COIL_NO:
-                    hc['number'] = int(read_tag(fid, pos).data)
+                    hc['number'] = int(read_tag(fid, pos).data.item())
                 elif kind == FIFF.FIFF_EPOCH:
                     hc['epoch'] = read_tag(fid, pos).data
                     hc['epoch'].flags.writeable = False
@@ -1673,7 +1673,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                     hc['corr_coeff'] = read_tag(fid, pos).data
                     hc['corr_coeff'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_COIL_FREQ:
-                    hc['coil_freq'] = float(read_tag(fid, pos).data)
+                    hc['coil_freq'] = float(read_tag(fid, pos).data.item())
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
@@ -1690,7 +1690,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = subject_info['directory'][k].pos
             if kind == FIFF.FIFF_SUBJ_ID:
                 tag = read_tag(fid, pos)
-                si['id'] = int(tag.data)
+                si['id'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HIS_ID:
                 tag = read_tag(fid, pos)
                 si['his_id'] = str(tag.data)
@@ -1715,10 +1715,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 si['birthday'] = tag.data
             elif kind == FIFF.FIFF_SUBJ_SEX:
                 tag = read_tag(fid, pos)
-                si['sex'] = int(tag.data)
+                si['sex'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_HAND:
                 tag = read_tag(fid, pos)
-                si['hand'] = int(tag.data)
+                si['hand'] = int(tag.data.item())
             elif kind == FIFF.FIFF_SUBJ_WEIGHT:
                 tag = read_tag(fid, pos)
                 si['weight'] = tag.data
@@ -1761,10 +1761,10 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = helium_info['directory'][k].pos
             if kind == FIFF.FIFF_HE_LEVEL_RAW:
                 tag = read_tag(fid, pos)
-                hi['he_level_raw'] = float(tag.data)
+                hi['he_level_raw'] = float(tag.data.item())
             elif kind == FIFF.FIFF_HELIUM_LEVEL:
                 tag = read_tag(fid, pos)
-                hi['helium_level'] = float(tag.data)
+                hi['helium_level'] = float(tag.data.item())
             elif kind == FIFF.FIFF_ORIG_FILE_GUID:
                 tag = read_tag(fid, pos)
                 hi['orig_file_guid'] = str(tag.data)
@@ -1784,7 +1784,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             pos = hpi_subsystem['directory'][k].pos
             if kind == FIFF.FIFF_HPI_NCOIL:
                 tag = read_tag(fid, pos)
-                hs['ncoil'] = int(tag.data)
+                hs['ncoil'] = int(tag.data.item())
             elif kind == FIFF.FIFF_EVENT_CHANNEL:
                 tag = read_tag(fid, pos)
                 hs['event_channel'] = str(tag.data)
@@ -2794,17 +2794,17 @@ _DIG_CAST = dict(
     kind=int, ident=int, r=lambda x: x, coord_frame=int)
 # key -> const, cast, write
 _CH_INFO_MAP = OrderedDict(
-    scanno=(FIFF.FIFF_CH_SCAN_NO, int, write_int),
-    logno=(FIFF.FIFF_CH_LOGICAL_NO, int, write_int),
-    kind=(FIFF.FIFF_CH_KIND, int, write_int),
-    range=(FIFF.FIFF_CH_RANGE, float, write_float),
-    cal=(FIFF.FIFF_CH_CAL, float, write_float),
-    coil_type=(FIFF.FIFF_CH_COIL_TYPE, int, write_int),
+    scanno=(FIFF.FIFF_CH_SCAN_NO, _int_item, write_int),
+    logno=(FIFF.FIFF_CH_LOGICAL_NO, _int_item, write_int),
+    kind=(FIFF.FIFF_CH_KIND, _int_item, write_int),
+    range=(FIFF.FIFF_CH_RANGE, _float_item, write_float),
+    cal=(FIFF.FIFF_CH_CAL, _float_item, write_float),
+    coil_type=(FIFF.FIFF_CH_COIL_TYPE, _int_item, write_int),
     loc=(FIFF.FIFF_CH_LOC, lambda x: x, write_float),
-    unit=(FIFF.FIFF_CH_UNIT, int, write_int),
-    unit_mul=(FIFF.FIFF_CH_UNIT_MUL, int, write_int),
+    unit=(FIFF.FIFF_CH_UNIT, _int_item, write_int),
+    unit_mul=(FIFF.FIFF_CH_UNIT_MUL, _int_item, write_int),
     ch_name=(FIFF.FIFF_CH_DACQ_NAME, str, write_string),
-    coord_frame=(FIFF.FIFF_CH_COORD_FRAME, int, write_int),
+    coord_frame=(FIFF.FIFF_CH_COORD_FRAME, _int_item, write_int),
 )
 # key -> cast
 _CH_CAST = OrderedDict((key, val[1]) for key, val in _CH_INFO_MAP.items())
@@ -2906,6 +2906,10 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
         raise ValueError(f'{name}.info[\'sfreq\'] must match')
     if set(info1['ch_names']) != set(info2['ch_names']):
         raise ValueError(f'{name}.info[\'ch_names\'] must match')
+    if info1['ch_names'] != info2['ch_names']:
+        msg = (f'{name}.info[\'ch_names\']: Channel order must match. Use '
+                '"mne.match_channel_orders()" to sort channels.')
+        raise ValueError(msg)
     if len(info2['projs']) != len(info1['projs']):
         raise ValueError(f'SSP projectors in {name} must be the same')
     if any(not _proj_equal(p1, p2) for p1, p2 in

@@ -150,12 +150,12 @@ def _get_signalfname(filepath):
 
 def _block_r(fid):
     """Read meta data."""
-    if np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0] != 1:  # not metadata
+    if np.fromfile(fid, dtype=np.dtype('i4'), count=1).item() != 1:  # not meta
         return None
-    header_size = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
-    block_size = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
+    header_size = np.fromfile(fid, dtype=np.dtype('i4'), count=1).item()
+    block_size = np.fromfile(fid, dtype=np.dtype('i4'), count=1).item()
     hl = int(block_size / 4)
-    nc = np.fromfile(fid, dtype=np.dtype('i4'), count=1)[0]
+    nc = np.fromfile(fid, dtype=np.dtype('i4'), count=1).item()
     nsamples = int(hl / nc)
     np.fromfile(fid, dtype=np.dtype('i4'), count=nc)  # sigoffset
     sigfreq = np.fromfile(fid, dtype=np.dtype('i4'), count=nc)

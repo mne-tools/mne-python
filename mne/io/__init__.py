@@ -66,6 +66,6 @@ from .eyelink import read_raw_eyelink
 # for backward compatibility
 from .fiff import Raw
 from .fiff import Raw as RawFIF
-from .base import concatenate_raws
+from .base import concatenate_raws, match_channel_orders
 from .reference import (set_eeg_reference, set_bipolar_reference,
                         add_reference_channels)

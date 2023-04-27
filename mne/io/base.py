@@ -2570,6 +2570,28 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
         return raws[0], events
 
 
+@fill_doc
+def match_channel_orders(raws, copy=True):
+    """Ensure consistent channel order across raws.
+
+    Parameters
+    ----------
+    raws : list
+        List of :class:`~mne.io.Raw` instances to order.
+    %(copy_df)s
+
+    Returns
+    -------
+    list of Raw
+        List of Raws with matched channel orders.
+    """
+    raws = deepcopy(raws) if copy else raws
+    ch_order = raws[0].ch_names
+    for raw in raws[1:]:
+        raw.reorder_channels(ch_order)
+    return raws
+
+
 def _check_maxshield(allow_maxshield):
     """Warn or error about MaxShield."""
     msg = ('This file contains raw Internal Active '

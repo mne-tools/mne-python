@@ -1,7 +1,7 @@
 import glob
 from importlib import import_module
 import os
-from os import path as op
+from pathlib import Path
 
 from mne.utils import _replace_md5, ArgvSetter
 
@@ -47,17 +47,20 @@ command_rst = """
 
 
 def generate_commands_rst(app=None):
-    from sphinx.util import status_iterator
-    out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
-    if not op.isdir(out_dir):
-        os.mkdir(out_dir)
-    out_fname = op.join(out_dir, 'commands.rst.new')
+    try:
+        from sphinx.util.display import status_iterator
+    except Exception:
+        from sphinx.util import status_iterator
+    root = Path(__file__).parent.parent.parent.absolute()
+    out_dir = (root / 'doc' / 'generated').absolute()
+    out_dir.mkdir(exist_ok=True)
+    out_fname =out_dir / 'commands.rst.new'
 
-    command_path = op.abspath(
-        op.join(os.path.dirname(__file__), '..', '..', 'mne', 'commands'))
-    fnames = sorted([
-        op.basename(fname)
-        for fname in glob.glob(op.join(command_path, 'mne_*.py'))])
+    command_path = root / 'mne' / 'commands'
+    fnames = sorted(
+        Path(fname).name
+        for fname in glob.glob(str(command_path / 'mne_*.py')))
+    assert len(fnames)
     iterator = status_iterator(
         fnames, 'generating MNE command help ... ', length=len(fnames))
     with open(out_fname, 'w', encoding='utf8') as f:
@@ -97,7 +100,7 @@ def generate_commands_rst(app=None):
             cmd_name_space = cmd_name.replace('mne_', 'mne ')
             f.write(command_rst.format(
                 cmd_name_space, '=' * len(cmd_name_space), output))
-    _replace_md5(out_fname)
+    _replace_md5(str(out_fname))
 
 
 # This is useful for testing/iterating to see what the result looks like

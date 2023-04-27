@@ -82,7 +82,7 @@ def linear_regression(inst, design_matrix, names=None):
         raise ValueError('Input must be epochs or iterable of source '
                          'estimates')
     logger.info(msg + ', (%s targets, %s regressors)' %
-                (np.product(data.shape[1:]), len(names)))
+                (np.prod(data.shape[1:]), len(names)))
     lm_params = _fit_lm(data, design_matrix, names)
     lm = namedtuple('lm', 'beta stderr t_val p_val mlog10_p_val')
     lm_fits = {}
@@ -103,7 +103,7 @@ def _fit_lm(data, design_matrix, names):
     """Aux function."""
     from scipy import stats, linalg
     n_samples = len(data)
-    n_features = np.product(data.shape[1:])
+    n_features = np.prod(data.shape[1:])
     if design_matrix.ndim != 2:
         raise ValueError('Design matrix must be a 2d array')
     n_rows, n_predictors = design_matrix.shape
