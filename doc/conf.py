@@ -493,7 +493,8 @@ sphinx_gallery_conf = {
         '.*fit_transform()|.*get_params()|.*predict()|'
         '.*predict_proba()|.*set_params()|.*transform()|'
         # I/O, also related to mixins
-        '.*.remove.*|.*.write.*)')
+        '.*.remove.*|.*.write.*)'),
+    'copyfile_regex': r'.*index\.rst',  # allow custom index.rst files
 }
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa

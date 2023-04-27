@@ -151,6 +151,18 @@ iframe.sg_report {
     display: none;
 }
 
+/* Make our external thumbnails (e.g., mne-gui-addons) act like standard SG ones */
+.sphx-glr-thumbcontainer a.external {
+    bottom: 0;
+    display: block;
+    left: 0;
+    box-sizing: border-box;
+    padding: 150px 10px 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
 /* ***************************************************** sphinx-design fixes */
 p.btn a {
     color: unset;
