@@ -45,6 +45,11 @@ html-pattern:
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
+html-pattern-memory:
+	$(MPROF) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(ALLSPHINXOPTS) _build/html
+	@echo
+	@echo "Build finished. The HTML pages are in _build/html"
+
 html-noplot:
 	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) _build/html
 	@echo
@@ -54,7 +59,8 @@ html-front:
 	@PATTERN="\(30_mne_dspm_loreta.py\|50_decoding.py\|30_strf.py\|20_cluster_1samp_spatiotemporal.py\|20_visualize_evoked.py\)" make html-pattern
 
 # Aliases for old methods
-html_dev-pattern-memory: html-pattern
+html_dev-pattern-memory: html-pattern-memory
+html_dev-pattern: html-pattern
 html_dev-noplot: html-noplot
 html_dev-front: html-front
 
