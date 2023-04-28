@@ -164,6 +164,8 @@
 
 .. _Felix Raimundo: https://github.com/gamazeps
 
+.. _Florin Pop: https://github.com/florin-pop
+
 .. _Frederik Weber: https://github.com/Frederik-D-Weber
 
 .. _Fu-Te Wong: https://github.com/zuxfoucault
