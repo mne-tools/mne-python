@@ -169,6 +169,9 @@ iframe.sg_report {
     --bs-table-accent-bg: var(--bs-table-hover-bg);
     color: var(--pst-color-text-base);
 }
+.rendered_html table {
+    color: var(--pst-color-text-base);
+}
 
 
 /* ***************************************************** sphinx-design fixes */
