@@ -1435,16 +1435,34 @@ fwd : instance of Forward
 """
 
 docdict['fwhm_morlet_notes'] = r"""
-In wavelet analysis, the oscillation that is defined by ``n_cycles`` is tapered
-by a Gaussian taper, i.e., the edges of the wavelet are dampened. This means
-that reporting the number of cycles is not necessarily helpful for
-understanding the amount of temporal smoothing that has been applied (see
-:footcite:`Cohen2019`). Instead, the full width at half-maximum (FWHM) of the
-wavelet can be reported.
+Convolution of a signal with a Morlet wavelet will impose temporal smoothing
+that is determined by the duration of the wavelet. In MNE-Python, the duration
+of the wavelet is determined by the ``sigma`` parameter, which gives the
+standard deviation of the wavelet's Gaussian envelope (our wavelets extend to
+±5 standard deviations to ensure values very close to zero at the endpoints).
+Some authors (e.g., :footcite:`Cohen2019`) recommend specifying and reporting
+wavelet duration in terms of the full-width half-maximum (FWHM) of the
+wavelet's Gaussian envelope. The FWHM is related to ``sigma`` by the following
+identity: :math:`\mathrm{FWHM} = \sigma \times 2 \sqrt{2 \ln{2}}` (or the
+equivalent in Python code: ``fwhm = sigma * 2 * np.sqrt(2 * np.log(2))``).
+If ``sigma`` is not provided, it is computed from ``n_cycles`` as
+:math:`\frac{\mathtt{n\_cycles}}{2 \pi f}` where :math:`f` is the frequency of
+the wavelet oscillation (given by ``freqs``). Thus when ``sigma=None`` the FWHM
+will be given by
 
-The FWHM of the wavelet at a specific frequency is defined as:
-:math:`\mathrm{FWHM} = \frac{\mathtt{n\_cycles} \times \sqrt{2 \ln{2}}}{\pi \times \mathtt{freq}}`
-(cf. eq. 4 in :footcite:`Cohen2019`).
+.. math::
+
+    \mathrm{FWHM} = \frac{\mathtt{n\_cycles} \times \sqrt{2 \ln{2}}}{\pi \times f}
+
+(cf. eq. 4 in :footcite:`Cohen2019`). To create wavelets with a chosen FWHM,
+one can compute::
+
+    n_cycles = desired_fwhm * np.pi * np.array(freqs) / np.sqrt(2 * np.log(2))
+
+to get an array of values for ``n_cycles`` that yield the desired FWHM at each
+frequency in ``freqs``.  If you want different FWHM values at each frequency,
+do the same computation with ``desired_fwhm`` as an array of the same shape as
+``freqs``.
 """  # noqa E501
 
 # %%
