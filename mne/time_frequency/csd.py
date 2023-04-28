@@ -39,6 +39,7 @@ def pick_channels_csd(csd, include=[], exclude=[], ordered=None, copy=True, *,
         modified channels. If False, channels are modified in-place.
 
         .. versionadded:: 0.20.0
+    %(verbose)s
 
     Returns
     -------
