@@ -130,7 +130,6 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
 # around 20 seconds, so in this case a cutoff of 0.1 Hz would probably suppress
 # most of the drift).
 #
-#
 # Power line noise
 # ~~~~~~~~~~~~~~~~
 #
