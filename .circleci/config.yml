@@ -247,7 +247,7 @@ jobs:
         - run:
             name: make test-doc
             command: |
-              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev-memory" ]] || [[ $(cat build.txt) == "html_stable-memory" ]]; then
+              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
                 make test-doc;
                 mkdir -p doc/_build/test-results/test-doc;
                 cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
@@ -276,7 +276,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev-pattern-memory build.txt || grep -q html_dev-noplot build.txt; then
+              if grep -q html-pattern-memory build.txt || grep -q html-noplot build.txt; then
                 zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
               fi
               for NAME in generated auto_tutorials auto_examples; do
@@ -299,15 +299,11 @@ jobs:
         # Save the HTML
         - store_artifacts:
             path: doc/_build/html/
-            destination: dev
-        - store_artifacts:
-            path: doc/_build/html_stable/
-            destination: stable
+            destination: html
         - persist_to_workspace:
             root: doc/_build
             paths:
               - html
-              - html_stable
 
         # Keep these separate, maybe better in terms of size limitations (?)
         - save_cache:
@@ -465,7 +461,7 @@ jobs:
         - run:
             name: Check docs
             command: |
-              if [ ! -f /tmp/build/html/index.html ] && [ ! -f /tmp/build/html_stable/index.html ]; then
+              if [ ! -f /tmp/build/html/index.html ] ; then
                 echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
                 circleci-agent step halt;
               fi;
@@ -498,7 +494,7 @@ jobs:
               else
                 echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
                 rm -Rf stable;
-                cp -a /tmp/build/html_stable stable;
+                cp -a /tmp/build/html stable;
                 git add -A;
                 git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
               fi;

@@ -32,6 +32,7 @@ os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
 os.environ['MNE_BROWSER_OVERVIEW_MODE'] = 'hidden'
 os.environ['MNE_BROWSER_THEME'] = 'light'
 os.environ['MNE_3D_OPTION_THEME'] = 'light'
+sphinx_logger = sphinx.util.logging.getLogger('mne')
 
 # -- Path setup --------------------------------------------------------------
 
@@ -62,6 +63,8 @@ if os.getenv('MNE_FULL_DATE', 'false').lower() != 'true':
 #
 # The full version, including alpha/beta/rc tags.
 release = mne.__version__
+sphinx_logger.info(
+    f'Building documentation for MNE {release} ({mne.__file__})')
 # The short X.Y version.
 version = '.'.join(release.split('.')[:2])
 
@@ -338,7 +341,7 @@ class Resetter(object):
         gc.collect()
         when = f'mne/conf.py:Resetter.__call__:{when}:{fname}'
         # Support stuff like
-        # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html_dev-memory  # noqa: E501
+        # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
         # to just test MNEQtBrowser
         skips = os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', '').lower()
         prefix = ''
@@ -378,33 +381,22 @@ examples_dirs = ['../tutorials', '../examples']
 gallery_dirs = ['auto_tutorials', 'auto_examples']
 os.environ['_MNE_BUILDING_DOC'] = 'true'
 scrapers = ('matplotlib',)
-try:
-    mne.viz.set_3d_backend(mne.viz.get_3d_backend())
-except Exception:
-    report_scraper = None
-else:
-    backend = mne.viz.get_3d_backend()
-    if backend in ('notebook', 'pyvistaqt'):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            import pyvista
-        pyvista.OFF_SCREEN = False
-        pyvista.BUILDING_GALLERY = True
-        scrapers += (
-            mne.gui._GUIScraper(),
-            mne.viz._brain._BrainScraper(),
-            'pyvista',
-        )
-    report_scraper = mne.report._ReportScraper()
-    scrapers += (report_scraper,)
-    del backend
-try:
-    import mne_qt_browser
-    _min_ver = _compare_version(mne_qt_browser.__version__, '>=', '0.2')
-    if mne.viz.get_browser_backend() == 'qt' and _min_ver:
-        scrapers += (mne.viz._scraper._MNEQtBrowserScraper(),)
-except ImportError:
-    pass
+mne.viz.set_3d_backend('pyvistaqt')
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import pyvista
+pyvista.OFF_SCREEN = False
+pyvista.BUILDING_GALLERY = True
+
+report_scraper = mne.report._ReportScraper()
+scrapers = (
+    'matplotlib',
+    mne.gui._GUIScraper(),
+    mne.viz._brain._BrainScraper(),
+    'pyvista',
+    report_scraper,
+    mne.viz._scraper._MNEQtBrowserScraper(),
+)
 
 compress_images = ('images', 'thumbnails')
 # let's make things easier on Windows users
@@ -501,7 +493,8 @@ sphinx_gallery_conf = {
         '.*fit_transform()|.*get_params()|.*predict()|'
         '.*predict_proba()|.*set_params()|.*transform()|'
         # I/O, also related to mixins
-        '.*.remove.*|.*.write.*)')
+        '.*.remove.*|.*.write.*)'),
+    'copyfile_regex': r'.*index\.rst',  # allow custom index.rst files
 }
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
@@ -690,7 +683,6 @@ xl = '5'
 xxl = '6'
 # variables to pass to HTML templating engine
 html_context = {
-    'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
     'default_mode': 'auto',
     'pygment_light_style': 'tango',
     'pygment_dark_style': 'native',
@@ -1073,15 +1065,15 @@ for icon in brand_icons + fixed_width_icons + other_icons:
     icon_class[icon] = ('fa-brands',) if icon in brand_icons else ('fa-solid',)
     icon_class[icon] += ('fa-fw',) if icon in fixed_width_icons else ()
 
-prolog = ''
+rst_prolog = ''
 for icon, classes in icon_class.items():
-    prolog += f'''
+    rst_prolog += f'''
 .. |{icon}| raw:: html
 
     <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
 '''
 
-prolog += '''
+rst_prolog += '''
 .. |ensp| unicode:: U+2002 .. EN SPACE
 '''
 
@@ -1097,7 +1089,7 @@ except ModuleNotFoundError:
         if line.strip().startswith('Requires-Python'):
             min_py = line.split(':')[1]
 min_py = min_py.lstrip(' =<>')
-prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
+rst_prolog += f'\n.. |min_python_version| replace:: {min_py}\n'
 
 # -- website redirects --------------------------------------------------------
 
@@ -1285,7 +1277,7 @@ def make_redirects(app, exception):
             assert os.path.isfile(to_path), (fname, to_path)
             with open(fr_path, 'w') as fid:
                 fid.write(TEMPLATE.format(to=to_fname))
-        logger.info(
+        sphinx_logger.info(
             f'Added {len(fnames):3d} HTML plot_* redirects for {out_dir}')
     # custom redirects
     for fr, to in custom_redirects.items():
@@ -1313,7 +1305,7 @@ def make_redirects(app, exception):
             os.makedirs(os.path.dirname(fr_path), exist_ok=True)
         with open(fr_path, 'w') as fid:
             fid.write(TEMPLATE.format(to=to))
-    logger.info(
+    sphinx_logger.info(
         f'Added {len(custom_redirects):3d} HTML custom redirects')
 
 
@@ -1327,11 +1319,11 @@ def make_version(app, exception):
     try:
         stdout, _ = run_subprocess(['git', 'rev-parse', 'HEAD'], verbose=False)
     except Exception as exc:
-        logger.warning(f'Failed to write _version.txt: {exc}')
+        sphinx_logger.warning(f'Failed to write _version.txt: {exc}')
         return
     with open(os.path.join(app.outdir, '_version.txt'), 'w') as fid:
         fid.write(stdout)
-    logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
+    sphinx_logger.info(f'Added "{stdout.rstrip()}" > _version.txt')
 
 
 # -- Connect our handlers to the main Sphinx app ---------------------------
@@ -1339,13 +1331,7 @@ def make_version(app, exception):
 def setup(app):
     """Set up the Sphinx app."""
     app.connect('autodoc-process-docstring', append_attr_meth_examples)
-    if report_scraper is not None:
-        report_scraper.app = app
-        app.config.rst_prolog = prolog
-        app.connect('builder-inited', report_scraper.copyfiles)
-    sphinx_logger = sphinx.util.logging.getLogger('mne')
-    sphinx_logger.info(
-        f'Building documentation for MNE {release} ({mne.__file__})')
-    sphinx_logger.info(f'Building with scrapers={scrapers}')
+    report_scraper.app = app
+    app.connect('builder-inited', report_scraper.copyfiles)
     app.connect('build-finished', make_redirects)
     app.connect('build-finished', make_version)

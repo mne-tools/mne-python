@@ -21,7 +21,8 @@ import pytest
 from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io.constants import FIFF
-from mne.io import RawArray, concatenate_raws, read_raw_fif, base
+from mne.io import (RawArray, concatenate_raws, read_raw_fif,
+                    match_channel_orders, base)
 from mne.io.open import read_tag, read_tag_info
 from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
@@ -389,7 +390,7 @@ def _create_toy_data(n_channels=3, sfreq=250, seed=None):
 
 
 def test_concatenate_raws_bads_order():
-    """Test concatenation of raw instances."""
+    """Test concatenation of raws when the order of *bad* channels varies."""
     raw0 = _create_toy_data()
     raw1 = _create_toy_data()
 
@@ -410,23 +411,56 @@ def test_concatenate_raws_bads_order():
     # Bad channel mismatch raises
     raw2 = raw1.copy()
     raw2.info["bads"] = ["0", "2"]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="bads.*must match"):
         concatenate_raws([raw0, raw2])
 
     # Type mismatch raises
     epochs1 = make_fixed_length_epochs(raw1)
-    with pytest.raises(ValueError):
-        concatenate_raws([raw0, epochs1])
+    with pytest.raises(ValueError, match="type.*must match"):
+        concatenate_raws([raw0, epochs1.load_data()])
 
     # Sample rate mismatch
     raw3 = _create_toy_data(sfreq=500)
-    with pytest.raises(ValueError):
+    raw3.info["bads"] = ["0", "1"]
+    with pytest.raises(ValueError, match="info.*must match"):
         concatenate_raws([raw0, raw3])
 
     # Number of channels mismatch
     raw4 = _create_toy_data(n_channels=4)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="nchan.*must match"):
         concatenate_raws([raw0, raw4])
+
+
+def test_concatenate_raws_order():
+    """Test concatenation of raws when the order of *good* channels varies."""
+    raw0 = _create_toy_data(n_channels=2)
+    raw0._data[0] = np.zeros_like(raw0._data[0])  # set one channel zero
+
+    # Create copy and concatenate raws
+    raw1 = raw0.copy()
+    raw_concat = concatenate_raws([raw0.copy(), raw1])
+    assert raw0.ch_names == raw1.ch_names == raw_concat.ch_names == ["0", "1"]
+    ch0 = raw_concat.get_data(picks=["0"])
+    assert np.all(ch0 == 0)
+
+    # Change the order of the channels and concatenate again
+    raw1.reorder_channels(["1", "0"])
+    assert raw1.ch_names == ["1", "0"]
+    raws = [raw0.copy(), raw1]
+    with pytest.raises(ValueError, match="Channel order must match."):
+        # Fails now due to wrong order of channels
+        raw_concat = concatenate_raws(raws)
+
+    with pytest.raises(ValueError, match="Channel order must match."):
+        # still fails, because raws is copied and not changed in place
+        match_channel_orders(raws, copy=True)
+        raw_concat = concatenate_raws(raws)
+
+    # Now passes because all raws have the same order
+    match_channel_orders(raws, copy=False)
+    raw_concat = concatenate_raws(raws)
+    ch0 = raw_concat.get_data(picks=["0"])
+    assert np.all(ch0 == 0)
 
 
 @testing.requires_testing_data
