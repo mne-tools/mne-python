@@ -101,8 +101,8 @@ def pytest_configure(config):
         first_kind = 'error'
     else:
         first_kind = 'always'
-    warning_lines = r"""
-    {0}::
+    warning_lines = f"    {first_kind}::"
+    warning_lines += r"""
     # matplotlib->traitlets (notebook)
     ignore:Passing unrecognized arguments to super.*:DeprecationWarning
     # notebook tests
@@ -142,7 +142,7 @@ def pytest_configure(config):
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
     # h5py
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
-    """.format(first_kind)  # noqa: E501
+    """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith('#'):

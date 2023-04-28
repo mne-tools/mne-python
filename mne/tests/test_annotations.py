@@ -987,7 +987,7 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmp_path_factory,
     pytest.param(None, None, id='None'),
     pytest.param(42, 42.0, id='Scalar'),
     pytest.param(3.14, 3.14, id='Float'),
-    pytest.param((3, 140000), 3.14, id='Scalar touple'),
+    pytest.param((3, 140000), 3.14, id="Scalar tuple"),
     pytest.param('2002-12-03 19:01:11.720100', 1038942071.7201,
                  id='valid iso8601 string'),
     pytest.param('2002-12-03T19:01:11.720100', None,
@@ -1355,7 +1355,7 @@ def test_annotation_ch_names():
     assert raw_2.annotations.ch_names[1] == tuple(raw.ch_names[4:5])
     for ch_drop in raw_2.annotations.ch_names:
         assert all(name in raw_2.ch_names for name in ch_drop)
-    with pytest.raises(ValueError, match='channel name in annotations missin'):
+    with pytest.raises(ValueError, match='channel name in annotations miss'):
         raw_2.set_annotations(annot)
     with pytest.warns(RuntimeWarning, match='channel name in annotations mis'):
         raw_2.set_annotations(annot, on_missing='warn')

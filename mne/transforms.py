@@ -1822,7 +1822,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
                            moving.shape, moving_affine)
     reg_data = affine_map.transform(moving, interpolation=interpolation)
     if sdr_morph is not None:
-        logger.info('Appling SDR warp ...')
+        logger.info("Applying SDR warp ...")
         reg_data = sdr_morph.transform(
             reg_data, interpolation=interpolation,
             image_world2grid=np.linalg.inv(static_affine),

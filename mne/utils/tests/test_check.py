@@ -204,7 +204,9 @@ def test_suggest():
     sug = _suggest('Left-cerebellum', names)
     assert sug == " Did you mean 'Left-Cerebellum-Cortex'?"
     sug = _suggest('Cerebellum-Cortex', names)
-    assert sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501
+    assert (
+        sug == " Did you mean one of ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex', 'Left-Cerebral-Cortex']?"  # noqa: E501
+    )
 
 
 def test_on_missing():

@@ -479,7 +479,7 @@ def test_setup_source_space(tmp_path):
         setup_source_space('sample', spacing='7emm',
                            add_dist=False, subjects_dir=subjects_dir)
     with pytest.raises(ValueError, match='must be a string with values'):
-        setup_source_space('sample', spacing='alls',
+        setup_source_space("sample", spacing="ally",
                            add_dist=False, subjects_dir=subjects_dir)
 
     # ico 5 (fsaverage) - write to temp file

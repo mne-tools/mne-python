@@ -69,8 +69,9 @@ def test_data(tmp_path):
     # check functionality
     raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_txt_path,
                            hsp_txt_path)
-    assert raw_mrk.info['description'] == \
-        'NYU 160ch System since Jan24 2009 (34) V2R004 EQ1160C'
+    assert (
+        raw_mrk.info['description'] == 'NYU 160ch System since Jan24 2009 (34) V2R004 EQ1160C'  # noqa: E501
+    )
     raw_py = _test_raw_reader(read_raw_kit, input_fname=sqd_path, mrk=mrk_path,
                               elp=elp_txt_path, hsp=hsp_txt_path,
                               stim=list(range(167, 159, -1)), slope='+',
@@ -123,8 +124,9 @@ def test_data(tmp_path):
     # KIT-UMD data
     _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path, test_rank='less')
     raw = read_raw_kit(sqd_umd_path)
-    assert raw.info['description'] == \
-        'University of Maryland/Kanazawa Institute of Technology/160-channel MEG System (53) V2R004 PQ1160R'  # noqa: E501
+    assert (
+        raw.info['description'] == 'University of Maryland/Kanazawa Institute of Technology/160-channel MEG System (53) V2R004 PQ1160R'  # noqa: E501
+    )
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
     # check number/kind of channels
     assert_equal(len(raw.info['chs']), 193)
@@ -135,8 +137,9 @@ def test_data(tmp_path):
 
     # KIT Academia Sinica
     raw = read_raw_kit(sqd_as_path, slope='+')
-    assert raw.info['description'] == \
-        'Academia Sinica/Institute of Linguistics//Magnetoencephalograph System (261) V2R004 PQ1160R-N2'  # noqa: E501
+    assert (
+        raw.info['description'] == 'Academia Sinica/Institute of Linguistics//Magnetoencephalograph System (261) V2R004 PQ1160R-N2'  # noqa: E501
+    )
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_AS_2008)
     assert_equal(raw.info['chs'][100]['ch_name'], 'MEG 101')
     assert_equal(raw.info['chs'][100]['kind'], FIFF.FIFFV_MEG_CH)
@@ -374,7 +377,9 @@ def test_berlin():
     """Test data from Berlin."""
     # gh-8535
     raw = read_raw_kit(berlin_path)
-    assert raw.info['description'] == 'Physikalisch Technische Bundesanstalt, Berlin/128-channel MEG System (124) V2R004 PQ1128R-N2'  # noqa: E501
+    assert (
+        raw.info['description'] == 'Physikalisch Technische Bundesanstalt, Berlin/128-channel MEG System (124) V2R004 PQ1128R-N2'  # noqa: E501
+    )
     assert raw.info['kit_system_id'] == 124
     assert raw.info['highpass'] == 0.
     assert raw.info['lowpass'] == 200.

@@ -1898,5 +1898,5 @@ def test_label_extraction_subject(kind):
         with pytest.raises(ValueError, match=r'label\.sub.*not match.* stc\.'):
             extract_label_time_course(stc, labels_fs, src)
         stc.subject = None
-        with pytest.raises(ValueError, match=r'label\.sub.*not match.* sourc'):
+        with pytest.raises(ValueError, match=r"label\.sub.*not match.* sour"):
             extract_label_time_course(stc, labels_fs, src)

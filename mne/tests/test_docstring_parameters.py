@@ -130,7 +130,10 @@ def check_parameters_match(func, cls=None):
         msg = str(exc)
         # E   ValueError: no signature found for builtin type
         #     <class 'mne.forward.forward.Forward'>
-        if inspect.isclass(callable_) and 'no signature found for buil' in msg:
+        if (
+            inspect.isclass(callable_) and
+            "no signature found for builtin type" in msg
+        ):
             pass
         else:
             raise

@@ -128,7 +128,7 @@ def imshow_mri(data, img, vox, xyz, suptitle):
     # Figure out the title based on the code of this axis
     ori_slice = dict(P='Coronal', A='Coronal',
                      I='Axial', S='Axial',
-                     L='Sagittal', R='Saggital')
+                     L='Sagittal', R='Sagittal')
     ori_names = dict(P='posterior', A='anterior',
                      I='inferior', S='superior',
                      L='left', R='right')

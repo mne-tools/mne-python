@@ -847,11 +847,12 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
         # 1. Check number of good ones
         #
         if len(use_idx) < 3:
-            msg = (_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
-                   'determine the transformation (%s GOF)!'
-                   % (len(use_idx), n_coils,
-                      ', '.join('%0.2f' % g for g in g_coils)))
-            warn(msg)
+            gofs = ', '.join(f"{g:0.2f}" for g in g_coils)
+            warn(
+                f"{_time_prefix(fit_time)}{len(use_idx)}/{n_coils} "
+                "good HPI fits, cannot determine the transformation "
+                f"({gofs} GOF)!"
+            )
             continue
 
         #

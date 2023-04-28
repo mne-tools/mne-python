@@ -223,12 +223,12 @@ def test_documented():
 
     pytest.param(
         partial(read_custom_montage, head_size=None, coord_frame='mri'),
-        ('// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa: E501
-         '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa: E501
-         'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa: E501
-         'E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000\n'  # noqa: E501
-         'E31      90.000     -11.000       1.000    0.0000    0.9816   -0.1908   0.00000000000000000\n'  # noqa: E501
-         'E61     158.000     -17.200       1.000   -0.8857    0.3579   -0.2957  -0.00000000000000022'),  # noqa: E501
+        "// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n"  # noqa: E501
+        "// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n"  # noqa: E501
+        "E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n"  # noqa: E501
+        "E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000\n"  # noqa: E501
+        "E31      90.000     -11.000       1.000    0.0000    0.9816   -0.1908   0.00000000000000000\n"  # noqa: E501
+        "E61     158.000     -17.200       1.000   -0.8857    0.3579   -0.2957  -0.00000000000000022",  # noqa: E501
         make_dig_montage(
             ch_pos={
                 'E1': [0.7677, 0.5934, -0.2419],
