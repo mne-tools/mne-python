@@ -163,12 +163,9 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
     qt_version = _check_qt_version(check_usable_display=False)
-    # high DPI is enabled by default in PyQt6
+    # HiDPI is enabled by default in Qt6, requires to be explicitly set for Qt5
     if _compare_version(qt_version, '<', '6.0'):
-        try:
-            app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # works on PyQt5 and PySide2
-        except AttributeError:
-            pass  # not required on PyQt6 and PySide6 anyway
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
     if enable_icon or splash:
         icons_path = _qt_init_icons()
