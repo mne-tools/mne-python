@@ -81,3 +81,6 @@ API changes
 - Deprecate arguments ``kind`` and ``path`` from :func:`mne.channels.read_layout` in favor of a common argument ``fname`` (:gh:`11500` by `Mathieu Scheltienne`_)
 - Change ``aligned_ct`` positional argument in ``mne.gui.locate_ieeg`` to ``base_image`` to reflect that this can now be used with unaligned images (:gh:`11567` by `Alex Rockhill`_)
 - ``mne.warp_montage_volume`` was deprecated in favor of :func:`mne.preprocessing.ieeg.warp_montage` (acts directly on points instead of using an intermediate volume) and :func:`mne.preprocessing.ieeg.make_montage_volume` (which makes a volume of ieeg contact locations which can still be useful) (:gh:`11572` by `Alex Rockhill`_)
+- Deprecate ``mne.pick_channels_evoked`` in favor of ``evoked.copy().pick(...)`` (:gh:`11665` by `Eric Larson`_)
+- Set instance methods ``inst.pick_types`` and ``inst.pick_channels`` as legacy in favor of ``inst.pick(...)`` (:gh:`11665` by `Eric Larson`_)
+- The default of ``inst.pick_channels(..., ordered=False)`` will change to ``ordered=True`` in 1.5 to avoid silent bugs (:gh:`11665` by `Eric Larson`_)

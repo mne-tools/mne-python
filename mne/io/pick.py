@@ -11,7 +11,7 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option, warn)
+                     _check_option, warn, deprecated)
 
 
 def get_channel_type_constants(include_defaults=False):
@@ -220,7 +220,8 @@ def channel_type(info, idx):
     return first_kind
 
 
-def pick_channels(ch_names, include, exclude=[], ordered=False):
+@verbose
+def pick_channels(ch_names, include, exclude=[], ordered=None, *, verbose=None):
     """Pick channels by names.
 
     Returns the indices of ``ch_names`` in ``include`` but not in ``exclude``.
@@ -238,12 +239,8 @@ def pick_channels(ch_names, include, exclude=[], ordered=False):
     exclude : list of str
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
-    ordered : bool
-        If true (default False), treat ``include`` as an ordered list
-        rather than a set, and any channels from ``include`` are missing
-        in ``ch_names`` an error will be raised.
-
-        .. versionadded:: 0.18
+    %(ordered)s
+    %(verbose)s
 
     Returns
     -------
@@ -256,34 +253,47 @@ def pick_channels(ch_names, include, exclude=[], ordered=False):
     """
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')
+    _validate_type(ordered, (bool, None), 'ordered')
     _check_excludes_includes(include)
     _check_excludes_includes(exclude)
-    if not ordered:
-        if not isinstance(include, set):
-            include = set(include)
-        if not isinstance(exclude, set):
-            exclude = set(exclude)
-        sel = []
-        for k, name in enumerate(ch_names):
-            if (len(include) == 0 or name in include) and name not in exclude:
-                sel.append(k)
-    else:
-        if not isinstance(include, list):
-            include = list(include)
-        if len(include) == 0:
-            include = list(ch_names)
-        if not isinstance(exclude, list):
-            exclude = list(exclude)
-        sel, missing = list(), list()
-        for name in include:
-            if name in ch_names:
-                if name not in exclude:
-                    sel.append(ch_names.index(name))
-            else:
-                missing.append(name)
-        if len(missing):
+    if not isinstance(include, list):
+        include = list(include)
+    if len(include) == 0:
+        include = list(ch_names)
+    if not isinstance(exclude, list):
+        exclude = list(exclude)
+    sel, missing = list(), list()
+    for name in include:
+        if name in ch_names:
+            if name not in exclude:
+                sel.append(ch_names.index(name))
+        else:
+            missing.append(name)
+    dep_msg = (
+        'The default for pick_channels will change from ordered=False to '
+        'ordered=True in 1.5'
+    )
+    if len(missing):
+        if ordered is None:
+            warn(
+                f'{dep_msg} and this will result in an error because the '
+                f'following channel names are missing:\n{missing}\n'
+                'Either fix your included names or explicitly pass '
+                'ordered=False.', FutureWarning)
+        elif ordered:
             raise ValueError('Missing channels from ch_names required by '
-                             'include:\n%s' % (missing,))
+                                'include:\n%s' % (missing,))
+    if not ordered:
+        out_sel = np.unique(sel)
+        if ordered is None and not np.array_equal(out_sel, sel):
+            warn(
+                f'{dep_msg} and this will result in a change of behavior '
+                'because the resulting channel order will not match. Either '
+                'use a channel order that matches your instance or '
+                'pass ordered=False.',
+                FutureWarning,
+            )
+        sel = out_sel
     return np.array(sel, int)
 
 
@@ -486,7 +496,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
     if len(myinclude) == 0:
         sel = np.array([], int)
     else:
-        sel = pick_channels(info['ch_names'], myinclude, exclude)
+        sel = pick_channels(
+            info['ch_names'], myinclude, exclude, ordered=False)
 
     return sel
 
@@ -571,6 +582,8 @@ def _has_kit_refs(info, picks):
     return False
 
 
+@deprecated('pick_channels_evokde in deprecated and will be removed in 1.5, '
+            'use evoked.copy().pick(...) instead.')
 def pick_channels_evoked(orig, include=[], exclude='bads'):
     """Pick channels from evoked data.
 
@@ -615,8 +628,8 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
 
 
 @verbose
-def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
-                          copy=True, verbose=None):
+def pick_channels_forward(orig, include=[], exclude=[], ordered=None,
+                          copy=True, *, verbose=None):
     """Pick channels from forward operator.
 
     Parameters
@@ -629,11 +642,7 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     exclude : list of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
-    ordered : bool
-        If true (default False), treat ``include`` as an ordered list
-        rather than a set.
-
-        .. versionadded:: 0.18
+    %(ordered)s
     copy : bool
         If True (default), make a copy.
 
@@ -773,8 +782,9 @@ def channel_indices_by_type(info, picks=None):
     return idx_by_type
 
 
-def pick_channels_cov(orig, include=[], exclude='bads', ordered=False,
-                      copy=True):
+@verbose
+def pick_channels_cov(orig, include=[], exclude='bads', ordered=None,
+                      copy=True, *, verbose=None):
     """Pick channels from covariance matrix.
 
     Parameters
@@ -785,16 +795,13 @@ def pick_channels_cov(orig, include=[], exclude='bads', ordered=False,
         List of channels to include (if empty, include all available).
     exclude : list of str, (optional) | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
-    ordered : bool
-        If True (default False), ensure that the order of the channels in the
-        modified instance matches the order of ``include``.
-
-        .. versionadded:: 0.20.0
+    %(ordered)s
     copy : bool
         If True (the default), return a copy of the covariance matrix with the
         modified channels. If False, channels are modified in-place.
 
         .. versionadded:: 0.20.0
+    %(verbose)s
 
     Returns
     -------
@@ -1188,8 +1195,9 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
 
     picked_ch_type_or_generic = not len(picks_name)
     if len(bad_names) > 0 and not picked_ch_type_or_generic:
-        warn(f'Channel(s) {bad_names} could not be picked, because '
-             'they are not present in the info instance.')
+        raise ValueError(
+            f'Channel(s) {bad_names} could not be picked, because '
+            'they are not present in the info instance.')
 
     if return_kind:
         return picks, picked_ch_type_or_generic

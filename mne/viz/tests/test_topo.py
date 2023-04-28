@@ -14,8 +14,7 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
-                 compute_proj_evoked)
+from mne import read_events, Epochs, read_cov, compute_proj_evoked
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
@@ -161,8 +160,7 @@ def test_plot_topo():
 
     evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
     ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
-    picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
-                                                     ch_names)
+    picked_evoked_delayed_ssp = evoked_delayed_ssp.pick(ch_names)
     fig = plot_evoked_topo(picked_evoked_delayed_ssp, layout,
                            proj='interactive')
     func = _get_presser(fig)

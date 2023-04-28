@@ -475,7 +475,8 @@ def _merge_fwds(fwds, *, verbose=None):
 
 
 @verbose
-def read_forward_solution(fname, include=(), exclude=(), verbose=None):
+def read_forward_solution(fname, include=(), exclude=(), *, ordered=None,
+                          verbose=None):
     """Read a forward solution a.k.a. lead field.
 
     Parameters
@@ -487,6 +488,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
         are included.
     exclude : list, optional
         List of names of channels to exclude. If empty include all channels.
+    %(ordered)s
     %(verbose)s
 
     Returns
@@ -665,7 +667,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
-                             copy=True, use_cps=True, verbose=None):
+                             copy=True, use_cps=True, *, verbose=None):
     """Convert forward solution between different source orientations.
 
     Parameters

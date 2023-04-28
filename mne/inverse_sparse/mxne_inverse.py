@@ -9,7 +9,6 @@ from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference, _log_exp_var)
 from ..forward import is_fixed_orient
-from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import (logger, verbose, _check_depth, _check_option, sum_squared,
                      _validate_type, check_random_state, warn)
@@ -82,8 +81,7 @@ def _reapply_source_weighting(X, source_weighting, active_set):
 def _compute_residual(forward, evoked, X, active_set, info):
     # OK, picking based on row_names is safe
     sel = [forward['sol']['row_names'].index(c) for c in info['ch_names']]
-    residual = evoked.copy()
-    residual = pick_channels_evoked(residual, include=info['ch_names'])
+    residual = evoked.copy().pick(info['ch_names'])
     r_tmp = residual.copy()
 
     r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set], X)

@@ -2510,6 +2510,16 @@ outlines : 'head' | dict | None
     Defaults to 'head'.
 """
 
+docdict['ordered'] = """
+ordered : bool
+    If True (default False), ensure that the order of the channels in
+    the modified instance matches the order of ``ch_names``.
+
+    .. versionadded:: 0.20.0
+    .. versionchanged:: 1.5
+        The default changed from False in 1.4 to True in 1.5.
+"""
+
 docdict['overview_mode'] = """
 overview_mode : str | None
     Can be "channels", "empty", or "hidden" to set the overview bar mode

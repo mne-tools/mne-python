@@ -25,7 +25,7 @@ from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
                      _get_stim_channel, _check_fname, _check_dict_keys,
-                     _on_missing)
+                     _on_missing, legacy)
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
                             _rename_comps)
@@ -596,6 +596,7 @@ class UpdateChannelsMixin:
     """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
     @verbose
+    @legacy(alt='inst.pick(...)')
     def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', *, misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
@@ -649,18 +650,15 @@ class UpdateChannelsMixin:
         return self
 
     @verbose
-    def pick_channels(self, ch_names, ordered=False, *, verbose=None):
+    @legacy(alt='inst.pick(...)')
+    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
         """Pick some channels.
 
         Parameters
         ----------
         ch_names : list
             The list of channels to select.
-        ordered : bool
-            If True (default False), ensure that the order of the channels in
-            the modified instance matches the order of ``ch_names``.
-
-            .. versionadded:: 0.20.0
+        %(ordered)s
         %(verbose)s
 
             .. versionadded:: 1.1

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_array_equal
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
@@ -232,7 +232,7 @@ def test_pick_seeg_ecog():
     assert_indexing(info, picks_by_type)
     assert_array_equal(pick_types(info, meg=False, seeg=True), [4, 5, 7])
     for i, t in enumerate(types):
-        assert_equal(channel_type(info, i), types[i])
+        assert channel_type(info, i) == types[i]
     raw = RawArray(np.zeros((len(names), 10)), info)
     events = np.array([[1, 0, 0], [2, 0, 0]])
     epochs = Epochs(raw, events=events, event_id={'event': 0},
@@ -244,7 +244,7 @@ def test_pick_seeg_ecog():
         assert lt == rt
     # Deal with constant debacle
     raw = read_raw_fif(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
-    assert_equal(len(pick_types(raw.info, meg=False, seeg=True, ecog=True)), 0)
+    assert len(pick_types(raw.info, meg=False, seeg=True, ecog=True)) == 0
 
 
 def test_pick_dbs():
@@ -329,8 +329,8 @@ def test_pick_ref():
 def _check_fwd_n_chan_consistent(fwd, n_expected):
     n_ok = len(fwd['info']['ch_names'])
     n_sol = fwd['sol']['data'].shape[0]
-    assert_equal(n_expected, n_sol)
-    assert_equal(n_expected, n_ok)
+    assert n_expected == n_sol
+    assert n_expected == n_ok
 
 
 @testing.requires_testing_data
@@ -367,8 +367,8 @@ def test_pick_forward_seeg_ecog():
     counts['ecog'] += 1
     # repick & check
     fwd_seeg = pick_types_forward(fwd, meg=False, seeg=True)
-    assert_equal(fwd_seeg['sol']['row_names'], [seeg_name])
-    assert_equal(fwd_seeg['info']['ch_names'], [seeg_name])
+    assert fwd_seeg['sol']['row_names'] == [seeg_name]
+    assert fwd_seeg['info']['ch_names'] == [seeg_name]
     # should work fine
     fwd_ = pick_types_forward(fwd, meg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['meg'])
@@ -393,15 +393,15 @@ def test_picks_by_channels():
     raw = RawArray(test_data, info)
 
     pick_list = _picks_by_type(raw.info)
-    assert_equal(len(pick_list), 3)
-    assert_equal(pick_list[0][0], 'mag')
+    assert len(pick_list) == 3
+    assert pick_list[0][0] == 'mag'
     pick_list2 = _picks_by_type(raw.info, meg_combined=False)
-    assert_equal(len(pick_list), len(pick_list2))
-    assert_equal(pick_list2[0][0], 'mag')
+    assert len(pick_list) == len(pick_list2)
+    assert pick_list2[0][0] == 'mag'
 
     pick_list2 = _picks_by_type(raw.info, meg_combined=True)
-    assert_equal(len(pick_list), len(pick_list2) + 1)
-    assert_equal(pick_list2[0][0], 'meg')
+    assert len(pick_list) == len(pick_list2) + 1
+    assert pick_list2[0][0] == 'meg'
 
     test_data = rng.random_sample((4, 2000))
     ch_names = ['MEG %03d' % i for i in [1, 2, 3, 4]]
@@ -410,19 +410,20 @@ def test_picks_by_channels():
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
     # This acts as a set, not an order
-    assert_array_equal(pick_channels(info['ch_names'], ['MEG 002', 'MEG 001']),
-                       [0, 1])
+    assert_array_equal(
+        pick_channels(info['ch_names'], ['MEG 002', 'MEG 001'], ordered=False),
+        [0, 1])
 
     # Make sure checks for list input work.
     pytest.raises(ValueError, pick_channels, ch_names, 'MEG 001')
     pytest.raises(ValueError, pick_channels, ch_names, ['MEG 001'], 'hi')
 
     pick_list = _picks_by_type(raw.info)
-    assert_equal(len(pick_list), 1)
-    assert_equal(pick_list[0][0], 'mag')
+    assert len(pick_list) == 1
+    assert pick_list[0][0] == 'mag'
     pick_list2 = _picks_by_type(raw.info, meg_combined=True)
-    assert_equal(len(pick_list), len(pick_list2))
-    assert_equal(pick_list2[0][0], 'mag')
+    assert len(pick_list) == len(pick_list2)
+    assert pick_list2[0][0] == 'mag'
 
     # pick_types type check
     with pytest.raises(ValueError, match='must be of type'):
@@ -430,8 +431,18 @@ def test_picks_by_channels():
 
     # duplicate check
     names = ['MEG 002', 'MEG 002']
-    assert len(pick_channels(raw.info['ch_names'], names)) == 1
-    assert len(raw.copy().pick_channels(names)[0][0]) == 1
+    assert len(pick_channels(raw.info['ch_names'], names, ordered=False)) == 1
+    with pytest.warns(FutureWarning, match='ordered=False'):
+        assert len(raw.copy().pick_channels(names)[0][0]) == 1
+
+    # missing ch_name
+    bad_names = names + ['BAD']
+    with pytest.raises(ValueError, match='Missing channels'):
+        pick_channels(raw.info['ch_names'], bad_names, ordered=True)
+    with pytest.raises(ValueError, match='Missing channels'):
+        raw.copy().pick_channels(bad_names, ordered=True)
+    with pytest.raises(ValueError, match='could not be picked'):
+        raw.copy().pick(bad_names)
 
 
 def test_clean_info_bads():
@@ -463,8 +474,8 @@ def test_clean_info_bads():
     # simulate the call to pick_info excluding the bad meg channels
     info_meg = pick_info(raw.info, picks_meg)
 
-    assert_equal(info_eeg['bads'], eeg_bad_ch)
-    assert_equal(info_meg['bads'], meg_bad_ch)
+    assert info_eeg['bads'] == eeg_bad_ch
+    assert info_meg['bads'] == meg_bad_ch
 
     info = pick_info(raw.info, picks_meg)
     info._check_consistency()
@@ -584,7 +595,7 @@ def test_pick_channels_cov():
     assert_array_equal(cov_copy['data'], [2., 1.])
 
     # Test picking in-place
-    pick_channels_cov(cov, ['CH2', 'CH1'], copy=False)
+    pick_channels_cov(cov, ['CH2', 'CH1'], copy=False, ordered=False)
     assert cov.ch_names == ['CH1', 'CH2']
     assert_array_equal(cov['data'], [1., 2.])
 
