@@ -859,7 +859,7 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
              % (1e9 * max_cur))
 
 
-def _check_qt_version(*, return_api=False):
+def _check_qt_version(*, return_api=False, check_usable_display=True):
     """Check if Qt is installed."""
     from ..viz.backends._utils import _init_mne_qtapp
     try:
@@ -874,10 +874,11 @@ def _check_qt_version(*, return_api=False):
         # Having Qt installed is not enough -- sometimes the app is unusable
         # for example because there is no usable display (e.g., on a server),
         # so we have to try instantiating one to actually know.
-        try:
-            _init_mne_qtapp()
-        except Exception:
-            api = version = None
+        if check_usable_display:
+            try:
+                _init_mne_qtapp()
+            except Exception:
+                api = version = None
     if return_api:
         return version, api
     else:
