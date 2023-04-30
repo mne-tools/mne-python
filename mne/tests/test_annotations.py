@@ -1416,6 +1416,11 @@ def test_annotation_rename():
     with pytest.raises(TypeError, match="dict, got <class 'set'> instead"):
         a.rename({"wrong"})
 
+    a = np.array([[0, 0, 11], [1000, 0, 1], [1230, 0, 111]])
+    a = mne.annotations_from_events(a, 256)
+    a.rename({'1': 'A', '11': 'B', '111': 'C'})
+    assert_array_equal(a.description, ['B', 'A', 'C'])
+
 
 def test_annotation_duration_setting():
     """Test annotation duration setting works."""
