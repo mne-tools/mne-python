@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 import numpy as np
 
 from mne.io import read_raw_fif
