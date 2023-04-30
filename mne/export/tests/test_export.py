@@ -260,8 +260,7 @@ def test_rawarray_edf(tmp_path):
 
     # test that warning is raised if there are non-voltage based channels
     raw = RawArray(data, info)
-    with pytest.warns(RuntimeWarning, match='The unit'):
-        raw.set_channel_types({'9': 'hbr'})
+    raw.set_channel_types({'9': 'hbr'}, on_unit_change='ignore')
     with pytest.warns(RuntimeWarning, match='Non-voltage channels'):
         raw.export(temp_fname, overwrite=True)
 

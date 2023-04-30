@@ -111,8 +111,7 @@ def test_plot_joint():
     # test sEEG (gh:8733)
     evoked.del_proj().pick_types('mag')  # avoid overlapping positions error
     mapping = {ch_name: 'seeg' for ch_name in evoked.ch_names}
-    with pytest.warns(RuntimeWarning, match='The unit .* has changed from .*'):
-        evoked.set_channel_types(mapping)
+    evoked.set_channel_types(mapping, on_unit_change='ignore')
     evoked.plot_joint()
 
     # test DBS (gh:8739)
