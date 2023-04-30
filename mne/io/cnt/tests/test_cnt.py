@@ -15,6 +15,7 @@ from mne.annotations import read_annotations
 
 data_path = testing.data_path(download=False)
 fname = data_path / "CNT" / "scan41_short.cnt"
+fname_bad_spans = data_path / "CNT" / "test_CNT_events_mne_JWoess_clipped.cnt"
 
 
 @testing.requires_testing_data
@@ -50,3 +51,11 @@ def test_compare_events_and_annotations():
     assert len(annot) == 6
     assert_array_equal(annot.onset[:-1], events[:, 0] / raw.info['sfreq'])
     assert 'STI 014' not in raw.info['ch_names']
+
+
+@testing.requires_testing_data
+def test_bad_spans():
+    """Test reading raw cnt files with bad spans."""
+    annot = read_annotations(fname_bad_spans)
+    temp = '\t'.join(annot.description)
+    assert 'bad' in temp
