@@ -309,16 +309,16 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_channel_types(self, mapping, *, on_unit_change='warn', verbose=None):
-        """Define the sensor type of channels.
+        """Specify the sensor types of channels.
 
         Parameters
         ----------
         mapping : dict
-            A dictionary mapping a channel to a sensor type (str), e.g.,
+            A dictionary mapping channel names to sensor types, e.g.,
             ``{'EEG061': 'eog'}``.
         on_unit_change : 'warn' | 'ignore'
-            Whether to emit a warning (default) or not if the unit of one or
-            more channels are changed automatically to match the new sensor
+            Whether to emit a warning (default) if the measurement unit of a
+            channels is changed automatically to match the new sensor
             type.
 
             .. versionadded:: 1.4
