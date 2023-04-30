@@ -318,7 +318,7 @@ class SetChannelsMixin(MontageMixin):
             ``{'EEG061': 'eog'}``.
         on_unit_change : 'warn' | 'ignore'
             Whether to emit a warning (default) if the measurement unit of a
-            channels is changed automatically to match the new sensor
+            channel is changed automatically to match the new sensor
             type.
 
             .. versionadded:: 1.4
