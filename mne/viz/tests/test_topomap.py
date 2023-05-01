@@ -142,7 +142,7 @@ def test_plot_projs_topomap():
 
     eeg_proj = make_eeg_average_ref_proj(info)
     info_meg = pick_info(info, pick_types(info, meg=True, eeg=False))
-    with pytest.raises(ValueError, match='No channel names in info match p'):
+    with pytest.raises(ValueError, match='Missing channels'):
         plot_projs_topomap([eeg_proj], info_meg)
 
 

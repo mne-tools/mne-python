@@ -336,16 +336,16 @@ class Covariance(dict):
             extrapolate=extrapolate, sphere=sphere, border=border,
             time_format='')
 
-    def pick_channels(self, ch_names, ordered=False):
+    @verbose
+    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
         """Pick channels from this covariance matrix.
 
         Parameters
         ----------
         ch_names : list of str
             List of channels to keep. All other channels are dropped.
-        ordered : bool
-            If True (default False), ensure that the order of the channels
-            matches the order of ``ch_names``.
+        %(ordered)s
+        %(verbose)s
 
         Returns
         -------
@@ -1472,7 +1472,8 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
                            % missing)
     C = noise_cov._get_square()[np.ix_(noise_cov_idx, noise_cov_idx)]
-    info = pick_info(info, pick_channels(info['ch_names'], ch_names))
+    info = pick_info(
+        info, pick_channels(info['ch_names'], ch_names, ordered=False))
     projs = info['projs'] + noise_cov['projs']
     noise_cov = Covariance(
         data=C, names=ch_names, bads=list(noise_cov['bads']),
@@ -1665,7 +1666,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
 
     # This actually removes bad channels from the cov, which is not backward
     # compatible, so let's leave all channels in
-    cov_good = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
+    cov_good = pick_channels_cov(
+        cov, include=info_ch_names, exclude=exclude, ordered=False)
     ch_names = cov_good.ch_names
 
     # Now get the indices for each channel type in the cov
@@ -1723,7 +1725,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         C[np.ix_(idx, idx)] = this_C
 
     # Put data back in correct locations
-    idx = pick_channels(cov.ch_names, info_ch_names, exclude=exclude)
+    idx = pick_channels(
+        cov.ch_names, info_ch_names, exclude=exclude, ordered=False)
     cov['data'][np.ix_(idx, idx)] = C
 
     return cov

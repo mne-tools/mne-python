@@ -25,7 +25,7 @@ from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
                      _get_stim_channel, _check_fname, _check_dict_keys,
-                     _on_missing)
+                     _on_missing, legacy)
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
                             _rename_comps)
@@ -308,14 +308,19 @@ class SetChannelsMixin(MontageMixin):
                 raise ValueError(msg)
 
     @verbose
-    def set_channel_types(self, mapping, verbose=None):
-        """Define the sensor type of channels.
+    def set_channel_types(self, mapping, *, on_unit_change='warn', verbose=None):
+        """Specify the sensor types of channels.
 
         Parameters
         ----------
         mapping : dict
-            A dictionary mapping a channel to a sensor type (str), e.g.,
+            A dictionary mapping channel names to sensor types, e.g.,
             ``{'EEG061': 'eog'}``.
+        on_unit_change : 'raise' | 'warn' | 'ignore'
+            What to do if the measurement unit of a channel is changed
+            automatically to match the new sensor type.
+
+            .. versionadded:: 1.4
         %(verbose)s
 
         Returns
@@ -388,9 +393,15 @@ class SetChannelsMixin(MontageMixin):
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
+
         msg = "The unit for channel(s) {0} has changed from {1} to {2}."
         for this_change, names in unit_changes.items():
-            warn(msg.format(", ".join(sorted(names)), *this_change))
+            _on_missing(
+                on_missing=on_unit_change,
+                msg=msg.format(", ".join(sorted(names)), *this_change),
+                name='on_unit_change',
+            )
+
         return self
 
     @verbose
@@ -596,6 +607,7 @@ class UpdateChannelsMixin:
     """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
     @verbose
+    @legacy(alt='inst.pick(...)')
     def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
                    ecg=False, emg=False, ref_meg='auto', *, misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
@@ -649,18 +661,15 @@ class UpdateChannelsMixin:
         return self
 
     @verbose
-    def pick_channels(self, ch_names, ordered=False, *, verbose=None):
+    @legacy(alt='inst.pick(...)')
+    def pick_channels(self, ch_names, ordered=None, *, verbose=None):
         """Pick some channels.
 
         Parameters
         ----------
         ch_names : list
             The list of channels to select.
-        ordered : bool
-            If True (default False), ensure that the order of the channels in
-            the modified instance matches the order of ``ch_names``.
-
-            .. versionadded:: 0.20.0
+        %(ordered)s
         %(verbose)s
 
             .. versionadded:: 1.1

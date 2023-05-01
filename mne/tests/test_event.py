@@ -570,7 +570,7 @@ def test_acqparser_averaging():
         ev_ref_mag = ev_ref.copy()
         ev_ref_mag.pick_channels(['MEG0111'])
         ev_ref_grad = ev_ref.copy()
-        ev_ref_grad.pick_channels(['MEG2643', 'MEG1622'])
+        ev_ref_grad.pick_channels(['MEG2643', 'MEG1622'], ordered=False)
         assert_allclose(ev_mag.data, ev_ref_mag.data,
                         rtol=0, atol=1e-15)  # tol = 1 fT
         # Elekta put these in a different order

@@ -576,7 +576,7 @@ def short_raw_epochs():
     """Get small data."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     raw.pick_channels(set(raw.ch_names[::10]) | set(
-        ['EOG 061', 'MEG 1531', 'MEG 1441', 'MEG 0121']))
+        ['EOG 061', 'MEG 1531', 'MEG 1441', 'MEG 0121']), ordered=False)
     assert 'eog' in raw
     raw.del_proj()  # avoid warnings
     raw.set_annotations(Annotations([0.5], [0.5], ['BAD']))
@@ -724,8 +724,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_equal(ica_sorted.labels_, dict(blink=[3], think=[2]))
 
     # epochs extraction from raw fit
-    with pytest.warns(RuntimeWarning, match='could not be picked'), \
-         pytest.raises(RuntimeError, match="match fitted data"):
+    with pytest.raises(ValueError, match='not present in the info'):
         ica.get_sources(epochs)
 
     # test filtering
@@ -930,10 +929,9 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     assert_array_equal(raw_data, raw[:][0])
 
     raw.drop_channels(raw.ch_names[:2])
-    with pytest.raises(RuntimeError, match='match fitted'):
-        with pytest.warns(RuntimeWarning, match='longer'):
-            ica.find_bads_eog(raw)
-    with pytest.raises(RuntimeError, match='match fitted'):
+    with pytest.raises(ValueError, match='not present in the info'):
+        ica.find_bads_eog(raw)
+    with pytest.raises(ValueError, match='not present in the info'):
         with pytest.warns(RuntimeWarning, match='longer'):
             ica.find_bads_ecg(raw, threshold='auto')
 

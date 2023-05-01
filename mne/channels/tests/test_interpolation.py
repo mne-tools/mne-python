@@ -182,8 +182,7 @@ def test_interpolation_meg():
     # before MEG channels
     raw.crop(0, 0.1).load_data().pick_channels(epochs_meg.ch_names)
     raw.info.normalize_proj()
-    with pytest.warns(RuntimeWarning, match='unit .* changed from .* to .*'):
-        raw.set_channel_types({raw.ch_names[0]: 'stim'})
+    raw.set_channel_types({raw.ch_names[0]: 'stim'}, on_unit_change='ignore')
     raw.info['bads'] = [raw.ch_names[1]]
     raw.load_data()
     raw.interpolate_bads(mode='fast')

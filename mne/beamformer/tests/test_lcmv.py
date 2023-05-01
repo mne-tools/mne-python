@@ -81,7 +81,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     bads = [raw.ch_names[pick] for pick in bad_picks]
     assert not any(pick in picks for pick in bad_picks)
     picks = np.concatenate([picks, bad_picks])
-    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    raw.pick_channels([raw.ch_names[ii] for ii in picks], ordered=True)
     del picks
 
     raw.info['bads'] = bads  # add more bads
@@ -429,7 +429,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     # (avoid "grad data rank (13) did not match the noise rank (None)")
     data_cov_grad = pick_channels_cov(
         data_cov, [ch_name for ch_name in epochs.info['ch_names']
-                   if ch_name.endswith(('2', '3'))])
+                   if ch_name.endswith(('2', '3'))], ordered=False)
     assert len(data_cov_grad['names']) > 4
     make_lcmv(epochs.info, forward_fixed, data_cov_grad, reg=0.01,
               noise_cov=noise_cov)
@@ -499,8 +499,9 @@ def test_lcmv_cov(weight_norm, pick_ori):
     filters = make_lcmv(evoked.info, forward, data_cov, noise_cov=noise_cov,
                         weight_norm=weight_norm, pick_ori=pick_ori)
     for cov in (data_cov, noise_cov):
-        this_cov = pick_channels_cov(cov, evoked.ch_names)
-        this_evoked = evoked.copy().pick_channels(this_cov['names'])
+        this_cov = pick_channels_cov(cov, evoked.ch_names, ordered=False)
+        this_evoked = evoked.copy().pick_channels(
+            this_cov['names'], ordered=True)
         this_cov['projs'] = this_evoked.info['projs']
         assert this_evoked.ch_names == this_cov['names']
         stc = apply_lcmv_cov(this_cov, filters)

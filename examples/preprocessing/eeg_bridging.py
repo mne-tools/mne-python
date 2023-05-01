@@ -160,14 +160,14 @@ mne.viz.plot_bridged_electrodes(
 # pairs, meaning that it is unlikely that all four of these electrodes are
 # bridged.
 
-raw = raw_data[6].copy().pick_channels(['F2', 'F4', 'FC2', 'FC4'])
+raw = raw_data[6].copy().pick_channels(['FC2', 'FC4', 'F2', 'F4'])
 raw.add_channels([mne.io.RawArray(
     raw.get_data(ch1) - raw.get_data(ch2),
     mne.create_info([f'{ch1}-{ch2}'], raw.info['sfreq'], 'eeg'),
     raw.first_samp) for ch1, ch2 in [('F2', 'F4'), ('FC2', 'FC4')]])
 raw.plot(duration=20, scalings=dict(eeg=2e-4))
 
-raw = raw_data[1].copy().pick_channels(['F2', 'F4', 'FC2', 'FC4'])
+raw = raw_data[1].copy().pick_channels(['FC2', 'FC4', 'F2', 'F4'])
 raw.add_channels([mne.io.RawArray(
     raw.get_data(ch1) - raw.get_data(ch2),
     mne.create_info([f'{ch1}-{ch2}'], raw.info['sfreq'], 'eeg'),

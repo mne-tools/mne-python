@@ -325,7 +325,8 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         info = info.copy()
         info['bads'] = []
         inst = pick_channels_cov(
-            inst, set(inst['names']) & set(info['ch_names']), exclude=[])
+            inst, set(inst['names']) & set(info['ch_names']), exclude=[],
+            ordered=False)
         if info['ch_names'] != inst['names']:
             info = pick_info(info, [info['ch_names'].index(name)
                                     for name in inst['names']])

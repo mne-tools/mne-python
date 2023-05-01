@@ -1066,7 +1066,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 for selection in _SELECTIONS + _EEG_SELECTIONS:
                     channels = pick_channels(
                         info['ch_names'],
-                        read_vectorview_selection(selection, info=info))
+                        read_vectorview_selection(selection, info=info),
+                        ordered=False)
                     ch_groups.append(channels)
             color_vals = np.ones((len(ch_groups), 4))
             for idx, ch_group in enumerate(ch_groups):
@@ -1862,7 +1863,8 @@ def _setup_plot_projector(info, noise_cov, proj=True, use_noise_cov=True,
                      set(noise_cov['bads']))
         # Actually compute the whitener only using the difference
         whiten_names = cov_names - bad_names
-        whiten_picks = pick_channels(info['ch_names'], whiten_names)
+        whiten_picks = pick_channels(
+            info['ch_names'], whiten_names, ordered=True)
         whiten_info = pick_info(info, whiten_picks)
         rank = _triage_rank_sss(whiten_info, [noise_cov])[1][0]
         whitener, whitened_ch_names = compute_whitener(
@@ -1952,7 +1954,7 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
                 break
             if rank.get(ch_type) is None:
                 ch_names = [info['ch_names'][pick] for pick in this_picks]
-                this_C = pick_channels_cov(cov, ch_names)
+                this_C = pick_channels_cov(cov, ch_names, ordered=False)
                 this_estimated_rank = compute_rank(
                     this_C, scalings=scalings, info=info_proj)[ch_type]
                 this_rank[ch_type] = this_estimated_rank

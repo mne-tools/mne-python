@@ -14,8 +14,7 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import (read_events, Epochs, pick_channels_evoked, read_cov,
-                 compute_proj_evoked)
+from mne import read_events, Epochs, read_cov, compute_proj_evoked
 from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
@@ -111,15 +110,13 @@ def test_plot_joint():
     # test sEEG (gh:8733)
     evoked.del_proj().pick_types('mag')  # avoid overlapping positions error
     mapping = {ch_name: 'seeg' for ch_name in evoked.ch_names}
-    with pytest.warns(RuntimeWarning, match='The unit .* has changed from .*'):
-        evoked.set_channel_types(mapping)
+    evoked.set_channel_types(mapping, on_unit_change='ignore')
     evoked.plot_joint()
 
     # test DBS (gh:8739)
     evoked = _get_epochs().average().pick_types('mag')
     mapping = {ch_name: 'dbs' for ch_name in evoked.ch_names}
-    with pytest.warns(RuntimeWarning, match='The unit for'):
-        evoked.set_channel_types(mapping)
+    evoked.set_channel_types(mapping, on_unit_change='ignore')
     evoked.plot_joint()
     plt.close('all')
 
@@ -161,8 +158,7 @@ def test_plot_topo():
 
     evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
     ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
-    picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
-                                                     ch_names)
+    picked_evoked_delayed_ssp = evoked_delayed_ssp.pick(ch_names)
     fig = plot_evoked_topo(picked_evoked_delayed_ssp, layout,
                            proj='interactive')
     func = _get_presser(fig)
