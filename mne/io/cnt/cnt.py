@@ -92,7 +92,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
         for i in range(len(onset)):
             if accept_reject[i] == 'bad':
                 duration[i] = duration_list[duration_list_index]
-                description[i] = 'bad_' + description[i]
+                description[i] = 'BAD_' + description[i]
                 duration_list_index += 1
         # Remove good span markers
         final_onset, final_duration, final_description = [], [], []
