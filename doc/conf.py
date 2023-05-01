@@ -526,32 +526,33 @@ user_agent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit
 # Can eventually add linkcheck_request_headers if needed
 linkcheck_ignore = [  # will be compiled to regex
     # 403 Client Error: Forbidden
-    'https://doi.org/10.1002/',  # onlinelibrary.wiley.com/doi/10.1002/hbm
-    'https://doi.org/10.1021/',  # pubs.acs.org/doi/abs
-    'https://doi.org/10.1073/',  # pnas.org
-    'https://doi.org/10.1093/',  # academic.oup.com/sleep/
-    'https://doi.org/10.1098/',  # royalsocietypublishing.org
-    'https://doi.org/10.1111/',  # onlinelibrary.wiley.com/doi/10.1111/psyp
-    'https://doi.org/10.1126/',  # www.science.org
-    'https://doi.org/10.1137/',  # epubs.siam.org
-    'https://doi.org/10.1161/',  # www.ahajournals.org
-    'https://doi.org/10.1162/',  # direct.mit.edu/neco/article/
-    'https://doi.org/10.1167/',  # jov.arvojournals.org
-    'https://doi.org/10.1177/',  # journals.sagepub.com
-    'https://www.researchgate.net/profile/',
+    "https://doi.org/10.1002/",  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    "https://doi.org/10.1021/",  # pubs.acs.org/doi/abs
+    "https://doi.org/10.1073/",  # pnas.org
+    "https://doi.org/10.1093/",  # academic.oup.com/sleep/
+    "https://doi.org/10.1098/",  # royalsocietypublishing.org
+    "https://doi.org/10.1111/",  # onlinelibrary.wiley.com/doi/10.1111/psyp
+    "https://doi.org/10.1126/",  # www.science.org
+    "https://doi.org/10.1137/",  # epubs.siam.org
+    "https://doi.org/10.1161/",  # www.ahajournals.org
+    "https://doi.org/10.1162/",  # direct.mit.edu/neco/article/
+    "https://doi.org/10.1167/",  # jov.arvojournals.org
+    "https://doi.org/10.1177/",  # journals.sagepub.com
+    "https://doi.org/10.1063/1.1935742",  # https://pubs.aip.org/aip/jap
+    "https://www.researchgate.net/profile/",
     # 503 Server error
-    'https://hal.archives-ouvertes.fr/hal-01848442',
+    "https://hal.archives-ouvertes.fr/hal-01848442",
     # Read timed out
-    'http://www.cs.ucl.ac.uk/staff/d.barber/brml',
-    'https://www.cea.fr',
+    "http://www.cs.ucl.ac.uk/staff/d.barber/brml",
+    "https://www.cea.fr",
     # Max retries exceeded
-    'https://doi.org/10.7488/ds/1556',
-    'https://datashare.is.ed.ac.uk/handle/10283',
-    'https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach',
-    'https://www.nyu.edu/',
+    "https://doi.org/10.7488/ds/1556",
+    "https://datashare.is.ed.ac.uk/handle/10283",
+    "https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach",
+    "https://www.nyu.edu/",
     # Too slow
-    'https://speakerdeck.com/dengemann/',
-    'https://www.dtu.dk/english/service/phonebook/person',
+    "https://speakerdeck.com/dengemann/",
+    "https://www.dtu.dk/english/service/phonebook/person",
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
