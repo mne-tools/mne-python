@@ -113,8 +113,8 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
         Montages can be created/imported with:
 
         - Standard montages with :func:`mne.channels.make_standard_montage`
-        - Montages for `Compumedics systems <https://compumedicsneuroscan.com/
-          scan-acquire-configuration-files/>`_ with
+        - Montages for `Compumedics systems
+          <https://compumedicsneuroscan.com>`__ with
           :func:`mne.channels.read_dig_dat`
         - Other reader functions are listed under *See Also* at
           :class:`mne.channels.DigMontage`

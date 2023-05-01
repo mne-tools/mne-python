@@ -691,10 +691,9 @@ def read_dig_dat(fname):
 
     .. Warning::
         This function was implemented based on ``*.dat`` files available from
-        `Compumedics <https://compumedicsneuroscan.com/scan-acquire-
-        configuration-files/>`__ and might not work as expected with novel
-        files. If it does not read your files correctly please contact the
-        mne-python developers.
+        `Compumedics <https://compumedicsneuroscan.com>`__ and might not work
+        as expected with novel files. If it does not read your files correctly
+        please contact the MNE-Python developers.
 
     Parameters
     ----------

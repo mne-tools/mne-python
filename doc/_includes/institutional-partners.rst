@@ -32,7 +32,7 @@ Former partners
 - `Aarhus Universitet <https://www.au.dk/>`_
 - `Berkeley Institute for Data Science <https://bids.berkeley.edu/>`_
 - `Boston University <https://www.bu.edu/>`_
-- `Commissariat à l’énergie atomique et aux énergies alternatives <http://www.cea.fr/>`_
+- `Commissariat à l’énergie atomique et aux énergies alternatives <https://www.cea.fr/>`_
 - `Forschungszentrum Jülich <https://www.fz-juelich.de/>`_
 - `Institut du Cerveau et de la Moelle épinière <https://icm-institute.org/>`_
 - `Institut national de la santé et de la recherche médicale <https://www.inserm.fr/>`_
