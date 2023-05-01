@@ -516,6 +516,8 @@
 
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199
 
+.. _Timur Sokhin: https://github.com/Qwinpin
+
 .. _Tod Flak: https://github.com/todflak
 
 .. _Tom Ma: https://github.com/myd7349
