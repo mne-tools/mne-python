@@ -144,12 +144,12 @@ def test_set_channel_types():
     with pytest.raises(ValueError, match='unit for channel.* has changed'):
         raw2.copy().set_channel_types(mapping, on_unit_change='raise')
 
-    # Shouldn't warn
-    raw2.copy().set_channel_types(mapping, on_unit_change='ignore')
-
     # Should warn
     with pytest.warns(RuntimeWarning, match='unit for channel.* has changed'):
-        raw2 = raw2.set_channel_types(mapping)
+        raw2.copy().set_channel_types(mapping)
+
+    # Shouldn't warn
+    raw2.set_channel_types(mapping, on_unit_change='ignore')
 
     info = raw2.info
     assert info['chs'][371]['ch_name'] == 'EEG 057'
