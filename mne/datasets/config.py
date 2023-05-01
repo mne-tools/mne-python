@@ -111,7 +111,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS['testing'] = dict(
     archive_name=f'{TESTING_VERSIONED}.tar.gz',
-    hash='md5:2036f7d7616129c624b757fbb019be24',
+    hash='md5:a2e86fe404f4321408b22f38711d11b7',
     url=('https://codeload.github.com/mne-tools/mne-testing-data/'
          f'tar.gz/{RELEASES["testing"]}'),
     # In case we ever have to resort to osf.io again...
