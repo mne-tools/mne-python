@@ -788,20 +788,18 @@ html_theme_options = {
         ),
     ],
     "icon_links_label": "External Links",  # for screen reader
-    "use_edit_page_button": False,
+    "use_edit_page_button": True,
     "navigation_with_keys": False,
     "show_toc_level": 1,
+    "article_header_start": [],  # disable breadcrumbs
     "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
     "footer_start": ["copyright"],
-    "footer_end": [],
-    "secondary_sidebar_items": ["page-toc"],
+    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
         "json_url": "https://mne.tools/dev/_static/versions.json",
         "version_match": switcher_version_match,
     },
-    "pygment_light_style": "default",
-    "pygment_dark_style": "github-dark",
 }
 
 # The name of an image file (relative to this directory) to place at the top
@@ -854,8 +852,11 @@ xxl = "6"
 # variables to pass to HTML templating engine
 html_context = {
     "default_mode": "auto",
-    "pygment_light_style": "tango",
-    "pygment_dark_style": "native",
+    # next 3 are for the "edit this page" button
+    "github_user": "mne-tools",
+    "github_repo": "mne-python",
+    "github_version": "main",
+    "doc_path": "doc",
     "funders": [
         dict(img="nih.svg", size="3", title="National Institutes of Health"),
         dict(img="nsf.png", size="3.5", title="US National Science Foundation"),
