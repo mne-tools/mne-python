@@ -674,11 +674,8 @@ class Annotations:
         _validate_type(mapping, dict)
         _check_dict_keys(mapping, self.description, valid_key_source="data",
                          key_description="Annotation description(s)")
-
-        for old, new in mapping.items():
-            self.description = [d.replace(old, new) for d in self.description]
-
-        self.description = np.array(self.description)
+        self.description = np.array(
+            [str(mapping.get(d, d)) for d in self.description])
         return self
 
 

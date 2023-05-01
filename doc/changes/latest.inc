@@ -48,8 +48,10 @@ Enhancements
 
 Bugs
 ~~~~
+- Improving compatibility with Qt6 by removing the use of deprecated ``AA_UseHighDpiPixmaps`` attribute for this Qt version (:gh:`11662` by :newcontrib:`Florin Pop`)
 - Fix :func:`mne.time_frequency.psd_array_multitaper` docstring where argument ``bandwidth`` incorrectly reported argument as half-bandwidth and gave wrong explanation of default value (:gh:`11479` by :newcontrib: `Tom Stone`_)
 - Fix bug where installation of a package depending on ``mne`` will error when done in an environment where ``setuptools`` is not present (:gh:`11454` by :newcontrib: `Arne Pelzer`_)
+- Fix bug in :meth:`mne.Annotations.rename` where replacements were not done correctly (:gh:`11666` by :newcontrib:`Timur Sokhin`_ and `Eric Larson`_)
 - Fix bug where :func:`mne.preprocessing.regress_artifact` and :class:`mne.preprocessing.EOGRegression` incorrectly tracked ``picks`` (:gh:`11366` by `Eric Larson`_)
 - Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
 - Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)
@@ -72,6 +74,7 @@ Bugs
 - Fix bug where :meth:`mne.Evoked.plot_topomap` opened an extra figure (:gh:`11607` by `Alex Rockhill`_)
 - Fix bug where :func:`mne.transforms.apply_volume_registration_points` modified info in place (:gh:`11612` by `Alex Rockhill`_)
 - In :class:`~mne.Report`, custom figures now show up correctly when ``image_format='svg'`` is requested (:gh:`11623` by `Richard Höchenberger`_)
+- Fix bug where providing ``axes`` in `mne.preprocessing.ICA.plot_components` would fail (:gh:`11654` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~

@@ -1136,7 +1136,7 @@ def plot_ica_components(
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
         plotted. For example 2.5 will plot 2.5 standard deviation above/below.
-    reject : 'auto' | dict | None
+    reject : ``'auto'`` | dict | None
         Allows to specify rejection parameters used to drop epochs
         (or segments if continuous signal is passed as inst).
         If None, no rejection is applied. The default is 'auto',
@@ -1167,7 +1167,12 @@ def plot_ica_components(
         .. versionadded:: 1.3
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
-    %(axes_evoked_plot_topomap)s
+    axes : Axes | array of Axes | None
+        The subplot(s) to plot to. Either a single Axes or an iterable of Axes
+        if more than one subplot is needed. The number of subplots must match
+        the number of selected components. If None, new figures will be created
+        with the number of subplots per figure controlled by ``nrows`` and
+        ``ncols``.
     title : str | None
         The title of the generated figure. If ``None`` (default) and
         ``axes=None``, a default title of "ICA Components" will be used.
@@ -1199,6 +1204,8 @@ def plot_ica_components(
     topomap (this option is only available when the ``inst`` argument is
     supplied).
     """  # noqa E501
+    from matplotlib.pyplot import Axes
+
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
@@ -1226,7 +1233,12 @@ def plot_ica_components(
         figs = []
         cut_points = range(max_subplots, n_components, max_subplots)
         pick_groups = np.split(range(n_components), cut_points)
-        for _picks in pick_groups:
+        for k, _picks in enumerate(pick_groups):
+            _axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
+            try:  # either an iterable, 1D numpy array or others
+                _axes = _axes[k * max_subplots: (k + 1) * max_subplots]
+            except TypeError:  # None or Axes
+                _axes = axes
             fig = plot_ica_components(
                 ica, picks=_picks, ch_type=ch_type, inst=inst,
                 plot_std=plot_std, reject=reject, sensors=sensors,
@@ -1234,7 +1246,7 @@ def plot_ica_components(
                 sphere=sphere, image_interp=image_interp,
                 extrapolate=extrapolate, border=border, res=res, size=size,
                 cmap=cmap, vlim=vlim, cnorm=cnorm, colorbar=colorbar,
-                cbar_fmt=cbar_fmt, axes=axes, title=title, nrows=nrows,
+                cbar_fmt=cbar_fmt, axes=_axes, title=title, nrows=nrows,
                 ncols=ncols, show=show, image_args=image_args,
                 psd_args=psd_args, verbose=verbose)
             figs.append(fig)
@@ -1260,6 +1272,10 @@ def plot_ica_components(
     if not user_passed_axes:
         fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
         fig.suptitle(title)
+    else:
+        axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
+        axes = [axes] if isinstance(axes, Axes) else axes
+        fig = axes[0].get_figure()
 
     subplot_titles = list()
     for ii, data_, ax in zip(picks, data, axes):

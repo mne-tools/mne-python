@@ -164,6 +164,8 @@
 
 .. _Felix Raimundo: https://github.com/gamazeps
 
+.. _Florin Pop: https://github.com/florin-pop
+
 .. _Frederik Weber: https://github.com/Frederik-D-Weber
 
 .. _Fu-Te Wong: https://github.com/zuxfoucault
@@ -513,6 +515,8 @@
 .. _Thomas Radman: https://github.com/tradman
 
 .. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199
+
+.. _Timur Sokhin: https://github.com/Qwinpin
 
 .. _Tod Flak: https://github.com/todflak
 
