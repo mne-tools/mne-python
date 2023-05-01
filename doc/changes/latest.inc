@@ -23,6 +23,7 @@ Current (1.4.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add functionality for reading CNT spans/annotations marked bad to :func:`mne.io.read_raw_cnt` (:gh:`11631` by :newcontrib:`Jacob Woessner`)
 - Add ``:unit:`` Sphinx directive to enable use of uniform non-breaking spaces throughout the documentation (:gh:`11469` by :newcontrib:`Sawradip Saha`)
 - Adjusted the algorithm used in :class:`mne.decoding.SSD` to support non-full rank data (:gh:`11458` by :newcontrib:`Thomas Binns`)
 - Changed suggested type for ``ch_groups``` in `mne.viz.plot_sensors` from array to list of list(s) (arrays are still supported). (:gh:`11465` by `Hyonyoung Shin`_)
@@ -53,6 +54,7 @@ Bugs
 - Fix :func:`mne.time_frequency.psd_array_multitaper` docstring where argument ``bandwidth`` incorrectly reported argument as half-bandwidth and gave wrong explanation of default value (:gh:`11479` by :newcontrib:`Tom Stone`)
 - Fix bug where installation of a package depending on ``mne`` will error when done in an environment where ``setuptools`` is not present (:gh:`11454` by :newcontrib:`Arne Pelzer`)
 - Fix bug in :meth:`mne.Annotations.rename` where replacements were not done correctly (:gh:`11666` by :newcontrib:`Timur Sokhin` and `Eric Larson`_)
+- Fix :meth:`mne.time_frequency.Spectrum.to_data_frame`'s docstring to reflect the correct name for the appended frequencies column (:gh:`11457` by :newcontrib:`Zvi Baratz`)
 - Fix bug where :func:`mne.preprocessing.regress_artifact` and :class:`mne.preprocessing.EOGRegression` incorrectly tracked ``picks`` (:gh:`11366` by `Eric Larson`_)
 - Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
 - Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)
@@ -61,7 +63,6 @@ Bugs
 - Fix :func:`mne.io.read_raw_edf` when reading EDF data with different sampling rates and a mix of data channels when using ``infer_types=True`` (:gh:`11427` by `Alex Gramfort`_)
 - Fix how :class:`mne.channels.DigMontage` is set when using :func:`mne.preprocessing.ieeg.project_sensors_onto_brain` so that :func:`mne.Info.get_montage` works and does not return ``None`` (:gh:`11436` by `Alex Rockhill`_)
 - Fix configuration folder discovery on Windows, which would fail in certain edge cases; and produce a helpful error message if discovery still fails (:gh:`11441` by `Richard Höchenberger`_)
-- Fix :meth:`mne.time_frequency.Spectrum.to_data_frame`'s docstring to reflect the correct name for the appended frequencies column (:gh:`11457` by :newcontrib:`Zvi Baratz`)
 - Make :class:`~mne.decoding.SlidingEstimator` and :class:`~mne.decoding.GeneralizingEstimator` respect the ``verbose`` argument. Now with ``verbose=False``, the progress bar is not shown during fitting, scoring, etc. (:gh:`11450` by `Mikołaj Magnuski`_)
 - Fix bug with ``mne.gui.locate_ieeg`` where Freesurfer ``?h.pial.T1`` was not recognized and suppress excess logging (:gh:`11489` by `Alex Rockhill`_)
 - All functions accepting paths can now correctly handle :class:`~pathlib.Path` as input. Historically, we expected strings (instead of "proper" path objects), and only added :class:`~pathlib.Path` support in a few select places, leading to inconsistent behavior. (:gh:`11473` and :gh:`11499` by `Mathieu Scheltienne`_)

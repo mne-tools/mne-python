@@ -46,6 +46,17 @@ def _read_annotations_cnt(fname, data_format='int16'):
     SETUP_NCHANNELS_OFFSET = 370
     SETUP_RATE_OFFSET = 376
 
+    def _accept_reject_function(keypad_accept):
+        accept_list = []
+        for code in keypad_accept:
+            if 'xd0' in str(code):
+                accept_list.append('good')
+            elif 'xc0' in str(code):
+                accept_list.append('bad')
+            else:
+                accept_list.append('NA')
+        return np.array(accept_list)
+
     def _translating_function(offset, n_channels, event_type,
                               data_format=data_format):
         n_bytes = 2 if data_format == 'int16' else 4
@@ -53,7 +64,47 @@ def _read_annotations_cnt(fname, data_format='int16'):
             offset *= n_bytes * n_channels
         event_time = offset - 900 - (75 * n_channels)
         event_time //= n_channels * n_bytes
-        return event_time - 1
+        event_time = event_time - 1
+        # Prevent negative event times
+        np.clip(event_time, 0, None, out=event_time)
+        return event_time
+
+    def _update_bad_span_onset(accept_reject, onset, duration, description):
+        accept_reject = accept_reject.tolist()
+        onset = onset.tolist()
+        duration = duration.tolist()
+        description = description.tolist()
+        # If there are no bad spans, return original parameters
+        if 'bad' not in accept_reject:
+            return np.array(onset), np.array(duration), np.array(description)
+        # Create lists of bad and good span markers and onset
+        bad_good_span_markers = [i for i in accept_reject
+                                 if i in ['bad', 'good']]
+        bad_good_onset = [onset[i] for i, value in enumerate(accept_reject)
+                          if value in ['bad', 'good']]
+        # Calculate duration of bad span
+        first_bad_index = bad_good_span_markers.index('bad')
+        duration_list = [bad_good_onset[i + 1] - bad_good_onset[i]
+                         for i in range(first_bad_index,
+                         len(bad_good_span_markers), 2)]
+        # Add bad event marker duration and description
+        duration_list_index = 0
+        for i in range(len(onset)):
+            if accept_reject[i] == 'bad':
+                duration[i] = duration_list[duration_list_index]
+                description[i] = 'BAD_' + description[i]
+                duration_list_index += 1
+        # Remove good span markers
+        final_onset, final_duration, final_description = [], [], []
+        for i in range(len(accept_reject)):
+            if accept_reject[i] != 'good':
+                final_onset.append(onset[i])
+                final_duration.append(duration[i])
+                final_description.append(description[i])
+        return (
+            np.array(final_onset),
+            np.array(final_duration),
+            np.array(final_description))
 
     with open(fname, 'rb') as fid:
         fid.seek(SETUP_NCHANNELS_OFFSET)
@@ -86,9 +137,16 @@ def _read_annotations_cnt(fname, data_format='int16'):
                                       data_format=data_format)
         duration = np.array([getattr(e, 'Latency', 0.) for e in my_events],
                             dtype=float)
+        accept_reject = _accept_reject_function(
+            np.array([e.KeyPad_Accept for e in my_events]))
 
         description = np.array([str(e.StimType) for e in my_events])
-        return Annotations(onset=onset / sfreq,
+
+        onset, duration, description = _update_bad_span_onset(accept_reject,
+                                                              onset / sfreq,
+                                                              duration,
+                                                              description)
+        return Annotations(onset=onset,
                            duration=duration,
                            description=description,
                            orig_time=None)
