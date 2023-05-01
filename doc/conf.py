@@ -160,7 +160,8 @@ intersphinx_mapping = {
     'picard': ('https://pierreablin.github.io/picard/', None),
     'qdarkstyle': ('https://qdarkstylesheet.readthedocs.io/en/latest', None),
     'eeglabio': ('https://eeglabio.readthedocs.io/en/latest', None),
-    'dipy': ('https://dipy.org/documentation/latest/', None),
+    'dipy': ('https://dipy.org/documentation/1.7.0/',
+             'https://dipy.org/documentation/1.7.0/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
     'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
     'pyqtgraph': ('https://pyqtgraph.readthedocs.io/en/latest/', None),
@@ -521,37 +522,40 @@ def append_attr_meth_examples(app, what, name, obj, options, lines):
 
 # -- Other extension configuration -------------------------------------------
 
-linkcheck_request_headers = dict(user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36')  # noqa: E501
+user_agent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Mobile Safari/537.36'  # noqa: E501
+# Can eventually add linkcheck_request_headers if needed
 linkcheck_ignore = [  # will be compiled to regex
-    r'https://datashare.is.ed.ac.uk/handle/10283/2189\?show=full',  # noqa Max retries exceeded with url: /handle/10283/2189?show=full (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1123)')))
-    'https://doi.org/10.1002/mds.870120629',  # Read timed out.
-    'https://doi.org/10.1088/0031-9155/32/1/004',  # noqa Read timed out. (read timeout=15)
-    'https://doi.org/10.1088/0031-9155/40/3/001',  # noqa Read timed out. (read timeout=15)
-    'https://doi.org/10.1088/0031-9155/51/7/008',  # noqa Read timed out. (read timeout=15)
-    'https://doi.org/10.1088/0031-9155/57/7/1937',  # noqa Read timed out. (read timeout=15)
-    'https://doi.org/10.1088/0967-3334/22/4/305',  # noqa Read timed out. (read timeout=15)
-    'https://doi.org/10.1088/1741-2552/aacfe4',  # noqa Read timed out. (read timeout=15)
-    'https://doi.org/10.1093/sleep/18.7.557',  # noqa 403 Client Error: Forbidden for url: https://academic.oup.com/sleep/article-lookup/doi/10.1093/sleep/18.7.557
-    'https://doi.org/10.1162/089976699300016719',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/11/2/417-441/6242
-    'https://doi.org/10.1162/jocn.1993.5.2.162',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/5/2/162-176/3095
-    'https://doi.org/10.1162/neco.1995.7.6.1129',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/neco/article/7/6/1129-1159/5909
-    'https://doi.org/10.1162/jocn_a_00405',  # noqa 403 Client Error: Forbidden for url: https://direct.mit.edu/jocn/article/25/9/1477-1492/27980
-    'https://doi.org/10.1167/15.6.4',  # noqa 403 Client Error: Forbidden for url: https://jov.arvojournals.org/article.aspx?doi=10.1167/15.6.4
-    'https://doi.org/10.7488/ds/1556',  # noqa Max retries exceeded with url: /handle/10283/2189 (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1122)')))
-    'https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach',  # noqa Max retries exceeded with url: /imaging/MniTalairach (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1122)')))
-    'https://www.nyu.edu/',  # noqa Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: DH_KEY_TOO_SMALL] dh key too small (_ssl.c:1122)')))
-    'https://docs.python.org/3/library/.*',  # noqa ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
-    'https://hal.archives-ouvertes.fr/hal-01848442.*',  # noqa Sometimes: 503 Server Error: Service Unavailable for url: https://hal.archives-ouvertes.fr/hal-01848442/
-    'http://www.cs.ucl.ac.uk/staff/d.barber/brml.*',  # noqa Sometimes: Read timed out
-    'https://compumedicsneuroscan.com/scan-acquire-configuration-files.*',  # noqa SSL certificate error as of 2021/09/28
-    'https://chrisholdgraf.com',  # noqa Max retries exceeded sometimes
-    'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
-    'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
-    'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
-    'https://www.researchgate.net',  # noqa As of 2022/05/31 we get "403 Forbidden" errors, might have to do with https://stackoverflow.com/questions/72347165 but not worth the effort to fix
+    # 403 Client Error: Forbidden
+    'https://doi.org/10.1002/',  # onlinelibrary.wiley.com/doi/10.1002/hbm
+    'https://doi.org/10.1021/',  # pubs.acs.org/doi/abs
+    'https://doi.org/10.1073/',  # pnas.org
+    'https://doi.org/10.1093/',  # academic.oup.com/sleep/
+    'https://doi.org/10.1098/',  # royalsocietypublishing.org
+    'https://doi.org/10.1111/',  # onlinelibrary.wiley.com/doi/10.1111/psyp
+    'https://doi.org/10.1126/',  # www.science.org
+    'https://doi.org/10.1137/',  # epubs.siam.org
+    'https://doi.org/10.1161/',  # www.ahajournals.org
+    'https://doi.org/10.1162/',  # direct.mit.edu/neco/article/
+    'https://doi.org/10.1167/',  # jov.arvojournals.org
+    'https://doi.org/10.1177/',  # journals.sagepub.com
+    'https://www.researchgate.net/profile/',
+    # 503 Server error
+    'https://hal.archives-ouvertes.fr/hal-01848442',
+    # Read timed out
+    'http://www.cs.ucl.ac.uk/staff/d.barber/brml',
+    'https://www.cea.fr',
+    # Max retries exceeded
+    'https://doi.org/10.7488/ds/1556',
+    'https://datashare.is.ed.ac.uk/handle/10283',
+    'https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach',
+    'https://www.nyu.edu/',
+    # Too slow
+    'https://speakerdeck.com/dengemann/',
+    'https://www.dtu.dk/english/service/phonebook/person',
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
+linkcheck_retries = 3
 
 # autodoc / autosummary
 autosummary_generate = True
