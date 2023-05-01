@@ -58,4 +58,4 @@ def test_bad_spans():
     """Test reading raw cnt files with bad spans."""
     annot = read_annotations(fname_bad_spans)
     temp = '\t'.join(annot.description)
-    assert 'bad' in temp
+    assert 'BAD' in temp
