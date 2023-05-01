@@ -369,10 +369,7 @@ def _plot_projs_topomap(
             types.append(list(these_ch_types)[0])
         data = proj['data']['data'].ravel()
         info_names = _clean_names(info['ch_names'], remove_whitespace=True)
-        picks = pick_channels(info_names, ch_names)
-        if len(picks) == 0:
-            raise ValueError(
-                f'No channel names in info match projector {proj}')
+        picks = pick_channels(info_names, ch_names, ordered=True)
         use_info = pick_info(info, picks)
         data_picks, pos, merge_channels, names, ch_type, this_sphere, \
             clip_origin = _prepare_topomap_plot(

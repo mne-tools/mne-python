@@ -422,7 +422,8 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     # pull stim channel from config if necessary
     stim_channel = _get_stim_channel(stim_channel, raw.info)
 
-    picks = pick_channels(raw.info['ch_names'], include=stim_channel)
+    picks = pick_channels(
+        raw.info['ch_names'], include=stim_channel, ordered=False)
     if len(picks) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
     data, _ = raw[picks, :]

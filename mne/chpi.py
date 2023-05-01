@@ -346,8 +346,8 @@ def get_chpi_info(info, on_missing='raise', verbose=None):
     hpi_pick = None  # there is no pick!
     if hpi_sub is not None:
         if 'event_channel' in hpi_sub:
-            hpi_pick = pick_channels(info['ch_names'],
-                                     [hpi_sub['event_channel']])
+            hpi_pick = pick_channels(
+                info['ch_names'], [hpi_sub['event_channel']], ordered=False)
             hpi_pick = hpi_pick[0] if len(hpi_pick) > 0 else None
         # grab codes indicating a coil is active
         hpi_on = [coil['event_bits'][0] for coil in hpi_sub['hpi_coils']]

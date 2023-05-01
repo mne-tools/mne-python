@@ -245,7 +245,6 @@ mesh_dist
 mesh_edges
 next_fast_len
 parallel_func
-pick_channels_evoked
 plot_epochs_psd
 plot_epochs_psd_topomap
 plot_raw_psd_topo

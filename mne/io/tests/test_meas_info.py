@@ -903,7 +903,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
         data=proj, active=False, desc='test', kind=0, explained_var=0.)
     raw.add_proj(proj, remove_existing=True)
     raw.info.normalize_proj()
-    raw.pick_channels(data_names + ref_names).crop(0, 2)
+    raw.pick_channels(data_names + ref_names, ordered=False).crop(0, 2)
     long_names = ['123456789abcdefg' + name for name in raw.ch_names]
     fname = tmp_path / 'test-raw.fif'
     with catch_logging() as log:

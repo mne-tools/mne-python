@@ -172,7 +172,8 @@ def test_set_channel_types():
     assert info['chs'][375]['kind'] == FIFF.FIFFV_SEEG_CH
     assert info['chs'][375]['unit'] == FIFF.FIFF_UNIT_V
     assert info['chs'][375]['coil_type'] == FIFF.FIFFV_COIL_EEG
-    for idx in pick_channels(raw.ch_names, ['MEG 2441', 'MEG 2443']):
+    for idx in pick_channels(raw.ch_names, ['MEG 2441', 'MEG 2443'],
+                             ordered=False):
         assert info['chs'][idx]['kind'] == FIFF.FIFFV_EEG_CH
         assert info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_V
         assert info['chs'][idx]['coil_type'] == FIFF.FIFFV_COIL_EEG
@@ -480,9 +481,8 @@ def test_pick_channels():
     assert len(raw.ch_names) == 3
 
     # selected correctly 3 channels and ignored 'meg', and emit warning
-    with pytest.warns(RuntimeWarning, match='not present in the info'):
+    with pytest.raises(ValueError, match='not present in the info'):
         raw.pick(['MEG 0113', "meg", 'MEG 0112', 'MEG 0111'])
-        assert len(raw.ch_names) == 3
 
     names_len = len(raw.ch_names)
     raw.pick(['all'])  # selected correctly all channels

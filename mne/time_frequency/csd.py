@@ -20,7 +20,9 @@ from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
 from ..parallel import parallel_func
 
 
-def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
+@verbose
+def pick_channels_csd(csd, include=[], exclude=[], ordered=None, copy=True, *,
+                      verbose=None):
     """Pick channels from cross-spectral density matrix.
 
     Parameters
@@ -31,16 +33,13 @@ def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
         List of channels to include (if empty, include all available).
     exclude : list of str
         Channels to exclude (if empty, do not exclude any).
-    ordered : bool
-        If True (default False), ensure that the order of the channels in the
-        modified instance matches the order of ``include``.
-
-        .. versionadded:: 0.20.0
+    %(ordered)s
     copy : bool
         If True (the default), return a copy of the CSD matrix with the
         modified channels. If False, channels are modified in-place.
 
         .. versionadded:: 0.20.0
+    %(verbose)s
 
     Returns
     -------

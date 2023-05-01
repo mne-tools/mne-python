@@ -8,7 +8,7 @@
 import numpy as np
 
 from ..forward import is_fixed_orient, convert_forward_solution
-from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
+from ..io.pick import pick_info, pick_channels_forward
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
 from ..utils import logger, verbose, _check_info_inv, fill_doc
@@ -274,11 +274,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
                                                picks)
 
     if return_residual:
-        residual = evoked.copy()
-        selection = [info['ch_names'][p] for p in picks]
-
-        residual = pick_channels_evoked(residual,
-                                        include=selection)
+        residual = evoked.copy().pick([info['ch_names'][p] for p in picks])
         residual.data -= explained_data
         active_projs = [p for p in residual.info['projs'] if p['active']]
         for p in active_projs:

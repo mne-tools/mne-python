@@ -2474,6 +2474,16 @@ on_split_missing : str
     .. versionadded:: 0.22
 """
 
+docdict['ordered'] = """
+ordered : bool
+    If True (default False), ensure that the order of the channels in
+    the modified instance matches the order of ``ch_names``.
+
+    .. versionadded:: 0.20.0
+    .. versionchanged:: 1.5
+        The default changed from False in 1.4 to True in 1.5.
+"""
+
 docdict['origin_maxwell'] = """
 origin : array-like, shape (3,) | str
     Origin of internal and external multipolar moment space in meters.

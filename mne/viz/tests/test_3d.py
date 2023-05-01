@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
 from matplotlib.figure import Figure
 
-from mne import (make_field_map, pick_channels_evoked, read_evokeds,
+from mne import (make_field_map, read_evokeds,
                  read_trans, read_dipole, SourceEstimate,
                  make_sphere_model, use_coil_def, pick_types,
                  setup_volume_source_space, read_forward_solution,
@@ -151,7 +151,7 @@ def test_plot_evoked_field(renderer):
     """Test plotting evoked field."""
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
-    evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
+    evoked.pick(evoked.ch_names[::10])  # speed
     for t, n_contours in zip(['meg', None], [21, 0]):
         with pytest.warns(RuntimeWarning, match='projection'):
             maps = make_field_map(evoked, trans_fname, subject='sample',

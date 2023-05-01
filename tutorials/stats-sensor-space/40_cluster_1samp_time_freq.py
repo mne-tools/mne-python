@@ -68,7 +68,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     reject=dict(grad=4000e-13, eog=150e-6))
 
 # just use right temporal sensors for speed
-epochs.pick_channels(mne.read_vectorview_selection('Right-temporal'))
+epochs.pick_channels(
+    mne.read_vectorview_selection('Right-temporal'), ordered=False)
 evoked = epochs.average()
 
 # Factor to down-sample the temporal dimension of the TFR computed by
