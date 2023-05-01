@@ -497,12 +497,12 @@ def _setup_channel_selections(raw, kind, order):
         # get stim channel (if any)
         stim_ch = _get_stim_channel(None, raw.info, raise_error=False)
         stim_ch = stim_ch if len(stim_ch) else ['']
-        stim_ch = pick_channels(raw.ch_names, stim_ch)
+        stim_ch = pick_channels(raw.ch_names, stim_ch, ordered=False)
         # loop over regions
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         for key in keys:
             channels = read_vectorview_selection(key, info=raw.info)
-            picks = pick_channels(raw.ch_names, channels)
+            picks = pick_channels(raw.ch_names, channels, ordered=False)
             picks = np.intersect1d(picks, order)
             if not len(picks):
                 continue  # omit empty selections

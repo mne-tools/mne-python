@@ -210,7 +210,8 @@ def test_plot_ica_properties():
 
     # Test merging grads.
     pick_names = raw.ch_names[:15:2] + raw.ch_names[1:15:2]
-    raw = _get_raw(preload=True).pick_channels(pick_names).crop(0, 5)
+    raw = _get_raw(preload=True).pick_channels(pick_names, ordered=False)
+    raw.crop(0, 5)
     raw.info.normalize_proj()
     ica = ICA(random_state=0, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
@@ -220,7 +221,7 @@ def test_plot_ica_properties():
 
     # Test handling of zeros
     ica = ICA(random_state=0, max_iter=1)
-    epochs.pick_channels(pick_names)
+    epochs.pick_channels(pick_names, ordered=False)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
     epochs._data[0] = 0
@@ -314,13 +315,11 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     # test error handling
     raw_ = raw.copy().load_data()
     raw_.drop_channels('MEG 0113')
-    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"), \
-         pytest.warns(RuntimeWarning, match='could not be picked'):
+    with pytest.raises(ValueError, match="could not be picked"):
         ica.plot_sources(inst=raw_)
     epochs_ = epochs.copy().load_data()
     epochs_.drop_channels('MEG 0113')
-    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"), \
-         pytest.warns(RuntimeWarning, match='could not be picked'):
+    with pytest.raises(ValueError, match="could not be picked"):
         ica.plot_sources(inst=epochs_)
     del raw_
     del epochs_

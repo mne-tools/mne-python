@@ -889,7 +889,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             evoked = self.average(picks)
 
         # find the indices of the channels to use
-        picks = pick_channels(evoked.ch_names, include=self.ch_names)
+        picks = pick_channels(
+            evoked.ch_names, include=self.ch_names, ordered=False)
 
         # make sure the omitted channels are not data channels
         if len(picks) < len(self.ch_names):

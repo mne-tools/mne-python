@@ -582,7 +582,7 @@ def _has_kit_refs(info, picks):
     return False
 
 
-@deprecated('pick_channels_evokde in deprecated and will be removed in 1.5, '
+@deprecated('pick_channels_evoked in deprecated and will be removed in 1.5, '
             'use evoked.copy().pick(...) instead.')
 def pick_channels_evoked(orig, include=[], exclude='bads'):
     """Pick channels from evoked data.

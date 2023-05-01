@@ -1795,7 +1795,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError('events must be shape (n_events, 3)')
         stim_channel = _get_stim_channel(stim_channel, self.info)
-        pick = pick_channels(self.ch_names, stim_channel)
+        pick = pick_channels(self.ch_names, stim_channel, ordered=False)
         if len(pick) == 0:
             raise ValueError('Channel %s not found' % stim_channel)
         pick = pick[0]

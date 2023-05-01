@@ -313,7 +313,7 @@ def _check_compensation_grade(info1, info2, name1,
             if t_info['comps']:
                 with t_info._unlock():
                     t_info['comps'] = []
-            picks = pick_channels(t_info['ch_names'], ch_names)
+            picks = pick_channels(t_info['ch_names'], ch_names, ordered=False)
             pick_info(t_info, picks, copy=False)
     # "or 0" here aliases None -> 0, as they are equivalent
     grade1 = get_current_comp(info1) or 0

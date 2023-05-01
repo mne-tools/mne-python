@@ -1472,7 +1472,8 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
                            % missing)
     C = noise_cov._get_square()[np.ix_(noise_cov_idx, noise_cov_idx)]
-    info = pick_info(info, pick_channels(info['ch_names'], ch_names))
+    info = pick_info(
+        info, pick_channels(info['ch_names'], ch_names, ordered=False))
     projs = info['projs'] + noise_cov['projs']
     noise_cov = Covariance(
         data=C, names=ch_names, bads=list(noise_cov['bads']),
@@ -1724,7 +1725,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         C[np.ix_(idx, idx)] = this_C
 
     # Put data back in correct locations
-    idx = pick_channels(cov.ch_names, info_ch_names, exclude=exclude)
+    idx = pick_channels(
+        cov.ch_names, info_ch_names, exclude=exclude, ordered=False)
     cov['data'][np.ix_(idx, idx)] = C
 
     return cov

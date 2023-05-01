@@ -1066,7 +1066,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 for selection in _SELECTIONS + _EEG_SELECTIONS:
                     channels = pick_channels(
                         info['ch_names'],
-                        read_vectorview_selection(selection, info=info))
+                        read_vectorview_selection(selection, info=info),
+                        ordered=False)
                     ch_groups.append(channels)
             color_vals = np.ones((len(ch_groups), 4))
             for idx, ch_group in enumerate(ch_groups):
