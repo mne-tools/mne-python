@@ -409,12 +409,6 @@ jobs:
               - source-cache
         - checkout
         - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
-        - run:
             name: Check-skip
             command: |
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
@@ -422,6 +416,7 @@ jobs:
                 echo "Skip detected, exiting job ${CIRCLE_JOB}."
                 circleci-agent step halt;
               fi
+        - <<: *bash_env
         - restore_cache:
             keys:
               - pip-cache
