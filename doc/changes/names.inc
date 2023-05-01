@@ -1,6 +1,6 @@
-.. _Abram Hindle: http://softwareprocess.es
+.. _Abram Hindle: https://softwareprocess.es
 
-.. _Adam Li: http://github.com/adam2392
+.. _Adam Li: https://github.com/adam2392
 
 .. _Adeline Fecker: https://github.com/adelinefecker
 
@@ -16,13 +16,13 @@
 
 .. _Alex Ciok: https://github.com/alexCiok
 
-.. _Alex Gramfort: http://alexandre.gramfort.net
+.. _Alex Gramfort: https://alexandre.gramfort.net
 
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
 .. _Alexander Rudiuk: https://github.com/ARudiuk
 
-.. _Alexandre Barachant: http://alexandre.barachant.org
+.. _Alexandre Barachant: https://alexandre.barachant.org
 
 .. _Andrea Brovelli: https://andrea-brovelli.net
 
@@ -78,7 +78,7 @@
 
 .. _Chris Holdgraf: https://chrisholdgraf.com
 
-.. _Chris Mullins: http://crmullins.com
+.. _Chris Mullins: https://crmullins.com
 
 .. _Christian Brodbeck: https://github.com/christianbrodbeck
 
@@ -100,7 +100,7 @@
 
 .. _Daniel Hasegan: https://daniel.hasegan.com
 
-.. _Daniel McCloy: http://dan.mccloy.info
+.. _Daniel McCloy: https://dan.mccloy.info
 
 .. _Daniel Strohmeier: https://github.com/joewalter
 
@@ -114,7 +114,7 @@
 
 .. _Demetres Kostas: https://github.com/kostasde
 
-.. _Denis Engemann: http://denis-engemann.de
+.. _Denis Engemann: https://denis-engemann.de
 
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 
@@ -132,13 +132,13 @@
 
 .. _Eduard Ort: https://github.com/eort
 
-.. _Emily Stephen: http://github.com/emilyps14
+.. _Emily Stephen: https://github.com/emilyps14
 
 .. _Enrico Varano: https://github.com/enricovara/
 
 .. _Enzo Altamiranda: https://www.linkedin.com/in/enzoalt
 
-.. _Eric Larson: http://larsoner.com
+.. _Eric Larson: https://larsoner.com
 
 .. _Erica Peterson: https://github.com/nordme
 
@@ -184,7 +184,7 @@
 
 .. _Hakimeh Pourakbari: https://github.com/Hpakbari
 
-.. _Hari Bharadwaj: http://www.haribharadwaj.com
+.. _Hari Bharadwaj: https://github.com/haribharadwaj
 
 .. _Henrich Kolkhorst: https://github.com/hekolk
 
@@ -282,7 +282,7 @@
 
 .. _Lau Møller Andersen: https://github.com/ualsbombe
 
-.. _Laura Gwilliams: http://lauragwilliams.github.io
+.. _Laura Gwilliams: https://lauragwilliams.github.io
 
 .. _Leonardo Barbosa: https://github.com/noreun
 
@@ -350,7 +350,7 @@
 
 .. _Mikołaj Magnuski: https://github.com/mmagnuski
 
-.. _Milan Rybář: http://milanrybar.cz
+.. _Milan Rybář: https://milanrybar.cz
 
 .. _Mingjian He: https://github.com/mh105
 
@@ -364,9 +364,9 @@
 
 .. _Naveen Srinivasan: https://github.com/naveensrinivasan
 
-.. _Nick Foti: http://nfoti.github.io
+.. _Nick Foti: https://nfoti.github.io
 
-.. _Nick Ward: http://www.ucl.ac.uk/ion/departments/sobell/Research/NWard
+.. _Nick Ward: https://www.ucl.ac.uk/ion/departments/sobell/Research/NWard
 
 .. _Nicolas Barascud: https://github.com/nbara
 
@@ -378,7 +378,7 @@
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
-.. _Olaf Hauk: http://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
+.. _Olaf Hauk: https://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
 
 .. _Oleh Kozynets: https://github.com/OlehKSS
 
@@ -438,7 +438,7 @@
 
 .. _Romain Trachel: https://fr.linkedin.com/in/trachelr
 
-.. _Roman Goj: http://romanmne.blogspot.co.uk
+.. _Roman Goj: https://romanmne.blogspot.co.uk
 
 .. _Ross Maddox: https://www.urmc.rochester.edu/labs/maddox-lab.aspx
 
@@ -452,13 +452,13 @@
 
 .. _Santeri Ruuskanen: https://github.com/ruuskas
 
-.. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
+.. _Sara Sommariva: https://www.dima.unige.it/~sommariva/
 
-.. _Sawradip Saha: http://sawradip.github.io/
+.. _Sawradip Saha: https://sawradip.github.io/
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
 
-.. _Sebastiaan Mathot: http://www.cogsci.nl/smathot
+.. _Sebastiaan Mathot: https://www.cogsci.nl/smathot
 
 .. _Sebastian Castano: https://github.com/jscastanoc
 
@@ -478,7 +478,7 @@
 
 .. _Simon Kern: https://github.com/skjerns
 
-.. _Simon Kornblith: http://simonster.com
+.. _Simon Kornblith: https://simonster.com
 
 .. _Sondre Foslien: https://github.com/sondrfos
 
@@ -486,7 +486,7 @@
 
 .. _Stanislas Chambon: https://github.com/Slasnista
 
-.. _Stefan Appelhoff: http://stefanappelhoff.com
+.. _Stefan Appelhoff: https://stefanappelhoff.com
 
 .. _Stefan Repplinger: https://github.com/stfnrpplngr
 
@@ -504,7 +504,7 @@
 
 .. _T. Wang: https://github.com/twang5
 
-.. _Tal Linzen: http://tallinzen.net/
+.. _Tal Linzen: https://tallinzen.net/
 
 .. _Teon Brooks: https://teonbrooks.com
 
@@ -528,7 +528,7 @@
 
 .. _Tommy Clausner: https://github.com/TommyClausner
 
-.. _Toomas Erik Anijärv: http://www.toomaserikanijarv.com/
+.. _Toomas Erik Anijärv: https://www.toomaserikanijarv.com/
 
 .. _Tristan Stenner: https://github.com/tstenner/
 
