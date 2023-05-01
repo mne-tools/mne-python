@@ -140,6 +140,10 @@ def test_set_channel_types():
         raw2.set_channel_types(mapping)  # has prj
     raw2.add_proj([], remove_existing=True)
 
+    # Should raise
+    with pytest.raises(ValueError, match='unit for channel.* has changed'):
+        raw2.copy().set_channel_types(mapping, on_unit_change='raise')
+
     # Shouldn't warn
     raw2.copy().set_channel_types(mapping, on_unit_change='ignore')
 

@@ -316,10 +316,9 @@ class SetChannelsMixin(MontageMixin):
         mapping : dict
             A dictionary mapping channel names to sensor types, e.g.,
             ``{'EEG061': 'eog'}``.
-        on_unit_change : 'warn' | 'ignore'
-            Whether to emit a warning (default) if the measurement unit of a
-            channel is changed automatically to match the new sensor
-            type.
+        on_unit_change : 'raise' | 'warn' | 'ignore'
+            What to do if the measurement unit of a channel is changed
+            automatically to match the new sensor type.
 
             .. versionadded:: 1.4
         %(verbose)s
@@ -343,10 +342,6 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.9.0
         """
-        _check_option(
-            'on_unit_change', value=on_unit_change,
-            allowed_values=('warn', 'ignore')
-        )
         ch_names = self.info['ch_names']
 
         # first check and assemble clean mappings of index and name
@@ -399,10 +394,13 @@ class SetChannelsMixin(MontageMixin):
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
 
-        if on_unit_change == 'warn':
-            msg = "The unit for channel(s) {0} has changed from {1} to {2}."
-            for this_change, names in unit_changes.items():
-                warn(msg.format(", ".join(sorted(names)), *this_change))
+        msg = "The unit for channel(s) {0} has changed from {1} to {2}."
+        for this_change, names in unit_changes.items():
+            _on_missing(
+                on_missing=on_unit_change,
+                msg=msg.format(", ".join(sorted(names)), *this_change),
+                name='on_unit_change',
+            )
 
         return self
 
