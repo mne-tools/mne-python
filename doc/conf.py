@@ -81,27 +81,30 @@ needs_sphinx = "2.0"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    # builtin
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
     "sphinx.ext.doctest",
+    "sphinx.ext.graphviz",
     "sphinx.ext.intersphinx",
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
-    "sphinx.ext.graphviz",
+    # contrib
+    "matplotlib.sphinxext.plot_directive",
     "numpydoc",
+    "sphinx_copybutton",
+    "sphinx_design",
     "sphinx_gallery.gen_gallery",
+    "sphinxcontrib.bibtex",
+    "sphinxcontrib.youtube",
+    # homegrown
     "gen_commands",
+    "gen_names",
     "gh_substitutions",
     "mne_substitutions",
     "newcontrib_substitutions",
-    "gen_names",
-    "matplotlib.sphinxext.plot_directive",
-    "sphinxcontrib.bibtex",
-    "sphinx_copybutton",
-    "sphinx_design",
-    "sphinxcontrib.youtube",
     "unit_role",
 ]
 
