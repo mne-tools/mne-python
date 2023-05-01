@@ -139,8 +139,18 @@ def test_set_channel_types():
     with pytest.raises(RuntimeError, match='type .* in projector "PCA-v1"'):
         raw2.set_channel_types(mapping)  # has prj
     raw2.add_proj([], remove_existing=True)
+
+    # Should raise
+    with pytest.raises(ValueError, match='unit for channel.* has changed'):
+        raw2.copy().set_channel_types(mapping, on_unit_change='raise')
+
+    # Should warn
     with pytest.warns(RuntimeWarning, match='unit for channel.* has changed'):
-        raw2 = raw2.set_channel_types(mapping)
+        raw2.copy().set_channel_types(mapping)
+
+    # Shouldn't warn
+    raw2.set_channel_types(mapping, on_unit_change='ignore')
+
     info = raw2.info
     assert info['chs'][371]['ch_name'] == 'EEG 057'
     assert info['chs'][371]['kind'] == FIFF.FIFFV_DBS_CH

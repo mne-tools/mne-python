@@ -1505,8 +1505,9 @@ def test_evoked_io_from_epochs(tmp_path):
     picks = pick_types(raw.info, meg=True, eeg=True)
     epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
                     picks=picks, baseline=(0.1, 0.2), decim=5)
-    with pytest.warns(RuntimeWarning, match='unit for.*changed from'):
-        epochs.set_channel_types({epochs.ch_names[0]: 'syst'})
+    epochs.set_channel_types(
+        {epochs.ch_names[0]: 'syst'}, on_unit_change='ignore'
+    )
     evokeds = list()
     for picks in (None, 'all'):
         evoked = epochs.average(picks)

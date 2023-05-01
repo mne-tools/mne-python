@@ -308,14 +308,19 @@ class SetChannelsMixin(MontageMixin):
                 raise ValueError(msg)
 
     @verbose
-    def set_channel_types(self, mapping, verbose=None):
-        """Define the sensor type of channels.
+    def set_channel_types(self, mapping, *, on_unit_change='warn', verbose=None):
+        """Specify the sensor types of channels.
 
         Parameters
         ----------
         mapping : dict
-            A dictionary mapping a channel to a sensor type (str), e.g.,
+            A dictionary mapping channel names to sensor types, e.g.,
             ``{'EEG061': 'eog'}``.
+        on_unit_change : 'raise' | 'warn' | 'ignore'
+            What to do if the measurement unit of a channel is changed
+            automatically to match the new sensor type.
+
+            .. versionadded:: 1.4
         %(verbose)s
 
         Returns
@@ -388,9 +393,15 @@ class SetChannelsMixin(MontageMixin):
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
+
         msg = "The unit for channel(s) {0} has changed from {1} to {2}."
         for this_change, names in unit_changes.items():
-            warn(msg.format(", ".join(sorted(names)), *this_change))
+            _on_missing(
+                on_missing=on_unit_change,
+                msg=msg.format(", ".join(sorted(names)), *this_change),
+                name='on_unit_change',
+            )
+
         return self
 
     @verbose

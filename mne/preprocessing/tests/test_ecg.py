@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 import numpy as np
 
 from mne.io import read_raw_fif
@@ -76,8 +75,7 @@ def test_find_ecg():
     # test with user provided ecg channel
     raw.del_proj()
     assert 'MEG 2641' in raw.ch_names
-    with pytest.warns(RuntimeWarning, match='unit for channel'):
-        raw.set_channel_types({'MEG 2641': 'ecg'})
+    raw.set_channel_types({'MEG 2641': 'ecg'}, on_unit_change='ignore')
     create_ecg_epochs(raw)
 
     raw.pick_types(meg=True)  # remove ECG
