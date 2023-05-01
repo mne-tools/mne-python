@@ -1403,7 +1403,8 @@ def _stc_src_sel(src, stc, on_missing='raise',
 
 def _fill_measurement_info(info, fwd, sfreq, data):
     """Fill the measurement info of a Raw or Evoked object."""
-    sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
+    sel = pick_channels(
+        info['ch_names'], fwd['sol']['row_names'], ordered=False)
     info = pick_info(info, sel)
     info['bads'] = []
 
