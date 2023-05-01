@@ -51,6 +51,7 @@ Bugs
 - Improving compatibility with Qt6 by removing the use of deprecated ``AA_UseHighDpiPixmaps`` attribute for this Qt version (:gh:`11662` by :newcontrib:`Florin Pop`)
 - Fix :func:`mne.time_frequency.psd_array_multitaper` docstring where argument ``bandwidth`` incorrectly reported argument as half-bandwidth and gave wrong explanation of default value (:gh:`11479` by :newcontrib:`Tom Stone`)
 - Fix bug where installation of a package depending on ``mne`` will error when done in an environment where ``setuptools`` is not present (:gh:`11454` by :newcontrib:`Arne Pelzer`)
+- Fix bug in :meth:`mne.Annotations.rename` where replacements were not done correctly (:gh:`11666` by :newcontrib:`Timur Sokhin`_ and `Eric Larson`_)
 - Fix bug where :func:`mne.preprocessing.regress_artifact` and :class:`mne.preprocessing.EOGRegression` incorrectly tracked ``picks`` (:gh:`11366` by `Eric Larson`_)
 - Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
 - Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)

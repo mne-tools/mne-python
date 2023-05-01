@@ -19,9 +19,9 @@ jobs:
           default: "false"
       docker:
         - image: cimg/base:current-22.04
-      # medium 2 vCPUs, 4GB mem; medium+ 3vCPUs 6GB mem; large 4 vCPUs 8GB mem
-      # https://circleci.com/docs/configuration-reference#resourceclass
-      resource_class: medium+
+      # large 4 vCPUs 15GB mem
+      # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
+      resource_class: large
       steps:
         - restore_cache:
             keys:
