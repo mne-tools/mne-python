@@ -204,6 +204,8 @@
 
 .. _Jack Zhang: https://github.com/jackz314
 
+.. _Jacob Woessner: https://github.com/withmywoessner
+
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 
 .. _Jan Ebert: https://www.jan-ebert.com/
