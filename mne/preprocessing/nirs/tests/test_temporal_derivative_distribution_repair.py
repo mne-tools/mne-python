@@ -17,7 +17,7 @@ fname_nirx_15_2 = (
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('fname', ([fname_nirx_15_2]))
+@pytest.mark.parametrize("fname", ([fname_nirx_15_2]))
 def test_temporal_derivative_distribution_repair(fname, tmp_path):
     """Test running artifact rejection."""
     raw = read_raw_nirx(fname)
@@ -30,14 +30,14 @@ def test_temporal_derivative_distribution_repair(fname, tmp_path):
     shift_amp = 5 * max_shift
     raw_od._data[0, 0:30] = raw_od._data[0, 0:30] - shift_amp
     # make one channel zero std
-    raw_od._data[1] = 0.
-    raw_od._data[2] = 1.
+    raw_od._data[1] = 0.0
+    raw_od._data[2] = 1.0
     assert np.max(np.diff(raw_od._data[0])) > shift_amp
     # Ensure that applying the algorithm reduces the step change
     raw_od = tddr(raw_od)
     assert np.max(np.diff(raw_od._data[0])) < shift_amp
-    assert_allclose(raw_od._data[1], 0.)  # unchanged
-    assert_allclose(raw_od._data[2], 1.)  # unchanged
+    assert_allclose(raw_od._data[1], 0.0)  # unchanged
+    assert_allclose(raw_od._data[2], 1.0)  # unchanged
 
     # With Hb
     # Add a baseline shift artifact about half way through data
@@ -45,11 +45,11 @@ def test_temporal_derivative_distribution_repair(fname, tmp_path):
     shift_amp = 5 * max_shift
     raw_hb._data[0, 0:30] = raw_hb._data[0, 0:30] - (1.1 * shift_amp)
     # make one channel zero std
-    raw_hb._data[1] = 0.
-    raw_hb._data[2] = 1.
+    raw_hb._data[1] = 0.0
+    raw_hb._data[2] = 1.0
     assert np.max(np.diff(raw_hb._data[0])) > shift_amp
     # Ensure that applying the algorithm reduces the step change
     raw_hb = tddr(raw_hb)
     assert np.max(np.diff(raw_hb._data[0])) < shift_amp
-    assert_allclose(raw_hb._data[1], 0.)  # unchanged
-    assert_allclose(raw_hb._data[2], 1.)  # unchanged
+    assert_allclose(raw_hb._data[1], 0.0)  # unchanged
+    assert_allclose(raw_hb._data[2], 1.0)  # unchanged

@@ -38,39 +38,40 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
     subject_dir = op.join(subjects_dir, subject)
 
     if not op.isdir(subject_dir):
-        raise ValueError("Wrong path: '{}'. Check subjects-dir or"
-                         "subject argument.".format(subject_dir))
+        raise ValueError(
+            "Wrong path: '{}'. Check subjects-dir or"
+            "subject argument.".format(subject_dir)
+        )
 
     env = os.environ.copy()
-    env['SUBJECT'] = subject
-    env['SUBJECTS_DIR'] = subjects_dir
+    env["SUBJECT"] = subject
+    env["SUBJECTS_DIR"] = subjects_dir
 
-    if 'FREESURFER_HOME' not in env:
-        raise RuntimeError('The FreeSurfer environment needs to be set up.')
+    if "FREESURFER_HOME" not in env:
+        raise RuntimeError("The FreeSurfer environment needs to be set up.")
 
-    mri_dir = op.join(subject_dir, 'mri')
-    bem_dir = op.join(subject_dir, 'bem')
-    mri = op.join(mri_dir, 'T1.mgz')
+    mri_dir = op.join(subject_dir, "mri")
+    bem_dir = op.join(subject_dir, "bem")
+    mri = op.join(mri_dir, "T1.mgz")
 
-    if method == 'watershed':
-        bem_dir = op.join(bem_dir, 'watershed')
-        outer_skin = op.join(bem_dir, '%s_outer_skin_surface' % subject)
-        outer_skull = op.join(bem_dir, '%s_outer_skull_surface' % subject)
-        inner_skull = op.join(bem_dir, '%s_inner_skull_surface' % subject)
+    if method == "watershed":
+        bem_dir = op.join(bem_dir, "watershed")
+        outer_skin = op.join(bem_dir, "%s_outer_skin_surface" % subject)
+        outer_skull = op.join(bem_dir, "%s_outer_skull_surface" % subject)
+        inner_skull = op.join(bem_dir, "%s_inner_skull_surface" % subject)
     else:
-        if method == 'flash':
-            bem_dir = op.join(bem_dir, 'flash')
-        outer_skin = op.join(bem_dir, 'outer_skin.surf')
-        outer_skull = op.join(bem_dir, 'outer_skull.surf')
-        inner_skull = op.join(bem_dir, 'inner_skull.surf')
+        if method == "flash":
+            bem_dir = op.join(bem_dir, "flash")
+        outer_skin = op.join(bem_dir, "outer_skin.surf")
+        outer_skull = op.join(bem_dir, "outer_skull.surf")
+        inner_skull = op.join(bem_dir, "inner_skull.surf")
 
     # put together the command
-    cmd = ['freeview']
+    cmd = ["freeview"]
     cmd += ["--volume", mri]
     cmd += ["--surface", "%s:color=red:edgecolor=red" % inner_skull]
     cmd += ["--surface", "%s:color=yellow:edgecolor=yellow" % outer_skull]
-    cmd += ["--surface",
-            "%s:color=255,170,127:edgecolor=255,170,127" % outer_skin]
+    cmd += ["--surface", "%s:color=255,170,127:edgecolor=255,170,127" % outer_skin]
 
     run_subprocess(cmd, env=env, stdout=sys.stdout)
     print("[done]")
@@ -82,18 +83,27 @@ def run():
 
     parser = get_optparser(__file__)
 
-    subject = os.environ.get('SUBJECT')
+    subject = os.environ.get("SUBJECT")
     subjects_dir = get_subjects_dir()
     if subjects_dir is not None:
         subjects_dir = str(subjects_dir)
 
-    parser.add_option("-s", "--subject", dest="subject",
-                      help="Subject name", default=subject)
-    parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
-                      help="Subjects directory", default=subjects_dir)
-    parser.add_option("-m", "--method", dest="method",
-                      help=("Method used to generate the BEM model. "
-                            "Can be flash or watershed."))
+    parser.add_option(
+        "-s", "--subject", dest="subject", help="Subject name", default=subject
+    )
+    parser.add_option(
+        "-d",
+        "--subjects-dir",
+        dest="subjects_dir",
+        help="Subjects directory",
+        default=subjects_dir,
+    )
+    parser.add_option(
+        "-m",
+        "--method",
+        dest="method",
+        help=("Method used to generate the BEM model. " "Can be flash or watershed."),
+    )
 
     options, args = parser.parse_args()
 

@@ -18,7 +18,7 @@ KIT.DOUBLE = 8
 
 # channel parameters
 KIT.CALIB_FACTOR = 1.0  # mne_manual p.272
-KIT.RANGE = 1.  # mne_manual p.272
+KIT.RANGE = 1.0  # mne_manual p.272
 KIT.UNIT_MUL = FIFF.FIFF_UNITM_NONE  # default is 0 mne_manual p.273
 KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 
@@ -129,11 +129,11 @@ KIT.CH_TO_FIFF_KIND = {
     KIT.CHANNEL_NULL: FIFF.FIFFV_MISC_CH,
 }
 KIT.CH_LABEL = {
-    KIT.CHANNEL_TRIGGER: 'TRIGGER',
-    KIT.CHANNEL_EEG: 'EEG',
-    KIT.CHANNEL_ECG: 'ECG',
-    KIT.CHANNEL_ETC: 'MISC',
-    KIT.CHANNEL_NULL: 'MISC',
+    KIT.CHANNEL_TRIGGER: "TRIGGER",
+    KIT.CHANNEL_EEG: "EEG",
+    KIT.CHANNEL_ECG: "ECG",
+    KIT.CHANNEL_ETC: "MISC",
+    KIT.CHANNEL_NULL: "MISC",
 }
 
 # Acquisition modes
@@ -170,19 +170,19 @@ KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008 = 124
 # Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
-    KIT.SYSTEM_AS_2008: 'KIT-AS-2008',
-    KIT.SYSTEM_MQ_ADULT: 'KIT-160',
-    KIT.SYSTEM_MQ_CHILD: 'KIT-125',
-    KIT.SYSTEM_NYU_2008: 'KIT-157',
-    KIT.SYSTEM_NYU_2009: 'KIT-157',
-    KIT.SYSTEM_NYU_2010: 'KIT-157',
+    KIT.SYSTEM_AS_2008: "KIT-AS-2008",
+    KIT.SYSTEM_MQ_ADULT: "KIT-160",
+    KIT.SYSTEM_MQ_CHILD: "KIT-125",
+    KIT.SYSTEM_NYU_2008: "KIT-157",
+    KIT.SYSTEM_NYU_2009: "KIT-157",
+    KIT.SYSTEM_NYU_2010: "KIT-157",
     KIT.SYSTEM_NYU_2019: None,
-    KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
-    KIT.SYSTEM_NYUAD_2012: 'KIT-AD',
-    KIT.SYSTEM_NYUAD_2014: 'KIT-AD',
+    KIT.SYSTEM_NYUAD_2011: "KIT-AD",
+    KIT.SYSTEM_NYUAD_2012: "KIT-AD",
+    KIT.SYSTEM_NYUAD_2014: "KIT-AD",
     KIT.SYSTEM_UMD_2004: None,
     KIT.SYSTEM_UMD_2014_07: None,
-    KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
+    KIT.SYSTEM_UMD_2014_12: "KIT-UMD-3",
     KIT.SYSTEM_UMD_2019_09: None,
     KIT.SYSTEM_YOKOGAWA_2017_01: None,
     KIT.SYSTEM_YOKOGAWA_2018_01: None,
@@ -195,17 +195,17 @@ KIT_NEIGHBORS = {
     KIT.SYSTEM_AS_2008: None,
     KIT.SYSTEM_MQ_ADULT: None,
     KIT.SYSTEM_MQ_CHILD: None,
-    KIT.SYSTEM_NYU_2008: 'KIT-157',
-    KIT.SYSTEM_NYU_2009: 'KIT-157',
-    KIT.SYSTEM_NYU_2010: 'KIT-157',
-    KIT.SYSTEM_NYU_2019: 'KIT-NYU-2019',
-    KIT.SYSTEM_NYUAD_2011: 'KIT-208',
-    KIT.SYSTEM_NYUAD_2012: 'KIT-208',
-    KIT.SYSTEM_NYUAD_2014: 'KIT-208',
-    KIT.SYSTEM_UMD_2004: 'KIT-UMD-1',
-    KIT.SYSTEM_UMD_2014_07: 'KIT-UMD-2',
-    KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
-    KIT.SYSTEM_UMD_2019_09: 'KIT-UMD-4',
+    KIT.SYSTEM_NYU_2008: "KIT-157",
+    KIT.SYSTEM_NYU_2009: "KIT-157",
+    KIT.SYSTEM_NYU_2010: "KIT-157",
+    KIT.SYSTEM_NYU_2019: "KIT-NYU-2019",
+    KIT.SYSTEM_NYUAD_2011: "KIT-208",
+    KIT.SYSTEM_NYUAD_2012: "KIT-208",
+    KIT.SYSTEM_NYUAD_2014: "KIT-208",
+    KIT.SYSTEM_UMD_2004: "KIT-UMD-1",
+    KIT.SYSTEM_UMD_2014_07: "KIT-UMD-2",
+    KIT.SYSTEM_UMD_2014_12: "KIT-UMD-3",
+    KIT.SYSTEM_UMD_2019_09: "KIT-UMD-4",
     KIT.SYSTEM_YOKOGAWA_2017_01: None,
     KIT.SYSTEM_YOKOGAWA_2018_01: None,
     KIT.SYSTEM_YOKOGAWA_2020_08: None,
@@ -213,31 +213,31 @@ KIT_NEIGHBORS = {
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
-    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science (Adult), 2006-',
-    KIT.SYSTEM_MQ_CHILD: 'Macquarie Dept of Cognitive Science (Child), 2006-',
-    KIT.SYSTEM_AS: 'Academia Sinica, -2008',
-    KIT.SYSTEM_AS_2008: 'Academia Sinica, 2008-',
-    KIT.SYSTEM_NYU_2008: 'NYU New York, 2008-9',
-    KIT.SYSTEM_NYU_2009: 'NYU New York, 2009-10',
-    KIT.SYSTEM_NYU_2010: 'NYU New York, 2010-',
-    KIT.SYSTEM_NYUAD_2011: 'New York University Abu Dhabi, 2011-12',
-    KIT.SYSTEM_NYUAD_2012: 'New York University Abu Dhabi, 2012-14',
-    KIT.SYSTEM_NYUAD_2014: 'New York University Abu Dhabi, 2014-',
-    KIT.SYSTEM_UMD_2004: 'University of Maryland, 2004-14',
-    KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
-    KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
-    KIT.SYSTEM_UMD_2019_09: 'University of Maryland, 2019-',
-    KIT.SYSTEM_YOKOGAWA_2017_01: 'Yokogawa of Kanazawa (until 2017)',
-    KIT.SYSTEM_YOKOGAWA_2018_01: 'Yokogawa of Kanazawa (since 2018)',
-    KIT.SYSTEM_YOKOGAWA_2020_08: 'Yokogawa of Kanazawa (since August 2020)',
-    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: 'Eagle Technology MEG (KIT/Yokogawa style) at PTB (since 2008, software upgrade in 2018)',  # noqa: E501
+    KIT.SYSTEM_MQ_ADULT: "Macquarie Dept of Cognitive Science (Adult), 2006-",
+    KIT.SYSTEM_MQ_CHILD: "Macquarie Dept of Cognitive Science (Child), 2006-",
+    KIT.SYSTEM_AS: "Academia Sinica, -2008",
+    KIT.SYSTEM_AS_2008: "Academia Sinica, 2008-",
+    KIT.SYSTEM_NYU_2008: "NYU New York, 2008-9",
+    KIT.SYSTEM_NYU_2009: "NYU New York, 2009-10",
+    KIT.SYSTEM_NYU_2010: "NYU New York, 2010-",
+    KIT.SYSTEM_NYUAD_2011: "New York University Abu Dhabi, 2011-12",
+    KIT.SYSTEM_NYUAD_2012: "New York University Abu Dhabi, 2012-14",
+    KIT.SYSTEM_NYUAD_2014: "New York University Abu Dhabi, 2014-",
+    KIT.SYSTEM_UMD_2004: "University of Maryland, 2004-14",
+    KIT.SYSTEM_UMD_2014_07: "University of Maryland, 2014",
+    KIT.SYSTEM_UMD_2014_12: "University of Maryland, 2014-",
+    KIT.SYSTEM_UMD_2019_09: "University of Maryland, 2019-",
+    KIT.SYSTEM_YOKOGAWA_2017_01: "Yokogawa of Kanazawa (until 2017)",
+    KIT.SYSTEM_YOKOGAWA_2018_01: "Yokogawa of Kanazawa (since 2018)",
+    KIT.SYSTEM_YOKOGAWA_2020_08: "Yokogawa of Kanazawa (since August 2020)",
+    KIT.SYSTEM_EAGLE_TECHNOLOGY_PTB_2008: "Eagle Technology MEG (KIT/Yokogawa style) at PTB (since 2008, software upgrade in 2018)",  # noqa: E501
 }
 
 LEGACY_AMP_PARAMS = {
-    KIT.SYSTEM_NYU_2008: (5., 11.),
-    KIT.SYSTEM_NYU_2009: (5., 11.),
-    KIT.SYSTEM_NYU_2010: (5., 11.),
-    KIT.SYSTEM_UMD_2004: (5., 11.),
+    KIT.SYSTEM_NYU_2008: (5.0, 11.0),
+    KIT.SYSTEM_NYU_2009: (5.0, 11.0),
+    KIT.SYSTEM_NYU_2010: (5.0, 11.0),
+    KIT.SYSTEM_UMD_2004: (5.0, 11.0),
 }
 
 # Ones that we don't use are commented out

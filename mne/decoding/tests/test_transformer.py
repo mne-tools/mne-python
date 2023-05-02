@@ -8,12 +8,22 @@ from pathlib import Path
 import numpy as np
 
 import pytest
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose, assert_equal)
+from numpy.testing import (
+    assert_array_equal,
+    assert_array_almost_equal,
+    assert_allclose,
+    assert_equal,
+)
 
 from mne import io, read_events, Epochs, pick_types
-from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
-                          UnsupervisedSpatialFilter, TemporalFilter)
+from mne.decoding import (
+    Scaler,
+    FilterEstimator,
+    PSDEstimator,
+    Vectorizer,
+    UnsupervisedSpatialFilter,
+    TemporalFilter,
+)
 from mne.defaults import DEFAULTS
 from mne.utils import requires_sklearn, check_version, use_log_level
 
@@ -25,29 +35,34 @@ raw_fname = data_dir / "test_raw.fif"
 event_name = data_dir / "test-eve.fif"
 
 
-@pytest.mark.parametrize('info, method', [
-    (True, None),
-    (True, dict(mag=5, grad=10, eeg=20)),
-    (False, 'mean'),
-    (False, 'median'),
-])
+@pytest.mark.parametrize(
+    "info, method",
+    [
+        (True, None),
+        (True, dict(mag=5, grad=10, eeg=20)),
+        (False, "mean"),
+        (False, "median"),
+    ],
+)
 def test_scaler(info, method):
     """Test methods of Scaler."""
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+    picks = pick_types(
+        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
     picks = picks[1:13:3]
 
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+    epochs = Epochs(
+        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
+    )
     epochs_data = epochs.get_data()
     y = epochs.events[:, -1]
 
     epochs_data_t = epochs_data.transpose([1, 0, 2])
-    if method in ('mean', 'median'):
-        if not check_version('sklearn'):
-            with pytest.raises(ImportError, match='No module'):
+    if method in ("mean", "median"):
+        if not check_version("sklearn"):
+            with pytest.raises(ImportError, match="No module"):
                 Scaler(info, method)
             return
 
@@ -57,22 +72,28 @@ def test_scaler(info, method):
     X = scaler.fit_transform(epochs_data, y)
     assert_equal(X.shape, epochs_data.shape)
     if method is None or isinstance(method, dict):
-        sd = DEFAULTS['scalings'] if method is None else method
+        sd = DEFAULTS["scalings"] if method is None else method
         stds = np.zeros(len(picks))
-        for key in ('mag', 'grad'):
-            stds[pick_types(epochs.info, meg=key)] = 1. / sd[key]
-        stds[pick_types(epochs.info, meg=False, eeg=True)] = 1. / sd['eeg']
+        for key in ("mag", "grad"):
+            stds[pick_types(epochs.info, meg=key)] = 1.0 / sd[key]
+        stds[pick_types(epochs.info, meg=False, eeg=True)] = 1.0 / sd["eeg"]
         means = np.zeros(len(epochs.ch_names))
-    elif method == 'mean':
+    elif method == "mean":
         stds = np.array([np.std(ch_data) for ch_data in epochs_data_t])
         means = np.array([np.mean(ch_data) for ch_data in epochs_data_t])
     else:  # median
-        percs = np.array([np.percentile(ch_data, [25, 50, 75])
-                          for ch_data in epochs_data_t])
+        percs = np.array(
+            [np.percentile(ch_data, [25, 50, 75]) for ch_data in epochs_data_t]
+        )
         stds = percs[:, 2] - percs[:, 0]
         means = percs[:, 1]
-    assert_allclose(X * stds[:, np.newaxis] + means[:, np.newaxis],
-                    epochs_data, rtol=1e-12, atol=1e-20, err_msg=method)
+    assert_allclose(
+        X * stds[:, np.newaxis] + means[:, np.newaxis],
+        epochs_data,
+        rtol=1e-12,
+        atol=1e-20,
+        err_msg=method,
+    )
 
     X2 = scaler.fit(epochs_data, y).transform(epochs_data)
     assert_array_equal(X, X2)
@@ -85,8 +106,15 @@ def test_scaler(info, method):
     pytest.raises(ValueError, Scaler, None, None)
     pytest.raises(TypeError, scaler.fit, epochs, y)
     pytest.raises(TypeError, scaler.transform, epochs)
-    epochs_bad = Epochs(raw, events, event_id, 0, 0.01, baseline=None,
-                        picks=np.arange(len(raw.ch_names)))  # non-data chs
+    epochs_bad = Epochs(
+        raw,
+        events,
+        event_id,
+        0,
+        0.01,
+        baseline=None,
+        picks=np.arange(len(raw.ch_names)),
+    )  # non-data chs
     scaler = Scaler(epochs_bad.info, None)
     pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(), y)
 
@@ -95,34 +123,46 @@ def test_filterestimator():
     """Test methods of FilterEstimator."""
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+    picks = pick_types(
+        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
     picks = picks[1:13:3]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+    epochs = Epochs(
+        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
+    )
     epochs_data = epochs.get_data()
 
     # Add tests for different combinations of l_freq and h_freq
     filt = FilterEstimator(epochs.info, l_freq=40, h_freq=80)
     y = epochs.events[:, -1]
     X = filt.fit_transform(epochs_data, y)
-    assert (X.shape == epochs_data.shape)
+    assert X.shape == epochs_data.shape
     assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
 
-    filt = FilterEstimator(epochs.info, l_freq=None, h_freq=40,
-                           filter_length='auto',
-                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
+    filt = FilterEstimator(
+        epochs.info,
+        l_freq=None,
+        h_freq=40,
+        filter_length="auto",
+        l_trans_bandwidth="auto",
+        h_trans_bandwidth="auto",
+    )
     y = epochs.events[:, -1]
     X = filt.fit_transform(epochs_data, y)
 
     filt = FilterEstimator(epochs.info, l_freq=1, h_freq=1)
     y = epochs.events[:, -1]
-    with pytest.warns(RuntimeWarning, match='longer than the signal'):
+    with pytest.warns(RuntimeWarning, match="longer than the signal"):
         pytest.raises(ValueError, filt.fit_transform, epochs_data, y)
 
-    filt = FilterEstimator(epochs.info, l_freq=40, h_freq=None,
-                           filter_length='auto',
-                           l_trans_bandwidth='auto', h_trans_bandwidth='auto')
+    filt = FilterEstimator(
+        epochs.info,
+        l_freq=40,
+        h_freq=None,
+        filter_length="auto",
+        l_trans_bandwidth="auto",
+        h_trans_bandwidth="auto",
+    )
     X = filt.fit_transform(epochs_data, y)
 
     # Test init exception
@@ -134,17 +174,19 @@ def test_psdestimator():
     """Test methods of PSDEstimator."""
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+    picks = pick_types(
+        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
     picks = picks[1:13:3]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+    epochs = Epochs(
+        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
+    )
     epochs_data = epochs.get_data()
     psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
     X = psd.fit_transform(epochs_data, y)
 
-    assert (X.shape[0] == epochs_data.shape[0])
+    assert X.shape[0] == epochs_data.shape[0]
     assert_array_equal(psd.fit(epochs_data, y).transform(epochs_data), X)
 
     # Test init exception
@@ -166,15 +208,13 @@ def test_vectorizer():
     assert_array_equal(vect.inverse_transform(result[1:]), data[1:])
 
     # check with different shape
-    assert_equal(vect.fit_transform(np.random.rand(150, 18, 6, 3)).shape,
-                 (150, 324))
+    assert_equal(vect.fit_transform(np.random.rand(150, 18, 6, 3)).shape, (150, 324))
     assert_equal(vect.fit_transform(data[1:]).shape, (149, 108))
 
     # check if raised errors are working correctly
     vect.fit(np.random.rand(105, 12, 3))
     pytest.raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
-    pytest.raises(ValueError, vect.inverse_transform,
-                  np.random.rand(102, 12, 12))
+    pytest.raises(ValueError, vect.inverse_transform, np.random.rand(102, 12, 12))
 
 
 @requires_sklearn
@@ -182,13 +222,24 @@ def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA
     from sklearn.kernel_ridge import KernelRidge
+
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+    picks = pick_types(
+        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
     picks = picks[1:13:3]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        preload=True,
+        baseline=None,
+        verbose=False,
+    )
 
     # Test estimator
     pytest.raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))
@@ -218,34 +269,39 @@ def test_temporal_filter():
     X = np.random.rand(5, 5, 1200)
 
     # Test init test
-    values = (('10hz', None, 100., 'auto'), (5., '10hz', 100., 'auto'),
-              (10., 20., 5., 'auto'), (None, None, 100., '5hz'))
+    values = (
+        ("10hz", None, 100.0, "auto"),
+        (5.0, "10hz", 100.0, "auto"),
+        (10.0, 20.0, 5.0, "auto"),
+        (None, None, 100.0, "5hz"),
+    )
     for low, high, sf, ltrans in values:
-        filt = TemporalFilter(low, high, sf, ltrans, fir_design='firwin')
+        filt = TemporalFilter(low, high, sf, ltrans, fir_design="firwin")
         pytest.raises(ValueError, filt.fit_transform, X)
 
     # Add tests for different combinations of l_freq and h_freq
-    for low, high in ((5., 15.), (None, 15.), (5., None)):
-        filt = TemporalFilter(low, high, sfreq=100., fir_design='firwin')
+    for low, high in ((5.0, 15.0), (None, 15.0), (5.0, None)):
+        filt = TemporalFilter(low, high, sfreq=100.0, fir_design="firwin")
         Xt = filt.fit_transform(X)
         assert_array_equal(filt.fit_transform(X), Xt)
-        assert (X.shape == Xt.shape)
+        assert X.shape == Xt.shape
 
     # Test fit and transform numpy type check
-    with pytest.raises(ValueError, match='Data to be filtered must be'):
+    with pytest.raises(ValueError, match="Data to be filtered must be"):
         filt.transform([1, 2])
 
     # Test with 2 dimensional data array
     X = np.random.rand(101, 500)
-    filt = TemporalFilter(l_freq=25., h_freq=50., sfreq=1000.,
-                          filter_length=150, fir_design='firwin2')
-    with use_log_level('error'):  # warning about transition bandwidth
+    filt = TemporalFilter(
+        l_freq=25.0, h_freq=50.0, sfreq=1000.0, filter_length=150, fir_design="firwin2"
+    )
+    with use_log_level("error"):  # warning about transition bandwidth
         assert_equal(filt.fit_transform(X).shape, X.shape)
 
 
 def test_bad_triage():
     """Test for gh-10924."""
-    filt = TemporalFilter(l_freq=8, h_freq=60, sfreq=160.)
+    filt = TemporalFilter(l_freq=8, h_freq=60, sfreq=160.0)
     # Used to fail with "ValueError: Effective band-stop frequency (135.0) is
     # too high (maximum based on Nyquist is 80.0)"
     filt.fit_transform(np.zeros((1, 1, 481)))

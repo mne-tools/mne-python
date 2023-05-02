@@ -26,17 +26,17 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_raw.fif'
-proj_fname = meg_path / 'sample_audvis_ecg-proj.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_raw.fif"
+proj_fname = meg_path / "sample_audvis_ecg-proj.fif"
 
 raw = mne.io.read_raw_fif(raw_fname)
 proj = mne.read_proj(proj_fname)
 raw.add_proj(proj)
-raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
+raw.info["bads"] = ["MEG 2443", "EEG 053"]  # mark bad channels
 
 # Set up pick list: Gradiometers - bad channels
-picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
+picks = mne.pick_types(raw.info, meg="grad", exclude="bads")
 
 order = 5  # define model order
 picks = picks[:1]
@@ -45,21 +45,21 @@ picks = picks[:1]
 b, a = fit_iir_model_raw(raw, order=order, picks=picks, tmin=60, tmax=180)
 d, times = raw[0, 10000:20000]  # look at one channel from now on
 d = d.ravel()  # make flat vector
-innovation = signal.convolve(d, a, 'valid')
+innovation = signal.convolve(d, a, "valid")
 d_ = signal.lfilter(b, a, innovation)  # regenerate the signal
 d_ = np.r_[d_[0] * np.ones(order), d_]  # dummy samples to keep signal length
 
 # %%
 # Plot the different time series and PSDs
-plt.close('all')
+plt.close("all")
 plt.figure()
-plt.plot(d[:100], label='signal')
-plt.plot(d_[:100], label='regenerated signal')
+plt.plot(d[:100], label="signal")
+plt.plot(d_[:100], label="regenerated signal")
 plt.legend()
 
 plt.figure()
-plt.psd(d, Fs=raw.info['sfreq'], NFFT=2048)
-plt.psd(innovation, Fs=raw.info['sfreq'], NFFT=2048)
-plt.psd(d_, Fs=raw.info['sfreq'], NFFT=2048, linestyle='--')
-plt.legend(('Signal', 'Innovation', 'Regenerated signal'))
+plt.psd(d, Fs=raw.info["sfreq"], NFFT=2048)
+plt.psd(innovation, Fs=raw.info["sfreq"], NFFT=2048)
+plt.psd(d_, Fs=raw.info["sfreq"], NFFT=2048, linestyle="--")
+plt.legend(("Signal", "Innovation", "Regenerated signal"))
 plt.show()

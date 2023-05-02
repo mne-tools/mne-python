@@ -37,32 +37,45 @@ data_path = sample.data_path()
 
 # %%
 # Set parameters and read data
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
 tmin, tmax = -0.1, 0.3
-event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
-            'Visual/Left': 3, 'Visual/Right': 4}
+event_id = {
+    "Auditory/Left": 1,
+    "Auditory/Right": 2,
+    "Visual/Left": 3,
+    "Visual/Right": 4,
+}
 n_filter = 3
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 20, fir_design='firwin')
+raw.filter(1, 20, fir_design="firwin")
 events = read_events(event_fname)
 
-picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
-                   exclude='bads')
+picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
-epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
-                picks=picks, baseline=None, preload=True,
-                verbose=False)
+epochs = Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    proj=False,
+    picks=picks,
+    baseline=None,
+    preload=True,
+    verbose=False,
+)
 
 # Create classification pipeline
-clf = make_pipeline(Xdawn(n_components=n_filter),
-                    Vectorizer(),
-                    MinMaxScaler(),
-                    LogisticRegression(penalty='l1', solver='liblinear',
-                                       multi_class='auto'))
+clf = make_pipeline(
+    Xdawn(n_components=n_filter),
+    Vectorizer(),
+    MinMaxScaler(),
+    LogisticRegression(penalty="l1", solver="liblinear", multi_class="auto"),
+)
 
 # Get the labels
 labels = epochs.events[:, -1]
@@ -77,7 +90,7 @@ for train, test in cv.split(epochs, labels):
     preds[test] = clf.predict(epochs[test])
 
 # Classification report
-target_names = ['aud_l', 'aud_r', 'vis_l', 'vis_r']
+target_names = ["aud_l", "aud_r", "vis_l", "vis_r"]
 report = classification_report(labels, preds, target_names=target_names)
 print(report)
 
@@ -87,21 +100,22 @@ cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
 # Plot confusion matrix
 fig, ax = plt.subplots(1)
-im = ax.imshow(cm_normalized, interpolation='nearest', cmap=plt.cm.Blues)
-ax.set(title='Normalized Confusion matrix')
+im = ax.imshow(cm_normalized, interpolation="nearest", cmap=plt.cm.Blues)
+ax.set(title="Normalized Confusion matrix")
 fig.colorbar(im)
 tick_marks = np.arange(len(target_names))
 plt.xticks(tick_marks, target_names, rotation=45)
 plt.yticks(tick_marks, target_names)
 fig.tight_layout()
-ax.set(ylabel='True label', xlabel='Predicted label')
+ax.set(ylabel="True label", xlabel="Predicted label")
 
 # %%
 # The ``patterns_`` attribute of a fitted Xdawn instance (here from the last
 # cross-validation fold) can be used for visualization.
 
-fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter,
-                         figsize=(n_filter, len(event_id) * 2))
+fig, axes = plt.subplots(
+    nrows=len(event_id), ncols=n_filter, figsize=(n_filter, len(event_id) * 2)
+)
 fitted_xdawn = clf.steps[0][1]
 info = create_info(epochs.ch_names, 1, epochs.get_channel_types())
 info.set_montage(epochs.get_montage())
@@ -110,8 +124,12 @@ for ii, cur_class in enumerate(sorted(event_id)):
     pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, info, tmin=0)
     pattern_evoked.plot_topomap(
         times=np.arange(n_filter),
-        time_format='Component %d' if ii == 0 else '', colorbar=False,
-        show_names=False, axes=axes[ii], show=False)
+        time_format="Component %d" if ii == 0 else "",
+        colorbar=False,
+        show_names=False,
+        axes=axes[ii],
+        show=False,
+    )
     axes[ii, 0].set(ylabel=cur_class)
 fig.tight_layout(h_pad=1.0, w_pad=1.0, pad=0.1)
 

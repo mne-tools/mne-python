@@ -8,14 +8,21 @@ import struct
 
 import numpy as np
 
-from .constants import (FIFF, _dig_kind_named, _dig_cardinal_named,
-                        _ch_kind_named, _ch_coil_type_named, _ch_unit_named,
-                        _ch_unit_mul_named)
+from .constants import (
+    FIFF,
+    _dig_kind_named,
+    _dig_cardinal_named,
+    _ch_kind_named,
+    _ch_coil_type_named,
+    _ch_unit_named,
+    _ch_unit_mul_named,
+)
 from ..utils.numerics import _julian_to_cal
 
 
 ##############################################################################
 # HELPERS
+
 
 class Tag:
     """Tag in FIF tree structure.
@@ -44,20 +51,27 @@ class Tag:
         self.data = None
 
     def __repr__(self):  # noqa: D105
-        out = ("<Tag | kind %s - type %s - size %s - next %s - pos %s"
-               % (self.kind, self.type, self.size, self.next, self.pos))
-        if hasattr(self, 'data'):
+        out = "<Tag | kind %s - type %s - size %s - next %s - pos %s" % (
+            self.kind,
+            self.type,
+            self.size,
+            self.next,
+            self.pos,
+        )
+        if hasattr(self, "data"):
             out += " - data %s" % self.data
         out += ">"
         return out
 
     def __eq__(self, tag):  # noqa: D105
-        return int(self.kind == tag.kind and
-                   self.type == tag.type and
-                   self.size == tag.size and
-                   self.next == tag.next and
-                   self.pos == tag.pos and
-                   self.data == tag.data)
+        return int(
+            self.kind == tag.kind
+            and self.type == tag.type
+            and self.size == tag.size
+            and self.next == tag.next
+            and self.pos == tag.pos
+            and self.data == tag.data
+        )
 
 
 def read_tag_info(fid):
@@ -77,17 +91,18 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
     if shape is not None:
         item_size = np.dtype(dtype).itemsize
         if not len(shape) == 2:
-            raise ValueError('Only implemented for 2D matrices')
+            raise ValueError("Only implemented for 2D matrices")
         want_shape = np.prod(shape)
         have_shape = tag_size // item_size
         if want_shape != have_shape:
-            raise ValueError('Wrong shape specified, requested %s have %s'
-                             % (want_shape, have_shape))
+            raise ValueError(
+                "Wrong shape specified, requested %s have %s" % (want_shape, have_shape)
+            )
         if not len(rlims) == 2:
-            raise ValueError('rlims must have two elements')
+            raise ValueError("rlims must have two elements")
         n_row_out = rlims[1] - rlims[0]
         if n_row_out <= 0:
-            raise ValueError('rlims must yield at least one output')
+            raise ValueError("rlims must yield at least one output")
         row_size = item_size * shape[1]
         # # of bytes to skip at the beginning, # to read, where to end
         start_skip = int(rlims[0] * row_size)
@@ -110,8 +125,9 @@ def _loc_to_coil_trans(loc):
     coil_trans = np.zeros(loc.shape[:-1] + (4, 4))
     coil_trans[..., :3, 3] = loc[..., :3]
     coil_trans[..., :3, :3] = np.reshape(
-        loc[..., 3:], loc.shape[:-1] + (3, 3)).swapaxes(-1, -2)
-    coil_trans[..., -1, -1] = 1.
+        loc[..., 3:], loc.shape[:-1] + (3, 3)
+    ).swapaxes(-1, -2)
+    coil_trans[..., -1, -1] = 1.0
     return coil_trans
 
 
@@ -124,7 +140,7 @@ def _coil_trans_to_loc(coil_trans):
 def _loc_to_eeg_loc(loc):
     """Convert a loc to an EEG loc."""
     if not np.isfinite(loc[:3]).all():
-        raise RuntimeError('Missing EEG channel location')
+        raise RuntimeError("Missing EEG channel location")
     if np.isfinite(loc[3:6]).all() and (loc[3:6]).any():
         return np.array([loc[0:3], loc[3:6]]).T
     else:
@@ -140,10 +156,10 @@ def _loc_to_eeg_loc(loc):
 # by the function names.
 
 _is_matrix = 4294901760  # ffff0000
-_matrix_coding_dense = 16384      # 4000
-_matrix_coding_CCS = 16400      # 4010
-_matrix_coding_RCS = 16416      # 4020
-_data_type = 65535      # ffff
+_matrix_coding_dense = 16384  # 4000
+_matrix_coding_CCS = 16400  # 4010
+_matrix_coding_RCS = 16416  # 4020
+_data_type = 65535  # ffff
 
 
 def _read_tag_header(fid):
@@ -152,125 +168,129 @@ def _read_tag_header(fid):
     if len(s) == 0:
         return None
     # struct.unpack faster than np.frombuffer, saves ~10% of time some places
-    return Tag(*struct.unpack('>iIii', s))
+    return Tag(*struct.unpack(">iIii", s))
 
 
 _matrix_bit_dtype = {
-    FIFF.FIFFT_INT: (4, '>i4'),
-    FIFF.FIFFT_JULIAN: (4, '>i4'),
-    FIFF.FIFFT_FLOAT: (4, '>f4'),
-    FIFF.FIFFT_DOUBLE: (8, '>f8'),
-    FIFF.FIFFT_COMPLEX_FLOAT: (8, '>f4'),
-    FIFF.FIFFT_COMPLEX_DOUBLE: (16, '>f8'),
+    FIFF.FIFFT_INT: (4, ">i4"),
+    FIFF.FIFFT_JULIAN: (4, ">i4"),
+    FIFF.FIFFT_FLOAT: (4, ">f4"),
+    FIFF.FIFFT_DOUBLE: (8, ">f8"),
+    FIFF.FIFFT_COMPLEX_FLOAT: (8, ">f4"),
+    FIFF.FIFFT_COMPLEX_DOUBLE: (16, ">f8"),
 }
 
 
 def _read_matrix(fid, tag, shape, rlims, matrix_coding):
     """Read a matrix (dense or sparse) tag."""
     from scipy import sparse
+
     matrix_coding = matrix_coding >> 16
 
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
     if shape is not None:
-        raise ValueError('Row reading not implemented for matrices '
-                         'yet')
+        raise ValueError("Row reading not implemented for matrices " "yet")
 
     #   Matrices
     if matrix_coding == _matrix_coding_dense:
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
-        ndim = int(np.frombuffer(fid.read(4), dtype='>i4').item())
+        ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
         fid.seek(-(ndim + 1) * 4, 1)
-        dims = np.frombuffer(fid.read(4 * ndim), dtype='>i4')[::-1]
+        dims = np.frombuffer(fid.read(4 * ndim), dtype=">i4")[::-1]
         #
         # Back to where the data start
         #
         fid.seek(pos, 0)
 
         if ndim > 3:
-            raise Exception('Only 2 or 3-dimensional matrices are '
-                            'supported at this time')
+            raise Exception(
+                "Only 2 or 3-dimensional matrices are " "supported at this time"
+            )
 
         matrix_type = _data_type & tag.type
         try:
             bit, dtype = _matrix_bit_dtype[matrix_type]
         except KeyError:
-            raise RuntimeError('Cannot handle matrix of type %d yet'
-                               % matrix_type)
+            raise RuntimeError("Cannot handle matrix of type %d yet" % matrix_type)
         data = fid.read(int(bit * dims.prod()))
         data = np.frombuffer(data, dtype=dtype)
         # Note: we need the non-conjugate transpose here
         if matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
-            data = data.view('>c8')
+            data = data.view(">c8")
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
-            data = data.view('>c16')
+            data = data.view(">c16")
         data.shape = dims
     elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
-        ndim = int(np.frombuffer(fid.read(4), dtype='>i4').item())
+        ndim = int(np.frombuffer(fid.read(4), dtype=">i4").item())
         fid.seek(-(ndim + 2) * 4, 1)
-        dims = np.frombuffer(fid.read(4 * (ndim + 1)), dtype='>i4')
+        dims = np.frombuffer(fid.read(4 * (ndim + 1)), dtype=">i4")
         if ndim != 2:
-            raise Exception('Only two-dimensional matrices are '
-                            'supported at this time')
+            raise Exception(
+                "Only two-dimensional matrices are " "supported at this time"
+            )
 
         # Back to where the data start
         fid.seek(pos, 0)
         nnz = int(dims[0])
         nrow = int(dims[1])
         ncol = int(dims[2])
-        data = np.frombuffer(fid.read(4 * nnz), dtype='>f4')
+        data = np.frombuffer(fid.read(4 * nnz), dtype=">f4")
         shape = (dims[1], dims[2])
         if matrix_coding == _matrix_coding_CCS:
             #    CCS
             tmp_indices = fid.read(4 * nnz)
-            indices = np.frombuffer(tmp_indices, dtype='>i4')
+            indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (ncol + 1))
-            indptr = np.frombuffer(tmp_ptr, dtype='>i4')
+            indptr = np.frombuffer(tmp_ptr, dtype=">i4")
             if indptr[-1] > len(indices) or np.any(indptr < 0):
                 # There was a bug in MNE-C that caused some data to be
                 # stored without byte swapping
                 indices = np.concatenate(
-                    (np.frombuffer(tmp_indices[:4 * (nrow + 1)], dtype='>i4'),
-                     np.frombuffer(tmp_indices[4 * (nrow + 1):], dtype='<i4')))
-                indptr = np.frombuffer(tmp_ptr, dtype='<i4')
+                    (
+                        np.frombuffer(tmp_indices[: 4 * (nrow + 1)], dtype=">i4"),
+                        np.frombuffer(tmp_indices[4 * (nrow + 1) :], dtype="<i4"),
+                    )
+                )
+                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
             data = sparse.csc_matrix((data, indices, indptr), shape=shape)
         else:
             #    RCS
             tmp_indices = fid.read(4 * nnz)
-            indices = np.frombuffer(tmp_indices, dtype='>i4')
+            indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (nrow + 1))
-            indptr = np.frombuffer(tmp_ptr, dtype='>i4')
+            indptr = np.frombuffer(tmp_ptr, dtype=">i4")
             if indptr[-1] > len(indices) or np.any(indptr < 0):
                 # There was a bug in MNE-C that caused some data to be
                 # stored without byte swapping
                 indices = np.concatenate(
-                    (np.frombuffer(tmp_indices[:4 * (ncol + 1)], dtype='>i4'),
-                     np.frombuffer(tmp_indices[4 * (ncol + 1):], dtype='<i4')))
-                indptr = np.frombuffer(tmp_ptr, dtype='<i4')
-            data = sparse.csr_matrix((data, indices,
-                                     indptr), shape=shape)
+                    (
+                        np.frombuffer(tmp_indices[: 4 * (ncol + 1)], dtype=">i4"),
+                        np.frombuffer(tmp_indices[4 * (ncol + 1) :], dtype="<i4"),
+                    )
+                )
+                indptr = np.frombuffer(tmp_ptr, dtype="<i4")
+            data = sparse.csr_matrix((data, indices, indptr), shape=shape)
     else:
-        raise Exception('Cannot handle other than dense or sparse '
-                        'matrices yet')
+        raise Exception("Cannot handle other than dense or sparse " "matrices yet")
     return data
 
 
 def _read_simple(fid, tag, shape, rlims, dtype):
     """Read simple datatypes from tag (typically used with partial)."""
-    return _frombuffer_rows(fid, tag.size, dtype=dtype, shape=shape,
-                            rlims=rlims)
+    return _frombuffer_rows(fid, tag.size, dtype=dtype, shape=shape, rlims=rlims)
 
 
 def _read_string(fid, tag, shape, rlims):
     """Read a string tag."""
     # Always decode to ISO 8859-1 / latin1 (FIFF standard).
-    d = _frombuffer_rows(fid, tag.size, dtype='>c', shape=shape, rlims=rlims)
-    return str(d.tobytes().decode('latin1', 'ignore'))
+    d = _frombuffer_rows(fid, tag.size, dtype=">c", shape=shape, rlims=rlims)
+    return str(d.tobytes().decode("latin1", "ignore"))
 
 
 def _read_complex_float(fid, tag, shape, rlims):
@@ -299,7 +319,8 @@ def _read_id_struct(fid, tag, shape, rlims):
         version=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
         machid=np.frombuffer(fid.read(8), dtype=">i4"),
         secs=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
-        usecs=int(np.frombuffer(fid.read(4), dtype=">i4").item()))
+        usecs=int(np.frombuffer(fid.read(4), dtype=">i4").item()),
+    )
 
 
 def _read_dig_point_struct(fid, tag, shape, rlims):
@@ -310,20 +331,22 @@ def _read_dig_point_struct(fid, tag, shape, rlims):
     if kind == FIFF.FIFFV_POINT_CARDINAL:
         ident = _dig_cardinal_named.get(ident, ident)
     return dict(
-        kind=kind, ident=ident,
+        kind=kind,
+        ident=ident,
         r=np.frombuffer(fid.read(12), dtype=">f4"),
-        coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
+        coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+    )
 
 
 def _read_coord_trans_struct(fid, tag, shape, rlims):
     """Read coord trans struct tag."""
     from ..transforms import Transform
+
     fro = int(np.frombuffer(fid.read(4), dtype=">i4").item())
     to = int(np.frombuffer(fid.read(4), dtype=">i4").item())
     rot = np.frombuffer(fid.read(36), dtype=">f4").reshape(3, 3)
     move = np.frombuffer(fid.read(12), dtype=">f4")
-    trans = np.r_[np.c_[rot, move],
-                  np.array([[0], [0], [0], [1]]).T]
+    trans = np.r_[np.c_[rot, move], np.array([[0], [0], [0], [1]]).T]
     data = Transform(fro, to, trans)
     fid.seek(48, 1)  # Skip over the inverse transformation
     return data
@@ -336,7 +359,7 @@ _ch_coord_dict = {
     FIFF.FIFFV_ECOG_CH: FIFF.FIFFV_COORD_HEAD,
     FIFF.FIFFV_SEEG_CH: FIFF.FIFFV_COORD_HEAD,
     FIFF.FIFFV_DBS_CH: FIFF.FIFFV_COORD_HEAD,
-    FIFF.FIFFV_FNIRS_CH: FIFF.FIFFV_COORD_HEAD
+    FIFF.FIFFV_FNIRS_CH: FIFF.FIFFV_COORD_HEAD,
 }
 
 
@@ -357,19 +380,19 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
     )
     # channel name
     ch_name = np.frombuffer(fid.read(16), dtype=">c")
-    ch_name = ch_name[:np.argmax(ch_name == b'')].tobytes()
-    d['ch_name'] = ch_name.decode()
+    ch_name = ch_name[: np.argmax(ch_name == b"")].tobytes()
+    d["ch_name"] = ch_name.decode()
     # coil coordinate system definition
     _update_ch_info_named(d)
     return d
 
 
 def _update_ch_info_named(d):
-    d['coord_frame'] = _ch_coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
-    d['kind'] = _ch_kind_named.get(d['kind'], d['kind'])
-    d['coil_type'] = _ch_coil_type_named.get(d['coil_type'], d['coil_type'])
-    d['unit'] = _ch_unit_named.get(d['unit'], d['unit'])
-    d['unit_mul'] = _ch_unit_mul_named.get(d['unit_mul'], d['unit_mul'])
+    d["coord_frame"] = _ch_coord_dict.get(d["kind"], FIFF.FIFFV_COORD_UNKNOWN)
+    d["kind"] = _ch_kind_named.get(d["kind"], d["kind"])
+    d["coil_type"] = _ch_coil_type_named.get(d["coil_type"], d["coil_type"])
+    d["unit"] = _ch_unit_named.get(d["unit"], d["unit"])
+    d["unit_mul"] = _ch_unit_mul_named.get(d["unit_mul"], d["unit_mul"])
 
 
 def _read_old_pack(fid, tag, shape, rlims):
@@ -406,29 +429,29 @@ _call_dict = {
     FIFF.FIFFT_JULIAN: _read_julian,
 }
 _call_dict_names = {
-    FIFF.FIFFT_STRING: 'str',
-    FIFF.FIFFT_COMPLEX_FLOAT: 'c8',
-    FIFF.FIFFT_COMPLEX_DOUBLE: 'c16',
-    FIFF.FIFFT_ID_STRUCT: 'ids',
-    FIFF.FIFFT_DIG_POINT_STRUCT: 'dps',
-    FIFF.FIFFT_COORD_TRANS_STRUCT: 'cts',
-    FIFF.FIFFT_CH_INFO_STRUCT: 'cis',
-    FIFF.FIFFT_OLD_PACK: 'op_',
-    FIFF.FIFFT_DIR_ENTRY_STRUCT: 'dir',
-    FIFF.FIFFT_JULIAN: 'jul',
-    FIFF.FIFFT_VOID: 'nul',  # 0
+    FIFF.FIFFT_STRING: "str",
+    FIFF.FIFFT_COMPLEX_FLOAT: "c8",
+    FIFF.FIFFT_COMPLEX_DOUBLE: "c16",
+    FIFF.FIFFT_ID_STRUCT: "ids",
+    FIFF.FIFFT_DIG_POINT_STRUCT: "dps",
+    FIFF.FIFFT_COORD_TRANS_STRUCT: "cts",
+    FIFF.FIFFT_CH_INFO_STRUCT: "cis",
+    FIFF.FIFFT_OLD_PACK: "op_",
+    FIFF.FIFFT_DIR_ENTRY_STRUCT: "dir",
+    FIFF.FIFFT_JULIAN: "jul",
+    FIFF.FIFFT_VOID: "nul",  # 0
 }
 
 #  Append the simple types
 _simple_dict = {
-    FIFF.FIFFT_BYTE: '>B',
-    FIFF.FIFFT_SHORT: '>i2',
-    FIFF.FIFFT_INT: '>i4',
-    FIFF.FIFFT_USHORT: '>u2',
-    FIFF.FIFFT_UINT: '>u4',
-    FIFF.FIFFT_FLOAT: '>f4',
-    FIFF.FIFFT_DOUBLE: '>f8',
-    FIFF.FIFFT_DAU_PACK16: '>i2',
+    FIFF.FIFFT_BYTE: ">B",
+    FIFF.FIFFT_SHORT: ">i2",
+    FIFF.FIFFT_INT: ">i4",
+    FIFF.FIFFT_USHORT: ">u2",
+    FIFF.FIFFT_UINT: ">u4",
+    FIFF.FIFFT_FLOAT: ">f4",
+    FIFF.FIFFT_DOUBLE: ">f8",
+    FIFF.FIFFT_DAU_PACK16: ">i2",
 }
 for key, dtype in _simple_dict.items():
     _call_dict[key] = partial(_read_simple, dtype=dtype)
@@ -472,7 +495,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
             try:
                 fun = _call_dict[tag.type]
             except KeyError:
-                raise Exception('Unimplemented tag data type %s' % tag.type)
+                raise Exception("Unimplemented tag data type %s" % tag.type)
             tag.data = fun(fid, tag, shape, rlims)
     if tag.next != FIFF.FIFFV_NEXT_SEQ:
         # f.seek(tag.next,0)
@@ -498,8 +521,8 @@ def find_tag(fid, node, findkind):
     tag : instance of Tag
         The first tag found.
     """
-    if node['directory'] is not None:
-        for subnode in node['directory']:
+    if node["directory"] is not None:
+        for subnode in node["directory"]:
             if subnode.kind == findkind:
                 return read_tag(fid, subnode.pos)
     return None
@@ -507,7 +530,7 @@ def find_tag(fid, node, findkind):
 
 def has_tag(node, kind):
     """Check if the node contains a Tag of a given kind."""
-    for d in node['directory']:
+    for d in node["directory"]:
         if d.kind == kind:
             return True
     return False

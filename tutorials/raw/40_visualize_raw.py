@@ -21,8 +21,9 @@ import os
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
@@ -131,7 +132,7 @@ spectrum.plot(average=True)
 # by spatial location (via the ``spatial_colors`` parameter, see the
 # documentation of `~mne.time_frequency.Spectrum.plot` for full details):
 
-midline = ['EEG 002', 'EEG 012', 'EEG 030', 'EEG 048', 'EEG 058', 'EEG 060']
+midline = ["EEG 002", "EEG 012", "EEG 030", "EEG 048", "EEG 058", "EEG 060"]
 spectrum.plot(picks=midline)
 
 # %%
@@ -162,7 +163,7 @@ spectrum.plot_topo()
 # channels if MEG channels are present; if only EEG channels are found, they
 # will be plotted instead:
 
-spectrum.pick('eeg').plot_topo()
+spectrum.pick("eeg").plot_topo()
 
 # %%
 # .. note::
@@ -190,7 +191,7 @@ spectrum.pick('eeg').plot_topo()
 # details and additional examples are given in the tutorial
 # :ref:`tut-sensor-locations`.
 
-raw.plot_sensors(ch_type='eeg')
+raw.plot_sensors(ch_type="eeg")
 
 # %%
 # .. _`tut-section-raw-plot-proj`:

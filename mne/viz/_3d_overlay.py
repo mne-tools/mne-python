@@ -31,10 +31,12 @@ class _Overlay:
             cmap = self._colormap
         else:
             cmap = ListedColormap(
-                self._colormap / 255., name=str(type(self._colormap)))
+                self._colormap / 255.0, name=str(type(self._colormap))
+            )
         logger.debug(
-            f'Color mapping {repr(self._name)} with {cmap.name} '
-            f'colormap and range {self._rng}')
+            f"Color mapping {repr(self._name)} with {cmap.name} "
+            f"colormap and range {self._rng}"
+        )
 
         rng = self._rng
         assert rng is not None
@@ -69,7 +71,7 @@ class _LayeredMesh:
         self._overlays = OrderedDict()
 
         self._default_scalars = np.ones(vertices.shape)
-        self._default_scalars_name = 'Data'
+        self._default_scalars_name = "Data"
 
     def map(self):
         kwargs = {
@@ -84,7 +86,7 @@ class _LayeredMesh:
             triangles=self._triangles,
             normals=self._normals,
             scalars=self._default_scalars,
-            **kwargs
+            **kwargs,
         )
         self._actor, self._polydata = mesh_data
         self._is_mapped = True
@@ -127,8 +129,7 @@ class _LayeredMesh:
         else:
             # save previous colors to cache
             self._cached_colors = self._current_colors
-            self._current_colors = self._compute_over(
-                self._cached_colors, colors)
+            self._current_colors = self._compute_over(self._cached_colors, colors)
 
         # apply the texture
         self._apply()
@@ -155,11 +156,9 @@ class _LayeredMesh:
 
     def update(self, colors=None):
         if colors is not None and self._cached_colors is not None:
-            self._current_colors = self._compute_over(
-                self._cached_colors, colors)
+            self._current_colors = self._compute_over(self._cached_colors, colors)
         else:
-            self._current_colors, self._cached_colors = \
-                self._compose_overlays()
+            self._current_colors, self._cached_colors = self._compose_overlays()
         self._apply()
 
     def _clean(self):
@@ -170,8 +169,7 @@ class _LayeredMesh:
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None,
-                       opacity=None, rng=None):
+    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None):
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return

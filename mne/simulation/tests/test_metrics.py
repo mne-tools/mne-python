@@ -20,26 +20,26 @@ src_fname = data_path / "subjects" / "sample" / "bem" / "sample-oct-6-src.fif"
 def test_metrics():
     """Test simulation metrics."""
     src = read_source_spaces(src_fname)
-    times = np.arange(600) / 1000.
+    times = np.arange(600) / 1000.0
     rng = np.random.RandomState(42)
     stc1 = simulate_sparse_stc(src, n_dipoles=2, times=times, random_state=rng)
     stc2 = simulate_sparse_stc(src, n_dipoles=2, times=times, random_state=rng)
-    E1_rms = source_estimate_quantification(stc1, stc1, metric='rms')
-    E2_rms = source_estimate_quantification(stc2, stc2, metric='rms')
-    E1_cos = source_estimate_quantification(stc1, stc1, metric='cosine')
-    E2_cos = source_estimate_quantification(stc2, stc2, metric='cosine')
+    E1_rms = source_estimate_quantification(stc1, stc1, metric="rms")
+    E2_rms = source_estimate_quantification(stc2, stc2, metric="rms")
+    E1_cos = source_estimate_quantification(stc1, stc1, metric="cosine")
+    E2_cos = source_estimate_quantification(stc2, stc2, metric="cosine")
     # ### Tests to add
-    assert (E1_rms == 0.)
-    assert (E2_rms == 0.)
-    assert_allclose(E1_cos, 0., atol=1e-08)
-    assert_allclose(E2_cos, 0., atol=1e-08)
+    assert E1_rms == 0.0
+    assert E2_rms == 0.0
+    assert_allclose(E1_cos, 0.0, atol=1e-08)
+    assert_allclose(E2_cos, 0.0, atol=1e-08)
 
     stc_bad = stc2.copy().crop(0, 0.5)
-    with pytest.raises(ValueError, match='must have the same size'):
+    with pytest.raises(ValueError, match="must have the same size"):
         source_estimate_quantification(stc1, stc_bad)
     stc_bad = stc2.copy()
     stc_bad.tmin -= 0.1
-    with pytest.raises(ValueError, match='Times.*must match'):
+    with pytest.raises(ValueError, match="Times.*must match"):
         source_estimate_quantification(stc1, stc_bad)
     with pytest.raises(ValueError, match="Invalid value for the 'metric'"):
-        source_estimate_quantification(stc1, stc2, metric='foo')
+        source_estimate_quantification(stc1, stc2, metric="foo")

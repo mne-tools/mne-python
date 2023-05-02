@@ -22,8 +22,7 @@ customize them for a more publication-ready look.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import (make_axes_locatable, ImageGrid,
-                                     inset_locator)
+from mpl_toolkits.axes_grid1 import make_axes_locatable, ImageGrid, inset_locator
 
 import mne
 
@@ -36,12 +35,12 @@ import mne
 # start by loading some :ref:`example data <sample-dataset>`.
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = data_path / 'subjects'
-fname_stc = data_path / 'MEG' / 'sample' / 'sample_audvis-meg-eeg-lh.stc'
-fname_evoked = data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
+subjects_dir = data_path / "subjects"
+fname_stc = data_path / "MEG" / "sample" / "sample_audvis-meg-eeg-lh.stc"
+fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
 
-evoked = mne.read_evokeds(fname_evoked, 'Left Auditory')
-evoked.pick_types(meg='grad').apply_baseline((None, 0.))
+evoked = mne.read_evokeds(fname_evoked, "Left Auditory")
+evoked.pick_types(meg="grad").apply_baseline((None, 0.0))
 max_t = evoked.get_peak()[1]
 
 stc = mne.read_source_estimate(fname_stc)
@@ -51,9 +50,16 @@ stc = mne.read_source_estimate(fname_stc)
 
 evoked.plot()
 
-stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
-         subjects_dir=subjects_dir, initial_time=max_t,
-         time_viewer=False, show_traces=False)
+stc.plot(
+    views="lat",
+    hemi="split",
+    size=(800, 400),
+    subject="sample",
+    subjects_dir=subjects_dir,
+    initial_time=max_t,
+    time_viewer=False,
+    show_traces=False,
+)
 
 # %%
 # To make a publication-ready figure, first we'll re-plot the brain on a white
@@ -61,14 +67,24 @@ stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
 # While we're at it, let's change the colormap, set custom colormap limits and
 # remove the default colorbar (so we can add a smaller, vertical one later):
 
-colormap = 'viridis'
-clim = dict(kind='value', lims=[4, 8, 12])
+colormap = "viridis"
+clim = dict(kind="value", lims=[4, 8, 12])
 
 # Plot the STC, get the brain image, crop it:
-brain = stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
-                 subjects_dir=subjects_dir, initial_time=max_t, background='w',
-                 colorbar=False, clim=clim, colormap=colormap,
-                 time_viewer=False, show_traces=False)
+brain = stc.plot(
+    views="lat",
+    hemi="split",
+    size=(800, 400),
+    subject="sample",
+    subjects_dir=subjects_dir,
+    initial_time=max_t,
+    background="w",
+    colorbar=False,
+    clim=clim,
+    colormap=colormap,
+    time_viewer=False,
+    show_traces=False,
+)
 screenshot = brain.screenshot()
 brain.close()
 
@@ -87,10 +103,11 @@ cropped_screenshot = screenshot[nonwhite_row][:, nonwhite_col]
 # before/after results
 fig = plt.figure(figsize=(4, 4))
 axes = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0.5)
-for ax, image, title in zip(axes, [screenshot, cropped_screenshot],
-                            ['Before', 'After']):
+for ax, image, title in zip(
+    axes, [screenshot, cropped_screenshot], ["Before", "After"]
+):
     ax.imshow(image)
-    ax.set_title('{} cropping'.format(title))
+    ax.set_title("{} cropping".format(title))
 
 # %%
 # A lot of figure settings can be adjusted after the figure is created, but
@@ -99,14 +116,16 @@ for ax, image, title in zip(axes, [screenshot, cropped_screenshot],
 # script generates several figures that you want to all have the same style:
 
 # Tweak the figure style
-plt.rcParams.update({
-    'ytick.labelsize': 'small',
-    'xtick.labelsize': 'small',
-    'axes.labelsize': 'small',
-    'axes.titlesize': 'medium',
-    'grid.color': '0.75',
-    'grid.linestyle': ':',
-})
+plt.rcParams.update(
+    {
+        "ytick.labelsize": "small",
+        "xtick.labelsize": "small",
+        "axes.labelsize": "small",
+        "axes.titlesize": "medium",
+        "grid.color": "0.75",
+        "grid.linestyle": ":",
+    }
+)
 
 # %%
 # Now let's create our custom figure. There are lots of ways to do this step.
@@ -119,8 +138,9 @@ plt.rcParams.update({
 
 # sphinx_gallery_thumbnail_number = 4
 # figsize unit is inches
-fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(4.5, 3.),
-                         gridspec_kw=dict(height_ratios=[3, 4]))
+fig, axes = plt.subplots(
+    nrows=2, ncols=1, figsize=(4.5, 3.0), gridspec_kw=dict(height_ratios=[3, 4])
+)
 
 # alternate way #1: using subplot2grid
 # fig = plt.figure(figsize=(4.5, 3.))
@@ -138,42 +158,55 @@ brain_idx = 1
 
 # plot the evoked in the desired subplot, and add a line at peak activation
 evoked.plot(axes=axes[evoked_idx])
-peak_line = axes[evoked_idx].axvline(max_t, color='#66CCEE', ls='--')
+peak_line = axes[evoked_idx].axvline(max_t, color="#66CCEE", ls="--")
 # custom legend
 axes[evoked_idx].legend(
-    [axes[evoked_idx].lines[0], peak_line], ['MEG data', 'Peak time'],
-    frameon=True, columnspacing=0.1, labelspacing=0.1,
-    fontsize=8, fancybox=True, handlelength=1.8)
+    [axes[evoked_idx].lines[0], peak_line],
+    ["MEG data", "Peak time"],
+    frameon=True,
+    columnspacing=0.1,
+    labelspacing=0.1,
+    fontsize=8,
+    fancybox=True,
+    handlelength=1.8,
+)
 # remove the "N_ave" annotation
 for text in list(axes[evoked_idx].texts):
     text.remove()
 # Remove spines and add grid
 axes[evoked_idx].grid(True)
 axes[evoked_idx].set_axisbelow(True)
-for key in ('top', 'right'):
+for key in ("top", "right"):
     axes[evoked_idx].spines[key].set(visible=False)
 # Tweak the ticks and limits
 axes[evoked_idx].set(
-    yticks=np.arange(-200, 201, 100), xticks=np.arange(-0.2, 0.51, 0.1))
-axes[evoked_idx].set(
-    ylim=[-225, 225], xlim=[-0.2, 0.5])
+    yticks=np.arange(-200, 201, 100), xticks=np.arange(-0.2, 0.51, 0.1)
+)
+axes[evoked_idx].set(ylim=[-225, 225], xlim=[-0.2, 0.5])
 
 # now add the brain to the lower axes
 axes[brain_idx].imshow(cropped_screenshot)
-axes[brain_idx].axis('off')
+axes[brain_idx].axis("off")
 # add a vertical colorbar with the same properties as the 3D one
 divider = make_axes_locatable(axes[brain_idx])
-cax = divider.append_axes('right', size='5%', pad=0.2)
-cbar = mne.viz.plot_brain_colorbar(cax, clim, colormap, label='Activation (F)')
+cax = divider.append_axes("right", size="5%", pad=0.2)
+cbar = mne.viz.plot_brain_colorbar(cax, clim, colormap, label="Activation (F)")
 
 # tweak margins and spacing
-fig.subplots_adjust(
-    left=0.15, right=0.9, bottom=0.01, top=0.9, wspace=0.1, hspace=0.5)
+fig.subplots_adjust(left=0.15, right=0.9, bottom=0.01, top=0.9, wspace=0.1, hspace=0.5)
 
 # add subplot labels
-for ax, label in zip(axes, 'AB'):
-    ax.text(0.03, ax.get_position().ymax, label, transform=fig.transFigure,
-            fontsize=12, fontweight='bold', va='top', ha='left')
+for ax, label in zip(axes, "AB"):
+    ax.text(
+        0.03,
+        ax.get_position().ymax,
+        label,
+        transform=fig.transFigure,
+        fontsize=12,
+        fontweight="bold",
+        va="top",
+        ha="left",
+    )
 
 # %%
 # Custom timecourse with montage inset
@@ -206,10 +239,9 @@ raw.pick_types(meg=False, eeg=True)
 to_plot = [f"EEG {i:03}" for i in range(1, 5)]
 
 # get the data for plotting in a short time interval from 10 to 20 seconds
-start = int(raw.info['sfreq'] * 10)
-stop = int(raw.info['sfreq'] * 20)
-data, times = raw.get_data(picks=to_plot,
-                           start=start, stop=stop, return_times=True)
+start = int(raw.info["sfreq"] * 10)
+stop = int(raw.info["sfreq"] * 20)
+data, times = raw.get_data(picks=to_plot, start=start, stop=stop, return_times=True)
 
 # Scale the data from the MNE internal unit V to µV
 data *= 1e6

@@ -19,39 +19,41 @@ from ..utils import logger, verbose, _pl
 
 def _add_kind(one):
     """Convert CTF kind to MNE kind."""
-    if one['ctfkind'] == int('47314252', 16):
-        one['kind'] = 1
-    elif one['ctfkind'] == int('47324252', 16):
-        one['kind'] = 2
-    elif one['ctfkind'] == int('47334252', 16):
-        one['kind'] = 3
+    if one["ctfkind"] == int("47314252", 16):
+        one["kind"] = 1
+    elif one["ctfkind"] == int("47324252", 16):
+        one["kind"] = 2
+    elif one["ctfkind"] == int("47334252", 16):
+        one["kind"] = 3
     else:
-        one['kind'] = int(one['ctfkind'])
+        one["kind"] = int(one["ctfkind"])
 
 
-def _calibrate_comp(comp, chs, row_names, col_names,
-                    mult_keys=('range', 'cal'), flip=False):
+def _calibrate_comp(
+    comp, chs, row_names, col_names, mult_keys=("range", "cal"), flip=False
+):
     """Get row and column cals."""
-    ch_names = [c['ch_name'] for c in chs]
+    ch_names = [c["ch_name"] for c in chs]
     row_cals = np.zeros(len(row_names))
     col_cals = np.zeros(len(col_names))
-    for names, cals, inv in zip((row_names, col_names), (row_cals, col_cals),
-                                (False, True)):
+    for names, cals, inv in zip(
+        (row_names, col_names), (row_cals, col_cals), (False, True)
+    ):
         for ii in range(len(cals)):
             p = ch_names.count(names[ii])
             if p != 1:
-                raise RuntimeError('Channel %s does not appear exactly once '
-                                   'in data, found %d instance%s'
-                                   % (names[ii], p, _pl(p)))
+                raise RuntimeError(
+                    "Channel %s does not appear exactly once "
+                    "in data, found %d instance%s" % (names[ii], p, _pl(p))
+                )
             idx = ch_names.index(names[ii])
             val = chs[idx][mult_keys[0]] * chs[idx][mult_keys[1]]
-            val = float(1. / val) if inv else float(val)
-            val = 1. / val if flip else val
+            val = float(1.0 / val) if inv else float(val)
+            val = 1.0 / val if flip else val
             cals[ii] = val
-    comp['rowcals'] = row_cals
-    comp['colcals'] = col_cals
-    comp['data']['data'] = (row_cals[:, None] *
-                            comp['data']['data'] * col_cals[None, :])
+    comp["rowcals"] = row_cals
+    comp["colcals"] = col_cals
+    comp["data"]["data"] = row_cals[:, None] * comp["data"]["data"] * col_cals[None, :]
 
 
 @verbose
@@ -99,6 +101,7 @@ def _read_ctf_comp(fid, node, chs, ch_names_mapping):
         The compensation data
     """
     from .meas_info import _rename_comps
+
     ch_names_mapping = dict() if ch_names_mapping is None else ch_names_mapping
     compdata = []
     comps = dir_tree_find(node, FIFF.FIFFB_MNE_CTF_COMP_DATA)
@@ -106,22 +109,22 @@ def _read_ctf_comp(fid, node, chs, ch_names_mapping):
     for node in comps:
         #   Read the data we need
         mat = _read_named_matrix(fid, node, FIFF.FIFF_MNE_CTF_COMP_DATA)
-        for p in range(node['nent']):
-            kind = node['directory'][p].kind
-            pos = node['directory'][p].pos
+        for p in range(node["nent"]):
+            kind = node["directory"][p].kind
+            pos = node["directory"][p].pos
             if kind == FIFF.FIFF_MNE_CTF_COMP_KIND:
                 tag = read_tag(fid, pos)
                 break
         else:
-            raise Exception('Compensation type not found')
+            raise Exception("Compensation type not found")
 
         #   Get the compensation kind and map it to a simple number
         one = dict(ctfkind=tag.data.item())
         del tag
         _add_kind(one)
-        for p in range(node['nent']):
-            kind = node['directory'][p].kind
-            pos = node['directory'][p].pos
+        for p in range(node["nent"]):
+            kind = node["directory"][p].kind
+            pos = node["directory"][p].pos
             if kind == FIFF.FIFF_MNE_CTF_COMP_CALIBRATED:
                 tag = read_tag(fid, pos)
                 calibrated = tag.data
@@ -129,26 +132,27 @@ def _read_ctf_comp(fid, node, chs, ch_names_mapping):
         else:
             calibrated = False
 
-        one['save_calibrated'] = bool(calibrated)
-        one['data'] = mat
+        one["save_calibrated"] = bool(calibrated)
+        one["data"] = mat
         _rename_comps([one], ch_names_mapping)
         if not calibrated:
             #   Calibrate...
-            _calibrate_comp(one, chs, mat['row_names'], mat['col_names'])
+            _calibrate_comp(one, chs, mat["row_names"], mat["col_names"])
         else:
-            one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float64)
-            one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float64)
+            one["rowcals"] = np.ones(mat["data"].shape[0], dtype=np.float64)
+            one["colcals"] = np.ones(mat["data"].shape[1], dtype=np.float64)
 
         compdata.append(one)
 
     if len(compdata) > 0:
-        logger.info('    Read %d compensation matrices' % len(compdata))
+        logger.info("    Read %d compensation matrices" % len(compdata))
 
     return compdata
 
 
 ###############################################################################
 # Writing
+
 
 def write_ctf_comp(fid, comps):
     """Write the CTF compensation data into a fif file.
@@ -169,18 +173,20 @@ def write_ctf_comp(fid, comps):
     for comp in comps:
         start_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
         #    Write the compensation kind
-        write_int(fid, FIFF.FIFF_MNE_CTF_COMP_KIND, comp['ctfkind'])
-        if comp.get('save_calibrated', False):
-            write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED,
-                      comp['save_calibrated'])
+        write_int(fid, FIFF.FIFF_MNE_CTF_COMP_KIND, comp["ctfkind"])
+        if comp.get("save_calibrated", False):
+            write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED, comp["save_calibrated"])
 
-        if not comp.get('save_calibrated', True):
+        if not comp.get("save_calibrated", True):
             # Undo calibration
             comp = deepcopy(comp)
-            data = ((1. / comp['rowcals'][:, None]) * comp['data']['data'] *
-                    (1. / comp['colcals'][None, :]))
-            comp['data']['data'] = data
-        write_named_matrix(fid, FIFF.FIFF_MNE_CTF_COMP_DATA, comp['data'])
+            data = (
+                (1.0 / comp["rowcals"][:, None])
+                * comp["data"]["data"]
+                * (1.0 / comp["colcals"][None, :])
+            )
+            comp["data"]["data"] = data
+        write_named_matrix(fid, FIFF.FIFF_MNE_CTF_COMP_DATA, comp["data"])
         end_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
 
     end_block(fid, FIFF.FIFFB_MNE_CTF_COMP)

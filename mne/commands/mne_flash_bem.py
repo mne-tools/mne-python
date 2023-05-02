@@ -41,7 +41,7 @@ def _vararg_callback(option, opt_str, value, parser):
             break
         value.append(arg)
 
-    del parser.rargs[:len(value)]
+    del parser.rargs[: len(value)]
     setattr(parser.values, option.dest, value)
 
 
@@ -51,45 +51,103 @@ def run():
 
     parser = get_optparser(__file__)
 
-    parser.add_option("-s", "--subject", dest="subject",
-                      help="Subject name", default=None)
-    parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
-                      help="Subjects directory", default=None)
-    parser.add_option("-3", "--flash30", "--noflash30", dest="flash30",
-                      action="callback", callback=_vararg_callback,
-                      help=("The 30-degree flip angle data. If no argument do "
-                            "not use flash30. If arguments are given, them as "
-                            "file names."))
-    parser.add_option("-5", "--flash5", dest="flash5",
-                      action="callback", callback=_vararg_callback,
-                      help=("Path to the multiecho flash 5 images. "
-                            "Can be one file or one per echo."),)
-    parser.add_option("-r", "--registered", dest="registered",
-                      action="store_true", default=False,
-                      help=("Set if the Flash MRI images have already "
-                            "been registered with the T1.mgz file."))
-    parser.add_option("-n", "--noconvert", dest="noconvert",
-                      action="store_true", default=False,
-                      help=("[DEPRECATED] Assume that the Flash MRI images "
-                            "have already been converted to mgz files"))
-    parser.add_option("-u", "--unwarp", dest="unwarp",
-                      action="store_true", default=False,
-                      help=("Run grad_unwarp with -unwarp <type> "
-                            "option on each of the converted data sets"))
-    parser.add_option("-o", "--overwrite", dest="overwrite",
-                      action="store_true", default=False,
-                      help="Write over existing .surf files in bem folder")
-    parser.add_option("-v", "--view", dest="show", action="store_true",
-                      help="Show BEM model in 3D for visual inspection",
-                      default=False)
-    parser.add_option("--copy", dest="copy",
-                      help="Use copies instead of symlinks for surfaces",
-                      action="store_true")
-    parser.add_option("-p", "--flash-path", dest="flash_path",
-                      default=None,
-                      help="[DEPRECATED] The directory containing flash5.mgz "
-                      "files (defaults to "
-                      "$SUBJECTS_DIR/$SUBJECT/mri/flash/parameter_maps")
+    parser.add_option(
+        "-s", "--subject", dest="subject", help="Subject name", default=None
+    )
+    parser.add_option(
+        "-d",
+        "--subjects-dir",
+        dest="subjects_dir",
+        help="Subjects directory",
+        default=None,
+    )
+    parser.add_option(
+        "-3",
+        "--flash30",
+        "--noflash30",
+        dest="flash30",
+        action="callback",
+        callback=_vararg_callback,
+        help=(
+            "The 30-degree flip angle data. If no argument do "
+            "not use flash30. If arguments are given, them as "
+            "file names."
+        ),
+    )
+    parser.add_option(
+        "-5",
+        "--flash5",
+        dest="flash5",
+        action="callback",
+        callback=_vararg_callback,
+        help=(
+            "Path to the multiecho flash 5 images. " "Can be one file or one per echo."
+        ),
+    )
+    parser.add_option(
+        "-r",
+        "--registered",
+        dest="registered",
+        action="store_true",
+        default=False,
+        help=(
+            "Set if the Flash MRI images have already "
+            "been registered with the T1.mgz file."
+        ),
+    )
+    parser.add_option(
+        "-n",
+        "--noconvert",
+        dest="noconvert",
+        action="store_true",
+        default=False,
+        help=(
+            "[DEPRECATED] Assume that the Flash MRI images "
+            "have already been converted to mgz files"
+        ),
+    )
+    parser.add_option(
+        "-u",
+        "--unwarp",
+        dest="unwarp",
+        action="store_true",
+        default=False,
+        help=(
+            "Run grad_unwarp with -unwarp <type> "
+            "option on each of the converted data sets"
+        ),
+    )
+    parser.add_option(
+        "-o",
+        "--overwrite",
+        dest="overwrite",
+        action="store_true",
+        default=False,
+        help="Write over existing .surf files in bem folder",
+    )
+    parser.add_option(
+        "-v",
+        "--view",
+        dest="show",
+        action="store_true",
+        help="Show BEM model in 3D for visual inspection",
+        default=False,
+    )
+    parser.add_option(
+        "--copy",
+        dest="copy",
+        help="Use copies instead of symlinks for surfaces",
+        action="store_true",
+    )
+    parser.add_option(
+        "-p",
+        "--flash-path",
+        dest="flash_path",
+        default=None,
+        help="[DEPRECATED] The directory containing flash5.mgz "
+        "files (defaults to "
+        "$SUBJECTS_DIR/$SUBJECT/mri/flash/parameter_maps",
+    )
 
     options, _ = parser.parse_args()
 
@@ -111,15 +169,26 @@ def run():
 
     if options.subject is None:
         parser.print_help()
-        raise RuntimeError('The subject argument must be set')
+        raise RuntimeError("The subject argument must be set")
 
     flash5_img = convert_flash_mris(
-        subject=subject, subjects_dir=subjects_dir, flash5=flash5,
-        flash30=flash30, unwarp=unwarp, verbose=True
+        subject=subject,
+        subjects_dir=subjects_dir,
+        flash5=flash5,
+        flash30=flash30,
+        unwarp=unwarp,
+        verbose=True,
     )
-    make_flash_bem(subject=subject, subjects_dir=subjects_dir,
-                   overwrite=overwrite, show=show, copy=copy,
-                   register=register, flash5_img=flash5_img, verbose=True)
+    make_flash_bem(
+        subject=subject,
+        subjects_dir=subjects_dir,
+        overwrite=overwrite,
+        show=show,
+        copy=copy,
+        register=register,
+        flash5_img=flash5_img,
+        verbose=True,
+    )
 
 
 mne.utils.run_command_if_main()

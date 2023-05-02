@@ -21,14 +21,13 @@ from .check import check_version
 from .numerics import object_diff
 
 
-def _explain_exception(start=-1, stop=None, prefix='> '):
+def _explain_exception(start=-1, stop=None, prefix="> "):
     """Explain an exception."""
     # start=-1 means "only the most recent caller"
     etype, value, tb = sys.exc_info()
     string = traceback.format_list(traceback.extract_tb(tb)[start:stop])
-    string = (''.join(string).split('\n') +
-              traceback.format_exception_only(etype, value))
-    string = ':\n' + prefix + ('\n' + prefix).join(string)
+    string = "".join(string).split("\n") + traceback.format_exception_only(etype, value)
+    string = ":\n" + prefix + ("\n" + prefix).join(string)
     return string
 
 
@@ -45,7 +44,7 @@ class _TempDir(str):
     """
 
     def __new__(self):  # noqa: D105
-        new = str.__new__(self, tempfile.mkdtemp(prefix='tmp_mne_tempdir_'))
+        new = str.__new__(self, tempfile.mkdtemp(prefix="tmp_mne_tempdir_"))
         return new
 
     def __init__(self):  # noqa: D102
@@ -55,26 +54,27 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_version(library, min_version='0.0'):
+def requires_version(library, min_version="0.0"):
     """Check for a library version."""
     import pytest
-    reason = f'Requires {library}'
-    if min_version != '0.0':
-        reason += f' version >= {min_version}'
-    return pytest.mark.skipif(not check_version(library, min_version),
-                              reason=reason)
+
+    reason = f"Requires {library}"
+    if min_version != "0.0":
+        reason += f" version >= {min_version}"
+    return pytest.mark.skipif(not check_version(library, min_version), reason=reason)
 
 
 def requires_module(function, name, call=None):
     """Skip a test if package is not available (decorator)."""
     import pytest
-    call = ('import %s' % name) if call is None else call
-    reason = 'Test %s skipped, requires %s.' % (function.__name__, name)
+
+    call = ("import %s" % name) if call is None else call
+    reason = "Test %s skipped, requires %s." % (function.__name__, name)
     try:
         exec(call) in globals(), locals()
     except Exception as exc:
-        if len(str(exc)) > 0 and str(exc) != 'No module named %s' % name:
-            reason += ' Got exception (%s)' % (exc,)
+        if len(str(exc)) > 0 and str(exc) != "No module named %s" % name:
+            reason += " Got exception (%s)" % (exc,)
         skip = True
     else:
         skip = False
@@ -96,25 +96,27 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
     raise ImportError
 """
 
-requires_pandas = partial(requires_module, name='pandas')
-requires_pylsl = partial(requires_module, name='pylsl')
-requires_sklearn = partial(requires_module, name='sklearn')
-requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
-requires_mne_qt_browser = partial(requires_module, name='mne_qt_browser')
+requires_pandas = partial(requires_module, name="pandas")
+requires_pylsl = partial(requires_module, name="pylsl")
+requires_sklearn = partial(requires_module, name="sklearn")
+requires_mne = partial(requires_module, name="MNE-C", call=_mne_call)
+requires_mne_qt_browser = partial(requires_module, name="mne_qt_browser")
 
 
 def requires_mne_mark():
     """Mark pytest tests that require MNE-C."""
     import pytest
-    return pytest.mark.skipif(not has_mne_c(), reason='Requires MNE-C')
+
+    return pytest.mark.skipif(not has_mne_c(), reason="Requires MNE-C")
 
 
 def requires_openmeeg_mark():
     """Mark pytest tests that require OpenMEEG."""
     import pytest
+
     return pytest.mark.skipif(
-        not check_version(
-            'openmeeg', '2.5.6'), reason='Requires OpenMEEG >= 2.5.6')
+        not check_version("openmeeg", "2.5.6"), reason="Requires OpenMEEG >= 2.5.6"
+    )
 
 
 def requires_freesurfer(arg):
@@ -125,45 +127,46 @@ def requires_freesurfer(arg):
         call = """
 from . import run_subprocess
 run_subprocess([%r, '--version'])
-""" % (arg,)
-        return partial(
-            requires_module, name='Freesurfer (%s)' % (arg,), call=call)
+""" % (
+            arg,
+        )
+        return partial(requires_module, name="Freesurfer (%s)" % (arg,), call=call)
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return requires_module(arg, name='Freesurfer', call=_fs_call)
+        return requires_module(arg, name="Freesurfer", call=_fs_call)
 
 
-requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
-                               call=_n2ft_call)
+requires_neuromag2ft = partial(requires_module, name="neuromag2ft", call=_n2ft_call)
 
 requires_good_network = partial(
-    requires_module, name='good network connection',
+    requires_module,
+    name="good network connection",
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
-         '    raise ImportError')
-requires_nitime = partial(requires_module, name='nitime')
+    "    raise ImportError",
+)
+requires_nitime = partial(requires_module, name="nitime")
 # just keep this in case downstream packages need it (no coverage hit here)
-requires_h5py = partial(requires_module, name='h5py')
+requires_h5py = partial(requires_module, name="h5py")
 
 
 def requires_numpydoc(func):
     """Decorate tests that need numpydoc."""
-    return requires_version('numpydoc', '1.0')(func)  # validate needs 1.0
+    return requires_version("numpydoc", "1.0")(func)  # validate needs 1.0
 
 
 def run_command_if_main():
     """Run a given command if it's __main__."""
     local_vars = inspect.currentframe().f_back.f_locals
-    if local_vars.get('__name__', '') == '__main__':
-        local_vars['run']()
+    if local_vars.get("__name__", "") == "__main__":
+        local_vars["run"]()
 
 
 class ArgvSetter:
     """Temporarily set sys.argv."""
 
-    def __init__(self, args=(), disable_stdout=True,
-                 disable_stderr=True):  # noqa: D102
-        self.argv = list(('python',) + args)
+    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):  # noqa: D102
+        self.argv = list(("python",) + args)
         self.stdout = ClosingStringIO() if disable_stdout else sys.stdout
         self.stderr = ClosingStringIO() if disable_stderr else sys.stderr
 
@@ -201,36 +204,39 @@ class SilenceStdout:
 
 def has_mne_c():
     """Check for MNE-C."""
-    return 'MNE_ROOT' in os.environ
+    return "MNE_ROOT" in os.environ
 
 
 def has_freesurfer():
     """Check for Freesurfer."""
-    return 'FREESURFER_HOME' in os.environ
+    return "FREESURFER_HOME" in os.environ
 
 
 def buggy_mkl_svd(function):
     """Decorate tests that make calls to SVD and intermittently fail."""
+
     @wraps(function)
     def dec(*args, **kwargs):
         try:
             return function(*args, **kwargs)
         except np.linalg.LinAlgError as exp:
-            if 'SVD did not converge' in str(exp):
-                msg = 'Intel MKL SVD convergence error detected, skipping test'
+            if "SVD did not converge" in str(exp):
+                msg = "Intel MKL SVD convergence error detected, skipping test"
                 warn(msg)
                 raise SkipTest(msg)
             raise
+
     return dec
 
 
 def assert_and_remove_boundary_annot(annotations, n=1):
     """Assert that there are boundary annotations and remove them."""
     from ..io.base import BaseRaw
+
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
-    for key in ('EDGE', 'BAD'):
-        idx = np.where(annotations.description == '%s boundary' % key)[0]
+    for key in ("EDGE", "BAD"):
+        idx = np.where(annotations.description == "%s boundary" % key)[0]
         assert len(idx) == n
         annotations.delete(idx)
 
@@ -238,20 +244,21 @@ def assert_and_remove_boundary_annot(annotations, n=1):
 def assert_object_equal(a, b):
     """Assert two objects are equal."""
     d = object_diff(a, b)
-    assert d == '', d
+    assert d == "", d
 
 
 def _raw_annot(meas_date, orig_time):
     from .. import Annotations, create_info
     from ..annotations import _handle_meas_date
     from ..io import RawArray
-    info = create_info(ch_names=10, sfreq=10.)
+
+    info = create_info(ch_names=10, sfreq=10.0)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
     if meas_date is not None:
         meas_date = _handle_meas_date(meas_date)
     with raw.info._unlock(check_after=True):
-        raw.info['meas_date'] = meas_date
-    annot = Annotations([.5], [.2], ['dummy'], orig_time)
+        raw.info["meas_date"] = meas_date
+    annot = Annotations([0.5], [0.2], ["dummy"], orig_time)
     raw.set_annotations(annotations=annot)
     return raw
 
@@ -260,13 +267,14 @@ def _get_data(x, ch_idx):
     """Get the (n_ch, n_times) data array."""
     from ..evoked import Evoked
     from ..io import BaseRaw
+
     if isinstance(x, BaseRaw):
         return x[ch_idx][0]
     elif isinstance(x, Evoked):
         return x.data[ch_idx]
 
 
-def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
+def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG"):
     """Check the SNR of a set of channels."""
     actual_data = _get_data(actual, picks)
     desired_data = _get_data(desired, picks)
@@ -278,53 +286,63 @@ def _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG'):
     # min tol
     snr = snrs.min()
     bad_count = (snrs < min_tol).sum()
-    msg = ' (%s)' % msg if msg != '' else msg
-    assert bad_count == 0, ('SNR (worst %0.2f) < %0.2f for %s/%s '
-                            'channels%s' % (snr, min_tol, bad_count,
-                                            len(picks), msg))
+    msg = " (%s)" % msg if msg != "" else msg
+    assert bad_count == 0, "SNR (worst %0.2f) < %0.2f for %s/%s " "channels%s" % (
+        snr,
+        min_tol,
+        bad_count,
+        len(picks),
+        msg,
+    )
     # median tol
     snr = np.median(snrs)
-    assert snr >= med_tol, ('%s SNR median %0.2f < %0.2f%s'
-                            % (kind, snr, med_tol, msg))
+    assert snr >= med_tol, "%s SNR median %0.2f < %0.2f%s" % (kind, snr, med_tol, msg)
 
 
-def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
-                   msg=None):
+def assert_meg_snr(
+    actual, desired, min_tol, med_tol=500.0, chpi_med_tol=500.0, msg=None
+):
     """Assert channel SNR of a certain level.
 
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
     """
     from ..io.pick import pick_types
+
     picks = pick_types(desired.info, meg=True, exclude=[])
     picks_desired = pick_types(desired.info, meg=True, exclude=[])
-    assert_array_equal(picks, picks_desired, err_msg='MEG pick mismatch')
+    assert_array_equal(picks, picks_desired, err_msg="MEG pick mismatch")
     chpis = pick_types(actual.info, meg=False, chpi=True, exclude=[])
     chpis_desired = pick_types(desired.info, meg=False, chpi=True, exclude=[])
     if chpi_med_tol is not None:
-        assert_array_equal(chpis, chpis_desired, err_msg='cHPI pick mismatch')
-    others = np.setdiff1d(np.arange(len(actual.ch_names)),
-                          np.concatenate([picks, chpis]))
-    others_desired = np.setdiff1d(np.arange(len(desired.ch_names)),
-                                  np.concatenate([picks_desired,
-                                                  chpis_desired]))
-    assert_array_equal(others, others_desired, err_msg='Other pick mismatch')
+        assert_array_equal(chpis, chpis_desired, err_msg="cHPI pick mismatch")
+    others = np.setdiff1d(
+        np.arange(len(actual.ch_names)), np.concatenate([picks, chpis])
+    )
+    others_desired = np.setdiff1d(
+        np.arange(len(desired.ch_names)), np.concatenate([picks_desired, chpis_desired])
+    )
+    assert_array_equal(others, others_desired, err_msg="Other pick mismatch")
     if len(others) > 0:  # if non-MEG channels present
-        assert_allclose(_get_data(actual, others),
-                        _get_data(desired, others), atol=1e-11, rtol=1e-5,
-                        err_msg='non-MEG channel mismatch')
-    _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind='MEG')
+        assert_allclose(
+            _get_data(actual, others),
+            _get_data(desired, others),
+            atol=1e-11,
+            rtol=1e-5,
+            err_msg="non-MEG channel mismatch",
+        )
+    _check_snr(actual, desired, picks, min_tol, med_tol, msg, kind="MEG")
     if chpi_med_tol is not None and len(chpis) > 0:
-        _check_snr(actual, desired, chpis, 0., chpi_med_tol, msg, kind='cHPI')
+        _check_snr(actual, desired, chpis, 0.0, chpi_med_tol, msg, kind="cHPI")
 
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
     from scipy import linalg
-    with np.errstate(divide='ignore'):  # allow infinite
-        snr = (linalg.norm(desired, ord='fro') /
-               linalg.norm(desired - actual, ord='fro'))
-    assert snr >= tol, '%f < %f' % (snr, tol)
+
+    with np.errstate(divide="ignore"):  # allow infinite
+        snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
+    assert snr >= tol, "%f < %f" % (snr, tol)
 
 
 def assert_stcs_equal(stc1, stc2):
@@ -339,7 +357,7 @@ def assert_stcs_equal(stc1, stc2):
 
 def _dig_sort_key(dig):
     """Sort dig keys."""
-    return (dig['kind'], dig['ident'])
+    return (dig["kind"], dig["ident"])
 
 
 def assert_dig_allclose(info_py, info_bin, limit=None):
@@ -348,11 +366,12 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
     from ..io.constants import FIFF
     from ..io.meas_info import Info
     from ..channels.montage import DigMontage
+
     # test dig positions
     dig_py, dig_bin = info_py, info_bin
     if isinstance(dig_py, Info):
         assert isinstance(dig_bin, Info)
-        dig_py, dig_bin = dig_py['dig'], dig_bin['dig']
+        dig_py, dig_bin = dig_py["dig"], dig_bin["dig"]
     else:
         assert isinstance(dig_bin, DigMontage)
         assert isinstance(dig_py, DigMontage)
@@ -364,17 +383,22 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
     dig_bin = sorted(dig_bin, key=_dig_sort_key)
     assert len(dig_py) == len(dig_bin)
     for ii, (d_py, d_bin) in enumerate(zip(dig_py[:limit], dig_bin[:limit])):
-        for key in ('ident', 'kind', 'coord_frame'):
+        for key in ("ident", "kind", "coord_frame"):
             assert d_py[key] == d_bin[key], key
-        assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
-                        err_msg='Failure on %s:\n%s\n%s'
-                        % (ii, d_py['r'], d_bin['r']))
-    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and \
-            info_py is not None:
+        assert_allclose(
+            d_py["r"],
+            d_bin["r"],
+            rtol=1e-5,
+            atol=1e-5,
+            err_msg="Failure on %s:\n%s\n%s" % (ii, d_py["r"], d_bin["r"]),
+        )
+    if any(d["kind"] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and info_py is not None:
         r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(
-            info_bin, units='m', verbose='error')
+            info_bin, units="m", verbose="error"
+        )
         r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(
-            info_py, units='m', verbose='error')
+            info_py, units="m", verbose="error"
+        )
         assert_allclose(r_py, r_bin, atol=1e-6)
         assert_allclose(o_dev_py, o_dev_bin, rtol=1e-5, atol=1e-6)
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
@@ -383,10 +407,10 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
 def _click_ch_name(fig, ch_index=0, button=1):
     """Click on a channel name in a raw/epochs/ICA browse-style plot."""
     from ..viz.utils import _fake_click
+
     fig.canvas.draw()
     text = fig.mne.ax_main.get_yticklabels()[ch_index]
     bbox = text.get_window_extent()
     x = bbox.intervalx.mean()
     y = bbox.intervaly.mean()
-    _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
-                button=button)
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform="pix", button=button)

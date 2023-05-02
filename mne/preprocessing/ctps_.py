@@ -20,6 +20,7 @@ def _compute_normalized_phase(data):
         The normalized phase angles.
     """
     from scipy.signal import hilbert
+
     return (np.angle(hilbert(data)) + np.pi) / (2 * np.pi)
 
 
@@ -57,7 +58,7 @@ def ctps(data, is_raw=True):
         Engineering, IEEE Transactions on 55 (10), 2353-2362.
     """
     if not data.ndim == 3:
-        raise ValueError('Data must have 3 dimensions, not %i.' % data.ndim)
+        raise ValueError("Data must have 3 dimensions, not %i." % data.ndim)
 
     if is_raw:
         phase_angles = _compute_normalized_phase(data)
@@ -102,7 +103,7 @@ def kuiper(data, dtype=np.float64):  # noqa: D401
     n_trials = shape[0]
 
     # create uniform cdf
-    j1 = (np.arange(n_trials, dtype=dtype) + 1.) / float(n_trials)
+    j1 = (np.arange(n_trials, dtype=dtype) + 1.0) / float(n_trials)
     j2 = np.arange(n_trials, dtype=dtype) / float(n_trials)
     if n_dim > 1:  # single phase vector (n_trials)
         j1 = j1[:, np.newaxis]
@@ -116,7 +117,7 @@ def kuiper(data, dtype=np.float64):  # noqa: D401
     return d, _prob_kuiper(d, n_eff, dtype=dtype)
 
 
-def _prob_kuiper(d, n_eff, dtype='f8'):
+def _prob_kuiper(d, n_eff, dtype="f8"):
     """Test for statistical significance against uniform distribution.
 
     Parameters
@@ -142,20 +143,21 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     van Wetenschappen, ser Vol 63 pp 38-47
     """
     from scipy.special import logsumexp
+
     n_time_slices = np.size(d)  # single value or vector
     n_points = 100
 
     en = math.sqrt(n_eff)
     k_lambda = (en + 0.155 + 0.24 / en) * d  # see [1]
-    l2 = k_lambda ** 2.0
+    l2 = k_lambda**2.0
     j2 = (np.arange(n_points) + 1) ** 2
     j2 = j2.repeat(n_time_slices).reshape(n_points, n_time_slices)
-    fact = 4. * j2 * l2 - 1.
+    fact = 4.0 * j2 * l2 - 1.0
 
     # compute normalized pK value in range [0,1]
-    a = -2. * j2 * l2
-    b = 2. * fact
-    pk_norm = -logsumexp(a, b=b, axis=0) / (2. * n_eff)
+    a = -2.0 * j2 * l2
+    b = 2.0 * fact
+    pk_norm = -logsumexp(a, b=b, axis=0) / (2.0 * n_eff)
 
     # check for no difference to uniform cdf
     pk_norm = np.where(k_lambda < 0.4, 0.0, pk_norm)

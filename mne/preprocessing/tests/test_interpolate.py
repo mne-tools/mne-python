@@ -22,35 +22,43 @@ def _load_data():
     """Load data."""
     # It is more memory efficient to load data in a separate
     # function so it's loaded on-demand
-    raw = io.read_raw_fif(raw_fname).pick(['eeg', 'stim'])
+    raw = io.read_raw_fif(raw_fname).pick(["eeg", "stim"])
     events = read_events(event_name)
     # subselect channels for speed
     picks = pick_types(raw.info, meg=False, eeg=True, exclude=[])[:15]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, reject=dict(eeg=80e-6))
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        preload=True,
+        reject=dict(eeg=80e-6),
+    )
     evoked = epochs.average()
     return raw.load_data(), epochs.load_data(), evoked
 
 
-@pytest.mark.parametrize('interp_thresh', [0., 0.5, 1.])
-@pytest.mark.parametrize('inst_type', ['raw', 'epochs', 'evoked'])
+@pytest.mark.parametrize("interp_thresh", [0.0, 0.5, 1.0])
+@pytest.mark.parametrize("inst_type", ["raw", "epochs", "evoked"])
 def test_equalize_bads(interp_thresh, inst_type):
     """Test equalize_bads function."""
     raw, epochs, evoked = _load_data()
 
-    if inst_type == 'raw':
+    if inst_type == "raw":
         insts = [raw.copy().crop(0, 1), raw.copy().crop(0, 2)]
-    elif inst_type == 'epochs':
+    elif inst_type == "epochs":
         insts = [epochs.copy()[:1], epochs.copy()[:2]]
     else:
         insts = [evoked.copy().crop(0, 0.1), raw.copy().crop(0, 0.2)]
 
-    with pytest.raises(ValueError, match='between 0'):
-        equalize_bads(insts, interp_thresh=2.)
+    with pytest.raises(ValueError, match="between 0"):
+        equalize_bads(insts, interp_thresh=2.0)
 
-    bads = insts[0].copy().pick('eeg').ch_names[:3]
-    insts[0].info['bads'] = bads[:2]
-    insts[1].info['bads'] = bads[1:]
+    bads = insts[0].copy().pick("eeg").ch_names[:3]
+    insts[0].info["bads"] = bads[:2]
+    insts[1].info["bads"] = bads[1:]
 
     insts_ok = equalize_bads(insts, interp_thresh=interp_thresh)
     if interp_thresh == 0:
@@ -61,55 +69,56 @@ def test_equalize_bads(interp_thresh, inst_type):
         bads_ok = bads[1:]
 
     for inst in insts_ok:
-        assert set(inst.info['bads']) == set(bads_ok)
+        assert set(inst.info["bads"]) == set(bads_ok)
 
 
 def test_interpolate_bridged_electrodes():
     """Test interpolate_bridged_electrodes function."""
     raw, epochs, evoked = _load_data()
     for inst in (raw, epochs, evoked):
-        idx0 = inst.ch_names.index('EEG 001')
-        idx1 = inst.ch_names.index('EEG 002')
+        idx0 = inst.ch_names.index("EEG 001")
+        idx1 = inst.ch_names.index("EEG 002")
         ch_names_orig = inst.ch_names.copy()
-        bads_orig = inst.info['bads'].copy()
+        bads_orig = inst.info["bads"].copy()
         inst2 = inst.copy()
-        inst2.info['bads'] = ['EEG 001', 'EEG 002']
+        inst2.info["bads"] = ["EEG 001", "EEG 002"]
         inst2.interpolate_bads()
-        data_interp_reg = inst2.get_data(picks=['EEG 001', 'EEG 002'])
+        data_interp_reg = inst2.get_data(picks=["EEG 001", "EEG 002"])
         inst = interpolate_bridged_electrodes(inst, [(idx0, idx1)])
-        data_interp = inst.get_data(picks=['EEG 001', 'EEG 002'])
-        assert not any(['virtual' in ch for ch in inst.ch_names])
+        data_interp = inst.get_data(picks=["EEG 001", "EEG 002"])
+        assert not any(["virtual" in ch for ch in inst.ch_names])
         assert inst.ch_names == ch_names_orig
-        assert inst.info['bads'] == bads_orig
+        assert inst.info["bads"] == bads_orig
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
     for inst in (raw, epochs, evoked):
-        idx0 = inst.ch_names.index('EEG 001')
-        idx1 = inst.ch_names.index('EEG 002')
-        idx2 = inst.ch_names.index('EEG 003')
+        idx0 = inst.ch_names.index("EEG 001")
+        idx1 = inst.ch_names.index("EEG 002")
+        idx2 = inst.ch_names.index("EEG 003")
         ch_names_orig = inst.ch_names.copy()
-        bads_orig = inst.info['bads'].copy()
+        bads_orig = inst.info["bads"].copy()
         inst2 = inst.copy()
-        inst2.info['bads'] = ['EEG 001', 'EEG 002', 'EEG 003']
+        inst2.info["bads"] = ["EEG 001", "EEG 002", "EEG 003"]
         inst2.interpolate_bads()
-        data_interp_reg = inst2.get_data(
-            picks=['EEG 001', 'EEG 002', 'EEG 003']
-        )
+        data_interp_reg = inst2.get_data(picks=["EEG 001", "EEG 002", "EEG 003"])
         inst = interpolate_bridged_electrodes(
             inst, [(idx0, idx1), (idx0, idx2), (idx1, idx2)]
         )
-        data_interp = inst.get_data(picks=['EEG 001', 'EEG 002', 'EEG 003'])
-        assert not any(['virtual' in ch for ch in inst.ch_names])
+        data_interp = inst.get_data(picks=["EEG 001", "EEG 002", "EEG 003"])
+        assert not any(["virtual" in ch for ch in inst.ch_names])
         assert inst.ch_names == ch_names_orig
-        assert inst.info['bads'] == bads_orig
+        assert inst.info["bads"] == bads_orig
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
     # test bad_limit
     montage = make_standard_montage("standard_1020")
-    ch_names = [ch for ch in montage.ch_names
-                if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]]
+    ch_names = [
+        ch
+        for ch in montage.ch_names
+        if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]
+    ]
     info = create_info(ch_names, sfreq=1024, ch_types="eeg")
     data = np.random.randn(len(ch_names), 1024)
     data[:5, :] = np.ones((5, 1024))
@@ -119,15 +128,14 @@ def test_interpolate_bridged_electrodes():
     with pytest.raises(
         RuntimeError,
         match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
-        "together and form a large area of bridged electrodes."
+        "together and form a large area of bridged electrodes.",
     ):
         interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=4)
     # increase the limit to prevent raising
     interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=5)
     # invalid argument
     with pytest.raises(
-        ValueError,
-        match="Argument 'bad_limit' should be a strictly positive integer."
+        ValueError, match="Argument 'bad_limit' should be a strictly positive integer."
     ):
         interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=-4)
 
@@ -135,8 +143,11 @@ def test_interpolate_bridged_electrodes():
 def test_find_centroid():
     """Test that the centroid is correct."""
     montage = make_standard_montage("standard_1020")
-    ch_names = [ch for ch in montage.ch_names
-                if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]]
+    ch_names = [
+        ch
+        for ch in montage.ch_names
+        if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]
+    ]
     info = create_info(ch_names, sfreq=1024, ch_types="eeg")
     info.set_montage(montage)
     montage = info.get_montage()
@@ -151,13 +162,19 @@ def test_find_centroid():
     _check_centroid_position(pos, ch_names, pos_centroid)
 
     # check other positions
-    pairs = [("CPz", "CP2"), ("CPz", "Cz"), ("Fpz", "AFz"), ("AF7", "F7"),
-             ("O1", "O2"), ("M2", "A2"), ("P5", "P9")]
+    pairs = [
+        ("CPz", "CP2"),
+        ("CPz", "Cz"),
+        ("Fpz", "AFz"),
+        ("AF7", "F7"),
+        ("O1", "O2"),
+        ("M2", "A2"),
+        ("P5", "P9"),
+    ]
     for ch_names in pairs:
         pos_centroid = _find_centroid_sphere(pos["ch_pos"], ch_names)
         _check_centroid_position(pos, ch_names, pos_centroid)
-    triplets = [("CPz", "Cz", "FCz"), ("AF9", "Fpz", "AF10"),
-                ("FT10", "FT8", "T10")]
+    triplets = [("CPz", "Cz", "FCz"), ("AF9", "Fpz", "AF10"), ("FT10", "FT8", "T10")]
     for ch_names in triplets:
         pos_centroid = _find_centroid_sphere(pos["ch_pos"], ch_names)
         _check_centroid_position(pos, ch_names, pos_centroid)

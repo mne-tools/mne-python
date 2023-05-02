@@ -29,8 +29,9 @@ def _temp_proj(ref_2, ref_1, raw_data, n_proj=6):
 
 
 @verbose
-def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
-                                grad_picks=None, n_proj=6, *, verbose=None):
+def cortical_signal_suppression(
+    evoked, picks=None, mag_picks=None, grad_picks=None, n_proj=6, *, verbose=None
+):
     """Apply cortical signal suppression (CSS) to evoked data.
 
     Parameters
@@ -68,14 +69,11 @@ def cortical_signal_suppression(evoked, picks=None, mag_picks=None,
     ----------
     .. footbibliography::
     """
-    _validate_type(evoked, Evoked, 'evoked')
-    n_proj = _ensure_int(n_proj, 'n_proj')
-    picks = _picks_to_idx(
-        evoked.info, picks, none='data', exclude='bads')
-    mag_picks = _picks_to_idx(
-        evoked.info, mag_picks, none='mag', exclude='bads')
-    grad_picks = _picks_to_idx(
-        evoked.info, grad_picks, none='grad', exclude='bads')
+    _validate_type(evoked, Evoked, "evoked")
+    n_proj = _ensure_int(n_proj, "n_proj")
+    picks = _picks_to_idx(evoked.info, picks, none="data", exclude="bads")
+    mag_picks = _picks_to_idx(evoked.info, mag_picks, none="mag", exclude="bads")
+    grad_picks = _picks_to_idx(evoked.info, grad_picks, none="grad", exclude="bads")
     evoked_subcortical = evoked.copy()
 
     # Get data
