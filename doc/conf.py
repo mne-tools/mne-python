@@ -461,7 +461,7 @@ class Resetter(object):
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
-        plt.rcParams["animation.embed_limit"] = 30.0
+        plt.rcParams["animation.embed_limit"] = 40.0
         plt.rcParams["figure.raise_window"] = False
         # neo holds on to an exception, which in turn holds a stack frame,
         # which will keep alive the global vars during SG execution

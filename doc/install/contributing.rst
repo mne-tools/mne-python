@@ -282,11 +282,12 @@ Then make a local clone of your remote fork (``origin``)::
     $ git clone https://github.com/$GITHUB_USERNAME/mne-python.git
 
 Finally, set up a link between your local clone and the official repository
-(``upstream``)::
+(``upstream``) and set up ``git diff`` to work properly::
 
     $ cd mne-python
     $ git remote add upstream https://github.com/mne-tools/mne-python.git
     $ git fetch --all
+    $ git config --local blame.ignoreRevsFile .git-blame-ignore-revs
 
 Now we'll remove the *stable* version of MNE-Python and replace it with the
 *development* version (the clone we just created with git). Make sure you're in
