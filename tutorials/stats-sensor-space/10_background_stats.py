@@ -23,8 +23,13 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa, analysis:ignore
 
 import mne
-from mne.stats import (ttest_1samp_no_p, bonferroni_correction, fdr_correction,
-                       permutation_t_test, permutation_cluster_1samp_test)
+from mne.stats import (
+    ttest_1samp_no_p,
+    bonferroni_correction,
+    fdr_correction,
+    permutation_t_test,
+    permutation_cluster_1samp_test,
+)
 
 # %%
 # Hypothesis testing
@@ -52,7 +57,7 @@ signal_sd = 100
 noise_sd = 0.01
 gaussian_sd = 5
 sigma = 1e-3  # sigma for the "hat" method
-n_permutations = 'all'  # run an exact test
+n_permutations = "all"  # run an exact test
 n_src = width * width
 
 # For each "subject", make a smoothed noisy signal with a centered peak
@@ -62,18 +67,18 @@ X = noise_sd * rng.randn(n_subjects, width, width)
 X[:, width // 2, width // 2] = signal_mean + rng.randn(n_subjects) * signal_sd
 # Spatially smooth with a 2D Gaussian kernel
 size = width // 2 - 1
-gaussian = np.exp(-(np.arange(-size, size + 1) ** 2 / float(gaussian_sd ** 2)))
+gaussian = np.exp(-(np.arange(-size, size + 1) ** 2 / float(gaussian_sd**2)))
 for si in range(X.shape[0]):
     for ri in range(X.shape[1]):
-        X[si, ri, :] = np.convolve(X[si, ri, :], gaussian, 'same')
+        X[si, ri, :] = np.convolve(X[si, ri, :], gaussian, "same")
     for ci in range(X.shape[2]):
-        X[si, :, ci] = np.convolve(X[si, :, ci], gaussian, 'same')
+        X[si, :, ci] = np.convolve(X[si, :, ci], gaussian, "same")
 
 # %%
 # The data averaged over all subjects looks like this:
 
 fig, ax = plt.subplots()
-ax.imshow(X.mean(0), cmap='inferno')
+ax.imshow(X.mean(0), cmap="inferno")
 ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 
 # %%
@@ -108,7 +113,7 @@ ax.set(xticks=[], yticks=[], title="Data averaged over subjects")
 # (:math:`40 \cdot 40 = 1600`), applying the paired t-test is called a
 # *mass-univariate* approach as it treats each voxel independently.
 
-titles = ['t']
+titles = ["t"]
 out = stats.ttest_1samp(X, 0, axis=0)
 ts = [out[0]]
 ps = [out[1]]
@@ -118,7 +123,7 @@ mccs = [False]  # these are not multiple-comparisons corrected
 def plot_t_p(t, p, title, mcc, axes=None):
     if axes is None:
         fig = plt.figure(figsize=(6, 3))
-        axes = [fig.add_subplot(121, projection='3d'), fig.add_subplot(122)]
+        axes = [fig.add_subplot(121, projection="3d"), fig.add_subplot(122)]
         show = True
     else:
         show = False
@@ -131,37 +136,59 @@ def plot_t_p(t, p, title, mcc, axes=None):
 
     # t plot
     x, y = np.mgrid[0:width, 0:width]
-    surf = axes[0].plot_surface(x, y, np.reshape(t, (width, width)),
-                                rstride=1, cstride=1, linewidth=0,
-                                vmin=t_lims[0], vmax=t_lims[1], cmap='viridis')
-    axes[0].set(xticks=[], yticks=[], zticks=[],
-                xlim=[0, width - 1], ylim=[0, width - 1])
+    surf = axes[0].plot_surface(
+        x,
+        y,
+        np.reshape(t, (width, width)),
+        rstride=1,
+        cstride=1,
+        linewidth=0,
+        vmin=t_lims[0],
+        vmax=t_lims[1],
+        cmap="viridis",
+    )
+    axes[0].set(
+        xticks=[], yticks=[], zticks=[], xlim=[0, width - 1], ylim=[0, width - 1]
+    )
     axes[0].view_init(30, 15)
-    cbar = plt.colorbar(ax=axes[0], shrink=0.75, orientation='horizontal',
-                        fraction=0.1, pad=0.025, mappable=surf)
+    cbar = plt.colorbar(
+        ax=axes[0],
+        shrink=0.75,
+        orientation="horizontal",
+        fraction=0.1,
+        pad=0.025,
+        mappable=surf,
+    )
     cbar.set_ticks(t_lims)
-    cbar.set_ticklabels(['%0.1f' % t_lim for t_lim in t_lims])
-    cbar.set_label('t-value')
+    cbar.set_ticklabels(["%0.1f" % t_lim for t_lim in t_lims])
+    cbar.set_label("t-value")
     cbar.ax.get_xaxis().set_label_coords(0.5, -0.3)
     if not show:
         axes[0].set(title=title)
         if mcc:
-            axes[0].title.set_weight('bold')
+            axes[0].title.set_weight("bold")
     # p plot
     use_p = -np.log10(np.reshape(np.maximum(p, 1e-5), (width, width)))
-    img = axes[1].imshow(use_p, cmap='inferno', vmin=p_lims[0], vmax=p_lims[1],
-                         interpolation='nearest')
+    img = axes[1].imshow(
+        use_p, cmap="inferno", vmin=p_lims[0], vmax=p_lims[1], interpolation="nearest"
+    )
     axes[1].set(xticks=[], yticks=[])
-    cbar = plt.colorbar(ax=axes[1], shrink=0.75, orientation='horizontal',
-                        fraction=0.1, pad=0.025, mappable=img)
+    cbar = plt.colorbar(
+        ax=axes[1],
+        shrink=0.75,
+        orientation="horizontal",
+        fraction=0.1,
+        pad=0.025,
+        mappable=img,
+    )
     cbar.set_ticks(p_lims)
-    cbar.set_ticklabels(['%0.1f' % p_lim for p_lim in p_lims])
-    cbar.set_label(r'$-\log_{10}(p)$')
+    cbar.set_ticklabels(["%0.1f" % p_lim for p_lim in p_lims])
+    cbar.set_label(r"$-\log_{10}(p)$")
     cbar.ax.get_xaxis().set_label_coords(0.5, -0.3)
     if show:
         text = fig.suptitle(title)
         if mcc:
-            text.set_weight('bold')
+            text.set_weight("bold")
         plt.subplots_adjust(0, 0.05, 1, 0.9, wspace=0, hspace=0)
         mne.viz.utils.plt_show()
 
@@ -176,7 +203,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # variances.
 ts.append(ttest_1samp_no_p(X, sigma=sigma))
 ps.append(stats.distributions.t.sf(np.abs(ts[-1]), len(X) - 1) * 2)
-titles.append(r'$\mathrm{t_{hat}}$')
+titles.append(r"$\mathrm{t_{hat}}$")
 mccs.append(False)
 plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
@@ -218,7 +245,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # a permutation test without correcting for multiple comparisons:
 
 X.shape = (n_subjects, n_src)  # flatten the array for simplicity
-titles.append('Permutation')
+titles.append("Permutation")
 ts.append(np.zeros(width * width))
 ps.append(np.zeros(width * width))
 mccs.append(False)
@@ -261,8 +288,12 @@ alpha = 0.05
 p_type_I = 1 - (1 - alpha) ** N
 fig, ax = plt.subplots(figsize=(4, 3))
 ax.scatter(N, p_type_I, 3)
-ax.set(xlim=N[[0, -1]], ylim=[0, 1], xlabel=r'$N_{\mathrm{test}}$',
-       ylabel='Probability of at least\none type I error')
+ax.set(
+    xlim=N[[0, -1]],
+    ylim=[0, 1],
+    xlabel=r"$N_{\mathrm{test}}$",
+    ylabel="Probability of at least\none type I error",
+)
 ax.grid(True)
 fig.tight_layout()
 fig.show()
@@ -295,7 +326,7 @@ fig.show()
 # conservatively multiplies the p-values by the number of comparisons to
 # control the FWER.
 
-titles.append('Bonferroni')
+titles.append("Bonferroni")
 ts.append(ts[-1])
 ps.append(bonferroni_correction(ps[0])[1])
 mccs.append(True)
@@ -309,7 +340,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # comparisons (fewer type II errors), but provides less strict control of type
 # I errors.
 
-titles.append('FDR')
+titles.append("FDR")
 ts.append(ts[-1])
 ps.append(fdr_correction(ps[0])[1])
 mccs.append(True)
@@ -337,7 +368,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 #    (which do hold for this example, but do not in general for some types
 #    of processed neuroimaging data).
 
-titles.append(r'$\mathbf{Perm_{max}}$')
+titles.append(r"$\mathbf{Perm_{max}}$")
 out = permutation_t_test(X, verbose=False)[:2]
 ts.append(out[0])
 ps.append(out[1])
@@ -429,6 +460,7 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # :mod:`sklearn.feature_extraction` provides a convenient function for this:
 
 from sklearn.feature_extraction.image import grid_to_graph  # noqa: E402
+
 mini_adjacency = grid_to_graph(3, 3).toarray()
 assert mini_adjacency.shape == (9, 9)
 print(mini_adjacency[0])
@@ -450,7 +482,7 @@ print(mini_adjacency[0])
 
 builtin_ch_adj = mne.channels.get_builtin_ch_adjacencies(descriptions=True)
 for adj_name, adj_description in builtin_ch_adj:
-    print(f'{adj_name}: {adj_description}')
+    print(f"{adj_name}: {adj_description}")
 
 # %%
 # These built-in channel adjacency matrices can be loaded via
@@ -461,7 +493,7 @@ for adj_name, adj_description in builtin_ch_adj:
 # Here, since our data are on a grid, we can use ``adjacency=None`` to
 # trigger optimized grid-based code, and run the clustering algorithm.
 
-titles.append('Clustering')
+titles.append("Clustering")
 
 # Reshape data to what is equivalent to (n_samples, n_space, n_time)
 X.shape = (n_subjects, width, width)
@@ -475,8 +507,13 @@ t_thresh = stats.distributions.t.ppf(1 - alpha / 2, df=df)
 
 # run the cluster test
 t_clust, clusters, p_values, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=None, threshold=t_thresh, adjacency=None,
-    n_permutations=n_permutations, out_type='mask')
+    X,
+    n_jobs=None,
+    threshold=t_thresh,
+    adjacency=None,
+    n_permutations=n_permutations,
+    out_type="mask",
+)
 
 # Put the cluster data in a viewable format
 p_clust = np.ones((width, width))
@@ -492,11 +529,18 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # This method can also be used in this context to correct for small
 # variances :footcite:`RidgwayEtAl2012`:
-titles.append(r'$\mathbf{C_{hat}}$')
+titles.append(r"$\mathbf{C_{hat}}$")
 stat_fun_hat = partial(ttest_1samp_no_p, sigma=sigma)
 t_hat, clusters, p_values, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=None, threshold=t_thresh, adjacency=None, out_type='mask',
-    n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
+    X,
+    n_jobs=None,
+    threshold=t_thresh,
+    adjacency=None,
+    out_type="mask",
+    n_permutations=n_permutations,
+    stat_fun=stat_fun_hat,
+    buffer_size=None,
+)
 p_hat = np.ones((width, width))
 for cl, p in zip(clusters, p_values):
     p_hat[cl] = p
@@ -528,11 +572,16 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # than clusters. This allows for evaluation of each point
 # independently for significance rather than only as cluster groups.
 
-titles.append(r'$\mathbf{C_{TFCE}}$')
+titles.append(r"$\mathbf{C_{TFCE}}$")
 threshold_tfce = dict(start=0, step=0.2)
 t_tfce, _, p_tfce, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=None, threshold=threshold_tfce, adjacency=None,
-    n_permutations=n_permutations, out_type='mask')
+    X,
+    n_jobs=None,
+    threshold=threshold_tfce,
+    adjacency=None,
+    n_permutations=n_permutations,
+    out_type="mask",
+)
 ts.append(t_tfce)
 ps.append(p_tfce)
 mccs.append(True)
@@ -540,10 +589,17 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 
 # %%
 # We can also combine TFCE and the "hat" correction:
-titles.append(r'$\mathbf{C_{hat,TFCE}}$')
+titles.append(r"$\mathbf{C_{hat,TFCE}}$")
 t_tfce_hat, _, p_tfce_hat, H0 = permutation_cluster_1samp_test(
-    X, n_jobs=None, threshold=threshold_tfce, adjacency=None, out_type='mask',
-    n_permutations=n_permutations, stat_fun=stat_fun_hat, buffer_size=None)
+    X,
+    n_jobs=None,
+    threshold=threshold_tfce,
+    adjacency=None,
+    out_type="mask",
+    n_permutations=n_permutations,
+    stat_fun=stat_fun_hat,
+    buffer_size=None,
+)
 ts.append(t_tfce_hat)
 ps.append(p_tfce_hat)
 mccs.append(True)
@@ -556,11 +612,13 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # and the bottom shows p-values for various statistical tests, with the ones
 # with proper control over FWER or FDR with bold titles.
 
-fig = plt.figure(facecolor='w', figsize=(14, 3))
+fig = plt.figure(facecolor="w", figsize=(14, 3))
 assert len(ts) == len(titles) == len(ps)
 for ii in range(len(ts)):
-    ax = [fig.add_subplot(2, 10, ii + 1, projection='3d'),
-          fig.add_subplot(2, 10, 11 + ii)]
+    ax = [
+        fig.add_subplot(2, 10, ii + 1, projection="3d"),
+        fig.add_subplot(2, 10, 11 + ii),
+    ]
     plot_t_p(ts[ii], ps[ii], titles[ii], mccs[ii], ax)
 fig.tight_layout(pad=0, w_pad=0.05, h_pad=0.1)
 plt.show()

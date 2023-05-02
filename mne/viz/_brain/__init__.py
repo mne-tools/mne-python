@@ -13,4 +13,4 @@ from ._brain import Brain, _LayeredMesh
 from ._scraper import _BrainScraper
 from ._linkviewer import _LinkViewer
 
-__all__ = ['Brain']
+__all__ = ["Brain"]

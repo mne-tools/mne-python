@@ -57,7 +57,7 @@ stages:
       displayName: Install dependencies
     - bash: |
         make pre-commit
-      displayName: make ruff
+      displayName: make pre-commit
       condition: always()
     - bash: |
         make nesting

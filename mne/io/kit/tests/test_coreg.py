@@ -26,11 +26,11 @@ def test_io_mrk(tmp_path):
 
     # pickle
     fname = tmp_path / "mrk.pickled"
-    with open(fname, 'wb') as fid:
+    with open(fname, "wb") as fid:
         pickle.dump(dict(mrk=pts), fid)
     pts_2 = read_mrk(fname)
     assert_array_equal(pts_2, pts, "pickle mrk")
-    with open(fname, 'wb') as fid:
+    with open(fname, "wb") as fid:
         pickle.dump(dict(), fid)
     pytest.raises(ValueError, read_mrk, fname)
 

@@ -15,12 +15,22 @@ from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
-BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/'  # noqa: E501
+BASE_URL = (
+    "https://physionet.org/physiobank/database/sleep-edfx/sleep-cassette/"  # noqa: E501
+)
 
 
 @verbose
-def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
-               base_url=BASE_URL, on_missing='raise', *, verbose=None):  # noqa: D301, E501
+def fetch_data(
+    subjects,
+    recording=(1, 2),
+    path=None,
+    force_update=False,
+    base_url=BASE_URL,
+    on_missing="raise",
+    *,
+    verbose=None
+):  # noqa: D301, E501
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
@@ -84,46 +94,53 @@ def fetch_data(subjects, recording=(1, 2), path=None, force_update=False,
     .. footbibliography::
     """  # noqa: E501
     t0 = time.time()
-    records = np.loadtxt(AGE_SLEEP_RECORDS,
-                         skiprows=1,
-                         delimiter=',',
-                         usecols=(0, 1, 2, 6, 7),
-                         dtype={'names': ('subject', 'record', 'type', 'sha',
-                                          'fname'),
-                                'formats': ('<i2', 'i1', '<S9', 'S40', '<S22')}
-                         )
-    psg_records = records[np.where(records['type'] == b'PSG')]
-    hyp_records = records[np.where(records['type'] == b'Hypnogram')]
+    records = np.loadtxt(
+        AGE_SLEEP_RECORDS,
+        skiprows=1,
+        delimiter=",",
+        usecols=(0, 1, 2, 6, 7),
+        dtype={
+            "names": ("subject", "record", "type", "sha", "fname"),
+            "formats": ("<i2", "i1", "<S9", "S40", "<S22"),
+        },
+    )
+    psg_records = records[np.where(records["type"] == b"PSG")]
+    hyp_records = records[np.where(records["type"] == b"Hypnogram")]
 
     path = data_path(path=path)
     params = [path, force_update, base_url]
 
-    _check_subjects(
-        subjects, 83, missing=[39, 68, 69, 78, 79], on_missing=on_missing)
+    _check_subjects(subjects, 83, missing=[39, 68, 69, 78, 79], on_missing=on_missing)
 
     # Check for missing recordings
     if set(subjects) & {36, 52} and 1 in recording:
-        msg = ('Requested recording 1 for subject 36 and/or 52, but it is not '
-               'available in corpus.')
+        msg = (
+            "Requested recording 1 for subject 36 and/or 52, but it is not "
+            "available in corpus."
+        )
         _on_missing(on_missing, msg)
     if 13 in subjects and 2 in recording:
-        msg = ('Requested recording 2 for subject 13, but it is not available '
-               'in corpus.')
+        msg = (
+            "Requested recording 2 for subject 13, but it is not available "
+            "in corpus."
+        )
         _on_missing(on_missing, msg)
 
     fnames = []
     sz = 0
     for subject in subjects:
-        for idx in np.where(psg_records['subject'] == subject)[0]:
-            if psg_records['record'][idx] in recording:
+        for idx in np.where(psg_records["subject"] == subject)[0]:
+            if psg_records["record"][idx] in recording:
                 psg_fname, pdl = _fetch_one(
-                    psg_records['fname'][idx].decode(),
-                    psg_records['sha'][idx].decode(),
-                    *params)
+                    psg_records["fname"][idx].decode(),
+                    psg_records["sha"][idx].decode(),
+                    *params
+                )
                 hyp_fname, hdl = _fetch_one(
-                    hyp_records['fname'][idx].decode(),
-                    hyp_records['sha'][idx].decode(),
-                    *params)
+                    hyp_records["fname"][idx].decode(),
+                    hyp_records["sha"][idx].decode(),
+                    *params
+                )
                 fnames.append([psg_fname, hyp_fname])
                 if pdl:
                     sz += os.path.getsize(psg_fname)

@@ -18,8 +18,10 @@ how artifact correction techniques attempt to correct the data.
 import os
 import mne
 
-from mne.preprocessing.nirs import (optical_density,
-                                    temporal_derivative_distribution_repair)
+from mne.preprocessing.nirs import (
+    optical_density,
+    temporal_derivative_distribution_repair,
+)
 
 # %%
 # Import data
@@ -31,12 +33,13 @@ from mne.preprocessing.nirs import (optical_density,
 # and plot these signals.
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, 'Participant-1')
+fnirs_cw_amplitude_dir = os.path.join(fnirs_data_folder, "Participant-1")
 raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
 raw_intensity.load_data().resample(3, npad="auto")
 raw_od = optical_density(raw_intensity)
-new_annotations = mne.Annotations([31, 187, 317], [8, 8, 8],
-                                  ["Movement", "Movement", "Movement"])
+new_annotations = mne.Annotations(
+    [31, 187, 317], [8, 8, 8], ["Movement", "Movement", "Movement"]
+)
 raw_od.set_annotations(new_annotations)
 raw_od.plot(n_channels=15, duration=400, show_scrollbars=False)
 
@@ -61,10 +64,10 @@ raw_od.plot(n_channels=15, duration=400, show_scrollbars=False)
 corrupted_data = raw_od.get_data()
 corrupted_data[:, 298:302] = corrupted_data[:, 298:302] - 0.06
 corrupted_data[:, 450:750] = corrupted_data[:, 450:750] + 0.03
-corrupted_od = mne.io.RawArray(corrupted_data, raw_od.info,
-                               first_samp=raw_od.first_samp)
-new_annotations.append([95, 145, 245], [10, 10, 10],
-                       ["Spike", "Baseline", "Baseline"])
+corrupted_od = mne.io.RawArray(
+    corrupted_data, raw_od.info, first_samp=raw_od.first_samp
+)
+new_annotations.append([95, 145, 245], [10, 10, 10], ["Spike", "Baseline", "Baseline"])
 corrupted_od.set_annotations(new_annotations)
 
 corrupted_od.plot(n_channels=15, duration=400, show_scrollbars=False)

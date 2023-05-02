@@ -43,41 +43,46 @@ def _check_orig_units(orig_units):
     valid_units_lowered = [unit.lower() for unit in valid_units]
     orig_units_remapped = dict(orig_units)
     for ch_name, unit in orig_units.items():
-
         # Be lenient: we ignore case for now.
         if unit.lower() in valid_units_lowered:
             continue
 
         # Common "invalid units" can be remapped to their valid equivalent
         remap_dict = dict()
-        remap_dict['uv'] = 'µV'
-        remap_dict['μv'] = 'µV'  # greek letter mu vs micro sign. use micro
-        remap_dict['\x83\xeav'] = 'µV'  # for shift-jis mu, use micro
+        remap_dict["uv"] = "µV"
+        remap_dict["μv"] = "µV"  # greek letter mu vs micro sign. use micro
+        remap_dict["\x83\xeav"] = "µV"  # for shift-jis mu, use micro
         if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue
 
         # Some units cannot be saved, they are invalid: assign "n/a"
-        orig_units_remapped[ch_name] = 'n/a'
+        orig_units_remapped[ch_name] = "n/a"
 
     return orig_units_remapped
 
 
-def _find_channels(ch_names, ch_type='EOG'):
+def _find_channels(ch_names, ch_type="EOG"):
     """Find EOG channel."""
     substrings = (ch_type,)
     substrings = [s.upper() for s in substrings]
-    if ch_type == 'EOG':
-        substrings = ('EOG', 'EYE')
-    eog_idx = [idx for idx, ch in enumerate(ch_names) if
-               any(substring in ch.upper() for substring in substrings)]
+    if ch_type == "EOG":
+        substrings = ("EOG", "EYE")
+    eog_idx = [
+        idx
+        for idx, ch in enumerate(ch_names)
+        if any(substring in ch.upper() for substring in substrings)
+    ]
     return eog_idx
 
 
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store."""
     one = np.asarray(one, dtype=data_view.dtype)
-    assert data_view.shape[1] == one.shape[1], (data_view.shape[1], one.shape[1])  # noqa: E501
+    assert data_view.shape[1] == one.shape[1], (
+        data_view.shape[1],
+        one.shape[1],
+    )  # noqa: E501
     if mult is not None:
         mult.ndim == one.ndim == 2
         data_view[:] = mult @ one[idx]
@@ -160,7 +165,7 @@ def _blk_read_lims(start, stop, buf_len):
     """  # noqa: E501
     # this is used to deal with indexing in the middle of a sampling period
     assert all(isinstance(x, int) for x in (start, stop, buf_len))
-    block_start_idx = (start // buf_len)
+    block_start_idx = start // buf_len
     block_start = block_start_idx * buf_len
     last_used_samp = stop - 1
     block_stop = last_used_samp - last_used_samp % buf_len + buf_len
@@ -192,16 +197,28 @@ def _blk_read_lims(start, stop, buf_len):
 
 def _file_size(fname):
     """Get the file size in bytes."""
-    with open(fname, 'rb') as f:
+    with open(fname, "rb") as f:
         f.seek(0, os.SEEK_END)
         return f.tell()
 
 
-def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
-                        dtype, n_channels=None, offset=0, trigger_ch=None):
+def _read_segments_file(
+    raw,
+    data,
+    idx,
+    fi,
+    start,
+    stop,
+    cals,
+    mult,
+    dtype,
+    n_channels=None,
+    offset=0,
+    trigger_ch=None,
+):
     """Read a chunk of raw data."""
     if n_channels is None:
-        n_channels = raw._raw_extras[fi]['orig_nchan']
+        n_channels = raw._raw_extras[fi]["orig_nchan"]
 
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),
@@ -212,17 +229,19 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
     # Read up to 100 MB of data at a time, block_size is in data samples
     block_size = ((int(100e6) // n_bytes) // n_channels) * n_channels
     block_size = min(data_left, block_size)
-    with open(raw._filenames[fi], 'rb', buffering=0) as fid:
+    with open(raw._filenames[fi], "rb", buffering=0) as fid:
         fid.seek(data_offset)
         # extract data in chunks
         for sample_start in np.arange(0, data_left, block_size) // n_channels:
             count = min(block_size, data_left - sample_start * n_channels)
             block = np.fromfile(fid, dtype, count)
             if block.size != count:
-                raise RuntimeError('Incorrect number of samples (%s != %s), '
-                                   'please report this error to MNE-Python '
-                                   'developers' % (block.size, count))
-            block = block.reshape(n_channels, -1, order='F')
+                raise RuntimeError(
+                    "Incorrect number of samples (%s != %s), "
+                    "please report this error to MNE-Python "
+                    "developers" % (block.size, count)
+                )
+            block = block.reshape(n_channels, -1, order="F")
             n_samples = block.shape[1]  # = count // n_channels
             sample_stop = sample_start + n_samples
             if trigger_ch is not None:
@@ -234,13 +253,12 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
 
 def read_str(fid, count=1):
     """Read string from a binary file in a python version compatible way."""
-    dtype = np.dtype('>S%i' % count)
+    dtype = np.dtype(">S%i" % count)
     string = fid.read(dtype.itemsize)
     data = np.frombuffer(string, dtype=dtype)[0]
-    bytestr = b''.join([data[0:data.index(b'\x00') if
-                             b'\x00' in data else count]])
+    bytestr = b"".join([data[0 : data.index(b"\x00") if b"\x00" in data else count]])
 
-    return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
+    return str(bytestr.decode("ascii"))  # Return native str type for Py2/3
 
 
 def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
@@ -263,13 +281,21 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
             coil_type = ch_coil
             kind = ch_kind
 
-        chan_info = {'cal': cals[idx], 'logno': idx + 1, 'scanno': idx + 1,
-                     'range': 1.0, 'unit_mul': FIFF.FIFF_UNITM_NONE,
-                     'ch_name': ch_name, 'unit': FIFF.FIFF_UNIT_V,
-                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
+        chan_info = {
+            "cal": cals[idx],
+            "logno": idx + 1,
+            "scanno": idx + 1,
+            "range": 1.0,
+            "unit_mul": FIFF.FIFF_UNITM_NONE,
+            "ch_name": ch_name,
+            "unit": FIFF.FIFF_UNIT_V,
+            "coord_frame": FIFF.FIFFV_COORD_HEAD,
+            "coil_type": coil_type,
+            "kind": kind,
+            "loc": np.zeros(12),
+        }
         if coil_type == FIFF.FIFFV_COIL_EEG:
-            chan_info['loc'][:3] = np.nan
+            chan_info["loc"][:3] = np.nan
         chs.append(chan_info)
     return chs
 
@@ -295,7 +321,7 @@ def _synthesize_stim_channel(events, n_samples):
     # create output buffer
     stim_channel = np.zeros(n_samples, int)
     for onset, duration, trigger in events:
-        stim_channel[onset:onset + duration] = trigger
+        stim_channel[onset : onset + duration] = trigger
     return stim_channel
 
 
@@ -304,13 +330,15 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
     # insert index in filename
     dirname = op.dirname(base)
     base = op.basename(base)
-    deconstructed_base = base.split('_')
+    deconstructed_base = base.split("_")
     if len(deconstructed_base) < 2 and validate:
-        raise ValueError('Filename base must end with an underscore followed '
-                         f'by the modality (e.g., _eeg or _meg), got {base}')
+        raise ValueError(
+            "Filename base must end with an underscore followed "
+            f"by the modality (e.g., _eeg or _meg), got {base}"
+        )
     suffix = deconstructed_base[-1]
-    base = '_'.join(deconstructed_base[:-1])
-    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, suffix, ext)
+    base = "_".join(deconstructed_base[:-1])
+    use_fname = "{}_split-{:02}_{}{}".format(base, part_idx, suffix, ext)
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname

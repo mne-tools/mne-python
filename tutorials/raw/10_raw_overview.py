@@ -60,8 +60,9 @@ import mne
 # :class:`~mne.io.Raw` object, which we'll store in a variable called ``raw``.
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # %%
@@ -137,16 +138,18 @@ n_time_samps = raw.n_times
 time_secs = raw.times
 ch_names = raw.ch_names
 n_chan = len(ch_names)  # note: there is no raw.n_channels attribute
-print('the (cropped) sample data object has {} time samples and {} channels.'
-      ''.format(n_time_samps, n_chan))
-print('The last time sample is at {} seconds.'.format(time_secs[-1]))
-print('The first few channel names are {}.'.format(', '.join(ch_names[:3])))
+print(
+    "the (cropped) sample data object has {} time samples and {} channels."
+    "".format(n_time_samps, n_chan)
+)
+print("The last time sample is at {} seconds.".format(time_secs[-1]))
+print("The first few channel names are {}.".format(", ".join(ch_names[:3])))
 print()  # insert a blank line in the output
 
 # some examples of raw.info:
-print('bad channels:', raw.info['bads'])  # chs marked "bad" during acquisition
-print(raw.info['sfreq'], 'Hz')            # sampling frequency
-print(raw.info['description'], '\n')      # miscellaneous acquisition info
+print("bad channels:", raw.info["bads"])  # chs marked "bad" during acquisition
+print(raw.info["sfreq"], "Hz")  # sampling frequency
+print(raw.info["description"], "\n")  # miscellaneous acquisition info
 
 print(raw.info)
 
@@ -182,7 +185,7 @@ print(raw.info)
 # ``time = 2`` and ``time = 3``:
 
 print(raw.time_as_index(20))
-print(raw.time_as_index([20, 30, 40]), '\n')
+print(raw.time_as_index([20, 30, 40]), "\n")
 
 print(np.diff(raw.time_as_index([1, 2, 3])))
 
@@ -223,7 +226,7 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 # to restrict the :class:`~mne.io.Raw` object to just the EEG and EOG channels:
 
 eeg_and_eog = raw.copy().pick_types(meg=False, eeg=True, eog=True)
-print(len(raw.ch_names), '→', len(eeg_and_eog.ch_names))
+print(len(raw.ch_names), "→", len(eeg_and_eog.ch_names))
 
 # %%
 # Similar to the :meth:`~mne.io.Raw.pick_types` method, there is also the
@@ -232,11 +235,11 @@ print(len(raw.ch_names), '→', len(eeg_and_eog.ch_names))
 # name:
 
 raw_temp = raw.copy()
-print('Number of channels in raw_temp:')
-print(len(raw_temp.ch_names), end=' → drop two → ')
-raw_temp.drop_channels(['EEG 037', 'EEG 059'])
-print(len(raw_temp.ch_names), end=' → pick three → ')
-raw_temp.pick_channels(['MEG 1811', 'EEG 017', 'EOG 061'])
+print("Number of channels in raw_temp:")
+print(len(raw_temp.ch_names), end=" → drop two → ")
+raw_temp.drop_channels(["EEG 037", "EEG 059"])
+print(len(raw_temp.ch_names), end=" → pick three → ")
+raw_temp.pick_channels(["MEG 1811", "EEG 017", "EOG 061"])
 print(len(raw_temp.ch_names))
 
 # %%
@@ -246,7 +249,7 @@ print(len(raw_temp.ch_names))
 # example, here we pick the EOG and frontal EEG channels, putting the EOG
 # first and the EEG in reverse order:
 
-channel_names = ['EOG 061', 'EEG 003', 'EEG 002', 'EEG 001']
+channel_names = ["EOG 061", "EEG 003", "EEG 002", "EEG 001"]
 eog_and_frontal_eeg = raw.copy().reorder_channels(channel_names)
 print(eog_and_frontal_eeg.ch_names)
 
@@ -270,14 +273,14 @@ print(eog_and_frontal_eeg.ch_names)
 # channels at once; provide only the dictionary entries for the channels you
 # want to rename. Here's a frivolous example:
 
-raw.rename_channels({'EOG 061': 'blink detector'})
+raw.rename_channels({"EOG 061": "blink detector"})
 
 # %%
 # This next example replaces spaces in the channel names with underscores,
 # using a Python `dict comprehension`_:
 
 print(raw.ch_names[-3:])
-channel_renaming_dict = {name: name.replace(' ', '_') for name in raw.ch_names}
+channel_renaming_dict = {name: name.replace(" ", "_") for name in raw.ch_names}
 raw.rename_channels(channel_renaming_dict)
 print(raw.ch_names[-3:])
 
@@ -290,7 +293,7 @@ print(raw.ch_names[-3:])
 # hbo, hbr``. A common use case for changing channel type is when using frontal
 # EEG electrodes as makeshift EOG channels:
 
-raw.set_channel_types({'EEG_001': 'eog'})
+raw.set_channel_types({"EEG_001": "eog"})
 print(raw.copy().pick_types(meg=False, eog=True).ch_names)
 
 # %%
@@ -331,9 +334,9 @@ print(raw_selection.times.min(), raw_selection.times.max())
 # or combine two or more separate :class:`~mne.io.Raw` objects — you can use
 # the :meth:`~mne.io.Raw.append` method:
 
-raw_selection1 = raw.copy().crop(tmin=30, tmax=30.1)     # 0.1 seconds
-raw_selection2 = raw.copy().crop(tmin=40, tmax=41.1)     # 1.1 seconds
-raw_selection3 = raw.copy().crop(tmin=50, tmax=51.3)     # 1.3 seconds
+raw_selection1 = raw.copy().crop(tmin=30, tmax=30.1)  # 0.1 seconds
+raw_selection2 = raw.copy().crop(tmin=40, tmax=41.1)  # 1.1 seconds
+raw_selection3 = raw.copy().crop(tmin=50, tmax=51.3)  # 1.3 seconds
 raw_selection1.append([raw_selection2, raw_selection3])  # 2.5 seconds total
 print(raw_selection1.times.min(), raw_selection1.times.max())
 
@@ -371,7 +374,7 @@ print(raw_selection1.times.min(), raw_selection1.times.max())
 # To illustrate the above two points, let's select a couple seconds of data
 # from the first channel:
 
-sampling_freq = raw.info['sfreq']
+sampling_freq = raw.info["sfreq"]
 start_stop_seconds = np.array([11, 13])
 start_sample, stop_sample = (start_stop_seconds * sampling_freq).astype(int)
 channel_index = 0
@@ -402,7 +405,7 @@ plt.plot(x, y)
 # of the other one:
 
 # sphinx_gallery_thumbnail_number = 2
-channel_names = ['MEG_0712', 'MEG_1022']
+channel_names = ["MEG_0712", "MEG_1022"]
 two_meg_chans = raw[channel_names, start_sample:stop_sample]
 y_offset = np.array([5e-11, 0])  # just enough to separate the channel traces
 x = two_meg_chans[1]
@@ -463,9 +466,8 @@ print(times.shape)
 # its ``picks`` parameter.
 
 first_channel_data = raw.get_data(picks=0)
-eeg_and_eog_data = raw.get_data(picks=['eeg', 'eog'])
-two_meg_chans_data = raw.get_data(picks=['MEG_0712', 'MEG_1022'],
-                                  start=1000, stop=2000)
+eeg_and_eog_data = raw.get_data(picks=["eeg", "eog"])
+two_meg_chans_data = raw.get_data(picks=["MEG_0712", "MEG_1022"], start=1000, stop=2000)
 
 print(first_channel_data.shape)
 print(eeg_and_eog_data.shape)
@@ -530,7 +532,7 @@ print(two_meg_chans_data.shape)
 # :func:`numpy.save` to save the data array:
 
 data = raw.get_data()
-np.save(file='my_data.npy', arr=data)
+np.save(file="my_data.npy", arr=data)
 
 # %%
 # It is also possible to export the data to a :class:`Pandas DataFrame
@@ -544,10 +546,10 @@ np.save(file='my_data.npy', arr=data)
 # the DataFrame index; see the ``scaling_time`` parameter in the documentation
 # of :meth:`~mne.io.Raw.to_data_frame` for more details.
 
-sampling_freq = raw.info['sfreq']
+sampling_freq = raw.info["sfreq"]
 start_end_secs = np.array([10, 13])
 start_sample, stop_sample = (start_end_secs * sampling_freq).astype(int)
-df = raw.to_data_frame(picks=['eeg'], start=start_sample, stop=stop_sample)
+df = raw.to_data_frame(picks=["eeg"], start=start_sample, stop=stop_sample)
 # then save using df.to_csv(...), df.to_hdf(...), etc
 print(df.head())
 

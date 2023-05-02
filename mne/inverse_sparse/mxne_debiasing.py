@@ -37,13 +37,13 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     AS_size = C.shape[0]
     rng = check_random_state(random_state)
     B = rng.randn(AS_size, AS_size)
-    B /= np.linalg.norm(B, 'fro')
+    B /= np.linalg.norm(B, "fro")
     ATA = np.dot(A.T, A)
     CCT = np.dot(C, C.T)
     L0 = np.inf
     for _ in range(max_iter):
         Y = np.dot(np.dot(ATA, B), CCT)
-        L = np.linalg.norm(Y, 'fro')
+        L = np.linalg.norm(Y, "fro")
 
         if abs(L - L0) < tol:
             break
@@ -115,7 +115,7 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
         D = np.maximum(D, 1.0)
 
         t0 = t
-        t = 0.5 * (1.0 + sqrt(1.0 + 4.0 * t ** 2))
+        t = 0.5 * (1.0 + sqrt(1.0 + 4.0 * t**2))
         Y.fill(0.0)
         dt = (t0 - 1.0) / t
         Y = D + dt * (D - D0)
@@ -123,11 +123,15 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
         Ddiff = np.linalg.norm(D - D0, np.inf)
 
         if Ddiff < tol:
-            logger.info("Debiasing converged after %d iterations "
-                        "max(|D - D0| = %e < %e)" % (i, Ddiff, tol))
+            logger.info(
+                "Debiasing converged after %d iterations "
+                "max(|D - D0| = %e < %e)" % (i, Ddiff, tol)
+            )
             break
     else:
         Ddiff = np.linalg.norm(D - D0, np.inf)
-        logger.info("Debiasing did not converge after %d iterations! "
-                    "max(|D - D0| = %e >= %e)" % (max_iter, Ddiff, tol))
+        logger.info(
+            "Debiasing did not converge after %d iterations! "
+            "max(|D - D0| = %e >= %e)" % (max_iter, Ddiff, tol)
+        )
     return D

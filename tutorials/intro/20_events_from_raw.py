@@ -32,8 +32,7 @@ import numpy as np
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
+sample_data_raw_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
@@ -116,7 +115,7 @@ raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
 # requires only the `~mne.io.Raw` object, and the name of the channel(s)
 # from which to read events:
 
-events = mne.find_events(raw, stim_channel='STI 014')
+events = mne.find_events(raw, stim_channel="STI 014")
 print(events[:5])  # show the first 5
 
 # %%
@@ -161,7 +160,7 @@ print(events[:5])  # show the first 5
 # :attr:`~mne.io.Raw.annotations` attribute of the `~mne.io.Raw` object:
 
 testing_data_folder = mne.datasets.testing.data_path()
-eeglab_raw_file = testing_data_folder / 'EEGLAB' / 'test_raw.set'
+eeglab_raw_file = testing_data_folder / "EEGLAB" / "test_raw.set"
 eeglab_raw = mne.io.read_raw_eeglab(eeglab_raw_file)
 print(eeglab_raw.annotations)
 
@@ -221,9 +220,10 @@ print(events_from_annot[:5])
 # `~mne.io.Raw` objects, as demonstrated in the tutorial
 # :ref:`tut-epochs-class`.
 
-custom_mapping = {'rt': 77, 'square': 42}
-(events_from_annot,
- event_dict) = mne.events_from_annotations(eeglab_raw, event_id=custom_mapping)
+custom_mapping = {"rt": 77, "square": 42}
+(events_from_annot, event_dict) = mne.events_from_annotations(
+    eeglab_raw, event_id=custom_mapping
+)
 print(event_dict)
 print(events_from_annot[:5])
 
@@ -241,11 +241,20 @@ print(events_from_annot[:5])
 # the ``orig_time`` parameter so that the onsets are properly aligned relative
 # to the start of recording:
 
-mapping = {1: 'auditory/left', 2: 'auditory/right', 3: 'visual/left',
-           4: 'visual/right', 5: 'smiley', 32: 'buttonpress'}
+mapping = {
+    1: "auditory/left",
+    2: "auditory/right",
+    3: "visual/left",
+    4: "visual/right",
+    5: "smiley",
+    32: "buttonpress",
+}
 annot_from_events = mne.annotations_from_events(
-    events=events, event_desc=mapping, sfreq=raw.info['sfreq'],
-    orig_time=raw.info['meas_date'])
+    events=events,
+    event_desc=mapping,
+    sfreq=raw.info["sfreq"],
+    orig_time=raw.info["meas_date"],
+)
 raw.set_annotations(annot_from_events)
 
 # %%
@@ -270,12 +279,9 @@ raw.plot(start=5, duration=5)
 # overlapping) epochs that we can analyze further.
 
 # create the REM annotations
-rem_annot = mne.Annotations(onset=[5, 41],
-                            duration=[16, 11],
-                            description=['REM'] * 2)
+rem_annot = mne.Annotations(onset=[5, 41], duration=[16, 11], description=["REM"] * 2)
 raw.set_annotations(rem_annot)
-(rem_events,
- rem_event_dict) = mne.events_from_annotations(raw, chunk_duration=1.5)
+(rem_events, rem_event_dict) = mne.events_from_annotations(raw, chunk_duration=1.5)
 
 # %%
 # Now we can check that our events indeed fall in the ranges 5-21 seconds and
@@ -283,7 +289,7 @@ raw.set_annotations(rem_annot)
 # sampling frequency). Here are the event times rounded to the nearest
 # millisecond:
 
-print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info['sfreq'], 3))
+print(np.round((rem_events[:, 0] - raw.first_samp) / raw.info["sfreq"], 3))
 
 # %%
 # Other examples of resting-state analysis can be found in the online

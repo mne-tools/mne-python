@@ -21,11 +21,11 @@ def _read_events(input_fname, info):
     info : dict
         Header info array.
     """
-    n_samples = info['last_samps'][-1]
-    mff_events, event_codes = _read_mff_events(input_fname, info['sfreq'])
-    info['n_events'] = len(event_codes)
-    info['event_codes'] = event_codes
-    events = np.zeros([info['n_events'], info['n_segments'] * n_samples])
+    n_samples = info["last_samps"][-1]
+    mff_events, event_codes = _read_mff_events(input_fname, info["sfreq"])
+    info["n_events"] = len(event_codes)
+    info["event_codes"] = event_codes
+    events = np.zeros([info["n_events"], info["n_segments"] * n_samples])
     for n, event in enumerate(event_codes):
         for i in mff_events[event]:
             if (i < 0) or (i >= events.shape[1]):
@@ -45,34 +45,36 @@ def _read_mff_events(filename, sfreq):
         The sampling frequency
     """
     orig = {}
-    for xml_file in glob(join(filename, '*.xml')):
+    for xml_file in glob(join(filename, "*.xml")):
         xml_type = splitext(basename(xml_file))[0]
         orig[xml_type] = _parse_xml(xml_file)
     xml_files = orig.keys()
-    xml_events = [x for x in xml_files if x[:7] == 'Events_']
-    for item in orig['info']:
-        if 'recordTime' in item:
-            start_time = _ns2py_time(item['recordTime'])
+    xml_events = [x for x in xml_files if x[:7] == "Events_"]
+    for item in orig["info"]:
+        if "recordTime" in item:
+            start_time = _ns2py_time(item["recordTime"])
             break
     markers = []
     code = []
     for xml in xml_events:
         for event in orig[xml][2:]:
-            event_start = _ns2py_time(event['beginTime'])
+            event_start = _ns2py_time(event["beginTime"])
             start = (event_start - start_time).total_seconds()
-            if event['code'] not in code:
-                code.append(event['code'])
-            marker = {'name': event['code'],
-                      'start': start,
-                      'start_sample': int(np.fix(start * sfreq)),
-                      'end': start + float(event['duration']) / 1e9,
-                      'chan': None,
-                      }
+            if event["code"] not in code:
+                code.append(event["code"])
+            marker = {
+                "name": event["code"],
+                "start": start,
+                "start_sample": int(np.fix(start * sfreq)),
+                "end": start + float(event["duration"]) / 1e9,
+                "chan": None,
+            }
             markers.append(marker)
     events_tims = dict()
     for ev in code:
-        trig_samp = list(c['start_sample'] for n,
-                         c in enumerate(markers) if c['name'] == ev)
+        trig_samp = list(
+            c["start_sample"] for n, c in enumerate(markers) if c["name"] == ev
+        )
         events_tims.update({ev: trig_samp})
     return events_tims, code
 
@@ -88,7 +90,6 @@ def _xml2list(root):
     """Parse XML item."""
     output = []
     for element in root:
-
         if len(element) > 0:
             if element[0].tag != element[-1].tag:
                 output.append(_xml2dict(element))
@@ -106,8 +107,8 @@ def _xml2list(root):
 
 def _ns(s):
     """Remove namespace, but only if there is a namespace to begin with."""
-    if '}' in s:
-        return '}'.join(s.split('}')[1:])
+    if "}" in s:
+        return "}".join(s.split("}")[1:])
     else:
         return s
 
@@ -146,7 +147,7 @@ def _ns2py_time(nstime):
     nsdate = nstime[0:10]
     nstime0 = nstime[11:26]
     nstime00 = nsdate + " " + nstime0
-    pytime = datetime.strptime(nstime00, '%Y-%m-%d %H:%M:%S.%f')
+    pytime = datetime.strptime(nstime00, "%Y-%m-%d %H:%M:%S.%f")
     return pytime
 
 
@@ -154,8 +155,10 @@ def _combine_triggers(data, remapping=None):
     """Combine binary triggers."""
     new_trigger = np.zeros(data.shape[1])
     if data.astype(bool).sum(axis=0).max() > 1:  # ensure no overlaps
-        logger.info('    Found multiple events at the same time '
-                    'sample. Cannot create trigger channel.')
+        logger.info(
+            "    Found multiple events at the same time "
+            "sample. Cannot create trigger channel."
+        )
         return
     if remapping is None:
         remapping = np.arange(data) + 1

@@ -12,25 +12,32 @@ import importlib
 
 from ._utils import VALID_3D_BACKENDS
 from .._3d import _get_3d_option
-from ...utils import (logger, verbose, get_config, _check_option, fill_doc,
-                      _validate_type)
+from ...utils import (
+    logger,
+    verbose,
+    get_config,
+    _check_option,
+    fill_doc,
+    _validate_type,
+)
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
 
 
 _backend_name_map = dict(
-    pyvistaqt='._qt',
-    notebook='._notebook',
+    pyvistaqt="._qt",
+    notebook="._notebook",
 )
 backend = None
 
 
 def _reload_backend(backend_name):
     global backend
-    backend = importlib.import_module(name=_backend_name_map[backend_name],
-                                      package='mne.viz.backends')
-    logger.info('Using %s 3d backend.\n' % backend_name)
+    backend = importlib.import_module(
+        name=_backend_name_map[backend_name], package="mne.viz.backends"
+    )
+    logger.info("Using %s 3d backend.\n" % backend_name)
 
 
 def _get_backend():
@@ -44,9 +51,9 @@ def _get_renderer(*args, **kwargs):
 
 
 def _check_3d_backend_name(backend_name):
-    _validate_type(backend_name, str, 'backend_name')
-    backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
-    _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
+    _validate_type(backend_name, str, "backend_name")
+    backend_name = "pyvistaqt" if backend_name == "pyvista" else backend_name
+    _check_option("backend_name", backend_name, VALID_3D_BACKENDS)
     return backend_name
 
 
@@ -156,7 +163,7 @@ def _get_3d_backend():
     """Load and return the current 3d backend."""
     global MNE_3D_BACKEND
     if MNE_3D_BACKEND is None:
-        MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
+        MNE_3D_BACKEND = get_config(key="MNE_3D_BACKEND", default=None)
         if MNE_3D_BACKEND is None:  # try them in order
             errors = dict()
             for name in VALID_3D_BACKENDS:
@@ -168,17 +175,21 @@ def _get_3d_backend():
                     MNE_3D_BACKEND = name
                     break
             else:
-
                 raise RuntimeError(
-                    'Could not load any valid 3D backend\n' +
-                    "\n".join(f'{key}: {val}' for key, val in errors.items()) +
-                    "\n".join(('\n\n install pyvistaqt, using pip or conda:',
-                               "'pip install pyvistaqt'",
-                               "'conda install -c conda-forge pyvistaqt'",
-                               '\n or install ipywidgets, ' +
-                               'if using a notebook backend',
-                               "'pip install ipywidgets'",
-                               "'conda install -c conda-forge ipywidgets'")))
+                    "Could not load any valid 3D backend\n"
+                    + "\n".join(f"{key}: {val}" for key, val in errors.items())
+                    + "\n".join(
+                        (
+                            "\n\n install pyvistaqt, using pip or conda:",
+                            "'pip install pyvistaqt'",
+                            "'conda install -c conda-forge pyvistaqt'",
+                            "\n or install ipywidgets, "
+                            + "if using a notebook backend",
+                            "'pip install ipywidgets'",
+                            "'conda install -c conda-forge ipywidgets'",
+                        )
+                    )
+                )
 
         else:
             MNE_3D_BACKEND = _check_3d_backend_name(MNE_3D_BACKEND)
@@ -239,9 +250,15 @@ def _actors_invisible():
 
 
 @fill_doc
-def set_3d_view(figure, azimuth=None, elevation=None,
-                focalpoint=None, distance=None, roll=None,
-                reset_camera=True):
+def set_3d_view(
+    figure,
+    azimuth=None,
+    elevation=None,
+    focalpoint=None,
+    distance=None,
+    roll=None,
+    reset_camera=True,
+):
     """Configure the view of the given scene.
 
     Parameters
@@ -256,10 +273,15 @@ def set_3d_view(figure, azimuth=None, elevation=None,
     reset_camera : bool
        If True, reset the camera properties beforehand.
     """
-    backend._set_3d_view(figure=figure, azimuth=azimuth,
-                         elevation=elevation, focalpoint=focalpoint,
-                         distance=distance, roll=roll,
-                         reset_camera=reset_camera)
+    backend._set_3d_view(
+        figure=figure,
+        azimuth=azimuth,
+        elevation=elevation,
+        focalpoint=focalpoint,
+        distance=distance,
+        roll=roll,
+        reset_camera=reset_camera,
+    )
 
 
 def set_3d_title(figure, title, size=40):
@@ -277,8 +299,9 @@ def set_3d_title(figure, title, size=40):
     backend._set_3d_title(figure=figure, title=title, size=size)
 
 
-def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=None,
-                     handle=None, *, scene=True, show=False):
+def create_3d_figure(
+    size, bgcolor=(0, 0, 0), smooth_shading=None, handle=None, *, scene=True, show=False
+):
     """Return an empty figure based on the current 3d backend.
 
     .. warning:: Proceed with caution when the renderer object is
@@ -311,9 +334,9 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=None,
     figure : instance of Figure3D or ``Renderer``
         The requested empty figure or renderer, depending on ``scene``.
     """
-    _validate_type(smooth_shading, (bool, None), 'smooth_shading')
+    _validate_type(smooth_shading, (bool, None), "smooth_shading")
     if smooth_shading is None:
-        smooth_shading = _get_3d_option('smooth_shading')
+        smooth_shading = _get_3d_option("smooth_shading")
     renderer = _get_renderer(
         fig=handle,
         size=size,
@@ -352,4 +375,5 @@ def get_brain_class():
         The Brain class corresponding to the current 3d backend.
     """
     from ...viz._brain import Brain
+
     return Brain

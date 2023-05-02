@@ -18,7 +18,8 @@ import mne
 def run():
     """Run command."""
     parser = mne.commands.utils.get_optparser(
-        __file__, usage='mne compare_fiff <file_a> <file_b>')
+        __file__, usage="mne compare_fiff <file_a> <file_b>"
+    )
     options, args = parser.parse_args()
     if len(args) != 2:
         parser.print_help()

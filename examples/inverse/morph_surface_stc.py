@@ -37,19 +37,18 @@ print(__doc__)
 # Setup paths
 
 data_path = sample.data_path()
-sample_dir = data_path / 'MEG' / 'sample'
-subjects_dir = data_path / 'subjects'
-fname_src = subjects_dir / 'sample' / 'bem' / 'sample-oct-6-src.fif'
-fname_fwd = sample_dir / 'sample_audvis-meg-oct-6-fwd.fif'
-fname_fsaverage_src = (subjects_dir / 'fsaverage' / 'bem' /
-                       'fsaverage-ico-5-src.fif')
-fname_stc = sample_dir / 'sample_audvis-meg'
+sample_dir = data_path / "MEG" / "sample"
+subjects_dir = data_path / "subjects"
+fname_src = subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif"
+fname_fwd = sample_dir / "sample_audvis-meg-oct-6-fwd.fif"
+fname_fsaverage_src = subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+fname_stc = sample_dir / "sample_audvis-meg"
 
 # %%
 # Load example data
 
 # Read stc from file
-stc = mne.read_source_estimate(fname_stc, subject='sample')
+stc = mne.read_source_estimate(fname_stc, subject="sample")
 
 # %%
 # Setting up SourceMorph for SourceEstimate
@@ -66,7 +65,7 @@ stc = mne.read_source_estimate(fname_stc, subject='sample')
 src_orig = mne.read_source_spaces(fname_src)
 print(src_orig)  # n_used=4098, 4098
 fwd = mne.read_forward_solution(fname_fwd)
-print(fwd['src'])  # n_used=3732, 3766
+print(fwd["src"])  # n_used=3732, 3766
 print([len(v) for v in stc.vertices])
 
 # %%
@@ -86,10 +85,14 @@ print([len(v) for v in stc.vertices])
 # Initialize SourceMorph for SourceEstimate
 
 src_to = mne.read_source_spaces(fname_fsaverage_src)
-print(src_to[0]['vertno'])  # special, np.arange(10242)
-morph = mne.compute_source_morph(stc, subject_from='sample',
-                                 subject_to='fsaverage', src_to=src_to,
-                                 subjects_dir=subjects_dir)
+print(src_to[0]["vertno"])  # special, np.arange(10242)
+morph = mne.compute_source_morph(
+    stc,
+    subject_from="sample",
+    subject_to="fsaverage",
+    src_to=src_to,
+    subjects_dir=subjects_dir,
+)
 
 # %%
 # Apply morph to (Vector) SourceEstimate
@@ -106,25 +109,28 @@ stc_fsaverage = morph.apply(stc)
 
 # Define plotting parameters
 surfer_kwargs = dict(
-    hemi='lh', subjects_dir=subjects_dir,
-    clim=dict(kind='value', lims=[8, 12, 15]), views='lateral',
-    initial_time=0.09, time_unit='s', size=(800, 800),
-    smoothing_steps=5)
+    hemi="lh",
+    subjects_dir=subjects_dir,
+    clim=dict(kind="value", lims=[8, 12, 15]),
+    views="lateral",
+    initial_time=0.09,
+    time_unit="s",
+    size=(800, 800),
+    smoothing_steps=5,
+)
 
 # As spherical surface
-brain = stc_fsaverage.plot(surface='sphere', **surfer_kwargs)
+brain = stc_fsaverage.plot(surface="sphere", **surfer_kwargs)
 
 # Add title
-brain.add_text(0.1, 0.9, 'Morphed to fsaverage (spherical)', 'title',
-               font_size=16)
+brain.add_text(0.1, 0.9, "Morphed to fsaverage (spherical)", "title", font_size=16)
 
 # %%
 # As inflated surface
-brain_inf = stc_fsaverage.plot(surface='inflated', **surfer_kwargs)
+brain_inf = stc_fsaverage.plot(surface="inflated", **surfer_kwargs)
 
 # Add title
-brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
-                   font_size=16)
+brain_inf.add_text(0.1, 0.9, "Morphed to fsaverage (inflated)", "title", font_size=16)
 
 # %%
 # Reading and writing SourceMorph from and to disk
@@ -153,8 +159,7 @@ brain_inf.add_text(0.1, 0.9, 'Morphed to fsaverage (inflated)', 'title',
 # easily chained into a handy one-liner. Taking this together the shortest
 # possible way to morph data directly would be:
 
-stc_fsaverage = mne.compute_source_morph(stc,
-                                         subjects_dir=subjects_dir).apply(stc)
+stc_fsaverage = mne.compute_source_morph(stc, subjects_dir=subjects_dir).apply(stc)
 
 # %%
 # For more examples, check out :ref:`examples using SourceMorph.apply

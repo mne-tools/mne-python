@@ -9,10 +9,8 @@
 from os import path as path
 
 import numpy as np
-from ...utils import (_check_option, get_subjects_dir, _check_fname,
-                      _validate_type)
-from ...surface import (complete_surface_info, read_surface, read_curvature,
-                        _read_patch)
+from ...utils import _check_option, get_subjects_dir, _check_fname, _validate_type
+from ...surface import complete_surface_info, read_surface, read_curvature, _read_patch
 
 
 class _Surface:
@@ -70,16 +68,23 @@ class _Surface:
         Can be 'm' or 'mm' (default).
     """
 
-    def __init__(self, subject, hemi, surf, subjects_dir=None, offset=None,
-                 units='mm', x_dir=None):
-
-        x_dir = np.array([1., 0, 0]) if x_dir is None else x_dir
+    def __init__(
+        self,
+        subject,
+        hemi,
+        surf,
+        subjects_dir=None,
+        offset=None,
+        units="mm",
+        x_dir=None,
+    ):
+        x_dir = np.array([1.0, 0, 0]) if x_dir is None else x_dir
         assert isinstance(x_dir, np.ndarray)
-        assert np.isclose(np.linalg.norm(x_dir), 1., atol=1e-6)
-        assert hemi in ('lh', 'rh')
-        _validate_type(offset, (None, 'numeric'), 'offset')
+        assert np.isclose(np.linalg.norm(x_dir), 1.0, atol=1e-6)
+        assert hemi in ("lh", "rh")
+        _validate_type(offset, (None, "numeric"), "offset")
 
-        self.units = _check_option('units', units, ('mm', 'm'))
+        self.units = _check_option("units", units, ("mm", "m"))
         self.subject = subject
         self.hemi = hemi
         self.surf = surf
@@ -95,9 +100,11 @@ class _Surface:
 
         subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
         self.data_path = path.join(subjects_dir, subject)
-        if surf == 'seghead':
-            raise ValueError('`surf` cannot be seghead, use '
-                             '`mne.viz.Brain.add_head` to plot the seghead')
+        if surf == "seghead":
+            raise ValueError(
+                "`surf` cannot be seghead, use "
+                "`mne.viz.Brain.add_head` to plot the seghead"
+            )
 
     def load_geometry(self):
         """Load geometry of the surface.
@@ -110,11 +117,13 @@ class _Surface:
         -------
         None
         """
-        if self.surf == 'flat':  # special case
-            fname = path.join(self.data_path, 'surf',
-                              '%s.%s' % (self.hemi, 'cortex.patch.flat'))
-            _check_fname(fname, overwrite='read', must_exist=True,
-                         name='flatmap surface file')
+        if self.surf == "flat":  # special case
+            fname = path.join(
+                self.data_path, "surf", "%s.%s" % (self.hemi, "cortex.patch.flat")
+            )
+            _check_fname(
+                fname, overwrite="read", must_exist=True, name="flatmap surface file"
+            )
             coords, faces, orig_faces = _read_patch(fname)
             # rotate 90 degrees to get to a more standard orientation
             # where X determines the distance between the hemis
@@ -123,25 +132,25 @@ class _Surface:
         else:
             # allow ?h.pial.T1 if ?h.pial doesn't exist for instance
             # end with '' for better file not found error
-            for img in ('', '.T1', '.T2', ''):
-                surf_fname = path.join(self.data_path, 'surf',
-                                       f'{self.hemi}.{self.surf}{img}')
+            for img in ("", ".T1", ".T2", ""):
+                surf_fname = path.join(
+                    self.data_path, "surf", f"{self.hemi}.{self.surf}{img}"
+                )
                 if path.isfile(surf_fname):
                     break
             coords, faces = read_surface(surf_fname)
             orig_faces = faces
-        if self.units == 'm':
-            coords /= 1000.
+        if self.units == "m":
+            coords /= 1000.0
         if self.offset is not None:
             x_ = coords @ self.x_dir
-            if self.hemi == 'lh':
+            if self.hemi == "lh":
                 coords -= (np.max(x_) + self.offset) * self.x_dir
             else:
                 coords -= (np.min(x_) + self.offset) * self.x_dir
         surf = dict(rr=coords, tris=faces)
-        complete_surface_info(
-            surf, copy=False, verbose=False, do_neighbor_tri=False)
-        nn = surf['nn']
+        complete_surface_info(surf, copy=False, verbose=False, do_neighbor_tri=False)
+        nn = surf["nn"]
         self.coords = coords
         self.faces = faces
         self.orig_faces = orig_faces
@@ -165,7 +174,7 @@ class _Surface:
 
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
-        curv_path = path.join(self.data_path, 'surf', '%s.curv' % self.hemi)
+        curv_path = path.join(self.data_path, "surf", "%s.curv" % self.hemi)
         self.curv = read_curvature(curv_path, binary=False)
         self.bin_curv = np.array(self.curv > 0, np.int64)
         # morphometry (curvature) normalization in order to get gray cortex

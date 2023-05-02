@@ -32,17 +32,20 @@ import mne
 # create an :class:`~mne.Evoked` object, we'll start by epoching some raw data,
 # and then averaging together all the epochs from one condition:
 
-root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
-raw_file = root / 'sample_audvis_raw.fif'
+root = mne.datasets.sample.data_path() / "MEG" / "sample"
+raw_file = root / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(raw_file, verbose=False)
 
-events = mne.find_events(raw, stim_channel='STI 014')
+events = mne.find_events(raw, stim_channel="STI 014")
 # we'll skip the "face" and "buttonpress" conditions to save memory
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4}
-epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
-                    preload=True)
-evoked = epochs['auditory/left'].average()
+event_dict = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+}
+epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict, preload=True)
+evoked = epochs["auditory/left"].average()
 
 del raw  # reduce memory usage
 
@@ -56,8 +59,8 @@ del raw  # reduce memory usage
 # transferred to derived :class:`~mne.Evoked` objects to maintain provenance as
 # you process your data:
 
-print(f'Epochs baseline: {epochs.baseline}')
-print(f'Evoked baseline: {evoked.baseline}')
+print(f"Epochs baseline: {epochs.baseline}")
+print(f"Evoked baseline: {evoked.baseline}")
 
 # %%
 # Basic visualization of ``Evoked`` objects
@@ -133,7 +136,7 @@ print(evoked.data[:2, :3])  # first 2 channels, first 3 timepoints
 evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
 print(evoked_eeg.ch_names)
 
-new_order = ['EEG 002', 'MEG 2521', 'EEG 003']
+new_order = ["EEG 002", "MEG 2521", "EEG 003"]
 evoked_subset = evoked.copy().reorder_channels(new_order)
 print(evoked_subset.ch_names)
 
@@ -188,7 +191,7 @@ print(evoked_subset.ch_names)
 # averaged, and the file contains separate :class:`~mne.Evoked` objects for
 # each experimental condition:
 
-evk_file = root / 'sample_audvis-ave.fif'
+evk_file = root / "sample_audvis-ave.fif"
 evokeds_list = mne.read_evokeds(evk_file, verbose=False)
 print(evokeds_list)
 print(type(evokeds_list))
@@ -211,7 +214,7 @@ for evok in evokeds_list:
 # possible. If only one object is selected, the :class:`~mne.Evoked` object
 # will be returned directly (rather than inside a list of length one):
 
-right_vis = mne.read_evokeds(evk_file, condition='Right visual')
+right_vis = mne.read_evokeds(evk_file, condition="Right visual")
 print(right_vis)
 print(type(right_vis))
 
@@ -223,7 +226,7 @@ print(type(right_vis))
 # we plot the first :class:`~mne.Evoked` object in the list that was loaded
 # from disk, we'll see that the data have not been baseline-corrected:
 
-evokeds_list[0].plot(picks='eeg')
+evokeds_list[0].plot(picks="eeg")
 
 # %%
 # This can be remedied by either passing a ``baseline`` parameter to
@@ -231,14 +234,14 @@ evokeds_list[0].plot(picks='eeg')
 # as shown here:
 
 # Original baseline (none set)
-print(f'Baseline after loading: {evokeds_list[0].baseline}')
+print(f"Baseline after loading: {evokeds_list[0].baseline}")
 
 # Apply a custom baseline correction
 evokeds_list[0].apply_baseline((None, 0))
-print(f'Baseline after calling apply_baseline(): {evokeds_list[0].baseline}')
+print(f"Baseline after calling apply_baseline(): {evokeds_list[0].baseline}")
 
 # Visualize the evoked response
-evokeds_list[0].plot(picks='eeg')
+evokeds_list[0].plot(picks="eeg")
 
 # %%
 # Notice that :meth:`~mne.Evoked.apply_baseline` operated in-place. Similarly,
@@ -256,7 +259,7 @@ evokeds_list[0].plot(picks='eeg')
 # based on partial matching of epoch labels separated by ``/``; see
 # :ref:`tut-section-subselect-epochs` for more information):
 
-left_right_aud = epochs['auditory'].average()
+left_right_aud = epochs["auditory"].average()
 left_right_aud
 
 # %%
@@ -266,8 +269,8 @@ left_right_aud
 # created by averaging across 145 epochs. In this case, the event types were
 # fairly close in number:
 
-left_aud = epochs['auditory/left'].average()
-right_aud = epochs['auditory/right'].average()
+left_aud = epochs["auditory/left"].average()
+right_aud = epochs["auditory/right"].average()
 print([evok.nave for evok in (left_aud, right_aud)])
 
 # %%
@@ -286,7 +289,7 @@ print([evok.nave for evok in (left_aud, right_aud)])
 # :class:`~mne.Evoked` object proportional to the number of epochs averaged
 # together to create it):
 
-left_right_aud = mne.combine_evoked([left_aud, right_aud], weights='nave')
+left_right_aud = mne.combine_evoked([left_aud, right_aud], weights="nave")
 assert left_right_aud.nave == left_aud.nave + right_aud.nave
 
 # %%
@@ -328,12 +331,14 @@ assert left_right_aud.nave == left_aud.nave + right_aud.nave
 # :class:`~mne.Epochs` objects) to get the peak response in each trial:
 
 for ix, trial in enumerate(epochs[:3].iter_evoked()):
-    channel, latency, value = trial.get_peak(ch_type='eeg',
-                                             return_amplitude=True)
+    channel, latency, value = trial.get_peak(ch_type="eeg", return_amplitude=True)
     latency = int(round(latency * 1e3))  # convert to milliseconds
     value = int(round(value * 1e6))  # convert to µV
-    print('Trial {}: peak of {} µV at {} ms in channel {}'
-          .format(ix, value, latency, channel))
+    print(
+        "Trial {}: peak of {} µV at {} ms in channel {}".format(
+            ix, value, latency, channel
+        )
+    )
 
 # %%
 # .. REFERENCES

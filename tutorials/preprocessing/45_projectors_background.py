@@ -25,11 +25,11 @@ import mne
 
 
 def setup_3d_axes():
-    ax = plt.axes(projection='3d')
+    ax = plt.axes(projection="3d")
     ax.view_init(azim=-105, elev=20)
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
     ax.set_xlim(-1, 5)
     ax.set_ylim(-1, 5)
     ax.set_zlim(0, 5)
@@ -53,20 +53,26 @@ ax = setup_3d_axes()
 origin = np.zeros((3, 1))
 point = np.array([[3, 2, 5]]).T
 vector = np.hstack([origin, point])
-ax.plot(*vector, color='k')
-ax.plot(*point, color='k', marker='o')
+ax.plot(*vector, color="k")
+ax.plot(*point, color="k", marker="o")
 
 # project the vector onto the x,y plane and plot it
 xy_projection_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
 projected_point = xy_projection_matrix @ point
 projected_vector = xy_projection_matrix @ vector
-ax.plot(*projected_vector, color='C0')
-ax.plot(*projected_point, color='C0', marker='o')
+ax.plot(*projected_vector, color="C0")
+ax.plot(*projected_point, color="C0", marker="o")
 
 # add dashed arrow showing projection
 arrow_coords = np.concatenate([point, projected_point - point]).flatten()
-ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1, color='C1',
-            linewidth=1, linestyle='dashed')
+ax.quiver3D(
+    *arrow_coords,
+    length=0.96,
+    arrow_length_ratio=0.1,
+    color="C1",
+    linewidth=1,
+    linestyle="dashed"
+)
 
 # %%
 #
@@ -171,28 +177,41 @@ projected_vector = trigger_projection_matrix @ vector
 
 # plot the trigger effect and its orthogonal plane
 ax = setup_3d_axes()
-ax.plot_trisurf(x, y, z, color='C2', shade=False, alpha=0.25)
-ax.quiver3D(*np.concatenate([origin, trigger_effect]).flatten(),
-            arrow_length_ratio=0.1, color='C2', alpha=0.5)
+ax.plot_trisurf(x, y, z, color="C2", shade=False, alpha=0.25)
+ax.quiver3D(
+    *np.concatenate([origin, trigger_effect]).flatten(),
+    arrow_length_ratio=0.1,
+    color="C2",
+    alpha=0.5
+)
 
 # plot the original vector
-ax.plot(*vector, color='k')
-ax.plot(*point, color='k', marker='o')
+ax.plot(*vector, color="k")
+ax.plot(*point, color="k", marker="o")
 offset = np.full((3, 1), 0.1)
-ax.text(*(point + offset).flat, '({}, {}, {})'.format(*point.flat), color='k')
+ax.text(*(point + offset).flat, "({}, {}, {})".format(*point.flat), color="k")
 
 # plot the projected vector
-ax.plot(*projected_vector, color='C0')
-ax.plot(*projected_point, color='C0', marker='o')
+ax.plot(*projected_vector, color="C0")
+ax.plot(*projected_point, color="C0", marker="o")
 offset = np.full((3, 1), -0.2)
-ax.text(*(projected_point + offset).flat,
-        '({}, {}, {})'.format(*np.round(projected_point.flat, 2)),
-        color='C0', horizontalalignment='right')
+ax.text(
+    *(projected_point + offset).flat,
+    "({}, {}, {})".format(*np.round(projected_point.flat, 2)),
+    color="C0",
+    horizontalalignment="right"
+)
 
 # add dashed arrow showing projection
 arrow_coords = np.concatenate([point, projected_point - point]).flatten()
-ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
-            color='C1', linewidth=1, linestyle='dashed')
+ax.quiver3D(
+    *arrow_coords,
+    length=0.96,
+    arrow_length_ratio=0.1,
+    color="C1",
+    linewidth=1,
+    linestyle="dashed"
+)
 
 # %%
 # Just as before, the projection matrix will map *any point* in :math:`x, y, z`
@@ -266,8 +285,9 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 # see the projectors in the output of :func:`~mne.io.read_raw_fif` below:
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
@@ -280,7 +300,7 @@ raw.crop(tmax=60).load_data()
 # published papers.) The projectors are stored in the ``projs`` field of
 # ``raw.info``:
 
-print(raw.info['projs'])
+print(raw.info["projs"])
 
 # %%
 # ``raw.info['projs']`` is an ordinary Python :class:`list` of
@@ -290,7 +310,7 @@ print(raw.info['projs'])
 # fields it contains (normally you don't need to access its properties
 # directly, but you can if necessary):
 
-first_projector = raw.info['projs'][0]
+first_projector = raw.info["projs"][0]
 print(first_projector)
 print(first_projector.keys())
 
@@ -303,7 +323,7 @@ print(first_projector.keys())
 # addition, each individual projector also has a boolean ``active`` field:
 
 print(raw.proj)
-print(first_projector['active'])
+print(first_projector["active"])
 
 # %%
 # Computing projectors
@@ -343,12 +363,12 @@ print(first_projector['active'])
 # look at just the magnetometers, and a 2-second sample from the beginning of
 # the file.
 
-mags = raw.copy().crop(tmax=2).pick_types(meg='mag')
+mags = raw.copy().crop(tmax=2).pick_types(meg="mag")
 for proj in (False, True):
-    with mne.viz.use_browser_backend('matplotlib'):
+    with mne.viz.use_browser_backend("matplotlib"):
         fig = mags.plot(butterfly=True, proj=proj)
     fig.subplots_adjust(top=0.9)
-    fig.suptitle('proj={}'.format(proj), size='xx-large', weight='bold')
+    fig.suptitle("proj={}".format(proj), size="xx-large", weight="bold")
 
 # %%
 # Additional ways of visualizing projectors are covered in the tutorial
@@ -367,8 +387,9 @@ for proj in (False, True):
 # from the raw data, which can be loaded with the :func:`mne.read_proj`
 # function:
 
-ecg_proj_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                             'sample_audvis_ecg-proj.fif')
+ecg_proj_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_ecg-proj.fif"
+)
 ecg_projs = mne.read_proj(ecg_proj_file)
 print(ecg_projs)
 
@@ -413,13 +434,12 @@ raw.add_proj(ecg_projs)
 # empty room SSP projectors, to the data with both empty room and ECG
 # projectors:
 
-mags_ecg = raw.copy().crop(tmax=2).pick_types(meg='mag')
-for data, title in zip([mags, mags_ecg], ['Without', 'With']):
-    with mne.viz.use_browser_backend('matplotlib'):
+mags_ecg = raw.copy().crop(tmax=2).pick_types(meg="mag")
+for data, title in zip([mags, mags_ecg], ["Without", "With"]):
+    with mne.viz.use_browser_backend("matplotlib"):
         fig = data.plot(butterfly=True, proj=True)
     fig.subplots_adjust(top=0.9)
-    fig.suptitle('{} ECG projector'.format(title), size='xx-large',
-                 weight='bold')
+    fig.suptitle("{} ECG projector".format(title), size="xx-large", weight="bold")
 
 # %%
 # When are projectors "applied"?

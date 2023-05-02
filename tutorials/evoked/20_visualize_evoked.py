@@ -28,14 +28,15 @@ import mne
 # been baseline-corrected and have unapplied projectors, so we'll take care of
 # that when loading:
 
-root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
-evoked_file = root / 'sample_audvis-ave.fif'
-evokeds_list = mne.read_evokeds(evoked_file, baseline=(None, 0), proj=True,
-                                verbose=False)
+root = mne.datasets.sample.data_path() / "MEG" / "sample"
+evoked_file = root / "sample_audvis-ave.fif"
+evokeds_list = mne.read_evokeds(
+    evoked_file, baseline=(None, 0), proj=True, verbose=False
+)
 
 # Show condition names and baseline intervals
 for e in evokeds_list:
-    print(f'Condition: {e.comment}, baseline: {e.baseline}')
+    print(f"Condition: {e.comment}, baseline: {e.baseline}")
 
 # %%
 # To make our life easier, let's convert that list of :class:`~mne.Evoked`
@@ -44,7 +45,7 @@ for e in evokeds_list:
 # because some of the plotting methods can take advantage of that style of
 # coding.
 
-conds = ('aud/left', 'aud/right', 'vis/left', 'vis/right')
+conds = ("aud/left", "aud/right", "vis/left", "vis/right")
 evks = dict(zip(conds, evokeds_list))
 #      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is equivalent to:
 # {'aud/left': evokeds_list[0], 'aud/right': evokeds_list[1],
@@ -67,7 +68,7 @@ evks = dict(zip(conds, evokeds_list))
 # control this by passing an empty :class:`list` to the ``exclude`` parameter
 # (default is ``exclude='bads'``):
 
-evks['aud/left'].plot(exclude=[])
+evks["aud/left"].plot(exclude=[])
 
 # %%
 # Notice the completely flat EEG channel and the noisy gradiometer channel
@@ -83,18 +84,14 @@ evks['aud/left'].plot(exclude=[])
 # :term:`global field power <GFP>` (an average-referenced RMS), hence its
 # name:
 
-evks['aud/left'].plot(picks='mag', spatial_colors=True, gfp=True)
+evks["aud/left"].plot(picks="mag", spatial_colors=True, gfp=True)
 
 # %%
 # Interesting time periods can be highlighted via the ``highlight`` parameter.
 
-time_ranges_of_interest = [
-    (0.05, 0.14),
-    (0.22, 0.27)
-]
-evks['aud/left'].plot(
-    picks='mag', spatial_colors=True, gfp=True,
-    highlight=time_ranges_of_interest
+time_ranges_of_interest = [(0.05, 0.14), (0.22, 0.27)]
+evks["aud/left"].plot(
+    picks="mag", spatial_colors=True, gfp=True, highlight=time_ranges_of_interest
 )
 
 # %%
@@ -108,11 +105,11 @@ evks['aud/left'].plot(
 # :meth:`~mne.Evoked.plot_topomap` method:
 
 times = np.linspace(0.05, 0.13, 5)
-evks['aud/left'].plot_topomap(ch_type='mag', times=times, colorbar=True)
+evks["aud/left"].plot_topomap(ch_type="mag", times=times, colorbar=True)
 
 # %%
 
-fig = evks['aud/left'].plot_topomap(ch_type='mag', times=times, average=0.1)
+fig = evks["aud/left"].plot_topomap(ch_type="mag", times=times, average=0.1)
 
 # %%
 # It is also possible to pass different time durations to average over for each
@@ -120,8 +117,8 @@ fig = evks['aud/left'].plot_topomap(ch_type='mag', times=times, average=0.1)
 # time point:
 
 averaging_durations = [0.01, 0.02, 0.03, None, None]
-fig = evks['aud/left'].plot_topomap(
-    ch_type='mag', times=times, average=averaging_durations
+fig = evks["aud/left"].plot_topomap(
+    ch_type="mag", times=times, average=averaging_durations
 )
 
 # %%
@@ -136,8 +133,8 @@ fig = evks['aud/left'].plot_topomap(
 # the estimated magnitude and direction of the magnetic field, using the
 # function :func:`mne.viz.plot_arrowmap`:
 
-mags = evks['aud/left'].copy().pick_types(meg='mag')
-mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate='local')
+mags = evks["aud/left"].copy().pick_types(meg="mag")
+mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate="local")
 
 # %%
 # Joint plots
@@ -149,7 +146,7 @@ mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate='local')
 # right-visual-field condition; if no ``picks`` are specified we get a separate
 # figure for each channel type:
 
-evks['vis/right'].plot_joint()
+evks["vis/right"].plot_joint()
 
 # %%
 # Like :meth:`~mne.Evoked.plot_topomap`, you can specify the ``times`` at which
@@ -176,8 +173,8 @@ def custom_func(x):
     return x.max(axis=1)
 
 
-for combine in ('mean', 'median', 'gfp', custom_func):
-    mne.viz.plot_compare_evokeds(evks, picks='eeg', combine=combine)
+for combine in ("mean", "median", "gfp", custom_func):
+    mne.viz.plot_compare_evokeds(evks, picks="eeg", combine=combine)
 
 # %%
 # One nice feature of :func:`~mne.viz.plot_compare_evokeds` is that when
@@ -189,9 +186,13 @@ for combine in ('mean', 'median', 'gfp', custom_func):
 # show the ``time_unit='ms'`` parameter in action.
 
 # sphinx_gallery_thumbnail_number = 15
-mne.viz.plot_compare_evokeds(evks, picks='MEG 1811', colors=dict(aud=0, vis=1),
-                             linestyles=dict(left='solid', right='dashed'),
-                             time_unit='ms')
+mne.viz.plot_compare_evokeds(
+    evks,
+    picks="MEG 1811",
+    colors=dict(aud=0, vis=1),
+    linestyles=dict(left="solid", right="dashed"),
+    time_unit="ms",
+)
 
 # %%
 # The legends generated by :func:`~mne.viz.plot_compare_evokeds` above used the
@@ -205,13 +206,13 @@ mne.viz.plot_compare_evokeds(evks, picks='MEG 1811', colors=dict(aud=0, vis=1),
 # non-empty comment:
 
 temp_list = list()
-for idx, _comment in enumerate(('foo', 'foo', '', None, 'bar'), start=1):
+for idx, _comment in enumerate(("foo", "foo", "", None, "bar"), start=1):
     _evk = evokeds_list[0].copy()
     _evk.comment = _comment
     _evk.data *= idx  # so we can tell the traces apart
     temp_list.append(_evk)
 
-mne.viz.plot_compare_evokeds(temp_list, picks='mag')
+mne.viz.plot_compare_evokeds(temp_list, picks="mag")
 
 # %%
 # Image plots
@@ -224,7 +225,7 @@ mne.viz.plot_compare_evokeds(temp_list, picks='mag')
 # ``picks`` parameter is available, as well as several other customization
 # options; see :meth:`~mne.Evoked.plot_image` for details.
 
-evks['vis/right'].plot_image(picks='meg')
+evks["vis/right"].plot_image(picks="meg")
 
 # %%
 # Topographical subplots
@@ -236,10 +237,14 @@ evks['vis/right'].plot_image(picks='meg')
 # if the number of sensors is too large, so here we'll plot only the EEG
 # channels:
 
-mne.viz.plot_compare_evokeds(evks, picks='eeg', colors=dict(aud=0, vis=1),
-                             linestyles=dict(left='solid', right='dashed'),
-                             axes='topo', styles=dict(aud=dict(linewidth=1),
-                                                      vis=dict(linewidth=1)))
+mne.viz.plot_compare_evokeds(
+    evks,
+    picks="eeg",
+    colors=dict(aud=0, vis=1),
+    linestyles=dict(left="solid", right="dashed"),
+    axes="topo",
+    styles=dict(aud=dict(linewidth=1), vis=dict(linewidth=1)),
+)
 
 # %%
 # For a larger number of sensors, the method `evoked.plot_topo()
@@ -274,8 +279,8 @@ mne.viz.plot_evoked_topo(evokeds_list)
 # compute 3D field maps without a ``trans`` file, but it will only work for
 # calculating the field *on the MEG helmet from the MEG sensors*.
 
-subjects_dir = root.parent.parent / 'subjects'
-trans_file = root / 'sample_audvis_raw-trans.fif'
+subjects_dir = root.parent.parent / "subjects"
+trans_file = root / "sample_audvis_raw-trans.fif"
 
 # %%
 # By default, MEG sensors will be used to estimate the field on the helmet
@@ -283,18 +288,24 @@ trans_file = root / 'sample_audvis_raw-trans.fif'
 # Once the maps are computed, you can plot them with `evoked.plot_field()
 # <mne.Evoked.plot_field>`:
 
-maps = mne.make_field_map(evks['aud/left'], trans=str(trans_file),
-                          subject='sample', subjects_dir=subjects_dir)
-evks['aud/left'].plot_field(maps, time=0.1)
+maps = mne.make_field_map(
+    evks["aud/left"], trans=str(trans_file), subject="sample", subjects_dir=subjects_dir
+)
+evks["aud/left"].plot_field(maps, time=0.1)
 
 # %%
 # You can also use MEG sensors to estimate the *scalp* field by passing
 # ``meg_surf='head'``. By selecting each sensor type in turn, you can compare
 # the scalp field estimates from each.
 
-for ch_type in ('mag', 'grad', 'eeg'):
-    evk = evks['aud/right'].copy().pick(ch_type)
-    _map = mne.make_field_map(evk, trans=str(trans_file), subject='sample',
-                              subjects_dir=subjects_dir, meg_surf='head')
+for ch_type in ("mag", "grad", "eeg"):
+    evk = evks["aud/right"].copy().pick(ch_type)
+    _map = mne.make_field_map(
+        evk,
+        trans=str(trans_file),
+        subject="sample",
+        subjects_dir=subjects_dir,
+        meg_surf="head",
+    )
     fig = evk.plot_field(_map, time=0.1)
     mne.viz.set_3d_title(fig, ch_type, size=20)

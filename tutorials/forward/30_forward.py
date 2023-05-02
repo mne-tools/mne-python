@@ -15,14 +15,15 @@ modeling, see :ref:`ch_forward`.
 
 import mne
 from mne.datasets import sample
+
 data_path = sample.data_path()
 
 # the raw file containing the channel location + types
-sample_dir = data_path / 'MEG' / 'sample'
-raw_fname = sample_dir / 'sample_audvis_raw.fif'
+sample_dir = data_path / "MEG" / "sample"
+raw_fname = sample_dir / "sample_audvis_raw.fif"
 # The paths to Freesurfer reconstructions
-subjects_dir = data_path / 'subjects'
-subject = 'sample'
+subjects_dir = data_path / "subjects"
+subject = "sample"
 
 # %%
 # Computing the forward operator
@@ -59,9 +60,12 @@ subject = 'sample'
 # than default subset of ``slices`` for speed.
 
 plot_bem_kwargs = dict(
-    subject=subject, subjects_dir=subjects_dir,
-    brain_surfaces='white', orientation='coronal',
-    slices=[50, 100, 150, 200])
+    subject=subject,
+    subjects_dir=subjects_dir,
+    brain_surfaces="white",
+    orientation="coronal",
+    slices=[50, 100, 150, 200],
+)
 
 mne.viz.plot_bem(**plot_bem_kwargs)
 
@@ -81,14 +85,20 @@ mne.viz.plot_bem(**plot_bem_kwargs)
 # alignment with the following code.
 
 # The transformation file obtained by coregistration
-trans = sample_dir / 'sample_audvis_raw-trans.fif'
+trans = sample_dir / "sample_audvis_raw-trans.fif"
 
 info = mne.io.read_info(raw_fname)
 # Here we look at the dense head, which isn't used for BEM computations but
 # is useful for coregistration.
-mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
-                       meg=['helmet', 'sensors'], subjects_dir=subjects_dir,
-                       surfaces='head-dense')
+mne.viz.plot_alignment(
+    info,
+    trans,
+    subject=subject,
+    dig=True,
+    meg=["helmet", "sensors"],
+    subjects_dir=subjects_dir,
+    surfaces="head-dense",
+)
 
 # %%
 # .. _plot_forward_source_space:
@@ -117,8 +127,9 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
 #     ``'oct4'`` is used here just for speed, for real analyses the recommended
 #     spacing is ``'oct6'``.
 
-src = mne.setup_source_space(subject, spacing='oct4', add_dist='patch',
-                             subjects_dir=subjects_dir)
+src = mne.setup_source_space(
+    subject, spacing="oct4", add_dist="patch", subjects_dir=subjects_dir
+)
 print(src)
 
 # %%
@@ -137,8 +148,12 @@ mne.viz.plot_bem(src=src, **plot_bem_kwargs)
 
 sphere = (0.0, 0.0, 0.04, 0.09)
 vol_src = mne.setup_volume_source_space(
-    subject, subjects_dir=subjects_dir, sphere=sphere, sphere_units='m',
-    add_interpolator=False)  # just for speed!
+    subject,
+    subjects_dir=subjects_dir,
+    sphere=sphere,
+    sphere_units="m",
+    add_interpolator=False,
+)  # just for speed!
 print(vol_src)
 
 mne.viz.plot_bem(src=vol_src, **plot_bem_kwargs)
@@ -148,10 +163,10 @@ mne.viz.plot_bem(src=vol_src, **plot_bem_kwargs)
 # dipoles inside the brain (requires the :term:`BEM` surfaces) you can use the
 # following.
 
-surface = subjects_dir / subject / 'bem' / 'inner_skull.surf'
+surface = subjects_dir / subject / "bem" / "inner_skull.surf"
 vol_src = mne.setup_volume_source_space(
-    subject, subjects_dir=subjects_dir, surface=surface,
-    add_interpolator=False)  # Just for speed!
+    subject, subjects_dir=subjects_dir, surface=surface, add_interpolator=False
+)  # Just for speed!
 print(vol_src)
 
 mne.viz.plot_bem(src=vol_src, **plot_bem_kwargs)
@@ -167,11 +182,20 @@ mne.viz.plot_bem(src=vol_src, **plot_bem_kwargs)
 #
 # Now let's see how to view all sources in 3D.
 
-fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
-                             surfaces='white', coord_frame='mri',
-                             src=src)
-mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
-                    distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
+fig = mne.viz.plot_alignment(
+    subject=subject,
+    subjects_dir=subjects_dir,
+    surfaces="white",
+    coord_frame="mri",
+    src=src,
+)
+mne.viz.set_3d_view(
+    fig,
+    azimuth=173.78,
+    elevation=101.75,
+    distance=0.30,
+    focalpoint=(-0.03, -0.01, 0.03),
+)
 
 # %%
 # .. _plot_forward_compute_forward_solution:
@@ -189,9 +213,9 @@ mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
 
 conductivity = (0.3,)  # for single layer
 # conductivity = (0.3, 0.006, 0.3)  # for three layers
-model = mne.make_bem_model(subject='sample', ico=4,
-                           conductivity=conductivity,
-                           subjects_dir=subjects_dir)
+model = mne.make_bem_model(
+    subject="sample", ico=4, conductivity=conductivity, subjects_dir=subjects_dir
+)
 bem = mne.make_bem_solution(model)
 
 # %%
@@ -204,9 +228,17 @@ bem = mne.make_bem_solution(model)
 # See :func:`mne.make_forward_solution` for details on the meaning of each
 # parameter.
 
-fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
-                                meg=True, eeg=False, mindist=5.0, n_jobs=None,
-                                verbose=True)
+fwd = mne.make_forward_solution(
+    raw_fname,
+    trans=trans,
+    src=src,
+    bem=bem,
+    meg=True,
+    eeg=False,
+    mindist=5.0,
+    n_jobs=None,
+    verbose=True,
+)
 print(fwd)
 
 # %%
@@ -217,14 +249,14 @@ print(fwd)
 #    :func:`mne.compute_source_morph`, it is important to pass ``fwd['src']``
 #    or ``inv['src']`` so that this removal is adequately accounted for.
 
-print(f'Before: {src}')
+print(f"Before: {src}")
 print(f'After:  {fwd["src"]}')
 
 # %%
 # We can explore the content of ``fwd`` to access the numpy array that contains
 # the gain matrix.
 
-leadfield = fwd['sol']['data']
+leadfield = fwd["sol"]["data"]
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 
 # %%
@@ -232,9 +264,10 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 # the source space ``fwd['src']`` with cortical orientation constraint
 # we can use the following:
 
-fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
-                                         use_cps=True)
-leadfield = fwd_fixed['sol']['data']
+fwd_fixed = mne.convert_forward_solution(
+    fwd, surf_ori=True, force_fixed=True, use_cps=True
+)
+leadfield = fwd_fixed["sol"]["data"]
 print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 
 # %%
