@@ -7,9 +7,12 @@ Citing the software
 -------------------
 
 To cite specific version numbers of the software, you can use the DOIs provided
-by `Zenodo <https://doi.org/10.5281/zenodo.592483>`_. Additionally, we ask that
-when citing the MNE-Python package, you cite the canonical journal article
-reference :footcite:`GramfortEtAl2013a`:
+by `Zenodo <https://doi.org/10.5281/zenodo.592483>`_; look for the "versions"
+list in the sidebar to find the correct DOI for the version you used in your
+work (or to cite the project in a general way, use
+https://doi.org/10.5281/zenodo.592483). Additionally, we ask that when citing
+MNE-Python you also cite the canonical journal article reference
+:footcite:`GramfortEtAl2013a`:
 
 .. footbibliography::
 
