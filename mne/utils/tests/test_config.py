@@ -29,7 +29,12 @@ def test_config(tmp_path):
     assert get_config(key) == value
     del os.environ[key]
     # catch the warning about it being a non-standard config key
-    assert len(get_config("")) > 10  # dict of valid keys
+    known_config_keys = get_config("")
+    assert len(known_config_keys) > 10  # dict of valid keys
+    for key, val in known_config_keys.items():
+        assert isinstance(key, str)
+        assert isinstance(val, str), key
+        assert len(val) > 0, key
     with pytest.warns(RuntimeWarning, match="non-standard"):
         set_config(key, None, home_dir=tempdir, set_env=False)
     assert get_config(key, home_dir=tempdir) is None

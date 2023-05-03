@@ -70,21 +70,36 @@ def set_memmap_min_size(memmap_min_size):
 
 # List the known configuration values
 known_config_types = {
-    "MNE_3D_OPTION_ANTIALIAS": "",
-    "MNE_3D_OPTION_DEPTH_PEELING": "",
-    "MNE_3D_OPTION_MULTI_SAMPLES": "",
-    "MNE_3D_OPTION_SMOOTH_SHADING": "",
-    "MNE_3D_OPTION_THEME": "",
+    "MNE_3D_OPTION_ANTIALIAS": (
+        "bool, whether to use full-screen antialiasing in 3D plots"
+    ),
+    "MNE_3D_OPTION_DEPTH_PEELING": "bool, whether to use depth peeling in 3D plots",
+    "MNE_3D_OPTION_MULTI_SAMPLES": (
+        "int, number of samples to use for full-screen antialiasing"
+    ),
+    "MNE_3D_OPTION_SMOOTH_SHADING": ("bool, whether to use smooth shading in 3D plots"),
+    "MNE_3D_OPTION_THEME": ("str, the color theme (light or dark) to use for 3D plots"),
     "MNE_BROWSE_RAW_SIZE": (
         "tuple, width and height of the raw browser window (in inches)"
     ),
-    "MNE_BROWSER_BACKEND": "",
-    "MNE_BROWSER_OVERVIEW_MODE": "",
-    "MNE_BROWSER_PRECOMPUTE": "",
-    "MNE_BROWSER_THEME": "",
-    "MNE_BROWSER_USE_OPENGL": "",
-    "MNE_CACHE_DIR": "",
-    "MNE_COREG_ADVANCED_RENDERING": "",
+    "MNE_BROWSER_BACKEND": (
+        "str, the backend to use for the MNE Browse Raw window (qt or matplotlib)"
+    ),
+    "MNE_BROWSER_OVERVIEW_MODE": (
+        "str, the overview mode to use in the MNE Browse Raw window )"
+        "(see mne.viz.plot_raw for valid options)"
+    ),
+    "MNE_BROWSER_PRECOMPUTE": (
+        "bool, whether to precompute raw data in the MNE Browse Raw window"
+    ),
+    "MNE_BROWSER_THEME": "str, the color theme (light or dark) to use for the browser",
+    "MNE_BROWSER_USE_OPENGL": (
+        "bool, whether to use OpenGL for rendering in the MNE Browse Raw window"
+    ),
+    "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
+    "MNE_COREG_ADVANCED_RENDERING": (
+        "bool, whether to use advanced OpenGL rendering in mne coreg"
+    ),
     "MNE_COREG_COPY_ANNOT": "",
     "MNE_COREG_FULLSCREEN": "",
     "MNE_COREG_GUESS_MRI_SUBJECT": "",
@@ -103,31 +118,31 @@ known_config_types = {
     "MNE_COREG_SUBJECTS_DIR": "",
     "MNE_CUDA_DEVICE": "",
     "MNE_CUDA_IGNORE_PRECISION": "",
-    "MNE_DATA": "",
-    "MNE_DATASETS_BRAINSTORM_PATH": "",
-    "MNE_DATASETS_EEGBCI_PATH": "",
-    "MNE_DATASETS_EPILEPSY_ECOG_PATH": "",
-    "MNE_DATASETS_HF_SEF_PATH": "",
-    "MNE_DATASETS_MEGSIM_PATH": "",
-    "MNE_DATASETS_MISC_PATH": "",
-    "MNE_DATASETS_MTRF_PATH": "",
-    "MNE_DATASETS_SAMPLE_PATH": "",
-    "MNE_DATASETS_SOMATO_PATH": "",
-    "MNE_DATASETS_MULTIMODAL_PATH": "",
-    "MNE_DATASETS_FNIRS_MOTOR_PATH": "",
-    "MNE_DATASETS_OPM_PATH": "",
-    "MNE_DATASETS_SPM_FACE_DATASETS_TESTS": "",
-    "MNE_DATASETS_SPM_FACE_PATH": "",
-    "MNE_DATASETS_TESTING_PATH": "",
-    "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "",
-    "MNE_DATASETS_KILOWORD_PATH": "",
-    "MNE_DATASETS_FIELDTRIP_CMC_PATH": "",
-    "MNE_DATASETS_PHANTOM_4DBTI_PATH": "",
-    "MNE_DATASETS_LIMO_PATH": "",
-    "MNE_DATASETS_REFMEG_NOISE_PATH": "",
-    "MNE_DATASETS_SSVEP_PATH": "",
-    "MNE_DATASETS_ERP_CORE_PATH": "",
-    "MNE_FORCE_SERIAL": "",
+    "MNE_DATA": "str, default data directory",
+    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for brainstorm data",
+    "MNE_DATASETS_EEGBCI_PATH": "str, path for EEGBCI data",
+    "MNE_DATASETS_EPILEPSY_ECOG_PATH": "str, path for epilepsy_ecog data",
+    "MNE_DATASETS_HF_SEF_PATH": "str, path for HF_SEF data",
+    "MNE_DATASETS_MEGSIM_PATH": "str, path for MEGSIM data",
+    "MNE_DATASETS_MISC_PATH": "str, path for misc data",
+    "MNE_DATASETS_MTRF_PATH": "str, path for MTRF data",
+    "MNE_DATASETS_SAMPLE_PATH": "str, path for sample data",
+    "MNE_DATASETS_SOMATO_PATH": "str, path for somato data",
+    "MNE_DATASETS_MULTIMODAL_PATH": "str, path for multimodal data",
+    "MNE_DATASETS_FNIRS_MOTOR_PATH": "str, path for fnirs_motor data",
+    "MNE_DATASETS_OPM_PATH": "str, path for OPM data",
+    "MNE_DATASETS_SPM_FACE_DATASETS_TESTS": "str, path for spm_face data",
+    "MNE_DATASETS_SPM_FACE_PATH": "str, path for spm_face data",
+    "MNE_DATASETS_TESTING_PATH": "str, path for testing data",
+    "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
+    "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
+    "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
+    "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
+    "MNE_DATASETS_LIMO_PATH": "str, path for limo data",
+    "MNE_DATASETS_REFMEG_NOISE_PATH": "str, path for refmeg_noise data",
+    "MNE_DATASETS_SSVEP_PATH": "str, path for ssvep data",
+    "MNE_DATASETS_ERP_CORE_PATH": "str, path for erp_core data",
+    "MNE_FORCE_SERIAL": "bool, force serial rather than parallel execution",
     "MNE_KIT2FIFF_STIM_CHANNELS": "",
     "MNE_KIT2FIFF_STIM_CHANNEL_CODING": "",
     "MNE_KIT2FIFF_STIM_CHANNEL_SLOPE": "",
@@ -135,14 +150,13 @@ known_config_types = {
     "MNE_LOGGING_LEVEL": (
         "str or int, controls the level of verbosity of any function "
         "decorated with @verbose. See "
-        "https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging"  # noqa E501
+        "https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging"
     ),
     "MNE_MEMMAP_MIN_SIZE": "",
     "MNE_REPR_HTML": (
         "bool, represent some of our objects with rich HTML in a notebook "
         'environment (default "true")'
     ),
-    "MNE_SKIP_FTP_TESTS": "",
     "MNE_SKIP_NETWORK_TESTS": (
         "bool, used in a test decorator (@requires_good_network) to skip "
         "tests that include large downloads"
@@ -151,7 +165,7 @@ known_config_types = {
         "bool, used in test decorators (@requires_spm_data, "
         "@requires_bstraw_data) to skip tests that require specific datasets"
     ),
-    "MNE_STIM_CHANNEL": "",
+    "MNE_STIM_CHANNEL": "string, the default channel name for mne.find_events",
     "MNE_TQDM": (
         'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence '
         "of progress bars"
@@ -161,7 +175,7 @@ known_config_types = {
         "bool, use Numba just-in-time compiler for some of our intensive "
         "computations"
     ),
-    "SUBJECTS_DIR": ("path-like, directory of freesurfer MRI files for each subject"),
+    "SUBJECTS_DIR": "path-like, directory of freesurfer MRI files for each subject",
 }
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
@@ -247,7 +261,9 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     _validate_type(key, (str, type(None)), "key", "string or None")
 
     if key == "":
-        return known_config_types
+        # These are str->str (immutable) so we should just copy the dict
+        # itself, no need for deepcopy
+        return known_config_types.copy()
 
     # first, check to see if key is in env
     if use_env and key is not None and key in os.environ:
