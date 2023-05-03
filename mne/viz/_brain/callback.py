@@ -5,6 +5,7 @@
 # License: Simplified BSD
 
 import weakref
+import numpy as np
 
 from ...utils import logger
 
@@ -98,6 +99,31 @@ class ShowView(object):
             )
         if update_widget and self.widget is not None:
             self.widget.set_value(value)
+
+
+class UpdateFieldVmax(object):
+    def __init__(self, brain, type):
+        self.brain = brain
+        self.type = type
+
+    def __call__(self, value):
+        self.brain.set_field_vmax(value, type=self.type)
+        self.widget.set_value(value)
+
+
+class ResetFieldVmax(object):
+    def __init__(self, brain, type):
+        self.brain = brain
+        self.type = type
+
+    def __call__(self):
+        curr_act_data = self.brain._current_act_data.get(f'field_{self.type}')
+        if curr_act_data is not None:
+            curr_max = np.max(np.abs(curr_act_data))
+        else:
+            data = self.brain._data[f'field_{self.type}']
+            curr_max = np.max(np.abs(data['array']))
+        self.brain.set_field_vmax(curr_max, type=self.type)
 
 
 class SmartCallBack(object):

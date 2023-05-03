@@ -24,10 +24,12 @@ from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 from .callback import (ShowView, TimeCallBack, SmartCallBack,
-                       UpdateLUT, UpdateColorbarScale)
+                       UpdateLUT, UpdateColorbarScale, UpdateFieldVmax,
+                       ResetFieldVmax)
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
-                     _generate_default_filename, _save_ndarray_img, safe_event)
+                     _generate_default_filename, _save_ndarray_img, safe_event,
+                     mne_analyze_colormap)
 from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors, _plot_forward)
 from .._3d_overlay import _LayeredMesh
@@ -977,6 +979,62 @@ class Brain(object):
             callback=_set_label_mode,
             layout=layout,
         )
+
+    def _configure_dock_field_widget(self, name):
+        layout = self._renderer._dock_add_group_box(name)
+        self._renderer._dock_add_label(
+            value="max value",
+            align=True,
+            layout=layout,
+        )
+
+        for type in ['meg', 'eeg']:
+            data = self._data.get(f'field_{type}')
+            if data is None:
+                continue
+            hlayout = self._renderer._dock_add_layout(vertical=False)
+            global_max = np.max(np.abs(data['array']))
+            rng = [0, global_max]
+            print(type, rng)
+            self.callbacks[f'field_vmax_{type}'] = UpdateFieldVmax(self, type) 
+            self.widgets[f'field_vmax_{type}_slider'] = (
+                self._renderer._dock_add_slider(
+                    name=type,
+                    value=data['vmax'],
+                    rng=rng,
+                    callback=self.callbacks[f'field_vmax_{type}'],
+                    double=True,
+                    layout=hlayout,
+                )
+            )
+            self.widgets[f'field_vmax_{type}_spin'] = (
+                self._renderer._dock_add_spin_box(
+                    name=None,
+                    value=data['vmax'],
+                    rng=rng,
+                    callback=self.callbacks[f'field_vmax_{type}'],
+                    layout=hlayout,
+                )
+            )
+            self._renderer._layout_add_widget(layout, hlayout)
+
+        hlayout = self._renderer._dock_add_layout(vertical=False)
+        self._renderer._dock_add_label(
+            value="Rescale",
+            align=True,
+            layout=hlayout,
+        )
+        callback = ResetFieldVmax(self, type=type)
+        self.callbacks['field_vmax_reset'] = callback
+        self.widgets['field_vmax_reset'] = (
+            self._renderer._dock_add_button(
+                name="↺",
+                callback=callback,
+                layout=hlayout,
+                style='toolbutton',
+            )
+        )
+        self._renderer._layout_add_widget(layout, hlayout)
 
     def _configure_dock(self):
         self._renderer._dock_initialize()
@@ -2858,6 +2916,163 @@ class Brain(object):
 
         self._renderer._update()
 
+    @verbose
+    def add_field(self, evoked, surf_maps, vmax=None, n_contours=21,
+                  show_density=True, verbose=None):
+        """Add MEG/EEG field lines, displayed on helmet and head surfaces.
+
+        Parameters
+        ----------
+        evoked : instance of mne.Evoked
+            The evoked object.
+        surf_maps : list
+            The surface mapping information obtained with make_field_map.
+        vmax : float | None
+            Maximum intensity. Can be None to use the max(abs(data)).
+        n_contours : int
+            The number of contours to draw. Set to 0 to disable drawing
+            contours. Defaults to 21.
+        show_density : bool
+            Whether to draw the field density as an overlay on top of the
+            helmet/head surface. Defaults to ``True``.
+        %(verbose)s
+
+        Notes
+        -----
+        .. versionadded:: 1.5
+        """
+        _validate_type(vmax, (None, 'numeric'), 'vmax')
+        n_contours = _ensure_int(n_contours, 'n_contours')
+
+        # Plot them
+        alphas = [0.2, 0.2]
+        colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
+        colormap = mne_analyze_colormap(format='vtk')
+        colormap_lines = np.concatenate([np.tile([0., 0., 255., 255.], (127, 1)),
+                                         np.tile([0., 0., 0., 255.], (2, 1)),
+                                         np.tile([255., 0., 0., 255.], (127, 1))])
+
+        for ii, this_map in enumerate(surf_maps):
+            surf = this_map['surf']
+            if self._units == 'mm':
+                surf['rr'] *= 1e3
+            map_data = this_map['data']
+            map_type = this_map['kind']
+            map_ch_names = this_map['ch_names']
+
+            if map_type == 'eeg':
+                pick = pick_types(evoked.info, meg=False, eeg=True)
+            else:
+                pick = pick_types(evoked.info, meg=True, eeg=False, ref_meg=False)
+
+            ch_names = [evoked.ch_names[k] for k in pick]
+
+            set_ch_names = set(ch_names)
+            set_map_ch_names = set(map_ch_names)
+            if set_ch_names != set_map_ch_names:
+                message = ['Channels in map and data do not match.']
+                diff = set_map_ch_names - set_ch_names
+                if len(diff):
+                    message += ['%s not in data file. ' % list(diff)]
+                diff = set_ch_names - set_map_ch_names
+                if len(diff):
+                    message += ['%s not in map file.' % list(diff)]
+                raise RuntimeError(' '.join(message))
+
+            data = np.dot(map_data, evoked.data[pick, :])
+            act_data = data[:, np.round(self._data['time_idx']).astype(int)]
+
+            # Make a solid surface
+            if vmax is None:
+                vmax_ = np.max(np.abs(act_data))
+            else:
+                vmax_ = vmax
+            vmax_ = float(vmax_)
+            alpha = alphas[ii]
+            mesh = _LayeredMesh(
+                renderer=self._renderer,
+                vertices=surf['rr'],
+                triangles=surf['tris'],
+                normals=surf['nn'],
+            )
+            mesh.map()  # Send to GPU
+            color = _to_rgb(colors[ii], alpha=True)
+            cmap = np.array([(0, 0, 0, 0,), color])
+            ctable = np.round(cmap * 255).astype(np.uint8)
+            mesh.add_overlay(
+                scalars=np.ones(len(data)),
+                colormap=ctable,
+                rng=[0, 1],
+                opacity=alpha,
+                name='surf',
+            )
+
+            # Now show our field pattern
+            if show_density:
+                mesh.add_overlay(
+                    scalars=act_data,
+                    colormap=colormap,
+                    rng=[-vmax_, vmax_],
+                    opacity=1.0,
+                    name='data',
+                )
+
+            # And the field lines on top
+            if n_contours > 0:
+                contours = np.linspace(-vmax_, vmax_, n_contours)
+                actor, _ = self._renderer.contour(
+                    surface=surf,
+                    scalars=act_data,
+                    contours=contours,
+                    vmin=-vmax_,
+                    vmax=vmax_,
+                    opacity=1.0,
+                    colormap=colormap_lines
+                )
+                self._add_actor(f'contour_{map_type}', actor)
+
+            # Store relevant parameters
+            mesh_name = f'field_{map_type}'
+            self._layered_meshes[mesh_name] = mesh
+            self._data[mesh_name] = dict(
+                array=data,
+                surf=surf,
+                colormap=colormap,
+                colormap_lines=colormap_lines,
+                vmin=-vmax_,
+                vmax=vmax_,
+                contours=contours,
+                n_contours=n_contours,
+            )
+            self._current_act_data[mesh_name] = act_data
+            self._add_actor(mesh_name, mesh._actor)
+
+        self.set_time_interpolation(self.time_interpolation)
+        self._renderer._update()
+
+        if f'field_vmax_{map_type}' not in self.widgets:
+            self._configure_dock_field_widget(name="Field strength")
+
+    def set_field_vmax(self, vmax, *, type='meg'):
+        """Change the color range of the field maps.
+
+        Parameters
+        ----------
+        vmax : float
+            The new maximum value of the color range.
+        type : 'meg' | 'eeg'
+            Which field map to apply the new color range to.
+        """
+        _check_option('type', type, ['eeg', 'meg'])
+        mesh = self._layered_meshes.get(f'field_{type}')
+        if mesh is None:
+            raise ValueError(f'No fields of type {type} present in figure.')
+        mesh.update_overlay(name='data', rng=[-vmax, vmax])
+        for widget_name in ['slider', 'spin']:
+            widget = self.widgets.get(f'field_vmax_{type}_{widget_name}')
+            if widget is not None:
+                widget.set_value(vmax)
+
     def close(self):
         """Close all figures and cleanup data structure."""
         self._closed = True
@@ -3184,11 +3399,11 @@ class Brain(object):
         self._time_interp_inv = None
         if self._times is not None:
             idx = np.arange(self._n_times)
-            for hemi in ['lh', 'rh', 'vol']:
-                hemi_data = self._data.get(hemi)
-                if hemi_data is not None:
-                    array = hemi_data['array']
-                    self._time_interp_funcs[hemi] = _safe_interp1d(
+            for mesh in ['lh', 'rh', 'vol', 'field_meg', 'field_eeg']:
+                mesh_data = self._data.get(mesh)
+                if mesh_data is not None:
+                    array = mesh_data['array']
+                    self._time_interp_funcs[mesh] = _safe_interp1d(
                         idx, array, self._time_interpolation, axis=-1,
                         assume_sorted=True)
             self._time_interp_inv = _safe_interp1d(idx, self._times)
@@ -3205,28 +3420,28 @@ class Brain(object):
         self._current_act_data = dict()
         time_actor = self._data.get('time_actor', None)
         time_label = self._data.get('time_label', None)
-        for hemi in ['lh', 'rh', 'vol']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                array = hemi_data['array']
+        for mesh_name in ['lh', 'rh', 'vol', 'field_meg', 'field_eeg']:
+            mesh_data = self._data.get(mesh_name)
+            if mesh_data is not None:
+                array = mesh_data['array']
                 # interpolate in time
                 vectors = None
                 if array.ndim == 1:
                     act_data = array
                     self._current_time = 0
                 else:
-                    act_data = self._time_interp_funcs[hemi](time_idx)
+                    act_data = self._time_interp_funcs[mesh_name](time_idx)
                     self._current_time = self._time_interp_inv(time_idx)
                     if array.ndim == 3:
                         vectors = act_data
                         act_data = np.linalg.norm(act_data, axis=1)
                     self._current_time = self._time_interp_inv(time_idx)
-                self._current_act_data[hemi] = act_data
+                self._current_act_data[mesh_name] = act_data
                 if time_actor is not None and time_label is not None:
                     time_actor.SetInput(time_label(self._current_time))
 
                 # update the volume interpolation
-                grid = hemi_data.get('grid')
+                grid = mesh_data.get('grid')
                 if grid is not None:
                     vertices = self._data['vol']['vertices']
                     values = self._current_act_data['vol']
@@ -3240,16 +3455,16 @@ class Brain(object):
                     grid.cell_data['values'][vertices] = values
 
                 # interpolate in space
-                smooth_mat = hemi_data.get('smooth_mat')
+                smooth_mat = mesh_data.get('smooth_mat')
                 if smooth_mat is not None:
                     act_data = smooth_mat.dot(act_data)
 
                 # update the mesh scalar values
-                if hemi in self._layered_meshes:
-                    mesh = self._layered_meshes[hemi]
+                if mesh_name in self._layered_meshes:
+                    mesh = self._layered_meshes[mesh_name]
                     if 'data' in mesh._overlays:
                         mesh.update_overlay(name='data', scalars=act_data)
-                    else:
+                    elif not mesh_name.startswith('field_'):
                         mesh.add_overlay(
                             scalars=act_data,
                             colormap=self._data['ctable'],
@@ -3260,7 +3475,22 @@ class Brain(object):
 
                 # update the glyphs
                 if vectors is not None:
-                    self._update_glyphs(hemi, vectors)
+                    self._update_glyphs(mesh_name, vectors)
+
+                # update contours
+                if mesh_name.startswith('field_'):
+                    contour_name = mesh_name.replace('field_', 'contour_')
+                    if contour_name in self._actors:
+                        actor, _ = self._renderer.contour(
+                            surface=mesh_data['surf'],
+                            scalars=act_data,
+                            contours=mesh_data['contours'],
+                            vmin=mesh_data['vmin'],
+                            vmax=mesh_data['vmax'],
+                            colormap=mesh_data['colormap_lines'],
+                        )
+                        self._remove(contour_name)
+                        self._add_actor(contour_name, actor)
 
         self._data['time_idx'] = time_idx
         self._renderer._update()

@@ -199,6 +199,13 @@ class _AbstractRenderer(ABC):
             The color of the mesh as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
+
+        Returns
+        -------
+        actor :
+            The actor in the scene.
+        contour :
+            Handle of the contour in the scene.
         """
         pass
 
