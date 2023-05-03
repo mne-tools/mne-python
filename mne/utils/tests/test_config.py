@@ -29,7 +29,12 @@ def test_config(tmp_path):
     assert get_config(key) == value
     del os.environ[key]
     # catch the warning about it being a non-standard config key
-    assert len(get_config("")) > 10  # tuple of valid keys
+    known_config_keys = get_config("")
+    assert len(known_config_keys) > 10  # dict of valid keys
+    for k, val in known_config_keys.items():
+        assert isinstance(k, str)
+        assert isinstance(val, str), k
+        assert len(val) > 0, k
     with pytest.warns(RuntimeWarning, match="non-standard"):
         set_config(key, None, home_dir=tempdir, set_env=False)
     assert get_config(key, home_dir=tempdir) is None
@@ -77,7 +82,8 @@ def test_config(tmp_path):
         pytest.raises(RuntimeError, set_config, key, "true", home_dir=tempdir)
 
     # degenerate conditions
-    pytest.raises(ValueError, set_memmap_min_size, 1)
+    with pytest.raises(TypeError, match="must be an instance"):
+        set_memmap_min_size(1)
     pytest.raises(ValueError, set_memmap_min_size, "foo")
     pytest.raises(TypeError, get_config, 1)
     pytest.raises(TypeError, set_config, 1)
