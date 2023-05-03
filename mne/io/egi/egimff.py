@@ -475,7 +475,7 @@ class RawMff(BaseRaw):
                 more_excludes = []
                 if exclude is None:
                     for ii, event in enumerate(egi_events):
-                        if event.sum() <= 1 and event_codes[ii]:
+                        if event.sum() < 1 and event_codes[ii]:
                             more_excludes.append(ii)
                 if len(exclude_inds) + len(more_excludes) == len(event_codes):
                     warn(
