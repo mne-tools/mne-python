@@ -56,20 +56,19 @@ def set_memmap_min_size(memmap_min_size):
         mapping for parallel processing, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays.
     """
+    _validate_type(memmap_min_size, (str, None), "memmap_min_size")
     if memmap_min_size is not None:
-        if not isinstance(memmap_min_size, str):
-            raise ValueError("'memmap_min_size' has to be a string.")
         if memmap_min_size[-1] not in ["K", "M", "G"]:
             raise ValueError(
                 "The size has to be given in kilo-, mega-, or "
-                "gigabytes, e.g., 100K, 500M, 1G."
+                f"gigabytes, e.g., 100K, 500M, 1G., got {repr(memmap_min_size)}"
             )
 
     set_config("MNE_MEMMAP_MIN_SIZE", memmap_min_size, set_env=False)
 
 
 # List the known configuration values
-known_config_types = {
+_known_config_types = {
     "MNE_3D_OPTION_ANTIALIAS": (
         "bool, whether to use full-screen antialiasing in 3D plots"
     ),
@@ -100,24 +99,48 @@ known_config_types = {
     "MNE_COREG_ADVANCED_RENDERING": (
         "bool, whether to use advanced OpenGL rendering in mne coreg"
     ),
-    "MNE_COREG_COPY_ANNOT": "",
-    "MNE_COREG_FULLSCREEN": "",
-    "MNE_COREG_GUESS_MRI_SUBJECT": "",
-    "MNE_COREG_HEAD_HIGH_RES": "",
-    "MNE_COREG_HEAD_OPACITY": "",
-    "MNE_COREG_HEAD_INSIDE": "",
-    "MNE_COREG_INTERACTION": "",
-    "MNE_COREG_MARK_INSIDE": "",
-    "MNE_COREG_PREPARE_BEM": "",
-    "MNE_COREG_ORIENT_TO_SURFACE": "",
-    "MNE_COREG_SCALE_LABELS": "",
-    "MNE_COREG_SCALE_BY_DISTANCE": "",
-    "MNE_COREG_SCENE_SCALE": "",
-    "MNE_COREG_WINDOW_HEIGHT": "",
-    "MNE_COREG_WINDOW_WIDTH": "",
-    "MNE_COREG_SUBJECTS_DIR": "",
-    "MNE_CUDA_DEVICE": "",
-    "MNE_CUDA_IGNORE_PRECISION": "",
+    "MNE_COREG_COPY_ANNOT": (
+        "bool, whether to copy the annotation files during warping"
+    ),
+    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in mne coreg",
+    "MNE_COREG_GUESS_MRI_SUBJECT": (
+        "bool, whether to guess the MRI subject in mne coreg"
+    ),
+    "MNE_COREG_HEAD_HIGH_RES": (
+        "bool, whether to use high-res head surface in mne coreg"
+    ),
+    "MNE_COREG_HEAD_OPACITY": ("bool, the head surface opacity to use in mne coreg"),
+    "MNE_COREG_HEAD_INSIDE": (
+        "bool, whether to add an opaque inner scalp head surface to help "
+        "occlude points behind the head in mne coreg"
+    ),
+    "MNE_COREG_INTERACTION": (
+        "str, interaction style in mne coreg (trackball or terrain)"
+    ),
+    "MNE_COREG_MARK_INSIDE": (
+        "bool, whether to mark points inside the head surface in mne coreg"
+    ),
+    "MNE_COREG_PREPARE_BEM": (
+        "bool, whether to prepare the BEM solution after warping in mne coreg"
+    ),
+    "MNE_COREG_ORIENT_TO_SURFACE": (
+        "bool, whether to orient the digitization markers to the head surface "
+        "in mne coreg"
+    ),
+    "MNE_COREG_SCALE_LABELS": (
+        "bool, whether to scale the MRI labels during warping in mne coreg"
+    ),
+    "MNE_COREG_SCALE_BY_DISTANCE": (
+        "bool, whether to scale the digitization markers by their distance from "
+        "the scalp in mne coreg"
+    ),
+    "MNE_COREG_SCENE_SCALE": (
+        "float, the scale factor of the 3D scene in mne coreg (default 0.16)"
+    ),
+    "MNE_COREG_WINDOW_HEIGHT": "int, window height for mne coreg",
+    "MNE_COREG_WINDOW_WIDTH": "int, window width for mne coreg",
+    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for mne coreg",
+    "MNE_CUDA_DEVICE": "int, CUDA device to use for GPU processing",
     "MNE_DATA": "str, default data directory",
     "MNE_DATASETS_BRAINSTORM_PATH": "str, path for brainstorm data",
     "MNE_DATASETS_EEGBCI_PATH": "str, path for EEGBCI data",
@@ -143,16 +166,15 @@ known_config_types = {
     "MNE_DATASETS_SSVEP_PATH": "str, path for ssvep data",
     "MNE_DATASETS_ERP_CORE_PATH": "str, path for erp_core data",
     "MNE_FORCE_SERIAL": "bool, force serial rather than parallel execution",
-    "MNE_KIT2FIFF_STIM_CHANNELS": "",
-    "MNE_KIT2FIFF_STIM_CHANNEL_CODING": "",
-    "MNE_KIT2FIFF_STIM_CHANNEL_SLOPE": "",
-    "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD": "",
     "MNE_LOGGING_LEVEL": (
         "str or int, controls the level of verbosity of any function "
         "decorated with @verbose. See "
         "https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging"
     ),
-    "MNE_MEMMAP_MIN_SIZE": "",
+    "MNE_MEMMAP_MIN_SIZE": (
+        "str, threshold on the minimum size of arrays passed to the workers that "
+        "triggers automated memory mapping, e.g., 1M or 0.5G"
+    ),
     "MNE_REPR_HTML": (
         "bool, represent some of our objects with rich HTML in a notebook "
         'environment (default "true")'
@@ -179,7 +201,7 @@ known_config_types = {
 }
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
-known_config_wildcards = (
+_known_config_wildcards = (
     "MNE_STIM_CHANNEL",
     "MNE_DATASETS_FNIRS",
     "MNE_NIRS",
@@ -263,7 +285,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     if key == "":
         # These are str->str (immutable) so we should just copy the dict
         # itself, no need for deepcopy
-        return known_config_types.copy()
+        return _known_config_types.copy()
 
     # first, check to see if key is in env
     if use_env and key is not None and key in os.environ:
@@ -279,7 +301,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     if key is None:
         # update config with environment variables
         if use_env:
-            env_keys = set(config).union(known_config_types).intersection(os.environ)
+            env_keys = set(config).union(_known_config_types).intersection(os.environ)
             config.update({key: os.environ[key] for key in env_keys})
         return config
     elif raise_error is True and key not in config:
@@ -335,8 +357,8 @@ def set_config(key, value, home_dir=None, set_env=True):
     if value is not None:
         value = str(value)
 
-    if key not in known_config_types and not any(
-        key.startswith(k) for k in known_config_wildcards
+    if key not in _known_config_types and not any(
+        key.startswith(k) for k in _known_config_wildcards
     ):
         warn('Setting non-standard config type: "%s"' % key)
 
