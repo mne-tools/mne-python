@@ -177,7 +177,7 @@ _known_config_types = {
     ),
     "MNE_REPR_HTML": (
         "bool, represent some of our objects with rich HTML in a notebook "
-        'environment'
+        "environment"
     ),
     "MNE_SKIP_NETWORK_TESTS": (
         "bool, used in a test decorator (@requires_good_network) to skip "
