@@ -42,7 +42,9 @@ Documentation
 Forum
 ^^^^^^
 
-https://mne.discourse.group
+Our user forum is https://mne.discourse.group and is the best place to ask
+questions about MNE-Python usage or about the contribution process. It also
+includes job opportunities and other announcements.
 
 
 Installing MNE-Python
