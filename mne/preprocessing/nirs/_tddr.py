@@ -45,14 +45,15 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     .. footbibliography::
     """
     raw = raw.copy().load_data()
-    _validate_type(raw, BaseRaw, 'raw')
+    _validate_type(raw, BaseRaw, "raw")
     picks = _validate_nirs_info(raw.info)
 
     if not len(picks):
-        raise RuntimeError('TDDR should be run on optical density or '
-                           'hemoglobin data.')
+        raise RuntimeError(
+            "TDDR should be run on optical density or " "hemoglobin data."
+        )
     for pick in picks:
-        raw._data[pick] = _TDDR(raw._data[pick], raw.info['sfreq'])
+        raw._data[pick] = _TDDR(raw._data[pick], raw.info["sfreq"])
 
     return raw
 
@@ -85,6 +86,7 @@ def _TDDR(signal, sample_rate):
     #   signals_corrected: A [sample x channel] matrix of corrected optical
     #   density data
     from scipy.signal import butter, filtfilt
+
     signal = np.array(signal)
     if len(signal.shape) != 1:
         for ch in range(signal.shape[1]):
@@ -92,7 +94,7 @@ def _TDDR(signal, sample_rate):
         return signal
 
     # Preprocess: Separate high and low frequencies
-    filter_cutoff = .5
+    filter_cutoff = 0.5
     filter_order = 3
     Fc = filter_cutoff * 2 / sample_rate
     signal_mean = np.mean(signal)
@@ -119,7 +121,6 @@ def _TDDR(signal, sample_rate):
 
     # Step 3. Iterative estimation of robust weights
     while iter < 50:
-
         iter = iter + 1
         mu0 = mu
 

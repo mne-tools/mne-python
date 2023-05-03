@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-cluster-spatiotemporal-source:
 
@@ -31,27 +30,32 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-stc_fname = meg_path / 'sample_audvis-meg-lh.stc'
-subjects_dir = data_path / 'subjects'
-src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
+meg_path = data_path / "MEG" / "sample"
+stc_fname = meg_path / "sample_audvis-meg-lh.stc"
+subjects_dir = data_path / "subjects"
+src_fname = subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 
 # Load stc to in common cortical space (fsaverage)
 stc = mne.read_source_estimate(stc_fname)
-stc.resample(50, npad='auto')
+stc.resample(50, npad="auto")
 
 # Read the source space we are morphing to
 src = mne.read_source_spaces(src_fname)
-fsave_vertices = [s['vertno'] for s in src]
-morph = mne.compute_source_morph(stc, 'sample', 'fsaverage',
-                                 spacing=fsave_vertices, smooth=20,
-                                 subjects_dir=subjects_dir)
+fsave_vertices = [s["vertno"] for s in src]
+morph = mne.compute_source_morph(
+    stc,
+    "sample",
+    "fsaverage",
+    spacing=fsave_vertices,
+    smooth=20,
+    subjects_dir=subjects_dir,
+)
 stc = morph.apply(stc)
 n_vertices_fsave, n_times = stc.data.shape
 tstep = stc.tstep * 1000  # convert to milliseconds
 
 n_subjects1, n_subjects2 = 6, 7
-print('Simulating data for %d and %d subjects.' % (n_subjects1, n_subjects2))
+print("Simulating data for %d and %d subjects." % (n_subjects1, n_subjects2))
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
@@ -71,7 +75,7 @@ X2 = np.abs(X2)  # only magnitude
 #
 # To use an algorithm optimized for spatio-temporal clustering, we
 # just pass the spatial adjacency matrix (instead of spatio-temporal)
-print('Computing adjacency.')
+print("Computing adjacency.")
 adjacency = spatial_src_adjacency(src)
 
 #    Note that X needs to be a list of multi-dimensional array of shape
@@ -85,13 +89,18 @@ X = [X1, X2]
 # and use a very low number of permutations for the same reason.
 n_permutations = 50
 p_threshold = 0.001
-f_threshold = stats.distributions.f.ppf(1. - p_threshold / 2.,
-                                        n_subjects1 - 1, n_subjects2 - 1)
-print('Clustering.')
-F_obs, clusters, cluster_p_values, H0 = clu =\
-    spatio_temporal_cluster_test(
-        X, adjacency=adjacency, n_jobs=None, n_permutations=n_permutations,
-        threshold=f_threshold, buffer_size=None)
+f_threshold = stats.distributions.f.ppf(
+    1.0 - p_threshold / 2.0, n_subjects1 - 1, n_subjects2 - 1
+)
+print("Clustering.")
+F_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_test(
+    X,
+    adjacency=adjacency,
+    n_jobs=None,
+    n_permutations=n_permutations,
+    threshold=f_threshold,
+    buffer_size=None,
+)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
@@ -100,20 +109,24 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 # Visualize the clusters
 # ----------------------
 
-print('Visualizing clusters.')
+print("Visualizing clusters.")
 
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate
 fsave_vertices = [np.arange(10242), np.arange(10242)]
-stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
-                                             vertices=fsave_vertices,
-                                             subject='fsaverage')
+stc_all_cluster_vis = summarize_clusters_stc(
+    clu, tstep=tstep, vertices=fsave_vertices, subject="fsaverage"
+)
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
 
 # blue blobs are for condition A != condition B
-brain = stc_all_cluster_vis.plot('fsaverage', hemi='both',
-                                 views='lateral', subjects_dir=subjects_dir,
-                                 time_label='temporal extent (ms)',
-                                 clim=dict(kind='value', lims=[0, 1, 40]))
+brain = stc_all_cluster_vis.plot(
+    "fsaverage",
+    hemi="both",
+    views="lateral",
+    subjects_dir=subjects_dir,
+    time_label="temporal extent (ms)",
+    clim=dict(kind="value", lims=[0, 1, 40]),
+)

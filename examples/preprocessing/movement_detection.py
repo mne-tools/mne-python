@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-movement-detect:
 
@@ -30,16 +29,17 @@ from mne.preprocessing import annotate_movement, compute_average_dev_head_t
 
 # Load data
 data_path = bst_auditory.data_path()
-data_path_MEG = data_path / 'MEG'
-subject = 'bst_auditory'
-subjects_dir = data_path / 'subjects'
-trans_fname = data_path / 'MEG' / 'bst_auditory' / 'bst_auditory-trans.fif'
-raw_fname1 = data_path_MEG / 'bst_auditory' / 'S01_AEF_20131218_01.ds'
-raw_fname2 = data_path_MEG / 'bst_auditory' / 'S01_AEF_20131218_02.ds'
+data_path_MEG = data_path / "MEG"
+subject = "bst_auditory"
+subjects_dir = data_path / "subjects"
+trans_fname = data_path / "MEG" / "bst_auditory" / "bst_auditory-trans.fif"
+raw_fname1 = data_path_MEG / "bst_auditory" / "S01_AEF_20131218_01.ds"
+raw_fname2 = data_path_MEG / "bst_auditory" / "S01_AEF_20131218_02.ds"
 # read and concatenate two files, ignoring device<->head mismatch
 raw = read_raw_ctf(raw_fname1, preload=False)
 mne.io.concatenate_raws(
-    [raw, read_raw_ctf(raw_fname2, preload=False)], on_mismatch='ignore')
+    [raw, read_raw_ctf(raw_fname2, preload=False)], on_mismatch="ignore"
+)
 raw.crop(350, 410).load_data()
 raw.resample(100, npad="auto")
 
@@ -50,15 +50,18 @@ raw.resample(100, npad="auto")
 # Get cHPI time series and compute average
 chpi_locs = mne.chpi.extract_chpi_locs_ctf(raw)
 head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs)
-original_head_dev_t = mne.transforms.invert_transform(
-    raw.info['dev_head_t'])
+original_head_dev_t = mne.transforms.invert_transform(raw.info["dev_head_t"])
 average_head_dev_t = mne.transforms.invert_transform(
-    compute_average_dev_head_t(raw, head_pos))
+    compute_average_dev_head_t(raw, head_pos)
+)
 fig = mne.viz.plot_head_positions(head_pos)
-for ax, val, val_ori in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3],
-                            original_head_dev_t['trans'][:3, 3]):
-    ax.axhline(1000 * val, color='r')
-    ax.axhline(1000 * val_ori, color='g')
+for ax, val, val_ori in zip(
+    fig.axes[::2],
+    average_head_dev_t["trans"][:3, 3],
+    original_head_dev_t["trans"][:3, 3],
+):
+    ax.axhline(1000 * val, color="r")
+    ax.axhline(1000 * val_ori, color="g")
 
 # The green horizontal lines represent the original head position, whereas the
 # red lines are the new head position averaged over all the time points.
@@ -67,9 +70,10 @@ for ax, val, val_ori in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3],
 # Plot raw data with annotated movement
 # ------------------------------------------------------------------
 
-mean_distance_limit = .0015  # in meters
+mean_distance_limit = 0.0015  # in meters
 annotation_movement, hpi_disp = annotate_movement(
-    raw, head_pos, mean_distance_limit=mean_distance_limit)
+    raw, head_pos, mean_distance_limit=mean_distance_limit
+)
 raw.set_annotations(annotation_movement)
 raw.plot(n_channels=100, duration=20)
 
@@ -77,7 +81,12 @@ raw.plot(n_channels=100, duration=20)
 # After checking the annotated movement artifacts, calculate the new transform
 # and plot it:
 new_dev_head_t = compute_average_dev_head_t(raw, head_pos)
-raw.info['dev_head_t'] = new_dev_head_t
-fig = mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
-                             trans=trans_fname, subjects_dir=subjects_dir)
+raw.info["dev_head_t"] = new_dev_head_t
+fig = mne.viz.plot_alignment(
+    raw.info,
+    show_axes=True,
+    subject=subject,
+    trans=trans_fname,
+    subjects_dir=subjects_dir,
+)
 mne.viz.set_3d_view(fig, azimuth=90, elevation=60)

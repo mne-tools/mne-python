@@ -14,7 +14,7 @@ def _ecdf(x):
     return np.arange(1, nobs + 1) / float(nobs)
 
 
-def fdr_correction(pvals, alpha=0.05, method='indep'):
+def fdr_correction(pvals, alpha=0.05, method="indep"):
     """P-value correction with False Discovery Rate (FDR).
 
     Correction for multiple comparison using FDR :footcite:`GenoveseEtAl2002`.
@@ -51,10 +51,10 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     pvals_sorted = pvals[pvals_sortind]
     sortrevind = pvals_sortind.argsort()
 
-    if method in ['i', 'indep', 'p', 'poscorr']:
+    if method in ["i", "indep", "p", "poscorr"]:
         ecdffactor = _ecdf(pvals_sorted)
-    elif method in ['n', 'negcorr']:
-        cm = np.sum(1. / np.arange(1, len(pvals_sorted) + 1))
+    elif method in ["n", "negcorr"]:
+        cm = np.sum(1.0 / np.arange(1, len(pvals_sorted) + 1))
         ecdffactor = _ecdf(pvals_sorted) / cm
     else:
         raise ValueError("Method should be 'indep' and 'negcorr'")
@@ -94,6 +94,6 @@ def bonferroni_correction(pval, alpha=0.05):
     pval = np.asarray(pval)
     pval_corrected = pval * float(pval.size)
     # p-values must not be larger than 1.
-    pval_corrected = pval_corrected.clip(max=1.)
+    pval_corrected = pval_corrected.clip(max=1.0)
     reject = pval_corrected < alpha
     return reject, pval_corrected

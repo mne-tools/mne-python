@@ -8,7 +8,7 @@
 import numpy as np
 
 from ..forward import is_fixed_orient, convert_forward_solution
-from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
+from ..io.pick import pick_info, pick_channels_forward
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
 from ..utils import logger, verbose, _check_info_inv, fill_doc
@@ -17,8 +17,7 @@ from ._compute_beamformer import _prepare_beamformer_input
 
 
 @fill_doc
-def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
-                     picks=None):
+def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=None):
     """RAP-MUSIC for evoked data.
 
     Parameters
@@ -47,15 +46,17 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         Computed only if return_explained_data is True.
     """
     from scipy import linalg
+
     info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation
-    align = forward['source_nn'].copy()
-    if forward['surf_ori'] and not is_fixed_orient(forward):
+    align = forward["source_nn"].copy()
+    if forward["surf_ori"] and not is_fixed_orient(forward):
         forward = convert_forward_solution(forward, surf_ori=False)
     is_free_ori, info, _, _, G, whitener, _, _ = _prepare_beamformer_input(
-        info, forward, noise_cov=noise_cov, rank=None)
-    forward = pick_channels_forward(forward, info['ch_names'], ordered=True)
+        info, forward, noise_cov=noise_cov, rank=None
+    )
+    forward = pick_channels_forward(forward, info["ch_names"], ordered=True)
     del info
 
     # whiten the data (leadfield already whitened)
@@ -67,7 +68,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
 
     n_orient = 3 if is_free_ori else 1
     G.shape = (G.shape[0], -1, n_orient)
-    gain = forward['sol']['data'].copy()
+    gain = forward["sol"]["data"].copy()
     gain.shape = G.shape
     n_channels = G.shape[0]
     A = np.empty((n_channels, n_dipoles))
@@ -80,7 +81,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
 
     idxs = list()
     for k in range(n_dipoles):
-        subcorr_max = -1.
+        subcorr_max = -1.0
         source_idx, source_ori, source_pos = 0, [0, 0, 0], [0, 0, 0]
         for i_source in range(G.shape[1]):
             Gk = G_proj[:, i_source]
@@ -89,13 +90,13 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
                 subcorr_max = subcorr
                 source_idx = i_source
                 source_ori = ori
-                source_pos = forward['source_rr'][i_source]
+                source_pos = forward["source_rr"][i_source]
                 if n_orient == 3 and align is not None:
-                    surf_normal = forward['source_nn'][3 * i_source + 2]
+                    surf_normal = forward["source_nn"][3 * i_source + 2]
                     # make sure ori is aligned to the surface orientation
-                    source_ori *= np.sign(source_ori @ surf_normal) or 1.
+                    source_ori *= np.sign(source_ori @ surf_normal) or 1.0
                 if n_orient == 1:
-                    source_ori = forward['source_nn'][i_source]
+                    source_ori = forward["source_nn"][i_source]
 
         idxs.append(source_idx)
         if n_orient == 3:
@@ -110,8 +111,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         if n_orient == 3:
             logger.info("ori = %s %s %s" % tuple(oris[k]))
 
-        projection = _compute_proj(A[:, :k + 1])
-        G_proj = np.einsum('ab,bso->aso', projection, G)
+        projection = _compute_proj(A[:, : k + 1])
+        G_proj = np.einsum("ab,bso->aso", projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
     del G, G_proj
 
@@ -126,8 +127,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     if n_orient == 3:
         gain_dip = (oris * gain_active).sum(-1)
         idxs = np.array(idxs)
-        active_set = np.array(
-            [[3 * idxs, 3 * idxs + 1, 3 * idxs + 2]]).T.ravel()
+        active_set = np.array([[3 * idxs, 3 * idxs + 1, 3 * idxs + 2]]).T.ravel()
     else:
         gain_dip = gain_active[:, :, 0]
         active_set = idxs
@@ -137,15 +137,15 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     explained_data = gain_dip @ sol
     M_estimate = whitener @ explained_data
     _log_exp_var(M, M_estimate)
-    tstep = np.median(np.diff(times)) if len(times) > 1 else 1.
+    tstep = np.median(np.diff(times)) if len(times) > 1 else 1.0
     dipoles = _make_dipoles_sparse(
-        X, active_set, forward, times[0], tstep, M,
-        gain_active, active_is_idx=True)
+        X, active_set, forward, times[0], tstep, M, gain_active, active_is_idx=True
+    )
     for dipole, ori in zip(dipoles, oris):
         signs = np.sign((dipole.ori * ori).sum(-1, keepdims=True))
         dipole.ori *= signs
         dipole.amplitude *= signs[:, 0]
-    logger.info('[done]')
+    logger.info("[done]")
     return dipoles, explained_data
 
 
@@ -185,6 +185,7 @@ def _make_dipoles(times, poss, oris, sol, gof):
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
     from scipy import linalg
+
     Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
     # Now we look at the actual rank of the forward fields
     # in G and handle the fact that it might be rank defficient
@@ -204,13 +205,15 @@ def _compute_subcorr(G, phi_sig):
 def _compute_proj(A):
     """Compute the orthogonal projection operation for a manifold vector A."""
     from scipy import linalg
+
     U, _, _ = linalg.svd(A, full_matrices=False)
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
 
 @verbose
-def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
-              verbose=None):
+def rap_music(
+    evoked, forward, noise_cov, n_dipoles=5, return_residual=False, verbose=None
+):
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
@@ -269,20 +272,16 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
 
     data = data[picks]
 
-    dipoles, explained_data = _apply_rap_music(data, info, times, forward,
-                                               noise_cov, n_dipoles,
-                                               picks)
+    dipoles, explained_data = _apply_rap_music(
+        data, info, times, forward, noise_cov, n_dipoles, picks
+    )
 
     if return_residual:
-        residual = evoked.copy()
-        selection = [info['ch_names'][p] for p in picks]
-
-        residual = pick_channels_evoked(residual,
-                                        include=selection)
+        residual = evoked.copy().pick([info["ch_names"][p] for p in picks])
         residual.data -= explained_data
-        active_projs = [p for p in residual.info['projs'] if p['active']]
+        active_projs = [p for p in residual.info["projs"] if p["active"]]
         for p in active_projs:
-            p['active'] = False
+            p["active"] = False
         residual.add_proj(active_projs, remove_existing=True)
         residual.apply_proj()
         return dipoles, residual

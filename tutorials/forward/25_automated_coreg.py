@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-auto-coreg:
 
@@ -30,17 +29,22 @@ from mne.io import read_info
 
 data_path = mne.datasets.sample.data_path()
 # data_path and all paths built from it are pathlib.Path objects
-subjects_dir = data_path / 'subjects'
-subject = 'sample'
+subjects_dir = data_path / "subjects"
+subject = "sample"
 
-fname_raw = data_path / 'MEG' / subject / f'{subject}_audvis_raw.fif'
+fname_raw = data_path / "MEG" / subject / f"{subject}_audvis_raw.fif"
 info = read_info(fname_raw)
-plot_kwargs = dict(subject=subject, subjects_dir=subjects_dir,
-                   surfaces="head-dense", dig=True, eeg=[],
-                   meg='sensors', show_axes=True,
-                   coord_frame='meg')
-view_kwargs = dict(azimuth=45, elevation=90, distance=0.6,
-                   focalpoint=(0., 0., 0.))
+plot_kwargs = dict(
+    subject=subject,
+    subjects_dir=subjects_dir,
+    surfaces="head-dense",
+    dig=True,
+    eeg=[],
+    meg="sensors",
+    show_axes=True,
+    coord_frame="meg",
+)
+view_kwargs = dict(azimuth=45, elevation=90, distance=0.6, focalpoint=(0.0, 0.0, 0.0))
 
 # %%
 # Set up the coregistration model
@@ -68,7 +72,7 @@ fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 # Iterative Closest Point (ICP) algorithm. As the initial fiducials
 # are obtained from fsaverage and not from precise manual picking in the
 # GUI we do a fit with reduced weight for the nasion.
-coreg.fit_icp(n_iterations=6, nasion_weight=2., verbose=True)
+coreg.fit_icp(n_iterations=6, nasion_weight=2.0, verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 
 # %%
@@ -76,14 +80,14 @@ fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 # -------------------
 # It is now very clear that we have one point that is an outlier
 # and that should be removed.
-coreg.omit_head_shape_points(distance=5. / 1000)  # distance is in meters
+coreg.omit_head_shape_points(distance=5.0 / 1000)  # distance is in meters
 
 # %%
 # Final coregistration fit
 # ------------------------
 
 # sphinx_gallery_thumbnail_number = 4
-coreg.fit_icp(n_iterations=20, nasion_weight=10., verbose=True)
+coreg.fit_icp(n_iterations=20, nasion_weight=10.0, verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 mne.viz.set_3d_view(fig, **view_kwargs)
 

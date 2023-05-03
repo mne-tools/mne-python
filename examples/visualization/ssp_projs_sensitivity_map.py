@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-ssp-proj:
 
@@ -25,10 +24,10 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-subjects_dir = data_path / 'subjects'
-meg_path = data_path / 'MEG' / 'sample'
-fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
-ecg_fname = meg_path / 'sample_audvis_ecg-proj.fif'
+subjects_dir = data_path / "subjects"
+meg_path = data_path / "MEG" / "sample"
+fname = meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+ecg_fname = meg_path / "sample_audvis_ecg-proj.fif"
 
 fwd = read_forward_solution(fname)
 
@@ -37,7 +36,7 @@ projs = read_proj(ecg_fname)
 projs = projs[::2]
 
 # Compute sensitivity map
-ssp_ecg_map = sensitivity_map(fwd, ch_type='grad', projs=projs, mode='angle')
+ssp_ecg_map = sensitivity_map(fwd, ch_type="grad", projs=projs, mode="angle")
 
 # %%
 # Show sensitivity map
@@ -45,6 +44,10 @@ ssp_ecg_map = sensitivity_map(fwd, ch_type='grad', projs=projs, mode='angle')
 plt.hist(ssp_ecg_map.data.ravel())
 plt.show()
 
-args = dict(clim=dict(kind='value', lims=(0.2, 0.6, 1.)), smoothing_steps=7,
-            hemi='rh', subjects_dir=subjects_dir)
-ssp_ecg_map.plot(subject='sample', time_label='ECG SSP sensitivity', **args)
+args = dict(
+    clim=dict(kind="value", lims=(0.2, 0.6, 1.0)),
+    smoothing_steps=7,
+    hemi="rh",
+    subjects_dir=subjects_dir,
+)
+ssp_ecg_map.plot(subject="sample", time_label="ECG SSP sensitivity", **args)

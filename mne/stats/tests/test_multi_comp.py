@@ -1,6 +1,5 @@
 import numpy as np
-from numpy.testing import (assert_almost_equal, assert_allclose,
-                           assert_array_equal)
+from numpy.testing import assert_almost_equal, assert_allclose, assert_array_equal
 from scipy import stats
 import pytest
 
@@ -38,16 +37,16 @@ def test_multi_pval_correction():
     fwer = np.mean(reject_bonferroni)
     assert_almost_equal(fwer, alpha, 1)
 
-    reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method='indep')
+    reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method="indep")
     assert pval_fdr.ndim == 2
     assert reject_fdr.ndim == 2
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
     assert 0 <= (reject_fdr.sum() - 50) <= 50 * 1.05
     assert thresh_uncorrected <= thresh_fdr <= thresh_bonferroni
-    pytest.raises(ValueError, fdr_correction, pval, alpha, method='blah')
+    pytest.raises(ValueError, fdr_correction, pval, alpha, method="blah")
     assert np.all(fdr_correction(pval, alpha=0)[0] == 0)
 
-    reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method='negcorr')
+    reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method="negcorr")
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
     assert 0 <= (reject_fdr.sum() - 50) <= 50 * 1.05
     assert thresh_uncorrected <= thresh_fdr <= thresh_bonferroni

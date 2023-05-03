@@ -38,9 +38,11 @@ Datasets
    sample.data_path
    somato.data_path
    spm_face.data_path
+   ucl_opm_auditory.data_path
    visual_92_categories.data_path
    phantom_4dbti.data_path
    refmeg_noise.data_path
    ssvep.data_path
    erp_core.data_path
    epilepsy_ecog.data_path
+   eyelink.data_path

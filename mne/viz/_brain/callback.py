@@ -9,7 +9,7 @@ import weakref
 from ...utils import logger
 
 
-class TimeCallBack(object):
+class TimeCallBack:
     """Callback to update the time."""
 
     def __init__(self, brain=None, callback=None):
@@ -17,8 +17,8 @@ class TimeCallBack(object):
         self.callback = callback
         self.widget = None
         self.label = None
-        if self.brain is not None and callable(self.brain._data['time_label']):
-            self.time_label = self.brain._data['time_label']
+        if self.brain is not None and callable(self.brain._data["time_label"]):
+            self.time_label = self.brain._data["time_label"]
         else:
             self.time_label = None
 
@@ -36,7 +36,7 @@ class TimeCallBack(object):
             self.widget.set_value(int(value))
 
 
-class UpdateColorbarScale(object):
+class UpdateColorbarScale:
     """Class to update the values of the colorbar sliders."""
 
     def __init__(self, brain, factor):
@@ -53,7 +53,7 @@ class UpdateColorbarScale(object):
                 self.widgets[key].set_value(self.brain._data[key])
 
 
-class UpdateLUT(object):
+class UpdateLUT:
     """Update the LUT."""
 
     def __init__(self, brain=None):
@@ -66,15 +66,15 @@ class UpdateLUT(object):
         if brain is None:
             return
         brain.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
-        with brain._no_lut_update(f'UpdateLUT {fmin} {fmid} {fmax}'):
-            for key in ('fmin', 'fmid', 'fmax'):
+        with brain._no_lut_update(f"UpdateLUT {fmin} {fmid} {fmax}"):
+            for key in ("fmin", "fmid", "fmax"):
                 value = brain._data[key]
-                logger.debug(f'Updating {key} = {value}')
+                logger.debug(f"Updating {key} = {value}")
                 for widget in self.widgets[key]:
                     widget.set_value(value)
 
 
-class ShowView(object):
+class ShowView:
     """Class that selects the correct view."""
 
     def __init__(self, brain=None, data=None):
@@ -92,15 +92,15 @@ class ShowView(object):
         if self.data[idx] is not None:
             self.brain.show_view(
                 value,
-                row=self.data[idx]['row'],
-                col=self.data[idx]['col'],
-                hemi=self.data[idx]['hemi'],
+                row=self.data[idx]["row"],
+                col=self.data[idx]["col"],
+                hemi=self.data[idx]["hemi"],
             )
         if update_widget and self.widget is not None:
             self.widget.set_value(value)
 
 
-class SmartCallBack(object):
+class SmartCallBack:
     """Class to manage smart slider.
 
     It stores it's own slider representation for efficiency

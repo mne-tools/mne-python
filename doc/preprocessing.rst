@@ -70,6 +70,7 @@ Projections:
 
    ICA
    Xdawn
+   EOGRegression
    annotate_amplitude
    annotate_break
    annotate_movement
@@ -82,6 +83,7 @@ Projections:
    compute_maxwell_basis
    compute_proj_ecg
    compute_proj_eog
+   compute_proj_hfc
    cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
@@ -99,6 +101,7 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   read_eog_regression
    realign_raw
    regress_artifact
    corrmap
@@ -136,6 +139,21 @@ Projections:
    :toctree: generated/
 
    project_sensors_onto_brain
+   make_montage_volume
+   warp_montage
+
+:py:mod:`mne.preprocessing.eyetracking`:
+
+.. currentmodule:: mne.preprocessing.eyetracking
+
+.. automodule:: mne.preprocessing.eyetracking
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   set_channel_types_eyetrack
 
 EEG referencing:
 

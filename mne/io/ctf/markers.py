@@ -18,26 +18,25 @@ def _get_markers(fname):
 
     def parse_marker(string):  # XXX: there should be a nicer way to do that
         data = np.genfromtxt(
-            BytesIO(string.encode()), dtype=[('trial', int), ('sync', float)])
-        return int(data['trial']), float(data['sync'])
+            BytesIO(string.encode()), dtype=[("trial", int), ("sync", float)]
+        )
+        return int(data["trial"]), float(data["sync"])
 
     markers = dict()
     with open(fname) as fid:
-        consume(fid, lambda l: not l.startswith('NUMBER OF MARKERS:'))
+        consume(fid, lambda line: not line.startswith("NUMBER OF MARKERS:"))
         num_of_markers = int(fid.readline())
 
         for _ in range(num_of_markers):
-            consume(fid, lambda l: not l.startswith('NAME:'))
-            label = fid.readline().strip('\n')
+            consume(fid, lambda line: not line.startswith("NAME:"))
+            label = fid.readline().strip("\n")
 
-            consume(fid, lambda l: not l.startswith('NUMBER OF SAMPLES:'))
+            consume(fid, lambda line: not line.startswith("NUMBER OF SAMPLES:"))
             n_markers = int(fid.readline())
 
-            consume(fid, lambda l: not l.startswith('LIST OF SAMPLES:'))
+            consume(fid, lambda line: not line.startswith("LIST OF SAMPLES:"))
             next(fid)  # skip the samples header
-            markers[label] = [
-                parse_marker(next(fid)) for _ in range(n_markers)
-            ]
+            markers[label] = [parse_marker(next(fid)) for _ in range(n_markers)]
 
     return markers
 
@@ -48,35 +47,42 @@ def _get_res4_info_needed_by_markers(directory):
     # instead of parsing the entire res4 file.
     res4 = _read_res4(directory)
 
-    total_offset_duration = res4['pre_trig_pts'] / res4['sfreq']
-    trial_duration = res4['nsamp'] / res4['sfreq']
+    total_offset_duration = res4["pre_trig_pts"] / res4["sfreq"]
+    trial_duration = res4["nsamp"] / res4["sfreq"]
 
-    meas_date = (_convert_time(res4['data_date'],
-                               res4['data_time']), 0)
+    meas_date = (_convert_time(res4["data_date"], res4["data_time"]), 0)
     return total_offset_duration, trial_duration, meas_date
 
 
 def _read_annotations_ctf(directory):
-    total_offset, trial_duration, meas_date \
-        = _get_res4_info_needed_by_markers(directory)
-    return _read_annotations_ctf_call(directory, total_offset, trial_duration,
-                                      meas_date)
+    total_offset, trial_duration, meas_date = _get_res4_info_needed_by_markers(
+        directory
+    )
+    return _read_annotations_ctf_call(
+        directory, total_offset, trial_duration, meas_date
+    )
 
 
-def _read_annotations_ctf_call(directory, total_offset, trial_duration,
-                               meas_date):
-    fname = op.join(directory, 'MarkerFile.mrk')
+def _read_annotations_ctf_call(directory, total_offset, trial_duration, meas_date):
+    fname = op.join(directory, "MarkerFile.mrk")
     if not op.exists(fname):
         return Annotations(list(), list(), list(), orig_time=meas_date)
     else:
         markers = _get_markers(fname)
 
-        onset = [synctime + (trialnum * trial_duration) + total_offset
-                 for _, m in markers.items() for (trialnum, synctime) in m]
+        onset = [
+            synctime + (trialnum * trial_duration) + total_offset
+            for _, m in markers.items()
+            for (trialnum, synctime) in m
+        ]
 
-        description = np.concatenate([
-            np.repeat(label, len(m)) for label, m in markers.items()
-        ])
+        description = np.concatenate(
+            [np.repeat(label, len(m)) for label, m in markers.items()]
+        )
 
-        return Annotations(onset=onset, duration=np.zeros_like(onset),
-                           description=description, orig_time=meas_date)
+        return Annotations(
+            onset=onset,
+            duration=np.zeros_like(onset),
+            description=description,
+            orig_time=meas_date,
+        )

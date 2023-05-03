@@ -6,15 +6,26 @@ import numpy as np
 
 from ..fixes import jit
 from ..io import BaseRaw
-from ..annotations import (Annotations, _adjust_onset_meas_date,
-                           _annotations_starts_stops)
+from ..annotations import (
+    Annotations,
+    _adjust_onset_meas_date,
+    _annotations_starts_stops,
+)
 from ..io.pick import _picks_to_idx, _picks_by_type, _get_channel_types
 from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 
 
 @verbose
-def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
-                       min_duration=0.005, picks=None, *, verbose=None):
+def annotate_amplitude(
+    raw,
+    peak=None,
+    flat=None,
+    bad_percent=5,
+    min_duration=0.005,
+    picks=None,
+    *,
+    verbose=None,
+):
     """Annotate raw data based on peak-to-peak amplitude.
 
     Creates annotations ``BAD_peak`` or ``BAD_flat`` for spans of data where
@@ -51,7 +62,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         :class:`info['bads'] <mne.Info>`.
         Defaults to ``5``, i.e. 5%%.
     min_duration : float
-        The minimum duration (sec) required by consecutives samples to be above
+        The minimum duration (s) required by consecutives samples to be above
         ``peak`` or below ``flat`` thresholds to be considered.
         to consider as above or below threshold.
         For some systems, adjacent time samples with exactly the same value are
@@ -93,42 +104,46 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
 
     .. versionadded:: 1.0
     """
-    _validate_type(raw, BaseRaw, 'raw')
-    picks_ = _picks_to_idx(raw.info, picks, 'data_or_ica', exclude='bads')
-    peak = _check_ptp(peak, 'peak', raw.info, picks_)
-    flat = _check_ptp(flat, 'flat', raw.info, picks_)
+    _validate_type(raw, BaseRaw, "raw")
+    picks_ = _picks_to_idx(raw.info, picks, "data_or_ica", exclude="bads")
+    peak = _check_ptp(peak, "peak", raw.info, picks_)
+    flat = _check_ptp(flat, "flat", raw.info, picks_)
     if peak is None and flat is None:
         raise ValueError(
-            "At least one of the arguments 'peak' or 'flat' must not be None.")
+            "At least one of the arguments 'peak' or 'flat' must not be None."
+        )
     bad_percent = _check_bad_percent(bad_percent)
-    min_duration = _check_min_duration(min_duration,
-                                       raw.times.size * 1 / raw.info['sfreq'])
-    min_duration_samples = int(np.round(min_duration * raw.info['sfreq']))
+    min_duration = _check_min_duration(
+        min_duration, raw.times.size * 1 / raw.info["sfreq"]
+    )
+    min_duration_samples = int(np.round(min_duration * raw.info["sfreq"]))
     bads = list()
 
     # grouping picks by channel types to avoid operating on each channel
     # individually
     picks = {
         ch_type: np.intersect1d(picks_of_type, picks_, assume_unique=True)
-        for ch_type, picks_of_type in _picks_by_type(raw.info, exclude='bads')
+        for ch_type, picks_of_type in _picks_by_type(raw.info, exclude="bads")
         if np.intersect1d(picks_of_type, picks_, assume_unique=True).size != 0
     }
     del picks_  # re-using this variable name in for loop
 
     # skip BAD_acq_skip sections
-    onsets, ends = _annotations_starts_stops(raw, 'bad_acq_skip', invert=True)
-    index = np.concatenate([np.arange(raw.times.size)[onset:end]
-                            for onset, end in zip(onsets, ends)])
+    onsets, ends = _annotations_starts_stops(raw, "bad_acq_skip", invert=True)
+    index = np.concatenate(
+        [np.arange(raw.times.size)[onset:end] for onset, end in zip(onsets, ends)]
+    )
 
     # size matching the diff a[i+1] - a[i]
     any_flat = np.zeros(len(raw.times) - 1, bool)
     any_peak = np.zeros(len(raw.times) - 1, bool)
 
     # look for discrete difference above or below thresholds
-    logger.info('Finding segments below or above PTP threshold.')
+    logger.info("Finding segments below or above PTP threshold.")
     for ch_type, picks_ in picks.items():
-        data = np.concatenate([raw[picks_, onset:end][0]
-                               for onset, end in zip(onsets, ends)], axis=1)
+        data = np.concatenate(
+            [raw[picks_, onset:end][0] for onset, end in zip(onsets, ends)], axis=1
+        )
         diff = np.abs(np.diff(data, axis=1))
 
         if flat is not None:
@@ -142,8 +157,9 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             flat_ch_to_set_bad = picks_[np.where(flat_mean >= bad_percent)[0]]
             bads.extend(flat_ch_to_set_bad)
             # add onset/offset for annotations
-            flat_ch_to_annotate = \
-                np.where((0 < flat_mean) & (flat_mean < bad_percent))[0]
+            flat_ch_to_annotate = np.where((0 < flat_mean) & (flat_mean < bad_percent))[
+                0
+            ]
             # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
             idx = index[np.where(flat_[flat_ch_to_annotate, :])[1]]
             any_flat[idx] = True
@@ -159,33 +175,35 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
             peak_ch_to_set_bad = picks_[np.where(peak_mean >= bad_percent)[0]]
             bads.extend(peak_ch_to_set_bad)
             # add onset/offset for annotations
-            peak_ch_to_annotate = \
-                np.where((0 < peak_mean) & (peak_mean < bad_percent))[0]
+            peak_ch_to_annotate = np.where((0 < peak_mean) & (peak_mean < bad_percent))[
+                0
+            ]
             # convert from raw.times[onset:end] - 1 to raw.times[:] - 1
             idx = index[np.where(peak_[peak_ch_to_annotate, :])[1]]
             any_peak[idx] = True
 
     # annotation for flat
-    annotation_flat = _create_annotations(any_flat, 'flat', raw)
+    annotation_flat = _create_annotations(any_flat, "flat", raw)
     # annotation for peak
-    annotation_peak = _create_annotations(any_peak, 'peak', raw)
+    annotation_peak = _create_annotations(any_peak, "peak", raw)
     # group
     annotations = annotation_flat + annotation_peak
     # bads
-    bads = [raw.ch_names[bad] for bad in bads if bad not in raw.info['bads']]
+    bads = [raw.ch_names[bad] for bad in bads if bad not in raw.info["bads"]]
 
     return annotations, bads
 
 
 def _check_ptp(ptp, name, info, picks):
     """Check the PTP threhsold argument, and converts it to dict if needed."""
-    _validate_type(ptp, ('numeric', dict, None))
+    _validate_type(ptp, ("numeric", dict, None))
 
     if ptp is not None and not isinstance(ptp, dict):
         if ptp < 0:
             raise ValueError(
                 f"Argument '{name}' should define a positive threshold. "
-                f"Provided: '{ptp}'.")
+                f"Provided: '{ptp}'."
+            )
         ch_types = set(_get_channel_types(info, picks))
         ptp = {ch_type: ptp for ch_type in ch_types}
     elif isinstance(ptp, dict):
@@ -193,34 +211,38 @@ def _check_ptp(ptp, name, info, picks):
             if value < 0:
                 raise ValueError(
                     f"Argument '{name}' should define positive thresholds. "
-                    f"Provided for channel type '{key}': '{value}'.")
+                    f"Provided for channel type '{key}': '{value}'."
+                )
     return ptp
 
 
 def _check_bad_percent(bad_percent):
     """Check that bad_percent is a valid percentage and converts to float."""
-    _validate_type(bad_percent, 'numeric', 'bad_percent')
+    _validate_type(bad_percent, "numeric", "bad_percent")
     bad_percent = float(bad_percent)
     if not 0 <= bad_percent <= 100:
         raise ValueError(
             "Argument 'bad_percent' should define a percentage between 0% "
-            f"and 100%. Provided: {bad_percent}%.")
+            f"and 100%. Provided: {bad_percent}%."
+        )
     return bad_percent
 
 
 def _check_min_duration(min_duration, raw_duration):
     """Check that min_duration is a valid duration and converts to float."""
-    _validate_type(min_duration, 'numeric', 'min_duration')
+    _validate_type(min_duration, "numeric", "min_duration")
     min_duration = float(min_duration)
     if min_duration < 0:
         raise ValueError(
             "Argument 'min_duration' should define a positive duration in "
-            f"seconds. Provided: '{min_duration}' seconds.")
+            f"seconds. Provided: '{min_duration}' seconds."
+        )
     if min_duration >= raw_duration:
         raise ValueError(
             "Argument 'min_duration' should define a positive duration in "
             f"seconds shorter than the raw duration ({raw_duration} seconds). "
-            f"Provided: '{min_duration}' seconds.")
+            f"Provided: '{min_duration}' seconds."
+        )
     return min_duration
 
 
@@ -243,12 +265,16 @@ def _mark_inner(arr_k, onsets, offsets, min_duration_samples):
 
 def _create_annotations(any_arr, kind, raw):
     """Create the peak of flat annotations from the any_arr."""
-    assert kind in ('peak', 'flat')
+    assert kind in ("peak", "flat")
     starts, stops = _mask_to_onsets_offsets(any_arr)
     starts, stops = np.array(starts), np.array(stops)
-    onsets = starts / raw.info['sfreq']
-    durations = (stops - starts) / raw.info['sfreq']
-    annot = Annotations(onsets, durations, [f'BAD_{kind}'] * len(onsets),
-                        orig_time=raw.info['meas_date'])
+    onsets = starts / raw.info["sfreq"]
+    durations = (stops - starts) / raw.info["sfreq"]
+    annot = Annotations(
+        onsets,
+        durations,
+        [f"BAD_{kind}"] * len(onsets),
+        orig_time=raw.info["meas_date"],
+    )
     _adjust_onset_meas_date(annot, raw)
     return annot

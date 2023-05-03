@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-hf-sef-data:
 
@@ -19,8 +18,7 @@ import mne
 import os
 from mne.datasets import hf_sef
 
-fname_evoked = os.path.join(hf_sef.data_path(),
-                            'MEG/subject_b/hf_sef_15min-ave.fif')
+fname_evoked = os.path.join(hf_sef.data_path(), "MEG/subject_b/hf_sef_15min-ave.fif")
 
 print(__doc__)
 
@@ -35,7 +33,7 @@ evoked_hp.filter(l_freq=300, h_freq=None)
 
 # %%
 # Compare high-pass filtered and unfiltered data on a single channel
-ch = 'MEG0443'
+ch = "MEG0443"
 pick = evoked.ch_names.index(ch)
-edi = {'HF': evoked_hp, 'Regular': evoked}
+edi = {"HF": evoked_hp, "Regular": evoked}
 mne.viz.plot_compare_evokeds(edi, picks=pick)
