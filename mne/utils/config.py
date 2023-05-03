@@ -61,7 +61,7 @@ def set_memmap_min_size(memmap_min_size):
         if memmap_min_size[-1] not in ["K", "M", "G"]:
             raise ValueError(
                 "The size has to be given in kilo-, mega-, or "
-                f"gigabytes, e.g., 100K, 500M, 1G., got {repr(memmap_min_size)}"
+                f"gigabytes, e.g., 100K, 500M, 1G, got {repr(memmap_min_size)}"
             )
 
     set_config("MNE_MEMMAP_MIN_SIZE", memmap_min_size, set_env=False)
@@ -177,7 +177,7 @@ _known_config_types = {
     ),
     "MNE_REPR_HTML": (
         "bool, represent some of our objects with rich HTML in a notebook "
-        'environment (default "true")'
+        'environment'
     ),
     "MNE_SKIP_NETWORK_TESTS": (
         "bool, used in a test decorator (@requires_good_network) to skip "
