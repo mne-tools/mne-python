@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from copy import deepcopy
 from inspect import signature
 
@@ -1072,9 +1073,9 @@ def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
         assert_allclose(d1, d2, atol=atol)
 
 
-@testing.requires_testing_data
-def test_lcmv_maxfiltered():
-    """Test LCMV on maxfiltered data."""
+@pytest.fixture(scope="session")
+def mf_data():
+    """Produce Maxwell filtered data for beamforming."""
     raw = mne.io.read_raw_fif(fname_raw).fix_mag_coil_types()
     raw_sss = mne.preprocessing.maxwell_filter(raw)
     events = mne.find_events(raw_sss)
@@ -1084,10 +1085,26 @@ def test_lcmv_maxfiltered():
     epochs = mne.Epochs(raw_sss, events)
     data_cov = mne.compute_covariance(epochs, tmin=0)
     fwd = mne.read_forward_solution(fname_fwd)
+    return epochs, data_cov, fwd
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("use_rank", ("info", "computed", "full", None))
+def test_lcmv_maxfiltered(mf_data, use_rank):
+    """Test LCMV on maxfiltered data."""
+    epochs, data_cov, fwd = mf_data
     rank = compute_rank(data_cov, info=epochs.info)
     assert rank == {"mag": 71}
-    for use_rank in ("info", rank, "full", None):
-        make_lcmv(epochs.info, fwd, data_cov, rank=use_rank)
+    ctx = nullcontext()
+    if use_rank == "computed":
+        use_rank = rank
+    elif use_rank is None:
+        ctx = pytest.warns(RuntimeWarning, match="rank as it exceeds")
+    with catch_logging() as log, ctx:
+        make_lcmv(epochs.info, fwd, data_cov, rank=use_rank, verbose=True)
+    log = log.getvalue()
+    n = 102 if use_rank == "full" else 71
+    assert f"Making LCMV beamformer with rank {{'mag': {n}}}" in log
 
 
 # To reduce test time, only test combinations that should matter rather than

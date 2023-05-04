@@ -1468,19 +1468,16 @@ class Info(dict, MontageMixin, ContainsMixin):
         write_info(fname, self)
 
 
-def _simplify_info(info):
+def _simplify_info(info, *, keep=()):
     """Return a simplified info structure to speed up picking."""
     chs = [
         {key: ch[key] for key in ("ch_name", "kind", "unit", "coil_type", "loc", "cal")}
         for ch in info["chs"]
     ]
-    sub_info = Info(
-        chs=chs,
-        bads=info["bads"],
-        comps=info["comps"],
-        projs=info["projs"],
-        custom_ref_applied=info["custom_ref_applied"],
-    )
+    keys = ("bads", "comps", "projs", "custom_ref_applied") + keep
+    sub_info = Info((key, info[key]) for key in keys if key in info)
+    with sub_info._unlock():
+        sub_info["chs"] = chs
     sub_info._update_redundant()
     return sub_info
 
