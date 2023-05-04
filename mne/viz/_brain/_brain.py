@@ -3404,6 +3404,14 @@ class Brain:
         self._renderer._update()
 
     def set_field_contours(self, contours):
+        """Adjust the contours lines when plotting the field strength.
+
+        Parameters
+        ----------
+        contours : int | list | array
+            Either a single number indicating the number of contour lines to
+            use, or a list of values at which to draw contour lines.
+        """
         for type in ["meg", "eeg"]:
             mesh_data = self._data.get(f"field_{type}")
             if mesh_data is not None:
