@@ -974,6 +974,10 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
+    def _dock_fix_stretch(self, layout=None):
+        pass
+
+    @abstractmethod
     def _dock_add_layout(self, vertical=True):
         pass
 

@@ -948,6 +948,9 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_stretch(self, layout=None):
         pass
 
+    def _dock_fix_stretch(self, layout=None):
+        pass
+
     def _dock_add_layout(self, vertical=True):
         return VBox() if vertical else HBox()
 

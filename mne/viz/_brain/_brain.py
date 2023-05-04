@@ -980,61 +980,77 @@ class Brain(object):
             layout=layout,
         )
 
-    def _configure_dock_field_widget(self, name):
+    def _configure_dock_field_widget(self, name, show_density):
         layout = self._renderer._dock_add_group_box(name)
-        self._renderer._dock_add_label(
-            value="max value",
-            align=True,
-            layout=layout,
-        )
 
-        for type in ['meg', 'eeg']:
-            data = self._data.get(f'field_{type}')
-            if data is None:
-                continue
-            hlayout = self._renderer._dock_add_layout(vertical=False)
-            global_max = np.max(np.abs(data['array']))
-            rng = [0, global_max]
-            print(type, rng)
-            self.callbacks[f'field_vmax_{type}'] = UpdateFieldVmax(self, type) 
-            self.widgets[f'field_vmax_{type}_slider'] = (
-                self._renderer._dock_add_slider(
-                    name=type,
-                    value=data['vmax'],
-                    rng=rng,
-                    callback=self.callbacks[f'field_vmax_{type}'],
-                    double=True,
-                    layout=hlayout,
-                )
+        if show_density:
+            self._renderer._dock_add_label(
+                value="max value",
+                align=True,
+                layout=layout,
             )
-            self.widgets[f'field_vmax_{type}_spin'] = (
-                self._renderer._dock_add_spin_box(
-                    name=None,
-                    value=data['vmax'],
-                    rng=rng,
-                    callback=self.callbacks[f'field_vmax_{type}'],
+
+            scalings = dict(meg=DEFAULTS['scalings']['grad'],
+                            eeg=DEFAULTS['scalings']['eeg'])
+            for type in ['meg', 'eeg']:
+                data = self._data.get(f'field_{type}')
+                if data is None:
+                    continue
+                hlayout = self._renderer._dock_add_layout(vertical=False)
+                global_max = np.max(np.abs(data['array']))
+                rng = [0, global_max * scalings[type]]
+                self.callbacks[f'field_vmax_{type}'] = UpdateFieldVmax(self,
+                                                                       type)
+                self.widgets[f'field_vmax_{type}_slider'] = (
+                    self._renderer._dock_add_slider(
+                        name=type.upper(),
+                        value=data['vmax'] * scalings[type],
+                        rng=rng,
+                        callback=self.callbacks[f'field_vmax_{type}'],
+                        double=True,
+                        layout=hlayout,
+                    )
+                )
+                self.widgets[f'field_vmax_{type}_spin'] = (
+                    self._renderer._dock_add_spin_box(
+                        name=None,
+                        value=data['vmax'] * scalings[type],
+                        rng=rng,
+                        callback=self.callbacks[f'field_vmax_{type}'],
+                        layout=hlayout,
+                    )
+                )
+                self._renderer._layout_add_widget(layout, hlayout)
+
+            hlayout = self._renderer._dock_add_layout(vertical=False)
+            self._renderer._dock_add_label(
+                value="Rescale",
+                align=True,
+                layout=hlayout,
+            )
+            callback = ResetFieldVmax(self)
+            self.callbacks['field_vmax_reset'] = callback
+            self.widgets['field_vmax_reset'] = (
+                self._renderer._dock_add_button(
+                    name="↺",
+                    callback=callback,
                     layout=hlayout,
+                    style='toolbutton',
                 )
             )
             self._renderer._layout_add_widget(layout, hlayout)
 
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self._renderer._dock_add_label(
-            value="Rescale",
-            align=True,
-            layout=hlayout,
-        )
-        callback = ResetFieldVmax(self, type=type)
-        self.callbacks['field_vmax_reset'] = callback
-        self.widgets['field_vmax_reset'] = (
-            self._renderer._dock_add_button(
-                name="↺",
-                callback=callback,
-                layout=hlayout,
-                style='toolbutton',
+        self.widgets['field_contours'] = (
+            self._renderer._dock_add_spin_box(
+                name='Contour lines',
+                value=21,
+                rng=[0, 99],
+                step=1,
+                double=False,
+                callback=lambda value: self.set_field_contours(value),
+                layout=layout,
             )
         )
-        self._renderer._layout_add_widget(layout, hlayout)
 
     def _configure_dock(self):
         self._renderer._dock_initialize()
@@ -3051,7 +3067,9 @@ class Brain(object):
         self._renderer._update()
 
         if f'field_vmax_{map_type}' not in self.widgets:
-            self._configure_dock_field_widget(name="Field strength")
+            self._configure_dock_field_widget(name="Field strength",
+                                              show_density=show_density)
+            self._renderer._dock_fix_stretch()
 
     def set_field_vmax(self, vmax, *, type='meg'):
         """Change the color range of the field maps.
@@ -3064,6 +3082,8 @@ class Brain(object):
             Which field map to apply the new color range to.
         """
         _check_option('type', type, ['eeg', 'meg'])
+        scalings = dict(meg=DEFAULTS['scalings']['grad'],
+                        eeg=DEFAULTS['scalings']['eeg'])
         mesh = self._layered_meshes.get(f'field_{type}')
         if mesh is None:
             raise ValueError(f'No fields of type {type} present in figure.')
@@ -3071,7 +3091,17 @@ class Brain(object):
         for widget_name in ['slider', 'spin']:
             widget = self.widgets.get(f'field_vmax_{type}_{widget_name}')
             if widget is not None:
-                widget.set_value(vmax)
+                widget.set_value(vmax * scalings[type])
+        self._renderer._update()
+
+    def set_field_contours(self, contours):
+        for type in ['meg', 'eeg']:
+            mesh_data = self._data.get(f'field_{type}')
+            if mesh_data is not None:
+                mesh_data['contours'] = np.linspace(
+                    mesh_data['vmin'], mesh_data['vmax'], contours)
+        # Force redraw of contour lines
+        self.set_time_point(self._data['time_idx'])
 
     def close(self):
         """Close all figures and cleanup data structure."""

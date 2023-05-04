@@ -7,6 +7,7 @@
 import weakref
 import numpy as np
 
+from ...defaults import DEFAULTS
 from ...utils import logger
 
 
@@ -34,7 +35,7 @@ class TimeCallBack(object):
         if self.callback is not None:
             self.callback()
         if self.widget is not None and update_widget:
-            self.widget.set_value(int(value))
+            self.widget.set_value(value)
 
 
 class UpdateColorbarScale(object):
@@ -107,23 +108,26 @@ class UpdateFieldVmax(object):
         self.type = type
 
     def __call__(self, value):
-        self.brain.set_field_vmax(value, type=self.type)
-        self.widget.set_value(value)
+        scalings = dict(meg=DEFAULTS['scalings']['grad'],
+                        eeg=DEFAULTS['scalings']['eeg'])
+        self.brain.set_field_vmax(value / scalings[self.type], type=self.type)
 
 
 class ResetFieldVmax(object):
-    def __init__(self, brain, type):
+    def __init__(self, brain):
         self.brain = brain
-        self.type = type
 
     def __call__(self):
-        curr_act_data = self.brain._current_act_data.get(f'field_{self.type}')
-        if curr_act_data is not None:
-            curr_max = np.max(np.abs(curr_act_data))
-        else:
-            data = self.brain._data[f'field_{self.type}']
-            curr_max = np.max(np.abs(data['array']))
-        self.brain.set_field_vmax(curr_max, type=self.type)
+        for type in ['meg', 'eeg']:
+            curr_act_data = self.brain._current_act_data.get(f'field_{type}')
+            if curr_act_data is not None:
+                curr_max = np.max(np.abs(curr_act_data))
+                self.brain.set_field_vmax(curr_max, type=type)
+            else:
+                data = self.brain._data.get(f'field_{type}')
+                if data is not None:
+                    curr_max = np.max(np.abs(data['array']))
+                    self.brain.set_field_vmax(curr_max, type=type)
 
 
 class SmartCallBack(object):

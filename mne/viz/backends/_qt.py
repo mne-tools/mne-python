@@ -26,7 +26,7 @@ from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
                             QSizePolicy, QProgressBar, QScrollArea,
                             QLayout, QCheckBox, QButtonGroup, QRadioButton,
                             QLineEdit, QGridLayout, QFileDialog, QPushButton,
-                            QMessageBox,
+                            QMessageBox, QSpacerItem,
                             # non-object-based-abstraction-only, deprecate
                             QDockWidget, QToolButton, QMenuBar,
                             QSpinBox, QStyle, QStyleOptionSlider)
@@ -911,6 +911,15 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_stretch(self, layout=None):
         layout = self._dock_layout if layout is None else layout
+        layout.addStretch()
+
+    def _dock_fix_stretch(self, layout=None):
+        """Move spacer item to by the last item."""
+        layout = self._dock_layout if layout is None else layout
+        for i in range(layout.count() - 1, -1, -1): 
+            if isinstance(layout.itemAt(i), QSpacerItem):
+                layout.takeAt(i)
+                break
         layout.addStretch()
 
     def _dock_add_layout(self, vertical=True):
