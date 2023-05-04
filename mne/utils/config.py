@@ -205,6 +205,7 @@ _known_config_wildcards = (
     "MNE_STIM_CHANNEL",
     "MNE_DATASETS_FNIRS",
     "MNE_NIRS",
+    "MNE_KIT2FIFF",
 )
 
 
