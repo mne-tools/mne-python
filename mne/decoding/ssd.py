@@ -1,21 +1,31 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
+#         Thomas S. Binns <t.s.binns@outlook.com>
 # License: BSD-3-Clause
 
 import numpy as np
 
-from ..filter import filter_data
-from ..cov import _regularized_covariance
 from . import TransformerMixin, BaseEstimator
-from ..time_frequency import psd_array_welch
-from ..utils import _time_mask, fill_doc, _validate_type, _check_option
+from ..cov import _regularized_covariance, Covariance
+from ..defaults import _handle_default
+from ..filter import filter_data
 from ..io.pick import _get_channel_types, _picks_to_idx
+from ..rank import compute_rank
+from ..time_frequency import psd_array_welch
+from ..utils import (
+    fill_doc,
+    logger,
+    _check_option,
+    _time_mask,
+    _validate_type,
+    _verbose_safe_false,
+)
 
 
 @fill_doc
 class SSD(BaseEstimator, TransformerMixin):
     """
-    M/EEG signal decomposition using the Spatio-Spectral Decomposition (SSD).
+    Signal decomposition using the Spatio-Spectral Decomposition (SSD).
 
     SSD seeks to maximize the power at a frequency band of interest while
     simultaneously minimizing it at the flanking (surrounding) frequency bins
@@ -34,27 +44,27 @@ class SSD(BaseEstimator, TransformerMixin):
         Filtering for the frequencies of non-interest.
     reg : float | str | None (default)
         Which covariance estimator to use.
-        If not None (same as 'empirical'), allow regularization for
-        covariance estimation. If float, shrinkage is used
-        (0 <= shrinkage <= 1). For str options, reg will be passed to
-        method to :func:`mne.compute_covariance`.
+        If not None (same as 'empirical'), allow regularization for covariance
+        estimation. If float, shrinkage is used (0 <= shrinkage <= 1). For str
+        options, reg will be passed to method :func:`mne.compute_covariance`.
     n_components : int | None (default None)
         The number of components to extract from the signal.
-        If n_components is None, no dimensionality reduction is applied.
+        If None, the number of components equal to the rank of the data are
+        returned (see ``rank``).
     picks : array of int | None (default None)
         The indices of good channels.
-    sort_by_spectral_ratio : bool (default False)
-       If set to True, the components are sorted accordingly
-       to the spectral ratio.
-       See Eq. (24) in :footcite:`NikulinEtAl2011`.
-    return_filtered : bool (default True)
-        If return_filtered is True, data is bandpassed and projected onto
-        the SSD components.
+    sort_by_spectral_ratio : bool (default True)
+        If set to True, the components are sorted according to the spectral
+        ratio.
+        See Eq. (24) in :footcite:`NikulinEtAl2011`.
+    return_filtered : bool (default False)
+        If return_filtered is True, data is bandpassed and projected onto the
+        SSD components.
     n_fft : int (default None)
        If sort_by_spectral_ratio is set to True, then the SSD sources will be
-       sorted accordingly to their spectral ratio which is calculated based on
-       :func:`mne.time_frequency.psd_array_welch` function. The n_fft parameter
-       set the length of FFT used.
+       sorted according to their spectral ratio which is calculated based on
+       :func:`mne.time_frequency.psd_array_welch`. The n_fft parameter sets the
+       length of FFT used.
        See :func:`mne.time_frequency.psd_array_welch` for more information.
     cov_method_params : dict | None (default None)
         As in :class:`mne.decoding.SPoC`
@@ -62,7 +72,8 @@ class SSD(BaseEstimator, TransformerMixin):
     rank : None | dict | ‘info’ | ‘full’
         As in :class:`mne.decoding.SPoC`
         This controls the rank computation that can be read from the
-        measurement info or estimated from the data.
+        measurement info or estimated from the data, which determines the
+        maximum possible number of components.
         See Notes of :func:`mne.compute_rank` for details.
         We recommend to use 'full' when working with epoched data.
 
@@ -78,52 +89,66 @@ class SSD(BaseEstimator, TransformerMixin):
     .. footbibliography::
     """
 
-    def __init__(self, info, filt_params_signal, filt_params_noise,
-                 reg=None, n_components=None, picks=None,
-                 sort_by_spectral_ratio=True, return_filtered=False,
-                 n_fft=None, cov_method_params=None, rank=None):
+    def __init__(
+        self,
+        info,
+        filt_params_signal,
+        filt_params_noise,
+        reg=None,
+        n_components=None,
+        picks=None,
+        sort_by_spectral_ratio=True,
+        return_filtered=False,
+        n_fft=None,
+        cov_method_params=None,
+        rank=None,
+    ):
         """Initialize instance."""
         dicts = {"signal": filt_params_signal, "noise": filt_params_noise}
-        for param, dd in [('l', 0), ('h', 0), ('l', 1), ('h', 1)]:
-            key = ('signal', 'noise')[dd]
-            if param + '_freq' not in dicts[key]:
+        for param, dd in [("l", 0), ("h", 0), ("l", 1), ("h", 1)]:
+            key = ("signal", "noise")[dd]
+            if param + "_freq" not in dicts[key]:
                 raise ValueError(
-                    '%s must be defined in filter parameters for %s'
-                    % (param + '_freq', key))
-            val = dicts[key][param + '_freq']
+                    "%s must be defined in filter parameters for %s"
+                    % (param + "_freq", key)
+                )
+            val = dicts[key][param + "_freq"]
             if not isinstance(val, (int, float)):
-                _validate_type(val, ('numeric',), f'{key} {param}_freq')
+                _validate_type(val, ("numeric",), f"{key} {param}_freq")
         # check freq bands
-        if (filt_params_noise['l_freq'] > filt_params_signal['l_freq'] or
-                filt_params_signal['h_freq'] > filt_params_noise['h_freq']):
-            raise ValueError('Wrongly specified frequency bands!\n'
-                             'The signal band-pass must be within the noise '
-                             'band-pass!')
-        self.picks_ = _picks_to_idx(info, picks, none='data', exclude='bads')
+        if (
+            filt_params_noise["l_freq"] > filt_params_signal["l_freq"]
+            or filt_params_signal["h_freq"] > filt_params_noise["h_freq"]
+        ):
+            raise ValueError(
+                "Wrongly specified frequency bands!\n"
+                "The signal band-pass must be within the noise "
+                "band-pass!"
+            )
+        self.picks_ = _picks_to_idx(info, picks, none="data", exclude="bads")
         del picks
         ch_types = _get_channel_types(info, picks=self.picks_, unique=True)
         if len(ch_types) > 1:
-            raise ValueError('At this point SSD only supports fitting '
-                             'single channel types. Your info has %i types' %
-                             (len(ch_types)))
+            raise ValueError(
+                "At this point SSD only supports fitting "
+                "single channel types. Your info has %i types" % (len(ch_types))
+            )
         self.info = info
-        self.freqs_signal = (filt_params_signal['l_freq'],
-                             filt_params_signal['h_freq'])
-        self.freqs_noise = (filt_params_noise['l_freq'],
-                            filt_params_noise['h_freq'])
+        self.freqs_signal = (filt_params_signal["l_freq"], filt_params_signal["h_freq"])
+        self.freqs_noise = (filt_params_noise["l_freq"], filt_params_noise["h_freq"])
         self.filt_params_signal = filt_params_signal
         self.filt_params_noise = filt_params_noise
         # check if boolean
         if not isinstance(sort_by_spectral_ratio, (bool)):
-            raise ValueError('sort_by_spectral_ratio must be boolean')
+            raise ValueError("sort_by_spectral_ratio must be boolean")
         self.sort_by_spectral_ratio = sort_by_spectral_ratio
         if n_fft is None:
-            self.n_fft = int(self.info['sfreq'])
+            self.n_fft = int(self.info["sfreq"])
         else:
             self.n_fft = int(n_fft)
         # check if boolean
         if not isinstance(return_filtered, (bool)):
-            raise ValueError('return_filtered must be boolean')
+            raise ValueError("return_filtered must be boolean")
         self.return_filtered = return_filtered
         self.reg = reg
         self.n_components = n_components
@@ -132,13 +157,14 @@ class SSD(BaseEstimator, TransformerMixin):
 
     def _check_X(self, X):
         """Check input data."""
-        _validate_type(X, np.ndarray, 'X')
-        _check_option('X.ndim', X.ndim, (2, 3))
+        _validate_type(X, np.ndarray, "X")
+        _check_option("X.ndim", X.ndim, (2, 3))
         n_chan = X.shape[-2]
-        if n_chan != self.info['nchan']:
-            raise ValueError('Info must match the input data.'
-                             'Found %i channels but expected %i.' %
-                             (n_chan, self.info['nchan']))
+        if n_chan != self.info["nchan"]:
+            raise ValueError(
+                "Info must match the input data."
+                "Found %i channels but expected %i." % (n_chan, self.info["nchan"])
+            )
 
     def fit(self, X, y=None):
         """Estimate the SSD decomposition on raw or epoched data.
@@ -157,32 +183,47 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
-        from scipy.linalg import eigh
+        from scipy import linalg
+
         self._check_X(X)
         X_aux = X[..., self.picks_, :]
 
-        X_signal = filter_data(
-            X_aux, self.info['sfreq'], **self.filt_params_signal)
-        X_noise = filter_data(
-            X_aux, self.info['sfreq'], **self.filt_params_noise)
+        X_signal = filter_data(X_aux, self.info["sfreq"], **self.filt_params_signal)
+        X_noise = filter_data(X_aux, self.info["sfreq"], **self.filt_params_noise)
         X_noise -= X_signal
         if X.ndim == 3:
             X_signal = np.hstack(X_signal)
             X_noise = np.hstack(X_noise)
 
+        # prevent rank change when computing cov with rank='full'
         cov_signal = _regularized_covariance(
-            X_signal, reg=self.reg, method_params=self.cov_method_params,
-            rank=self.rank, info=self.info)
+            X_signal,
+            reg=self.reg,
+            method_params=self.cov_method_params,
+            rank="full",
+            info=self.info,
+        )
         cov_noise = _regularized_covariance(
-            X_noise, reg=self.reg, method_params=self.cov_method_params,
-            rank=self.rank, info=self.info)
+            X_noise,
+            reg=self.reg,
+            method_params=self.cov_method_params,
+            rank="full",
+            info=self.info,
+        )
 
-        eigvals_, eigvects_ = eigh(cov_signal, cov_noise)
+        # project cov to rank subspace
+        cov_signal, cov_noise, rank_proj = _dimensionality_reduction(
+            cov_signal, cov_noise, self.info, self.rank
+        )
+
+        eigvals_, eigvects_ = linalg.eigh(cov_signal, cov_noise)
         # sort in descending order
         ix = np.argsort(eigvals_)[::-1]
         self.eigvals_ = eigvals_[ix]
-        self.filters_ = eigvects_[:, ix]
+        # project back to sensor space
+        self.filters_ = np.matmul(rank_proj, eigvects_[:, ix])
         self.patterns_ = np.linalg.pinv(self.filters_)
+
         # We assume that ordering by spectral ratio is more important
         # than the initial ordering. This ordering should be also learned when
         # fitting.
@@ -191,6 +232,7 @@ class SSD(BaseEstimator, TransformerMixin):
         if self.sort_by_spectral_ratio:
             _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
         self.sorter_spec = sorter_spec
+        logger.info("Done.")
         return self
 
     def transform(self, X):
@@ -210,16 +252,15 @@ class SSD(BaseEstimator, TransformerMixin):
         """
         self._check_X(X)
         if self.filters_ is None:
-            raise RuntimeError('No filters available. Please first call fit')
+            raise RuntimeError("No filters available. Please first call fit")
         if self.return_filtered:
             X_aux = X[..., self.picks_, :]
-            X = filter_data(X_aux, self.info['sfreq'],
-                            **self.filt_params_signal)
+            X = filter_data(X_aux, self.info["sfreq"], **self.filt_params_signal)
         X_ssd = self.filters_.T @ X[..., self.picks_, :]
         if X.ndim == 2:
-            X_ssd = X_ssd[self.sorter_spec][:self.n_components]
+            X_ssd = X_ssd[self.sorter_spec][: self.n_components]
         else:
-            X_ssd = X_ssd[:, self.sorter_spec, :][:, :self.n_components, :]
+            X_ssd = X_ssd[:, self.sorter_spec, :][:, : self.n_components, :]
         return X_ssd
 
     def get_spectral_ratio(self, ssd_sources):
@@ -245,7 +286,8 @@ class SSD(BaseEstimator, TransformerMixin):
         .. footbibliography::
         """
         psd, freqs = psd_array_welch(
-            ssd_sources, sfreq=self.info['sfreq'], n_fft=self.n_fft)
+            ssd_sources, sfreq=self.info["sfreq"], n_fft=self.n_fft
+        )
         sig_idx = _time_mask(freqs, *self.freqs_signal)
         noise_idx = _time_mask(freqs, *self.freqs_noise)
         if psd.ndim == 3:
@@ -261,7 +303,7 @@ class SSD(BaseEstimator, TransformerMixin):
 
     def inverse_transform(self):
         """Not implemented yet."""
-        raise NotImplementedError('inverse_transform is not yet available.')
+        raise NotImplementedError("inverse_transform is not yet available.")
 
     def apply(self, X):
         """Remove selected components from the signal.
@@ -287,6 +329,72 @@ class SSD(BaseEstimator, TransformerMixin):
             The processed data.
         """
         X_ssd = self.transform(X)
-        pick_patterns = self.patterns_[self.sorter_spec][:self.n_components].T
+        pick_patterns = self.patterns_[self.sorter_spec][: self.n_components].T
         X = pick_patterns @ X_ssd
         return X
+
+
+def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
+    """Perform dimensionality reduction on the covariance matrices."""
+    from scipy import linalg
+
+    n_channels = cov_signal.shape[0]
+
+    # find ranks of covariance matrices
+    rank_signal = list(
+        compute_rank(
+            Covariance(
+                cov_signal,
+                info.ch_names,
+                list(),
+                list(),
+                0,
+                verbose=_verbose_safe_false(),
+            ),
+            rank,
+            _handle_default("scalings_cov_rank", None),
+            info,
+        ).values()
+    )[0]
+    rank_noise = list(
+        compute_rank(
+            Covariance(
+                cov_noise,
+                info.ch_names,
+                list(),
+                list(),
+                0,
+                verbose=_verbose_safe_false(),
+            ),
+            rank,
+            _handle_default("scalings_cov_rank", None),
+            info,
+        ).values()
+    )[0]
+    rank = np.min([rank_signal, rank_noise])  # should be identical
+
+    if rank < n_channels:
+        eigvals, eigvects = linalg.eigh(cov_signal)
+        # sort in descending order
+        ix = np.argsort(eigvals)[::-1]
+        eigvals = eigvals[ix]
+        eigvects = eigvects[:, ix]
+        # compute rank subspace projection matrix
+        rank_proj = np.matmul(
+            eigvects[:, :rank], np.eye(rank) * (eigvals[:rank] ** -0.5)
+        )
+        logger.info(
+            "Projecting covariance of %i channels to %i rank subspace"
+            % (
+                n_channels,
+                rank,
+            )
+        )
+    else:
+        rank_proj = np.eye(n_channels)
+        logger.info("Preserving covariance rank (%i)" % (rank,))
+
+    # project covariance matrices to rank subspace
+    cov_signal = np.matmul(rank_proj.T, np.matmul(cov_signal, rank_proj))
+    cov_noise = np.matmul(rank_proj.T, np.matmul(cov_noise, rank_proj))
+    return cov_signal, cov_noise, rank_proj

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -20,28 +19,36 @@ from ..utils import logger, warn, Bunch, _validate_type, _check_fname, verbose
 from .constants import FIFF, _coord_frame_named
 from .tree import dir_tree_find
 from .tag import read_tag
-from .write import (start_and_end_file, write_dig_points)
+from .write import start_and_end_file, write_dig_points
 
-from ..transforms import (apply_trans, Transform,
-                          get_ras_to_neuromag_trans, combine_transforms,
-                          invert_transform, _to_const, _str_to_frame,
-                          _coord_frame_name)
+from ..transforms import (
+    apply_trans,
+    Transform,
+    get_ras_to_neuromag_trans,
+    combine_transforms,
+    invert_transform,
+    _to_const,
+    _str_to_frame,
+    _coord_frame_name,
+)
 from .. import __version__
 
 _dig_kind_dict = {
-    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
-    'hpi': FIFF.FIFFV_POINT_HPI,
-    'eeg': FIFF.FIFFV_POINT_EEG,
-    'extra': FIFF.FIFFV_POINT_EXTRA,
+    "cardinal": FIFF.FIFFV_POINT_CARDINAL,
+    "hpi": FIFF.FIFFV_POINT_HPI,
+    "eeg": FIFF.FIFFV_POINT_EEG,
+    "extra": FIFF.FIFFV_POINT_EXTRA,
 }
 _dig_kind_ints = tuple(sorted(_dig_kind_dict.values()))
-_dig_kind_proper = {'cardinal': 'Cardinal',
-                    'hpi': 'HPI',
-                    'eeg': 'EEG',
-                    'extra': 'Extra',
-                    'unknown': 'Unknown'}
+_dig_kind_proper = {
+    "cardinal": "Cardinal",
+    "hpi": "HPI",
+    "eeg": "EEG",
+    "extra": "Extra",
+    "unknown": "Unknown",
+}
 _dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
-_cardinal_kind_rev = {1: 'LPA', 2: 'Nasion', 3: 'RPA', 4: 'Inion'}
+_cardinal_kind_rev = {1: "LPA", 2: "Nasion", 3: "RPA", 4: "Inion"}
 
 
 def _format_dig_points(dig, enforce_order=False):
@@ -57,8 +64,8 @@ def _format_dig_points(dig, enforce_order=False):
 
         # use a heap to enforce order on FIDS, EEG, Extra
         for idx, digpoint in enumerate(dig):
-            ident = digpoint['ident']
-            kind = digpoint['kind']
+            ident = digpoint["ident"]
+            kind = digpoint["kind"]
 
             # push onto heap based on 'ident' (for the order) for
             # each of the possible DigPoint 'kind's
@@ -81,9 +88,13 @@ def _format_dig_points(dig, enforce_order=False):
         eeg_digpoints.sort()
         extra_digpoints.sort(), head_digpoints.sort()
         new_dig = []
-        for idx, d in enumerate(fids_digpoints + hpi_digpoints +
-                                extra_digpoints + eeg_digpoints +
-                                head_digpoints):
+        for idx, d in enumerate(
+            fids_digpoints
+            + hpi_digpoints
+            + extra_digpoints
+            + eeg_digpoints
+            + head_digpoints
+        ):
             new_dig.append(d[-1])
         dig = new_dig
 
@@ -91,12 +102,12 @@ def _format_dig_points(dig, enforce_order=False):
 
 
 def _get_dig_eeg(dig):
-    return [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
+    return [d for d in dig if d["kind"] == FIFF.FIFFV_POINT_EEG]
 
 
 def _count_points_by_type(dig):
     """Get the number of points of each type."""
-    occurrences = Counter([d['kind'] for d in dig])
+    occurrences = Counter([d["kind"] for d in dig])
     return dict(
         fid=occurrences[FIFF.FIFFV_POINT_CARDINAL],
         hpi=occurrences[FIFF.FIFFV_POINT_HPI],
@@ -105,7 +116,7 @@ def _count_points_by_type(dig):
     )
 
 
-_dig_keys = {'kind', 'ident', 'r', 'coord_frame'}
+_dig_keys = {"kind", "ident", "r", "coord_frame"}
 
 
 class DigPoint(dict):
@@ -130,27 +141,28 @@ class DigPoint(dict):
     """
 
     def __repr__(self):  # noqa: D105
-        if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            id_ = _cardinal_kind_rev.get(self['ident'], 'Unknown cardinal')
+        if self["kind"] == FIFF.FIFFV_POINT_CARDINAL:
+            id_ = _cardinal_kind_rev.get(self["ident"], "Unknown cardinal")
         else:
-            id_ = _dig_kind_proper[
-                _dig_kind_rev.get(self['kind'], 'unknown')]
-            id_ = ('%s #%s' % (id_, self['ident']))
+            id_ = _dig_kind_proper[_dig_kind_rev.get(self["kind"], "unknown")]
+            id_ = "%s #%s" % (id_, self["ident"])
         id_ = id_.rjust(10)
-        cf = _coord_frame_name(self['coord_frame'])
-        if 'voxel' in cf:
-            pos = ('(%0.1f, %0.1f, %0.1f)' % tuple(self['r'])).ljust(25)
+        cf = _coord_frame_name(self["coord_frame"])
+        if "voxel" in cf:
+            pos = ("(%0.1f, %0.1f, %0.1f)" % tuple(self["r"])).ljust(25)
         else:
-            pos = ('(%0.1f, %0.1f, %0.1f) mm' %
-                   tuple(1000 * self['r'])).ljust(25)
-        return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
+            pos = ("(%0.1f, %0.1f, %0.1f) mm" % tuple(1000 * self["r"])).ljust(25)
+        return "<DigPoint | %s : %s : %s frame>" % (id_, pos, cf)
 
     # speed up info copy by only deep copying the mutable item
     def __deepcopy__(self, memodict):
         """Make a deepcopy."""
         return DigPoint(
-            kind=self['kind'], r=self['r'].copy(),
-            ident=self['ident'], coord_frame=self['coord_frame'])
+            kind=self["kind"],
+            r=self["r"].copy(),
+            ident=self["ident"],
+            coord_frame=self["coord_frame"],
+        )
 
     def __eq__(self, other):  # noqa: D105
         """Compare two DigPoints.
@@ -158,13 +170,13 @@ class DigPoint(dict):
         Two digpoints are equal if they are the same kind, share the same
         coordinate frame and position.
         """
-        my_keys = ['kind', 'ident', 'coord_frame']
+        my_keys = ["kind", "ident", "coord_frame"]
         if set(self.keys()) != set(other.keys()):
             return False
         elif any(self[_] != other[_] for _ in my_keys):
             return False
         else:
-            return np.allclose(self['r'], other['r'])
+            return np.allclose(self["r"], other["r"])
 
 
 def _read_dig_fif(fid, meas_info):
@@ -172,24 +184,24 @@ def _read_dig_fif(fid, meas_info):
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
     if len(isotrak) == 0:
-        logger.info('Isotrak not found')
+        logger.info("Isotrak not found")
     elif len(isotrak) > 1:
-        warn('Multiple Isotrak found')
+        warn("Multiple Isotrak found")
     else:
         isotrak = isotrak[0]
         coord_frame = FIFF.FIFFV_COORD_HEAD
         dig = []
-        for k in range(isotrak['nent']):
-            kind = isotrak['directory'][k].kind
-            pos = isotrak['directory'][k].pos
+        for k in range(isotrak["nent"]):
+            kind = isotrak["directory"][k].kind
+            pos = isotrak["directory"][k].pos
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
                 dig.append(tag.data)
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
-                coord_frame = _coord_frame_named.get(int(tag.data))
+                coord_frame = _coord_frame_named.get(int(tag.data.item()))
         for d in dig:
-            d['coord_frame'] = coord_frame
+            d["coord_frame"] = coord_frame
     return _format_dig_points(dig)
 
 
@@ -218,21 +230,22 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
     fname = _check_fname(fname, overwrite=overwrite)
     if coord_frame is not None:
         coord_frame = _to_const(coord_frame)
-        pts_frames = {pt.get('coord_frame', coord_frame) for pt in pts}
+        pts_frames = {pt.get("coord_frame", coord_frame) for pt in pts}
         bad_frames = pts_frames - {coord_frame}
         if len(bad_frames) > 0:
             raise ValueError(
-                'Points have coord_frame entries that are incompatible with '
-                'coord_frame=%i: %s.' % (coord_frame, str(tuple(bad_frames))))
+                "Points have coord_frame entries that are incompatible with "
+                "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames)))
+            )
 
     with start_and_end_file(fname) as fid:
         write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
 
 
 _cardinal_ident_mapping = {
-    FIFF.FIFFV_POINT_NASION: 'nasion',
-    FIFF.FIFFV_POINT_LPA: 'lpa',
-    FIFF.FIFFV_POINT_RPA: 'rpa',
+    FIFF.FIFFV_POINT_NASION: "nasion",
+    FIFF.FIFFV_POINT_LPA: "lpa",
+    FIFF.FIFFV_POINT_RPA: "rpa",
 }
 
 
@@ -240,8 +253,8 @@ def _ensure_fiducials_head(dig):
     # Ensure that there are all three fiducials in the head coord frame
     fids = dict()
     for d in dig:
-        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            name = _cardinal_ident_mapping.get(d['ident'], None)
+        if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
+            name = _cardinal_ident_mapping.get(d["ident"], None)
             if name is not None:
                 fids[name] = d
     radius = None
@@ -254,16 +267,22 @@ def _ensure_fiducials_head(dig):
         if name not in fids:
             if radius is None:
                 radius = [
-                    np.linalg.norm(d['r']) for d in dig
-                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+                    np.linalg.norm(d["r"])
+                    for d in dig
+                    if d["coord_frame"] == FIFF.FIFFV_COORD_HEAD
+                    and not np.isnan(d["r"]).any()
+                ]
                 if not radius:
                     return  # can't complete, no head points
                 radius = np.mean(radius)
-            dig.append(DigPoint(
-                kind=FIFF.FIFFV_POINT_CARDINAL, ident=ident,
-                r=np.array(mults[name], float) * radius,
-                coord_frame=FIFF.FIFFV_COORD_HEAD,
-            ))
+            dig.append(
+                DigPoint(
+                    kind=FIFF.FIFFV_POINT_CARDINAL,
+                    ident=ident,
+                    r=np.array(mults[name], float) * radius,
+                    coord_frame=FIFF.FIFFV_COORD_HEAD,
+                )
+            )
 
 
 # XXXX:
@@ -288,27 +307,29 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     fids, dig_ch_pos_location = dict(), list()
 
     for d in dig:
-        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            fids[_cardinal_ident_mapping[d['ident']]] = d['r']
-        elif d['kind'] == FIFF.FIFFV_POINT_HPI:
-            hpi.append(d['r'])
-            elp.append(d['r'])
-        elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
-            hsp.append(d['r'])
-        elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            if d['ident'] != 0 or not exclude_ref_channel:
-                dig_ch_pos_location.append(d['r'])
+        if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
+            fids[_cardinal_ident_mapping[d["ident"]]] = d["r"]
+        elif d["kind"] == FIFF.FIFFV_POINT_HPI:
+            hpi.append(d["r"])
+            elp.append(d["r"])
+        elif d["kind"] == FIFF.FIFFV_POINT_EXTRA:
+            hsp.append(d["r"])
+        elif d["kind"] == FIFF.FIFFV_POINT_EEG:
+            if d["ident"] != 0 or not exclude_ref_channel:
+                dig_ch_pos_location.append(d["r"])
 
-    dig_coord_frames = set([d['coord_frame'] for d in dig])
+    dig_coord_frames = set([d["coord_frame"] for d in dig])
     if len(dig_coord_frames) != 1:
-        raise RuntimeError('Only single coordinate frame in dig is supported, '
-                           f'got {dig_coord_frames}')
+        raise RuntimeError(
+            "Only single coordinate frame in dig is supported, "
+            f"got {dig_coord_frames}"
+        )
     dig_ch_pos_location = np.array(dig_ch_pos_location)
     dig_ch_pos_location.shape = (-1, 3)  # empty will be (0, 3)
     return Bunch(
-        nasion=fids.get('nasion', None),
-        lpa=fids.get('lpa', None),
-        rpa=fids.get('rpa', None),
+        nasion=fids.get("nasion", None),
+        lpa=fids.get("lpa", None),
+        rpa=fids.get("rpa", None),
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
@@ -322,20 +343,21 @@ def _get_fid_coords(dig, raise_error=True):
     fid_coord_frames = dict()
 
     for d in dig:
-        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            key = _cardinal_ident_mapping[d['ident']]
-            fid_coords[key] = d['r']
-            fid_coord_frames[key] = d['coord_frame']
+        if d["kind"] == FIFF.FIFFV_POINT_CARDINAL:
+            key = _cardinal_ident_mapping[d["ident"]]
+            fid_coords[key] = d["r"]
+            fid_coord_frames[key] = d["coord_frame"]
 
     if len(fid_coord_frames) > 0 and raise_error:
-        if set(fid_coord_frames.keys()) != set(['nasion', 'lpa', 'rpa']):
-            raise ValueError("Some fiducial points are missing (got %s)." %
-                             fid_coord_frames.keys())
+        if set(fid_coord_frames.keys()) != set(["nasion", "lpa", "rpa"]):
+            raise ValueError(
+                "Some fiducial points are missing (got %s)." % fid_coord_frames.keys()
+            )
 
         if len(set(fid_coord_frames.values())) > 1:
             raise ValueError(
-                'All fiducial points must be in the same coordinate system '
-                '(got %s)' % len(fid_coord_frames)
+                "All fiducial points must be in the same coordinate system "
+                "(got %s)" % len(fid_coord_frames)
             )
 
     coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
@@ -348,7 +370,7 @@ def _write_dig_points(fname, dig_points):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the file to write. The kind of file to write is determined
         based on the extension: '.txt' for tab separated text file.
     dig_points : numpy.ndarray, shape (n_points, 3)
@@ -357,18 +379,19 @@ def _write_dig_points(fname, dig_points):
     _, ext = op.splitext(fname)
     dig_points = np.asarray(dig_points)
     if (dig_points.ndim != 2) or (dig_points.shape[1] != 3):
-        err = ("Points must be of shape (n_points, 3), "
-               "not %s" % (dig_points.shape,))
+        err = "Points must be of shape (n_points, 3), " "not %s" % (dig_points.shape,)
         raise ValueError(err)
 
-    if ext == '.txt':
-        with open(fname, 'wb') as fid:
+    if ext == ".txt":
+        with open(fname, "wb") as fid:
             version = __version__
             now = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-            fid.write(b'%% Ascii 3D points file created by mne-python version'
-                      b' %s at %s\n' % (version.encode(), now.encode()))
-            fid.write(b'%% %d 3D points, x y z per line\n' % len(dig_points))
-            np.savetxt(fid, dig_points, delimiter='\t', newline='\n')
+            fid.write(
+                b"%% Ascii 3D points file created by mne-python version"
+                b" %s at %s\n" % (version.encode(), now.encode())
+            )
+            fid.write(b"%% %d 3D points, x y z per line\n" % len(dig_points))
+            np.savetxt(fid, dig_points, delimiter="\t", newline="\n")
     else:
         msg = "Unrecognized extension: %r. Need '.txt'." % ext
         raise ValueError(msg)
@@ -376,14 +399,24 @@ def _write_dig_points(fname, dig_points):
 
 def _coord_frame_const(coord_frame):
     if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
-        raise ValueError('coord_frame must be one of %s, got %s'
-                         % (sorted(_str_to_frame.keys()), coord_frame))
+        raise ValueError(
+            "coord_frame must be one of %s, got %s"
+            % (sorted(_str_to_frame.keys()), coord_frame)
+        )
     return _str_to_frame[coord_frame]
 
 
-def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                     extra_points=None, dig_ch_pos=None, *,
-                     coord_frame='head', add_missing_fiducials=False):
+def _make_dig_points(
+    nasion=None,
+    lpa=None,
+    rpa=None,
+    hpi=None,
+    extra_points=None,
+    dig_ch_pos=None,
+    *,
+    coord_frame="head",
+    add_missing_fiducials=False,
+):
     """Construct digitizer info for the info.
 
     Parameters
@@ -419,67 +452,105 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     if lpa is not None:
         lpa = np.asarray(lpa)
         if lpa.shape != (3,):
-            raise ValueError('LPA should have the shape (3,) instead of %s'
-                             % (lpa.shape,))
-        dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': coord_frame})
+            raise ValueError(
+                "LPA should have the shape (3,) instead of %s" % (lpa.shape,)
+            )
+        dig.append(
+            {
+                "r": lpa,
+                "ident": FIFF.FIFFV_POINT_LPA,
+                "kind": FIFF.FIFFV_POINT_CARDINAL,
+                "coord_frame": coord_frame,
+            }
+        )
     if nasion is not None:
         nasion = np.asarray(nasion)
         if nasion.shape != (3,):
-            raise ValueError('Nasion should have the shape (3,) instead of %s'
-                             % (nasion.shape,))
-        dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': coord_frame})
+            raise ValueError(
+                "Nasion should have the shape (3,) instead of %s" % (nasion.shape,)
+            )
+        dig.append(
+            {
+                "r": nasion,
+                "ident": FIFF.FIFFV_POINT_NASION,
+                "kind": FIFF.FIFFV_POINT_CARDINAL,
+                "coord_frame": coord_frame,
+            }
+        )
     if rpa is not None:
         rpa = np.asarray(rpa)
         if rpa.shape != (3,):
-            raise ValueError('RPA should have the shape (3,) instead of %s'
-                             % (rpa.shape,))
-        dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame': coord_frame})
+            raise ValueError(
+                "RPA should have the shape (3,) instead of %s" % (rpa.shape,)
+            )
+        dig.append(
+            {
+                "r": rpa,
+                "ident": FIFF.FIFFV_POINT_RPA,
+                "kind": FIFF.FIFFV_POINT_CARDINAL,
+                "coord_frame": coord_frame,
+            }
+        )
     if hpi is not None:
         hpi = np.asarray(hpi)
         if hpi.ndim != 2 or hpi.shape[1] != 3:
-            raise ValueError('HPI should have the shape (n_points, 3) instead '
-                             'of %s' % (hpi.shape,))
+            raise ValueError(
+                "HPI should have the shape (n_points, 3) instead "
+                "of %s" % (hpi.shape,)
+            )
         for idx, point in enumerate(hpi):
-            dig.append({'r': point, 'ident': idx + 1,
-                        'kind': FIFF.FIFFV_POINT_HPI,
-                        'coord_frame': coord_frame})
+            dig.append(
+                {
+                    "r": point,
+                    "ident": idx + 1,
+                    "kind": FIFF.FIFFV_POINT_HPI,
+                    "coord_frame": coord_frame,
+                }
+            )
     if extra_points is not None:
         extra_points = np.asarray(extra_points)
         if len(extra_points) and extra_points.shape[1] != 3:
-            raise ValueError('Points should have the shape (n_points, 3) '
-                             'instead of %s' % (extra_points.shape,))
+            raise ValueError(
+                "Points should have the shape (n_points, 3) "
+                "instead of %s" % (extra_points.shape,)
+            )
         for idx, point in enumerate(extra_points):
-            dig.append({'r': point, 'ident': idx + 1,
-                        'kind': FIFF.FIFFV_POINT_EXTRA,
-                        'coord_frame': coord_frame})
+            dig.append(
+                {
+                    "r": point,
+                    "ident": idx + 1,
+                    "kind": FIFF.FIFFV_POINT_EXTRA,
+                    "coord_frame": coord_frame,
+                }
+            )
     if dig_ch_pos is not None:
         idents = []
         use_arange = False
         for key, value in dig_ch_pos.items():
-            _validate_type(key, str, 'dig_ch_pos')
+            _validate_type(key, str, "dig_ch_pos")
             try:
                 idents.append(int(key[-3:]))
             except ValueError:
                 use_arange = True
-            _validate_type(value, (np.ndarray, list, tuple), 'dig_ch_pos')
+            _validate_type(value, (np.ndarray, list, tuple), "dig_ch_pos")
             value = np.array(value, dtype=float)
             dig_ch_pos[key] = value
-            if value.shape != (3, ):
+            if value.shape != (3,):
                 raise RuntimeError(
                     "The position should be a 1D array of 3 floats. "
-                    f"Provided shape {value.shape}.")
+                    f"Provided shape {value.shape}."
+                )
         if use_arange:
             idents = np.arange(1, len(dig_ch_pos) + 1)
         for key, ident in zip(dig_ch_pos, idents):
-            dig.append({'r': dig_ch_pos[key], 'ident': int(ident),
-                        'kind': FIFF.FIFFV_POINT_EEG,
-                        'coord_frame': coord_frame})
+            dig.append(
+                {
+                    "r": dig_ch_pos[key],
+                    "ident": int(ident),
+                    "kind": FIFF.FIFFV_POINT_EEG,
+                    "coord_frame": coord_frame,
+                }
+            )
     if add_missing_fiducials:
         assert coord_frame == FIFF.FIFFV_COORD_HEAD
         # These being none is really an assumption that if you have one you
@@ -506,13 +577,11 @@ def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
     else:
         neuromag_trans = None
 
-    ctf_head_t = Transform(fro='ctf_head', to='head', trans=neuromag_trans)
+    ctf_head_t = Transform(fro="ctf_head", to="head", trans=neuromag_trans)
 
-    info_dig = _make_dig_points(nasion=nasion,
-                                lpa=lpa,
-                                rpa=rpa,
-                                hpi=hpi,
-                                extra_points=extra)
+    info_dig = _make_dig_points(
+        nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=extra
+    )
 
     return info_dig, ctf_head_t
 
@@ -527,19 +596,26 @@ def _artemis123_read_pos(nas, lpa, rpa, hpi, extra):
 
 ##############################################################################
 # From bti
-def _make_bti_dig_points(nasion, lpa, rpa, hpi, extra,
-                         convert=False, use_hpi=False,
-                         bti_dev_t=False, dev_ctf_t=False):
-
+def _make_bti_dig_points(
+    nasion,
+    lpa,
+    rpa,
+    hpi,
+    extra,
+    convert=False,
+    use_hpi=False,
+    bti_dev_t=False,
+    dev_ctf_t=False,
+):
     _hpi = hpi if use_hpi else None
-    info_dig, ctf_head_t = _call_make_dig_points(nasion, lpa, rpa, _hpi, extra,
-                                                 convert)
+    info_dig, ctf_head_t = _call_make_dig_points(nasion, lpa, rpa, _hpi, extra, convert)
 
     if convert:
-        t = combine_transforms(invert_transform(bti_dev_t), dev_ctf_t,
-                               'meg', 'ctf_head')
-        dev_head_t = combine_transforms(t, ctf_head_t, 'meg', 'head')
+        t = combine_transforms(
+            invert_transform(bti_dev_t), dev_ctf_t, "meg", "ctf_head"
+        )
+        dev_head_t = combine_transforms(t, ctf_head_t, "meg", "head")
     else:
-        dev_head_t = Transform('meg', 'head', trans=None)
+        dev_head_t = Transform("meg", "head", trans=None)
 
     return info_dig, dev_head_t, ctf_head_t  # ctf_head_t should not be needed

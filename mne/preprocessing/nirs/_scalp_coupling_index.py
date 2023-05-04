@@ -12,9 +12,14 @@ from ..nirs import _validate_nirs_info
 
 
 @verbose
-def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
-                         l_trans_bandwidth=0.3, h_trans_bandwidth=0.3,
-                         verbose=False):
+def scalp_coupling_index(
+    raw,
+    l_freq=0.7,
+    h_freq=1.5,
+    l_trans_bandwidth=0.3,
+    h_trans_bandwidth=0.3,
+    verbose=False,
+):
     r"""Calculate scalp coupling index.
 
     This function calculates the scalp coupling index
@@ -40,19 +45,22 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
     ----------
     .. footbibliography::
     """
-    _validate_type(raw, BaseRaw, 'raw')
-    picks = _validate_nirs_info(
-        raw.info, fnirs='od', which='Scalp coupling index')
+    _validate_type(raw, BaseRaw, "raw")
+    picks = _validate_nirs_info(raw.info, fnirs="od", which="Scalp coupling index")
 
     raw = raw.copy().pick(picks).load_data()
     zero_mask = np.std(raw._data, axis=-1) == 0
     filtered_data = raw.filter(
-        l_freq, h_freq, l_trans_bandwidth=l_trans_bandwidth,
-        h_trans_bandwidth=h_trans_bandwidth, verbose=verbose).get_data()
+        l_freq,
+        h_freq,
+        l_trans_bandwidth=l_trans_bandwidth,
+        h_trans_bandwidth=h_trans_bandwidth,
+        verbose=verbose,
+    ).get_data()
 
     sci = np.zeros(picks.shape)
     for ii in range(0, len(picks), 2):
-        with np.errstate(invalid='ignore'):
+        with np.errstate(invalid="ignore"):
             c = np.corrcoef(filtered_data[ii], filtered_data[ii + 1])[0][1]
         if not np.isfinite(c):  # someone had std=0
             c = 0

@@ -16,8 +16,14 @@ from .utils import plt_show, _get_cmap
 from ..utils import _validate_type
 
 
-def circular_layout(node_names, node_order, start_pos=90, start_between=True,
-                    group_boundaries=None, group_sep=10):
+def circular_layout(
+    node_names,
+    node_order,
+    start_pos=90,
+    start_between=True,
+    group_boundaries=None,
+    group_sep=10,
+):
     """Create layout arranging nodes on a circle.
 
     Parameters
@@ -48,16 +54,16 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
     n_nodes = len(node_names)
 
     if len(node_order) != n_nodes:
-        raise ValueError('node_order has to be the same length as node_names')
+        raise ValueError("node_order has to be the same length as node_names")
 
     if group_boundaries is not None:
         boundaries = np.array(group_boundaries, dtype=np.int64)
         if np.any(boundaries >= n_nodes) or np.any(boundaries < 0):
-            raise ValueError('"group_boundaries" has to be between 0 and '
-                             'n_nodes - 1.')
+            raise ValueError(
+                '"group_boundaries" has to be between 0 and ' "n_nodes - 1."
+            )
         if len(boundaries) > 1 and np.any(np.diff(boundaries) <= 0):
-            raise ValueError('"group_boundaries" must have non-decreasing '
-                             'values.')
+            raise ValueError('"group_boundaries" must have non-decreasing ' "values.")
         n_group_sep = len(group_boundaries)
     else:
         n_group_sep = 0
@@ -67,9 +73,9 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
     node_order = [node_order.index(name) for name in node_names]
     node_order = np.array(node_order)
     if len(np.unique(node_order)) != n_nodes:
-        raise ValueError('node_order has repeated entries')
+        raise ValueError("node_order has repeated entries")
 
-    node_sep = (360. - n_group_sep * group_sep) / n_nodes
+    node_sep = (360.0 - n_group_sep * group_sep) / n_nodes
 
     if start_between:
         start_pos += node_sep / 2
@@ -89,9 +95,9 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
     return node_angles
 
 
-def _plot_connectivity_circle_onpick(event, fig=None, ax=None, indices=None,
-                                     n_nodes=0, node_angles=None,
-                                     ylim=[9, 10]):
+def _plot_connectivity_circle_onpick(
+    event, fig=None, ax=None, indices=None, n_nodes=0, node_angles=None, ylim=[9, 10]
+):
     """Isolate connections around a single node when user left clicks a node.
 
     On right click, resets all connections.
@@ -119,18 +125,35 @@ def _plot_connectivity_circle_onpick(event, fig=None, ax=None, indices=None,
         fig.canvas.draw()
 
 
-def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
-                              node_angles=None, node_width=None,
-                              node_height=None, node_colors=None,
-                              facecolor='black', textcolor='white',
-                              node_edgecolor='black', linewidth=1.5,
-                              colormap='hot', vmin=None, vmax=None,
-                              colorbar=True, title=None,
-                              colorbar_size=None, colorbar_pos=None,
-                              fontsize_title=12, fontsize_names=8,
-                              fontsize_colorbar=8, padding=6.,
-                              ax=None, interactive=True,
-                              node_linewidth=2., show=True):
+def _plot_connectivity_circle(
+    con,
+    node_names,
+    indices=None,
+    n_lines=None,
+    node_angles=None,
+    node_width=None,
+    node_height=None,
+    node_colors=None,
+    facecolor="black",
+    textcolor="white",
+    node_edgecolor="black",
+    linewidth=1.5,
+    colormap="hot",
+    vmin=None,
+    vmax=None,
+    colorbar=True,
+    title=None,
+    colorbar_size=None,
+    colorbar_pos=None,
+    fontsize_title=12,
+    fontsize_names=8,
+    fontsize_colorbar=8,
+    padding=6.0,
+    ax=None,
+    interactive=True,
+    node_linewidth=2.0,
+    show=True,
+):
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
     import matplotlib.patches as m_patches
@@ -142,8 +165,7 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     if node_angles is not None:
         if len(node_angles) != n_nodes:
-            raise ValueError('node_angles has to be the same length '
-                             'as node_names')
+            raise ValueError("node_angles has to be the same length " "as node_names")
         # convert it to radians
         node_angles = node_angles * np.pi / 180
     else:
@@ -170,21 +192,20 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             spectral = plt.cm.spectral
         except AttributeError:
             spectral = plt.cm.Spectral
-        node_colors = [spectral(i / float(n_nodes))
-                       for i in range(n_nodes)]
+        node_colors = [spectral(i / float(n_nodes)) for i in range(n_nodes)]
 
     # handle 1D and 2D connectivity information
     if con.ndim == 1:
         if indices is None:
-            raise ValueError('indices has to be provided if con.ndim == 1')
+            raise ValueError("indices has to be provided if con.ndim == 1")
     elif con.ndim == 2:
         if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
-            raise ValueError('con has to be 1D or a square matrix')
+            raise ValueError("con has to be 1D or a square matrix")
         # we use the lower-triangular part
         indices = np.tril_indices(n_nodes, -1)
         con = con[indices]
     else:
-        raise ValueError('con has to be 1D or a square matrix')
+        raise ValueError("con has to be 1D or a square matrix")
 
     # get the colormap
     colormap = _get_cmap(colormap)
@@ -205,13 +226,13 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     ax.set_ylim(0, 10 + padding)
 
     # Remove the black axes border which may obscure the labels
-    ax.spines['polar'].set_visible(False)
+    ax.spines["polar"].set_visible(False)
 
     # Draw lines between connected nodes, only draw the strongest connections
     if n_lines is not None and len(con) > n_lines:
         con_thresh = np.sort(np.abs(con).ravel())[-n_lines]
     else:
-        con_thresh = 0.
+        con_thresh = 0.0
 
     # get the connections which we are drawing and sort by connection strength
     # this will allow us to draw the strongest connections first
@@ -257,10 +278,12 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         nodes_n_con_seen[start] += 1
         nodes_n_con_seen[end] += 1
 
-        start_noise[i] *= ((nodes_n_con[start] - nodes_n_con_seen[start]) /
-                           float(nodes_n_con[start]))
-        end_noise[i] *= ((nodes_n_con[end] - nodes_n_con_seen[end]) /
-                         float(nodes_n_con[end]))
+        start_noise[i] *= (nodes_n_con[start] - nodes_n_con_seen[start]) / float(
+            nodes_n_con[start]
+        )
+        end_noise[i] *= (nodes_n_con[end] - nodes_n_con_seen[end]) / float(
+            nodes_n_con[end]
+        )
 
     # scale connectivity for colormap (vmin<=>0, vmax<=>1)
     con_val_scaled = (con - vmin) / vrange
@@ -278,22 +301,34 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         t1 += end_noise[pos]
 
         verts = [(t0, r0), (t0, 5), (t1, 5), (t1, r1)]
-        codes = [m_path.Path.MOVETO, m_path.Path.CURVE4, m_path.Path.CURVE4,
-                 m_path.Path.LINETO]
+        codes = [
+            m_path.Path.MOVETO,
+            m_path.Path.CURVE4,
+            m_path.Path.CURVE4,
+            m_path.Path.LINETO,
+        ]
         path = m_path.Path(verts, codes)
 
         color = colormap(con_val_scaled[pos])
 
         # Actual line
-        patch = m_patches.PathPatch(path, fill=False, edgecolor=color,
-                                    linewidth=linewidth, alpha=1.)
+        patch = m_patches.PathPatch(
+            path, fill=False, edgecolor=color, linewidth=linewidth, alpha=1.0
+        )
         ax.add_patch(patch)
 
     # Draw ring with colored nodes
     height = np.ones(n_nodes) * node_height
-    bars = ax.bar(node_angles, height, width=node_width, bottom=9,
-                  edgecolor=node_edgecolor, lw=node_linewidth,
-                  facecolor='.9', align='center')
+    bars = ax.bar(
+        node_angles,
+        height,
+        width=node_width,
+        bottom=9,
+        edgecolor=node_edgecolor,
+        lw=node_linewidth,
+        facecolor=".9",
+        align="center",
+    )
 
     for bar, color in zip(bars, node_colors):
         bar.set_facecolor(color)
@@ -302,23 +337,29 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     angles_deg = 180 * node_angles / np.pi
     for name, angle_rad, angle_deg in zip(node_names, node_angles, angles_deg):
         if angle_deg >= 270:
-            ha = 'left'
+            ha = "left"
         else:
             # Flip the label, so text is always upright
             angle_deg += 180
-            ha = 'right'
+            ha = "right"
 
-        ax.text(angle_rad, 9.4 + node_height, name, size=fontsize_names,
-                rotation=angle_deg, rotation_mode='anchor',
-                horizontalalignment=ha, verticalalignment='center',
-                color=textcolor)
+        ax.text(
+            angle_rad,
+            9.4 + node_height,
+            name,
+            size=fontsize_names,
+            rotation=angle_deg,
+            rotation_mode="anchor",
+            horizontalalignment=ha,
+            verticalalignment="center",
+            color=textcolor,
+        )
 
     if title is not None:
         ax.set_title(title, color=textcolor, fontsize=fontsize_title)
 
     if colorbar:
-        sm = plt.cm.ScalarMappable(cmap=colormap,
-                                   norm=plt.Normalize(vmin, vmax))
+        sm = plt.cm.ScalarMappable(cmap=colormap, norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
         colorbar_kwargs = dict()
         if colorbar_size is not None:
@@ -326,17 +367,22 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         if colorbar_pos is not None:
             colorbar_kwargs.update(anchor=colorbar_pos)
         cb = fig.colorbar(sm, ax=ax, **colorbar_kwargs)
-        cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
+        cb_yticks = plt.getp(cb.ax.axes, "yticklabels")
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
 
     # Add callback for interaction
     if interactive:
-        callback = partial(_plot_connectivity_circle_onpick, fig=fig,
-                           ax=ax, indices=indices, n_nodes=n_nodes,
-                           node_angles=node_angles)
+        callback = partial(
+            _plot_connectivity_circle_onpick,
+            fig=fig,
+            ax=ax,
+            indices=indices,
+            n_nodes=n_nodes,
+            node_angles=node_angles,
+        )
 
-        fig.canvas.mpl_connect('button_press_event', callback)
+        fig.canvas.mpl_connect("button_press_event", callback)
 
     plt_show(show)
     return fig, ax
@@ -370,27 +416,27 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
     """
     from matplotlib.colors import LinearSegmentedColormap
 
-    _validate_type(labels, dict, 'labels')
-    _validate_type(colors, (dict, None), 'colors')
-    _validate_type(picks, (list, tuple, None), 'picks')
+    _validate_type(labels, dict, "labels")
+    _validate_type(colors, (dict, None), "colors")
+    _validate_type(picks, (list, tuple, None), "picks")
     if picks is not None:
         labels = {k: v for k, v in labels.items() if k in picks}
     ch_names = list(labels.keys())
-    all_labels = list(set([label for val in labels.values()
-                           for label in val]))
+    all_labels = list(set([label for val in labels.values() for label in val]))
     n_labels = len(all_labels)
     if colors is not None:
         for label in all_labels:
             if label not in colors:
-                raise ValueError(f'No color provided for {label} in `colors`')
+                raise ValueError(f"No color provided for {label} in `colors`")
         # update all_labels, there may be unconnected labels in colors
         all_labels = list(colors.keys())
         n_labels = len(all_labels)
         # make colormap
         label_colors = [colors[label] for label in all_labels]
-        node_colors = ['black'] * len(ch_names) + label_colors
+        node_colors = ["black"] * len(ch_names) + label_colors
         label_cmap = LinearSegmentedColormap.from_list(
-            'label_cmap', label_colors, N=len(label_colors))
+            "label_cmap", label_colors, N=len(label_colors)
+        )
     else:
         node_colors = None
 
@@ -403,19 +449,20 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
             con[idx, node_idx] = con[node_idx, idx] = label_color  # symmetric
     # plot
     node_order = ch_names + all_labels[::-1]
-    node_angles = circular_layout(node_names, node_order, start_pos=90,
-                                  group_boundaries=[0, len(ch_names)])
+    node_angles = circular_layout(
+        node_names, node_order, start_pos=90, group_boundaries=[0, len(ch_names)]
+    )
     # provide defaults but don't overwrite
-    if 'node_angles' not in kwargs:
+    if "node_angles" not in kwargs:
         kwargs.update(node_angles=node_angles)
-    if 'colorbar' not in kwargs:
+    if "colorbar" not in kwargs:
         kwargs.update(colorbar=False)
-    if 'node_colors' not in kwargs:
+    if "node_colors" not in kwargs:
         kwargs.update(node_colors=node_colors)
-    if 'vmin' not in kwargs:
+    if "vmin" not in kwargs:
         kwargs.update(vmin=0)
-    if 'vmax' not in kwargs:
+    if "vmax" not in kwargs:
         kwargs.update(vmax=1)
-    if 'colormap' not in kwargs:
+    if "colormap" not in kwargs:
         kwargs.update(colormap=label_cmap)
     return _plot_connectivity_circle(con, node_names, **kwargs)

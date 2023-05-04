@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 .. _tut-mvpa:
 
@@ -35,36 +34,53 @@ from sklearn.linear_model import LogisticRegression
 
 import mne
 from mne.datasets import sample
-from mne.decoding import (SlidingEstimator, GeneralizingEstimator, Scaler,
-                          cross_val_multiscore, LinearModel, get_coef,
-                          Vectorizer, CSP)
+from mne.decoding import (
+    SlidingEstimator,
+    GeneralizingEstimator,
+    Scaler,
+    cross_val_multiscore,
+    LinearModel,
+    get_coef,
+    Vectorizer,
+    CSP,
+)
 
 data_path = sample.data_path()
 
-subjects_dir = data_path / 'subjects'
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / "subjects"
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 tmin, tmax = -0.200, 0.500
-event_id = {'Auditory/Left': 1, 'Visual/Left': 3}  # just use two
+event_id = {"Auditory/Left": 1, "Visual/Left": 3}  # just use two
 raw = mne.io.read_raw_fif(raw_fname)
-raw.pick_types(meg='grad', stim=True, eog=True, exclude=())
+raw.pick_types(meg="grad", stim=True, eog=True, exclude=())
 
 # The subsequent decoding analyses only capture evoked responses, so we can
 # low-pass the MEG data. Usually a value more like 40 Hz would be used,
 # but here low-pass at 20 so we can more heavily decimate, and allow
 # the example to run faster. The 2 Hz high-pass helps improve CSP.
 raw.load_data().filter(2, 20)
-events = mne.find_events(raw, 'STI 014')
+events = mne.find_events(raw, "STI 014")
 
 # Set up bad channels (modify to your needs)
-raw.info['bads'] += ['MEG 2443']  # bads + 2 more
+raw.info["bads"] += ["MEG 2443"]  # bads + 2 more
 
 # Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=('grad', 'eog'), baseline=(None, 0.), preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6), decim=3,
-                    verbose='error')
-epochs.pick_types(meg=True, exclude='bads')  # remove stim and EOG
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    proj=True,
+    picks=("grad", "eog"),
+    baseline=(None, 0.0),
+    preload=True,
+    reject=dict(grad=4000e-13, eog=150e-6),
+    decim=3,
+    verbose="error",
+)
+epochs.pick_types(meg=True, exclude="bads")  # remove stim and EOG
 del raw
 
 X = epochs.get_data()  # MEG signals: n_epochs, n_meg_channels, n_times
@@ -121,14 +137,14 @@ y = epochs.events[:, 2]  # target: auditory left vs visual left
 clf = make_pipeline(
     Scaler(epochs.info),
     Vectorizer(),
-    LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
+    LogisticRegression(solver="liblinear"),  # liblinear is faster than lbfgs
 )
 
 scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=None)
 
 # Mean scores across cross-validation splits
 score = np.mean(scores, axis=0)
-print('Spatio-temporal: %0.1f%%' % (100 * score,))
+print("Spatio-temporal: %0.1f%%" % (100 * score,))
 
 # %%
 # PSDEstimator
@@ -205,12 +221,9 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 # We can use CSP with these data with:
 
 csp = CSP(n_components=3, norm_trace=False)
-clf_csp = make_pipeline(
-    csp,
-    LinearModel(LogisticRegression(solver='liblinear'))
-)
+clf_csp = make_pipeline(csp, LinearModel(LogisticRegression(solver="liblinear")))
 scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=None)
-print('CSP: %0.1f%%' % (100 * scores.mean(),))
+print("CSP: %0.1f%%" % (100 * scores.mean(),))
 
 # %%
 # Source power comodulation (SPoC)
@@ -303,13 +316,9 @@ csp.plot_filters(epochs.info, scalings=1e-9)
 
 # We will train the classifier on all left visual vs auditory trials on MEG
 
-clf = make_pipeline(
-    StandardScaler(),
-    LogisticRegression(solver='liblinear')
-)
+clf = make_pipeline(StandardScaler(), LogisticRegression(solver="liblinear"))
 
-time_decod = SlidingEstimator(
-    clf, n_jobs=None, scoring='roc_auc', verbose=True)
+time_decod = SlidingEstimator(clf, n_jobs=None, scoring="roc_auc", verbose=True)
 # here we use cv=3 just for speed
 scores = cross_val_multiscore(time_decod, X, y, cv=3, n_jobs=None)
 
@@ -318,31 +327,29 @@ scores = np.mean(scores, axis=0)
 
 # Plot
 fig, ax = plt.subplots()
-ax.plot(epochs.times, scores, label='score')
-ax.axhline(.5, color='k', linestyle='--', label='chance')
-ax.set_xlabel('Times')
-ax.set_ylabel('AUC')  # Area Under the Curve
+ax.plot(epochs.times, scores, label="score")
+ax.axhline(0.5, color="k", linestyle="--", label="chance")
+ax.set_xlabel("Times")
+ax.set_ylabel("AUC")  # Area Under the Curve
 ax.legend()
-ax.axvline(.0, color='k', linestyle='-')
-ax.set_title('Sensor space decoding')
+ax.axvline(0.0, color="k", linestyle="-")
+ax.set_title("Sensor space decoding")
 
 # %%
 # You can retrieve the spatial filters and spatial patterns if you explicitly
 # use a LinearModel
 clf = make_pipeline(
-    StandardScaler(),
-    LinearModel(LogisticRegression(solver='liblinear'))
+    StandardScaler(), LinearModel(LogisticRegression(solver="liblinear"))
 )
-time_decod = SlidingEstimator(
-    clf, n_jobs=None, scoring='roc_auc', verbose=True)
+time_decod = SlidingEstimator(clf, n_jobs=None, scoring="roc_auc", verbose=True)
 time_decod.fit(X, y)
 
-coef = get_coef(time_decod, 'patterns_', inverse_transform=True)
+coef = get_coef(time_decod, "patterns_", inverse_transform=True)
 evoked_time_gen = mne.EvokedArray(coef, epochs.info, tmin=epochs.times[0])
-joint_kwargs = dict(ts_args=dict(time_unit='s'),
-                    topomap_args=dict(time_unit='s'))
-evoked_time_gen.plot_joint(times=np.arange(0., .500, .100), title='patterns',
-                           **joint_kwargs)
+joint_kwargs = dict(ts_args=dict(time_unit="s"), topomap_args=dict(time_unit="s"))
+evoked_time_gen.plot_joint(
+    times=np.arange(0.0, 0.500, 0.100), title="patterns", **joint_kwargs
+)
 
 # %%
 # Temporal generalization
@@ -368,8 +375,7 @@ evoked_time_gen.plot_joint(times=np.arange(0., .500, .100), title='patterns',
 # in :footcite:`KingDehaene2014`:
 
 # define the Temporal generalization object
-time_gen = GeneralizingEstimator(clf, n_jobs=None, scoring='roc_auc',
-                                 verbose=True)
+time_gen = GeneralizingEstimator(clf, n_jobs=None, scoring="roc_auc", verbose=True)
 
 # again, cv=3 just for speed
 scores = cross_val_multiscore(time_gen, X, y, cv=3, n_jobs=None)
@@ -379,27 +385,34 @@ scores = np.mean(scores, axis=0)
 
 # Plot the diagonal (it's exactly the same as the time-by-time decoding above)
 fig, ax = plt.subplots()
-ax.plot(epochs.times, np.diag(scores), label='score')
-ax.axhline(.5, color='k', linestyle='--', label='chance')
-ax.set_xlabel('Times')
-ax.set_ylabel('AUC')
+ax.plot(epochs.times, np.diag(scores), label="score")
+ax.axhline(0.5, color="k", linestyle="--", label="chance")
+ax.set_xlabel("Times")
+ax.set_ylabel("AUC")
 ax.legend()
-ax.axvline(.0, color='k', linestyle='-')
-ax.set_title('Decoding MEG sensors over time')
+ax.axvline(0.0, color="k", linestyle="-")
+ax.set_title("Decoding MEG sensors over time")
 
 # %%
 # Plot the full (generalization) matrix:
 
 fig, ax = plt.subplots(1, 1)
-im = ax.imshow(scores, interpolation='lanczos', origin='lower', cmap='RdBu_r',
-               extent=epochs.times[[0, -1, 0, -1]], vmin=0., vmax=1.)
-ax.set_xlabel('Testing Time (s)')
-ax.set_ylabel('Training Time (s)')
-ax.set_title('Temporal generalization')
-ax.axvline(0, color='k')
-ax.axhline(0, color='k')
+im = ax.imshow(
+    scores,
+    interpolation="lanczos",
+    origin="lower",
+    cmap="RdBu_r",
+    extent=epochs.times[[0, -1, 0, -1]],
+    vmin=0.0,
+    vmax=1.0,
+)
+ax.set_xlabel("Testing Time (s)")
+ax.set_ylabel("Training Time (s)")
+ax.set_title("Temporal generalization")
+ax.axvline(0, color="k")
+ax.axhline(0, color="k")
 cbar = plt.colorbar(im, ax=ax)
-cbar.set_label('AUC')
+cbar.set_label("AUC")
 
 # %%
 # Projecting sensor-space patterns to source space
@@ -408,19 +421,18 @@ cbar.set_label('AUC')
 # project these to source space. For example, using our ``evoked_time_gen``
 # from before:
 
-cov = mne.compute_covariance(epochs, tmax=0.)
+cov = mne.compute_covariance(epochs, tmax=0.0)
 del epochs
-fwd = mne.read_forward_solution(
-    meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif')
-inv = mne.minimum_norm.make_inverse_operator(
-    evoked_time_gen.info, fwd, cov, loose=0.)
-stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1. / 9., 'dSPM')
+fwd = mne.read_forward_solution(meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif")
+inv = mne.minimum_norm.make_inverse_operator(evoked_time_gen.info, fwd, cov, loose=0.0)
+stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1.0 / 9.0, "dSPM")
 del fwd, inv
 
 # %%
 # And this can be visualized using :meth:`stc.plot <mne.SourceEstimate.plot>`:
-brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
-                 subjects_dir=subjects_dir)
+brain = stc.plot(
+    hemi="split", views=("lat", "med"), initial_time=0.1, subjects_dir=subjects_dir
+)
 
 # %%
 # Source-space decoding

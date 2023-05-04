@@ -22,8 +22,8 @@ def read_raw_persyst(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to the Persyst header (.lay) file.
+    fname : path-like
+        Path to the Persyst header ``.lay`` file.
     %(preload)s
     %(verbose)s
 
@@ -31,10 +31,11 @@ def read_raw_persyst(fname, preload=False, verbose=None):
     -------
     raw : instance of RawPersyst
         A Raw object containing Persyst data.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods of RawPersyst.
 
     Notes
     -----
@@ -53,29 +54,30 @@ class RawPersyst(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the Persyst header (.lay) file.
     %(preload)s
     %(verbose)s
 
     See Also
     --------
-    mne.io.Raw : Documentation of attribute and methods.
+    mne.io.Raw : Documentation of attributes and methods.
     """
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
-        fname = _check_fname(fname, 'read', True, 'fname')
-        logger.info('Loading %s' % fname)
+        fname = str(_check_fname(fname, "read", True, "fname"))
+        logger.info("Loading %s" % fname)
 
         # make sure filename is the Lay file
-        if not fname.endswith('.lay'):
-            fname = fname + '.lay'
+        if not fname.endswith(".lay"):
+            fname = fname + ".lay"
         # get the current directory and Lay filename
         curr_path, lay_fname = op.dirname(fname), op.basename(fname)
         if not op.exists(fname):
-            raise FileNotFoundError(f'The path you specified, '
-                                    f'"{lay_fname}",does not exist.')
+            raise FileNotFoundError(
+                f"The path you specified, " f'"{lay_fname}",does not exist.'
+            )
 
         # sections and subsections currently unused
         keys, data, sections = _read_lay_contents(fname)
@@ -92,50 +94,51 @@ class RawPersyst(BaseRaw):
 
         # loop through each line in the lay file
         for key, val, section in zip(keys, data, sections):
-            if key == '':
+            if key == "":
                 continue
 
             # Make sure key are lowercase for everything, but electrodes.
             # We also do not want to lower-case comments because those
             # are free-form text where casing may matter.
-            if key is not None and section not in ['channelmap',
-                                                   'comments']:
+            if key is not None and section not in ["channelmap", "comments"]:
                 key = key.lower()
 
             # FileInfo
-            if section == 'fileinfo':
+            if section == "fileinfo":
                 # extract the .dat file name
-                if key == 'file':
+                if key == "file":
                     dat_fname = op.basename(val)
                     dat_fpath = op.join(curr_path, op.basename(dat_fname))
 
                     # determine if .dat file exists where it should
-                    error_msg = f'The data path you specified ' \
-                                f'does not exist for the lay path, ' \
-                                f'{lay_fname}. Make sure the dat file ' \
-                                f'is in the same directory as the lay ' \
-                                f'file, and the specified dat filename ' \
-                                f'matches.'
+                    error_msg = (
+                        f"The data path you specified "
+                        f"does not exist for the lay path, "
+                        f"{lay_fname}. Make sure the dat file "
+                        f"is in the same directory as the lay "
+                        f"file, and the specified dat filename "
+                        f"matches."
+                    )
                     if not op.exists(dat_fpath):
                         raise FileNotFoundError(error_msg)
                 fileinfo_dict[key] = val
             # ChannelMap
-            elif section == 'channelmap':
+            elif section == "channelmap":
                 # channel map has <channel_name>=<number> for <key>=<val>
                 channelmap_dict[key] = val
             # Patient (All optional)
-            elif section == 'patient':
+            elif section == "patient":
                 patient_dict[key] = val
             # Comments (turned into mne.Annotations)
-            elif section == 'comments':
+            elif section == "comments":
                 comments_dict[key] = comments_dict.get(key, list()) + [val]
                 num_comments += 1
 
         # get numerical metadata
         # datatype is either 7 for 32 bit, or 0 for 16 bit
-        datatype = fileinfo_dict.get('datatype')
-        cal = float(fileinfo_dict.get('calibration'))
-        n_chs = int(fileinfo_dict.get('waveformcount'))
+        datatype = fileinfo_dict.get("datatype")
+        cal = float(fileinfo_dict.get("calibration"))
+        n_chs = int(fileinfo_dict.get("waveformcount"))
 
         # Store subject information from lay file in mne format
         # Note: Persyst also records "Physician", "Technician",
@@ -144,97 +147,103 @@ class RawPersyst(BaseRaw):
         subject_info = _get_subjectinfo(patient_dict)
 
         # set measurement date
-        testdate = patient_dict.get('testdate')
+        testdate = patient_dict.get("testdate")
         if testdate is not None:
             # TODO: Persyst may change its internal date schemas
             #  without notice
             # These are the 3 "so far" possible datatime storage
             # formats in Persyst .lay
-            if '/' in testdate:
-                testdate = datetime.strptime(testdate, '%m/%d/%Y')
-            elif '-' in testdate:
-                testdate = datetime.strptime(testdate, '%d-%m-%Y')
-            elif '.' in testdate:
-                testdate = datetime.strptime(testdate, '%Y.%m.%d')
+            if "/" in testdate:
+                testdate = datetime.strptime(testdate, "%m/%d/%Y")
+            elif "-" in testdate:
+                testdate = datetime.strptime(testdate, "%d-%m-%Y")
+            elif "." in testdate:
+                testdate = datetime.strptime(testdate, "%Y.%m.%d")
 
             if not isinstance(testdate, datetime):
-                warn('Cannot read in the measurement date due '
-                     'to incompatible format. Please set manually '
-                     'for %s ' % lay_fname)
+                warn(
+                    "Cannot read in the measurement date due "
+                    "to incompatible format. Please set manually "
+                    "for %s " % lay_fname
+                )
                 meas_date = None
             else:
-                testtime = datetime.strptime(patient_dict.get('testtime'),
-                                             '%H:%M:%S')
+                testtime = datetime.strptime(patient_dict.get("testtime"), "%H:%M:%S")
                 meas_date = datetime(
-                    year=testdate.year, month=testdate.month,
-                    day=testdate.day, hour=testtime.hour,
-                    minute=testtime.minute, second=testtime.second,
-                    tzinfo=timezone.utc)
+                    year=testdate.year,
+                    month=testdate.month,
+                    day=testdate.day,
+                    hour=testtime.hour,
+                    minute=testtime.minute,
+                    second=testtime.second,
+                    tzinfo=timezone.utc,
+                )
 
         # Create mne structure
         ch_names = list(channelmap_dict.keys())
         if n_chs != len(ch_names):
-            raise RuntimeError('Channels in lay file do not '
-                               'match the number of channels '
-                               'in the .dat file.')  # noqa
+            raise RuntimeError(
+                "Channels in lay file do not "
+                "match the number of channels "
+                "in the .dat file."
+            )  # noqa
         # get rid of the "-Ref" in channel names
-        ch_names = [ch.upper().split('-REF')[0] for ch in ch_names]
+        ch_names = [ch.upper().split("-REF")[0] for ch in ch_names]
 
         # get the sampling rate and default channel types to EEG
-        sfreq = fileinfo_dict.get('samplingrate')
-        ch_types = 'eeg'
+        sfreq = fileinfo_dict.get("samplingrate")
+        ch_types = "eeg"
         info = create_info(ch_names, sfreq, ch_types=ch_types)
         info.update(subject_info=subject_info)
         with info._unlock():
             for idx in range(n_chs):
                 # calibration brings to uV then 1e-6 brings to V
-                info['chs'][idx]['cal'] = cal * 1.0e-6
-            info['meas_date'] = meas_date
+                info["chs"][idx]["cal"] = cal * 1.0e-6
+            info["meas_date"] = meas_date
 
         # determine number of samples in file
         # Note: We do not use the lay file to do this
         # because clips in time may be generated by Persyst that
         # DO NOT modify the "SampleTimes" section
-        with open(dat_fpath, 'rb') as f:
+        with open(dat_fpath, "rb") as f:
             # determine the precision
             if int(datatype) == 7:
                 # 32 bit
-                dtype = np.dtype('i4')
+                dtype = np.dtype("i4")
             elif int(datatype) == 0:
                 # 16 bit
-                dtype = np.dtype('i2')
+                dtype = np.dtype("i2")
             else:
-                raise RuntimeError(f'Unknown format: {datatype}')
+                raise RuntimeError(f"Unknown format: {datatype}")
 
             # allow offset to occur
             f.seek(0, os.SEEK_END)
             n_samples = f.tell()
             n_samples = n_samples // (dtype.itemsize * n_chs)
 
-            logger.debug(f'Loaded {n_samples} samples '
-                         f'for {n_chs} channels.')
+            logger.debug(f"Loaded {n_samples} samples " f"for {n_chs} channels.")
 
-        raw_extras = {
-            'dtype': dtype,
-            'n_chs': n_chs,
-            'n_samples': n_samples
-        }
+        raw_extras = {"dtype": dtype, "n_chs": n_chs, "n_samples": n_samples}
         # create Raw object
         super(RawPersyst, self).__init__(
-            info, preload, filenames=[dat_fpath],
+            info,
+            preload,
+            filenames=[dat_fpath],
             last_samps=[n_samples - 1],
-            raw_extras=[raw_extras], verbose=verbose)
+            raw_extras=[raw_extras],
+            verbose=verbose,
+        )
 
         # set annotations based on the comments read in
         onset = np.zeros(num_comments, float)
         duration = np.zeros(num_comments, float)
-        description = [''] * num_comments
+        description = [""] * num_comments
 
         # loop through comments dictionary, which may contain
         # multiple events for the same "text" annotation
         t_idx = 0
         for _description, event_tuples in comments_dict.items():
-            for (_onset, _duration) in event_tuples:
+            for _onset, _duration in event_tuples:
                 # extract the onset, duration, description to
                 # create an Annotations object
                 onset[t_idx] = _onset
@@ -251,8 +260,8 @@ class RawPersyst(BaseRaw):
         binary files. In addition, it stores the calibration to convert
         data to uV in the lay file.
         """
-        dtype = self._raw_extras[fi]['dtype']
-        n_chs = self._raw_extras[fi]['n_chs']
+        dtype = self._raw_extras[fi]["dtype"]
+        n_chs = self._raw_extras[fi]["n_chs"]
         dat_fname = self._filenames[fi]
 
         # compute samples count based on start and stop
@@ -263,17 +272,16 @@ class RawPersyst(BaseRaw):
         count = time_length_samps * n_chs
 
         # seek the dat file
-        with open(dat_fname, 'rb') as dat_file_ID:
+        with open(dat_fname, "rb") as dat_file_ID:
             # allow offset to occur
             dat_file_ID.seek(n_chs * dtype.itemsize * start, 1)
 
             # read in the actual record starting at possibly offset
-            record = np.fromfile(dat_file_ID, dtype=dtype,
-                                 count=count)
+            record = np.fromfile(dat_file_ID, dtype=dtype, count=count)
 
         # chs * rows
         # cast as float32; more than enough precision
-        record = np.reshape(record, (n_chs, -1), 'F').astype(np.float32)
+        record = np.reshape(record, (n_chs, -1), "F").astype(np.float32)
 
         # calibrate to convert to V and handle mult
         _mult_cal_one(data, record, idx, cals, mult)
@@ -282,28 +290,28 @@ class RawPersyst(BaseRaw):
 def _get_subjectinfo(patient_dict):
     # attempt to parse out the birthdate, but if it doesn't
     # meet spec, then it will set to None
-    birthdate = patient_dict.get('birthdate')
-    if '/' in birthdate:
+    birthdate = patient_dict.get("birthdate")
+    if "/" in birthdate:
         try:
-            birthdate = datetime.strptime(birthdate, '%m/%d/%y')
+            birthdate = datetime.strptime(birthdate, "%m/%d/%y")
         except ValueError:
             birthdate = None
-            print('Unable to process birthdate of %s ' % birthdate)
-    elif '-' in birthdate:
+            print("Unable to process birthdate of %s " % birthdate)
+    elif "-" in birthdate:
         try:
-            birthdate = datetime.strptime(birthdate, '%d-%m-%y')
+            birthdate = datetime.strptime(birthdate, "%d-%m-%y")
         except ValueError:
             birthdate = None
-            print('Unable to process birthdate of %s ' % birthdate)
+            print("Unable to process birthdate of %s " % birthdate)
 
     subject_info = {
-        'first_name': patient_dict.get('first'),
-        'middle_name': patient_dict.get('middle'),
-        'last_name': patient_dict.get('last'),
-        'sex': patient_dict.get('sex'),
-        'hand': patient_dict.get('hand'),
-        'his_id': patient_dict.get('id'),
-        'birthday': birthdate,
+        "first_name": patient_dict.get("first"),
+        "middle_name": patient_dict.get("middle"),
+        "last_name": patient_dict.get("last"),
+        "sex": patient_dict.get("sex"),
+        "hand": patient_dict.get("hand"),
+        "his_id": patient_dict.get("id"),
+        "birthday": birthdate,
     }
 
     # Recode sex values
@@ -313,8 +321,7 @@ def _get_subjectinfo(patient_dict):
         f=FIFF.FIFFV_SUBJ_SEX_FEMALE,
         female=FIFF.FIFFV_SUBJ_SEX_FEMALE,
     )
-    subject_info['sex'] = sex_dict.get(subject_info['sex'],
-                                       FIFF.FIFFV_SUBJ_SEX_UNKNOWN)
+    subject_info["sex"] = sex_dict.get(subject_info["sex"], FIFF.FIFFV_SUBJ_SEX_UNKNOWN)
 
     # Recode hand values
     hand_dict = dict(
@@ -328,9 +335,9 @@ def _get_subjectinfo(patient_dict):
     )
     # no handedness is set when unknown
     try:
-        subject_info['hand'] = hand_dict[subject_info['hand']]
+        subject_info["hand"] = hand_dict[subject_info["hand"]]
     except KeyError:
-        subject_info.pop('hand')
+        subject_info.pop("hand")
 
     return subject_info
 
@@ -342,8 +349,8 @@ def _read_lay_contents(fname):
     keys, data = [], []
 
     # initialize all section to empty str
-    section = ''
-    with open(fname, 'r') as fin:
+    section = ""
+    with open(fname, "r") as fin:
         for line in fin:
             # break a line into a status, key and value
             status, key, val = _process_lay_line(line, section)
@@ -419,19 +426,18 @@ def _process_lay_line(line, section):
         4. variable type (unused)
         5. free-form text describing the annotation
     """
-    key = ''  # default; only return value possibly not set
+    key = ""  # default; only return value possibly not set
     line = line.strip()  # remove leading and trailing spaces
     end_idx = len(line) - 1  # get the last index of the line
 
     # empty sequence evaluates to false
     if not line:
         status = 0
-        key = ''
-        value = ''
+        key = ""
+        value = ""
         return status, key, value
     # section found
-    elif (line[0] == '[') and (line[end_idx] == ']') \
-            and (end_idx + 1 >= 3):
+    elif (line[0] == "[") and (line[end_idx] == "]") and (end_idx + 1 >= 3):
         status = 1
         value = line[1:end_idx].lower()
     # key found
@@ -439,25 +445,27 @@ def _process_lay_line(line, section):
         # handle Comments section differently from all other sections
         # TODO: utilize state and var_type in code.
         #  Currently not used
-        if section == 'comments':
+        if section == "comments":
             # Persyst Comments output 5 variables "," separated
-            time_sec, duration, state, var_type, text = line.split(',', 4)
+            time_sec, duration, state, var_type, text = line.split(",", 4)
             status = 2
             key = text
             value = (time_sec, duration)
         # all other sections
         else:
-            if '=' not in line:
-                raise RuntimeError('The line %s does not conform '
-                                   'to the standards. Please check the '
-                                   '.lay file.' % line)  # noqa
-            pos = line.index('=')
+            if "=" not in line:
+                raise RuntimeError(
+                    "The line %s does not conform "
+                    "to the standards. Please check the "
+                    ".lay file." % line
+                )  # noqa
+            pos = line.index("=")
             status = 2
 
             # the line now is composed of a
             # <key>=<value>
             key = line[0:pos]
             key.strip()
-            value = line[pos + 1:end_idx + 1]
+            value = line[pos + 1 : end_idx + 1]
             value.strip()
     return status, key, value

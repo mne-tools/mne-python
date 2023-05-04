@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD-3-Clause
@@ -13,13 +12,19 @@ from mne.channels import make_standard_montage
 from mne.io import read_raw_hitachi
 from mne.io.hitachi.hitachi import _compute_pairs
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.preprocessing.nirs import (source_detector_distances,
-                                    optical_density, tddr, beer_lambert_law,
-                                    scalp_coupling_index)
+from mne.preprocessing.nirs import (
+    source_detector_distances,
+    optical_density,
+    tddr,
+    beer_lambert_law,
+    scalp_coupling_index,
+)
 
 
 CONTENTS = dict()
-CONTENTS['1.18'] = b"""\
+CONTENTS[
+    "1.18"
+] = b"""\
 Header,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 File Version,1.18,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Patient Information,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -124,7 +129,9 @@ Probe1,CH1(700.1),CH1(829.1),CH2(699.3),CH2(827.9),CH3(699.3),CH3(827.9),CH4(698
 """  # noqa: E501
 
 
-CONTENTS['1.25'] = b"""\
+CONTENTS[
+    "1.25"
+] = b"""\
 Header
 File Version,1.25
 Patient Information
@@ -179,17 +186,21 @@ Probe1,CH1(703.6),CH1(829.0),CH2(703.9),CH2(829.3),CH3(703.9),CH3(829.3),CH4(703
 """  # noqa: E501
 
 
-@pytest.mark.parametrize('preload', (True, False))
-@pytest.mark.parametrize('version, n_ch, n_times, lowpass, sex, date, end', [
-    ('1.18', 48, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
-    ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r'),
-    ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\n'),
-    ('1.25', 108, 10, 5., 1, (2020, 2, 2, 11, 20, 0, 0), b'\r\n'),
-    # Fake a dual-probe file
-    (['1.18', '1.18'], 92, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
-])
-def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
-                       end, tmp_path):
+@pytest.mark.parametrize("preload", (True, False))
+@pytest.mark.parametrize(
+    "version, n_ch, n_times, lowpass, sex, date, end",
+    [
+        ("1.18", 48, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
+        ("1.25", 108, 10, 5.0, 1, (2020, 2, 2, 11, 20, 0, 0), b"\r"),
+        ("1.25", 108, 10, 5.0, 1, (2020, 2, 2, 11, 20, 0, 0), b"\n"),
+        ("1.25", 108, 10, 5.0, 1, (2020, 2, 2, 11, 20, 0, 0), b"\r\n"),
+        # Fake a dual-probe file
+        (["1.18", "1.18"], 92, 60, 0.1, 2, (2004, 5, 17, 5, 14, 0, 0), None),
+    ],
+)
+def test_hitachi_basic(
+    preload, version, n_ch, n_times, lowpass, sex, date, end, tmp_path
+):
     """Test NIRSport1 file with no saturation."""
     if not isinstance(version, list):
         versions = [version]
@@ -198,63 +209,68 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     del version
     fnames = list()
     for vi, v in enumerate(versions, 1):
-        fname = tmp_path / f'test{vi}.csv'
-        contents = CONTENTS[v].replace(
-            f'Probe{vi - 1}'.encode(),
-            f'Probe{vi}'.encode())
+        fname = tmp_path / f"test{vi}.csv"
+        contents = CONTENTS[v].replace(f"Probe{vi - 1}".encode(), f"Probe{vi}".encode())
         if end is not None:
-            contents = contents.replace(b'\r', b'\n').replace(b'\n\n', b'\n')
-            contents = contents.replace(b'\n', end)
-        with open(fname, 'wb') as fid:
+            contents = contents.replace(b"\r", b"\n").replace(b"\n\n", b"\n")
+            contents = contents.replace(b"\n", end)
+        with open(fname, "wb") as fid:
             fid.write(CONTENTS[v])
         fnames.append(fname)
         del fname
     raw = read_raw_hitachi(fnames, preload=preload, verbose=True)
     data = raw.get_data()
     assert data.shape == (n_ch, n_times)
-    assert raw.info['sfreq'] == 10
-    assert raw.info['lowpass'] == lowpass
-    assert raw.info['subject_info']['sex'] == sex
+    assert raw.info["sfreq"] == 10
+    assert raw.info["lowpass"] == lowpass
+    assert raw.info["subject_info"]["sex"] == sex
     assert np.isfinite(raw.get_data()).all()
-    assert raw.info['meas_date'] == dt.datetime(*date, tzinfo=dt.timezone.utc)
+    assert raw.info["meas_date"] == dt.datetime(*date, tzinfo=dt.timezone.utc)
     # bad distances (zero)
     distances = source_detector_distances(raw.info)
     want = [np.nan] * (n_ch - 4)
-    assert_allclose(distances, want, atol=0.)
+    assert_allclose(distances, want, atol=0.0)
     raw_od_bad = optical_density(raw)
-    with pytest.warns(RuntimeWarning, match='will be zero'):
+    with pytest.warns(RuntimeWarning, match="will be zero"):
         beer_lambert_law(raw_od_bad, ppf=6)
     # bad distances (too big)
-    if versions[0] == '1.18' and len(fnames) == 1:
-        need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 9)), [])[:-1]
-        have = 'P7 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 F3'.split()
+    if versions[0] == "1.18" and len(fnames) == 1:
+        need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 9)), [])[:-1]
+        have = "P7 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 F3".split()
         assert len(need) == len(have)
-        mon = make_standard_montage('standard_1020')
+        mon = make_standard_montage("standard_1020")
         mon.rename_channels(dict(zip(have, need)))
         raw.set_montage(mon)
         raw_od_bad = optical_density(raw)
-        with pytest.warns(RuntimeWarning, match='greater than 10 cm'):
+        with pytest.warns(RuntimeWarning, match="greater than 10 cm"):
             beer_lambert_law(raw_od_bad, ppf=6)
     # good distances
-    mon = make_standard_montage('standard_1020')
-    if versions[0] == '1.18':
+    mon = make_standard_montage("standard_1020")
+    if versions[0] == "1.18":
         assert len(fnames) in (1, 2)
-        need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 9)), [])[:-1]
-        have = 'F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7'.split()
+        need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 9)), [])[:-1]
+        have = "F3 FC3 C3 CP3 P3 F5 FC5 C5 CP5 P5 F7 FT7 T7 TP7 P7".split()
         assert len(need) == 15
         if len(fnames) == 2:
-            need.extend(sum((
-                [f'S{ii}', f'D{jj}']
-                for ii, jj in zip(range(9, 17), range(8, 16))), [])[:-1])
-            have.extend(
-                'F4 FC4 C4 CP4 P4 F6 FC6 C6 CP6 P6 F8 FT8 T8 TP8 P8'.split())
+            need.extend(
+                sum(
+                    (
+                        [f"S{ii}", f"D{jj}"]
+                        for ii, jj in zip(range(9, 17), range(8, 16))
+                    ),
+                    [],
+                )[:-1]
+            )
+            have.extend("F4 FC4 C4 CP4 P4 F6 FC6 C6 CP6 P6 F8 FT8 T8 TP8 P8".split())
             assert len(need) == 30
     else:
         assert len(fnames) == 1
-        need = sum(([f'S{ii}', f'D{ii}'] for ii in range(1, 18)), [])[:-1]
-        have = ('FT9 FT7 FC5 FC3 FC1 FCz FC2 FC4 FC6 FT8 FT10 '
-                'T9 T7 C5 C3 C1 Cz C2 C4 C6 T8 T10 '
-                'TP9 TP7 CP5 CP3 CP1 CPz CP2 CP4 CP6 TP8 TP10').split()
+        need = sum(([f"S{ii}", f"D{ii}"] for ii in range(1, 18)), [])[:-1]
+        have = (
+            "FT9 FT7 FC5 FC3 FC1 FCz FC2 FC4 FC6 FT8 FT10 "
+            "T9 T7 C5 C3 C1 Cz C2 C4 C6 T8 T10 "
+            "TP9 TP7 CP5 CP3 CP1 CPz CP2 CP4 CP6 TP8 TP10"
+        ).split()
         assert len(need) == 33
     assert len(need) == len(have)
     for h in have:
@@ -266,9 +282,10 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     distances = source_detector_distances(raw.info)
     want = [0.03] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.01)
-    test_rank = 'less' if n_times < n_ch else True
-    _test_raw_reader(read_raw_hitachi, fname=fnames,
-                     boundary_decimal=1, test_rank=test_rank)  # low fs
+    test_rank = "less" if n_times < n_ch else True
+    _test_raw_reader(
+        read_raw_hitachi, fname=fnames, boundary_decimal=1, test_rank=test_rank
+    )  # low fs
 
     # TODO: eventually we should refactor these to be in
     # mne/io/tests/test_raw.py and run them for all fNIRS readers
@@ -276,9 +293,9 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     # OD
     raw_od = optical_density(raw)
     assert np.isfinite(raw_od.get_data()).all()
-    sci = scalp_coupling_index(raw_od, verbose='error')
+    sci = scalp_coupling_index(raw_od, verbose="error")
     lo, mi, hi = np.percentile(sci, [5, 50, 95])
-    if versions[0] == '1.18':
+    if versions[0] == "1.18":
         assert -0.1 < lo < 0.1  # not great
         assert 0.4 < mi < 0.5
         assert 0.8 < hi < 0.9
@@ -286,58 +303,158 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
         assert 0.99 <= lo <= hi <= 1
     # TDDR
     raw_tddr = tddr(raw_od)
-    data = raw_tddr.get_data('fnirs')
+    data = raw_tddr.get_data("fnirs")
     assert np.isfinite(data.all())
     peaks = np.ptp(data, axis=-1)
-    assert_array_less(1e-4, peaks, err_msg='TDDR too small')
-    assert_array_less(peaks, 1, err_msg='TDDR too big')
+    assert_array_less(1e-4, peaks, err_msg="TDDR too small")
+    assert_array_less(peaks, 1, err_msg="TDDR too big")
     # HbO/HbR
     raw_tddr.set_montage(mon)
     raw_h = beer_lambert_law(raw_tddr, ppf=6)
-    data = raw_h.get_data('fnirs')
+    data = raw_h.get_data("fnirs")
     assert np.isfinite(data).all()
     assert data.shape == (n_ch - 4, n_times)
     peaks = np.ptp(data, axis=-1)
-    assert_array_less(1e-10, peaks, err_msg='Beer-Lambert too small')
-    assert_array_less(peaks, 1e-5, err_msg='Beer-Lambert too big')
+    assert_array_less(1e-10, peaks, err_msg="Beer-Lambert too small")
+    assert_array_less(peaks, 1e-5, err_msg="Beer-Lambert too big")
 
 
 # From Hitachi 2 Homer
 KNOWN_PAIRS = {
     (3, 3, 2): (
-        (0, 0), (1, 0), (0, 1), (2, 0), (1, 2),
-        (2, 1), (2, 2), (3, 1), (2, 3), (4, 2),
-        (3, 3), (4, 3), (5, 4), (6, 4), (5, 5),
-        (7, 4), (6, 6), (7, 5), (7, 6), (8, 5),
-        (7, 7), (9, 6), (8, 7), (9, 7)),
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (2, 0),
+        (1, 2),
+        (2, 1),
+        (2, 2),
+        (3, 1),
+        (2, 3),
+        (4, 2),
+        (3, 3),
+        (4, 3),
+        (5, 4),
+        (6, 4),
+        (5, 5),
+        (7, 4),
+        (6, 6),
+        (7, 5),
+        (7, 6),
+        (8, 5),
+        (7, 7),
+        (9, 6),
+        (8, 7),
+        (9, 7),
+    ),
     (3, 5, 1): (
-        (0, 0), (1, 0), (1, 1), (2, 1), (0, 2),
-        (3, 0), (1, 3), (4, 1), (2, 4), (3, 2),
-        (3, 3), (4, 3), (4, 4), (5, 2), (3, 5),
-        (6, 3), (4, 6), (7, 4), (5, 5), (6, 5),
-        (6, 6), (7, 6)),
+        (0, 0),
+        (1, 0),
+        (1, 1),
+        (2, 1),
+        (0, 2),
+        (3, 0),
+        (1, 3),
+        (4, 1),
+        (2, 4),
+        (3, 2),
+        (3, 3),
+        (4, 3),
+        (4, 4),
+        (5, 2),
+        (3, 5),
+        (6, 3),
+        (4, 6),
+        (7, 4),
+        (5, 5),
+        (6, 5),
+        (6, 6),
+        (7, 6),
+    ),
     (4, 4, 1): (
-        (0, 0), (1, 0), (1, 1), (0, 2), (2, 0),
-        (1, 3), (3, 1), (2, 2), (2, 3), (3, 3),
-        (4, 2), (2, 4), (5, 3), (3, 5), (4, 4),
-        (5, 4), (5, 5), (4, 6), (6, 4), (5, 7),
-        (7, 5), (6, 6), (6, 7), (7, 7)),
+        (0, 0),
+        (1, 0),
+        (1, 1),
+        (0, 2),
+        (2, 0),
+        (1, 3),
+        (3, 1),
+        (2, 2),
+        (2, 3),
+        (3, 3),
+        (4, 2),
+        (2, 4),
+        (5, 3),
+        (3, 5),
+        (4, 4),
+        (5, 4),
+        (5, 5),
+        (4, 6),
+        (6, 4),
+        (5, 7),
+        (7, 5),
+        (6, 6),
+        (6, 7),
+        (7, 7),
+    ),
     (3, 11, 1): (
-        (0, 0), (1, 0), (1, 1), (2, 1), (2, 2),
-        (3, 2), (3, 3), (4, 3), (4, 4), (5, 4),
-        (0, 5), (6, 0), (1, 6), (7, 1), (2, 7),
-        (8, 2), (3, 8), (9, 3), (4, 9), (10, 4),
-        (5, 10), (6, 5), (6, 6), (7, 6), (7, 7),
-        (8, 7), (8, 8), (9, 8), (9, 9), (10, 9),
-        (10, 10), (11, 5), (6, 11), (12, 6), (7, 12),
-        (13, 7), (8, 13), (14, 8), (9, 14), (15, 9),
-        (10, 15), (16, 10), (11, 11), (12, 11), (12, 12),
-        (13, 12), (13, 13), (14, 13), (14, 14), (15, 14),
-        (15, 15), (16, 15)),
+        (0, 0),
+        (1, 0),
+        (1, 1),
+        (2, 1),
+        (2, 2),
+        (3, 2),
+        (3, 3),
+        (4, 3),
+        (4, 4),
+        (5, 4),
+        (0, 5),
+        (6, 0),
+        (1, 6),
+        (7, 1),
+        (2, 7),
+        (8, 2),
+        (3, 8),
+        (9, 3),
+        (4, 9),
+        (10, 4),
+        (5, 10),
+        (6, 5),
+        (6, 6),
+        (7, 6),
+        (7, 7),
+        (8, 7),
+        (8, 8),
+        (9, 8),
+        (9, 9),
+        (10, 9),
+        (10, 10),
+        (11, 5),
+        (6, 11),
+        (12, 6),
+        (7, 12),
+        (13, 7),
+        (8, 13),
+        (14, 8),
+        (9, 14),
+        (15, 9),
+        (10, 15),
+        (16, 10),
+        (11, 11),
+        (12, 11),
+        (12, 12),
+        (13, 12),
+        (13, 13),
+        (14, 13),
+        (14, 14),
+        (15, 14),
+        (15, 15),
+        (16, 15),
+    ),
 }
 
 
-@pytest.mark.parametrize('n_rows, n_cols, n', list(KNOWN_PAIRS))
+@pytest.mark.parametrize("n_rows, n_cols, n", list(KNOWN_PAIRS))
 def test_compute_pairs(n_rows, n_cols, n):
     """Test computation of S-D pairings."""
     want = KNOWN_PAIRS[(n_rows, n_cols, n)]

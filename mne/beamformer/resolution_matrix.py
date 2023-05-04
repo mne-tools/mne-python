@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Compute resolution matrix for beamformers."""
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
@@ -34,8 +33,8 @@ def make_lcmv_resolution_matrix(filters, forward, info):
         for free dipole orientation versus factor 1 for scalar beamformers).
     """
     # don't include bad channels from noise covariance matrix
-    bads_filt = filters['noise_cov']['bads']
-    ch_names = filters['noise_cov']['names']
+    bads_filt = filters["noise_cov"]["bads"]
+    ch_names = filters["noise_cov"]["names"]
 
     # good channels
     ch_names = [c for c in ch_names if (c not in bads_filt)]
@@ -44,7 +43,7 @@ def make_lcmv_resolution_matrix(filters, forward, info):
     forward = pick_channels_forward(forward, ch_names, ordered=True)
 
     # get leadfield matrix from forward solution
-    leadfield = forward['sol']['data']
+    leadfield = forward["sol"]["data"]
 
     # get the filter weights for beamformer as matrix
     filtmat = _get_matrix_from_lcmv(filters, forward, info)
@@ -54,7 +53,7 @@ def make_lcmv_resolution_matrix(filters, forward, info):
 
     shape = resmat.shape
 
-    logger.info('Dimensions of LCMV resolution matrix: %d by %d.' % shape)
+    logger.info("Dimensions of LCMV resolution matrix: %d by %d." % shape)
 
     return resmat
 
@@ -68,16 +67,15 @@ def _get_matrix_from_lcmv(filters, forward, info, verbose=None):
         Inverse matrix associated with LCMV beamformer filters.
     """
     # number of channels for identity matrix
-    info = pick_info(
-        info, pick_channels(info['ch_names'], filters['ch_names']))
-    n_chs = len(info['ch_names'])
+    info = pick_info(info, pick_channels(info["ch_names"], filters["ch_names"]))
+    n_chs = len(info["ch_names"])
 
     # create identity matrix as input for inverse operator
     # set elements to zero for non-selected channels
     id_mat = np.eye(n_chs)
 
     # convert identity matrix to evoked data type (pretending it's an epochs
-    evo_ident = EvokedArray(id_mat, info=info, tmin=0.)
+    evo_ident = EvokedArray(id_mat, info=info, tmin=0.0)
 
     # apply beamformer to identity matrix
     stc_lcmv = apply_lcmv(evo_ident, filters, verbose=verbose)

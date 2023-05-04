@@ -1,14 +1,11 @@
 #!/bin/bash -e
 
 set -o pipefail
+export MNE_TQDM=off
 
-if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
-    echo "Doing a full dev build";
-    echo html_dev-memory > build.txt;
-    python -c "import mne; mne.datasets._download_all_example_data()";
-elif [ "$CIRCLE_BRANCH" == "maint/1.3" ]; then
-    echo "Doing a full stable build";
-    echo html_stable-memory > build.txt;
+if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]] || [[ "$CIRCLE_BRANCH" == "maint/"* ]]; then
+    echo "Doing a full build";
+    echo html-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
 else
     echo "Doing a partial build";
@@ -107,6 +104,9 @@ else
             if [[ $(cat $FNAME | grep -x ".*datasets.*erp_core.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.erp_core.data_path(update_path=True))";
             fi;
+            if [[ $(cat $FNAME | grep -x ".*datasets.*eyelink.*" | wc -l) -gt 0 ]]; then
+                python -c "import mne; print(mne.datasets.eyelink.data_path(update_path=True))";
+            fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*ucl_opm_auditory.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.ucl_opm_auditory.data_path(update_path=True))";
             fi;
@@ -115,9 +115,9 @@ else
     echo PATTERN="$PATTERN";
     if [[ $PATTERN ]]; then
         PATTERN="\(${PATTERN::-2}\)";
-        echo html_dev-pattern-memory > build.txt;
+        echo html-pattern-memory > build.txt;
     else
-        echo html_dev-noplot > build.txt;
+        echo html-noplot > build.txt;
     fi;
 fi;
 echo "$PATTERN" > pattern.txt;

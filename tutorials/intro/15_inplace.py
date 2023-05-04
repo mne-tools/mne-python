@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-inplace:
 
@@ -23,11 +22,10 @@ As usual we'll start by importing the modules we need and loading some
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
+sample_data_raw_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
 # the preload flag loads the data into memory now
 raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True)
-raw.crop(tmax=10.)  # raw.crop() always happens in-place
+raw.crop(tmax=10.0)  # raw.crop() always happens in-place
 
 
 # %%
@@ -45,8 +43,10 @@ raw.crop(tmax=10.)  # raw.crop() always happens in-place
 
 original_raw = raw.copy()
 raw.apply_hilbert()
-print(f'original data type was {original_raw.get_data().dtype}, after '
-      f'apply_hilbert the data type changed to {raw.get_data().dtype}.')
+print(
+    f"original data type was {original_raw.get_data().dtype}, after "
+    f"apply_hilbert the data type changed to {raw.get_data().dtype}."
+)
 
 
 # %%
@@ -57,7 +57,7 @@ print(f'original data type was {original_raw.get_data().dtype}, after '
 # channel-picking methods. For example:
 
 print(f'original data had {original_raw.info["nchan"]} channels.')
-original_raw.pick('eeg')  # selects only the EEG channels
+original_raw.pick("eeg")  # selects only the EEG channels
 print(f'after picking, it has {original_raw.info["nchan"]} channels.')
 
 
@@ -80,8 +80,7 @@ print(f'after picking, it has {original_raw.info["nchan"]} channels.')
 # we specified ``copy=True``:
 
 # sphinx_gallery_thumbnail_number=2
-rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, ['EEG 003'],
-                                                   copy=True)
+rereferenced_raw, ref_data = mne.set_eeg_reference(original_raw, ["EEG 003"], copy=True)
 fig_orig = original_raw.plot()
 fig_reref = rereferenced_raw.plot()
 
@@ -101,6 +100,6 @@ fig_reref = rereferenced_raw.plot()
 # During the exploratory phase of your analysis, where you might want
 # to try out the effects of different data cleaning approaches, you should get
 # used to patterns like ``raw.copy().filter(...).plot()`` or
-# ``raw.copy().apply_proj().plot_psd()`` if you want to avoid having to re-load
-# data and repeat earlier steps each time you change a computation (see the
-# :ref:`sect-meth-chain` section for more info on method chaining).
+# ``raw.copy().apply_proj().compute_psd().plot()`` if you want to avoid having
+# to re-load data and repeat earlier steps each time you change a computation
+# (see the :ref:`sect-meth-chain` section for more info on method chaining).

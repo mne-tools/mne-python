@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-xdawn-denoising:
 
@@ -26,7 +25,7 @@ evoked response :footcite:`RivetEtAl2009, RivetEtAl2011`.
 # %%
 
 
-from mne import (io, compute_raw_covariance, read_events, pick_types, Epochs)
+from mne import io, compute_raw_covariance, read_events, pick_types, Epochs
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
 from mne.viz import plot_epochs_image
@@ -37,27 +36,35 @@ data_path = sample.data_path()
 
 # %%
 # Set parameters and read data
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
 tmin, tmax = -0.1, 0.3
 event_id = dict(vis_r=4)
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 20, fir_design='firwin')  # replace baselining with high-pass
+raw.filter(1, 20, fir_design="firwin")  # replace baselining with high-pass
 events = read_events(event_fname)
 
-raw.info['bads'] = ['MEG 2443']  # set bad channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
-                   exclude='bads')
+raw.info["bads"] = ["MEG 2443"]  # set bad channels
+picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False, exclude="bads")
 # Epoching
-epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
-                picks=picks, baseline=None, preload=True,
-                verbose=False)
+epochs = Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    proj=False,
+    picks=picks,
+    baseline=None,
+    preload=True,
+    verbose=False,
+)
 
 # Plot image epoch before xdawn
-plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
+plot_epochs_image(epochs["vis_r"], picks=[230], vmin=-500, vmax=500)
 
 # %%
 # Now, we estimate a set of xDAWN filters for the epochs (which contain only
@@ -79,7 +86,7 @@ xd.fit(epochs)
 epochs_denoised = xd.apply(epochs)
 
 # Plot image epoch after Xdawn
-plot_epochs_image(epochs_denoised['vis_r'], picks=[230], vmin=-500, vmax=500)
+plot_epochs_image(epochs_denoised["vis_r"], picks=[230], vmin=-500, vmax=500)
 
 # %%
 # References

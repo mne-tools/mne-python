@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
@@ -6,6 +5,7 @@
 import os
 
 from ..utils import _check_pybv_installed
+
 _check_pybv_installed()
 from pybv._export import _export_mne_raw  # noqa: E402
 

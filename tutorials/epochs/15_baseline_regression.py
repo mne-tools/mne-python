@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-baseline-regression:
 
@@ -52,7 +51,7 @@ import mne
 # can drop the other channel types, to speed things up:
 
 data_path = mne.datasets.sample.data_path()
-raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 events = mne.find_events(raw)
@@ -65,7 +64,7 @@ raw.pick_types(meg=False, stim=False, eog=False, eeg=True)
 
 events = mne.merge_events(events, [1, 2], 1)  # auditory events will be "1"
 events = mne.merge_events(events, [3, 4], 2)  # visual events will be "2"
-event_id = {'auditory': 1, 'visual': 2}
+event_id = {"auditory": 1, "visual": 2}
 
 
 # %%
@@ -91,9 +90,17 @@ ch = "EEG 021"
 
 raw_filtered = raw.copy().filter(highpass, lowpass)
 
-epochs = mne.Epochs(raw_filtered, events, event_id, tmin=tmin, tmax=tmax,
-                    reject=dict(eeg=150e-6), flat=dict(eeg=5e-6),
-                    baseline=None, preload=True)
+epochs = mne.Epochs(
+    raw_filtered,
+    events,
+    event_id,
+    tmin=tmin,
+    tmax=tmax,
+    reject=dict(eeg=150e-6),
+    flat=dict(eeg=5e-6),
+    baseline=None,
+    preload=True,
+)
 
 
 # %%
@@ -105,8 +112,8 @@ epochs = mne.Epochs(raw_filtered, events, event_id, tmin=tmin, tmax=tmax,
 # separately for auditory and visual trials.
 
 baseline = (baseline_tmin, baseline_tmax)
-trad_aud = epochs['auditory'].average().apply_baseline(baseline)
-trad_vis = epochs['visual'].average().apply_baseline(baseline)
+trad_aud = epochs["auditory"].average().apply_baseline(baseline)
+trad_vis = epochs["visual"].average().apply_baseline(baseline)
 
 # %%
 # Regression-based baselining
@@ -120,8 +127,8 @@ trad_vis = epochs['visual'].average().apply_baseline(baseline)
 # any heterogeneity of the effect of baseline between the two conditions). Here
 # are the first two:
 
-aud_predictor = epochs.events[:, 2] == epochs.event_id['auditory']
-vis_predictor = epochs.events[:, 2] == epochs.event_id['visual']
+aud_predictor = epochs.events[:, 2] == epochs.event_id["auditory"]
+vis_predictor = epochs.events[:, 2] == epochs.event_id["visual"]
 
 # %%
 # The baseline predictor is a bit trickier to compute: we'll find the average
@@ -133,11 +140,11 @@ vis_predictor = epochs.events[:, 2] == epochs.event_id['visual']
 
 baseline_predictor = (
     epochs.copy()
-          .crop(*baseline)
-          .pick_channels([ch])
-          .get_data()     # convert to NumPy array
-          .mean(axis=-1)  # average across timepoints
-          .squeeze()      # only 1 channel, so remove singleton dimension
+    .crop(*baseline)
+    .pick_channels([ch])
+    .get_data()  # convert to NumPy array
+    .mean(axis=-1)  # average across timepoints
+    .squeeze()  # only 1 channel, so remove singleton dimension
 )
 baseline_predictor *= 1e6  # convert V → μV
 
@@ -152,18 +159,21 @@ baseline_predictor *= 1e6  # convert V → μV
 # :class:`boolean <bool>` ``aud_predictor`` and ``vis_predictor`` into
 # ones and zeros:
 
-design_matrix = np.vstack([aud_predictor,
-                           vis_predictor,
-                           baseline_predictor,
-                           baseline_predictor * vis_predictor]).T
+design_matrix = np.vstack(
+    [
+        aud_predictor,
+        vis_predictor,
+        baseline_predictor,
+        baseline_predictor * vis_predictor,
+    ]
+).T
 
 # %%
 # Finally we fit the regression model:
 
-reg_model = mne.stats.linear_regression(epochs, design_matrix,
-                                        names=["auditory", "visual",
-                                               "baseline",
-                                               "baseline:visual"])
+reg_model = mne.stats.linear_regression(
+    epochs, design_matrix, names=["auditory", "visual", "baseline", "baseline:visual"]
+)
 
 # %%
 # The function returns a dictionary of ``mne.stats.regression.lm`` objects,
@@ -172,8 +182,8 @@ reg_model = mne.stats.linear_regression(epochs, design_matrix,
 
 print(reg_model.keys())
 print(f"model attributes: {reg_model['auditory']._fields}")
-print('values are stored in Evoked objects:')
-print(reg_model['auditory'].t_val)
+print("values are stored in Evoked objects:")
+print(reg_model["auditory"].t_val)
 
 # %%
 # Plot the baseline regressor
@@ -187,9 +197,14 @@ print(reg_model['auditory'].t_val)
 # We'll add a horizontal line at β=1 to represent traditional baselining, where
 # the effect is assumed to be constant across timepoints:
 
-effect_of_baseline = reg_model['baseline'].beta
-effect_of_baseline.plot(picks=ch, hline=[1.], units=dict(eeg=r'$\beta$ value'),
-                        titles=dict(eeg=ch), selectable=False)
+effect_of_baseline = reg_model["baseline"].beta
+effect_of_baseline.plot(
+    picks=ch,
+    hline=[1.0],
+    units=dict(eeg=r"$\beta$ value"),
+    titles=dict(eeg=ch),
+    selectable=False,
+)
 
 # %%
 # Unsurprisingly, the trend is that the farther away in time we get from the
@@ -206,14 +221,16 @@ effect_of_baseline.plot(picks=ch, hline=[1.], units=dict(eeg=r'$\beta$ value'),
 # after taking into account the (time-varying!) effect of the baseline. We'll
 # plot them together, side-by-side with the traditional baseline approach:
 
-reg_aud = reg_model['auditory'].beta
-reg_vis = reg_model['visual'].beta
+reg_aud = reg_model["auditory"].beta
+reg_vis = reg_model["visual"].beta
 
 kwargs = dict(picks=ch, show_sensors=False, truncate_yaxis=False)
-mne.viz.plot_compare_evokeds(dict(auditory=trad_aud, visual=trad_vis),
-                             title="Traditional", **kwargs)
-mne.viz.plot_compare_evokeds(dict(auditory=reg_aud, visual=reg_vis),
-                             title="Regression-based", **kwargs)
+mne.viz.plot_compare_evokeds(
+    dict(auditory=trad_aud, visual=trad_vis), title="Traditional", **kwargs
+)
+mne.viz.plot_compare_evokeds(
+    dict(auditory=reg_aud, visual=reg_vis), title="Regression-based", **kwargs
+)
 
 # %%
 # They look pretty similar, but there are some subtle differences in how far
@@ -232,12 +249,9 @@ diff_regression = mne.combine_evoked([reg_aud, reg_vis], weights=[1, -1])
 # %%
 # Before we plot, let's make sure we get the same color scale for both figures:
 
-vmin = min(diff_traditional.get_data().min(),
-           diff_regression.get_data().min()) * 1e6
-vmax = max(diff_traditional.get_data().max(),
-           diff_regression.get_data().max()) * 1e6
-topo_kwargs = dict(vlim=(vmin, vmax), ch_type='eeg',
-                   times=np.linspace(0.05, 0.45, 9))
+vmin = min(diff_traditional.get_data().min(), diff_regression.get_data().min()) * 1e6
+vmax = max(diff_traditional.get_data().max(), diff_regression.get_data().max()) * 1e6
+topo_kwargs = dict(vlim=(vmin, vmax), ch_type="eeg", times=np.linspace(0.05, 0.45, 9))
 
 fig = diff_traditional.plot_topomap(**topo_kwargs)
 fig.suptitle("Traditional")
@@ -255,9 +269,11 @@ fig.suptitle("Regression-based")
 # ms.
 
 title = "Difference in evoked potential (auditory minus visual)"
-fig = mne.viz.plot_compare_evokeds(dict(Traditional=diff_traditional,
-                                        Regression=diff_regression),
-                                   title=title, **kwargs)
+fig = mne.viz.plot_compare_evokeds(
+    dict(Traditional=diff_traditional, Regression=diff_regression),
+    title=title,
+    **kwargs,
+)
 
 # %%
 # Examine the interaction term
@@ -271,9 +287,14 @@ fig = mne.viz.plot_compare_evokeds(dict(Traditional=diff_traditional,
 # and there should not be a difference in how long the effect of the baseline
 # persists through time in each type of trial).
 
-interaction_effect = reg_model['baseline:visual'].beta
-interaction_effect.plot(picks=ch, hline=[0.], units=dict(eeg=r'$\beta$ value'),
-                        titles=dict(eeg=ch), selectable=False)
+interaction_effect = reg_model["baseline:visual"].beta
+interaction_effect.plot(
+    picks=ch,
+    hline=[0.0],
+    units=dict(eeg=r"$\beta$ value"),
+    titles=dict(eeg=ch),
+    selectable=False,
+)
 
 
 # %%

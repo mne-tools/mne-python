@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-source-estimate-class:
 
@@ -62,10 +61,10 @@ print(__doc__)
 
 # Paths to example data
 sample_dir_raw = sample.data_path()
-sample_dir = sample_dir_raw / 'MEG' / 'sample'
-subjects_dir = sample_dir_raw / 'subjects'
+sample_dir = sample_dir_raw / "MEG" / "sample"
+subjects_dir = sample_dir_raw / "subjects"
 
-fname_stc = sample_dir / 'sample_audvis-meg'
+fname_stc = sample_dir / "sample_audvis-meg"
 
 # %%
 # Load and inspect example data
@@ -79,20 +78,25 @@ fname_stc = sample_dir / 'sample_audvis-meg'
 #
 # Let's see how it looks like.
 
-stc = read_source_estimate(fname_stc, subject='sample')
+stc = read_source_estimate(fname_stc, subject="sample")
 
 # Define plotting parameters
 surfer_kwargs = dict(
-    hemi='lh', subjects_dir=subjects_dir,
-    clim=dict(kind='value', lims=[8, 12, 15]), views='lateral',
-    initial_time=0.09, time_unit='s', size=(800, 800),
-    smoothing_steps=5)
+    hemi="lh",
+    subjects_dir=subjects_dir,
+    clim=dict(kind="value", lims=[8, 12, 15]),
+    views="lateral",
+    initial_time=0.09,
+    time_unit="s",
+    size=(800, 800),
+    smoothing_steps=5,
+)
 
 # Plot surface
 brain = stc.plot(**surfer_kwargs)
 
 # Add title
-brain.add_text(0.1, 0.9, 'SourceEstimate', 'title', font_size=16)
+brain.add_text(0.1, 0.9, "SourceEstimate", "title", font_size=16)
 
 # %%
 # SourceEstimate (stc)
@@ -112,7 +116,7 @@ brain.add_text(0.1, 0.9, 'SourceEstimate', 'title', font_size=16)
 
 shape = stc.data.shape
 
-print('The data has %s vertex locations with %s sample points each.' % shape)
+print("The data has %s vertex locations with %s sample points each." % shape)
 
 # %%
 # We see that stc carries 7498 time series of 25 samples length. Those time
@@ -133,8 +137,9 @@ print('The data has %s vertex locations with %s sample points each.' % shape)
 
 shape_lh = stc.lh_data.shape
 
-print('The left hemisphere has %s vertex locations with %s sample points each.'
-      % shape_lh)
+print(
+    "The left hemisphere has %s vertex locations with %s sample points each." % shape_lh
+)
 
 # %%
 # Since we did not change the time representation, only the selected subset of
@@ -144,9 +149,11 @@ print('The left hemisphere has %s vertex locations with %s sample points each.'
 
 is_equal = stc.lh_data.shape[0] + stc.rh_data.shape[0] == stc.data.shape[0]
 
-print('The number of vertices in stc.lh_data and stc.rh_data do ' +
-      ('not ' if not is_equal else '') +
-      'sum up to the number of rows in stc.data')
+print(
+    "The number of vertices in stc.lh_data and stc.rh_data do "
+    + ("not " if not is_equal else "")
+    + "sum up to the number of rows in stc.data"
+)
 
 # %%
 # Indeed and as the mindful reader already suspected, the same can be said
@@ -184,8 +191,7 @@ print('The number of vertices in stc.lh_data and stc.rh_data do ' +
 #
 # Let's obtain the peak amplitude of the data as vertex and time point index
 
-peak_vertex, peak_time = stc.get_peak(hemi='lh', vert_as_index=True,
-                                      time_as_index=True)
+peak_vertex, peak_time = stc.get_peak(hemi="lh", vert_as_index=True, time_as_index=True)
 
 # %%
 # The first value thereby indicates which vertex and the second which time
@@ -204,10 +210,10 @@ peak_value = stc.lh_data[peak_vertex, peak_time]
 brain = stc.plot(**surfer_kwargs)
 
 # We add the new peak coordinate (as vertex index) as an annotation dot
-brain.add_foci(peak_vertex_surf, coords_as_verts=True, hemi='lh', color='blue')
+brain.add_foci(peak_vertex_surf, coords_as_verts=True, hemi="lh", color="blue")
 
 # We add a title as well, stating the amplitude at this time and location
-brain.add_text(0.1, 0.9, 'Peak coordinate', 'title', font_size=14)
+brain.add_text(0.1, 0.9, "Peak coordinate", "title", font_size=14)
 
 # %%
 # Summary

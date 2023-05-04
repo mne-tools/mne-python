@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 =======================================
 Reduce EOG artifacts through regression
@@ -31,14 +30,14 @@ from matplotlib import pyplot as plt
 print(__doc__)
 
 data_path = sample.data_path()
-raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_filt-0-40_raw.fif"
 
 # Read raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-events = mne.find_events(raw, 'STI 014')
+events = mne.find_events(raw, "STI 014")
 
 # Highpass filter to eliminate slow drifts
-raw.filter(0.3, None, picks='all')
+raw.filter(0.3, None, picks="all")
 
 # %%
 # Perform regression and remove EOG
@@ -58,21 +57,22 @@ weights.plot()
 # is best visualized by extracting epochs and plotting the evoked potential.
 
 tmin, tmax = -0.1, 0.5
-event_id = {'visual/left': 3, 'visual/right': 4}
-evoked_before = mne.Epochs(raw, events, event_id, tmin, tmax,
-                           baseline=(tmin, 0)).average()
-evoked_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax,
-                          baseline=(tmin, 0)).average()
+event_id = {"visual/left": 3, "visual/right": 4}
+evoked_before = mne.Epochs(
+    raw, events, event_id, tmin, tmax, baseline=(tmin, 0)
+).average()
+evoked_after = mne.Epochs(
+    raw_clean, events, event_id, tmin, tmax, baseline=(tmin, 0)
+).average()
 
 # Create epochs after EOG correction
-epochs_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax,
-                          baseline=(tmin, 0))
+epochs_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax, baseline=(tmin, 0))
 evoked_after = epochs_after.average()
 
-fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(10, 7),
-                       sharex=True, sharey='row')
+fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(10, 7), sharex=True, sharey="row")
 evoked_before.plot(axes=ax[:, 0], spatial_colors=True)
 evoked_after.plot(axes=ax[:, 1], spatial_colors=True)
-fig.subplots_adjust(top=0.905, bottom=0.09, left=0.08, right=0.975,
-                    hspace=0.325, wspace=0.145)
-fig.suptitle('Before --> After')
+fig.subplots_adjust(
+    top=0.905, bottom=0.09, left=0.08, right=0.975, hspace=0.325, wspace=0.145
+)
+fig.suptitle("Before --> After")

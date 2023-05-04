@@ -3,11 +3,12 @@ pytest
 pytest-cov
 pytest-timeout
 pytest-harvest
-flake8
-flake8-array-spacing
+ruff
 numpydoc
 codespell
-pydocstyle
 check-manifest
+tomli; python_version<'3.11'
 twine
 wheel
+pre-commit
+black
