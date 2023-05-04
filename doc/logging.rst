@@ -14,6 +14,7 @@ Logging and Configuration
    set_log_file
    set_config
    set_cache_dir
+   set_memmap_min_size
    sys_info
    use_log_level
    verbose

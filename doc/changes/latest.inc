@@ -34,6 +34,7 @@ Enhancements
 - Added ability to read stimulus durations from SNIRF files when using :func:`mne.io.read_raw_snirf` (:gh:`11397` by `Robert Luke`_)
 - Add :meth:`mne.Info.save` to save an :class:`mne.Info` object to a fif file (:gh:`11401` by `Alex Rockhill`_)
 - Improved error message when downloads are corrupted for :func:`mne.datasets.sample.data_path` and related functions (:gh:`11407` by `Eric Larson`_)
+- Improved :func:`mne.get_config("") <mne.get_config>` behavior to return a dict of key-value pairs (config key and its description) rather than just a tuple of config keys (:gh:`11166` by `Clemens Brunner`_, `Daniel McCloy`_, and `Eric Larson`_)
 - Add support for ``skip_by_annotation`` in :func:`mne.io.Raw.notch_filter` (:gh:`11388` by `Mainak Jas`_)
 - Add support for ``output='complex'`` to :func:`mne.time_frequency.psd_array_welch` and when using ``method='welch'`` with :meth:`mne.Epochs.compute_psd` (:gh:`11556` by `Eric Larson`_)
 - Slightly adjusted the window title for :func:`mne.Epochs.plot` (:gh:`11419` by `Richard Höchenberger`_ and `Daniel McCloy`_)

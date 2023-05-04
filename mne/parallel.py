@@ -38,7 +38,7 @@ def parallel_func(
         triggers automated memory mapping. Can be an int in Bytes,
         or a human-readable string, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays. Use 'auto' to
-        use the value set using mne.set_memmap_min_size.
+        use the value set using :func:`mne.set_memmap_min_size`.
     pre_dispatch : int | str
         See :class:`joblib.Parallel`.
     total : int | None
