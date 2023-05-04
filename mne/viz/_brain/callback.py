@@ -108,8 +108,9 @@ class UpdateFieldVmax(object):
         self.type = type
 
     def __call__(self, value):
-        scalings = dict(meg=DEFAULTS['scalings']['grad'],
-                        eeg=DEFAULTS['scalings']['eeg'])
+        scalings = dict(
+            meg=DEFAULTS["scalings"]["grad"], eeg=DEFAULTS["scalings"]["eeg"]
+        )
         self.brain.set_field_vmax(value / scalings[self.type], type=self.type)
 
 
@@ -118,15 +119,15 @@ class ResetFieldVmax(object):
         self.brain = brain
 
     def __call__(self):
-        for type in ['meg', 'eeg']:
-            curr_act_data = self.brain._current_act_data.get(f'field_{type}')
+        for type in ["meg", "eeg"]:
+            curr_act_data = self.brain._current_act_data.get(f"field_{type}")
             if curr_act_data is not None:
                 curr_max = np.max(np.abs(curr_act_data))
                 self.brain.set_field_vmax(curr_max, type=type)
             else:
-                data = self.brain._data.get(f'field_{type}')
+                data = self.brain._data.get(f"field_{type}")
                 if data is not None:
-                    curr_max = np.max(np.abs(data['array']))
+                    curr_max = np.max(np.abs(data["array"]))
                     self.brain.set_field_vmax(curr_max, type=type)
 
 

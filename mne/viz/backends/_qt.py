@@ -1002,7 +1002,7 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_fix_stretch(self, layout=None):
         """Move spacer item to by the last item."""
         layout = self._dock_layout if layout is None else layout
-        for i in range(layout.count() - 1, -1, -1): 
+        for i in range(layout.count() - 1, -1, -1):
             if isinstance(layout.itemAt(i), QSpacerItem):
                 layout.takeAt(i)
                 break
