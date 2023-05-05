@@ -15,7 +15,7 @@ import pytest
 
 from mne import create_info, EpochsArray
 from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_sklearn, check_version
+from mne.utils import requires_sklearn
 from mne.decoding.base import (
     _get_inverse_funcs,
     LinearModel,
@@ -285,10 +285,6 @@ def test_get_coef_multiclass(n_features, n_targets):
 
 
 @requires_sklearn
-@pytest.mark.xfail(
-    when=check_version("sklearn", "1.3"),
-    reason="https://github.com/scikit-learn/scikit-learn/issues/26336",
-)
 @pytest.mark.parametrize(
     "n_classes, n_channels, n_times",
     [
