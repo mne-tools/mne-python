@@ -43,7 +43,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
     explained_data : array | None
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
-        Computed only if return_explained_data is True.
     """
     from scipy import linalg
 
