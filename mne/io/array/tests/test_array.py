@@ -150,7 +150,13 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    (raw2.compute_psd(tmax=2.0, n_fft=1024).plot(average=True, spatial_colors=False))
+    # TODO remove context handler after 1.4 release.
+    with pytest.warns(RuntimeWarning, match="bad channels will be shown"):
+        (
+            raw2.compute_psd(tmax=2.0, n_fft=1024).plot(
+                average=True, spatial_colors=False
+            )
+        )
     plt.close("all")
 
     # epoching
