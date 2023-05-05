@@ -202,9 +202,10 @@ _known_config_types = {
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 _known_config_wildcards = (
-    "MNE_STIM_CHANNEL",
-    "MNE_DATASETS_FNIRS",
-    "MNE_NIRS",
+    "MNE_STIM_CHANNEL",  # can have multiple stim channels
+    "MNE_DATASETS_FNIRS",  # mne-nirs
+    "MNE_NIRS",  # mne-nirs
+    "MNE_KIT2FIFF",  # mne-kit-gui
 )
 
 

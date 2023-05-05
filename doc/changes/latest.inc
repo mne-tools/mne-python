@@ -76,6 +76,7 @@ Bugs
 - Fix bug in :func:`mne.concatenate_raws` where two raws could not be merged if the order of the bad channel lists did not match (:gh:`11502` by `Moritz Gerster`_)
 - Fix bug where :meth:`mne.Evoked.plot_topomap` opened an extra figure (:gh:`11607` by `Alex Rockhill`_)
 - Fix bug where :func:`mne.transforms.apply_volume_registration_points` modified info in place (:gh:`11612` by `Alex Rockhill`_)
+- Fix bug where Maxwell-filtered data rank was not handled properly in :func:`mne.beamformer.make_lcmv` (:gh:`11664` by `Eric Larson`_)
 - In :class:`~mne.Report`, custom figures now show up correctly when ``image_format='svg'`` is requested (:gh:`11623` by `Richard Höchenberger`_)
 - Fix bug where providing ``axes`` in `mne.preprocessing.ICA.plot_components` would fail (:gh:`11654` by `Mathieu Scheltienne`_)
 

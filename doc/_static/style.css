@@ -7,7 +7,6 @@
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
     /* colors that aren't responsive to light/dark mode */
     --mne-color-discord: #5865F2;
-    --mne-color-twitter: #55acee;
     --mne-color-primary: #007bff;
     --mne-color-primary-highlight: #0063cc;
     /* font weight */
@@ -208,9 +207,6 @@ aside.footnote:last-child {
 /* ******************************************************* navbar icon links */
 #navbar-icon-links i.fa-square-github::before {
     color: var(--mne-color-github);
-}
-#navbar-icon-links i.fa-square-twitter::before {
-    color: var(--mne-color-twitter);
 }
 #navbar-icon-links i.fa-discourse::before {
     color: var(--mne-color-discourse);
