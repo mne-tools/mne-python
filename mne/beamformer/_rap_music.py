@@ -182,7 +182,7 @@ def _compute_proj(A):
 
 @verbose
 def rap_music(
-    evoked, forward, noise_cov, n_dipoles=5, return_residual=False, verbose=None, use_trap=False
+    evoked, forward, noise_cov, n_dipoles=5, return_residual=False, use_trap=False
 ):
     """RAP-MUSIC source localization method.
 
@@ -204,7 +204,6 @@ def rap_music(
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    %(verbose)s
     use_trap : boolean
         Use the TRAP-MUSIC variant if True. The default value is False.
 
