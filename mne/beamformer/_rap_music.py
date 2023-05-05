@@ -17,7 +17,7 @@ from ._compute_beamformer import _prepare_beamformer_input
 
 
 @fill_doc
-def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=None):
+def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=None, use_trap=False):
     """RAP-MUSIC for evoked data.
 
     Parameters
@@ -35,6 +35,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
         The number of dipoles to estimate. The default value is 2.
     picks : list of int
         Caller ensures this is a list of int.
+    use_trap : boolean
+        Use the TRAP-MUSIC variant if True. The default value is False.
 
     Returns
     -------
@@ -113,6 +115,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
         projection = _compute_proj(A[:, : k + 1])
         G_proj = np.einsum("ab,bso->aso", projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
+        if use_trap:
+            phi_sig_proj = phi_sig_proj[:, -(n_dipoles - k):]
     del G, G_proj
 
     sol = linalg.lstsq(A, M)[0]
@@ -178,7 +182,7 @@ def _compute_proj(A):
 
 @verbose
 def rap_music(
-    evoked, forward, noise_cov, n_dipoles=5, return_residual=False, verbose=None
+    evoked, forward, noise_cov, n_dipoles=5, return_residual=False, verbose=None, use_trap=False
 ):
     """RAP-MUSIC source localization method.
 
@@ -201,6 +205,8 @@ def rap_music(
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     %(verbose)s
+    use_trap : boolean
+        Use the TRAP-MUSIC variant if True. The default value is False.
 
     Returns
     -------
@@ -228,6 +234,10 @@ def rap_music(
         pp.1201,1207 vol.2, 3-6 Nov. 1996
         doi: 10.1109/ACSSC.1996.599135
 
+        N. Mäkelä, M. Stenroos, J. Sarvas, R. J. Ilmoniemi, Truncated RAP-MUSIC
+        (TRAP-MUSIC) for MEG and EEG source localization, Neuroimage, 2018.
+        doi: 10.1016/j.neuroimage.2017.11.013
+
     .. versionadded:: 0.9.0
     """
     info = evoked.info
@@ -239,7 +249,7 @@ def rap_music(
     data = data[picks]
 
     dipoles, explained_data = _apply_rap_music(
-        data, info, times, forward, noise_cov, n_dipoles, picks
+        data, info, times, forward, noise_cov, n_dipoles, picks, use_trap
     )
 
     if return_residual:
