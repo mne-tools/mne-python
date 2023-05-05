@@ -652,7 +652,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                 "exclude='bads'."
             )
             exclude = "bads"
-        picks = _picks_to_idx(self.info, picks, "data", with_ref_meg=False)
+        picks = _picks_to_idx(
+            self.info, picks, "data", exclude=exclude, with_ref_meg=False
+        )
         (picks_list, units_list, scalings_list, titles_list) = _split_picks_by_type(
             self, picks, units, scalings, titles
         )
