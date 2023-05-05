@@ -1311,9 +1311,9 @@ exclude_frontal : bool
 """
 
 _exclude_spectrum = """\
-exclude : list of str | 'bads'
+exclude : list of str | 'bads' | None
     Channel names to exclude{}. If ``'bads'``, channels
-    in ``spectrum.info['bads']`` are excluded; pass an empty list to
+    in ``spectrum.info['bads']`` are excluded; pass an empty list or tuple to
     plot all channels (including "bad" channels, if any).
 """
 
