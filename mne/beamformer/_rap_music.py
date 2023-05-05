@@ -149,39 +149,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
     return dipoles, explained_data
 
 
-def _make_dipoles(times, poss, oris, sol, gof):
-    """Instantiate a list of Dipoles.
-
-    Parameters
-    ----------
-    times : array, shape (n_times,)
-        The time instants.
-    poss : array, shape (n_dipoles, 3)
-        The dipoles' positions.
-    oris : array, shape (n_dipoles, 3)
-        The dipoles' orientations.
-    sol : array, shape (n_times,)
-        The dipoles' amplitudes over time.
-    gof : array, shape (n_times,)
-        The goodness of fit of the dipoles.
-        Shared between all dipoles.
-
-    Returns
-    -------
-    dipoles : list
-        The list of Dipole instances.
-    """
-    oris = np.array(oris)
-
-    dipoles = []
-    for i_dip in range(poss.shape[0]):
-        i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times, i_pos, sol[i_dip], i_ori, gof))
-
-    return dipoles
-
-
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
     from scipy import linalg
