@@ -583,6 +583,11 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         Parameters
         ----------
         %(picks_good_data_noref)s
+
+            .. versionchanged:: 1.5
+                In version 1.5, the default behavior will change so that all
+                :term:`data channels` (not just "good" data channels) are shown
+                by default.
         average : bool
             Whether to average across channels before plotting. If ``True``,
             interactive plotting of scalp topography is disabled, and
@@ -644,12 +649,12 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         else:  # amplitude is boolean
             estimate = "amplitude" if amplitude else "power"
         # split picks by channel type
-        if exclude is None:
+        if picks is None or exclude is None:
             warn(
                 "in version 1.5, the default behavior of Spectrum.plot() will "
                 "change so that bad channels will be shown by default. To keep the "
                 "old default behavior (and silence this warning), explicitly pass "
-                "exclude='bads'."
+                "`picks='data', exclude='bads'`."
             )
             exclude = "bads"
         picks = _picks_to_idx(
