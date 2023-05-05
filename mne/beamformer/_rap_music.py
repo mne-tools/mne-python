@@ -17,7 +17,9 @@ from ._compute_beamformer import _prepare_beamformer_input
 
 
 @fill_doc
-def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=None, use_trap=False):
+def _apply_rap_music(
+    data, info, times, forward, noise_cov, n_dipoles=2, picks=None, use_trap=False
+):
     """RAP-MUSIC for evoked data.
 
     Parameters
@@ -116,7 +118,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
         G_proj = np.einsum("ab,bso->aso", projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
         if use_trap:
-            phi_sig_proj = phi_sig_proj[:, -(n_dipoles - k):]
+            phi_sig_proj = phi_sig_proj[:, -(n_dipoles - k) :]
     del G, G_proj
 
     sol = linalg.lstsq(A, M)[0]
@@ -182,7 +184,13 @@ def _compute_proj(A):
 
 @verbose
 def rap_music(
-    evoked, forward, noise_cov, n_dipoles=5, return_residual=False, verbose=None, use_trap=False
+    evoked,
+    forward,
+    noise_cov,
+    n_dipoles=5,
+    return_residual=False,
+    verbose=None,
+    use_trap=False,
 ):
     """RAP-MUSIC source localization method.
 
