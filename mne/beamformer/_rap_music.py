@@ -12,7 +12,6 @@ from ..io.pick import pick_info, pick_channels_forward
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
 from ..utils import logger, verbose, _check_info_inv, fill_doc
-from ..dipole import Dipole
 from ._compute_beamformer import _prepare_beamformer_input
 
 
