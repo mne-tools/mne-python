@@ -38,7 +38,7 @@ def _apply_rap_music(
     picks : list of int
         Caller ensures this is a list of int.
     use_trap : boolean
-        Use the TRAP-MUSIC variant if True. The default value is False.
+        Use the TRAP-MUSIC variant if True (default False).
 
     Returns
     -------
@@ -189,8 +189,9 @@ def rap_music(
     noise_cov,
     n_dipoles=5,
     return_residual=False,
-    verbose=None,
+    *,
     use_trap=False,
+    verbose=None,
 ):
     """RAP-MUSIC source localization method.
 
@@ -212,9 +213,9 @@ def rap_music(
         The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    %(verbose)s
     use_trap : boolean
-        Use the TRAP-MUSIC variant if True. The default value is False.
+        Use the TRAP-MUSIC variant if True (default False).
+    %(verbose)s
 
     Returns
     -------
