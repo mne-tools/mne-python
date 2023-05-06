@@ -24,11 +24,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import mne
 
-root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
-raw_file = root / 'sample_audvis_filt-0-40_raw.fif'
+root = mne.datasets.sample.data_path() / "MEG" / "sample"
+raw_file = root / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw_fif(raw_file, preload=False)
 
-events_file = root / 'sample_audvis_filt-0-40_raw-eve.fif'
+events_file = root / "sample_audvis_filt-0-40_raw-eve.fif"
 events = mne.read_events(events_file)
 
 raw.crop(tmax=90)  # in seconds (happens in-place)
@@ -49,7 +49,7 @@ events = events[events[:, 0] <= raw.last_samp]
 # looking at the measurement info we can see that we now have 59 EEG channels
 # and 1 EOG channel.
 
-raw.pick(['eeg', 'eog']).load_data()
+raw.pick(["eeg", "eog"]).load_data()
 raw.info
 
 # %%
@@ -69,8 +69,7 @@ raw.info
 # remove a space and a leading zero in the channel names and convert to
 # lowercase:
 
-channel_renaming_dict = {name: name.replace(' 0', '').lower()
-                         for name in raw.ch_names}
+channel_renaming_dict = {name: name.replace(" 0", "").lower() for name in raw.ch_names}
 _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 
 # %%
@@ -97,7 +96,7 @@ _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 # :meth:`~mne.io.Raw.plot_sensors` method:
 
 raw.plot_sensors(show_names=True)
-fig = raw.plot_sensors('3d')
+fig = raw.plot_sensors("3d")
 
 # %%
 # If you're working with a standard montage like the `10–20 <ten_twenty_>`_
@@ -121,12 +120,13 @@ fig = raw.plot_sensors('3d')
 # raw data by plotting it with and without the projector applied:
 
 for proj in (False, True):
-    with mne.viz.use_browser_backend('matplotlib'):
-        fig = raw.plot(n_channels=5, proj=proj, scalings=dict(eeg=50e-6),
-                       show_scrollbars=False)
+    with mne.viz.use_browser_backend("matplotlib"):
+        fig = raw.plot(
+            n_channels=5, proj=proj, scalings=dict(eeg=50e-6), show_scrollbars=False
+        )
     fig.subplots_adjust(top=0.9)  # make room for title
-    ref = 'Average' if proj else 'No'
-    fig.suptitle(f'{ref} reference', size='xx-large', weight='bold')
+    ref = "Average" if proj else "No"
+    fig.suptitle(f"{ref} reference", size="xx-large", weight="bold")
 
 # %%
 # The referencing scheme can be changed with the function
@@ -168,8 +168,14 @@ np.unique(events[:, -1])
 # to represent different experimental events or conditions). The
 # :ref:`sample-dataset` data uses the following mapping:
 
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'face': 5, 'buttonpress': 32}
+event_dict = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+    "face": 5,
+    "buttonpress": 32,
+}
 
 # %%
 # Now we can proceed to epoch the continuous data. An interactive plot allows
@@ -177,8 +183,7 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # analysis (it is not interactive on this documentation website, but will be
 # when you run `epochs.plot() <mne.Epochs.plot>` in a Python console).
 
-epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.3, tmax=0.7,
-                    preload=True)
+epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.3, tmax=0.7, preload=True)
 fig = epochs.plot(events=events)
 
 # %%
@@ -221,8 +226,8 @@ epochs.plot_drop_log()
 # indexing (like for a :class:`dictionary <dict>`). This returns a subset with
 # only the desired epochs, which we then average:
 
-l_aud = epochs['auditory/left'].average()
-l_vis = epochs['visual/left'].average()
+l_aud = epochs["auditory/left"].average()
+l_vis = epochs["visual/left"].average()
 
 # %%
 # These :class:`~mne.Evoked` objects have their own interactive plotting method
@@ -279,7 +284,7 @@ for evk in (l_aud, l_vis):
 # To plot the GFP by itself, you can pass ``gfp='only'`` (this makes it easier
 # to read off the GFP data values, because the scale is aligned):
 
-l_aud.plot(gfp='only')
+l_aud.plot(gfp="only")
 
 # %%
 # The GFP is the population standard deviation of the signal
@@ -291,9 +296,9 @@ gfp = l_aud.data.std(axis=0, ddof=0)
 
 # Reproducing the MNE-Python plot style seen above
 fig, ax = plt.subplots()
-ax.plot(l_aud.times, gfp * 1e6, color='lime')
-ax.fill_between(l_aud.times, gfp * 1e6, color='lime', alpha=0.2)
-ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
+ax.plot(l_aud.times, gfp * 1e6, color="lime")
+ax.fill_between(l_aud.times, gfp * 1e6, color="lime", alpha=0.2)
+ax.set(xlabel="Time (s)", ylabel="GFP (µV)", title="EEG")
 
 # %%
 # Averaging across channels with regions of interest
@@ -305,18 +310,18 @@ ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
 # channel indices. Revisiting the 2D sensor plot above, we might choose the
 # following channels for left and right ROIs, respectively:
 
-left = ['eeg17', 'eeg18', 'eeg25', 'eeg26']
-right = ['eeg23', 'eeg24', 'eeg34', 'eeg35']
+left = ["eeg17", "eeg18", "eeg25", "eeg26"]
+right = ["eeg23", "eeg24", "eeg34", "eeg35"]
 
-left_ix = mne.pick_channels(l_aud.info['ch_names'], include=left)
-right_ix = mne.pick_channels(l_aud.info['ch_names'], include=right)
+left_ix = mne.pick_channels(l_aud.info["ch_names"], include=left)
+right_ix = mne.pick_channels(l_aud.info["ch_names"], include=right)
 
 # %%
 # Now we can create a new Evoked object with two virtual channels (one for each
 # ROI):
 roi_dict = dict(left_ROI=left_ix, right_ROI=right_ix)
-roi_evoked = mne.channels.combine_channels(l_aud, roi_dict, method='mean')
-print(roi_evoked.info['ch_names'])
+roi_evoked = mne.channels.combine_channels(l_aud, roi_dict, method="mean")
+print(roi_evoked.info["ch_names"])
 roi_evoked.plot()
 
 # %%
@@ -330,8 +335,8 @@ roi_evoked.plot()
 # channels by passing ``picks``:
 
 evokeds = dict(auditory=l_aud, visual=l_vis)
-picks = [f'eeg{n}' for n in range(10, 15)]
-mne.viz.plot_compare_evokeds(evokeds, picks=picks, combine='mean')
+picks = [f"eeg{n}" for n in range(10, 15)]
+mne.viz.plot_compare_evokeds(evokeds, picks=picks, combine="mean")
 
 # %%
 # We can also generate confidence intervals by treating each epoch as a
@@ -340,9 +345,11 @@ mne.viz.plot_compare_evokeds(evokeds, picks=picks, combine='mean')
 # :class:`~mne.Evoked` objects (one per subject) to the
 # :func:`~mne.viz.plot_compare_evokeds` function.
 
-evokeds = dict(auditory=list(epochs['auditory/left'].iter_evoked()),
-               visual=list(epochs['visual/left'].iter_evoked()))
-mne.viz.plot_compare_evokeds(evokeds, combine='mean', picks=picks)
+evokeds = dict(
+    auditory=list(epochs["auditory/left"].iter_evoked()),
+    visual=list(epochs["visual/left"].iter_evoked()),
+)
+mne.viz.plot_compare_evokeds(evokeds, combine="mean", picks=picks)
 
 # %%
 # We can also compare conditions by subtracting one :class:`~mne.Evoked` object
@@ -382,7 +389,7 @@ list(event_dict)
 # %%
 # We can select the auditory conditions (left and right together) by passing:
 
-epochs['auditory'].average()
+epochs["auditory"].average()
 
 # %%
 # See :ref:`tut-section-subselect-epochs` for more details on that.
@@ -447,19 +454,20 @@ epochs['auditory'].average()
 # time range (tmin and tmax) that was searched.
 # This function will be used throughout the remainder of the tutorial.
 def print_peak_measures(ch, tmin, tmax, lat, amp):
-    print(f'Channel: {ch}')
-    print(f'Time Window: {tmin * 1e3:.3f} - {tmax * 1e3:.3f} ms')
-    print(f'Peak Latency: {lat * 1e3:.3f} ms')
-    print(f'Peak Amplitude: {amp * 1e6:.3f} µV')
+    print(f"Channel: {ch}")
+    print(f"Time Window: {tmin * 1e3:.3f} - {tmax * 1e3:.3f} ms")
+    print(f"Peak Latency: {lat * 1e3:.3f} ms")
+    print(f"Peak Amplitude: {amp * 1e6:.3f} µV")
 
 
 # Get peak amplitude and latency from a good time window that contains the peak
 good_tmin, good_tmax = 0.08, 0.12
-ch, lat, amp = l_vis.get_peak(ch_type='eeg', tmin=good_tmin, tmax=good_tmax,
-                              mode='pos', return_amplitude=True)
+ch, lat, amp = l_vis.get_peak(
+    ch_type="eeg", tmin=good_tmin, tmax=good_tmax, mode="pos", return_amplitude=True
+)
 
 # Print output from the good time window that contains the peak
-print('** PEAK MEASURES FROM A GOOD TIME WINDOW **')
+print("** PEAK MEASURES FROM A GOOD TIME WINDOW **")
 print_peak_measures(ch, good_tmin, good_tmax, lat, amp)
 
 
@@ -476,14 +484,15 @@ print_peak_measures(ch, good_tmin, good_tmax, lat, amp)
 # at ``eeg59``.
 
 # Fist, return a copy of l_vis to select the channel from
-l_vis_roi = l_vis.copy().pick('eeg59')
+l_vis_roi = l_vis.copy().pick("eeg59")
 
 # Get the peak and latency measure from the selected channel
 ch_roi, lat_roi, amp_roi = l_vis_roi.get_peak(
-    tmin=good_tmin, tmax=good_tmax, mode='pos', return_amplitude=True)
+    tmin=good_tmin, tmax=good_tmax, mode="pos", return_amplitude=True
+)
 
 # Print output
-print('** PEAK MEASURES FOR ONE CHANNEL FROM A GOOD TIME WINDOW **')
+print("** PEAK MEASURES FOR ONE CHANNEL FROM A GOOD TIME WINDOW **")
 print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 
 # %%
@@ -521,10 +530,11 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # Get BAD peak measures
 bad_tmin, bad_tmax = 0.095, 0.135
 ch_roi, bad_lat_roi, bad_amp_roi = l_vis_roi.get_peak(
-    mode='pos', tmin=bad_tmin, tmax=bad_tmax, return_amplitude=True)
+    mode="pos", tmin=bad_tmin, tmax=bad_tmax, return_amplitude=True
+)
 
 # Print output
-print('** PEAK MEASURES FOR ONE CHANNEL FROM A BAD TIME WINDOW **')
+print("** PEAK MEASURES FOR ONE CHANNEL FROM A BAD TIME WINDOW **")
 print_peak_measures(ch_roi, bad_tmin, bad_tmax, bad_lat_roi, bad_amp_roi)
 
 # %%
@@ -537,15 +547,15 @@ print_peak_measures(ch_roi, bad_tmin, bad_tmax, bad_lat_roi, bad_amp_roi)
 # maximum or minimum in the searched time window. Visual inspection will always
 # help you to convince yourself that the returned values are actual peaks.
 
-fig, axs = plt.subplots(nrows=2, ncols=1, layout='tight')
-words = (('Bad', 'missing'), ('Good', 'finding'))
+fig, axs = plt.subplots(nrows=2, ncols=1, layout="tight")
+words = (("Bad", "missing"), ("Good", "finding"))
 times = (np.array([bad_tmin, bad_tmax]), np.array([good_tmin, good_tmax]))
-colors = ('C1', 'C0')
+colors = ("C1", "C0")
 
 for ix, ax in enumerate(axs):
-    title = '{} time window {} peak'.format(*words[ix])
-    l_vis_roi.plot(axes=ax, time_unit='ms', show=False, titles=title)
-    ax.plot(lat_roi * 1e3, amp_roi * 1e6, marker='*', color='C6')
+    title = "{} time window {} peak".format(*words[ix])
+    l_vis_roi.plot(axes=ax, time_unit="ms", show=False, titles=title)
+    ax.plot(lat_roi * 1e3, amp_roi * 1e6, marker="*", color="C6")
     ax.axvspan(*(times[ix] * 1e3), facecolor=colors[ix], alpha=0.3)
     ax.set_xlim(-50, 150)  # Show zoomed in around peak
 
@@ -591,23 +601,24 @@ for ix, ax in enumerate(axs):
 # :class:`pandas.DataFrame`.
 
 # Select all of the channels and crop to the time window
-channels = ['eeg54', 'eeg57', 'eeg55', 'eeg59']
-hemisphere = ['left', 'left', 'right', 'right']
-l_vis_mean_roi = l_vis.copy().pick(channels).crop(
-    tmin=good_tmin, tmax=good_tmax)
+channels = ["eeg54", "eeg57", "eeg55", "eeg59"]
+hemisphere = ["left", "left", "right", "right"]
+l_vis_mean_roi = l_vis.copy().pick(channels).crop(tmin=good_tmin, tmax=good_tmax)
 
 # Extract mean amplitude in µV over time
 mean_amp_roi = l_vis_mean_roi.data.mean(axis=1) * 1e6
 
 # Store the data in a data frame
-mean_amp_roi_df = pd.DataFrame({
-    'ch_name': l_vis_mean_roi.ch_names,
-    'hemisphere': ['left', 'left', 'right', 'right'],
-    'mean_amp': mean_amp_roi
-})
+mean_amp_roi_df = pd.DataFrame(
+    {
+        "ch_name": l_vis_mean_roi.ch_names,
+        "hemisphere": ["left", "left", "right", "right"],
+        "mean_amp": mean_amp_roi,
+    }
+)
 
 # Print the data frame
-print(mean_amp_roi_df.groupby('hemisphere').mean(numeric_only=True))
+print(mean_amp_roi_df.groupby("hemisphere").mean(numeric_only=True))
 
 # %%
 # As demonstrated in this example, the mean amplitude was higher and
@@ -625,14 +636,13 @@ print(mean_amp_roi_df.groupby('hemisphere').mean(numeric_only=True))
 # Extract mean amplitude for all channels in l_vis (including `eog`)
 l_vis_cropped = l_vis.copy().crop(tmin=good_tmin, tmax=good_tmax)
 mean_amp_all = l_vis_cropped.data.mean(axis=1) * 1e6
-mean_amp_all_df = pd.DataFrame({
-    'ch_name': l_vis_cropped.info['ch_names'],
-    'mean_amp': mean_amp_all
-})
-mean_amp_all_df['tmin'] = good_tmin
-mean_amp_all_df['tmax'] = good_tmax
-mean_amp_all_df['condition'] = 'Left/Visual'
-with pd.option_context('display.max_columns', None):
+mean_amp_all_df = pd.DataFrame(
+    {"ch_name": l_vis_cropped.info["ch_names"], "mean_amp": mean_amp_all}
+)
+mean_amp_all_df["tmin"] = good_tmin
+mean_amp_all_df["tmax"] = good_tmax
+mean_amp_all_df["condition"] = "Left/Visual"
+with pd.option_context("display.max_columns", None):
     print(mean_amp_all_df.head())
     print(mean_amp_all_df.tail())
 

@@ -37,10 +37,9 @@ from mne import Epochs, find_events
 from mne.io import read_raw_eyelink
 from mne.datasets.eyelink import data_path
 
-eyelink_fname = data_path() / 'mono_multi-block_multi-DINS.asc'
+eyelink_fname = data_path() / "mono_multi-block_multi-DINS.asc"
 
-raw = read_raw_eyelink(eyelink_fname,
-                       create_annotations=['blinks', 'messages'])
+raw = read_raw_eyelink(eyelink_fname, create_annotations=["blinks", "messages"])
 raw.crop(tmin=0, tmax=146)
 
 # %%
@@ -56,11 +55,8 @@ raw.crop(tmin=0, tmax=146)
 # In the example data, the DIN channel contains the onset of light flashes on
 # the screen. We now extract these events to visualize the pupil response.
 
-events = find_events(raw, 'DIN',
-                     shortest_event=1,
-                     min_duration=.02,
-                     uint_cast=True)
-event_dict = {'flash': 3}
+events = find_events(raw, "DIN", shortest_event=1, min_duration=0.02, uint_cast=True)
+event_dict = {"flash": 3}
 
 
 # %%
@@ -76,8 +72,14 @@ event_dict = {'flash': 3}
 # channel traces legible when plotting, since the file contains pixel position
 # data (as opposed to eye angles, which are reported in radians).
 
-raw.plot(events=events, event_id={'Flash': 3}, event_color='g',
-         start=25, duration=45, scalings=dict(eyegaze=1e3))
+raw.plot(
+    events=events,
+    event_id={"Flash": 3},
+    event_color="g",
+    start=25,
+    duration=45,
+    scalings=dict(eyegaze=1e3),
+)
 
 
 # %%
@@ -92,9 +94,8 @@ raw.plot(events=events, event_id={'Flash': 3}, event_color='g',
 # stimulation. The noise starting about 2.5 s after stimulus onset stems from
 # eyeblinks and artifacts in some of the 16 trials.
 
-epochs = Epochs(raw, events, tmin=-0.3, tmax=5,
-                event_id=event_dict, preload=True)
-epochs.pick_types(eyetrack='pupil')
+epochs = Epochs(raw, events, tmin=-0.3, tmax=5, event_id=event_dict, preload=True)
+epochs.pick_types(eyetrack="pupil")
 epochs.average().plot()
 
 # %%

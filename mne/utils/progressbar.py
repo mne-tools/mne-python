@@ -44,30 +44,42 @@ class ProgressBar:
         Additional keyword arguments for tqdm.
     """
 
-    def __init__(self, iterable=None, initial_value=0, mesg=None,
-                 max_total_width='auto', max_value=None, *, which_tqdm=None,
-                 **kwargs):  # noqa: D102
+    def __init__(
+        self,
+        iterable=None,
+        initial_value=0,
+        mesg=None,
+        max_total_width="auto",
+        max_value=None,
+        *,
+        which_tqdm=None,
+        **kwargs,
+    ):  # noqa: D102
         # The following mimics this, but with configurable module to use
         # from ..externals.tqdm import auto
         import tqdm
 
         if which_tqdm is None:
-            which_tqdm = get_config('MNE_TQDM', 'tqdm.auto')
-        _check_option('MNE_TQDM', which_tqdm[:5], ('tqdm', 'tqdm.', 'off'),
-                      extra='beginning')
-        logger.debug(f'Using ProgressBar with {which_tqdm}')
-        if which_tqdm not in ('tqdm', 'off'):
+            which_tqdm = get_config("MNE_TQDM", "tqdm.auto")
+        _check_option(
+            "MNE_TQDM", which_tqdm[:5], ("tqdm", "tqdm.", "off"), extra="beginning"
+        )
+        logger.debug(f"Using ProgressBar with {which_tqdm}")
+        if which_tqdm not in ("tqdm", "off"):
             try:
                 __import__(which_tqdm)
             except Exception as exc:
                 raise ValueError(
-                    f'Unknown tqdm backend {repr(which_tqdm)}, got: {exc}'
+                    f"Unknown tqdm backend {repr(which_tqdm)}, got: {exc}"
                 ) from None
-            tqdm = getattr(tqdm, which_tqdm.split('.', 1)[1])
+            tqdm = getattr(tqdm, which_tqdm.split(".", 1)[1])
         tqdm = tqdm.tqdm
         defaults = dict(
-            leave=True, mininterval=0.016, miniters=1, smoothing=0.05,
-            bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
+            leave=True,
+            mininterval=0.016,
+            miniters=1,
+            smoothing=0.05,
+            bar_format="{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]",  # noqa: E501
         )
         for key, val in defaults.items():
             if key not in kwargs:
@@ -81,17 +93,22 @@ class ProgressBar:
         else:  # ignore max_value then
             self.max_value = int(iterable)
             self.iterable = None
-        if max_total_width == 'auto':
+        if max_total_width == "auto":
             max_total_width = None  # tqdm's auto
-        with tempfile.NamedTemporaryFile('wb', prefix='tmp_mne_prog') as tf:
+        with tempfile.NamedTemporaryFile("wb", prefix="tmp_mne_prog") as tf:
             self._mmap_fname = tf.name
         del tf  # should remove the file
         self._mmap = None
-        disable = logger.level > logging.INFO or which_tqdm == 'off'
+        disable = logger.level > logging.INFO or which_tqdm == "off"
         self._tqdm = tqdm(
-            iterable=self.iterable, desc=mesg, total=self.max_value,
-            initial=initial_value, ncols=max_total_width,
-            disable=disable, **kwargs)
+            iterable=self.iterable,
+            desc=mesg,
+            total=self.max_value,
+            initial=initial_value,
+            ncols=max_total_width,
+            disable=disable,
+            **kwargs,
+        )
 
     def update(self, cur_value):
         """Update progressbar with current value of process.
@@ -142,8 +159,9 @@ class ProgressBar:
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
         # prevent corner cases where self.max_value == 0
-        self._mmap = np.memmap(self._mmap_fname, bool, 'w+',
-                               shape=max(self.max_value, 1))
+        self._mmap = np.memmap(
+            self._mmap_fname, bool, "w+", shape=max(self.max_value, 1)
+        )
         self.update(0)  # must be zero as we just created the memmap
 
         # We need to control how the pickled bars exit: remove print statements
@@ -163,12 +181,11 @@ class ProgressBar:
 
     def __del__(self):
         """Ensure output completes."""
-        if getattr(self, '_tqdm', None) is not None:
+        if getattr(self, "_tqdm", None) is not None:
             self._tqdm.close()
 
 
 class _UpdateThread(Thread):
-
     def __init__(self, pb):
         super(_UpdateThread, self).__init__(daemon=True)
         self._mne_run = True
@@ -177,11 +194,10 @@ class _UpdateThread(Thread):
     def run(self):
         while self._mne_run:
             self._mne_pb.update(self._mne_pb._mmap.sum())
-            time.sleep(1. / 30.)  # 30 Hz refresh is plenty
+            time.sleep(1.0 / 30.0)  # 30 Hz refresh is plenty
 
 
 class _PBSubsetUpdater:
-
     def __init__(self, pb, idx):
         self.mmap = pb._mmap
         self.idx = idx

@@ -16,6 +16,7 @@ def _yule_walker(X, order=1):
     Operates in-place.
     """
     from scipy import linalg
+
     assert X.ndim == 2
     denom = X.shape[-1] - np.arange(order + 1)
     r = np.zeros(order + 1, np.float64)
@@ -31,8 +32,7 @@ def _yule_walker(X, order=1):
 
 
 @verbose
-def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
-                      verbose=None):
+def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None, verbose=None):
     r"""Fit an AR model to raw data and creates the corresponding IIR filter.
 
     The computed filter is fitted to data from all of the picked channels,
@@ -71,8 +71,8 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
     data = raw[picks, start:stop][0]
     # rescale data to similar levels
     picks_list = _picks_by_type(pick_info(raw.info, picks))
-    scalings = _handle_default('scalings_cov_rank', None)
+    scalings = _handle_default("scalings_cov_rank", None)
     _apply_scaling_array(data, picks_list=picks_list, scalings=scalings)
     # do the fitting
     coeffs, _ = _yule_walker(data, order=order)
-    return np.array([1.]), np.concatenate(([1.], -coeffs))
+    return np.array([1.0]), np.concatenate(([1.0], -coeffs))

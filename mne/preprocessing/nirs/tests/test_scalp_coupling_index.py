@@ -10,8 +10,11 @@ from numpy.testing import assert_allclose, assert_array_less
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
-from mne.preprocessing.nirs import optical_density, scalp_coupling_index,\
-    beer_lambert_law
+from mne.preprocessing.nirs import (
+    optical_density,
+    scalp_coupling_index,
+    beer_lambert_law,
+)
 from mne.datasets import testing
 
 fname_nirx_15_0 = (
@@ -21,22 +24,20 @@ fname_nirx_15_2 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording"
 )
 fname_nirx_15_2_short = (
-    data_path(download=False)
-    / "NIRx"
-    / "nirscout"
-    / "nirx_15_2_recording_w_short"
+    data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_2_recording_w_short"
 )
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('fname', ([fname_nirx_15_2_short, fname_nirx_15_2,
-                                    fname_nirx_15_0]))
-@pytest.mark.parametrize('fmt', ('nirx', 'fif'))
+@pytest.mark.parametrize(
+    "fname", ([fname_nirx_15_2_short, fname_nirx_15_2, fname_nirx_15_0])
+)
+@pytest.mark.parametrize("fmt", ("nirx", "fif"))
 def test_scalp_coupling_index(fname, fmt, tmp_path):
     """Test converting NIRX files."""
-    assert fmt in ('nirx', 'fif')
+    assert fmt in ("nirx", "fif")
     raw = read_raw_nirx(fname)
-    with pytest.raises(RuntimeError, match='Scalp'):
+    with pytest.raises(RuntimeError, match="Scalp"):
         scalp_coupling_index(raw)
 
     raw = optical_density(raw)
@@ -62,10 +63,10 @@ def test_scalp_coupling_index(fname, fmt, tmp_path):
     raw._data[6] = new_data
     raw._data[7] = rng.rand(raw._data[0].shape[0])
     # Set next channel to have zero std
-    raw._data[8] = 0.
-    raw._data[9] = 1.
-    raw._data[10] = 2.
-    raw._data[11] = 3.
+    raw._data[8] = 0.0
+    raw._data[9] = 1.0
+    raw._data[10] = 2.0
+    raw._data[11] = 3.0
     # Check values
     sci = scalp_coupling_index(raw)
     assert_allclose(sci[0:6], [1, 1, 1, 1, -1, -1], atol=0.01)
@@ -75,5 +76,5 @@ def test_scalp_coupling_index(fname, fmt, tmp_path):
 
     # Ensure function errors if wrong type is passed in
     raw = beer_lambert_law(raw, ppf=6)
-    with pytest.raises(RuntimeError, match='Scalp'):
+    with pytest.raises(RuntimeError, match="Scalp"):
         scalp_coupling_index(raw)

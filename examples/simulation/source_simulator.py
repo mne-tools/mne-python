@@ -29,38 +29,39 @@ print(__doc__)
 # This will download the data if it not already on your machine. We also set
 # the subjects directory so we don't need to give it to functions.
 data_path = sample.data_path()
-subjects_dir = data_path / 'subjects'
-subject = 'sample'
+subjects_dir = data_path / "subjects"
+subject = "sample"
 
 # %%
 # First, we get an info structure from the test subject.
-evoked_fname = data_path / 'MEG' / subject / 'sample_audvis-ave.fif'
+evoked_fname = data_path / "MEG" / subject / "sample_audvis-ave.fif"
 info = mne.io.read_info(evoked_fname)
-tstep = 1. / info['sfreq']
+tstep = 1.0 / info["sfreq"]
 
 # %%
 # To simulate sources, we also need a source space. It can be obtained from the
 # forward solution of the sample subject.
-fwd_fname = data_path / 'MEG' / subject / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+fwd_fname = data_path / "MEG" / subject / "sample_audvis-meg-eeg-oct-6-fwd.fif"
 fwd = mne.read_forward_solution(fwd_fname)
-src = fwd['src']
+src = fwd["src"]
 
 # %%
 # To select a region to activate, we use the caudal middle frontal to grow
 # a region of interest.
 selected_label = mne.read_labels_from_annot(
-    subject, regexp='caudalmiddlefrontal-lh', subjects_dir=subjects_dir)[0]
-location = 'center'  # Use the center of the region as a seed.
-extent = 10.  # Extent in mm of the region.
+    subject, regexp="caudalmiddlefrontal-lh", subjects_dir=subjects_dir
+)[0]
+location = "center"  # Use the center of the region as a seed.
+extent = 10.0  # Extent in mm of the region.
 label = mne.label.select_sources(
-    subject, selected_label, location=location, extent=extent,
-    subjects_dir=subjects_dir)
+    subject, selected_label, location=location, extent=extent, subjects_dir=subjects_dir
+)
 
 # %%
 # Define the time course of the activity for each source of the region to
 # activate. Here we use a sine wave at 18 Hz with a peak amplitude
 # of 10 nAm.
-source_time_series = np.sin(2. * np.pi * 18. * np.arange(100) * tstep) * 10e-9
+source_time_series = np.sin(2.0 * np.pi * 18.0 * np.arange(100) * tstep) * 10e-9
 
 # %%
 # Define when the activity occurs using events. The first column is the sample

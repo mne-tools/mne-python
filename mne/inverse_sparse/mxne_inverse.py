@@ -6,26 +6,46 @@
 import numpy as np
 
 from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
-from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
-                                    _check_reference, _log_exp_var)
+from ..minimum_norm.inverse import (
+    combine_xyz,
+    _prepare_forward,
+    _check_reference,
+    _log_exp_var,
+)
 from ..forward import is_fixed_orient
-from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import (logger, verbose, _check_depth, _check_option, sum_squared,
-                     _validate_type, check_random_state, warn)
+from ..utils import (
+    logger,
+    verbose,
+    _check_depth,
+    _check_option,
+    sum_squared,
+    _validate_type,
+    check_random_state,
+    warn,
+)
 from ..dipole import Dipole
 
-from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
-                         tf_mixed_norm_solver, iterative_tf_mixed_norm_solver,
-                         norm_l2inf, norm_epsilon_inf, groups_norm2)
+from .mxne_optim import (
+    mixed_norm_solver,
+    iterative_mixed_norm_solver,
+    _Phi,
+    tf_mixed_norm_solver,
+    iterative_tf_mixed_norm_solver,
+    norm_l2inf,
+    norm_epsilon_inf,
+    groups_norm2,
+)
 
 
 def _check_ori(pick_ori, forward):
     """Check pick_ori."""
-    _check_option('pick_ori', pick_ori, [None, 'vector'])
-    if pick_ori == 'vector' and is_fixed_orient(forward):
-        raise ValueError('pick_ori="vector" cannot be combined with a fixed '
-                         'orientation forward solution.')
+    _check_option("pick_ori", pick_ori, [None, "vector"])
+    if pick_ori == "vector" and is_fixed_orient(forward):
+        raise ValueError(
+            'pick_ori="vector" cannot be combined with a fixed '
+            "orientation forward solution."
+        )
 
 
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
@@ -34,15 +54,18 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
         weights = np.max(np.abs(weights.data), axis=1)
     weights_max = np.max(weights)
     if weights_min > weights_max:
-        raise ValueError('weights_min > weights_max (%s > %s)' %
-                         (weights_min, weights_max))
+        raise ValueError(
+            "weights_min > weights_max (%s > %s)" % (weights_min, weights_max)
+        )
     weights_min = weights_min / weights_max
     weights = weights / weights_max
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     weights = np.ravel(np.tile(weights, [n_dip_per_pos, 1]).T)
     if len(weights) != gain.shape[1]:
-        raise ValueError('weights do not have the correct dimension '
-                         ' (%d != %d)' % (len(weights), gain.shape[1]))
+        raise ValueError(
+            "weights do not have the correct dimension "
+            " (%d != %d)" % (len(weights), gain.shape[1])
+        )
     if len(source_weighting.shape) == 1:
         source_weighting *= weights
     else:
@@ -50,7 +73,7 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     gain *= weights[None, :]
 
     if weights_min is not None:
-        mask = (weights > weights_min)
+        mask = weights > weights_min
         gain = gain[:, mask]
         n_sources = np.sum(mask) // n_dip_per_pos
         logger.info("Reducing source space to %d sources" % n_sources)
@@ -58,18 +81,20 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     return gain, source_weighting, mask
 
 
-def _prepare_gain(forward, info, noise_cov, pca, depth, loose, rank,
-                  weights=None, weights_min=None):
-    depth = _check_depth(depth, 'depth_sparse')
-    forward, gain_info, gain, _, _, source_weighting, _, _, whitener = \
-        _prepare_forward(forward, info, noise_cov, 'auto', loose, rank, pca,
-                         use_cps=True, **depth)
+def _prepare_gain(
+    forward, info, noise_cov, pca, depth, loose, rank, weights=None, weights_min=None
+):
+    depth = _check_depth(depth, "depth_sparse")
+    forward, gain_info, gain, _, _, source_weighting, _, _, whitener = _prepare_forward(
+        forward, info, noise_cov, "auto", loose, rank, pca, use_cps=True, **depth
+    )
 
     if weights is None:
         mask = None
     else:
         gain, source_weighting, mask = _prepare_weights(
-            forward, gain, source_weighting, weights, weights_min)
+            forward, gain, source_weighting, weights, weights_min
+        )
 
     return forward, gain, gain_info, whitener, source_weighting, mask
 
@@ -81,26 +106,26 @@ def _reapply_source_weighting(X, source_weighting, active_set):
 
 def _compute_residual(forward, evoked, X, active_set, info):
     # OK, picking based on row_names is safe
-    sel = [forward['sol']['row_names'].index(c) for c in info['ch_names']]
-    residual = evoked.copy()
-    residual = pick_channels_evoked(residual, include=info['ch_names'])
+    sel = [forward["sol"]["row_names"].index(c) for c in info["ch_names"]]
+    residual = evoked.copy().pick(info["ch_names"])
     r_tmp = residual.copy()
 
-    r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set], X)
+    r_tmp.data = np.dot(forward["sol"]["data"][sel, :][:, active_set], X)
 
     # Take care of proj
     active_projs = list()
     non_active_projs = list()
-    for p in evoked.info['projs']:
-        if p['active']:
+    for p in evoked.info["projs"]:
+        if p["active"]:
             active_projs.append(p)
         else:
             non_active_projs.append(p)
 
     if len(active_projs) > 0:
         with r_tmp.info._unlock():
-            r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True,
-                                                  verbose=False)
+            r_tmp.info["projs"] = deactivate_proj(
+                active_projs, copy=True, verbose=False
+            )
         r_tmp.apply_proj(verbose=False)
         r_tmp.add_proj(non_active_projs, remove_existing=False, verbose=False)
 
@@ -110,13 +135,21 @@ def _compute_residual(forward, evoked, X, active_set, info):
 
 
 @verbose
-def _make_sparse_stc(X, active_set, forward, tmin, tstep,
-                     active_is_idx=False, pick_ori=None, verbose=None):
-    source_nn = forward['source_nn']
+def _make_sparse_stc(
+    X,
+    active_set,
+    forward,
+    tmin,
+    tstep,
+    active_is_idx=False,
+    pick_ori=None,
+    verbose=None,
+):
+    source_nn = forward["source_nn"]
     vector = False
     if not is_fixed_orient(forward):
-        if pick_ori != 'vector':
-            logger.info('combining the current components...')
+        if pick_ori != "vector":
+            logger.info("combining the current components...")
             X = combine_xyz(X)
         else:
             vector = True
@@ -131,21 +164,29 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)
 
-    src = forward['src']
+    src = forward["src"]
     vertices = []
     n_points_so_far = 0
     for this_src in src:
-        this_n_points_so_far = n_points_so_far + len(this_src['vertno'])
-        this_active_idx = active_idx[(n_points_so_far <= active_idx) &
-                                     (active_idx < this_n_points_so_far)]
+        this_n_points_so_far = n_points_so_far + len(this_src["vertno"])
+        this_active_idx = active_idx[
+            (n_points_so_far <= active_idx) & (active_idx < this_n_points_so_far)
+        ]
         this_active_idx -= n_points_so_far
-        this_vertno = this_src['vertno'][this_active_idx]
+        this_vertno = this_src["vertno"][this_active_idx]
         n_points_so_far = this_n_points_so_far
         vertices.append(this_vertno)
     source_nn = source_nn[active_idx]
     return _make_stc(
-        X, vertices, src.kind, tmin, tstep, src[0]['subject_his_id'],
-        vector=vector, source_nn=source_nn)
+        X,
+        vertices,
+        src.kind,
+        tmin,
+        tstep,
+        src[0]["subject_his_id"],
+        vector=vector,
+        source_nn=source_nn,
+    )
 
 
 def _split_gof(M, X, gain):
@@ -172,7 +213,7 @@ def _split_gof(M, X, gain):
     # determine the weights by projecting each one onto this basis
     w = (U.T @ gain)[:, :, np.newaxis] * X
     w_norm = np.linalg.norm(w, axis=1, keepdims=True)
-    w_norm[w_norm == 0] = 1.
+    w_norm[w_norm == 0] = 1.0
     w /= w_norm
     # our weights are now unit-norm positive (will presrve power)
     fit_back = np.linalg.norm(fit_orth[:, np.newaxis] * w, axis=0) ** 2
@@ -184,9 +225,17 @@ def _split_gof(M, X, gain):
 
 
 @verbose
-def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
-                         gain_active, active_is_idx=False,
-                         verbose=None):
+def _make_dipoles_sparse(
+    X,
+    active_set,
+    forward,
+    tmin,
+    tstep,
+    M,
+    gain_active,
+    active_is_idx=False,
+    verbose=None,
+):
     times = tmin + tstep * np.arange(X.shape[1])
 
     if not active_is_idx:
@@ -214,21 +263,26 @@ def _make_dipoles_sparse(X, active_set, forward, tmin, tstep, M,
 
     dipoles = []
     for k, i_dip in enumerate(active_idx):
-        i_pos = forward['source_rr'][i_dip][np.newaxis, :]
+        i_pos = forward["source_rr"][i_dip][np.newaxis, :]
         i_pos = i_pos.repeat(len(times), axis=0)
-        X_ = X[k * n_dip_per_pos: (k + 1) * n_dip_per_pos]
+        X_ = X[k * n_dip_per_pos : (k + 1) * n_dip_per_pos]
         if n_dip_per_pos == 1:
             amplitude = X_[0]
-            i_ori = forward['source_nn'][i_dip][np.newaxis, :]
+            i_ori = forward["source_nn"][i_dip][np.newaxis, :]
             i_ori = i_ori.repeat(len(times), axis=0)
         else:
-            if forward['surf_ori']:
-                X_ = np.dot(forward['source_nn'][
-                    i_dip * n_dip_per_pos:(i_dip + 1) * n_dip_per_pos].T, X_)
+            if forward["surf_ori"]:
+                X_ = np.dot(
+                    forward["source_nn"][
+                        i_dip * n_dip_per_pos : (i_dip + 1) * n_dip_per_pos
+                    ].T,
+                    X_,
+                )
             amplitude = np.linalg.norm(X_, axis=0)
             i_ori = np.zeros((len(times), 3))
-            i_ori[amplitude > 0.] = (X_[:, amplitude > 0.] /
-                                     amplitude[amplitude > 0.]).T
+            i_ori[amplitude > 0.0] = (
+                X_[:, amplitude > 0.0] / amplitude[amplitude > 0.0]
+            ).T
 
         dipoles.append(Dipole(times, i_pos, amplitude, i_ori, gof_split[k]))
 
@@ -252,47 +306,68 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     stc : SourceEstimate
         The source estimate.
     """
-    logger.info('Converting dipoles into a SourceEstimate.')
+    logger.info("Converting dipoles into a SourceEstimate.")
     if isinstance(dipoles, Dipole):
         dipoles = [dipoles]
     if not isinstance(dipoles, list):
-        raise ValueError('Dipoles must be an instance of Dipole or '
-                         'a list of instances of Dipole. '
-                         'Got %s!' % type(dipoles))
+        raise ValueError(
+            "Dipoles must be an instance of Dipole or "
+            "a list of instances of Dipole. "
+            "Got %s!" % type(dipoles)
+        )
     tmin = dipoles[0].times[0]
     tstep = dipoles[0].times[1] - tmin
     X = np.zeros((len(dipoles), len(dipoles[0].times)))
-    source_rr = np.concatenate([_src['rr'][_src['vertno'], :] for _src in src],
-                               axis=0)
-    n_lh_points = len(src[0]['vertno'])
+    source_rr = np.concatenate([_src["rr"][_src["vertno"], :] for _src in src], axis=0)
+    n_lh_points = len(src[0]["vertno"])
     lh_vertno = list()
     rh_vertno = list()
     for i in range(len(dipoles)):
         if not np.all(dipoles[i].pos == dipoles[i].pos[0]):
-            raise ValueError('Only dipoles with fixed position over time '
-                             'are supported!')
+            raise ValueError(
+                "Only dipoles with fixed position over time " "are supported!"
+            )
         X[i] = dipoles[i].amplitude
         idx = np.all(source_rr == dipoles[i].pos[0], axis=1)
         idx = np.where(idx)[0][0]
         if idx < n_lh_points:
-            lh_vertno.append(src[0]['vertno'][idx])
+            lh_vertno.append(src[0]["vertno"][idx])
         else:
-            rh_vertno.append(src[1]['vertno'][idx - n_lh_points])
-    vertices = [np.array(lh_vertno).astype(int),
-                np.array(rh_vertno).astype(int)]
-    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep,
-                         subject=src._subject)
-    logger.info('[done]')
+            rh_vertno.append(src[1]["vertno"][idx - n_lh_points])
+    vertices = [np.array(lh_vertno).astype(int), np.array(rh_vertno).astype(int)]
+    stc = SourceEstimate(
+        X, vertices=vertices, tmin=tmin, tstep=tstep, subject=src._subject
+    )
+    logger.info("[done]")
     return stc
 
 
 @verbose
-def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
-               depth=0.8, maxit=3000, tol=1e-4, active_set_size=10,
-               debias=True, time_pca=True, weights=None, weights_min=0.,
-               solver='auto', n_mxne_iter=1, return_residual=False,
-               return_as_dipoles=False, dgap_freq=10, rank=None, pick_ori=None,
-               sure_alpha_grid="auto", random_state=None, verbose=None):
+def mixed_norm(
+    evoked,
+    forward,
+    noise_cov,
+    alpha="sure",
+    loose="auto",
+    depth=0.8,
+    maxit=3000,
+    tol=1e-4,
+    active_set_size=10,
+    debias=True,
+    time_pca=True,
+    weights=None,
+    weights_min=0.0,
+    solver="auto",
+    n_mxne_iter=1,
+    return_residual=False,
+    return_as_dipoles=False,
+    dgap_freq=10,
+    rank=None,
+    pick_ori=None,
+    sure_alpha_grid="auto",
+    random_state=None,
+    verbose=None,
+):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
     Compute L1/L2 mixed-norm solution :footcite:`GramfortEtAl2012` or L0.5/L2
@@ -382,26 +457,38 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     .. footbibliography::
     """
     from scipy import linalg
-    _validate_type(alpha, ('numeric', str), 'alpha')
+
+    _validate_type(alpha, ("numeric", str), "alpha")
     if isinstance(alpha, str):
-        _check_option('alpha', alpha, ('sure',))
-    elif not 0. <= alpha < 100:
-        raise ValueError('If not equal to "sure" alpha must be in [0, 100). '
-                         'Got alpha = %s' % alpha)
+        _check_option("alpha", alpha, ("sure",))
+    elif not 0.0 <= alpha < 100:
+        raise ValueError(
+            'If not equal to "sure" alpha must be in [0, 100). '
+            "Got alpha = %s" % alpha
+        )
     if n_mxne_iter < 1:
-        raise ValueError('MxNE has to be computed at least 1 time. '
-                         'Requires n_mxne_iter >= 1, got %d' % n_mxne_iter)
-    if dgap_freq <= 0.:
-        raise ValueError('dgap_freq must be a positive integer.'
-                         ' Got dgap_freq = %s' % dgap_freq)
-    if not (isinstance(sure_alpha_grid, (np.ndarray, list)) or
-            sure_alpha_grid == "auto"):
-        raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
-                         'array. Got %s' % type(sure_alpha_grid))
-    if ((isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto")
-            and (isinstance(alpha, str) and alpha != "sure")):
-        raise Exception('If sure_alpha_grid is manually specified, alpha must '
-                        'be "sure". Got %s' % alpha)
+        raise ValueError(
+            "MxNE has to be computed at least 1 time. "
+            "Requires n_mxne_iter >= 1, got %d" % n_mxne_iter
+        )
+    if dgap_freq <= 0.0:
+        raise ValueError(
+            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+        )
+    if not (
+        isinstance(sure_alpha_grid, (np.ndarray, list)) or sure_alpha_grid == "auto"
+    ):
+        raise ValueError(
+            'If not equal to "auto" sure_alpha_grid must be an '
+            "array. Got %s" % type(sure_alpha_grid)
+        )
+    if (isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto") and (
+        isinstance(alpha, str) and alpha != "sure"
+    ):
+        raise Exception(
+            "If sure_alpha_grid is manually specified, alpha must "
+            'be "sure". Got %s' % alpha
+        )
     pca = True
     if not isinstance(evoked, list):
         evoked = [evoked]
@@ -409,20 +496,27 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     _check_reference(evoked[0])
 
     all_ch_names = evoked[0].ch_names
-    if not all(all_ch_names == evoked[i].ch_names
-               for i in range(1, len(evoked))):
-        raise Exception('All the datasets must have the same good channels.')
+    if not all(all_ch_names == evoked[i].ch_names for i in range(1, len(evoked))):
+        raise Exception("All the datasets must have the same good channels.")
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked[0].info, noise_cov, pca, depth, loose, rank,
-        weights, weights_min)
+        forward,
+        evoked[0].info,
+        noise_cov,
+        pca,
+        depth,
+        loose,
+        rank,
+        weights,
+        weights_min,
+    )
     _check_ori(pick_ori, forward)
 
-    sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
+    sel = [all_ch_names.index(name) for name in gain_info["ch_names"]]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
 
     # Whiten data
-    logger.info('Whitening data matrix.')
+    logger.info("Whitening data matrix.")
     M = np.dot(whitener, M)
 
     if time_pca:
@@ -447,24 +541,52 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
         if isinstance(sure_alpha_grid, str) and sure_alpha_grid == "auto":
             alpha_grid = np.geomspace(100, 10, num=15)
         X, active_set, best_alpha_ = _compute_mxne_sure(
-            M, gain, alpha_grid, sigma=1, random_state=random_state,
-            n_mxne_iter=n_mxne_iter, maxit=maxit, tol=tol,
-            n_orient=n_dip_per_pos, active_set_size=active_set_size,
-            debias=debias, solver=solver, dgap_freq=dgap_freq, verbose=verbose)
-        logger.info('Selected alpha: %s' % best_alpha_)
+            M,
+            gain,
+            alpha_grid,
+            sigma=1,
+            random_state=random_state,
+            n_mxne_iter=n_mxne_iter,
+            maxit=maxit,
+            tol=tol,
+            n_orient=n_dip_per_pos,
+            active_set_size=active_set_size,
+            debias=debias,
+            solver=solver,
+            dgap_freq=dgap_freq,
+            verbose=verbose,
+        )
+        logger.info("Selected alpha: %s" % best_alpha_)
     else:
         if n_mxne_iter == 1:
             X, active_set, E = mixed_norm_solver(
-                M, gain, alpha, maxit=maxit, tol=tol,
-                active_set_size=active_set_size, n_orient=n_dip_per_pos,
-                debias=debias, solver=solver, dgap_freq=dgap_freq,
-                verbose=verbose)
+                M,
+                gain,
+                alpha,
+                maxit=maxit,
+                tol=tol,
+                active_set_size=active_set_size,
+                n_orient=n_dip_per_pos,
+                debias=debias,
+                solver=solver,
+                dgap_freq=dgap_freq,
+                verbose=verbose,
+            )
         else:
             X, active_set, E = iterative_mixed_norm_solver(
-                M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
-                n_orient=n_dip_per_pos, active_set_size=active_set_size,
-                debias=debias, solver=solver, dgap_freq=dgap_freq,
-                verbose=verbose)
+                M,
+                gain,
+                alpha,
+                n_mxne_iter,
+                maxit=maxit,
+                tol=tol,
+                n_orient=n_dip_per_pos,
+                active_set_size=active_set_size,
+                debias=debias,
+                solver=solver,
+                dgap_freq=dgap_freq,
+                verbose=verbose,
+            )
 
     if time_pca:
         X = np.dot(X, Vh)
@@ -493,25 +615,30 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     cnt = 0
     for e in evoked:
         tmin = e.times[0]
-        tstep = 1.0 / e.info['sfreq']
-        Xe = X[:, cnt:(cnt + len(e.times))]
+        tstep = 1.0 / e.info["sfreq"]
+        Xe = X[:, cnt : (cnt + len(e.times))]
         if return_as_dipoles:
             out = _make_dipoles_sparse(
-                Xe, active_set, forward, tmin, tstep,
-                M[:, cnt:(cnt + len(e.times))],
-                gain_active)
+                Xe,
+                active_set,
+                forward,
+                tmin,
+                tstep,
+                M[:, cnt : (cnt + len(e.times))],
+                gain_active,
+            )
         else:
             out = _make_sparse_stc(
-                Xe, active_set, forward, tmin, tstep, pick_ori=pick_ori)
+                Xe, active_set, forward, tmin, tstep, pick_ori=pick_ori
+            )
         outs.append(out)
         cnt += len(e.times)
 
         if return_residual:
-            residual.append(_compute_residual(forward, e, Xe, active_set,
-                                              gain_info))
+            residual.append(_compute_residual(forward, e, Xe, active_set, gain_info))
 
-    _log_exp_var(M, M_estimate, prefix='')
-    logger.info('[done]')
+    _log_exp_var(M, M_estimate, prefix="")
+    logger.info("[done]")
 
     if len(outs) == 1:
         out = outs[0]
@@ -533,7 +660,7 @@ def _window_evoked(evoked, size):
     else:
         lsize, rsize = size
     evoked = evoked.copy()
-    sfreq = float(evoked.info['sfreq'])
+    sfreq = float(evoked.info["sfreq"])
     lsize = int(lsize * sfreq)
     rsize = int(rsize * sfreq)
     lhann = np.hanning(lsize * 2)[:lsize]
@@ -544,13 +671,31 @@ def _window_evoked(evoked, size):
 
 
 @verbose
-def tf_mixed_norm(evoked, forward, noise_cov,
-                  loose='auto', depth=0.8, maxit=3000,
-                  tol=1e-4, weights=None, weights_min=0., pca=True,
-                  debias=True, wsize=64, tstep=4, window=0.02,
-                  return_residual=False, return_as_dipoles=False, alpha=None,
-                  l1_ratio=None, dgap_freq=10, rank=None, pick_ori=None,
-                  n_tfmxne_iter=1, verbose=None):
+def tf_mixed_norm(
+    evoked,
+    forward,
+    noise_cov,
+    loose="auto",
+    depth=0.8,
+    maxit=3000,
+    tol=1e-4,
+    weights=None,
+    weights_min=0.0,
+    pca=True,
+    debias=True,
+    wsize=64,
+    tstep=4,
+    window=0.02,
+    return_residual=False,
+    return_as_dipoles=False,
+    alpha=None,
+    l1_ratio=None,
+    dgap_freq=10,
+    rank=None,
+    pick_ori=None,
+    n_tfmxne_iter=1,
+    verbose=None,
+):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -643,34 +788,38 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     all_ch_names = evoked.ch_names
     info = evoked.info
 
-    if not (0. <= alpha < 100.):
-        raise ValueError('alpha must be in [0, 100). '
-                         'Got alpha = %s' % alpha)
+    if not (0.0 <= alpha < 100.0):
+        raise ValueError("alpha must be in [0, 100). " "Got alpha = %s" % alpha)
 
-    if not (0. <= l1_ratio <= 1.):
-        raise ValueError('l1_ratio must be in range [0, 1].'
-                         ' Got l1_ratio = %s' % l1_ratio)
-    alpha_space = alpha * (1. - l1_ratio)
+    if not (0.0 <= l1_ratio <= 1.0):
+        raise ValueError(
+            "l1_ratio must be in range [0, 1]." " Got l1_ratio = %s" % l1_ratio
+        )
+    alpha_space = alpha * (1.0 - l1_ratio)
     alpha_time = alpha * l1_ratio
 
     if n_tfmxne_iter < 1:
-        raise ValueError('TF-MxNE has to be computed at least 1 time. '
-                         'Requires n_tfmxne_iter >= 1, got %s' % n_tfmxne_iter)
+        raise ValueError(
+            "TF-MxNE has to be computed at least 1 time. "
+            "Requires n_tfmxne_iter >= 1, got %s" % n_tfmxne_iter
+        )
 
-    if dgap_freq <= 0.:
-        raise ValueError('dgap_freq must be a positive integer.'
-                         ' Got dgap_freq = %s' % dgap_freq)
+    if dgap_freq <= 0.0:
+        raise ValueError(
+            "dgap_freq must be a positive integer." " Got dgap_freq = %s" % dgap_freq
+        )
 
     tstep = np.atleast_1d(tstep)
     wsize = np.atleast_1d(wsize)
     if len(tstep) != len(wsize):
-        raise ValueError('The same number of window sizes and steps must be '
-                         'passed. Got tstep = %s and wsize = %s' %
-                         (tstep, wsize))
+        raise ValueError(
+            "The same number of window sizes and steps must be "
+            "passed. Got tstep = %s and wsize = %s" % (tstep, wsize)
+        )
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked.info, noise_cov, pca, depth, loose, rank,
-        weights, weights_min)
+        forward, evoked.info, noise_cov, pca, depth, loose, rank, weights, weights_min
+    )
     _check_ori(pick_ori, forward)
 
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
@@ -682,7 +831,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     M = evoked.data[sel]
 
     # Whiten data
-    logger.info('Whitening data matrix.')
+    logger.info("Whitening data matrix.")
     M = np.dot(whitener, M)
 
     n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
@@ -699,18 +848,40 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     if n_tfmxne_iter == 1:
         X, active_set, E = tf_mixed_norm_solver(
-            M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
-            maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-            dgap_freq=dgap_freq, debias=debias)
+            M,
+            gain,
+            alpha_space,
+            alpha_time,
+            wsize=wsize,
+            tstep=tstep,
+            maxit=maxit,
+            tol=tol,
+            verbose=verbose,
+            n_orient=n_dip_per_pos,
+            dgap_freq=dgap_freq,
+            debias=debias,
+        )
     else:
         X, active_set, E = iterative_tf_mixed_norm_solver(
-            M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
-            n_tfmxne_iter=n_tfmxne_iter, maxit=maxit, tol=tol, verbose=verbose,
-            n_orient=n_dip_per_pos, dgap_freq=dgap_freq, debias=debias)
+            M,
+            gain,
+            alpha_space,
+            alpha_time,
+            wsize=wsize,
+            tstep=tstep,
+            n_tfmxne_iter=n_tfmxne_iter,
+            maxit=maxit,
+            tol=tol,
+            verbose=verbose,
+            n_orient=n_dip_per_pos,
+            dgap_freq=dgap_freq,
+            debias=debias,
+        )
 
     if active_set.sum() == 0:
-        raise Exception("No active dipoles found. "
-                        "alpha_space/alpha_time are too big.")
+        raise Exception(
+            "No active dipoles found. " "alpha_space/alpha_time are too big."
+        )
 
     # Compute estimated whitened sensor data for each dipole (dip, ch, time)
     gain_active = gain[:, active_set]
@@ -725,19 +896,23 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     gain_active /= source_weighting[active_set]
 
     if return_residual:
-        residual = _compute_residual(
-            forward, evoked, X, active_set, gain_info)
+        residual = _compute_residual(forward, evoked, X, active_set, gain_info)
 
     if return_as_dipoles:
         out = _make_dipoles_sparse(
-            X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
-            M, gain_active)
+            X, active_set, forward, evoked.times[0], 1.0 / info["sfreq"], M, gain_active
+        )
     else:
         out = _make_sparse_stc(
-            X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
-            pick_ori=pick_ori)
+            X,
+            active_set,
+            forward,
+            evoked.times[0],
+            1.0 / info["sfreq"],
+            pick_ori=pick_ori,
+        )
 
-    logger.info('[done]')
+    logger.info("[done]")
 
     if return_residual:
         out = out, residual
@@ -746,9 +921,22 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
 
 @verbose
-def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
-                       n_orient, active_set_size, debias, solver, dgap_freq,
-                       random_state, verbose):
+def _compute_mxne_sure(
+    M,
+    gain,
+    alpha_grid,
+    sigma,
+    n_mxne_iter,
+    maxit,
+    tol,
+    n_orient,
+    active_set_size,
+    debias,
+    solver,
+    dgap_freq,
+    random_state,
+    verbose,
+):
     """Stein Unbiased Risk Estimator (SURE).
 
     Implements the finite-difference Monte-Carlo approximation
@@ -801,26 +989,46 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
     ----------
     .. footbibliography::
     """
+
     def g(w):
         return np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
 
     def gprime(w):
-        return 2. * np.repeat(g(w), n_orient).ravel()
+        return 2.0 * np.repeat(g(w), n_orient).ravel()
 
-    def _run_solver(alpha, M, n_mxne_iter, as_init=None, X_init=None,
-                    w_init=None):
+    def _run_solver(alpha, M, n_mxne_iter, as_init=None, X_init=None, w_init=None):
         if n_mxne_iter == 1:
             X, active_set, _ = mixed_norm_solver(
-                M, gain, alpha, maxit=maxit, tol=tol,
-                active_set_size=active_set_size, n_orient=n_orient,
-                debias=debias, solver=solver, dgap_freq=dgap_freq,
-                active_set_init=as_init, X_init=X_init, verbose=False)
+                M,
+                gain,
+                alpha,
+                maxit=maxit,
+                tol=tol,
+                active_set_size=active_set_size,
+                n_orient=n_orient,
+                debias=debias,
+                solver=solver,
+                dgap_freq=dgap_freq,
+                active_set_init=as_init,
+                X_init=X_init,
+                verbose=False,
+            )
         else:
             X, active_set, _ = iterative_mixed_norm_solver(
-                M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
-                n_orient=n_orient, active_set_size=active_set_size,
-                debias=debias, solver=solver, dgap_freq=dgap_freq,
-                weight_init=w_init, verbose=False)
+                M,
+                gain,
+                alpha,
+                n_mxne_iter,
+                maxit=maxit,
+                tol=tol,
+                n_orient=n_orient,
+                active_set_size=active_set_size,
+                debias=debias,
+                solver=solver,
+                dgap_freq=dgap_freq,
+                weight_init=w_init,
+                verbose=False,
+            )
         return X, active_set
 
     def _fit_on_grid(gain, M, eps, delta):
@@ -829,9 +1037,9 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         active_sets, active_sets_eps = [], []
         M_eps = M + eps * delta
         # warm start - first iteration (leverages convexity)
-        logger.info('Warm starting...')
+        logger.info("Warm starting...")
         for j, alpha in enumerate(alpha_grid):
-            logger.info('alpha: %s' % alpha)
+            logger.info("alpha: %s" % alpha)
             X, a_set = _run_solver(alpha, M, 1)
             X_eps, a_set_eps = _run_solver(alpha, M_eps, 1)
             coefs_grid_1_0[j][a_set, :] = X
@@ -844,20 +1052,19 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         else:
             coefs_grid_1 = coefs_grid_1_0.copy()
             coefs_grid_2 = coefs_grid_2_0.copy()
-            logger.info('Fitting SURE on grid.')
+            logger.info("Fitting SURE on grid.")
             for j, alpha in enumerate(alpha_grid):
-                logger.info('alpha: %s' % alpha)
+                logger.info("alpha: %s" % alpha)
                 if active_sets[j].sum() > 0:
                     w = gprime(coefs_grid_1[j])
-                    X, a_set = _run_solver(alpha, M, n_mxne_iter - 1,
-                                           w_init=w)
+                    X, a_set = _run_solver(alpha, M, n_mxne_iter - 1, w_init=w)
                     coefs_grid_1[j][a_set, :] = X
                     active_sets[j] = a_set
                 if active_sets_eps[j].sum() > 0:
                     w_eps = gprime(coefs_grid_2[j])
-                    X_eps, a_set_eps = _run_solver(alpha, M_eps,
-                                                   n_mxne_iter - 1,
-                                                   w_init=w_eps)
+                    X_eps, a_set_eps = _run_solver(
+                        alpha, M_eps, n_mxne_iter - 1, w_init=w_eps
+                    )
                     coefs_grid_2[j][a_set_eps, :] = X_eps
                     active_sets_eps[j] = a_set_eps
 
@@ -867,8 +1074,8 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         n_sensors, n_times = gain.shape[0], M.shape[1]
         dof = (gain @ (coef2 - coef1) * delta).sum() / eps
         df_term = np.linalg.norm(M - gain @ coef1) ** 2
-        sure = df_term - n_sensors * n_times * sigma ** 2
-        sure += 2 * dof * sigma ** 2
+        sure = df_term - n_sensors * n_times * sigma**2
+        sure += 2 * dof * sigma**2
         return sure
 
     sure_path = np.empty(len(alpha_grid))
@@ -882,8 +1089,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
 
     logger.info("Computing SURE values on grid.")
     for i, (coef1, coef2) in enumerate(zip(coefs_grid_1, coefs_grid_2)):
-        sure_path[i] = _compute_sure_val(
-            coef1, coef2, gain, M, sigma, delta, eps)
+        sure_path[i] = _compute_sure_val(coef1, coef2, gain, M, sigma, delta, eps)
         if verbose:
             logger.info("alpha %s :: sure %s" % (alpha_grid[i], sure_path[i]))
     best_alpha_ = alpha_grid[np.argmin(sure_path)]

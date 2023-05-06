@@ -8,59 +8,60 @@ def get_current_comp(info):
     """Get the current compensation in effect in the data."""
     comp = None
     first_comp = -1
-    for k, chan in enumerate(info['chs']):
-        if chan['kind'] == FIFF.FIFFV_MEG_CH:
-            comp = int(chan['coil_type']) >> 16
+    for k, chan in enumerate(info["chs"]):
+        if chan["kind"] == FIFF.FIFFV_MEG_CH:
+            comp = int(chan["coil_type"]) >> 16
             if first_comp < 0:
                 first_comp = comp
             elif comp != first_comp:
-                raise ValueError('Compensation is not set equally on '
-                                 'all MEG channels')
+                raise ValueError(
+                    "Compensation is not set equally on " "all MEG channels"
+                )
     return comp
 
 
 def set_current_comp(info, comp):
     """Set the current compensation in effect in the data."""
     comp_now = get_current_comp(info)
-    for k, chan in enumerate(info['chs']):
-        if chan['kind'] == FIFF.FIFFV_MEG_CH:
-            rem = chan['coil_type'] - (comp_now << 16)
-            chan['coil_type'] = int(rem + (comp << 16))
+    for k, chan in enumerate(info["chs"]):
+        if chan["kind"] == FIFF.FIFFV_MEG_CH:
+            rem = chan["coil_type"] - (comp_now << 16)
+            chan["coil_type"] = int(rem + (comp << 16))
 
 
 def _make_compensator(info, grade):
     """Auxiliary function for make_compensator."""
-    for k in range(len(info['comps'])):
-        if info['comps'][k]['kind'] == grade:
-            this_data = info['comps'][k]['data']
+    for k in range(len(info["comps"])):
+        if info["comps"][k]["kind"] == grade:
+            this_data = info["comps"][k]["data"]
 
             #   Create the preselector
-            presel = np.zeros((this_data['ncol'], info['nchan']))
-            for col, col_name in enumerate(this_data['col_names']):
-                ind = [k for k, ch in enumerate(info['ch_names'])
-                       if ch == col_name]
+            presel = np.zeros((this_data["ncol"], info["nchan"]))
+            for col, col_name in enumerate(this_data["col_names"]):
+                ind = [k for k, ch in enumerate(info["ch_names"]) if ch == col_name]
                 if len(ind) == 0:
-                    raise ValueError('Channel %s is not available in '
-                                     'data' % col_name)
+                    raise ValueError(
+                        "Channel %s is not available in " "data" % col_name
+                    )
                 elif len(ind) > 1:
-                    raise ValueError('Ambiguous channel %s' % col_name)
+                    raise ValueError("Ambiguous channel %s" % col_name)
                 presel[col, ind[0]] = 1.0
 
             #   Create the postselector (zero entries for channels not found)
-            postsel = np.zeros((info['nchan'], this_data['nrow']))
-            for c, ch_name in enumerate(info['ch_names']):
-                ind = [k for k, ch in enumerate(this_data['row_names'])
-                       if ch == ch_name]
+            postsel = np.zeros((info["nchan"], this_data["nrow"]))
+            for c, ch_name in enumerate(info["ch_names"]):
+                ind = [
+                    k for k, ch in enumerate(this_data["row_names"]) if ch == ch_name
+                ]
                 if len(ind) > 1:
-                    raise ValueError('Ambiguous channel %s' % ch_name)
+                    raise ValueError("Ambiguous channel %s" % ch_name)
                 elif len(ind) == 1:
                     postsel[c, ind[0]] = 1.0
                 # else, don't use it at all (postsel[c, ?] = 0.0) by allocation
-            this_comp = np.dot(postsel, np.dot(this_data['data'], presel))
+            this_comp = np.dot(postsel, np.dot(this_data["data"], presel))
             return this_comp
 
-    raise ValueError('Desired compensation matrix (grade = %d) not'
-                     ' found' % grade)
+    raise ValueError("Desired compensation matrix (grade = %d) not" " found" % grade)
 
 
 @fill_doc
@@ -94,10 +95,10 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     #   s_to   = (I - C2)*(I + C1)*s_from = (I + C1 - C2 - C2*C1)*s_from
     if from_ != 0:
         C1 = _make_compensator(info, from_)
-        comp_from_0 = np.linalg.inv(np.eye(info['nchan']) - C1)
+        comp_from_0 = np.linalg.inv(np.eye(info["nchan"]) - C1)
     if to != 0:
         C2 = _make_compensator(info, to)
-        comp_0_to = np.eye(info['nchan']) - C2
+        comp_0_to = np.eye(info["nchan"]) - C2
     if from_ != 0:
         if to != 0:
             # This is mathematically equivalent, but has higher numerical
@@ -111,12 +112,14 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
         comp = comp_0_to
 
     if exclude_comp_chs:
-        pick = [k for k, c in enumerate(info['chs'])
-                if c['kind'] != FIFF.FIFFV_REF_MEG_CH]
+        pick = [
+            k for k, c in enumerate(info["chs"]) if c["kind"] != FIFF.FIFFV_REF_MEG_CH
+        ]
 
         if len(pick) == 0:
-            raise ValueError('Nothing remains after excluding the '
-                             'compensation channels')
+            raise ValueError(
+                "Nothing remains after excluding the " "compensation channels"
+            )
 
         comp = comp[pick, :]
 

@@ -16,28 +16,34 @@ def test_eximia_nxe():
     """Test reading Eximia NXE files."""
     fname = testing_path / "eximia" / "test_eximia.nxe"
     raw = read_raw_eximia(fname, preload=True)
-    assert 'RawEximia' in repr(raw)
-    _test_raw_reader(read_raw_eximia, fname=fname,
-                     test_scaling=False,  # XXX probably a scaling problem
-                     )
+    assert "RawEximia" in repr(raw)
+    _test_raw_reader(
+        read_raw_eximia,
+        fname=fname,
+        test_scaling=False,  # XXX probably a scaling problem
+    )
     fname_mat = testing_path / "eximia" / "test_eximia.mat"
     mc = sio.loadmat(fname_mat)
-    m_data = mc['data']
-    m_header = mc['header']
+    m_data = mc["data"]
+    m_header = mc["header"]
     assert raw._data.shape == m_data.shape
-    assert m_header['Fs'][0, 0][0, 0] == raw.info['sfreq']
-    m_names = [x[0][0] for x in m_header['label'][0, 0]]
+    assert m_header["Fs"][0, 0][0, 0] == raw.info["sfreq"]
+    m_names = [x[0][0] for x in m_header["label"][0, 0]]
     m_names = list(
-        map(lambda x: x.replace('GATE', 'GateIn').replace('TRIG', 'Trig'),
-            m_names))
+        map(lambda x: x.replace("GATE", "GateIn").replace("TRIG", "Trig"), m_names)
+    )
     assert raw.ch_names == m_names
-    m_ch_types = [x[0][0] for x in m_header['chantype'][0, 0]]
+    m_ch_types = [x[0][0] for x in m_header["chantype"][0, 0]]
     m_ch_types = list(
-        map(lambda x: x.replace('unknown', 'stim').replace('trigger', 'stim'),
-            m_ch_types))
-    types_dict = {2: 'eeg', 3: 'stim', 202: 'eog'}
-    ch_types = [types_dict[raw.info['chs'][x]['kind']]
-                for x in range(len(raw.ch_names))]
+        map(
+            lambda x: x.replace("unknown", "stim").replace("trigger", "stim"),
+            m_ch_types,
+        )
+    )
+    types_dict = {2: "eeg", 3: "stim", 202: "eog"}
+    ch_types = [
+        types_dict[raw.info["chs"][x]["kind"]] for x in range(len(raw.ch_names))
+    ]
     assert ch_types == m_ch_types
 
     assert_array_equal(m_data, raw._data)

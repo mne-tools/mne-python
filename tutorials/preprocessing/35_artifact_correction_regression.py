@@ -44,14 +44,14 @@ import mne
 from mne.preprocessing import EOGRegression
 
 data_path = mne.datasets.sample.data_path()
-raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname)
-raw.pick(['eeg', 'eog', 'stim'])
+raw.pick(["eeg", "eog", "stim"])
 raw.load_data()
 
 # The regression technique works regardless of chosen reference. However, it is
 # important to choose a reference before proceeding with the analysis.
-raw.set_eeg_reference('average')
+raw.set_eeg_reference("average")
 
 # Removing slow drifts makes for more stable regression coefficients. Make sure
 # to apply the same filter to both EEG and EOG channels!
@@ -59,7 +59,7 @@ raw.filter(0.3, 40)
 
 # make epochs
 events = mne.find_events(raw)
-event_id = {'visual/left': 3, 'visual/right': 4}
+event_id = {"visual/left": 3, "visual/right": 4}
 epochs = mne.Epochs(raw, events, event_id=event_id, preload=True)
 
 # %%
@@ -69,10 +69,10 @@ epochs = mne.Epochs(raw, events, event_id=event_id, preload=True)
 # any corrections applied.
 
 # we'll try to keep a consistent ylim across figures
-plot_kwargs = dict(picks='all', ylim=dict(eeg=(-10, 10), eog=(-5, 15)))
+plot_kwargs = dict(picks="all", ylim=dict(eeg=(-10, 10), eog=(-5, 15)))
 
 # plot the evoked for the EEG and the EOG sensors
-fig = epochs.average('all').plot(**plot_kwargs)
+fig = epochs.average("all").plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
 # %%
@@ -90,7 +90,7 @@ fig.set_size_inches(6, 6)
 
 # Perform regression using the EOG sensor as independent variable and the EEG
 # sensors as dependent variables.
-model_plain = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs)
+model_plain = EOGRegression(picks="eeg", picks_artifact="eog").fit(epochs)
 fig = model_plain.plot(vlim=(None, 0.4))  # regression coefficients as topomap
 fig.set_size_inches(3, 2)
 
@@ -106,7 +106,7 @@ epochs_clean_plain = model_plain.apply(epochs)
 # After regression, we should redo the baseline correction
 epochs_clean_plain.apply_baseline()
 # Show the evoked potential computed on the corrected data
-fig = epochs_clean_plain.average('all').plot(**plot_kwargs)
+fig = epochs_clean_plain.average("all").plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
 # %%
@@ -139,13 +139,13 @@ fig.set_size_inches(6, 6)
 epochs_sub = epochs.copy().subtract_evoked()
 
 # perform regression
-model_sub = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs_sub)
+model_sub = EOGRegression(picks="eeg", picks_artifact="eog").fit(epochs_sub)
 fig = model_sub.plot(vlim=(None, 0.4))
 fig.set_size_inches(3, 2)
 
 # apply the regression coefficients to the original epochs
 epochs_clean_sub = model_plain.apply(epochs).apply_baseline()
-fig = epochs_clean_sub.average('all').plot(**plot_kwargs)
+fig = epochs_clean_sub.average("all").plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
 # %%
@@ -181,24 +181,24 @@ fig.set_size_inches(6, 6)
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 # We need to explicitly specify that we want to average the EOG channel too.
-eog_evoked = eog_epochs.average('all')
-eog_evoked.plot('all')
+eog_evoked = eog_epochs.average("all")
+eog_evoked.plot("all")
 fig.set_size_inches(6, 6)
 
 # perform regression on the evoked blink response
-model_evoked = EOGRegression(picks='eeg', picks_artifact='eog').fit(eog_evoked)
+model_evoked = EOGRegression(picks="eeg", picks_artifact="eog").fit(eog_evoked)
 fig = model_evoked.plot(vlim=(None, 0.4))
 fig.set_size_inches(3, 2)
 
 # apply the regression coefficients to the original epochs
 epochs_clean_evoked = model_evoked.apply(epochs).apply_baseline()
-fig = epochs_clean_evoked.average('all').plot(**plot_kwargs)
+fig = epochs_clean_evoked.average("all").plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
 # for good measure, also show the effect on the blink evoked
 eog_evoked_clean = model_evoked.apply(eog_evoked)
 eog_evoked_clean.apply_baseline()
-eog_evoked_clean.plot('all')
+eog_evoked_clean.plot("all")
 fig.set_size_inches(6, 6)
 
 # %%
@@ -210,12 +210,20 @@ fig.set_size_inches(6, 6)
 # regression directly to raw, epoched, and evoked data. Here, we will use the
 # regression weights obtained from the blink evoked and apply it to an instance
 # of `~mne.io.Raw`.
-order = np.concatenate([  # plotting order: EOG first, then EEG
-    mne.pick_types(raw.info, meg=False, eog=True),
-    mne.pick_types(raw.info, meg=False, eeg=True),
-])
-raw_kwargs = dict(events=eog_epochs.events, order=order, start=13, duration=3,
-                  n_channels=10, scalings=dict(eeg=50e-6, eog=250e-6))
+order = np.concatenate(
+    [  # plotting order: EOG first, then EEG
+        mne.pick_types(raw.info, meg=False, eog=True),
+        mne.pick_types(raw.info, meg=False, eeg=True),
+    ]
+)
+raw_kwargs = dict(
+    events=eog_epochs.events,
+    order=order,
+    start=13,
+    duration=3,
+    n_channels=10,
+    scalings=dict(eeg=50e-6, eog=250e-6),
+)
 
 # plot original data
 raw.plot(**raw_kwargs)

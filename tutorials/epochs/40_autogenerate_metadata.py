@@ -50,7 +50,7 @@ import mne
 
 
 data_dir = Path(mne.datasets.erp_core.data_path())
-infile = data_dir / 'ERP-CORE_Subject-001_Task-Flankers_eeg.fif'
+infile = data_dir / "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"
 
 raw = mne.io.read_raw(infile, preload=True)
 raw.filter(l_freq=0.1, h_freq=40)
@@ -89,8 +89,12 @@ metadata_tmin, metadata_tmax = 0.0, 1.5
 # this also returns a new events array and an event_id dictionary. we'll see
 # later why this is important
 metadata, events, event_id = mne.epochs.make_metadata(
-    events=all_events, event_id=all_event_id,
-    tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'])
+    events=all_events,
+    event_id=all_event_id,
+    tmin=metadata_tmin,
+    tmax=metadata_tmax,
+    sfreq=raw.info["sfreq"],
+)
 
 # let's look at what we got!
 metadata
@@ -127,15 +131,21 @@ metadata
 # later use when we actually create our epochs, to ensure that metadata,
 # events, and event descriptions stay in sync.
 
-row_events = ['stimulus/compatible/target_left',
-              'stimulus/compatible/target_right',
-              'stimulus/incompatible/target_left',
-              'stimulus/incompatible/target_right']
+row_events = [
+    "stimulus/compatible/target_left",
+    "stimulus/compatible/target_right",
+    "stimulus/incompatible/target_left",
+    "stimulus/incompatible/target_right",
+]
 
 metadata, events, event_id = mne.epochs.make_metadata(
-    events=all_events, event_id=all_event_id,
-    tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
-    row_events=row_events)
+    events=all_events,
+    event_id=all_event_id,
+    tmin=metadata_tmin,
+    tmax=metadata_tmax,
+    sfreq=raw.info["sfreq"],
+    row_events=row_events,
+)
 
 metadata
 
@@ -164,19 +174,23 @@ metadata
 # name, i.e. in our example, we expect it to only contain ``'left'`` and
 # ``'right'``.
 
-keep_first = 'response'
+keep_first = "response"
 metadata, events, event_id = mne.epochs.make_metadata(
-    events=all_events, event_id=all_event_id,
-    tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
+    events=all_events,
+    event_id=all_event_id,
+    tmin=metadata_tmin,
+    tmax=metadata_tmax,
+    sfreq=raw.info["sfreq"],
     row_events=row_events,
-    keep_first=keep_first)
+    keep_first=keep_first,
+)
 
 # visualize response times regardless of side
-metadata['response'].plot.hist(bins=50, title='Response Times')
+metadata["response"].plot.hist(bins=50, title="Response Times")
 
 # the "first_response" column contains only "left" and "right" entries, derived
 # from the initial event named "response/left" and "response/right"
-print(metadata['first_response'])
+print(metadata["first_response"])
 
 # %%
 # We're facing a similar issue with the stimulus events, and now there are not
@@ -187,9 +201,11 @@ print(metadata['first_response'])
 # multiple stimulus events occurred within the 1.5 second time window we used
 # to generate our metadata. See for example:
 
-metadata.loc[metadata['stimulus/compatible/target_left'].notna() &
-             metadata['stimulus/compatible/target_right'].notna(),
-             :]
+metadata.loc[
+    metadata["stimulus/compatible/target_left"].notna()
+    & metadata["stimulus/compatible/target_right"].notna(),
+    :,
+]
 
 # %%
 # This can easily lead to confusion during later stages of processing, so let's
@@ -197,19 +213,23 @@ metadata.loc[metadata['stimulus/compatible/target_left'].notna() &
 # stimulus, as our time interval starts at 0 seconds. We can pass a **list** of
 # strings to ``keep_first``.
 
-keep_first = ['stimulus', 'response']
+keep_first = ["stimulus", "response"]
 metadata, events, event_id = mne.epochs.make_metadata(
-    events=all_events, event_id=all_event_id,
-    tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
+    events=all_events,
+    event_id=all_event_id,
+    tmin=metadata_tmin,
+    tmax=metadata_tmax,
+    sfreq=raw.info["sfreq"],
     row_events=row_events,
-    keep_first=keep_first)
+    keep_first=keep_first,
+)
 
 # all times of the time-locked events should be zero
-assert all(metadata['stimulus'] == 0)
+assert all(metadata["stimulus"] == 0)
 
 # the values in the new "first_stimulus" and "first_response" columns indicate
 # which events were selected via "keep_first"
-metadata[['first_stimulus', 'first_response']]
+metadata[["first_stimulus", "first_response"]]
 
 # %%
 # Adding new columns to describe stimulation side and response correctness
@@ -221,25 +241,34 @@ metadata[['first_stimulus', 'first_response']]
 # to another column.
 
 # left-side stimulation
-metadata.loc[metadata['first_stimulus'].isin(['compatible/target_left',
-                                              'incompatible/target_left']),
-             'stimulus_side'] = 'left'
+metadata.loc[
+    metadata["first_stimulus"].isin(
+        ["compatible/target_left", "incompatible/target_left"]
+    ),
+    "stimulus_side",
+] = "left"
 
 # right-side stimulation
-metadata.loc[metadata['first_stimulus'].isin(['compatible/target_right',
-                                              'incompatible/target_right']),
-             'stimulus_side'] = 'right'
+metadata.loc[
+    metadata["first_stimulus"].isin(
+        ["compatible/target_right", "incompatible/target_right"]
+    ),
+    "stimulus_side",
+] = "right"
 
 # first assume all responses were incorrect, then mark those as correct where
 # the stimulation side matches the response side
-metadata['response_correct'] = False
-metadata.loc[metadata['stimulus_side'] == metadata['first_response'],
-             'response_correct'] = True
+metadata["response_correct"] = False
+metadata.loc[
+    metadata["stimulus_side"] == metadata["first_response"], "response_correct"
+] = True
 
 
-correct_response_count = metadata['response_correct'].sum()
-print(f'Correct responses: {correct_response_count}\n'
-      f'Incorrect responses: {len(metadata) - correct_response_count}')
+correct_response_count = metadata["response_correct"].sum()
+print(
+    f"Correct responses: {correct_response_count}\n"
+    f"Incorrect responses: {len(metadata) - correct_response_count}"
+)
 
 # %%
 # Creating ``Epochs`` with metadata, and visualizing ERPs
@@ -254,25 +283,31 @@ print(f'Correct responses: {correct_response_count}\n'
 # an error.
 
 epochs_tmin, epochs_tmax = -0.1, 0.4  # epochs range: [-0.1, 0.4] s
-reject = {'eeg': 250e-6}  # exclude epochs with strong artifacts
-epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
-                    events=events, event_id=event_id, metadata=metadata,
-                    reject=reject, preload=True)
+reject = {"eeg": 250e-6}  # exclude epochs with strong artifacts
+epochs = mne.Epochs(
+    raw=raw,
+    tmin=epochs_tmin,
+    tmax=epochs_tmax,
+    events=events,
+    event_id=event_id,
+    metadata=metadata,
+    reject=reject,
+    preload=True,
+)
 
 # %%
 # Lastly, let's visualize the ERPs associated with the visual stimulation, once
 # for all trials with correct responses, and once for all trials with correct
 # responses and a response time greater than 0.5 seconds
 # (i.e., slow responses).
-vis_erp = epochs['response_correct'].average()
-vis_erp_slow = epochs['(not response_correct) & '
-                      '(response > 0.3)'].average()
+vis_erp = epochs["response_correct"].average()
+vis_erp_slow = epochs["(not response_correct) & " "(response > 0.3)"].average()
 
-fig, ax = plt.subplots(2, figsize=(6, 6), layout='constrained')
+fig, ax = plt.subplots(2, figsize=(6, 6), layout="constrained")
 vis_erp.plot(gfp=True, spatial_colors=True, axes=ax[0])
 vis_erp_slow.plot(gfp=True, spatial_colors=True, axes=ax[1])
-ax[0].set_title('Visual ERPs – All Correct Responses')
-ax[1].set_title('Visual ERPs – Slow Correct Responses')
+ax[0].set_title("Visual ERPs – All Correct Responses")
+ax[1].set_title("Visual ERPs – Slow Correct Responses")
 
 # %%
 # Aside from the fact that the data for the (much fewer) slow responses looks
@@ -304,34 +339,45 @@ ax[1].set_title('Visual ERPs – Slow Correct Responses')
 # events and stores them in columns whose names start with ``last_``.
 
 metadata_tmin, metadata_tmax = -1.5, 0
-row_events = ['response/left', 'response/right']
-keep_last = ['stimulus', 'response']
+row_events = ["response/left", "response/right"]
+keep_last = ["stimulus", "response"]
 
 metadata, events, event_id = mne.epochs.make_metadata(
-    events=all_events, event_id=all_event_id,
-    tmin=metadata_tmin, tmax=metadata_tmax, sfreq=raw.info['sfreq'],
+    events=all_events,
+    event_id=all_event_id,
+    tmin=metadata_tmin,
+    tmax=metadata_tmax,
+    sfreq=raw.info["sfreq"],
     row_events=row_events,
-    keep_last=keep_last)
+    keep_last=keep_last,
+)
 
 # %%
 # Exactly like in the previous example, we create new columns ``stimulus_side``
 # and ``response_correct``.
 
 # left-side stimulation
-metadata.loc[metadata['last_stimulus'].isin(['compatible/target_left',
-                                             'incompatible/target_left']),
-             'stimulus_side'] = 'left'
+metadata.loc[
+    metadata["last_stimulus"].isin(
+        ["compatible/target_left", "incompatible/target_left"]
+    ),
+    "stimulus_side",
+] = "left"
 
 # right-side stimulation
-metadata.loc[metadata['last_stimulus'].isin(['compatible/target_right',
-                                             'incompatible/target_right']),
-             'stimulus_side'] = 'right'
+metadata.loc[
+    metadata["last_stimulus"].isin(
+        ["compatible/target_right", "incompatible/target_right"]
+    ),
+    "stimulus_side",
+] = "right"
 
 # first assume all responses were incorrect, then mark those as correct where
 # the stimulation side matches the response side
-metadata['response_correct'] = False
-metadata.loc[metadata['stimulus_side'] == metadata['last_response'],
-             'response_correct'] = True
+metadata["response_correct"] = False
+metadata.loc[
+    metadata["stimulus_side"] == metadata["last_response"], "response_correct"
+] = True
 
 metadata
 
@@ -348,11 +394,18 @@ metadata
 
 epochs_tmin, epochs_tmax = -0.6, 0.4
 baseline = (-0.4, -0.2)
-reject = {'eeg': 250e-6}
-epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
-                    baseline=baseline, reject=reject,
-                    events=events, event_id=event_id, metadata=metadata,
-                    preload=True)
+reject = {"eeg": 250e-6}
+epochs = mne.Epochs(
+    raw=raw,
+    tmin=epochs_tmin,
+    tmax=epochs_tmax,
+    baseline=baseline,
+    reject=reject,
+    events=events,
+    event_id=event_id,
+    metadata=metadata,
+    preload=True,
+)
 
 # %%
 # Let's do a final sanity check: we want to make sure that in every row, we
@@ -361,7 +414,7 @@ epochs = mne.Epochs(raw=raw, tmin=epochs_tmin, tmax=epochs_tmax,
 # MNE-Python always ensures that ``epochs.metadata`` stays in sync with the
 # available epochs.
 
-epochs.metadata.loc[epochs.metadata['last_stimulus'].isna(), :]
+epochs.metadata.loc[epochs.metadata["last_stimulus"].isna(), :]
 
 # %%
 # Bummer! It seems the very first two responses were recorded before the
@@ -369,7 +422,7 @@ epochs.metadata.loc[epochs.metadata['last_stimulus'].isna(), :]
 # There is a very simple way to select only those epochs that **do** have a
 # stimulus (i.e., are not ``None``):
 
-epochs = epochs['last_stimulus.notna()']
+epochs = epochs["last_stimulus.notna()"]
 
 # %%
 # Time to calculate the ERPs for correct  and incorrect responses.
@@ -378,17 +431,19 @@ epochs = epochs['last_stimulus.notna()']
 # impression of the average scalp potentials measured in the first 100 ms after
 # an incorrect response.
 
-resp_erp_correct = epochs['response_correct'].average()
-resp_erp_incorrect = epochs['not response_correct'].average()
+resp_erp_correct = epochs["response_correct"].average()
+resp_erp_incorrect = epochs["not response_correct"].average()
 
-mne.viz.plot_compare_evokeds({'Correct Response': resp_erp_correct,
-                              'Incorrect Response': resp_erp_incorrect},
-                             picks='FCz', show_sensors=True,
-                             title='ERPs at FCz, time-locked to response')
+mne.viz.plot_compare_evokeds(
+    {"Correct Response": resp_erp_correct, "Incorrect Response": resp_erp_incorrect},
+    picks="FCz",
+    show_sensors=True,
+    title="ERPs at FCz, time-locked to response",
+)
 
 # topoplot of average field from time 0.0-0.1 s
 fig = resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3)
-fig.suptitle('Avg. topography 0–100 ms after incorrect responses', fontsize=16)
+fig.suptitle("Avg. topography 0–100 ms after incorrect responses", fontsize=16)
 
 # %%
 # We can see a strong negative deflection immediately after incorrect
@@ -403,32 +458,31 @@ fig.suptitle('Avg. topography 0–100 ms after incorrect responses', fontsize=16
 # visualization.
 
 # difference wave: incorrect minus correct responses
-resp_erp_diff = mne.combine_evoked([resp_erp_incorrect, resp_erp_correct],
-                                   weights=[1, -1])
+resp_erp_diff = mne.combine_evoked(
+    [resp_erp_incorrect, resp_erp_correct], weights=[1, -1]
+)
 
 fig, ax = plt.subplots()
-resp_erp_diff.plot(picks='FCz', axes=ax, selectable=False, show=False)
+resp_erp_diff.plot(picks="FCz", axes=ax, selectable=False, show=False)
 
 # make ERP trace bolder
 ax.lines[0].set_linewidth(1.5)
 
 # add lines through origin
-ax.axhline(0, ls='dotted', lw=0.75, color='gray')
-ax.axvline(0, ls=(0, (10, 10)), lw=0.75, color='gray',
-           label='response trigger')
+ax.axhline(0, ls="dotted", lw=0.75, color="gray")
+ax.axvline(0, ls=(0, (10, 10)), lw=0.75, color="gray", label="response trigger")
 
 # mark trough
-trough_time_idx = resp_erp_diff.copy().pick('FCz').data.argmin()
+trough_time_idx = resp_erp_diff.copy().pick("FCz").data.argmin()
 trough_time = resp_erp_diff.times[trough_time_idx]
-ax.axvline(trough_time, ls=(0, (10, 10)), lw=0.75, color='red',
-           label='max. negativity')
+ax.axvline(trough_time, ls=(0, (10, 10)), lw=0.75, color="red", label="max. negativity")
 
 # legend, axis labels, title
-ax.legend(loc='lower left')
-ax.set_xlabel('Time (s)', fontweight='bold')
-ax.set_ylabel('Amplitude (µV)', fontweight='bold')
-ax.set_title('Channel: FCz')
-fig.suptitle('ERN (Difference Wave)', fontweight='bold')
+ax.legend(loc="lower left")
+ax.set_xlabel("Time (s)", fontweight="bold")
+ax.set_ylabel("Amplitude (µV)", fontweight="bold")
+ax.set_title("Channel: FCz")
+fig.suptitle("ERN (Difference Wave)", fontweight="bold")
 
 fig
 

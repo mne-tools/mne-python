@@ -1,8 +1,13 @@
 """Decoding and encoding, including machine learning and receptive fields."""
 
-from .transformer import (PSDEstimator, Vectorizer,
-                          UnsupervisedSpatialFilter, TemporalFilter,
-                          Scaler, FilterEstimator)
+from .transformer import (
+    PSDEstimator,
+    Vectorizer,
+    UnsupervisedSpatialFilter,
+    TemporalFilter,
+    Scaler,
+    FilterEstimator,
+)
 from .mixin import TransformerMixin
 from .base import BaseEstimator, LinearModel, get_coef, cross_val_multiscore
 from .csp import CSP, SPoC

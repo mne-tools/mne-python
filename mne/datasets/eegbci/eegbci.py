@@ -10,8 +10,7 @@ from pathlib import Path
 import time
 
 from ...utils import _url_to_local_path, verbose, logger
-from ..utils import (_do_path_update, _get_path, _log_time_size,
-                     _downloader_params)
+from ..utils import _do_path_update, _get_path, _log_time_size, _downloader_params
 
 # TODO: remove try/except when our min version is py 3.9
 try:
@@ -20,12 +19,11 @@ except ImportError:
     from importlib_resources import files
 
 
-EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
+EEGMI_URL = "https://physionet.org/files/eegmmidb/1.0.0/"
 
 
 @verbose
-def data_path(url, path=None, force_update=False, update_path=None, *,
-              verbose=None):
+def data_path(url, path=None, force_update=False, update_path=None, *, verbose=None):
     """Get path to local copy of EEGMMI dataset URL.
 
     This is a low-level function useful for getting a local copy of a
@@ -73,10 +71,10 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
     """  # noqa: E501
     import pooch
 
-    key = 'MNE_DATASETS_EEGBCI_PATH'
-    name = 'EEGBCI'
+    key = "MNE_DATASETS_EEGBCI_PATH"
+    name = "EEGBCI"
     path = _get_path(path, key, name)
-    fname = 'MNE-eegbci-data'
+    fname = "MNE-eegbci-data"
     destination = _url_to_local_path(url, op.join(path, fname))
     destinations = [destination]
 
@@ -101,8 +99,15 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
 
 
 @verbose
-def load_data(subject, runs, path=None, force_update=False, update_path=None,
-              base_url=EEGMI_URL, verbose=None):  # noqa: D301
+def load_data(
+    subject,
+    runs,
+    path=None,
+    force_update=False,
+    update_path=None,
+    base_url=EEGMI_URL,
+    verbose=None,
+):  # noqa: D301
     """Get paths to local copies of EEGBCI dataset files.
 
     This will fetch data for the EEGBCI dataset :footcite:`SchalkEtAl2004`, which is also
@@ -165,43 +170,46 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     .. footbibliography::
     """  # noqa: E501
     import pooch
+
     t0 = time.time()
 
-    if not hasattr(runs, '__iter__'):
+    if not hasattr(runs, "__iter__"):
         runs = [runs]
 
     # get local storage path
-    config_key = 'MNE_DATASETS_EEGBCI_PATH'
-    folder = 'MNE-eegbci-data'
-    name = 'EEGBCI'
+    config_key = "MNE_DATASETS_EEGBCI_PATH"
+    folder = "MNE-eegbci-data"
+    name = "EEGBCI"
     path = _get_path(path, config_key, name)
 
     # extract path parts
-    pattern = r'(?:https?://.*)(files)/(eegmmidb)/(\d+\.\d+\.\d+)/?'
+    pattern = r"(?:https?://.*)(files)/(eegmmidb)/(\d+\.\d+\.\d+)/?"
     match = re.compile(pattern).match(base_url)
     if match is None:
-        raise ValueError('base_url does not match the expected EEGMI folder '
-                         'structure. Please notify MNE-Python developers.')
+        raise ValueError(
+            "base_url does not match the expected EEGMI folder "
+            "structure. Please notify MNE-Python developers."
+        )
     base_path = op.join(path, folder, *match.groups())
 
     # create the download manager
     fetcher = pooch.create(
         path=base_path,
         base_url=base_url,
-        version=None,   # Data versioning is decoupled from MNE-Python version.
+        version=None,  # Data versioning is decoupled from MNE-Python version.
         registry=None,  # Registry is loaded from file, below.
-        retry_if_failed=2  # 2 retries = 3 total attempts
+        retry_if_failed=2,  # 2 retries = 3 total attempts
     )
 
     # load the checksum registry
-    registry = files('mne').joinpath('data', 'eegbci_checksums.txt')
+    registry = files("mne").joinpath("data", "eegbci_checksums.txt")
     fetcher.load_registry(registry)
 
     # fetch the file(s)
     data_paths = []
     sz = 0
     for run in runs:
-        file_part = f'S{subject:03d}/S{subject:03d}R{run:02d}.edf'
+        file_part = f"S{subject:03d}/S{subject:03d}R{run:02d}.edf"
         destination = Path(base_path, file_part)
         data_paths.append(destination)
         if destination.exists():
@@ -210,7 +218,7 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
             else:
                 continue
         if sz == 0:  # log once
-            logger.info('Downloading EEGBCI data')
+            logger.info("Downloading EEGBCI data")
         fetcher.fetch(file_part)
         # update path in config if desired
         sz += destination.stat().st_size
@@ -230,11 +238,11 @@ def standardize(raw):
     """
     rename = dict()
     for name in raw.ch_names:
-        std_name = name.strip('.')
+        std_name = name.strip(".")
         std_name = std_name.upper()
-        if std_name.endswith('Z'):
-            std_name = std_name[:-1] + 'z'
-        if std_name.startswith('FP'):
-            std_name = 'Fp' + std_name[2:]
+        if std_name.endswith("Z"):
+            std_name = std_name[:-1] + "z"
+        if std_name.startswith("FP"):
+            std_name = "Fp" + std_name[2:]
         rename[name] = std_name
     raw.rename_channels(rename)
