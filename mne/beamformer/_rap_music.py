@@ -36,7 +36,7 @@ def _apply_rap_music(
         The number of dipoles to estimate. The default value is 2.
     picks : list of int
         Caller ensures this is a list of int.
-    use_trap : boolean
+    use_trap : bool
         Use the TRAP-MUSIC variant if True (default False).
 
     Returns
