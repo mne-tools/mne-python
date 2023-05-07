@@ -9,7 +9,7 @@ from scipy import linalg
 from numpy.testing import assert_allclose
 
 import mne
-from mne.beamformer import rap_music
+from mne.beamformer import rap_music, trap_music
 from mne.cov import regularize
 from mne.datasets import testing
 from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
