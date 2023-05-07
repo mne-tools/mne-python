@@ -19,7 +19,7 @@ from ._compute_beamformer import _prepare_beamformer_input
 def _apply_rap_music(
     data, info, times, forward, noise_cov, n_dipoles=2, picks=None, use_trap=False
 ):
-    """RAP-MUSIC for evoked data.
+    """RAP-MUSIC or TRAP-MUSIC for evoked data.
 
     Parameters
     ----------
@@ -181,73 +181,8 @@ def _compute_proj(A):
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
 
-@verbose
-def rap_music(
-    evoked,
-    forward,
-    noise_cov,
-    n_dipoles=5,
-    return_residual=False,
-    *,
-    use_trap=False,
-    verbose=None,
-):
-    """RAP-MUSIC source localization method.
-
-    Compute Recursively Applied and Projected MUltiple SIgnal Classification
-    (RAP-MUSIC) on evoked data.
-
-    .. note:: The goodness of fit (GOF) of all the returned dipoles is the
-              same and corresponds to the GOF of the full set of dipoles.
-
-    Parameters
-    ----------
-    evoked : instance of Evoked
-        Evoked data to localize.
-    forward : instance of Forward
-        Forward operator.
-    noise_cov : instance of Covariance
-        The noise covariance.
-    n_dipoles : int
-        The number of dipoles to look for. The default value is 5.
-    return_residual : bool
-        If True, the residual is returned as an Evoked instance.
-    use_trap : boolean
-        Use the TRAP-MUSIC variant if True (default False).
-    %(verbose)s
-
-    Returns
-    -------
-    dipoles : list of instance of Dipole
-        The dipole fits.
-    residual : instance of Evoked
-        The residual a.k.a. data not explained by the dipoles.
-        Only returned if return_residual is True.
-
-    See Also
-    --------
-    mne.fit_dipole
-
-    Notes
-    -----
-    The references are:
-
-        J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
-        applied and projected (RAP) MUSIC. Signal Processing, IEEE Trans. 47, 2
-        (February 1999), 332-340.
-        DOI=10.1109/78.740118 https://doi.org/10.1109/78.740118
-
-        Mosher, J.C.; Leahy, R.M., EEG and MEG source localization using
-        recursively applied (RAP) MUSIC, Signals, Systems and Computers, 1996.
-        pp.1201,1207 vol.2, 3-6 Nov. 1996
-        doi: 10.1109/ACSSC.1996.599135
-
-        N. Mäkelä, M. Stenroos, J. Sarvas, R. J. Ilmoniemi, Truncated RAP-MUSIC
-        (TRAP-MUSIC) for MEG and EEG source localization, Neuroimage, 2018.
-        doi: 10.1016/j.neuroimage.2017.11.013
-
-    .. versionadded:: 0.9.0
-    """
+def _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, use_trap):
+    """RAP-/TRAP-MUSIC implementation."""
     info = evoked.info
     data = evoked.data
     times = evoked.times
@@ -271,3 +206,127 @@ def rap_music(
         return dipoles, residual
     else:
         return dipoles
+
+
+@verbose
+def rap_music(
+    evoked,
+    forward,
+    noise_cov,
+    n_dipoles=5,
+    return_residual=False,
+    *,
+    verbose=None,
+):
+    """RAP-MUSIC source localization method.
+
+    Compute Recursively Applied and Projected MUltiple SIgnal Classification
+    (RAP-MUSIC) on evoked data.
+
+    .. note:: The goodness of fit (GOF) of all the returned dipoles is the
+              same and corresponds to the GOF of the full set of dipoles.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        Evoked data to localize.
+    forward : instance of Forward
+        Forward operator.
+    noise_cov : instance of Covariance
+        The noise covariance.
+    n_dipoles : int
+        The number of dipoles to look for. The default value is 5.
+    return_residual : bool
+        If True, the residual is returned as an Evoked instance.
+    %(verbose)s
+
+    Returns
+    -------
+    dipoles : list of instance of Dipole
+        The dipole fits.
+    residual : instance of Evoked
+        The residual a.k.a. data not explained by the dipoles.
+        Only returned if return_residual is True.
+
+    See Also
+    --------
+    mne.fit_dipole
+    mne.trap_music
+
+    Notes
+    -----
+    The references are:
+
+        J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
+        applied and projected (RAP) MUSIC. Signal Processing, IEEE Trans. 47, 2
+        (February 1999), 332-340.
+        DOI=10.1109/78.740118 https://doi.org/10.1109/78.740118
+
+        Mosher, J.C.; Leahy, R.M., EEG and MEG source localization using
+        recursively applied (RAP) MUSIC, Signals, Systems and Computers, 1996.
+        pp.1201,1207 vol.2, 3-6 Nov. 1996
+        doi: 10.1109/ACSSC.1996.599135
+
+    .. versionadded:: 0.9.0
+    """
+    return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, verbose)
+
+
+@verbose
+def trap_music(
+    evoked,
+    forward,
+    noise_cov,
+    n_dipoles=5,
+    return_residual=False,
+    *,
+    verbose=None,
+):
+    """TRAP-MUSIC source localization method.
+
+    Compute Trucated Recursively Applied and Projected MUltiple SIgnal Classification
+    (TRAP-MUSIC) on evoked data.
+
+    .. note:: The goodness of fit (GOF) of all the returned dipoles is the
+              same and corresponds to the GOF of the full set of dipoles.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        Evoked data to localize.
+    forward : instance of Forward
+        Forward operator.
+    noise_cov : instance of Covariance
+        The noise covariance.
+    n_dipoles : int
+        The number of dipoles to look for. The default value is 5.
+    return_residual : bool
+        If True, the residual is returned as an Evoked instance.
+    %(verbose)s
+
+    Returns
+    -------
+    dipoles : list of instance of Dipole
+        The dipole fits.
+    residual : instance of Evoked
+        The residual a.k.a. data not explained by the dipoles.
+        Only returned if return_residual is True.
+
+    See Also
+    --------
+    mne.fit_dipole
+    mne.rap_music
+
+    Notes
+    -----
+    The reference is:
+
+        N. Mäkelä, M. Stenroos, J. Sarvas, R. J. Ilmoniemi, Truncated RAP-MUSIC
+        (TRAP-MUSIC) for MEG and EEG source localization, Neuroimage, 2018.
+        doi: 10.1016/j.neuroimage.2017.11.013
+
+    .. versionadded:: 1.3.2
+    """
+    return _rap_music(
+        evoked, forward, noise_cov, n_dipoles, return_residual, verbose, use_trap=True
+    )

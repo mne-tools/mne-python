@@ -215,12 +215,12 @@ def test_rap_music_picks():
 
 
 @testing.requires_testing_data
-def test_rap_music_trap():
+def test_trap_music():
     """Test TRAP-MUSIC."""
     evoked = mne.read_evokeds(fname_ave, condition="Right Auditory", baseline=(None, 0))
     evoked.crop(tmin=0.05, tmax=0.15)  # select N100
     evoked.pick_types(meg=True, eeg=False)
     forward = mne.read_forward_solution(fname_fwd)
     noise_cov = mne.read_cov(fname_cov)
-    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2, use_trap=True)
+    dipoles = trap_music(evoked, forward, noise_cov, n_dipoles=2)
     assert len(dipoles) == 2
