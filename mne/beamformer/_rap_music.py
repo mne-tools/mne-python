@@ -163,8 +163,6 @@ def _compute_subcorr(G, phi_sig):
     # eg. when using MEG and a sphere model for which the
     # radial component will be truly 0.
     rank = np.sum(Sg > (Sg[0] * 1e-6))
-    if rank == 0:
-        return 0, np.zeros(len(G))
     rank = max(rank, 2)  # rank cannot be 1
     Ug, Sg, Vg = Ug[:, :rank], Sg[:rank], Vg[:rank]
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
@@ -284,7 +282,7 @@ def trap_music(
 ):
     """TRAP-MUSIC source localization method.
 
-    Compute Trucated Recursively Applied and Projected MUltiple SIgnal Classification
+    Compute Truncated Recursively Applied and Projected MUltiple SIgnal Classification
     (TRAP-MUSIC) on evoked data.
 
     .. note:: The goodness of fit (GOF) of all the returned dipoles is the
