@@ -133,7 +133,7 @@ spectrum.plot(average=True, picks="data", exclude="bads")
 # documentation of `~mne.time_frequency.Spectrum.plot` for full details):
 
 midline = ["EEG 002", "EEG 012", "EEG 030", "EEG 048", "EEG 058", "EEG 060"]
-spectrum.plot(picks=midline)
+spectrum.plot(picks=midline, exclude="bads")
 
 # %%
 # It is also possible to plot spectral power estimates across sensors as a
