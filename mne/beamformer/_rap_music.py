@@ -251,7 +251,7 @@ def rap_music(
     See Also
     --------
     mne.fit_dipole
-    mne.trap_music
+    mne.beamformer.trap_music
 
     Notes
     -----
@@ -315,7 +315,7 @@ def trap_music(
     See Also
     --------
     mne.fit_dipole
-    mne.rap_music
+    mne.beamformer.rap_music
 
     Notes
     -----
@@ -325,6 +325,6 @@ def trap_music(
         (TRAP-MUSIC) for MEG and EEG source localization, Neuroimage, 2018.
         doi: 10.1016/j.neuroimage.2017.11.013
 
-    .. versionadded:: 1.3.2
+    .. versionadded:: 1.4
     """
     return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, True)
