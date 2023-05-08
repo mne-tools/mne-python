@@ -9,7 +9,7 @@ Compute a Truncated Recursively Applied and Projected MUltiple Signal Classifica
 (TRAP-MUSIC) :footcite:`Makela2018` on evoked data.
 """
 
-# Author: Theo Papadopoulo <papadoppoulo@gmail.com>
+# Author: Théodore Papadopoulo <Theodore.Papadopoulo@inria.fr>
 #
 # License: BSD-3-Clause
 
