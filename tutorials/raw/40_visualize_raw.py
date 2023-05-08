@@ -119,7 +119,7 @@ raw.plot()
 # object has a :meth:`~mne.time_frequency.Spectrum.plot` method:
 
 spectrum = raw.compute_psd()
-spectrum.plot(average=True)
+spectrum.plot(average=True, picks="data", exclude="bads")
 
 # %%
 # If the data have been filtered, vertical dashed lines will automatically
