@@ -50,6 +50,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug that reading mff/EGI file ignores an event that happens first and only happen once (:gh:`11674` by :newcontrib:`Ping-Keng Jao`)
 - Improving compatibility with Qt6 by removing the use of deprecated ``AA_UseHighDpiPixmaps`` attribute for this Qt version (:gh:`11662` by :newcontrib:`Florin Pop`)
 - Fix :func:`mne.time_frequency.psd_array_multitaper` docstring where argument ``bandwidth`` incorrectly reported argument as half-bandwidth and gave wrong explanation of default value (:gh:`11479` by :newcontrib:`Tom Stone`)
 - Fix bug where installation of a package depending on ``mne`` will error when done in an environment where ``setuptools`` is not present (:gh:`11454` by :newcontrib:`Arne Pelzer`)
