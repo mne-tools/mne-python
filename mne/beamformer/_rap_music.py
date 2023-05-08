@@ -269,7 +269,7 @@ def rap_music(
 
     .. versionadded:: 0.9.0
     """
-    return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, verbose)
+    return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual)
 
 
 @verbose
@@ -328,5 +328,5 @@ def trap_music(
     .. versionadded:: 1.3.2
     """
     return _rap_music(
-        evoked, forward, noise_cov, n_dipoles, return_residual, verbose, use_trap=True
+        evoked, forward, noise_cov, n_dipoles, return_residual, use_trap=True
     )
