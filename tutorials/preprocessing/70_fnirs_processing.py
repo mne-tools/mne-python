@@ -156,7 +156,7 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500, show_scrollbars
 raw_haemo_unfiltered = raw_haemo.copy()
 raw_haemo.filter(0.05, 0.7, h_trans_bandwidth=0.2, l_trans_bandwidth=0.02)
 for when, _raw in dict(Before=raw_haemo_unfiltered, After=raw_haemo).items():
-    fig = _raw.compute_psd().plot(average=True)
+    fig = _raw.compute_psd().plot(average=True, picks="data", exclude="bads")
     fig.suptitle(f"{when} filtering", weight="bold", size="x-large")
     fig.subplots_adjust(top=0.88)
 

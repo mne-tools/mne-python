@@ -136,7 +136,9 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels), remove_d
 # Power line artifacts are easiest to see on plots of the spectrum, so we'll
 # use :meth:`~mne.io.Raw.plot_psd` to illustrate.
 
-fig = raw.compute_psd(tmax=np.inf, fmax=250).plot(average=True)
+fig = raw.compute_psd(tmax=np.inf, fmax=250).plot(
+    average=True, picks="data", exclude="bads"
+)
 # add some arrows at 60 Hz and its harmonics:
 for ax in fig.axes[1:]:
     freqs = ax.lines[-1].get_xdata()
