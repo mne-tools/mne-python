@@ -851,8 +851,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     ica_ecg_scores = ica_eog_scores = np.array([3, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
-    with pytest.warns(RuntimeWarning, match="bad channels will be shown"):
-        r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
+    r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
     r.add_raw(raw=raw, title="my raw data 2", psd=False, projs=False, butterfly=1)
     r.add_events(events=events_fname, title="my events", sfreq=raw.info["sfreq"])
     r.add_epochs(
