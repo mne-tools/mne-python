@@ -1,9 +1,9 @@
 """
 .. _ex-trap-music:
 
-================================
+=================================
 Compute Trap-Music on evoked data
-================================
+=================================
 
 Compute a Truncated Recursively Applied and Projected MUltiple Signal Classification
 (TRAP-MUSIC) :footcite:`Makela2018` on evoked data.
