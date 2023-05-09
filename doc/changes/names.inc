@@ -508,7 +508,7 @@
 
 .. _Teon Brooks: https://teonbrooks.com
 
-.. _Theodore Papadopoulo: https://github.com/papadop
+.. _Théodore Papadopoulo: https://github.com/papadop
 
 .. _Thomas Binns: https://github.com/tsbinns
 
