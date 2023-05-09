@@ -221,7 +221,7 @@ def rap_music(
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
-    (RAP-MUSIC) on evoked data.
+    (RAP-MUSIC) :footcite:`MosherLeahy1999,MosherLeahy1996` on evoked data.
 
     .. note:: The goodness of fit (GOF) of all the returned dipoles is the
               same and corresponds to the GOF of the full set of dipoles.
@@ -255,19 +255,11 @@ def rap_music(
 
     Notes
     -----
-    The references are:
-
-        J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
-        applied and projected (RAP) MUSIC. Signal Processing, IEEE Trans. 47, 2
-        (February 1999), 332-340.
-        DOI=10.1109/78.740118 https://doi.org/10.1109/78.740118
-
-        Mosher, J.C.; Leahy, R.M., EEG and MEG source localization using
-        recursively applied (RAP) MUSIC, Signals, Systems and Computers, 1996.
-        pp.1201,1207 vol.2, 3-6 Nov. 1996
-        doi: 10.1109/ACSSC.1996.599135
-
     .. versionadded:: 0.9.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, False)
 
@@ -285,7 +277,7 @@ def trap_music(
     """TRAP-MUSIC source localization method.
 
     Compute Truncated Recursively Applied and Projected MUltiple SIgnal Classification
-    (TRAP-MUSIC) on evoked data.
+    (TRAP-MUSIC) :footcite:`Makela2018` on evoked data.
 
     .. note:: The goodness of fit (GOF) of all the returned dipoles is the
               same and corresponds to the GOF of the full set of dipoles.
@@ -319,12 +311,10 @@ def trap_music(
 
     Notes
     -----
-    The reference is:
-
-        N. Mäkelä, M. Stenroos, J. Sarvas, R. J. Ilmoniemi, Truncated RAP-MUSIC
-        (TRAP-MUSIC) for MEG and EEG source localization, Neuroimage, 2018.
-        doi: 10.1016/j.neuroimage.2017.11.013
-
     .. versionadded:: 1.4
+
+    References
+    ----------
+    .. footbibliography::
     """
     return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, True)
