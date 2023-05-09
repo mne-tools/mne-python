@@ -79,6 +79,7 @@ Bugs
 - Fix bug where Maxwell-filtered data rank was not handled properly in :func:`mne.beamformer.make_lcmv` (:gh:`11664` by `Eric Larson`_)
 - In :class:`~mne.Report`, custom figures now show up correctly when ``image_format='svg'`` is requested (:gh:`11623` by `Richard Höchenberger`_)
 - Fix bug where providing ``axes`` in `mne.preprocessing.ICA.plot_components` would fail (:gh:`11654` by `Mathieu Scheltienne`_)
+- Fix deprecation of ``title``, ``vmin`` and ``vmax`` in `~mne.viz.plot_tfr_topomap` called from interactive `mne.time_frequency.AverageTFR.plot_topo` (:gh:`11683` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~
