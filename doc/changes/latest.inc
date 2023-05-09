@@ -48,7 +48,7 @@ Enhancements
 - Add support for eyetracking data using :func:`mne.io.read_raw_eyelink` (:gh:`11152` by `Dominik Welke`_ and `Scott Huberty`_)
 - :func:`mne.channels.make_1020_channel_selections` gained a new parameter, ``return_ch_names``, to allow for easy retrieval of EEG channel names corresponding to the left, right, and midline portions of the montage (:gh:`11632` by `Richard Höchenberger`_)
 - Methods for setting the sensor types of channels (e.g., for raw data, :meth:`mne.io.Raw.set_channel_types`) gained a new parameter, ``on_unit_change``, to control behavior (raise an exception, emit a warning, or do nothing) in case the measurement unit is adjusted automatically (:gh:`11668` by `Richard Höchenberger`_)
-- :func:`mne.beamformer.trap_music` implements the TRAP-MUSIC localisation algorithm with the same signature as :func:`mne.bemformer.rap_music` (:gh:`11679` by `Théodore Papadopoulo`_)
+- :func:`mne.beamformer.trap_music` implements the TRAP-MUSIC localisation algorithm with the same signature as :func:`mne.beamformer.rap_music` (:gh:`11679` by `Théodore Papadopoulo`_)
 
 Bugs
 ~~~~
