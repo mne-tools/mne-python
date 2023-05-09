@@ -35,7 +35,7 @@ import mne
 data_path = op.join(mne.datasets.testing.data_path(verbose=True), "SSS")
 fname_raw = op.join(data_path, "test_move_anon_raw.fif")
 raw = mne.io.read_raw_fif(fname_raw, allow_maxshield="yes").load_data()
-raw.compute_psd().plot()
+raw.compute_psd().plot(picks="data", exclude="bads")
 
 # %%
 # We can use `mne.chpi.get_chpi_info` to retrieve the coil frequencies,

@@ -214,6 +214,12 @@ class LinearModel(BaseEstimator):
         """
         return self.model.score(X, y)
 
+    # Needed for sklearn 1.3+
+    @property
+    def classes_(self):
+        """The classes (pass-through to model)."""
+        return self.model.classes_
+
 
 def _set_cv(cv, estimator=None, X=None, y=None):
     """Set the default CV depending on whether clf is classifier/regressor."""

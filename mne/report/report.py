@@ -3237,6 +3237,9 @@ class Report:
             init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
             init_kwargs.setdefault("fmax", fmax)
             plot_kwargs.setdefault("show", False)
+            # TODO remove defaults for picks and exclude after 1.4 release.
+            plot_kwargs.setdefault("picks", "data")
+            plot_kwargs.setdefault("exclude", "bads")
             fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             tight_layout(fig=fig)
             _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
@@ -3813,7 +3816,10 @@ class Report:
             if fmax > 0.5 * epochs.info["sfreq"]:
                 fmax = np.inf
 
-        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
+        # TODO remove explicit picks & exclude after 1.4 release.
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(
+            show=False, picks="data", exclude="bads"
+        )
         _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
