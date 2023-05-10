@@ -1,25 +1,7 @@
-.. NOTE: we use cross-references to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
+.. _changes_1_4_0:
 
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Enhancements" for new features
-   - "Bugs" for bug fixes
-   - "API changes" for backward-incompatible changes
-
-.. NOTE: changes from first-time contributors should be added to the TOP of
-   the relevant section (Enhancements / Bugs / API changes), and should look
-   like this (where xxxx is the pull request number):
-
-       - description of enhancement/bugfix/API change (:gh:`xxxx` by
-         :newcontrib:`Firstname Lastname`)
-
-   Also add a corresponding entry for yourself in doc/changes/names.inc
-
-.. _current:
-
-Current (1.4.dev0)
-------------------
+Version 1.4.0 (2023-05-10)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -57,6 +39,7 @@ Bugs
 - Fix bug where installation of a package depending on ``mne`` will error when done in an environment where ``setuptools`` is not present (:gh:`11454` by :newcontrib:`Arne Pelzer`)
 - Fix bug in :meth:`mne.Annotations.rename` where replacements were not done correctly (:gh:`11666` by :newcontrib:`Timur Sokhin` and `Eric Larson`_)
 - Fix :meth:`mne.time_frequency.Spectrum.to_data_frame`'s docstring to reflect the correct name for the appended frequencies column (:gh:`11457` by :newcontrib:`Zvi Baratz`)
+- Fix bug with :func:`mne.io.read_raw_egi` where events outside the recording window could break data reading (:gh:`11505` by :newcontrib:`Niels Focke`)
 - Fix bug where :func:`mne.preprocessing.regress_artifact` and :class:`mne.preprocessing.EOGRegression` incorrectly tracked ``picks`` (:gh:`11366` by `Eric Larson`_)
 - Fix bug where channel names were not properly sanitized in :func:`mne.write_evokeds` and related functions (:gh:`11399` by `Eric Larson`_)
 - Fix bug where splash screen would not always disappear (:gh:`11398` by `Eric Larson`_)
@@ -91,3 +74,60 @@ API changes
 - Deprecate ``mne.pick_channels_evoked`` in favor of ``evoked.copy().pick(...)`` (:gh:`11665` by `Eric Larson`_)
 - Set instance methods ``inst.pick_types`` and ``inst.pick_channels`` as legacy in favor of ``inst.pick(...)`` (:gh:`11665` by `Eric Larson`_)
 - The default of ``inst.pick_channels(..., ordered=False)`` will change to ``ordered=True`` in 1.5 to avoid silent bugs (:gh:`11665` by `Eric Larson`_)
+
+Authors
+~~~~~~~
+
+* Alex Rockhill
+* Alexandre Gramfort
+* Arne Pelzer+
+* Britta Westner
+* Carlos de la Torre
+* Clemens Brunner
+* Daniel Hasegan
+* Daniel McCloy
+* Denis A. Engemann
+* Dimitri Papadopoulos Orfanos
+* Dinara Issagaliyeva
+* Dominik Welke
+* Enzo Altamiranda
+* Eric Brayet
+* Eric Larson
+* Erkka Heinila
+* Felix Klotzsche
+* Florin Pop+
+* George O'Neill+
+* Giulio
+* Hakimeh Aslsardroud
+* Hyonyoung Shin+
+* Jacob Woessner+
+* Jan Ebert+
+* Jennifer Behnke
+* Jevri Hanna
+* Lukas Hecker
+* Mainak Jas
+* Mark Alexander Henney
+* Mathieu Scheltienne
+* Mauricio Cespedes
+* Michiru Kaneda
+* Mikołaj Magnuski
+* Moritz Gerster
+* Niels Focke+
+* Omer Shubi
+* Pavel Navratil
+* Quentin Barthélemy+
+* Richard Höchenberger
+* Rob Luke
+* Robert Seymour+
+* Santeri Ruuskanen
+* Sawradip Saha+
+* Scott Huberty
+* Stefan Appelhoff
+* Theodore Papadopoulo
+* Thomas Samuel Binns+
+* Timon Merk
+* Timur Sokhin+
+* Tom Ma
+* Tom Stone+
+* Toomas Erik Anijärv
+* Zvi Baratz+
