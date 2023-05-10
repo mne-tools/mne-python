@@ -30,8 +30,6 @@ from .transforms import (
     _get_trans,
     apply_trans,
     Transform,
-    _frame_to_str,
-    apply_volume_registration,
 )
 from .utils import (
     logger,
@@ -47,10 +45,8 @@ from .utils import (
     _hashable_ndarray,
     fill_doc,
     _validate_type,
-    _require_version,
     _pl,
     _import_nibabel,
-    deprecated,
 )
 
 
@@ -2019,200 +2015,6 @@ def _vtk_smooth(pd, smooth):
     if return_ndarray:
         out = _polydata_to_surface(out, normals=False)
     return out
-
-
-@deprecated(
-    "warp_montage_volume will be deprecated in favor of "
-    "warp_montage (and optionally "
-    "mne.preprocessing.ieeg.make_montage_volume) in version "
-    "1.5.0"
-)
-@verbose
-def warp_montage_volume(
-    montage,
-    base_image,
-    reg_affine,
-    sdr_morph,
-    subject_from,
-    subject_to="fsaverage",
-    subjects_dir_from=None,
-    subjects_dir_to=None,
-    thresh=0.5,
-    max_peak_dist=1,
-    voxels_max=100,
-    use_min=False,
-    verbose=None,
-):
-    """Warp a montage to a template with image volumes using SDR.
-
-    Find areas of the input volume with intensity greater than
-    a threshold surrounding local extrema near the channel location.
-    Monotonicity from the peak is enforced to prevent channels
-    bleeding into each other.
-
-    .. note:: This is likely only applicable for channels inside the brain
-              (intracranial electrodes).
-
-    Parameters
-    ----------
-    montage : instance of mne.channels.DigMontage
-        The montage object containing the channels.
-    base_image : path-like | nibabel.spatialimages.SpatialImage
-        Path to a volumetric scan (e.g. CT) of the subject. Can be in any
-        format readable by nibabel. Can also be a nibabel image object.
-        Local extrema (max or min) should be nearby montage channel locations.
-    %(reg_affine)s
-    %(sdr_morph)s
-    subject_from : str
-        The name of the subject used for the Freesurfer reconstruction.
-    subject_to : str
-        The name of the subject to use as a template to morph to
-        (e.g. 'fsaverage').
-    subjects_dir_from : path-like | None
-        The path to the Freesurfer ``recon-all`` directory for the
-        ``subject_from`` subject. The ``SUBJECTS_DIR`` environment
-        variable will be used when ``None``.
-    subjects_dir_to : path-like | None
-        The path to the Freesurfer ``recon-all`` directory for the
-        ``subject_to`` subject. ``subject_dir_from`` will be used
-        when ``None``.
-    thresh : float
-        The threshold relative to the peak to determine the size
-        of the sensors on the volume.
-    max_peak_dist : int
-        The number of voxels away from the channel location to
-        look in the ``image``. This will depend on the accuracy of
-        the channel locations, the default (one voxel in all directions)
-        will work only with localizations that are that accurate.
-    voxels_max : int
-        The maximum number of voxels for each channel.
-    use_min : bool
-        Whether to hypointensities in the volume as channel locations.
-        Default False uses hyperintensities.
-    %(verbose)s
-
-    Returns
-    -------
-    montage_warped : mne.channels.DigMontage
-        The modified montage object containing the channels.
-    image_from : nibabel.spatialimages.SpatialImage
-        An image in Freesurfer surface RAS space with voxel values
-        corresponding to the index of the channel. The background
-        is 0s and this index starts at 1.
-    image_to : nibabel.spatialimages.SpatialImage
-        The warped image with voxel values corresponding to the index
-        of the channel. The background is 0s and this index starts at 1.
-    """
-    nib = _import_nibabel("SDR morph")
-    _require_version("dipy", "SDR morph", "0.10.1")
-    from .channels import DigMontage, make_dig_montage
-    from ._freesurfer import _check_subject_dir
-    from .preprocessing.ieeg._volume import _warn_missing_chs
-
-    _validate_type(montage, DigMontage, "montage")
-    _validate_type(base_image, nib.spatialimages.SpatialImage, "base_image")
-    _validate_type(thresh, float, "thresh")
-    if thresh < 0 or thresh >= 1:
-        raise ValueError(f"`thresh` must be between 0 and 1, got {thresh}")
-    _validate_type(max_peak_dist, int, "max_peak_dist")
-    _validate_type(voxels_max, int, "voxels_max")
-    _validate_type(use_min, bool, "use_min")
-
-    # first, make sure we have the necessary freesurfer surfaces
-    _check_subject_dir(subject_from, subjects_dir_from)
-    if subjects_dir_to is None:  # assume shared
-        subjects_dir_to = subjects_dir_from
-    _check_subject_dir(subject_to, subjects_dir_to)
-
-    # load image and make sure it's in surface RAS
-    if not isinstance(base_image, nib.spatialimages.SpatialImage):
-        base_image = nib.load(base_image)
-    fs_from_img = nib.load(op.join(subjects_dir_from, subject_from, "mri", "brain.mgz"))
-    if not np.allclose(base_image.affine, fs_from_img.affine, atol=1e-6):
-        raise RuntimeError(
-            "The `base_image` is not aligned to Freesurfer "
-            "surface RAS space. This space is required as "
-            "it is the space where the anatomical "
-            "segmentation and reconstructed surfaces are"
-        )
-
-    # get montage channel coordinates
-    ch_dict = montage.get_positions()
-    if ch_dict["coord_frame"] != "mri":
-        bad_coord_frames = np.unique([d["coord_frame"] for d in montage.dig])
-        bad_coord_frames = ", ".join(
-            [
-                _frame_to_str[cf] if cf in _frame_to_str else str(cf)
-                for cf in bad_coord_frames
-            ]
-        )
-        raise RuntimeError(
-            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
-        )
-    ch_names = list(ch_dict["ch_pos"].keys())
-    ch_coords = np.array([ch_dict["ch_pos"][name] for name in ch_names])
-
-    # convert to freesurfer voxel space
-    ch_coords = apply_trans(
-        np.linalg.inv(fs_from_img.header.get_vox2ras_tkr()), ch_coords * 1000
-    )
-
-    # take channel coordinates and use the image to transform them
-    # into a volume where all the voxels over a threshold nearby
-    # are labeled with an index
-    image_data = np.array(base_image.dataobj)
-    if use_min:
-        image_data *= -1
-    image_from = np.zeros(base_image.shape, dtype=int)
-    for i, ch_coord in enumerate(ch_coords):
-        if np.isnan(ch_coord).any():
-            continue
-        # this looks up to a voxel away, it may be marked imperfectly
-        volume = _voxel_neighbors(
-            ch_coord,
-            image_data,
-            thresh=thresh,
-            max_peak_dist=max_peak_dist,
-            voxels_max=voxels_max,
-        )
-        for voxel in volume:
-            if image_from[voxel] != 0:
-                # some voxels ambiguous because the contacts are bridged on
-                # the image so assign the voxel to the nearest contact location
-                dist_old = np.sqrt(
-                    (ch_coords[image_from[voxel] - 1] - voxel) ** 2
-                ).sum()
-                dist_new = np.sqrt((ch_coord - voxel) ** 2).sum()
-                if dist_new < dist_old:
-                    image_from[voxel] = i + 1
-            else:
-                image_from[voxel] = i + 1
-
-    # apply the mapping
-    image_from = nib.spatialimages.SpatialImage(image_from, fs_from_img.affine)
-    _warn_missing_chs(montage, image_from, after_warp=False)
-
-    template_brain = nib.load(op.join(subjects_dir_to, subject_to, "mri", "brain.mgz"))
-
-    image_to = apply_volume_registration(
-        image_from, template_brain, reg_affine, sdr_morph, interpolation="nearest"
-    )
-
-    after_warp = "SDR warp" if sdr_morph is not None else "affine transformation"
-    _warn_missing_chs(montage, image_to, after_warp=after_warp)
-
-    # recover the contact positions as the center of mass
-    warped_data = np.asanyarray(image_to.dataobj)
-    for val, ch_coord in enumerate(ch_coords, 1):
-        ch_coord[:] = np.mean(np.where(warped_data == val), axis=1)
-
-    # convert back to surface RAS of the template
-    fs_to_img = nib.load(op.join(subjects_dir_to, subject_to, "mri", "brain.mgz"))
-    ch_coords = apply_trans(fs_to_img.header.get_vox2ras_tkr(), ch_coords) / 1000
-
-    # make warped montage
-    montage_warped = make_dig_montage(dict(zip(ch_names, ch_coords)), coord_frame="mri")
-    return montage_warped, image_from, image_to
 
 
 _VOXELS_MAX = 1000  # define constant to avoid runtime issues

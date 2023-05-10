@@ -18,7 +18,6 @@ from ..utils import (
     _ensure_int,
     _check_option,
     warn,
-    deprecated,
 )
 
 
@@ -703,51 +702,6 @@ def _has_kit_refs(info, picks):
         if info["chs"][p]["coil_type"] == FIFF.FIFFV_COIL_KIT_REF_MAG:
             return True
     return False
-
-
-@deprecated(
-    "pick_channels_evoked in deprecated and will be removed in 1.5, "
-    "use evoked.copy().pick(...) instead."
-)
-def pick_channels_evoked(orig, include=[], exclude="bads"):
-    """Pick channels from evoked data.
-
-    Parameters
-    ----------
-    orig : Evoked object
-        One evoked dataset.
-    include : list of str, (optional)
-        List of channels to include (if empty, include all available).
-    exclude : list of str | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in orig.info['bads']. Defaults to 'bads'.
-
-    Returns
-    -------
-    res : instance of Evoked
-        Evoked data restricted to selected channels. If include and
-        exclude are empty it returns orig without copy.
-    """
-    if len(include) == 0 and len(exclude) == 0:
-        return orig
-
-    exclude = _check_excludes_includes(exclude, info=orig.info, allow_bads=True)
-    sel = pick_channels(orig.info["ch_names"], include=include, exclude=exclude)
-
-    if len(sel) == 0:
-        raise ValueError("Warning : No channels match the selection.")
-
-    res = deepcopy(orig)
-    #
-    #   Modify the measurement info
-    #
-    res.info = pick_info(res.info, sel)
-    #
-    #   Create the reduced data set
-    #
-    res.data = res.data[sel, :]
-
-    return res
 
 
 @verbose
