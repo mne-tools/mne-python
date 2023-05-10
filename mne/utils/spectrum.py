@@ -63,5 +63,5 @@ def _split_psd_kwargs(*, plot_fun=None, kwargs=None):
     # (otherwise integer picks could be wrong, `None` will be handled wrong
     # for `misc` data, etc)
     if plot_fun is Spectrum.plot:
-        plot_kwargs["picks"] = "all"  # TODO: this will be the default in v1.5
+        plot_kwargs["picks"] = "all"  # the default in v1.5
     return kwargs, plot_kwargs

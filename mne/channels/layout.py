@@ -178,7 +178,7 @@ def _read_lay(fname):
     return box, pos, names, ids
 
 
-def read_layout(fname=None, path="", scale=True, *, kind=None):
+def read_layout(fname=None, *, scale=True):
     """Read layout from a file.
 
     Parameters
@@ -187,24 +187,9 @@ def read_layout(fname=None, path="", scale=True, *, kind=None):
         Either the path to a ``.lout`` or ``.lay`` file or the name of a
         built-in layout. c.f. Notes for a list of the available built-in
         layouts.
-    path : path-like | None
-        The path of the folder containing the Layout file. Defaults to the
-        ``mne/channels/data/layouts`` folder inside your mne-python
-        installation.
-
-        .. deprecated:: v1.4
-           The ``kind`` and ``path`` parameters will be removed in version
-           1.5. Please use the ``fname`` parameter instead.
     scale : bool
         Apply useful scaling for out the box plotting using ``layout.pos``.
         Defaults to True.
-    kind : str | None
-        The name of the ``.lout`` file (e.g. ``kind='Vectorview-all'`` for
-        ``'Vectorview-all.lout'``).
-
-        .. deprecated:: v1.4
-           The ``kind`` and ``path`` parameters will be removed in version
-           1.5. Please use the ``fname`` parameter instead.
 
     Returns
     -------
@@ -268,47 +253,20 @@ def read_layout(fname=None, path="", scale=True, *, kind=None):
     """
     readers = {".lout": _read_lout, ".lay": _read_lay}
 
-    if fname is None:  # deprecated in 1.4
-        warn(
-            "Argument 'kind' and 'path' are deprecated in favor of 'fname'.",
-            DeprecationWarning,
-        )
-        if path == "" or path is None:
-            path = Path(__file__).parent / "data" / "layouts"
-        # kind should be the name as a string, but let's consider the case
-        # where the path to the file is provided instead.
-        kind = Path(kind)
-        if len(kind.suffix) == 0 and (path / kind.with_suffix(".lout")).exists():
-            kind = kind.with_suffix(".lout")
-        elif len(kind.suffix) == 0 and (path / kind.with_suffix(".lay")).exists():
-            kind = kind.with_suffix(".lay")
-
-        fname = kind if kind.exists() else path / kind.name
-        if fname.suffix not in (".lout", ".lay"):
-            raise ValueError("Unknown layout type. Should be of type .lout or .lay.")
-        kind = fname.stem
-    else:
-        # to be removed along the deprecated argument
-        if kind is not None or path != "":
-            warn(
-                "Argument 'kind' and 'path' are deprecated in favor of "
-                "'fname' and should not be provided alongside 'fname'.",
-                DeprecationWarning,
-            )
-        if isinstance(fname, str):
-            # is it a built-in layout?
-            directory = Path(__file__).parent / "data" / "layouts"
-            if (directory / fname).exists():
-                fname = directory / fname
-            elif (directory / fname).with_suffix(".lout").exists():
-                fname = (directory / fname).with_suffix(".lout")
-            elif (directory / fname).with_suffix(".lay").exists():
-                fname = (directory / fname).with_suffix(".lay")
-        # if not, it must be a valid path provided as str or Path
-        fname = _check_fname(fname, "read", must_exist=True, name="layout")
-        # and it must have a valid extension
-        _check_option("fname extension", fname.suffix, readers)
-        kind = fname.stem
+    if isinstance(fname, str):
+        # is it a built-in layout?
+        directory = Path(__file__).parent / "data" / "layouts"
+        if (directory / fname).exists():
+            fname = directory / fname
+        elif (directory / fname).with_suffix(".lout").exists():
+            fname = (directory / fname).with_suffix(".lout")
+        elif (directory / fname).with_suffix(".lay").exists():
+            fname = (directory / fname).with_suffix(".lay")
+    # if not, it must be a valid path provided as str or Path
+    fname = _check_fname(fname, "read", must_exist=True, name="layout")
+    # and it must have a valid extension
+    _check_option("fname extension", fname.suffix, readers)
+    kind = fname.stem
     box, pos, names, ids = readers[fname.suffix](fname)
 
     if scale:
