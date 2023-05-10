@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from . import events
+from . import ui_events
 from ..baseline import rescale
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
@@ -2301,14 +2301,14 @@ def plot_evoked_topomap(
         func = _merge_ch_data if merge_channels else lambda x: x
 
         def _slider_changed(val):
-            events.publish(fig, events.TimeChange(time=val))
+            ui_events.publish(fig, ui_events.TimeChange(time=val))
 
         slider.on_changed(_slider_changed)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color="k")
         axes[-1].slider = slider
 
-        events.subscribe(
+        ui_events.subscribe(
             fig,
             "time_change",
             partial(

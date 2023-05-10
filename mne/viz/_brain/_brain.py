@@ -31,7 +31,7 @@ from .callback import (
     UpdateColorbarScale,
 )
 
-from .. import events
+from .. import ui_events
 
 from ..utils import (
     _show_help_fig,
@@ -731,11 +731,7 @@ class Brain:
         self.reset_view()
         max_time = len(self._data["time"]) - 1
         if max_time > 0:
-            # self.callbacks["time"](
-            #     self._data["initial_time_idx"],
-            #     update_widget=True,
-            # )
-            events.publish(self, events.TimeChange(time=self.data["time"][0]))
+            ui_events.publish(self, ui_events.TimeChange(time=self.data["time"][0]))
         self._renderer._update()
 
     def set_playback_speed(self, speed):
@@ -762,16 +758,10 @@ class Brain:
         delta = this_time - self._last_tick
         self._last_tick = time.time()
         time_data = self._data["time"]
-        times = np.arange(self._n_times)
         time_shift = delta * self.playback_speed
         max_time = np.max(time_data)
         time_point = min(self._current_time + time_shift, max_time)
-        # always use linear here -- this does not determine the data
-        # interpolation mode, it just finds where we are (in time) in
-        # terms of the time indices
-        idx = np.interp(time_point, time_data, times)
-        # self.callbacks["time"](idx, update_widget=True)
-        events.publish(self, events.TimeChange(time=time_point))
+        ui_events.publish(self, ui_events.TimeChange(time=time_point))
         if time_point == max_time:
             self.toggle_playback(value=False)
 
@@ -828,12 +818,12 @@ class Brain:
             )
 
             def publish_time_change_event(time_idx):
-                events.publish(
+                ui_events.publish(
                     self,
-                    events.TimeChange(time=self._time_interp_inv(time_idx)),
+                    ui_events.TimeChange(time=self._time_interp_inv(time_idx)),
                 )
 
-            events.subscribe(self, "time_change", self.callbacks["time"])
+            ui_events.subscribe(self, "time_change", self.callbacks["time"])
             self.widgets["time"] = self._renderer._dock_add_slider(
                 name="Time (s)",
                 value=self._data["time_idx"],
@@ -1282,13 +1272,8 @@ class Brain:
         )
 
     def _shift_time(self, op):
-        # self.callbacks["time"](
-        #     value=(op(self._current_time, self.playback_speed)),
-        #     time_as_index=False,
-        #     update_widget=True,
-        # )
-        events.publish(
-            self, events.TimeChange(time=op(self._current_time, self.playback_speed))
+        ui_events.publish(
+            self, ui_events.TimeChange(time=op(self._current_time, self.playback_speed))
         )
 
     def _rotate_azimuth(self, value):
@@ -3631,8 +3616,8 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif 0 <= time_idx <= len(self._times):
-            events.publish(
-                self, events.TimeChange(time=self._time_interp_inv(time_idx))
+            ui_events.publish(
+                self, ui_events.TimeChange(time=self._time_interp_inv(time_idx))
             )
         else:
             raise ValueError(
@@ -3651,10 +3636,7 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif min(self._times) <= time <= max(self._times):
-            events.publish(self, events.TimeChange(time=time))
-            # self.set_time_point(
-            #     np.interp(float(time), self._times, np.arange(self._n_times))
-            # )
+            ui_events.publish(self, ui_events.TimeChange(time=time))
         else:
             raise ValueError(
                 f"Requested time ({time} s) is outside the range of "

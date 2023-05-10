@@ -87,4 +87,4 @@ from . import backends, _scraper
 from ._brain import Brain
 from ._figure import get_browser_backend, set_browser_backend, use_browser_backend
 from ._proj import plot_projs_joint
-from . import events
+from . import ui_events

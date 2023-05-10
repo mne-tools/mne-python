@@ -51,18 +51,18 @@ _camel_to_snake = re.compile(r'(?<!^)(?=[A-Z])')
 
 
 # List of events
-class _Event:
+class UIEvent:
     """Abstract base class for all events."""
     def __init__(self):
         self.name = _camel_to_snake.sub('_', self.__class__.__name__).lower()
 
 
-class FigureClosing(_Event):
+class FigureClosing(UIEvent):
     """Indicates that the user has requested to close a figure."""
     pass
 
 
-class TimeChange(_Event):
+class TimeChange(UIEvent):
     """Indicates that the user has selected a time."""
     def __init__(self, time):
         super().__init__()
@@ -129,7 +129,7 @@ def publish(fig, event):
     ----------
     fig : %(figure)s
         The figure that publishes the event.
-    event : _Event
+    event : UIEvent
         Event to publish.
     """
     # Compile a list of all event channels that the event should be published
