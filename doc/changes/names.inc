@@ -370,6 +370,8 @@
 
 .. _Nicolas Barascud: https://github.com/nbara
 
+.. _Niels Focke: https://neurologie.umg.eu/forschung/arbeitsgruppen/epilepsie-und-bildgebungsforschung
+
 .. _Niklas Wilming: https://github.com/nwilming
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn

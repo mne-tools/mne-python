@@ -1,8 +1,13 @@
-import os
-import subprocess
+from argparse import ArgumentParser
 from datetime import date
+from pathlib import Path
+import subprocess
 
-from mne import __version__ as release_version
+parser = ArgumentParser(description="Generate codemeta.json and CITATION.cff")
+parser.add_argument("release_version", type=str)
+release_version = parser.parse_args().release_version
+
+out_dir = Path(__file__).parent.parent
 
 # NOTE: ../codemeta.json and ../citation.cff should not be continuously
 #       updated. Run this script only at release time.
@@ -79,7 +84,7 @@ try:
     split_version = list(map(int, release_version.split(".")))
 except ValueError:
     raise
-msg = f"version string must be X.Y.Z (all integers), got {release_version}"
+msg = f"First argument must be the release version X.Y.Z (all integers), got {release_version}"
 assert len(split_version) == 3, msg
 
 
@@ -103,13 +108,13 @@ json_authors = [
 
 
 # GET OUR DEPENDENCY VERSIONS
-with open(os.path.join("..", "setup.py"), "r") as fid:
+with open(out_dir / "setup.py", "r") as fid:
     for line in fid:
         if line.strip().startswith("python_requires="):
             version = line.strip().split("=", maxsplit=1)[1].strip("'\",")
             dependencies = [f"python{version}"]
             break
-with open(os.path.join("..", "requirements.txt"), "r") as fid:
+with open(out_dir / "requirements.txt", "r") as fid:
     for line in fid:
         req = line.strip()
         for hard_dep in hard_dependencies:
@@ -162,7 +167,7 @@ codemeta_boilerplate = f"""{{
 
 
 # WRITE TO FILE
-with open(os.path.join("..", "codemeta.json"), "w") as codemeta_file:
+with open(out_dir / "codemeta.json", "w") as codemeta_file:
     codemeta_file.write(codemeta_boilerplate)
 
 
@@ -240,5 +245,5 @@ preferred-citation:
 """
 
 # WRITE TO FILE
-with open(os.path.join("..", "CITATION.cff"), "w") as cff_file:
+with open(out_dir / "CITATION.cff", "w") as cff_file:
     cff_file.write(cff_boilerplate)
