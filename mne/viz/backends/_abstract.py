@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod, abstractclassmethod
 from contextlib import nullcontext
 import warnings
 
+from .. import events
 from ..utils import tight_layout
 
 
@@ -1415,7 +1416,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
-        self.time_func = brain.callbacks["time"]
+        #self.time_func = brain.callbacks["time"]
 
     def update_plot(self):
         """Update the plot."""
@@ -1434,7 +1435,8 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         # left click (and maybe drag) in progress in axes
         if event.inaxes != self.axes or event.button != 1:
             return
-        self.time_func(event.xdata, update_widget=True, time_as_index=False)
+        events.publish(self.brain, events.TimeChange(time=event.xdata))
+        #self.time_func(event.xdata, update_widget=True, time_as_index=False)
 
     on_motion_notify = on_button_press  # for now they can be the same
 

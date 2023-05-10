@@ -22,18 +22,20 @@ class TimeCallBack:
         else:
             self.time_label = None
 
-    def __call__(self, value, update_widget=False, time_as_index=True):
+    def __call__(self, event):
         """Update the time slider."""
-        if not time_as_index:
-            value = self.brain._to_time_index(value)
-        self.brain.set_time_point(value)
+        if event.time == self.brain._current_time:
+            return
+
+        time_idx = self.brain._to_time_index(event.time)
+        self.brain._update_current_time_idx(time_idx)
         if self.label is not None:
             current_time = self.brain._current_time
             self.label.set_value(f"{current_time: .3f}")
         if self.callback is not None:
             self.callback()
-        if self.widget is not None and update_widget:
-            self.widget.set_value(int(value))
+        if self.widget is not None:
+            self.widget.set_value(int(time_idx))
 
 
 class UpdateColorbarScale:

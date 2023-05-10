@@ -22,21 +22,20 @@ on a channel, it is also published on all linked channels.
 Event objects and their parameters
 ==================================
 The events are modeled after matplotlib's event system. Each event has a string
-name and a list of relevant values. For example, the "time_change" event should
-have the new time as a value. Values can be any python object. When publishing
-an event, the publisher creates a new instance of the event's class. When
-subscribing to an event, having to dig up the correct class is a bit of a
-hassle. Following matplotlib's example, subscriber use the string name of the
-event to refer to it.
+name (the snake-case version of its class name) and a list of relevant values.
+For example, the "time_change" event should have the new time as a value.
+Values can be any python object. When publishing an event, the publisher
+creates a new instance of the event's class. When subscribing to an event,
+having to dig up the correct class is a bit of a hassle. Following matplotlib's
+example, subscribers use the string name of the event to refer to it.
 
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 from weakref import WeakKeyDictionary, WeakSet
-from dataclasses import dataclass
 import matplotlib
 import re
 
-from . import Brain
+from ..utils import fill_doc
 
 
 # Global dict {fig: channel} containing all currently active event channels.
@@ -44,7 +43,7 @@ event_channels = WeakKeyDictionary()
 
 # The event channels of figures can be linked together. This dict keeps track
 # of these links. Links are bi-directional, so if {fig1: fig2} exists, then so
-# must {fig2 -> fig1}.
+# must {fig2: fig1}.
 event_channel_links = WeakKeyDictionary()
 
 # Regex pattern to convert CamelCase to snake_case
@@ -55,7 +54,7 @@ _camel_to_snake = re.compile(r'(?<!^)(?=[A-Z])')
 class _Event:
     """Abstract base class for all events."""
     def __init__(self):
-        self.name: _camel_to_snake.sub(self.__class__.__name__)
+        self.name = _camel_to_snake.sub('_', self.__class__.__name__).lower()
 
 
 class FigureClosing(_Event):
@@ -63,12 +62,14 @@ class FigureClosing(_Event):
     pass
 
 
-@dataclass
 class TimeChange(_Event):
     """Indicates that the user has selected a time."""
-    time: float = 0.0
+    def __init__(self, time):
+        super().__init__()
+        self.time = time
 
 
+@fill_doc
 def get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -77,7 +78,7 @@ def get_event_channel(fig):
 
     Parameters
     ----------
-    fig : matplotlib.figure.Figure | mne.viz.Brain
+    fig : %(figure)s
         The figure to get the event channel for.
 
     Returns
@@ -87,6 +88,8 @@ def get_event_channel(fig):
         names to a list of callback representing all subscribers to the
         channel.
     """
+    from . import Brain
+
     # Create the event channel if it doesn't exist yet
     if fig not in event_channels:
         # The channel itself is a dict mapping string event names to a list of
@@ -99,7 +102,6 @@ def get_event_channel(fig):
             """Delete the event channel (callback function)."""
             publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
             unlink(fig)  # Remove channel from the event_channel_links dict
-            del event_channels[fig]
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
@@ -115,6 +117,7 @@ def get_event_channel(fig):
     return event_channels[fig]
 
 
+@fill_doc
 def publish(fig, event):
     """Publish an event to all subscribers of the figure's channel.
 
@@ -124,9 +127,9 @@ def publish(fig, event):
 
     Parameters
     ----------
-    fig : matplotlib.figure.Figure | mne.viz.Brain
+    fig : %(figure)s
         The figure that publishes the event.
-    event : Event
+    event : _Event
         Event to publish.
     """
     # Compile a list of all event channels that the event should be published
@@ -146,12 +149,13 @@ def publish(fig, event):
             callback(event=event)
 
 
+@fill_doc
 def subscribe(fig, event_name, callback):
     """Subscribe to an event on a figure's event channel.
 
     Parameters
     ----------
-    fig : matplotlib.figure.Figure | mne.viz.Brain
+    fig : %(figure)s
         The figure of which event channel to subscribe.
     event_name : str
         The name of the event to listen for.
@@ -164,17 +168,19 @@ def subscribe(fig, event_name, callback):
     channel[event_name].add(callback)
 
 
+@fill_doc
 def link(fig1, fig2):
     """Link the event channels of two figures together.
 
     When event channels are linked, any events that are published on one
-    channel are simultaneously published on the other channel.
+    channel are simultaneously published on the other channel. Links are
+    bi-directional.
 
     Parameters
     ----------
-    fig1 : matplotlib.figure.Figure | mne.viz.Brain
+    fig1 : %(figure)s
         The first figure whose event channel will be linked to the second.
-    fig2 : matplotlib.figure.Figure | mne.viz.Brain
+    fig2 : %(figure)s
         The second figure whose event channel will be linked to the first.
     """
     if fig1 not in event_channel_links:
@@ -200,4 +206,3 @@ def unlink(fig):
     if linked_figs is not None:
         for linked_fig in linked_figs:
             event_channel_links[linked_fig].remove(fig)
-    del event_channel_links[fig]

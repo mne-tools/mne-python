@@ -1511,6 +1511,12 @@ fiducials : list | dict | str
     and if absent, falls back to ``'estimated'``.
 """
 
+docdict["figure"] = (
+    "matplotlib.figure.Figure | "
+    "mne_qt_browser.figure.MNEQtBrowser | "
+    "mne.viz.Brain"
+)
+
 docdict[
     "fig_facecolor"
 ] = """\
