@@ -102,6 +102,8 @@ def get_event_channel(fig):
             """Delete the event channel (callback function)."""
             publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
             unlink(fig)  # Remove channel from the event_channel_links dict
+            if fig in event_channels:
+                del event_channels[fig]
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
@@ -206,3 +208,5 @@ def unlink(fig):
     if linked_figs is not None:
         for linked_fig in linked_figs:
             event_channel_links[linked_fig].remove(fig)
+    if fig in event_channel_links:
+        del event_channel_links[fig]
