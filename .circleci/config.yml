@@ -514,24 +514,6 @@ workflows:
                 - main
                 - maint/1.3
 
-  stable:
-    jobs:
-      - build_docs:
-          scheduled: "true"
-          name: build_docs_stable
-      - deploy:
-          name: deploy_stable
-          requires:
-            - build_docs_stable
-    triggers:
-      - schedule:
-          # "At 6:00 AM GMT every day"
-          cron: "0 6 * * *"
-          filters:
-            branches:
-              only:
-                - main
-
   weekly:
     jobs:
       - linkcheck:
