@@ -21,6 +21,7 @@ will only work properly when run in an interactive environment.
 
 # %%
 # Load some evoked and source data to plot.
+import matplotlib.pyplot as plt
 import mne
 
 data_path = mne.datasets.sample.data_path()
@@ -30,6 +31,10 @@ evoked = mne.read_evokeds(
 evoked.apply_baseline()
 stc = mne.read_source_estimate(data_path / "MEG" / "sample" / "sample_audvis-meg-eeg")
 evoked.crop(0, stc.times[-1])
+
+# %%
+# Enable interactivity. I'm not sure exactly why we need this.
+plt.ion()
 
 # %%
 # Plot both the source estimate plot, with time interaction enabled, and a sensor-level
