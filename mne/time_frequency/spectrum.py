@@ -582,7 +582,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         Parameters
         ----------
-        %(picks_good_data_noref)s
+        %(picks_all_data_noref)s
 
             .. versionchanged:: 1.5
                 In version 1.5, the default behavior changed so that all

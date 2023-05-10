@@ -256,12 +256,11 @@ def read_layout(fname=None, *, scale=True):
     if isinstance(fname, str):
         # is it a built-in layout?
         directory = Path(__file__).parent / "data" / "layouts"
-        if (directory / fname).exists():
-            fname = directory / fname
-        elif (directory / fname).with_suffix(".lout").exists():
-            fname = (directory / fname).with_suffix(".lout")
-        elif (directory / fname).with_suffix(".lay").exists():
-            fname = (directory / fname).with_suffix(".lay")
+        for suffix in ("", ".lout", ".lay"):
+            _fname = (directory / fname).with_suffix(suffix)
+            if _fname.exists():
+                fname = _fname
+                break
     # if not, it must be a valid path provided as str or Path
     fname = _check_fname(fname, "read", must_exist=True, name="layout")
     # and it must have a valid extension
