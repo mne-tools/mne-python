@@ -494,7 +494,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/.*
+                - /maint\/.*/
 
   main:
     jobs:
