@@ -220,6 +220,8 @@ for ax, title, epochs in zip([ax1, ax2], ["Alice", "Bob"], [epochs_train, epochs
             show=False,
             average=True,
             spatial_colors=False,
+            picks="data",
+            exclude="bads",
         )
     ax.set(title=title, xlabel="Frequency (Hz)")
 ax1.set(ylabel="µV²/Hz (dB)")

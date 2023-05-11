@@ -794,8 +794,7 @@ def test_plot_raw_psd(raw, raw_orig):
     spectrum = raw.compute_psd()
     # deprecation change handler
     old_defaults = dict(picks="data", exclude="bads")
-    with pytest.warns(RuntimeWarning, match="bad channels will be shown"):
-        fig = spectrum.plot(average=False)
+    fig = spectrum.plot(average=False)
     # normal mode
     fig = spectrum.plot(average=False, **old_defaults)
     fig.canvas.callbacks.process(

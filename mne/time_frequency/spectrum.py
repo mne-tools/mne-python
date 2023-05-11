@@ -574,7 +574,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         alpha=None,
         spatial_colors=True,
         sphere=None,
-        exclude=None,
+        exclude=(),
         axes=None,
         show=True,
     ):
@@ -582,10 +582,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         Parameters
         ----------
-        %(picks_good_data_noref)s
+        %(picks_all_data_noref)s
 
             .. versionchanged:: 1.5
-                In version 1.5, the default behavior will change so that all
+                In version 1.5, the default behavior changed so that all
                 :term:`data channels` (not just "good" data channels) are shown
                 by default.
         average : bool
@@ -622,7 +622,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(exclude_spectrum_plot)s
 
             .. versionchanged:: 1.5
-                In version 1.5, the default behavior will change from
+                In version 1.5, the default behavior changed from
                 ``exclude='bads'`` to ``exclude=()``.
         %(axes_spectrum_plot_topomap)s
         %(show)s
@@ -649,14 +649,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         else:  # amplitude is boolean
             estimate = "amplitude" if amplitude else "power"
         # split picks by channel type
-        if picks is None or exclude is None:
-            warn(
-                "in version 1.5, the default behavior of Spectrum.plot() will "
-                "change so that bad channels will be shown by default. To keep the "
-                "old default behavior (and silence this warning), explicitly pass "
-                "`picks='data', exclude='bads'`."
-            )
-            exclude = "bads"
         picks = _picks_to_idx(
             self.info, picks, "data", exclude=exclude, with_ref_meg=False
         )

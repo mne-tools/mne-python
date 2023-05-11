@@ -370,6 +370,8 @@
 
 .. _Nicolas Barascud: https://github.com/nbara
 
+.. _Niels Focke: https://neurologie.umg.eu/forschung/arbeitsgruppen/epilepsie-und-bildgebungsforschung
+
 .. _Niklas Wilming: https://github.com/nwilming
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
@@ -508,7 +510,7 @@
 
 .. _Teon Brooks: https://teonbrooks.com
 
-.. _Theodore Papadopoulo: https://github.com/papadop
+.. _Théodore Papadopoulo: https://github.com/papadop
 
 .. _Thomas Binns: https://github.com/tsbinns
 

@@ -12,13 +12,14 @@ from ..io.pick import pick_info, pick_channels_forward
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
 from ..utils import logger, verbose, _check_info_inv, fill_doc
-from ..dipole import Dipole
 from ._compute_beamformer import _prepare_beamformer_input
 
 
 @fill_doc
-def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=None):
-    """RAP-MUSIC for evoked data.
+def _apply_rap_music(
+    data, info, times, forward, noise_cov, n_dipoles=2, picks=None, use_trap=False
+):
+    """RAP-MUSIC or TRAP-MUSIC for evoked data.
 
     Parameters
     ----------
@@ -35,8 +36,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
         The number of dipoles to estimate. The default value is 2.
     picks : list of int
         Caller ensures this is a list of int.
-    force_no_rep : bool, optional
-        Forces no repetition of estimated dipoles.
+    use_trap : bool
+        Use the TRAP-MUSIC variant if True (default False).
 
     Returns
     -------
@@ -45,7 +46,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
     explained_data : array | None
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
-        Computed only if return_explained_data is True.
     """
     from scipy import linalg
 
@@ -118,6 +118,8 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
         projection = _compute_proj(A[:, : k + 1])
         G_proj = np.einsum("ab,bso->aso", projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
+        if use_trap:
+            phi_sig_proj = phi_sig_proj[:, -(n_dipoles - k) :]
     del G, G_proj
 
     sol = linalg.lstsq(A, M)[0]
@@ -153,39 +155,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2, picks=N
     return dipoles, explained_data
 
 
-def _make_dipoles(times, poss, oris, sol, gof):
-    """Instantiate a list of Dipoles.
-
-    Parameters
-    ----------
-    times : array, shape (n_times,)
-        The time instants.
-    poss : array, shape (n_dipoles, 3)
-        The dipoles' positions.
-    oris : array, shape (n_dipoles, 3)
-        The dipoles' orientations.
-    sol : array, shape (n_times,)
-        The dipoles' amplitudes over time.
-    gof : array, shape (n_times,)
-        The goodness of fit of the dipoles.
-        Shared between all dipoles.
-
-    Returns
-    -------
-    dipoles : list
-        The list of Dipole instances.
-    """
-    oris = np.array(oris)
-
-    dipoles = []
-    for i_dip in range(poss.shape[0]):
-        i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times, i_pos, sol[i_dip], i_ori, gof))
-
-    return dipoles
-
-
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
     from scipy import linalg
@@ -214,15 +183,47 @@ def _compute_proj(A):
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
 
+def _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, use_trap):
+    """RAP-/TRAP-MUSIC implementation."""
+    info = evoked.info
+    data = evoked.data
+    times = evoked.times
+
+    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
+
+    data = data[picks]
+
+    dipoles, explained_data = _apply_rap_music(
+        data, info, times, forward, noise_cov, n_dipoles, picks, use_trap
+    )
+
+    if return_residual:
+        residual = evoked.copy().pick([info["ch_names"][p] for p in picks])
+        residual.data -= explained_data
+        active_projs = [p for p in residual.info["projs"] if p["active"]]
+        for p in active_projs:
+            p["active"] = False
+        residual.add_proj(active_projs, remove_existing=True)
+        residual.apply_proj()
+        return dipoles, residual
+    else:
+        return dipoles
+
+
 @verbose
 def rap_music(
-    evoked, forward, noise_cov, n_dipoles=5, return_residual=False, verbose=None
+    evoked,
+    forward,
+    noise_cov,
+    n_dipoles=5,
+    return_residual=False,
+    *,
+    verbose=None,
 ):
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
-    (RAP-MUSIC) on evoked data.
-    Implementation follows :footcite:t:`MosherLeahy1999,MosherLeahy1996`.
+    (RAP-MUSIC) :footcite:`MosherLeahy1999,MosherLeahy1996` on evoked data.
 
     .. note:: The goodness of fit (GOF) of all the returned dipoles is the
               same and corresponds to the GOF of the full set of dipoles.
@@ -254,33 +255,70 @@ def rap_music(
     See Also
     --------
     mne.fit_dipole
+    mne.beamformer.trap_music
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
 
     References
     ----------
     .. footbibliography::
-
-    .. versionadded:: 0.9.0
     """
-    info = evoked.info
-    data = evoked.data
-    times = evoked.times
+    return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, False)
 
-    picks = _check_info_inv(info, forward, data_cov=None, noise_cov=noise_cov)
 
-    data = data[picks]
+@verbose
+def trap_music(
+    evoked,
+    forward,
+    noise_cov,
+    n_dipoles=5,
+    return_residual=False,
+    *,
+    verbose=None,
+):
+    """TRAP-MUSIC source localization method.
 
-    dipoles, explained_data = _apply_rap_music(
-        data, info, times, forward, noise_cov, n_dipoles, picks
-    )
+    Compute Truncated Recursively Applied and Projected MUltiple SIgnal Classification
+    (TRAP-MUSIC) :footcite:`Makela2018` on evoked data.
 
-    if return_residual:
-        residual = evoked.copy().pick([info["ch_names"][p] for p in picks])
-        residual.data -= explained_data
-        active_projs = [p for p in residual.info["projs"] if p["active"]]
-        for p in active_projs:
-            p["active"] = False
-        residual.add_proj(active_projs, remove_existing=True)
-        residual.apply_proj()
-        return dipoles, residual
-    else:
-        return dipoles
+    .. note:: The goodness of fit (GOF) of all the returned dipoles is the
+              same and corresponds to the GOF of the full set of dipoles.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        Evoked data to localize.
+    forward : instance of Forward
+        Forward operator.
+    noise_cov : instance of Covariance
+        The noise covariance.
+    n_dipoles : int
+        The number of dipoles to look for. The default value is 5.
+    return_residual : bool
+        If True, the residual is returned as an Evoked instance.
+    %(verbose)s
+
+    Returns
+    -------
+    dipoles : list of instance of Dipole
+        The dipole fits.
+    residual : instance of Evoked
+        The residual a.k.a. data not explained by the dipoles.
+        Only returned if return_residual is True.
+
+    See Also
+    --------
+    mne.fit_dipole
+    mne.beamformer.rap_music
+
+    Notes
+    -----
+    .. versionadded:: 1.4
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    return _rap_music(evoked, forward, noise_cov, n_dipoles, return_residual, True)

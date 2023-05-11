@@ -50,8 +50,8 @@ raw_csd.plot()
 # %%
 # Also look at the power spectral densities:
 
-raw.compute_psd().plot()
-raw_csd.compute_psd().plot()
+raw.compute_psd().plot(picks="data", exclude="bads")
+raw_csd.compute_psd().plot(picks="data", exclude="bads")
 
 # %%
 # CSD can also be computed on Evoked (averaged) data.

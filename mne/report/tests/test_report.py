@@ -347,14 +347,12 @@ def test_report_raw_psd_and_date(tmp_path):
     raw_fname_new = tmp_path / "temp_raw.fif"
     raw.save(raw_fname_new)
     report = Report(raw_psd=True)
-    # TODO: remove context handler after 1.4 release.
-    with pytest.warns(RuntimeWarning, match="bad channels will be shown"):
-        report.parse_folder(
-            data_path=tmp_path,
-            render_bem=False,
-            on_error="raise",
-            raw_butterfly=False,
-        )
+    report.parse_folder(
+        data_path=tmp_path,
+        render_bem=False,
+        on_error="raise",
+        raw_butterfly=False,
+    )
     assert isinstance(report.html, list)
     assert "PSD" in "".join(report.html)
     assert "Unknown" not in "".join(report.html)
@@ -853,8 +851,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     ica_ecg_scores = ica_eog_scores = np.array([3, 0])
     ica_ecg_evoked = ica_eog_evoked = epochs_without_metadata.average()
 
-    with pytest.warns(RuntimeWarning, match="bad channels will be shown"):
-        r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
+    r.add_raw(raw=raw, title="my raw data", tags=("raw",), psd=True, projs=False)
     r.add_raw(raw=raw, title="my raw data 2", psd=False, projs=False, butterfly=1)
     r.add_events(events=events_fname, title="my events", sfreq=raw.info["sfreq"])
     r.add_epochs(
@@ -864,15 +861,12 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         psd=False,
         projs=False,
     )
-    # TODO: remove next two context handlers after 1.4 release.
-    with pytest.warns(RuntimeWarning, match="bad channels will be shown"):
-        r.add_epochs(
-            epochs=epochs_without_metadata, title="my epochs 2", psd=1, projs=False
-        )
-    with pytest.warns(RuntimeWarning, match="bad channels will be shown"):
-        r.add_epochs(
-            epochs=epochs_without_metadata, title="my epochs 2", psd=True, projs=False
-        )
+    r.add_epochs(
+        epochs=epochs_without_metadata, title="my epochs 2", psd=1, projs=False
+    )
+    r.add_epochs(
+        epochs=epochs_without_metadata, title="my epochs 2", psd=True, projs=False
+    )
     assert "Metadata" not in r.html[-1]
 
     # Try with metadata

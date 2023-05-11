@@ -1481,6 +1481,7 @@ needed_plot_redirects = {
     "psf_ctf_vertices_lcmv.py",
     "publication_figure.py",
     "rap_music.py",
+    "trap_music.py",
     "read_inverse.py",
     "read_neo_format.py",
     "read_noise_covariance_matrix.py",

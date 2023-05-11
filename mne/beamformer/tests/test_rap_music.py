@@ -9,7 +9,7 @@ from scipy import linalg
 from numpy.testing import assert_allclose
 
 import mne
-from mne.beamformer import rap_music
+from mne.beamformer import rap_music, trap_music
 from mne.cov import regularize
 from mne.datasets import testing
 from mne.minimum_norm.tests.test_inverse import assert_var_exp_log
@@ -212,4 +212,16 @@ def test_rap_music_picks():
     forward = mne.read_forward_solution(fname_fwd)
     noise_cov = mne.read_cov(fname_cov)
     dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2)
+    assert len(dipoles) == 2
+
+
+@testing.requires_testing_data
+def test_trap_music():
+    """Test TRAP-MUSIC."""
+    evoked = mne.read_evokeds(fname_ave, condition="Right Auditory", baseline=(None, 0))
+    evoked.crop(tmin=0.05, tmax=0.15)  # select N100
+    evoked.pick_types(meg=True, eeg=False)
+    forward = mne.read_forward_solution(fname_fwd)
+    noise_cov = mne.read_cov(fname_cov)
+    dipoles = trap_music(evoked, forward, noise_cov, n_dipoles=2)
     assert len(dipoles) == 2

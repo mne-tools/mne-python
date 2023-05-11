@@ -259,4 +259,4 @@ def spectrum_from_array(
 
 
 spectrum = spectrum_from_array(data=psd_ave, freqs=freqs, inst_info=info)
-spectrum.plot(picks=[0, 1], spatial_colors=False)
+spectrum.plot(picks=[0, 1], spatial_colors=False, exclude="bads")

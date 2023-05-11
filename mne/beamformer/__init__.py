@@ -15,6 +15,7 @@ from ._dics import (
     apply_dics_csd,
 )
 from ._rap_music import rap_music
+from ._rap_music import trap_music
 from ._ap import alternating_projections
 from ._compute_beamformer import Beamformer, read_beamformer
 from .resolution_matrix import make_lcmv_resolution_matrix
