@@ -550,6 +550,8 @@
 
 .. _Yu-Han Luo: https://github.com/yh-luo
 
+.. _Yuval Nadler Realpe: https://github.com/eskimOpigeon/
+
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Zvi Baratz: https://github.com/ZviBaratz
