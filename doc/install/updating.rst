@@ -12,19 +12,14 @@ options, depending on how you originally installed it.
 
 If you're not using the MNE-Python installers, keep reading.
 
-.. warning::
-
-    Before performing package upgrade operations, check to make sure that the
-    environment you wish to modify has been activated (and if not, call
-    ``conda activate name_of_environment`` first).
-
 
 Upgrading MNE-Python only
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you wish to update MNE-Python only and leave other packages in their current
 state, you can usually safely do this with ``pip``, even if you originally
-installed via conda. With the ``mne`` environment active, do:
+installed via conda. With the ``mne`` environment active
+(``conda activate name_of_environment``), do:
 
 .. code-block:: console
 
@@ -42,17 +37,17 @@ sure all packages remain compatible with one another during upgrades.
 Here we'll demonstrate renaming the old environment first, as a safety measure.
 We'll assume that the existing environment is called ``mne`` and you want to
 rename the old one so that the new, upgraded environment can be called ``mne``
-instead. Unfortunately ``conda`` doesn't have a "rename" command so we'll first
-clone the old one with a new name (``old_mne``), then delete the original, then
-create the new, updated environment re-using the original name. In the first
-step we'll also use conda in ``--offline`` mode so that it uses cached
-copies of all the packages instead of re-downloading them.
+instead.
+
+.. warning::
+
+    Before running the below commands, ensure that your existing MNE conda
+    environment is **not** activated. Run ``conda deactivate`` if in doubt.
 
 .. code-block:: console
 
-    $ conda create --name old_mne --clone mne --offline  # copy with new name,
-    $ conda env remove --name mne --all                  # remove original,
-    $ conda create --name mne --channel conda-forge mne  # replace with updated
+    $ conda rename --name=mne old_mne  # rename existing "mne" env to "old_mne"
+    $ conda create --name=mne --channel=conda-forge mne  # create fresh "mne" env
 
 .. note::
 
@@ -81,7 +76,8 @@ Upgrading to the development version
 Sometimes, new features or bugfixes become available that are important to your
 research and you just can't wait for the next official release of MNE-Python to
 start taking advantage of them. In such cases, you can use ``pip`` to install
-the *development version* of MNE-Python:
+the *development version* of MNE-Python. Ensure to activate the MNE conda
+environment first by running ``conda activate name_of_environment``.
 
 .. code-block:: console
 
