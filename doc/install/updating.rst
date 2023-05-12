@@ -82,4 +82,4 @@ environment first by running ``conda activate name_of_environment``.
 
 .. code-block:: console
 
-    $ pip install -U --no-deps https://github.com/mne-tools/mne-python/archive/main.zip
+    $ pip install -U --no-deps git+https://github.com/mne-tools/mne-python@main
