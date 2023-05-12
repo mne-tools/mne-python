@@ -100,6 +100,7 @@ def _get_event_channel(fig):
         # deleted. This is a good time to set this up.
         def delete_event_channel(event=None):
             """Delete the event channel (callback function)."""
+            print('closing')
             publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
             unlink(fig)  # Remove channel from the _event_channel_links dict
             if fig in _event_channels:
@@ -208,5 +209,7 @@ def unlink(fig):
     if linked_figs is not None:
         for linked_fig in linked_figs:
             _event_channel_links[linked_fig].remove(fig)
+            if len(_event_channel_links[linked_fig]) == 0:
+                del _event_channel_links[linked_fig]
     if fig in _event_channel_links:
         del _event_channel_links[fig]
