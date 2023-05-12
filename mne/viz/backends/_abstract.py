@@ -1416,7 +1416,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
-        #self.time_func = brain.callbacks["time"]
+        # self.time_func = brain.callbacks["time"]
 
     def update_plot(self):
         """Update the plot."""
