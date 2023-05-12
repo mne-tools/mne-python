@@ -41,13 +41,14 @@ instead.
 
 .. warning::
 
-    Before running the below commands, ensure that your existing MNE conda
+    Before running the below command, ensure that your existing MNE conda
     environment is **not** activated. Run ``conda deactivate`` if in doubt.
 
 .. code-block:: console
 
     $ conda rename --name=mne old_mne  # rename existing "mne" env to "old_mne"
-    $ conda create --name=mne --channel=conda-forge mne  # create fresh "mne" env
+
+Then, just follow our regular installation instructions, :ref:`manual-install`.
 
 .. note::
 
