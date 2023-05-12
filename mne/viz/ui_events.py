@@ -32,7 +32,6 @@ example, subscribers use the string name of the event to refer to it.
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 from weakref import WeakKeyDictionary, WeakSet
-import matplotlib
 import re
 
 from ..utils import fill_doc
@@ -91,6 +90,7 @@ def _get_event_channel(fig):
         names to a list of callback representing all subscribers to the
         channel.
     """
+    import matplotlib
     from . import Brain
 
     # Create the event channel if it doesn't exist yet
