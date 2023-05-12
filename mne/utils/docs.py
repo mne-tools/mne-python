@@ -1513,8 +1513,9 @@ fiducials : list | dict | str
 
 docdict["figure"] = (
     "matplotlib.figure.Figure | "
-    "mne_qt_browser.figure.MNEQtBrowser | "
-    "mne.viz.Brain"
+    "MNEFigure | "
+    "Figure3D | "
+    "Brain"
 )
 
 docdict[

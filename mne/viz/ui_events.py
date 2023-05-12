@@ -39,12 +39,12 @@ from ..utils import fill_doc
 
 
 # Global dict {fig: channel} containing all currently active event channels.
-event_channels = WeakKeyDictionary()
+_event_channels = WeakKeyDictionary()
 
 # The event channels of figures can be linked together. This dict keeps track
 # of these links. Links are bi-directional, so if {fig1: fig2} exists, then so
 # must {fig2: fig1}.
-event_channel_links = WeakKeyDictionary()
+_event_channel_links = WeakKeyDictionary()
 
 # Regex pattern to convert CamelCase to snake_case
 _camel_to_snake = re.compile(r'(?<!^)(?=[A-Z])')
@@ -70,11 +70,11 @@ class TimeChange(UIEvent):
 
 
 @fill_doc
-def get_event_channel(fig):
+def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
     If the event channel doesn't exist yet, it gets created and added to the
-    global ``event_channels`` dict.
+    global ``_event_channels`` dict.
 
     Parameters
     ----------
@@ -91,19 +91,19 @@ def get_event_channel(fig):
     from . import Brain
 
     # Create the event channel if it doesn't exist yet
-    if fig not in event_channels:
+    if fig not in _event_channels:
         # The channel itself is a dict mapping string event names to a list of
         # subscribers. No subscribers yet for this new event channel.
-        event_channels[fig] = dict()
+        _event_channels[fig] = dict()
 
         # When the figure is closed, its associated event channel should be
         # deleted. This is a good time to set this up.
         def delete_event_channel(event=None):
             """Delete the event channel (callback function)."""
             publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
-            unlink(fig)  # Remove channel from the event_channel_links dict
-            if fig in event_channels:
-                del event_channels[fig]
+            unlink(fig)  # Remove channel from the _event_channel_links dict
+            if fig in _event_channels:
+                del _event_channels[fig]
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
@@ -116,7 +116,7 @@ def get_event_channel(fig):
             raise NotImplementedError('This figure type is not support yet.')
 
     # Now the event channel exists for sure.
-    return event_channels[fig]
+    return _event_channels[fig]
 
 
 @fill_doc
@@ -136,10 +136,10 @@ def publish(fig, event):
     """
     # Compile a list of all event channels that the event should be published
     # on.
-    channels = [get_event_channel(fig)]
-    if fig in event_channel_links:
-        linked_channels = [get_event_channel(linked_fig)
-                           for linked_fig in event_channel_links[fig]]
+    channels = [_get_event_channel(fig)]
+    if fig in _event_channel_links:
+        linked_channels = [_get_event_channel(linked_fig)
+                           for linked_fig in _event_channel_links[fig]]
         channels.extend(linked_channels)
 
     # Publish the event by calling the registered callback functions.
@@ -164,7 +164,7 @@ def subscribe(fig, event_name, callback):
     callback : func
         The function that should be called whenever the event is published.
     """
-    channel = get_event_channel(fig)
+    channel = _get_event_channel(fig)
     if event_name not in channel:
         channel[event_name] = set()
     channel[event_name].add(callback)
@@ -185,14 +185,14 @@ def link(fig1, fig2):
     fig2 : %(figure)s
         The second figure whose event channel will be linked to the first.
     """
-    if fig1 not in event_channel_links:
-        event_channel_links[fig1] = WeakSet([fig2])
+    if fig1 not in _event_channel_links:
+        _event_channel_links[fig1] = WeakSet([fig2])
     else:
-        event_channel_links[fig1].add(fig2)
-    if fig2 not in event_channel_links:
-        event_channel_links[fig2] = WeakSet([fig1])
+        _event_channel_links[fig1].add(fig2)
+    if fig2 not in _event_channel_links:
+        _event_channel_links[fig2] = WeakSet([fig1])
     else:
-        event_channel_links[fig2].add(fig1)
+        _event_channel_links[fig2].add(fig1)
 
 
 def unlink(fig):
@@ -204,9 +204,9 @@ def unlink(fig):
         The figure whose event channel should be unlinked from all other event
         channels.
     """
-    linked_figs = event_channel_links.get(fig)
+    linked_figs = _event_channel_links.get(fig)
     if linked_figs is not None:
         for linked_fig in linked_figs:
-            event_channel_links[linked_fig].remove(fig)
-    if fig in event_channel_links:
-        del event_channel_links[fig]
+            _event_channel_links[linked_fig].remove(fig)
+    if fig in _event_channel_links:
+        del _event_channel_links[fig]
