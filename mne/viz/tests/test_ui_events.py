@@ -10,15 +10,16 @@ from mne.viz import ui_events, Brain
 subjects_dir = sample.data_path(download=False) / "subjects"
 
 
-# Fixtures that make sure each tests starts with a fresh global UI event channel dict.
 @pytest.fixture
 def event_channels():
+    """Fixture that makes sure each test starts with a fresh UI event chans dict."""
     ui_events._event_channels.clear()
     return ui_events._event_channels
 
 
 @pytest.fixture
 def event_channel_links():
+    """Fixture that makes sure each test starts with a fresh channel links dict."""
     ui_events._event_channel_links.clear()
     return ui_events._event_channel_links
 
@@ -30,7 +31,7 @@ def test_get_event_channel(event_channels):
 
     # Open a figure and get the event channel. This should create it.
     fig = plt.figure()
-    event_channel = ui_events._get_event_channel(fig)
+    ui_events._get_event_channel(fig)
     assert len(event_channels) == 1
     assert fig in event_channels
 
@@ -42,7 +43,6 @@ def test_get_event_channel(event_channels):
 
     # Test different types of figures
     fig = Brain("sample", subjects_dir=subjects_dir)
-    event_channel = ui_events._get_event_channel(fig)
     assert fig in event_channels
     fig.close()
     assert len(event_channels) == 0
@@ -66,7 +66,7 @@ def test_subscribe(event_channels):
     callback_called = False
 
     def callback(event):
-        """Called when the time change event is published."""
+        """Respond to time change event."""
         global callback_called
         callback_called = True
         assert isinstance(event, ui_events.TimeChange)
@@ -103,7 +103,7 @@ def test_link(event_channels, event_channel_links):
     num_callbacks_called = 0
 
     def callback(event):
-        """Called when the time change event is published."""
+        """Respond to time change event."""
         global num_callbacks_called
         num_callbacks_called += 1
 
