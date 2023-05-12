@@ -116,7 +116,7 @@ class _LinkViewer:
 
     def set_time_point(self, value):
         for brain in self.brains:
-            brain.callbacks["time"](value, update_widget=True)
+            brain.callbacks["time"](value)
 
     def set_playback_speed(self, value):
         for brain in self.brains:

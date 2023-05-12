@@ -4006,7 +4006,7 @@ class Brain:
         Used by movie and image sequence saving functions.
         """
         if self.time_viewer:
-            func = partial(self.callbacks["time"], update_widget=True)
+            func = partial(self.callbacks["time"])
         else:
             func = self.set_time_point
         current_time_idx = self._data["time_idx"]
