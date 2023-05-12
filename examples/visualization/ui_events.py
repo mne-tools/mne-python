@@ -42,6 +42,6 @@ plt.ion()
 # information is communicated between figures depends on the figure types. In this case,
 # the information about the currently selected time is shared.
 fig1 = stc.plot("sample", subjects_dir=data_path / "subjects", initial_time=0.1)
-fig1.set_time_interpolation('linear')
-fig2 = evoked.plot_topomap('interactive')
+fig1.set_time_interpolation("linear")
+fig2 = evoked.plot_topomap("interactive")
 mne.viz.ui_events.link(fig1, fig2)
