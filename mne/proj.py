@@ -483,7 +483,6 @@ def sensitivity_map(
     n_locations = n_dipoles // 3
     del n_dipoles
     sensitivity_map = np.empty(n_locations)
-    assert n_locations == len(fwd["src"][0]["vertno"]) + len(fwd["src"][1]["vertno"])
 
     for k in range(n_locations):
         gg = gain[:, 3 * k : 3 * (k + 1)]
