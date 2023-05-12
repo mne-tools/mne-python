@@ -47,23 +47,26 @@ _event_channels = WeakKeyDictionary()
 _event_channel_links = WeakKeyDictionary()
 
 # Regex pattern to convert CamelCase to snake_case
-_camel_to_snake = re.compile(r'(?<!^)(?=[A-Z])')
+_camel_to_snake = re.compile(r"(?<!^)(?=[A-Z])")
 
 
 # List of events
 class UIEvent:
     """Abstract base class for all events."""
+
     def __init__(self):
-        self.name = _camel_to_snake.sub('_', self.__class__.__name__).lower()
+        self.name = _camel_to_snake.sub("_", self.__class__.__name__).lower()
 
 
 class FigureClosing(UIEvent):
     """Indicates that the user has requested to close a figure."""
+
     pass
 
 
 class TimeChange(UIEvent):
     """Indicates that the user has selected a time."""
+
     def __init__(self, time):
         super().__init__()
         self.time = time
@@ -100,7 +103,7 @@ def _get_event_channel(fig):
         # deleted. This is a good time to set this up.
         def delete_event_channel(event=None):
             """Delete the event channel (callback function)."""
-            print('closing')
+            print("closing")
             publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
             unlink(fig)  # Remove channel from the _event_channel_links dict
             if fig in _event_channels:
@@ -110,11 +113,11 @@ def _get_event_channel(fig):
         # window. How this is done exactly depends on the various figure types
         # MNE-Python has.
         if isinstance(fig, matplotlib.figure.Figure):
-            fig.canvas.mpl_connect('close_event', delete_event_channel)
+            fig.canvas.mpl_connect("close_event", delete_event_channel)
         elif isinstance(fig, Brain):
             fig._renderer._window.signal_close.connect(delete_event_channel)
         else:
-            raise NotImplementedError('This figure type is not support yet.')
+            raise NotImplementedError("This figure type is not support yet.")
 
     # Now the event channel exists for sure.
     return _event_channels[fig]
@@ -139,8 +142,9 @@ def publish(fig, event):
     # on.
     channels = [_get_event_channel(fig)]
     if fig in _event_channel_links:
-        linked_channels = [_get_event_channel(linked_fig)
-                           for linked_fig in _event_channel_links[fig]]
+        linked_channels = [
+            _get_event_channel(linked_fig) for linked_fig in _event_channel_links[fig]
+        ]
         channels.extend(linked_channels)
 
     # Publish the event by calling the registered callback functions.

@@ -7,13 +7,15 @@ import pytest
 from mne.datasets import sample
 from mne.viz import ui_events, Brain
 
-subjects_dir=sample.data_path(download=False) / 'subjects'
+subjects_dir = sample.data_path(download=False) / "subjects"
+
 
 # Fixtures that make sure each tests starts with a fresh global UI event channel dict.
 @pytest.fixture
 def event_channels():
     ui_events._event_channels.clear()
     return ui_events._event_channels
+
 
 @pytest.fixture
 def event_channel_links():
@@ -35,11 +37,11 @@ def test_get_event_channel(event_channels):
     # Closing a figure should delete the event channel.
     # During tests, matplotlib does not open an actual window so we need to force the
     # close event.
-    fig.canvas.callbacks.process('close_event', None)
+    fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
 
     # Test different types of figures
-    fig = Brain('sample', subjects_dir=subjects_dir)
+    fig = Brain("sample", subjects_dir=subjects_dir)
     event_channel = ui_events._get_event_channel(fig)
     assert fig in event_channels
     fig.close()
@@ -62,6 +64,7 @@ def test_subscribe(event_channels):
     """Test subscribing to UI events."""
     global callback_called
     callback_called = False
+
     def callback(event):
         """Called when the time change event is published."""
         global callback_called
@@ -70,10 +73,10 @@ def test_subscribe(event_channels):
         assert event.time == 10.2
 
     fig = plt.figure()
-    ui_events.subscribe(fig, 'time_change', callback)
+    ui_events.subscribe(fig, "time_change", callback)
 
     # Subscribing to the event should have created the needed channel.
-    assert 'time_change' in ui_events._get_event_channel(fig)
+    assert "time_change" in ui_events._get_event_channel(fig)
 
     # Publishing the time change event should call the callback function.
     ui_events.publish(fig, ui_events.TimeChange(time=10.2))
@@ -87,7 +90,7 @@ def test_subscribe(event_channels):
     # Test disposing of the event channel, even with subscribers.
     # During tests, matplotlib does not open an actual window so we need to force the
     # close event.
-    fig.canvas.callbacks.process('close_event', None)
+    fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
 
 
@@ -98,14 +101,15 @@ def test_link(event_channels, event_channel_links):
 
     global num_callbacks_called
     num_callbacks_called = 0
+
     def callback(event):
         """Called when the time change event is published."""
         global num_callbacks_called
         num_callbacks_called += 1
 
     # Both figures are subscribed to the time change events.
-    ui_events.subscribe(fig1, 'time_change', callback)
-    ui_events.subscribe(fig2, 'time_change', callback)
+    ui_events.subscribe(fig1, "time_change", callback)
+    ui_events.subscribe(fig2, "time_change", callback)
 
     # Linking the event channels causes events to be published on both channels.
     ui_events.link(fig1, fig2)
@@ -121,8 +125,8 @@ def test_link(event_channels, event_channel_links):
     assert num_callbacks_called == 2
 
     # Test cleanup
-    fig1.canvas.callbacks.process('close_event', None)
-    fig2.canvas.callbacks.process('close_event', None)
+    fig1.canvas.callbacks.process("close_event", None)
+    fig2.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
     assert len(event_channel_links) == 0
 
