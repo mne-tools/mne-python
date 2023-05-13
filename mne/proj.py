@@ -390,7 +390,7 @@ def compute_proj_raw(
 
 @verbose
 def sensitivity_map(
-    fwd, projs=None, ch_type="grad", mode="fixed", exclude=[], verbose=None
+    fwd, projs=None, ch_type="grad", mode="fixed", exclude=(), *, verbose=None
 ):
     """Compute sensitivity map.
 
@@ -420,6 +420,11 @@ def sensitivity_map(
     stc : SourceEstimate | VolSourceEstimate
         The sensitivity map as a SourceEstimate or VolSourceEstimate instance
         for visualization.
+
+    Notes
+    -----
+    When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
+    by its maximum value.
     """
     from scipy import linalg
 
@@ -444,10 +449,7 @@ def sensitivity_map(
     convert_forward_solution(
         fwd, surf_ori=True, force_fixed=False, copy=False, verbose=False
     )
-    if not fwd["surf_ori"] or is_fixed_orient(fwd):
-        raise RuntimeError(
-            "Error converting solution, please notify " "mne-python developers"
-        )
+    assert fwd["surf_ori"] and not is_fixed_orient(fwd)
 
     gain = fwd["sol"]["data"]
 
@@ -477,8 +479,9 @@ def sensitivity_map(
     elif mode in residual_types:
         raise ValueError("No projectors used, cannot compute %s" % mode)
 
-    n_sensors, n_dipoles = gain.shape
+    _, n_dipoles = gain.shape
     n_locations = n_dipoles // 3
+    del n_dipoles
     sensitivity_map = np.empty(n_locations)
 
     for k in range(n_locations):
