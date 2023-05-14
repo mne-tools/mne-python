@@ -1081,14 +1081,14 @@ html_context = {
             name="AE Studio",
             img="AE-Studio-light.svg",
             url="https://ae.studio/",
-            size=lg,
+            size=xl,
             klass="only-light",
         ),
         dict(
             name="AE Studio",
             img="AE-Studio-dark.svg",
             url="https://ae.studio/",
-            size=lg,
+            size=xl,
             klass="only-dark",
         ),
         dict(
