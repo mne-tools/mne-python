@@ -44,7 +44,6 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import get_backend
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
@@ -75,14 +74,6 @@ from .utils import (
 )
 
 name = "matplotlib"
-plt.ion()
-BACKEND = get_backend()
-#   This  ↑↑↑↑↑↑↑↑↑↑↑↑↑  does weird things:
-#   https://github.com/matplotlib/matplotlib/issues/23298
-#   but wrapping it in ion() context makes it go away (can't actually use
-#   `with plt.ion()` as context manager, though, for compat reasons).
-#   Moving this bit to a separate function in ../../fixes.py doesn't work.
-plt.ioff()
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -2350,14 +2341,14 @@ def _get_n_figs():
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
-    from matplotlib import rc_context
+    from matplotlib import get_backend, rc_context
 
     title = kwargs.pop("window_title", None)  # extract title before init
     rc = dict() if toolbar else dict(toolbar="none")
     with rc_context(rc=rc):
         fig = plt.figure(FigureClass=FigureClass, **kwargs)
     # BACKEND defined globally at the top of this file
-    fig.mne.backend = BACKEND
+    fig.mne.backend = get_backend()
     if title is not None:
         _set_window_title(fig, title)
     # add event callbacks
