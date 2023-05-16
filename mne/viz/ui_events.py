@@ -103,7 +103,6 @@ def _get_event_channel(fig):
         # deleted. This is a good time to set this up.
         def delete_event_channel(event=None):
             """Delete the event channel (callback function)."""
-            print("closing")
             publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
             unlink(fig)  # Remove channel from the _event_channel_links dict
             if fig in _event_channels:
@@ -115,7 +114,7 @@ def _get_event_channel(fig):
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
         elif isinstance(fig, Brain):
-            fig._renderer._window.signal_close.connect(delete_event_channel)
+            fig._renderer._window_close_connect(delete_event_channel)
         else:
             raise NotImplementedError("This figure type is not support yet.")
 
