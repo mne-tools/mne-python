@@ -1082,6 +1082,7 @@ html_context = {
             img="Macquarie.svg",
             url="https://www.mq.edu.au/",
             size=lg,
+            klass="only-light",
         ),
         dict(
             name="Macquarie University",
