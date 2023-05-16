@@ -1078,6 +1078,19 @@ html_context = {
             klass="only-dark",
         ),
         dict(
+            name="Macquarie University",
+            img="Macquarie.svg",
+            url="https://www.mq.edu.au/",
+            size=lg,
+        ),
+        dict(
+            name="Macquarie University",
+            img="Macquarie-dark.svg",
+            url="https://www.mq.edu.au/",
+            size=lg,
+            klass="only-dark",
+        ),
+        dict(
             name="AE Studio",
             img="AE-Studio-light.svg",
             url="https://ae.studio/",
