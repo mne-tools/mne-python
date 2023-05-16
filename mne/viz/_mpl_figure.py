@@ -77,6 +77,10 @@ from .utils import (
 name = "matplotlib"
 with plt.ion():
     BACKEND = get_backend()
+#   This      ↑↑↑↑↑↑↑↑↑↑↑↑↑ does weird things:
+#   https://github.com/matplotlib/matplotlib/issues/23298
+#   but wrapping it in ion() context makes it go away.
+#   Moving this bit to a separate function in ../../fixes.py doesn't work.
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
