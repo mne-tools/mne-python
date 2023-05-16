@@ -44,6 +44,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import get_backend
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
@@ -74,6 +75,8 @@ from .utils import (
 )
 
 name = "matplotlib"
+with plt.ion():
+    BACKEND = get_backend()
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -2341,14 +2344,14 @@ def _get_n_figs():
 
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
-    from matplotlib import get_backend, rc_context
+    from matplotlib import rc_context
 
     title = kwargs.pop("window_title", None)  # extract title before init
     rc = dict() if toolbar else dict(toolbar="none")
     with rc_context(rc=rc):
         fig = plt.figure(FigureClass=FigureClass, **kwargs)
     # BACKEND defined globally at the top of this file
-    fig.mne.backend = get_backend()
+    fig.mne.backend = BACKEND
     if title is not None:
         _set_window_title(fig, title)
     # add event callbacks
