@@ -53,3 +53,4 @@ from . import ieeg
 from ._css import cortical_signal_suppression
 from .hfc import compute_proj_hfc
 from . import eyetracking
+from . import _lof
