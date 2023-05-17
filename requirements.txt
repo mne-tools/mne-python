@@ -43,3 +43,4 @@ mne-qt-browser
 darkdetect
 qdarkstyle
 threadpoolctl
+scikit-learn>=1.2.0

@@ -14,6 +14,7 @@ raw_fname = base_dir / "test_raw.fif"
 
 @pytest.mark.parametrize(argnames="n_neighbors", argvalues=(8, 10, 20, 30))
 def test_lof_picks(n_neighbors):
+    """Test channel type picks for LOF."""
     raw = read_raw_fif(raw_fname, allow_maxshield=True).crop(0.5, 6).load_data()
     try:
         _lof.find_bad_channels_lof(raw, n_neighbors)
@@ -23,9 +24,10 @@ def test_lof_picks(n_neighbors):
 
 @pytest.mark.parametrize(argnames="n_neighbors", argvalues=(8, 10, 20, 30))
 def test_lof(n_neighbors):
+    """Test LOF detection."""
     raw = read_raw_fif(raw_fname, allow_maxshield=True).crop(0.5, None).load_data()
     raw_lof = raw.copy().pick_types(meg="mag", eeg=False, eog=False)
-    bad_channel_indices = _lof.find_bad_channels_lof(raw_lof, n_neighbors)
+    _lof.find_bad_channels_lof(raw_lof, n_neighbors)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@ import numpy as np
 from sklearn.neighbors import LocalOutlierFactor
 
 from ..io.base import BaseRaw
-from ..io.pick import _picks_to_idx
 from ..utils import logger, verbose, _validate_type
 
 
@@ -20,9 +19,10 @@ def find_bad_channels_lof(
     return_scores=False,
     verbose=None,
 ):
-    r"""Finds bad channels using Local Outlier Factor (LOF) algorithm.
+    r"""Find bad channels using Local Outlier Factor (LOF) algorithm.
+
     See :footcite:`KumaravelEtAl2022` for background on choosing
-        ``threshold``.
+    `threshold``.
 
     Parameters
     ----------
@@ -72,7 +72,6 @@ def find_bad_channels_lof(
 
     footbibliography:
     """
-
     _validate_type(raw, BaseRaw, "raw")
     # Get the channel types
     channel_types = set(raw.get_channel_types())
