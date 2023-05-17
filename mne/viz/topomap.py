@@ -1705,8 +1705,7 @@ def plot_ica_components(
             fig.canvas.mpl_connect("button_press_event", onclick_topo)
         figs.append(fig)
 
-    for fig in figs:
-        plt_show(show, fig)
+    plt_show(show)
     return figs[0] if len(figs) == 1 else figs
 
 
