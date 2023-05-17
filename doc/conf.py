@@ -1092,6 +1092,20 @@ html_context = {
             klass="only-dark",
         ),
         dict(
+            name="AE Studio",
+            img="AE-Studio-light.svg",
+            url="https://ae.studio/",
+            size=xxl,
+            klass="only-light",
+        ),
+        dict(
+            name="AE Studio",
+            img="AE-Studio-dark.svg",
+            url="https://ae.studio/",
+            size=xxl,
+            klass="only-dark",
+        ),
+        dict(
             name="Children’s Hospital of Philadelphia Research Institute",
             img="CHOP.svg",
             url="https://www.research.chop.edu/imaging",
