@@ -1,12 +1,3 @@
-.. NOTE: we are now using links to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
-
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Changelog" for new features
-   - "Bug" for bug fixes
-   - "API" for backward-incompatible changes
-
 .. _changes_0_20:
 
 Version 0.20 (2020-03-27)
@@ -263,7 +254,7 @@ Bug
 
 - Fix the automatic scaling of the glyphs in :func:`mne.viz.plot_vector_source_estimates` by using 10% of the brain width, by `Guillaume Favelier`_
 
-- Fix handling of missing values (NaNs) in :func:`mne.time_frequency.psd_welch` by `Clemens Brunner`_
+- Fix handling of missing values (NaNs) in ``mne.time_frequency.psd_welch`` by `Clemens Brunner`_
 
 - Fix :class:`mne.decoding.LinearModel` to support the refitted estimator of ``GridSearchCV`` in ``sklearn`` by `Chun-Hui Li`_
 

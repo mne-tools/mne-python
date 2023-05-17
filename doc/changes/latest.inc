@@ -18,7 +18,7 @@
 
 .. _current:
 
-Current (1.3.dev0)
+Current (1.5.dev0)
 ------------------
 
 Enhancements
@@ -27,7 +27,8 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bug with :func:`mne.forward.restrict_forward_to_label` where cortical patch information was not adjusted (:gh:`11694` by `Eric Larson`_)
+- Fix hanging interpreter with matplotlib figures using ``mne/viz/_mpl_figure.py`` in spyder console and jupyter notebooks`(:gh:`11696` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~

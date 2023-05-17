@@ -10,6 +10,7 @@ Events
    Annotations
    AcqParserFIF
    concatenate_events
+   count_events
    find_events
    find_stim_steps
    make_fixed_length_events

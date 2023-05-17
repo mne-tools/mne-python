@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-whitened:
 
@@ -29,18 +28,25 @@ from mne.datasets import sample
 #           you can press they "w" key to turn whitening on and off.
 
 data_path = sample.data_path()
-raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
+raw_fname = data_path / "MEG" / "sample" / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
-events = mne.find_events(raw, stim_channel='STI 014')
-event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-            'visual/right': 4, 'smiley': 5, 'button': 32}
+events = mne.find_events(raw, stim_channel="STI 014")
+event_id = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+    "smiley": 5,
+    "button": 32,
+}
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id=event_id, reject=reject)
 
 # baseline noise cov, not a lot of samples
-noise_cov = mne.compute_covariance(epochs, tmax=0., method='shrunk', rank=None,
-                                   verbose='error')
+noise_cov = mne.compute_covariance(
+    epochs, tmax=0.0, method="shrunk", rank=None, verbose="error"
+)
 
 # butterfly mode shows the differences most clearly
 raw.plot(events=events, butterfly=True)
@@ -57,8 +63,8 @@ epochs.plot(noise_cov=noise_cov)
 # --------------------------
 
 evoked = epochs.average()
-evoked.plot(time_unit='s')
-evoked.plot(noise_cov=noise_cov, time_unit='s')
+evoked.plot(time_unit="s")
+evoked.plot(noise_cov=noise_cov, time_unit="s")
 
 # %%
 # Evoked data with scaled whitening
@@ -67,12 +73,12 @@ evoked.plot(noise_cov=noise_cov, time_unit='s')
 # scaling the whitened plots to show how well the assumption of Gaussian
 # noise is satisfied by the data:
 
-evoked.plot_white(noise_cov=noise_cov, time_unit='s')
+evoked.plot_white(noise_cov=noise_cov, time_unit="s")
 
 # %%
 # Topographic plot with whitening
 # -------------------------------
 
-evoked.comment = 'All trials'
-evoked.plot_topo(title='Evoked data')
-evoked.plot_topo(noise_cov=noise_cov, title='Whitened evoked data')
+evoked.comment = "All trials"
+evoked.plot_topo(title="Evoked data")
+evoked.plot_topo(noise_cov=noise_cov, title="Whitened evoked data")

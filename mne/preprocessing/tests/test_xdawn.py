@@ -3,24 +3,30 @@
 #
 # License: BSD-3-Clause
 
-import numpy as np
-import os.path as op
+from pathlib import Path
 
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose)
+import numpy as np
+
+from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 import pytest
 from scipy import linalg, stats
 
-from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
-                 create_info, EpochsArray)
+from mne import (
+    Epochs,
+    read_events,
+    pick_types,
+    compute_raw_covariance,
+    create_info,
+    EpochsArray,
+)
 from mne.decoding import Vectorizer
 from mne.io import read_raw_fif
 from mne.utils import requires_sklearn
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
+raw_fname = base_dir / "test_raw.fif"
+event_name = base_dir / "test-eve.fif"
 
 tmin, tmax = -0.1, 0.2
 event_id = dict(cond2=2, cond3=3)
@@ -31,29 +37,29 @@ def _get_data():
     raw = read_raw_fif(raw_fname, verbose=False, preload=True)
     raw.set_eeg_reference(projection=True)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=False, eeg=True, stim=False,
-                       ecg=False, eog=False,
-                       exclude='bads')[::8]
+    picks = pick_types(
+        raw.info, meg=False, eeg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )[::8]
     return raw, events, picks
 
 
 def test_xdawn():
     """Test init of xdawn."""
     # Init xdawn with good parameters
-    Xdawn(n_components=2, correct_overlap='auto', signal_cov=None, reg=None)
+    Xdawn(n_components=2, correct_overlap="auto", signal_cov=None, reg=None)
     # Init xdawn with bad parameters
-    pytest.raises(ValueError, Xdawn, correct_overlap='foo')
+    pytest.raises(ValueError, Xdawn, correct_overlap="foo")
 
 
 def test_xdawn_picks():
     """Test picking with Xdawn."""
     data = np.random.RandomState(0).randn(10, 2, 10)
-    info = create_info(2, 1000., ('eeg', 'misc'))
+    info = create_info(2, 1000.0, ("eeg", "misc"))
     epochs = EpochsArray(data, info)
     xd = Xdawn(correct_overlap=False)
     xd.fit(epochs)
-    epochs_out = xd.apply(epochs)['1']
-    assert epochs_out.info['ch_names'] == epochs.ch_names
+    epochs_out = xd.apply(epochs)["1"]
+    assert epochs_out.info["ch_names"] == epochs.ch_names
     assert not (epochs_out.get_data()[:, 0] != data[:, 0]).any()
     assert_array_equal(epochs_out.get_data()[:, 1], data[:, 1])
 
@@ -63,46 +69,60 @@ def test_xdawn_fit():
     # Get data
     raw, events, picks = _get_data()
     raw.del_proj()
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        preload=True,
+        baseline=None,
+        verbose=False,
+    )
     # =========== Basic Fit test =================
     # Test base xdawn
-    xd = Xdawn(n_components=2, correct_overlap='auto')
+    xd = Xdawn(n_components=2, correct_overlap="auto")
     xd.fit(epochs)
     # With these parameters, the overlap correction must be False
     assert not xd.correct_overlap_
     # No overlap correction should give averaged evoked
-    evoked = epochs['cond2'].average()
-    assert_array_equal(evoked.data, xd.evokeds_['cond2'].data)
+    evoked = epochs["cond2"].average()
+    assert_array_equal(evoked.data, xd.evokeds_["cond2"].data)
 
-    assert_allclose(np.linalg.norm(xd.filters_['cond2'], axis=1), 1)
+    assert_allclose(np.linalg.norm(xd.filters_["cond2"], axis=1), 1)
 
     # ========== with signal cov provided ====================
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov)
+    xd = Xdawn(n_components=2, correct_overlap=False, signal_cov=signal_cov)
     xd.fit(epochs)
     # Provide ndarray
     signal_cov = np.eye(len(picks))
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov)
+    xd = Xdawn(n_components=2, correct_overlap=False, signal_cov=signal_cov)
     xd.fit(epochs)
     # Provide ndarray of bad shape
     signal_cov = np.eye(len(picks) - 1)
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov)
+    xd = Xdawn(n_components=2, correct_overlap=False, signal_cov=signal_cov)
     pytest.raises(ValueError, xd.fit, epochs)
     # Provide another type
     signal_cov = 42
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=signal_cov)
+    xd = Xdawn(n_components=2, correct_overlap=False, signal_cov=signal_cov)
     pytest.raises(ValueError, xd.fit, epochs)
     # Fit with baseline correction and overlap correction should throw an
     # error
     # XXX This is a buggy test, the epochs here don't overlap
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=(None, 0), verbose=False)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        preload=True,
+        baseline=(None, 0),
+        verbose=False,
+    )
 
     xd = Xdawn(n_components=2, correct_overlap=True)
     pytest.raises(ValueError, xd.fit, epochs)
@@ -113,9 +133,17 @@ def test_xdawn_apply_transform():
     # Get data
     raw, events, picks = _get_data()
     raw.pick_types(eeg=True, meg=False)
-    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
-                    preload=True, baseline=None,
-                    verbose=False)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        proj=False,
+        preload=True,
+        baseline=None,
+        verbose=False,
+    )
     n_components = 2
     # Fit Xdawn
     xd = Xdawn(n_components=n_components, correct_overlap=False)
@@ -143,8 +171,7 @@ def test_xdawn_apply_transform():
     np.random.shuffle(idx)
     xd.fit(epochs[idx])
     denoise_shfl = xd.apply(epochs)
-    assert_array_almost_equal(denoise['cond2']._data,
-                              denoise_shfl['cond2']._data)
+    assert_array_almost_equal(denoise["cond2"]._data, denoise_shfl["cond2"]._data)
 
 
 @requires_sklearn
@@ -153,14 +180,15 @@ def test_xdawn_regularization():
     # Get data, this time MEG so we can test proper reg/ch type support
     raw = read_raw_fif(raw_fname, verbose=False, preload=True)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                       ecg=False, eog=False,
-                       exclude='bads')[::8]
+    picks = pick_types(
+        raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
+    )[::8]
     raw.pick_channels([raw.ch_names[pick] for pick in picks])
     del picks
     raw.info.normalize_proj()
-    epochs = Epochs(raw, events, event_id, tmin, tmax,
-                    preload=True, baseline=None, verbose=False)
+    epochs = Epochs(
+        raw, events, event_id, tmin, tmax, preload=True, baseline=None, verbose=False
+    )
 
     # Test with overlapping events.
     # modify events to simulate one overlap
@@ -170,28 +198,36 @@ def test_xdawn_regularization():
     modified_event[0] += 1
     epochs.events[sel[1]] = modified_event
     # Fit and check that overlap was found and applied
-    xd = Xdawn(n_components=2, correct_overlap='auto', reg='oas')
+    xd = Xdawn(n_components=2, correct_overlap="auto", reg="oas")
     xd.fit(epochs)
     assert xd.correct_overlap_
-    evoked = epochs['cond2'].average()
-    assert np.sum(np.abs(evoked.data - xd.evokeds_['cond2'].data))
+    evoked = epochs["cond2"].average()
+    assert np.sum(np.abs(evoked.data - xd.evokeds_["cond2"].data))
 
     # With covariance regularization
-    for reg in [.1, 0.1, 'ledoit_wolf', 'oas']:
-        xd = Xdawn(n_components=2, correct_overlap=False,
-                   signal_cov=np.eye(len(epochs.ch_names)), reg=reg)
+    for reg in [0.1, 0.1, "ledoit_wolf", "oas"]:
+        xd = Xdawn(
+            n_components=2,
+            correct_overlap=False,
+            signal_cov=np.eye(len(epochs.ch_names)),
+            reg=reg,
+        )
         xd.fit(epochs)
     # With bad shrinkage
-    xd = Xdawn(n_components=2, correct_overlap=False,
-               signal_cov=np.eye(len(epochs.ch_names)), reg=2)
-    with pytest.raises(ValueError, match='shrinkage must be'):
+    xd = Xdawn(
+        n_components=2,
+        correct_overlap=False,
+        signal_cov=np.eye(len(epochs.ch_names)),
+        reg=2,
+    )
+    with pytest.raises(ValueError, match="shrinkage must be"):
         xd.fit(epochs)
     # With rank-deficient input
     # this is a bit wacky because `epochs` has projectors on from the old raw
     # but it works as a rank-deficient test case
     xd = Xdawn(correct_overlap=False, reg=0.5)
     xd.fit(epochs)
-    xd = Xdawn(correct_overlap=False, reg='diagonal_fixed')
+    xd = Xdawn(correct_overlap=False, reg="diagonal_fixed")
     xd.fit(epochs)
     # XXX in principle this should maybe raise an error due to deficiency?
     # xd = Xdawn(correct_overlap=False, reg=None)
@@ -205,15 +241,24 @@ def test_XdawnTransformer():
     # Get data
     raw, events, picks = _get_data()
     raw.del_proj()
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    preload=True, baseline=None, verbose=False)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        preload=True,
+        baseline=None,
+        verbose=False,
+    )
     X = epochs._data
     y = epochs.events[:, -1]
     # Fit
     xdt = _XdawnTransformer()
     xdt.fit(X, y)
     pytest.raises(ValueError, xdt.fit, X, y[1:])
-    pytest.raises(ValueError, xdt.fit, 'foo')
+    pytest.raises(ValueError, xdt.fit, "foo")
 
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
@@ -242,8 +287,9 @@ def test_XdawnTransformer():
 
     xdt = _XdawnTransformer()
     xdt.fit(X, y)
-    assert_array_almost_equal(xd.filters_['cond2'][:2, :],
-                              xdt.filters_.reshape(2, 2, 8)[0])
+    assert_array_almost_equal(
+        xd.filters_["cond2"][:2, :], xdt.filters_.reshape(2, 2, 8)[0]
+    )
 
     # Transform testing
     xdt.transform(X[1:, ...])  # different number of epochs
@@ -264,18 +310,18 @@ def test_XdawnTransformer():
 
 def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     rng = np.random.RandomState(42)
-    tmin, tmax = 0., 1.
-    sfreq = 100.
+    tmin, tmax = 0.0, 1.0
+    sfreq = 100.0
     informative_ch_idx = 0
 
     y = rng.randint(0, 2, n_epochs)
     n_times = int((tmax - tmin) * sfreq)
     epoch_times = np.linspace(tmin, tmax, n_times)
 
-    target_template = 1e-6 * (epoch_times - tmax) * np.sin(
-        2 * np.pi * epoch_times)
-    nontarget_template = 0.7e-6 * (epoch_times - tmax) * np.sin(
-        2 * np.pi * (epoch_times - 0.1))
+    target_template = 1e-6 * (epoch_times - tmax) * np.sin(2 * np.pi * epoch_times)
+    nontarget_template = (
+        0.7e-6 * (epoch_times - tmax) * np.sin(2 * np.pi * (epoch_times - 0.1))
+    )
 
     epoch_data = rng.randn(n_epochs, n_channels, n_times) * 5e-7
     epoch_data[y == 0, informative_ch_idx, :] += nontarget_template
@@ -289,12 +335,13 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     events[:, 2] = y
 
     info = create_info(
-        ch_names=['C{:02d}'.format(i) for i in range(n_channels)],
-        ch_types=['eeg'] * n_channels,
-        sfreq=sfreq)
-    epochs = EpochsArray(mixed_epoch_data, info, events,
-                         tmin=tmin,
-                         event_id={'nt': 0, 't': 1})
+        ch_names=["C{:02d}".format(i) for i in range(n_channels)],
+        ch_types=["eeg"] * n_channels,
+        sfreq=sfreq,
+    )
+    epochs = EpochsArray(
+        mixed_epoch_data, info, events, tmin=tmin, event_id={"nt": 0, "t": 1}
+    )
 
     return epochs, mixing_mat
 
@@ -319,17 +366,17 @@ def test_xdawn_decoding_performance():
         Xdawn(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(solver='liblinear'))
+        LogisticRegression(solver="liblinear"),
+    )
     xdawn_trans_pipe = make_pipeline(
         _XdawnTransformer(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(solver='liblinear'))
+        LogisticRegression(solver="liblinear"),
+    )
 
     cv = KFold(n_splits=3, shuffle=False)
-    for pipe, X in (
-            (xdawn_pipe, epochs),
-            (xdawn_trans_pipe, epochs.get_data())):
+    for pipe, X in ((xdawn_pipe, epochs), (xdawn_trans_pipe, epochs.get_data())):
         predictions = np.empty_like(y, dtype=float)
         for train, test in cv.split(X, y):
             pipe.fit(X[train], y[train])
@@ -342,7 +389,8 @@ def test_xdawn_decoding_performance():
         fitted_xdawn = pipe.steps[0][1]
         if isinstance(fitted_xdawn, Xdawn):
             relev_patterns = np.concatenate(
-                [comps[[0]] for comps in fitted_xdawn.patterns_.values()])
+                [comps[[0]] for comps in fitted_xdawn.patterns_.values()]
+            )
         else:
             relev_patterns = fitted_xdawn.patterns_[::n_xdawn_comps]
 

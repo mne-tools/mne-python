@@ -1,21 +1,3 @@
-.. NOTE: we use cross-references to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
-
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Enhancements" for new features
-   - "Bugs" for bug fixes
-   - "API changes" for backward-incompatible changes
-
-.. NOTE: changes from first-time contributors should be added to the TOP of
-   the relevant section (Enhancements / Bugs / API changes), and should look
-   like this (where xxxx is the pull request number):
-
-       - description of enhancement/bugfix/API change (:gh:`xxxx` by
-         :newcontrib:`Firstname Lastname`)
-
-   Also add a corresponding entry for yourself in doc/changes/names.inc
-
 .. _changes_1_2_0:
 
 Version 1.2.0 (2022-10-11)
@@ -55,7 +37,7 @@ Enhancements
 Bugs
 ~~~~
 - Fix bug in :meth:`mne.io.Raw.crop` where argument ``include_tmax`` was not considered in checking ``tmax`` in bounds (:gh:`11196` by `Lukas Gemein`_)
-- Fix bug in :func:`mne.io.read_raw_eeglab` where unlabeled fiducials causde reading errors (:gh:`11074` by :newcontrib:`Sebastiaan Mathot`)
+- Fix bug in :func:`mne.io.read_raw_eeglab` where unlabeled fiducials caused reading errors (:gh:`11074` by :newcontrib:`Sebastiaan Mathot`)
 - Fix bug in :func:`mne.time_frequency.read_csd` that returned ``projs`` as a list of dict instead of :class:`mne.Projection` (:gh:`11072` by :newcontrib:`Chetan Gohil`)
 - Fix bug in :func:`mne.decoding.TimeFrequency` that prevented cloning if constructor arguments were modified (:gh:`11004` by :newcontrib:`Daniel Carlström Schad`)
 - Fix bug in ``repr`` of decoding estimator classes (e.g., :class:`mne.decoding.SlidingEstimator`) where the parameters where not stored in the result string but instead just printed to ``sys.stdout`` (:gh:`11190` by :newcontrib:`Dominik Wetzel`)

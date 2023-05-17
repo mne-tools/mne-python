@@ -57,6 +57,8 @@ exclude tools
 exclude Makefile
 exclude .coveragerc
 exclude *.yml
+exclude *.yaml
+exclude .git-blame-ignore-revs
 exclude ignore_words.txt
 exclude .mailmap
 exclude codemeta.json

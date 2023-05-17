@@ -1,12 +1,3 @@
-.. NOTE: we are now using links to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
-
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Enhancements" for new features
-   - "Bugs" for bug fixes
-   - "API changes" for backward-incompatible changes
-
 .. _changes_0_21:
 
 Version 0.21 (2020-09-21)
@@ -124,7 +115,7 @@ Enhancements
 
 - Speed up and reduce memory usage of :meth:`mne.SourceEstimate.plot` and related functions/methods when ``show_traces=True`` by `Eric Larson`_
 
-- Reduce memory usage of `~mne.io.Raw.plot_psd`, `~mne.time_frequency.psd_welch`, and `~mne.time_frequency.psd_array_welch` for long segments of data by `Eric Larson`_
+- Reduce memory usage of `~mne.io.Raw.plot_psd`, ``mne.time_frequency.psd_welch``, and `~mne.time_frequency.psd_array_welch` for long segments of data by `Eric Larson`_
 
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 

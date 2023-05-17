@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-ssp:
 
@@ -22,8 +21,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import mne
-from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
-                               compute_proj_ecg, compute_proj_eog)
+from mne.preprocessing import (
+    create_eog_epochs,
+    create_ecg_epochs,
+    compute_proj_ecg,
+    compute_proj_eog,
+)
 
 # %%
 # .. note::
@@ -33,7 +36,6 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 #     enough you may not even need to repair them to get good analysis results.
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
-#
 #
 # What is SSP?
 # ^^^^^^^^^^^^
@@ -67,8 +69,9 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 # output when loading the data:
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 # here we crop and resample just for speed
 raw = mne.io.read_raw_fif(sample_data_raw_file).crop(0, 60)
 raw.load_data().resample(100)
@@ -83,11 +86,10 @@ raw.load_data().resample(100)
 # system-provided SSP projectors (saving them first, for later comparison with
 # the custom ones):
 
-system_projs = raw.info['projs']
+system_projs = raw.info["projs"]
 raw.del_proj()
-empty_room_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                               'ernoise_raw.fif')
-# cropped to 60 sec just for speed
+empty_room_file = os.path.join(sample_data_folder, "MEG", "sample", "ernoise_raw.fif")
+# cropped to 60 s just for speed
 empty_room_raw = mne.io.read_raw_fif(empty_room_file).crop(0, 30)
 
 # %%
@@ -104,8 +106,9 @@ empty_room_raw.del_proj()
 # individual spectrum for each sensor, or an average (with confidence band)
 # across sensors:
 
+spectrum = empty_room_raw.compute_psd()
 for average in (False, True):
-    empty_room_raw.plot_psd(average=average, dB=False, xscale='log')
+    spectrum.plot(average=average, dB=False, xscale="log", picks="data", exclude="bads")
 
 # %%
 # Creating the empty-room projectors
@@ -121,8 +124,9 @@ for average in (False, True):
 # projector, you must also provide the corresponding `~mne.Info` object:
 
 empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
-mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True, vlim='joint',
-                           info=empty_room_raw.info)
+mne.viz.plot_projs_topomap(
+    empty_room_projs, colorbar=True, vlim="joint", info=empty_room_raw.info
+)
 
 # %%
 # Notice that the gradiometer-based projectors seem to reflect problems with
@@ -136,8 +140,9 @@ mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True, vlim='joint',
 
 fig, axs = plt.subplots(2, 3)
 for idx, _projs in enumerate([system_projs, empty_room_projs[3:]]):
-    mne.viz.plot_projs_topomap(_projs, axes=axs[idx], colorbar=True,
-                               vlim='joint', info=empty_room_raw.info)
+    mne.viz.plot_projs_topomap(
+        _projs, axes=axs[idx], colorbar=True, vlim="joint", info=empty_room_raw.info
+    )
 
 # %%
 # Visualizing how projectors affect the signal
@@ -151,14 +156,16 @@ for idx, _projs in enumerate([system_projs, empty_room_projs[3:]]):
 # without needing to copy the data. Because the projectors are so similar, we
 # need to zoom in pretty close on the data to see any differences:
 
-mags = mne.pick_types(raw.info, meg='mag')
-for title, projs in [('system', system_projs),
-                     ('subject-specific', empty_room_projs[3:])]:
+mags = mne.pick_types(raw.info, meg="mag")
+for title, projs in [
+    ("system", system_projs),
+    ("subject-specific", empty_room_projs[3:]),
+]:
     raw.add_proj(projs, remove_existing=True)
-    with mne.viz.use_browser_backend('matplotlib'):
+    with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle('{} projectors'.format(title), size='xx-large', weight='bold')
+    fig.suptitle("{} projectors".format(title), size="xx-large", weight="bold")
 
 # %%
 # The effect is sometimes easier to see on averaged data. Here we use an
@@ -167,20 +174,22 @@ for title, projs in [('system', system_projs),
 # work on the tutorial website, but you can download the tutorial and try it
 # locally:
 
-events = mne.find_events(raw, stim_channel='STI 014')
-event_id = {'auditory/left': 1}
+events = mne.find_events(raw, stim_channel="STI 014")
+event_id = {"auditory/left": 1}
 
 # NOTE: appropriate rejection criteria are highly data-dependent
-reject = dict(mag=4000e-15,     # 4000 fT
-              grad=4000e-13,    # 4000 fT/cm
-              eeg=150e-6,       # 150 µV
-              eog=250e-6)       # 250 µV
+reject = dict(
+    mag=4000e-15,  # 4000 fT
+    grad=4000e-13,  # 4000 fT/cm
+    eeg=150e-6,  # 150 µV
+    eog=250e-6,
+)  # 250 µV
 
 # time range where we expect to see the auditory N100: 50-150 ms post-stimulus
 times = np.linspace(0.05, 0.15, 5)
 
-epochs = mne.Epochs(raw, events, event_id, proj='delayed', reject=reject)
-fig = epochs.average().plot_topomap(times, proj='interactive')
+epochs = mne.Epochs(raw, events, event_id, proj="delayed", reject=reject)
+fig = epochs.average().plot_topomap(times, proj="interactive")
 
 # %%
 # Plotting the ERP/F using ``evoked.plot()`` or ``evoked.plot_joint()`` with
@@ -199,7 +208,7 @@ fig = epochs.average().plot_topomap(times, proj='interactive')
 # the raw data:
 
 # pick some channels that clearly show heartbeats and blinks
-regexp = r'(MEG [12][45][123]1|EEG 00.)'
+regexp = r"(MEG [12][45][123]1|EEG 00.)"
 artifact_picks = mne.pick_channels_regexp(raw.ch_names, regexp=regexp)
 raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 
@@ -275,8 +284,8 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 # ideally here we would just do `picks_trace='ecg'`, but this dataset did not
 # have a dedicated ECG channel recorded, so we just pick a channel that was
 # very sensitive to the artifact
-fig = mne.viz.plot_projs_joint(ecg_projs, ecg_evoked, picks_trace='MEG 0111')
-fig.suptitle('ECG projectors')
+fig = mne.viz.plot_projs_joint(ecg_projs, ecg_evoked, picks_trace="MEG 0111")
+fig.suptitle("ECG projectors")
 
 # %%
 # Since no dedicated ECG sensor channel was detected in the
@@ -318,13 +327,12 @@ fig.suptitle('ECG projectors')
 
 
 raw.del_proj()
-for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
+for title, proj in [("Without", empty_room_projs), ("With", ecg_projs)]:
     raw.add_proj(proj, remove_existing=False)
-    with mne.viz.use_browser_backend('matplotlib'):
+    with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle('{} ECG projectors'.format(title), size='xx-large',
-                 weight='bold')
+    fig.suptitle("{} ECG projectors".format(title), size="xx-large", weight="bold")
 
 # %%
 # Finally, note that above we passed ``reject=None`` to the
@@ -373,7 +381,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 # seen above the large deflections in frontal EEG channels in the raw data;
 # here is how the ocular artifacts manifests across all the sensors:
 
-eog_evoked = create_eog_epochs(raw).average(picks='all')
+eog_evoked = create_eog_epochs(raw).average(picks="all")
 eog_evoked.apply_baseline((None, None))
 eog_evoked.plot_joint()
 
@@ -388,8 +396,9 @@ eog_evoked.plot_joint()
 # ignore the events array by assigning it to ``_`` (the conventional way of
 # handling unwanted return elements in Python).
 
-eog_projs, _ = compute_proj_eog(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None,
-                                no_proj=True)
+eog_projs, _ = compute_proj_eog(
+    raw, n_grad=1, n_mag=1, n_eeg=1, reject=None, no_proj=True
+)
 
 # %%
 # Just like with the empty-room and ECG projectors, we can visualize the scalp
@@ -400,8 +409,8 @@ mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 # %%
 # And we can do a joint image:
 
-fig = mne.viz.plot_projs_joint(eog_projs, eog_evoked, 'eog')
-fig.suptitle('EOG projectors')
+fig = mne.viz.plot_projs_joint(eog_projs, eog_evoked, "eog")
+fig.suptitle("EOG projectors")
 
 # %%
 # And finally, we can make a joint visualization with our EOG evoked. We will
@@ -419,24 +428,23 @@ fig.suptitle('EOG projectors')
 #    second PCA trace is very noisy relative to the EOG channel data (yellow).
 
 eog_projs_bad, _ = compute_proj_eog(
-    raw, n_grad=1, n_mag=2, n_eeg=2, reject=None,
-    no_proj=True)
-fig = mne.viz.plot_projs_joint(eog_projs_bad, eog_evoked, picks_trace='eog')
-fig.suptitle('Too many EOG projectors')
+    raw, n_grad=1, n_mag=2, n_eeg=2, reject=None, no_proj=True
+)
+fig = mne.viz.plot_projs_joint(eog_projs_bad, eog_evoked, picks_trace="eog")
+fig.suptitle("Too many EOG projectors")
 
 # %%
 # Now we repeat the plot from above (with empty room and ECG projectors) and
 # compare it to a plot with empty room, ECG, and EOG projectors, to see how
 # well the ocular artifacts have been repaired:
 
-for title in ('Without', 'With'):
-    if title == 'With':
+for title in ("Without", "With"):
+    if title == "With":
         raw.add_proj(eog_projs)
-    with mne.viz.use_browser_backend('matplotlib'):
+    with mne.viz.use_browser_backend("matplotlib"):
         fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
-    fig.suptitle('{} EOG projectors'.format(title), size='xx-large',
-                 weight='bold')
+    fig.suptitle("{} EOG projectors".format(title), size="xx-large", weight="bold")
 
 # %%
 # Notice that the small peaks in the first to magnetometer channels (``MEG
@@ -485,16 +493,19 @@ for title in ('Without', 'With'):
 # example via `evoked.plot() <mne.Evoked.plot>`, here restricted to just
 # EEG channels for speed:
 
-evoked_eeg = epochs.average().pick('eeg')
+evoked_eeg = epochs.average().pick("eeg")
 evoked_eeg.del_proj().add_proj(ecg_projs).add_proj(eog_projs)
 fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharex=True, sharey=True)
-for pi, proj in enumerate((False, True, 'reconstruct')):
+for pi, proj in enumerate((False, True, "reconstruct")):
     ax = axes[pi]
     evoked_eeg.plot(proj=proj, axes=ax, spatial_colors=True)
-    parts = ax.get_title().split('(')
-    ylabel = (f'{parts[0]} ({ax.get_ylabel()})\n{parts[1].replace(")", "")}'
-              if pi == 0 else '')
-    ax.set(ylabel=ylabel, title=f'proj={proj}')
+    parts = ax.get_title().split("(")
+    ylabel = (
+        f'{parts[0]} ({ax.get_ylabel()})\n{parts[1].replace(")", "")}'
+        if pi == 0
+        else ""
+    )
+    ax.set(ylabel=ylabel, title=f"proj={proj}")
     ax.yaxis.set_tick_params(labelbottom=True)
     for text in list(ax.texts):
         text.remove()

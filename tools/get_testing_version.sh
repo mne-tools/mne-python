@@ -1,6 +1,8 @@
-#!/bin/bash -ef
+#!/bin/bash -e
 
-TESTING_VERSION=`grep -o "testing='[0-9.]\+'" mne/datasets/config.py | cut -d \' -f 2 | sed "s/\./-/g"`
+set -o pipefail
+
+TESTING_VERSION=`grep -o "testing=\"[0-9.]\+\"" mne/datasets/config.py | cut -d \" -f 2 | sed "s/\./-/g"`
 # This can be incremented to start fresh when the cache misbehaves, e.g.:
 # TESTING_VERSION=${TESTING_VERSION}-1
 if [ ! -z $GITHUB_ENV ]; then

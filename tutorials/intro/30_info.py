@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-info-class:
 
@@ -20,8 +19,9 @@ We will begin by loading the Python modules we need, and loading the same
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_filt-0-40_raw.fif')
+sample_data_raw_file = (
+    sample_data_folder / "MEG" / "sample" / "sample_audvis_filt-0-40_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # %%
@@ -64,7 +64,7 @@ print(info)
 
 print(info.keys())
 print()  # insert a blank line
-print(info['ch_names'])
+print(info["ch_names"])
 
 # %%
 # Most of the fields contain :class:`int`, :class:`float`, or :class:`list`
@@ -76,7 +76,7 @@ print(info['ch_names'])
 # list of dicts yourself — but it can be helpful to know what is in there. Here
 # we show the keys for the first channel's :class:`dict`:
 
-print(info['chs'][0].keys())
+print(info["chs"][0].keys())
 
 # %%
 # .. _picking_channels:
@@ -93,10 +93,9 @@ print(info['chs'][0].keys())
 # list of channel names to include; it is also possible to provide an empty
 # list to ``include`` and specify which channels to ``exclude`` instead:
 
-print(mne.pick_channels(info['ch_names'], include=['MEG 0312', 'EEG 005']))
+print(mne.pick_channels(info["ch_names"], include=["MEG 0312", "EEG 005"]))
 
-print(mne.pick_channels(info['ch_names'], include=[],
-                        exclude=['MEG 0312', 'EEG 005']))
+print(mne.pick_channels(info["ch_names"], include=[], exclude=["MEG 0312", "EEG 005"]))
 
 # %%
 # :func:`~mne.pick_types` works differently, since channel type cannot always
@@ -124,7 +123,7 @@ print(mne.pick_types(info, meg=False, eeg=True, exclude=[]))
 # the string and ``.`` character matches any single character, so both EEG and
 # EOG channels will be selected:
 
-print(mne.pick_channels_regexp(info['ch_names'], '^E.G'))
+print(mne.pick_channels_regexp(info["ch_names"], "^E.G"))
 
 # %%
 # :func:`~mne.pick_channels_regexp` can be especially useful for channels named
@@ -168,7 +167,7 @@ print(raw.get_channel_types(picks=picks))
 
 ch_idx_by_type = mne.channel_indices_by_type(info)
 print(ch_idx_by_type.keys())
-print(ch_idx_by_type['eog'])
+print(ch_idx_by_type["eog"])
 
 # %%
 # Dropping channels from an ``Info`` object
@@ -178,9 +177,9 @@ print(ch_idx_by_type['eog'])
 # channels in it, you can use the :func:`mne.pick_info` function to pick the
 # channels you want to keep and omit the rest:
 
-print(info['nchan'])
+print(info["nchan"])
 eeg_indices = mne.pick_types(info, meg=False, eeg=True)
-print(mne.pick_info(info, eeg_indices)['nchan'])
+print(mne.pick_info(info, eeg_indices)["nchan"])
 
 # %%
 # We can also get a nice HTML representation in IPython like:

@@ -63,7 +63,7 @@ MNE-Python, including packages for:
 - automatic multi-dipole localization and uncertainty quantification with
   the Bayesian algorithm SESAME (`sesameeg`_)
 - GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
-- M/EEG inverse solutions using artificial neural networks (`ESINet`_)
+- High-level EEG Python library for all kinds of EEG inverse solutions (`invertmeeg`_)
 - All-Resolutions Inference (ARI) for statistically valid circular inference
   and effect localization (`MNE-ARI`_)
 
@@ -110,5 +110,5 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _pyprep: https://github.com/sappelhoff/pyprep
 .. _sesameeg: https://pybees.github.io/sesameeg
 .. _mne-nirs: https://github.com/mne-tools/mne-nirs
-.. _ESINet: https://github.com/LukeTheHecker/ESINet
+.. _invertmeeg: https://github.com/LukeTheHecker/invert
 .. _MNE-ARI: https://github.com/john-veillette/mne_ari

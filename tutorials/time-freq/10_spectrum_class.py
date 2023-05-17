@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # noqa: E501
 """
 .. _tut-spectrum-class:
@@ -21,8 +20,7 @@ import numpy as np
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
+sample_data_raw_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=60)
 
 # %%
@@ -43,8 +41,7 @@ raw.compute_psd()
 # spectrum from a given span of times, for a chosen frequency range, and for a
 # subset of the available channels:
 
-raw.compute_psd(method='multitaper', tmin=10, tmax=20, fmin=5, fmax=30,
-                picks='eeg')
+raw.compute_psd(method="multitaper", tmin=10, tmax=20, fmin=5, fmax=30, picks="eeg")
 
 # %%
 # You can also pass some parameters to the underlying spectral estimation
@@ -61,15 +58,20 @@ raw.compute_psd(method='multitaper', tmin=10, tmax=20, fmin=5, fmax=30,
 # :meth:`~mne.time_frequency.EpochsSpectrum.get_data` method with an option to
 # return the bin frequencies:
 
-with mne.use_log_level('WARNING'):  # hide some irrelevant info messages
-    events = mne.find_events(raw, stim_channel='STI 014')
-    event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-                  'visual/right': 4}
-    epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
-                        preload=True)
+with mne.use_log_level("WARNING"):  # hide some irrelevant info messages
+    events = mne.find_events(raw, stim_channel="STI 014")
+    event_dict = {
+        "auditory/left": 1,
+        "auditory/right": 2,
+        "visual/left": 3,
+        "visual/right": 4,
+    }
+    epochs = mne.Epochs(
+        raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict, preload=True
+    )
 epo_spectrum = epochs.compute_psd()
 psds, freqs = epo_spectrum.get_data(return_freqs=True)
-print(f'\nPSDs shape: {psds.shape}, freqs shape: {freqs.shape}')
+print(f"\nPSDs shape: {psds.shape}, freqs shape: {freqs.shape}")
 epo_spectrum
 
 # %%
@@ -81,7 +83,7 @@ epo_spectrum
 # similar to a :class:`~mne.io.Raw` object or a
 # :class:`NumPy array<numpy.ndarray>`:
 
-evoked = epochs['auditory'].average()
+evoked = epochs["auditory"].average()
 evk_spectrum = evoked.compute_psd()
 # the first 3 frequency bins for the first 4 channels:
 print(evk_spectrum[:4, :3])
@@ -104,7 +106,7 @@ print(evk_spectrum[:4, :3])
 # :term:`hierarchical event descriptors` (HEDs) is also possible:
 
 # get both "visual/left" and "visual/right" epochs:
-epo_spectrum['visual']
+epo_spectrum["visual"]
 
 # %%
 # Visualizing Spectrum objects
@@ -118,11 +120,11 @@ epo_spectrum['visual']
 # (interpolated scalp topography of power, in specific frequency bands). A few
 # plot options are demonstrated below; see the docstrings for full details.
 
-evk_spectrum.plot()
-evk_spectrum.plot_topo(color='k', fig_facecolor='w', axis_facecolor='w')
+evk_spectrum.plot(picks="data", exclude="bads")
+evk_spectrum.plot_topo(color="k", fig_facecolor="w", axis_facecolor="w")
 
 # %%
-evk_spectrum.plot_topomap(ch_type='eeg', agg_fun=np.median)
+evk_spectrum.plot_topomap(ch_type="eeg", agg_fun=np.median)
 
 # %%
 # Migrating legacy code
@@ -152,8 +154,8 @@ evk_spectrum.plot_topomap(ch_type='eeg', agg_fun=np.median)
 #
 # .. warning::
 #
-#    The functions :func:`mne.time_frequency.psd_welch` and
-#    :func:`mne.time_frequency.psd_multitaper` have been deprecated; new code
+#    The functions ``mne.time_frequency.psd_welch`` and
+#    ``mne.time_frequency.psd_multitaper`` have been removed; new code
 #    should use the :meth:`Raw.compute_psd()<mne.io.Raw.compute_psd>`,
 #    :meth:`Epochs.compute_psd()<mne.Epochs.compute_psd>`, and
 #    :meth:`Evoked.compute_psd()<mne.Evoked.compute_psd>` methods, and pass

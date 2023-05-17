@@ -6,46 +6,86 @@
 # License: Simplified BSD
 
 import copy
-import os.path as op
+from pathlib import Path
 
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose, assert_equal)
+from numpy.testing import (
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_allclose,
+    assert_equal,
+)
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
-                          find_layout, HEAD_SIZE_DEFAULT)
-from mne.channels.layout import (_box_size, _find_topomap_coords,
-                                 generate_2d_layout)
+from mne.channels import (
+    make_eeg_layout,
+    make_grid_layout,
+    read_layout,
+    find_layout,
+    HEAD_SIZE_DEFAULT,
+)
+from mne.channels.layout import _box_size, _find_topomap_coords, generate_2d_layout
 from mne import pick_types, pick_info
 from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
 
-io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
-fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
-lout_path = op.join(io_dir, 'tests', 'data')
-bti_dir = op.join(io_dir, 'bti', 'tests', 'data')
-fname_ctf_raw = op.join(io_dir, 'tests', 'data', 'test_ctf_comp_raw.fif')
-fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
-fname_kit_umd = op.join(io_dir, 'kit', 'tests', 'data', 'test_umd-raw.sqd')
+io_dir = Path(__file__).parent.parent.parent / "io"
+fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
+lout_path = io_dir / "tests" / "data"
+bti_dir = io_dir / "bti" / "tests" / "data"
+fname_ctf_raw = io_dir / "tests" / "data" / "test_ctf_comp_raw.fif"
+fname_kit_157 = io_dir / "kit" / "tests" / "data" / "test.sqd"
+fname_kit_umd = io_dir / "kit" / "tests" / "data" / "test_umd-raw.sqd"
 
 
 def _get_test_info():
     """Make test info."""
     test_info = _empty_info(1000)
-    loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                   dtype=np.float32)
-    test_info['chs'] = [
-        {'cal': 1, 'ch_name': 'ICA 001', 'coil_type': 0, 'coord_frame': 0,
-         'kind': 502, 'loc': loc.copy(), 'logno': 1, 'range': 1.0, 'scanno': 1,
-         'unit': -1, 'unit_mul': 0},
-        {'cal': 1, 'ch_name': 'ICA 002', 'coil_type': 0, 'coord_frame': 0,
-         'kind': 502, 'loc': loc.copy(), 'logno': 2, 'range': 1.0, 'scanno': 2,
-         'unit': -1, 'unit_mul': 0},
-        {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
-         'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
-         'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
+    loc = np.array(
+        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0], dtype=np.float32
+    )
+    test_info["chs"] = [
+        {
+            "cal": 1,
+            "ch_name": "ICA 001",
+            "coil_type": 0,
+            "coord_frame": 0,
+            "kind": 502,
+            "loc": loc.copy(),
+            "logno": 1,
+            "range": 1.0,
+            "scanno": 1,
+            "unit": -1,
+            "unit_mul": 0,
+        },
+        {
+            "cal": 1,
+            "ch_name": "ICA 002",
+            "coil_type": 0,
+            "coord_frame": 0,
+            "kind": 502,
+            "loc": loc.copy(),
+            "logno": 2,
+            "range": 1.0,
+            "scanno": 2,
+            "unit": -1,
+            "unit_mul": 0,
+        },
+        {
+            "cal": 0.002142000012099743,
+            "ch_name": "EOG 061",
+            "coil_type": 1,
+            "coord_frame": 0,
+            "kind": 202,
+            "loc": loc.copy(),
+            "logno": 61,
+            "range": 1.0,
+            "scanno": 376,
+            "unit": 107,
+            "unit_mul": 0,
+        },
+    ]
     test_info._unlocked = False
     test_info._update_redundant()
     test_info._check_consistency()
@@ -54,23 +94,22 @@ def _get_test_info():
 
 def test_io_layout_lout(tmp_path):
     """Test IO with .lout files."""
-    tempdir = str(tmp_path)
-    layout = read_layout('Vectorview-all', scale=False)
-    layout.save(op.join(tempdir, 'foobar.lout'))
-    layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
-                              scale=False)
+    layout = read_layout(fname="Vectorview-all", scale=False)
+    layout.save(tmp_path / "foobar.lout", overwrite=True)
+    layout_read = read_layout(
+        fname=tmp_path / "foobar.lout",
+        scale=False,
+    )
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names
-    print(layout)  # test repr
+    assert "<Layout |" in layout.__repr__()
 
 
 def test_io_layout_lay(tmp_path):
     """Test IO with .lay files."""
-    tempdir = str(tmp_path)
-    layout = read_layout('CTF151', scale=False)
-    layout.save(op.join(tempdir, 'foobar.lay'))
-    layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
-                              scale=False)
+    layout = read_layout(fname="CTF151", scale=False)
+    layout.save(str(tmp_path / "foobar.lay"))
+    layout_read = read_layout(fname=tmp_path / "foobar.lay", scale=False)
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert layout.names == layout_read.names
 
@@ -82,77 +121,73 @@ def test_find_topomap_coords():
 
     # Remove extra digitization point, so EEG digitization points match up
     # with the EEG channels
-    del info['dig'][85]
+    del info["dig"][85]
 
     # Use channel locations
-    kwargs = dict(ignore_overlap=False, to_sphere=True,
-                  sphere=HEAD_SIZE_DEFAULT)
+    kwargs = dict(ignore_overlap=False, to_sphere=True, sphere=HEAD_SIZE_DEFAULT)
     l0 = _find_topomap_coords(info, picks, **kwargs)
 
     # Remove electrode position information, use digitization points from now
     # on.
-    for ch in info['chs']:
-        ch['loc'].fill(np.nan)
+    for ch in info["chs"]:
+        ch["loc"].fill(np.nan)
 
     l1 = _find_topomap_coords(info, picks, **kwargs)
     assert_allclose(l1, l0, atol=1e-3)
 
-    for z_pt in ((HEAD_SIZE_DEFAULT, 0., 0.),
-                 (0., HEAD_SIZE_DEFAULT, 0.)):
-        info['dig'][-1]['r'] = np.array(z_pt)
+    for z_pt in ((HEAD_SIZE_DEFAULT, 0.0, 0.0), (0.0, HEAD_SIZE_DEFAULT, 0.0)):
+        info["dig"][-1]["r"] = np.array(z_pt)
         l1 = _find_topomap_coords(info, picks, **kwargs)
-        assert_allclose(l1[-1], z_pt[:2], err_msg='Z=0 point moved', atol=1e-6)
+        assert_allclose(l1[-1], z_pt[:2], err_msg="Z=0 point moved", atol=1e-6)
 
     # Test plotting mag topomap without channel locations: it should fail
-    mag_picks = pick_types(info, meg='mag')
-    with pytest.raises(ValueError, match='Cannot determine location'):
+    mag_picks = pick_types(info, meg="mag")
+    with pytest.raises(ValueError, match="Cannot determine location"):
         _find_topomap_coords(info, mag_picks, **kwargs)
 
     # Test function with too many EEG digitization points: it should fail
-    info['dig'].append({'r': [1, 2, 3], 'kind': FIFF.FIFFV_POINT_EEG})
-    with pytest.raises(ValueError, match='Number of EEG digitization points'):
+    info["dig"].append({"r": [1, 2, 3], "kind": FIFF.FIFFV_POINT_EEG})
+    with pytest.raises(ValueError, match="Number of EEG digitization points"):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function with too little EEG digitization points: it should fail
     info._unlocked = True
-    info['dig'] = info['dig'][:-2]
-    with pytest.raises(ValueError, match='Number of EEG digitization points'):
+    info["dig"] = info["dig"][:-2]
+    with pytest.raises(ValueError, match="Number of EEG digitization points"):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Electrode positions must be unique
-    info['dig'].append(info['dig'][-1])
-    with pytest.raises(ValueError, match='overlapping positions'):
+    info["dig"].append(info["dig"][-1])
+    with pytest.raises(ValueError, match="overlapping positions"):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without EEG digitization points: it should fail
-    info['dig'] = [d for d in info['dig']
-                   if d['kind'] != FIFF.FIFFV_POINT_EEG]
-    with pytest.raises(RuntimeError, match='Did not find any digitization'):
+    info["dig"] = [d for d in info["dig"] if d["kind"] != FIFF.FIFFV_POINT_EEG]
+    with pytest.raises(RuntimeError, match="Did not find any digitization"):
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without any digitization points, it should fail
-    info['dig'] = None
-    with pytest.raises(RuntimeError, match='No digitization points found'):
+    info["dig"] = None
+    with pytest.raises(RuntimeError, match="No digitization points found"):
         _find_topomap_coords(info, picks, **kwargs)
-    info['dig'] = []
-    with pytest.raises(RuntimeError, match='No digitization points found'):
+    info["dig"] = []
+    with pytest.raises(RuntimeError, match="No digitization points found"):
         _find_topomap_coords(info, picks, **kwargs)
 
 
 def test_make_eeg_layout(tmp_path):
     """Test creation of EEG layout."""
-    tempdir = str(tmp_path)
-    tmp_name = 'foo'
-    lout_name = 'test_raw'
-    lout_orig = read_layout(kind=lout_name, path=lout_path)
+    lout_orig = read_layout(fname=lout_path / "test_raw.lout")
     info = read_info(fif_fname)
-    info['bads'].append(info['ch_names'][360])
+    info["bads"].append(info["ch_names"][360])
     layout = make_eeg_layout(info, exclude=[])
-    assert_array_equal(len(layout.names), len([ch for ch in info['ch_names']
-                                               if ch.startswith('EE')]))
-    layout.save(op.join(tempdir, tmp_name + '.lout'))
-    lout_new = read_layout(kind=tmp_name, path=tempdir, scale=False)
-    assert_array_equal(lout_new.kind, tmp_name)
+    assert_array_equal(
+        len(layout.names),
+        len([ch for ch in info["ch_names"] if ch.startswith("EE")]),
+    )
+    layout.save(str(tmp_path / "foo.lout"))
+    lout_new = read_layout(fname=tmp_path / "foo.lout", scale=False)
+    assert_array_equal(lout_new.kind, "foo")
     assert_allclose(layout.pos, lout_new.pos, atol=0.1)
     assert_array_equal(lout_orig.names, lout_new.names)
 
@@ -167,14 +202,11 @@ def test_make_eeg_layout(tmp_path):
 
 def test_make_grid_layout(tmp_path):
     """Test creation of grid layout."""
-    tempdir = str(tmp_path)
-    tmp_name = 'bar'
-    lout_name = 'test_ica'
-    lout_orig = read_layout(kind=lout_name, path=lout_path)
+    lout_orig = read_layout(fname=lout_path / "test_ica.lout")
     layout = make_grid_layout(_get_test_info())
-    layout.save(op.join(tempdir, tmp_name + '.lout'))
-    lout_new = read_layout(kind=tmp_name, path=tempdir)
-    assert_array_equal(lout_new.kind, tmp_name)
+    layout.save(str(tmp_path / "bar.lout"))
+    lout_new = read_layout(fname=tmp_path / "bar.lout")
+    assert_array_equal(lout_new.kind, "bar")
     assert_array_equal(lout_orig.pos, lout_new.pos)
     assert_array_equal(lout_orig.names, lout_new.names)
 
@@ -190,92 +222,92 @@ def test_make_grid_layout(tmp_path):
 
 def test_find_layout():
     """Test finding layout."""
-    pytest.raises(ValueError, find_layout, _get_test_info(), ch_type='meep')
+    pytest.raises(ValueError, find_layout, _get_test_info(), ch_type="meep")
 
     sample_info = read_info(fif_fname)
-    grads = pick_types(sample_info, meg='grad')
+    grads = pick_types(sample_info, meg="grad")
     sample_info2 = pick_info(sample_info, grads)
 
-    mags = pick_types(sample_info, meg='mag')
+    mags = pick_types(sample_info, meg="mag")
     sample_info3 = pick_info(sample_info, mags)
 
     # mock new convention
     sample_info4 = copy.deepcopy(sample_info)
-    for ii, name in enumerate(sample_info4['ch_names']):
-        new = name.replace(' ', '')
-        sample_info4['chs'][ii]['ch_name'] = new
+    for ii, name in enumerate(sample_info4["ch_names"]):
+        new = name.replace(" ", "")
+        sample_info4["chs"][ii]["ch_name"] = new
 
     eegs = pick_types(sample_info, meg=False, eeg=True)
     sample_info5 = pick_info(sample_info, eegs)
 
     lout = find_layout(sample_info, ch_type=None)
-    assert lout.kind == 'Vectorview-all'
-    assert all(' ' in k for k in lout.names)
+    assert lout.kind == "Vectorview-all"
+    assert all(" " in k for k in lout.names)
 
-    lout = find_layout(sample_info2, ch_type='meg')
-    assert_equal(lout.kind, 'Vectorview-all')
+    lout = find_layout(sample_info2, ch_type="meg")
+    assert_equal(lout.kind, "Vectorview-all")
 
     # test new vector-view
     lout = find_layout(sample_info4, ch_type=None)
-    assert_equal(lout.kind, 'Vectorview-all')
-    assert all(' ' not in k for k in lout.names)
+    assert_equal(lout.kind, "Vectorview-all")
+    assert all(" " not in k for k in lout.names)
 
-    lout = find_layout(sample_info, ch_type='grad')
-    assert_equal(lout.kind, 'Vectorview-grad')
+    lout = find_layout(sample_info, ch_type="grad")
+    assert_equal(lout.kind, "Vectorview-grad")
     lout = find_layout(sample_info2)
-    assert_equal(lout.kind, 'Vectorview-grad')
-    lout = find_layout(sample_info2, ch_type='grad')
-    assert_equal(lout.kind, 'Vectorview-grad')
-    lout = find_layout(sample_info2, ch_type='meg')
-    assert_equal(lout.kind, 'Vectorview-all')
+    assert_equal(lout.kind, "Vectorview-grad")
+    lout = find_layout(sample_info2, ch_type="grad")
+    assert_equal(lout.kind, "Vectorview-grad")
+    lout = find_layout(sample_info2, ch_type="meg")
+    assert_equal(lout.kind, "Vectorview-all")
 
-    lout = find_layout(sample_info, ch_type='mag')
-    assert_equal(lout.kind, 'Vectorview-mag')
+    lout = find_layout(sample_info, ch_type="mag")
+    assert_equal(lout.kind, "Vectorview-mag")
     lout = find_layout(sample_info3)
-    assert_equal(lout.kind, 'Vectorview-mag')
-    lout = find_layout(sample_info3, ch_type='mag')
-    assert_equal(lout.kind, 'Vectorview-mag')
-    lout = find_layout(sample_info3, ch_type='meg')
-    assert_equal(lout.kind, 'Vectorview-all')
+    assert_equal(lout.kind, "Vectorview-mag")
+    lout = find_layout(sample_info3, ch_type="mag")
+    assert_equal(lout.kind, "Vectorview-mag")
+    lout = find_layout(sample_info3, ch_type="meg")
+    assert_equal(lout.kind, "Vectorview-all")
 
-    lout = find_layout(sample_info, ch_type='eeg')
-    assert_equal(lout.kind, 'EEG')
+    lout = find_layout(sample_info, ch_type="eeg")
+    assert_equal(lout.kind, "EEG")
     lout = find_layout(sample_info5)
-    assert_equal(lout.kind, 'EEG')
-    lout = find_layout(sample_info5, ch_type='eeg')
-    assert_equal(lout.kind, 'EEG')
+    assert_equal(lout.kind, "EEG")
+    lout = find_layout(sample_info5, ch_type="eeg")
+    assert_equal(lout.kind, "EEG")
     # no common layout, 'meg' option not supported
 
     lout = find_layout(read_info(fname_ctf_raw))
-    assert_equal(lout.kind, 'CTF-275')
+    assert_equal(lout.kind, "CTF-275")
 
-    fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
+    fname_bti_raw = bti_dir / "exported4D_linux_raw.fif"
     lout = find_layout(read_info(fname_bti_raw))
-    assert_equal(lout.kind, 'magnesWH3600')
+    assert_equal(lout.kind, "magnesWH3600")
 
     raw_kit = read_raw_kit(fname_kit_157)
     lout = find_layout(raw_kit.info)
-    assert_equal(lout.kind, 'KIT-157')
+    assert_equal(lout.kind, "KIT-157")
 
-    raw_kit.info['bads'] = ['MEG 013', 'MEG 014', 'MEG 015', 'MEG 016']
+    raw_kit.info["bads"] = ["MEG 013", "MEG 014", "MEG 015", "MEG 016"]
     raw_kit.info._check_consistency()
     lout = find_layout(raw_kit.info)
-    assert_equal(lout.kind, 'KIT-157')
+    assert_equal(lout.kind, "KIT-157")
     # fallback for missing IDs
     for val in (35, 52, 54, 1001):
         with raw_kit.info._unlock():
-            raw_kit.info['kit_system_id'] = val
+            raw_kit.info["kit_system_id"] = val
         lout = find_layout(raw_kit.info)
-        assert lout.kind == 'custom'
+        assert lout.kind == "custom"
 
     raw_umd = read_raw_kit(fname_kit_umd)
     lout = find_layout(raw_umd.info)
-    assert_equal(lout.kind, 'KIT-UMD-3')
+    assert_equal(lout.kind, "KIT-UMD-3")
 
     # Test plotting
     lout.plot()
     lout.plot(picks=np.arange(10))
-    plt.close('all')
+    plt.close("all")
 
 
 def test_box_size():
@@ -347,7 +379,7 @@ def test_generate_2d_layout():
     sbg = 15
     side = range(snobg)
     bg_image = np.random.RandomState(42).randn(sbg, sbg)
-    w, h = [.2, .5]
+    w, h = [0.2, 0.5]
 
     # Generate fake data
     xy = np.array([(i, j) for i in side for j in side])
@@ -357,9 +389,10 @@ def test_generate_2d_layout():
     comp_1, comp_2 = [(5, 0), (7, 0)]
     assert lt.pos[:, :2].max() == 1
     assert lt.pos[:, :2].min() == 0
-    with np.errstate(invalid='ignore'):  # divide by zero
-        assert_allclose(xy[comp_2] / float(xy[comp_1]),
-                        lt.pos[comp_2] / float(lt.pos[comp_1]))
+    with np.errstate(invalid="ignore"):  # divide by zero
+        assert_allclose(
+            xy[comp_2] / float(xy[comp_1]), lt.pos[comp_2] / float(lt.pos[comp_1])
+        )
     assert_allclose(lt.pos[0, [2, 3]], [w, h])
 
     # Correct number elements

@@ -7,14 +7,24 @@
 #
 # License: BSD-3-Clause
 
-import os.path as op
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
-from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type, _check_option, fill_doc, _check_fname,
-                    _on_missing, _check_on_missing)
+from .utils import (
+    check_fname,
+    logger,
+    verbose,
+    _get_stim_channel,
+    warn,
+    _validate_type,
+    _check_option,
+    fill_doc,
+    _check_fname,
+    _on_missing,
+    _check_on_missing,
+)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -75,8 +85,9 @@ def pick_events(events, include=None, exclude=None, step=False):
     return events
 
 
-def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
-                         new_id=None, fill_na=None):
+def define_target_events(
+    events, reference_id, target_id, sfreq, tmin, tmax, new_id=None, fill_na=None
+):
     """Define new events by co-occurrence of existing events.
 
     This function can be used to evaluate events depending on the
@@ -125,8 +136,11 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
         if event[2] == reference_id:
             lower = event[0] + imin
             upper = event[0] + imax
-            res = events[(events[:, 0] > lower) &
-                         (events[:, 0] < upper) & (events[:, 2] == target_id)]
+            res = events[
+                (events[:, 0] > lower)
+                & (events[:, 0] < upper)
+                & (events[:, 2] == target_id)
+            ]
             if res.any():
                 lag += [event[0] - res[0][0]]
                 event[2] = new_id
@@ -138,8 +152,8 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
 
     new_events = np.array(new_events)
 
-    with np.errstate(invalid='ignore'):  # casting nans
-        lag = np.abs(lag, dtype='f8')
+    with np.errstate(invalid="ignore"):  # casting nans
+        lag = np.abs(lag, dtype="f8")
     if lag.any():
         lag *= tsample
     else:
@@ -155,12 +169,12 @@ def _read_events_fif(fid, tree):
 
     if len(events) == 0:
         fid.close()
-        raise ValueError('Could not find event data')
+        raise ValueError("Could not find event data")
 
     events = events[0]
     event_list = None
     event_id = None
-    for d in events['directory']:
+    for d in events["directory"]:
         kind = d.kind
         pos = d.pos
         if kind == FIFF.FIFF_MNE_EVENT_LIST:
@@ -169,21 +183,20 @@ def _read_events_fif(fid, tree):
             event_list.shape = (-1, 3)
             break
     if event_list is None:
-        raise ValueError('Could not find any events')
-    for d in events['directory']:
+        raise ValueError("Could not find any events")
+    for d in events["directory"]:
         kind = d.kind
         pos = d.pos
         if kind == FIFF.FIFF_DESCRIPTION:
             tag = read_tag(fid, pos)
             event_id = tag.data
-            m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
-                  for m in event_id.split(';')]
+            m_ = [[s[::-1] for s in m[::-1].split(":", 1)] for m in event_id.split(";")]
             event_id = {k: int(v) for v, k in m_}
             break
         elif kind == FIFF.FIFF_MNE_EVENT_COMMENTS:
             tag = read_tag(fid, pos)
             event_id = tag.data
-            event_id = event_id.tobytes().decode('latin-1').split('\x00')[:-1]
+            event_id = event_id.tobytes().decode("latin-1").split("\x00")[:-1]
             assert len(event_id) == len(event_list)
             event_id = {k: v[2] for k, v in zip(event_id, event_list)}
             break
@@ -191,8 +204,15 @@ def _read_events_fif(fid, tree):
 
 
 @verbose
-def read_events(filename, include=None, exclude=None, mask=None,
-                mask_type='and', return_event_id=False, verbose=None):
+def read_events(
+    filename,
+    include=None,
+    exclude=None,
+    mask=None,
+    mask_type="and",
+    return_event_id=False,
+    verbose=None,
+):
     """Read :term:`events` from fif or text file.
 
     See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
@@ -200,13 +220,13 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
     Parameters
     ----------
-    filename : str
+    filename : path-like
         Name of the input file.
-        If the extension is .fif, events are read assuming
-        the file is in FIF format, otherwise (e.g., .eve,
-        .lst, .txt) events are read as coming from text.
+        If the extension is ``.fif``, events are read assuming
+        the file is in FIF format, otherwise (e.g., ``.eve``,
+        ``.lst``, ``.txt``) events are read as coming from text.
         Note that new format event files do not contain
-        the "time" column (used to be the second column).
+        the ``"time"`` column (used to be the second column).
     include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -217,7 +237,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
         If None (default), no masking is performed.
-    mask_type : 'and' | 'not_and'
+    mask_type : ``'and'`` | ``'not_and'``
         The type of operation between the mask and the trigger.
         Choose 'and' (default) for MNE-C masking behavior.
 
@@ -247,14 +267,24 @@ def read_events(filename, include=None, exclude=None, mask=None,
     For more information on ``mask`` and ``mask_type``, see
     :func:`mne.find_events`.
     """
-    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt', '_eve.fif',
-                                     '_eve.fif.gz', '_eve.lst', '_eve.txt',
-                                     '-annot.fif',  # MNE-C annot
-                                     ))
-
-    ext = op.splitext(filename)[1].lower()
-    if ext == '.fif' or ext == '.gz':
+    check_fname(
+        filename,
+        "events",
+        (
+            ".eve",
+            "-eve.fif",
+            "-eve.fif.gz",
+            "-eve.lst",
+            "-eve.txt",
+            "_eve.fif",
+            "_eve.fif.gz",
+            "_eve.lst",
+            "_eve.txt",
+            "-annot.fif",  # MNE-C annot
+        ),
+    )
+    filename = Path(filename)
+    if filename.suffix in (".fif", ".gz"):
         fid, tree, _ = fiff_open(filename)
         with fid as f:
             event_list, event_id = _read_events_fif(f, tree)
@@ -265,7 +295,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
         #  eve/lst files had a second float column that will raise errors
         lines = np.loadtxt(filename, dtype=np.float64).astype(int)
         if len(lines) == 0:
-            raise ValueError('No text lines found')
+            raise ValueError("No text lines found")
 
         if lines.ndim == 1:  # Special case for only one event
             lines = lines[np.newaxis, :]
@@ -275,13 +305,12 @@ def read_events(filename, include=None, exclude=None, mask=None,
         elif len(lines[0]) == 3:
             goods = [0, 1, 2]
         else:
-            raise ValueError('Unknown number of columns in event text file')
+            raise ValueError("Unknown number of columns in event text file")
 
         event_list = lines[:, goods]
-        if (mask is not None and event_list.shape[0] > 0 and
-                event_list[0, 2] == 0):
+        if mask is not None and event_list.shape[0] > 0 and event_list[0, 2] == 0:
             event_list = event_list[1:]
-            warn('first row of event file discarded (zero-valued)')
+            warn("first row of event file discarded (zero-valued)")
         event_id = None
 
     event_list = pick_events(event_list, include, exclude)
@@ -290,12 +319,13 @@ def read_events(filename, include=None, exclude=None, mask=None,
         event_list = _mask_trigs(event_list, mask, mask_type)
         masked_len = event_list.shape[0]
         if masked_len < unmasked_len:
-            warn('{} of {} events masked'.format(unmasked_len - masked_len,
-                                                 unmasked_len))
+            warn(
+                "{} of {} events masked".format(unmasked_len - masked_len, unmasked_len)
+            )
     out = event_list
     if return_event_id:
         if event_id is None:
-            raise RuntimeError('No event_id found in the file')
+            raise RuntimeError("No event_id found in the file")
         out = (out, event_id)
     return out
 
@@ -306,13 +336,13 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    filename : str
+    filename : path-like
         Name of the output file.
-        If the extension is .fif, events are written in
-        binary FIF format, otherwise (e.g., .eve, .lst,
-        .txt) events are written as plain text.
+        If the extension is ``.fif``, events are written in
+        binary FIF format, otherwise (e.g., ``.eve``,
+        ``.lst``, ``.txt``) events are written as plain text.
         Note that new format event files do not contain
-        the "time" column (used to be the second column).
+        the ``"time"`` column (used to be the second column).
     %(events)s
     %(overwrite)s
     %(verbose)s
@@ -322,27 +352,38 @@ def write_events(filename, events, *, overwrite=False, verbose=None):
     read_events
     """
     filename = _check_fname(filename, overwrite=overwrite)
-    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
-                                     '-eve.lst', '-eve.txt', '_eve.fif',
-                                     '_eve.fif.gz', '_eve.lst', '_eve.txt'))
-    ext = op.splitext(filename)[1].lower()
-    if ext in ('.fif', '.gz'):
+    check_fname(
+        filename,
+        "events",
+        (
+            ".eve",
+            "-eve.fif",
+            "-eve.fif.gz",
+            "-eve.lst",
+            "-eve.txt",
+            "_eve.fif",
+            "_eve.fif.gz",
+            "_eve.lst",
+            "_eve.txt",
+        ),
+    )
+    if filename.suffix in (".fif", ".gz"):
         #   Start writing...
         with start_and_end_file(filename) as fid:
             start_block(fid, FIFF.FIFFB_MNE_EVENTS)
             write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, events.T)
             end_block(fid, FIFF.FIFFB_MNE_EVENTS)
     else:
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             for e in events:
-                f.write('%6d %6d %3d\n' % tuple(e))
+                f.write("%6d %6d %3d\n" % tuple(e))
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
     changed = np.diff(data, axis=1) != 0
     idx = np.where(np.all(changed, axis=0))[0]
     if len(idx) == 0:
-        return np.empty((0, 3), dtype='int32')
+        return np.empty((0, 3), dtype="int32")
 
     pre_step = data[0, idx]
     idx += 1
@@ -363,7 +404,7 @@ def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
 
     if merge != 0:
         diff = np.diff(steps[:, 0])
-        idx = (diff <= abs(merge))
+        idx = diff <= abs(merge)
         if np.any(idx):
             where = np.where(idx)[0]
             keep = np.logical_not(idx)
@@ -376,15 +417,14 @@ def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
                 steps[where, 2] = steps[where + 1, 2]
                 keep = np.insert(keep, 0, True)
 
-            is_step = (steps[:, 1] != steps[:, 2])
+            is_step = steps[:, 1] != steps[:, 2]
             keep = np.logical_and(keep, is_step)
             steps = steps[keep]
 
     return steps
 
 
-def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
-                    stim_channel=None):
+def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=None):
     """Find all steps in data from a stim channel.
 
     Parameters
@@ -424,23 +464,33 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     # pull stim channel from config if necessary
     stim_channel = _get_stim_channel(stim_channel, raw.info)
 
-    picks = pick_channels(raw.info['ch_names'], include=stim_channel)
+    picks = pick_channels(raw.info["ch_names"], include=stim_channel, ordered=False)
     if len(picks) == 0:
-        raise ValueError('No stim channel found to extract event triggers.')
+        raise ValueError("No stim channel found to extract event triggers.")
     data, _ = raw[picks, :]
     if np.any(data < 0):
-        warn('Trigger channel contains negative values, using absolute value.')
+        warn("Trigger channel contains negative values, using absolute value.")
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int64)
 
-    return _find_stim_steps(data, raw.first_samp, pad_start=pad_start,
-                            pad_stop=pad_stop, merge=merge)
+    return _find_stim_steps(
+        data, raw.first_samp, pad_start=pad_start, pad_stop=pad_stop, merge=merge
+    )
 
 
 @verbose
-def _find_events(data, first_samp, verbose=None, output='onset',
-                 consecutive='increasing', min_samples=0, mask=None,
-                 uint_cast=False, mask_type='and', initial_event=False):
+def _find_events(
+    data,
+    first_samp,
+    verbose=None,
+    output="onset",
+    consecutive="increasing",
+    min_samples=0,
+    mask=None,
+    uint_cast=False,
+    mask_type="and",
+    initial_event=False,
+):
     """Help find events."""
     assert data.shape[0] == 1  # data should be only a row vector
 
@@ -455,42 +505,46 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     if uint_cast:
         data = data.astype(np.uint16).astype(np.int64)
     if data.min() < 0:
-        warn('Trigger channel contains negative values, using absolute '
-             'value. If data were acquired on a Neuromag system with '
-             'STI016 active, consider using uint_cast=True to work around '
-             'an acquisition bug')
+        warn(
+            "Trigger channel contains negative values, using absolute "
+            "value. If data were acquired on a Neuromag system with "
+            "STI016 active, consider using uint_cast=True to work around "
+            "an acquisition bug"
+        )
         data = np.abs(data)  # make sure trig channel is positive
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
     initial_value = data[0, 0]
     if initial_value != 0:
         if initial_event:
-            events = np.insert(
-                events, 0, [first_samp, 0, initial_value], axis=0)
+            events = np.insert(events, 0, [first_samp, 0, initial_value], axis=0)
         else:
-            logger.info('Trigger channel has a non-zero initial value of {} '
-                        '(consider using initial_event=True to detect this '
-                        'event)'.format(initial_value))
+            logger.info(
+                "Trigger channel has a non-zero initial value of {} "
+                "(consider using initial_event=True to detect this "
+                "event)".format(initial_value)
+            )
 
     events = _mask_trigs(events, mask, mask_type)
 
     # Determine event onsets and offsets
-    if consecutive == 'increasing':
-        onsets = (events[:, 2] > events[:, 1])
-        offsets = np.logical_and(np.logical_or(onsets, (events[:, 2] == 0)),
-                                 (events[:, 1] > 0))
+    if consecutive == "increasing":
+        onsets = events[:, 2] > events[:, 1]
+        offsets = np.logical_and(
+            np.logical_or(onsets, (events[:, 2] == 0)), (events[:, 1] > 0)
+        )
     elif consecutive:
-        onsets = (events[:, 2] > 0)
-        offsets = (events[:, 1] > 0)
+        onsets = events[:, 2] > 0
+        offsets = events[:, 1] > 0
     else:
-        onsets = (events[:, 1] == 0)
-        offsets = (events[:, 2] == 0)
+        onsets = events[:, 1] == 0
+        offsets = events[:, 2] == 0
 
     onset_idx = np.where(onsets)[0]
     offset_idx = np.where(offsets)[0]
 
     if len(onset_idx) == 0 or len(offset_idx) == 0:
-        return np.empty((0, 3), dtype='int32')
+        return np.empty((0, 3), dtype="int32")
 
     # delete orphaned onsets/offsets
     if onset_idx[0] > offset_idx[0]:
@@ -501,12 +555,12 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         logger.info("Removing orphaned onset at the end of the file.")
         onset_idx = np.delete(onset_idx, -1)
 
-    if output == 'onset':
+    if output == "onset":
         events = events[onset_idx]
-    elif output == 'step':
+    elif output == "step":
         idx = np.union1d(onset_idx, offset_idx)
         events = events[idx]
-    elif output == 'offset':
+    elif output == "offset":
         event_id = events[onset_idx, 2]
         events = events[offset_idx]
         events[:, 1] = events[:, 2]
@@ -524,20 +578,32 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 def _find_unique_events(events):
     """Uniquify events (ie remove duplicated rows."""
     e = np.ascontiguousarray(events).view(
-        np.dtype((np.void, events.dtype.itemsize * events.shape[1])))
+        np.dtype((np.void, events.dtype.itemsize * events.shape[1]))
+    )
     _, idx = np.unique(e, return_index=True)
     n_dupes = len(events) - len(idx)
     if n_dupes > 0:
-        warn("Some events are duplicated in your different stim channels."
-             " %d events were ignored during deduplication." % n_dupes)
+        warn(
+            "Some events are duplicated in your different stim channels."
+            " %d events were ignored during deduplication." % n_dupes
+        )
     return events[idx]
 
 
 @verbose
-def find_events(raw, stim_channel=None, output='onset',
-                consecutive='increasing', min_duration=0,
-                shortest_event=2, mask=None, uint_cast=False,
-                mask_type='and', initial_event=False, verbose=None):
+def find_events(
+    raw,
+    stim_channel=None,
+    output="onset",
+    consecutive="increasing",
+    min_duration=0,
+    shortest_event=2,
+    mask=None,
+    uint_cast=False,
+    mask_type="and",
+    initial_event=False,
+    verbose=None,
+):
     """Find :term:`events` from raw file.
 
     See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
@@ -684,42 +750,53 @@ def find_events(raw, stim_channel=None, output='onset',
          ----------------
               2 '0000010'
     """
-    min_samples = min_duration * raw.info['sfreq']
+    min_samples = min_duration * raw.info["sfreq"]
 
     # pull stim channel from config if necessary
     try:
         stim_channel = _get_stim_channel(stim_channel, raw.info)
     except ValueError:
         if len(raw.annotations) > 0:
-            raise ValueError("No stim channels found, but the raw object has "
-                             "annotations. Consider using "
-                             "mne.events_from_annotations to convert these to "
-                             "events.")
+            raise ValueError(
+                "No stim channels found, but the raw object has "
+                "annotations. Consider using "
+                "mne.events_from_annotations to convert these to "
+                "events."
+            )
         else:
             raise
 
-    picks = pick_channels(raw.info['ch_names'], include=stim_channel)
+    picks = pick_channels(raw.info["ch_names"], include=stim_channel)
     if len(picks) == 0:
-        raise ValueError('No stim channel found to extract event triggers.')
+        raise ValueError("No stim channel found to extract event triggers.")
     data, _ = raw[picks, :]
 
     events_list = []
     for d in data:
-        events = _find_events(d[np.newaxis, :], raw.first_samp,
-                              verbose=verbose, output=output,
-                              consecutive=consecutive, min_samples=min_samples,
-                              mask=mask, uint_cast=uint_cast,
-                              mask_type=mask_type, initial_event=initial_event)
+        events = _find_events(
+            d[np.newaxis, :],
+            raw.first_samp,
+            verbose=verbose,
+            output=output,
+            consecutive=consecutive,
+            min_samples=min_samples,
+            mask=mask,
+            uint_cast=uint_cast,
+            mask_type=mask_type,
+            initial_event=initial_event,
+        )
         # add safety check for spurious events (for ex. from neuromag syst.) by
         # checking the number of low sample events
         n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
         if n_short_events > 0:
-            raise ValueError("You have %i events shorter than the "
-                             "shortest_event. These are very unusual and you "
-                             "may want to set min_duration to a larger value "
-                             "e.g. x / raw.info['sfreq']. Where x = 1 sample "
-                             "shorter than the shortest event "
-                             "length." % (n_short_events))
+            raise ValueError(
+                "You have %i events shorter than the "
+                "shortest_event. These are very unusual and you "
+                "may want to set min_duration to a larger value "
+                "e.g. x / raw.info['sfreq']. Where x = 1 sample "
+                "shorter than the shortest event "
+                "length." % (n_short_events)
+            )
 
         events_list.append(events)
 
@@ -731,7 +808,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
 def _mask_trigs(events, mask, mask_type):
     """Mask digital trigger values."""
-    _check_option('mask_type', mask_type, ['not_and', 'and'])
+    _check_option("mask_type", mask_type, ["not_and", "and"])
     if mask is not None:
         _validate_type(mask, "int", "mask", "int or None")
     n_events = len(events)
@@ -739,11 +816,13 @@ def _mask_trigs(events, mask, mask_type):
         return events.copy()
 
     if mask is not None:
-        if mask_type == 'not_and':
+        if mask_type == "not_and":
             mask = np.bitwise_not(mask)
-        elif mask_type != 'and':
-            raise ValueError("'mask_type' should be either 'and'"
-                             " or 'not_and', instead of '%s'" % mask_type)
+        elif mask_type != "and":
+            raise ValueError(
+                "'mask_type' should be either 'and'"
+                " or 'not_and', instead of '%s'" % mask_type
+            )
         events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
 
@@ -842,8 +921,9 @@ def shift_time_events(events, ids, tshift, sfreq):
 
 
 @fill_doc
-def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
-                             first_samp=True, overlap=0.):
+def make_fixed_length_events(
+    raw, id=1, start=0, stop=None, duration=1.0, first_samp=True, overlap=0.0
+):
     """Make a set of :term:`events` separated by a fixed duration.
 
     Parameters
@@ -876,14 +956,16 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     %(events)s
     """
     from .io.base import BaseRaw
+
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(id, int, "id")
     _validate_type(duration, "numeric", "duration")
     _validate_type(overlap, "numeric", "overlap")
     duration, overlap = float(duration), float(overlap)
     if not 0 <= overlap < duration:
-        raise ValueError('overlap must be >=0 but < duration (%s), got %s'
-                         % (duration, overlap))
+        raise ValueError(
+            "overlap must be >=0 but < duration (%s), got %s" % (duration, overlap)
+        )
 
     start = raw.time_as_index(start, use_rounding=True)[0]
     if stop is not None:
@@ -896,16 +978,17 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     else:
         stop = min([stop, len(raw.times)])
     # Make sure we don't go out the end of the file:
-    stop -= int(np.round(raw.info['sfreq'] * duration))
+    stop -= int(np.round(raw.info["sfreq"] * duration))
     # This should be inclusive due to how we generally use start and stop...
-    ts = np.arange(start, stop + 1,
-                   raw.info['sfreq'] * (duration - overlap)).astype(int)
+    ts = np.arange(start, stop + 1, raw.info["sfreq"] * (duration - overlap)).astype(
+        int
+    )
     n_events = len(ts)
     if n_events == 0:
-        raise ValueError('No events produced, check the values of start, '
-                         'stop, and duration')
-    events = np.c_[ts, np.zeros(n_events, dtype=int),
-                   id * np.ones(n_events, dtype=int)]
+        raise ValueError(
+            "No events produced, check the values of start, " "stop, and duration"
+        )
+    events = np.c_[ts, np.zeros(n_events, dtype=int), id * np.ones(n_events, dtype=int)]
     return events
 
 
@@ -936,10 +1019,10 @@ def concatenate_events(events, first_samps, last_samps):
     mne.concatenate_raws
     """
     _validate_type(events, list, "events")
-    if not (len(events) == len(last_samps) and
-            len(events) == len(first_samps)):
-        raise ValueError('events, first_samps, and last_samps must all have '
-                         'the same lengths')
+    if not (len(events) == len(last_samps) and len(events) == len(first_samps)):
+        raise ValueError(
+            "events, first_samps, and last_samps must all have " "the same lengths"
+        )
     first_samps = np.array(first_samps)
     last_samps = np.array(last_samps)
     n_samps = np.cumsum(last_samps - first_samps + 1)
@@ -956,7 +1039,7 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 @fill_doc
-class AcqParserFIF(object):
+class AcqParserFIF:
     """Parser for Elekta data acquisition settings.
 
     This class parses parameters (e.g. events and averaging categories) that
@@ -995,85 +1078,125 @@ class AcqParserFIF(object):
     """
 
     # DACQ variables always start with one of these
-    _acq_var_magic = ['ERF', 'DEF', 'ACQ', 'TCP']
+    _acq_var_magic = ["ERF", "DEF", "ACQ", "TCP"]
 
     # averager related DACQ variable names (without preceding 'ERF')
     # old versions (DACQ < 3.4)
-    _dacq_vars_compat = ('megMax', 'megMin', 'megNoise', 'megSlope',
-                         'megSpike', 'eegMax', 'eegMin', 'eegNoise',
-                         'eegSlope', 'eegSpike', 'eogMax', 'ecgMax', 'ncateg',
-                         'nevent', 'stimSource', 'triggerMap', 'update',
-                         'artefIgnore', 'averUpdate')
+    _dacq_vars_compat = (
+        "megMax",
+        "megMin",
+        "megNoise",
+        "megSlope",
+        "megSpike",
+        "eegMax",
+        "eegMin",
+        "eegNoise",
+        "eegSlope",
+        "eegSpike",
+        "eogMax",
+        "ecgMax",
+        "ncateg",
+        "nevent",
+        "stimSource",
+        "triggerMap",
+        "update",
+        "artefIgnore",
+        "averUpdate",
+    )
 
-    _event_vars_compat = ('Comment', 'Delay')
+    _event_vars_compat = ("Comment", "Delay")
 
-    _cat_vars = ('Comment', 'Display', 'Start', 'State', 'End', 'Event',
-                 'Nave', 'ReqEvent', 'ReqWhen', 'ReqWithin', 'SubAve')
+    _cat_vars = (
+        "Comment",
+        "Display",
+        "Start",
+        "State",
+        "End",
+        "Event",
+        "Nave",
+        "ReqEvent",
+        "ReqWhen",
+        "ReqWithin",
+        "SubAve",
+    )
 
     # new versions only (DACQ >= 3.4)
-    _dacq_vars = _dacq_vars_compat + ('magMax', 'magMin', 'magNoise',
-                                      'magSlope', 'magSpike', 'version')
+    _dacq_vars = _dacq_vars_compat + (
+        "magMax",
+        "magMin",
+        "magNoise",
+        "magSlope",
+        "magSpike",
+        "version",
+    )
 
-    _event_vars = _event_vars_compat + ('Name', 'Channel', 'NewBits',
-                                        'OldBits', 'NewMask', 'OldMask')
+    _event_vars = _event_vars_compat + (
+        "Name",
+        "Channel",
+        "NewBits",
+        "OldBits",
+        "NewMask",
+        "OldMask",
+    )
 
     def __init__(self, info):  # noqa: D102
-        acq_pars = info['acq_pars']
+        acq_pars = info["acq_pars"]
         if not acq_pars:
-            raise ValueError('No acquisition parameters')
+            raise ValueError("No acquisition parameters")
         self.acq_dict = dict(self._acqpars_gen(acq_pars))
-        if 'ERFversion' in self.acq_dict:
+        if "ERFversion" in self.acq_dict:
             self.compat = False  # DACQ ver >= 3.4
-        elif 'ERFncateg' in self.acq_dict:  # probably DACQ < 3.4
+        elif "ERFncateg" in self.acq_dict:  # probably DACQ < 3.4
             self.compat = True
         else:
-            raise ValueError('Cannot parse acquisition parameters')
+            raise ValueError("Cannot parse acquisition parameters")
         dacq_vars = self._dacq_vars_compat if self.compat else self._dacq_vars
         # set instance variables
         for var in dacq_vars:
-            val = self.acq_dict['ERF' + var]
-            if var[:3] in ['mag', 'meg', 'eeg', 'eog', 'ecg']:
+            val = self.acq_dict["ERF" + var]
+            if var[:3] in ["mag", "meg", "eeg", "eog", "ecg"]:
                 val = float(val)
-            elif var in ['ncateg', 'nevent']:
+            elif var in ["ncateg", "nevent"]:
                 val = int(val)
             setattr(self, var.lower(), val)
-        self.stimsource = (
-            'Internal' if self.stimsource == '1' else 'External')
+        self.stimsource = "Internal" if self.stimsource == "1" else "External"
         # collect all events and categories
         self._events = self._events_from_acq_pars()
         self._categories = self._categories_from_acq_pars()
         # mark events that are used by a category
         for cat in self._categories.values():
-            if cat['event']:
-                self._events[cat['event']]['in_use'] = True
-            if cat['reqevent']:
-                self._events[cat['reqevent']]['in_use'] = True
+            if cat["event"]:
+                self._events[cat["event"]]["in_use"] = True
+            if cat["reqevent"]:
+                self._events[cat["reqevent"]]["in_use"] = True
         # make mne rejection dicts based on the averager parameters
-        self.reject = {'grad': self.megmax, 'eeg': self.eegmax,
-                       'eog': self.eogmax, 'ecg': self.ecgmax}
+        self.reject = {
+            "grad": self.megmax,
+            "eeg": self.eegmax,
+            "eog": self.eogmax,
+            "ecg": self.ecgmax,
+        }
         if not self.compat:
-            self.reject['mag'] = self.magmax
-        self.reject = {k: float(v) for k, v in self.reject.items()
-                       if float(v) > 0}
-        self.flat = {'grad': self.megmin, 'eeg': self.eegmin}
+            self.reject["mag"] = self.magmax
+        self.reject = {k: float(v) for k, v in self.reject.items() if float(v) > 0}
+        self.flat = {"grad": self.megmin, "eeg": self.eegmin}
         if not self.compat:
-            self.flat['mag'] = self.magmin
-        self.flat = {k: float(v) for k, v in self.flat.items()
-                     if float(v) > 0}
+            self.flat["mag"] = self.magmin
+        self.flat = {k: float(v) for k, v in self.flat.items() if float(v) > 0}
 
     def __repr__(self):  # noqa: D105
-        s = '<AcqParserFIF | '
-        s += 'categories: %d ' % self.ncateg
+        s = "<AcqParserFIF | "
+        s += "categories: %d " % self.ncateg
         cats_in_use = len(self._categories_in_use)
-        s += '(%d in use), ' % cats_in_use
-        s += 'events: %d ' % self.nevent
+        s += "(%d in use), " % cats_in_use
+        s += "events: %d " % self.nevent
         evs_in_use = len(self._events_in_use)
-        s += '(%d in use)' % evs_in_use
+        s += "(%d in use)" % evs_in_use
         if self.categories:
-            s += '\nAveraging categories:'
+            s += "\nAveraging categories:"
             for cat in self.categories:
-                s += '\n%d: "%s"' % (cat['index'], cat['comment'])
-        s += '>'
+                s += '\n%d: "%s"' % (cat["index"], cat["comment"])
+        s += ">"
         return s
 
     def __getitem__(self, item):
@@ -1133,7 +1256,7 @@ class AcqParserFIF(object):
             if it in self._categories:
                 cats.append(self._categories[it])
             else:
-                raise KeyError('No such category')
+                raise KeyError("No such category")
         return cats[0] if len(cats) == 1 else cats
 
     def __len__(self):
@@ -1154,50 +1277,65 @@ class AcqParserFIF(object):
         parameters.
         """
         # lookup table for event number -> bits for old DACQ versions
-        _compat_event_lookup = {1: 1, 2: 2, 3: 4, 4: 8, 5: 16, 6: 32, 7: 3,
-                                8: 5, 9: 6, 10: 7, 11: 9, 12: 10, 13: 11,
-                                14: 12, 15: 13, 16: 14, 17: 15}
+        _compat_event_lookup = {
+            1: 1,
+            2: 2,
+            3: 4,
+            4: 8,
+            5: 16,
+            6: 32,
+            7: 3,
+            8: 5,
+            9: 6,
+            10: 7,
+            11: 9,
+            12: 10,
+            13: 11,
+            14: 12,
+            15: 13,
+            16: 14,
+            17: 15,
+        }
         events = dict()
         for evnum in range(1, self.nevent + 1):
             evnum_s = str(evnum).zfill(2)  # '01', '02' etc.
             evdi = dict()
-            event_vars = (self._event_vars_compat if self.compat
-                          else self._event_vars)
+            event_vars = self._event_vars_compat if self.compat else self._event_vars
             for var in event_vars:
                 # name of DACQ variable, e.g. 'ERFeventNewBits01'
-                acq_key = 'ERFevent' + var + evnum_s
+                acq_key = "ERFevent" + var + evnum_s
                 # corresponding dict key, e.g. 'newbits'
                 dict_key = var.lower()
                 val = self.acq_dict[acq_key]
                 # type convert numeric values
-                if dict_key in ['newbits', 'oldbits', 'newmask', 'oldmask']:
+                if dict_key in ["newbits", "oldbits", "newmask", "oldmask"]:
                     val = int(val)
-                elif dict_key in ['delay']:
+                elif dict_key in ["delay"]:
                     val = float(val)
                 evdi[dict_key] = val
-                evdi['in_use'] = False  # __init__() will set this
-            evdi['index'] = evnum
+                evdi["in_use"] = False  # __init__() will set this
+            evdi["index"] = evnum
             if self.compat:
-                evdi['name'] = str(evnum)
-                evdi['oldmask'] = 63
-                evdi['newmask'] = 63
-                evdi['oldbits'] = 0
-                evdi['newbits'] = _compat_event_lookup[evnum]
+                evdi["name"] = str(evnum)
+                evdi["oldmask"] = 63
+                evdi["newmask"] = 63
+                evdi["oldbits"] = 0
+                evdi["newbits"] = _compat_event_lookup[evnum]
             events[evnum] = evdi
         return events
 
     def _acqpars_gen(self, acq_pars):
         """Yield key/value pairs from ``info['acq_pars'])``."""
-        key, val = '', ''
+        key, val = "", ""
         for line in acq_pars.split():
             if any([line.startswith(x) for x in self._acq_var_magic]):
                 key = line
-                val = ''
+                val = ""
             else:
                 if not key:
-                    raise ValueError('Cannot parse acquisition parameters')
+                    raise ValueError("Cannot parse acquisition parameters")
                 # DACQ splits items with spaces into multiple lines
-                val += ' ' + line if val else line
+                val += " " + line if val else line
             yield key, val
 
     def _categories_from_acq_pars(self):
@@ -1211,20 +1349,20 @@ class AcqParserFIF(object):
             catdi = dict()
             # read all category variables
             for var in self._cat_vars:
-                acq_key = 'ERFcat' + var + catnum
+                acq_key = "ERFcat" + var + catnum
                 class_key = var.lower()
                 val = self.acq_dict[acq_key]
                 catdi[class_key] = val
             # some type conversions
-            catdi['display'] = (catdi['display'] == '1')
-            catdi['state'] = (catdi['state'] == '1')
-            for key in ['start', 'end', 'reqwithin']:
+            catdi["display"] = catdi["display"] == "1"
+            catdi["state"] = catdi["state"] == "1"
+            for key in ["start", "end", "reqwithin"]:
                 catdi[key] = float(catdi[key])
-            for key in ['nave', 'event', 'reqevent', 'reqwhen', 'subave']:
+            for key in ["nave", "event", "reqevent", "reqwhen", "subave"]:
                 catdi[key] = int(catdi[key])
             # some convenient extra (non-DACQ) vars
-            catdi['index'] = int(catnum)  # index of category in DACQ list
-            cats[catdi['comment']] = catdi
+            catdi["index"] = int(catnum)  # index of category in DACQ list
+            cats[catdi["comment"]] = catdi
         return cats
 
     def _events_mne_to_dacq(self, mne_events):
@@ -1240,13 +1378,13 @@ class AcqParserFIF(object):
         events_ = mne_events.copy()
         events_[:, 1:3] = 0
         for n, ev in self._events.items():
-            if ev['in_use']:
+            if ev["in_use"]:
                 pre_ok = (
-                    np.bitwise_and(ev['oldmask'],
-                                   mne_events[:, 1]) == ev['oldbits'])
+                    np.bitwise_and(ev["oldmask"], mne_events[:, 1]) == ev["oldbits"]
+                )
                 post_ok = (
-                    np.bitwise_and(ev['newmask'],
-                                   mne_events[:, 2]) == ev['newbits'])
+                    np.bitwise_and(ev["newmask"], mne_events[:, 2]) == ev["newbits"]
+                )
                 ok_ind = np.where(pre_ok & post_ok)
                 events_[ok_ind, 2] |= 1 << (n - 1)
         return events_
@@ -1258,8 +1396,8 @@ class AcqParserFIF(object):
         Then the zero times for the epochs are obtained by considering the
         reference and conditional (required) events and the delay to stimulus.
         """
-        cat_ev = cat['event']
-        cat_reqev = cat['reqevent']
+        cat_ev = cat["event"]
+        cat_reqev = cat["reqevent"]
         # first convert mne events to dacq event list
         events = self._events_mne_to_dacq(mne_events)
         # next, take req. events and delays into account
@@ -1269,25 +1407,25 @@ class AcqParserFIF(object):
         refEvents_t = times[refEvents_inds]
         if cat_reqev:
             # indices of times where req. event occurs
-            reqEvents_inds = np.where(events[:, 2] & (
-                1 << cat_reqev - 1))[0]
+            reqEvents_inds = np.where(events[:, 2] & (1 << cat_reqev - 1))[0]
             reqEvents_t = times[reqEvents_inds]
             # relative (to refevent) time window where req. event
             # must occur (e.g. [0 .2])
-            twin = [0, (-1)**(cat['reqwhen']) * cat['reqwithin']]
+            twin = [0, (-1) ** (cat["reqwhen"]) * cat["reqwithin"]]
             win = np.round(np.array(sorted(twin)) * sfreq)  # to samples
             refEvents_wins = refEvents_t[:, None] + win
             req_acc = np.zeros(refEvents_inds.shape, dtype=bool)
             for t in reqEvents_t:
                 # mark time windows where req. condition is satisfied
                 reqEvent_in_win = np.logical_and(
-                    t >= refEvents_wins[:, 0], t <= refEvents_wins[:, 1])
+                    t >= refEvents_wins[:, 0], t <= refEvents_wins[:, 1]
+                )
                 req_acc |= reqEvent_in_win
             # drop ref. events where req. event condition is not satisfied
             refEvents_inds = refEvents_inds[np.where(req_acc)]
             refEvents_t = times[refEvents_inds]
         # adjust for trigger-stimulus delay by delaying the ref. event
-        refEvents_t += int(np.round(self._events[cat_ev]['delay'] * sfreq))
+        refEvents_t += int(np.round(self._events[cat_ev]["delay"] * sfreq))
         return refEvents_t
 
     @property
@@ -1296,8 +1434,7 @@ class AcqParserFIF(object):
 
         Only returns categories marked active in DACQ.
         """
-        cats = sorted(self._categories_in_use.values(),
-                      key=lambda cat: cat['index'])
+        cats = sorted(self._categories_in_use.values(), key=lambda cat: cat["index"])
         return cats
 
     @property
@@ -1306,19 +1443,27 @@ class AcqParserFIF(object):
 
         Only returns events that are in use (referred to by a category).
         """
-        evs = sorted(self._events_in_use.values(), key=lambda ev: ev['index'])
+        evs = sorted(self._events_in_use.values(), key=lambda ev: ev["index"])
         return evs
 
     @property
     def _categories_in_use(self):
-        return {k: v for k, v in self._categories.items() if v['state']}
+        return {k: v for k, v in self._categories.items() if v["state"]}
 
     @property
     def _events_in_use(self):
-        return {k: v for k, v in self._events.items() if v['in_use']}
+        return {k: v for k, v in self._events.items() if v["in_use"]}
 
-    def get_condition(self, raw, condition=None, stim_channel=None, mask=None,
-                      uint_cast=None, mask_type='and', delayed_lookup=True):
+    def get_condition(
+        self,
+        raw,
+        condition=None,
+        stim_channel=None,
+        mask=None,
+        uint_cast=None,
+        mask_type="and",
+        delayed_lookup=True,
+    ):
         """Get averaging parameters for a condition (averaging category).
 
         Output is designed to be used with the Epochs class to extract the
@@ -1390,35 +1535,45 @@ class AcqParserFIF(object):
         for cat in condition:
             if isinstance(cat, str):
                 cat = self[cat]
-            mne_events = find_events(raw, stim_channel=stim_channel, mask=mask,
-                                     mask_type=mask_type, output='step',
-                                     uint_cast=uint_cast, consecutive=True,
-                                     verbose=False, shortest_event=1)
+            mne_events = find_events(
+                raw,
+                stim_channel=stim_channel,
+                mask=mask,
+                mask_type=mask_type,
+                output="step",
+                uint_cast=uint_cast,
+                consecutive=True,
+                verbose=False,
+                shortest_event=1,
+            )
             if delayed_lookup:
                 ind = np.where(np.diff(mne_events[:, 0]) == 1)[0]
                 if 1 in np.diff(ind):
-                    raise ValueError('There are several subsequent '
-                                     'transitions on the trigger channel. '
-                                     'This will not work well with '
-                                     'delayed_lookup=True. You may want to '
-                                     'check your trigger data and '
-                                     'set delayed_lookup=False.')
+                    raise ValueError(
+                        "There are several subsequent "
+                        "transitions on the trigger channel. "
+                        "This will not work well with "
+                        "delayed_lookup=True. You may want to "
+                        "check your trigger data and "
+                        "set delayed_lookup=False."
+                    )
                 mne_events[ind, 2] = mne_events[ind + 1, 2]
                 mne_events = np.delete(mne_events, ind + 1, axis=0)
-            sfreq = raw.info['sfreq']
+            sfreq = raw.info["sfreq"]
             cat_t0_ = self._mne_events_to_category_t0(cat, mne_events, sfreq)
             # make it compatible with the usual events array
-            cat_t0 = np.c_[cat_t0_, np.zeros(cat_t0_.shape),
-                           cat['index'] * np.ones(cat_t0_.shape)
-                           ].astype(np.uint32)
-            cat_id = {cat['comment']: cat['index']}
-            tmin, tmax = cat['start'], cat['end']
-            conds_data.append(dict(events=cat_t0, event_id=cat_id,
-                                   tmin=tmin, tmax=tmax))
+            cat_t0 = np.c_[
+                cat_t0_, np.zeros(cat_t0_.shape), cat["index"] * np.ones(cat_t0_.shape)
+            ].astype(np.uint32)
+            cat_id = {cat["comment"]: cat["index"]}
+            tmin, tmax = cat["start"], cat["end"]
+            conds_data.append(
+                dict(events=cat_t0, event_id=cat_id, tmin=tmin, tmax=tmax)
+            )
         return conds_data[0] if len(conds_data) == 1 else conds_data
 
 
-def match_event_names(event_names, keys, *, on_missing='raise'):
+def match_event_names(event_names, keys, *, on_missing="raise"):
     """Search a collection of event names for matching (sub-)groups of events.
 
     This function is particularly helpful when using grouped event names
@@ -1469,10 +1624,7 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
         event_names = list(event_names)
 
     # ensure we have a list of `keys`
-    if (
-        isinstance(keys, (Sequence, np.ndarray)) and
-        not isinstance(keys, str)
-    ):
+    if isinstance(keys, (Sequence, np.ndarray)) and not isinstance(keys, str):
         keys = list(keys)
     else:
         keys = [keys]
@@ -1482,20 +1634,55 @@ def match_event_names(event_names, keys, *, on_missing='raise'):
     # form the hierarchical event name mapping
     for key in keys:
         if not isinstance(key, str):
-            raise ValueError(f'keys must be strings, got {type(key)} ({key})')
+            raise ValueError(f"keys must be strings, got {type(key)} ({key})")
 
         matches.extend(
-            name for name in event_names
-            if set(key.split('/')).issubset(name.split('/'))
+            name
+            for name in event_names
+            if set(key.split("/")).issubset(name.split("/"))
         )
 
     if not matches:
         _on_missing(
             on_missing=on_missing,
             msg=f'Event name "{key}" could not be found. The following events '
-                f'are present in the data: {", ".join(event_names)}',
-            error_klass=KeyError
+            f'are present in the data: {", ".join(event_names)}',
+            error_klass=KeyError,
         )
 
     matches = sorted(set(matches))  # deduplicate if necessary
     return matches
+
+
+def count_events(events, ids=None):
+    """Count events.
+
+    Parameters
+    ----------
+    events : ndarray, shape (N, 3)
+        The events array (consisting of N events).
+    ids : array-like of int | None
+        If ``None``, count all event types present in the input. If array-like
+        of int, count only those event types given by ``ids``.
+
+    Returns
+    -------
+    counts : dict
+        A dictionary containing the event types as keys with their counts as
+        values.
+
+    Examples
+    --------
+        >>> events = np.array([[0, 0, 1], [0, 0, 1], [0, 0, 5]])
+        >>> count_events(events)
+        {1: 2, 5: 1}
+        >>> count_events(events, ids=[1, 5])
+        {1: 2, 5: 1}
+        >>> count_events(events, ids=[1, 11])
+        {1: 2, 11: 0}
+    """
+    counts = np.bincount(events[:, 2])
+    counts = {i: count for i, count in enumerate(counts) if count > 0}
+    if ids is not None:
+        return {id: counts.get(id, 0) for id in ids}
+    return counts

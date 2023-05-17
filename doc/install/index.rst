@@ -1,3 +1,5 @@
+:html_theme.sidebar_secondary.remove:
+
 .. _install:
 .. _quick-start:
 
@@ -6,7 +8,7 @@ Installing MNE-Python
 
 
 .. when https://github.com/executablebooks/sphinx-design/issues/66 is fixed,
-   prepend |cloud-download-alt| |ensp| to the "Download installers" button text
+   prepend |cloud-arrow-down| |ensp| to the "Download installers" button text
    and |wrench| |ensp| to the "Setup instructions" button text
 
 .. grid:: 2

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 .. _tut-imorting-meg-data:
 
@@ -19,12 +18,19 @@ If the data were recorded with MaxShield on and have not been processed
 with MaxFilter, they may need to be loaded with
 ``mne.io.read_raw_fif(..., allow_maxshield=True)``.
 
+.. _import-fil:
+
+FIL OPM (.bin)
+==============
+MEG data from the OPM system used by the FIL at UCL can be read with
+:func:`mne.io.read_raw_fil`. For related OPM processing methods, see
+:ref:`tut-opm-processing`.
 
 .. _import-artemis:
 
 Artemis123 (.bin)
 =================
-MEG data from the Artemis123 system can be read with\
+MEG data from the Artemis123 system can be read with
 :func:`mne.io.read_raw_artemis123`.
 
 

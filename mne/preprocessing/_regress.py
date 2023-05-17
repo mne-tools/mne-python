@@ -5,22 +5,37 @@
 
 import numpy as np
 
-from ..defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
-                        _BORDER_DEFAULT)
+from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from ..epochs import BaseEpochs
-from ..io.pick import _picks_to_idx, pick_info
+from ..io.pick import _picks_to_idx
 from ..io.base import BaseRaw
-from ..utils import (_check_preload, _validate_type, _check_option, verbose,
-                     fill_doc, copy_function_doc_to_method_doc, _check_fname,
-                     _import_h5io_funcs)
+from ..utils import (
+    _check_preload,
+    _validate_type,
+    _check_option,
+    verbose,
+    fill_doc,
+    copy_function_doc_to_method_doc,
+    _check_fname,
+    _import_h5io_funcs,
+)
 from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
 from ..viz import plot_regression_weights
 from .. import Evoked
 
 
 @verbose
-def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
-                     betas=None, proj=True, copy=True, verbose=None):
+def regress_artifact(
+    inst,
+    picks=None,
+    *,
+    exclude="bads",
+    picks_artifact="eog",
+    betas=None,
+    proj=True,
+    copy=True,
+    verbose=None,
+):
     """Remove artifacts using regression based on reference channels.
 
     Parameters
@@ -71,24 +86,24 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
     .. footbibliography::
     """  # noqa: E501
     if betas is None:
-        model = EOGRegression(picks=picks, exclude=exclude,
-                              picks_artifact=picks_artifact, proj=proj)
+        model = EOGRegression(
+            picks=picks, exclude=exclude, picks_artifact=picks_artifact, proj=proj
+        )
         model.fit(inst)
     else:
         # Create an EOGRegression object and load the given betas into it.
-        picks = _picks_to_idx(inst.info, picks, exclude=exclude, none='data')
+        picks = _picks_to_idx(inst.info, picks, exclude=exclude, none="data")
         picks_artifact = _picks_to_idx(inst.info, picks_artifact)
         want_betas_shape = (len(picks), len(picks_artifact))
-        _check_option('betas.shape', betas.shape, (want_betas_shape,))
+        _check_option("betas.shape", betas.shape, (want_betas_shape,))
         model = EOGRegression(picks, picks_artifact, proj=proj)
-        all_picks = np.unique(np.hstack((picks, picks_artifact)))
-        model.info_ = pick_info(inst.info, all_picks)
+        model.info_ = inst.info.copy()
         model.coef_ = betas
     return model.apply(inst, copy=copy), model.coef_
 
 
 @fill_doc
-class EOGRegression():
+class EOGRegression:
     """Remove EOG artifact signals from other channels by regression.
 
     Employs linear regression to remove signals captured by some channels,
@@ -136,8 +151,7 @@ class EOGRegression():
     .. footbibliography::
     """
 
-    def __init__(self, picks=None, exclude='bads', picks_artifact='eog',
-                 proj=True):
+    def __init__(self, picks=None, exclude="bads", picks_artifact="eog", proj=True):
         self.picks = picks
         self.exclude = exclude
         self.picks_artifact = picks_artifact
@@ -164,16 +178,14 @@ class EOGRegression():
         regression.
         """
         self._check_inst(inst)
-        picks = _picks_to_idx(inst.info, self.picks, none='data',
-                              exclude=self.exclude)
+        picks = _picks_to_idx(inst.info, self.picks, none="data", exclude=self.exclude)
         picks_artifact = _picks_to_idx(inst.info, self.picks_artifact)
 
         # Calculate regression coefficients. Add a row of ones to also fit the
         # intercept.
-        _check_preload(inst, 'artifact regression')
+        _check_preload(inst, "artifact regression")
         artifact_data = inst._data[..., picks_artifact, :]
-        ref_data = artifact_data - np.mean(artifact_data, axis=-1,
-                                           keepdims=True)
+        ref_data = artifact_data - np.mean(artifact_data, axis=-1, keepdims=True)
         if ref_data.ndim == 3:
             ref_data = ref_data.transpose(1, 0, 2)
             ref_data = ref_data.reshape(len(picks_artifact), -1)
@@ -191,8 +203,7 @@ class EOGRegression():
 
         # Store relevant parameters in the object.
         self.coef_ = coef
-        all_picks = np.unique(np.hstack((picks, picks_artifact)))
-        self.info_ = pick_info(inst.info, all_picks)
+        self.info_ = inst.info.copy()
         return self
 
     @fill_doc
@@ -221,27 +232,35 @@ class EOGRegression():
         if copy:
             inst = inst.copy()
         self._check_inst(inst)
-        picks = _picks_to_idx(inst.info, self.picks, none='data',
-                              exclude=self.exclude)
+        picks = _picks_to_idx(inst.info, self.picks, none="data", exclude=self.exclude)
         picks_artifact = _picks_to_idx(inst.info, self.picks_artifact)
 
         # Check that the channels are compatible with the regression weights.
-        ref_picks = _picks_to_idx(self.info_, self.picks, none='data',
-                                  exclude=self.exclude)
+        ref_picks = _picks_to_idx(
+            self.info_, self.picks, none="data", exclude=self.exclude
+        )
         ref_picks_artifact = _picks_to_idx(self.info_, self.picks_artifact)
-        if any(inst.ch_names[ch1] != self.info_['chs'][ch2]['ch_name']
-               for ch1, ch2 in zip(picks, ref_picks)):
-            raise ValueError('Selected data channels are not compatible with '
-                             'the regression weights. Make sure that all data '
-                             'channels are present and in the correct order.')
-        if any(inst.ch_names[ch1] != self.info_['chs'][ch2]['ch_name']
-               for ch1, ch2 in zip(picks_artifact, ref_picks_artifact)):
-            raise ValueError('Selected artifact channels are not compatible '
-                             'with the regression weights. Make sure that all '
-                             'artifact channels are present and in the '
-                             'correct order.')
+        if any(
+            inst.ch_names[ch1] != self.info_["chs"][ch2]["ch_name"]
+            for ch1, ch2 in zip(picks, ref_picks)
+        ):
+            raise ValueError(
+                "Selected data channels are not compatible with "
+                "the regression weights. Make sure that all data "
+                "channels are present and in the correct order."
+            )
+        if any(
+            inst.ch_names[ch1] != self.info_["chs"][ch2]["ch_name"]
+            for ch1, ch2 in zip(picks_artifact, ref_picks_artifact)
+        ):
+            raise ValueError(
+                "Selected artifact channels are not compatible "
+                "with the regression weights. Make sure that all "
+                "artifact channels are present and in the "
+                "correct order."
+            )
 
-        _check_preload(inst, 'artifact regression')
+        _check_preload(inst, "artifact regression")
         artifact_data = inst._data[..., picks_artifact, :]
         ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
         for pi, pick in enumerate(picks):
@@ -250,43 +269,83 @@ class EOGRegression():
         return inst
 
     @copy_function_doc_to_method_doc(plot_regression_weights)
-    def plot(self, ch_type=None, sensors=True, show_names=False, names=None,
-             mask=None, mask_params=None, contours=6, outlines='head',
-             sphere=None, image_interp=_INTERPOLATION_DEFAULT,
-             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-             size=1, cmap=None, vlim=(None, None), cnorm=None, axes=None,
-             colorbar=True, cbar_fmt='%1.1e', title=None, show=True):
+    def plot(
+        self,
+        ch_type=None,
+        sensors=True,
+        show_names=False,
+        mask=None,
+        mask_params=None,
+        contours=6,
+        outlines="head",
+        sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT,
+        res=64,
+        size=1,
+        cmap=None,
+        vlim=(None, None),
+        cnorm=None,
+        axes=None,
+        colorbar=True,
+        cbar_fmt="%1.1e",
+        title=None,
+        show=True,
+    ):
         return plot_regression_weights(
-            self, ch_type=ch_type, sensors=sensors, show_names=show_names,
-            names=names, mask=mask, mask_params=mask_params, contours=contours,
-            outlines=outlines, sphere=sphere, image_interp=image_interp,
-            extrapolate=extrapolate, border=border, res=res, size=size,
-            cmap=cmap, vlim=vlim, cnorm=cnorm, axes=axes, colorbar=colorbar,
-            cbar_fmt=cbar_fmt, title=title, show=show)
+            self,
+            ch_type=ch_type,
+            sensors=sensors,
+            show_names=show_names,
+            mask=mask,
+            mask_params=mask_params,
+            contours=contours,
+            outlines=outlines,
+            sphere=sphere,
+            image_interp=image_interp,
+            extrapolate=extrapolate,
+            border=border,
+            res=res,
+            size=size,
+            cmap=cmap,
+            vlim=vlim,
+            cnorm=cnorm,
+            axes=axes,
+            colorbar=colorbar,
+            cbar_fmt=cbar_fmt,
+            title=title,
+            show=show,
+        )
 
     def _check_inst(self, inst):
         """Perform some sanity checks on the input."""
-        _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst',
-                       'Raw, Epochs, Evoked')
+        _validate_type(
+            inst, (BaseRaw, BaseEpochs, Evoked), "inst", "Raw, Epochs, Evoked"
+        )
         if _needs_eeg_average_ref_proj(inst.info):
-            raise RuntimeError('No reference for the EEG channels has been '
-                               'set. Use inst.set_eeg_reference() to do so.')
+            raise RuntimeError(
+                "No reference for the EEG channels has been "
+                "set. Use inst.set_eeg_reference() to do so."
+            )
         if self.proj and not inst.proj:
             inst.apply_proj()
-        if not inst.proj and len(inst.info.get('projs', [])) > 0:
-            raise RuntimeError('Projections need to be applied before '
-                               'regression can be performed. Use the '
-                               '.apply_proj() method to do so.')
+        if not inst.proj and len(inst.info.get("projs", [])) > 0:
+            raise RuntimeError(
+                "Projections need to be applied before "
+                "regression can be performed. Use the "
+                ".apply_proj() method to do so."
+            )
 
     def __repr__(self):
         """Produce a string representation of this object."""
-        s = '<EOGRegression | '
-        if hasattr(self, 'coef_'):
+        s = "<EOGRegression | "
+        if hasattr(self, "coef_"):
             n_art = self.coef_.shape[1]
-            plural = 's' if n_art > 1 else ''
-            s += f'fitted to {n_art} artifact channel{plural}>'
+            plural = "s" if n_art > 1 else ""
+            s += f"fitted to {n_art} artifact channel{plural}>"
         else:
-            s += 'not fitted>'
+            s += "not fitted>"
         return s
 
     @fill_doc
@@ -295,13 +354,13 @@ class EOGRegression():
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The file to write the regression weights to. Should end in ``.h5``.
         %(overwrite)s
         """
         _, write_hdf5 = _import_h5io_funcs()
-        _validate_type(fname, 'path-like', 'fname')
-        fname = _check_fname(fname, overwrite=overwrite, name='fname')
+        _validate_type(fname, "path-like", "fname")
+        fname = _check_fname(fname, overwrite=overwrite, name="fname")
         write_hdf5(fname, self.__dict__, overwrite=overwrite)
 
 
@@ -310,7 +369,7 @@ def read_eog_regression(fname):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The file to read the regression model from. Should end in ``.h5``.
 
     Returns
@@ -323,9 +382,8 @@ def read_eog_regression(fname):
     .. versionadded:: 1.2
     """
     read_hdf5, _ = _import_h5io_funcs()
-    _validate_type(fname, 'path-like', 'fname')
-    fname = _check_fname(fname, overwrite='read', must_exist=True,
-                         name='fname')
+    _validate_type(fname, "path-like", "fname")
+    fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
     model = EOGRegression()
     model.__dict__.update(read_hdf5(fname))
     return model

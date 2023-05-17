@@ -8,31 +8,31 @@ from numpy.testing import assert_allclose, assert_array_equal
 from scipy import linalg
 import pytest
 
-from mne.utils import (_sym_mat_pow, _reg_pinv, requires_version,
-                       _record_warnings)
-from mne.fixes import _compare_version
+from mne.utils import _sym_mat_pow, _reg_pinv, _record_warnings
 
 
-@requires_version('numpy', '1.17')  # pinv bugs
-@pytest.mark.parametrize('dtype', (np.float64, np.complex128))  # real, complex
-@pytest.mark.parametrize('ndim', (2, 3, 4))
-@pytest.mark.parametrize('n', (3, 4))
-@pytest.mark.parametrize('psdef', (True, False))
-@pytest.mark.parametrize('deficient, reduce_rank', [
-    (False, False),
-    (True, False),  # should auto-remove the reduced component
-    (True, True),  # force removal of one component (though redundant here)
-])
-@pytest.mark.parametrize('func', [
-    _sym_mat_pow,
-    _reg_pinv,
-])
+@pytest.mark.parametrize("dtype", (np.float64, np.complex128))  # real, complex
+@pytest.mark.parametrize("ndim", (2, 3, 4))
+@pytest.mark.parametrize("n", (3, 4))
+@pytest.mark.parametrize("psdef", (True, False))
+@pytest.mark.parametrize(
+    "deficient, reduce_rank",
+    [
+        (False, False),
+        (True, False),  # should auto-remove the reduced component
+        (True, True),  # force removal of one component (though redundant here)
+    ],
+)
+@pytest.mark.parametrize(
+    "func",
+    [
+        _sym_mat_pow,
+        _reg_pinv,
+    ],
+)
 def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
     """Test positive semidefinite matrix inverses."""
-    if _compare_version(np.__version__, '>=', '1.19'):
-        svd = np.linalg.svd
-    else:
-        from mne.fixes import svd
+    svd = np.linalg.svd
     # make n-dimensional matrix
     n_extra = 2  # how many we add along the other dims
     rng = np.random.RandomState(73)
@@ -57,10 +57,8 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
         mat = np.matmul(np.matmul(proj, mat), proj)
     # if the dtype is complex, the conjugate transpose != transpose
     kwargs = dict(atol=1e-10, rtol=1e-10)
-    orig_eq_t = np.allclose(
-        mat, mat.swapaxes(-2, -1), **kwargs)
-    t_eq_ct = np.allclose(
-        mat.swapaxes(-2, -1), mat.conj().swapaxes(-2, -1), **kwargs)
+    orig_eq_t = np.allclose(mat, mat.swapaxes(-2, -1), **kwargs)
+    t_eq_ct = np.allclose(mat.swapaxes(-2, -1), mat.conj().swapaxes(-2, -1), **kwargs)
     if np.iscomplexobj(mat):
         assert not orig_eq_t
         assert not t_eq_ct
@@ -78,7 +76,7 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank, psdef, func):
     mat_pinv = np.linalg.pinv(mat)
     if func is _sym_mat_pow:
         if not psdef:
-            with pytest.raises(ValueError, match='not positive semi-'):
+            with pytest.raises(ValueError, match="not positive semi-"):
                 func(mat, -1)
             return
         mat_symv = func(mat, -1, reduce_rank=reduce_rank)

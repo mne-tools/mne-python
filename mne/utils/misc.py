@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """Some miscellaneous utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import fnmatch
 import gc
 import inspect
@@ -22,21 +21,26 @@ import numpy as np
 from ..utils import _check_option, _validate_type
 from ._logging import logger, verbose, warn
 
+# TODO: remove try/except when our min version is py 3.9
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
 
-def _pl(x, non_pl='', pl='s'):
+
+def _pl(x, non_pl="", pl="s"):
     """Determine if plural should be used."""
     len_x = x if isinstance(x, (int, np.generic)) else len(x)
     return non_pl if len_x == 1 else pl
 
 
-def _explain_exception(start=-1, stop=None, prefix='> '):
+def _explain_exception(start=-1, stop=None, prefix="> "):
     """Explain an exception."""
     # start=-1 means "only the most recent caller"
     etype, value, tb = sys.exc_info()
     string = traceback.format_list(traceback.extract_tb(tb)[start:stop])
-    string = (''.join(string).split('\n') +
-              traceback.format_exception_only(etype, value))
-    string = ':\n' + prefix + ('\n' + prefix).join(string)
+    string = "".join(string).split("\n") + traceback.format_exception_only(etype, value)
+    string = ":\n" + prefix + ("\n" + prefix).join(string)
     return string
 
 
@@ -82,7 +86,7 @@ def pformat(temp, **fmt):
 
 
 def _enqueue_output(out, queue):
-    for line in iter(out.readline, b''):
+    for line in iter(out.readline, b""):
         queue.put(line)
 
 
@@ -117,18 +121,22 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     code : int
         The return code, only returned if ``return_code == True``.
     """
-    all_out = ''
-    all_err = ''
+    all_out = ""
+    all_err = ""
     # non-blocking adapted from https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python#4896288  # noqa: E501
     out_q = Queue()
     err_q = Queue()
-    with running_subprocess(command, *args, **kwargs) as p, p.stdout, p.stderr:
-        out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
-        err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
-        out_t.daemon = True
-        err_t.daemon = True
-        out_t.start()
-        err_t.start()
+    control_stdout = "stdout" not in kwargs
+    control_stderr = "stderr" not in kwargs
+    with running_subprocess(command, *args, **kwargs) as p:
+        if control_stdout:
+            out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
+            out_t.daemon = True
+            out_t.start()
+        if control_stderr:
+            err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
+            err_t.daemon = True
+            err_t.start()
         while True:
             do_break = p.poll() is not None
             # read all current lines without blocking
@@ -138,7 +146,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    out = out.decode('utf-8')
+                    out = out.decode("utf-8")
                     # Strip newline at end of the string, otherwise we'll end
                     # up with two subsequent newlines (as the logger adds one)
                     #
@@ -147,8 +155,8 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     #
                     # log_out = out.removesuffix('\n')
                     if sys.version_info[:2] >= (3, 9):
-                        log_out = out.removesuffix('\n')
-                    elif out.endswith('\n'):
+                        log_out = out.removesuffix("\n")
+                    elif out.endswith("\n"):
                         log_out = out[:-1]
                     else:
                         log_out = out
@@ -162,7 +170,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    err = err.decode('utf-8')
+                    err = err.decode("utf-8")
                     # Strip newline at end of the string, otherwise we'll end
                     # up with two subsequent newlines (as the logger adds one)
                     #
@@ -171,8 +179,8 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     #
                     # err_out = err.removesuffix('\n')
                     if sys.version_info[:2] >= (3, 9):
-                        err_out = err.removesuffix('\n')
-                    elif err.endswith('\n'):
+                        err_out = err.removesuffix("\n")
+                    elif err.endswith("\n"):
                         err_out = err[:-1]
                     else:
                         err_out = err
@@ -193,12 +201,11 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     if return_code:
         output = output + (p.returncode,)
     elif p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in inspect.signature(err_fun).parameters:
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
+        stdout = all_out if control_stdout else None
+        stderr = all_err if control_stderr else None
+        raise subprocess.CalledProcessError(
+            p.returncode, command, output=stdout, stderr=stderr
+        )
 
     return output
 
@@ -228,25 +235,29 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     p : instance of Popen
         The process.
     """
-    _validate_type(after, str, 'after')
-    _check_option('after', after, ['wait', 'terminate', 'kill', 'communicate'])
-    for stdxxx, sys_stdxxx in (['stderr', sys.stderr], ['stdout', sys.stdout]):
+    _validate_type(after, str, "after")
+    _check_option("after", after, ["wait", "terminate", "kill", "communicate"])
+    contexts = list()
+    for stdxxx in ("stderr", "stdout"):
         if stdxxx not in kwargs:
             kwargs[stdxxx] = subprocess.PIPE
+            contexts.append(stdxxx)
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
-    env = kwargs.get('env', os.environ)
-    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
-        warn('Your PATH environment variable contains at least one path '
-             'starting with a tilde ("~") character. Such paths are not '
-             'interpreted correctly from within Python. It is recommended '
-             'that you use "$HOME" instead of "~".')
+    env = kwargs.get("env", os.environ)
+    if any(p.startswith("~") for p in env["PATH"].split(os.pathsep)):
+        warn(
+            "Your PATH environment variable contains at least one path "
+            'starting with a tilde ("~") character. Such paths are not '
+            "interpreted correctly from within Python. It is recommended "
+            'that you use "$HOME" instead of "~".'
+        )
     if isinstance(command, str):
         command_str = command
     else:
         command = [str(s) for s in command]
-        command_str = ' '.join(s for s in command)
+        command_str = " ".join(s for s in command)
     logger.info("Running subprocess: %s" % command_str)
     try:
         p = subprocess.Popen(command, *args, **kwargs)
@@ -255,10 +266,13 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
             command_name = command.split()[0]
         else:
             command_name = command[0]
-        logger.error('Command not found: %s' % command_name)
+        logger.error("Command not found: %s" % command_name)
         raise
     try:
-        yield p
+        with ExitStack() as stack:
+            for context in contexts:
+                stack.enter_context(getattr(p, context))
+            yield p
     finally:
         getattr(p, after)()
         p.wait()
@@ -283,11 +297,11 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
     """
     cleaned = []
     for name in names:
-        if ' ' in name and remove_whitespace:
-            name = name.replace(' ', '')
-        if '-' in name and before_dash:
-            name = name.split('-')[0]
-        if name.endswith('_v'):
+        if " " in name and remove_whitespace:
+            name = name.replace(" ", "")
+        if "-" in name and before_dash:
+            name = name.split("-")[0]
+        if name.endswith("_v"):
             name = name[:-2]
         cleaned.append(name)
 
@@ -305,7 +319,7 @@ def _get_argvalues():
         for _ in range(3):
             frame = frame.f_back
         fname = frame.f_code.co_filename
-        if not fnmatch.fnmatch(fname, '*/mne/io/*'):
+        if not fnmatch.fnmatch(fname, "*/mne/io/*"):
             return None
         args, _, _, values = inspect.getargvalues(frame)
     finally:
@@ -313,7 +327,7 @@ def _get_argvalues():
     params = dict()
     for arg in args:
         params[arg] = values[arg]
-    params.pop('self', None)
+    params.pop("self", None)
     return params
 
 
@@ -330,19 +344,19 @@ def sizeof_fmt(num):
     size : str
         The size in human-readable format.
     """
-    units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
+    units = ["bytes", "kB", "MB", "GB", "TB", "PB"]
     decimals = [0, 0, 1, 2, 2, 2]
     if num > 1:
         exponent = min(int(log(num, 1024)), len(units) - 1)
-        quotient = float(num) / 1024 ** exponent
+        quotient = float(num) / 1024**exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = '{0:.%sf} {1}' % (num_decimals)
+        format_string = "{0:.%sf} {1}" % (num_decimals)
         return format_string.format(quotient, unit)
     if num == 0:
-        return '0 bytes'
+        return "0 bytes"
     if num == 1:
-        return '1 byte'
+        return "1 byte"
 
 
 def _file_like(obj):
@@ -352,18 +366,18 @@ def _file_like(obj):
     #
     # but this might be more robust to file-like objects not properly
     # inheriting from these classes:
-    return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))
+    return all(callable(getattr(obj, name, None)) for name in ("read", "seek"))
 
 
 def _fullname(obj):
     klass = obj.__class__
     module = klass.__module__
-    if module == 'builtins':
+    if module == "builtins":
         return klass.__qualname__
-    return module + '.' + klass.__qualname__
+    return module + "." + klass.__qualname__
 
 
-def _assert_no_instances(cls, when=''):
+def _assert_no_instances(cls, when=""):
     __tracebackhide__ = True
     n = 0
     ref = list()
@@ -375,34 +389,34 @@ def _assert_no_instances(cls, when=''):
         except Exception:  # such as a weakref
             check = False
         if check:
-            if cls.__name__ == 'Brain':
-                ref.append(
-                    f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
+            if cls.__name__ == "Brain":
+                ref.append(f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
-                if r is not objs and \
-                        r is not globals() and \
-                        r is not locals() and \
-                        not inspect.isframe(r):
+                if (
+                    r is not objs
+                    and r is not globals()
+                    and r is not locals()
+                    and not inspect.isframe(r)
+                ):
                     if isinstance(r, (list, dict, tuple)):
-                        rep = f'len={len(r)}'
+                        rep = f"len={len(r)}"
                         r_ = gc.get_referrers(r)
                         types = (_fullname(x) for x in r_)
-                        types = "/".join(sorted(set(
-                            x for x in types if x is not None)))
-                        rep += f', {len(r_)} referrers: {types}'
+                        types = "/".join(sorted(set(x for x in types if x is not None)))
+                        rep += f", {len(r_)} referrers: {types}"
                         del r_
                     else:
-                        rep = repr(r)[:100].replace('\n', ' ')
+                        rep = repr(r)[:100].replace("\n", " ")
                         # If it's a __closure__, get more information
-                        if rep.startswith('<cell at '):
+                        if rep.startswith("<cell at "):
                             try:
-                                rep += f' ({repr(r.cell_contents)[:100]})'
+                                rep += f" ({repr(r.cell_contents)[:100]})"
                             except Exception:
                                 pass
                     name = _fullname(r)
-                    ref.append(f'{name}: {rep}')
+                    ref.append(f"{name}: {rep}")
                     count += 1
                 del r
             del rr
@@ -410,7 +424,7 @@ def _assert_no_instances(cls, when=''):
         del obj
     del objs
     gc.collect()
-    assert n == 0, f'\n{n} {cls.__name__} @ {when}:\n' + '\n'.join(ref)
+    assert n == 0, f"\n{n} {cls.__name__} @ {when}:\n" + "\n".join(ref)
 
 
 def _resource_path(submodule, filename):
@@ -429,12 +443,7 @@ def _resource_path(submodule, filename):
     path : str
         The full system path to the requested file.
     """
-    try:
-        from importlib.resources import files
-        return files(submodule).joinpath(filename)
-    except ImportError:
-        from pkg_resources import resource_filename
-        return resource_filename(submodule, filename)
+    return files(submodule).joinpath(filename)
 
 
 def repr_html(f):
@@ -459,8 +468,10 @@ def repr_html(f):
     def wrapper(*args, **kwargs):
         if get_config("MNE_REPR_HTML", "true").lower() == "false":
             import html
+
             r = "<pre>" + html.escape(repr(args[0])) + "</pre>"
             return r.replace("\n", "<br/>")
         else:
             return f(*args, **kwargs)
+
     return wrapper

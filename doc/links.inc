@@ -133,7 +133,7 @@
 .. _git: https://git-scm.com/
 .. _github: https://github.com
 .. _GitHub Help: https://help.github.com
-.. _GitHub learning lab: https://lab.github.com/
+.. _GitHub skills: https://skills.github.com/
 .. _pro git book: https://git-scm.com/book/
 .. _git bash: https://gitforwindows.org/
 .. _git for Windows: https://gitforwindows.org/
