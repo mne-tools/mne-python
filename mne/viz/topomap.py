@@ -1647,7 +1647,7 @@ def plot_ica_components(
         fig.canvas.draw()
 
         # add title selection interactivity
-        def onclick_title(event, ica=ica, titles=subplot_titles):
+        def onclick_title(event, ica=ica, titles=subplot_titles, fig=fig):
             # check if any title was pressed
             title_pressed = None
             for title in titles:
@@ -1705,7 +1705,8 @@ def plot_ica_components(
             fig.canvas.mpl_connect("button_press_event", onclick_topo)
         figs.append(fig)
 
-    plt_show(show)
+    for fig in figs:
+        plt_show(show, fig)
     return figs[0] if len(figs) == 1 else figs
 
 

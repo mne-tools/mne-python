@@ -141,11 +141,12 @@ def plt_show(show=True, fig=None, **kwargs):
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     import matplotlib.pyplot as plt
-    from matplotlib import get_backend
 
     if hasattr(fig, "mne") and hasattr(fig.mne, "backend"):
         backend = fig.mne.backend
     else:
+        from matplotlib import get_backend
+
         backend = get_backend()
     if show and backend != "agg":
         (fig or plt).show(**kwargs)
