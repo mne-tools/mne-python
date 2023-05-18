@@ -787,7 +787,6 @@ def _run_maxwell_filter(
         for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
             if start == stop:
                 continue  # Skip zero-length annotations
-            t_str = _get_t_str(raw_sss, start, stop)
 
             # Get original data and apply cross-talk correction
             ctc_data = raw_sss._data[meg_picks[good_mask], start:stop]
@@ -802,13 +801,18 @@ def _run_maxwell_filter(
                     proc = raw_sss._data[meg_picks, start:stop]
                 else:
                     proc = ctc_data
-                tsss.feed(proc, in_data, resid, n_positions=n_positions, t_str=t_str)
+                tsss.feed(
+                    proc,
+                    in_data,
+                    resid,
+                    n_positions=n_positions,
+                    sfreq=info["sfreq"],
+                )
             else:
                 raw_sss._data[meg_picks[good_mask], start:stop] = ctc_data
 
         # Second pass: movement compensation, st_fixed=False
         for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
-            t_str = _get_t_str(raw_sss, start, stop)
             data, orig_in_data, resid, pos_data, n_positions = mc.feed(
                 raw_sss._data[meg_picks, start:stop], good_mask, st_only
             )
@@ -821,14 +825,9 @@ def _run_maxwell_filter(
                     orig_in_data,
                     resid,
                     n_positions=n_positions,
-                    t_str=t_str,
                 )
 
     return raw_sss
-
-
-def _get_t_str(raw, start, stop):
-    return "%8.3f - %8.3f s" % tuple(raw.times[start:stop][[0, -1]])
 
 
 class _MoveComp(object):
@@ -1144,7 +1143,16 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
 
 
 def _do_tSSS(
-    clean_data, orig_in_data, resid, st_correlation, n_positions, t_str, tsss_valid
+    clean_data,
+    orig_in_data,
+    resid,
+    st_correlation,
+    n_positions,
+    tsss_valid,
+    *,
+    start,
+    stop,
+    sfreq,
 ):
     """Compute and apply SSP-like projection vectors based on min corr."""
     if not tsss_valid:
@@ -1153,6 +1161,8 @@ def _do_tSSS(
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
+    start, stop = start / sfreq, (stop - 1) / sfreq
+    t_str = f"{start:8.3} - {stop:8.3f} s"
     msg = "        Projecting %2d intersecting tSSS component%s " "for %s" % (
         t_proj.shape[1],
         _pl(t_proj.shape[1], " "),
@@ -1161,6 +1171,7 @@ def _do_tSSS(
     if n_positions > 1:
         msg += " (across %2d position%s)" % (n_positions, _pl(n_positions, " "))
     logger.info(msg)
+    raise RuntimeError
     return (clean_data - np.dot(np.dot(clean_data, t_proj), t_proj.T),)
 
 

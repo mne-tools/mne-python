@@ -418,7 +418,9 @@ class _COLA:
                 proc.shape[-1] == this_len == this_window.size for proc in this_proc
             ):
                 raise RuntimeError("internal indexing error")
-            outs = self._process(*this_proc, **kwargs)
+            start = self._store.idx
+            stop = self._store.idx + this_len
+            outs = self._process(*this_proc, start=start, stop=stop, **kwargs)
             if self._out_buffers is None:
                 max_len = np.max(self.stops - self.starts)
                 self._out_buffers = [
