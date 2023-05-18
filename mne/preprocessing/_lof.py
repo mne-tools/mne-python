@@ -4,7 +4,6 @@
 
 
 import numpy as np
-from sklearn.neighbors import LocalOutlierFactor
 
 from ..io.base import BaseRaw
 from ..utils import logger, verbose, _validate_type
@@ -72,6 +71,14 @@ def find_bad_channels_lof(
 
     footbibliography:
     """
+    try:
+        from sklearn.neighbors import LocalOutlierFactor
+    except ImportError:
+        print(
+            "scikit-learn is not installed. "
+            "Please install it by running 'pip install scikit-learn'."
+        )
+
     _validate_type(raw, BaseRaw, "raw")
     # Get the channel types
     channel_types = set(raw.get_channel_types())
