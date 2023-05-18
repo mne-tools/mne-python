@@ -339,12 +339,20 @@ def test_movement_compensation_smooth():
 
     # now with tSSS
     kwargs["st_duration"] = 10
-    raw_tsss = maxwell_filter(raw, **kwargs)
-    _assert_shielding(raw_tsss, power, 36.1, max_factor=36.2)
-    raw_tsss_smooth = _maxwell_filter_ola(
-        raw, mc_interp="hann", st_overlap=True, **kwargs
-    )
-    _assert_shielding(raw_tsss_smooth, power, 36.2, max_factor=36.3)
+    with catch_logging() as log:
+        raw_tsss = maxwell_filter(raw, verbose=True, **kwargs)
+    log = log.getvalue()
+    # TODO: This was 25 on main, and we should add back "across 24 pos..."
+    want_re = re.compile(".*Projecting 26 intersecting.*", re.DOTALL)
+    assert want_re.match(log) is not None, log
+    _assert_shielding(raw_tsss, power, 31.2, max_factor=31.3)
+    with catch_logging() as log:
+        raw_tsss_smooth = _maxwell_filter_ola(
+            raw, mc_interp="hann", st_overlap=True, verbose=True, **kwargs
+        )
+    log = log.getvalue()
+    assert want_re.match(log) is not None, log
+    _assert_shielding(raw_tsss_smooth, power, 31.5, max_factor=31.7)
 
 
 @pytest.mark.slowtest

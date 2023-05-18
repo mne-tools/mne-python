@@ -765,26 +765,32 @@ def _run_maxwell_filter(
             n_overlap = 0
             window = "boxcar"
         tsss = _COLA(
-            partial(_do_tSSS, st_correlation=st_correlation, tsss_valid=tsss_valid),
+            partial(
+                _do_tSSS,
+                st_correlation=st_correlation,
+                tsss_valid=tsss_valid,
+                sfreq=sfreq,
+            ),
             _Storer(raw_sss._data[:, onset:end], picks=these_picks),
             n,
             min(st_duration, n),
             n_overlap,
-            raw_sss.info["sfreq"],
+            sfreq,
             window,
         )
+
         # Generate time points to break up data into equal-length windows
-        read_lims = list(
-            range(
-                onset, end, int(round(raw_sss.buffer_size_sec * raw_sss.info["sfreq"]))
-            )
-        )
-        read_lims.append(end)
+        # TODO: here we must use st_duration if present to make feed_avg work :(
+        if st_fixed and st_correlation is not None:
+            use_n = min(st_duration, n)
+        else:
+            use_n = int(round(raw_sss.buffer_size_sec * raw_sss.info["sfreq"]))
+        read_lims = list(range(onset, end, use_n)) + [end]
         assert len(read_lims) >= 2
         assert read_lims[0] == onset and read_lims[-1] == end
 
         # First pass: cross_talk, st_fixed=True
-        for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
+        for start, stop in zip(read_lims[:-1], read_lims[1:]):
             if start == stop:
                 continue  # Skip zero-length annotations
 
@@ -811,6 +817,16 @@ def _run_maxwell_filter(
             else:
                 raw_sss._data[meg_picks[good_mask], start:stop] = ctc_data
 
+        # Here we can use a smaller buffer size (might as well)
+        read_lims = list(
+            range(
+                onset, end, int(round(raw_sss.buffer_size_sec * raw_sss.info["sfreq"]))
+            )
+        )
+        read_lims.append(end)
+        assert len(read_lims) >= 2
+        assert read_lims[0] == onset and read_lims[-1] == end
+
         # Second pass: movement compensation, st_fixed=False
         for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
             data, orig_in_data, resid, pos_data, n_positions = mc.feed(
@@ -825,6 +841,7 @@ def _run_maxwell_filter(
                     orig_in_data,
                     resid,
                     n_positions=n_positions,
+                    sfreq=info["sfreq"],
                 )
 
     return raw_sss
