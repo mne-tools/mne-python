@@ -27,11 +27,12 @@ def annotate_nan(raw, *, verbose=None):
     data, times = raw.get_data(return_times=True)
     onsets, durations, ch_names = list(), list(), list()
     for row, ch_name in zip(data, raw.ch_names):
-        annot = _annotations_from_mask(times, np.isnan(row), 'BAD_NAN')
+        annot = _annotations_from_mask(times, np.isnan(row), "BAD_NAN")
         onsets.extend(annot.onset)
         durations.extend(annot.duration)
         ch_names.extend([[ch_name]] * len(annot))
-    annot = Annotations(onsets, durations, 'BAD_NAN', ch_names=ch_names,
-                        orig_time=raw.info['meas_date'])
+    annot = Annotations(
+        onsets, durations, "BAD_NAN", ch_names=ch_names, orig_time=raw.info["meas_date"]
+    )
     _adjust_onset_meas_date(annot, raw)
     return annot

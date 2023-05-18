@@ -10,13 +10,21 @@ import numpy as np
 from ..cov import compute_whitener
 from ..io.pick import pick_info
 from ..forward import apply_forward
-from ..utils import (logger, verbose, check_random_state, _check_preload,
-                     _validate_type)
+from ..utils import logger, verbose, check_random_state, _check_preload, _validate_type
 
 
 @verbose
-def simulate_evoked(fwd, stc, info, cov=None, nave=30, iir_filter=None,
-                    random_state=None, use_cps=True, verbose=None):
+def simulate_evoked(
+    fwd,
+    stc,
+    info,
+    cov=None,
+    nave=30,
+    iir_filter=None,
+    random_state=None,
+    use_cps=True,
+    verbose=None,
+):
     """Generate noisy evoked data.
 
     .. note:: No projections from ``info`` will be present in the
@@ -76,21 +84,19 @@ def simulate_evoked(fwd, stc, info, cov=None, nave=30, iir_filter=None,
         noise = _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
         evoked.data += noise.data / math.sqrt(nave)
         evoked.nave = np.int64(nave)
-    if cov.get('projs', None):
-        evoked.add_proj(cov['projs']).apply_proj()
+    if cov.get("projs", None):
+        evoked.add_proj(cov["projs"]).apply_proj()
     return evoked
 
 
 def _simulate_noise_evoked(evoked, cov, iir_filter, random_state):
     noise = evoked.copy()
     noise.data[:] = 0
-    return _add_noise(noise, cov, iir_filter, random_state,
-                      allow_subselection=False)
+    return _add_noise(noise, cov, iir_filter, random_state, allow_subselection=False)
 
 
 @verbose
-def add_noise(inst, cov, iir_filter=None, random_state=None,
-              verbose=None):
+def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
     """Create noise as a multivariate Gaussian.
 
     The spatial covariance of the noise is given from the cov matrix.
@@ -130,10 +136,12 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    _validate_type(cov, Covariance, 'cov')
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked),
-                   'inst', 'Raw, Epochs, or Evoked')
-    _check_preload(inst, 'Adding noise')
+
+    _validate_type(cov, Covariance, "cov")
+    _validate_type(
+        inst, (BaseRaw, BaseEpochs, Evoked), "inst", "Raw, Epochs, or Evoked"
+    )
+    _check_preload(inst, "Adding noise")
     data = inst._data
     assert data.ndim in (2, 3)
     if data.ndim == 2:
@@ -143,27 +151,33 @@ def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
     info._check_consistency()
     picks = gen_picks = slice(None)
     if allow_subselection:
-        use_chs = list(set(info['ch_names']) & set(cov['names']))
-        picks = np.where(np.in1d(info['ch_names'], use_chs))[0]
-        logger.info('Adding noise to %d/%d channels (%d channels in cov)'
-                    % (len(picks), len(info['chs']), len(cov['names'])))
+        use_chs = list(set(info["ch_names"]) & set(cov["names"]))
+        picks = np.where(np.in1d(info["ch_names"], use_chs))[0]
+        logger.info(
+            "Adding noise to %d/%d channels (%d channels in cov)"
+            % (len(picks), len(info["chs"]), len(cov["names"]))
+        )
         info = pick_info(inst.info, picks)
         info._check_consistency()
 
-        gen_picks = np.arange(info['nchan'])
+        gen_picks = np.arange(info["nchan"])
     for epoch in data:
-        epoch[picks] += _generate_noise(info, cov, iir_filter, random_state,
-                                        epoch.shape[1], picks=gen_picks)[0]
+        epoch[picks] += _generate_noise(
+            info, cov, iir_filter, random_state, epoch.shape[1], picks=gen_picks
+        )[0]
     return inst
 
 
-def _generate_noise(info, cov, iir_filter, random_state, n_samples, zi=None,
-                    picks=None):
+def _generate_noise(
+    info, cov, iir_filter, random_state, n_samples, zi=None, picks=None
+):
     """Create spatially colored and temporally IIR-filtered noise."""
     from scipy.signal import lfilter
+
     rng = check_random_state(random_state)
-    _, _, colorer = compute_whitener(cov, info, pca=True, return_colorer=True,
-                                     picks=picks, verbose=False)
+    _, _, colorer = compute_whitener(
+        cov, info, pca=True, return_colorer=True, picks=picks, verbose=False
+    )
     noise = np.dot(colorer, rng.standard_normal((colorer.shape[1], n_samples)))
     if iir_filter is not None:
         if zi is None:

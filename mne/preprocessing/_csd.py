@@ -15,8 +15,7 @@
 import numpy as np
 
 from .. import pick_types
-from ..utils import (_validate_type, _ensure_int, _check_preload, verbose,
-                     logger)
+from ..utils import _validate_type, _ensure_int, _check_preload, verbose, logger
 from ..io import BaseRaw
 from ..io.constants import FIFF
 from ..epochs import BaseEpochs, make_fixed_length_epochs
@@ -26,7 +25,7 @@ from ..channels.interpolation import _calc_g, _calc_h
 
 
 def _prepare_G(G, lambda2):
-    G.flat[::len(G) + 1] += lambda2
+    G.flat[:: len(G) + 1] += lambda2
     # compute the CSD
     Gi = np.linalg.inv(G)
 
@@ -48,14 +47,21 @@ def _compute_csd(G_precomputed, H, radius):
     Cp2 = np.dot(Gi, Z)
     c02 = np.sum(Cp2, axis=0) / sgi
     C2 = Cp2 - np.dot(TC[:, np.newaxis], c02[np.newaxis, :])
-    X = np.dot(C2.T, H).T / radius ** 2
+    X = np.dot(C2.T, H).T / radius**2
     return X
 
 
 @verbose
-def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
-                                   stiffness=4, n_legendre_terms=50,
-                                   copy=True, *, verbose=None):
+def compute_current_source_density(
+    inst,
+    sphere="auto",
+    lambda2=1e-5,
+    stiffness=4,
+    n_legendre_terms=50,
+    copy=True,
+    *,
+    verbose=None,
+):
     """Get the current source density (CSD) transformation.
 
     Transformation based on spherical spline surface Laplacian
@@ -95,40 +101,43 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     ----------
     .. footbibliography::
     """
-    _validate_type(inst, (BaseEpochs, BaseRaw, Evoked), 'inst')
-    _check_preload(inst, 'Computing CSD')
+    _validate_type(inst, (BaseEpochs, BaseRaw, Evoked), "inst")
+    _check_preload(inst, "Computing CSD")
 
-    if inst.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_CSD:
-        raise ValueError('CSD already applied, should not be reapplied')
+    if inst.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_CSD:
+        raise ValueError("CSD already applied, should not be reapplied")
 
-    _validate_type(copy, (bool), 'copy')
+    _validate_type(copy, (bool), "copy")
     inst = inst.copy() if copy else inst
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
 
-    if any([ch in np.array(inst.ch_names)[picks] for ch in inst.info['bads']]):
-        raise ValueError('CSD cannot be computed with bad EEG channels. Either'
-                         ' drop (inst.drop_channels(inst.info[\'bads\']) '
-                         'or interpolate (`inst.interpolate_bads()`) '
-                         'bad EEG channels.')
+    if any([ch in np.array(inst.ch_names)[picks] for ch in inst.info["bads"]]):
+        raise ValueError(
+            "CSD cannot be computed with bad EEG channels. Either"
+            " drop (inst.drop_channels(inst.info['bads']) "
+            "or interpolate (`inst.interpolate_bads()`) "
+            "bad EEG channels."
+        )
 
     if len(picks) == 0:
-        raise ValueError('No EEG channels found.')
+        raise ValueError("No EEG channels found.")
 
-    _validate_type(lambda2, 'numeric', 'lambda2')
+    _validate_type(lambda2, "numeric", "lambda2")
     if not 0 <= lambda2 < 1:
-        raise ValueError('lambda2 must be between 0 and 1, got %s' % lambda2)
+        raise ValueError("lambda2 must be between 0 and 1, got %s" % lambda2)
 
-    _validate_type(stiffness, 'numeric', 'stiffness')
+    _validate_type(stiffness, "numeric", "stiffness")
     if stiffness < 0:
-        raise ValueError('stiffness must be non-negative got %s' % stiffness)
+        raise ValueError("stiffness must be non-negative got %s" % stiffness)
 
-    n_legendre_terms = _ensure_int(n_legendre_terms, 'n_legendre_terms')
+    n_legendre_terms = _ensure_int(n_legendre_terms, "n_legendre_terms")
     if n_legendre_terms < 1:
-        raise ValueError('n_legendre_terms must be greater than 0, '
-                         'got %s' % n_legendre_terms)
+        raise ValueError(
+            "n_legendre_terms must be greater than 0, " "got %s" % n_legendre_terms
+        )
 
-    if isinstance(sphere, str) and sphere == 'auto':
+    if isinstance(sphere, str) and sphere == "auto":
         radius, origin_head, origin_device = fit_sphere_to_headshape(inst.info)
         x, y, z = origin_head - origin_device
         sphere = (x, y, z, radius)
@@ -137,19 +146,18 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         x, y, z, radius = sphere
     except Exception:
         raise ValueError(
-            f'sphere must be "auto" or array-like with shape (4,), '
-            f'got {sphere}')
-    _validate_type(x, 'numeric', 'x')
-    _validate_type(y, 'numeric', 'y')
-    _validate_type(z, 'numeric', 'z')
-    _validate_type(radius, 'numeric', 'radius')
+            f'sphere must be "auto" or array-like with shape (4,), ' f"got {sphere}"
+        )
+    _validate_type(x, "numeric", "x")
+    _validate_type(y, "numeric", "y")
+    _validate_type(z, "numeric", "z")
+    _validate_type(radius, "numeric", "radius")
     if radius <= 0:
-        raise ValueError('sphere radius must be greater than 0, '
-                         'got %s' % radius)
+        raise ValueError("sphere radius must be greater than 0, " "got %s" % radius)
 
-    pos = np.array([inst.info['chs'][pick]['loc'][:3] for pick in picks])
-    if not np.isfinite(pos).all() or np.isclose(pos, 0.).all(1).any():
-        raise ValueError('Zero or infinite position found in chs')
+    pos = np.array([inst.info["chs"][pick]["loc"][:3] for pick in picks])
+    if not np.isfinite(pos).all() or np.isclose(pos, 0.0).all(1).any():
+        raise ValueError("Zero or infinite position found in chs")
     pos -= (x, y, z)
 
     # Project onto a unit sphere to compute the cosine similarity:
@@ -160,39 +168,44 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     # cos_dist = 1 - squareform(pdist(pos, 'sqeuclidean')) / 2.
     del pos
 
-    G = _calc_g(cos_dist, stiffness=stiffness,
-                n_legendre_terms=n_legendre_terms)
-    H = _calc_h(cos_dist, stiffness=stiffness,
-                n_legendre_terms=n_legendre_terms)
+    G = _calc_g(cos_dist, stiffness=stiffness, n_legendre_terms=n_legendre_terms)
+    H = _calc_h(cos_dist, stiffness=stiffness, n_legendre_terms=n_legendre_terms)
 
     G_precomputed = _prepare_G(G, lambda2)
 
-    trans_csd = _compute_csd(G_precomputed=G_precomputed,
-                             H=H, radius=radius)
+    trans_csd = _compute_csd(G_precomputed=G_precomputed, H=H, radius=radius)
 
     epochs = [inst._data] if not isinstance(inst, BaseEpochs) else inst._data
     for epo in epochs:
         epo[picks] = np.dot(trans_csd, epo[picks])
     with inst.info._unlock():
-        inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+        inst.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     for pick in picks:
-        inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
-                                      unit=FIFF.FIFF_UNIT_V_M2)
+        inst.info["chs"][pick].update(
+            coil_type=FIFF.FIFFV_COIL_EEG_CSD, unit=FIFF.FIFF_UNIT_V_M2
+        )
 
     # Remove rejection thresholds for EEG
     if isinstance(inst, BaseEpochs):
-        if inst.reject and 'eeg' in inst.reject:
-            del inst.reject['eeg']
-        if inst.flat and 'eeg' in inst.flat:
-            del inst.flat['eeg']
+        if inst.reject and "eeg" in inst.reject:
+            del inst.reject["eeg"]
+        if inst.flat and "eeg" in inst.flat:
+            del inst.flat["eeg"]
 
     return inst
 
 
 @verbose
-def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
-                               l_freq=0.5, h_freq=30, epoch_duration=2,
-                               bw_method=None, verbose=None):
+def compute_bridged_electrodes(
+    inst,
+    lm_cutoff=16,
+    epoch_threshold=0.5,
+    l_freq=0.5,
+    h_freq=30,
+    epoch_duration=2,
+    bw_method=None,
+    verbose=None,
+):
     r"""Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
 
     First, an electrical distance matrix is computed by taking the pairwise
@@ -250,18 +263,21 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     """
     from scipy.stats import gaussian_kde
     from scipy.optimize import minimize_scalar
-    _check_preload(inst, 'Computing bridged electrodes')
+
+    _check_preload(inst, "Computing bridged electrodes")
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)
     if len(picks) == 0:
-        raise RuntimeError('No EEG channels found, cannot compute '
-                           'electrode bridging')
+        raise RuntimeError(
+            "No EEG channels found, cannot compute " "electrode bridging"
+        )
     # first, filter
     inst.filter(l_freq=l_freq, h_freq=h_freq, picks=picks, verbose=False)
 
     if isinstance(inst, BaseRaw):
-        inst = make_fixed_length_epochs(inst, duration=epoch_duration,
-                                        preload=True, verbose=False)
+        inst = make_fixed_length_epochs(
+            inst, duration=epoch_duration, preload=True, verbose=False
+        )
 
     # standardize shape
     data = inst.get_data(picks=picks)
@@ -288,10 +304,13 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
 
     # kernel density estimation
     kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
-    with np.errstate(invalid='ignore'):
-        local_minimum = float(minimize_scalar(
-            lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x.item())
-    logger.info(f'Local minimum {local_minimum} found')
+    with np.errstate(invalid="ignore"):
+        local_minimum = float(
+            minimize_scalar(
+                lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf
+            ).x.item()
+        )
+    logger.info(f"Local minimum {local_minimum} found")
 
     # find electrodes that are below the cutoff local minimum on
     # `epochs_threshold` proportion of epochs
@@ -299,9 +318,11 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
         for j in range(i + 1, picks.size):
             bridged_count = np.sum(ed_matrix[:, i, j] < local_minimum)
             if bridged_count / n_epochs > epoch_threshold:
-                logger.info('Bridge detected between '
-                            f'{inst.ch_names[picks[i]]} and '
-                            f'{inst.ch_names[picks[j]]}')
+                logger.info(
+                    "Bridge detected between "
+                    f"{inst.ch_names[picks[i]]} and "
+                    f"{inst.ch_names[picks[j]]}"
+                )
                 bridged_idx.append((picks[i], picks[j]))
 
     return bridged_idx, ed_matrix

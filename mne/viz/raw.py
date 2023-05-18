@@ -17,25 +17,58 @@ from ..time_frequency import Spectrum
 from ..utils import legacy, verbose, _validate_type, _check_option
 from ..utils.spectrum import _split_psd_kwargs
 from ..defaults import _handle_default
-from .utils import (_compute_scalings, _handle_decim, _check_cov,
-                    _shorten_path_from_middle, _handle_precompute,
-                    _get_channel_plotting_order, _make_event_color_dict)
+from .utils import (
+    _compute_scalings,
+    _handle_decim,
+    _check_cov,
+    _shorten_path_from_middle,
+    _handle_precompute,
+    _get_channel_plotting_order,
+    _make_event_color_dict,
+)
 
 _RAW_CLIP_DEF = 1.5
 
 
 @verbose
-def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color='lightgray',
-             event_color='cyan', scalings=None, remove_dc=True, order=None,
-             show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4,
-             clipping=_RAW_CLIP_DEF, show_first_samp=False,
-             proj=True, group_by='type', butterfly=False, decim='auto',
-             noise_cov=None, event_id=None, show_scrollbars=True,
-             show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, *, theme=None,
-             overview_mode=None, verbose=None):
+def plot_raw(
+    raw,
+    events=None,
+    duration=10.0,
+    start=0.0,
+    n_channels=20,
+    bgcolor="w",
+    color=None,
+    bad_color="lightgray",
+    event_color="cyan",
+    scalings=None,
+    remove_dc=True,
+    order=None,
+    show_options=False,
+    title=None,
+    show=True,
+    block=False,
+    highpass=None,
+    lowpass=None,
+    filtorder=4,
+    clipping=_RAW_CLIP_DEF,
+    show_first_samp=False,
+    proj=True,
+    group_by="type",
+    butterfly=False,
+    decim="auto",
+    noise_cov=None,
+    event_id=None,
+    show_scrollbars=True,
+    show_scalebars=True,
+    time_format="float",
+    precompute=None,
+    use_opengl=None,
+    *,
+    theme=None,
+    overview_mode=None,
+    verbose=None,
+):
     """Plot raw data.
 
     Parameters
@@ -203,35 +236,34 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     from ._figure import _get_browser
 
     info = raw.info.copy()
-    sfreq = info['sfreq']
-    projs = info['projs']
+    sfreq = info["sfreq"]
+    projs = info["projs"]
     # this will be an attr for which projectors are currently "on" in the plot
     projs_on = np.full_like(projs, proj, dtype=bool)
     # disable projs in info if user doesn't want to see them right away
     if not proj:
         with info._unlock():
-            info['projs'] = list()
+            info["projs"] = list()
 
     # handle defaults / check arg validity
-    color = _handle_default('color', color)
-    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
-                                 duration=duration)
-    if scalings['whitened'] == 'auto':
-        scalings['whitened'] = 1.
-    _validate_type(raw, BaseRaw, 'raw', 'Raw')
+    color = _handle_default("color", color)
+    scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc, duration=duration)
+    if scalings["whitened"] == "auto":
+        scalings["whitened"] = 1.0
+    _validate_type(raw, BaseRaw, "raw", "Raw")
     decim, picks_data = _handle_decim(info, decim, lowpass)
     noise_cov = _check_cov(noise_cov, info)
-    units = _handle_default('units', None)
-    unit_scalings = _handle_default('scalings', None)
-    _check_option('group_by', group_by,
-                  ('selection', 'position', 'original', 'type'))
+    units = _handle_default("units", None)
+    unit_scalings = _handle_default("scalings", None)
+    _check_option("group_by", group_by, ("selection", "position", "original", "type"))
 
     # clipping
-    _validate_type(clipping, (None, 'numeric', str), 'clipping')
+    _validate_type(clipping, (None, "numeric", str), "clipping")
     if isinstance(clipping, str):
-        _check_option('clipping', clipping, ('clamp', 'transparent'),
-                      extra='when a string')
-        clipping = 1. if clipping == 'transparent' else clipping
+        _check_option(
+            "clipping", clipping, ("clamp", "transparent"), extra="when a string"
+        )
+        clipping = 1.0 if clipping == "transparent" else clipping
     elif clipping is not None:
         clipping = float(clipping)
 
@@ -240,22 +272,28 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # determine IIR filtering parameters
     if highpass is not None and highpass <= 0:
-        raise ValueError(f'highpass must be > 0, got {highpass}')
+        raise ValueError(f"highpass must be > 0, got {highpass}")
     if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
         filtorder = int(filtorder)
         if filtorder == 0:
-            method = 'fir'
+            method = "fir"
             iir_params = None
         else:
-            method = 'iir'
-            iir_params = dict(order=filtorder, output='sos', ftype='butter')
-        ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
-                           sfreq, highpass, lowpass, method=method,
-                           iir_params=iir_params)
+            method = "iir"
+            iir_params = dict(order=filtorder, output="sos", ftype="butter")
+        ba = create_filter(
+            np.zeros((1, int(round(duration * sfreq)))),
+            sfreq,
+            highpass,
+            lowpass,
+            method=method,
+            iir_params=iir_params,
+        )
         filt_bounds = _annotations_starts_stops(
-            raw, ('edge', 'bad_acq_skip'), invert=True)
+            raw, ("edge", "bad_acq_skip"), invert=True
+        )
 
     # compute event times in seconds
     if events is not None:
@@ -269,18 +307,18 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ch_names = np.array(raw.ch_names)
     ch_types = np.array(raw.get_channel_types())
     order = _get_channel_plotting_order(order, ch_types)
-    n_channels = min(info['nchan'], n_channels, len(order))
+    n_channels = min(info["nchan"], n_channels, len(order))
     # adjust order based on channel selection, if needed
     selections = None
-    if group_by in ('selection', 'position'):
+    if group_by in ("selection", "position"):
         selections = _setup_channel_selections(raw, group_by, order)
         order = np.concatenate(list(selections.values()))
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
     assert isinstance(order, np.ndarray)
-    assert order.dtype.kind == 'i'
+    assert order.dtype.kind == "i"
     if order.size == 0:
-        raise RuntimeError('No channels found to plot')
+        raise RuntimeError("No channels found to plot")
 
     # handle event colors
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
@@ -292,86 +330,108 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # generate window title; allow instances without a filename (e.g., ICA)
     if title is None:
-        title = '<unknown>'
+        title = "<unknown>"
         fnames = raw._filenames.copy()
         if len(fnames):
             title = fnames.pop(0)
-            extra = f' ... (+ {len(fnames)} more)' if len(fnames) else ''
-            title = f'{title}{extra}'
+            extra = f" ... (+ {len(fnames)} more)" if len(fnames) else ""
+            title = f"{title}{extra}"
             if len(title) > 60:
                 title = _shorten_path_from_middle(title)
     elif not isinstance(title, str):
-        raise TypeError(f'title must be None or a string, got a {type(title)}')
+        raise TypeError(f"title must be None or a string, got a {type(title)}")
 
     # gather parameters and initialize figure
-    _validate_type(use_opengl, (bool, None), 'use_opengl')
+    _validate_type(use_opengl, (bool, None), "use_opengl")
     precompute = _handle_precompute(precompute)
-    params = dict(inst=raw,
-                  info=info,
-                  # channels and channel order
-                  ch_names=ch_names,
-                  ch_types=ch_types,
-                  ch_order=order,
-                  picks=order[:n_channels],
-                  n_channels=n_channels,
-                  picks_data=picks_data,
-                  group_by=group_by,
-                  ch_selections=selections,
-                  # time
-                  t_start=start,
-                  duration=duration,
-                  n_times=raw.n_times,
-                  first_time=first_time,
-                  time_format=time_format,
-                  decim=decim,
-                  # events
-                  event_color_dict=event_color_dict,
-                  event_times=event_times,
-                  event_nums=event_nums,
-                  event_id_rev=event_id_rev,
-                  # preprocessing
-                  projs=projs,
-                  projs_on=projs_on,
-                  apply_proj=proj,
-                  remove_dc=remove_dc,
-                  filter_coefs=ba,
-                  filter_bounds=filt_bounds,
-                  noise_cov=noise_cov,
-                  # scalings
-                  scalings=scalings,
-                  units=units,
-                  unit_scalings=unit_scalings,
-                  # colors
-                  ch_color_bad=bad_color,
-                  ch_color_dict=color,
-                  # display
-                  butterfly=butterfly,
-                  clipping=clipping,
-                  scrollbars_visible=show_scrollbars,
-                  scalebars_visible=show_scalebars,
-                  window_title=title,
-                  bgcolor=bgcolor,
-                  # Qt-specific
-                  precompute=precompute,
-                  use_opengl=use_opengl,
-                  theme=theme,
-                  overview_mode=overview_mode,
-                  )
+    params = dict(
+        inst=raw,
+        info=info,
+        # channels and channel order
+        ch_names=ch_names,
+        ch_types=ch_types,
+        ch_order=order,
+        picks=order[:n_channels],
+        n_channels=n_channels,
+        picks_data=picks_data,
+        group_by=group_by,
+        ch_selections=selections,
+        # time
+        t_start=start,
+        duration=duration,
+        n_times=raw.n_times,
+        first_time=first_time,
+        time_format=time_format,
+        decim=decim,
+        # events
+        event_color_dict=event_color_dict,
+        event_times=event_times,
+        event_nums=event_nums,
+        event_id_rev=event_id_rev,
+        # preprocessing
+        projs=projs,
+        projs_on=projs_on,
+        apply_proj=proj,
+        remove_dc=remove_dc,
+        filter_coefs=ba,
+        filter_bounds=filt_bounds,
+        noise_cov=noise_cov,
+        # scalings
+        scalings=scalings,
+        units=units,
+        unit_scalings=unit_scalings,
+        # colors
+        ch_color_bad=bad_color,
+        ch_color_dict=color,
+        # display
+        butterfly=butterfly,
+        clipping=clipping,
+        scrollbars_visible=show_scrollbars,
+        scalebars_visible=show_scalebars,
+        window_title=title,
+        bgcolor=bgcolor,
+        # Qt-specific
+        precompute=precompute,
+        use_opengl=use_opengl,
+        theme=theme,
+        overview_mode=overview_mode,
+    )
 
     fig = _get_browser(show=show, block=block, **params)
 
     return fig
 
 
-@legacy(alt='Raw.compute_psd().plot()')
+@legacy(alt="Raw.compute_psd().plot()")
 @verbose
-def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
-                 n_fft=None, n_overlap=0, reject_by_annotation=True,
-                 picks=None, ax=None, color='black', xscale='linear',
-                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=None, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, window='hamming',
-                 exclude='bads', verbose=None):
+def plot_raw_psd(
+    raw,
+    fmin=0,
+    fmax=np.inf,
+    tmin=None,
+    tmax=None,
+    proj=False,
+    n_fft=None,
+    n_overlap=0,
+    reject_by_annotation=True,
+    picks=None,
+    ax=None,
+    color="black",
+    xscale="linear",
+    area_mode="std",
+    area_alpha=0.33,
+    dB=True,
+    estimate="auto",
+    show=True,
+    n_jobs=None,
+    average=False,
+    line_alpha=None,
+    spatial_colors=True,
+    sphere=None,
+    window="hamming",
+    exclude="bads",
+    verbose=None,
+):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -426,13 +486,29 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     return raw.compute_psd(**init_kw).plot(**plot_kw)
 
 
-@legacy(alt='Raw.compute_psd().plot_topo()')
+@legacy(alt="Raw.compute_psd().plot_topo()")
 @verbose
-def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
-                      *, n_fft=2048, n_overlap=0, dB=True, layout=None,
-                      color='w', fig_facecolor='k', axis_facecolor='k',
-                      axes=None, block=False, show=True, n_jobs=None,
-                      verbose=None):
+def plot_raw_psd_topo(
+    raw,
+    tmin=0.0,
+    tmax=None,
+    fmin=0.0,
+    fmax=100.0,
+    proj=False,
+    *,
+    n_fft=2048,
+    n_overlap=0,
+    dB=True,
+    layout=None,
+    color="w",
+    fig_facecolor="k",
+    axis_facecolor="k",
+    axes=None,
+    block=False,
+    show=True,
+    n_jobs=None,
+    verbose=None,
+):
     """Plot power spectral density, separately for each channel.
 
     Parameters
@@ -479,40 +555,72 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
 
 def _setup_channel_selections(raw, kind, order):
     """Get dictionary of channel groupings."""
-    from ..channels import (read_vectorview_selection, _SELECTIONS,
-                            _EEG_SELECTIONS, _divide_to_regions)
+    from ..channels import (
+        read_vectorview_selection,
+        _SELECTIONS,
+        _EEG_SELECTIONS,
+        _divide_to_regions,
+    )
     from ..utils import _get_stim_channel
-    _check_option('group_by', kind, ('position', 'selection'))
-    if kind == 'position':
+
+    _check_option("group_by", kind, ("position", "selection"))
+    if kind == "position":
         selections_dict = _divide_to_regions(raw.info)
         keys = _SELECTIONS[1:]  # omit 'Vertex'
     else:  # kind == 'selection'
         from ..channels.channels import _get_ch_info
-        (has_vv_mag, has_vv_grad, *_, has_neuromag_122_grad, has_csd_coils
-         ) = _get_ch_info(raw.info)
+
+        (
+            has_vv_mag,
+            has_vv_grad,
+            *_,
+            has_neuromag_122_grad,
+            has_csd_coils,
+        ) = _get_ch_info(raw.info)
         if not (has_vv_grad or has_vv_mag or has_neuromag_122_grad):
-            raise ValueError("order='selection' only works for Neuromag "
-                             "data. Use order='position' instead.")
+            raise ValueError(
+                "order='selection' only works for Neuromag "
+                "data. Use order='position' instead."
+            )
         selections_dict = OrderedDict()
         # get stim channel (if any)
         stim_ch = _get_stim_channel(None, raw.info, raise_error=False)
-        stim_ch = stim_ch if len(stim_ch) else ['']
-        stim_ch = pick_channels(raw.ch_names, stim_ch)
+        stim_ch = stim_ch if len(stim_ch) else [""]
+        stim_ch = pick_channels(raw.ch_names, stim_ch, ordered=False)
         # loop over regions
         keys = np.concatenate([_SELECTIONS, _EEG_SELECTIONS])
         for key in keys:
             channels = read_vectorview_selection(key, info=raw.info)
-            picks = pick_channels(raw.ch_names, channels)
+            picks = pick_channels(raw.ch_names, channels, ordered=False)
             picks = np.intersect1d(picks, order)
             if not len(picks):
                 continue  # omit empty selections
             selections_dict[key] = np.concatenate([picks, stim_ch])
     # add misc channels
-    misc = pick_types(raw.info, meg=False, eeg=False, stim=True, eog=True,
-                      ecg=True, emg=True, ref_meg=False, misc=True,
-                      resp=True, chpi=True, exci=True, ias=True, syst=True,
-                      seeg=False, bio=True, ecog=False, fnirs=False, dbs=False,
-                      temperature=True, gsr=True, exclude=())
+    misc = pick_types(
+        raw.info,
+        meg=False,
+        eeg=False,
+        stim=True,
+        eog=True,
+        ecg=True,
+        emg=True,
+        ref_meg=False,
+        misc=True,
+        resp=True,
+        chpi=True,
+        exci=True,
+        ias=True,
+        syst=True,
+        seeg=False,
+        bio=True,
+        ecog=False,
+        fnirs=False,
+        dbs=False,
+        temperature=True,
+        gsr=True,
+        exclude=(),
+    )
     if len(misc) and np.in1d(misc, order).any():
-        selections_dict['Misc'] = misc
+        selections_dict["Misc"] = misc
     return selections_dict

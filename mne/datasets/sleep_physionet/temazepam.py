@@ -15,12 +15,13 @@ from ._utils import _check_subjects
 
 data_path = _data_path  # expose _data_path(..) as data_path(..)
 
-BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/'  # noqa: E501
+BASE_URL = "https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry/"  # noqa: E501
 
 
 @verbose
-def fetch_data(subjects, path=None, force_update=False, base_url=BASE_URL, *,
-               verbose=None):
+def fetch_data(
+    subjects, path=None, force_update=False, base_url=BASE_URL, *, verbose=None
+):
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 
     This will fetch data from the publicly available subjects from PhysioNet's
@@ -72,15 +73,23 @@ def fetch_data(subjects, path=None, force_update=False, base_url=BASE_URL, *,
     .. footbibliography::
     """
     t0 = time.time()
-    records = np.loadtxt(TEMAZEPAM_SLEEP_RECORDS,
-                         skiprows=1,
-                         delimiter=',',
-                         usecols=(0, 3, 6, 7, 8, 9),
-                         dtype={'names': ('subject', 'record', 'hyp sha',
-                                          'psg sha', 'hyp fname', 'psg fname'),
-                                'formats': ('<i2', '<S15', 'S40', 'S40',
-                                            '<S22', '<S16')}
-                         )
+    records = np.loadtxt(
+        TEMAZEPAM_SLEEP_RECORDS,
+        skiprows=1,
+        delimiter=",",
+        usecols=(0, 3, 6, 7, 8, 9),
+        dtype={
+            "names": (
+                "subject",
+                "record",
+                "hyp sha",
+                "psg sha",
+                "hyp fname",
+                "psg fname",
+            ),
+            "formats": ("<i2", "<S15", "S40", "S40", "<S22", "<S16"),
+        },
+    )
 
     _check_subjects(subjects, 22)
 
@@ -90,16 +99,18 @@ def fetch_data(subjects, path=None, force_update=False, base_url=BASE_URL, *,
     fnames = []
     sz = 0
     for subject in subjects:  # all the subjects are present at this point
-        for idx in np.where(records['subject'] == subject)[0]:
-            if records['record'][idx] == b'Placebo':
+        for idx in np.where(records["subject"] == subject)[0]:
+            if records["record"][idx] == b"Placebo":
                 psg_fname, pdl = _fetch_one(
-                    records['psg fname'][idx].decode(),
-                    records['psg sha'][idx].decode(),
-                    *params)
+                    records["psg fname"][idx].decode(),
+                    records["psg sha"][idx].decode(),
+                    *params
+                )
                 hyp_fname, hdl = _fetch_one(
-                    records['hyp fname'][idx].decode(),
-                    records['hyp sha'][idx].decode(),
-                    *params)
+                    records["hyp fname"][idx].decode(),
+                    records["hyp sha"][idx].decode(),
+                    *params
+                )
                 fnames.append([psg_fname, hyp_fname])
                 if pdl:
                     sz += os.path.getsize(psg_fname)

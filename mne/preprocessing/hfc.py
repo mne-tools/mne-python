@@ -11,8 +11,9 @@ from ..utils import verbose
 
 
 @verbose
-def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
-                     *, accuracy='accurate', verbose=None):
+def compute_proj_hfc(
+    info, order=1, picks="meg", exclude="bads", *, accuracy="accurate", verbose=None
+):
     """Generate projectors to perform homogeneous/harmonic correction to data.
 
     Remove evironmental fields from magentometer data by assuming it is
@@ -59,34 +60,39 @@ def compute_proj_hfc(info, order=1, picks='meg', exclude='bads',
     ----------
     .. footbibliography::
     """
-    picks = _picks_to_idx(
-        info, picks, none='meg', exclude=exclude, with_ref_meg=False)
+    picks = _picks_to_idx(info, picks, none="meg", exclude=exclude, with_ref_meg=False)
     info = pick_info(info, picks)
     del picks
-    exp = dict(origin=(0., 0., 0.), int_order=0, ext_order=order)
+    exp = dict(origin=(0.0, 0.0, 0.0), int_order=0, ext_order=order)
     coils = _prep_mf_coils(info, ignore_ref=False, accuracy=accuracy)
     n_chs = len(coils[5])
-    if n_chs != info['nchan']:
+    if n_chs != info["nchan"]:
         raise ValueError(
             f'Only {n_chs}/{info["nchan"]} picks could be interpreted '
-            'as MEG channels.')
+            "as MEG channels."
+        )
     S = _sss_basis(exp, coils)
     del coils
     bad_chans = [
-        info['ch_names'][pick]
-        for pick in np.where((~np.isfinite(S)).any(axis=1))[0]
+        info["ch_names"][pick] for pick in np.where((~np.isfinite(S)).any(axis=1))[0]
     ]
     if bad_chans:
         raise ValueError(
             "The following channel(s) generate non-finite projectors:\n"
-            f"    {bad_chans}\nPlease exclude from picks!")
+            f"    {bad_chans}\nPlease exclude from picks!"
+        )
     S /= np.linalg.norm(S, axis=0)
     labels = _label_basis(order)
     assert len(labels) == S.shape[1]
     projs = []
     for label, vec in zip(labels, S.T):
-        proj_data = dict(col_names=info['ch_names'], row_names=None,
-                         data=vec[np.newaxis, :], ncol=info['nchan'], nrow=1)
+        proj_data = dict(
+            col_names=info["ch_names"],
+            row_names=None,
+            data=vec[np.newaxis, :],
+            ncol=info["nchan"],
+            nrow=1,
+        )
         projs.append(Projection(active=False, data=proj_data, desc=label))
     return projs
 

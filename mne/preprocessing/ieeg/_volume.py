@@ -7,8 +7,7 @@ import numpy as np
 from ...channels import DigMontage, make_dig_montage
 from ...surface import _voxel_neighbors
 from ...transforms import apply_trans, _frame_to_str, Transform
-from ...utils import (verbose, warn, _pl, _validate_type, _require_version,
-                      _check_option)
+from ...utils import verbose, warn, _pl, _validate_type, _require_version, _check_option
 
 
 @verbose
@@ -33,64 +32,68 @@ def warp_montage(montage, moving, static, reg_affine, sdr_morph, verbose=None):
     montage_warped : mne.channels.DigMontage
         The modified montage object containing the channels.
     """
-    _require_version('nibabel', 'warp montage', '2.1.0')
-    _require_version('dipy', 'warping points using SDR', '1.6.0')
+    _require_version("nibabel", "warp montage", "2.1.0")
+    _require_version("dipy", "warping points using SDR", "1.6.0")
 
     from nibabel import MGHImage
     from nibabel.spatialimages import SpatialImage
     from dipy.align.imwarp import DiffeomorphicMap
 
-    _validate_type(moving, SpatialImage, 'moving')
-    _validate_type(static, SpatialImage, 'static')
-    _validate_type(reg_affine, np.ndarray, 'reg_affine')
-    _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
-    _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
-    _validate_type(montage, DigMontage, 'montage')
+    _validate_type(moving, SpatialImage, "moving")
+    _validate_type(static, SpatialImage, "static")
+    _validate_type(reg_affine, np.ndarray, "reg_affine")
+    _check_option("reg_affine.shape", reg_affine.shape, ((4, 4),))
+    _validate_type(sdr_morph, (DiffeomorphicMap, None), "sdr_morph")
+    _validate_type(montage, DigMontage, "montage")
 
-    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32),
-                          moving.affine)
-    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32),
-                          static.affine)
+    moving_mgh = MGHImage(np.array(moving.dataobj).astype(np.float32), moving.affine)
+    static_mgh = MGHImage(np.array(static.dataobj).astype(np.float32), static.affine)
     del moving, static
 
     # get montage channel coordinates
     ch_dict = montage.get_positions()
-    if ch_dict['coord_frame'] != 'mri':
-        bad_coord_frames = np.unique([d['coord_frame'] for d in montage.dig])
-        bad_coord_frames = ', '.join([
-            _frame_to_str[cf] if cf in _frame_to_str else str(cf)
-            for cf in bad_coord_frames])
-        raise RuntimeError('Coordinate frame not supported, expected '
-                           f'"mri", got {bad_coord_frames}')
-    ch_names = list(ch_dict['ch_pos'].keys())
-    ch_coords = np.array([ch_dict['ch_pos'][name] for name in ch_names])
+    if ch_dict["coord_frame"] != "mri":
+        bad_coord_frames = np.unique([d["coord_frame"] for d in montage.dig])
+        bad_coord_frames = ", ".join(
+            [
+                _frame_to_str[cf] if cf in _frame_to_str else str(cf)
+                for cf in bad_coord_frames
+            ]
+        )
+        raise RuntimeError(
+            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+        )
+    ch_names = list(ch_dict["ch_pos"].keys())
+    ch_coords = np.array([ch_dict["ch_pos"][name] for name in ch_names])
 
     ch_coords = apply_trans(  # convert to moving voxel space
-        np.linalg.inv(moving_mgh.header.get_vox2ras_tkr()), ch_coords * 1000)
+        np.linalg.inv(moving_mgh.header.get_vox2ras_tkr()), ch_coords * 1000
+    )
     # next, to moving scanner RAS
     ch_coords = apply_trans(moving_mgh.header.get_vox2ras(), ch_coords)
 
     # now, apply reg_affine
-    ch_coords = apply_trans(Transform(  # to static ras
-        fro='ras', to='ras', trans=np.linalg.inv(reg_affine)), ch_coords)
+    ch_coords = apply_trans(
+        Transform(  # to static ras
+            fro="ras", to="ras", trans=np.linalg.inv(reg_affine)
+        ),
+        ch_coords,
+    )
 
     # now, apply SDR morph
     if sdr_morph is not None:
         ch_coords = sdr_morph.transform_points(
-            ch_coords, sdr_morph.domain_grid2world,
-            sdr_morph.domain_world2grid)
+            ch_coords, sdr_morph.domain_grid2world, sdr_morph.domain_world2grid
+        )
 
     # back to voxels but now for the static image
-    ch_coords = apply_trans(np.linalg.inv(static_mgh.header.get_vox2ras()),
-                            ch_coords)
+    ch_coords = apply_trans(np.linalg.inv(static_mgh.header.get_vox2ras()), ch_coords)
 
     # finally, back to surface RAS
-    ch_coords = apply_trans(static_mgh.header.get_vox2ras_tkr(),
-                            ch_coords) / 1000
+    ch_coords = apply_trans(static_mgh.header.get_vox2ras_tkr(), ch_coords) / 1000
 
     # make warped montage
-    montage_warped = make_dig_montage(
-        dict(zip(ch_names, ch_coords)), coord_frame='mri')
+    montage_warped = make_dig_montage(dict(zip(ch_names, ch_coords)), coord_frame="mri")
     return montage_warped
 
 
@@ -98,18 +101,27 @@ def _warn_missing_chs(info, dig_image, after_warp=False):
     """Warn that channels are missing."""
     # ensure that each electrode contact was marked in at least one voxel
     missing = set(np.arange(1, len(info.ch_names) + 1)).difference(
-        set(np.unique(np.array(dig_image.dataobj))))
+        set(np.unique(np.array(dig_image.dataobj)))
+    )
     missing_ch = [info.ch_names[idx - 1] for idx in missing]
     if missing_ch:
-        warn(f'Channel{_pl(missing_ch)} '
-             f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
-             'voxels ' +
-             (f' after applying {after_warp}' if after_warp else ''))
+        warn(
+            f"Channel{_pl(missing_ch)} "
+            f'{", ".join(repr(ch) for ch in missing_ch)} not assigned '
+            "voxels " + (f" after applying {after_warp}" if after_warp else "")
+        )
 
 
 @verbose
-def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
-                        voxels_max=100, use_min=False, verbose=None):
+def make_montage_volume(
+    montage,
+    base_image,
+    thresh=0.5,
+    max_peak_dist=1,
+    voxels_max=100,
+    use_min=False,
+    verbose=None,
+):
     """Make a volume from intracranial electrode contact locations.
 
     Find areas of the input volume with intensity greater than
@@ -147,43 +159,48 @@ def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
         corresponding to the index of the channel. The background
         is 0s and this index starts at 1.
     """
-    _require_version('nibabel', 'montage volume', '2.1.0')
+    _require_version("nibabel", "montage volume", "2.1.0")
     import nibabel as nib
 
-    _validate_type(montage, DigMontage, 'montage')
-    _validate_type(base_image, nib.spatialimages.SpatialImage, 'base_image')
-    _validate_type(thresh, float, 'thresh')
+    _validate_type(montage, DigMontage, "montage")
+    _validate_type(base_image, nib.spatialimages.SpatialImage, "base_image")
+    _validate_type(thresh, float, "thresh")
     if thresh < 0 or thresh >= 1:
-        raise ValueError(f'`thresh` must be between 0 and 1, got {thresh}')
-    _validate_type(max_peak_dist, int, 'max_peak_dist')
-    _validate_type(voxels_max, int, 'voxels_max')
-    _validate_type(use_min, bool, 'use_min')
+        raise ValueError(f"`thresh` must be between 0 and 1, got {thresh}")
+    _validate_type(max_peak_dist, int, "max_peak_dist")
+    _validate_type(voxels_max, int, "voxels_max")
+    _validate_type(use_min, bool, "use_min")
 
     # load image and make sure it's in surface RAS
     if not isinstance(base_image, nib.spatialimages.SpatialImage):
         base_image = nib.load(base_image)
 
     base_image_mgh = nib.MGHImage(
-        np.array(base_image.dataobj).astype(np.float32), base_image.affine)
+        np.array(base_image.dataobj).astype(np.float32), base_image.affine
+    )
     del base_image
 
     # get montage channel coordinates
     ch_dict = montage.get_positions()
-    if ch_dict['coord_frame'] != 'mri':
-        bad_coord_frames = np.unique([d['coord_frame'] for d in montage.dig])
-        bad_coord_frames = ', '.join([
-            _frame_to_str[cf] if cf in _frame_to_str else str(cf)
-            for cf in bad_coord_frames])
-        raise RuntimeError('Coordinate frame not supported, expected '
-                           f'"mri", got {bad_coord_frames}')
+    if ch_dict["coord_frame"] != "mri":
+        bad_coord_frames = np.unique([d["coord_frame"] for d in montage.dig])
+        bad_coord_frames = ", ".join(
+            [
+                _frame_to_str[cf] if cf in _frame_to_str else str(cf)
+                for cf in bad_coord_frames
+            ]
+        )
+        raise RuntimeError(
+            "Coordinate frame not supported, expected " f'"mri", got {bad_coord_frames}'
+        )
 
-    ch_names = list(ch_dict['ch_pos'].keys())
-    ch_coords = np.array([ch_dict['ch_pos'][name] for name in ch_names])
+    ch_names = list(ch_dict["ch_pos"].keys())
+    ch_coords = np.array([ch_dict["ch_pos"][name] for name in ch_names])
 
     # convert to voxel space
     ch_coords = apply_trans(
-        np.linalg.inv(base_image_mgh.header.get_vox2ras_tkr()),
-        ch_coords * 1000)
+        np.linalg.inv(base_image_mgh.header.get_vox2ras_tkr()), ch_coords * 1000
+    )
 
     # take channel coordinates and use the image to transform them
     # into a volume where all the voxels over a threshold nearby
@@ -196,24 +213,28 @@ def make_montage_volume(montage, base_image, thresh=0.5, max_peak_dist=1,
         if np.isnan(ch_coord).any():
             continue
         # this looks up to a voxel away, it may be marked imperfectly
-        volume = _voxel_neighbors(ch_coord, image_data, thresh=thresh,
-                                  max_peak_dist=max_peak_dist,
-                                  voxels_max=voxels_max)
+        volume = _voxel_neighbors(
+            ch_coord,
+            image_data,
+            thresh=thresh,
+            max_peak_dist=max_peak_dist,
+            voxels_max=voxels_max,
+        )
         for voxel in volume:
             if elec_image[voxel] != 0:
                 # some voxels ambiguous because the contacts are bridged on
                 # the image so assign the voxel to the nearest contact location
                 dist_old = np.sqrt(
-                    (ch_coords[elec_image[voxel] - 1] - voxel)**2).sum()
-                dist_new = np.sqrt((ch_coord - voxel)**2).sum()
+                    (ch_coords[elec_image[voxel] - 1] - voxel) ** 2
+                ).sum()
+                dist_new = np.sqrt((ch_coord - voxel) ** 2).sum()
                 if dist_new < dist_old:
                     elec_image[voxel] = i + 1
             else:
                 elec_image[voxel] = i + 1
 
     # assemble the volume
-    elec_image = nib.spatialimages.SpatialImage(
-        elec_image, base_image_mgh.affine)
+    elec_image = nib.spatialimages.SpatialImage(elec_image, base_image_mgh.affine)
     _warn_missing_chs(montage, elec_image, after_warp=False)
 
     return elec_image

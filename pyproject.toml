@@ -1,6 +1,5 @@
 [tool.codespell]
 ignore-words = "ignore_words.txt"
-uri-ignore-words-list = "bu"
 builtin = "clear,rare,informal,names,usage"
 skip = "doc/references.bib"
 
@@ -48,3 +47,6 @@ addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
     --ignore=mne/report/js_and_css \
     --color=yes --capture=sys"""
 junit_family = "xunit2"
+
+[tool.black]
+exclude = "(dist/)|(build/)|(.*\\.ipynb)"

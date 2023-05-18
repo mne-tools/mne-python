@@ -41,20 +41,104 @@ print('}\n')
 """
 
 _localized_abbr = {
-    'en_US.utf8': {
-        "month": {'jan': 'jan', 'feb': 'feb', 'mar': 'mar', 'apr': 'apr', 'may': 'may', 'jun': 'jun', 'jul': 'jul', 'aug': 'aug', 'sep': 'sep', 'oct': 'oct', 'nov': 'nov', 'dec': 'dec', },  # noqa
-        "weekday": {'sat': 'sat', 'sun': 'sun', 'mon': 'mon', 'tue': 'tue', 'wed': 'wed', 'thu': 'thu', 'fri': 'fri', },  # noqa
+    "en_US.utf8": {
+        "month": {
+            "jan": "jan",
+            "feb": "feb",
+            "mar": "mar",
+            "apr": "apr",
+            "may": "may",
+            "jun": "jun",
+            "jul": "jul",
+            "aug": "aug",
+            "sep": "sep",
+            "oct": "oct",
+            "nov": "nov",
+            "dec": "dec",
+        },  # noqa
+        "weekday": {
+            "sat": "sat",
+            "sun": "sun",
+            "mon": "mon",
+            "tue": "tue",
+            "wed": "wed",
+            "thu": "thu",
+            "fri": "fri",
+        },  # noqa
     },
-    'de_DE': {
-        "month": {'jan': 'jan', 'feb': 'feb', 'mär': 'mar', 'apr': 'apr', 'mai': 'may', 'jun': 'jun', 'jul': 'jul', 'aug': 'aug', 'sep': 'sep', 'okt': 'oct', 'nov': 'nov', 'dez': 'dec', },  # noqa
-        "weekday": {'sa': 'sat', 'so': 'sun', 'mo': 'mon', 'di': 'tue', 'mi': 'wed', 'do': 'thu', 'fr': 'fri', },  # noqa
+    "de_DE": {
+        "month": {
+            "jan": "jan",
+            "feb": "feb",
+            "mär": "mar",
+            "apr": "apr",
+            "mai": "may",
+            "jun": "jun",
+            "jul": "jul",
+            "aug": "aug",
+            "sep": "sep",
+            "okt": "oct",
+            "nov": "nov",
+            "dez": "dec",
+        },  # noqa
+        "weekday": {
+            "sa": "sat",
+            "so": "sun",
+            "mo": "mon",
+            "di": "tue",
+            "mi": "wed",
+            "do": "thu",
+            "fr": "fri",
+        },  # noqa
     },
-    'fr_FR': {
-        "month": {'janv.': 'jan', 'févr.': 'feb', 'mars': 'mar', 'avril': 'apr', 'mai': 'may', 'juin': 'jun', 'juil.': 'jul', 'août': 'aug', 'sept.': 'sep', 'oct.': 'oct', 'nov.': 'nov', 'déc.': 'dec', },  # noqa
-        "weekday": {'sam.': 'sat', 'dim.': 'sun', 'lun.': 'mon', 'mar.': 'tue', 'mer.': 'wed', 'jeu.': 'thu', 'ven.': 'fri', },  # noqa
+    "fr_FR": {
+        "month": {
+            "janv.": "jan",
+            "févr.": "feb",
+            "mars": "mar",
+            "avril": "apr",
+            "mai": "may",
+            "juin": "jun",
+            "juil.": "jul",
+            "août": "aug",
+            "sept.": "sep",
+            "oct.": "oct",
+            "nov.": "nov",
+            "déc.": "dec",
+        },  # noqa
+        "weekday": {
+            "sam.": "sat",
+            "dim.": "sun",
+            "lun.": "mon",
+            "mar.": "tue",
+            "mer.": "wed",
+            "jeu.": "thu",
+            "ven.": "fri",
+        },  # noqa
     },
-    'it_IT': {
-        "month": {'gen': 'jan', 'feb': 'feb', 'mar': 'mar', 'apr': 'apr', 'mag': 'may', 'giu': 'jun', 'lug': 'jul', 'ago': 'aug', 'set': 'sep', 'ott': 'oct', 'nov': 'nov', 'dic': 'dec', },  # noqa
-        "weekday": {'sab': 'sat', 'dom': 'sun', 'lun': 'mon', 'mar': 'tue', 'mer': 'wed', 'gio': 'thu', 'ven': 'fri', },  # noqa
+    "it_IT": {
+        "month": {
+            "gen": "jan",
+            "feb": "feb",
+            "mar": "mar",
+            "apr": "apr",
+            "mag": "may",
+            "giu": "jun",
+            "lug": "jul",
+            "ago": "aug",
+            "set": "sep",
+            "ott": "oct",
+            "nov": "nov",
+            "dic": "dec",
+        },  # noqa
+        "weekday": {
+            "sab": "sat",
+            "dom": "sun",
+            "lun": "mon",
+            "mar": "tue",
+            "mer": "wed",
+            "gio": "thu",
+            "ven": "fri",
+        },  # noqa
     },
 }

@@ -13,15 +13,28 @@ import numpy as np
 from ..source_estimate import SourceEstimate, VolSourceEstimate
 from ..source_space import _ensure_src
 from ..fixes import rng_uniform
-from ..utils import (check_random_state, warn, _check_option, fill_doc,
-                     _ensure_int, _ensure_events)
+from ..utils import (
+    check_random_state,
+    warn,
+    _check_option,
+    fill_doc,
+    _ensure_int,
+    _ensure_events,
+)
 from ..label import Label
 from ..surface import _compute_nearest
 
 
 @fill_doc
-def select_source_in_label(src, label, random_state=None, location='random',
-                           subject=None, subjects_dir=None, surf='sphere'):
+def select_source_in_label(
+    src,
+    label,
+    random_state=None,
+    location="random",
+    subject=None,
+    subjects_dir=None,
+    surf="sphere",
+):
     """Select source positions using a label.
 
     Parameters
@@ -63,31 +76,39 @@ def select_source_in_label(src, label, random_state=None, location='random',
     """
     lh_vertno = list()
     rh_vertno = list()
-    _check_option('location', location, ['random', 'center'])
+    _check_option("location", location, ["random", "center"])
 
     rng = check_random_state(random_state)
-    if label.hemi == 'lh':
+    if label.hemi == "lh":
         vertno = lh_vertno
         hemi_idx = 0
     else:
         vertno = rh_vertno
         hemi_idx = 1
-    src_sel = np.intersect1d(src[hemi_idx]['vertno'], label.vertices)
-    if location == 'random':
+    src_sel = np.intersect1d(src[hemi_idx]["vertno"], label.vertices)
+    if location == "random":
         idx = src_sel[rng_uniform(rng)(0, len(src_sel), 1)[0]]
     else:  # 'center'
         idx = label.center_of_mass(
-            subject, restrict_vertices=src_sel, subjects_dir=subjects_dir,
-            surf=surf)
+            subject, restrict_vertices=src_sel, subjects_dir=subjects_dir, surf=surf
+        )
     vertno.append(idx)
     return lh_vertno, rh_vertno
 
 
 @fill_doc
-def simulate_sparse_stc(src, n_dipoles, times,
-                        data_fun=lambda t: 1e-7 * np.sin(20 * np.pi * t),
-                        labels=None, random_state=None, location='random',
-                        subject=None, subjects_dir=None, surf='sphere'):
+def simulate_sparse_stc(
+    src,
+    n_dipoles,
+    times,
+    data_fun=lambda t: 1e-7 * np.sin(20 * np.pi * t),
+    labels=None,
+    random_state=None,
+    location="random",
+    subject=None,
+    subjects_dir=None,
+    surf="sphere",
+):
     """Generate sparse (n_dipoles) sources time courses from data_fun.
 
     This function randomly selects ``n_dipoles`` vertices in the whole
@@ -154,8 +175,10 @@ def simulate_sparse_stc(src, n_dipoles, times,
     if subject is None:
         subject = subject_src
     elif subject_src is not None and subject != subject_src:
-        raise ValueError('subject argument (%s) did not match the source '
-                         'space subject_his_id (%s)' % (subject, subject_src))
+        raise ValueError(
+            "subject argument (%s) did not match the source "
+            "space subject_his_id (%s)" % (subject, subject_src)
+        )
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
         data[i_dip, :] = data_fun(times)
@@ -165,17 +188,22 @@ def simulate_sparse_stc(src, n_dipoles, times,
         offsets = np.linspace(0, n_dipoles, len(src) + 1).astype(int)
         n_dipoles_ss = np.diff(offsets)
         # don't use .choice b/c not on old numpy
-        vs = [s['vertno'][np.sort(rng.permutation(np.arange(s['nuse']))[:n])]
-              for n, s in zip(n_dipoles_ss, src)]
+        vs = [
+            s["vertno"][np.sort(rng.permutation(np.arange(s["nuse"]))[:n])]
+            for n, s in zip(n_dipoles_ss, src)
+        ]
         datas = data
     elif n_dipoles > len(labels):
-        raise ValueError('Number of labels (%d) smaller than n_dipoles (%d) '
-                         'is not allowed.' % (len(labels), n_dipoles))
+        raise ValueError(
+            "Number of labels (%d) smaller than n_dipoles (%d) "
+            "is not allowed." % (len(labels), n_dipoles)
+        )
     else:
         if n_dipoles != len(labels):
-            warn('The number of labels is different from the number of '
-                 'dipoles. %s dipole(s) will be generated.'
-                 % min(n_dipoles, len(labels)))
+            warn(
+                "The number of labels is different from the number of "
+                "dipoles. %s dipole(s) will be generated." % min(n_dipoles, len(labels))
+            )
         labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels
 
         vertno = [[], []]
@@ -183,7 +211,8 @@ def simulate_sparse_stc(src, n_dipoles, times,
         rh_data = [np.empty((0, data.shape[1]))]
         for i, label in enumerate(labels):
             lh_vertno, rh_vertno = select_source_in_label(
-                src, label, rng, location, subject, subjects_dir, surf)
+                src, label, rng, location, subject, subjects_dir, surf
+            )
             vertno[0] += lh_vertno
             vertno[1] += rh_vertno
             if len(lh_vertno) != 0:
@@ -191,7 +220,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
             elif len(rh_vertno) != 0:
                 rh_data.append(data[i][np.newaxis])
             else:
-                raise ValueError('No vertno found.')
+                raise ValueError("No vertno found.")
         vs = [np.array(v) for v in vertno]
         datas = [np.concatenate(d) for d in [lh_data, rh_data]]
         # need to sort each hemi by vertex number
@@ -209,8 +238,9 @@ def simulate_sparse_stc(src, n_dipoles, times,
     return stc
 
 
-def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
-                 allow_overlap=False):
+def simulate_stc(
+    src, labels, stc_data, tmin, tstep, value_fun=None, allow_overlap=False
+):
     """Simulate sources time courses from waveforms and labels.
 
     This function generates a source estimate with extended sources by
@@ -249,26 +279,24 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
     simulate_sparse_stc
     """
     if len(labels) != len(stc_data):
-        raise ValueError('labels and stc_data must have the same length')
+        raise ValueError("labels and stc_data must have the same length")
 
     vertno = [[], []]
     stc_data_extended = [[], []]
-    hemi_to_ind = {'lh': 0, 'rh': 1}
+    hemi_to_ind = {"lh": 0, "rh": 1}
     for i, label in enumerate(labels):
         hemi_ind = hemi_to_ind[label.hemi]
-        src_sel = np.intersect1d(src[hemi_ind]['vertno'],
-                                 label.vertices)
+        src_sel = np.intersect1d(src[hemi_ind]["vertno"], label.vertices)
         if len(src_sel) == 0:
-            idx = src[hemi_ind]['inuse'].astype('bool')
-            xhs = src[hemi_ind]['rr'][idx]
-            rr = src[hemi_ind]['rr'][label.vertices]
+            idx = src[hemi_ind]["inuse"].astype("bool")
+            xhs = src[hemi_ind]["rr"][idx]
+            rr = src[hemi_ind]["rr"][label.vertices]
             closest_src = _compute_nearest(xhs, rr)
-            src_sel = src[hemi_ind]['vertno'][np.unique(closest_src)]
+            src_sel = src[hemi_ind]["vertno"][np.unique(closest_src)]
 
         if value_fun is not None:
             idx_sel = np.searchsorted(label.vertices, src_sel)
-            values_sel = np.array([value_fun(v) for v in
-                                   label.values[idx_sel]])
+            values_sel = np.array([value_fun(v) for v in label.values[idx_sel]])
 
             data = np.outer(values_sel, stc_data[i])
         else:
@@ -281,7 +309,7 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
             for src_ind, vertex_ind in enumerate(src_sel):
                 ind = np.where(vertex_ind == vertno[hemi_ind])[0]
                 if len(ind) > 0:
-                    assert (len(ind) == 1)
+                    assert len(ind) == 1
                     # Add the new data to the existing one
                     stc_data_extended[hemi_ind][ind[0]] += data[src_ind]
                     duplicates.append(src_ind)
@@ -295,12 +323,14 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
 
     vertno = [np.array(v) for v in vertno]
     if not allow_overlap:
-        for v, hemi in zip(vertno, ('left', 'right')):
+        for v, hemi in zip(vertno, ("left", "right")):
             d = len(v) - len(np.unique(v))
             if d > 0:
-                raise RuntimeError('Labels had %s overlaps in the %s '
-                                   'hemisphere, '
-                                   'they must be non-overlapping' % (d, hemi))
+                raise RuntimeError(
+                    "Labels had %s overlaps in the %s "
+                    "hemisphere, "
+                    "they must be non-overlapping" % (d, hemi)
+                )
     # the data is in the order left, right
     data = list()
     for i in range(2):
@@ -311,8 +341,13 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
             data.append(stc_data_extended[i][idx])
             vertno[i] = vertno[i][idx]
 
-    stc = SourceEstimate(np.concatenate(data), vertices=vertno, tmin=tmin,
-                         tstep=tstep, subject=src._subject)
+    stc = SourceEstimate(
+        np.concatenate(data),
+        vertices=vertno,
+        tmin=tmin,
+        tstep=tstep,
+        subject=src._subject,
+    )
     return stc
 
 
@@ -343,8 +378,8 @@ class SourceSimulator:
 
     def __init__(self, src, tstep=1e-3, duration=None, first_samp=0):
         if duration is not None and duration < tstep:
-            raise ValueError('duration must be None or >= tstep.')
-        self.first_samp = _ensure_int(first_samp, 'first_samp')
+            raise ValueError("duration must be None or >= tstep.")
+        self.first_samp = _ensure_int(first_samp, "first_samp")
         self._src = src
         self._tstep = tstep
         self._labels = []
@@ -395,8 +430,7 @@ class SourceSimulator:
             should occur.
         """
         if not isinstance(label, Label):
-            raise ValueError('label must be a Label,'
-                             'not %s' % type(label))
+            raise ValueError("label must be a Label," "not %s" % type(label))
 
         # If it is not a list then make it one
         if not isinstance(waveform, list) and np.ndim(waveform) == 2:
@@ -407,9 +441,11 @@ class SourceSimulator:
             waveform = waveform * len(events)
         # The length is either equal to the length of events, or 1
         if len(waveform) != len(events):
-            raise ValueError('Number of waveforms and events should match or '
-                             'there should be a single waveform (%d != %d).' %
-                             (len(waveform), len(events)))
+            raise ValueError(
+                "Number of waveforms and events should match or "
+                "there should be a single waveform (%d != %d)."
+                % (len(waveform), len(events))
+            )
         events = _ensure_events(events).astype(np.int64)
         # Update the last sample possible based on events + waveforms
         self._labels.extend([label] * len(events))
@@ -418,8 +454,9 @@ class SourceSimulator:
         assert self._events.dtype == np.int64
         # First sample per waveform is the first column of events
         # Last is computed below
-        self._last_samples = np.array([self._events[i, 0] + len(w) - 1
-                                      for i, w in enumerate(self._waveforms)])
+        self._last_samples = np.array(
+            [self._events[i, 0] + len(w) - 1 for i, w in enumerate(self._waveforms)]
+        )
 
     def get_stim_channel(self, start_sample=0, stop_sample=None):
         """Get the stim channel from the provided data.
@@ -447,16 +484,18 @@ class SourceSimulator:
         if stop_sample is None:
             stop_sample = start_sample + self.n_times - 1
         elif stop_sample < start_sample:
-            raise ValueError('Argument start_sample must be >= stop_sample.')
+            raise ValueError("Argument start_sample must be >= stop_sample.")
         n_samples = stop_sample - start_sample + 1
 
         # Initialize the stim data array
         stim_data = np.zeros(n_samples, dtype=np.int64)
 
         # Select only events in the time chunk
-        stim_ind = np.where(np.logical_and(
-            self._events[:, 0] >= start_sample,
-            self._events[:, 0] < stop_sample))[0]
+        stim_ind = np.where(
+            np.logical_and(
+                self._events[:, 0] >= start_sample, self._events[:, 0] < stop_sample
+            )
+        )[0]
 
         if len(stim_ind) > 0:
             relative_ind = self._events[stim_ind, 0] - start_sample
@@ -487,47 +526,60 @@ class SourceSimulator:
             The generated source time courses.
         """
         if len(self._labels) == 0:
-            raise ValueError('No simulation parameters were found. Please use '
-                             'function add_data to add simulation parameters.')
+            raise ValueError(
+                "No simulation parameters were found. Please use "
+                "function add_data to add simulation parameters."
+            )
         if start_sample is None:
             start_sample = self.first_samp
         if stop_sample is None:
             stop_sample = start_sample + self.n_times - 1
         elif stop_sample < start_sample:
-            raise ValueError('start_sample must be >= stop_sample.')
+            raise ValueError("start_sample must be >= stop_sample.")
         n_samples = stop_sample - start_sample + 1
 
         # Initialize the stc_data array to span all possible samples
         stc_data = np.zeros((len(self._labels), n_samples))
 
         # Select only the events that fall within the span
-        ind = np.where(np.logical_and(self._last_samples >= start_sample,
-                                      self._events[:, 0] <= stop_sample))[0]
+        ind = np.where(
+            np.logical_and(
+                self._last_samples >= start_sample, self._events[:, 0] <= stop_sample
+            )
+        )[0]
 
         # Loop only over the items that are in the time span
         subset_waveforms = [self._waveforms[i] for i in ind]
-        for i, (waveform, event) in enumerate(zip(subset_waveforms,
-                                                  self._events[ind])):
+        for i, (waveform, event) in enumerate(zip(subset_waveforms, self._events[ind])):
             # We retrieve the first and last sample of each waveform
             # According to the corresponding event
             wf_start = event[0]
             wf_stop = self._last_samples[ind[i]]
 
             # Recover the indices of the event that should be in the chunk
-            waveform_ind = np.in1d(np.arange(wf_start, wf_stop + 1),
-                                   np.arange(start_sample, stop_sample + 1))
+            waveform_ind = np.in1d(
+                np.arange(wf_start, wf_stop + 1),
+                np.arange(start_sample, stop_sample + 1),
+            )
 
             # Recover the indices that correspond to the overlap
-            stc_ind = np.in1d(np.arange(start_sample, stop_sample + 1),
-                              np.arange(wf_start, wf_stop + 1))
+            stc_ind = np.in1d(
+                np.arange(start_sample, stop_sample + 1),
+                np.arange(wf_start, wf_stop + 1),
+            )
 
             # add the resulting waveform chunk to the corresponding label
             stc_data[ind[i]][stc_ind] += waveform[waveform_ind]
 
         start_sample -= self.first_samp  # STC sample ref is 0
-        stc = simulate_stc(self._src, self._labels, stc_data,
-                           start_sample * self._tstep, self._tstep,
-                           allow_overlap=True)
+        stc = simulate_stc(
+            self._src,
+            self._labels,
+            stc_data,
+            start_sample * self._tstep,
+            self._tstep,
+            allow_overlap=True,
+        )
 
         return stc
 
@@ -537,9 +589,9 @@ class SourceSimulator:
         # Loop over chunks of 1 second - or, maximum sample size.
         # Can be modified to a different value.
         last_sample = self.last_samp
-        for start_sample in range(self.first_samp, last_sample + 1,
-                                  self._chk_duration):
-            stop_sample = min(start_sample + self._chk_duration - 1,
-                              last_sample)
-            yield (self.get_stc(start_sample, stop_sample),
-                   self.get_stim_channel(start_sample, stop_sample))
+        for start_sample in range(self.first_samp, last_sample + 1, self._chk_duration):
+            stop_sample = min(start_sample + self._chk_duration - 1, last_sample)
+            yield (
+                self.get_stc(start_sample, stop_sample),
+                self.get_stim_channel(start_sample, stop_sample),
+            )

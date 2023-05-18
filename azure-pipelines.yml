@@ -57,7 +57,7 @@ stages:
       displayName: Install dependencies
     - bash: |
         make pre-commit
-      displayName: make ruff
+      displayName: make pre-commit
       condition: always()
     - bash: |
         make nesting
@@ -335,37 +335,3 @@ stages:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
-
-  - job: SphinxWindows
-    pool:
-      vmImage: 'windows-latest'
-    variables:
-      AZURE_CI_WINDOWS: 'true'
-    steps:
-    - bash: |
-        set -e
-        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-        powershell gl-ci-helpers/appveyor/install_opengl.ps1
-      displayName: Install OpenGL
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.10'
-    - bash: |
-        set -eo pipefail
-        PYTHONUTF8=1 pip install --progress-bar off -r requirements.txt -r requirements_doc.txt
-      displayName: Install documentation dependencies
-    - script: pip install -e .
-      displayName: Install dev MNE
-    - script: mne sys_info -pd
-      displayName: Print config and test access to commands
-    - script: python -c "import numpy; numpy.show_config()"
-      displayName: Print NumPy config
-    - bash: |
-        set -eo pipefail
-        sed -i 's/.. graphviz::/.. graphviz/g' doc/install/contributing.rst
-        sed -i 's/.. graphviz::/.. graphviz/g' tutorials/preprocessing/40_artifact_correction_ica.py
-        sed -i '/sphinx\.ext\.graphviz/d' doc/conf.py
-      displayName: Skip graph that we cannot render
-    # TODO: Reenable this once we can get it to work!
-    # - bash: make -C doc html_dev-noplot
-    #   displayName: 'Build doc'

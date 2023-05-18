@@ -31,9 +31,9 @@ data_path = sample.data_path()
 
 # %%
 # Set parameters
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
 tmin = -0.2
 tmax = 0.5
 
@@ -45,20 +45,20 @@ events = mne.read_events(event_fname)
 reject = dict(grad=4000e-13, mag=4e-12)
 
 # Create epochs including different events
-event_id = {'audio/left': 1, 'audio/right': 2,
-            'visual/left': 3, 'visual/right': 4}
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    picks='meg', baseline=(None, 0), reject=reject)
+event_id = {"audio/left": 1, "audio/right": 2, "visual/left": 3, "visual/right": 4}
+epochs = mne.Epochs(
+    raw, events, event_id, tmin, tmax, picks="meg", baseline=(None, 0), reject=reject
+)
 
 # Generate list of evoked objects from conditions names
-evokeds = [epochs[name].average() for name in ('left', 'right')]
+evokeds = [epochs[name].average() for name in ("left", "right")]
 
 # %%
 # Show topography for two different conditions
 
-colors = 'blue', 'red'
-title = 'MNE sample data\nleft vs right (A/V combined)'
+colors = "blue", "red"
+title = "MNE sample data\nleft vs right (A/V combined)"
 
-plot_evoked_topo(evokeds, color=colors, title=title, background_color='w')
+plot_evoked_topo(evokeds, color=colors, title=title, background_color="w")
 
 plt.show()

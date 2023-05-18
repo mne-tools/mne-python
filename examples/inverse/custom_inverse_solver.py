@@ -29,12 +29,12 @@ from mne.viz import plot_sparse_source_estimates
 
 
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = meg_path / 'sample_audvis-ave.fif'
-cov_fname = meg_path / 'sample_audvis-shrunk-cov.fif'
-subjects_dir = data_path / 'subjects'
-condition = 'Left Auditory'
+meg_path = data_path / "MEG" / "sample"
+fwd_fname = meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+ave_fname = meg_path / "sample_audvis-ave.fif"
+cov_fname = meg_path / "sample_audvis-shrunk-cov.fif"
+subjects_dir = data_path / "subjects"
+condition = "Left Auditory"
 
 # Read noise covariance matrix
 noise_cov = mne.read_cov(cov_fname)
@@ -49,6 +49,7 @@ forward = mne.read_forward_solution(fwd_fname)
 
 # %%
 # Auxiliary function to run the solver
+
 
 def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     """Call a custom solver on evoked data.
@@ -93,19 +94,30 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
         The source estimates.
     """
     # Import the necessary private functions
-    from mne.inverse_sparse.mxne_inverse import \
-        (_prepare_gain, is_fixed_orient,
-         _reapply_source_weighting, _make_sparse_stc)
+    from mne.inverse_sparse.mxne_inverse import (
+        _prepare_gain,
+        is_fixed_orient,
+        _reapply_source_weighting,
+        _make_sparse_stc,
+    )
 
     all_ch_names = evoked.ch_names
 
     # Handle depth weighting and whitening (here is no weights)
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
-        forward, evoked.info, noise_cov, pca=False, depth=depth,
-        loose=loose, weights=None, weights_min=None, rank=None)
+        forward,
+        evoked.info,
+        noise_cov,
+        pca=False,
+        depth=depth,
+        loose=loose,
+        weights=None,
+        weights_min=None,
+        rank=None,
+    )
 
     # Select channels of interest
-    sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
+    sel = [all_ch_names.index(name) for name in gain_info["ch_names"]]
     M = evoked.data[sel]
 
     # Whiten data
@@ -115,14 +127,16 @@ def apply_solver(solver, evoked, forward, noise_cov, loose=0.2, depth=0.8):
     X, active_set = solver(M, gain, n_orient)
     X = _reapply_source_weighting(X, source_weighting, active_set)
 
-    stc = _make_sparse_stc(X, active_set, forward, tmin=evoked.times[0],
-                           tstep=1. / evoked.info['sfreq'])
+    stc = _make_sparse_stc(
+        X, active_set, forward, tmin=evoked.times[0], tstep=1.0 / evoked.info["sfreq"]
+    )
 
     return stc
 
 
 # %%
 # Define your solver
+
 
 def solver(M, G, n_orient):
     """Run L2 penalized regression and keep 10 strongest locations.
@@ -155,11 +169,11 @@ def solver(M, G, n_orient):
     K /= np.linalg.norm(K, axis=1)[:, None]
     X = np.dot(K, M)
 
-    indices = np.argsort(np.sum(X ** 2, axis=1))[-10:]
+    indices = np.argsort(np.sum(X**2, axis=1))[-10:]
     active_set = np.zeros(G.shape[1], dtype=bool)
     for idx in indices:
         idx -= idx % n_orient
-        active_set[idx:idx + n_orient] = True
+        active_set[idx : idx + n_orient] = True
     X = X[active_set]
     return X, active_set
 
@@ -168,10 +182,9 @@ def solver(M, G, n_orient):
 # Apply your custom solver
 
 # loose, depth = 0.2, 0.8  # corresponds to loose orientation
-loose, depth = 1., 0.  # corresponds to free orientation
+loose, depth = 1.0, 0.0  # corresponds to free orientation
 stc = apply_solver(solver, evoked, forward, noise_cov, loose, depth)
 
 # %%
 # View in 2D and 3D ("glass" brain like 3D plot)
-plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             opacity=0.1)
+plot_sparse_source_estimates(forward["src"], stc, bgcolor=(1, 1, 1), opacity=0.1)
