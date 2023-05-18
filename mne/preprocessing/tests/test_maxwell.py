@@ -323,9 +323,10 @@ def test_movement_compensation_smooth():
         regularize=None,
         bad_condition="ignore",
     )
-    # MC increases noise relative to raw
+    # Naive MC increases noise relative to raw
     raw_sss = maxwell_filter(raw, **kwargs)
     _assert_shielding(raw_sss, power, 0.258, max_factor=0.259)
+    # OLA MC decreases noise relative to raw
     raw_sss_smooth = _maxwell_filter_ola(raw, mc_interp="hann", **kwargs)
     _assert_shielding(raw_sss_smooth, raw_sss, 1.01, max_factor=1.02)
 
@@ -335,6 +336,15 @@ def test_movement_compensation_smooth():
     _assert_shielding(raw_sss, power, 0.84, max_factor=0.85)
     raw_sss_smooth = _maxwell_filter_ola(raw, mc_interp="hann", **kwargs)
     _assert_shielding(raw_sss_smooth, raw_sss, 1.008, max_factor=1.012)
+
+    # now with tSSS
+    kwargs["st_duration"] = 10
+    raw_tsss = maxwell_filter(raw, **kwargs)
+    _assert_shielding(raw_tsss, power, 36.1, max_factor=36.2)
+    raw_tsss_smooth = _maxwell_filter_ola(
+        raw, mc_interp="hann", st_overlap=True, **kwargs
+    )
+    _assert_shielding(raw_tsss_smooth, power, 36.2, max_factor=36.3)
 
 
 @pytest.mark.slowtest
@@ -793,7 +803,7 @@ def test_spatiotemporal_only():
         mc_interp="hann",
     )
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
-    _assert_shielding(raw_tsss, power, 9.5)
+    _assert_shielding(raw_tsss, power, 9.5, max_factor=9.6)
     # should do nothing
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.0, st_only=True)
     assert_allclose(raw[:][0], raw_tsss[:][0])

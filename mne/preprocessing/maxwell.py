@@ -1171,7 +1171,6 @@ def _do_tSSS(
     if n_positions > 1:
         msg += " (across %2d position%s)" % (n_positions, _pl(n_positions, " "))
     logger.info(msg)
-    raise RuntimeError
     return (clean_data - np.dot(np.dot(clean_data, t_proj), t_proj.T),)
 
 
