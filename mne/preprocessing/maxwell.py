@@ -17,11 +17,23 @@ from .. import __version__
 from .._ola import _COLA, _Interp2, _Storer
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
-from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
-                          _find_vector_rotation, _cart_to_sph, _get_n_moments,
-                          _sph_to_cart_partials, _deg_ord_idx, _average_quats,
-                          _sh_complex_to_real, _sh_real_to_complex, _sh_negate,
-                          quat_to_rot, rot_to_quat)
+from ..transforms import (
+    _str_to_frame,
+    _get_trans,
+    Transform,
+    apply_trans,
+    _find_vector_rotation,
+    _cart_to_sph,
+    _get_n_moments,
+    _sph_to_cart_partials,
+    _deg_ord_idx,
+    _average_quats,
+    _sh_complex_to_real,
+    _sh_real_to_complex,
+    _sh_negate,
+    quat_to_rot,
+    rot_to_quat,
+)
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.compensator import make_compensator
@@ -29,11 +41,20 @@ from ..io.constants import FIFF, FWD
 from ..io.meas_info import _simplify_info, Info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
-from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
-                  Projection)
+from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray, Projection
 from ..io.pick import pick_types, pick_info
-from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
-                     _check_option, _ensure_int, _validate_type, use_log_level)
+from ..utils import (
+    verbose,
+    logger,
+    _clean_names,
+    warn,
+    _time_mask,
+    _pl,
+    _check_option,
+    _ensure_int,
+    _validate_type,
+    use_log_level,
+)
 from ..fixes import _safe_svd, bincount
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
@@ -45,8 +66,14 @@ from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 @verbose
 def maxwell_filter_prepare_emptyroom(
-    raw_er, *, raw, bads='from_raw', annotations='from_raw', meas_date='keep',
-    emit_warning=False, verbose=None
+    raw_er,
+    *,
+    raw,
+    bads="from_raw",
+    annotations="from_raw",
+    meas_date="keep",
+    emit_warning=False,
+    verbose=None,
 ):
     """Prepare an empty-room recording for Maxwell filtering.
 
@@ -111,86 +138,96 @@ def maxwell_filter_prepare_emptyroom(
 
     .. versionadded:: 1.1
     """  # noqa: E501
-    _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
-    _validate_type(item=raw, types=BaseRaw, item_name='raw')
-    _validate_type(item=bads, types=str, item_name='bads')
+    _validate_type(item=raw_er, types=BaseRaw, item_name="raw_er")
+    _validate_type(item=raw, types=BaseRaw, item_name="raw")
+    _validate_type(item=bads, types=str, item_name="bads")
     _check_option(
-        parameter='bads', value=bads,
-        allowed_values=['from_raw', 'union', 'keep']
+        parameter="bads", value=bads, allowed_values=["from_raw", "union", "keep"]
     )
-    _validate_type(item=annotations, types=str, item_name='annotations')
+    _validate_type(item=annotations, types=str, item_name="annotations")
     _check_option(
-        parameter='annotations', value=annotations,
-        allowed_values=['from_raw', 'union', 'keep']
+        parameter="annotations",
+        value=annotations,
+        allowed_values=["from_raw", "union", "keep"],
     )
-    _validate_type(item=meas_date, types=str, item_name='meas_date')
+    _validate_type(item=meas_date, types=str, item_name="meas_date")
     _check_option(
-        parameter='meas_date', value=annotations,
-        allowed_values=['from_raw', 'keep']
+        parameter="meas_date", value=annotations, allowed_values=["from_raw", "keep"]
     )
 
     raw_er_prepared = raw_er.copy()
     del raw_er  # just to be sure
 
     # handle bads; only keep MEG channels
-    if bads == 'from_raw':
-        bads = raw.info['bads']
-    elif bads == 'union':
-        bads = sorted(
-            set(raw.info['bads'] + raw_er_prepared.info['bads'])
-        )
-    elif bads == 'keep':
-        bads = raw_er_prepared.info['bads']
+    if bads == "from_raw":
+        bads = raw.info["bads"]
+    elif bads == "union":
+        bads = sorted(set(raw.info["bads"] + raw_er_prepared.info["bads"]))
+    elif bads == "keep":
+        bads = raw_er_prepared.info["bads"]
 
-    bads = [ch_name for ch_name in bads
-            if ch_name.startswith('MEG')]
-    raw_er_prepared.info['bads'] = bads
+    bads = [ch_name for ch_name in bads if ch_name.startswith("MEG")]
+    raw_er_prepared.info["bads"] = bads
 
     # handle dev_head_t
-    raw_er_prepared.info['dev_head_t'] = raw.info['dev_head_t']
+    raw_er_prepared.info["dev_head_t"] = raw.info["dev_head_t"]
 
     # handle montage
     montage = raw.get_montage()
     raw_er_prepared.set_montage(montage)
 
     # handle first_samp
-    raw_er_prepared.annotations.onset += (
-        raw.first_time - raw_er_prepared.first_time
-    )
+    raw_er_prepared.annotations.onset += raw.first_time - raw_er_prepared.first_time
     raw_er_prepared._cropped_samp = raw._cropped_samp
 
     # handle annotations
-    if annotations != 'keep':
+    if annotations != "keep":
         er_annot = raw_er_prepared.annotations
-        if annotations == 'from_raw':
+        if annotations == "from_raw":
             er_annot.delete(np.arange(len(er_annot)))
         er_annot.append(
             raw.annotations.onset,
             raw.annotations.duration,
             raw.annotations.description,
-            raw.annotations.ch_names
+            raw.annotations.ch_names,
         )
-        if raw_er_prepared.info['meas_date'] is None:
+        if raw_er_prepared.info["meas_date"] is None:
             er_annot.onset -= raw_er_prepared.first_time
         raw_er_prepared.set_annotations(er_annot, emit_warning)
 
     # handle measurement date
-    if meas_date == 'from_raw':
-        raw_er_prepared.set_meas_date(raw.info['meas_date'])
+    if meas_date == "from_raw":
+        raw_er_prepared.set_meas_date(raw.info["meas_date"])
 
     return raw_er_prepared
 
 
 # Changes to arguments here should also be made in find_bad_channels_maxwell
 @verbose
-def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
-                   calibration=None, cross_talk=None, st_duration=None,
-                   st_correlation=0.98, coord_frame='head', destination=None,
-                   regularize='in', ignore_ref=False, bad_condition='error',
-                   head_pos=None, st_fixed=True, st_only=False, mag_scale=100.,
-                   skip_by_annotation=('edge', 'bad_acq_skip'),
-                   extended_proj=(), st_overlap=None, mc_interp=None,
-                   verbose=None):
+def maxwell_filter(
+    raw,
+    origin="auto",
+    int_order=8,
+    ext_order=3,
+    calibration=None,
+    cross_talk=None,
+    st_duration=None,
+    st_correlation=0.98,
+    coord_frame="head",
+    destination=None,
+    regularize="in",
+    ignore_ref=False,
+    bad_condition="error",
+    head_pos=None,
+    st_fixed=True,
+    st_only=False,
+    mag_scale=100.0,
+    skip_by_annotation=("edge", "bad_acq_skip"),
+    extended_proj=(),
+    st_overlap=None,
+    mc_interp=None,
+    verbose=None,
+):
     """Maxwell filter data using multipole moments.
 
     Parameters
@@ -354,35 +391,63 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     ----------
     .. footbibliography::
     """  # noqa: E501
-    logger.info('Maxwell filtering raw data')
+    logger.info("Maxwell filtering raw data")
     params = _prep_maxwell_filter(
-        raw=raw, origin=origin, int_order=int_order, ext_order=ext_order,
-        calibration=calibration, cross_talk=cross_talk,
-        st_duration=st_duration, st_correlation=st_correlation,
-        coord_frame=coord_frame, destination=destination,
-        regularize=regularize, ignore_ref=ignore_ref,
-        bad_condition=bad_condition, head_pos=head_pos, st_fixed=st_fixed,
-        st_only=st_only, mag_scale=mag_scale,
-        skip_by_annotation=skip_by_annotation, extended_proj=extended_proj,
-        st_overlap=st_overlap, mc_interp=mc_interp)
+        raw=raw,
+        origin=origin,
+        int_order=int_order,
+        ext_order=ext_order,
+        calibration=calibration,
+        cross_talk=cross_talk,
+        st_duration=st_duration,
+        st_correlation=st_correlation,
+        coord_frame=coord_frame,
+        destination=destination,
+        regularize=regularize,
+        ignore_ref=ignore_ref,
+        bad_condition=bad_condition,
+        head_pos=head_pos,
+        st_fixed=st_fixed,
+        st_only=st_only,
+        mag_scale=mag_scale,
+        skip_by_annotation=skip_by_annotation,
+        extended_proj=extended_proj,
+        st_overlap=st_overlap,
+        mc_interp=mc_interp,
+    )
     raw_sss = _run_maxwell_filter(raw, **params)
     # Update info
-    _update_sss_info(raw_sss, **params['update_kwargs'])
-    logger.info('[done]')
+    _update_sss_info(raw_sss, **params["update_kwargs"])
+    logger.info("[done]")
     return raw_sss
 
 
 @verbose
 def _prep_maxwell_filter(
-        raw, origin='auto', int_order=8, ext_order=3,
-        calibration=None, cross_talk=None, st_duration=None,
-        st_correlation=0.98, coord_frame='head', destination=None,
-        regularize='in', ignore_ref=False, bad_condition='error',
-        head_pos=None, st_fixed=True, st_only=False,
-        mag_scale=100.,
-        skip_by_annotation=('edge', 'bad_acq_skip'), extended_proj=(),
-        reconstruct='in', st_overlap=False, mc_interp='zero',
-        verbose=None):
+    raw,
+    origin="auto",
+    int_order=8,
+    ext_order=3,
+    calibration=None,
+    cross_talk=None,
+    st_duration=None,
+    st_correlation=0.98,
+    coord_frame="head",
+    destination=None,
+    regularize="in",
+    ignore_ref=False,
+    bad_condition="error",
+    head_pos=None,
+    st_fixed=True,
+    st_only=False,
+    mag_scale=100.0,
+    skip_by_annotation=("edge", "bad_acq_skip"),
+    extended_proj=(),
+    reconstruct="in",
+    st_overlap=False,
+    mc_interp="zero",
+    verbose=None,
+):
     # There are an absurd number of different possible notations for spherical
     # coordinates, which confounds the notation for spherical harmonics.  Here,
     # we purposefully stay away from shorthand notation in both and use
@@ -391,110 +456,129 @@ def _prep_maxwell_filter(
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
-    _validate_type(raw, BaseRaw, 'raw')
+    _validate_type(raw, BaseRaw, "raw")
     _check_usable(raw, ignore_ref)
     _check_regularize(regularize)
     st_correlation = float(st_correlation)
-    if st_correlation <= 0. or st_correlation > 1.:
-        raise ValueError('Need 0 < st_correlation <= 1., got %s'
-                         % st_correlation)
-    _check_option('coord_frame', coord_frame, ['head', 'meg'])
+    if st_correlation <= 0.0 or st_correlation > 1.0:
+        raise ValueError("Need 0 < st_correlation <= 1., got %s" % st_correlation)
+    _check_option("coord_frame", coord_frame, ["head", "meg"])
     recon_trans = _check_destination(destination, raw.info, coord_frame)
     if st_duration is not None:
         st_duration = float(st_duration)
         st_correlation = float(st_correlation)
-        st_duration = int(round(st_duration * raw.info['sfreq']))
-        if not 0. < st_correlation <= 1:
-            raise ValueError('st_correlation must be between 0. and 1.')
-    _check_option('bad_condition', bad_condition,
-                  ['error', 'warning', 'ignore', 'info'])
-    if raw.info['dev_head_t'] is None and coord_frame == 'head':
-        raise RuntimeError('coord_frame cannot be "head" because '
-                           'info["dev_head_t"] is None; if this is an '
-                           'empty room recording, consider using '
-                           'coord_frame="meg"')
+        st_duration = int(round(st_duration * raw.info["sfreq"]))
+        if not 0.0 < st_correlation <= 1:
+            raise ValueError("st_correlation must be between 0. and 1.")
+    _check_option(
+        "bad_condition", bad_condition, ["error", "warning", "ignore", "info"]
+    )
+    if raw.info["dev_head_t"] is None and coord_frame == "head":
+        raise RuntimeError(
+            'coord_frame cannot be "head" because '
+            'info["dev_head_t"] is None; if this is an '
+            "empty room recording, consider using "
+            'coord_frame="meg"'
+        )
     if st_only and st_duration is None:
-        raise ValueError('st_duration must not be None if st_only is True')
+        raise ValueError("st_duration must not be None if st_only is True")
     if st_overlap is None:
         if st_duration is not None:
-            warn('st_overlap defaults to False in 0.17 but will change to '
-                 'True in 0.18. Set it explicitly to avoid this warning.',
-                 DeprecationWarning)
+            warn(
+                "st_overlap defaults to False in 0.17 but will change to "
+                "True in 0.18. Set it explicitly to avoid this warning.",
+                DeprecationWarning,
+            )
         st_overlap = False
     add_channels = head_pos is not None and not st_only
     if mc_interp is None:
         if head_pos is not None:
-            warn('mc_interp defaults to "zero" in 0.17 but will change '
-                 'to "hann" in 0.18, set it explicitly to avoid this '
-                 'message.', DeprecationWarning)
-        mc_interp = 'zero'
+            warn(
+                'mc_interp defaults to "zero" in 0.17 but will change '
+                'to "hann" in 0.18, set it explicitly to avoid this '
+                "message.",
+                DeprecationWarning,
+            )
+        mc_interp = "zero"
     add_channels = (head_pos is not None) and (not st_only)
     head_pos = _check_pos(head_pos, coord_frame, raw, st_fixed)
     mc = _MoveComp(head_pos, coord_frame, raw, mc_interp, reconstruct)
-    _check_info(raw.info, sss=not st_only, tsss=st_duration is not None,
-                calibration=not st_only and calibration is not None,
-                ctc=not st_only and cross_talk is not None)
+    _check_info(
+        raw.info,
+        sss=not st_only,
+        tsss=st_duration is not None,
+        calibration=not st_only and calibration is not None,
+        ctc=not st_only and cross_talk is not None,
+    )
 
     # Now we can actually get moving
     info = raw.info.copy()
-    meg_picks, mag_picks, grad_picks, good_mask, mag_or_fine = \
-        _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref)
+    meg_picks, mag_picks, grad_picks, good_mask, mag_or_fine = _get_mf_picks_fix_mags(
+        info, int_order, ext_order, ignore_ref
+    )
 
     # Magnetometers are scaled to improve numerical stability
     coil_scale, mag_scale = _get_coil_scale(
-        meg_picks, mag_picks, grad_picks, mag_scale, info)
+        meg_picks, mag_picks, grad_picks, mag_scale, info
+    )
 
     #
     # Extended projection vectors
     #
-    _validate_type(extended_proj, (list, tuple), 'extended_proj')
-    good_names = [info['ch_names'][c] for c in meg_picks[good_mask]]
+    _validate_type(extended_proj, (list, tuple), "extended_proj")
+    good_names = [info["ch_names"][c] for c in meg_picks[good_mask]]
     if len(extended_proj) > 0:
         extended_proj_ = list()
         for pi, proj in enumerate(extended_proj):
-            item = 'extended_proj[%d]' % (pi,)
+            item = "extended_proj[%d]" % (pi,)
             _validate_type(proj, Projection, item)
-            got_names = proj['data']['col_names']
+            got_names = proj["data"]["col_names"]
             missing = sorted(set(good_names) - set(got_names))
             if missing:
-                raise ValueError('%s channel names were missing some '
-                                 'good MEG channel names:\n%s'
-                                 % (item, ', '.join(missing)))
+                raise ValueError(
+                    "%s channel names were missing some "
+                    "good MEG channel names:\n%s" % (item, ", ".join(missing))
+                )
             idx = [got_names.index(name) for name in good_names]
-            extended_proj_.append(proj['data']['data'][:, idx])
+            extended_proj_.append(proj["data"]["data"][:, idx])
         extended_proj = np.concatenate(extended_proj_)
-        logger.info('    Extending external SSS basis using %d projection '
-                    'vectors' % (len(extended_proj),))
+        logger.info(
+            "    Extending external SSS basis using %d projection "
+            "vectors" % (len(extended_proj),)
+        )
 
     #
     # Fine calibration processing (load fine cal and overwrite sensor geometry)
     #
     sss_cal = dict()
     if calibration is not None:
-        calibration, sss_cal = _update_sensor_geometry(
-            info, calibration, ignore_ref)
+        calibration, sss_cal = _update_sensor_geometry(info, calibration, ignore_ref)
         mag_or_fine.fill(True)  # all channels now have some mag-type data
 
     # Determine/check the origin of the expansion
     origin = _check_origin(origin, info, coord_frame, disp=True)
     # Convert to the head frame
-    if coord_frame == 'meg' and info['dev_head_t'] is not None:
-        origin_head = apply_trans(info['dev_head_t'], origin)
+    if coord_frame == "meg" and info["dev_head_t"] is not None:
+        origin_head = apply_trans(info["dev_head_t"], origin)
     else:
         origin_head = origin
     update_kwargs = dict(
-        origin=origin, coord_frame=coord_frame, sss_cal=sss_cal,
-        int_order=int_order, ext_order=ext_order,
-        extended_proj=extended_proj)
+        origin=origin,
+        coord_frame=coord_frame,
+        sss_cal=sss_cal,
+        int_order=int_order,
+        ext_order=ext_order,
+        extended_proj=extended_proj,
+    )
     del origin, coord_frame, sss_cal
     origin_head.setflags(write=False)
 
     #
     # Cross-talk processing
     #
-    meg_ch_names = [info['ch_names'][p] for p in meg_picks]
+    meg_ch_names = [info["ch_names"][p] for p in meg_picks]
     ctc, sss_ctc = _read_cross_talk(cross_talk, meg_ch_names)
-    update_kwargs['sss_ctc'] = sss_ctc
+    update_kwargs["sss_ctc"] = sss_ctc
     del sss_ctc
 
     #
@@ -503,18 +587,19 @@ def _prep_maxwell_filter(
     exp = dict(origin=origin_head, int_order=int_order, ext_order=0)
     all_coils = _prep_mf_coils(info, ignore_ref)
     S_recon = _trans_sss_basis(exp, all_coils, recon_trans, coil_scale)
-    exp['ext_order'] = ext_order
-    exp['extended_proj'] = extended_proj
+    exp["ext_order"] = ext_order
+    exp["extended_proj"] = extended_proj
     del extended_proj
     # Reconstruct data from internal space only (Eq. 38), and rescale S_recon
     if recon_trans is not None:
         # warn if we have translated too far
-        diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
-                       recon_trans['trans'][:3, 3])
+        diff = 1000 * (info["dev_head_t"]["trans"][:3, 3] - recon_trans["trans"][:3, 3])
         dist = np.sqrt(np.sum(_sq(diff)))
-        if dist > 25.:
-            warn('Head position change is over 25 mm (%s) = %0.1f mm'
-                 % (', '.join('%0.1f' % x for x in diff), dist))
+        if dist > 25.0:
+            warn(
+                "Head position change is over 25 mm (%s) = %0.1f mm"
+                % (", ".join("%0.1f" % x for x in diff), dist)
+            )
 
     # Reconstruct raw file object with spatiotemporal processed data
     max_st = dict()
@@ -523,28 +608,32 @@ def _prep_maxwell_filter(
             job = FIFF.FIFFV_SSS_JOB_TPROJ
         else:
             job = FIFF.FIFFV_SSS_JOB_ST
-        max_st.update(job=job, subspcorr=st_correlation,
-                      buflen=st_duration / info['sfreq'])
-        logger.info('    Processing data using tSSS with st_duration=%s'
-                    % max_st['buflen'])
-        st_when = 'before' if st_fixed else 'after'  # relative to movecomp
+        max_st.update(
+            job=job, subspcorr=st_correlation, buflen=st_duration / info["sfreq"]
+        )
+        logger.info(
+            "    Processing data using tSSS with st_duration=%s" % max_st["buflen"]
+        )
+        st_when = "before" if st_fixed else "after"  # relative to movecomp
     else:
         # st_duration from here on will act like the chunk size
-        st_duration = min(max(int(round(10. * info['sfreq'])), 1),
-                          len(raw.times))
+        st_duration = min(max(int(round(10.0 * info["sfreq"])), 1), len(raw.times))
         st_correlation = None
-        st_when = 'never'
-    update_kwargs['max_st'] = max_st
+        st_when = "never"
+    update_kwargs["max_st"] = max_st
     del max_st
 
     # Figure out which transforms we need for each tSSS block
     # (and transform pos[1] to times)
     # Compute the first bit of pos_data for cHPI reporting
-    if info['dev_head_t'] is not None and head_pos[0] is not None:
-        this_pos_quat = np.concatenate([
-            rot_to_quat(info['dev_head_t']['trans'][:3, :3]),
-            info['dev_head_t']['trans'][:3, 3],
-            np.zeros(3)])
+    if info["dev_head_t"] is not None and head_pos[0] is not None:
+        this_pos_quat = np.concatenate(
+            [
+                rot_to_quat(info["dev_head_t"]["trans"][:3, :3]),
+                info["dev_head_t"]["trans"][:3, 3],
+                np.zeros(3),
+            ]
+        )
     else:
         this_pos_quat = None
 
@@ -555,34 +644,78 @@ def _prep_maxwell_filter(
     S_recon /= coil_scale
 
     _get_this_decomp_trans = partial(
-        _get_decomp, all_coils=all_coils,
-        cal=calibration, regularize=regularize,
-        exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
-        grad_picks=grad_picks, mag_picks=mag_picks, good_mask=good_mask,
-        mag_or_fine=mag_or_fine, bad_condition=bad_condition,
-        mag_scale=mag_scale, mult=mult)
+        _get_decomp,
+        all_coils=all_coils,
+        cal=calibration,
+        regularize=regularize,
+        exp=exp,
+        ignore_ref=ignore_ref,
+        coil_scale=coil_scale,
+        grad_picks=grad_picks,
+        mag_picks=mag_picks,
+        good_mask=good_mask,
+        mag_or_fine=mag_or_fine,
+        bad_condition=bad_condition,
+        mag_scale=mag_scale,
+        mult=mult,
+    )
     update_kwargs.update(
-        nchan=good_mask.sum(), st_only=st_only, recon_trans=recon_trans)
+        nchan=good_mask.sum(), st_only=st_only, recon_trans=recon_trans
+    )
     params = dict(
         skip_by_annotation=skip_by_annotation,
-        st_duration=st_duration, st_correlation=st_correlation,
-        st_only=st_only, st_when=st_when, ctc=ctc, coil_scale=coil_scale,
-        this_pos_quat=this_pos_quat, meg_picks=meg_picks,
-        good_mask=good_mask, grad_picks=grad_picks, head_pos=head_pos,
-        info=info, _get_this_decomp_trans=_get_this_decomp_trans,
-        S_recon=S_recon, update_kwargs=update_kwargs, ignore_ref=ignore_ref,
-        add_channels=add_channels, st_fixed=st_fixed, st_overlap=st_overlap,
-        mc=mc)
+        st_duration=st_duration,
+        st_correlation=st_correlation,
+        st_only=st_only,
+        st_when=st_when,
+        ctc=ctc,
+        coil_scale=coil_scale,
+        this_pos_quat=this_pos_quat,
+        meg_picks=meg_picks,
+        good_mask=good_mask,
+        grad_picks=grad_picks,
+        head_pos=head_pos,
+        info=info,
+        _get_this_decomp_trans=_get_this_decomp_trans,
+        S_recon=S_recon,
+        update_kwargs=update_kwargs,
+        ignore_ref=ignore_ref,
+        add_channels=add_channels,
+        st_fixed=st_fixed,
+        st_overlap=st_overlap,
+        mc=mc,
+    )
     return params
 
 
 def _run_maxwell_filter(
-        raw, skip_by_annotation, st_duration, st_correlation, st_only,
-        st_when, ctc, coil_scale, this_pos_quat, meg_picks, good_mask,
-        grad_picks, head_pos, info, _get_this_decomp_trans, S_recon,
-        update_kwargs, *, ignore_ref=False,
-        reconstruct='in', copy=True, add_channels, st_fixed,
-        st_overlap, mc, count_msg=True):
+    raw,
+    skip_by_annotation,
+    st_duration,
+    st_correlation,
+    st_only,
+    st_when,
+    ctc,
+    coil_scale,
+    this_pos_quat,
+    meg_picks,
+    good_mask,
+    grad_picks,
+    head_pos,
+    info,
+    _get_this_decomp_trans,
+    S_recon,
+    update_kwargs,
+    *,
+    ignore_ref=False,
+    reconstruct="in",
+    copy=True,
+    add_channels,
+    st_fixed,
+    st_overlap,
+    mc,
+    count_msg=True,
+):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
     # on which channels are being used, so easier just to include it here.
@@ -592,9 +725,8 @@ def _run_maxwell_filter(
         ctc = ctc[good_mask][:, good_mask]
 
     add_channels = add_channels and copy
-    raw_sss, pos_picks = _copy_preload_add_channels(
-        raw, add_channels, copy, info)
-    sfreq = info['sfreq']
+    raw_sss, pos_picks = _copy_preload_add_channels(raw, add_channels, copy, info)
+    sfreq = info["sfreq"]
     del raw
     if not st_only:
         # remove MEG projectors, they won't apply now
@@ -607,41 +739,46 @@ def _run_maxwell_filter(
         these_picks = meg_picks
 
     # Figure out which segments of data we can use
-    onsets, ends = _annotations_starts_stops(
-        raw_sss, skip_by_annotation, invert=True)
+    onsets, ends = _annotations_starts_stops(raw_sss, skip_by_annotation, invert=True)
     max_samps = (ends - onsets).max()
-    if not 0. < st_duration <= max_samps + 1.:
-        raise ValueError('st_duration (%0.1fs) must be between 0 and the '
-                         'longest contiguous duration of the data '
-                         '(%0.1fs).' % (st_duration / sfreq,
-                                        max_samps / sfreq))
+    if not 0.0 < st_duration <= max_samps + 1.0:
+        raise ValueError(
+            "st_duration (%0.1fs) must be between 0 and the "
+            "longest contiguous duration of the data "
+            "(%0.1fs)." % (st_duration / sfreq, max_samps / sfreq)
+        )
 
     # This must be initialized inside _run_maxwell_filter because
     # find_bad_channels_maxwell modifies good_mask
-    mc.initialize(_get_this_decomp_trans, info['dev_head_t'], S_recon)
+    mc.initialize(_get_this_decomp_trans, info["dev_head_t"], S_recon)
     update_kwargs.update(reg_moments=mc.reg_moments_0)
 
     # Process each valid block of data separately
     for onset, end in zip(onsets, ends):
         n = end - onset
         assert n > 0
-        tsss_valid = (n >= st_duration)
+        tsss_valid = n >= st_duration
         if st_overlap and tsss_valid:
             n_overlap = st_duration // 2
-            window = 'hann'
+            window = "hann"
         else:
             n_overlap = 0
-            window = 'boxcar'
+            window = "boxcar"
         tsss = _COLA(
-            partial(_do_tSSS, st_correlation=st_correlation,
-                    tsss_valid=tsss_valid),
-            _Storer(raw_sss._data[:, onset:end], picks=these_picks), n,
-            min(st_duration, n), n_overlap, raw_sss.info['sfreq'], window)
+            partial(_do_tSSS, st_correlation=st_correlation, tsss_valid=tsss_valid),
+            _Storer(raw_sss._data[:, onset:end], picks=these_picks),
+            n,
+            min(st_duration, n),
+            n_overlap,
+            raw_sss.info["sfreq"],
+            window,
+        )
         # Generate time points to break up data into equal-length windows
-        read_lims = list(range(
-            onset, end,
-            int(round(raw_sss.buffer_size_sec *
-                      raw_sss.info['sfreq']))))
+        read_lims = list(
+            range(
+                onset, end, int(round(raw_sss.buffer_size_sec * raw_sss.info["sfreq"]))
+            )
+        )
         read_lims.append(end)
         assert len(read_lims) >= 2
         assert read_lims[0] == onset and read_lims[-1] == end
@@ -665,8 +802,7 @@ def _run_maxwell_filter(
                     proc = raw_sss._data[meg_picks, start:stop]
                 else:
                     proc = ctc_data
-                tsss.feed(proc, in_data, resid,
-                          n_positions=n_positions, t_str=t_str)
+                tsss.feed(proc, in_data, resid, n_positions=n_positions, t_str=t_str)
             else:
                 raw_sss._data[meg_picks[good_mask], start:stop] = ctc_data
 
@@ -674,20 +810,25 @@ def _run_maxwell_filter(
         for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
             t_str = _get_t_str(raw_sss, start, stop)
             data, orig_in_data, resid, pos_data, n_positions = mc.feed(
-                raw_sss._data[meg_picks, start:stop], good_mask, st_only)
+                raw_sss._data[meg_picks, start:stop], good_mask, st_only
+            )
             raw_sss._data[meg_picks, start:stop] = data
             if len(pos_picks) > 0:
                 raw_sss._data[pos_picks, start:stop] = pos_data
             if not st_fixed and st_correlation is not None:
                 tsss.feed(
-                    raw_sss._data[meg_picks, start:stop], orig_in_data, resid,
-                    n_positions=n_positions, t_str=t_str)
+                    raw_sss._data[meg_picks, start:stop],
+                    orig_in_data,
+                    resid,
+                    n_positions=n_positions,
+                    t_str=t_str,
+                )
 
     return raw_sss
 
 
 def _get_t_str(raw, start, stop):
-    return ('%8.3f - %8.3f s' % tuple(raw.times[start:stop][[0, -1]]))
+    return "%8.3f - %8.3f s" % tuple(raw.times[start:stop][[0, -1]])
 
 
 class _MoveComp(object):
@@ -695,37 +836,34 @@ class _MoveComp(object):
 
     def __init__(self, pos, head_frame, raw, interp, reconstruct):
         self.pos = pos
-        self.sfreq = raw.info['sfreq']
+        self.sfreq = raw.info["sfreq"]
         self.interp = interp
-        assert reconstruct in ('orig', 'in')
+        assert reconstruct in ("orig", "in")
         self.reconstruct = reconstruct
 
     def get_decomp_by_offset(self, offset):
         idx = np.where(self.pos[1] == offset)[0][0]
         dev_head_t = self.pos[0][idx]
         t = offset / self.sfreq
-        S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
-            self.get_decomp(dev_head_t, t=t)
-        S_recon_reg = self.S_recon.take(
-            reg_moments[:n_use_in], axis=1)
-        if self.reconstruct == 'orig':
+        S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in = self.get_decomp(
+            dev_head_t, t=t
+        )
+        S_recon_reg = self.S_recon.take(reg_moments[:n_use_in], axis=1)
+        if self.reconstruct == "orig":
             op_sss = np.dot(S_decomp_full, pS_decomp)
         else:
-            assert self.reconstruct == 'in'
+            assert self.reconstruct == "in"
             op_sss = np.dot(S_recon_reg, pS_decomp[:n_use_in])
         assert op_sss.shape[1] == self.n_good
-        op_in = np.dot(S_decomp[:, :n_use_in],
-                       pS_decomp[:n_use_in])
+        op_in = np.dot(S_decomp[:, :n_use_in], pS_decomp[:n_use_in])
         op_resid = np.eye(S_decomp.shape[0]) - op_in
-        op_resid -= np.dot(S_decomp[:, n_use_in:],
-                           pS_decomp[n_use_in:])
+        op_resid -= np.dot(S_decomp[:, n_use_in:], pS_decomp[n_use_in:])
         return op_sss, op_in, op_resid
 
     def initialize(self, get_decomp, dev_head_t, S_recon):
         """Secondary initialization."""
-        self.smooth = _Interp2(
-            self.pos[1], self.get_decomp_by_offset, self.interp)
-        _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.)
+        self.smooth = _Interp2(self.pos[1], self.get_decomp_by_offset, self.interp)
+        _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
         self.n_good = pS_decomp.shape[1]
         self.S_recon = S_recon
         self.offset = 0
@@ -737,21 +875,27 @@ class _MoveComp(object):
     def feed_avg(self, good_data):
         """Apply an average transformation over the next interval."""
         n_pos, avg_quat = _trans_lims(
-            self.pos, self.avg_offset,
-            self.avg_offset + good_data.shape[-1])[1:]
+            self.pos, self.avg_offset, self.avg_offset + good_data.shape[-1]
+        )[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
             self.last_avg_quat = avg_quat
-            avg_trans = np.vstack([
-                np.hstack([quat_to_rot(avg_quat[:3]),
-                           avg_quat[3:][:, np.newaxis]]),
-                [[0., 0., 0., 1.]]])
-            S_decomp_st, _, pS_decomp_st, _, n_use_in_st = \
-                self.get_decomp(avg_trans, t=self.avg_offset / self.sfreq)
-            self.op_in = np.dot(S_decomp_st[:, :n_use_in_st],
-                                pS_decomp_st[:n_use_in_st])
-            self.op_resid = np.eye(len(self.op_in)) - self.op_in - np.dot(
-                S_decomp_st[:, n_use_in_st:],
-                pS_decomp_st[n_use_in_st:])
+            avg_trans = np.vstack(
+                [
+                    np.hstack([quat_to_rot(avg_quat[:3]), avg_quat[3:][:, np.newaxis]]),
+                    [[0.0, 0.0, 0.0, 1.0]],
+                ]
+            )
+            S_decomp_st, _, pS_decomp_st, _, n_use_in_st = self.get_decomp(
+                avg_trans, t=self.avg_offset / self.sfreq
+            )
+            self.op_in = np.dot(
+                S_decomp_st[:, :n_use_in_st], pS_decomp_st[:n_use_in_st]
+            )
+            self.op_resid = (
+                np.eye(len(self.op_in))
+                - self.op_in
+                - np.dot(S_decomp_st[:, n_use_in_st:], pS_decomp_st[n_use_in_st:])
+            )
         in_data = np.dot(self.op_in, good_data)
         resid = np.dot(self.op_resid, good_data)
         self.avg_offset += good_data.shape[1]
@@ -760,8 +904,8 @@ class _MoveComp(object):
     def feed(self, data, good_mask, st_only):
         n_samp = data.shape[1]
         pos_data, n_pos = _trans_lims(
-            self.pos, self.offset,
-            self.offset + data.shape[-1])[:2]
+            self.pos, self.offset, self.offset + data.shape[-1]
+        )[:2]
         self.offset += data.shape[-1]
 
         # Do movement compensation on the data, with optional smoothing
@@ -773,7 +917,7 @@ class _MoveComp(object):
             if in_data is None:
                 in_data = np.empty((l_in.shape[0], data.shape[1]))
                 resid_data = np.empty((l_resid.shape[0], data.shape[1]))
-            r_interp = 1. - l_interp if l_interp is not None else None
+            r_interp = 1.0 - l_interp if l_interp is not None else None
             if not st_only:
                 data[:, sl] = np.dot(l_sss, good_data)
                 if l_interp is not None:
@@ -830,28 +974,35 @@ def _trans_lims(pos, start, stop):
 def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
     """Get the magnetometer scale factor."""
     if isinstance(mag_scale, str):
-        if mag_scale != 'auto':
-            raise ValueError('mag_scale must be a float or "auto", got "%s"'
-                             % mag_scale)
+        if mag_scale != "auto":
+            raise ValueError(
+                'mag_scale must be a float or "auto", got "%s"' % mag_scale
+            )
         if len(mag_picks) in (0, len(meg_picks)):
-            mag_scale = 100.  # only one coil type, doesn't matter
-            logger.info('    Setting mag_scale=%0.2f because only one '
-                        'coil type is present' % mag_scale)
+            mag_scale = 100.0  # only one coil type, doesn't matter
+            logger.info(
+                "    Setting mag_scale=%0.2f because only one "
+                "coil type is present" % mag_scale
+            )
         else:
             # Find our physical distance between gradiometer pickup loops
             # ("base line")
-            coils = _create_meg_coils([info['chs'][pick]
-                                       for pick in meg_picks], 'accurate')
-            grad_base = {coils[pick]['base'] for pick in grad_picks}
+            coils = _create_meg_coils(
+                [info["chs"][pick] for pick in meg_picks], "accurate"
+            )
+            grad_base = {coils[pick]["base"] for pick in grad_picks}
             if len(grad_base) != 1 or list(grad_base)[0] <= 0:
-                raise RuntimeError('Could not automatically determine '
-                                   'mag_scale, could not find one '
-                                   'proper gradiometer distance from: %s'
-                                   % list(grad_base))
+                raise RuntimeError(
+                    "Could not automatically determine "
+                    "mag_scale, could not find one "
+                    "proper gradiometer distance from: %s" % list(grad_base)
+                )
             grad_base = list(grad_base)[0]
-            mag_scale = 1. / grad_base
-            logger.info('    Setting mag_scale=%0.2f based on gradiometer '
-                        'distance %0.2f mm' % (mag_scale, 1000 * grad_base))
+            mag_scale = 1.0 / grad_base
+            logger.info(
+                "    Setting mag_scale=%0.2f based on gradiometer "
+                "distance %0.2f mm" % (mag_scale, 1000 * grad_base)
+            )
     mag_scale = float(mag_scale)
     coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[mag_picks] = mag_scale
@@ -862,7 +1013,7 @@ def _get_sensor_operator(raw, meg_picks):
     comp = raw.compensation_grade
     if comp not in (0, None):
         mult = make_compensator(raw.info, 0, comp)
-        logger.info(f'    Accounting for compensation grade {comp}')
+        logger.info(f"    Accounting for compensation grade {comp}")
         assert mult.shape[0] == mult.shape[1] == len(raw.ch_names)
         mult = mult[np.ix_(meg_picks, meg_picks)]
     else:
@@ -875,64 +1026,65 @@ def _remove_meg_projs_comps(inst, ignore_ref):
     meg_picks = pick_types(inst.info, meg=True, exclude=[])
     meg_channels = [inst.ch_names[pi] for pi in meg_picks]
     non_meg_proj = list()
-    for proj in inst.info['projs']:
-        if not any(c in meg_channels for c in proj['data']['col_names']):
+    for proj in inst.info["projs"]:
+        if not any(c in meg_channels for c in proj["data"]["col_names"]):
             non_meg_proj.append(proj)
     inst.add_proj(non_meg_proj, remove_existing=True, verbose=False)
-    if ignore_ref and inst.info['comps']:
+    if ignore_ref and inst.info["comps"]:
         assert inst.compensation_grade in (None, 0)
         with inst.info._unlock():
-            inst.info['comps'] = []
+            inst.info["comps"] = []
 
 
 def _check_destination(destination, info, coord_frame):
     """Triage our reconstruction trans."""
     if destination is None:
-        return info['dev_head_t']
-    if coord_frame != 'head':
-        raise RuntimeError('destination can only be set if using the '
-                           'head coordinate frame')
+        return info["dev_head_t"]
+    if coord_frame != "head":
+        raise RuntimeError(
+            "destination can only be set if using the " "head coordinate frame"
+        )
     if isinstance(destination, (str, Path)):
-        recon_trans = _get_trans(destination, 'meg', 'head')[0]
+        recon_trans = _get_trans(destination, "meg", "head")[0]
     elif isinstance(destination, Transform):
         recon_trans = destination
     else:
         destination = np.array(destination, float)
         if destination.shape != (3,):
-            raise ValueError('destination must be a 3-element vector, '
-                             'str, or None')
+            raise ValueError("destination must be a 3-element vector, " "str, or None")
         recon_trans = np.eye(4)
         recon_trans[:3, 3] = destination
-        recon_trans = Transform('meg', 'head', recon_trans)
-    if recon_trans.to_str != 'head' or recon_trans.from_str != 'MEG device':
-        raise RuntimeError('Destination transform is not MEG device -> head, '
-                           'got %s -> %s' % (recon_trans.from_str,
-                                             recon_trans.to_str))
+        recon_trans = Transform("meg", "head", recon_trans)
+    if recon_trans.to_str != "head" or recon_trans.from_str != "MEG device":
+        raise RuntimeError(
+            "Destination transform is not MEG device -> head, "
+            "got %s -> %s" % (recon_trans.from_str, recon_trans.to_str)
+        )
     return recon_trans
 
 
 @verbose
-def _prep_mf_coils(info, ignore_ref=True, *, accuracy='accurate',
-                   verbose=None):
+def _prep_mf_coils(info, ignore_ref=True, *, accuracy="accurate", verbose=None):
     """Get all coil integration information loaded and sorted."""
     meg_sensors = _prep_meg_channels(
-        info, head_frame=False, ignore_ref=ignore_ref, accuracy=accuracy,
-        verbose=False)
-    coils = meg_sensors['defs']
+        info, head_frame=False, ignore_ref=ignore_ref, accuracy=accuracy, verbose=False
+    )
+    coils = meg_sensors["defs"]
     mag_mask = _get_mag_mask(coils)
 
     # Now coils is a sorted list of coils. Time to do some vectorization.
     n_coils = len(coils)
-    rmags = np.concatenate([coil['rmag'] for coil in coils])
-    cosmags = np.concatenate([coil['cosmag'] for coil in coils])
-    ws = np.concatenate([coil['w'] for coil in coils])
+    rmags = np.concatenate([coil["rmag"] for coil in coils])
+    cosmags = np.concatenate([coil["cosmag"] for coil in coils])
+    ws = np.concatenate([coil["w"] for coil in coils])
     cosmags *= ws[:, np.newaxis]
     del ws
-    n_int = np.array([len(coil['rmag']) for coil in coils])
+    n_int = np.array([len(coil["rmag"]) for coil in coils])
     bins = np.repeat(np.arange(len(n_int)), n_int)
     bd = np.concatenate(([0], np.cumsum(n_int)))
-    slice_map = {ii: slice(start, stop)
-                 for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:]))}
+    slice_map = {
+        ii: slice(start, stop) for ii, (start, stop) in enumerate(zip(bd[:-1], bd[1:]))
+    }
     return rmags, cosmags, bins, n_coils, mag_mask, slice_map
 
 
@@ -982,14 +1134,18 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
         weights = weights / weights.sum().astype(float)  # int -> float
         avg_quat = _average_quats(quats[:, :3], weights)
         avg_t = np.dot(weights, quats[:, 3:6])
-        avg_trans = np.vstack([
-            np.hstack([quat_to_rot(avg_quat), avg_t[:, np.newaxis]]),
-            [[0., 0., 0., 1.]]])
+        avg_trans = np.vstack(
+            [
+                np.hstack([quat_to_rot(avg_quat), avg_t[:, np.newaxis]]),
+                [[0.0, 0.0, 0.0, 1.0]],
+            ]
+        )
     return trans, rel_starts, rel_stops, quats, avg_trans
 
 
-def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
-             n_positions, t_str, tsss_valid):
+def _do_tSSS(
+    clean_data, orig_in_data, resid, st_correlation, n_positions, t_str, tsss_valid
+):
     """Compute and apply SSP-like projection vectors based on min corr."""
     if not tsss_valid:
         t_proj = np.empty((clean_data.shape[1], 0))
@@ -997,11 +1153,13 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
-    msg = ('        Projecting %2d intersecting tSSS component%s '
-           'for %s' % (t_proj.shape[1], _pl(t_proj.shape[1], ' '), t_str))
+    msg = "        Projecting %2d intersecting tSSS component%s " "for %s" % (
+        t_proj.shape[1],
+        _pl(t_proj.shape[1], " "),
+        t_str,
+    )
     if n_positions > 1:
-        msg += ' (across %2d position%s)' % (n_positions,
-                                             _pl(n_positions, ' '))
+        msg += " (across %2d position%s)" % (n_positions, _pl(n_positions, " "))
     logger.info(msg)
     return (clean_data - np.dot(np.dot(clean_data, t_proj), t_proj.T),)
 
@@ -1011,89 +1169,111 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
     if copy:
         raw = raw.copy()
     with raw.info._unlock():
-        raw.info['chs'] = info['chs']  # updated coil types
+        raw.info["chs"] = info["chs"]  # updated coil types
     if add_channels:
-        kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
-                 FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
-                 FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR, FIFF.FIFFV_HPI_MOV]
+        kinds = [
+            FIFF.FIFFV_QUAT_1,
+            FIFF.FIFFV_QUAT_2,
+            FIFF.FIFFV_QUAT_3,
+            FIFF.FIFFV_QUAT_4,
+            FIFF.FIFFV_QUAT_5,
+            FIFF.FIFFV_QUAT_6,
+            FIFF.FIFFV_HPI_G,
+            FIFF.FIFFV_HPI_ERR,
+            FIFF.FIFFV_HPI_MOV,
+        ]
         out_shape = (len(raw.ch_names) + len(kinds), len(raw.times))
         out_data = np.zeros(out_shape, np.float64)
-        msg = '    Appending head position result channels and '
+        msg = "    Appending head position result channels and "
         if raw.preload:
-            logger.info(msg + 'copying original raw data')
-            out_data[:len(raw.ch_names)] = raw._data
+            logger.info(msg + "copying original raw data")
+            out_data[: len(raw.ch_names)] = raw._data
             raw._data = out_data
         else:
-            logger.info(msg + 'loading raw data from disk')
+            logger.info(msg + "loading raw data from disk")
             with use_log_level(False):
-                raw._preload_data(out_data[:len(raw.ch_names)])
+                raw._preload_data(out_data[: len(raw.ch_names)])
             raw._data = out_data
         assert raw.preload is True
         off = len(raw.ch_names)
         chpi_chs = [
-            dict(ch_name='CHPI%03d' % (ii + 1), logno=ii + 1,
-                 scanno=off + ii + 1, unit_mul=-1, range=1., unit=-1,
-                 kind=kinds[ii], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                 cal=1e-4, coil_type=FWD.COIL_UNKNOWN, loc=np.zeros(12))
-            for ii in range(len(kinds))]
-        raw.info['chs'].extend(chpi_chs)
+            dict(
+                ch_name="CHPI%03d" % (ii + 1),
+                logno=ii + 1,
+                scanno=off + ii + 1,
+                unit_mul=-1,
+                range=1.0,
+                unit=-1,
+                kind=kinds[ii],
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                cal=1e-4,
+                coil_type=FWD.COIL_UNKNOWN,
+                loc=np.zeros(12),
+            )
+            for ii in range(len(kinds))
+        ]
+        raw.info["chs"].extend(chpi_chs)
         raw.info._update_redundant()
         raw.info._check_consistency()
-        assert raw._data.shape == (raw.info['nchan'], len(raw.times))
+        assert raw._data.shape == (raw.info["nchan"], len(raw.times))
         # Return the pos picks
-        pos_picks = np.arange(len(raw.ch_names) - len(chpi_chs),
-                              len(raw.ch_names))
+        pos_picks = np.arange(len(raw.ch_names) - len(chpi_chs), len(raw.ch_names))
         return raw, pos_picks
     else:
         if copy:
             if not raw.preload:
-                logger.info('    Loading raw data from disk')
+                logger.info("    Loading raw data from disk")
                 raw.load_data(verbose=False)
             else:
-                logger.info('    Using loaded raw data')
+                logger.info("    Using loaded raw data")
         return raw, np.array([], int)
 
 
 def _check_pos(pos, coord_frame, raw, st_fixed):
     """Check for a valid pos array and transform it to a more usable form."""
-    _validate_type(pos, (np.ndarray, None), 'head_pos')
+    _validate_type(pos, (np.ndarray, None), "head_pos")
     if pos is None:
         pos = np.empty((0, 10))
-    elif coord_frame != 'head':
+    elif coord_frame != "head":
         raise ValueError('positions can only be used if coord_frame="head"')
     if not st_fixed:
-        warn('st_fixed=False is untested, use with caution!')
-    _validate_type(pos, np.ndarray, 'head_pos')
+        warn("st_fixed=False is untested, use with caution!")
+    _validate_type(pos, np.ndarray, "head_pos")
     if pos.ndim != 2 or pos.shape[1] != 10:
-        raise ValueError('pos must be an array of shape (N, 10)')
+        raise ValueError("pos must be an array of shape (N, 10)")
     t = pos[:, 0]
     if not np.array_equal(t, np.unique(t)):
-        raise ValueError('Time points must unique and in ascending order')
+        raise ValueError("Time points must unique and in ascending order")
     # We need an extra 1e-3 (1 ms) here because MaxFilter outputs values
     # only out to 3 decimal places
     if len(pos) > 0:
-        if not _time_mask(t, tmin=raw._first_time - 1e-3, tmax=None,
-                          sfreq=raw.info['sfreq']).all():
-            raise ValueError('Head position time points must be greater than '
-                             'first sample offset, but found %0.4f < %0.4f'
-                             % (t[0], raw._first_time))
+        if not _time_mask(
+            t, tmin=raw._first_time - 1e-3, tmax=None, sfreq=raw.info["sfreq"]
+        ).all():
+            raise ValueError(
+                "Head position time points must be greater than "
+                "first sample offset, but found %0.4f < %0.4f" % (t[0], raw._first_time)
+            )
     t = t - raw._first_time
     if len(t) == 0 or t[0] > 0:
         # Prepend the existing dev_head_t to make movecomp easier
-        t = np.concatenate([[0.], t])
-        trans = raw.info['dev_head_t']
-        trans = np.eye(4) if trans is None else trans['trans']
-        dev_head_pos = np.concatenate([t[[0]], rot_to_quat(trans[:3, :3]),
-                                       trans[:3, 3], [0, 0, 0]])
+        t = np.concatenate([[0.0], t])
+        trans = raw.info["dev_head_t"]
+        trans = np.eye(4) if trans is None else trans["trans"]
+        dev_head_pos = np.concatenate(
+            [t[[0]], rot_to_quat(trans[:3, :3]), trans[:3, 3], [0, 0, 0]]
+        )
         pos = np.concatenate([dev_head_pos[np.newaxis], pos])
     max_dist = np.sqrt(np.sum(pos[:, 4:7] ** 2, axis=1)).max()
-    if max_dist > 1.:
-        warn('Found a distance greater than 1 m (%0.3g m) from the device '
-             'origin, positions may be invalid and Maxwell filtering could '
-             'fail' % (max_dist,))
+    if max_dist > 1.0:
+        warn(
+            "Found a distance greater than 1 m (%0.3g m) from the device "
+            "origin, positions may be invalid and Maxwell filtering could "
+            "fail" % (max_dist,)
+        )
     t[0] = 0
     dev_head_ts = np.zeros((len(t), 4, 4))
-    dev_head_ts[:, 3, 3] = 1.
+    dev_head_ts[:, 3, 3] = 1.0
     dev_head_ts[:, :3, 3] = pos[:, 4:7]
     dev_head_ts[:, :3, :3] = quat_to_rot(pos[:, 1:4])
     t = raw.time_as_index(t, use_rounding=True)
@@ -1102,51 +1282,73 @@ def _check_pos(pos, coord_frame, raw, st_fixed):
     return pos
 
 
-def _get_decomp(trans, *, all_coils, cal, regularize, exp, ignore_ref,
-                coil_scale, grad_picks, mag_picks, good_mask, mag_or_fine,
-                bad_condition, t, mag_scale, mult):
+def _get_decomp(
+    trans,
+    *,
+    all_coils,
+    cal,
+    regularize,
+    exp,
+    ignore_ref,
+    coil_scale,
+    grad_picks,
+    mag_picks,
+    good_mask,
+    mag_or_fine,
+    bad_condition,
+    t,
+    mag_scale,
+    mult,
+):
     """Get a decomposition matrix and pseudoinverse matrices."""
     from scipy import linalg
+
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
     S_decomp_full = _get_s_decomp(
-        exp, all_coils, trans, coil_scale, cal, ignore_ref, grad_picks,
-        mag_picks, mag_scale)
+        exp,
+        all_coils,
+        trans,
+        coil_scale,
+        cal,
+        ignore_ref,
+        grad_picks,
+        mag_picks,
+        mag_scale,
+    )
     if mult is not None:
         S_decomp_full = mult @ S_decomp_full
     S_decomp = S_decomp_full[good_mask]
     #
     # Extended SSS basis (eSSS)
     #
-    extended_proj = exp.get('extended_proj', ())
+    extended_proj = exp.get("extended_proj", ())
     if len(extended_proj) > 0:
         rcond = 1e-4
         thresh = 1e-4
         extended_proj = extended_proj.T * coil_scale[good_mask]
         extended_proj /= np.linalg.norm(extended_proj, axis=0)
-        n_int = _get_n_moments(exp['int_order'])
+        n_int = _get_n_moments(exp["int_order"])
         if S_decomp.shape[1] > n_int:
             S_ext = S_decomp[:, n_int:].copy()
             S_ext /= np.linalg.norm(S_ext, axis=0)
             S_ext_orth = linalg.orth(S_ext, rcond=rcond)
             assert S_ext_orth.shape[1] == S_ext.shape[1]
-            extended_proj -= np.dot(S_ext_orth,
-                                    np.dot(S_ext_orth.T, extended_proj))
+            extended_proj -= np.dot(S_ext_orth, np.dot(S_ext_orth.T, extended_proj))
             scale = np.mean(np.linalg.norm(S_decomp[n_int:], axis=0))
         else:
             scale = np.mean(np.linalg.norm(S_decomp[:n_int], axis=0))
         mask = np.linalg.norm(extended_proj, axis=0) > thresh
         extended_remove = list(np.where(~mask)[0] + S_decomp.shape[1])
-        logger.debug('    Reducing %d -> %d'
-                     % (extended_proj.shape[1], mask.sum()))
+        logger.debug("    Reducing %d -> %d" % (extended_proj.shape[1], mask.sum()))
         extended_proj /= np.linalg.norm(extended_proj, axis=0) / scale
         S_decomp = np.concatenate([S_decomp, extended_proj], axis=-1)
         if extended_proj.shape[1]:
             S_decomp_full = np.pad(
-                S_decomp_full, ((0, 0), (0, extended_proj.shape[1])),
-                'constant')
-            S_decomp_full[good_mask, -extended_proj.shape[1]:] = extended_proj
+                S_decomp_full, ((0, 0), (0, extended_proj.shape[1])), "constant"
+            )
+            S_decomp_full[good_mask, -extended_proj.shape[1] :] = extended_proj
     else:
         extended_remove = list()
     del extended_proj
@@ -1155,7 +1357,8 @@ def _get_decomp(trans, *, all_coils, cal, regularize, exp, ignore_ref,
     # Regularization
     #
     S_decomp, reg_moments, n_use_in = _regularize(
-        regularize, exp, S_decomp, mag_or_fine, extended_remove, t=t)
+        regularize, exp, S_decomp, mag_or_fine, extended_remove, t=t
+    )
     S_decomp_full = S_decomp_full.take(reg_moments, axis=1)
 
     #
@@ -1163,11 +1366,11 @@ def _get_decomp(trans, *, all_coils, cal, regularize, exp, ignore_ref,
     #
     pS_decomp, sing = _col_norm_pinv(S_decomp.copy())
     cond = sing[0] / sing[-1]
-    if bad_condition != 'ignore' and cond >= 1000.:
-        msg = 'Matrix is badly conditioned: %0.0f >= 1000' % cond
-        if bad_condition == 'error':
+    if bad_condition != "ignore" and cond >= 1000.0:
+        msg = "Matrix is badly conditioned: %0.0f >= 1000" % cond
+        if bad_condition == "error":
             raise RuntimeError(msg)
-        elif bad_condition == 'warning':
+        elif bad_condition == "warning":
             warn(msg)
         else:  # condition == 'info'
             logger.info(msg)
@@ -1180,8 +1383,9 @@ def _get_decomp(trans, *, all_coils, cal, regularize, exp, ignore_ref,
     return S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in
 
 
-def _get_s_decomp(exp, all_coils, trans, coil_scale, cal, ignore_ref,
-                  grad_picks, mag_picks, mag_scale):
+def _get_s_decomp(
+    exp, all_coils, trans, coil_scale, cal, ignore_ref, grad_picks, mag_picks, mag_scale
+):
     """Get S_decomp."""
     S_decomp = _trans_sss_basis(exp, all_coils, trans, coil_scale)
     if cal is not None:
@@ -1192,47 +1396,57 @@ def _get_s_decomp(exp, all_coils, trans, coil_scale, cal, ignore_ref,
             S_decomp[grad_picks, :] += grad_cals
         # Scale magnetometers by calibration coefficient
         if len(mag_picks) > 0:
-            S_decomp[mag_picks, :] /= cal['mag_cals']
+            S_decomp[mag_picks, :] /= cal["mag_cals"]
         # We need to be careful about KIT gradiometers
     return S_decomp
 
 
 @verbose
-def _regularize(regularize, exp, S_decomp, mag_or_fine, extended_remove, t,
-                verbose=None):
+def _regularize(
+    regularize, exp, S_decomp, mag_or_fine, extended_remove, t, verbose=None
+):
     """Regularize a decomposition matrix."""
     # ALWAYS regularize the out components according to norm, since
     # gradiometer-only setups (e.g., KIT) can have zero first-order
     # (homogeneous field) components
-    int_order, ext_order = exp['int_order'], exp['ext_order']
+    int_order, ext_order = exp["int_order"], exp["ext_order"]
     n_in = _get_n_moments(int_order)
     n_out = S_decomp.shape[1] - n_in
-    t_str = '%8.3f' % t
+    t_str = "%8.3f" % t
     if regularize is not None:  # regularize='in'
         in_removes, out_removes = _regularize_in(
-            int_order, ext_order, S_decomp, mag_or_fine, extended_remove)
+            int_order, ext_order, S_decomp, mag_or_fine, extended_remove
+        )
     else:
         in_removes = []
-        out_removes = _regularize_out(int_order, ext_order, mag_or_fine,
-                                      extended_remove)
+        out_removes = _regularize_out(
+            int_order, ext_order, mag_or_fine, extended_remove
+        )
     reg_in_moments = np.setdiff1d(np.arange(n_in), in_removes)
-    reg_out_moments = np.setdiff1d(np.arange(n_in, S_decomp.shape[1]),
-                                   out_removes)
+    reg_out_moments = np.setdiff1d(np.arange(n_in, S_decomp.shape[1]), out_removes)
     n_use_in = len(reg_in_moments)
     n_use_out = len(reg_out_moments)
     reg_moments = np.concatenate((reg_in_moments, reg_out_moments))
     S_decomp = S_decomp.take(reg_moments, axis=1)
     if regularize is not None or n_use_out != n_out:
-        logger.info('        Using %s/%s harmonic components for %s  '
-                    '(%s/%s in, %s/%s out)'
-                    % (n_use_in + n_use_out, n_in + n_out, t_str,
-                       n_use_in, n_in, n_use_out, n_out))
+        logger.info(
+            "        Using %s/%s harmonic components for %s  "
+            "(%s/%s in, %s/%s out)"
+            % (
+                n_use_in + n_use_out,
+                n_in + n_out,
+                t_str,
+                n_use_in,
+                n_in,
+                n_use_out,
+                n_out,
+            )
+        )
     return S_decomp, reg_moments, n_use_in
 
 
 @verbose
-def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False,
-                           verbose=None):
+def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose=None):
     """Pick types for Maxwell filtering and fix magnetometers."""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info, use_cal=True)
@@ -1243,62 +1457,77 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False,
     meg_picks = pick_types(info, meg=True, ref_meg=ref, exclude=[])
     meg_info = pick_info(_simplify_info(info), meg_picks)
     del info
-    good_mask = np.zeros(len(meg_picks,), bool)
-    good_mask[pick_types(meg_info, meg=True, ref_meg=ref, exclude='bads')] = 1
+    good_mask = np.zeros(
+        len(
+            meg_picks,
+        ),
+        bool,
+    )
+    good_mask[pick_types(meg_info, meg=True, ref_meg=ref, exclude="bads")] = 1
     n_bases = _get_n_moments([int_order, ext_order]).sum()
     if n_bases > good_mask.sum():
-        raise ValueError('Number of requested bases (%s) exceeds number of '
-                         'good sensors (%s)' % (str(n_bases), good_mask.sum()))
-    recons = [ch for ch in meg_info['bads']]
+        raise ValueError(
+            "Number of requested bases (%s) exceeds number of "
+            "good sensors (%s)" % (str(n_bases), good_mask.sum())
+        )
+    recons = [ch for ch in meg_info["bads"]]
     if len(recons) > 0:
-        msg = '    Bad MEG channels being reconstructed: %s' % recons
+        msg = "    Bad MEG channels being reconstructed: %s" % recons
     else:
-        msg = '    No bad MEG channels'
+        msg = "    No bad MEG channels"
     logger.info(msg)
-    ref_meg = False if ignore_ref else 'mag'
-    mag_picks = pick_types(meg_info, meg='mag', ref_meg=ref_meg, exclude=[])
-    ref_meg = False if ignore_ref else 'grad'
-    grad_picks = pick_types(meg_info, meg='grad', ref_meg=ref_meg, exclude=[])
-    assert len(mag_picks) + len(grad_picks) == len(meg_info['ch_names'])
+    ref_meg = False if ignore_ref else "mag"
+    mag_picks = pick_types(meg_info, meg="mag", ref_meg=ref_meg, exclude=[])
+    ref_meg = False if ignore_ref else "grad"
+    grad_picks = pick_types(meg_info, meg="grad", ref_meg=ref_meg, exclude=[])
+    assert len(mag_picks) + len(grad_picks) == len(meg_info["ch_names"])
     # Determine which are magnetometers for external basis purposes
     mag_or_fine = np.zeros(len(meg_picks), bool)
     mag_or_fine[mag_picks] = True
     # KIT gradiometers are marked as having units T, not T/M (argh)
     # We need a separate variable for this because KIT grads should be
     # treated mostly like magnetometers (e.g., scaled by 100) for reg
-    coil_types = np.array([ch['coil_type'] for ch in meg_info['chs']])
+    coil_types = np.array([ch["coil_type"] for ch in meg_info["chs"]])
     mag_or_fine[(coil_types & 0xFFFF) == FIFF.FIFFV_COIL_KIT_GRAD] = False
     # The same thing goes for CTF gradiometers...
-    ctf_grads = [FIFF.FIFFV_COIL_CTF_GRAD,
-                 FIFF.FIFFV_COIL_CTF_REF_GRAD,
-                 FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD]
+    ctf_grads = [
+        FIFF.FIFFV_COIL_CTF_GRAD,
+        FIFF.FIFFV_COIL_CTF_REF_GRAD,
+        FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD,
+    ]
     mag_or_fine[np.in1d(coil_types, ctf_grads)] = False
-    msg = ('    Processing %s gradiometers and %s magnetometers'
-           % (len(grad_picks), len(mag_picks)))
+    msg = "    Processing %s gradiometers and %s magnetometers" % (
+        len(grad_picks),
+        len(mag_picks),
+    )
     n_kit = len(mag_picks) - mag_or_fine.sum()
     if n_kit > 0:
-        msg += ' (of which %s are actually KIT gradiometers)' % n_kit
+        msg += " (of which %s are actually KIT gradiometers)" % n_kit
     logger.info(msg)
     return meg_picks, mag_picks, grad_picks, good_mask, mag_or_fine
 
 
 def _check_regularize(regularize):
     """Ensure regularize is valid."""
-    if not (regularize is None or (isinstance(regularize, str) and
-                                   regularize in ('in',))):
+    if not (
+        regularize is None or (isinstance(regularize, str) and regularize in ("in",))
+    ):
         raise ValueError('regularize must be None or "in"')
 
 
 def _check_usable(inst, ignore_ref):
     """Ensure our data are clean."""
     if inst.proj:
-        raise RuntimeError('Projectors cannot be applied to data during '
-                           'Maxwell filtering.')
+        raise RuntimeError(
+            "Projectors cannot be applied to data during " "Maxwell filtering."
+        )
     current_comp = inst.compensation_grade
     if current_comp not in (0, None) and ignore_ref:
-        raise RuntimeError('Maxwell filter cannot be done on compensated '
-                           'channels (data have been compensated with '
-                           'grade {current_comp}) when ignore_ref=True')
+        raise RuntimeError(
+            "Maxwell filter cannot be done on compensated "
+            "channels (data have been compensated with "
+            "grade {current_comp}) when ignore_ref=True"
+        )
 
 
 def _col_norm_pinv(x):
@@ -1310,7 +1539,7 @@ def _col_norm_pinv(x):
     x /= norm
     u, s, v = _safe_svd(x, full_matrices=False, **check_disable)
     v /= norm
-    return np.dot(v.T * 1. / s, u.T), s
+    return np.dot(v.T * 1.0 / s, u.T), s
 
 
 def _sq(x):
@@ -1321,29 +1550,27 @@ def _sq(x):
 def _check_finite(data):
     """Ensure data is finite."""
     if not np.isfinite(data).all():
-        raise RuntimeError('data contains non-finite numbers')
+        raise RuntimeError("data contains non-finite numbers")
 
 
 def _sph_harm_norm(order, degree):
     """Compute normalization factor for spherical harmonics."""
     # we could use scipy.special.poch(degree + order + 1, -2 * order)
     # here, but it's slower for our fairly small degree
-    norm = np.sqrt((2 * degree + 1.) / (4 * np.pi))
+    norm = np.sqrt((2 * degree + 1.0) / (4 * np.pi))
     if order != 0:
-        norm *= np.sqrt(factorial(degree - order) /
-                        float(factorial(degree + order)))
+        norm *= np.sqrt(factorial(degree - order) / float(factorial(degree + order)))
     return norm
 
 
 def _concatenate_sph_coils(coils):
     """Concatenate MEG coil parameters for spherical harmoncs."""
-    rs = np.concatenate([coil['r0_exey'] for coil in coils])
-    wcoils = np.concatenate([coil['w'] for coil in coils])
-    ezs = np.concatenate([np.tile(coil['ez'][np.newaxis, :],
-                                  (len(coil['rmag']), 1))
-                          for coil in coils])
-    bins = np.repeat(np.arange(len(coils)),
-                     [len(coil['rmag']) for coil in coils])
+    rs = np.concatenate([coil["r0_exey"] for coil in coils])
+    wcoils = np.concatenate([coil["w"] for coil in coils])
+    ezs = np.concatenate(
+        [np.tile(coil["ez"][np.newaxis, :], (len(coil["rmag"]), 1)) for coil in coils]
+    )
+    bins = np.repeat(np.arange(len(coils)), [len(coil["rmag"]) for coil in coils])
     return rs, wcoils, ezs, bins
 
 
@@ -1352,17 +1579,18 @@ _mu_0 = 4e-7 * np.pi  # magnetic permeability
 
 def _get_mag_mask(coils):
     """Get the coil_scale for Maxwell filtering."""
-    return np.array([coil['coil_class'] == FWD.COILC_MAG for coil in coils])
+    return np.array([coil["coil_class"] == FWD.COILC_MAG for coil in coils])
 
 
-def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
+def _sss_basis_basic(exp, coils, mag_scale=100.0, method="standard"):
     """Compute SSS basis using non-optimized (but more readable) algorithms."""
     from scipy.special import sph_harm
-    int_order, ext_order = exp['int_order'], exp['ext_order']
-    origin = exp['origin']
-    assert 'extended_proj' not in exp  # advanced option not supported
+
+    int_order, ext_order = exp["int_order"], exp["ext_order"]
+    origin = exp["origin"]
+    assert "extended_proj" not in exp  # advanced option not supported
     # Compute vector between origin and coil, convert to spherical coords
-    if method == 'standard':
+    if method == "standard":
         # Get position, normal, weights, and number of integration pts.
         rmags, cosmags, ws, bins = _concatenate_coils(coils)
         rmags -= origin
@@ -1403,54 +1631,57 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
             # is obtained by taking the partial derivative of Eq. 4 w.r.t. each
             # coordinate.
             az_factor = 1j * order * sph / np.sin(np.maximum(pol, 1e-16))
-            pol_factor = (-sph_norm * np.sin(pol) * np.exp(1j * order * az) *
-                          _alegendre_deriv(order, degree, np.cos(pol)))
+            pol_factor = (
+                -sph_norm
+                * np.sin(pol)
+                * np.exp(1j * order * az)
+                * _alegendre_deriv(order, degree, np.cos(pol))
+            )
             if degree <= int_order:
                 S_in_out.append(S_in)
                 in_norm = _mu_0 * rad ** -(degree + 2)
-                g_rad = in_norm * (-(degree + 1.) * sph)
+                g_rad = in_norm * (-(degree + 1.0) * sph)
                 g_az = in_norm * az_factor
                 g_pol = in_norm * pol_factor
-                grads_in_out.append(_sph_to_cart_partials(az, pol,
-                                                          g_rad, g_az, g_pol))
+                grads_in_out.append(_sph_to_cart_partials(az, pol, g_rad, g_az, g_pol))
             if degree <= ext_order:
                 S_in_out.append(S_out)
                 out_norm = _mu_0 * rad ** (degree - 1)
                 g_rad = out_norm * degree * sph
                 g_az = out_norm * az_factor
                 g_pol = out_norm * pol_factor
-                grads_in_out.append(_sph_to_cart_partials(az, pol,
-                                                          g_rad, g_az, g_pol))
+                grads_in_out.append(_sph_to_cart_partials(az, pol, g_rad, g_az, g_pol))
             for spc, grads in zip(S_in_out, grads_in_out):
                 # We could convert to real at the end, but it's more efficient
                 # to do it now
-                if method == 'standard':
+                if method == "standard":
                     grads_pos_neg = [_sh_complex_to_real(grads, order)]
                     orders_pos_neg = [order]
                     # Deal with the negative orders
                     if order > 0:
                         # it's faster to use the conjugation property for
                         # our normalized spherical harmonics than recalculate
-                        grads_pos_neg.append(_sh_complex_to_real(
-                            _sh_negate(grads, order), -order))
+                        grads_pos_neg.append(
+                            _sh_complex_to_real(_sh_negate(grads, order), -order)
+                        )
                         orders_pos_neg.append(-order)
                     for gr, oo in zip(grads_pos_neg, orders_pos_neg):
                         # Gradients dotted w/integration point weighted normals
-                        gr = np.einsum('ij,ij->i', gr, cosmags)
+                        gr = np.einsum("ij,ij->i", gr, cosmags)
                         vals = np.bincount(bins, gr, len(coils))
                         spc[:, _deg_ord_idx(degree, oo)] = -vals
                 else:
-                    grads = np.einsum('ij,ij->i', grads, ezs)
-                    v = (np.bincount(bins, grads.real, len(coils)) +
-                         1j * np.bincount(bins, grads.imag, len(coils)))
+                    grads = np.einsum("ij,ij->i", grads, ezs)
+                    v = np.bincount(bins, grads.real, len(coils)) + 1j * np.bincount(
+                        bins, grads.imag, len(coils)
+                    )
                     spc[:, _deg_ord_idx(degree, order)] = -v
                     if order > 0:
-                        spc[:, _deg_ord_idx(degree, -order)] = \
-                            -_sh_negate(v, order)
+                        spc[:, _deg_ord_idx(degree, -order)] = -_sh_negate(v, order)
 
     # Scale magnetometers
     S_tot *= coil_scale
-    if method != 'standard':
+    if method != "standard":
         # Eventually we could probably refactor this for 2x mem (and maybe CPU)
         # savings by changing how spc/S_tot is assigned above (real only)
         S_tot = _bases_complex_to_real(S_tot, int_order, ext_order)
@@ -1490,9 +1721,9 @@ def _sss_basis(exp, all_coils):
     Adapted from code provided by Jukka Nenonen.
     """
     rmags, cosmags, bins, n_coils = all_coils[:4]
-    int_order, ext_order = exp['int_order'], exp['ext_order']
+    int_order, ext_order = exp["int_order"], exp["ext_order"]
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    rmags = rmags - exp['origin']
+    rmags = rmags - exp["origin"]
 
     # do the heavy lifting
     max_order = max(int_order, ext_order)
@@ -1501,15 +1732,15 @@ def _sss_basis(exp, all_coils):
     r_n = np.sqrt(np.sum(rmags * rmags, axis=1))
     r_xy = np.sqrt(rmags[:, 0] * rmags[:, 0] + rmags[:, 1] * rmags[:, 1])
     cos_pol = rmags[:, 2] / r_n  # cos(theta); theta 0...pi
-    sin_pol = np.sqrt(1. - cos_pol * cos_pol)  # sin(theta)
-    z_only = (r_xy <= 1e-16)
+    sin_pol = np.sqrt(1.0 - cos_pol * cos_pol)  # sin(theta)
+    z_only = r_xy <= 1e-16
     sin_pol_nz = sin_pol.copy()
-    sin_pol_nz[z_only] = 1.  # will be overwritten later
-    r_xy[z_only] = 1.
+    sin_pol_nz[z_only] = 1.0  # will be overwritten later
+    r_xy[z_only] = 1.0
     cos_az = rmags[:, 0] / r_xy  # cos(phi)
-    cos_az[z_only] = 1.
+    cos_az[z_only] = 1.0
     sin_az = rmags[:, 1] / r_xy  # sin(phi)
-    sin_az[z_only] = 0.
+    sin_az[z_only] = 0.0
     # Appropriate vector spherical harmonics terms
     #  JNE 2012-02-08: modified alm -> 2*alm, blm -> -2*blm
     r_nn2 = r_n.copy()
@@ -1533,15 +1764,33 @@ def _sss_basis(exp, all_coils):
                 b_r = mult * (degree + 1) * L[degree][0] / r_nn2
                 b_pol = -mult * L[degree][1] / r_nn2
                 S_in[:, idx] = _integrate_points(
-                    cos_az, sin_az, cos_pol, sin_pol, b_r, 0., b_pol,
-                    cosmags, bins, n_coils)
+                    cos_az,
+                    sin_az,
+                    cos_pol,
+                    sin_pol,
+                    b_r,
+                    0.0,
+                    b_pol,
+                    cosmags,
+                    bins,
+                    n_coils,
+                )
             # beta
             if degree <= ext_order:
                 b_r = -mult * degree * L[degree][0] * r_nn1
                 b_pol = -mult * L[degree][1] * r_nn1
                 S_out[:, idx] = _integrate_points(
-                    cos_az, sin_az, cos_pol, sin_pol, b_r, 0., b_pol,
-                    cosmags, bins, n_coils)
+                    cos_az,
+                    sin_az,
+                    cos_pol,
+                    sin_pol,
+                    b_r,
+                    0.0,
+                    b_pol,
+                    cosmags,
+                    bins,
+                    n_coils,
+                )
         for order in range(1, degree + 1):
             ord_phi = order * phi
             sin_order = np.sin(ord_phi)
@@ -1553,58 +1802,105 @@ def _sss_basis(exp, all_coils):
             idx = _deg_ord_idx(degree, order)
             r_fact = factor * L[degree][order] * cos_order
             az_fact = factor * order * sin_order * L[degree][order]
-            pol_fact = -factor * (L[degree][order + 1] -
-                                  (degree + order) * (degree - order + 1) *
-                                  L[degree][order - 1]) * cos_order
+            pol_fact = (
+                -factor
+                * (
+                    L[degree][order + 1]
+                    - (degree + order) * (degree - order + 1) * L[degree][order - 1]
+                )
+                * cos_order
+            )
             # alpha
             if degree <= int_order:
                 b_r = (degree + 1) * r_fact / r_nn2
                 b_az = az_fact / (sin_pol_nz * r_nn2)
-                b_az[z_only] = 0.
+                b_az[z_only] = 0.0
                 b_pol = pol_fact / (2 * r_nn2)
                 S_in[:, idx] = _integrate_points(
-                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
-                    cosmags, bins, n_coils)
+                    cos_az,
+                    sin_az,
+                    cos_pol,
+                    sin_pol,
+                    b_r,
+                    b_az,
+                    b_pol,
+                    cosmags,
+                    bins,
+                    n_coils,
+                )
             # beta
             if degree <= ext_order:
                 b_r = -degree * r_fact * r_nn1
                 b_az = az_fact * r_nn1 / sin_pol_nz
-                b_az[z_only] = 0.
-                b_pol = pol_fact * r_nn1 / 2.
+                b_az[z_only] = 0.0
+                b_pol = pol_fact * r_nn1 / 2.0
                 S_out[:, idx] = _integrate_points(
-                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
-                    cosmags, bins, n_coils)
+                    cos_az,
+                    sin_az,
+                    cos_pol,
+                    sin_pol,
+                    b_r,
+                    b_az,
+                    b_pol,
+                    cosmags,
+                    bins,
+                    n_coils,
+                )
 
             # Imaginary
             idx = _deg_ord_idx(degree, -order)
             r_fact = factor * L[degree][order] * sin_order
             az_fact = factor * order * cos_order * L[degree][order]
-            pol_fact = factor * (L[degree][order + 1] -
-                                 (degree + order) * (degree - order + 1) *
-                                 L[degree][order - 1]) * sin_order
+            pol_fact = (
+                factor
+                * (
+                    L[degree][order + 1]
+                    - (degree + order) * (degree - order + 1) * L[degree][order - 1]
+                )
+                * sin_order
+            )
             # alpha
             if degree <= int_order:
                 b_r = -(degree + 1) * r_fact / r_nn2
                 b_az = az_fact / (sin_pol_nz * r_nn2)
-                b_az[z_only] = 0.
+                b_az[z_only] = 0.0
                 b_pol = pol_fact / (2 * r_nn2)
                 S_in[:, idx] = _integrate_points(
-                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
-                    cosmags, bins, n_coils)
+                    cos_az,
+                    sin_az,
+                    cos_pol,
+                    sin_pol,
+                    b_r,
+                    b_az,
+                    b_pol,
+                    cosmags,
+                    bins,
+                    n_coils,
+                )
             # beta
             if degree <= ext_order:
                 b_r = degree * r_fact * r_nn1
                 b_az = az_fact * r_nn1 / sin_pol_nz
-                b_az[z_only] = 0.
-                b_pol = pol_fact * r_nn1 / 2.
+                b_az[z_only] = 0.0
+                b_pol = pol_fact * r_nn1 / 2.0
                 S_out[:, idx] = _integrate_points(
-                    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
-                    cosmags, bins, n_coils)
+                    cos_az,
+                    sin_az,
+                    cos_pol,
+                    sin_pol,
+                    b_r,
+                    b_az,
+                    b_pol,
+                    cosmags,
+                    bins,
+                    n_coils,
+                )
     return S_tot
 
 
-def _integrate_points(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
-                      cosmags, bins, n_coils):
+def _integrate_points(
+    cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol, cosmags, bins, n_coils
+):
     """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
     grads = (grads * cosmags).sum(axis=1)
@@ -1618,22 +1914,22 @@ def _tabular_legendre(r, nind):
     L = list()
     for degree in range(nind + 1):
         L.append(np.zeros((degree + 2, len(r))))
-    L[0][0] = 1.
+    L[0][0] = 1.0
     pnn = np.ones(x.shape)
-    fact = 1.
-    sx2 = np.sqrt((1. - x) * (1. + x))
+    fact = 1.0
+    sx2 = np.sqrt((1.0 - x) * (1.0 + x))
     for degree in range(nind + 1):
         L[degree][degree] = pnn
-        pnn *= (-fact * sx2)
-        fact += 2.
+        pnn *= -fact * sx2
+        fact += 2.0
         if degree < nind:
             L[degree + 1][degree] = x * (2 * degree + 1) * L[degree][degree]
         if degree >= 2:
             for order in range(degree - 1):
-                L[degree][order] = (x * (2 * degree - 1) *
-                                    L[degree - 1][order] -
-                                    (degree + order - 1) *
-                                    L[degree - 2][order]) / (degree - order)
+                L[degree][order] = (
+                    x * (2 * degree - 1) * L[degree - 1][order]
+                    - (degree + order - 1) * L[degree - 2][order]
+                ) / (degree - order)
     return L
 
 
@@ -1681,10 +1977,15 @@ def _alegendre_deriv(order, degree, val):
         Associated Legendre function derivative
     """
     from scipy.special import lpmv
+
     assert order >= 0
-    return (order * val * lpmv(order, degree, val) + (degree + order) *
-            (degree - order + 1.) * np.sqrt(1. - val * val) *
-            lpmv(order - 1, degree, val)) / (1. - val * val)
+    return (
+        order * val * lpmv(order, degree, val)
+        + (degree + order)
+        * (degree - order + 1.0)
+        * np.sqrt(1.0 - val * val)
+        * lpmv(order - 1, degree, val)
+    ) / (1.0 - val * val)
 
 
 def _bases_complex_to_real(complex_tot, int_order, ext_order):
@@ -1695,9 +1996,9 @@ def _bases_complex_to_real(complex_tot, int_order, ext_order):
     real_tot = np.empty(complex_tot.shape, np.float64)
     real_in = real_tot[:, :n_in]
     real_out = real_tot[:, n_in:]
-    for comp, real, exp_order in zip([complex_in, complex_out],
-                                     [real_in, real_out],
-                                     [int_order, ext_order]):
+    for comp, real, exp_order in zip(
+        [complex_in, complex_out], [real_in, real_out], [int_order, ext_order]
+    ):
         for deg in range(1, exp_order + 1):
             for order in range(deg + 1):
                 idx_pos = _deg_ord_idx(deg, order)
@@ -1706,9 +2007,10 @@ def _bases_complex_to_real(complex_tot, int_order, ext_order):
                 if order != 0:
                     # This extra mult factor baffles me a bit, but it works
                     # in round-trip testing, so we'll keep it :(
-                    mult = (-1 if order % 2 == 0 else 1)
+                    mult = -1 if order % 2 == 0 else 1
                     real[:, idx_neg] = mult * _sh_complex_to_real(
-                        comp[:, idx_neg], -order)
+                        comp[:, idx_neg], -order
+                    )
     return real_tot
 
 
@@ -1720,16 +2022,17 @@ def _bases_real_to_complex(real_tot, int_order, ext_order):
     comp_tot = np.empty(real_tot.shape, np.complex128)
     comp_in = comp_tot[:, :n_in]
     comp_out = comp_tot[:, n_in:]
-    for real, comp, exp_order in zip([real_in, real_out],
-                                     [comp_in, comp_out],
-                                     [int_order, ext_order]):
+    for real, comp, exp_order in zip(
+        [real_in, real_out], [comp_in, comp_out], [int_order, ext_order]
+    ):
         for deg in range(1, exp_order + 1):
             # only loop over positive orders, figure out neg from pos
             for order in range(deg + 1):
                 idx_pos = _deg_ord_idx(deg, order)
                 idx_neg = _deg_ord_idx(deg, -order)
-                this_comp = _sh_real_to_complex([real[:, idx_pos],
-                                                 real[:, idx_neg]], order)
+                this_comp = _sh_real_to_complex(
+                    [real[:, idx_pos], real[:, idx_neg]], order
+                )
                 comp[:, idx_pos] = this_comp
                 comp[:, idx_neg] = _sh_negate(this_comp, order)
     return comp_tot
@@ -1737,21 +2040,37 @@ def _bases_real_to_complex(real_tot, int_order, ext_order):
 
 def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
     """Ensure that Maxwell filtering has not been applied yet."""
-    for ent in info['proc_history']:
-        for msg, key, doing in (('SSS', 'sss_info', sss),
-                                ('tSSS', 'max_st', tsss),
-                                ('fine calibration', 'sss_cal', calibration),
-                                ('cross-talk cancellation', 'sss_ctc', ctc)):
+    for ent in info["proc_history"]:
+        for msg, key, doing in (
+            ("SSS", "sss_info", sss),
+            ("tSSS", "max_st", tsss),
+            ("fine calibration", "sss_cal", calibration),
+            ("cross-talk cancellation", "sss_ctc", ctc),
+        ):
             if not doing:
                 continue
-            if len(ent['max_info'][key]) > 0:
-                raise RuntimeError('Maxwell filtering %s step has already '
-                                   'been applied, cannot reapply' % msg)
+            if len(ent["max_info"][key]) > 0:
+                raise RuntimeError(
+                    "Maxwell filtering %s step has already "
+                    "been applied, cannot reapply" % msg
+                )
 
 
-def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
-                     sss_ctc, sss_cal, max_st, reg_moments, st_only,
-                     recon_trans, extended_proj):
+def _update_sss_info(
+    raw,
+    origin,
+    int_order,
+    ext_order,
+    nchan,
+    coord_frame,
+    sss_ctc,
+    sss_cal,
+    max_st,
+    reg_moments,
+    st_only,
+    recon_trans,
+    extended_proj,
+):
     """Update info inplace after Maxwell filtering.
 
     Parameters
@@ -1784,38 +2103,49 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
     """
     n_in, n_out = _get_n_moments([int_order, ext_order])
     with raw.info._unlock():
-        raw.info['maxshield'] = False
-    components = np.zeros(n_in + n_out + len(extended_proj)).astype('int32')
+        raw.info["maxshield"] = False
+    components = np.zeros(n_in + n_out + len(extended_proj)).astype("int32")
     components[reg_moments] = 1
-    sss_info_dict = dict(in_order=int_order, out_order=ext_order,
-                         nchan=nchan, origin=origin.astype('float32'),
-                         job=FIFF.FIFFV_SSS_JOB_FILTER,
-                         nfree=np.sum(components[:n_in]),
-                         frame=_str_to_frame[coord_frame],
-                         components=components)
+    sss_info_dict = dict(
+        in_order=int_order,
+        out_order=ext_order,
+        nchan=nchan,
+        origin=origin.astype("float32"),
+        job=FIFF.FIFFV_SSS_JOB_FILTER,
+        nfree=np.sum(components[:n_in]),
+        frame=_str_to_frame[coord_frame],
+        components=components,
+    )
     max_info_dict = dict(max_st=max_st)
     if st_only:
         max_info_dict.update(sss_info=dict(), sss_cal=dict(), sss_ctc=dict())
     else:
-        max_info_dict.update(sss_info=sss_info_dict, sss_cal=sss_cal,
-                             sss_ctc=sss_ctc)
+        max_info_dict.update(sss_info=sss_info_dict, sss_cal=sss_cal, sss_ctc=sss_ctc)
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
         # set the reconstruction transform
         with raw.info._unlock():
-            raw.info['dev_head_t'] = recon_trans
+            raw.info["dev_head_t"] = recon_trans
     block_id = _generate_meas_id()
     with raw.info._unlock():
-        raw.info['proc_history'].insert(0, dict(
-            max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
-            creator='mne-python v%s' % __version__, experimenter=''))
+        raw.info["proc_history"].insert(
+            0,
+            dict(
+                max_info=max_info_dict,
+                block_id=block_id,
+                date=DATE_NONE,
+                creator="mne-python v%s" % __version__,
+                experimenter="",
+            ),
+        )
 
 
 def _reset_meg_bads(info):
     """Reset MEG bads."""
     meg_picks = pick_types(info, meg=True, exclude=[])
-    info['bads'] = [bad for bad in info['bads']
-                    if info['ch_names'].index(bad) not in meg_picks]
+    info["bads"] = [
+        bad for bad in info["bads"] if info["ch_names"].index(bad) not in meg_picks
+    ]
 
 
 check_disable = dict(check_finite=False)
@@ -1850,26 +2180,26 @@ def _overlap_projector(data_int, data_res, corr):
 
     # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
     from scipy import linalg
+
     n = np.linalg.norm(data_int)
-    n = 1. if n == 0 else n  # all-zero data should gracefully continue
+    n = 1.0 if n == 0 else n  # all-zero data should gracefully continue
     data_int = _orth_overwrite((data_int / n).T)
     n = np.linalg.norm(data_res)
-    n = 1. if n == 0 else n
+    n = 1.0 if n == 0 else n
     data_res = _orth_overwrite((data_res / n).T)
     if data_int.shape[1] == 0 or data_res.shape[1] == 0:
         return np.empty((data_int.shape[0], 0))
-    Q_int = linalg.qr(data_int,
-                      overwrite_a=True, mode='economic', **check_disable)[0].T
-    Q_res = linalg.qr(data_res,
-                      overwrite_a=True, mode='economic', **check_disable)[0]
+    Q_int = linalg.qr(data_int, overwrite_a=True, mode="economic", **check_disable)[0].T
+    Q_res = linalg.qr(data_res, overwrite_a=True, mode="economic", **check_disable)[0]
     C_mat = np.dot(Q_int, Q_res)
     del Q_int
 
     # Compute angles between subspace and which bases to keep
-    S_intersect, Vh_intersect = _safe_svd(C_mat, full_matrices=False,
-                                          **check_disable)[1:]
+    S_intersect, Vh_intersect = _safe_svd(C_mat, full_matrices=False, **check_disable)[
+        1:
+    ]
     del C_mat
-    intersect_mask = (S_intersect >= corr)
+    intersect_mask = S_intersect >= corr
     del S_intersect
 
     # Compute projection operator as (I-LL_T) Eq. 12 in
@@ -1882,17 +2212,18 @@ def _overlap_projector(data_int, data_res, corr):
 
 def _prep_fine_cal(info, fine_cal):
     from ._fine_cal import read_fine_calibration
-    _validate_type(fine_cal, (dict, 'path-like'))
+
+    _validate_type(fine_cal, (dict, "path-like"))
     if not isinstance(fine_cal, dict):
         extra = op.basename(str(fine_cal))
         fine_cal = read_fine_calibration(fine_cal)
     else:
-        extra = 'dict'
-    logger.info(f'    Using fine calibration {extra}')
-    ch_names = _clean_names(info['ch_names'], remove_whitespace=True)
+        extra = "dict"
+    logger.info(f"    Using fine calibration {extra}")
+    ch_names = _clean_names(info["ch_names"], remove_whitespace=True)
     info_to_cal = OrderedDict()
     missing = list()
-    for ci, name in enumerate(fine_cal['ch_names']):
+    for ci, name in enumerate(fine_cal["ch_names"]):
         if name not in ch_names:
             missing.append(name)
         else:
@@ -1901,131 +2232,143 @@ def _prep_fine_cal(info, fine_cal):
     meg_picks = pick_types(info, meg=True, exclude=[])
     if len(info_to_cal) != len(meg_picks):
         raise RuntimeError(
-            'Not all MEG channels found in fine calibration file, missing:\n%s'
-            % sorted(list({ch_names[pick] for pick in meg_picks} -
-                          set(fine_cal['ch_names']))))
+            "Not all MEG channels found in fine calibration file, missing:\n%s"
+            % sorted(
+                list({ch_names[pick] for pick in meg_picks} - set(fine_cal["ch_names"]))
+            )
+        )
     if len(missing):
-        warn('Found cal channel%s not in data: %s' % (_pl(missing), missing))
+        warn("Found cal channel%s not in data: %s" % (_pl(missing), missing))
     return info_to_cal, fine_cal, ch_names
 
 
 def _update_sensor_geometry(info, fine_cal, ignore_ref):
     """Replace sensor geometry information and reorder cal_chs."""
     info_to_cal, fine_cal, ch_names = _prep_fine_cal(info, fine_cal)
-    grad_picks = pick_types(info, meg='grad', exclude=())
-    mag_picks = pick_types(info, meg='mag', exclude=())
+    grad_picks = pick_types(info, meg="grad", exclude=())
+    mag_picks = pick_types(info, meg="mag", exclude=())
 
     # Determine gradiometer imbalances and magnetometer calibrations
-    grad_imbalances = np.array([fine_cal['imb_cals'][info_to_cal[gi]]
-                                for gi in grad_picks]).T
+    grad_imbalances = np.array(
+        [fine_cal["imb_cals"][info_to_cal[gi]] for gi in grad_picks]
+    ).T
     if grad_imbalances.shape[0] not in [0, 1, 3]:
-        raise ValueError('Must have 1 (x) or 3 (x, y, z) point-like ' +
-                         'magnetometers. Currently have %i' %
-                         grad_imbalances.shape[0])
-    mag_cals = np.array([fine_cal['imb_cals'][info_to_cal[mi]]
-                         for mi in mag_picks])
+        raise ValueError(
+            "Must have 1 (x) or 3 (x, y, z) point-like "
+            + "magnetometers. Currently have %i" % grad_imbalances.shape[0]
+        )
+    mag_cals = np.array([fine_cal["imb_cals"][info_to_cal[mi]] for mi in mag_picks])
     # Now let's actually construct our point-like adjustment coils for grads
     grad_coilsets = _get_grad_point_coilsets(
-        info, n_types=len(grad_imbalances), ignore_ref=ignore_ref)
-    calibration = dict(grad_imbalances=grad_imbalances,
-                       grad_coilsets=grad_coilsets, mag_cals=mag_cals)
+        info, n_types=len(grad_imbalances), ignore_ref=ignore_ref
+    )
+    calibration = dict(
+        grad_imbalances=grad_imbalances, grad_coilsets=grad_coilsets, mag_cals=mag_cals
+    )
 
     # Replace sensor locations (and track differences) for fine calibration
     ang_shift = list()
-    used = np.zeros(len(info['chs']), bool)
+    used = np.zeros(len(info["chs"]), bool)
     cal_corrs = list()
     cal_chans = list()
     adjust_logged = False
     for oi, ci in info_to_cal.items():
         assert not used[oi]
         used[oi] = True
-        info_ch = info['chs'][oi]
-        ch_num = int(fine_cal['ch_names'][ci].lstrip('MEG').lstrip('0'))
-        cal_chans.append([ch_num, info_ch['coil_type']])
+        info_ch = info["chs"][oi]
+        ch_num = int(fine_cal["ch_names"][ci].lstrip("MEG").lstrip("0"))
+        cal_chans.append([ch_num, info_ch["coil_type"]])
 
         # Some .dat files might only rotate EZ, so we must check first that
         # EX and EY are orthogonal to EZ. If not, we find the rotation between
         # the original and fine-cal ez, and rotate EX and EY accordingly:
-        ch_coil_rot = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
-        cal_loc = fine_cal['locs'][ci].copy()
+        ch_coil_rot = _loc_to_coil_trans(info_ch["loc"])[:3, :3]
+        cal_loc = fine_cal["locs"][ci].copy()
         cal_coil_rot = _loc_to_coil_trans(cal_loc)[:3, :3]
-        if np.max([np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
-                   for ii in range(2)]) > 1e-6:  # X or Y not orthogonal
+        if (
+            np.max(
+                [
+                    np.abs(np.dot(cal_coil_rot[:, ii], cal_coil_rot[:, 2]))
+                    for ii in range(2)
+                ]
+            )
+            > 1e-6
+        ):  # X or Y not orthogonal
             if not adjust_logged:
-                logger.info('        Adjusting non-orthogonal EX and EY')
+                logger.info("        Adjusting non-orthogonal EX and EY")
                 adjust_logged = True
             # find the rotation matrix that goes from one to the other
-            this_trans = _find_vector_rotation(
-                ch_coil_rot[:, 2], cal_coil_rot[:, 2])
+            this_trans = _find_vector_rotation(ch_coil_rot[:, 2], cal_coil_rot[:, 2])
             cal_loc[3:] = np.dot(this_trans, ch_coil_rot).T.ravel()
 
         # calculate shift angle
         v1 = _loc_to_coil_trans(cal_loc)[:3, :3]
         _normalize_vectors(v1)
-        v2 = _loc_to_coil_trans(info_ch['loc'])[:3, :3]
+        v2 = _loc_to_coil_trans(info_ch["loc"])[:3, :3]
         _normalize_vectors(v2)
         ang_shift.append(np.sum(v1 * v2, axis=0))
         if oi in grad_picks:
-            extra = [1., fine_cal['imb_cals'][ci][0]]
+            extra = [1.0, fine_cal["imb_cals"][ci][0]]
         else:
-            extra = [fine_cal['imb_cals'][ci][0], 0.]
+            extra = [fine_cal["imb_cals"][ci][0], 0.0]
         cal_corrs.append(np.concatenate([extra, cal_loc]))
         # Adjust channel normal orientations with those from fine calibration
         # Channel positions are not changed
-        info_ch['loc'][3:] = cal_loc[3:]
-        assert (info_ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)
+        info_ch["loc"][3:] = cal_loc[3:]
+        assert info_ch["coord_frame"] == FIFF.FIFFV_COORD_DEVICE
     meg_picks = pick_types(info, meg=True, exclude=())
     assert used[meg_picks].all()
     assert not used[np.setdiff1d(np.arange(len(used)), meg_picks)].any()
     # This gets written to the Info struct
-    sss_cal = dict(cal_corrs=np.array(cal_corrs),
-                   cal_chans=np.array(cal_chans))
+    sss_cal = dict(cal_corrs=np.array(cal_corrs), cal_chans=np.array(cal_chans))
 
     # Log quantification of sensor changes
     # Deal with numerical precision giving absolute vals slightly more than 1.
     ang_shift = np.array(ang_shift)
-    np.clip(ang_shift, -1., 1., ang_shift)
+    np.clip(ang_shift, -1.0, 1.0, ang_shift)
     np.rad2deg(np.arccos(ang_shift), ang_shift)  # Convert to degrees
-    logger.info('        Adjusted coil positions by (μ ± σ): '
-                '%0.1f° ± %0.1f° (max: %0.1f°)' %
-                (np.mean(ang_shift), np.std(ang_shift),
-                 np.max(np.abs(ang_shift))))
+    logger.info(
+        "        Adjusted coil positions by (μ ± σ): "
+        "%0.1f° ± %0.1f° (max: %0.1f°)"
+        % (np.mean(ang_shift), np.std(ang_shift), np.max(np.abs(ang_shift)))
+    )
     return calibration, sss_cal
 
 
 def _get_grad_point_coilsets(info, n_types, ignore_ref):
     """Get point-type coilsets for gradiometers."""
     _rotations = dict(
-        x=np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1.]]),
-        y=np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1.]]),
-        z=np.eye(4))
+        x=np.array([[0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1.0]]),
+        y=np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1.0]]),
+        z=np.eye(4),
+    )
     grad_coilsets = list()
-    grad_picks = pick_types(info, meg='grad', exclude=[])
+    grad_picks = pick_types(info, meg="grad", exclude=[])
     if len(grad_picks) == 0:
         return grad_coilsets
     grad_info = pick_info(_simplify_info(info), grad_picks)
     # Coil_type values for x, y, z point magnetometers
     # Note: 1D correction files only have x-direction corrections
-    for ch in grad_info['chs']:
-        ch['coil_type'] = FIFF.FIFFV_COIL_POINT_MAGNETOMETER
-    orig_locs = [ch['loc'].copy() for ch in grad_info['chs']]
-    for rot in 'xyz'[:n_types]:
+    for ch in grad_info["chs"]:
+        ch["coil_type"] = FIFF.FIFFV_COIL_POINT_MAGNETOMETER
+    orig_locs = [ch["loc"].copy() for ch in grad_info["chs"]]
+    for rot in "xyz"[:n_types]:
         # Rotate the Z magnetometer orientation to the destination orientation
-        for ci, ch in enumerate(grad_info['chs']):
-            ch['loc'][3:] = _coil_trans_to_loc(np.dot(
-                _loc_to_coil_trans(orig_locs[ci]),
-                _rotations[rot]))[3:]
+        for ci, ch in enumerate(grad_info["chs"]):
+            ch["loc"][3:] = _coil_trans_to_loc(
+                np.dot(_loc_to_coil_trans(orig_locs[ci]), _rotations[rot])
+            )[3:]
         grad_coilsets.append(_prep_mf_coils(grad_info, ignore_ref))
     return grad_coilsets
 
 
-def _sss_basis_point(exp, trans, cal, ignore_ref=False, mag_scale=100.):
+def _sss_basis_point(exp, trans, cal, ignore_ref=False, mag_scale=100.0):
     """Compute multipolar moments for point-like mags (in fine cal)."""
     # Loop over all coordinate directions desired and create point mags
-    S_tot = 0.
+    S_tot = 0.0
     # These are magnetometers, so use a uniform coil_scale of 100.
     this_cs = np.array([mag_scale], float)
-    for imb, coils in zip(cal['grad_imbalances'], cal['grad_coilsets']):
+    for imb, coils in zip(cal["grad_imbalances"], cal["grad_coilsets"]):
         S_add = _trans_sss_basis(exp, coils, trans, this_cs)
         # Scale spaces by gradiometer imbalance
         S_add *= imb[:, np.newaxis]
@@ -2042,24 +2385,20 @@ def _regularize_out(int_order, ext_order, mag_or_fine, extended_remove):
     return list(range(n_in, n_in + 3 * remove_homog)) + extended_remove
 
 
-def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
-                   extended_remove):
+def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine, extended_remove):
     """Regularize basis set using idealized SNR measure."""
     n_in, n_out = _get_n_moments([int_order, ext_order])
 
     # The "signal" terms depend only on the inner expansion order
     # (i.e., not sensor geometry or head position / expansion origin)
-    a_lm_sq, rho_i = _compute_sphere_activation_in(
-        np.arange(int_order + 1))
+    a_lm_sq, rho_i = _compute_sphere_activation_in(np.arange(int_order + 1))
     degrees, orders = _get_degrees_orders(int_order)
     a_lm_sq = a_lm_sq[degrees]
 
     I_tots = np.zeros(n_in)  # we might not traverse all, so use np.zeros
     in_keepers = list(range(n_in))
-    out_removes = _regularize_out(int_order, ext_order, mag_or_fine,
-                                  extended_remove)
-    out_keepers = list(np.setdiff1d(np.arange(n_in, S_decomp.shape[1]),
-                                    out_removes))
+    out_removes = _regularize_out(int_order, ext_order, mag_or_fine, extended_remove)
+    out_keepers = list(np.setdiff1d(np.arange(n_in, S_decomp.shape[1]), out_removes))
     remove_order = []
     S_decomp = S_decomp.copy()
     use_norm = np.sqrt(np.sum(S_decomp * S_decomp, axis=0))
@@ -2093,9 +2432,9 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
         u, s, v = _safe_svd(this_S, full_matrices=False, **check_disable)
         del this_S
         eigs[ii] = s[[0, -1]]
-        v = v.T[:len(in_keepers)]
+        v = v.T[: len(in_keepers)]
         v /= use_norm[in_keepers][:, np.newaxis]
-        eta_lm_sq = np.dot(v * 1. / s, u.T)
+        eta_lm_sq = np.dot(v * 1.0 / s, u.T)
         del u, s, v
         eta_lm_sq *= eta_lm_sq
         eta_lm_sq = eta_lm_sq.sum(axis=1)
@@ -2106,11 +2445,11 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
         eta_lm_sq[orders[in_keepers] == 0] *= 2
         eta_lm_sq *= 0.0025
         snr = a_lm_sq[in_keepers] / eta_lm_sq
-        I_tots[ii] = 0.5 * np.log2(snr + 1.).sum()
+        I_tots[ii] = 0.5 * np.log2(snr + 1.0).sum()
         remove_order.append(in_keepers[np.argmin(snr)])
         in_keepers.pop(in_keepers.index(remove_order[-1]))
         # heuristic to quit if we're past the peak to save cycles
-        if ii > 10 and (I_tots[ii - 1:ii + 1] < 0.95 * I_tots.max()).all():
+        if ii > 10 and (I_tots[ii - 1 : ii + 1] < 0.95 * I_tots.max()).all():
             break
         # if plot and ii == 0:
         #     axs[0].semilogy(snr[plot_ord[in_keepers]], color='k')
@@ -2130,14 +2469,14 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine,
         for ii, ri in enumerate(in_removes):
             eig = eigs[ii]
             logger.debug(
-                f'            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = '
-                f'{eig[0] / eig[1]:03.1f}, Removing in component '
-                f'{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}'
+                f"            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = "
+                f"{eig[0] / eig[1]:03.1f}, Removing in component "
+                f"{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}"
             )
         logger.debug(
-            f'        Resulting information: {I_tots[lim_idx]:0.1f} '
-            f'bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak '
-            f'{max_info:0.1f})'
+            f"        Resulting information: {I_tots[lim_idx]:0.1f} "
+            f"bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak "
+            f"{max_info:0.1f})"
         )
     else:
         in_removes = remove_order[:0]
@@ -2179,21 +2518,24 @@ def _compute_sphere_activation_in(degrees):
     # rho_i = b_r_in * 1e7 / np.sqrt(in_sum)
     # rho_i = 5.21334885574e-07  # value for r_s = 0.125
     rho_i = 5.91107375632e-07  # deterministic from above, so just store it
-    a_power = _sq(rho_i) * (degrees * r_in ** (2 * degrees + 4) /
-                            (_sq(2. * degrees + 1.) *
-                            (degrees + 1.)))
+    a_power = _sq(rho_i) * (
+        degrees
+        * r_in ** (2 * degrees + 4)
+        / (_sq(2.0 * degrees + 1.0) * (degrees + 1.0))
+    )
     return a_power, rho_i
 
 
-def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
+def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.0):
     """Compute SSS basis (optionally) using a dev<->head trans."""
     if trans is not None:
         if not isinstance(trans, Transform):
-            trans = Transform('meg', 'head', trans)
-        assert not np.isnan(trans['trans']).any()
-        all_coils = (apply_trans(trans, all_coils[0]),
-                     apply_trans(trans, all_coils[1], move=False),
-                     ) + all_coils[2:]
+            trans = Transform("meg", "head", trans)
+        assert not np.isnan(trans["trans"]).any()
+        all_coils = (
+            apply_trans(trans, all_coils[0]),
+            apply_trans(trans, all_coils[1], move=False),
+        ) + all_coils[2:]
     if not isinstance(coil_scale, np.ndarray):
         # Scale all magnetometers (with `coil_class` == 1.0) by `mag_scale`
         cs = coil_scale
@@ -2208,12 +2550,28 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
 # st_only, st_overlap
 @verbose
 def find_bad_channels_maxwell(
-        raw, limit=7., duration=5., min_count=5, return_scores=False,
-        origin='auto', int_order=8, ext_order=3, calibration=None,
-        cross_talk=None, coord_frame='head', regularize='in', ignore_ref=False,
-        bad_condition='error', head_pos=None, mag_scale=100.,
-        skip_by_annotation=('edge', 'bad_acq_skip'), h_freq=40.0,
-        extended_proj=(), mc_interp=None, verbose=None):
+    raw,
+    limit=7.0,
+    duration=5.0,
+    min_count=5,
+    return_scores=False,
+    origin="auto",
+    int_order=8,
+    ext_order=3,
+    calibration=None,
+    cross_talk=None,
+    coord_frame="head",
+    regularize="in",
+    ignore_ref=False,
+    bad_condition="error",
+    head_pos=None,
+    mag_scale=100.0,
+    skip_by_annotation=("edge", "bad_acq_skip"),
+    h_freq=40.0,
+    extended_proj=(),
+    mc_interp=None,
+    verbose=None,
+):
     r"""Find bad channels using Maxwell filtering.
 
     Parameters
@@ -2357,26 +2715,28 @@ def find_bad_channels_maxwell(
     .. versionadded:: 0.20
     """
     if h_freq is not None:
-        if raw.info.get('lowpass') and raw.info['lowpass'] <= h_freq:
-            freq_loc = 'below' if raw.info['lowpass'] < h_freq else 'equal to'
-            msg = (f'The input data has already been low-pass filtered with a '
-                   f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
-                   f'{freq_loc} the requested cutoff of {h_freq} Hz. Not '
-                   f'applying low-pass filter.')
+        if raw.info.get("lowpass") and raw.info["lowpass"] <= h_freq:
+            freq_loc = "below" if raw.info["lowpass"] < h_freq else "equal to"
+            msg = (
+                f"The input data has already been low-pass filtered with a "
+                f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
+                f"{freq_loc} the requested cutoff of {h_freq} Hz. Not "
+                f"applying low-pass filter."
+            )
             logger.info(msg)
         else:
-            logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
-                        f'frequency ...')
+            logger.info(
+                f"Applying low-pass filter with {h_freq} Hz cutoff " f"frequency ..."
+            )
             raw = raw.copy().load_data().filter(l_freq=None, h_freq=h_freq)
 
     limit = float(limit)
-    onsets, ends = _annotations_starts_stops(
-        raw, skip_by_annotation, invert=True)
+    onsets, ends = _annotations_starts_stops(raw, skip_by_annotation, invert=True)
     del skip_by_annotation
     # operate on chunks
     starts = list()
     stops = list()
-    step = int(round(raw.info['sfreq'] * duration))
+    step = int(round(raw.info["sfreq"] * duration))
     for onset, end in zip(onsets, ends):
         if end - onset >= step:
             ss = np.arange(onset, end - step + 1, step)
@@ -2384,32 +2744,44 @@ def find_bad_channels_maxwell(
             ss = ss + step
             ss[-1] = end
             stops.extend(ss)
-    min_count = min(_ensure_int(min_count, 'min_count'), len(starts))
-    logger.info('Scanning for bad channels in %d interval%s (%0.1f s) ...'
-                % (len(starts), _pl(starts), step / raw.info['sfreq']))
+    min_count = min(_ensure_int(min_count, "min_count"), len(starts))
+    logger.info(
+        "Scanning for bad channels in %d interval%s (%0.1f s) ..."
+        % (len(starts), _pl(starts), step / raw.info["sfreq"])
+    )
     params = _prep_maxwell_filter(
-        raw, skip_by_annotation=[],  # already accounted for
-        origin=origin, int_order=int_order, ext_order=ext_order,
-        calibration=calibration, cross_talk=cross_talk,
-        coord_frame=coord_frame, regularize=regularize,
-        ignore_ref=ignore_ref, bad_condition=bad_condition, head_pos=head_pos,
-        mag_scale=mag_scale, extended_proj=extended_proj,
-        reconstruct='orig')
+        raw,
+        skip_by_annotation=[],  # already accounted for
+        origin=origin,
+        int_order=int_order,
+        ext_order=ext_order,
+        calibration=calibration,
+        cross_talk=cross_talk,
+        coord_frame=coord_frame,
+        regularize=regularize,
+        ignore_ref=ignore_ref,
+        bad_condition=bad_condition,
+        head_pos=head_pos,
+        mag_scale=mag_scale,
+        extended_proj=extended_proj,
+        reconstruct="orig",
+    )
     del origin, int_order, ext_order, calibration, cross_talk, coord_frame
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
-    good_meg_picks = params['meg_picks'][params['good_mask']]
-    assert len(params['meg_picks']) == len(params['coil_scale'])
-    assert len(params['good_mask']) == len(params['meg_picks'])
+    good_meg_picks = params["meg_picks"][params["good_mask"]]
+    assert len(params["meg_picks"]) == len(params["coil_scale"])
+    assert len(params["good_mask"]) == len(params["meg_picks"])
     noisy_chs = Counter()
     flat_chs = Counter()
     flat_limits = dict(grad=0.01e-13, mag=0.01e-15)
-    these_limits = np.array([
-        flat_limits['grad']
-        if pick in params['grad_picks'] else
-        flat_limits['mag']
-        for pick in good_meg_picks])
+    these_limits = np.array(
+        [
+            flat_limits["grad"] if pick in params["grad_picks"] else flat_limits["mag"]
+            for pick in good_meg_picks
+        ]
+    )
 
-    flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
+    flat_step = max(20, int(30 * raw.info["sfreq"] / 1000.0))
     all_flats = set()
 
     # Prepare variables to return if `return_scores=True`.
@@ -2431,12 +2803,17 @@ def find_bad_channels_maxwell(
         n_iter = 0
         orig_data = raw.get_data(None, start, stop, verbose=False)
         chunk_raw = RawArray(
-            orig_data, params['info'],
-            first_samp=raw.first_samp + start, copy='data', verbose=False)
+            orig_data,
+            params["info"],
+            first_samp=raw.first_samp + start,
+            copy="data",
+            verbose=False,
+        )
 
-        t = chunk_raw.times[[0, -1]] + start / raw.info['sfreq']
-        logger.info('        Interval %3d: %8.3f - %8.3f'
-                    % ((si + 1,) + tuple(t[[0, -1]])))
+        t = chunk_raw.times[[0, -1]] + start / raw.info["sfreq"]
+        logger.info(
+            "        Interval %3d: %8.3f - %8.3f" % ((si + 1,) + tuple(t[[0, -1]]))
+        )
 
         # Flat pass: SD < 0.01 fT/cm or 0.01 fT for at 30 ms (or 20 samples)
         n = stop - start
@@ -2452,45 +2829,50 @@ def find_bad_channels_maxwell(
 
         chunk_flats = delta < these_limits
         chunk_flats = np.where(chunk_flats)[0]
-        chunk_flats = [raw.ch_names[good_meg_picks[chunk_flat]]
-                       for chunk_flat in chunk_flats]
+        chunk_flats = [
+            raw.ch_names[good_meg_picks[chunk_flat]] for chunk_flat in chunk_flats
+        ]
         flat_chs.update(chunk_flats)
         all_flats |= set(chunk_flats)
         chunk_flats = sorted(all_flats)
-        these_picks = [pick for pick in good_meg_picks
-                       if raw.ch_names[pick] not in chunk_flats]
+        these_picks = [
+            pick for pick in good_meg_picks if raw.ch_names[pick] not in chunk_flats
+        ]
         if len(these_picks) == 0:
-            logger.info(f'            Flat ({len(chunk_flats):2d}): <all>')
-            warn('All-flat segment detected, all channels will be marked as '
-                 f'flat and processing will stop (t={t[0]:0.3f}). '
-                 'Consider using annotate_amplitude before calling this '
-                 'function with skip_by_annotation="bad_flat" (or similar) to '
-                 'properly process all segments.')
+            logger.info(f"            Flat ({len(chunk_flats):2d}): <all>")
+            warn(
+                "All-flat segment detected, all channels will be marked as "
+                f"flat and processing will stop (t={t[0]:0.3f}). "
+                "Consider using annotate_amplitude before calling this "
+                'function with skip_by_annotation="bad_flat" (or similar) to '
+                "properly process all segments."
+            )
             break  # no reason to continue
         # Bad pass
         chunk_noisy = list()
-        params['st_duration'] = int(round(
-            chunk_raw.times[-1] * raw.info['sfreq']))
+        params["st_duration"] = int(round(chunk_raw.times[-1] * raw.info["sfreq"]))
         for n_iter in range(1, 101):  # iteratively exclude the worst ones
-            assert set(raw.info['bads']) & set(chunk_noisy) == set()
-            params['good_mask'][:] = [
-                chunk_raw.ch_names[pick] not in
-                raw.info['bads'] + chunk_noisy + chunk_flats
-                for pick in params['meg_picks']]
+            assert set(raw.info["bads"]) & set(chunk_noisy) == set()
+            params["good_mask"][:] = [
+                chunk_raw.ch_names[pick]
+                not in raw.info["bads"] + chunk_noisy + chunk_flats
+                for pick in params["meg_picks"]
+            ]
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
             with use_log_level(False):
-                _run_maxwell_filter(
-                    chunk_raw, count_msg=False, copy=False, **params)
+                _run_maxwell_filter(chunk_raw, count_msg=False, copy=False, **params)
 
             if n_iter == 1 and len(chunk_flats):
-                logger.info('            Flat (%2d): %s'
-                            % (len(chunk_flats), ' '.join(chunk_flats)))
+                logger.info(
+                    "            Flat (%2d): %s"
+                    % (len(chunk_flats), " ".join(chunk_flats))
+                )
             delta -= chunk_raw.get_data(these_picks)
             # p2p
             range_ = np.ptp(delta, axis=-1)
-            cs_picks = np.searchsorted(params['meg_picks'], these_picks)
-            range_ *= params['coil_scale'][cs_picks, 0]
+            cs_picks = np.searchsorted(params["meg_picks"], these_picks)
+            range_ *= params["coil_scale"][cs_picks, 0]
             mean, std = np.mean(range_), np.std(range_)
             # z score
             z = (range_ - mean) / std
@@ -2505,36 +2887,41 @@ def find_bad_channels_maxwell(
                 break
 
             name = raw.ch_names[these_picks[idx]]
-            logger.debug('            Bad:       %s %0.1f'
-                         % (name, max_))
+            logger.debug("            Bad:       %s %0.1f" % (name, max_))
             these_picks.pop(idx)
             chunk_noisy.append(name)
         noisy_chs.update(chunk_noisy)
-    noisy_chs = sorted((b for b, c in noisy_chs.items() if c >= min_count),
-                       key=lambda x: raw.ch_names.index(x))
-    flat_chs = sorted((f for f, c in flat_chs.items() if c >= min_count),
-                      key=lambda x: raw.ch_names.index(x))
+    noisy_chs = sorted(
+        (b for b, c in noisy_chs.items() if c >= min_count),
+        key=lambda x: raw.ch_names.index(x),
+    )
+    flat_chs = sorted(
+        (f for f, c in flat_chs.items() if c >= min_count),
+        key=lambda x: raw.ch_names.index(x),
+    )
 
     # Only include MEG channels.
-    ch_names = ch_names[params['meg_picks']]
-    ch_types = ch_types[params['meg_picks']]
-    scores_flat = scores_flat[params['meg_picks']]
-    thresh_flat = thresh_flat[params['meg_picks']]
-    scores_noisy = scores_noisy[params['meg_picks']]
-    thresh_noisy = thresh_noisy[params['meg_picks']]
+    ch_names = ch_names[params["meg_picks"]]
+    ch_types = ch_types[params["meg_picks"]]
+    scores_flat = scores_flat[params["meg_picks"]]
+    thresh_flat = thresh_flat[params["meg_picks"]]
+    scores_noisy = scores_noisy[params["meg_picks"]]
+    thresh_noisy = thresh_noisy[params["meg_picks"]]
 
-    logger.info('    Static bad channels:  %s' % (noisy_chs,))
-    logger.info('    Static flat channels: %s' % (flat_chs,))
-    logger.info('[done]')
+    logger.info("    Static bad channels:  %s" % (noisy_chs,))
+    logger.info("    Static flat channels: %s" % (flat_chs,))
+    logger.info("[done]")
 
     if return_scores:
-        scores = dict(ch_names=ch_names,
-                      ch_types=ch_types,
-                      bins=bins,
-                      scores_flat=scores_flat,
-                      limits_flat=thresh_flat,
-                      scores_noisy=scores_noisy,
-                      limits_noisy=thresh_noisy)
+        scores = dict(
+            ch_names=ch_names,
+            ch_types=ch_types,
+            bins=bins,
+            scores_flat=scores_flat,
+            limits_flat=thresh_flat,
+            scores_noisy=scores_noisy,
+            limits_noisy=thresh_noisy,
+        )
         return noisy_chs, flat_chs, scores
     else:
         return noisy_chs, flat_chs
@@ -2545,7 +2932,7 @@ def _read_cross_talk(cross_talk, ch_names):
     ctc = None
     if cross_talk is not None:
         sss_ctc = _read_ctc(cross_talk)
-        ctc_chs = sss_ctc['proj_items_chs']
+        ctc_chs = sss_ctc["proj_items_chs"]
         # checking for extra space ambiguity in channel names
         # between old and new fif files
         if ch_names[0] not in ctc_chs:
@@ -2553,24 +2940,34 @@ def _read_cross_talk(cross_talk, ch_names):
             ch_names = _clean_names(ch_names, remove_whitespace=True)
         missing = sorted(list(set(ch_names) - set(ctc_chs)))
         if len(missing) != 0:
-            raise RuntimeError('Missing MEG channels in cross-talk matrix:\n%s'
-                               % missing)
+            raise RuntimeError(
+                "Missing MEG channels in cross-talk matrix:\n%s" % missing
+            )
         missing = sorted(list(set(ctc_chs) - set(ch_names)))
         if len(missing) > 0:
-            warn('Not all cross-talk channels in raw:\n%s' % missing)
+            warn("Not all cross-talk channels in raw:\n%s" % missing)
         ctc_picks = [ctc_chs.index(name) for name in ch_names]
-        ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
+        ctc = sss_ctc["decoupler"][ctc_picks][:, ctc_picks]
         # I have no idea why, but MF transposes this for storage..
-        sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
+        sss_ctc["decoupler"] = sss_ctc["decoupler"].T.tocsc()
     return ctc, sss_ctc
 
 
 @verbose
-def compute_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
-                          calibration=None, coord_frame='head',
-                          regularize='in', ignore_ref=True,
-                          bad_condition='error', mag_scale=100.,
-                          extended_proj=(), verbose=None):
+def compute_maxwell_basis(
+    info,
+    origin="auto",
+    int_order=8,
+    ext_order=3,
+    calibration=None,
+    coord_frame="head",
+    regularize="in",
+    ignore_ref=True,
+    bad_condition="error",
+    mag_scale=100.0,
+    extended_proj=(),
+    verbose=None,
+):
     r"""Compute the SSS basis for a given measurement info structure.
 
     Parameters
@@ -2616,16 +3013,25 @@ def compute_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
     .. footbibliography::
     """
     from ..io import RawArray
-    _validate_type(info, Info, 'info')
-    raw = RawArray(np.zeros((len(info['ch_names']), 1)), info.copy(),
-                   verbose=False)
-    logger.info('Computing Maxwell basis')
+
+    _validate_type(info, Info, "info")
+    raw = RawArray(np.zeros((len(info["ch_names"]), 1)), info.copy(), verbose=False)
+    logger.info("Computing Maxwell basis")
     params = _prep_maxwell_filter(
-        raw=raw, origin=origin, int_order=int_order, ext_order=ext_order,
-        calibration=calibration, coord_frame=coord_frame, destination=None,
-        regularize=regularize, ignore_ref=ignore_ref,
-        bad_condition=bad_condition, mag_scale=mag_scale,
-        extended_proj=extended_proj)
-    _, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
-        params['_get_this_decomp_trans'](info['dev_head_t'], t=0.)
+        raw=raw,
+        origin=origin,
+        int_order=int_order,
+        ext_order=ext_order,
+        calibration=calibration,
+        coord_frame=coord_frame,
+        destination=None,
+        regularize=regularize,
+        ignore_ref=ignore_ref,
+        bad_condition=bad_condition,
+        mag_scale=mag_scale,
+        extended_proj=extended_proj,
+    )
+    _, S_decomp_full, pS_decomp, reg_moments, n_use_in = params[
+        "_get_this_decomp_trans"
+    ](info["dev_head_t"], t=0.0)
     return S_decomp_full, pS_decomp, reg_moments, n_use_in
