@@ -863,7 +863,7 @@ def _add_nave(ax, nave):
             r"N$_{\mathrm{ave}}$=%d" % nave,
             ha="left",
             va="bottom",
-            xy=(1, 1),
+            xy=(0.95, 1),
             xycoords="axes fraction",
             xytext=(0, 5),
             textcoords="offset pixels",

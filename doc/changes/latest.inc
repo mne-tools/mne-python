@@ -28,6 +28,7 @@ Enhancements
 Bugs
 ~~~~
 - Fix bug with :func:`mne.forward.restrict_forward_to_label` where cortical patch information was not adjusted (:gh:`11694` by `Eric Larson`_)
+- Fix bug with overlapping text for :meth:`mne.Evoked.plot` (:gh:`11698` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
