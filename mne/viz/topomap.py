@@ -1540,8 +1540,6 @@ def plot_ica_components(
             "fit the ICA or add the corresponding info object."
         )
 
-    n_components = ica.mixing_matrix_.shape[1]
-
     # for backward compat, nrow='auto' ncol='auto' should yield 4 rows 5 cols
     # and create multiple figures if more than 20 components requested
     if nrows == "auto" and ncols == "auto":
@@ -1549,32 +1547,76 @@ def plot_ica_components(
         max_subplots = 20
     elif nrows == "auto" or ncols == "auto":
         # user provided incomplete row/col spec; put all in one figure
-        max_subplots = n_components
+        max_subplots = ica.n_components_
     else:
         max_subplots = nrows * ncols
 
     # handle ch_type=None
     ch_type = _get_ch_type(ica, ch_type)
 
+    figs = []
     if picks is None:
-        figs = []
-        cut_points = range(max_subplots, n_components, max_subplots)
-        pick_groups = np.split(range(n_components), cut_points)
-        for k, _picks in enumerate(pick_groups):
-            _axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
-            try:  # either an iterable, 1D numpy array or others
-                _axes = _axes[k * max_subplots : (k + 1) * max_subplots]
-            except TypeError:  # None or Axes
-                _axes = axes
-            fig = plot_ica_components(
-                ica,
-                picks=_picks,
+        cut_points = range(max_subplots, ica.n_components_, max_subplots)
+        pick_groups = np.split(range(ica.n_components_), cut_points)
+    else:
+        pick_groups = [_picks_to_idx(ica.n_components_, picks, picks_on="components")]
+
+    axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
+    for k, picks in enumerate(pick_groups):
+        try:  # either an iterable, 1D numpy array or others
+            _axes = axes[k * max_subplots : (k + 1) * max_subplots]
+        except TypeError:  # None or Axes
+            _axes = axes
+
+        (
+            data_picks,
+            pos,
+            merge_channels,
+            names,
+            ch_type,
+            sphere,
+            clip_origin,
+        ) = _prepare_topomap_plot(ica, ch_type, sphere=sphere)
+
+        cmap = _setup_cmap(cmap, n_axes=len(picks))
+        names = _prepare_sensor_names(names, show_names)
+        outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
+
+        data = np.dot(
+            ica.mixing_matrix_[:, picks].T, ica.pca_components_[: ica.n_components_]
+        )
+        data = np.atleast_2d(data)
+        data = data[:, data_picks]
+
+        if title is None:
+            title = "ICA components"
+        user_passed_axes = _axes is not None
+        if not user_passed_axes:
+            fig, _axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
+            fig.suptitle(title)
+        else:
+            _axes = [_axes] if isinstance(_axes, Axes) else _axes
+            fig = _axes[0].get_figure()
+
+        subplot_titles = list()
+        for ii, data_, ax in zip(picks, data, _axes):
+            kwargs = dict(color="gray") if ii in ica.exclude else dict()
+            comp_title = ica._ica_names[ii]
+            if len(set(ica.get_channel_types())) > 1:
+                comp_title += f" ({ch_type})"
+            subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
+            if merge_channels:
+                data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
+            # ↓↓↓ NOTE: we intentionally use the default norm=False here, so that
+            # ↓↓↓ we get vlims that are symmetric-about-zero, even if the data for
+            # ↓↓↓ a given component happens to be one-sided.
+            _vlim = _setup_vmin_vmax(data_, *vlim)
+            im = plot_topomap(
+                data_.flatten(),
+                pos,
                 ch_type=ch_type,
-                inst=inst,
-                plot_std=plot_std,
-                reject=reject,
                 sensors=sensors,
-                show_names=show_names,
+                names=names,
                 contours=contours,
                 outlines=outlines,
                 sphere=sphere,
@@ -1583,164 +1625,88 @@ def plot_ica_components(
                 border=border,
                 res=res,
                 size=size,
-                cmap=cmap,
-                vlim=vlim,
+                cmap=cmap[0],
+                vlim=_vlim,
                 cnorm=cnorm,
-                colorbar=colorbar,
-                cbar_fmt=cbar_fmt,
-                axes=_axes,
-                title=title,
-                nrows=nrows,
-                ncols=ncols,
-                show=show,
-                image_args=image_args,
-                psd_args=psd_args,
-                verbose=verbose,
+                axes=ax,
+                show=False,
+            )[0]
+
+            im.axes.set_label(ica._ica_names[ii])
+            if colorbar:
+                cbar, cax = _add_colorbar(
+                    ax, im, cmap, title="AU", side="right", pad=0.05, format=cbar_fmt
+                )
+                cbar.ax.tick_params(labelsize=12)
+                cbar.set_ticks(_vlim)
+            _hide_frame(ax)
+        del pos
+        if not user_passed_axes:
+            tight_layout(fig=fig)
+            fig.subplots_adjust(top=0.88, bottom=0.0)
+        fig.canvas.draw()
+
+        # add title selection interactivity
+        def onclick_title(event, ica=ica, titles=subplot_titles, fig=fig):
+            # check if any title was pressed
+            title_pressed = None
+            for title in titles:
+                if title.contains(event)[0]:
+                    title_pressed = title
+                    break
+            # title was pressed -> identify the IC
+            if title_pressed is not None:
+                label = title_pressed.get_text()
+                ic = int(label.split(" ")[0][-3:])
+                # add or remove IC from exclude depending on current state
+                if ic in ica.exclude:
+                    ica.exclude.remove(ic)
+                    title_pressed.set_color("k")
+                else:
+                    ica.exclude.append(ic)
+                    title_pressed.set_color("gray")
+                fig.canvas.draw()
+
+        fig.canvas.mpl_connect("button_press_event", onclick_title)
+
+        # add plot_properties interactivity only if inst was passed
+        if isinstance(inst, (BaseRaw, BaseEpochs)):
+            topomap_args = dict(
+                sensors=sensors,
+                contours=contours,
+                outlines=outlines,
+                sphere=sphere,
+                image_interp=image_interp,
+                extrapolate=extrapolate,
+                border=border,
+                res=res,
+                cmap=cmap[0],
+                vmin=vlim[0],
+                vmax=vlim[1],
             )
-            figs.append(fig)
-        return figs
-    else:
-        picks = _picks_to_idx(ica.n_components_, picks, picks_on="components")
 
-    (
-        data_picks,
-        pos,
-        merge_channels,
-        names,
-        ch_type,
-        sphere,
-        clip_origin,
-    ) = _prepare_topomap_plot(ica, ch_type, sphere=sphere)
+            def onclick_topo(event, ica=ica, inst=inst):
+                # check which component to plot
+                if event.inaxes is not None:
+                    label = event.inaxes.get_label()
+                    if label.startswith("ICA"):
+                        ic = int(label.split(" ")[0][-3:])
+                        ica.plot_properties(
+                            inst,
+                            picks=ic,
+                            show=True,
+                            plot_std=plot_std,
+                            topomap_args=topomap_args,
+                            image_args=image_args,
+                            psd_args=psd_args,
+                            reject=reject,
+                        )
 
-    cmap = _setup_cmap(cmap, n_axes=len(picks))
-    names = _prepare_sensor_names(names, show_names)
-    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-
-    data = np.dot(
-        ica.mixing_matrix_[:, picks].T, ica.pca_components_[: ica.n_components_]
-    )
-    data = np.atleast_2d(data)
-    data = data[:, data_picks]
-
-    if title is None:
-        title = "ICA components"
-    user_passed_axes = axes is not None
-    if not user_passed_axes:
-        fig, axes, _, _ = _prepare_trellis(len(data), ncols=ncols, nrows=nrows)
-        fig.suptitle(title)
-    else:
-        axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
-        axes = [axes] if isinstance(axes, Axes) else axes
-        fig = axes[0].get_figure()
-
-    subplot_titles = list()
-    for ii, data_, ax in zip(picks, data, axes):
-        kwargs = dict(color="gray") if ii in ica.exclude else dict()
-        comp_title = ica._ica_names[ii]
-        if len(set(ica.get_channel_types())) > 1:
-            comp_title += f" ({ch_type})"
-        subplot_titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
-        if merge_channels:
-            data_, names_ = _merge_ch_data(data_, ch_type, copy.copy(names))
-        # ↓↓↓ NOTE: we intentionally use the default norm=False here, so that
-        # ↓↓↓ we get vlims that are symmetric-about-zero, even if the data for
-        # ↓↓↓ a given component happens to be one-sided.
-        _vlim = _setup_vmin_vmax(data_, *vlim)
-        im = plot_topomap(
-            data_.flatten(),
-            pos,
-            ch_type=ch_type,
-            sensors=sensors,
-            names=names,
-            contours=contours,
-            outlines=outlines,
-            sphere=sphere,
-            image_interp=image_interp,
-            extrapolate=extrapolate,
-            border=border,
-            res=res,
-            size=size,
-            cmap=cmap[0],
-            vlim=_vlim,
-            cnorm=cnorm,
-            axes=ax,
-            show=False,
-        )[0]
-
-        im.axes.set_label(ica._ica_names[ii])
-        if colorbar:
-            cbar, cax = _add_colorbar(
-                ax, im, cmap, title="AU", side="right", pad=0.05, format=cbar_fmt
-            )
-            cbar.ax.tick_params(labelsize=12)
-            cbar.set_ticks(_vlim)
-        _hide_frame(ax)
-    del pos
-    if not user_passed_axes:
-        tight_layout(fig=fig)
-        fig.subplots_adjust(top=0.88, bottom=0.0)
-    fig.canvas.draw()
-
-    # add title selection interactivity
-    def onclick_title(event, ica=ica, titles=subplot_titles):
-        # check if any title was pressed
-        title_pressed = None
-        for title in titles:
-            if title.contains(event)[0]:
-                title_pressed = title
-                break
-        # title was pressed -> identify the IC
-        if title_pressed is not None:
-            label = title_pressed.get_text()
-            ic = int(label.split(" ")[0][-3:])
-            # add or remove IC from exclude depending on current state
-            if ic in ica.exclude:
-                ica.exclude.remove(ic)
-                title_pressed.set_color("k")
-            else:
-                ica.exclude.append(ic)
-                title_pressed.set_color("gray")
-            fig.canvas.draw()
-
-    fig.canvas.mpl_connect("button_press_event", onclick_title)
-
-    # add plot_properties interactivity only if inst was passed
-    if isinstance(inst, (BaseRaw, BaseEpochs)):
-        topomap_args = dict(
-            sensors=sensors,
-            contours=contours,
-            outlines=outlines,
-            sphere=sphere,
-            image_interp=image_interp,
-            extrapolate=extrapolate,
-            border=border,
-            res=res,
-            cmap=cmap[0],
-            vmin=vlim[0],
-            vmax=vlim[1],
-        )
-
-        def onclick_topo(event, ica=ica, inst=inst):
-            # check which component to plot
-            if event.inaxes is not None:
-                label = event.inaxes.get_label()
-                if label.startswith("ICA"):
-                    ic = int(label.split(" ")[0][-3:])
-                    ica.plot_properties(
-                        inst,
-                        picks=ic,
-                        show=True,
-                        plot_std=plot_std,
-                        topomap_args=topomap_args,
-                        image_args=image_args,
-                        psd_args=psd_args,
-                        reject=reject,
-                    )
-
-        fig.canvas.mpl_connect("button_press_event", onclick_topo)
+            fig.canvas.mpl_connect("button_press_event", onclick_topo)
+        figs.append(fig)
 
     plt_show(show)
-    return fig
+    return figs[0] if len(figs) == 1 else figs
 
 
 @fill_doc
