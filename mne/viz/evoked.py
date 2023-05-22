@@ -861,9 +861,9 @@ def _add_nave(ax, nave):
     if nave is not None:
         ax.annotate(
             r"N$_{\mathrm{ave}}$=%d" % nave,
-            ha="left",
+            ha="right",
             va="bottom",
-            xy=(0.95, 1),
+            xy=(1, 1),
             xycoords="axes fraction",
             xytext=(0, 5),
             textcoords="offset pixels",
