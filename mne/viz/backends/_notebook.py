@@ -718,9 +718,8 @@ class _Canvas(_AbstractCanvas, _Widget, HBox, metaclass=_BaseWidget):
         _Widget.__init__(self)
         _AbstractCanvas.__init__(self, width=width, height=height, dpi=dpi)
         HBox.__init__(self, **_BASE_KWARGS)
-        plt.ioff()
-        self.fig, self.ax = plt.subplots(dpi=dpi)
-        plt.ion()
+        with plt.ioff():
+            self.fig, self.ax = plt.subplots(dpi=dpi)
         self.children = (self.fig.canvas,)
 
     def _set_size(self, width=None, height=None):
