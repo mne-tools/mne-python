@@ -60,7 +60,7 @@ def pick_events(events, include=None, exclude=None, step=False):
         The list of events.
     """
     if include is not None:
-        include = _check_integer_or_list(include, 'include')
+        include = _check_integer_or_list(include, "include")
         mask = np.zeros(len(events), dtype=bool)
         for e in include:
             mask = np.logical_or(mask, events[:, 2] == e)
@@ -68,7 +68,7 @@ def pick_events(events, include=None, exclude=None, step=False):
                 mask = np.logical_or(mask, events[:, 1] == e)
         events = events[mask]
     elif exclude is not None:
-        exclude = _check_integer_or_list(exclude, 'exclude')
+        exclude = _check_integer_or_list(exclude, "exclude")
         mask = np.ones(len(events), dtype=bool)
         for e in exclude:
             mask = np.logical_and(mask, events[:, 2] != e)
