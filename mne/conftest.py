@@ -154,6 +154,8 @@ def pytest_configure(config):
     ignore:pkg_resources is deprecated as an API.*:DeprecationWarning
     # h5py
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
+    # pandas
+    ignore:.*np\.find_common_type is deprecated.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
