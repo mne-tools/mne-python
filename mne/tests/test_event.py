@@ -424,8 +424,11 @@ def test_pick_events():
         [[1, 0, 1], [2, 1, 0], [4, 4, 2], [5, 2, 0]],
     )
 
-    pytest.raises(TypeError, pick_events, events, include=1.2)
-    pytest.raises(TypeError, pick_events, events, include={'a': 1})
+    with pytest.raises(TypeError, match="must be an integer or a list"):
+        pick_events(events, include=1.2)
+
+    with pytest.raises(TypeError, match="must be an integer or a list"):
+        pick_events(events, include={'a': 1})
 
 
 def test_make_fixed_length_events():
