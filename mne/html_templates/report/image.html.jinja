@@ -3,7 +3,7 @@
 <figure class="figure mx-auto d-block">
   {% if image_format == 'svg' %}
   <div class="d-flex justify-content-center">
-    {{ img }}
+    {{ img|safe }}
   </div>
   {% else %}
   <img class="figure-img img-fluid rounded mx-auto my-0 d-block" alt="{{ title }}"

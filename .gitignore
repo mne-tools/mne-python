@@ -92,5 +92,5 @@ cover
 venv/
 *.json
 .hypothesis/
-
+.ruff_cache/
 .ipynb_checkpoints/

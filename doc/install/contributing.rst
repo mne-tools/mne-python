@@ -282,11 +282,12 @@ Then make a local clone of your remote fork (``origin``)::
     $ git clone https://github.com/$GITHUB_USERNAME/mne-python.git
 
 Finally, set up a link between your local clone and the official repository
-(``upstream``)::
+(``upstream``) and set up ``git diff`` to work properly::
 
     $ cd mne-python
     $ git remote add upstream https://github.com/mne-tools/mne-python.git
     $ git fetch --all
+    $ git config --local blame.ignoreRevsFile .git-blame-ignore-revs
 
 Now we'll remove the *stable* version of MNE-Python and replace it with the
 *development* version (the clone we just created with git). Make sure you're in
@@ -694,11 +695,16 @@ Adhere to standard Python style guidelines
 All contributions to MNE-Python are checked against style guidelines described
 in `PEP 8`_. We also check for common coding errors (such as variables that are
 defined but never used). We allow very few exceptions to these guidelines, and
-use tools such as pep8_, pyflakes_, and flake8_ to check code style
+use tools such as ruff_ to check code style
 automatically. From the :file:`mne-python` root directory, you can check for
-style violations by running::
+style violations by first installing our pre-commit hook::
 
-    $ make flake
+    $ pip install pre-commit
+    $ pre-commit install --install-hooks
+
+Then running::
+
+    $ make ruff  # alias for `pre-commit run -a`
 
 in the shell. Several text editors or IDEs also have Python style checking,
 which can highlight style errors while you code (and train you to make those
@@ -748,7 +754,7 @@ but complete docstrings are appropriate when private functions/methods are
 relatively complex. To run some basic tests on documentation, you can use::
 
     $ pytest mne/tests/test_docstring_parameters.py
-    $ make docstyle
+    $ make ruff
 
 
 Cross-reference everywhere
@@ -904,27 +910,15 @@ You can build the documentation locally using `GNU Make`_ with
 :file:`doc/Makefile`. From within the :file:`doc` directory, you can test
 formatting and linking by running::
 
-    $ make html_dev-noplot
+    $ make html-noplot
 
 This will build the documentation *except* it will format (but not execute) the
 tutorial and example files. If you have created or modified an example or
 tutorial, you should instead run
-:samp:`PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>} make html_dev-pattern` to render
+:samp:`make html-pattern PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>}` to render
 all the documentation and additionally execute just your example or tutorial
 (so you can make sure it runs successfully and generates the output / figures
 you expect).
-
-.. note::
-   If you are using a *Windows command shell*, to use the pattern approach,
-   use the following two lines:
-
-   .. code-block:: doscon
-
-      > set PATTERN=<REGEX_TO_SELECT_MY_TUTORIAL>
-      > make html_dev-pattern
-
-   If you are on Windows but using the `git BASH`_ shell, use the same two
-   commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. If you see many warnings
@@ -1097,8 +1091,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. linting
 
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
-.. _pyflakes: https://pypi.org/project/pyflakes
-.. _Flake8: http://flake8.pycqa.org/
+.. _ruff: https://beta.ruff.rs/docs
 
 .. misc
 

@@ -19,9 +19,9 @@ jobs:
           default: "false"
       docker:
         - image: cimg/base:current-22.04
-      # medium 2 vCPUs, 4GB mem; medium+ 3vCPUs 6GB mem; large 4 vCPUs 8GB mem
-      # https://circleci.com/docs/configuration-reference#resourceclass
-      resource_class: medium+
+      # large 4 vCPUs 15GB mem
+      # https://discuss.circleci.com/t/changes-to-remote-docker-reporting-pricing/47759
+      resource_class: large
       steps:
         - restore_cache:
             keys:
@@ -88,30 +88,8 @@ jobs:
 
         - run:
             name: Set BASH_ENV
-            command: |
-              set -e
-              set -o pipefail
-              ./tools/setup_xvfb.sh
-              sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
-              python3.10 -m venv ~/python_env
-              echo "set -e" >> $BASH_ENV
-              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
-              echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
-              echo "export MNE_FULL_DATE=true" >> $BASH_ENV
-              source tools/get_minimal_commands.sh
-              echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
-              echo "export MNE_3D_OPTION_MULTI_SAMPLES=1" >> $BASH_ENV
-              echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
-              echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
-              echo "export DISPLAY=:99" >> $BASH_ENV
-              echo "source ~/python_env/bin/activate" >> $BASH_ENV
-              mkdir -p ~/.local/bin
-              ln -s ~/python_env/bin/python ~/.local/bin/python
-              echo "BASH_ENV:"
-              cat $BASH_ENV
-              mkdir -p ~/mne_data
-              touch pattern.txt
+            command: ./tools/circleci_bash_env.sh
+
         - run:
             name: check neuromag2ft
             command: |
@@ -230,6 +208,10 @@ jobs:
               - data-cache-ucl-opm-auditory
         - run:
             name: Get data
+            # This limit could be increased, but this is helpful for finding slow ones
+            # (even ~2GB datasets should be downloadable in this time from good
+            # providers)
+            no_output_timeout: 10m
             command: |
               ./tools/circleci_download.sh
         - run:
@@ -243,7 +225,7 @@ jobs:
         - run:
             name: make test-doc
             command: |
-              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev-memory" ]] || [[ $(cat build.txt) == "html_stable-memory" ]]; then
+              if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html-memory" ]] ; then
                 make test-doc;
                 mkdir -p doc/_build/test-results/test-doc;
                 cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
@@ -272,7 +254,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev-pattern-memory build.txt || grep -q html_dev-noplot build.txt; then
+              if grep -q html-pattern-memory build.txt || grep -q html-noplot build.txt; then
                 zip -rm doc/_build/html/_downloads.zip doc/_build/html/_downloads
               fi
               for NAME in generated auto_tutorials auto_examples; do
@@ -295,15 +277,11 @@ jobs:
         # Save the HTML
         - store_artifacts:
             path: doc/_build/html/
-            destination: dev
-        - store_artifacts:
-            path: doc/_build/html_stable/
-            destination: stable
+            destination: html
         - persist_to_workspace:
             root: doc/_build
             paths:
               - html
-              - html_stable
 
         # Keep these separate, maybe better in terms of size limitations (?)
         - save_cache:
@@ -398,18 +376,12 @@ jobs:
           type: string
           default: "false"
       docker:
-        - image: circleci/python:3.9.2-buster
+        - image: cimg/base:current-22.04
       steps:
         - restore_cache:
             keys:
               - source-cache
         - checkout
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
         - run:
             name: Check-skip
             command: |
@@ -418,6 +390,9 @@ jobs:
                 echo "Skip detected, exiting job ${CIRCLE_JOB}."
                 circleci-agent step halt;
               fi
+        - run:
+            name: Set BASH_ENV
+            command: ./tools/circleci_bash_env.sh
         - restore_cache:
             keys:
               - pip-cache
@@ -461,7 +436,7 @@ jobs:
         - run:
             name: Check docs
             command: |
-              if [ ! -f /tmp/build/html/index.html ] && [ ! -f /tmp/build/html_stable/index.html ]; then
+              if [ ! -f /tmp/build/html/index.html ] ; then
                 echo "No files found to upload (build: ${CIRCLE_BRANCH}).";
                 circleci-agent step halt;
               fi;
@@ -494,7 +469,7 @@ jobs:
               else
                 echo "Deploying stable docs for ${CIRCLE_BRANCH}.";
                 rm -Rf stable;
-                cp -a /tmp/build/html_stable stable;
+                cp -a /tmp/build/html stable;
                 git add -A;
                 git commit -m "CircleCI update of stable docs (${CIRCLE_BUILD_NUM}).";
               fi;
@@ -519,7 +494,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/1.3
+                - /maint\/.*/
 
   main:
     jobs:

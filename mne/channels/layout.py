@@ -20,8 +20,16 @@ from ..transforms import _pol_to_cart, _cart_to_sph
 from ..io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
-                     _check_fname, _check_option, _check_sphere, logger)
+from ..utils import (
+    _clean_names,
+    warn,
+    _check_ch_locs,
+    fill_doc,
+    _check_fname,
+    _check_option,
+    _check_sphere,
+    logger,
+)
 from .channels import _get_ch_info
 
 
@@ -74,26 +82,32 @@ class Layout:
         height = self.pos[:, 3]
         fname = _check_fname(fname, overwrite=overwrite, name=fname)
         if fname.suffix == ".lout":
-            out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
+            out_str = "%8.2f %8.2f %8.2f %8.2f\n" % self.box
         elif fname.suffix == ".lay":
-            out_str = ''
+            out_str = ""
         else:
-            raise ValueError('Unknown layout type. Should be of type '
-                             '.lout or .lay.')
+            raise ValueError("Unknown layout type. Should be of type " ".lout or .lay.")
 
         for ii in range(x.shape[0]):
-            out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n'
-                        % (self.ids[ii], x[ii], y[ii],
-                           width[ii], height[ii], self.names[ii]))
+            out_str += "%03d %8.2f %8.2f %8.2f %8.2f %s\n" % (
+                self.ids[ii],
+                x[ii],
+                y[ii],
+                width[ii],
+                height[ii],
+                self.names[ii],
+            )
 
-        f = open(fname, 'w')
+        f = open(fname, "w")
         f.write(out_str)
         f.close()
 
     def __repr__(self):
         """Return the string representation."""
-        return '<Layout | %s - Channels: %s ...>' % (self.kind,
-                                                     ', '.join(self.names[:3]))
+        return "<Layout | %s - Channels: %s ...>" % (
+            self.kind,
+            ", ".join(self.names[:3]),
+        )
 
     @fill_doc
     def plot(self, picks=None, show_axes=False, show=True):
@@ -117,6 +131,7 @@ class Layout:
         .. versionadded:: 0.12.0
         """
         from ..viz.topomap import plot_layout
+
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
 
@@ -130,7 +145,7 @@ def _read_lout(fname):
             splits = line.split()
             if len(splits) == 7:
                 cid, x, y, dx, dy, chkind, nb = splits
-                name = chkind + ' ' + nb
+                name = chkind + " " + nb
             else:
                 cid, x, y, dx, dy, name = splits
             pos.append(np.array([x, y, dx, dy], dtype=np.float64))
@@ -151,7 +166,7 @@ def _read_lay(fname):
             splits = line.split()
             if len(splits) == 7:
                 cid, x, y, dx, dy, chkind, nb = splits
-                name = chkind + ' ' + nb
+                name = chkind + " " + nb
             else:
                 cid, x, y, dx, dy, name = splits
             pos.append(np.array([x, y, dx, dy], dtype=np.float64))
@@ -163,7 +178,7 @@ def _read_lay(fname):
     return box, pos, names, ids
 
 
-def read_layout(fname=None, path="", scale=True, *, kind=None):
+def read_layout(fname=None, *, scale=True):
     """Read layout from a file.
 
     Parameters
@@ -172,24 +187,9 @@ def read_layout(fname=None, path="", scale=True, *, kind=None):
         Either the path to a ``.lout`` or ``.lay`` file or the name of a
         built-in layout. c.f. Notes for a list of the available built-in
         layouts.
-    path : path-like | None
-        The path of the folder containing the Layout file. Defaults to the
-        ``mne/channels/data/layouts`` folder inside your mne-python
-        installation.
-
-        .. deprecated:: v1.4
-           The ``kind`` and ``path`` parameters will be removed in version
-           1.5. Please use the ``fname`` parameter instead.
     scale : bool
         Apply useful scaling for out the box plotting using ``layout.pos``.
         Defaults to True.
-    kind : str | None
-        The name of the ``.lout`` file (e.g. ``kind='Vectorview-all'`` for
-        ``'Vectorview-all.lout'``).
-
-        .. deprecated:: v1.4
-           The ``kind`` and ``path`` parameters will be removed in version
-           1.5. Please use the ``fname`` parameter instead.
 
     Returns
     -------
@@ -253,55 +253,19 @@ def read_layout(fname=None, path="", scale=True, *, kind=None):
     """
     readers = {".lout": _read_lout, ".lay": _read_lay}
 
-    if fname is None:  # deprecated in 1.4
-        warn(
-            "Argument 'kind' and 'path' are deprecated in favor of 'fname'.",
-            DeprecationWarning,
-        )
-        if path == "" or path is None:
-            path = Path(__file__).parent / "data" / "layouts"
-        # kind should be the name as a string, but let's consider the case
-        # where the path to the file is provided instead.
-        kind = Path(kind)
-        if (
-            len(kind.suffix) == 0
-            and (path / kind.with_suffix(".lout")).exists()
-        ):
-            kind = kind.with_suffix(".lout")
-        elif (
-            len(kind.suffix) == 0
-            and (path / kind.with_suffix(".lay")).exists()
-        ):
-            kind = kind.with_suffix(".lay")
-
-        fname = kind if kind.exists() else path / kind.name
-        if fname.suffix not in (".lout", ".lay"):
-            raise ValueError(
-                "Unknown layout type. Should be of type .lout or .lay."
-            )
-        kind = fname.stem
-    else:
-        # to be removed along the deprecated argument
-        if kind is not None or path != "":
-            warn(
-                "Argument 'kind' and 'path' are deprecated in favor of "
-                "'fname' and should not be provided alongside 'fname'.",
-                DeprecationWarning,
-            )
-        if isinstance(fname, str):
-            # is it a built-in layout?
-            directory = Path(__file__).parent / "data" / "layouts"
-            if (directory / fname).exists():
-                fname = directory / fname
-            elif (directory / fname).with_suffix(".lout").exists():
-                fname = (directory / fname).with_suffix(".lout")
-            elif (directory / fname).with_suffix(".lay").exists():
-                fname = (directory / fname).with_suffix(".lay")
-        # if not, it must be a valid path provided as str or Path
-        fname = _check_fname(fname, "read", must_exist=True, name="layout")
-        # and it must have a valid extension
-        _check_option("fname extension", fname.suffix, readers)
-        kind = fname.stem
+    if isinstance(fname, str):
+        # is it a built-in layout?
+        directory = Path(__file__).parent / "data" / "layouts"
+        for suffix in ("", ".lout", ".lay"):
+            _fname = (directory / fname).with_suffix(suffix)
+            if _fname.exists():
+                fname = _fname
+                break
+    # if not, it must be a valid path provided as str or Path
+    fname = _check_fname(fname, "read", must_exist=True, name="layout")
+    # and it must have a valid extension
+    _check_option("fname extension", fname.suffix, readers)
+    kind = fname.stem
     box, pos, names, ids = readers[fname.suffix](fname)
 
     if scale:
@@ -317,8 +281,9 @@ def read_layout(fname=None, path="", scale=True, *, kind=None):
 
 
 @fill_doc
-def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads',
-                    csd=False):
+def make_eeg_layout(
+    info, radius=0.5, width=None, height=None, exclude="bads", csd=False
+):
     """Create .lout file from EEG electrode digitization.
 
     Parameters
@@ -348,18 +313,18 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads',
     make_grid_layout, generate_2d_layout
     """
     if not (0 <= radius <= 0.5):
-        raise ValueError('The radius parameter should be between 0 and 0.5.')
+        raise ValueError("The radius parameter should be between 0 and 0.5.")
     if width is not None and not (0 <= width <= 1.0):
-        raise ValueError('The width parameter should be between 0 and 1.')
+        raise ValueError("The width parameter should be between 0 and 1.")
     if height is not None and not (0 <= height <= 1.0):
-        raise ValueError('The height parameter should be between 0 and 1.')
+        raise ValueError("The height parameter should be between 0 and 1.")
 
     pick_kwargs = dict(meg=False, eeg=True, ref_meg=False, exclude=exclude)
     if csd:
         pick_kwargs.update(csd=True, eeg=False)
     picks = pick_types(info, **pick_kwargs)
     loc2d = _find_topomap_coords(info, picks)
-    names = [info['chs'][i]['ch_name'] for i in picks]
+    names = [info["chs"][i]["ch_name"] for i in picks]
 
     # Scale [x, y] to be in the range [-0.5, 0.5]
     # Don't mess with the origin or aspect ratio
@@ -376,7 +341,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads',
 
     # Some subplot centers will be at the figure edge. Shrink everything so it
     # fits in the figure.
-    scaling = min(1 / (1. + width), 1 / (1. + height))
+    scaling = min(1 / (1.0 + width), 1 / (1.0 + height))
     loc2d *= scaling
     width *= scaling
     height *= scaling
@@ -385,14 +350,16 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads',
     loc2d += 0.5
 
     n_channels = loc2d.shape[0]
-    pos = np.c_[loc2d[:, 0] - 0.5 * width,
-                loc2d[:, 1] - 0.5 * height,
-                width * np.ones(n_channels),
-                height * np.ones(n_channels)]
+    pos = np.c_[
+        loc2d[:, 0] - 0.5 * width,
+        loc2d[:, 1] - 0.5 * height,
+        width * np.ones(n_channels),
+        height * np.ones(n_channels),
+    ]
 
     box = (0, 1, 0, 1)
     ids = 1 + np.arange(n_channels)
-    layout = Layout(box=box, pos=pos, names=names, kind='EEG', ids=ids)
+    layout = Layout(box=box, pos=pos, names=names, kind="EEG", ids=ids)
     return layout
 
 
@@ -416,12 +383,12 @@ def make_grid_layout(info, picks=None, n_col=None):
     --------
     make_eeg_layout, generate_2d_layout
     """
-    picks = _picks_to_idx(info, picks, 'misc')
+    picks = _picks_to_idx(info, picks, "misc")
 
-    names = [info['chs'][k]['ch_name'] for k in picks]
+    names = [info["chs"][k]["ch_name"] for k in picks]
 
     if not names:
-        raise ValueError('No misc data channels found.')
+        raise ValueError("No misc data channels found.")
 
     ids = list(range(len(picks)))
     size = len(picks)
@@ -439,16 +406,15 @@ def make_grid_layout(info, picks=None, n_col=None):
         n_row = int(np.ceil(size / float(n_col)))
 
     # setup position grid
-    x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col),
-                       np.linspace(-0.5, 0.5, n_row))
+    x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col), np.linspace(-0.5, 0.5, n_row))
     x, y = x.ravel()[:size], y.ravel()[:size]
     width, height = _box_size(np.c_[x, y], padding=0.1)
 
     # Some axes will be at the figure edge. Shrink everything so it fits in the
     # figure. Add 0.01 border around everything
     border_x, border_y = (0.01, 0.01)
-    x_scaling = 1 / (1. + width + border_x)
-    y_scaling = 1 / (1. + height + border_y)
+    x_scaling = 1 / (1.0 + width + border_x)
+    y_scaling = 1 / (1.0 + height + border_y)
     x = x * x_scaling
     y = y * y_scaling
     width *= x_scaling
@@ -459,16 +425,17 @@ def make_grid_layout(info, picks=None, n_col=None):
     y += 0.5
 
     # calculate pos
-    pos = np.c_[x - 0.5 * width, y - 0.5 * height,
-                width * np.ones(size), height * np.ones(size)]
+    pos = np.c_[
+        x - 0.5 * width, y - 0.5 * height, width * np.ones(size), height * np.ones(size)
+    ]
     box = (0, 1, 0, 1)
 
-    layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
+    layout = Layout(box=box, pos=pos, names=names, kind="grid-misc", ids=ids)
     return layout
 
 
 @fill_doc
-def find_layout(info, ch_type=None, exclude='bads'):
+def find_layout(info, ch_type=None, exclude="bads"):
     """Choose a layout based on the channels in the info 'chs' field.
 
     Parameters
@@ -488,57 +455,70 @@ def find_layout(info, ch_type=None, exclude='bads'):
     layout : Layout instance | None
         None if layout not found.
     """
-    _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg',
-                                       'csd'])
+    _check_option("ch_type", ch_type, [None, "mag", "grad", "meg", "eeg", "csd"])
 
-    (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,
-     has_CTF_grad, n_kit_grads, has_any_meg, has_eeg_coils,
-     has_eeg_coils_and_meg, has_eeg_coils_only,
-     has_neuromag_122_grad, has_csd_coils) = _get_ch_info(info)
+    (
+        has_vv_mag,
+        has_vv_grad,
+        is_old_vv,
+        has_4D_mag,
+        ctf_other_types,
+        has_CTF_grad,
+        n_kit_grads,
+        has_any_meg,
+        has_eeg_coils,
+        has_eeg_coils_and_meg,
+        has_eeg_coils_only,
+        has_neuromag_122_grad,
+        has_csd_coils,
+    ) = _get_ch_info(info)
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
     if ch_type == "meg" and not has_any_meg:
-        raise RuntimeError('No MEG channels present. Cannot find MEG layout.')
+        raise RuntimeError("No MEG channels present. Cannot find MEG layout.")
 
     if ch_type == "eeg" and not has_eeg_coils:
-        raise RuntimeError('No EEG channels present. Cannot find EEG layout.')
+        raise RuntimeError("No EEG channels present. Cannot find EEG layout.")
 
     layout_name = None
-    if ((has_vv_meg and ch_type is None) or
-            (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
-        layout_name = 'Vectorview-all'
-    elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
-        layout_name = 'Vectorview-mag'
-    elif has_vv_only_grad or (has_vv_meg and ch_type == 'grad'):
-        if info['ch_names'][0].endswith('X'):
-            layout_name = 'Vectorview-grad_norm'
+    if (has_vv_meg and ch_type is None) or (
+        any([has_vv_mag, has_vv_grad]) and ch_type == "meg"
+    ):
+        layout_name = "Vectorview-all"
+    elif has_vv_only_mag or (has_vv_meg and ch_type == "mag"):
+        layout_name = "Vectorview-mag"
+    elif has_vv_only_grad or (has_vv_meg and ch_type == "grad"):
+        if info["ch_names"][0].endswith("X"):
+            layout_name = "Vectorview-grad_norm"
         else:
-            layout_name = 'Vectorview-grad'
+            layout_name = "Vectorview-grad"
     elif has_neuromag_122_grad:
-        layout_name = 'Neuromag_122'
-    elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
-          (has_eeg_coils_and_meg and ch_type == 'eeg')):
+        layout_name = "Neuromag_122"
+    elif (has_eeg_coils_only and ch_type in [None, "eeg"]) or (
+        has_eeg_coils_and_meg and ch_type == "eeg"
+    ):
         if not isinstance(info, (dict, Info)):
-            raise RuntimeError('Cannot make EEG layout, no measurement info '
-                               'was passed to `find_layout`')
+            raise RuntimeError(
+                "Cannot make EEG layout, no measurement info "
+                "was passed to `find_layout`"
+            )
         return make_eeg_layout(info, exclude=exclude)
-    elif has_csd_coils and ch_type in [None, 'csd']:
+    elif has_csd_coils and ch_type in [None, "csd"]:
         return make_eeg_layout(info, exclude=exclude, csd=True)
     elif has_4D_mag:
-        layout_name = 'magnesWH3600'
+        layout_name = "magnesWH3600"
     elif has_CTF_grad:
-        layout_name = 'CTF-275'
+        layout_name = "CTF-275"
     elif n_kit_grads > 0:
         layout_name = _find_kit_layout(info, n_kit_grads)
 
     # If no known layout is found, fall back on automatic layout
     if layout_name is None:
-        picks = _picks_to_idx(info, 'data', exclude=(), with_ref_meg=False)
-        ch_names = [info['ch_names'][pick] for pick in picks]
+        picks = _picks_to_idx(info, "data", exclude=(), with_ref_meg=False)
+        ch_names = [info["ch_names"][pick] for pick in picks]
         xy = _find_topomap_coords(info, picks=picks, ignore_overlap=True)
-        return generate_2d_layout(xy, ch_names=ch_names, name='custom',
-                                  normalize=True)
+        return generate_2d_layout(xy, ch_names=ch_names, name="custom", normalize=True)
 
     layout = read_layout(fname=layout_name)
     if not is_old_vv:
@@ -547,8 +527,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout.names = _clean_names(layout.names, before_dash=True)
 
     # Apply mask for excluded channels.
-    if exclude == 'bads':
-        exclude = info['bads']
+    if exclude == "bads":
+        exclude = info["bads"]
     idx = [ii for ii, name in enumerate(layout.names) if name not in exclude]
     layout.names = [layout.names[ii] for ii in idx]
     layout.pos = layout.pos[idx]
@@ -572,34 +552,69 @@ def _find_kit_layout(info, n_grads):
     kit_layout : str | None
         String naming the detected KIT layout or ``None`` if layout is missing.
     """
-    if info['kit_system_id'] is not None:
+    if info["kit_system_id"] is not None:
         # avoid circular import
         from ..io.kit.constants import KIT_LAYOUT
-        return KIT_LAYOUT.get(info['kit_system_id'])
+
+        return KIT_LAYOUT.get(info["kit_system_id"])
     elif n_grads == 160:
-        return 'KIT-160'
+        return "KIT-160"
     elif n_grads == 125:
-        return 'KIT-125'
+        return "KIT-125"
     elif n_grads > 157:
-        return 'KIT-AD'
+        return "KIT-AD"
 
     # channels which are on the left hemisphere for NY and right for UMD
-    test_chs = ('MEG  13', 'MEG  14', 'MEG  15', 'MEG  16', 'MEG  25',
-                'MEG  26', 'MEG  27', 'MEG  28', 'MEG  29', 'MEG  30',
-                'MEG  31', 'MEG  32', 'MEG  57', 'MEG  60', 'MEG  61',
-                'MEG  62', 'MEG  63', 'MEG  64', 'MEG  73', 'MEG  90',
-                'MEG  93', 'MEG  95', 'MEG  96', 'MEG 105', 'MEG 112',
-                'MEG 120', 'MEG 121', 'MEG 122', 'MEG 123', 'MEG 124',
-                'MEG 125', 'MEG 126', 'MEG 142', 'MEG 144', 'MEG 153',
-                'MEG 154', 'MEG 155', 'MEG 156')
-    x = [ch['loc'][0] < 0 for ch in info['chs'] if ch['ch_name'] in test_chs]
+    test_chs = (
+        "MEG  13",
+        "MEG  14",
+        "MEG  15",
+        "MEG  16",
+        "MEG  25",
+        "MEG  26",
+        "MEG  27",
+        "MEG  28",
+        "MEG  29",
+        "MEG  30",
+        "MEG  31",
+        "MEG  32",
+        "MEG  57",
+        "MEG  60",
+        "MEG  61",
+        "MEG  62",
+        "MEG  63",
+        "MEG  64",
+        "MEG  73",
+        "MEG  90",
+        "MEG  93",
+        "MEG  95",
+        "MEG  96",
+        "MEG 105",
+        "MEG 112",
+        "MEG 120",
+        "MEG 121",
+        "MEG 122",
+        "MEG 123",
+        "MEG 124",
+        "MEG 125",
+        "MEG 126",
+        "MEG 142",
+        "MEG 144",
+        "MEG 153",
+        "MEG 154",
+        "MEG 155",
+        "MEG 156",
+    )
+    x = [ch["loc"][0] < 0 for ch in info["chs"] if ch["ch_name"] in test_chs]
     if np.all(x):
-        return 'KIT-157'  # KIT-NY
+        return "KIT-157"  # KIT-NY
     elif np.all(np.invert(x)):
-        raise NotImplementedError("Guessing sensor layout for legacy UMD "
-                                  "files is not implemented. Please convert "
-                                  "your files using MNE-Python 0.13 or "
-                                  "higher.")
+        raise NotImplementedError(
+            "Guessing sensor layout for legacy UMD "
+            "files is not implemented. Please convert "
+            "your files using MNE-Python 0.13 or "
+            "higher."
+        )
     else:
         raise RuntimeError("KIT system could not be determined for data")
 
@@ -660,8 +675,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
     if height is None:
         # Find all axes that could potentially overlap horizontally.
         hdist = pdist(points, xdiff)
-        candidates = [all_combinations[i] for i, d in enumerate(hdist)
-                      if d < width]
+        candidates = [all_combinations[i] for i, d in enumerate(hdist) if d < width]
 
         if len(candidates) == 0:
             # No axes overlap, take all the height you want.
@@ -674,8 +688,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
     elif width is None:
         # Find all axes that could potentially overlap vertically.
         vdist = pdist(points, ydiff)
-        candidates = [all_combinations[i] for i, d in enumerate(vdist)
-                      if d < height]
+        candidates = [all_combinations[i] for i, d in enumerate(vdist) if d < height]
 
         if len(candidates) == 0:
             # No axes overlap, take all the width you want.
@@ -693,8 +706,9 @@ def _box_size(points, width=None, height=None, padding=0.0):
 
 
 @fill_doc
-def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
-                         to_sphere=True, sphere=None):
+def _find_topomap_coords(
+    info, picks, layout=None, ignore_overlap=False, to_sphere=True, sphere=None
+):
     """Guess the E/MEG layout and return appropriate topomap coordinates.
 
     Parameters
@@ -714,16 +728,20 @@ def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
     coords : array, shape = (n_chs, 2)
         2 dimensional coordinates for each sensor for a topomap plot.
     """
-    picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
+    picks = _picks_to_idx(info, picks, "all", exclude=(), allow_empty=False)
 
     if layout is not None:
-        chs = [info['chs'][i] for i in picks]
-        pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
+        chs = [info["chs"][i] for i in picks]
+        pos = [layout.pos[layout.names.index(ch["ch_name"])] for ch in chs]
         pos = np.asarray(pos)
     else:
         pos = _auto_topomap_coords(
-            info, picks, ignore_overlap=ignore_overlap, to_sphere=to_sphere,
-            sphere=sphere)
+            info,
+            picks,
+            ignore_overlap=ignore_overlap,
+            to_sphere=to_sphere,
+            sphere=sphere,
+        )
 
     return pos
 
@@ -756,50 +774,64 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         An array of positions of the 2 dimensional map.
     """
     from scipy.spatial.distance import pdist, squareform
-    sphere = _check_sphere(sphere, info)
-    logger.debug(f'Generating coords using: {sphere}')
 
-    picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
-    chs = [info['chs'][i] for i in picks]
+    sphere = _check_sphere(sphere, info)
+    logger.debug(f"Generating coords using: {sphere}")
+
+    picks = _picks_to_idx(info, picks, "all", exclude=(), allow_empty=False)
+    chs = [info["chs"][i] for i in picks]
 
     # Use channel locations if available
-    locs3d = np.array([ch['loc'][:3] for ch in chs])
+    locs3d = np.array([ch["loc"][:3] for ch in chs])
 
     # If electrode locations are not available, use digization points
     if not _check_ch_locs(info=info, picks=picks):
-        logging.warning('Did not find any electrode locations (in the info '
-                        'object), will attempt to use digitization points '
-                        'instead. However, if digitization points do not '
-                        'correspond to the EEG electrodes, this will lead to '
-                        'bad results. Please verify that the sensor locations '
-                        'in the plot are accurate.')
+        logging.warning(
+            "Did not find any electrode locations (in the info "
+            "object), will attempt to use digitization points "
+            "instead. However, if digitization points do not "
+            "correspond to the EEG electrodes, this will lead to "
+            "bad results. Please verify that the sensor locations "
+            "in the plot are accurate."
+        )
 
         # MEG/EOG/ECG sensors don't have digitization points; all requested
         # channels must be EEG
         for ch in chs:
-            if ch['kind'] != FIFF.FIFFV_EEG_CH:
-                raise ValueError("Cannot determine location of MEG/EOG/ECG "
-                                 "channels using digitization points.")
+            if ch["kind"] != FIFF.FIFFV_EEG_CH:
+                raise ValueError(
+                    "Cannot determine location of MEG/EOG/ECG "
+                    "channels using digitization points."
+                )
 
-        eeg_ch_names = [ch['ch_name'] for ch in info['chs']
-                        if ch['kind'] == FIFF.FIFFV_EEG_CH]
+        eeg_ch_names = [
+            ch["ch_name"] for ch in info["chs"] if ch["kind"] == FIFF.FIFFV_EEG_CH
+        ]
 
         # Get EEG digitization points
-        if info['dig'] is None or len(info['dig']) == 0:
-            raise RuntimeError('No digitization points found.')
+        if info["dig"] is None or len(info["dig"]) == 0:
+            raise RuntimeError("No digitization points found.")
 
-        locs3d = np.array([point['r'] for point in info['dig']
-                           if point['kind'] == FIFF.FIFFV_POINT_EEG])
+        locs3d = np.array(
+            [
+                point["r"]
+                for point in info["dig"]
+                if point["kind"] == FIFF.FIFFV_POINT_EEG
+            ]
+        )
 
         if len(locs3d) == 0:
-            raise RuntimeError('Did not find any digitization points of '
-                               'kind FIFFV_POINT_EEG (%d) in the info.'
-                               % FIFF.FIFFV_POINT_EEG)
+            raise RuntimeError(
+                "Did not find any digitization points of "
+                "kind FIFFV_POINT_EEG (%d) in the info." % FIFF.FIFFV_POINT_EEG
+            )
 
         if len(locs3d) != len(eeg_ch_names):
-            raise ValueError("Number of EEG digitization points (%d) "
-                             "doesn't match the number of EEG channels "
-                             "(%d)" % (len(locs3d), len(eeg_ch_names)))
+            raise ValueError(
+                "Number of EEG digitization points (%d) "
+                "doesn't match the number of EEG channels "
+                "(%d)" % (len(locs3d), len(eeg_ch_names))
+            )
 
         # We no longer center digitization points on head origin, as we work
         # in head coordinates always
@@ -807,22 +839,24 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         # Match the digitization points with the requested
         # channels.
         eeg_ch_locs = dict(zip(eeg_ch_names, locs3d))
-        locs3d = np.array([eeg_ch_locs[ch['ch_name']] for ch in chs])
+        locs3d = np.array([eeg_ch_locs[ch["ch_name"]] for ch in chs])
 
     # Sometimes we can get nans
-    locs3d[~np.isfinite(locs3d)] = 0.
+    locs3d[~np.isfinite(locs3d)] = 0.0
 
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
     if len(locs3d) > 1 and np.min(dist) < 1e-10 and not ignore_overlap:
         problematic_electrodes = [
-            chs[elec_i]['ch_name']
+            chs[elec_i]["ch_name"]
             for elec_i in squareform(dist < 1e-10).any(axis=0).nonzero()[0]
         ]
 
-        raise ValueError('The following electrodes have overlapping positions,'
-                         ' which causes problems during visualization:\n' +
-                         ', '.join(problematic_electrodes))
+        raise ValueError(
+            "The following electrodes have overlapping positions,"
+            " which causes problems during visualization:\n"
+            + ", ".join(problematic_electrodes)
+        )
 
     if to_sphere:
         # translate to sphere origin, transform/flatten Z, translate back
@@ -831,7 +865,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         cart_coords = _cart_to_sph(locs3d)
         out = _pol_to_cart(cart_coords[:, 1:][:, ::-1])
         # scale from radians to mm
-        out *= cart_coords[:, [0]] / (np.pi / 2.)
+        out *= cart_coords[:, [0]] / (np.pi / 2.0)
         out += sphere[:2]
     else:
         out = _pol_to_cart(_cart_to_sph(locs3d))
@@ -862,18 +896,19 @@ def _topo_to_sphere(pos, eegs):
     xs += 0.5 - np.mean(xs[eegs])  # Center the points
     ys += 0.5 - np.mean(ys[eegs])
 
-    xs = xs * 2. - 1.  # Values ranging from -1 to 1
-    ys = ys * 2. - 1.
+    xs = xs * 2.0 - 1.0  # Values ranging from -1 to 1
+    ys = ys * 2.0 - 1.0
 
-    rs = np.clip(np.sqrt(xs ** 2 + ys ** 2), 0., 1.)
+    rs = np.clip(np.sqrt(xs**2 + ys**2), 0.0, 1.0)
     alphas = np.arccos(rs)
     zs = np.sin(alphas)
     return np.column_stack([xs, ys, zs])
 
 
 @fill_doc
-def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
-                       raise_error=True):
+def _pair_grad_sensors(
+    info, layout=None, topomap_coords=True, exclude="bads", raise_error=True
+):
     """Find the picks for pairing grad channels.
 
     Parameters
@@ -901,18 +936,18 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
     """
     # find all complete pairs of grad channels
     pairs = defaultdict(list)
-    grad_picks = pick_types(info, meg='grad', ref_meg=False, exclude=exclude)
+    grad_picks = pick_types(info, meg="grad", ref_meg=False, exclude=exclude)
 
     _, has_vv_grad, *_, has_neuromag_122_grad, _ = _get_ch_info(info)
 
     for i in grad_picks:
-        ch = info['chs'][i]
-        name = ch['ch_name']
-        if has_vv_grad and name.startswith('MEG'):
-            if name.endswith(('2', '3')):
+        ch = info["chs"][i]
+        name = ch["ch_name"]
+        if has_vv_grad and name.startswith("MEG"):
+            if name.endswith(("2", "3")):
                 key = name[-4:-1]
                 pairs[key].append(ch)
-        if has_neuromag_122_grad and name.startswith('MEG'):
+        if has_neuromag_122_grad and name.startswith("MEG"):
             key = (int(name[-3:]) - 1) // 2
             pairs[key].append(ch)
 
@@ -926,13 +961,12 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads',
 
     # find the picks corresponding to the grad channels
     grad_chs = sum(pairs, [])
-    ch_names = info['ch_names']
-    picks = [ch_names.index(c['ch_name']) for c in grad_chs]
+    ch_names = info["ch_names"]
+    picks = [ch_names.index(c["ch_name"]) for c in grad_chs]
 
     if topomap_coords:
         shape = (len(pairs), 2, -1)
-        coords = (_find_topomap_coords(info, picks, layout)
-                  .reshape(shape).mean(axis=1))
+        coords = _find_topomap_coords(info, picks, layout).reshape(shape).mean(axis=1)
         return picks, coords
     else:
         return picks
@@ -955,8 +989,8 @@ def _pair_grad_sensors_ch_names_vectorview(ch_names):
     """
     pairs = defaultdict(list)
     for i, name in enumerate(ch_names):
-        if name.startswith('MEG'):
-            if name.endswith(('2', '3')):
+        if name.startswith("MEG"):
+            if name.endswith(("2", "3")):
                 key = name[-4:-1]
                 pairs[key].append(i)
 
@@ -983,7 +1017,7 @@ def _pair_grad_sensors_ch_names_neuromag122(ch_names):
     """
     pairs = defaultdict(list)
     for i, name in enumerate(ch_names):
-        if name.startswith('MEG'):
+        if name.startswith("MEG"):
             key = (int(name[-3:]) - 1) // 2
             pairs[key].append(i)
 
@@ -993,7 +1027,7 @@ def _pair_grad_sensors_ch_names_neuromag122(ch_names):
     return grad_chs
 
 
-def _merge_ch_data(data, ch_type, names, method='rms'):
+def _merge_ch_data(data, ch_type, names, method="rms"):
     """Merge data from channel pairs.
 
     Parameters
@@ -1014,7 +1048,7 @@ def _merge_ch_data(data, ch_type, names, method='rms'):
     names : list
         List of channel names.
     """
-    if ch_type == 'grad':
+    if ch_type == "grad":
         data = _merge_grad_data(data, method)
     else:
         assert ch_type in _FNIRS_CH_TYPES_SPLIT
@@ -1022,7 +1056,7 @@ def _merge_ch_data(data, ch_type, names, method='rms'):
     return data, names
 
 
-def _merge_grad_data(data, method='rms'):
+def _merge_grad_data(data, method="rms"):
     """Merge data from channel pairs using the RMS or mean.
 
     Parameters
@@ -1038,10 +1072,10 @@ def _merge_grad_data(data, method='rms'):
         The root mean square or mean for each pair.
     """
     data, orig_shape = data.reshape((len(data) // 2, 2, -1)), data.shape
-    if method == 'mean':
+    if method == "mean":
         data = np.mean(data, axis=1)
-    elif method == 'rms':
-        data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    elif method == "rms":
+        data = np.sqrt(np.sum(data**2, axis=1) / 2)
     else:
         raise ValueError('method must be "rms" or "mean", got %s.' % method)
     return data.reshape(data.shape[:1] + orig_shape[1:])
@@ -1070,7 +1104,7 @@ def _merge_nirs_data(data, merged_names):
     """
     to_remove = np.empty(0, dtype=np.int32)
     for idx, ch in enumerate(merged_names):
-        if 'x' in ch:
+        if "x" in ch:
             indices = np.empty(0, dtype=np.int32)
             channels = ch.split("x")
             for sub_ch in channels[1:]:
@@ -1084,9 +1118,17 @@ def _merge_nirs_data(data, merged_names):
     return data, merged_names
 
 
-def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
-                       ch_indices=None, name='ecog', bg_image=None,
-                       normalize=True):
+def generate_2d_layout(
+    xy,
+    w=0.07,
+    h=0.05,
+    pad=0.02,
+    ch_names=None,
+    ch_indices=None,
+    name="ecog",
+    bg_image=None,
+    normalize=True,
+):
     """Generate a custom 2D layout from xy points.
 
     Generates a 2-D layout for plotting with plot_topo methods and
@@ -1137,15 +1179,16 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
+
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
-        ch_names = ['{}'.format(i) for i in ch_indices]
+        ch_names = ["{}".format(i) for i in ch_indices]
 
     if len(ch_names) != len(ch_indices):
-        raise ValueError('# channel names and indices must be equal')
+        raise ValueError("# channel names and indices must be equal")
     if len(ch_names) != len(xy):
-        raise ValueError('# channel names and xy vals must be equal')
+        raise ValueError("# channel names and xy vals must be equal")
 
     x, y = xy.copy().astype(float).T
 
@@ -1159,7 +1202,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         # Normalize x and y by their maxes
         for i_dim in [x, y]:
             i_dim -= i_dim.min(0)
-            i_dim /= (i_dim.max(0) - i_dim.min(0))
+            i_dim /= i_dim.max(0) - i_dim.min(0)
 
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)

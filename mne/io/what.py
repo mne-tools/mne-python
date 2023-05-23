@@ -38,32 +38,33 @@ def what(fname):
     from ..event import read_events
     from ..proj import read_proj
     from .meas_info import read_fiducials
-    _check_fname(fname, overwrite='read', must_exist=True)
+
+    _check_fname(fname, overwrite="read", must_exist=True)
     checks = OrderedDict()
-    checks['raw'] = read_raw_fif
-    checks['ica'] = read_ica
-    checks['epochs'] = read_epochs
-    checks['evoked'] = read_evokeds
-    checks['forward'] = read_forward_solution
-    checks['inverse'] = read_inverse_operator
-    checks['src'] = read_source_spaces
-    checks['bem solution'] = read_bem_solution
-    checks['bem surfaces'] = read_bem_surfaces
-    checks['cov'] = read_cov
-    checks['transform'] = read_trans
-    checks['events'] = read_events
-    checks['fiducials'] = read_fiducials
-    checks['proj'] = read_proj
+    checks["raw"] = read_raw_fif
+    checks["ica"] = read_ica
+    checks["epochs"] = read_epochs
+    checks["evoked"] = read_evokeds
+    checks["forward"] = read_forward_solution
+    checks["inverse"] = read_inverse_operator
+    checks["src"] = read_source_spaces
+    checks["bem solution"] = read_bem_solution
+    checks["bem surfaces"] = read_bem_surfaces
+    checks["cov"] = read_cov
+    checks["transform"] = read_trans
+    checks["events"] = read_events
+    checks["fiducials"] = read_fiducials
+    checks["proj"] = read_proj
     for what, func in checks.items():
         args = signature(func).parameters
-        assert 'verbose' in args, func
-        kwargs = dict(verbose='error')
-        if 'preload' in args:
-            kwargs['preload'] = False
+        assert "verbose" in args, func
+        kwargs = dict(verbose="error")
+        if "preload" in args:
+            kwargs["preload"] = False
         try:
             func(fname, **kwargs)
         except Exception as exp:
-            logger.debug('Not %s: %s' % (what, exp))
+            logger.debug("Not %s: %s" % (what, exp))
         else:
             return what
-    return 'unknown'
+    return "unknown"

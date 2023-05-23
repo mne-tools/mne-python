@@ -11,6 +11,7 @@ from copy import deepcopy
 ###############################################################################
 # Create a Bunch class that acts like a struct (mybunch.key = val)
 
+
 class Bunch(dict):
     """Dictionary-like object that exposes its keys as attributes."""
 
@@ -22,17 +23,19 @@ class Bunch(dict):
 ###############################################################################
 # A protected version that prevents overwriting
 
+
 class BunchConst(Bunch):
     """Class to prevent us from re-defining constants (DRY)."""
 
     def __setitem__(self, key, val):  # noqa: D105
-        if key != '__dict__' and key in self:
-            raise AttributeError(f'Attribute {repr(key)} already set')
+        if key != "__dict__" and key in self:
+            raise AttributeError(f"Attribute {repr(key)} already set")
         super().__setitem__(key, val)
 
 
 ###############################################################################
 # A version that tweaks the __repr__ of its values based on keys
+
 
 class BunchConstNamed(BunchConst):
     """Class to provide nice __repr__ for our integer constants.
@@ -60,7 +63,7 @@ class _Named:
         return out
 
     def __str__(self):  # noqa: D105
-        return '%s (%s)' % (str(self.__class__.mro()[-2](self)), self._name)
+        return "%s (%s)" % (str(self.__class__.mro()[-2](self)), self._name)
 
     __repr__ = __str__
 

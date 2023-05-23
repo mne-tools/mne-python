@@ -27,26 +27,25 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 ###############################################################################
 # Load sample subject data
 data_path = sample.data_path()
-subjects_dir = data_path / 'subjects'
-meg_path = data_path / 'MEG' / 'sample'
-fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = meg_path / 'sample_audvis-no-filter-ave.fif'
-cov_fname = meg_path / 'sample_audvis-cov.fif'
-trans_fname = meg_path / 'sample_audvis_raw-trans.fif'
-bem_fname = subjects_dir / 'sample' / 'bem' / '/sample-5120-bem-sol.fif'
+subjects_dir = data_path / "subjects"
+meg_path = data_path / "MEG" / "sample"
+fwd_fname = meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+ave_fname = meg_path / "sample_audvis-no-filter-ave.fif"
+cov_fname = meg_path / "sample_audvis-cov.fif"
+trans_fname = meg_path / "sample_audvis_raw-trans.fif"
+bem_fname = subjects_dir / "sample" / "bem" / "/sample-5120-bem-sol.fif"
 
-raw = mne.io.read_raw_fif(meg_path / 'sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(meg_path / "sample_audvis_raw.fif")
 fwd = mne.read_forward_solution(fwd_fname)
 fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
-fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
+fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info["bads"])
 cov = mne.read_cov(cov_fname)
 
 ###############################################################################
 # Find patches (labels) to activate
-all_labels = mne.read_labels_from_annot(subject='sample',
-                                        subjects_dir=subjects_dir)
+all_labels = mne.read_labels_from_annot(subject="sample", subjects_dir=subjects_dir)
 labels = []
-for select_label in ['parahippocampal-lh', 'postcentral-rh']:
+for select_label in ["parahippocampal-lh", "postcentral-rh"]:
     labels.append([lab for lab in all_labels if lab.name in select_label][0])
 hiplab, postcenlab = labels
 
@@ -64,32 +63,38 @@ def subcortical_waveform(times):
     return 10e-9 * np.cos(times * 2 * np.pi * 239)
 
 
-times = np.linspace(0, 0.5, int(0.5 * raw.info['sfreq']))
-stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
-                          location='center', subjects_dir=subjects_dir,
-                          labels=[postcenlab, hiplab],
-                          data_fun=cortical_waveform)
-stc.data[np.where(np.isin(stc.vertices[0], hiplab.vertices))[0], :] = \
-    subcortical_waveform(times)
+times = np.linspace(0, 0.5, int(0.5 * raw.info["sfreq"]))
+stc = simulate_sparse_stc(
+    fwd["src"],
+    n_dipoles=2,
+    times=times,
+    location="center",
+    subjects_dir=subjects_dir,
+    labels=[postcenlab, hiplab],
+    data_fun=cortical_waveform,
+)
+stc.data[
+    np.where(np.isin(stc.vertices[0], hiplab.vertices))[0], :
+] = subcortical_waveform(times)
 evoked = simulate_evoked(fwd, stc, raw.info, cov, nave=15)
 
 ###############################################################################
 # Process with CSS and plot PSD of EEG data before and after processing
-evoked_subcortical = mne.preprocessing.cortical_signal_suppression(evoked,
-                                                                   n_proj=6)
+evoked_subcortical = mne.preprocessing.cortical_signal_suppression(evoked, n_proj=6)
 chs = mne.pick_types(evoked.info, meg=False, eeg=True)
 
-psd = np.mean(np.abs(np.fft.rfft(evoked.data))**2, axis=0)
-psd_proc = np.mean(np.abs(np.fft.rfft(evoked_subcortical.data))**2, axis=0)
-freq = np.arange(0, stop=int(evoked.info['sfreq'] / 2),
-                 step=evoked.info['sfreq'] / (2 * len(psd)))
+psd = np.mean(np.abs(np.fft.rfft(evoked.data)) ** 2, axis=0)
+psd_proc = np.mean(np.abs(np.fft.rfft(evoked_subcortical.data)) ** 2, axis=0)
+freq = np.arange(
+    0, stop=int(evoked.info["sfreq"] / 2), step=evoked.info["sfreq"] / (2 * len(psd))
+)
 
 fig, ax = plt.subplots()
-ax.plot(freq, psd, label='raw')
-ax.plot(freq, psd_proc, label='processed')
-ax.text(.2, .7, 'cortical', transform=ax.transAxes)
-ax.text(.8, .25, 'subcortical', transform=ax.transAxes)
-ax.set(ylabel='EEG Power spectral density', xlabel='Frequency (Hz)')
+ax.plot(freq, psd, label="raw")
+ax.plot(freq, psd_proc, label="processed")
+ax.text(0.2, 0.7, "cortical", transform=ax.transAxes)
+ax.text(0.8, 0.25, "subcortical", transform=ax.transAxes)
+ax.set(ylabel="EEG Power spectral density", xlabel="Frequency (Hz)")
 ax.legend()
 
 # References

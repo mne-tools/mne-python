@@ -30,9 +30,9 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse_cov
 
 data_path = sample.data_path()
-subjects_dir = data_path / 'subjects'
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / "subjects"
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw_fif(raw_fname)
 
 # %%
@@ -41,28 +41,39 @@ raw = mne.io.read_raw_fif(raw_fname)
 # First we compute an empty-room covariance, which captures noise from the
 # sensors and environment.
 
-raw_empty_room_fname = data_path / 'MEG' / 'sample' / 'ernoise_raw.fif'
+raw_empty_room_fname = data_path / "MEG" / "sample" / "ernoise_raw.fif"
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_empty_room.crop(0, 30)  # cropped just for speed
-raw_empty_room.info['bads'] = ['MEG 2443']
-raw_empty_room.add_proj(raw.info['projs'])
-noise_cov = mne.compute_raw_covariance(raw_empty_room, method='shrunk')
+raw_empty_room.info["bads"] = ["MEG 2443"]
+raw_empty_room.add_proj(raw.info["projs"])
+noise_cov = mne.compute_raw_covariance(raw_empty_room, method="shrunk")
 del raw_empty_room
 
 # %%
 # Epoch the data
 # --------------
 
-raw.pick(['meg', 'stim', 'eog']).load_data().filter(4, 12)
-raw.info['bads'] = ['MEG 2443']
-events = mne.find_events(raw, stim_channel='STI 014')
+raw.pick(["meg", "stim", "eog"]).load_data().filter(4, 12)
+raw.info["bads"] = ["MEG 2443"]
+events = mne.find_events(raw, stim_channel="STI 014")
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 tmin, tmax = -0.2, 0.5
 baseline = (None, 0)  # means from the first instant to t = 0
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    proj=True, picks=('meg', 'eog'), baseline=None,
-                    reject=reject, preload=True, decim=5, verbose='error')
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    proj=True,
+    picks=("meg", "eog"),
+    baseline=None,
+    reject=reject,
+    preload=True,
+    decim=5,
+    verbose="error",
+)
 del raw
 
 # %%
@@ -78,9 +89,11 @@ del raw
 #    to noise sources).
 
 base_cov = mne.compute_covariance(
-    epochs, tmin=-0.2, tmax=0, method='shrunk', verbose=True)
+    epochs, tmin=-0.2, tmax=0, method="shrunk", verbose=True
+)
 data_cov = mne.compute_covariance(
-    epochs, tmin=0., tmax=0.2, method='shrunk', verbose=True)
+    epochs, tmin=0.0, tmax=0.2, method="shrunk", verbose=True
+)
 
 fig_noise_cov = mne.viz.plot_cov(noise_cov, epochs.info, show_svd=False)
 fig_base_cov = mne.viz.plot_cov(base_cov, epochs.info, show_svd=False)
@@ -91,16 +104,18 @@ fig_data_cov = mne.viz.plot_cov(data_cov, epochs.info, show_svd=False)
 # baseline and data covariances, followed by the data covariance whitened
 # by the baseline covariance:
 
-evoked = epochs.average().pick('meg')
-evoked.drop_channels(evoked.info['bads'])
-evoked.plot(time_unit='s')
-evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag')
+evoked = epochs.average().pick("meg")
+evoked.drop_channels(evoked.info["bads"])
+evoked.plot(time_unit="s")
+evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type="mag")
 
-loop = {'Noise': (noise_cov, dict()),
-        'Data': (data_cov, dict()),
-        'Whitened data': (data_cov, dict(noise_cov=noise_cov))}
+loop = {
+    "Noise": (noise_cov, dict()),
+    "Data": (data_cov, dict()),
+    "Whitened data": (data_cov, dict(noise_cov=noise_cov)),
+}
 for title, (_cov, _kw) in loop.items():
-    fig = _cov.plot_topomap(evoked.info, 'grad', **_kw)
+    fig = _cov.plot_topomap(evoked.info, "grad", **_kw)
     fig.suptitle(title)
 
 # %%
@@ -109,20 +124,31 @@ for title, (_cov, _kw) in loop.items():
 # Finally, we can construct an inverse using the empty-room noise covariance:
 
 # Read the forward solution and compute the inverse operator
-fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
+fname_fwd = meg_path / "sample_audvis-meg-oct-6-fwd.fif"
 fwd = mne.read_forward_solution(fname_fwd)
 # make an MEG inverse operator
 info = evoked.info
-inverse_operator = make_inverse_operator(info, fwd, noise_cov,
-                                         loose=0.2, depth=0.8)
+inverse_operator = make_inverse_operator(info, fwd, noise_cov, loose=0.2, depth=0.8)
 
 # %%
 # Project our data and baseline covariance to source space:
 
-stc_data = apply_inverse_cov(data_cov, evoked.info, inverse_operator,
-                             nave=len(epochs), method='dSPM', verbose=True)
-stc_base = apply_inverse_cov(base_cov, evoked.info, inverse_operator,
-                             nave=len(epochs), method='dSPM', verbose=True)
+stc_data = apply_inverse_cov(
+    data_cov,
+    evoked.info,
+    inverse_operator,
+    nave=len(epochs),
+    method="dSPM",
+    verbose=True,
+)
+stc_base = apply_inverse_cov(
+    base_cov,
+    evoked.info,
+    inverse_operator,
+    nave=len(epochs),
+    method="dSPM",
+    verbose=True,
+)
 
 # %%
 # And visualize power is relative to the baseline:
@@ -130,6 +156,9 @@ stc_base = apply_inverse_cov(base_cov, evoked.info, inverse_operator,
 # sphinx_gallery_thumbnail_number = 9
 
 stc_data /= stc_base
-brain = stc_data.plot(subject='sample', subjects_dir=subjects_dir,
-                      clim=dict(kind='percent', lims=(50, 90, 98)),
-                      smoothing_steps=7)
+brain = stc_data.plot(
+    subject="sample",
+    subjects_dir=subjects_dir,
+    clim=dict(kind="percent", lims=(50, 90, 98)),
+    smoothing_steps=7,
+)

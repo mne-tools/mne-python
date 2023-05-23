@@ -74,15 +74,14 @@ import mne
 # the :class:`~mne.io.Raw` data to save memory:
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
+sample_data_raw_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=60)
 
 # %%
 # As we saw in the :ref:`tut-events-vs-annotations` tutorial, we can extract an
 # events array from :class:`~mne.io.Raw` objects using :func:`mne.find_events`:
 
-events = mne.find_events(raw, stim_channel='STI 014')
+events = mne.find_events(raw, stim_channel="STI 014")
 
 # %%
 # .. note::
@@ -144,10 +143,15 @@ print(epochs.event_id)
 # provided dictionary will get stored as the ``event_id`` attribute and will
 # make referencing events and pooling across event types easier:
 
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'face': 5, 'buttonpress': 32}
-epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
-                    preload=True)
+event_dict = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+    "face": 5,
+    "buttonpress": 32,
+}
+epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict, preload=True)
 print(epochs.event_id)
 del raw  # we're done with raw, free up some memory
 
@@ -202,7 +206,7 @@ epochs.plot(n_epochs=10)
 # labels added, we can subselect epochs easily using square brackets. For
 # example, we can load all the "catch trials" where the stimulus was a face:
 
-print(epochs['face'])
+print(epochs["face"])
 
 # %%
 # We can also pool across conditions easily, thanks to how MNE-Python handles
@@ -210,13 +214,15 @@ print(epochs['face'])
 # "tag-based indexing"):
 
 # pool across left + right
-print(epochs['auditory'])
-assert len(epochs['auditory']) == (len(epochs['auditory/left']) +
-                                   len(epochs['auditory/right']))
+print(epochs["auditory"])
+assert len(epochs["auditory"]) == (
+    len(epochs["auditory/left"]) + len(epochs["auditory/right"])
+)
 # pool across auditory + visual
-print(epochs['left'])
-assert len(epochs['left']) == (len(epochs['auditory/left']) +
-                               len(epochs['visual/left']))
+print(epochs["left"])
+assert len(epochs["left"]) == (
+    len(epochs["auditory/left"]) + len(epochs["visual/left"])
+)
 
 # %%
 # You can also pool conditions by passing multiple tags as a list. Note that
@@ -225,15 +231,15 @@ assert len(epochs['left']) == (len(epochs['auditory/left']) +
 # (inclusive) ``'right'`` **or** ``'bottom'``, and you can see from the output
 # that it selects only ``auditory/right`` and ``visual/right``.
 
-print(epochs[['right', 'bottom']])
+print(epochs[["right", "bottom"]])
 
 # %%
 # However, if no match is found, an error is returned:
 
 try:
-    print(epochs[['top', 'bottom']])
+    print(epochs[["top", "bottom"]])
 except KeyError:
-    print('Tag-based selection with no matches raises a KeyError!')
+    print("Tag-based selection with no matches raises a KeyError!")
 
 # %%
 # Selecting epochs by index
@@ -244,11 +250,11 @@ except KeyError:
 # labels, so if you want the first 10 epochs of a particular type, you can
 # select the type first, then use integers or slices:
 
-print(epochs[:10])    # epochs 0-9
+print(epochs[:10])  # epochs 0-9
 print(epochs[1:8:2])  # epochs 1, 3, 5, 7
 
-print(epochs['buttonpress'][:4])            # first 4 "buttonpress" epochs
-print(epochs['buttonpress'][[0, 1, 2, 3]])  # same as previous line
+print(epochs["buttonpress"][:4])  # first 4 "buttonpress" epochs
+print(epochs["buttonpress"][[0, 1, 2, 3]])  # same as previous line
 
 # %%
 # Selecting, dropping, and reordering channels
@@ -267,7 +273,7 @@ print(epochs['buttonpress'][[0, 1, 2, 3]])  # same as previous line
 epochs_eeg = epochs.copy().pick_types(meg=False, eeg=True)
 print(epochs_eeg.ch_names)
 
-new_order = ['EEG 002', 'STI 014', 'EOG 061', 'MEG 2521']
+new_order = ["EEG 002", "STI 014", "EOG 061", "MEG 2521"]
 epochs_subset = epochs.copy().reorder_channels(new_order)
 print(epochs_subset.ch_names)
 
@@ -285,16 +291,16 @@ del epochs_eeg, epochs_subset
 # channel names, and the values are the new name (or type) for that channel.
 # Existing channels that are not in the dictionary will be unchanged.
 
-epochs.rename_channels({'EOG 061': 'BlinkChannel'})
+epochs.rename_channels({"EOG 061": "BlinkChannel"})
 
-epochs.set_channel_types({'EEG 060': 'ecg'})
+epochs.set_channel_types({"EEG 060": "ecg"})
 print(list(zip(epochs.ch_names, epochs.get_channel_types()))[-4:])
 
 # %%
 
 # let's set them back to the correct values before moving on
-epochs.rename_channels({'BlinkChannel': 'EOG 061'})
-epochs.set_channel_types({'EEG 060': 'eeg'})
+epochs.rename_channels({"BlinkChannel": "EOG 061"})
+epochs.set_channel_types({"EEG 060": "eeg"})
 
 # %%
 # Selection in the time domain
@@ -306,8 +312,7 @@ epochs.set_channel_types({'EEG 060': 'eeg'})
 shorter_epochs = epochs.copy().crop(tmin=-0.1, tmax=0.1, include_tmax=True)
 
 for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
-    print('{} epochs has {} time samples'
-          .format(name, obj.get_data().shape[-1]))
+    print("{} epochs has {} time samples".format(name, obj.get_data().shape[-1]))
 
 # %%
 # Cropping removed part of the baseline. When printing the
@@ -331,7 +336,7 @@ print(shorter_epochs)
 # the :class:`~mne.Epochs` object's sampling frequency).
 
 # shift times so that first sample of each epoch is at time zero
-later_epochs = epochs.copy().shift_time(tshift=0., relative=False)
+later_epochs = epochs.copy().shift_time(tshift=0.0, relative=False)
 print(later_epochs.times[:3])
 
 # shift times by a relative amount
@@ -356,12 +361,12 @@ del shorter_epochs, later_epochs
 # n_times)``; an optional ``picks`` parameter selects a subset of channels by
 # index, name, or type:
 
-eog_data = epochs.get_data(picks='EOG 061')
-meg_data = epochs.get_data(picks=['mag', 'grad'])
+eog_data = epochs.get_data(picks="EOG 061")
+meg_data = epochs.get_data(picks=["mag", "grad"])
 channel_4_6_8 = epochs.get_data(picks=slice(4, 9, 2))
 
 for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
-    print('{} contains {} channels'.format(name, arr.shape[1]))
+    print("{} contains {} channels".format(name, arr.shape[1]))
 
 # %%
 # Note that if your analysis requires repeatedly extracting single epochs from
@@ -381,10 +386,9 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
 # (note that slice indexing within Pandas' :obj:`~pandas.DataFrame.loc` is
 # inclusive of the endpoint):
 
-df = epochs.to_data_frame(index=['condition', 'epoch', 'time'])
+df = epochs.to_data_frame(index=["condition", "epoch", "time"])
 df.sort_index(inplace=True)
-print(df.loc[('auditory/left', slice(0, 10), slice(100, 107)),
-             'EEG 056':'EEG 058'])
+print(df.loc[("auditory/left", slice(0, 10), slice(100, 107)), "EEG 056":"EEG 058"])
 
 del df
 
@@ -402,8 +406,8 @@ del df
 # available for loading data that was epoched outside of MNE-Python, such as
 # :func:`mne.read_epochs_eeglab` and :func:`mne.read_epochs_kit`.
 
-epochs.save('saved-audiovisual-epo.fif', overwrite=True)
-epochs_from_file = mne.read_epochs('saved-audiovisual-epo.fif', preload=False)
+epochs.save("saved-audiovisual-epo.fif", overwrite=True)
+epochs_from_file = mne.read_epochs("saved-audiovisual-epo.fif", preload=False)
 
 # %%
 # The MNE-Python naming convention for epochs files is that the file basename
@@ -423,8 +427,14 @@ print(type(epochs_from_file))
 # However, if you need to do type checking on epochs objects, you can test
 # against the base class that these classes are derived from:
 
-print(all([isinstance(epochs, mne.BaseEpochs),
-           isinstance(epochs_from_file, mne.BaseEpochs)]))
+print(
+    all(
+        [
+            isinstance(epochs, mne.BaseEpochs),
+            isinstance(epochs_from_file, mne.BaseEpochs),
+        ]
+    )
+)
 
 # %%
 # Iterating over ``Epochs``

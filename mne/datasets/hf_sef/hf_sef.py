@@ -11,8 +11,9 @@ from ..config import MNE_DATASETS
 
 
 @verbose
-def data_path(dataset='evoked', path=None, force_update=False,
-              update_path=True, *, verbose=None):
+def data_path(
+    dataset="evoked", path=None, force_update=False, update_path=True, *, verbose=None
+):
     """Get path to local copy of the high frequency SEF dataset.
 
     Gets a local copy of the high frequency SEF MEG dataset
@@ -46,33 +47,38 @@ def data_path(dataset='evoked', path=None, force_update=False,
     ----------
     .. footbibliography::
     """
-    _check_option('dataset', dataset, ('evoked', 'raw'))
-    if dataset == 'raw':
-        data_dict = MNE_DATASETS['hf_sef_raw']
-        data_dict['dataset_name'] = 'hf_sef_raw'
+    _check_option("dataset", dataset, ("evoked", "raw"))
+    if dataset == "raw":
+        data_dict = MNE_DATASETS["hf_sef_raw"]
+        data_dict["dataset_name"] = "hf_sef_raw"
     else:
-        data_dict = MNE_DATASETS['hf_sef_evoked']
-        data_dict['dataset_name'] = 'hf_sef_evoked'
-    config_key = data_dict['config_key']
-    folder_name = data_dict['folder_name']
+        data_dict = MNE_DATASETS["hf_sef_evoked"]
+        data_dict["dataset_name"] = "hf_sef_evoked"
+    config_key = data_dict["config_key"]
+    folder_name = data_dict["folder_name"]
 
     # get download path for specific dataset
     path = _get_path(path=path, key=config_key, name=folder_name)
     final_path = op.join(path, folder_name)
-    megdir = op.join(final_path, 'MEG', 'subject_a')
-    has_raw = (dataset == 'raw' and op.isdir(megdir) and
-               any('raw' in filename for filename in os.listdir(megdir)))
-    has_evoked = (dataset == 'evoked' and
-                  op.isdir(op.join(final_path, 'subjects')))
+    megdir = op.join(final_path, "MEG", "subject_a")
+    has_raw = (
+        dataset == "raw"
+        and op.isdir(megdir)
+        and any("raw" in filename for filename in os.listdir(megdir))
+    )
+    has_evoked = dataset == "evoked" and op.isdir(op.join(final_path, "subjects"))
     # data not there, or force_update requested:
     if has_raw or has_evoked and not force_update:
-        _do_path_update(path, update_path, config_key,
-                        folder_name)
+        _do_path_update(path, update_path, config_key, folder_name)
         return final_path
 
     # instantiate processor that unzips file
-    data_path = _download_mne_dataset(name=data_dict['dataset_name'],
-                                      processor='untar', path=path,
-                                      force_update=force_update,
-                                      update_path=update_path, download=True)
+    data_path = _download_mne_dataset(
+        name=data_dict["dataset_name"],
+        processor="untar",
+        path=path,
+        force_update=force_update,
+        update_path=update_path,
+        download=True,
+    )
     return data_path

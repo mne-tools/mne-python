@@ -43,19 +43,21 @@ def fetch_phantom(kind, subjects_dir=None, *, verbose=None):
     .. versionadded:: 0.24
     """
     phantoms = dict(
-        otaniemi=dict(url='https://osf.io/j5czy/download?version=1',
-                      hash='42d17db5b1db3e30327ffb4cf2649de8'),
+        otaniemi=dict(
+            url="https://osf.io/j5czy/download?version=1",
+            hash="42d17db5b1db3e30327ffb4cf2649de8",
+        ),
     )
-    _validate_type(kind, str, 'kind')
-    _check_option('kind', kind, list(phantoms))
+    _validate_type(kind, str, "kind")
+    _check_option("kind", kind, list(phantoms))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    subject = f'phantom_{kind}'
+    subject = f"phantom_{kind}"
     subject_dir = subjects_dir / subject
     os.makedirs(subject_dir, exist_ok=True)
     _manifest_check_download(
-        manifest_path=op.join(PHANTOM_MANIFEST_PATH, f'{subject}.txt'),
+        manifest_path=op.join(PHANTOM_MANIFEST_PATH, f"{subject}.txt"),
         destination=subjects_dir,
-        url=phantoms[kind]['url'],
-        hash_=phantoms[kind]['hash'],
+        url=phantoms[kind]["url"],
+        hash_=phantoms[kind]["hash"],
     )
     return subject_dir

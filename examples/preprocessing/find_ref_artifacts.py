@@ -45,7 +45,7 @@ data_path = refmeg_noise.data_path()
 # %%
 # Read raw data, cropping to 5 minutes to save memory
 
-raw_fname = data_path / 'sample_reference_MEG_noise-raw.fif'
+raw_fname = data_path / "sample_reference_MEG_noise-raw.fif"
 raw = io.read_raw_fif(raw_fname).crop(300, 600).load_data()
 
 # %%
@@ -53,27 +53,32 @@ raw = io.read_raw_fif(raw_fname).crop(300, 600).load_data()
 # been applied to these data, much of the noise in the reference channels
 # (bottom of the plot) can still be seen in the standard channels.
 select_picks = np.concatenate(
-    (mne.pick_types(raw.info, meg=True)[-32:],
-     mne.pick_types(raw.info, meg=False, ref_meg=True)))
+    (
+        mne.pick_types(raw.info, meg=True)[-32:],
+        mne.pick_types(raw.info, meg=False, ref_meg=True),
+    )
+)
 plot_kwargs = dict(
-    duration=100, order=select_picks, n_channels=len(select_picks),
-    scalings={"mag": 8e-13, "ref_meg": 2e-11})
+    duration=100,
+    order=select_picks,
+    n_channels=len(select_picks),
+    scalings={"mag": 8e-13, "ref_meg": 2e-11},
+)
 raw.plot(**plot_kwargs)
 
 # %%
 # The PSD of these data show the noise as clear peaks.
-raw.compute_psd(fmax=30).plot()
+raw.compute_psd(fmax=30).plot(picks="data", exclude="bads")
 
 # %%
 # Run the "together" algorithm.
 raw_tog = raw.copy()
 ica_kwargs = dict(
-    method='picard',
+    method="picard",
     fit_params=dict(tol=1e-4),  # use a high tol here for speed
 )
 all_picks = mne.pick_types(raw_tog.info, meg=True, ref_meg=True)
-ica_tog = ICA(n_components=60, max_iter='auto', allow_ref_meg=True,
-              **ica_kwargs)
+ica_tog = ICA(n_components=60, max_iter="auto", allow_ref_meg=True, **ica_kwargs)
 ica_tog.fit(raw_tog, picks=all_picks)
 # low threshold (2.0) here because of cropped data, entire recording can use
 # a higher threshold (2.5)
@@ -92,7 +97,7 @@ raw_tog = ica_tog.apply(raw_tog, exclude=bad_comps)
 
 # %%
 # Cleaned data:
-raw_tog.compute_psd(fmax=30).plot()
+raw_tog.compute_psd(fmax=30).plot(picks="data", exclude="bads")
 
 # %%
 # Now try the "separate" algorithm.
@@ -100,8 +105,7 @@ raw_sep = raw.copy()
 
 # Do ICA only on the reference channels.
 ref_picks = mne.pick_types(raw_sep.info, meg=False, ref_meg=True)
-ica_ref = ICA(n_components=2, max_iter='auto', allow_ref_meg=True,
-              **ica_kwargs)
+ica_ref = ICA(n_components=2, max_iter="auto", allow_ref_meg=True, **ica_kwargs)
 ica_ref.fit(raw_sep, picks=ref_picks)
 
 # Do ICA on both reference and standard channels. Here, we can just reuse
@@ -137,7 +141,7 @@ raw_sep.plot(**plot_kwargs)
 # %%
 # Cleaned raw data PSD:
 
-raw_sep.compute_psd(fmax=30).plot()
+raw_sep.compute_psd(fmax=30).plot(picks="data", exclude="bads")
 
 ##############################################################################
 # References

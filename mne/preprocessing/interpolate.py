@@ -14,7 +14,7 @@ from ..evoked import Evoked, EvokedArray
 from ..transforms import _sph_to_cart, _cart_to_sph
 
 
-def equalize_bads(insts, interp_thresh=1., copy=True):
+def equalize_bads(insts, interp_thresh=1.0, copy=True):
     """Interpolate or mark bads consistently for a list of instances.
 
     Once called on a list of instances, the instances can be concatenated
@@ -42,12 +42,11 @@ def equalize_bads(insts, interp_thresh=1., copy=True):
         them, possibly with some formerly bad channels interpolated.
     """
     if not 0 <= interp_thresh <= 1:
-        raise ValueError('interp_thresh must be between 0 and 1, got %s'
-                         % (interp_thresh,))
+        raise ValueError(
+            "interp_thresh must be between 0 and 1, got %s" % (interp_thresh,)
+        )
 
-    all_bads = list(
-        set(chain.from_iterable([inst.info['bads'] for inst in insts]))
-    )
+    all_bads = list(set(chain.from_iterable([inst.info["bads"] for inst in insts])))
     if isinstance(insts[0], BaseEpochs):
         durations = [len(inst) * len(inst.times) for inst in insts]
     else:
@@ -55,20 +54,23 @@ def equalize_bads(insts, interp_thresh=1., copy=True):
 
     good_times = []
     for ch_name in all_bads:
-        good_times.append(sum(
-            durations[k] for k, inst in enumerate(insts)
-            if ch_name not in inst.info['bads']
-        ) / np.sum(durations))
+        good_times.append(
+            sum(
+                durations[k]
+                for k, inst in enumerate(insts)
+                if ch_name not in inst.info["bads"]
+            )
+            / np.sum(durations)
+        )
 
-    bads_keep = [ch for k, ch in enumerate(all_bads)
-                 if good_times[k] < interp_thresh]
+    bads_keep = [ch for k, ch in enumerate(all_bads) if good_times[k] < interp_thresh]
     if copy:
         insts = [inst.copy() for inst in insts]
 
     for inst in insts:
-        if len(set(inst.info['bads']) - set(bads_keep)):
+        if len(set(inst.info["bads"]) - set(bads_keep)):
             inst.interpolate_bads(exclude=bads_keep)
-        inst.info['bads'] = bads_keep
+        inst.info["bads"] = bads_keep
 
     return insts
 
@@ -116,14 +118,16 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         )
     montage = inst.get_montage()
     if montage is None:
-        raise RuntimeError('No channel positions found in ``inst``')
+        raise RuntimeError("No channel positions found in ``inst``")
     pos = montage.get_positions()
-    if pos['coord_frame'] != 'head':
-        raise RuntimeError('Montage channel positions must be in ``head``'
-                           'got {}'.format(pos['coord_frame']))
+    if pos["coord_frame"] != "head":
+        raise RuntimeError(
+            "Montage channel positions must be in ``head``"
+            "got {}".format(pos["coord_frame"])
+        )
     # store bads orig to put back at the end
-    bads_orig = inst.info['bads']
-    inst.info['bads'] = list()
+    bads_orig = inst.info["bads"]
+    inst.info["bads"] = list()
 
     # look for group of bad channels
     nodes = sorted(set(chain(*bridged_idx)))
@@ -136,9 +140,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         G_dense[idx1, idx0] = 1
     # look for connected components
     _, labels = connected_components(G_dense, directed=False)
-    groups_idx = [
-        [nodes[j] for j in np.where(labels == k)[0]] for k in set(labels)
-    ]
+    groups_idx = [[nodes[j] for j in np.where(labels == k)[0]] for k in set(labels)]
     groups_names = [
         [inst.info.ch_names[k] for k in group_idx] for group_idx in groups_idx
     ]
@@ -159,19 +161,15 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         group_names = [inst.info.ch_names[k] for k in group_idx]
         bads = bads.union(group_names)
         # compute centroid position in spherical "head" coordinates
-        pos_virtual = _find_centroid_sphere(pos['ch_pos'], group_names)
+        pos_virtual = _find_centroid_sphere(pos["ch_pos"], group_names)
         # create the virtual channel info and set the position
-        virtual_info = create_info(
-            [f'virtual {k+1}'], inst.info['sfreq'], 'eeg'
-        )
-        virtual_info['chs'][0]['loc'][:3] = pos_virtual
+        virtual_info = create_info([f"virtual {k+1}"], inst.info["sfreq"], "eeg")
+        virtual_info["chs"][0]["loc"][:3] = pos_virtual
         # create virtual channel
         data = inst.get_data(picks=group_names)
         if isinstance(inst, BaseRaw):
             data = np.average(data, axis=0).reshape(1, -1)
-            virtual_ch = RawArray(
-                data, virtual_info, first_samp=inst.first_samp
-            )
+            virtual_ch = RawArray(data, virtual_info, first_samp=inst.first_samp)
         elif isinstance(inst, BaseEpochs):
             data = np.average(data, axis=1).reshape(len(data), 1, -1)
             virtual_ch = EpochsArray(data, virtual_info, tmin=inst.tmin)
@@ -184,19 +182,19 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
                 nave=inst.nave,
                 kind=inst.kind,
             )
-        virtual_chs[f'virtual {k+1}'] = virtual_ch
+        virtual_chs[f"virtual {k+1}"] = virtual_ch
 
     # add the virtual channels
     inst.add_channels(list(virtual_chs.values()), force_update_info=True)
 
     # use the virtual channels to interpolate
-    inst.info['bads'] = list(bads)
+    inst.info["bads"] = list(bads)
     inst.interpolate_bads()
 
     # drop virtual channels
     inst.drop_channels(list(virtual_chs.keys()))
 
-    inst.info['bads'] = bads_orig
+    inst.info["bads"] = bads_orig
     return inst
 
 
@@ -223,9 +221,7 @@ def _find_centroid_sphere(ch_pos, group_names):
     pos_centroid : array of shape (3,)
         The position of the centroid in cartesian coordinates.
     """
-    cartesian_positions = np.array([
-        ch_pos[ch_name] for ch_name in group_names]
-    )
+    cartesian_positions = np.array([ch_pos[ch_name] for ch_name in group_names])
     sphere_positions = _cart_to_sph(cartesian_positions)
     cartesian_pos_centroid = np.average(cartesian_positions, axis=0)
     sphere_pos_centroid = _cart_to_sph(cartesian_pos_centroid)

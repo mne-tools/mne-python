@@ -49,10 +49,10 @@ from mne.time_frequency import tfr_morlet
 # Set parameters
 # --------------
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
-event_id = {'Aud/L': 1, 'Aud/R': 2, 'Vis/L': 3, 'Vis/R': 4}
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
+event_id = {"Aud/L": 1, "Aud/R": 2, "Vis/L": 3, "Vis/R": 4}
 tmin = -0.2
 tmax = 0.5
 
@@ -65,13 +65,22 @@ events = mne.read_events(event_fname)
 # Read epochs for the channel of interest
 # ---------------------------------------
 
-picks = mne.pick_types(raw.info, meg='mag', eog=True)
+picks = mne.pick_types(raw.info, meg="mag", eog=True)
 
 reject = dict(mag=4e-12, eog=150e-6)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=None, reject=reject, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    picks=picks,
+    baseline=None,
+    reject=reject,
+    preload=True,
+)
 
-epochs.drop_channels(['EOG 061'])
+epochs.drop_channels(["EOG 061"])
 epochs.equalize_event_counts(event_id)
 
 # Obtain the data as a 3D matrix and transpose it such that
@@ -84,7 +93,7 @@ X = [np.transpose(x, (0, 2, 1)) for x in X]
 # %%
 # Find the FieldTrip neighbor definition to setup sensor adjacency
 # ----------------------------------------------------------------
-adjacency, ch_names = find_ch_adjacency(epochs.info, ch_type='mag')
+adjacency, ch_names = find_ch_adjacency(epochs.info, ch_type="mag")
 
 print(type(adjacency))  # it's a sparse matrix!
 
@@ -128,10 +137,15 @@ dfd = n_observations - n_conditions
 f_thresh = scipy.stats.f.ppf(1 - alpha_cluster_forming, dfn=dfn, dfd=dfd)
 
 # run the cluster based permutation analysis
-cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
-                                             threshold=f_thresh, tail=tail,
-                                             n_jobs=None, buffer_size=None,
-                                             adjacency=adjacency)
+cluster_stats = spatio_temporal_cluster_test(
+    X,
+    n_permutations=1000,
+    threshold=f_thresh,
+    tail=tail,
+    n_jobs=None,
+    buffer_size=None,
+    adjacency=adjacency,
+)
 F_obs, clusters, p_values, _ = cluster_stats
 
 # %%
@@ -162,8 +176,8 @@ p_accept = 0.01
 good_cluster_inds = np.where(p_values < p_accept)[0]
 
 # configure variables for visualization
-colors = {"Aud": "crimson", "Vis": 'steelblue'}
-linestyles = {"L": '-', "R": '--'}
+colors = {"Aud": "crimson", "Vis": "steelblue"}
+linestyles = {"L": "-", "R": "--"}
 
 # organize data for plotting
 evokeds = {cond: epochs[cond].average() for cond in event_id}
@@ -190,9 +204,16 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 
     # plot average test statistic and mark significant sensors
     f_evoked = mne.EvokedArray(f_map[:, np.newaxis], epochs.info, tmin=0)
-    f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap='Reds',
-                          vlim=(np.min, np.max), show=False,
-                          colorbar=False, mask_params=dict(markersize=10))
+    f_evoked.plot_topomap(
+        times=0,
+        mask=mask,
+        axes=ax_topo,
+        cmap="Reds",
+        vlim=(np.min, np.max),
+        show=False,
+        colorbar=False,
+        mask_params=dict(markersize=10),
+    )
     image = ax_topo.images[0]
 
     # remove the title that would otherwise say "0.000 s"
@@ -202,28 +223,38 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     divider = make_axes_locatable(ax_topo)
 
     # add axes for colorbar
-    ax_colorbar = divider.append_axes('right', size='5%', pad=0.05)
+    ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
     plt.colorbar(image, cax=ax_colorbar)
     ax_topo.set_xlabel(
-        'Averaged F-map ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
+        "Averaged F-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]])
+    )
 
     # add new axis for time courses and plot time courses
-    ax_signals = divider.append_axes('right', size='300%', pad=1.2)
-    title = 'Cluster #{0}, {1} sensor'.format(i_clu + 1, len(ch_inds))
+    ax_signals = divider.append_axes("right", size="300%", pad=1.2)
+    title = "Cluster #{0}, {1} sensor".format(i_clu + 1, len(ch_inds))
     if len(ch_inds) > 1:
         title += "s (mean)"
-    plot_compare_evokeds(evokeds, title=title, picks=ch_inds, axes=ax_signals,
-                         colors=colors, linestyles=linestyles, show=False,
-                         split_legend=True, truncate_yaxis='auto')
+    plot_compare_evokeds(
+        evokeds,
+        title=title,
+        picks=ch_inds,
+        axes=ax_signals,
+        colors=colors,
+        linestyles=linestyles,
+        show=False,
+        split_legend=True,
+        truncate_yaxis="auto",
+    )
 
     # plot temporal cluster extent
     ymin, ymax = ax_signals.get_ylim()
-    ax_signals.fill_betweenx((ymin, ymax), sig_times[0], sig_times[-1],
-                             color='orange', alpha=0.3)
+    ax_signals.fill_betweenx(
+        (ymin, ymax), sig_times[0], sig_times[-1], color="orange", alpha=0.3
+    )
 
     # clean up viz
     mne.viz.tight_layout(fig=fig)
-    fig.subplots_adjust(bottom=.05)
+    fig.subplots_adjust(bottom=0.05)
     plt.show()
 
 # %%
@@ -240,10 +271,16 @@ freqs = np.arange(7, 30, 3)  # define frequencies of interest
 n_cycles = freqs / freqs[0]
 
 epochs_power = list()
-for condition in [epochs[k] for k in ('Aud/L', 'Vis/L')]:
-    this_tfr = tfr_morlet(condition, freqs, n_cycles=n_cycles,
-                          decim=decim, average=False, return_itc=False)
-    this_tfr.apply_baseline(mode='ratio', baseline=(None, 0))
+for condition in [epochs[k] for k in ("Aud/L", "Vis/L")]:
+    this_tfr = tfr_morlet(
+        condition,
+        freqs,
+        n_cycles=n_cycles,
+        decim=decim,
+        average=False,
+        return_itc=False,
+    )
+    this_tfr.apply_baseline(mode="ratio", baseline=(None, 0))
     epochs_power.append(this_tfr.data)
 
 # transpose again to (epochs, frequencies, times, channels)
@@ -260,8 +297,7 @@ X = [np.transpose(x, (0, 2, 3, 1)) for x in epochs_power]
 # clustered together.
 
 # our data at each observation is of shape frequencies × times × channels
-tfr_adjacency = combine_adjacency(
-    len(freqs), len(this_tfr.times), adjacency)
+tfr_adjacency = combine_adjacency(len(freqs), len(this_tfr.times), adjacency)
 
 # %%
 # Now we can run the cluster permutation test, but first we have to set a
@@ -278,8 +314,14 @@ tfr_threshold = 15.0
 
 # run cluster based permutation analysis
 cluster_stats = spatio_temporal_cluster_test(
-    X, n_permutations=1000, threshold=tfr_threshold, tail=1, n_jobs=None,
-    buffer_size=None, adjacency=tfr_adjacency)
+    X,
+    n_permutations=1000,
+    threshold=tfr_threshold,
+    tail=1,
+    n_jobs=None,
+    buffer_size=None,
+    adjacency=tfr_adjacency,
+)
 
 # %%
 # Finally, we can plot our results. It is difficult to visualize clusters in
@@ -319,49 +361,62 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 
     # plot average test statistic and mark significant sensors
     f_evoked = mne.EvokedArray(f_map[:, np.newaxis], epochs.info, tmin=0)
-    f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap='Reds',
-                          vlim=(np.min, np.max), show=False, colorbar=False,
-                          mask_params=dict(markersize=10))
+    f_evoked.plot_topomap(
+        times=0,
+        mask=mask,
+        axes=ax_topo,
+        cmap="Reds",
+        vlim=(np.min, np.max),
+        show=False,
+        colorbar=False,
+        mask_params=dict(markersize=10),
+    )
     image = ax_topo.images[0]
 
     # create additional axes (for ERF and colorbar)
     divider = make_axes_locatable(ax_topo)
 
     # add axes for colorbar
-    ax_colorbar = divider.append_axes('right', size='5%', pad=0.05)
+    ax_colorbar = divider.append_axes("right", size="5%", pad=0.05)
     plt.colorbar(image, cax=ax_colorbar)
     ax_topo.set_xlabel(
-        'Averaged F-map ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
+        "Averaged F-map ({:0.3f} - {:0.3f} s)".format(*sig_times[[0, -1]])
+    )
 
     # remove the title that would otherwise say "0.000 s"
     ax_topo.set_title("")
 
     # add new axis for spectrogram
-    ax_spec = divider.append_axes('right', size='300%', pad=1.2)
-    title = 'Cluster #{0}, {1} spectrogram'.format(i_clu + 1, len(ch_inds))
+    ax_spec = divider.append_axes("right", size="300%", pad=1.2)
+    title = "Cluster #{0}, {1} spectrogram".format(i_clu + 1, len(ch_inds))
     if len(ch_inds) > 1:
         title += " (max over channels)"
     F_obs_plot = F_obs[..., ch_inds].max(axis=-1)
     F_obs_plot_sig = np.zeros(F_obs_plot.shape) * np.nan
-    F_obs_plot_sig[tuple(np.meshgrid(freq_inds, time_inds))] = \
-        F_obs_plot[tuple(np.meshgrid(freq_inds, time_inds))]
+    F_obs_plot_sig[tuple(np.meshgrid(freq_inds, time_inds))] = F_obs_plot[
+        tuple(np.meshgrid(freq_inds, time_inds))
+    ]
 
-    for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], ['gray', 'autumn']):
-        c = ax_spec.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
-                           extent=[epochs.times[0], epochs.times[-1],
-                                   freqs[0], freqs[-1]])
-    ax_spec.set_xlabel('Time (ms)')
-    ax_spec.set_ylabel('Frequency (Hz)')
+    for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], ["gray", "autumn"]):
+        c = ax_spec.imshow(
+            f_image,
+            cmap=cmap,
+            aspect="auto",
+            origin="lower",
+            extent=[epochs.times[0], epochs.times[-1], freqs[0], freqs[-1]],
+        )
+    ax_spec.set_xlabel("Time (ms)")
+    ax_spec.set_ylabel("Frequency (Hz)")
     ax_spec.set_title(title)
 
     # add another colorbar
-    ax_colorbar2 = divider.append_axes('right', size='5%', pad=0.05)
+    ax_colorbar2 = divider.append_axes("right", size="5%", pad=0.05)
     plt.colorbar(c, cax=ax_colorbar2)
-    ax_colorbar2.set_ylabel('F-stat')
+    ax_colorbar2.set_ylabel("F-stat")
 
     # clean up viz
     mne.viz.tight_layout(fig=fig)
-    fig.subplots_adjust(bottom=.05)
+    fig.subplots_adjust(bottom=0.05)
     plt.show()
 
 

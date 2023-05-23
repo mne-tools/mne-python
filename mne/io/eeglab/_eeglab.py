@@ -31,8 +31,7 @@ def _handle_scipy_ndarray(data):  # taken from pymatreader.utils
     except ImportError:  # scipy < 1.8
         from scipy.io.matlab.mio5 import MatlabFunction
 
-    if data.dtype == np.dtype('object') and not \
-            isinstance(data, MatlabFunction):
+    if data.dtype == np.dtype("object") and not isinstance(data, MatlabFunction):
         as_list = []
         for element in data:
             as_list.append(_check_for_scipy_mat_struct(element))
@@ -60,7 +59,7 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
 
     if isinstance(data, MatlabOpaque):
         try:
-            if data[0][2] == b'string':
+            if data[0][2] == b"string":
                 return None
         except IndexError:
             pass
@@ -73,9 +72,10 @@ def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
 
 def _readmat(fname, uint16_codec=None):
     try:
-        read_mat = _import_pymatreader_funcs('EEGLAB I/O')
+        read_mat = _import_pymatreader_funcs("EEGLAB I/O")
     except RuntimeError:  # pymatreader not installed
         from scipy.io import loadmat
+
         eeg = loadmat(fname, squeeze_me=True, mat_dtype=False)
         return _check_for_scipy_mat_struct(eeg)
     else:

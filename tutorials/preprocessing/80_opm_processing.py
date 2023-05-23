@@ -29,12 +29,17 @@ import numpy as np
 import mne
 
 opm_data_folder = mne.datasets.ucl_opm_auditory.data_path()
-opm_file = (opm_data_folder / 'sub-001' / 'ses-001' / 'meg' /
-            'sub-001_ses-001_task-aef_run-001_meg.bin')
+opm_file = (
+    opm_data_folder
+    / "sub-002"
+    / "ses-001"
+    / "meg"
+    / "sub-002_ses-001_task-aef_run-001_meg.bin"
+)
 # For now we are going to assume the device and head coordinate frames are
 # identical (even though this is incorrect), so we pass verbose='error' for now
-raw = mne.io.read_raw_fil(opm_file, verbose='error')
-raw.crop(120, 240).load_data()  # crop for speed
+raw = mne.io.read_raw_fil(opm_file, verbose="error")
+raw.crop(120, 210).load_data()  # crop for speed
 
 # %%
 # Examining raw data
@@ -56,9 +61,10 @@ fig, ax = plt.subplots(constrained_layout=True)
 plot_kwargs = dict(lw=1, alpha=0.5)
 ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True)
-set_kwargs = dict(ylim=(-500, 500), xlim=time_ds[[0, -1]],
-                  xlabel='Time (s)', ylabel='Amplitude (pT)')
-ax.set(title='No preprocessing', **set_kwargs)
+set_kwargs = dict(
+    ylim=(-500, 500), xlim=time_ds[[0, -1]], xlabel="Time (s)", ylabel="Amplitude (pT)"
+)
+ax.set(title="No preprocessing", **set_kwargs)
 
 # %%
 # Denoising: Regressing via reference sensors
@@ -74,6 +80,7 @@ ax.set(title='No preprocessing', **set_kwargs)
 # To do this in our current dataset, we require a bit of housekeeping.
 # There are a set of channels beginning with the name "Flux" which do not
 # contain any evironmental data, these need to be set to as bad channels.
+# Another channel -- G2-17-TAN -- will also be set to bad.
 #
 # For now we are only interested in removing artefacts seen below 5 Hz, so we
 # initially low-pass filter the good reference channels in this dataset prior
@@ -86,16 +93,17 @@ ax.set(title='No preprocessing', **set_kwargs)
 # experiment is not the most effective approach.
 
 # set flux channels to bad
-bad_picks = mne.pick_channels_regexp(raw.ch_names, regexp='Flux.')
-raw.info['bads'].extend([raw.ch_names[ii] for ii in bad_picks])
+bad_picks = mne.pick_channels_regexp(raw.ch_names, regexp="Flux.")
+raw.info["bads"].extend([raw.ch_names[ii] for ii in bad_picks])
+raw.info["bads"].extend(["G2-17-TAN"])
 
 # compute the PSD for later using 1 Hz resolution
-psd_kwargs = dict(fmax=20, n_fft=int(round(raw.info['sfreq'])))
+psd_kwargs = dict(fmax=20, n_fft=int(round(raw.info["sfreq"])))
 psd_pre = raw.compute_psd(**psd_kwargs)
 
 # filter and regress
-raw.filter(None, 5, picks='ref_meg')
-regress = mne.preprocessing.EOGRegression(picks, picks_artifact='ref_meg')
+raw.filter(None, 5, picks="ref_meg")
+regress = mne.preprocessing.EOGRegression(picks, picks_artifact="ref_meg")
 regress.fit(raw)
 regress.apply(raw, copy=False)
 
@@ -105,8 +113,39 @@ data_ds = data_ds[:, ::step] * amp_scale
 
 fig, ax = plt.subplots(constrained_layout=True)
 ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
-ax.grid(True, ls=':')
-ax.set(title='After reference regression', **set_kwargs)
+ax.grid(True, ls=":")
+ax.set(title="After reference regression", **set_kwargs)
+
+# compute the psd of the regressed data
+psd_post_reg = raw.compute_psd(**psd_kwargs)
+
+# %%
+# Denoising: Regressing via homogeneous field correction
+# ------------------------------------------------------
+#
+# Regression of a reference channel is a start, but in this instance assumes
+# the relatiship between the references and a given sensor on the head as
+# constant. However this becomes less accurate when the reference is not moving
+# but the subject is. An alternative method, Homogeneous Field Correction (HFC)
+# only requires that the sensors on the helmet stationary relative to each
+# other. Which in a well-designed rigid helmet is the case.
+
+
+# include gradients by setting order to 2, set to 1 for homgenous components
+projs = mne.preprocessing.compute_proj_hfc(raw.info, order=2)
+raw.add_proj(projs).apply_proj(verbose="error")
+
+# plot
+data_ds, _ = raw[picks[::5], :stop]
+data_ds = data_ds[:, ::step] * amp_scale
+
+fig, ax = plt.subplots(constrained_layout=True)
+ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
+ax.grid(True, ls=":")
+ax.set(title="After HFC", **set_kwargs)
+
+# compute the psd of the regressed data
+psd_post_hfc = raw.compute_psd(**psd_kwargs)
 
 # %%
 # Comparing denoising methods
@@ -118,17 +157,41 @@ ax.set(title='After reference regression', **set_kwargs)
 # after processing. We will use metric called the shielding factor to summarise
 # the values. Positive shielding factors indicate a reduction in power, whilst
 # negative means in increase.
+#
+# We see that reference regression does a good job in reducing low frequency
+# drift up to ~2 Hz, with 20 dB of shielding. But rapidly drops off due to
+# low pass filtering the reference signal at 5 Hz. We also can see that this
+# method is also introducing additional interference at 3 Hz.
+#
+# HFC improves on the low frequency shielding (up to 32 dB). Also this method
+# is not frequency-specific so we observe broadband interference reduction.
 
-# psd_pre was computed above before regression
-psd_post = raw.compute_psd(**psd_kwargs)
-shielding = 10 * np.log10(psd_pre[:] / psd_post[:])
+shielding = 10 * np.log10(psd_pre[:] / psd_post_reg[:])
 
 fig, ax = plt.subplots(constrained_layout=True)
-ax.plot(psd_post.freqs, shielding.T, **plot_kwargs)
-ax.grid(True, ls=':')
-ax.set(xticks=psd_post.freqs)
-ax.set(xlim=(0, 20), title='Reference regression shielding',
-       xlabel='Frequency (Hz)', ylabel='Shielding (dB)')
+ax.plot(psd_post_reg.freqs, shielding.T, **plot_kwargs)
+ax.grid(True, ls=":")
+ax.set(xticks=psd_post_reg.freqs)
+ax.set(
+    xlim=(0, 20),
+    title="Reference regression shielding",
+    xlabel="Frequency (Hz)",
+    ylabel="Shielding (dB)",
+)
+
+
+shielding = 10 * np.log10(psd_pre[:] / psd_post_hfc[:])
+
+fig, ax = plt.subplots(constrained_layout=True)
+ax.plot(psd_post_hfc.freqs, shielding.T, **plot_kwargs)
+ax.grid(True, ls=":")
+ax.set(xticks=psd_post_hfc.freqs)
+ax.set(
+    xlim=(0, 20),
+    title="Reference regression & HFC shielding",
+    xlabel="Frequency (Hz)",
+    ylabel="Shielding (dB)",
+)
 
 # %%
 # Filtering nuisance signals
@@ -141,14 +204,14 @@ ax.set(xlim=(0, 20), title='Reference regression shielding',
 # to the neural signals we are interested in).
 #
 # We are going to remove the 50 Hz mains signal with a notch filter,
-# followed by a bandpass filter between 1 and 48 Hz. From here it becomes clear
+# followed by a bandpass filter between 2 and 40 Hz. From here it becomes clear
 # that the variance in our signal has been reduced from 100s of pT to 10s of
 # pT instead.
 
 # notch
-raw.notch_filter(np.arange(50, 251, 50))
+raw.notch_filter(np.arange(50, 251, 50), notch_widths=4)
 # bandpass
-raw.filter(1, 48, picks='meg')
+raw.filter(2, 40, picks="meg")
 # plot
 data_ds, _ = raw[picks[::5], :stop]
 data_ds = data_ds[:, ::step] * amp_scale
@@ -156,9 +219,10 @@ fig, ax = plt.subplots(constrained_layout=True)
 plot_kwargs = dict(lw=1, alpha=0.5)
 ax.plot(time_ds, data_ds.T - np.mean(data_ds, axis=1), **plot_kwargs)
 ax.grid(True)
-set_kwargs = dict(ylim=(-500, 500), xlim=time_ds[[0, -1]],
-                  xlabel='Time (s)', ylabel='Amplitude (pT)')
-ax.set(title='After regression and filtering', **set_kwargs)
+set_kwargs = dict(
+    ylim=(-500, 500), xlim=time_ds[[0, -1]], xlabel="Time (s)", ylabel="Amplitude (pT)"
+)
+ax.set(title="After regression, HFC and filtering", **set_kwargs)
 
 # %%
 # Generating an evoked response
@@ -167,10 +231,12 @@ ax.set(title='After regression and filtering', **set_kwargs)
 # With the data preprocessed, it is now possible to see an auditory evoked
 # response at the sensor level.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 7
 
 events = mne.find_events(raw, min_duration=0.1)
-epochs = mne.Epochs(raw, events, tmin=-0.1, tmax=0.4, baseline=(-0.1, 0.))
+epochs = mne.Epochs(
+    raw, events, tmin=-0.1, tmax=0.4, baseline=(-0.1, 0.0), verbose="error"
+)
 evoked = epochs.average()
 evoked.plot()
 

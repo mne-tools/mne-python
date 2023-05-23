@@ -28,13 +28,13 @@ print(__doc__)
 # Organize the data that we will use for this example.
 
 data_path = somato.data_path()
-subject = '01'
-task = 'somato'
-raw_fname = (data_path / f'sub-{subject}' / 'meg' /
-             f'sub-{subject}_task-{task}_meg.fif')
-fname_fwd = (data_path / 'derivatives' / f'sub-{subject}' /
-             f'sub-{subject}_task-{task}-fwd.fif')
-subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
+subject = "01"
+task = "somato"
+raw_fname = data_path / f"sub-{subject}" / "meg" / f"sub-{subject}_task-{task}_meg.fif"
+fname_fwd = (
+    data_path / "derivatives" / f"sub-{subject}" / f"sub-{subject}_task-{task}-fwd.fif"
+)
+subjects_dir = data_path / "derivatives" / "freesurfer" / "subjects"
 
 # %%
 # First, we load the data and compute for each epoch the time-frequency
@@ -43,11 +43,19 @@ subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
 # Load raw data and make epochs.
 raw = mne.io.read_raw_fif(raw_fname)
 events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-1, tmax=2.5,
-                    reject=dict(grad=5000e-13,  # unit: T / m (gradiometers)
-                                mag=5e-12,      # unit: T (magnetometers)
-                                eog=250e-6,    # unit: V (EOG channels)
-                                ), preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id=1,
+    tmin=-1,
+    tmax=2.5,
+    reject=dict(
+        grad=5000e-13,  # unit: T / m (gradiometers)
+        mag=5e-12,  # unit: T (magnetometers)
+        eog=250e-6,  # unit: V (EOG channels)
+    ),
+    preload=True,
+)
 epochs = epochs[:10]  # just for speed of execution for the tutorial
 
 # We are mostly interested in the beta band since it has been shown to be
@@ -58,8 +66,9 @@ freqs = np.linspace(13, 31, 5)
 # decomposition for each epoch. We must pass ``output='complex'`` if we wish to
 # use this TFR later with a DICS beamformer. We also pass ``average=False`` to
 # compute the TFR for each individual epoch.
-epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=5, return_itc=False,
-                        output='complex', average=False)
+epochs_tfr = tfr_morlet(
+    epochs, freqs, n_cycles=5, return_itc=False, output="complex", average=False
+)
 
 # crop either side to use a buffer to remove edge artifact
 epochs_tfr.crop(tmin=-0.5, tmax=2)
@@ -78,15 +87,21 @@ baseline_csd = csd_tfr(epochs_tfr, tmin=-0.5, tmax=-0.1)
 fwd = mne.read_forward_solution(fname_fwd)
 
 # compute scalar DICS beamfomer
-filters = make_dics(epochs.info, fwd, csd, noise_csd=baseline_csd,
-                    pick_ori='max-power', reduce_rank=True, real_filter=True)
+filters = make_dics(
+    epochs.info,
+    fwd,
+    csd,
+    noise_csd=baseline_csd,
+    pick_ori="max-power",
+    reduce_rank=True,
+    real_filter=True,
+)
 
 # project the TFR for each epoch to source space
-epochs_stcs = apply_dics_tfr_epochs(
-    epochs_tfr, filters, return_generator=True)
+epochs_stcs = apply_dics_tfr_epochs(epochs_tfr, filters, return_generator=True)
 
 # average across frequencies and epochs
-data = np.zeros((fwd['nsource'], epochs_tfr.times.size))
+data = np.zeros((fwd["nsource"], epochs_tfr.times.size))
 for epoch_stcs in epochs_stcs:
     for stc in epoch_stcs:
         data += (stc.data * np.conj(stc.data)).real
@@ -104,13 +119,17 @@ stc.apply_baseline((-0.5, -0.1))
 fmax = 4500
 brain = stc.plot(
     subjects_dir=subjects_dir,
-    hemi='both',
-    views='dorsal',
+    hemi="both",
+    views="dorsal",
     initial_time=0.55,
     brain_kwargs=dict(show=False),
-    add_data_kwargs=dict(fmin=fmax / 10, fmid=fmax / 2, fmax=fmax,
-                         scale_factor=0.0001,
-                         colorbar_kwargs=dict(label_font_size=10))
+    add_data_kwargs=dict(
+        fmin=fmax / 10,
+        fmid=fmax / 2,
+        fmax=fmax,
+        scale_factor=0.0001,
+        colorbar_kwargs=dict(label_font_size=10),
+    ),
 )
 
 # You can save a movie like the one on our documentation website with:

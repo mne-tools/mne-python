@@ -21,8 +21,14 @@ import numpy as np
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from ..fixes import (_infer_dimension_, svd_flip, stable_cumsum, _safe_svd,
-                     jit, has_numba)
+from ..fixes import (
+    _infer_dimension_,
+    svd_flip,
+    stable_cumsum,
+    _safe_svd,
+    jit,
+    has_numba,
+)
 from .docs import fill_doc
 
 
@@ -45,8 +51,9 @@ def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
     indices_or_sections = _ensure_int(indices_or_sections)
     ary_split = np.array_split(ary, indices_or_sections, axis=axis)
     idx_split = np.array_split(np.arange(ary.shape[axis]), indices_or_sections)
-    idx_split = (np.arange(sp[0] * n_per_split, (sp[-1] + 1) * n_per_split)
-                 for sp in idx_split)
+    idx_split = (
+        np.arange(sp[0] * n_per_split, (sp[-1] + 1) * n_per_split) for sp in idx_split
+    )
     return zip(idx_split, ary_split)
 
 
@@ -60,7 +67,7 @@ def create_chunks(sequence, size):
     size : int
         The chunksize to be returned
     """
-    return (sequence[p:p + size] for p in range(0, len(sequence), size))
+    return (sequence[p : p + size] for p in range(0, len(sequence), size))
 
 
 def sum_squared(X):
@@ -76,18 +83,18 @@ def sum_squared(X):
     value : float
         Sum of squares of the input array X.
     """
-    X_flat = X.ravel(order='F' if np.isfortran(X) else 'C')
+    X_flat = X.ravel(order="F" if np.isfortran(X) else "C")
     return np.dot(X_flat, X_flat)
 
 
 def _compute_row_norms(data):
     """Compute scaling based on estimated norm."""
-    norms = np.sqrt(np.sum(data ** 2, axis=1))
+    norms = np.sqrt(np.sum(data**2, axis=1))
     norms[norms == 0] = 1.0
     return norms
 
 
-def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
+def _reg_pinv(x, reg=0, rank="full", rcond=1e-15):
     """Compute a regularized pseudoinverse of Hermitian matrices.
 
     Regularization is performed by adding a constant value to each diagonal
@@ -133,12 +140,13 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
         returned.
     """
     from ..rank import _estimate_rank_from_s
-    if rank is not None and rank != 'full':
+
+    if rank is not None and rank != "full":
         rank = int(operator.index(rank))
     if x.ndim < 2 or x.shape[-2] != x.shape[-1]:
-        raise ValueError('Input matrix must be square.')
+        raise ValueError("Input matrix must be square.")
     if not np.allclose(x, x.conj().swapaxes(-2, -1)):
-        raise ValueError('Input matrix must be Hermitian (symmetric)')
+        raise ValueError("Input matrix must be Hermitian (symmetric)")
     assert x.ndim >= 2 and x.shape[-2] == x.shape[-1]
     n = x.shape[-1]
 
@@ -146,36 +154,35 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     U, s, Vh = np.linalg.svd(x, hermitian=True)
 
     # Estimate the rank before regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
+    tol = "auto" if rcond == "auto" else rcond * s[..., :1]
     rank_before = _estimate_rank_from_s(s, tol)
 
     # Decompose the matrix again after regularization
     loading_factor = reg * np.mean(s, axis=-1)
     if reg:
         U, s, Vh = np.linalg.svd(
-            x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n),
-            hermitian=True)
+            x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n), hermitian=True
+        )
 
     # Estimate the rank after regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
+    tol = "auto" if rcond == "auto" else rcond * s[..., :1]
     rank_after = _estimate_rank_from_s(s, tol)
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
-    if (rank_after < n).any() and reg == 0 and \
-            rank == 'full' and rcond == 1e-15:
-        warn('Covariance matrix is rank-deficient and no regularization is '
-             'done.')
+    if (rank_after < n).any() and reg == 0 and rank == "full" and rcond == 1e-15:
+        warn("Covariance matrix is rank-deficient and no regularization is " "done.")
     elif isinstance(rank, int) and rank > n:
-        raise ValueError('Invalid value for the rank parameter (%d) given '
-                         'the shape of the input matrix (%d x %d).' %
-                         (rank, x.shape[0], x.shape[1]))
+        raise ValueError(
+            "Invalid value for the rank parameter (%d) given "
+            "the shape of the input matrix (%d x %d)." % (rank, x.shape[0], x.shape[1])
+        )
 
     # Pick the requested number of singular values
     mask = np.arange(s.shape[-1]).reshape((1,) * (x.ndim - 2) + (-1,))
     if rank is None:
         cmp = ret = rank_before
-    elif rank == 'full':
+    elif rank == "full":
         cmp = rank_after
         ret = rank_before
     else:
@@ -185,7 +192,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     # Invert only non-zero singular values
     s_inv = np.zeros(s.shape)
-    s_inv[mask] = 1. / s[mask]
+    s_inv[mask] = 1.0 / s[mask]
 
     # Compute the pseudo inverse
     x_inv = np.matmul(U * s_inv[..., np.newaxis, :], Vh)
@@ -195,8 +202,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
 def _gen_events(n_epochs):
     """Generate event structure from number of epochs."""
-    events = np.c_[np.arange(n_epochs), np.zeros(n_epochs, int),
-                   np.ones(n_epochs, int)]
+    events = np.c_[np.arange(n_epochs), np.zeros(n_epochs, int), np.ones(n_epochs, int)]
     return events
 
 
@@ -207,7 +213,7 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
 
     data_clean = np.empty_like(data)
     idx_by_type = channel_indices_by_type(info)
-    step = int(ceil(tstep * info['sfreq']))
+    step = int(ceil(tstep * info["sfreq"]))
     if decim is not None:
         step = int(ceil(step / float(decim)))
     this_start = 0
@@ -218,8 +224,14 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
         data_buffer = data[:, first:last]
         if data_buffer.shape[1] < (last - first):
             break  # end of the time segment
-        if _is_good(data_buffer, info['ch_names'], idx_by_type, reject,
-                    flat, ignore_chs=info['bads']):
+        if _is_good(
+            data_buffer,
+            info["ch_names"],
+            idx_by_type,
+            reject,
+            flat,
+            ignore_chs=info["bads"],
+        ):
             this_stop = this_start + data_buffer.shape[1]
             data_clean[:, this_start:this_stop] = data_buffer
             this_start += data_buffer.shape[1]
@@ -228,9 +240,11 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
             drop_inds.append((first, last))
     data = data_clean[:, :this_stop]
     if not data.any():
-        raise RuntimeError('No clean segment found. Please '
-                           'consider updating your rejection '
-                           'thresholds.')
+        raise RuntimeError(
+            "No clean segment found. Please "
+            "consider updating your rejection "
+            "thresholds."
+        )
     return data, drop_inds
 
 
@@ -250,7 +264,7 @@ def _get_inst_data(inst):
 def compute_corr(x, y):
     """Compute pearson correlations between a vector and a matrix."""
     if len(x) == 0 or len(y) == 0:
-        raise ValueError('x or y has zero length')
+        raise ValueError("x or y has zero length")
     X = np.array(x, float)
     Y = np.array(y, float)
     X -= X.mean(0)
@@ -305,28 +319,26 @@ def _apply_scaling_array(data, picks_list, scalings, verbose=None):
     """Scale data type-dependently for estimation."""
     scalings = _check_scaling_inputs(data, picks_list, scalings)
     if isinstance(scalings, dict):
-        logger.debug('    Scaling using mapping %s.' % (scalings,))
+        logger.debug("    Scaling using mapping %s." % (scalings,))
         picks_dict = dict(picks_list)
-        scalings = [(picks_dict[k], v) for k, v in scalings.items()
-                    if k in picks_dict]
+        scalings = [(picks_dict[k], v) for k, v in scalings.items() if k in picks_dict]
         for idx, scaling in scalings:
             data[idx, :] *= scaling  # F - order
     else:
-        logger.debug('    Scaling using computed norms.')
+        logger.debug("    Scaling using computed norms.")
         data *= scalings[:, np.newaxis]  # F - order
 
 
 def _invert_scalings(scalings):
     if isinstance(scalings, dict):
-        scalings = {k: 1. / v for k, v in scalings.items()}
+        scalings = {k: 1.0 / v for k, v in scalings.items()}
     elif isinstance(scalings, np.ndarray):
-        scalings = 1. / scalings
+        scalings = 1.0 / scalings
     return scalings
 
 
 def _undo_scaling_array(data, picks_list, scalings):
-    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
-                                                      scalings))
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list, scalings))
     return _apply_scaling_array(data, picks_list, scalings, verbose=False)
 
 
@@ -354,21 +366,19 @@ def _apply_scaling_cov(data, picks_list, scalings):
             scales[idx] = scalings[ch_t]
     elif isinstance(scalings, np.ndarray):
         if len(scalings) != len(data):
-            raise ValueError('Scaling factors and data are of incompatible '
-                             'shape')
+            raise ValueError("Scaling factors and data are of incompatible " "shape")
         scales = scalings
     elif scalings is None:
         pass
     else:
-        raise RuntimeError('Arff...')
+        raise RuntimeError("Arff...")
     if scales is not None:
-        assert np.sum(scales == 0.) == 0
-        data *= (scales[None, :] * scales[:, None])
+        assert np.sum(scales == 0.0) == 0
+        data *= scales[None, :] * scales[:, None]
 
 
 def _undo_scaling_cov(data, picks_list, scalings):
-    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list,
-                                                      scalings))
+    scalings = _invert_scalings(_check_scaling_inputs(data, picks_list, scalings))
     return _apply_scaling_cov(data, picks_list, scalings)
 
 
@@ -377,8 +387,8 @@ def _check_scaling_inputs(data, picks_list, scalings):
     rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
 
     scalings_ = None
-    if isinstance(scalings, str) and scalings == 'norm':
-        scalings_ = 1. / _compute_row_norms(data)
+    if isinstance(scalings, str) and scalings == "norm":
+        scalings_ = 1.0 / _compute_row_norms(data)
     elif isinstance(scalings, dict):
         rescale_dict_.update(scalings)
         scalings_ = rescale_dict_
@@ -387,8 +397,9 @@ def _check_scaling_inputs(data, picks_list, scalings):
     elif scalings is None:
         pass
     else:
-        raise NotImplementedError("No way! That's not a rescaling "
-                                  'option: %s' % scalings)
+        raise NotImplementedError(
+            "No way! That's not a rescaling " "option: %s" % scalings
+        )
     return scalings_
 
 
@@ -411,7 +422,7 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
         hasher = hashlib.md5()
     elif hash_type == "sha1":
         hasher = hashlib.sha1()
-    with open(fname, 'rb') as fid:
+    with open(fname, "rb") as fid:
         while True:
             data = fid.read(block_size)
             if not data:
@@ -423,7 +434,7 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
 def _replace_md5(fname):
     """Replace a file based on MD5sum."""
     # adapted from sphinx-gallery
-    assert fname.endswith('.new')
+    assert fname.endswith(".new")
     fname_old = fname[:-4]
     if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
         os.remove(fname)
@@ -456,13 +467,13 @@ def create_slices(start, stop, step=None, length=1):
         step = length
 
     # slicing
-    slices = [slice(t, t + length, 1) for t in
-              range(start, stop - length + 1, step)]
+    slices = [slice(t, t + length, 1) for t in range(start, stop - length + 1, step)]
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True,
-               include_tmax=True):
+def _time_mask(
+    times, tmin=None, tmax=None, sfreq=None, raise_error=True, include_tmax=True
+):
     """Safely find sample boundaries."""
     orig_tmin = tmin
     orig_tmax = tmax
@@ -482,15 +493,18 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True,
     else:
         assert include_tmax  # can only be used when sfreq is known
     if raise_error and tmin > tmax:
-        raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
-                         % (orig_tmin, orig_tmax))
-    mask = (times >= tmin)
-    mask &= (times <= tmax)
+        raise ValueError(
+            "tmin (%s) must be less than or equal to tmax (%s)" % (orig_tmin, orig_tmax)
+        )
+    mask = times >= tmin
+    mask &= times <= tmax
     if raise_error and not mask.any():
-        extra = '' if include_tmax else 'when include_tmax=False '
-        raise ValueError('No samples remain when using tmin=%s and tmax=%s %s'
-                         '(original time bounds are [%s, %s])'
-                         % (orig_tmin, orig_tmax, extra, times[0], times[-1]))
+        extra = "" if include_tmax else "when include_tmax=False "
+        raise ValueError(
+            "No samples remain when using tmin=%s and tmax=%s %s"
+            "(original time bounds are [%s, %s])"
+            % (orig_tmin, orig_tmax, extra, times[0], times[-1])
+        )
     return mask
 
 
@@ -505,20 +519,23 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
     if not np.isfinite(fmax):
         fmax = freqs[-1]
     if sfreq is None:
-        raise ValueError('sfreq can not be None')
+        raise ValueError("sfreq can not be None")
     # Push 0.5/sfreq past the nearest frequency boundary first
     sfreq = float(sfreq)
     fmin = int(round(fmin * sfreq)) / sfreq - 0.5 / sfreq
     fmax = int(round(fmax * sfreq)) / sfreq + 0.5 / sfreq
     if raise_error and fmin > fmax:
-        raise ValueError('fmin (%s) must be less than or equal to fmax (%s)'
-                         % (orig_fmin, orig_fmax))
-    mask = (freqs >= fmin)
-    mask &= (freqs <= fmax)
+        raise ValueError(
+            "fmin (%s) must be less than or equal to fmax (%s)" % (orig_fmin, orig_fmax)
+        )
+    mask = freqs >= fmin
+    mask &= freqs <= fmax
     if raise_error and not mask.any():
-        raise ValueError('No frequencies remain when using fmin=%s and '
-                         'fmax=%s (original frequency bounds are [%s, %s])'
-                         % (orig_fmin, orig_fmax, freqs[0], freqs[-1]))
+        raise ValueError(
+            "No frequencies remain when using fmin=%s and "
+            "fmax=%s (original frequency bounds are [%s, %s])"
+            % (orig_fmin, orig_fmax, freqs[0], freqs[-1])
+        )
     return mask
 
 
@@ -566,14 +583,14 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from ..channels.channels import equalize_channels
 
     if not all_inst:
-        raise ValueError('Please pass a list of Evoked or AverageTFR objects.')
+        raise ValueError("Please pass a list of Evoked or AverageTFR objects.")
     elif len(all_inst) == 1:
-        warn('Only a single dataset was passed to mne.grand_average().')
+        warn("Only a single dataset was passed to mne.grand_average().")
 
     inst_type = type(all_inst[0])
-    _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
+    _validate_type(all_inst[0], (Evoked, AverageTFR), "All elements")
     for inst in all_inst:
-        _validate_type(inst, inst_type, 'All elements', 'of the same type')
+        _validate_type(inst, inst_type, "All elements", "of the same type")
 
     # Copy channels to leave the original evoked datasets intact.
     all_inst = [inst.copy() for inst in all_inst]
@@ -581,21 +598,23 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # Interpolates if necessary
     if isinstance(all_inst[0], Evoked):
         if interpolate_bads:
-            all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
-                        else inst for inst in all_inst]
+            all_inst = [
+                inst.interpolate_bads() if len(inst.info["bads"]) > 0 else inst
+                for inst in all_inst
+            ]
         from ..evoked import combine_evoked as combine
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
 
     if drop_bads:
-        bads = list({b for inst in all_inst for b in inst.info['bads']})
+        bads = list({b for inst in all_inst for b in inst.info["bads"]})
         if bads:
             for inst in all_inst:
                 inst.drop_channels(bads)
 
     equalize_channels(all_inst, copy=False)
     # make grand_average object using combine_[evoked/tfr]
-    grand_average = combine(all_inst, weights='equal')
+    grand_average = combine(all_inst, weights="equal")
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_inst)
     # change comment field
@@ -632,9 +651,10 @@ def object_hash(x, h=None):
         The digest resulting from the hash.
     """
     from scipy import sparse
+
     if h is None:
         h = hashlib.md5()
-    if hasattr(x, 'keys'):
+    if hasattr(x, "keys"):
         # dict-like types
         keys = _sort_keys(x)
         for key in keys:
@@ -644,29 +664,29 @@ def object_hash(x, h=None):
         # must come before "str" below
         h.update(x)
     elif isinstance(x, (str, float, int, type(None))):
-        h.update(str(type(x)).encode('utf-8'))
-        h.update(str(x).encode('utf-8'))
+        h.update(str(type(x)).encode("utf-8"))
+        h.update(str(x).encode("utf-8"))
     elif isinstance(x, (np.ndarray, np.number, np.bool_)):
         x = np.asarray(x)
-        h.update(str(x.shape).encode('utf-8'))
-        h.update(str(x.dtype).encode('utf-8'))
+        h.update(str(x.shape).encode("utf-8"))
+        h.update(str(x.dtype).encode("utf-8"))
         h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif sparse.issparse(x):
-        h.update(str(type(x)).encode('utf-8'))
+        h.update(str(type(x)).encode("utf-8"))
         if not isinstance(x, (sparse.csr_matrix, sparse.csc_matrix)):
-            raise RuntimeError(f'Unsupported sparse type {type(x)}')
+            raise RuntimeError(f"Unsupported sparse type {type(x)}")
         h.update(x.data.tobytes())
         h.update(x.indices.tobytes())
         h.update(x.indptr.tobytes())
-    elif hasattr(x, '__len__'):
+    elif hasattr(x, "__len__"):
         # all other list-like types
-        h.update(str(type(x)).encode('utf-8'))
+        h.update(str(type(x)).encode("utf-8"))
         for xx in x:
             object_hash(xx, h)
     else:
-        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+        raise RuntimeError("unsupported type: %s (%s)" % (type(x), x))
     return int(h.hexdigest(), 16)
 
 
@@ -688,6 +708,7 @@ def object_size(x, memo=None):
         The estimated size in bytes of the object.
     """
     from scipy import sparse
+
     # Note: this will not process object arrays properly (since those only)
     # hold references
     if memo is None:
@@ -715,10 +736,9 @@ def object_size(x, memo=None):
     elif isinstance(x, datetime):
         size = object_size(_dt_to_stamp(x), memo)
     elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
-        size = sum(sys.getsizeof(xx)
-                   for xx in [x, x.data, x.indices, x.indptr])
+        size = sum(sys.getsizeof(xx) for xx in [x, x.data, x.indices, x.indptr])
     else:
-        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+        raise RuntimeError("unsupported type: %s (%s)" % (type(x), x))
     memo[id_] = size
     return size
 
@@ -743,7 +763,7 @@ def _array_equal_nan(a, b, allclose=False):
     return True
 
 
-def object_diff(a, b, pre='', *, allclose=False):
+def object_diff(a, b, pre="", *, allclose=False):
     """Compute all differences between two python variables.
 
     Parameters
@@ -764,71 +784,71 @@ def object_diff(a, b, pre='', *, allclose=False):
         A string representation of the differences.
     """
     from scipy import sparse
-    out = ''
+
+    out = ""
     if type(a) != type(b):
         # Deal with NamedInt and NamedFloat
         for sub in (int, float):
             if isinstance(a, sub) and isinstance(b, sub):
                 break
         else:
-            return (f'{pre} type mismatch ({type(a)}, {type(b)})\n')
+            return f"{pre} type mismatch ({type(a)}, {type(b)})\n"
     if inspect.isclass(a):
         if inspect.isclass(b) and a != b:
-            return f'{pre} class mismatch ({a}, {b})\n'
+            return f"{pre} class mismatch ({a}, {b})\n"
     elif isinstance(a, dict):
         k1s = _sort_keys(a)
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
         if len(m1):
-            out += pre + ' left missing keys %s\n' % (m1)
+            out += pre + " left missing keys %s\n" % (m1)
         for key in k1s:
             if key not in k2s:
-                out += pre + ' right missing key %s\n' % key
+                out += pre + " right missing key %s\n" % key
             else:
-                out += object_diff(a[key], b[key],
-                                   pre=(pre + '[%s]' % repr(key)),
-                                   allclose=allclose)
+                out += object_diff(
+                    a[key], b[key], pre=(pre + "[%s]" % repr(key)), allclose=allclose
+                )
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
-            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
+            out += pre + " length mismatch (%s, %s)\n" % (len(a), len(b))
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(
-                    xx1, xx2, pre + '[%s]' % ii, allclose=allclose)
+                out += object_diff(xx1, xx2, pre + "[%s]" % ii, allclose=allclose)
     elif isinstance(a, float):
         if not _array_equal_nan(a, b, allclose):
-            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+            out += pre + " value mismatch (%s, %s)\n" % (a, b)
     elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
-            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+            out += pre + " value mismatch (%s, %s)\n" % (a, b)
     elif a is None:
         if b is not None:
-            out += pre + ' left is None, right is not (%s)\n' % (b)
+            out += pre + " left is None, right is not (%s)\n" % (b)
     elif isinstance(a, np.ndarray):
         if not _array_equal_nan(a, b, allclose):
-            out += pre + ' array mismatch\n'
+            out += pre + " array mismatch\n"
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
-            out += pre + ' StringIO mismatch\n'
+            out += pre + " StringIO mismatch\n"
     elif isinstance(a, datetime):
         if (a - b).total_seconds() != 0:
-            out += pre + ' datetime mismatch\n'
+            out += pre + " datetime mismatch\n"
     elif sparse.isspmatrix(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
-            out += pre + (' sparse matrix a and b shape mismatch'
-                          '(%s vs %s)' % (a.shape, b.shape))
+            out += pre + (
+                " sparse matrix a and b shape mismatch"
+                "(%s vs %s)" % (a.shape, b.shape)
+            )
         else:
             c = a - b
             c.eliminate_zeros()
             if c.nnz > 0:
-                out += pre + (' sparse matrix a and b differ on %s '
-                              'elements' % c.nnz)
-    elif hasattr(a, '__getstate__'):
-        out += object_diff(a.__getstate__(), b.__getstate__(), pre,
-                           allclose=allclose)
+                out += pre + (" sparse matrix a and b differ on %s " "elements" % c.nnz)
+    elif hasattr(a, "__getstate__") and a.__getstate__() is not None:
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre, allclose=allclose)
     else:
-        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+        raise RuntimeError(pre + ": unsupported type %s (%s)" % (type(a), a))
     return out
 
 
@@ -845,14 +865,14 @@ class _PCA:
     def fit_transform(self, X, y=None):
         X = X.copy()
         U, S, _ = self._fit(X)
-        U = U[:, :self.n_components_]
+        U = U[:, : self.n_components_]
 
         if self.whiten:
             # X_new = X * V / S * sqrt(n_samples) = U * sqrt(n_samples)
             U *= sqrt(X.shape[0] - 1)
         else:
             # X_new = X * V = U * S * V^T * V = U * S
-            U *= S[:self.n_components_]
+            U *= S[: self.n_components_]
 
         return U
 
@@ -863,21 +883,24 @@ class _PCA:
             n_components = self.n_components
         n_samples, n_features = X.shape
 
-        if n_components == 'mle':
+        if n_components == "mle":
             if n_samples < n_features:
-                raise ValueError("n_components='mle' is only supported "
-                                 "if n_samples >= n_features")
+                raise ValueError(
+                    "n_components='mle' is only supported " "if n_samples >= n_features"
+                )
         elif not 0 <= n_components <= min(n_samples, n_features):
-            raise ValueError("n_components=%r must be between 0 and "
-                             "min(n_samples, n_features)=%r with "
-                             "svd_solver='full'"
-                             % (n_components, min(n_samples, n_features)))
+            raise ValueError(
+                "n_components=%r must be between 0 and "
+                "min(n_samples, n_features)=%r with "
+                "svd_solver='full'" % (n_components, min(n_samples, n_features))
+            )
         elif n_components >= 1:
             if not isinstance(n_components, (numbers.Integral, np.integer)):
-                raise ValueError("n_components=%r must be of type int "
-                                 "when greater than or equal to 1, "
-                                 "was of type=%r"
-                                 % (n_components, type(n_components)))
+                raise ValueError(
+                    "n_components=%r must be of type int "
+                    "when greater than or equal to 1, "
+                    "was of type=%r" % (n_components, type(n_components))
+                )
 
         self.mean_ = np.mean(X, axis=0)
         X -= self.mean_
@@ -889,15 +912,14 @@ class _PCA:
         components_ = V
 
         # Get variance explained by singular values
-        explained_variance_ = (S ** 2) / (n_samples - 1)
+        explained_variance_ = (S**2) / (n_samples - 1)
         total_var = explained_variance_.sum()
         explained_variance_ratio_ = explained_variance_ / total_var
         singular_values_ = S.copy()  # Store the singular values.
 
         # Postprocess the number of components required
-        if n_components == 'mle':
-            n_components = \
-                _infer_dimension_(explained_variance_, n_samples, n_features)
+        if n_components == "mle":
+            n_components = _infer_dimension_(explained_variance_, n_samples, n_features)
         elif 0 < n_components < 1.0:
             # number of components for which the cumulated explained
             # variance percentage is superior to the desired threshold
@@ -909,14 +931,13 @@ class _PCA:
         if n_components < min(n_features, n_samples):
             self.noise_variance_ = explained_variance_[n_components:].mean()
         else:
-            self.noise_variance_ = 0.
+            self.noise_variance_ = 0.0
 
         self.n_samples_, self.n_features_ = n_samples, n_features
         self.components_ = components_[:n_components]
         self.n_components_ = n_components
         self.explained_variance_ = explained_variance_[:n_components]
-        self.explained_variance_ratio_ = \
-            explained_variance_ratio_[:n_components]
+        self.explained_variance_ratio_ = explained_variance_ratio_[:n_components]
         self.singular_values_ = singular_values_[:n_components]
 
         return U, S, V
@@ -1006,8 +1027,7 @@ def _cal_to_julian(year, month, day):
     jd: int
         Julian date.
     """
-    return int(_dt_to_julian(datetime(year, month, day, 12, 0, 0,
-                                      tzinfo=timezone.utc)))
+    return int(_dt_to_julian(datetime(year, month, day, 12, 0, 0, tzinfo=timezone.utc)))
 
 
 def _julian_to_cal(jd):
@@ -1033,9 +1053,12 @@ def _julian_to_cal(jd):
 
 
 def _check_dt(dt):
-    if not isinstance(dt, datetime) or dt.tzinfo is None or \
-            dt.tzinfo is not timezone.utc:
-        raise ValueError('Date must be datetime object in UTC: %r' % (dt,))
+    if (
+        not isinstance(dt, datetime)
+        or dt.tzinfo is None
+        or dt.tzinfo is not timezone.utc
+    ):
+        raise ValueError("Date must be datetime object in UTC: %r" % (dt,))
 
 
 def _dt_to_stamp(inp_date):
@@ -1050,8 +1073,9 @@ def _stamp_to_dt(utc_stamp):
     stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return (datetime.fromtimestamp(0, tz=timezone.utc) +
-            timedelta(seconds=stamp[0], microseconds=stamp[1]))
+    return datetime.fromtimestamp(0, tz=timezone.utc) + timedelta(
+        seconds=stamp[0], microseconds=stamp[1]
+    )
 
 
 class _ReuseCycle:
@@ -1085,7 +1109,7 @@ class _ReuseCycle:
         try:
             idx = self.popped.pop(val)
         except KeyError:
-            warn('Could not find value: %s' % (val,))
+            warn("Could not find value: %s" % (val,))
         else:
             loc = np.searchsorted(self.indices, idx)
             self.indices.insert(loc, idx)
@@ -1098,12 +1122,14 @@ def _arange_div_fallback(n, d):
 
 
 if has_numba:
+
     @jit(fastmath=False)
     def _arange_div(n, d):
         out = np.empty(n, np.float64)
         for i in range(n):
             out[i] = i / d
         return out
+
 else:  # pragma: no cover
     _arange_div = _arange_div_fallback
 
@@ -1130,5 +1156,7 @@ def _custom_lru_cache(maxsize):
                     this_cache.pop(key)
                     break  # first in, first out
             return this_val
+
         return cache_fun
+
     return dec

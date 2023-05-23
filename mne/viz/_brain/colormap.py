@@ -11,7 +11,8 @@ import numpy as np
 def create_lut(cmap, n_colors=256, center=None):
     """Return a colormap suitable for setting as a LUT."""
     from .._3d import _get_cmap
-    assert not (isinstance(cmap, str) and cmap == 'auto')
+
+    assert not (isinstance(cmap, str) and cmap == "auto")
     cmap = _get_cmap(cmap)
     lut = np.round(cmap(np.linspace(0, 1, n_colors)) * 255.0).astype(np.int64)
     return lut
@@ -27,34 +28,39 @@ def scale_sequential_lut(lut_table, fmin, fmid, fmax):
     if fmax == fmin:
         fmid_idx = 0
     else:
-        fmid_idx = np.clip(int(np.round(
-            n_colors * ((fmid - fmin) / (fmax - fmin))) - 1), 0, n_colors - 2)
+        fmid_idx = np.clip(
+            int(np.round(n_colors * ((fmid - fmin) / (fmax - fmin))) - 1),
+            0,
+            n_colors - 2,
+        )
 
     n_left = fmid_idx + 1
     n_right = n_colors - n_left
     for i in range(4):
-        lut_table_new[:fmid_idx + 1, i] = np.interp(
-            np.linspace(0, n_colors2 - 1, n_left),
-            np.arange(n_colors), lut_table[:, i])
-        lut_table_new[fmid_idx + 1:, i] = np.interp(
+        lut_table_new[: fmid_idx + 1, i] = np.interp(
+            np.linspace(0, n_colors2 - 1, n_left), np.arange(n_colors), lut_table[:, i]
+        )
+        lut_table_new[fmid_idx + 1 :, i] = np.interp(
             np.linspace(n_colors - 1, n_colors2, n_right)[::-1],
-            np.arange(n_colors), lut_table[:, i])
+            np.arange(n_colors),
+            lut_table[:, i],
+        )
 
     return lut_table_new
 
 
 def get_fill_colors(cols, n_fill):
     """Get the fill colors for the middle of divergent colormaps."""
-    steps = np.linalg.norm(np.diff(cols[:, :3].astype(float), axis=0),
-                           axis=1)
+    steps = np.linalg.norm(np.diff(cols[:, :3].astype(float), axis=0), axis=1)
 
     ind = np.flatnonzero(steps[1:-1] > steps[[0, -1]].mean() * 3)
     if ind.size > 0:
         # choose the two colors between which there is the large step
         ind = ind[0] + 1
-        fillcols = np.r_[np.tile(cols[ind, :], (n_fill // 2, 1)),
-                         np.tile(cols[ind + 1, :],
-                                 (n_fill - n_fill // 2, 1))]
+        fillcols = np.r_[
+            np.tile(cols[ind, :], (n_fill // 2, 1)),
+            np.tile(cols[ind + 1, :], (n_fill - n_fill // 2, 1)),
+        ]
     else:
         # choose a color from the middle of the colormap
         fillcols = np.tile(cols[int(cols.shape[0] / 2), :], (n_fill, 1))
@@ -62,8 +68,7 @@ def get_fill_colors(cols, n_fill):
     return fillcols
 
 
-def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
-                  transparent=True):
+def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None, transparent=True):
     """Transparent color map calculation.
 
     A colormap may be sequential or divergent. When the colormap is
@@ -111,10 +116,11 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
         Color map with transparency channel.
     """
     if not fmin <= fmid <= fmax:
-        raise ValueError('Must have fmin (%s) <= fmid (%s) <= fmax (%s)'
-                         % (fmin, fmid, fmax))
+        raise ValueError(
+            "Must have fmin (%s) <= fmid (%s) <= fmax (%s)" % (fmin, fmid, fmax)
+        )
     lut_table = create_lut(lut_table)
-    assert lut_table.dtype.kind == 'i'
+    assert lut_table.dtype.kind == "i"
     divergent = center is not None
     n_colors = lut_table.shape[0]
 
@@ -123,16 +129,20 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
     if transparent:
         if divergent:
             N4 = np.full(4, n_colors // 4)
-            N4[[0, 3, 1, 2][:np.mod(n_colors, 4)]] += 1
+            N4[[0, 3, 1, 2][: np.mod(n_colors, 4)]] += 1
             assert N4.sum() == n_colors
-            lut_table[:, -1] = np.round(np.hstack([
-                np.full(N4[0], 255.),
-                np.linspace(0, 255, N4[1])[::-1],
-                np.linspace(0, 255, N4[2]),
-                np.full(N4[3], 255.)]))
+            lut_table[:, -1] = np.round(
+                np.hstack(
+                    [
+                        np.full(N4[0], 255.0),
+                        np.linspace(0, 255, N4[1])[::-1],
+                        np.linspace(0, 255, N4[2]),
+                        np.full(N4[3], 255.0),
+                    ]
+                )
+            )
         else:
-            lut_table[:n_colors2, -1] = np.round(np.linspace(
-                0, 255, n_colors2))
+            lut_table[:n_colors2, -1] = np.round(np.linspace(0, 255, n_colors2))
             lut_table[n_colors2:, -1] = 255
 
     alpha = float(alpha)
@@ -144,19 +154,27 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
             lut_table = np.r_[
                 lut_table[:1],
                 get_fill_colors(
-                    lut_table[n_colors2 - 3:n_colors2 + 3, :], n_colors - 2),
-                lut_table[-1:]]
+                    lut_table[n_colors2 - 3 : n_colors2 + 3, :], n_colors - 2
+                ),
+                lut_table[-1:],
+            ]
         else:
             n_fill = int(round(fmin * n_colors2 / (fmax - fmin))) * 2
             lut_table = np.r_[
-                scale_sequential_lut(lut_table[:n_colors2, :],
-                                     center - fmax, center - fmid,
-                                     center - fmin),
-                get_fill_colors(
-                    lut_table[n_colors2 - 3:n_colors2 + 3, :], n_fill),
-                scale_sequential_lut(lut_table[n_colors2:, :][::-1],
-                                     center - fmax, center - fmid,
-                                     center - fmin)[::-1]]
+                scale_sequential_lut(
+                    lut_table[:n_colors2, :],
+                    center - fmax,
+                    center - fmid,
+                    center - fmin,
+                ),
+                get_fill_colors(lut_table[n_colors2 - 3 : n_colors2 + 3, :], n_fill),
+                scale_sequential_lut(
+                    lut_table[n_colors2:, :][::-1],
+                    center - fmax,
+                    center - fmid,
+                    center - fmin,
+                )[::-1],
+            ]
     else:
         lut_table = scale_sequential_lut(lut_table, fmin, fmid, fmax)
 
@@ -165,9 +183,7 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
         lut = np.zeros((256, 4))
         x = np.linspace(1, n_colors, 256)
         for chan in range(4):
-            lut[:, chan] = np.interp(x,
-                                     np.arange(1, n_colors + 1),
-                                     lut_table[:, chan])
+            lut[:, chan] = np.interp(x, np.arange(1, n_colors + 1), lut_table[:, chan])
         lut_table = lut
 
     lut_table = lut_table.astype(np.float64) / 255.0
