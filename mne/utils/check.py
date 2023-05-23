@@ -35,6 +35,16 @@ def _ensure_int(x, name="unknown", must_be="an int", *, extra=""):
     return x
 
 
+def _check_integer_or_list(arg, name):
+    """Validate arguments that should be an integer or a list.
+
+    Always returns a list.
+    """
+    if not isinstance(arg, list):
+        arg = [_ensure_int(arg, name=name, must_be="an integer or a list")]
+    return arg
+
+
 def check_fname(fname, filetype, endings, endings_err=()):
     """Enforce MNE filename conventions.
 
