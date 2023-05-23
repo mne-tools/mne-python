@@ -39,6 +39,14 @@ Documentation
 `MNE documentation`_ for MNE-Python is available online.
 
 
+Forum
+^^^^^^
+
+Our user forum is https://mne.discourse.group and is the best place to ask
+questions about MNE-Python usage or about the contribution process. It also
+includes job opportunities and other announcements.
+
+
 Installing MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -46,7 +54,7 @@ To install the latest stable version of MNE-Python, you can use pip_ in a termin
 
 .. code-block:: console
 
-    $ pip install -U mne
+    $ pip install --upgrade mne
 
 - MNE-Python 0.17 was the last release to support Python 2.7
 - MNE-Python 0.18 requires Python 3.5 or higher
@@ -65,16 +73,13 @@ To install the latest version of the code using pip_ open a terminal and type:
 
 .. code-block:: console
 
-    $ pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
+    $ pip install --upgrade git+https://github.com/mne-tools/mne-python@main
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
 .. code-block:: console
 
     $ git clone https://github.com/mne-tools/mne-python.git
-
-Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
 
 
 Dependencies
@@ -105,7 +110,7 @@ For full functionality, some functions require:
 
 - Numba >= 0.53.1
 - NiBabel >= 3.2.1
-- OpenMEEG >= 2.5.5
+- OpenMEEG >= 2.5.6
 - Pandas >= 1.2.4
 - Picard >= 0.3
 - CuPy >= 9.0.0 (for NVIDIA CUDA acceleration)
@@ -124,12 +129,6 @@ Contributing to MNE-Python
 Please see the documentation on the MNE-Python homepage:
 
 https://mne.tools/dev/install/contributing.html
-
-
-Forum
-^^^^^^
-
-https://mne.discourse.group
 
 
 Licensing

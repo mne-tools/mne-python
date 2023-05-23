@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-overview:
 
@@ -44,8 +43,9 @@ import mne
 # could be substituted here when running the tutorial locally.
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_filt-0-40_raw.fif')
+sample_data_raw_file = (
+    sample_data_folder / "MEG" / "sample" / "sample_audvis_filt-0-40_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # %%
@@ -76,7 +76,7 @@ print(raw.info)
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
 # bad channel marking, annotations, projector toggling, etc.
 
-raw.plot_psd(fmax=50)
+raw.compute_psd(fmax=50).plot(picks="data", exclude="bads")
 raw.plot(duration=5, n_channels=30)
 
 # %%
@@ -112,10 +112,28 @@ raw.load_data()
 ica.apply(raw)
 
 # show some frontal channels to clearly illustrate the artifact removal
-chs = ['MEG 0111', 'MEG 0121', 'MEG 0131', 'MEG 0211', 'MEG 0221', 'MEG 0231',
-       'MEG 0311', 'MEG 0321', 'MEG 0331', 'MEG 1511', 'MEG 1521', 'MEG 1531',
-       'EEG 001', 'EEG 002', 'EEG 003', 'EEG 004', 'EEG 005', 'EEG 006',
-       'EEG 007', 'EEG 008']
+chs = [
+    "MEG 0111",
+    "MEG 0121",
+    "MEG 0131",
+    "MEG 0211",
+    "MEG 0221",
+    "MEG 0231",
+    "MEG 0311",
+    "MEG 0321",
+    "MEG 0331",
+    "MEG 1511",
+    "MEG 1521",
+    "MEG 1531",
+    "EEG 001",
+    "EEG 002",
+    "EEG 003",
+    "EEG 004",
+    "EEG 005",
+    "EEG 006",
+    "EEG 007",
+    "EEG 008",
+]
 chan_idxs = [raw.ch_names.index(ch) for ch in chs]
 orig_raw.plot(order=chan_idxs, start=12, duration=4)
 raw.plot(order=chan_idxs, start=12, duration=4)
@@ -138,7 +156,7 @@ raw.plot(order=chan_idxs, start=12, duration=4)
 # name to the `mne.find_events` function to recover the timing and identity of
 # the stimulus events.
 
-events = mne.find_events(raw, stim_channel='STI 014')
+events = mne.find_events(raw, stim_channel="STI 014")
 print(events[:5])  # show the first 5
 
 # %%
@@ -167,8 +185,14 @@ print(events[:5])  # show the first 5
 # | 32       | subject button press                                     |
 # +----------+----------------------------------------------------------+
 
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'smiley': 5, 'buttonpress': 32}
+event_dict = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+    "smiley": 5,
+    "buttonpress": 32,
+}
 
 # %%
 # Event dictionaries like this one are used when extracting epochs from
@@ -183,8 +207,9 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # sampling frequency of the recording (so our x-axis will be in seconds instead
 # of in samples).
 
-fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'],
-                          first_samp=raw.first_samp)
+fig = mne.viz.plot_events(
+    events, event_id=event_dict, sfreq=raw.info["sfreq"], first_samp=raw.first_samp
+)
 
 # %%
 # For paradigms that are not event-related (e.g., analysis of resting-state
@@ -208,10 +233,12 @@ fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'],
 # may need to be adapted for different hardware or recording conditions. For a
 # more automated approach, consider using the `autoreject package`_.
 
-reject_criteria = dict(mag=4000e-15,     # 4000 fT
-                       grad=4000e-13,    # 4000 fT/cm
-                       eeg=150e-6,       # 150 µV
-                       eog=250e-6)       # 250 µV
+reject_criteria = dict(
+    mag=4000e-15,  # 4000 fT
+    grad=4000e-13,  # 4000 fT/cm
+    eeg=150e-6,  # 150 µV
+    eog=250e-6,
+)  # 250 µV
 
 # %%
 # We'll also pass the event dictionary as the ``event_id`` parameter (so we can
@@ -223,8 +250,15 @@ reject_criteria = dict(mag=4000e-15,     # 4000 fT
 # ``preload=True`` parameter so that we can see the results of the rejection
 # criteria being applied:
 
-epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.2, tmax=0.5,
-                    reject=reject_criteria, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id=event_dict,
+    tmin=-0.2,
+    tmax=0.5,
+    reject=reject_criteria,
+    preload=True,
+)
 
 # %%
 # Next we'll pool across left/right stimulus presentations so we can compare
@@ -233,11 +267,10 @@ epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.2, tmax=0.5,
 # epochs from each condition to match the number of epochs present in the
 # condition with the fewest good epochs.
 
-conds_we_care_about = ['auditory/left', 'auditory/right',
-                       'visual/left', 'visual/right']
+conds_we_care_about = ["auditory/left", "auditory/right", "visual/left", "visual/right"]
 epochs.equalize_event_counts(conds_we_care_about)  # this operates in-place
-aud_epochs = epochs['auditory']
-vis_epochs = epochs['visual']
+aud_epochs = epochs["auditory"]
+vis_epochs = epochs["visual"]
 del raw, epochs  # free up memory
 
 # %%
@@ -247,7 +280,7 @@ del raw, epochs  # free up memory
 # the average evoked response and the sensor location are shown below the
 # image:
 
-aud_epochs.plot_image(picks=['MEG 1332', 'EEG 021'])
+aud_epochs.plot_image(picks=["MEG 1332", "EEG 021"])
 
 ##############################################################################
 # .. note::
@@ -273,9 +306,10 @@ aud_epochs.plot_image(picks=['MEG 1332', 'EEG 021'])
 # frequency content.
 
 frequencies = np.arange(7, 30, 3)
-power = mne.time_frequency.tfr_morlet(aud_epochs, n_cycles=2, return_itc=False,
-                                      freqs=frequencies, decim=3)
-power.plot(['MEG 1332'])
+power = mne.time_frequency.tfr_morlet(
+    aud_epochs, n_cycles=2, return_itc=False, freqs=frequencies, decim=3
+)
+power.plot(["MEG 1332"])
 
 # %%
 # Estimating evoked responses
@@ -291,8 +325,11 @@ power.plot(['MEG 1332'])
 aud_evoked = aud_epochs.average()
 vis_evoked = vis_epochs.average()
 
-mne.viz.plot_compare_evokeds(dict(auditory=aud_evoked, visual=vis_evoked),
-                             legend='upper left', show_sensors='upper right')
+mne.viz.plot_compare_evokeds(
+    dict(auditory=aud_evoked, visual=vis_evoked),
+    legend="upper left",
+    show_sensors="upper right",
+)
 
 # %%
 # We can also get a more detailed view of each `~mne.Evoked` object using other
@@ -302,8 +339,8 @@ mne.viz.plot_compare_evokeds(dict(auditory=aud_evoked, visual=vis_evoked),
 # then plot scalp topographies at some additional arbitrary times:
 
 # sphinx_gallery_thumbnail_number = 13
-aud_evoked.plot_joint(picks='eeg')
-aud_evoked.plot_topomap(times=[0., 0.08, 0.1, 0.12, 0.2], ch_type='eeg')
+aud_evoked.plot_joint(picks="eeg")
+aud_evoked.plot_topomap(times=[0.0, 0.08, 0.1, 0.12, 0.2], ch_type="eeg")
 
 ##############################################################################
 # Evoked objects can also be combined to show contrasts between conditions,
@@ -312,7 +349,7 @@ aud_evoked.plot_topomap(times=[0., 0.08, 0.1, 0.12, 0.2], ch_type='eeg')
 # at each sensor using `~mne.Evoked.plot_topo`:
 
 evoked_diff = mne.combine_evoked([aud_evoked, vis_evoked], weights=[1, -1])
-evoked_diff.pick_types(meg='mag').plot_topo(color='r', legend=False)
+evoked_diff.pick_types(meg="mag").plot_topo(color="r", legend=False)
 
 ##############################################################################
 # Inverse modeling
@@ -338,16 +375,17 @@ evoked_diff.pick_types(meg='mag').plot_topo(color='r', legend=False)
 # baseline activity level across all of cortex).
 
 # load inverse operator
-inverse_operator_file = (sample_data_folder / 'MEG' / 'sample' /
-                         'sample_audvis-meg-oct-6-meg-inv.fif')
+inverse_operator_file = (
+    sample_data_folder / "MEG" / "sample" / "sample_audvis-meg-oct-6-meg-inv.fif"
+)
 inv_operator = mne.minimum_norm.read_inverse_operator(inverse_operator_file)
 # set signal-to-noise ratio (SNR) to compute regularization parameter (λ²)
-snr = 3.
-lambda2 = 1. / snr ** 2
+snr = 3.0
+lambda2 = 1.0 / snr**2
 # generate the source time course (STC)
-stc = mne.minimum_norm.apply_inverse(vis_evoked, inv_operator,
-                                     lambda2=lambda2,
-                                     method='MNE')  # or dSPM, sLORETA, eLORETA
+stc = mne.minimum_norm.apply_inverse(
+    vis_evoked, inv_operator, lambda2=lambda2, method="MNE"
+)  # or dSPM, sLORETA, eLORETA
 
 ##############################################################################
 # Finally, in order to plot the source estimate on the subject's cortical
@@ -355,10 +393,11 @@ stc = mne.minimum_norm.apply_inverse(vis_evoked, inv_operator,
 # (the ``subjects_dir``):
 
 # path to subjects' MRI files
-subjects_dir = sample_data_folder / 'subjects'
+subjects_dir = sample_data_folder / "subjects"
 # plot the STC
-stc.plot(initial_time=0.1, hemi='split', views=['lat', 'med'],
-         subjects_dir=subjects_dir)
+stc.plot(
+    initial_time=0.1, hemi="split", views=["lat", "med"], subjects_dir=subjects_dir
+)
 
 ##############################################################################
 # The remaining tutorials have *much more detail* on each of these topics (as

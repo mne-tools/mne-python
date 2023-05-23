@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-cluster-rm-anova-spatiotemporal:
 
@@ -29,8 +28,12 @@ from numpy.random import randn
 import matplotlib.pyplot as plt
 
 import mne
-from mne.stats import (spatio_temporal_cluster_test, f_threshold_mway_rm,
-                       f_mway_rm, summarize_clusters_stc)
+from mne.stats import (
+    spatio_temporal_cluster_test,
+    f_threshold_mway_rm,
+    f_mway_rm,
+    summarize_clusters_stc,
+)
 
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
@@ -41,11 +44,11 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
-subjects_dir = data_path / 'subjects'
-src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
+subjects_dir = data_path / "subjects"
+src_fname = subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
@@ -57,14 +60,23 @@ events = mne.read_events(event_fname)
 # %%
 # Read epochs for all channels, removing a bad one
 # ------------------------------------------------
-raw.info['bads'] += ['MEG 2443']
-picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
+raw.info["bads"] += ["MEG 2443"]
+picks = mne.pick_types(raw.info, meg=True, eog=True, exclude="bads")
 # we'll load all four conditions that make up the 'two ways' of our ANOVA
 
 event_id = dict(l_aud=1, r_aud=2, l_vis=3, r_vis=4)
 reject = dict(grad=1000e-13, mag=4000e-15, eog=150e-6)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    picks=picks,
+    baseline=(None, 0),
+    reject=reject,
+    preload=True,
+)
 
 #    Equalize trial counts to eliminate bias (which would otherwise be
 #    introduced by the abs() performed below)
@@ -73,21 +85,21 @@ epochs.equalize_event_counts(event_id)
 # %%
 # Transform to source space
 # -------------------------
-fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv = meg_path / "sample_audvis-meg-oct-6-meg-inv.fif"
 snr = 3.0
-lambda2 = 1.0 / snr ** 2
+lambda2 = 1.0 / snr**2
 method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)
 inverse_operator = read_inverse_operator(fname_inv)
 
 # we'll only use one hemisphere to speed up this example
 # instead of a second vertex array we'll pass an empty array
-sample_vertices = [inverse_operator['src'][0]['vertno'], np.array([], int)]
+sample_vertices = [inverse_operator["src"][0]["vertno"], np.array([], int)]
 
 #    Let's average and compute inverse, then resample to speed things up
 conditions = []
-for cond in ['l_aud', 'r_aud', 'l_vis', 'r_vis']:  # order is important
+for cond in ["l_aud", "r_aud", "l_vis", "r_vis"]:  # order is important
     evoked = epochs[cond].average()
-    evoked.resample(30).crop(0., None)
+    evoked.resample(30).crop(0.0, None)
     condition = apply_inverse(evoked, inverse_operator, lambda2, method)
     #    Let's only deal with t > 0, cropping to reduce multiple comparisons
     condition.crop(0, None)
@@ -108,7 +120,7 @@ tstep = conditions[0].tstep * 1000  # convert to milliseconds
 # We'll only consider the left hemisphere in this tutorial.
 n_vertices_sample, n_times = conditions[0].lh_data.shape
 n_subjects = 6
-print('Simulating data for %d subjects.' % n_subjects)
+print("Simulating data for %d subjects." % n_subjects)
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
@@ -125,16 +137,20 @@ for ii, condition in enumerate(conditions):
 
 # Read the source space we are morphing to (just left hemisphere)
 src = mne.read_source_spaces(src_fname)
-fsave_vertices = [src[0]['vertno'], []]
+fsave_vertices = [src[0]["vertno"], []]
 morph_mat = mne.compute_source_morph(
-    src=inverse_operator['src'], subject_to='fsaverage',
-    spacing=fsave_vertices, subjects_dir=subjects_dir, smooth=20).morph_mat
+    src=inverse_operator["src"],
+    subject_to="fsaverage",
+    spacing=fsave_vertices,
+    subjects_dir=subjects_dir,
+    smooth=20,
+).morph_mat
 morph_mat = morph_mat[:, :n_vertices_sample]  # just left hemi from src
 n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
 X = X.reshape(n_vertices_sample, n_times * n_subjects * 4)
-print('Morphing data.')
+print("Morphing data.")
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 
@@ -169,7 +185,7 @@ factor_levels = [2, 2]
 # notation which return both the main and the interaction effect. The reason
 # is that the clustering function expects ``stat_fun`` to return a 1-D array.
 # To get clusters for both, you must create a loop.
-effects = 'A:B'
+effects = "A:B"
 # Tell the ANOVA not to compute p-values which we don't need for clustering
 return_pvals = False
 
@@ -194,8 +210,12 @@ n_conditions = 4
 
 def stat_fun(*args):
     # get f-values only.
-    return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
-                     effects=effects, return_pvals=return_pvals)[0]
+    return f_mway_rm(
+        np.swapaxes(args, 1, 0),
+        factor_levels=factor_levels,
+        effects=effects,
+        return_pvals=return_pvals,
+    )[0]
 
 
 # %%
@@ -206,7 +226,7 @@ def stat_fun(*args):
 # just pass the spatial adjacency matrix (instead of spatio-temporal).
 
 # as we only have one hemisphere we need only need half the adjacency
-print('Computing adjacency.')
+print("Computing adjacency.")
 adjacency = mne.spatial_src_adjacency(src[:1])
 
 # Now let's actually do the clustering. Please relax, on a small
@@ -217,12 +237,16 @@ f_thresh = f_threshold_mway_rm(n_subjects, factor_levels, effects, pthresh)
 # To speed things up a bit we will ...
 n_permutations = 50  # ... run way fewer permutations (reduces sensitivity)
 
-print('Clustering.')
-F_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=None,
-                                 threshold=f_thresh, stat_fun=stat_fun,
-                                 n_permutations=n_permutations,
-                                 buffer_size=None)
+print("Clustering.")
+F_obs, clusters, cluster_p_values, H0 = clu = spatio_temporal_cluster_test(
+    X,
+    adjacency=adjacency,
+    n_jobs=None,
+    threshold=f_thresh,
+    stat_fun=stat_fun,
+    n_permutations=n_permutations,
+    buffer_size=None,
+)
 # Now select the clusters that are sig. at p < 0.05 (note that this value
 # is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
@@ -231,39 +255,45 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 # Visualize the clusters
 # ----------------------
 
-print('Visualizing clusters.')
+print("Visualizing clusters.")
 
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate
-stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
-                                             vertices=fsave_vertices,
-                                             subject='fsaverage')
+stc_all_cluster_vis = summarize_clusters_stc(
+    clu, tstep=tstep, vertices=fsave_vertices, subject="fsaverage"
+)
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
 
-subjects_dir = data_path / 'subjects'
+subjects_dir = data_path / "subjects"
 # The brighter the color, the stronger the interaction between
 # stimulus modality and stimulus location
 
-brain = stc_all_cluster_vis.plot(subjects_dir=subjects_dir, views='lat',
-                                 time_label='temporal extent (ms)',
-                                 clim=dict(kind='value', lims=[0, 1, 40]))
-brain.save_image('cluster-lh.png')
-brain.show_view('medial')
+brain = stc_all_cluster_vis.plot(
+    subjects_dir=subjects_dir,
+    views="lat",
+    time_label="temporal extent (ms)",
+    clim=dict(kind="value", lims=[0, 1, 40]),
+)
+brain.save_image("cluster-lh.png")
+brain.show_view("medial")
 
 # %%
 # Finally, let's investigate interaction effect by reconstructing the time
 # courses:
 
-inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
-                  enumerate(good_cluster_inds)][0]  # first cluster
+inds_t, inds_v = [
+    (clusters[cluster_ind]) for ii, cluster_ind in enumerate(good_cluster_inds)
+][
+    0
+]  # first cluster
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 
 plt.figure()
-colors = ['y', 'b', 'g', 'purple']
-event_ids = ['l_aud', 'r_aud', 'l_vis', 'r_vis']
+colors = ["y", "b", "g", "purple"]
+event_ids = ["l_aud", "r_aud", "l_vis", "r_vis"]
 
 for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     # extract time course at cluster vertices
@@ -274,16 +304,18 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     mean_tc = condition.mean(axis=2).mean(axis=0)
     std_tc = condition.std(axis=2).std(axis=0)
     plt.plot(times, mean_tc.T, color=color, label=eve_id)
-    plt.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
-                     alpha=0.5, label='')
+    plt.fill_between(
+        times, mean_tc + std_tc, mean_tc - std_tc, color="gray", alpha=0.5, label=""
+    )
 
 ymin, ymax = mean_tc.min() - 5, mean_tc.max() + 5
-plt.xlabel('Time (ms)')
-plt.ylabel('Activation (F-values)')
+plt.xlabel("Time (ms)")
+plt.ylabel("Activation (F-values)")
 plt.xlim(times[[0, -1]])
 plt.ylim(ymin, ymax)
-plt.fill_betweenx((ymin, ymax), times[inds_t[0]],
-                  times[inds_t[-1]], color='orange', alpha=0.3)
+plt.fill_betweenx(
+    (ymin, ymax), times[inds_t[0]], times[inds_t[-1]], color="orange", alpha=0.3
+)
 plt.legend()
-plt.title('Interaction between stimulus-modality and location.')
+plt.title("Interaction between stimulus-modality and location.")
 plt.show()

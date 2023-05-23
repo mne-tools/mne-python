@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions to make simple plots with M/EEG data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
@@ -23,57 +22,82 @@ from pathlib import Path
 import numpy as np
 
 from ..defaults import DEFAULTS
-from .._freesurfer import (_reorient_image, _read_mri_info, _check_mri,
-                           _mri_orientation)
+from .._freesurfer import _reorient_image, _read_mri_info, _check_mri, _mri_orientation
 from ..rank import compute_rank
 from ..surface import read_surface
 from ..io.constants import FIFF
 from ..io.proj import make_projector
-from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
-                       pick_channels)
+from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types, pick_info, pick_channels
 from ..source_space import read_source_spaces, SourceSpaces, _ensure_src
 from ..transforms import apply_trans, _frame_to_str
-from ..utils import (logger, verbose, warn, _check_option, get_subjects_dir,
-                     _mask_to_onsets_offsets, _pl, _on_missing, fill_doc)
+from ..utils import (
+    logger,
+    verbose,
+    warn,
+    _check_option,
+    get_subjects_dir,
+    _mask_to_onsets_offsets,
+    _pl,
+    _on_missing,
+    fill_doc,
+)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
-from .utils import (tight_layout, _get_color_list, _prepare_trellis, plt_show,
-                    _figure_agg, _validate_type)
+from .utils import (
+    tight_layout,
+    _get_color_list,
+    _prepare_trellis,
+    plt_show,
+    _figure_agg,
+    _validate_type,
+)
 
 
 def _index_info_cov(info, cov, exclude):
-    if exclude == 'bads':
-        exclude = info['bads']
-    info = pick_info(info, pick_channels(info['ch_names'], cov['names'],
-                                         exclude))
+    if exclude == "bads":
+        exclude = info["bads"]
+    info = pick_info(info, pick_channels(info["ch_names"], cov["names"], exclude))
     del exclude
-    picks_list = \
-        _picks_by_type(info, meg_combined=False, ref_meg=False,
-                       exclude=())
+    picks_list = _picks_by_type(info, meg_combined=False, ref_meg=False, exclude=())
     picks_by_type = dict(picks_list)
 
-    ch_names = [n for n in cov.ch_names if n in info['ch_names']]
+    ch_names = [n for n in cov.ch_names if n in info["ch_names"]]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
 
-    info_ch_names = info['ch_names']
+    info_ch_names = info["ch_names"]
     idx_by_type = defaultdict(list)
     for ch_type, sel in picks_by_type.items():
-        idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
-                                for c in sel if info_ch_names[c] in ch_names]
-    idx_names = [(idx_by_type[key],
-                  '%s covariance' % DEFAULTS['titles'][key],
-                  DEFAULTS['units'][key],
-                  DEFAULTS['scalings'][key],
-                  key)
-                 for key in _DATA_CH_TYPES_SPLIT
-                 if len(idx_by_type[key]) > 0]
+        idx_by_type[ch_type] = [
+            ch_names.index(info_ch_names[c])
+            for c in sel
+            if info_ch_names[c] in ch_names
+        ]
+    idx_names = [
+        (
+            idx_by_type[key],
+            "%s covariance" % DEFAULTS["titles"][key],
+            DEFAULTS["units"][key],
+            DEFAULTS["scalings"][key],
+            key,
+        )
+        for key in _DATA_CH_TYPES_SPLIT
+        if len(idx_by_type[key]) > 0
+    ]
     C = cov.data[ch_idx][:, ch_idx]
     return info, C, ch_names, idx_names
 
 
 @verbose
-def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
-             show=True, verbose=None):
+def plot_cov(
+    cov,
+    info,
+    exclude=(),
+    colorbar=True,
+    proj=False,
+    show_svd=True,
+    show=True,
+    verbose=None,
+):
     """Plot Covariance data.
 
     Parameters
@@ -124,69 +148,86 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
 
     projs = []
     if proj:
-        projs = copy.deepcopy(info['projs'])
+        projs = copy.deepcopy(info["projs"])
 
         #   Activate the projection items
         for p in projs:
-            p['active'] = True
+            p["active"] = True
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            logger.info('    Created an SSP operator (subspace dimension'
-                        ' = %d)' % ncomp)
+            logger.info(
+                "    Created an SSP operator (subspace dimension" " = %d)" % ncomp
+            )
             C = np.dot(P, np.dot(C, P.T))
         else:
-            logger.info('    The projection vectors do not apply to these '
-                        'channels.')
+            logger.info("    The projection vectors do not apply to these " "channels.")
 
     if np.iscomplexobj(C):
         C = np.sqrt((C * C.conj()).real)
 
-    fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
-                                 figsize=(3.8 * len(idx_names), 3.7))
+    fig_cov, axes = plt.subplots(
+        1, len(idx_names), squeeze=False, figsize=(3.8 * len(idx_names), 3.7)
+    )
     for k, (idx, name, _, _, _) in enumerate(idx_names):
         vlim = np.max(np.abs(C[idx][:, idx]))
-        im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
-                               norm=Normalize(vmin=-vlim, vmax=vlim),
-                               cmap='RdBu_r')
+        im = axes[0, k].imshow(
+            C[idx][:, idx],
+            interpolation="nearest",
+            norm=Normalize(vmin=-vlim, vmax=vlim),
+            cmap="RdBu_r",
+        )
         axes[0, k].set(title=name)
 
         if colorbar:
             from mpl_toolkits.axes_grid1 import make_axes_locatable
+
             divider = make_axes_locatable(axes[0, k])
             cax = divider.append_axes("right", size="5.5%", pad=0.05)
             cax.grid(False)  # avoid mpl warning about auto-removal
-            plt.colorbar(im, cax=cax, format='%.0e')
+            plt.colorbar(im, cax=cax, format="%.0e")
 
     fig_cov.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
-        fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False,
-                                     figsize=(3.8 * len(idx_names), 3.7))
+        fig_svd, axes = plt.subplots(
+            1, len(idx_names), squeeze=False, figsize=(3.8 * len(idx_names), 3.7)
+        )
         for k, (idx, name, unit, scaling, key) in enumerate(idx_names):
             this_C = C[idx][:, idx]
             s = linalg.svd(this_C, compute_uv=False)
-            this_C = Covariance(this_C, [info['ch_names'][ii] for ii in idx],
-                                [], [], 0)
+            this_C = Covariance(this_C, [info["ch_names"][ii] for ii in idx], [], [], 0)
             this_info = pick_info(info, idx)
             with this_info._unlock():
-                this_info['projs'] = []
+                this_info["projs"] = []
             this_rank = compute_rank(this_C, info=this_info)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
             s = np.sqrt(s) * scaling
-            axes[0, k].plot(s, color='k', zorder=3)
+            axes[0, k].plot(s, color="k", zorder=3)
             this_rank = this_rank[key]
-            axes[0, k].axvline(this_rank - 1, ls='--', color='r',
-                               alpha=0.5, zorder=4, clip_on=False)
-            axes[0, k].text(this_rank - 1, axes[0, k].get_ylim()[1],
-                            'rank ≈ %d' % (this_rank,), ha='right', va='top',
-                            color='r', alpha=0.5, zorder=4)
-            axes[0, k].set(ylabel=u'Noise σ (%s)' % unit, yscale='log',
-                           xlabel='Eigenvalue index', title=name,
-                           xlim=[0, len(s) - 1])
+            axes[0, k].axvline(
+                this_rank - 1, ls="--", color="r", alpha=0.5, zorder=4, clip_on=False
+            )
+            axes[0, k].text(
+                this_rank - 1,
+                axes[0, k].get_ylim()[1],
+                "rank ≈ %d" % (this_rank,),
+                ha="right",
+                va="top",
+                color="r",
+                alpha=0.5,
+                zorder=4,
+            )
+            axes[0, k].set(
+                ylabel="Noise σ (%s)" % unit,
+                yscale="log",
+                xlabel="Eigenvalue index",
+                title=name,
+                xlim=[0, len(s) - 1],
+            )
         tight_layout(fig=fig_svd)
 
     plt_show(show)
@@ -194,8 +235,9 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     return fig_cov, fig_svd
 
 
-def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
-                            source_index=None, colorbar=False, show=True):
+def plot_source_spectrogram(
+    stcs, freq_bins, tmin=None, tmax=None, source_index=None, colorbar=False, show=True
+):
     """Plot source power in time-freqency grid.
 
     Parameters
@@ -226,15 +268,18 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
     # Input checks
     if len(stcs) == 0:
-        raise ValueError('cannot plot spectrogram if len(stcs) == 0')
+        raise ValueError("cannot plot spectrogram if len(stcs) == 0")
 
     stc = stcs[0]
     if tmin is not None and tmin < stc.times[0]:
-        raise ValueError('tmin cannot be smaller than the first time point '
-                         'provided in stcs')
+        raise ValueError(
+            "tmin cannot be smaller than the first time point " "provided in stcs"
+        )
     if tmax is not None and tmax > stc.times[-1] + stc.tstep:
-        raise ValueError('tmax cannot be larger than the sum of the last time '
-                         'point and the time step, which are provided in stcs')
+        raise ValueError(
+            "tmax cannot be larger than the sum of the last time "
+            "point and the time step, which are provided in stcs"
+        )
 
     # Preparing time-frequency cell boundaries for plotting
     if tmin is None:
@@ -255,8 +300,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
     # Finding the source with maximum source power
     if source_index is None:
-        source_index = np.unravel_index(source_power.argmax(),
-                                        source_power.shape)[1]
+        source_index = np.unravel_index(source_power.argmax(), source_power.shape)[1]
 
     # If there is a gap in the frequency bins record its locations so that it
     # can be covered with a gray horizontal bar
@@ -273,44 +317,57 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
     # Plotting the results
     fig = plt.figure(figsize=(9, 6))
-    plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :],
-               cmap='Reds')
+    plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :], cmap="Reds")
     ax = plt.gca()
 
-    ax.set(title='Source power', xlabel='Time (s)', ylabel='Frequency (Hz)')
+    ax.set(title="Source power", xlabel="Time (s)", ylabel="Frequency (Hz)")
 
     time_tick_labels = [str(np.round(t, 2)) for t in time_bounds]
     n_skip = 1 + len(time_bounds) // 10
     for i in range(len(time_bounds)):
         if i % n_skip != 0:
-            time_tick_labels[i] = ''
+            time_tick_labels[i] = ""
 
     ax.set_xticks(time_bounds)
     ax.set_xticklabels(time_tick_labels)
     plt.xlim(time_bounds[0], time_bounds[-1])
-    plt.yscale('log')
+    plt.yscale("log")
     ax.set_yticks(freq_ticks)
     ax.set_yticklabels([np.round(freq, 2) for freq in freq_ticks])
     plt.ylim(freq_bounds[0], freq_bounds[-1])
 
-    plt.grid(True, ls='-')
+    plt.grid(True, ls="-")
     if colorbar:
         plt.colorbar()
     tight_layout(fig=fig)
 
     # Covering frequency gaps with horizontal bars
     for lower_bound, upper_bound in gap_bounds:
-        plt.barh(lower_bound, time_bounds[-1] - time_bounds[0], upper_bound -
-                 lower_bound, time_bounds[0], color='#666666')
+        plt.barh(
+            lower_bound,
+            time_bounds[-1] - time_bounds[0],
+            upper_bound - lower_bound,
+            time_bounds[0],
+            color="#666666",
+        )
 
     plt_show(show)
     return fig
 
 
-def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True, show_indices=False,
-                       show_orientation=False, width=512,
-                       slices_as_subplots=True):
+def _plot_mri_contours(
+    *,
+    mri_fname,
+    surfaces,
+    src,
+    orientation="coronal",
+    slices=None,
+    show=True,
+    show_indices=False,
+    show_orientation=False,
+    width=512,
+    slices_as_subplots=True,
+):
     """Plot BEM contours on anatomical MRI slices.
 
     Parameters
@@ -327,16 +384,17 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+
     # For ease of plotting, we will do everything in voxel coordinates.
-    _validate_type(show_orientation, (bool, str), 'show_orientation')
+    _validate_type(show_orientation, (bool, str), "show_orientation")
     if isinstance(show_orientation, str):
-        _check_option('show_orientation', show_orientation, ('always',),
-                      extra='when str')
-    _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
+        _check_option(
+            "show_orientation", show_orientation, ("always",), extra="when str"
+        )
+    _check_option("orientation", orientation, ("coronal", "axial", "sagittal"))
 
     # Load the T1 data
-    _, _, _, _, _, nim = _read_mri_info(
-        mri_fname, units='mm', return_img=True)
+    _, _, _, _, _, nim = _read_mri_info(mri_fname, units="mm", return_img=True)
 
     data, rasvox_mri_t = _reorient_image(nim)
     mri_rasvox_t = np.linalg.inv(rasvox_mri_t)
@@ -346,45 +404,47 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
 
     # if no slices were specified, pick some equally-spaced ones automatically
     if slices is None:
-        slices = np.round(
-            np.linspace(
-                start=0,
-                stop=n_slices - 1,
-                num=14
-            )
-        ).astype(int)
+        slices = np.round(np.linspace(start=0, stop=n_slices - 1, num=14)).astype(int)
 
         # omit first and last one (not much brain visible there anyway…)
         slices = slices[1:-1]
 
     slices = np.atleast_1d(slices).copy()
     slices[slices < 0] += n_slices  # allow negative indexing
-    if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
-            slices.size < 1 or slices[0] < 0 or slices[-1] >= n_slices or \
-            slices.dtype.kind not in 'iu':
-        raise ValueError('slices must be a sorted 1D array of int with unique '
-                         'elements, at least one element, and no elements '
-                         'greater than %d, got %s' % (n_slices - 1, slices))
+    if (
+        not np.array_equal(np.sort(slices), slices)
+        or slices.ndim != 1
+        or slices.size < 1
+        or slices[0] < 0
+        or slices[-1] >= n_slices
+        or slices.dtype.kind not in "iu"
+    ):
+        raise ValueError(
+            "slices must be a sorted 1D array of int with unique "
+            "elements, at least one element, and no elements "
+            "greater than %d, got %s" % (n_slices - 1, slices)
+        )
 
     # create of list of surfaces
     surfs = list()
     for file_name, color in surfaces:
         surf = dict()
-        surf['rr'], surf['tris'] = read_surface(file_name)
+        surf["rr"], surf["tris"] = read_surface(file_name)
         # move surface to voxel coordinate system
-        surf['rr'] = apply_trans(mri_rasvox_t, surf['rr'])
+        surf["rr"] = apply_trans(mri_rasvox_t, surf["rr"])
         surfs.append((surf, color))
 
     sources = list()
     if src is not None:
-        _ensure_src(src, extra=' or None')
+        _ensure_src(src, extra=" or None")
         # Eventually we can relax this by allowing ``trans`` if need be
-        if src[0]['coord_frame'] != FIFF.FIFFV_COORD_MRI:
+        if src[0]["coord_frame"] != FIFF.FIFFV_COORD_MRI:
             raise ValueError(
-                'Source space must be in MRI coordinates, got '
-                f'{_frame_to_str[src[0]["coord_frame"]]}')
+                "Source space must be in MRI coordinates, got "
+                f'{_frame_to_str[src[0]["coord_frame"]]}'
+            )
         for src_ in src:
-            points = src_['rr'][src_['inuse'].astype(bool)]
+            points = src_["rr"][src_["inuse"].astype(bool)]
             sources.append(apply_trans(mri_rasvox_t, points * 1e3))
         sources = np.concatenate(sources, axis=0)
 
@@ -392,7 +452,7 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
     if slices_as_subplots:
         n_col = 4
         fig, axs, _, _ = _prepare_trellis(len(slices), n_col)
-        fig.set_facecolor('k')
+        fig.set_facecolor("k")
         dpi = fig.get_dpi()
         n_axes = len(axs)
     else:
@@ -404,75 +464,114 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
         figsize = (w, w / data.shape[x] * data.shape[y])
 
     bounds = np.concatenate(
-        [[-np.inf], slices[:-1] + np.diff(slices) / 2.,
-         [np.inf]]
+        [[-np.inf], slices[:-1] + np.diff(slices) / 2.0, [np.inf]]
     )  # float
     slicer = [slice(None)] * 3
-    ori_labels = dict(R='LR', A='PA', S='IS')
-    xlabels, ylabels = ori_labels['RAS'[x]], ori_labels['RAS'[y]]
-    path_effects = [patheffects.withStroke(linewidth=4, foreground="k",
-                                           alpha=0.75)]
+    ori_labels = dict(R="LR", A="PA", S="IS")
+    xlabels, ylabels = ori_labels["RAS"[x]], ori_labels["RAS"[y]]
+    path_effects = [patheffects.withStroke(linewidth=4, foreground="k", alpha=0.75)]
     figs = []
-    for ai, (sl, lower, upper) in enumerate(
-        zip(slices, bounds[:-1], bounds[1:])
-    ):
+    for ai, (sl, lower, upper) in enumerate(zip(slices, bounds[:-1], bounds[1:])):
         if slices_as_subplots:
             ax = axs[ai]
         else:
-            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor='k')
-            ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor='k')
+            fig = _figure_agg(figsize=figsize, dpi=dpi, facecolor="k")
+            ax = fig.add_axes([0, 0, 1, 1], frame_on=False, facecolor="k")
 
         # adjust the orientations for good view
         slicer[axis] = sl
         dat = data[tuple(slicer)].T
 
         # First plot the anatomical data
-        ax.imshow(dat, cmap=plt.cm.gray, origin='lower')
+        ax.imshow(dat, cmap=plt.cm.gray, origin="lower")
         ax.set_autoscale_on(False)
-        ax.axis('off')
-        ax.set_aspect('equal')  # XXX eventually could deal with zooms
+        ax.axis("off")
+        ax.set_aspect("equal")  # XXX eventually could deal with zooms
 
         # and then plot the contours on top
         for surf, color in surfs:
             with warnings.catch_warnings(record=True):  # ignore contour warn
-                warnings.simplefilter('ignore')
-                ax.tricontour(surf['rr'][:, x], surf['rr'][:, y],
-                              surf['tris'], surf['rr'][:, axis],
-                              levels=[sl], colors=color, linewidths=1.0,
-                              zorder=1)
+                warnings.simplefilter("ignore")
+                ax.tricontour(
+                    surf["rr"][:, x],
+                    surf["rr"][:, y],
+                    surf["tris"],
+                    surf["rr"][:, axis],
+                    levels=[sl],
+                    colors=color,
+                    linewidths=1.0,
+                    zorder=1,
+                )
 
         if len(sources):
             in_slice = (sources[:, axis] >= lower) & (sources[:, axis] < upper)
-            ax.scatter(sources[in_slice, x], sources[in_slice, y],
-                       marker='.', color='#FF00FF', s=1, zorder=2)
+            ax.scatter(
+                sources[in_slice, x],
+                sources[in_slice, y],
+                marker=".",
+                color="#FF00FF",
+                s=1,
+                zorder=2,
+            )
         if show_indices:
-            ax.text(dat.shape[1] // 8 + 0.5, 0.5, str(sl),
-                    color='w', fontsize='x-small', va='bottom', ha='left')
+            ax.text(
+                dat.shape[1] // 8 + 0.5,
+                0.5,
+                str(sl),
+                color="w",
+                fontsize="x-small",
+                va="bottom",
+                ha="left",
+            )
         # label the axes
         kwargs = dict(
-            color='#66CCEE', fontsize='medium', path_effects=path_effects,
-            family='monospace', clip_on=False, zorder=5, weight='bold')
-        always = (show_orientation == 'always')
+            color="#66CCEE",
+            fontsize="medium",
+            path_effects=path_effects,
+            family="monospace",
+            clip_on=False,
+            zorder=5,
+            weight="bold",
+        )
+        always = show_orientation == "always"
         if show_orientation:
             if ai % n_col == 0 or always:  # left
-                ax.text(0, dat.shape[0] / 2., xlabels[0],
-                        va='center', ha='left', **kwargs)
+                ax.text(
+                    0, dat.shape[0] / 2.0, xlabels[0], va="center", ha="left", **kwargs
+                )
             if ai % n_col == n_col - 1 or ai == n_axes - 1 or always:  # right
-                ax.text(dat.shape[1] - 1, dat.shape[0] / 2., xlabels[1],
-                        va='center', ha='right', **kwargs)
+                ax.text(
+                    dat.shape[1] - 1,
+                    dat.shape[0] / 2.0,
+                    xlabels[1],
+                    va="center",
+                    ha="right",
+                    **kwargs,
+                )
             if ai >= n_axes - n_col or always:  # bottom
-                ax.text(dat.shape[1] / 2., 0, ylabels[0],
-                        ha='center', va='bottom', **kwargs)
+                ax.text(
+                    dat.shape[1] / 2.0,
+                    0,
+                    ylabels[0],
+                    ha="center",
+                    va="bottom",
+                    **kwargs,
+                )
             if ai < n_col or n_col == 1 or always:  # top
-                ax.text(dat.shape[1] / 2., dat.shape[0] - 1, ylabels[1],
-                        ha='center', va='top', **kwargs)
+                ax.text(
+                    dat.shape[1] / 2.0,
+                    dat.shape[0] - 1,
+                    ylabels[1],
+                    ha="center",
+                    va="top",
+                    **kwargs,
+                )
 
         if not slices_as_subplots:
             # convert to NumPy array
             with io.BytesIO() as buff:
                 fig.savefig(
-                    buff, format='raw', bbox_inches='tight', pad_inches=0,
-                    dpi=dpi
+                    buff, format="raw", bbox_inches="tight", pad_inches=0, dpi=dpi
                 )
                 w_, h_ = fig.canvas.get_width_height()
                 plt.close(fig)
@@ -483,8 +582,9 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
             figs.append(fig)
 
     if slices_as_subplots:
-        fig.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                            hspace=0.)
+        fig.subplots_adjust(
+            left=0.0, bottom=0.0, right=1.0, top=1.0, wspace=0.0, hspace=0.0
+        )
         plt_show(show, fig=fig)
         return fig
     else:
@@ -492,9 +592,18 @@ def _plot_mri_contours(*, mri_fname, surfaces, src, orientation='coronal',
 
 
 @fill_doc
-def plot_bem(subject, subjects_dir=None, orientation='coronal',
-             slices=None, brain_surfaces=None, src=None, show=True,
-             show_indices=True, mri='T1.mgz', show_orientation=True):
+def plot_bem(
+    subject,
+    subjects_dir=None,
+    orientation="coronal",
+    slices=None,
+    brain_surfaces=None,
+    src=None,
+    show=True,
+    show_indices=True,
+    mri="T1.mgz",
+    show_orientation=True,
+):
     """Plot BEM contours on anatomical MRI slices.
 
     Parameters
@@ -570,21 +679,19 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
     bem_path = subjects_dir / subject / "bem"
 
     if not bem_path.is_dir():
-        raise IOError(f'Subject bem directory "{bem_path}" does not exist')
+        raise OSError(f'Subject bem directory "{bem_path}" does not exist')
 
     surfaces = _get_bem_plotting_surfaces(bem_path)
     if brain_surfaces is not None:
         if isinstance(brain_surfaces, str):
             brain_surfaces = (brain_surfaces,)
         for surf_name in brain_surfaces:
-            for hemi in ('lh', 'rh'):
-                surf_fname = (
-                    subjects_dir / subject / "surf" / f"{hemi}.{surf_name}"
-                )
+            for hemi in ("lh", "rh"):
+                surf_fname = subjects_dir / subject / "surf" / f"{hemi}.{surf_name}"
                 if surf_fname.exists():
-                    surfaces.append((surf_fname, '#00DD00'))
+                    surfaces.append((surf_fname, "#00DD00"))
                 else:
-                    raise IOError("Surface %s does not exist." % surf_fname)
+                    raise OSError("Surface %s does not exist." % surf_fname)
 
     if isinstance(src, (str, Path, os.PathLike)):
         src = Path(src)
@@ -592,7 +699,7 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
             # convert to Path until get_subjects_dir returns a Path object
             src_ = Path(subjects_dir) / subject / "bem" / src
             if not src_.exists():
-                raise IOError(f"{src} does not exist")
+                raise OSError(f"{src} does not exist")
             src = src_
         src = read_source_spaces(src)
     elif src is not None and not isinstance(src, SourceSpaces):
@@ -602,25 +709,34 @@ def plot_bem(subject, subjects_dir=None, orientation='coronal',
         )
 
     if len(surfaces) == 0:
-        raise IOError('No surface files found. Surface files must end with '
-                      'inner_skull.surf, outer_skull.surf or outer_skin.surf')
+        raise OSError(
+            "No surface files found. Surface files must end with "
+            "inner_skull.surf, outer_skull.surf or outer_skin.surf"
+        )
 
     # Plot the contours
     fig = _plot_mri_contours(
-        mri_fname=mri_fname, surfaces=surfaces, src=src,
-        orientation=orientation, slices=slices, show=show,
-        show_indices=show_indices, show_orientation=show_orientation,
-        slices_as_subplots=True
+        mri_fname=mri_fname,
+        surfaces=surfaces,
+        src=src,
+        orientation=orientation,
+        slices=slices,
+        show=show,
+        show_indices=show_indices,
+        show_orientation=show_orientation,
+        slices_as_subplots=True,
     )
     return fig
 
 
 def _get_bem_plotting_surfaces(bem_path):
     surfaces = []
-    for surf_name, color in (('*inner_skull', '#FF0000'),
-                             ('*outer_skull', '#FFFF00'),
-                             ('*outer_skin', '#FFAA80')):
-        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
+    for surf_name, color in (
+        ("*inner_skull", "#FF0000"),
+        ("*outer_skull", "#FFFF00"),
+        ("*outer_skin", "#FFAA80"),
+    ):
+        surf_fname = glob(op.join(bem_path, surf_name + ".surf"))
         if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
@@ -629,9 +745,18 @@ def _get_bem_plotting_surfaces(bem_path):
 
 
 @verbose
-def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
-                axes=None, equal_spacing=True, show=True, on_missing='raise',
-                verbose=None):
+def plot_events(
+    events,
+    sfreq=None,
+    first_samp=0,
+    color=None,
+    event_id=None,
+    axes=None,
+    equal_spacing=True,
+    show=True,
+    on_missing="raise",
+    verbose=None,
+):
     """Plot :term:`events` to get a visual display of the paradigm.
 
     Parameters
@@ -674,37 +799,37 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     """
     if sfreq is None:
         sfreq = 1.0
-        xlabel = 'Samples'
+        xlabel = "Samples"
     else:
-        xlabel = 'Time (s)'
+        xlabel = "Time (s)"
 
     events = np.asarray(events)
     if len(events) == 0:
-        raise ValueError('No events in events array, cannot plot.')
+        raise ValueError("No events in events array, cannot plot.")
     unique_events = np.unique(events[:, 2])
 
     if event_id is not None:
         # get labels and unique event ids from event_id dict,
         # sorted by value
         event_id_rev = {v: k for k, v in event_id.items()}
-        conditions, unique_events_id = zip(*sorted(event_id.items(),
-                                                   key=lambda x: x[1]))
+        conditions, unique_events_id = zip(
+            *sorted(event_id.items(), key=lambda x: x[1])
+        )
 
         keep = np.ones(len(unique_events_id), bool)
         for ii, this_event in enumerate(unique_events_id):
             if this_event not in unique_events:
-                msg = f'{this_event} from event_id is not present in events.'
+                msg = f"{this_event} from event_id is not present in events."
                 _on_missing(on_missing, msg)
                 keep[ii] = False
         conditions = [cond for cond, k in zip(conditions, keep) if k]
         unique_events_id = [id_ for id_, k in zip(unique_events_id, keep) if k]
         if len(unique_events_id) == 0:
-            raise RuntimeError('No usable event IDs found')
+            raise RuntimeError("No usable event IDs found")
 
         for this_event in unique_events:
             if this_event not in unique_events_id:
-                warn('event %s missing from event_id will be ignored'
-                     % this_event)
+                warn("event %s missing from event_id will be ignored" % this_event)
 
     else:
         unique_events_id = unique_events
@@ -720,8 +845,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     unique_events_id = np.array(unique_events_id)
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
-    max_x = (events[np.in1d(events[:, 2], unique_events_id), 0].max() -
-             first_samp) / sfreq
+    max_x = (
+        events[np.in1d(events[:, 2], unique_events_id), 0].max() - first_samp
+    ) / sfreq
 
     handles, labels = list(), list()
     for idx, ev in enumerate(unique_events_id):
@@ -731,16 +857,22 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
             continue
         y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = '%s (%s)' % (event_id_rev[ev], count)
+            event_label = "%s (%s)" % (event_id_rev[ev], count)
         else:
-            event_label = 'N=%d' % (count,)
+            event_label = "N=%d" % (count,)
         labels.append(event_label)
         kwargs = {}
         if ev in color:
-            kwargs['color'] = color[ev]
+            kwargs["color"] = color[ev]
         handles.append(
-            ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                    y, '.', clip_on=False, **kwargs)[0])
+            ax.plot(
+                (events[ev_mask, 0] - first_samp) / sfreq,
+                y,
+                ".",
+                clip_on=False,
+                **kwargs,
+            )[0]
+        )
 
     if equal_spacing:
         ax.set_ylim(0, unique_events_id.size + 1)
@@ -749,7 +881,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         ax.set_ylim([min_event - 1, max_event + 1])
 
-    ax.set(xlabel=xlabel, ylabel='Event id', xlim=[0, max_x])
+    ax.set(xlabel=xlabel, ylabel="Event id", xlim=[0, max_x])
 
     ax.grid(True)
 
@@ -760,8 +892,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     box = ax.get_position()
     factor = 0.8 if event_id is not None else 0.9
     ax.set_position([box.x0, box.y0, box.width * factor, box.height])
-    ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5),
-              fontsize='small')
+    ax.legend(
+        handles, labels, loc="center left", bbox_to_anchor=(1, 0.5), fontsize="small"
+    )
     fig.canvas.draw()
     plt_show(show)
     return fig
@@ -769,11 +902,11 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
 def _get_presser(fig):
     """Get our press callback."""
-    callbacks = fig.canvas.callbacks.callbacks['button_press_event']
+    callbacks = fig.canvas.callbacks.callbacks["button_press_event"]
     func = None
     for key, val in callbacks.items():
         func = val()
-        if func.__class__.__name__ == 'partial':
+        if func.__class__.__name__ == "partial":
             break
         else:
             func = None
@@ -803,6 +936,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
+
     if colors is None:
         colors = cycle(_get_color_list())
     fig, ax = plt.subplots(1, 1)
@@ -811,13 +945,13 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
         ax.plot(dip.times, dip.amplitude * 1e9, color=color, linewidth=1.5)
         xlim[0] = min(xlim[0], dip.times[0])
         xlim[1] = max(xlim[1], dip.times[-1])
-    ax.set(xlim=xlim, xlabel='Time (s)', ylabel='Amplitude (nAm)')
+    ax.set(xlim=xlim, xlabel="Time (s)", ylabel="Amplitude (nAm)")
     if show:
         fig.show(warn=False)
     return fig
 
 
-def adjust_axes(axes, remove_spines=('top', 'right'), grid=True):
+def adjust_axes(axes, remove_spines=("top", "right"), grid=True):
     """Adjust some properties of axes.
 
     Parameters
@@ -839,7 +973,7 @@ def adjust_axes(axes, remove_spines=('top', 'right'), grid=True):
 
 def _filter_ticks(lims, fscale):
     """Create approximately spaced ticks between lims."""
-    if fscale == 'linear':
+    if fscale == "linear":
         return None, None  # let matplotlib handle it
     lims = np.array(lims)
     ticks = list()
@@ -847,12 +981,13 @@ def _filter_ticks(lims, fscale):
         base = np.array([1, 2, 4])
     else:
         base = np.arange(1, 11)
-    for exp in range(int(np.floor(np.log10(lims[0]))),
-                     int(np.floor(np.log10(lims[1]))) + 1):
-        ticks += (base * (10 ** exp)).tolist()
+    for exp in range(
+        int(np.floor(np.log10(lims[0]))), int(np.floor(np.log10(lims[1]))) + 1
+    ):
+        ticks += (base * (10**exp)).tolist()
     ticks = np.array(ticks)
     ticks = ticks[(ticks >= lims[0]) & (ticks <= lims[1])]
-    ticklabels = [('%g' if t < 1 else '%d') % t for t in ticks]
+    ticklabels = [("%g" if t < 1 else "%d") % t for t in ticks]
     return ticks, ticklabels
 
 
@@ -860,35 +995,47 @@ def _get_flim(flim, fscale, freq, sfreq=None):
     """Get reasonable frequency limits."""
     if flim is None:
         if freq is None:
-            flim = [0.1 if fscale == 'log' else 0., sfreq / 2.]
+            flim = [0.1 if fscale == "log" else 0.0, sfreq / 2.0]
         else:
-            if fscale == 'linear':
+            if fscale == "linear":
                 flim = [freq[0]]
             else:
                 flim = [freq[0] if freq[0] > 0 else 0.1 * freq[1]]
             flim += [freq[-1]]
-    if fscale == 'log':
+    if fscale == "log":
         if flim[0] <= 0:
-            raise ValueError('flim[0] must be positive, got %s' % flim[0])
+            raise ValueError("flim[0] must be positive, got %s" % flim[0])
     elif flim[0] < 0:
-        raise ValueError('flim[0] must be non-negative, got %s' % flim[0])
+        raise ValueError("flim[0] must be non-negative, got %s" % flim[0])
     return flim
 
 
 def _check_fscale(fscale):
     """Check for valid fscale."""
-    if not isinstance(fscale, str) or fscale not in ('log', 'linear'):
-        raise ValueError('fscale must be "log" or "linear", got %s'
-                         % (fscale,))
+    if not isinstance(fscale, str) or fscale not in ("log", "linear"):
+        raise ValueError('fscale must be "log" or "linear", got %s' % (fscale,))
 
 
 _DEFAULT_ALIM = (-80, 10)
 
 
-def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
-                flim=None, fscale='log', alim=_DEFAULT_ALIM, show=True,
-                compensate=False, plot=('time', 'magnitude', 'delay'),
-                axes=None, *, dlim=None):
+def plot_filter(
+    h,
+    sfreq,
+    freq=None,
+    gain=None,
+    title=None,
+    color="#1f77b4",
+    flim=None,
+    fscale="log",
+    alim=_DEFAULT_ALIM,
+    show=True,
+    compensate=False,
+    plot=("time", "magnitude", "delay"),
+    axes=None,
+    *,
+    dlim=None,
+):
     """Plot properties of a filter.
 
     Parameters
@@ -961,29 +1108,28 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import (
-        freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt)
+    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
     import matplotlib.pyplot as plt
 
     sfreq = float(sfreq)
-    _check_option('fscale', fscale, ['log', 'linear'])
+    _check_option("fscale", fscale, ["log", "linear"])
     if isinstance(plot, str):
         plot = [plot]
     for xi, x in enumerate(plot):
-        _check_option('plot[%d]' % xi, x, ('magnitude', 'delay', 'time'))
+        _check_option("plot[%d]" % xi, x, ("magnitude", "delay", "time"))
 
     flim = _get_flim(flim, fscale, freq, sfreq)
-    if fscale == 'log':
+    if fscale == "log":
         omega = np.logspace(np.log10(flim[0]), np.log10(flim[1]), 1000)
     else:
         omega = np.linspace(flim[0], flim[1], 1000)
     xticks, xticklabels = _filter_ticks(flim, fscale)
     omega /= sfreq / (2 * np.pi)
     if isinstance(h, dict):  # IIR h.ndim == 2:  # second-order sections
-        if 'sos' in h:
+        if "sos" in h:
             H = np.ones(len(omega), np.complex128)
             gd = np.zeros(len(omega))
-            for section in h['sos']:
+            for section in h["sos"]:
                 this_H = freqz(section[:3], section[3:], omega)[1]
                 H *= this_H
                 if compensate:
@@ -992,48 +1138,48 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                     # Assume the forward-backward delay zeros out, which it
                     # mostly should
                     with warnings.catch_warnings(record=True):  # singular GD
-                        warnings.simplefilter('ignore')
+                        warnings.simplefilter("ignore")
                         gd += group_delay((section[:3], section[3:]), omega)[1]
-            n = estimate_ringing_samples(h['sos'])
+            n = estimate_ringing_samples(h["sos"])
             delta = np.zeros(n)
             delta[0] = 1
             if compensate:
-                delta = np.pad(delta, [(n - 1, 0)], 'constant')
+                delta = np.pad(delta, [(n - 1, 0)], "constant")
                 func = sosfiltfilt
                 gd += (len(delta) - 1) // 2
             else:
                 func = sosfilt
-            h = func(h['sos'], delta)
+            h = func(h["sos"], delta)
         else:
-            H = freqz(h['b'], h['a'], omega)[1]
+            H = freqz(h["b"], h["a"], omega)[1]
             if compensate:
                 H *= H.conj()
             with warnings.catch_warnings(record=True):  # singular GD
-                warnings.simplefilter('ignore')
-                gd = group_delay((h['b'], h['a']), omega)[1]
+                warnings.simplefilter("ignore")
+                gd = group_delay((h["b"], h["a"]), omega)[1]
                 if compensate:
-                    gd += group_delay((h['b'].conj(), h['a'].conj()), omega)[1]
-            n = estimate_ringing_samples((h['b'], h['a']))
+                    gd += group_delay((h["b"].conj(), h["a"].conj()), omega)[1]
+            n = estimate_ringing_samples((h["b"], h["a"]))
             delta = np.zeros(n)
             delta[0] = 1
             if compensate:
-                delta = np.pad(delta, [(n - 1, 0)], 'constant')
+                delta = np.pad(delta, [(n - 1, 0)], "constant")
                 func = filtfilt
             else:
                 func = lfilter
-            h = func(h['b'], h['a'], delta)
+            h = func(h["b"], h["a"], delta)
         if title is None:
-            title = 'SOS (IIR) filter'
+            title = "SOS (IIR) filter"
         if compensate:
-            title += ' (forward-backward)'
+            title += " (forward-backward)"
     else:
         H = freqz(h, worN=omega)[1]
         with warnings.catch_warnings(record=True):  # singular GD
-            warnings.simplefilter('ignore')
-            gd = group_delay((h, [1.]), omega)[1]
-        title = 'FIR filter' if title is None else title
+            warnings.simplefilter("ignore")
+            gd = group_delay((h, [1.0]), omega)[1]
+        title = "FIR filter" if title is None else title
         if compensate:
-            title += ' (delay-compensated)'
+            title += " (delay-compensated)"
 
     fig = None
     if axes is None:
@@ -1045,13 +1191,14 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     if fig is None:
         fig = axes[0].get_figure()
     if len(axes) != len(plot):
-        raise ValueError('Length of axes (%d) must be the same as number of '
-                         'requested filter properties (%d)'
-                         % (len(axes), len(plot)))
+        raise ValueError(
+            "Length of axes (%d) must be the same as number of "
+            "requested filter properties (%d)" % (len(axes), len(plot))
+        )
 
     t = np.arange(len(h))
     if dlim is None:
-        dlim = np.abs(t).max() / 2.
+        dlim = np.abs(t).max() / 2.0
         dlim = [-dlim, dlim]
     if compensate:
         n_shift = (len(h) - 1) // 2
@@ -1061,52 +1208,51 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     t = t / sfreq
     gd = gd / sfreq
     f = omega * sfreq / (2 * np.pi)
-    sl = slice(0 if fscale == 'linear' else 1, None, None)
+    sl = slice(0 if fscale == "linear" else 1, None, None)
     mag = 10 * np.log10(np.maximum((H * H.conj()).real, 1e-20))
 
-    if 'time' in plot:
-        ax_time_idx = np.where([p == 'time' for p in plot])[0][0]
+    if "time" in plot:
+        ax_time_idx = np.where([p == "time" for p in plot])[0][0]
         axes[ax_time_idx].plot(t, h, color=color, linewidth=1.2)
-        axes[ax_time_idx].grid(visible=True, which='major', axis='both',
-                               linewidth=0.15)
-        axes[ax_time_idx].set(xlim=t[[0, -1]], xlabel='Time (s)',
-                              ylabel='Amplitude', title=title)
+        axes[ax_time_idx].grid(visible=True, which="major", axis="both", linewidth=0.15)
+        axes[ax_time_idx].set(
+            xlim=t[[0, -1]], xlabel="Time (s)", ylabel="Amplitude", title=title
+        )
     # Magnitude
-    if 'magnitude' in plot:
-        ax_mag_idx = np.where([p == 'magnitude' for p in plot])[0][0]
-        axes[ax_mag_idx].plot(f[sl], mag[sl], color=color,
-                              linewidth=1.2, zorder=4)
-        axes[ax_mag_idx].grid(visible=True, which='major', axis='both',
-                              linewidth=0.15)
+    if "magnitude" in plot:
+        ax_mag_idx = np.where([p == "magnitude" for p in plot])[0][0]
+        axes[ax_mag_idx].plot(f[sl], mag[sl], color=color, linewidth=1.2, zorder=4)
+        axes[ax_mag_idx].grid(visible=True, which="major", axis="both", linewidth=0.15)
         if freq is not None and gain is not None:
-            plot_ideal_filter(freq, gain, axes[ax_mag_idx],
-                              fscale=fscale, show=False)
-        axes[ax_mag_idx].set(ylabel='Magnitude (dB)', xlabel='', xscale=fscale)
+            plot_ideal_filter(freq, gain, axes[ax_mag_idx], fscale=fscale, show=False)
+        axes[ax_mag_idx].set(ylabel="Magnitude (dB)", xlabel="", xscale=fscale)
         if xticks is not None:
             axes[ax_mag_idx].set(xticks=xticks)
             axes[ax_mag_idx].set(xticklabels=xticklabels)
-        axes[ax_mag_idx].set(xlim=flim, ylim=alim, xlabel='Frequency (Hz)',
-                             ylabel='Amplitude (dB)')
+        axes[ax_mag_idx].set(
+            xlim=flim, ylim=alim, xlabel="Frequency (Hz)", ylabel="Amplitude (dB)"
+        )
     # Delay
-    if 'delay' in plot:
-        ax_delay_idx = np.where([p == 'delay' for p in plot])[0][0]
-        axes[ax_delay_idx].plot(f[sl], gd[sl], color=color,
-                                linewidth=1.2, zorder=4)
-        axes[ax_delay_idx].grid(visible=True, which='major', axis='both',
-                                linewidth=0.15)
+    if "delay" in plot:
+        ax_delay_idx = np.where([p == "delay" for p in plot])[0][0]
+        axes[ax_delay_idx].plot(f[sl], gd[sl], color=color, linewidth=1.2, zorder=4)
+        axes[ax_delay_idx].grid(
+            visible=True, which="major", axis="both", linewidth=0.15
+        )
         # shade nulled regions
         for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
-            axes[ax_delay_idx].axvspan(f[start], f[stop - 1],
-                                       facecolor='k', alpha=0.05,
-                                       zorder=5)
-        axes[ax_delay_idx].set(xlim=flim, ylabel='Group delay (s)',
-                               xlabel='Frequency (Hz)',
-                               xscale=fscale)
+            axes[ax_delay_idx].axvspan(
+                f[start], f[stop - 1], facecolor="k", alpha=0.05, zorder=5
+            )
+        axes[ax_delay_idx].set(
+            xlim=flim, ylabel="Group delay (s)", xlabel="Frequency (Hz)", xscale=fscale
+        )
         if xticks is not None:
             axes[ax_delay_idx].set(xticks=xticks)
             axes[ax_delay_idx].set(xticklabels=xticklabels)
-        axes[ax_delay_idx].set(xlim=flim, ylim=dlim, xlabel='Frequency (Hz)',
-                               ylabel='Delay (s)')
+        axes[ax_delay_idx].set(
+            xlim=flim, ylim=dlim, xlabel="Frequency (Hz)", ylabel="Delay (s)"
+        )
 
     adjust_axes(axes)
     tight_layout()
@@ -1114,9 +1260,19 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     return fig
 
 
-def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
-                      alim=_DEFAULT_ALIM, color='r', alpha=0.5, linestyle='--',
-                      show=True):
+def plot_ideal_filter(
+    freq,
+    gain,
+    axes=None,
+    title="",
+    flim=None,
+    fscale="log",
+    alim=_DEFAULT_ALIM,
+    color="r",
+    alpha=0.5,
+    linestyle="--",
+    show=True,
+):
     """Plot an ideal filter response.
 
     Parameters
@@ -1169,37 +1325,44 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         <...Figure...>
     """
     import matplotlib.pyplot as plt
+
     my_freq, my_gain = list(), list()
     if freq[0] != 0:
-        raise ValueError('freq should start with DC (zero) and end with '
-                         'Nyquist, but got %s for DC' % (freq[0],))
+        raise ValueError(
+            "freq should start with DC (zero) and end with "
+            "Nyquist, but got %s for DC" % (freq[0],)
+        )
     freq = np.array(freq)
     # deal with semilogx problems @ x=0
-    _check_option('fscale', fscale, ['log', 'linear'])
-    if fscale == 'log':
+    _check_option("fscale", fscale, ["log", "linear"])
+    if fscale == "log":
         freq[0] = 0.1 * freq[1] if flim is None else min(flim[0], freq[1])
     flim = _get_flim(flim, fscale, freq)
     transitions = list()
     for ii in range(len(freq)):
         if ii < len(freq) - 1 and gain[ii] != gain[ii + 1]:
             transitions += [[freq[ii], freq[ii + 1]]]
-            my_freq += np.linspace(freq[ii], freq[ii + 1], 20,
-                                   endpoint=False).tolist()
-            my_gain += np.linspace(gain[ii], gain[ii + 1], 20,
-                                   endpoint=False).tolist()
+            my_freq += np.linspace(freq[ii], freq[ii + 1], 20, endpoint=False).tolist()
+            my_gain += np.linspace(gain[ii], gain[ii + 1], 20, endpoint=False).tolist()
         else:
             my_freq.append(freq[ii])
             my_gain.append(gain[ii])
-    my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.)))
+    my_gain = 10 * np.log10(np.maximum(my_gain, 10 ** (alim[0] / 10.0)))
     if axes is None:
         axes = plt.subplots(1)[1]
     for transition in transitions:
         axes.axvspan(*transition, color=color, alpha=0.1)
-    axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=alpha,
-              linewidth=2, zorder=3)
+    axes.plot(
+        my_freq,
+        my_gain,
+        color=color,
+        linestyle=linestyle,
+        alpha=alpha,
+        linewidth=2,
+        zorder=3,
+    )
     xticks, xticklabels = _filter_ticks(flim, fscale)
-    axes.set(ylim=alim, xlabel='Frequency (Hz)', ylabel='Amplitude (dB)',
-             xscale=fscale)
+    axes.set(ylim=alim, xlabel="Frequency (Hz)", ylabel="Amplitude (dB)", xscale=fscale)
     if xticks is not None:
         axes.set(xticks=xticks)
         axes.set(xticklabels=xticklabels)
@@ -1218,31 +1381,38 @@ def _handle_event_colors(color_dict, unique_events, event_id):
     # warn if not enough colors
     if color_dict is None:
         if len(unique_events) > len(_get_color_list()):
-            warn('More events than default colors available. You should pass '
-                 'a list of unique colors.')
+            warn(
+                "More events than default colors available. You should pass "
+                "a list of unique colors."
+            )
     else:
         custom_colors = dict()
         for key, color in color_dict.items():
             if key in unique_events:  # key was a valid event integer
                 custom_colors[key] = color
-            elif key in event_id:     # key was an event label
+            elif key in event_id:  # key was an event label
                 custom_colors[event_id[key]] = color
-            else:                     # key not a valid event, warn and ignore
-                warn('Event ID %s is in the color dict but is not '
-                     'present in events or event_id.' % str(key))
+            else:  # key not a valid event, warn and ignore
+                warn(
+                    "Event ID %s is in the color dict but is not "
+                    "present in events or event_id." % str(key)
+                )
         # warn if color_dict is missing any entries
         unassigned = sorted(set(unique_events) - set(custom_colors))
         if len(unassigned):
-            unassigned_str = ', '.join(str(e) for e in unassigned)
-            warn('Color was not assigned for event%s %s. Default colors will '
-                 'be used.' % (_pl(unassigned), unassigned_str))
+            unassigned_str = ", ".join(str(e) for e in unassigned)
+            warn(
+                "Color was not assigned for event%s %s. Default colors will "
+                "be used." % (_pl(unassigned), unassigned_str)
+            )
         default_colors.update(custom_colors)
     return default_colors
 
 
 @fill_doc
-def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
-             n_cols=None, show=True):
+def plot_csd(
+    csd, info=None, mode="csd", colorbar=True, cmap=None, n_cols=None, show=True
+):
     """Plot CSD matrices.
 
     A sub-plot is created for each frequency. If an info object is passed to
@@ -1278,39 +1448,45 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     """
     import matplotlib.pyplot as plt
 
-    if mode not in ['csd', 'coh']:
+    if mode not in ["csd", "coh"]:
         raise ValueError('"mode" should be either "csd" or "coh".')
 
     if info is not None:
-        info_ch_names = info['ch_names']
-        sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                             exclude=[])
-        sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
-                             exclude=[])
-        sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
-                              exclude=[])
-        idx_eeg = [csd.ch_names.index(info_ch_names[c])
-                   for c in sel_eeg if info_ch_names[c] in csd.ch_names]
-        idx_mag = [csd.ch_names.index(info_ch_names[c])
-                   for c in sel_mag if info_ch_names[c] in csd.ch_names]
-        idx_grad = [csd.ch_names.index(info_ch_names[c])
-                    for c in sel_grad if info_ch_names[c] in csd.ch_names]
+        info_ch_names = info["ch_names"]
+        sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude=[])
+        sel_mag = pick_types(info, meg="mag", eeg=False, ref_meg=False, exclude=[])
+        sel_grad = pick_types(info, meg="grad", eeg=False, ref_meg=False, exclude=[])
+        idx_eeg = [
+            csd.ch_names.index(info_ch_names[c])
+            for c in sel_eeg
+            if info_ch_names[c] in csd.ch_names
+        ]
+        idx_mag = [
+            csd.ch_names.index(info_ch_names[c])
+            for c in sel_mag
+            if info_ch_names[c] in csd.ch_names
+        ]
+        idx_grad = [
+            csd.ch_names.index(info_ch_names[c])
+            for c in sel_grad
+            if info_ch_names[c] in csd.ch_names
+        ]
         indices = [idx_eeg, idx_mag, idx_grad]
-        titles = ['EEG', 'Magnetometers', 'Gradiometers']
+        titles = ["EEG", "Magnetometers", "Gradiometers"]
 
-        if mode == 'csd':
+        if mode == "csd":
             # The units in which to plot the CSD
-            units = dict(eeg='µV²', grad='fT²/cm²', mag='fT²')
+            units = dict(eeg="µV²", grad="fT²/cm²", mag="fT²")
             scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
     else:
         indices = [np.arange(len(csd.ch_names))]
-        if mode == 'csd':
-            titles = ['Cross-spectral density']
+        if mode == "csd":
+            titles = ["Cross-spectral density"]
             # Units and scaling unknown
             units = dict()
             scalings = dict()
-        elif mode == 'coh':
-            titles = ['Coherence']
+        elif mode == "coh":
+            titles = ["Coherence"]
 
     n_freqs = len(csd.frequencies)
 
@@ -1319,19 +1495,20 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     n_rows = int(np.ceil(n_freqs / float(n_cols)))
 
     figs = []
-    for ind, title, ch_type in zip(indices, titles, ['eeg', 'mag', 'grad']):
+    for ind, title, ch_type in zip(indices, titles, ["eeg", "mag", "grad"]):
         if len(ind) == 0:
             continue
 
-        fig, axes = plt.subplots(n_rows, n_cols, squeeze=False,
-                                 figsize=(2 * n_cols + 1, 2.2 * n_rows))
+        fig, axes = plt.subplots(
+            n_rows, n_cols, squeeze=False, figsize=(2 * n_cols + 1, 2.2 * n_rows)
+        )
 
         csd_mats = []
         for i in range(len(csd.frequencies)):
             cm = csd.get_data(index=i)[ind][:, ind]
-            if mode == 'csd':
+            if mode == "csd":
                 cm = np.abs(cm) * scalings.get(ch_type, 1)
-            elif mode == 'coh':
+            elif mode == "coh":
                 # Compute coherence from the CSD matrix
                 psd = np.diag(cm).real
                 cm = np.abs(cm) ** 2 / psd[np.newaxis, :] / psd[:, np.newaxis]
@@ -1341,28 +1518,26 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         for i, (freq, mat) in enumerate(zip(csd.frequencies, csd_mats)):
             ax = axes[i // n_cols][i % n_cols]
-            im = ax.imshow(mat, interpolation='nearest', cmap=cmap, vmin=0,
-                           vmax=vmax)
+            im = ax.imshow(mat, interpolation="nearest", cmap=cmap, vmin=0, vmax=vmax)
             ax.set_xticks([])
             ax.set_yticks([])
             if csd._is_sum:
-                ax.set_title('%.1f-%.1f Hz.' % (np.min(freq),
-                                                np.max(freq)))
+                ax.set_title("%.1f-%.1f Hz." % (np.min(freq), np.max(freq)))
             else:
-                ax.set_title('%.1f Hz.' % freq)
+                ax.set_title("%.1f Hz." % freq)
 
         plt.suptitle(title)
         plt.subplots_adjust(top=0.8)
 
         if colorbar:
             cb = plt.colorbar(im, ax=[a for ax_ in axes for a in ax_])
-            if mode == 'csd':
-                label = u'CSD'
+            if mode == "csd":
+                label = "CSD"
                 if ch_type in units:
-                    label += u' (%s)' % units[ch_type]
+                    label += " (%s)" % units[ch_type]
                 cb.set_label(label)
-            elif mode == 'coh':
-                cb.set_label('Coherence')
+            elif mode == "coh":
+                cb.set_label("Coherence")
 
         figs.append(fig)
 
@@ -1406,42 +1581,44 @@ def plot_chpi_snr(snr_dict, axes=None):
     import matplotlib.pyplot as plt
 
     valid_keys = list(snr_dict)[2:]
-    titles = dict(snr='SNR', power='cHPI power', resid='Residual variance')
-    full_names = dict(mag='magnetometers', grad='gradiometers')
+    titles = dict(snr="SNR", power="cHPI power", resid="Residual variance")
+    full_names = dict(mag="magnetometers", grad="gradiometers")
     axes_was_none = axes is None
     if axes_was_none:
         fig, axes = plt.subplots(len(valid_keys), 1, sharex=True)
     else:
         fig = axes[0].get_figure()
     if len(axes) != len(valid_keys):
-        raise ValueError(f'axes must be a list of {len(valid_keys)} axes, got '
-                         f'length {len(axes)} ({axes}).')
+        raise ValueError(
+            f"axes must be a list of {len(valid_keys)} axes, got "
+            f"length {len(axes)} ({axes})."
+        )
     fig.set_size_inches(10, 10)
     legend_labels_exist = False
     for key, ax in zip(valid_keys, axes):
-        ch_type, kind = key.split('_')
-        scaling = 1 if kind == 'snr' else DEFAULTS['scalings'][ch_type]
-        plot_kwargs = dict(color='k') if kind == 'resid' else dict()
-        lines = ax.plot(snr_dict['times'], snr_dict[key] * scaling ** 2,
-                        **plot_kwargs)
+        ch_type, kind = key.split("_")
+        scaling = 1 if kind == "snr" else DEFAULTS["scalings"][ch_type]
+        plot_kwargs = dict(color="k") if kind == "resid" else dict()
+        lines = ax.plot(snr_dict["times"], snr_dict[key] * scaling**2, **plot_kwargs)
         # the freqs should be the same for all sensor types (and for SNR and
         # power subplots), so we only need to label the lines on one axes
         # (otherwise we get duplicate legend entries).
         if not legend_labels_exist:
-            for line, freq in zip(lines, snr_dict['freqs']):
-                line.set_label(f'{freq} Hz')
+            for line, freq in zip(lines, snr_dict["freqs"]):
+                line.set_label(f"{freq} Hz")
             legend_labels_exist = True
-        unit = DEFAULTS['units'][ch_type]
-        unit = f'({unit})' if '/' in unit else unit
-        set_kwargs = dict(title=f'{titles[kind]}, {full_names[ch_type]}',
-                          ylabel='dB' if kind == 'snr' else f'{unit}²')
+        unit = DEFAULTS["units"][ch_type]
+        unit = f"({unit})" if "/" in unit else unit
+        set_kwargs = dict(
+            title=f"{titles[kind]}, {full_names[ch_type]}",
+            ylabel="dB" if kind == "snr" else f"{unit}²",
+        )
         if not axes_was_none:
-            set_kwargs.update(xlabel='Time (s)')
+            set_kwargs.update(xlabel="Time (s)")
         ax.set(**set_kwargs)
     if axes_was_none:
-        ax.set(xlabel='Time (s)')
+        ax.set(xlabel="Time (s)")
         fig.align_ylabels()
-        fig.subplots_adjust(left=0.1, right=0.825, bottom=0.075, top=0.95,
-                            hspace=0.7)
-        fig.legend(loc='right', title='cHPI frequencies')
+        fig.subplots_adjust(left=0.1, right=0.825, bottom=0.075, top=0.95, hspace=0.7)
+        fig.legend(loc="right", title="cHPI frequencies")
     return fig

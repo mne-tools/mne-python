@@ -2,12 +2,12 @@
 #
 # License: BSD Style.
 
-import logging
 import sys
 import os
 import os.path as op
 from pathlib import Path
 from shutil import rmtree
+import time
 
 from .. import __version__ as mne_version
 from ..utils import logger, warn, _safe_input
@@ -17,7 +17,13 @@ from .config import (
     TESTING_VERSIONED,
     MISC_VERSIONED,
 )
-from .utils import _dataset_version, _do_path_update, _get_path
+from .utils import (
+    _dataset_version,
+    _do_path_update,
+    _get_path,
+    _log_time_size,
+    _downloader_params,
+)
 from ..fixes import _compare_version
 
 
@@ -131,6 +137,8 @@ def fetch_dataset(
     """  # noqa E501
     import pooch
 
+    t0 = time.time()
+
     if auth is not None:
         if len(auth) != 2:
             raise RuntimeError(
@@ -151,7 +159,7 @@ def fetch_dataset(
     names = [params["dataset_name"] for params in dataset_params]
     name = names[0]
     dataset_dict = dataset_params[0]
-    config_key = dataset_dict.get('config_key', None)
+    config_key = dataset_dict.get("config_key", None)
     folder_name = dataset_dict["folder_name"]
 
     # get download path for specific dataset
@@ -173,8 +181,9 @@ def fetch_dataset(
 
     # get the version of the dataset and then check if the version is outdated
     data_version = _dataset_version(final_path, name)
-    outdated = (want_version is not None and
-                _compare_version(want_version, '>', data_version))
+    outdated = want_version is not None and _compare_version(
+        want_version, ">", data_version
+    )
 
     if outdated:
         logger.info(
@@ -186,16 +195,13 @@ def fetch_dataset(
     # return empty string if outdated dataset and we don't want to download
     if (not force_update) and outdated and not download:
         logger.info(
-            'Dataset out of date but force_update=False and download=False, '
-            'returning empty data_path')
+            "Dataset out of date but force_update=False and download=False, "
+            "returning empty data_path"
+        )
         return (empty, data_version) if return_version else empty
 
     # reasons to bail early (hf_sef has separate code for this):
-    if (
-        (not force_update)
-        and (not outdated)
-        and (not name.startswith("hf_sef_"))
-    ):
+    if (not force_update) and (not outdated) and (not name.startswith("hf_sef_")):
         # ...if target folder exists (otherwise pooch downloads every
         # time because we don't save the archive files after unpacking, so
         # pooch can't check its checksum)
@@ -213,20 +219,15 @@ def fetch_dataset(
             else:
                 # If they don't have stdin, just accept the license
                 # https://github.com/mne-tools/mne-python/issues/8513#issuecomment-726823724  # noqa: E501
-                answer = _safe_input(
-                    "%sAgree (y/[n])? " % _bst_license_text, use="y")
+                answer = _safe_input("%sAgree (y/[n])? " % _bst_license_text, use="y")
             if answer.lower() != "y":
                 raise RuntimeError(
                     "You must agree to the license to use this " "dataset"
                 )
     # downloader & processors
-    download_params = dict(progressbar=logger.level <= logging.INFO)
+    download_params = _downloader_params(auth=auth, token=token)
     if name == "fake":
         download_params["progressbar"] = False
-    if auth is not None:
-        download_params["auth"] = auth
-    if token is not None:
-        download_params["headers"] = {"Authorization": f"token {token}"}
     downloader = pooch.HTTPDownloader(**download_params)
 
     # make mappings from archive names to urls and to checksums
@@ -241,8 +242,9 @@ def fetch_dataset(
         registry[archive_name] = dataset_hash
 
     # create the download manager
+    use_path = final_path if processor is None else Path(path)
     fetcher = pooch.create(
-        path=str(final_path) if processor is None else path,
+        path=str(use_path),
         base_url="",  # Full URLs are given in the `urls` dict.
         version=None,  # Data versioning is decoupled from MNE-Python version.
         urls=urls,
@@ -252,6 +254,7 @@ def fetch_dataset(
 
     # use our logger level for pooch's logger too
     pooch.get_logger().setLevel(logger.getEffectiveLevel())
+    sz = 0
 
     for idx in range(len(names)):
         # fetch and unpack the data
@@ -262,15 +265,18 @@ def fetch_dataset(
             )
         except ValueError as err:
             err = str(err)
-            if 'hash of downloaded file' in str(err):
+            if "hash of downloaded file" in str(err):
                 raise ValueError(
-                    f'{err} Consider using force_update=True to force '
-                    'the dataset to be downloaded again.') from None
+                    f"{err} Consider using force_update=True to force "
+                    "the dataset to be downloaded again."
+                ) from None
             else:
                 raise
+        fname = use_path / archive_name
+        sz += fname.stat().st_size
         # after unpacking, remove the archive file
         if processor is not None:
-            os.remove(op.join(path, archive_name))
+            fname.unlink()
 
     # remove version number from "misc" and "testing" datasets folder names
     if name == "misc":
@@ -289,7 +295,7 @@ def fetch_dataset(
     data_version = _dataset_version(path, name)
     # 0.7 < 0.7.git should be False, therefore strip
     if check_version and (
-        _compare_version(data_version, '<', mne_version.strip(".git"))
+        _compare_version(data_version, "<", mne_version.strip(".git"))
     ):
         warn(
             "The {name} dataset (version {current}) is older than "
@@ -299,4 +305,5 @@ def fetch_dataset(
                 name=name, current=data_version, newest=mne_version
             )
         )
+    _log_time_size(t0, sz)
     return (final_path, data_version) if return_version else final_path

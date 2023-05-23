@@ -2,4 +2,4 @@
 #
 # License: BSD-3-Clause
 
-from .fil import read_raw_fil 
+from .fil import read_raw_fil

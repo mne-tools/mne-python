@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Classes to handle overlapping surfaces."""
 
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
@@ -13,7 +12,7 @@ import numpy as np
 from ..utils import logger
 
 
-class _Overlay(object):
+class _Overlay:
     def __init__(self, scalars, colormap, rng, opacity, name):
         self._scalars = scalars
         self._colormap = colormap
@@ -32,10 +31,12 @@ class _Overlay(object):
             cmap = self._colormap
         else:
             cmap = ListedColormap(
-                self._colormap / 255., name=str(type(self._colormap)))
+                self._colormap / 255.0, name=str(type(self._colormap))
+            )
         logger.debug(
-            f'Color mapping {repr(self._name)} with {cmap.name} '
-            f'colormap and range {self._rng}')
+            f"Color mapping {repr(self._name)} with {cmap.name} "
+            f"colormap and range {self._rng}"
+        )
 
         rng = self._rng
         assert rng is not None
@@ -54,7 +55,7 @@ class _Overlay(object):
         return (self._scalars - rng[0]) / factor
 
 
-class _LayeredMesh(object):
+class _LayeredMesh:
     def __init__(self, renderer, vertices, triangles, normals):
         self._renderer = renderer
         self._vertices = vertices
@@ -70,7 +71,7 @@ class _LayeredMesh(object):
         self._overlays = OrderedDict()
 
         self._default_scalars = np.ones(vertices.shape)
-        self._default_scalars_name = 'Data'
+        self._default_scalars_name = "Data"
 
     def map(self):
         kwargs = {
@@ -85,7 +86,7 @@ class _LayeredMesh(object):
             triangles=self._triangles,
             normals=self._normals,
             scalars=self._default_scalars,
-            **kwargs
+            **kwargs,
         )
         self._actor, self._polydata = mesh_data
         self._is_mapped = True
@@ -128,8 +129,7 @@ class _LayeredMesh(object):
         else:
             # save previous colors to cache
             self._cached_colors = self._current_colors
-            self._current_colors = self._compute_over(
-                self._cached_colors, colors)
+            self._current_colors = self._compute_over(self._cached_colors, colors)
 
         # apply the texture
         self._apply()
@@ -156,11 +156,9 @@ class _LayeredMesh(object):
 
     def update(self, colors=None):
         if colors is not None and self._cached_colors is not None:
-            self._current_colors = self._compute_over(
-                self._cached_colors, colors)
+            self._current_colors = self._compute_over(self._cached_colors, colors)
         else:
-            self._current_colors, self._cached_colors = \
-                self._compose_overlays()
+            self._current_colors, self._cached_colors = self._compose_overlays()
         self._apply()
 
     def _clean(self):
@@ -171,8 +169,7 @@ class _LayeredMesh(object):
         self._polydata = None
         self._renderer = None
 
-    def update_overlay(self, name, scalars=None, colormap=None,
-                       opacity=None, rng=None):
+    def update_overlay(self, name, scalars=None, colormap=None, opacity=None, rng=None):
         overlay = self._overlays.get(name, None)
         if overlay is None:
             return

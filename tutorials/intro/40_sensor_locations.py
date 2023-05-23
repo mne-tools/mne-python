@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-sensor-locations:
 
@@ -17,6 +16,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 # the following import is required for matplotlib < 3.2:
 from mpl_toolkits.mplot3d import Axes3D  # noqa
 
@@ -64,13 +64,13 @@ import mne
 
 builtin_montages = mne.channels.get_builtin_montages(descriptions=True)
 for montage_name, montage_description in builtin_montages:
-    print(f'{montage_name}: {montage_description}')
+    print(f"{montage_name}: {montage_description}")
 
 # %%
 # These built-in EEG montages can be loaded with
 # `mne.channels.make_standard_montage`:
 
-easycap_montage = mne.channels.make_standard_montage('easycap-M1')
+easycap_montage = mne.channels.make_standard_montage("easycap-M1")
 print(easycap_montage)
 
 # %%
@@ -79,7 +79,7 @@ print(easycap_montage)
 # in 2D or 3D:
 
 easycap_montage.plot()  # 2D
-fig = easycap_montage.plot(kind='3d', show=False)  # 3D
+fig = easycap_montage.plot(kind="3d", show=False)  # 3D
 fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial
 
 # %%
@@ -99,8 +99,9 @@ fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial
 # montage name directly to the :meth:`~mne.io.Raw.set_montage` method.
 
 ssvep_folder = mne.datasets.ssvep.data_path()
-ssvep_data_raw_path = (ssvep_folder / 'sub-02' / 'ses-01' / 'eeg' /
-                       'sub-02_ses-01_task-ssvep_eeg.vhdr')
+ssvep_data_raw_path = (
+    ssvep_folder / "sub-02" / "ses-01" / "eeg" / "sub-02_ses-01_task-ssvep_eeg.vhdr"
+)
 ssvep_raw = mne.io.read_raw_brainvision(ssvep_data_raw_path, verbose=False)
 
 # Use the preloaded montage
@@ -108,7 +109,7 @@ ssvep_raw.set_montage(easycap_montage)
 fig = ssvep_raw.plot_sensors(show_names=True)
 
 # Apply a template montage directly, without preloading
-ssvep_raw.set_montage('easycap-M1')
+ssvep_raw.set_montage("easycap-M1")
 fig = ssvep_raw.plot_sensors(show_names=True)
 
 # %%
@@ -141,7 +142,7 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 # If you prefer to draw the head circle using 10–20 conventions (which are also
 # used by EEGLAB), you can pass ``sphere='eeglab'``:
 
-fig = ssvep_raw.plot_sensors(show_names=True, sphere='eeglab')
+fig = ssvep_raw.plot_sensors(show_names=True, sphere="eeglab")
 
 # %%
 # Because the data we're using here doesn't contain an Fpz channel, its
@@ -188,18 +189,15 @@ fig = easycap_montage.plot(sphere=(0.03, 0.02, 0.01, 0.075))
 # subplot in a multi-panel figure):
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_path = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
-sample_raw = mne.io.read_raw_fif(
-    sample_data_raw_path, preload=False, verbose=False
-)
+sample_data_raw_path = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
+sample_raw = mne.io.read_raw_fif(sample_data_raw_path, preload=False, verbose=False)
 
 # sphinx_gallery_thumbnail_number = 9
 fig = plt.figure()
 ax2d = fig.add_subplot(121)
-ax3d = fig.add_subplot(122, projection='3d')
-sample_raw.plot_sensors(ch_type='eeg', axes=ax2d)
-sample_raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
+ax3d = fig.add_subplot(122, projection="3d")
+sample_raw.plot_sensors(ch_type="eeg", axes=ax2d)
+sample_raw.plot_sensors(ch_type="eeg", axes=ax3d, kind="3d")
 ax3d.view_init(azim=70, elev=15)
 
 # %%
@@ -234,9 +232,12 @@ ax3d.view_init(azim=70, elev=15)
 # :func:`mne.viz.plot_alignment`:
 
 fig = mne.viz.plot_alignment(
-    sample_raw.info, dig=False, eeg=False,
-    surfaces=[], meg=['helmet', 'sensors'],
-    coord_frame='meg'
+    sample_raw.info,
+    dig=False,
+    eeg=False,
+    surfaces=[],
+    meg=["helmet", "sensors"],
+    coord_frame="meg",
 )
 mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
@@ -256,21 +257,17 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 # Similar to montages, many layout files are included with MNE-Python. They are
 # stored in the :file:`mne/channels/data/layouts` folder:
 
-layout_dir = Path(mne.__file__).parent / 'channels' / 'data' / 'layouts'
+layout_dir = Path(mne.__file__).parent / "channels" / "data" / "layouts"
 layouts = sorted(path.name for path in layout_dir.iterdir())
-print(
-    '\n'
-    'BUILT-IN LAYOUTS\n'
-    '================'
-)
-print('\n'.join(layouts))
+print("\n" "BUILT-IN LAYOUTS\n" "================")
+print("\n".join(layouts))
 
 # %%
 # To load a layout file, use the `mne.channels.read_layout` function.
 # You can then visualize the layout using its
 # `~mne.channels.Layout.plot` method:
 
-biosemi_layout = mne.channels.read_layout('biosemi')
+biosemi_layout = mne.channels.read_layout("biosemi")
 
 # %%
 # Similar to the ``picks`` argument for selecting channels from `~mne.io.Raw`
@@ -282,7 +279,7 @@ biosemi_layout = mne.channels.read_layout('biosemi')
 # we find the desired indices using :func:`numpy.where`; selection by name or
 # type is possible with :func:`mne.pick_channels` or :func:`mne.pick_types`.
 
-midline = np.where([name.endswith('z') for name in biosemi_layout.names])[0]
+midline = np.where([name.endswith("z") for name in biosemi_layout.names])[0]
 biosemi_layout.plot(picks=midline)
 
 # %%

@@ -45,3 +45,4 @@ Datasets
    ssvep.data_path
    erp_core.data_path
    epilepsy_ecog.data_path
+   eyelink.data_path

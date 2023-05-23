@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-dics:
 
@@ -36,13 +35,13 @@ from mne.beamformer import make_dics, apply_dics_csd
 
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
-subjects_dir = data_path / 'subjects'
+subjects_dir = data_path / "subjects"
 
 # Filenames for various files we'll be using
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_raw.fif'
-fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
-cov_fname = meg_path / 'sample_audvis-cov.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_raw.fif"
+fwd_fname = meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+cov_fname = meg_path / "sample_audvis-cov.fif"
 fwd = mne.read_forward_solution(fwd_fname)
 
 # Seed for the random number generator
@@ -56,8 +55,8 @@ rand = np.random.RandomState(42)
 # whose frequency fluctuates a little over time, but stays close to 10 Hz.
 # We'll use this function to generate our two signals.
 
-sfreq = 50.  # Sampling frequency of the generated signal
-n_samp = int(round(10. * sfreq))
+sfreq = 50.0  # Sampling frequency of the generated signal
+n_samp = int(round(10.0 * sfreq))
 times = np.arange(n_samp) / sfreq  # 10 seconds of signal
 n_times = len(times)
 
@@ -72,13 +71,18 @@ def coh_signal_gen():
     """
     t_rand = 0.001  # Variation in the instantaneous frequency of the signal
     std = 0.1  # Std-dev of the random fluctuations added to the signal
-    base_freq = 10.  # Base frequency of the oscillators in Hertz
+    base_freq = 10.0  # Base frequency of the oscillators in Hertz
     n_times = len(times)
 
     # Generate an oscillator with varying frequency and phase lag.
-    signal = np.sin(2.0 * np.pi *
-                    (base_freq * np.arange(n_times) / sfreq +
-                     np.cumsum(t_rand * rand.randn(n_times))))
+    signal = np.sin(
+        2.0
+        * np.pi
+        * (
+            base_freq * np.arange(n_times) / sfreq
+            + np.cumsum(t_rand * rand.randn(n_times))
+        )
+    )
 
     # Add some random fluctuations to the signal.
     signal += std * rand.randn(n_times)
@@ -100,26 +104,35 @@ fig, axes = plt.subplots(2, 2, figsize=(8, 4))
 # Plot the timeseries
 ax = axes[0][0]
 ax.plot(times, 1e9 * signal1, lw=0.5)
-ax.set(xlabel='Time (s)', xlim=times[[0, -1]], ylabel='Amplitude (Am)',
-       title='Signal 1')
+ax.set(
+    xlabel="Time (s)", xlim=times[[0, -1]], ylabel="Amplitude (Am)", title="Signal 1"
+)
 ax = axes[0][1]
 ax.plot(times, 1e9 * signal2, lw=0.5)
-ax.set(xlabel='Time (s)', xlim=times[[0, -1]], title='Signal 2')
+ax.set(xlabel="Time (s)", xlim=times[[0, -1]], title="Signal 2")
 
 # Power spectrum of the first timeseries
 f, p = welch(signal1, fs=sfreq, nperseg=128, nfft=256)
 ax = axes[1][0]
 # Only plot the first 100 frequencies
-ax.plot(f[:100], 20 * np.log10(p[:100]), lw=1.)
-ax.set(xlabel='Frequency (Hz)', xlim=f[[0, 99]],
-       ylabel='Power (dB)', title='Power spectrum of signal 1')
+ax.plot(f[:100], 20 * np.log10(p[:100]), lw=1.0)
+ax.set(
+    xlabel="Frequency (Hz)",
+    xlim=f[[0, 99]],
+    ylabel="Power (dB)",
+    title="Power spectrum of signal 1",
+)
 
 # Compute the coherence between the two timeseries
 f, coh = coherence(signal1, signal2, fs=sfreq, nperseg=100, noverlap=64)
 ax = axes[1][1]
-ax.plot(f[:50], coh[:50], lw=1.)
-ax.set(xlabel='Frequency (Hz)', xlim=f[[0, 49]], ylabel='Coherence',
-       title='Coherence between the timeseries')
+ax.plot(f[:50], coh[:50], lw=1.0)
+ax.set(
+    xlabel="Frequency (Hz)",
+    xlim=f[[0, 49]],
+    ylabel="Coherence",
+    title="Coherence between the timeseries",
+)
 fig.tight_layout()
 
 # %%
@@ -138,14 +151,15 @@ vertices = [[146374], [33830]]
 # Construct SourceEstimates that describe the signals at the cortical level.
 data = np.vstack((signal1, signal2))
 stc_signal = mne.SourceEstimate(
-    data, vertices, tmin=0, tstep=1. / sfreq, subject='sample')
-stc_noise = stc_signal * 0.
+    data, vertices, tmin=0, tstep=1.0 / sfreq, subject="sample"
+)
+stc_noise = stc_signal * 0.0
 
 # %%
 # Before we simulate the sensor-level data, let's define a signal-to-noise
 # ratio. You are encouraged to play with this parameter and see the effect of
 # noise on our results.
-snr = 1.  # Signal-to-noise ratio. Decrease to add more noise.
+snr = 1.0  # Signal-to-noise ratio. Decrease to add more noise.
 
 # %%
 # Now we run the signal through the forward model to obtain simulated sensor
@@ -160,17 +174,19 @@ snr = 1.  # Signal-to-noise ratio. Decrease to add more noise.
 info = mne.io.read_raw(raw_fname).crop(0, 1).resample(50).info
 
 # Only use gradiometers
-picks = mne.pick_types(info, meg='grad', stim=True, exclude=())
+picks = mne.pick_types(info, meg="grad", stim=True, exclude=())
 mne.pick_info(info, picks, copy=False)
 
 # Define a covariance matrix for the simulated noise. In this tutorial, we use
 # a simple diagonal matrix.
 cov = mne.cov.make_ad_hoc_cov(info)
-cov['data'] *= (20. / snr) ** 2  # Scale the noise to achieve the desired SNR
+cov["data"] *= (20.0 / snr) ** 2  # Scale the noise to achieve the desired SNR
 
 # Simulate the raw data, with a lowpass filter on the noise
-stcs = [(stc_signal, unit_impulse(n_samp, dtype=int) * 1),
-        (stc_noise, unit_impulse(n_samp, dtype=int) * 2)]  # stacked in time
+stcs = [
+    (stc_signal, unit_impulse(n_samp, dtype=int) * 1),
+    (stc_noise, unit_impulse(n_samp, dtype=int) * 2),
+]  # stacked in time
 duration = (len(stc_signal.times) * 2) / sfreq
 raw = simulate_raw(info, stcs, forward=fwd)
 add_noise(raw, cov, iir_filter=[4, -4, 0.8], random_state=rand)
@@ -182,14 +198,24 @@ add_noise(raw, cov, iir_filter=[4, -4, 0.8], random_state=rand)
 
 events = mne.find_events(raw, initial_event=True)
 tmax = (len(stc_signal.times) - 1) / sfreq
-epochs = mne.Epochs(raw, events, event_id=dict(signal=1, noise=2),
-                    tmin=0, tmax=tmax, baseline=None, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id=dict(signal=1, noise=2),
+    tmin=0,
+    tmax=tmax,
+    baseline=None,
+    preload=True,
+)
 assert len(epochs) == 2  # ensure that we got the two expected events
 
 # Plot some of the channels of the simulated data that are situated above one
 # of our simulated sources.
-picks = mne.pick_channels(epochs.ch_names,
-                          mne.read_vectorview_selection('Left-frontal'))
+picks = mne.pick_channels(
+    epochs.ch_names,
+    mne.read_vectorview_selection("Left-frontal"),
+    ordered=False,
+)
 epochs.plot(picks=picks)
 
 # %%
@@ -211,17 +237,24 @@ fwd = mne.read_forward_solution(fwd_fname)
 inv = make_inverse_operator(epochs.info, fwd, cov)
 
 # Apply the inverse model to the trial that also contains the signal.
-s = apply_inverse(epochs['signal'].average(), inv)
+s = apply_inverse(epochs["signal"].average(), inv)
 
 # Take the root-mean square along the time dimension and plot the result.
-s_rms = np.sqrt((s ** 2).mean())
-title = 'MNE-dSPM inverse (RMS)'
-brain = s_rms.plot('sample', subjects_dir=subjects_dir, hemi='both', figure=1,
-                   size=600, time_label=title, title=title)
+s_rms = np.sqrt((s**2).mean())
+title = "MNE-dSPM inverse (RMS)"
+brain = s_rms.plot(
+    "sample",
+    subjects_dir=subjects_dir,
+    hemi="both",
+    figure=1,
+    size=600,
+    time_label=title,
+    title=title,
+)
 
 # Indicate the true locations of the source activity on the plot.
-brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh')
-brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh')
+brain.add_foci(vertices[0][0], coords_as_verts=True, hemi="lh")
+brain.add_foci(vertices[1][0], coords_as_verts=True, hemi="rh")
 
 # Rotate the view and add a title.
 brain.show_view(azimuth=0, elevation=0, distance=550, focalpoint=(0, 0, 0))
@@ -246,17 +279,33 @@ brain.show_view(azimuth=0, elevation=0, distance=550, focalpoint=(0, 0, 0))
 
 # Estimate the cross-spectral density (CSD) matrix on the trial containing the
 # signal.
-csd_signal = csd_morlet(epochs['signal'], frequencies=[10])
+csd_signal = csd_morlet(epochs["signal"], frequencies=[10])
 
 # Compute the spatial filters for each vertex, using two approaches.
 filters_approach1 = make_dics(
-    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', depth=1.,
-    inversion='single', weight_norm=None, real_filter=True)
+    info,
+    fwd,
+    csd_signal,
+    reg=0.05,
+    pick_ori="max-power",
+    depth=1.0,
+    inversion="single",
+    weight_norm=None,
+    real_filter=True,
+)
 print(filters_approach1)
 
 filters_approach2 = make_dics(
-    info, fwd, csd_signal, reg=0.05, pick_ori='max-power', depth=None,
-    inversion='matrix', weight_norm='unit-noise-gain', real_filter=True)
+    info,
+    fwd,
+    csd_signal,
+    reg=0.05,
+    pick_ori="max-power",
+    depth=None,
+    inversion="matrix",
+    weight_norm="unit-noise-gain",
+    real_filter=True,
+)
 print(filters_approach2)
 
 # You can save these to disk with:
@@ -272,13 +321,18 @@ power_approach2, f = apply_dics_csd(csd_signal, filters_approach2)
 
 def plot_approach(power, n):
     """Plot the results on a brain."""
-    title = 'DICS power map, approach %d' % n
+    title = "DICS power map, approach %d" % n
     brain = power_approach1.plot(
-        'sample', subjects_dir=subjects_dir, hemi='both',
-        size=600, time_label=title, title=title)
+        "sample",
+        subjects_dir=subjects_dir,
+        hemi="both",
+        size=600,
+        time_label=title,
+        title=title,
+    )
     # Indicate the true locations of the source activity on the plot.
-    brain.add_foci(vertices[0][0], coords_as_verts=True, hemi='lh', color='b')
-    brain.add_foci(vertices[1][0], coords_as_verts=True, hemi='rh', color='b')
+    brain.add_foci(vertices[0][0], coords_as_verts=True, hemi="lh", color="b")
+    brain.add_foci(vertices[1][0], coords_as_verts=True, hemi="rh", color="b")
     # Rotate the view and add a title.
     brain.show_view(azimuth=0, elevation=0, distance=550, focalpoint=(0, 0, 0))
     return brain

@@ -1,3 +1,5 @@
+:html_theme.sidebar_secondary.remove:
+
 .. title:: MNE
 
 .. The page title must be in rST for it to show in next/prev page buttons.

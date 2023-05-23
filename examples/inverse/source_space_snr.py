@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-source-space-snr:
 
@@ -27,15 +26,14 @@ import matplotlib.pyplot as plt
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path / 'subjects'
+subjects_dir = data_path / "subjects"
 
 # Read data
-meg_path = data_path / 'MEG' / 'sample'
-fname_evoked = meg_path / 'sample_audvis-ave.fif'
-evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
-                          baseline=(None, 0))
-fname_fwd = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_cov = meg_path / 'sample_audvis-cov.fif'
+meg_path = data_path / "MEG" / "sample"
+fname_evoked = meg_path / "sample_audvis-ave.fif"
+evoked = mne.read_evokeds(fname_evoked, condition="Left Auditory", baseline=(None, 0))
+fname_fwd = meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+fname_cov = meg_path / "sample_audvis-cov.fif"
 fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
 
@@ -44,8 +42,8 @@ inv_op = make_inverse_operator(evoked.info, fwd, cov, fixed=True, verbose=True)
 
 # Calculate MNE:
 snr = 3.0
-lambda2 = 1.0 / snr ** 2
-stc = apply_inverse(evoked, inv_op, lambda2, 'MNE', verbose=True)
+lambda2 = 1.0 / snr**2
+stc = apply_inverse(evoked, inv_op, lambda2, "MNE", verbose=True)
 
 # Calculate SNR in source space:
 snr_stc = stc.estimate_snr(evoked.info, fwd, cov)
@@ -55,17 +53,23 @@ ave = np.mean(snr_stc.data, axis=0)
 
 fig, ax = plt.subplots()
 ax.plot(evoked.times, ave)
-ax.set(xlabel='Time (s)', ylabel='SNR MEG-EEG')
+ax.set(xlabel="Time (s)", ylabel="SNR MEG-EEG")
 fig.tight_layout()
 
 # Find time point of maximum SNR
 maxidx = np.argmax(ave)
 
 # Plot SNR on source space at the time point of maximum SNR:
-kwargs = dict(initial_time=evoked.times[maxidx], hemi='split',
-              views=['lat', 'med'], subjects_dir=subjects_dir, size=(600, 600),
-              clim=dict(kind='value', lims=(-100, -70, -40)),
-              transparent=True, colormap='viridis')
+kwargs = dict(
+    initial_time=evoked.times[maxidx],
+    hemi="split",
+    views=["lat", "med"],
+    subjects_dir=subjects_dir,
+    size=(600, 600),
+    clim=dict(kind="value", lims=(-100, -70, -40)),
+    transparent=True,
+    colormap="viridis",
+)
 brain = snr_stc.plot(**kwargs)
 
 # %%
@@ -74,9 +78,8 @@ brain = snr_stc.plot(**kwargs)
 # Next we do the same for EEG and plot the result on the cortex:
 
 evoked_eeg = evoked.copy().pick_types(eeg=True, meg=False)
-inv_op_eeg = make_inverse_operator(evoked_eeg.info, fwd, cov, fixed=True,
-                                   verbose=True)
-stc_eeg = apply_inverse(evoked_eeg, inv_op_eeg, lambda2, 'MNE', verbose=True)
+inv_op_eeg = make_inverse_operator(evoked_eeg.info, fwd, cov, fixed=True, verbose=True)
+stc_eeg = apply_inverse(evoked_eeg, inv_op_eeg, lambda2, "MNE", verbose=True)
 snr_stc_eeg = stc_eeg.estimate_snr(evoked_eeg.info, fwd, cov)
 brain = snr_stc_eeg.plot(**kwargs)
 

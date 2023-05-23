@@ -21,8 +21,9 @@ def _max_stat(X, X2, perms, dof_scaling):
 
 
 @verbose
-def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=None,
-                       seed=None, verbose=None):
+def permutation_t_test(
+    X, n_permutations=10000, tail=0, n_jobs=None, seed=None, verbose=None
+):
     """One sample/paired sample permutation test based on a t-statistic.
 
     This function can perform the test on one variable or
@@ -74,19 +75,23 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=None,
     .. footbibliography::
     """
     from .cluster_level import _get_1samp_orders
+
     n_samples, n_tests = X.shape
-    X2 = np.mean(X ** 2, axis=0)  # precompute moments
+    X2 = np.mean(X**2, axis=0)  # precompute moments
     mu0 = np.mean(X, axis=0)
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
-    std0 = np.sqrt(X2 - mu0 ** 2) * dof_scaling  # get std with var splitting
+    std0 = np.sqrt(X2 - mu0**2) * dof_scaling  # get std with var splitting
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
     rng = check_random_state(seed)
     orders, _, extra = _get_1samp_orders(n_samples, n_permutations, tail, rng)
     perms = 2 * np.array(orders) - 1  # from 0, 1 -> 1, -1
-    logger.info('Permuting %d times%s...' % (len(orders), extra))
+    logger.info("Permuting %d times%s..." % (len(orders), extra))
     parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
-    max_abs = np.concatenate(parallel(my_max_stat(X, X2, p, dof_scaling)
-                                      for p in np.array_split(perms, n_jobs)))
+    max_abs = np.concatenate(
+        parallel(
+            my_max_stat(X, X2, p, dof_scaling) for p in np.array_split(perms, n_jobs)
+        )
+    )
     max_abs = np.concatenate((max_abs, [np.abs(T_obs).max()]))
     H0 = np.sort(max_abs)
     if tail == 0:
@@ -98,8 +103,9 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=None,
     return T_obs, p_values, H0
 
 
-def bootstrap_confidence_interval(arr, ci=.95, n_bootstraps=2000,
-                                  stat_fun='mean', random_state=None):
+def bootstrap_confidence_interval(
+    arr, ci=0.95, n_bootstraps=2000, stat_fun="mean", random_state=None
+):
     """Get confidence intervals from non-parametric bootstrap.
 
     Parameters
@@ -122,30 +128,34 @@ def bootstrap_confidence_interval(arr, ci=.95, n_bootstraps=2000,
         upper boundary of the CI at ``cis[1, ...]``.
     """
     if stat_fun == "mean":
+
         def stat_fun(x):
             return x.mean(axis=0)
-    elif stat_fun == 'median':
+
+    elif stat_fun == "median":
+
         def stat_fun(x):
             return np.median(x, axis=0)
+
     elif not callable(stat_fun):
         raise ValueError("stat_fun must be 'mean', 'median' or callable.")
     n_trials = arr.shape[0]
     indices = np.arange(n_trials, dtype=int)  # BCA would be cool to have too
     rng = check_random_state(random_state)
-    boot_indices = rng.choice(indices, replace=True,
-                              size=(n_bootstraps, len(indices)))
+    boot_indices = rng.choice(indices, replace=True, size=(n_bootstraps, len(indices)))
     stat = np.array([stat_fun(arr[inds]) for inds in boot_indices])
     ci = (((1 - ci) / 2) * 100, ((1 - ((1 - ci) / 2))) * 100)
     ci_low, ci_up = np.percentile(stat, ci, axis=0)
     return np.array([ci_low, ci_up])
 
 
-def _ci(arr, ci=.95, method="bootstrap", n_bootstraps=2000, random_state=None):
+def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, random_state=None):
     """Calculate confidence interval. Aux function for plot_compare_evokeds."""
     if method == "bootstrap":
-        return bootstrap_confidence_interval(arr, ci=ci,
-                                             n_bootstraps=n_bootstraps,
-                                             random_state=random_state)
+        return bootstrap_confidence_interval(
+            arr, ci=ci, n_bootstraps=n_bootstraps, random_state=random_state
+        )
     else:
         from . import _parametric_ci
+
         return _parametric_ci(arr, ci=ci)

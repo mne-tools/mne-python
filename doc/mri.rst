@@ -11,6 +11,10 @@ Step by step instructions for using :func:`gui.coregistration`:
  - `Scaling a template MRI for subjects for which no MRI is available
    <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_
 
+See also:
+
+- :func:`mne-gui-addons:mne_gui_addons.locate_ieeg`.
+
 .. autosummary::
    :toctree: generated/
 
@@ -20,7 +24,6 @@ Step by step instructions for using :func:`gui.coregistration`:
    io.write_fiducials
    get_montage_volume_labels
    gui.coregistration
-   gui.locate_ieeg
    create_default_subject
    head_to_mni
    head_to_mri
@@ -32,7 +35,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    scale_labels
    scale_source_space
    transforms.apply_volume_registration
+   transforms.apply_volume_registration_points
    transforms.compute_volume_registration
    vertex_to_mni
-   warp_montage_volume
    coreg.Coregistration

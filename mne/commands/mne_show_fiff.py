@@ -24,10 +24,14 @@ import mne
 
 def run():
     """Run command."""
-    parser = mne.commands.utils.get_optparser(
-        __file__, usage='mne show_fiff <file>')
-    parser.add_option("-t", "--tag", dest="tag",
-                      help="provide information about this tag", metavar="TAG")
+    parser = mne.commands.utils.get_optparser(__file__, usage="mne show_fiff <file>")
+    parser.add_option(
+        "-t",
+        "--tag",
+        dest="tag",
+        help="provide information about this tag",
+        metavar="TAG",
+    )
     options, args = parser.parse_args()
     if len(args) != 1:
         parser.print_help()

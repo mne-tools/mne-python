@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
@@ -8,9 +7,9 @@ import os.path as op
 from ..utils import _manifest_check_download
 from ...utils import verbose, get_subjects_dir, _check_option, _validate_type
 
-_AGES = '2wk 1mo 2mo 3mo 4.5mo 6mo 7.5mo 9mo 10.5mo 12mo 15mo 18mo 2yr'
+_AGES = "2wk 1mo 2mo 3mo 4.5mo 6mo 7.5mo 9mo 10.5mo 12mo 15mo 18mo 2yr"
 # https://github.com/christian-oreilly/infant_template_paper/releases
-_ORIGINAL_URL = 'https://github.com/christian-oreilly/infant_template_paper/releases/download/v0.1-alpha/{subject}.zip'  # noqa: E501
+_ORIGINAL_URL = "https://github.com/christian-oreilly/infant_template_paper/releases/download/v0.1-alpha/{subject}.zip"  # noqa: E501
 # Formatted the same way as md5sum *.zip on Ubuntu:
 _ORIGINAL_HASHES = """
 851737d5f8f246883f2aef9819c6ec29  ANTS10-5Months3T.zip
@@ -72,23 +71,24 @@ def fetch_infant_template(age, subjects_dir=None, *, verbose=None):
     # ...         names = sorted(name for name in zip.namelist() if not zipfile.Path(zip, name).is_dir())  # noqa: E501
     # ...     with open(f'{name}.txt', 'w') as fid:
     # ...         fid.write('\n'.join(names))
-    _validate_type(age, str, 'age')
-    _check_option('age', age, _AGES.split())
+    _validate_type(age, str, "age")
+    _check_option("age", age, _AGES.split())
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    unit = dict(wk='Weeks', mo='Months', yr='Years')[age[-2:]]
-    first = age[:-2].split('.')[0]
-    dash = '-5' if '.5' in age else '-0'
-    subject = f'ANTS{first}{dash}{unit}3T'
+    unit = dict(wk="Weeks", mo="Months", yr="Years")[age[-2:]]
+    first = age[:-2].split(".")[0]
+    dash = "-5" if ".5" in age else "-0"
+    subject = f"ANTS{first}{dash}{unit}3T"
     # Actually get and create the files
     subj_dir = subjects_dir / subject
     os.makedirs(subj_dir, exist_ok=True)
     # .zip -> hash mapping
-    orig_hashes = dict(line.strip().split()[::-1]
-                       for line in _ORIGINAL_HASHES.strip().splitlines())
+    orig_hashes = dict(
+        line.strip().split()[::-1] for line in _ORIGINAL_HASHES.strip().splitlines()
+    )
     _manifest_check_download(
-        manifest_path=op.join(_MANIFEST_PATH, f'{subject}.txt'),
+        manifest_path=op.join(_MANIFEST_PATH, f"{subject}.txt"),
         destination=subj_dir,
         url=_ORIGINAL_URL.format(subject=subject),
-        hash_=orig_hashes[f'{subject}.zip'],
+        hash_=orig_hashes[f"{subject}.zip"],
     )
     return subject

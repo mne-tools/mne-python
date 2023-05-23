@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-cluster-one-samp-tfr:
 
@@ -47,29 +46,44 @@ from mne.datasets import sample
 # Set parameters
 # --------------
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_raw.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_raw.fif"
 tmin, tmax, event_id = -0.3, 0.6, 1
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)
-events = mne.find_events(raw, stim_channel='STI 014')
+events = mne.find_events(raw, stim_channel="STI 014")
 
 include = []
-raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
+raw.info["bads"] += ["MEG 2443", "EEG 053"]  # bads + 2 more
 
 # picks MEG gradiometers
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                       stim=False, include=include, exclude='bads')
+picks = mne.pick_types(
+    raw.info,
+    meg="grad",
+    eeg=False,
+    eog=True,
+    stim=False,
+    include=include,
+    exclude="bads",
+)
 
 # Load condition 1
 event_id = 1
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6))
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    picks=picks,
+    baseline=(None, 0),
+    preload=True,
+    reject=dict(grad=4000e-13, eog=150e-6),
+)
 
 # just use right temporal sensors for speed
-epochs.pick_channels(mne.read_vectorview_selection('Right-temporal'))
+epochs.pick_channels(mne.read_vectorview_selection("Right-temporal"), ordered=False)
 evoked = epochs.average()
 
 # Factor to down-sample the temporal dimension of the TFR computed by
@@ -83,11 +97,18 @@ decim = 5
 freqs = np.arange(8, 40, 2)
 
 # run the TFR decomposition
-tfr_epochs = tfr_morlet(epochs, freqs, n_cycles=4., decim=decim,
-                        average=False, return_itc=False, n_jobs=None)
+tfr_epochs = tfr_morlet(
+    epochs,
+    freqs,
+    n_cycles=4.0,
+    decim=decim,
+    average=False,
+    return_itc=False,
+    n_jobs=None,
+)
 
 # Baseline power
-tfr_epochs.apply_baseline(mode='logratio', baseline=(-.100, 0))
+tfr_epochs.apply_baseline(mode="logratio", baseline=(-0.100, 0))
 
 # Crop in time to keep only what is between 0 and 400 ms
 evoked.crop(-0.1, 0.4)
@@ -111,35 +132,39 @@ epochs_power = tfr_epochs.data
 # (adjacency) file for given sensor layout.
 # If such a file doesn't exist, an adjacency matrix is computed on the fly,
 # using Delaunay triangulations.
-sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(
-    tfr_epochs.info, 'grad')
+sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(tfr_epochs.info, "grad")
 
 # In this case, find_ch_adjacency finds an appropriate file and
 # reads it (see log output: "neuromag306planar").
 # However, we need to subselect the channels we are actually using
-use_idx = [ch_names.index(ch_name)
-           for ch_name in tfr_epochs.ch_names]
+use_idx = [ch_names.index(ch_name) for ch_name in tfr_epochs.ch_names]
 sensor_adjacency = sensor_adjacency[use_idx][:, use_idx]
 
 # Our sensor adjacency matrix is of shape n_chs × n_chs
-assert sensor_adjacency.shape == \
-    (len(tfr_epochs.ch_names), len(tfr_epochs.ch_names))
+assert sensor_adjacency.shape == (len(tfr_epochs.ch_names), len(tfr_epochs.ch_names))
 
 # Now we need to prepare adjacency information for the time-frequency
 # plane. For that, we use "combine_adjacency", and pass dimensions
 # as in the data we want to test (excluding observations). Here:
 # channels × frequencies × times
 assert epochs_power.data.shape == (
-    len(epochs), len(tfr_epochs.ch_names),
-    len(tfr_epochs.freqs), len(tfr_epochs.times))
+    len(epochs),
+    len(tfr_epochs.ch_names),
+    len(tfr_epochs.freqs),
+    len(tfr_epochs.times),
+)
 adjacency = mne.stats.combine_adjacency(
-    sensor_adjacency, len(tfr_epochs.freqs), len(tfr_epochs.times))
+    sensor_adjacency, len(tfr_epochs.freqs), len(tfr_epochs.times)
+)
 
 # The overall adjacency we end up with is a square matrix with each
 # dimension matching the data size (excluding observations) in an
 # "unrolled" format, so: len(channels × frequencies × times)
-assert adjacency.shape[0] == adjacency.shape[1] == \
-    len(tfr_epochs.ch_names) * len(tfr_epochs.freqs) * len(tfr_epochs.times)
+assert (
+    adjacency.shape[0]
+    == adjacency.shape[1]
+    == len(tfr_epochs.ch_names) * len(tfr_epochs.freqs) * len(tfr_epochs.times)
+)
 
 # %%
 # Compute statistic
@@ -181,11 +206,15 @@ t_thresh = scipy.stats.t.ppf(1 - 0.001 / 2, df=degrees_of_freedom)
 n_permutations = 50
 
 # Run the analysis
-T_obs, clusters, cluster_p_values, H0 = \
-    permutation_cluster_1samp_test(epochs_power, n_permutations=n_permutations,
-                                   threshold=t_thresh, tail=tail,
-                                   adjacency=adjacency,
-                                   out_type='mask', verbose=True)
+T_obs, clusters, cluster_p_values, H0 = permutation_cluster_1samp_test(
+    epochs_power,
+    n_permutations=n_permutations,
+    threshold=t_thresh,
+    tail=tail,
+    adjacency=adjacency,
+    out_type="mask",
+    verbose=True,
+)
 
 # %%
 # View time-frequency plots
@@ -224,22 +253,35 @@ for c, p_val in zip(clusters, cluster_p_values):
 # use the following to show a specific one:
 # ch_idx = tfr_epochs.ch_names.index('MEG 1332')
 ch_idx, f_idx, t_idx = np.unravel_index(
-    np.nanargmax(np.abs(T_obs_plot)), epochs_power.shape[1:])
+    np.nanargmax(np.abs(T_obs_plot)), epochs_power.shape[1:]
+)
 
 vmax = np.max(np.abs(T_obs))
 vmin = -vmax
 plt.subplot(2, 1, 1)
-plt.imshow(T_obs[ch_idx], cmap=plt.cm.gray,
-           extent=[times[0], times[-1], freqs[0], freqs[-1]],
-           aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
-plt.imshow(T_obs_plot[ch_idx], cmap=plt.cm.RdBu_r,
-           extent=[times[0], times[-1], freqs[0], freqs[-1]],
-           aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
+plt.imshow(
+    T_obs[ch_idx],
+    cmap=plt.cm.gray,
+    extent=[times[0], times[-1], freqs[0], freqs[-1]],
+    aspect="auto",
+    origin="lower",
+    vmin=vmin,
+    vmax=vmax,
+)
+plt.imshow(
+    T_obs_plot[ch_idx],
+    cmap=plt.cm.RdBu_r,
+    extent=[times[0], times[-1], freqs[0], freqs[-1]],
+    aspect="auto",
+    origin="lower",
+    vmin=vmin,
+    vmax=vmax,
+)
 plt.colorbar()
-plt.xlabel('Time (ms)')
-plt.ylabel('Frequency (Hz)')
-plt.title(f'Induced power ({tfr_epochs.ch_names[ch_idx]})')
+plt.xlabel("Time (ms)")
+plt.ylabel("Frequency (Hz)")
+plt.title(f"Induced power ({tfr_epochs.ch_names[ch_idx]})")
 
 ax2 = plt.subplot(2, 1, 2)
-evoked.plot(axes=[ax2], time_unit='s')
+evoked.plot(axes=[ax2], time_unit="s")
 plt.show()
