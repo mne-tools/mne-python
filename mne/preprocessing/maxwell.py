@@ -1179,7 +1179,7 @@ def _do_tSSS(
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
     # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
     start, stop = start / sfreq, (stop - 1) / sfreq
-    t_str = f"{start:8.3} - {stop:8.3f} s"
+    t_str = f"{start:8.3f} - {stop:8.3f} s"
     msg = "        Projecting %2d intersecting tSSS component%s " "for %s" % (
         t_proj.shape[1],
         _pl(t_proj.shape[1], " "),
