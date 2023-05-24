@@ -28,6 +28,7 @@ from .check import (
     _check_if_nan,
     _is_numeric,
     _ensure_int,
+    _check_integer_or_list,
     _check_preload,
     _validate_type,
     _check_range,
