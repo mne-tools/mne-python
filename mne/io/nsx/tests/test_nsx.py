@@ -10,10 +10,9 @@ from mne.io.constants import FIFF
 
 
 testing_path = data_path(download=False)
-data_dir = os.path.join(testing_path, 'nsx')
-nsx_21_fname = os.path.join(data_dir, 'test_NEURALSG_raw.ns3')
-nsx_22_fname = os.path.join(data_dir, 'test_NEURALCD_raw.ns3')
-nsx_31_fname = os.path.join(data_dir, 'test_BRSMPGRP_raw.ns3')
+nsx_21_fname = os.path.join(testing_path, 'nsx', 'test_NEURALSG_raw.ns3')
+nsx_22_fname = os.path.join(testing_path, 'nsx', 'test_NEURALCD_raw.ns3')
+nsx_31_fname = os.path.join(testing_path, 'nsx', 'test_BRSMPGRP_raw.ns3')
 
 
 @requires_testing_data
@@ -56,6 +55,7 @@ def test_nsx_ver_31():
     assert n_channels, 10 == data.shape
 
     data, times = raw.get_data(start=0, stop=300, return_times=True)
+
 
 @requires_testing_data
 def test_nsx_ver_22():
@@ -111,21 +111,25 @@ def test_stim_eog_misc_chs_in_nsx():
     raw = read_raw_nsx(nsx_22_fname, stim_channel=[127], eog=['elec126'])
     assert raw.info['chs'][127]['kind'] == FIFF.FIFFV_STIM_CH
     assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
-    stims = [ch_info['kind'] == FIFF.FIFFV_STIM_CH for ch_info in raw.info['chs']]
+    stims = [ch_info['kind'] == FIFF.FIFFV_STIM_CH for ch_info
+             in raw.info['chs']]
     assert np.any(stims)
     assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
     try:
-        raw = read_raw_nsx(nsx_22_fname, stim_channel=['elec128', 129], eog=['elec126'])
+        raw = read_raw_nsx(nsx_22_fname, stim_channel=['elec128', 129],
+                           eog=['elec126'])
     except ValueError as err:
         err_msg = err.args[0]
     assert err_msg == 'Invalid stim_channel'
     try:
-        raw = read_raw_nsx(nsx_22_fname, stim_channel=('elec128',), eog=['elec126'])
+        raw = read_raw_nsx(nsx_22_fname, stim_channel=('elec128',),
+                           eog=['elec126'])
     except ValueError as err:
         err_msg = err.args[0]
     assert err_msg == 'Invalid stim_channel'
 
-    raw = read_raw_nsx(nsx_22_fname, stim_channel='elec127', misc=['elec126', 'elec1'])
+    raw = read_raw_nsx(nsx_22_fname, stim_channel='elec127',
+                       misc=['elec126', 'elec1'])
     assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_MISC_CH
     assert raw.info['chs'][1]['kind'] == FIFF.FIFFV_MISC_CH
 
