@@ -3149,6 +3149,7 @@ class Brain:
 
     def close(self):
         """Close all figures and cleanup data structure."""
+        print("Closing abstract brain")
         self._closed = True
         self._renderer.close()
 

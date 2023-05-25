@@ -126,6 +126,19 @@ def test_link(event_channels, event_channel_links):
     ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
     assert num_callbacks_called == 2
 
+    # Test linking only specific events
+    ui_events.link(fig1, fig2, ["time_change"])
+    num_callbacks_called = 0
+    ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
+    ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
+    assert num_callbacks_called == 4  # Called for both figures two times
+
+    ui_events.link(fig1, fig2, ["some_other_event"])
+    num_callbacks_called = 0
+    ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
+    ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
+    assert num_callbacks_called == 2  # Only called for both figures once
+
     # Test cleanup
     fig1.canvas.callbacks.process("close_event", None)
     fig2.canvas.callbacks.process("close_event", None)

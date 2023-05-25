@@ -813,6 +813,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self.plotter.show()
 
     def close(self):
+        print("PyvistaQT close")
         _close_3d_figure(figure=self.figure)
 
     def get_camera(self):

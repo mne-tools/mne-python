@@ -86,3 +86,7 @@ Visualization
    set_browser_backend
    get_browser_backend
    use_browser_backend
+   ui_events.publish
+   ui_events.subscribe
+   ui_events.link
+   ui_events.unlink
