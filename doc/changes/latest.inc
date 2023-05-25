@@ -27,6 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Extended test to highlight bug in :func:`mne.stats.permutations.permutation_t_test` (:gh:`11575` by `Joshua Calder-Travis`_)
 - Fix bug with :func:`mne.forward.restrict_forward_to_label` where cortical patch information was not adjusted (:gh:`11694` by `Eric Larson`_)
 - Fix hanging interpreter with matplotlib figures using ``mne/viz/_mpl_figure.py`` in spyder console and jupyter notebooks`(:gh:`11696` by `Mathieu Scheltienne`_)
 - Fix bug with overlapping text for :meth:`mne.Evoked.plot` (:gh:`11698` by `Alex Rockhill`_)
