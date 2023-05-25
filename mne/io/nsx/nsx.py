@@ -107,8 +107,8 @@ nsx_header_dict = {
 }
 
 
-def read_raw_nsx(nsx_fname, preload=False):
-    return RawNSX(nsx_fname, preload=preload)
+def read_raw_nsx(nsx_fname, stim_channel=True, eog=[], misc=[], preload=False):
+    return RawNSX(nsx_fname, stim_channel, eog, misc, preload=preload)
 
 
 class RawNSX(BaseRaw):
@@ -189,10 +189,11 @@ def _read_header(filename):
     nsx_file_id = np.fromfile(
         filename, count=1, dtype=[
             ('file_id', 'S8')])[0]['file_id'].decode()
-    if nsx_file_id == 'NEURALSG':
-        basic_header = _read_header_21(filename)
-    elif nsx_file_id in ['NEURALCD', 'BRSMPGRP']:
+
+    if nsx_file_id in ['NEURALCD', 'BRSMPGRP']:
         basic_header = _read_header_22_and_above(filename)
+    elif nsx_file_id == 'NEURALSG':
+        basic_header = _read_header_21(filename)
     else:
         raise ValueError(f"NSx file id (={nsx_file_id}) does not match"
                          "with supported file ids:"

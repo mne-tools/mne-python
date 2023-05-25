@@ -6,6 +6,7 @@ import numpy as np
 
 from mne.io import read_raw_nsx
 from mne.datasets.testing import data_path, requires_testing_data
+from mne.io.constants import FIFF
 
 
 testing_path = data_path(download=False)
@@ -55,10 +56,10 @@ def test_nsx_ver_31():
 
     data, times = raw.get_data(start=0, stop=300, return_times=True)
 
-
+@requires_testing_data
 def test_nsx_ver_22():
     """Primary tests for NSx reader"""
-    raw = read_raw_nsx(nsx_22_fname)
+    raw = read_raw_nsx(nsx_22_fname,)
     assert getattr(raw, '_data', False) is False
     assert raw.info['sfreq'] == 2000
 
@@ -94,6 +95,38 @@ def test_nsx_ver_22():
 
     data, times = raw.get_data(start=0, stop=300, return_times=True)
 
+
+@requires_testing_data
+def test_stim_eog_misc_chs_in_nsx():
+    raw = read_raw_nsx(nsx_22_fname, stim_channel='elec127', eog=['elec126'])
+    assert raw.info['chs'][127]['kind'] == FIFF.FIFFV_STIM_CH
+    assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
+    raw = read_raw_nsx(nsx_22_fname, stim_channel=['elec127'], eog=['elec126'])
+    assert raw.info['chs'][127]['kind'] == FIFF.FIFFV_STIM_CH
+    assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
+    raw = read_raw_nsx(nsx_22_fname, stim_channel=127, eog=['elec126'])
+    assert raw.info['chs'][127]['kind'] == FIFF.FIFFV_STIM_CH
+    assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
+    raw = read_raw_nsx(nsx_22_fname, stim_channel=[127], eog=['elec126'])
+    assert raw.info['chs'][127]['kind'] == FIFF.FIFFV_STIM_CH
+    assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
+    stims = [ch_info['kind'] == FIFF.FIFFV_STIM_CH for ch_info in raw.info['chs']]
+    assert np.any(stims)
+    assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
+    try:
+        raw = read_raw_nsx(nsx_22_fname, stim_channel=['elec128', 129], eog=['elec126'])
+    except ValueError as err:
+        err_msg = err.args[0]
+    assert err_msg == 'Invalid stim_channel'
+    try:
+        raw = read_raw_nsx(nsx_22_fname, stim_channel=('elec128',), eog=['elec126'])
+    except ValueError as err:
+        err_msg = err.args[0]
+    assert err_msg == 'Invalid stim_channel'
+
+    raw = read_raw_nsx(nsx_22_fname, stim_channel='elec127', misc=['elec126', 'elec1'])
+    assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_MISC_CH
+    assert raw.info['chs'][1]['kind'] == FIFF.FIFFV_MISC_CH
 
 
 ## TODO
