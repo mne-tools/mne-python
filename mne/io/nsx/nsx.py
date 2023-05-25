@@ -324,17 +324,20 @@ def _get_hdr_info(filename, stim_channel=True, eog=[], misc=[], exclude=None):
 
     nsx_info = _read_header(filename)
     if float(nsx_info['spec']) == 2.1:
-        ch_names = []
-        for (elid, ) in list(nsx_info['extended']):
-            if elid < 129:
-                ch_names.append('chan%i' % elid)
-            else:
-                ch_names.append('ainp%i' % (elid - 129 + 1))
-        ch_units = [''] * len(ch_names)
-        ch_types = ['CC'] * len(ch_names)
-        warn("Cannot rescale to voltage, raw data will be returned.",
-             UserWarning)
-        cals = np.ones(len(ch_names))
+        # currently not implemented
+        raise NotImplementedError("NSx file version 2.1 is"
+                                  "currently not supported.")
+        # ch_names = []
+        # for (elid, ) in list(nsx_info['extended']):
+        #     if elid < 129:
+        #         ch_names.append('chan%i' % elid)
+        #     else:
+        #         ch_names.append('ainp%i' % (elid - 129 + 1))
+        # ch_units = [''] * len(ch_names)
+        # ch_types = ['CC'] * len(ch_names)
+        # warn("Cannot rescale to voltage, raw data will be returned.",
+        #      UserWarning)
+        # cals = np.ones(len(ch_names))
     else:
         ch_names = list(nsx_info['extended']['electrode_label'])
         ch_types = list(nsx_info['extended']['type'])

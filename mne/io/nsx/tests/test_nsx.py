@@ -11,6 +11,7 @@ from mne.io.constants import FIFF
 
 testing_path = data_path(download=False)
 data_dir = os.path.join(testing_path, 'nsx')
+nsx_21_fname = os.path.join(data_dir, 'test_NEURALSG_raw.ns3')
 nsx_22_fname = os.path.join(data_dir, 'test_NEURALCD_raw.ns3')
 nsx_31_fname = os.path.join(data_dir, 'test_BRSMPGRP_raw.ns3')
 
@@ -129,5 +130,10 @@ def test_stim_eog_misc_chs_in_nsx():
     assert raw.info['chs'][1]['kind'] == FIFF.FIFFV_MISC_CH
 
 
-## TODO
-# check stim channels
+@requires_testing_data
+def test_nsx_ver_21():
+    """Primary tests for NSx reader"""
+    try:
+        raw = read_raw_nsx(nsx_21_fname)
+    except NotImplementedError:
+        pass
