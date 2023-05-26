@@ -57,9 +57,9 @@ data = rng.randn(len(ch_names), n_times * n_epochs + 200)  # buffer
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
 t = np.arange(n_times, dtype=np.float64) / sfreq
 signal = np.sin(np.pi * 2.0 * 50.0 * t)  # 50 Hz sinusoid signal
-signal[np.logical_or(t < 0.45, t > 0.55)] = 0.0  # Hard windowing
+signal[np.logical_or(t < 0.45, t > 0.55)] = 0.0  # hard windowing
 on_time = np.logical_and(t >= 0.45, t <= 0.55)
-signal[on_time] *= np.hanning(on_time.sum())  # Ramping
+signal[on_time] *= np.hanning(on_time.sum())  # ramping
 data[:, 100:-100] += np.tile(signal, n_epochs)  # add signal
 
 raw = RawArray(data, info)

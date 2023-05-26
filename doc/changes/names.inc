@@ -258,6 +258,8 @@
 
 .. _Joshua Bear: https://github.com/joshbear
 
+.. _Joshua Calder-Travis: https://github.com/jCalderTravis
+
 .. _Joshua Teves: https://github.com/jbteves
 
 .. _Judy D Zhu: https://github.com/JD-Zhu
