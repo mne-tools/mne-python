@@ -175,7 +175,7 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
 
     _validate_type(baseline, "array-like")
     baseline = tuple(baseline)
-    
+
     if len(baseline) != 2:
         raise ValueError(
             f"baseline must have exactly two elements (got {len(baseline)})."
