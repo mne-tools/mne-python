@@ -150,7 +150,7 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
 
     Parameters
     ----------
-    baseline : array-like | None
+    baseline : array-like, shape (2,) | None
         Beginning and end of the baseline period, in seconds. If ``None``,
         assume no baseline and return immediately.
     times : array
