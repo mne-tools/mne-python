@@ -34,4 +34,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- :func:`mne.utils._validate_type` can now check if a given object is `"array-like"` (:gh:`11713` by `Clemens Brunner`_)
