@@ -1349,7 +1349,7 @@ def test_epochs_io_preload(tmp_path, preload):
     epochs_no_bl.save(temp_fname_no_bl, overwrite=True)
     epochs_read = read_epochs(temp_fname)
     epochs_no_bl_read = read_epochs(temp_fname_no_bl)
-    with pytest.raises(ValueError, match="invalid"):
+    with pytest.raises(ValueError, match="exactly two elements"):
         epochs.apply_baseline(baseline=[1, 2, 3])
     epochs_with_bl = epochs_no_bl_read.copy().apply_baseline(baseline)
     assert isinstance(epochs_with_bl, BaseEpochs)
