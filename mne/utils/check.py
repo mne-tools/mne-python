@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 
 from builtins import input  # no-op here but facilitates testing
+from collections.abc import Sequence
 from difflib import get_close_matches
 from importlib import import_module
 import operator
@@ -525,6 +526,7 @@ _multi = {
     "path-like": path_like,
     "int-like": (int_like,),
     "callable": (_Callable(),),
+    "array-like": (Sequence, np.ndarray),
 }
 
 
@@ -538,9 +540,8 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
     types : type | str | tuple of types | tuple of str
          The types to be checked against.
          If str, must be one of {'int', 'int-like', 'str', 'numeric', 'info',
-         'path-like', 'callable'}.
-         If a tuple of str is passed, use 'int-like' and not 'int' for
-         integers.
+         'path-like', 'callable', 'array-like'}.
+         If a tuple of str is passed, use 'int-like' and not 'int' for integers.
     item_name : str | None
         Name of the item to show inside the error message.
     type_name : str | None

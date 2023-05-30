@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from .utils import logger, verbose, _check_option
+from .utils import logger, verbose, _check_option, _validate_type
 
 
 def _log_rescale(baseline, mode="mean"):
@@ -143,14 +143,14 @@ def rescale(data, times, baseline, mode="mean", copy=True, picks=None, verbose=N
 
 
 def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
-    """Check if the baseline is valid, and adjust it if requested.
+    """Check if the baseline is valid and adjust it if requested.
 
-    ``None`` values inside the baseline parameter will be replaced with
-    ``times[0]`` and ``times[-1]``.
+    ``None`` values inside ``baseline`` will be replaced with ``times[0]`` and
+    ``times[-1]``.
 
     Parameters
     ----------
-    baseline : tuple | None
+    baseline : array-like | None
         Beginning and end of the baseline period, in seconds. If ``None``,
         assume no baseline and return immediately.
     times : array
@@ -158,27 +158,27 @@ def _check_baseline(baseline, times, sfreq, on_baseline_outside_data="raise"):
     sfreq : float
         The sampling rate.
     on_baseline_outside_data : 'raise' | 'info' | 'adjust'
-        What do do if the baseline period exceeds the data.
+        What to do if the baseline period exceeds the data.
         If ``'raise'``, raise an exception (default).
         If ``'info'``, log an info message.
-        If ``'adjust'``, adjust the baseline such that it's within the data
-        range again.
+        If ``'adjust'``, adjust the baseline such that it is within the data range.
 
     Returns
     -------
     (baseline_tmin, baseline_tmax) | None
-        The baseline with ``None`` values replaced with times, and with
-        adjusted times if ``on_baseline_outside_data='adjust'``; or ``None``
-        if the ``baseline`` parameter is ``None``.
-
+        The baseline with ``None`` values replaced with times, and with adjusted times
+        if ``on_baseline_outside_data='adjust'``; or ``None``, if ``baseline`` is
+        ``None``.
     """
     if baseline is None:
         return None
 
-    if not isinstance(baseline, tuple) or len(baseline) != 2:
+    _validate_type(baseline, "array-like")
+    baseline = tuple(baseline)
+    
+    if len(baseline) != 2:
         raise ValueError(
-            f"`baseline={baseline}` is an invalid argument, must "
-            f"be a tuple of length 2 or None"
+            f"baseline must have exactly two elements (got {len(baseline)})."
         )
 
     tmin, tmax = times[0], times[-1]
