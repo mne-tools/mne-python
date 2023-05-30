@@ -90,9 +90,7 @@ class RawFIL(BaseRaw):
         files = _get_file_names(binfile)
 
         chans = _from_tsv(files["chans"])
-        chanpos = _from_tsv(files["positions"])
         nchans = len(chans["name"])
-        nlocs = len(chanpos["name"])
         nsamples = _determine_nsamples(files["bin"], nchans, precision) - 1
         sample_info["nsamples"] = nsamples
 
@@ -101,13 +99,19 @@ class RawFIL(BaseRaw):
 
         chans["pos"] = [None] * nchans
         chans["ori"] = [None] * nchans
-
-        for ii in range(0, nlocs):
-            idx = chans["name"].index(chanpos["name"][ii])
-            tmp = np.array([chanpos["Px"][ii], chanpos["Py"][ii], chanpos["Pz"][ii]])
-            chans["pos"][idx] = tmp.astype(np.float64)
-            tmp = np.array([chanpos["Ox"][ii], chanpos["Oy"][ii], chanpos["Oz"][ii]])
-            chans["ori"][idx] = tmp.astype(np.float64)
+        if files["positions"].is_file():
+            chanpos = _from_tsv(files["positions"])
+            nlocs = len(chanpos["name"])
+            for ii in range(0, nlocs):
+                idx = chans["name"].index(chanpos["name"][ii])
+                tmp = np.array([chanpos["Px"][ii], chanpos["Py"][ii], chanpos["Pz"][ii]])
+                chans["pos"][idx] = tmp.astype(np.float64)
+                tmp = np.array([chanpos["Ox"][ii], chanpos["Oy"][ii], chanpos["Oz"][ii]])
+                chans["ori"][idx] = tmp.astype(np.float64)
+        else:
+            warn(
+                "No sensor position information found."
+            )
 
         with open(files["meg"], "r") as fid:
             meg = json.load(fid)
@@ -180,7 +184,8 @@ def _convert_channel_info(chans):
     """Convert the imported _channels.tsv into the chs element of raw.info."""
     nmeg = nstim = nmisc = nref = 0
 
-    units, sf = _get_pos_units(chans["pos"])
+    if not all(p is None for p in chans["pos"]):
+        _, sf = _get_pos_units(chans["pos"])
 
     chs = list()
     for ii in range(len(chans["name"])):
