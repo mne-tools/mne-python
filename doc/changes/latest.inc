@@ -23,7 +23,7 @@ Current (1.5.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- None yet
+- When failing to locate a file, we now print the full path in quotation marks to help spot accidentally added trailing spaces (:gh:`11718` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
