@@ -258,7 +258,7 @@ def _check_fname(
             if not os.access(fname, os.R_OK):
                 raise PermissionError(f"{name} does not have read permissions: {fname}")
     elif must_exist:
-        raise FileNotFoundError(f"{name} does not exist: {fname}")
+        raise FileNotFoundError(f'{name} does not exist: "{fname}"')
 
     return fname
 
