@@ -34,4 +34,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- The ``baseline`` argument can now be array-like (e.g. ``list``, ``tuple``, ``np.ndarray``, ...) instead of only a ``tuple`` (:gh:`11713` by `Clemens Brunner`_)
