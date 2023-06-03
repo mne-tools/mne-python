@@ -1,3 +1,5 @@
+"""SR Research Eyelink Load Function."""
+
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Scott Huberty <seh33@uw.edu>
 #          Christian O'Reilly <christian.oreilly@sc.edu>
@@ -8,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import numpy as np
+from ._utils import _parse_calibration
 from ..constants import FIFF
 from ..base import BaseRaw
 from ..meas_info import create_info
@@ -285,6 +288,43 @@ def _find_overlaps(df, max_time=0.05):
 
 
 @fill_doc
+def read_eyelink_calibration(
+    filename, screen_size=None, screen_distance=None, screen_resolution=None
+):
+    """Return info on calibrations collected in an eyelink file.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the eyelink file (.asc).
+    screen_size : tuple
+        The width and height (in meters) of the screen that the eyetracking
+        data was collected with. For example (.531, .298) for a monitor with
+        a display area of 531 x 298 cm. Defaults to None.
+    screen_distance : float
+        The distance (in meters) from the participant's eyes to the screen.
+        Defaults to None.
+    screen_resolution : tuple
+        The resolution (in pixels) of the screen that the eyetracking data
+        was collected with. For example, (1920, 1080) for a 1920x1080
+        resolution display. Defaults to None.
+
+    Returns
+    -------
+    calibrations : instance of Calibrations
+    """
+    fname = Path(filename)
+    if not fname.exists():
+        raise FileNotFoundError(f"Could not find file {filename}")
+    logger.info("Reading calibration data from {}".format(fname))
+    with fname.open() as file:
+        lines = file.readlines()
+        return _parse_calibration(
+            lines, screen_size, screen_distance, screen_resolution
+        )
+
+
+@fill_doc
 def read_raw_eyelink(
     fname,
     preload=False,
@@ -294,6 +334,10 @@ def read_raw_eyelink(
     find_overlaps=False,
     overlap_threshold=0.05,
     gap_description="bad_rec_gap",
+    return_calibration=False,
+    screen_size=None,
+    screen_distance=None,
+    screen_resolution=None,
 ):
     """Reader for an Eyelink .asc file.
 
@@ -328,6 +372,24 @@ def read_raw_eyelink(
         the annotation that will span across the gap period between the
         blocks. Uses 'bad_rec_gap' by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
+    return_calibration : bool (default False)
+        If True, returns a tuple of (raw, calibrations) where calibrations is
+        an object that contains information about the eye calibration for the
+        file.
+    screen_size : tuple
+        Only set if 'return_calibration' is set to True.
+        The width and height (in meters) of the screen that the eyetracking
+        data was collected with. For example (.531, .298) for a monitor with
+        a display area of 531 x 298 cm. Defaults to None.
+    screen_distance : float
+        Only set if 'return_calibration' is set to True.
+        The distance from the participant's eyes to the screen in meters.
+        Defaults to None.
+    screen_resolution : tuple
+        Only set if 'return_calibration' is set to True.
+        The resolution (in pixels) of the screen that the eyetracking data
+        was collected with. For example, (1920, 1080) for a 1920x1080
+        resolution display. Defaults to None.
 
     Returns
     -------
@@ -347,7 +409,7 @@ def read_raw_eyelink(
             " files to .asc format."
         )
 
-    return RawEyelink(
+    raw_eyelink = RawEyelink(
         fname,
         preload=preload,
         verbose=verbose,
@@ -357,6 +419,13 @@ def read_raw_eyelink(
         overlap_threshold=overlap_threshold,
         gap_desc=gap_description,
     )
+    if return_calibration:
+        calibrations = read_eyelink_calibration(
+            fname, screen_size, screen_distance, screen_resolution
+        )
+        return raw_eyelink, calibrations
+    else:
+        return raw_eyelink
 
 
 @fill_doc

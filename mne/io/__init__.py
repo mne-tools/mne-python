@@ -68,7 +68,7 @@ from .persyst import read_raw_persyst
 from .fieldtrip import read_raw_fieldtrip, read_epochs_fieldtrip, read_evoked_fieldtrip
 from .nihon import read_raw_nihon
 from ._read_raw import read_raw
-from .eyelink import read_raw_eyelink
+from .eyelink import read_raw_eyelink, read_eyelink_calibration
 
 
 # for backward compatibility

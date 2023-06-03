@@ -1,7 +1,8 @@
 """Module for loading Eye-Tracker data."""
 
-# Author: Dominik Welke <dominik.welke@web.de>
+# Authors: Dominik Welke <dominik.welke@web.de>
+#          Scott Huberty <seh33@uw.edu>
 #
 # License: BSD-3-Clause
 
-from .eyelink import read_raw_eyelink
+from .eyelink import read_raw_eyelink, read_eyelink_calibration
