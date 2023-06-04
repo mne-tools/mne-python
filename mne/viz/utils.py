@@ -1017,6 +1017,7 @@ def plot_sensors(
     sphere=None,
     pointsize=None,
     linewidth=2,
+    cmap=None,
     verbose=None,
 ):
     """Plot sensors positions.
@@ -1074,6 +1075,9 @@ def plot_sensors(
         ``kind='3d'``, or ``25`` otherwise.
     linewidth : float
         The width of the outline. If ``0``, the outline will not be drawn.
+    cmap : matplotlib.colors.Colormap | None
+        Colormap for coloring ch_groups. Has effect only when ``ch_groups``
+        is list of list. Defaults to None.
     %(verbose)s
 
     Returns
@@ -1197,10 +1201,12 @@ def plot_sensors(
                 color = np.mean(_rgb(x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
         else:  # array-like
-            import matplotlib.pyplot as plt
+            if cmap is None:
+                import matplotlib.pyplot as plt
 
+                cmap = plt.cm.jet
             colors = np.linspace(0, 1, len(ch_groups))
-            color_vals = [plt.cm.jet(colors[i]) for i in range(len(ch_groups))]
+            color_vals = [cmap(colors[i]) for i in range(len(ch_groups))]
         colors = np.zeros((len(picks), 4))
         for pick_idx, pick in enumerate(picks):
             for ind, value in enumerate(ch_groups):
