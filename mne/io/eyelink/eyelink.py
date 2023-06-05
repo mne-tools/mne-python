@@ -311,7 +311,9 @@ def read_eyelink_calibration(
 
     Returns
     -------
-    calibrations : a list of Calibration instances
+    calibrations : list
+        a list of Calibration instances, one for each eye of every
+        calibration that was performed during the recording session.
     """
     fname = Path(filename)
     if not fname.exists():

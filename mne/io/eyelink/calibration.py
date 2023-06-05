@@ -16,26 +16,27 @@ class Calibration(OrderedDict):
 
     Parameters
     ----------
-    onset: float
+    onset : float
         The onset of the calibration in seconds. If the calibration was
         performed before the recording started, then the onset should be
         set to 0 seconds.
-    model: str
+    model : str
         A string, which is the model of the eyetracker. For example H3 for
         a horizontal only 3-point calibration, or HV3 for a horizontal and
         vertical 3-point calibration.
-    eye: str
+    eye : str
         the eye that was calibrated. For example, 'left',
         'right', or 'both'.
-    avg_error: float
+    avg_error : float
         The average error in degrees between the calibration points and the
         actual gaze position.
-    max_error: float
+    max_error : float
         The maximum error in degrees that occurred between the calibration
         points and the actual gaze position.
-    points: list of tuples
-        The data for each individual calibration point. Each tuple should represent
-        1 calibration point. The elements within each tuple should be as follows:
+    points : list
+        List of tuples, contaiing the data for each individual calibration point.
+        Each tuple should represent data for 1 calibration point. The elements
+        within each tuple should be as follows:
             - (point_x, point_y, offset, diff_x, diff_y)
         where:
             - point_x: the x pixel-coordinate of the calibration point
@@ -59,22 +60,22 @@ class Calibration(OrderedDict):
 
     Attributes
     ----------
-    onset: float
+    onset : float
         The onset of the calibration in seconds. If the calibration was
         performed before the recording started.
-    model: str
+    model : str
         A string, which is the model of the calibration that was administerd. For
         example 'H3' for a horizontal only 3-point calibration, or 'HV3' for a
         horizontal and vertical 3-point calibration.
-    eye: str
-        the eye that was calibrated. For example, 'left', or 'right'.
-    avg_error: float
+    eye : str
+        The eye that was calibrated. For example, 'left', or 'right'.
+    avg_error : float
         The average error in degrees between the calibration points and the actual gaze
         position.
-    max_error: float
+    max_error : float
         The maximum error in degrees that occurred between the calibration points and
         the actual gaze position.
-    points: ndarray
+    points : ndarray
         a 2D numpy array, which are the data for each calibration point.
     screen_size : tuple
         The width and height (in meters) of the screen that the eyetracking data was
@@ -91,16 +92,15 @@ class Calibration(OrderedDict):
         self,
         onset=None,
         model=None,
+        eye=None,
         avg_error=None,
         max_error=None,
         points=None,
-        eye=None,
         screen_size=None,
         screen_distance=None,
         screen_resolution=None,
-        **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__()
         self["onset"] = onset
         self["model"] = model
         self["eye"] = eye
@@ -150,9 +150,10 @@ class Calibration(OrderedDict):
 
         Parameters
         ----------
-        data : list of tuples
-            The calibration data to be converted. Each tuple should represent
-            1 calibration point. The elements within each tuple should be as follows:
+        data : list
+           List of tuples, containing the data for each individual calibration point.
+           Each tuple should represent data for 1 calibration point. The elements
+           within each tuple should be as follows:
                 - (point_x, point_y, offset, diff_x, diff_y)
             where:
                 - point_x: the x pixel-coordinate of the calibration point
@@ -166,7 +167,9 @@ class Calibration(OrderedDict):
 
         Returns
         -------
-        self, with the points attribute set as a structured numpy array
+        self: instance of Calibration
+            The Calibration instance with the points attribute set as a structured numpy
+            array
 
         Examples
         --------
