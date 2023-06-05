@@ -1,5 +1,6 @@
 import pytest
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from mne.datasets.testing import data_path, requires_testing_data
@@ -157,6 +158,28 @@ def test_read_calibration(fname):
     assert calibrations[1]["points"]["point_y"] == pytest.approx(expected_y_right)
     assert calibrations[0]["points"]["diff_y"] == pytest.approx(expected_diff_y_left)
     assert calibrations[1]["points"]["offset"] == pytest.approx(expected_offset_right)
+
+
+@requires_testing_data
+@pytest.mark.parametrize("fname", [(fname)])
+def test_plot_calibration(fname):
+    """Test plotting calibration data."""
+    calibrations = read_eyelink_calibration(fname)
+    cal_left = calibrations[0]
+    fig = cal_left.plot(show=False)
+    ax = fig.axes[0]
+
+    scatter1 = ax.collections[0]
+    scatter2 = ax.collections[1]
+    px, py = cal_left.points["point_x"], cal_left.points["point_y"]
+    dx, dy = cal_left.points["diff_x"], cal_left.points["diff_y"]
+
+    assert ax.title.get_text() == f"Calibration ({cal_left.eye} eye)"
+    assert len(ax.collections) == 2  # Two scatter plots
+
+    assert np.allclose(scatter1.get_offsets(), np.column_stack((px, py)))
+    assert np.allclose(scatter2.get_offsets(), np.column_stack((px - dx, py - dy)))
+    plt.close(fig)
 
 
 @requires_testing_data

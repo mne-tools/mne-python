@@ -4,6 +4,9 @@
 # License: BSD-3-Clause
 
 from collections import OrderedDict
+
+import matplotlib.pyplot as plt
+
 from ...utils import fill_doc
 
 
@@ -130,3 +133,34 @@ class Calibration(OrderedDict):
         raise AttributeError(
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )
+
+    def plot(self, title=None, show=True):
+        """Visualize calibration.
+
+        Parameters
+        ----------
+        title : str
+            The title to be displayed. Defaults to None, which uses a generic title.
+        show : bool
+            Whether to show the figure or not.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The resulting figure object for the calibration plot.
+        """
+        fig, ax = plt.subplots()
+        px, py = self["points"]["point_x"], self["points"]["point_y"]
+        dx, dy = self["points"]["diff_x"], self["points"]["diff_y"]
+
+        if title is None:
+            ax.set_title(f"Calibration ({self['eye']} eye)")
+        else:
+            ax.set_title(title)
+        ax.set_xlabel("x (pixels)")
+        ax.set_ylabel("y (pixels)")
+
+        ax.scatter(px, py, color="gray")
+        ax.scatter(px - dx, py - dy, color="red")
+        fig.show() if show else None
+        return fig
