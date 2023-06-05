@@ -5,7 +5,6 @@
 
 from collections import OrderedDict
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ...utils import fill_doc
@@ -206,6 +205,8 @@ class Calibration(OrderedDict):
         fig : instance of matplotlib.figure.Figure
             The resulting figure object for the calibration plot.
         """
+        import matplotlib.pyplot as plt
+
         if not len(self["points"]):
             raise ValueError(
                 "No calibration data to plot. Use set_calibration_array()"
