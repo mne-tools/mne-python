@@ -6,6 +6,7 @@
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ...utils import fill_doc
 
@@ -33,12 +34,19 @@ class Calibration(OrderedDict):
     max_error: float
         The maximum error in degrees that occurred between the calibration
         points and the actual gaze position.
-    points: ndarray
-        a 2D numpy array containing the data for each calibration point.
-        Each row contains the x and y pixel-coordinates of the calibration point,
-        the error in degrees between the calibration point and the actual gaze position,
-        and the difference in x and y pixel coordinates between the calibration point
-        and the actual gaze position.
+    points: list of tuples
+        The data for each individual calibration point. Each tuple should represent
+        1 calibration point. The elements within each tuple should be as follows:
+            - (point_x, point_y, offset, diff_x, diff_y)
+        where:
+            - point_x: the x pixel-coordinate of the calibration point
+            - point_y: the y pixel-coordinate of the calibration point
+            - offset: the error in degrees between the calibration point and the
+                actual gaze position
+            - diff_x: the difference in x pixel coordinates between the calibration
+                point and the actual gaze position
+            - diff_y: the difference in y pixel coordinates between the calibration
+                point and the actual gaze position
     screen_size : tuple
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example (.531, .298) for a monitor with
@@ -99,7 +107,10 @@ class Calibration(OrderedDict):
         self["eye"] = eye
         self["avg_error"] = avg_error
         self["max_error"] = max_error
-        self["points"] = points
+        if points is not None and isinstance(points, list):
+            self.set_calibration_array(points)
+        else:
+            self["points"] = points
         self["screen_size"] = screen_size
         self["screen_distance"] = screen_distance
         self["screen_resolution"] = screen_resolution
@@ -134,6 +145,52 @@ class Calibration(OrderedDict):
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )
 
+    def set_calibration_array(self, data):
+        """
+        Convert a list of tuples to a structured array with calibration field names.
+
+        Parameters
+        ----------
+        data : list of tuples
+            The calibration data to be converted. Each tuple should represent
+            1 calibration point. The elements within each tuple should be as follows:
+                - (point_x, point_y, offset, diff_x, diff_y)
+            where:
+                - point_x: the x pixel-coordinate of the calibration point
+                - point_y: the y pixel-coordinate of the calibration point
+                - offset: the error in degrees between the calibration point and the
+                    actual gaze position
+                - diff_x: the difference in x pixel coordinates between the calibration
+                    point and the actual gaze position
+                - diff_y: the difference in y pixel coordinates between the calibration
+                    point and the actual gaze position
+
+        Returns
+        -------
+        self, with the points attribute set as a structured numpy array
+
+        Examples
+        --------
+        Below is an example of a list of tuples that can be passed to this method:
+        >>> data = [(960., 540., 0.23, 9.9, -4.1),
+                    (960., 92., 0.38, -7.8, 16.),
+                    ...]
+        """
+        field_names = ["point_x", "point_y", "offset", "diff_x", "diff_y"]
+        dtype = [(name, float) for name in field_names]
+        if isinstance(data, list):
+            if not all([len(elem) == len(field_names) for elem in data]):
+                raise ValueError(
+                    f"Each tuple in the data list must have have 5 elements: "
+                    f"Got {data}"
+                )
+            structured_array = np.array(data, dtype=dtype)
+            self["points"] = structured_array
+        else:
+            raise TypeError(
+                f"Data must be a list. got {data} which is of type {type(data)}"
+            )
+
     def plot(self, title=None, show=True):
         """Visualize calibration.
 
@@ -149,6 +206,16 @@ class Calibration(OrderedDict):
         fig : instance of matplotlib.figure.Figure
             The resulting figure object for the calibration plot.
         """
+        if not len(self["points"]):
+            raise ValueError(
+                "No calibration data to plot. Use set_calibration_array()"
+                " to set calibration data."
+            )
+        if not isinstance(self["points"], np.ndarray):
+            raise TypeError(
+                "Calibration points must be a numpy array. Use "
+                "set_calibration_array() to set calibration data."
+            )
         fig, ax = plt.subplots()
         px, py = self["points"]["point_x"], self["points"]["point_y"]
         dx, dy = self["points"]["diff_x"], self["points"]["diff_y"]

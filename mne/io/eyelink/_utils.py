@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 
 import re
-import numpy as np
 
 from .calibration import Calibration
 
@@ -35,21 +34,14 @@ def _parse_validation_line(line):
 
     Returns
     -------
-        A dictionary containing the validation data.
+        A list of tuples containing the validation data.
     """
-    keys = ["point_x", "point_y", "offset", "diff_x", "diff_y"]
-    dtype = [(key, "f8") for key in keys]
-    parsed_data = np.empty(1, dtype=dtype)
-
     tokens = line.split()
     xy = tokens[-6].strip("[]").split(",")  # e.g. '960, 540'
     xy_diff = tokens[-2].strip("[]").split(",")  # e.g. '-1.5, -2.8'
-    vals = [float(v) for v in [*xy, tokens[-4], *xy_diff]]
+    vals = tuple([float(v) for v in [*xy, tokens[-4], *xy_diff]])
 
-    for key, data in zip(keys, vals):
-        parsed_data[0][key] = data
-
-    return parsed_data
+    return vals
 
 
 def _parse_calibration(
@@ -98,6 +90,7 @@ def _parse_calibration(
             n_points = int(regex.search(calibration["model"]).group())  # e.g. 9
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
             # The next n_point lines contain the validation data
+            points = []
             for validation_index in range(n_points):
                 subline = lines[line_number + validation_index + 1]
                 if "!CAL VALIDATION" in subline:
@@ -107,11 +100,8 @@ def _parse_calibration(
                 if subline_eye != this_eye:
                     continue  # skip the validation lines for the other eye
                 point_info = _parse_validation_line(subline)
-                if not calibration["points"]:
-                    calibration["points"] = [point_info]
-                else:
-                    calibration["points"].append(point_info)
+                points.append(point_info)
             # Convert the list of validation data into a numpy array
-            calibration["points"] = np.concatenate(calibration["points"], axis=0)
+            calibration.set_calibration_array(points)
             calibrations.append(calibration)
     return calibrations
