@@ -80,7 +80,7 @@ stages:
   jobs:
   - job: Ultraslow_PG
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-22.04'
     variables:
       DISPLAY: ':99'
       OPENBLAS_NUM_THREADS: '1'
@@ -149,7 +149,7 @@ stages:
 
   - job: Qt
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-22.04'
     variables:
       DISPLAY: ':99'
       OPENBLAS_NUM_THREADS: '1'
