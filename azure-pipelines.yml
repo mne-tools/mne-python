@@ -196,7 +196,8 @@ stages:
     - bash: |
         set -e
         python -m pip install PyQt6
-        LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
+        # Uncomment if "xcb not found" Qt errors/segfaults come up again
+        # LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
