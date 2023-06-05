@@ -188,6 +188,7 @@ stages:
       displayName: 'Get test data'
     - bash: |
         set -e
+        export QT_API=PySide6
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
@@ -195,6 +196,7 @@ stages:
       displayName: 'PySide6'
     - bash: |
         set -e
+        export QT_API=PyQt6
         python -m pip install PyQt6
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
@@ -203,6 +205,7 @@ stages:
       displayName: 'PyQt6'
     - bash: |
         set -e
+        export QT_API=PySide2
         python -m pip install PySide2
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PySide2=.*)$"
@@ -212,6 +215,7 @@ stages:
     # PyQt5 leaves cruft behind, so run it last
     - bash: |
         set -e
+        export QT_API=PyQt5
         python -m pip install PyQt5
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
