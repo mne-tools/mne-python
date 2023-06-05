@@ -10,7 +10,7 @@ from setuptools import setup
 
 
 if "SETUPTOOLS_SCM_PRETEND_VERSION" not in os.environ:
-    os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "1.4.0"
+    os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "1.4.1"
 
 
 def parse_requirements_file(fname):
