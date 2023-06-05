@@ -5,7 +5,7 @@
 import re
 import numpy as np
 
-from .calibration import Calibration, Calibrations
+from .calibration import Calibration
 
 
 def _find_recording_start(lines):
@@ -55,7 +55,7 @@ def _parse_validation_line(line):
 def _parse_calibration(
     lines, screen_size=None, screen_distance=None, screen_resolution=None
 ):
-    """Parse the lines in the given list and returns a Calibrations instance.
+    """Parse the lines in the given list and returns a list of Calibration instances.
 
     Parameters
     ----------
@@ -63,12 +63,12 @@ def _parse_calibration(
 
     Returns
     -------
-        A Calibrations instance containing one or more Calibration instances,
+        A list containing one or more Calibration instances,
         one for each calibration that was recorded in the eyelink ASCII file
         data.
     """
     regex = re.compile(r"\d+")  # for finding numeric characters
-    calibrations = Calibrations()
+    calibrations = list()
     rec_start = float(_find_recording_start(lines).split()[1])
 
     for line_number, line in enumerate(lines):

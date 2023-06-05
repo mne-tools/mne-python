@@ -224,6 +224,7 @@ from .io import (
     read_evoked_fieldtrip,
     read_evokeds_mff,
     read_eyelink_calibration,
+    Calibration,
 )
 from .rank import compute_rank
 

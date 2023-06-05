@@ -6,3 +6,4 @@
 # License: BSD-3-Clause
 
 from .eyelink import read_raw_eyelink, read_eyelink_calibration
+from .calibration import Calibration

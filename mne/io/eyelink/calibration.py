@@ -8,102 +8,6 @@ from ...utils import fill_doc
 
 
 @fill_doc
-class Calibrations(list):
-    """A list of Calibration objects.
-
-    Parameters
-    ----------
-    onset: float
-        The onset of the calibration in seconds. If the calibration was
-        performed before the recording started, then the onset should be
-        set to 0 seconds.
-    model: str
-        A string, which is the model of the eyetracker. For example H3 for
-        a horizontal only 3-point calibration, or HV3 for a horizontal and
-        vertical 3-point calibration.
-    eye: str
-        the eye that was calibrated. For example, 'left',
-        'right', or 'both'.
-    avg_error: float
-        The average error in degrees between the calibration points and the
-        actual gaze position. If 'eye' is 'both', then a dict can be passed
-        with the average error for each eye. For example, {'left': 0.5, 'right': 0.6}.
-    max_error: float
-        The maximum error in degrees that occurred between the calibration
-        points and the actual gaze position. If 'eye' is 'both', then a dict
-        can be passed with the maximum error for each eye. For example,
-        {'left': 0.5, 'right': 0.6}.
-    points: ndarray
-        a 2D numpy array, which are the data for each calibration point.
-        Each row contains the x and y pixel-coordinates of the actual gaze position
-        to the calibration point, the error in degrees between the calibration point
-        and the actual gaze position, and the difference in x and y pixel coordinates
-        between the calibration point and the actual gaze position. If 'eye' is 'both',
-        then a dict can be passed with a separate 2D numpy array for each eye.
-    screen_size : tuple
-        The width and height (in meters) of the screen that the eyetracking
-        data was collected with. For example (.531, .298) for a monitor with
-        a display area of 531 x 298 cm.
-    screen_distance : float
-        The distance (in meters) from the participant's eyes to the screen.
-    screen_resolution : tuple
-        The resolution (in pixels) of the screen that the eyetracking data
-        was collected with. For example, (1920, 1080) for a 1920x1080
-        resolution display.
-
-    Returns
-    -------
-    calibrations: Calibrations
-        A Calibrations instance, which is a list of Calibration objects.
-    """
-
-    def __init__(
-        self,
-        onset=None,
-        model=None,
-        eye=None,
-        avg_error=None,
-        max_error=None,
-        points=None,
-        screen_size=None,
-        screen_distance=None,
-        screen_resolution=None,
-    ):
-        super().__init__()
-        if any(
-            arg is not None
-            for arg in (
-                onset,
-                model,
-                eye,
-                avg_error,
-                max_error,
-                points,
-                screen_size,
-                screen_distance,
-                screen_resolution,
-            )
-        ):
-            calibration = Calibration(
-                onset=onset,
-                model=model,
-                eye=eye,
-                avg_error=avg_error,
-                max_error=max_error,
-                points=points,
-                screen_size=screen_size,
-                screen_distance=screen_distance,
-                screen_resolution=screen_resolution,
-            )
-            self.append(calibration)
-
-    def __repr__(self):
-        """Return the number of calibration objects in this instance."""
-        num_calibrations = len(self)
-        return f"Calibrations | {num_calibrations} calibration(s)"
-
-
-@fill_doc
 class Calibration(OrderedDict):
     """A dictionary containing calibration data.
 
@@ -122,30 +26,55 @@ class Calibration(OrderedDict):
         'right', or 'both'.
     avg_error: float
         The average error in degrees between the calibration points and the
-        actual gaze position. If 'eye' is 'both', then a dict can be passed
-        with the average error for each eye. For example, {'left': 0.5, 'right': 0.6}.
+        actual gaze position.
     max_error: float
         The maximum error in degrees that occurred between the calibration
-        points and the actual gaze position. If 'eye' is 'both', then a dict
-        can be passed with the maximum error for each eye. For example,
-        {'left': 0.5, 'right': 0.6}.
+        points and the actual gaze position.
     points: ndarray
         a 2D numpy array, which are the data for each calibration point.
         Each row contains the x and y pixel-coordinates of the actual gaze position
         to the calibration point, the error in degrees between the calibration point
         and the actual gaze position, and the difference in x and y pixel coordinates
-        between the calibration point and the actual gaze position. If 'eye' is 'both',
-        then a dict can be passed with a separate 2D numpy array for each eye.
+        between the calibration point and the actual gaze position.
     screen_size : tuple
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example (.531, .298) for a monitor with
-        a display area of 531 x 298 cm.
+        a display area of 531 x 298 mm.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
     screen_resolution : tuple
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, (1920, 1080) for a 1920x1080
         resolution display.
+
+    Attributes
+    ----------
+    onset: float
+        The onset of the calibration in seconds. If the calibration was
+        performed before the recording started.
+    model: str
+        A string, which is the model of the calibration that was administerd. For
+        example 'H3' for a horizontal only 3-point calibration, or 'HV3' for a
+        horizontal and vertical 3-point calibration.
+    eye: str
+        the eye that was calibrated. For example, 'left', or 'right'.
+    avg_error: float
+        The average error in degrees between the calibration points and the actual gaze
+        position.
+    max_error: float
+        The maximum error in degrees that occurred between the calibration points and
+        the actual gaze position.
+    points: ndarray
+        a 2D numpy array, which are the data for each calibration point.
+    screen_size : tuple
+        The width and height (in meters) of the screen that the eyetracking data was
+        collected  with. For example (.531, .298) for a monitor with a display area of
+        531 x 298 mm.
+    screen_distance : float
+        The distance (in meters) from the participant's eyes to the screen.
+    screen_resolution : tuple
+        The resolution (in pixels) of the screen that the eyetracking data was
+        collected with.
     """
 
     def __init__(

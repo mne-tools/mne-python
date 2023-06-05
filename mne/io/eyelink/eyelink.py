@@ -311,7 +311,7 @@ def read_eyelink_calibration(
 
     Returns
     -------
-    calibrations : instance of Calibrations
+    calibrations : a list of Calibration instances
     """
     fname = Path(filename)
     if not fname.exists():
@@ -374,8 +374,8 @@ def read_raw_eyelink(
         be considered bad by MNE and excluded from operations like epoching.
     return_calibration : bool (default False)
         If True, returns a tuple of (raw, calibrations) where calibrations is
-        an object that contains information about the eye calibration for the
-        file.
+        a list of Calibration instances, each containing information about a
+        single calibration collected during the recording.
     screen_size : tuple
         Only set if 'return_calibration' is set to True.
         The width and height (in meters) of the screen that the eyetracking

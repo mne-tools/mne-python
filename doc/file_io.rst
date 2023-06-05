@@ -6,6 +6,7 @@ File I/O
 .. autosummary::
    :toctree: generated
 
+   Calibration
    channel_type
    channel_indices_by_type
    get_head_surf
