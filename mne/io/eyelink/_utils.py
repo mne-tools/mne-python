@@ -75,56 +75,43 @@ def _parse_calibration(
         if (
             "!CAL VALIDATION " in line and "ABORTED" not in line
         ):  # Start of a calibration
+            calibration = Calibration(
+                screen_size=screen_size,
+                screen_distance=screen_distance,
+                screen_resolution=screen_resolution,
+            )
             tokens = line.split()
             this_eye = tokens[6].lower()
-            assert this_eye in ["left", "right"]
-            if "LR" not in line or ("LR" in line and this_eye == "left"):
-                # for binocular calibrations, there are two '!CAL VALIDATION' lines
-                # Create a single calibration instance for both eyes.
-                calibration = Calibration(
-                    screen_size=screen_size,
-                    screen_distance=screen_distance,
-                    screen_resolution=screen_resolution,
-                )
+            assert this_eye in ["left", "right"], this_eye
             calibration["model"] = tokens[4]  # e.g. 'HV13'
             assert calibration["model"].startswith("H")
-            calibration["eye"] = "both" if "LR" in line else this_eye
+            calibration["eye"] = this_eye
             timestamp = float(tokens[1])
-            onset = timestamp - rec_start
+            onset = (timestamp - rec_start) / 1000.0  # in seconds
             calibration["onset"] = 0 if onset < 0 else onset
 
             avg_error = float(line.split("avg.")[0].split()[-1])  # e.g. 0.3
             max_error = float(line.split("max")[0].split()[-1])  # e.g. 0.9
-            if calibration["eye"] == "both":
-                if not isinstance(calibration["points"], dict):
-                    # don't overwrite dict if it was set in previous line
-                    calibration["points"] = {"left": [], "right": []}
-                calibration["avg_error"][this_eye] = avg_error
-                calibration["max_error"][this_eye] = max_error
-            else:
-                calibration["avg_error"] = avg_error
-                calibration["max_error"] = max_error
+            calibration["avg_error"] = avg_error
+            calibration["max_error"] = max_error
 
             n_points = int(regex.search(calibration["model"]).group())  # e.g. 9
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
             # The next n_point lines contain the validation data
             for validation_index in range(n_points):
                 subline = lines[line_number + validation_index + 1]
+                if "!CAL VALIDATION" in subline:
+                    continue  # for bino mode, skip the second eye's validation summary
                 subline_eye = subline.split("at")[0].split()[-1].lower()
+                assert subline_eye in ["left", "right"], subline_eye
                 if subline_eye != this_eye:
                     continue  # skip the validation lines for the other eye
                 point_info = _parse_validation_line(subline)
-                if calibration["eye"] == "both":
-                    calibration["points"][this_eye].append(point_info)
+                if not calibration["points"]:
+                    calibration["points"] = [point_info]
                 else:
                     calibration["points"].append(point_info)
             # Convert the list of validation data into a numpy array
-            if calibration["eye"] == "both":
-                calibration["points"][this_eye] = np.concatenate(
-                    calibration["points"][this_eye], axis=0
-                )
-            else:
-                calibration["points"] = np.concatenate(calibration["points"], axis=0)
-
-    calibrations.append(calibration)
+            calibration["points"] = np.concatenate(calibration["points"], axis=0)
+            calibrations.append(calibration)
     return calibrations

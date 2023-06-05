@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.io import read_raw_eyelink, read_eyelink_calibration
+from mne.io import read_raw_eyelink, read_eyelink_calibration, BaseRaw
 from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.utils import _check_pandas_installed, requires_pandas
@@ -26,18 +26,29 @@ def test_eyetrack_not_data_ch():
 @requires_testing_data
 @requires_pandas
 @pytest.mark.parametrize(
-    "fname, create_annotations, find_overlaps",
+    "fname, create_annotations, find_overlaps, return_calibration",
     [
-        (fname, False, False),
-        (fname, True, False),
-        (fname, True, True),
-        (fname, ["fixations", "saccades", "blinks"], True),
+        (fname, False, False, False),
+        (fname, False, False, True),
+        (fname, True, False, False),
+        (fname, True, True, False),
+        (fname, ["fixations", "saccades", "blinks"], True, False),
     ],
 )
-def test_eyelink(fname, create_annotations, find_overlaps):
+def test_eyelink(fname, create_annotations, find_overlaps, return_calibration):
     """Test reading eyelink asc files."""
+    if return_calibration:
+        raw, calibrations = read_raw_eyelink(
+            fname, return_calibration=return_calibration
+        )
+        assert len(calibrations) == 2
+        assert isinstance(raw, BaseRaw)
+        return
     raw = read_raw_eyelink(
-        fname, create_annotations=create_annotations, find_overlaps=find_overlaps
+        fname,
+        create_annotations=create_annotations,
+        find_overlaps=find_overlaps,
+        return_calibration=return_calibration,
     )
 
     # First, tests that shouldn't change based on function arguments
@@ -90,7 +101,6 @@ def test_eyelink(fname, create_annotations, find_overlaps):
 def test_read_calibration(fname):
     """Test reading calibration data from an eyelink asc file."""
     calibrations = read_eyelink_calibration(fname)
-    calibration = calibrations[0]
     expected_x_left = np.array(
         [
             960.0,
@@ -132,20 +142,21 @@ def test_read_calibration(fname):
         [0.36, 0.5, 0.2, 0.1, 0.3, 0.38, 0.13, 0.33, 0.22, 0.18, 0.34, 0.52, 0.21]
     )
 
-    assert calibration["model"] == "HV13"
-    assert calibration["eye"] == "both"
-    assert calibration["avg_error"]["left"] == 0.30
-    assert calibration["max_error"]["left"] == 0.90
-    assert calibration["avg_error"]["right"] == 0.31
-    assert calibration["max_error"]["right"] == 0.52
-    assert calibration["points"]["left"]["point_x"] == pytest.approx(expected_x_left)
-    assert calibration["points"]["right"]["point_y"] == pytest.approx(expected_y_right)
-    assert calibration["points"]["left"]["diff_y"] == pytest.approx(
-        expected_diff_y_left
-    )
-    assert calibration["points"]["right"]["offset"] == pytest.approx(
-        expected_offset_right
-    )
+    assert len(calibrations) == 2  # calibration[0] is left, calibration[1] is right
+    assert calibrations[0]["onset"] == 0
+    assert calibrations[1]["onset"] == 0
+    assert calibrations[0]["model"] == "HV13"
+    assert calibrations[1]["model"] == "HV13"
+    assert calibrations[0]["eye"] == "left"
+    assert calibrations[1]["eye"] == "right"
+    assert calibrations[0]["avg_error"] == 0.30
+    assert calibrations[0]["max_error"] == 0.90
+    assert calibrations[1]["avg_error"] == 0.31
+    assert calibrations[1]["max_error"] == 0.52
+    assert calibrations[0]["points"]["point_x"] == pytest.approx(expected_x_left)
+    assert calibrations[1]["points"]["point_y"] == pytest.approx(expected_y_right)
+    assert calibrations[0]["points"]["diff_y"] == pytest.approx(expected_diff_y_left)
+    assert calibrations[1]["points"]["offset"] == pytest.approx(expected_offset_right)
 
 
 @requires_testing_data

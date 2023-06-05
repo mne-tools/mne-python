@@ -163,11 +163,11 @@ class Calibration(OrderedDict):
     ):
         super().__init__(**kwargs)
         self["onset"] = onset
-        self["model"] = {} if model is None else model
-        self["eye"] = {} if eye is None else eye
-        self["avg_error"] = {} if avg_error is None else avg_error
-        self["max_error"] = {} if max_error is None else max_error
-        self["points"] = [] if points is None else points
+        self["model"] = model
+        self["eye"] = eye
+        self["avg_error"] = avg_error
+        self["max_error"] = max_error
+        self["points"] = points
         self["screen_size"] = screen_size
         self["screen_distance"] = screen_distance
         self["screen_resolution"] = screen_resolution
