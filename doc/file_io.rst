@@ -6,7 +6,6 @@ File I/O
 .. autosummary::
    :toctree: generated
 
-   Calibration
    channel_type
    channel_indices_by_type
    get_head_surf
@@ -28,7 +27,6 @@ File I/O
    read_evoked_besa
    read_evoked_fieldtrip
    read_evokeds_mff
-   read_eyelink_calibration
    read_freesurfer_lut
    read_forward_solution
    read_label
@@ -64,3 +62,12 @@ Base class:
    :template: autosummary/class_no_members.rst
 
    BaseEpochs
+
+Eye-tracking:
+
+.. autosummary::
+   :toctree: generated
+   :no-inherited-members:
+   Calibration
+   read_eyelink_calibration
+   

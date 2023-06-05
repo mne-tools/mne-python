@@ -25,7 +25,7 @@ class Calibration(OrderedDict):
         a horizontal only 3-point calibration, or HV3 for a horizontal and
         vertical 3-point calibration.
     eye : str
-        the eye that was calibrated. For example, 'left',
+        The eye that was calibrated. For example, 'left',
         'right', or 'both'.
     avg_error : float
         The average error in degrees between the calibration points and the
@@ -169,14 +169,12 @@ class Calibration(OrderedDict):
         -------
         self: instance of Calibration
             The Calibration instance with the points attribute set as a structured numpy
-            array
+            array.
 
         Examples
         --------
         Below is an example of a list of tuples that can be passed to this method:
-        >>> data = [(960., 540., 0.23, 9.9, -4.1),
-                    (960., 92., 0.38, -7.8, 16.),
-                    ...]
+        >>> data = [(960., 540., 0.23, 9.9, -4.1), (960., 92., 0.38, -7.8, 16.)]
         """
         field_names = ["point_x", "point_y", "offset", "diff_x", "diff_y"]
         dtype = [(name, float) for name in field_names]
