@@ -34,11 +34,11 @@ class Calibration(OrderedDict):
         The maximum error in degrees that occurred between the calibration
         points and the actual gaze position.
     points: ndarray
-        a 2D numpy array, which are the data for each calibration point.
-        Each row contains the x and y pixel-coordinates of the actual gaze position
-        to the calibration point, the error in degrees between the calibration point
-        and the actual gaze position, and the difference in x and y pixel coordinates
-        between the calibration point and the actual gaze position.
+        a 2D numpy array containing the data for each calibration point.
+        Each row contains the x and y pixel-coordinates of the calibration point,
+        the error in degrees between the calibration point and the actual gaze position,
+        and the difference in x and y pixel coordinates between the calibration point
+        and the actual gaze position.
     screen_size : tuple
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example (.531, .298) for a monitor with
