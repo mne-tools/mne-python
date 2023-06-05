@@ -27,6 +27,7 @@ File I/O
    read_evoked_besa
    read_evoked_fieldtrip
    read_evokeds_mff
+   read_eyelink_calibration
    read_freesurfer_lut
    read_forward_solution
    read_label

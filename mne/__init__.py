@@ -223,6 +223,7 @@ from .io import (
     read_evoked_besa,
     read_evoked_fieldtrip,
     read_evokeds_mff,
+    read_eyelink_calibration,
 )
 from .rank import compute_rank
 
