@@ -59,6 +59,7 @@ def _parse_calibration(
         one for each calibration that was recorded in the eyelink ASCII file
         data.
     """
+    from ...preprocessing.eyetracking.calibration import Calibration
     regex = re.compile(r"\d+")  # for finding numeric characters
     calibrations = list()
     rec_start = float(_find_recording_start(lines).split()[1])
