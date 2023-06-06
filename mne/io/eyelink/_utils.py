@@ -4,8 +4,6 @@
 
 import re
 
-from ...preprocessing.eyetracking.calibration import Calibration
-
 
 def _find_recording_start(lines):
     """Return the first START line in an SR Research EyeLink ASCII file.
