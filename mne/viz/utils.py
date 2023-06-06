@@ -1017,6 +1017,7 @@ def plot_sensors(
     sphere=None,
     pointsize=None,
     linewidth=2,
+    *,
     cmap=None,
     verbose=None,
 ):
@@ -1077,7 +1078,7 @@ def plot_sensors(
         The width of the outline. If ``0``, the outline will not be drawn.
     cmap : str | instance of matplotlib.colors.Colormap | None
         Colormap for coloring ch_groups. Has effect only when ``ch_groups``
-        is list of list. If None, set to matplotlib.rcParams["image.cmap"].
+        is list of list. If None, set to ``matplotlib.rcParams["image.cmap"]``.
         Defaults to None.
     %(verbose)s
 
