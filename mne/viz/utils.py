@@ -1075,10 +1075,10 @@ def plot_sensors(
         ``kind='3d'``, or ``25`` otherwise.
     linewidth : float
         The width of the outline. If ``0``, the outline will not be drawn.
-    cmap : str | mpl.colors.Colormap | None
+    cmap : str | instance of matplotlib.colors.Colormap | None
         Colormap for coloring ch_groups. Has effect only when ``ch_groups``
-        is list of list. If None, set to mpl.rcParams["image.cmap"]. Defaults
-        to None.
+        is list of list. If None, set to matplotlib.rcParams["image.cmap"]. 
+        Defaults to None.
     %(verbose)s
 
     Returns
