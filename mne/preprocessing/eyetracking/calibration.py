@@ -13,7 +13,14 @@ from ...utils import fill_doc
 
 @fill_doc
 class Calibration(OrderedDict):
-    """A dictionary containing calibration data.
+    """Eye-tracking calibration info.
+
+    This data structure behaves like a dictionary. It contains information regarding a
+    calibration that was conducted during an eye-tracking recording.
+
+    .. note::
+        When possible, this class should be instantiated via an available function,
+        such as :func:`mne.io.read_eyelink_calibration`.
 
     Parameters
     ----------
@@ -23,7 +30,7 @@ class Calibration(OrderedDict):
         set to 0 seconds.
     model : str
         A string, which is the model of the eye-tracking calibration that was applied.
-        For example H3 for a horizontal only 3-point calibration, or HV3 for a
+        For example 'H3' for a horizontal only 3-point calibration, or 'HV3' for a
         horizontal and vertical 3-point calibration.
     eye : str
         The eye that was calibrated. For example, 'left', or 'right'.
@@ -36,9 +43,8 @@ class Calibration(OrderedDict):
     points : list
         List of tuples, containing the data for each individual calibration point.
         Each tuple should represent data for 1 calibration point. The elements
-        within each tuple should be as follows:
-            - (point_x, point_y, offset, diff_x, diff_y)
-        where:
+        within each tuple should be (point_x, point_y, offset, diff_x, diff_y), where:
+
             - point_x: the x pixel-coordinate of the calibration point
             - point_y: the y pixel-coordinate of the calibration point
             - offset: the error in degrees between the calibration point and the
@@ -65,7 +71,7 @@ class Calibration(OrderedDict):
         The onset of the calibration in seconds. If the calibration was
         performed before the recording started, the onset will be 0 seconds.
     model : str
-        A string, which is the model of the calibration that was administerd. For
+        A string, which is the model of the calibration that was applied. For
         example 'H3' for a horizontal only 3-point calibration, or 'HV3' for a
         horizontal and vertical 3-point calibration.
     eye : str
@@ -157,16 +163,18 @@ class Calibration(OrderedDict):
 
     def set_calibration_array(self, data):
         """
-        Convert a list of tuples to a structured array with calibration field names.
+        Create a Numpy Array containing data regarding each calibration point.
+
+        This method takes a list of tuples and converts it into a structured numpy
+        array, with field names 'point_x', 'point_y', 'offset', 'diff_x', and 'diff_y'.
 
         Parameters
         ----------
         data : list
            List of tuples, containing the data for each individual calibration point.
-           Each tuple should represent data for 1 calibration point. The elements
-           within each tuple should be as follows:
-                - (point_x, point_y, offset, diff_x, diff_y)
-            where:
+           Each tuple should represent data for 1 calibration point. The elements within
+           each tuple should be (point_x, point_y, offset, diff_x, diff_y), where:
+
                 - point_x: the x pixel-coordinate of the calibration point
                 - point_y: the y pixel-coordinate of the calibration point
                 - offset: the error in degrees between the calibration point and the
@@ -179,8 +187,9 @@ class Calibration(OrderedDict):
         Returns
         -------
         self: instance of Calibration
-            The Calibration instance with the points attribute set as a structured numpy
-            array.
+            The Calibration instance, with the points attribute containing a structured
+            numpy array, with field names 'point_x', 'point_y', 'offset', 'diff_x', and
+            'diff_y'.
 
         Examples
         --------

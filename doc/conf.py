@@ -399,6 +399,7 @@ numpydoc_validation_exclude = {  # set of regex
     r"\.fromkeys",
     r"\.items",
     r"\.keys",
+    r"\.move_to_end",
     r"\.pop",
     r"\.popitem",
     r"\.setdefault",
