@@ -3149,7 +3149,6 @@ class Brain:
 
     def close(self):
         """Close all figures and cleanup data structure."""
-        print("Closing abstract brain")
         self._closed = True
         self._renderer.close()
 
@@ -4006,19 +4005,18 @@ class Brain:
         -----
         Used by movie and image sequence saving functions.
         """
-        if self.time_viewer:
-            func = partial(self.callbacks["time"])
-        else:
-            func = self.set_time_point
-        current_time_idx = self._data["time_idx"]
+        current_time = self._current_time
         for ii, idx in enumerate(time_idx):
-            func(idx)
+            ui_events.publish(
+                self,
+                ui_events.TimeChange(time=self._time_interp_inv(idx)),
+            )
             if callback is not None:
                 callback(frame=ii, n_frames=len(time_idx))
             yield idx
 
         # Restore original time index
-        func(current_time_idx)
+        ui_events.publish(self, ui_events.TimeChange(time=current_time))
 
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (

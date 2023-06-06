@@ -40,6 +40,7 @@ from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
 from mne.viz.utils import _get_cmap
+from mne.viz import ui_events
 
 from matplotlib import image
 from matplotlib.lines import Line2D
@@ -727,20 +728,16 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain._configure_vertex_time_course()
     brain._configure_label_time_course()
     brain.setup_time_viewer()  # for coverage
-    brain.callbacks["time"](value=0)
+    ui_events.publish(brain, ui_events.TimeChange(time=2.0))
+    assert brain._current_time == 2.0
     assert "renderer" not in brain.callbacks
     brain.callbacks["orientation"](value="lat", update_widget=True)
     brain.callbacks["orientation"](value="medial", update_widget=True)
-    brain.callbacks["time"](
-        value=0.0,
-        time_as_index=False,
-    )
     # Need to process events for old Qt
     brain.callbacks["smoothing"](value=1)
     _assert_brain_range(brain, [0.1, 0.3])
     from mne.utils import use_log_level
 
-    print("\nCallback fmin\n")
     with use_log_level("debug"):
         brain.callbacks["fmin"](value=12.0)
     assert brain._data["fmin"] == 12.0
