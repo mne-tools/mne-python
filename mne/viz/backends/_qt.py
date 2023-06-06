@@ -269,7 +269,8 @@ class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, callback, icon=None):
         _AbstractButton.__init__(value=value, callback=callback)
         _Widget.__init__(self)
-        QPushButton.__init__(self)
+        with _disabled_init(_AbstractButton):
+            QPushButton.__init__(self)
         self.setText(value)
         self.released.connect(callback)
         if icon:
@@ -288,7 +289,8 @@ class _Slider(QSlider, _AbstractSlider, _Widget, metaclass=_BaseWidget):
             value=value, rng=rng, callback=callback, horizontal=horizontal
         )
         _Widget.__init__(self)
-        QSlider.__init__(self, Qt.Horizontal if horizontal else Qt.Vertical)
+        with _disabled_init(_AbstractSlider):
+            QSlider.__init__(self, Qt.Horizontal if horizontal else Qt.Vertical)
         self.setMinimum(rng[0])
         self.setMaximum(rng[1])
         self.setValue(value)
@@ -322,7 +324,8 @@ class _CheckBox(QCheckBox, _AbstractCheckBox, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, callback):
         _AbstractCheckBox.__init__(value=value, callback=callback)
         _Widget.__init__(self)
-        QCheckBox.__init__(self)
+        with _disabled_init(_AbstractCheckBox):
+            QCheckBox.__init__(self)
         self.setChecked(value)
         self.stateChanged.connect(lambda x: callback(bool(x)))
 
@@ -337,7 +340,8 @@ class _SpinBox(QDoubleSpinBox, _AbstractSpinBox, _Widget, metaclass=_BaseWidget)
     def __init__(self, value, rng, callback, step=None):
         _AbstractSpinBox.__init__(value=value, rng=rng, callback=callback, step=step)
         _Widget.__init__(self)
-        QDoubleSpinBox.__init__(self)
+        with _disabled_init(_AbstractSpinBox):
+            QDoubleSpinBox.__init__(self)
         self.setAlignment(Qt.AlignCenter)
         self.setMinimum(rng[0])
         self.setMaximum(rng[1])
@@ -360,7 +364,8 @@ class _ComboBox(QComboBox, _AbstractComboBox, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, items, callback):
         _AbstractComboBox.__init__(value=value, items=items, callback=callback)
         _Widget.__init__(self)
-        QComboBox.__init__(self)
+        with _disabled_init(_AbstractComboBox):
+            QComboBox.__init__(self)
         self.addItems(items)
         self.setCurrentText(value)
         self.currentTextChanged.connect(callback)
@@ -377,7 +382,8 @@ class _RadioButtons(QVBoxLayout, _AbstractRadioButtons, _Widget, metaclass=_Base
     def __init__(self, value, items, callback):
         _AbstractRadioButtons.__init__(value=value, items=items, callback=callback)
         _Widget.__init__(self)
-        QVBoxLayout.__init__(self)
+        with _disabled_init(_AbstractRadioButtons):
+            QVBoxLayout.__init__(self)
         self._button_group = QButtonGroup()
         self._button_group.setExclusive(True)
         for val in items:
@@ -455,7 +461,8 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget, metaclass=_BaseWidget):
     def __init__(self, value, rng, callback):
         _AbstractPlayMenu.__init__(value=value, rng=rng, callback=callback)
         _Widget.__init__(self)
-        QVBoxLayout.__init__(self)
+        with _disabled_init(_AbstractPlayMenu):
+            QVBoxLayout.__init__(self)
         self._slider = QSlider(Qt.Horizontal)
         self._slider.setMinimum(rng[0])
         self._slider.setMaximum(rng[1])
@@ -540,7 +547,8 @@ class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
             window=window,
         )
         _Widget.__init__(self)
-        QMessageBox.__init__(self, parent=window)
+        with _disabled_init(_AbstractPopup):
+            QMessageBox.__init__(self, parent=window)
         self.setWindowTitle(title)
         self.setText(text)
         # icon is one of _Dialog.supported_icon_names
@@ -693,9 +701,22 @@ class _Canvas(FigureCanvas, _AbstractCanvas, metaclass=_BaseCanvas):
 # https://github.com/mne-tools/mne-python/issues/9182
 
 
+# This is necessary to make PySide6 happy -- something weird with the
+# __init__ calling causes the _AbstractXYZ class __init__ to be called twice
+@contextmanager
+def _disabled_init(klass):
+    orig = klass.__init__
+    klass.__init__ = lambda *args, **kwargs: None
+    try:
+        yield
+    finally:
+        klass.__init__ = orig
+
+
 class _MNEMainWindow(MainWindow):
     def __init__(self, parent=None, title=None, size=None):
-        MainWindow.__init__(self, parent=parent, title=title, size=size)
+        with _disabled_init(_Widget):
+            MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
 

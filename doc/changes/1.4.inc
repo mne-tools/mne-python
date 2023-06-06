@@ -1,3 +1,13 @@
+.. _changes_1_4_2:
+
+Version 1.4.2 (2023-06-06)
+--------------------------
+
+Bugs
+~~~~
+
+- Fix bug with PySide6 compatibility (:gh:`11721` by `Eric Larson`_)
+
 .. _changes_1_4_1:
 
 Version 1.4.1 (2023-06-05)

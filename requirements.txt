@@ -9,7 +9,7 @@ h5io
 packaging
 pymatreader
 qtpy
-PySide6!=6.3.0,!=6.4.0,!=6.4.0.1,!=6.5.0  # incompat with Matplotlib 3.6.1 and qtpy
+PySide6!=6.5.1
 pyobjc-framework-Cocoa>=5.2.0; platform_system=="Darwin"
 sip
 scikit-learn
