@@ -407,7 +407,8 @@ class _GroupBox(QGroupBox, _AbstractGroupBox, _Widget, metaclass=_BaseWidget):
     def __init__(self, name, items):
         _AbstractGroupBox.__init__(name=name, items=items)
         _Widget.__init__(self)
-        QGroupBox.__init__(self, name)
+        with _disabled_init(_AbstractGroupBox):
+            QGroupBox.__init__(self, name)
         self._layout = _VBoxLayout()
         for item in items:
             self._layout._add_widget(item)
