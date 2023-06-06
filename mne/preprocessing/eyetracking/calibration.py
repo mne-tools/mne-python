@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 
 from collections import OrderedDict
+from copy import deepcopy
 
 import numpy as np
 
@@ -21,12 +22,11 @@ class Calibration(OrderedDict):
         performed before the recording started, then the onset should be
         set to 0 seconds.
     model : str
-        A string, which is the model of the eyetracker. For example H3 for
-        a horizontal only 3-point calibration, or HV3 for a horizontal and
-        vertical 3-point calibration.
+        A string, which is the model of the eye-tracking calibration that was applied.
+        For example H3 for a horizontal only 3-point calibration, or HV3 for a
+        horizontal and vertical 3-point calibration.
     eye : str
-        The eye that was calibrated. For example, 'left',
-        'right', or 'both'.
+        The eye that was calibrated. For example, 'left', or 'right'.
     avg_error : float
         The average error in degrees between the calibration points and the
         actual gaze position.
@@ -34,7 +34,7 @@ class Calibration(OrderedDict):
         The maximum error in degrees that occurred between the calibration
         points and the actual gaze position.
     points : list
-        List of tuples, contaiing the data for each individual calibration point.
+        List of tuples, containing the data for each individual calibration point.
         Each tuple should represent data for 1 calibration point. The elements
         within each tuple should be as follows:
             - (point_x, point_y, offset, diff_x, diff_y)
@@ -47,6 +47,7 @@ class Calibration(OrderedDict):
                 point and the actual gaze position
             - diff_y: the difference in y pixel coordinates between the calibration
                 point and the actual gaze position
+
     screen_size : tuple
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example (.531, .298) for a monitor with
@@ -62,7 +63,7 @@ class Calibration(OrderedDict):
     ----------
     onset : float
         The onset of the calibration in seconds. If the calibration was
-        performed before the recording started.
+        performed before the recording started, the onset will be 0 seconds.
     model : str
         A string, which is the model of the calibration that was administerd. For
         example 'H3' for a horizontal only 3-point calibration, or 'HV3' for a
@@ -76,7 +77,7 @@ class Calibration(OrderedDict):
         The maximum error in degrees that occurred between the calibration points and
         the actual gaze position.
     points : ndarray
-        a 2D numpy array, which are the data for each calibration point.
+        a 1D structured numpy array, which contains the data for each calibration point.
     screen_size : tuple
         The width and height (in meters) of the screen that the eyetracking data was
         collected  with. For example (.531, .298) for a monitor with a display area of
@@ -143,6 +144,16 @@ class Calibration(OrderedDict):
         raise AttributeError(
             f"'{self.__class__.__name__}' object has no attribute '{name}'"
         )
+
+    def copy(self):
+        """Copy the instance.
+
+        Returns
+        -------
+        info : instance of Calibration
+            The copied Calibration.
+        """
+        return deepcopy(self)
 
     def set_calibration_array(self, data):
         """

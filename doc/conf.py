@@ -186,6 +186,7 @@ numpydoc_class_members_toctree = False
 numpydoc_show_inherited_class_members = {
     "mne.SourceSpaces": False,
     "mne.Forward": False,
+    "mne.preprocessing.eyetracking.Calibration": False,
 }
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
@@ -723,6 +724,8 @@ bibtex_footbibliography_header = ""
 nitpicky = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
+    ("py:class", "None.  Remove all items from od."),
+    ("py:class", "a shallow copy of od"),
     ("py:class", "a set-like object providing a view on D's items"),
     ("py:class", "a set-like object providing a view on D's keys"),
     (
@@ -735,6 +738,7 @@ nitpick_ignore = [
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
+    ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\.BaseRaw.*"),
