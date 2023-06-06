@@ -152,7 +152,6 @@ Projections:
 
 .. autosummary::
    :toctree: generated/
-   :template: autosummary/class_no_inherited_members.rst
 
    Calibration
    set_channel_types_eyetrack
