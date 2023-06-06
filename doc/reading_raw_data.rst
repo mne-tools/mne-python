@@ -21,6 +21,7 @@ Reading raw data
    read_raw_curry
    read_raw_edf
    read_raw_eyelink
+   read_eyelink_calibration
    read_raw_bdf
    read_raw_gdf
    read_raw_kit

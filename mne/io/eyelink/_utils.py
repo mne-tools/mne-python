@@ -4,7 +4,7 @@
 
 import re
 
-from .calibration import Calibration
+from ...preprocessing.eyetracking.calibration import Calibration
 
 
 def _find_recording_start(lines):

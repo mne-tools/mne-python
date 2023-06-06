@@ -153,6 +153,7 @@ Projections:
 .. autosummary::
    :toctree: generated/
 
+   Calibration
    set_channel_types_eyetrack
 
 EEG referencing:

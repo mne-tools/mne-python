@@ -62,12 +62,4 @@ Base class:
    :template: autosummary/class_no_members.rst
 
    BaseEpochs
-
-Eye-tracking:
-
-.. autosummary::
-   :toctree: generated
-   :no-inherited-members:
-   Calibration
-   read_eyelink_calibration
    
