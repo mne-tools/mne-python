@@ -1271,9 +1271,12 @@ class Brain:
             shortcut="?",
         )
 
-    def _shift_time(self, op):
+    def _shift_time(self, shift_func):
         ui_events.publish(
-            self, ui_events.TimeChange(time=op(self._current_time, self.playback_speed))
+            self,
+            ui_events.TimeChange(
+                time=shift_func(self._current_time, self.playback_speed)
+            ),
         )
 
     def _rotate_azimuth(self, value):
@@ -1297,10 +1300,10 @@ class Brain:
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
         self.plotter.add_key_event(
-            "n", partial(self._shift_time, op=lambda x, y: x + y)
+            "n", partial(self._shift_time, shift_func=lambda x, y: x + y)
         )
         self.plotter.add_key_event(
-            "b", partial(self._shift_time, op=lambda x, y: x - y)
+            "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
         )
         for key, func, sign in (
             ("Left", self._rotate_azimuth, 1),
