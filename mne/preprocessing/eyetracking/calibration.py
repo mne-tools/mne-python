@@ -211,13 +211,20 @@ class Calibration(OrderedDict):
                 f"Data must be a list. got {data} which is of type {type(data)}"
             )
 
-    def plot(self, title=None, show=True):
+    def plot(self, title=None, show_offsets=False, invert_y_axis=True, show=True):
         """Visualize calibration.
 
         Parameters
         ----------
         title : str
             The title to be displayed. Defaults to None, which uses a generic title.
+        show_offsets : bool
+            Whether to display the offset (in visual degrees) of each calibration
+            point or not. Defaults to False.
+        invert_y_axis : bool
+            Whether to invert the y-axis or not. In many monitors, pixel coordinate
+            (0,0), which is often referred to as origin, is at the top left of corner.
+            Defaults to True.
         show : bool
             Whether to show the figure or not.
 
@@ -249,7 +256,36 @@ class Calibration(OrderedDict):
         ax.set_xlabel("x (pixels)")
         ax.set_ylabel("y (pixels)")
 
+        # Display avg_error and max_error in the top left corner
+        text = f"avg_error: {self['avg_error']}\nmax_error: {self['max_error']}"
+        ax.text(
+            0,
+            1.01,
+            text,
+            transform=ax.transAxes,
+            verticalalignment="baseline",
+            fontsize=8,
+        )
+
+        if invert_y_axis:
+            # Invert the y-axis because origin is at the top left corner for most
+            # monitors
+            ax.invert_yaxis()
         ax.scatter(px, py, color="gray")
-        ax.scatter(px - dx, py - dy, color="red")
+        ax.scatter(px - dx, py - dy, color="red", alpha=0.5)
+
+        if show_offsets:
+            for i in range(len(px)):
+                x_offset = 0.01 * (px[i] - dx[i])
+                text = ax.text(
+                    x=(px[i] - dx[i]) + x_offset,
+                    y=py[i] - dy[i],
+                    s=self["points"]["offset"][i],
+                    fontsize=8,
+                    ha="left",
+                    va="center",
+                )
+
+        fig.tight_layout()
         fig.show() if show else None
         return fig
