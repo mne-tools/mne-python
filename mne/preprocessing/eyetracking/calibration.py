@@ -1,6 +1,8 @@
 """Eyetracking Calibration(s) class constructor."""
 
 # Authors: Scott Huberty <seh33@uw.edu>
+#          Eric Larson <larson.eric.d@gmail>
+#          Adapted from: https://github.com/pyeparse/pyeparse
 # License: BSD-3-Clause
 
 from collections import OrderedDict
@@ -27,13 +29,13 @@ class Calibration(OrderedDict):
     onset : float
         The onset of the calibration in seconds. If the calibration was
         performed before the recording started, then the onset should be
-        set to 0 seconds.
+        set to ``0`` seconds.
     model : str
         A string, which is the model of the eye-tracking calibration that was applied.
-        For example 'H3' for a horizontal only 3-point calibration, or 'HV3' for a
-        horizontal and vertical 3-point calibration.
+        For example ``'H3'`` for a horizontal only 3-point calibration, or ``'HV3'``
+        for a horizontal and vertical 3-point calibration.
     eye : str
-        The eye that was calibrated. For example, 'left', or 'right'.
+        The eye that was calibrated. For example, ``'left'``, or ``'right'``.
     avg_error : float
         The average error in degrees between the calibration points and the
         actual gaze position.
@@ -41,9 +43,9 @@ class Calibration(OrderedDict):
         The maximum error in degrees that occurred between the calibration
         points and the actual gaze position.
     points : list
-        List of tuples, containing the data for each individual calibration point.
-        Each tuple should represent data for 1 calibration point. The elements
-        within each tuple should be (point_x, point_y, offset, diff_x, diff_y), where:
+        List of tuples, each of shape (5,). Each tuple should contain data for 1
+        calibration point. The elements within each tuple should be
+        ``(point_x, point_y, offset, diff_x, diff_y)``, where:
 
             - point_x: the x pixel-coordinate of the calibration point
             - point_y: the y pixel-coordinate of the calibration point
@@ -54,28 +56,30 @@ class Calibration(OrderedDict):
             - diff_y: the difference in y pixel coordinates between the calibration
                 point and the actual gaze position
 
-    screen_size : tuple
+        See the example below for more details.
+
+    screen_size : tuple of shape (2,)
         The width and height (in meters) of the screen that the eyetracking
-        data was collected with. For example (.531, .298) for a monitor with
+        data was collected with. For example ``(.531, .298)`` for a monitor with
         a display area of 531 x 298 mm.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
-    screen_resolution : tuple
+    screen_resolution : tuple of shape (2,)
         The resolution (in pixels) of the screen that the eyetracking data
-        was collected with. For example, (1920, 1080) for a 1920x1080
+        was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display.
 
     Attributes
     ----------
     onset : float
         The onset of the calibration in seconds. If the calibration was
-        performed before the recording started, the onset will be 0 seconds.
+        performed before the recording started, the onset will be ``0`` seconds.
     model : str
         A string, which is the model of the calibration that was applied. For
-        example 'H3' for a horizontal only 3-point calibration, or 'HV3' for a
+        example ``'H3'`` for a horizontal only 3-point calibration, or ``'HV3'`` for a
         horizontal and vertical 3-point calibration.
     eye : str
-        The eye that was calibrated. For example, 'left', or 'right'.
+        The eye that was calibrated. For example, ``'left'``, or ``'right'``.
     avg_error : float
         The average error in degrees between the calibration points and the actual gaze
         position.
@@ -86,13 +90,19 @@ class Calibration(OrderedDict):
         a 1D structured numpy array, which contains the data for each calibration point.
     screen_size : tuple
         The width and height (in meters) of the screen that the eyetracking data was
-        collected  with. For example (.531, .298) for a monitor with a display area of
-        531 x 298 mm.
+        collected  with. For example ``(.531, .298)`` for a monitor with a display area
+        of 531 x 298 mm.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
     screen_resolution : tuple
         The resolution (in pixels) of the screen that the eyetracking data was
-        collected with.
+        collected with. For example, ``(1920, 1080)`` for a 1920x1080 resolution
+        display.
+
+    Examples
+    --------
+    Below is an example of a list of tuples that can be passed to the points parameter:
+    ``>>> data = [(960., 540., 0.23, 9.9, -4.1), (960., 92., 0.38, -7.8, 16.)]``
     """
 
     def __init__(
@@ -171,9 +181,9 @@ class Calibration(OrderedDict):
         Parameters
         ----------
         data : list
-           List of tuples, containing the data for each individual calibration point.
-           Each tuple should represent data for 1 calibration point. The elements within
-           each tuple should be (point_x, point_y, offset, diff_x, diff_y), where:
+           List of tuples, each of shape (5,). Each tuple should contain data for 1
+           calibration point. The elements within each tuple should be
+           ``(point_x, point_y, offset, diff_x, diff_y)``, where:
 
                 - point_x: the x pixel-coordinate of the calibration point
                 - point_y: the y pixel-coordinate of the calibration point
@@ -194,7 +204,7 @@ class Calibration(OrderedDict):
         Examples
         --------
         Below is an example of a list of tuples that can be passed to this method:
-        >>> data = [(960., 540., 0.23, 9.9, -4.1), (960., 92., 0.38, -7.8, 16.)]
+        ``>>> data = [(960., 540., 0.23, 9.9, -4.1), (960., 92., 0.38, -7.8, 16.)]``
         """
         field_names = ["point_x", "point_y", "offset", "diff_x", "diff_y"]
         dtype = [(name, float) for name in field_names]
@@ -223,8 +233,8 @@ class Calibration(OrderedDict):
             point or not. Defaults to False.
         invert_y_axis : bool
             Whether to invert the y-axis or not. In many monitors, pixel coordinate
-            (0,0), which is often referred to as origin, is at the top left of corner.
-            Defaults to True.
+            (0,0), which is often referred to as origin, is at the top left of corner
+            of the screen. Defaults to True.
         show : bool
             Whether to show the figure or not.
 
@@ -257,7 +267,9 @@ class Calibration(OrderedDict):
         ax.set_ylabel("y (pixels)")
 
         # Display avg_error and max_error in the top left corner
-        text = f"avg_error: {self['avg_error']}\nmax_error: {self['max_error']}"
+        text = (
+            f"avg_error: {self['avg_error']} deg.\nmax_error: {self['max_error']} deg."
+        )
         ax.text(
             0,
             1.01,
@@ -276,7 +288,7 @@ class Calibration(OrderedDict):
 
         if show_offsets:
             for i in range(len(px)):
-                x_offset = 0.01 * (px[i] - dx[i])
+                x_offset = 0.01 * (px[i] - dx[i])  # 1% to the right of the point
                 text = ax.text(
                     x=(px[i] - dx[i]) + x_offset,
                     y=py[i] - dy[i],

@@ -289,22 +289,22 @@ def _find_overlaps(df, max_time=0.05):
 
 @fill_doc
 def read_eyelink_calibration(
-    filename, screen_size=None, screen_distance=None, screen_resolution=None
+    fname, screen_size=None, screen_distance=None, screen_resolution=None
 ):
     """Return info on calibrations collected in an eyelink file.
 
     Parameters
     ----------
-    filename : str
+    fname : str
         Path to the eyelink file (.asc).
     screen_size : tuple of shape (2,)
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
-        a display area of 531 x 298 cm. Defaults to None.
+        a display area of 531 x 298 mm. Defaults to None.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
         Defaults to None.
-    screen_resolution : tuple
+    screen_resolution : tuple of shape (2,)
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display. Defaults to None.
@@ -312,12 +312,12 @@ def read_eyelink_calibration(
     Returns
     -------
     calibrations : list
-        A list of Calibration instances, one for each eye of every
-        calibration that was performed during the recording session.
+        A list of :class:`mne.preprocessing.eyetracking.Calibration` instances, one for
+        each eye of every calibration that was performed during the recording session.
     """
-    fname = Path(filename)
+    fname = Path(fname)
     if not fname.exists():
-        raise FileNotFoundError(f"Could not find file {filename}")
+        raise FileNotFoundError(f"Could not find file {fname}")
     logger.info("Reading calibration data from {}".format(fname))
     with fname.open() as file:
         lines = file.readlines()
