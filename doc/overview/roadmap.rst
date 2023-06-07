@@ -190,7 +190,7 @@ in action (click for link to YouTube):
    :target: https://www.youtube.com/watch?v=xKdjZZphdNc
    :width: 50%
 
-See :func:``mne-gui-addons:mne_gui_addons.view_vol_stc`.
+See :func:`mne-gui-addons:mne_gui_addons.view_vol_stc`.
 
 Distributed computing support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
