@@ -306,7 +306,7 @@ def read_eyelink_calibration(
         Defaults to None.
     screen_resolution : tuple
         The resolution (in pixels) of the screen that the eyetracking data
-        was collected with. For example, (1920, 1080) for a 1920x1080
+        was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display. Defaults to None.
 
     Returns
