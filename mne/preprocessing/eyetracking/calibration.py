@@ -58,13 +58,13 @@ class Calibration(OrderedDict):
 
         See the example below for more details.
 
-    screen_size : tuple of shape (2,)
+    screen_size : array-like of shape (2,)
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
         a display area of 531 x 298 mm.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
-    screen_resolution : tuple of shape (2,)
+    screen_resolution : array-like of shape (2,)
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display.
@@ -88,13 +88,13 @@ class Calibration(OrderedDict):
         the actual gaze position.
     points : ndarray
         a 1D structured numpy array, which contains the data for each calibration point.
-    screen_size : tuple
+    screen_size : array-like
         The width and height (in meters) of the screen that the eyetracking data was
         collected  with. For example ``(.531, .298)`` for a monitor with a display area
         of 531 x 298 mm.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
-    screen_resolution : tuple
+    screen_resolution : array-like
         The resolution (in pixels) of the screen that the eyetracking data was
         collected with. For example, ``(1920, 1080)`` for a 1920x1080 resolution
         display.

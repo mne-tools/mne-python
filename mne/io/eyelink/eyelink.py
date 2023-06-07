@@ -15,7 +15,7 @@ from ..constants import FIFF
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, _check_pandas_installed
+from ...utils import _check_fname, _check_pandas_installed, fill_doc, logger, verbose
 
 EYELINK_COLS = {
     "timestamp": ("time",),
@@ -295,16 +295,16 @@ def read_eyelink_calibration(
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the eyelink file (.asc).
-    screen_size : tuple of shape (2,)
+    screen_size : array-like of shape (2,)
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
         a display area of 531 x 298 mm. Defaults to None.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
         Defaults to None.
-    screen_resolution : tuple of shape (2,)
+    screen_resolution : array-like of shape (2,)
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display. Defaults to None.
@@ -315,15 +315,13 @@ def read_eyelink_calibration(
         A list of :class:`mne.preprocessing.eyetracking.Calibration` instances, one for
         each eye of every calibration that was performed during the recording session.
     """
-    fname = Path(fname)
+    fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
+
     if not fname.exists():
         raise FileNotFoundError(f"Could not find file {fname}")
     logger.info("Reading calibration data from {}".format(fname))
-    with fname.open() as file:
-        lines = file.readlines()
-        return _parse_calibration(
-            lines, screen_size, screen_distance, screen_resolution
-        )
+    lines = fname.read_text(encoding="ASCII").splitlines()
+    return _parse_calibration(lines, screen_size, screen_distance, screen_resolution)
 
 
 @fill_doc
@@ -345,7 +343,7 @@ def read_raw_eyelink(
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the eyelink file (.asc).
     %(preload)s
     %(verbose)s
@@ -378,7 +376,7 @@ def read_raw_eyelink(
         If True, returns a tuple of (raw, calibrations) where calibrations is
         a list of Calibration instances, each containing information about a
         single calibration collected during the recording.
-    screen_size : tuple
+    screen_size : array-like of shape (2,)
         Only set if 'return_calibration' is set to True.
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example (.531, .298) for a monitor with
@@ -387,7 +385,7 @@ def read_raw_eyelink(
         Only set if 'return_calibration' is set to True.
         The distance from the participant's eyes to the screen in meters.
         Defaults to None.
-    screen_resolution : tuple
+    screen_resolution : array-like of shape (2,)
         Only set if 'return_calibration' is set to True.
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, (1920, 1080) for a 1920x1080
@@ -402,12 +400,13 @@ def read_raw_eyelink(
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    extension = Path(fname).suffix
+    fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
+    extension = fname.suffix
     if extension not in ".asc":
         raise ValueError(
             "This reader can only read eyelink .asc files."
-            f" Got extension {extension} instead. consult eyelink"
-            " manual for converting eyelink data format (.edf)"
+            f" Got extension {extension} instead. consult EyeLink"
+            " manual for converting EyeLink data format (.edf)"
             " files to .asc format."
         )
 
@@ -423,7 +422,10 @@ def read_raw_eyelink(
     )
     if return_calibration:
         calibrations = read_eyelink_calibration(
-            fname, screen_size, screen_distance, screen_resolution
+            fname=fname,
+            screen_size=screen_size,
+            screen_distance=screen_distance,
+            screen_resolution=screen_resolution,
         )
         return raw_eyelink, calibrations
     else:
@@ -436,7 +438,7 @@ class RawEyelink(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the data file (.XXX).
     create_annotations : bool | list (default True)
         Whether to create mne.Annotations from occular events
