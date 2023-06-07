@@ -186,7 +186,6 @@ numpydoc_class_members_toctree = False
 numpydoc_show_inherited_class_members = {
     "mne.SourceSpaces": False,
     "mne.Forward": False,
-    "mne.preprocessing.eyetracking.Calibration": False,
 }
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True

@@ -62,4 +62,3 @@ Base class:
    :template: autosummary/class_no_members.rst
 
    BaseEpochs
-   
