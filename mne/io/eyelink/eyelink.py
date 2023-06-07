@@ -297,7 +297,7 @@ def read_eyelink_calibration(
     ----------
     filename : str
         Path to the eyelink file (.asc).
-    screen_size : tuple
+    screen_size : tuple of shape (2,)
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example (.531, .298) for a monitor with
         a display area of 531 x 298 cm. Defaults to None.
