@@ -14,7 +14,7 @@ from ..utils import _check_preload, _check_option, fill_doc
 
 def _get_window(start, end):
     """Return window which has length as much as parameter start - end."""
-    from scipy.signal import hann
+    from scipy.signal.windows import hann
 
     window = 1 - np.r_[hann(4)[:2], np.ones(np.abs(end - start) - 4), hann(4)[-2:]].T
     return window
