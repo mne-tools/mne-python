@@ -172,6 +172,8 @@
 
 .. _Fu-Te Wong: https://github.com/zuxfoucault
 
+.. _Gennadiy Belonosov: https://github.com/Genuster
+
 .. _Geoff Brookshire: https://github.com/gbrookshire
 
 .. _George O'Neill: https://georgeoneill.github.io
