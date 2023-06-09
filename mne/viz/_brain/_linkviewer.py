@@ -26,7 +26,7 @@ class _LinkViewer:
 
         if time:
             # link time sliders
-            ui_events.link(brains, event_names=['time_change'])
+            ui_events.link(brains, event_names=["time_change"])
 
             # link playback speed sliders
             self.link_widgets(
