@@ -10,7 +10,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from ...utils import fill_doc
+from ...utils import _check_fname, fill_doc, logger
 
 
 @fill_doc
@@ -21,8 +21,8 @@ class Calibration(OrderedDict):
     calibration that was conducted during an eye-tracking recording.
 
     .. note::
-        When possible, this class should be instantiated via an available function,
-        such as :func:`mne.io.read_eyelink_calibration`.
+        When possible, this class should be instantiated via a helper function,
+        such as :func:`mne.preprocessing.eyetracking.read_eyelink_calibration`.
 
     Parameters
     ----------
@@ -301,3 +301,39 @@ class Calibration(OrderedDict):
         fig.tight_layout()
         fig.show() if show else None
         return fig
+
+
+@fill_doc
+def read_eyelink_calibration(
+    fname, screen_size=None, screen_distance=None, screen_resolution=None
+):
+    """Return info on calibrations collected in an eyelink file.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to the eyelink file (.asc).
+    screen_size : array-like of shape (2,)
+        The width and height (in meters) of the screen that the eyetracking
+        data was collected with. For example ``(.531, .298)`` for a monitor with
+        a display area of 531 x 298 mm. Defaults to None.
+    screen_distance : float
+        The distance (in meters) from the participant's eyes to the screen.
+        Defaults to None.
+    screen_resolution : array-like of shape (2,)
+        The resolution (in pixels) of the screen that the eyetracking data
+        was collected with. For example, ``(1920, 1080)`` for a 1920x1080
+        resolution display. Defaults to None.
+
+    Returns
+    -------
+    calibrations : list
+        A list of :class:`mne.preprocessing.eyetracking.Calibration` instances, one for
+        each eye of every calibration that was performed during the recording session.
+    """
+    from ...io.eyelink._utils import _parse_calibration
+
+    fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
+    logger.info("Reading calibration data from {}".format(fname))
+    lines = fname.read_text(encoding="ASCII").splitlines()
+    return _parse_calibration(lines, screen_size, screen_distance, screen_resolution)

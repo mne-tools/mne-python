@@ -154,6 +154,7 @@ Projections:
    :toctree: generated/
 
    Calibration
+   read_eyelink_calibration
    set_channel_types_eyetrack
 
 EEG referencing:

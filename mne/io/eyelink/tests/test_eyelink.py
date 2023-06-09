@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.io import read_raw_eyelink, read_eyelink_calibration, BaseRaw
+from mne.io import read_raw_eyelink, BaseRaw
 from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne.preprocessing.eyetracking import read_eyelink_calibration
 from mne.utils import _check_pandas_installed, requires_pandas
 
 testing_path = data_path(download=False)
