@@ -25,6 +25,7 @@ Enhancements
 ~~~~~~~~~~~~
 - Add ``cmap`` argument for the :func:`mne.viz.plot_sensors` (:gh:`11720` by :newcontrib:`Gennadiy Belonosov`)
 - When failing to locate a file, we now print the full path in quotation marks to help spot accidentally added trailing spaces (:gh:`11718` by `Richard Höchenberger`_)
+- Added :class:`mne.preprocessing.eyetracking.Calibration` to store eye-tracking calibration info, and :func:`mne.preprocessing.eyetracking.read_eyelink_calibration` to read calibration data from EyeLink systems (:gh:`11719` by `Scott Huberty`_)
 
 Bugs
 ~~~~
