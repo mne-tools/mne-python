@@ -1089,7 +1089,7 @@ def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
         picking=True,
     )
     link_viewer.leader.set_time_point(0)
-    link_viewer.leader.mpl_canvas.time_func(0)
+    link_viewer.leader.mpl_canvas.time_func(ui_events.TimeChange(time=0))
     link_viewer.leader.callbacks["fmin"](0)
     link_viewer.leader.callbacks["fmid"](0.5)
     link_viewer.leader.callbacks["fmax"](1)

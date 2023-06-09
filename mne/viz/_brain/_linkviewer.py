@@ -4,8 +4,10 @@
 #
 # License: Simplified BSD
 import numpy as np
+from itertools import combinations
+
 from ...utils import warn
-from . import ui_events
+from .. import ui_events
 
 
 class _LinkViewer:
@@ -26,7 +28,8 @@ class _LinkViewer:
 
         if time:
             # link time sliders
-            ui_events.link(brains, event_names=["time_change"])
+            for brain1, brain2 in combinations(brains, 2):
+                ui_events.link(brain1, brain2, event_names=["time_change"])
 
             # link playback speed sliders
             self.link_widgets(
