@@ -393,15 +393,13 @@ def _get_hdr_info(filename, stim_channel=True, eog=[], misc=[], exclude=None):
         info['lowpass'] = float(np.min(lowpass))
         warn('Channels contain different lowpass filters. Lowest filter '
              'setting will be stored.')
-    if np.isnan(info['lowpass']):
-        info['lowpass'] = info['sfreq'] / 2.
 
     if info['highpass'] > info['lowpass']:
         warn(f'Highpass cutoff frequency {info["highpass"]} is greater '
              f'than lowpass cutoff frequency {info["lowpass"]}, '
              'setting values to 0 and Nyquist.')
         info['highpass'] = 0.
-        info['lowpass'] = info['sfreq'] / 2.
+        info['lowpass'] = info['sfreq'] / 2.0
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
