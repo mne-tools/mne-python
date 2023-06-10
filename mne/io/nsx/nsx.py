@@ -43,14 +43,6 @@ _unit_range_dict = {'V': 1,  # V stands for Volt
                     }
 
 nsx_header_dict = {
-    'basic_2.1': [
-        ('file_id', 'S8'),
-        # label of sampling group (e.g. "1kS/s" or "LFP Low")
-        ('label', 'S16'),
-        # number of 1/30000 seconds between data points
-        # (e.g., if sampling rate "1 kS/s", period equals "30")
-        ('period', 'uint32'),
-        ('channel_count', 'uint32')],
     'basic': [
         ('file_id', 'S8'),  # achFileType
         # file specification split into major and minor version number
@@ -193,11 +185,12 @@ def _read_header(filename):
     if nsx_file_id in ['NEURALCD', 'BRSMPGRP']:
         basic_header = _read_header_22_and_above(filename)
     elif nsx_file_id == 'NEURALSG':
-        basic_header = _read_header_21(filename)
+        raise NotImplementedError("NSx file id (= NEURALSG), i.e., file"
+                                  "version 2.1 is currently not supported.")
     else:
         raise ValueError(f"NSx file id (={nsx_file_id}) does not match"
                          "with supported file ids:"
-                         "('NEURALSG', 'NEURALCD', 'BRSMPGRP')")
+                         "('NEURALCD', 'BRSMPGRP')")
 
     try:
         time_origin = datetime(*[basic_header[xx] for xx in (
@@ -210,48 +203,6 @@ def _read_header(filename):
     except KeyError:
         time_origin = None
     basic_header['meas_date'] = time_origin
-    return basic_header
-
-
-def _read_header_21(filename):
-    basic_header = dict(spec=2.1)
-
-    dtype0 = nsx_header_dict['basic_2.1']
-    dtype1 = [('electrode_id', 'uint32')]
-    basic_header['timestamp_resolution'] = 30000
-    nsx_file_header = np.fromfile(filename, count=1, dtype=dtype0)[0]
-    basic_header.update(
-        {name: nsx_file_header[name] for name in nsx_file_header.dtype.names})
-
-    offset_dtype0 = np.dtype(dtype0).itemsize
-    shape = nsx_file_header['channel_count']
-    basic_header['extended'] = np.memmap(
-        filename,
-        shape=shape,
-        offset=offset_dtype0,
-        dtype=dtype1,
-        mode='r')
-
-    basic_header['bytes_in_headers'] = (
-        32 + 4 * basic_header["channel_count"]
-    )
-    basic_header['highpass'] = np.nan * \
-        np.ones(basic_header['channel_count'])
-    basic_header['lowpass'] = np.nan * \
-        np.ones(basic_header['channel_count'])
-
-    offset = basic_header['bytes_in_headers']
-    filesize = _get_file_size(filename)
-    nb_data_points = (filesize - offset) \
-        // basic_header['channel_count'] // DATA_BYTE_SIZE
-    data_header = [{
-        'header': 1,
-        'timestamp': 0,
-        'nb_data_points': nb_data_points,
-        'offset_to_data_block': offset
-    }]
-    basic_header['data_header'] = data_header
-
     return basic_header
 
 
@@ -323,39 +274,23 @@ def _get_hdr_info(filename, stim_channel=True, eog=[], misc=[], exclude=None):
     misc = misc if misc is not None else []
 
     nsx_info = _read_header(filename)
-    if float(nsx_info['spec']) == 2.1:
-        # currently not implemented
-        raise NotImplementedError("NSx file version 2.1 is"
-                                  "currently not supported.")
-        # ch_names = []
-        # for (elid, ) in list(nsx_info['extended']):
-        #     if elid < 129:
-        #         ch_names.append('chan%i' % elid)
-        #     else:
-        #         ch_names.append('ainp%i' % (elid - 129 + 1))
-        # ch_units = [''] * len(ch_names)
-        # ch_types = ['CC'] * len(ch_names)
-        # warn("Cannot rescale to voltage, raw data will be returned.",
-        #      UserWarning)
-        # cals = np.ones(len(ch_names))
-    else:
-        ch_names = list(nsx_info['extended']['electrode_label'])
-        ch_types = list(nsx_info['extended']['type'])
-        ch_units = list(nsx_info['extended']['units'])
-        ch_names, ch_types, ch_units = [
-            list(map(bytes.decode, xx)) for xx in
-            (ch_names, ch_types, ch_units)
-        ]
-        max_analog_val = nsx_info['extended']['max_analog_val'].astype(
-            'double')
-        min_analog_val = nsx_info['extended']['min_analog_val'].astype(
-            'double')
-        max_digital_val = nsx_info['extended']['max_digital_val'].astype(
-            'double')
-        min_digital_val = nsx_info['extended']['min_digital_val'].astype(
-            'double')
-        cals = (max_analog_val - min_analog_val) \
-            / (max_digital_val - min_digital_val)
+    ch_names = list(nsx_info['extended']['electrode_label'])
+    ch_types = list(nsx_info['extended']['type'])
+    ch_units = list(nsx_info['extended']['units'])
+    ch_names, ch_types, ch_units = [
+        list(map(bytes.decode, xx)) for xx in
+        (ch_names, ch_types, ch_units)
+    ]
+    max_analog_val = nsx_info['extended']['max_analog_val'].astype(
+        'double')
+    min_analog_val = nsx_info['extended']['min_analog_val'].astype(
+        'double')
+    max_digital_val = nsx_info['extended']['max_digital_val'].astype(
+        'double')
+    min_digital_val = nsx_info['extended']['min_digital_val'].astype(
+        'double')
+    cals = (max_analog_val - min_analog_val) \
+        / (max_digital_val - min_digital_val)
 
     stim_channel_idxs, _ = _check_stim_channel(stim_channel, ch_names)
 
