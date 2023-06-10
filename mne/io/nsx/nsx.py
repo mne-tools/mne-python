@@ -131,6 +131,10 @@ def read_raw_nsx(
     %(preload)s
     %(verbose)s
     """
+    input_fname = os.path.abspath(input_fname)
+    ext = os.path.splitext(input_fname)[1][1:].lower()
+    if ext[:2] != "ns":
+        raise NotImplementedError(f"Only NSx files are supported, got {ext}.")
     return RawNSX(
         input_fname,
         stim_channel,
