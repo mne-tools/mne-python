@@ -99,8 +99,8 @@ nsx_header_dict = {
 }
 
 
-def read_raw_nsx(nsx_fname, stim_channel=True, eog=[], misc=[], preload=False):
-    return RawNSX(nsx_fname, stim_channel, eog, misc, preload=preload)
+def read_raw_nsx(input_fname, stim_channel=True, eog=[], misc=[], preload=False):
+    return RawNSX(input_fname, stim_channel, eog, misc, preload=preload)
 
 
 class RawNSX(BaseRaw):
@@ -112,20 +112,27 @@ class RawNSX(BaseRaw):
         Path to the NSx file.
     """
 
-    def __init__(self, nsx_fname, stim_channel=True,
-                 eog=[], misc=[], preload=False, verbose=None):
-
+    def __init__(
+            self,
+            input_fname,
+            stim_channel='auto',
+            eog=None,
+            misc=None,
+            preload=False,
+            verbose=None
+            ):
+        logger.info("Extracting NSX parameters from {}...".format(input_fname))
+        input_fname = os.path.abspath(input_fname)
         (info,
          data_fname,
          fmt,
          n_samples,
          orig_format,
          raw_extras,
-         orig_units) = _get_hdr_info(nsx_fname,
+         orig_units) = _get_hdr_info(input_fname,
                                      stim_channel=stim_channel,
                                      eog=eog,
-                                     misc=misc,
-                                     exclude=None)
+                                     misc=misc)
         raw_extras['orig_format'] = orig_format
         super(RawNSX, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
@@ -177,13 +184,13 @@ def _get_file_size(filename):
     return file_size
 
 
-def _read_header(filename):
+def _read_header(fname):
     nsx_file_id = np.fromfile(
-        filename, count=1, dtype=[
+        fname, count=1, dtype=[
             ('file_id', 'S8')])[0]['file_id'].decode()
 
     if nsx_file_id in ['NEURALCD', 'BRSMPGRP']:
-        basic_header = _read_header_22_and_above(filename)
+        basic_header = _read_header_22_and_above(fname)
     elif nsx_file_id == 'NEURALSG':
         raise NotImplementedError("NSx file id (= NEURALSG), i.e., file"
                                   "version 2.1 is currently not supported.")
@@ -206,19 +213,19 @@ def _read_header(filename):
     return basic_header
 
 
-def _read_header_22_and_above(filename):
+def _read_header_22_and_above(fname):
     basic_header = {}
     dtype0 = nsx_header_dict['basic']
     dtype1 = nsx_header_dict['extended']
 
-    nsx_file_header = np.fromfile(filename, count=1, dtype=dtype0)[0]
+    nsx_file_header = np.fromfile(fname, count=1, dtype=dtype0)[0]
     basic_header.update(
         {name: nsx_file_header[name] for name in nsx_file_header.dtype.names})
 
     offset_dtype0 = np.dtype(dtype0).itemsize
     shape = nsx_file_header['channel_count']
     basic_header['extended'] = np.memmap(
-        filename,
+        fname,
         shape=shape,
         offset=offset_dtype0,
         dtype=dtype1,
@@ -239,14 +246,14 @@ def _read_header_22_and_above(filename):
     data_header = list()
     index = 0
     offset = basic_header['bytes_in_headers']
-    filesize = _get_file_size(filename)
+    filesize = _get_file_size(fname)
     if float(basic_header['spec']) < 3.0:
         dtype2 = nsx_header_dict['data>2.1<3']
     else:
         dtype2 = nsx_header_dict['data>=3']
     while offset < filesize:
         dh = np.memmap(
-            filename,
+            fname,
             dtype=dtype2,
             shape=1,
             offset=offset,
@@ -269,11 +276,11 @@ def _read_header_22_and_above(filename):
     return basic_header
 
 
-def _get_hdr_info(filename, stim_channel=True, eog=[], misc=[], exclude=None):
+def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
     eog = eog if eog is not None else []
     misc = misc if misc is not None else []
 
-    nsx_info = _read_header(filename)
+    nsx_info = _read_header(fname)
     ch_names = list(nsx_info['extended']['electrode_label'])
     ch_types = list(nsx_info['extended']['type'])
     ch_units = list(nsx_info['extended']['units'])
@@ -423,7 +430,7 @@ def _get_hdr_info(filename, stim_channel=True, eog=[], misc=[], exclude=None):
     last_samp = raw_extras['timestamp'][-1] + raw_extras['nb_data_points'][-1]
     n_samples = last_samp - first_samp
 
-    return (info, filename, nsx_info['spec'], n_samples, orig_format,
+    return (info, fname, nsx_info['spec'], n_samples, orig_format,
             raw_extras, orig_units)
 
 
