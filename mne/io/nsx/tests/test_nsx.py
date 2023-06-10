@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 import os
 import numpy as np
+import pytest
 
 from mne.io import read_raw_nsx
 from mne.datasets.testing import data_path, requires_testing_data
@@ -115,18 +116,14 @@ def test_stim_eog_misc_chs_in_nsx():
              in raw.info['chs']]
     assert np.any(stims)
     assert raw.info['chs'][126]['kind'] == FIFF.FIFFV_EOG_CH
-    try:
+    with pytest.raises(ValueError) as excinfo:
         raw = read_raw_nsx(nsx_22_fname, stim_channel=['elec128', 129],
                            eog=['elec126'])
-    except ValueError as err:
-        err_msg = err.args[0]
-    assert err_msg == 'Invalid stim_channel'
-    try:
+    assert 'Invalid stim_channel' in str(excinfo.value)
+    with pytest.raises(ValueError) as excinfo:
         raw = read_raw_nsx(nsx_22_fname, stim_channel=('elec128',),
                            eog=['elec126'])
-    except ValueError as err:
-        err_msg = err.args[0]
-    assert err_msg == 'Invalid stim_channel'
+    assert 'Invalid stim_channel' in str(excinfo.value)
 
     raw = read_raw_nsx(nsx_22_fname, stim_channel='elec127',
                        misc=['elec126', 'elec1'])
@@ -137,7 +134,5 @@ def test_stim_eog_misc_chs_in_nsx():
 @requires_testing_data
 def test_nsx_ver_21():
     """Primary tests for NSx reader"""
-    try:
-        raw = read_raw_nsx(nsx_21_fname)
-    except NotImplementedError:
-        pass
+    with pytest.raises(NotImplementedError):
+        read_raw_nsx(nsx_21_fname)
