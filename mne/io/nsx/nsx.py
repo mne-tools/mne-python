@@ -13,7 +13,7 @@ from ..base import BaseRaw
 from ..utils import _read_segments_file
 
 from ...annotations import Annotations
-from ...utils import logger
+from ...utils import logger, fill_doc
 
 
 # common channel type names mapped to internal ch types
@@ -99,10 +99,49 @@ nsx_header_dict = {
 }
 
 
-def read_raw_nsx(input_fname, stim_channel=True, eog=[], misc=[], preload=False):
-    return RawNSX(input_fname, stim_channel, eog, misc, preload=preload)
+@fill_doc
+def read_raw_nsx(
+    input_fname,
+    stim_channel=True,
+    eog=None,
+    misc=None,
+    preload=False,
+    *,
+    verbose=None
+):
+    """Reader function for NSx (Blackrock Microsystems) files.
+
+    Parameters
+    ----------
+    input_fname : str
+        Path to the NSx file.
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
+        Defaults to ``'auto'``, which means that channels named ``'status'`` or
+        ``'trigger'`` (case insensitive) are set to STIM. If str (or list of
+        str), all channels matching the name(s) are set to STIM. If int (or
+        list of ints), channels corresponding to the indices are set to STIM.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    %(preload)s
+    %(verbose)s
+    """
+    return RawNSX(
+        input_fname,
+        stim_channel,
+        eog,
+        misc,
+        preload=preload,
+        verbose=verbose
+        )
 
 
+@fill_doc
 class RawNSX(BaseRaw):
     """Raw object from NSx file from Blackrock Microsystems.
 
@@ -110,6 +149,21 @@ class RawNSX(BaseRaw):
     ----------
     input_fname : str
         Path to the NSx file.
+    stim_channel : ``'auto'`` | str | list of str | int | list of int
+        Defaults to ``'auto'``, which means that channels named ``'status'`` or
+        ``'trigger'`` (case insensitive) are set to STIM. If str (or list of
+        str), all channels matching the name(s) are set to STIM. If int (or
+        list of ints), channels corresponding to the indices are set to STIM.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated EOG
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated MISC
+        channels. Values should correspond to the electrodes in the file.
+        Default is None.
+    %(preload)s
+    %(verbose)s
     """
 
     def __init__(
@@ -152,6 +206,7 @@ class RawNSX(BaseRaw):
             self.set_annotations(annot)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
+        """Read a chunk of raw data."""
         dtype = self._raw_extras[fi]['orig_format']
         first_samps = self._raw_extras[fi]['timestamp']
         recording_extents = self._raw_extras[fi]['nb_data_points']
@@ -175,9 +230,7 @@ class RawNSX(BaseRaw):
 
 
 def _get_file_size(filename):
-    """
-    Returns the file size in bytes for the given file.
-    """
+    """Returns the file size in bytes for the given file."""
     with open(filename, 'rb') as fid:
         fid.seek(0, os.SEEK_END)
         file_size = fid.tell()
@@ -277,6 +330,7 @@ def _read_header_22_and_above(fname):
 
 
 def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
+    """Read header information NSx file."""
     eog = eog if eog is not None else []
     misc = misc if misc is not None else []
 
