@@ -130,6 +130,20 @@ def read_raw_nsx(
         Default is None.
     %(preload)s
     %(verbose)s
+    
+    Returns
+    -------
+    raw : instance of RawEDF
+        The raw instance.
+        See :class:`mne.io.Raw` for documentation of attributes and methods.
+
+    Notes
+    -----
+    NSx files with id (= NEURALSG), i.e., version 2.1 is currently not supported.
+
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
@@ -168,6 +182,14 @@ class RawNSX(BaseRaw):
         Default is None.
     %(preload)s
     %(verbose)s
+    
+    Notes
+    -----
+    NSx files with id (= NEURALSG), i.e., version 2.1 is currently not supported.
+
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
     """
 
     def __init__(
