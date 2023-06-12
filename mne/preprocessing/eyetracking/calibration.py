@@ -209,18 +209,19 @@ class Calibration(OrderedDict):
         ``>>> data = [(960., 540., 0.23, 950.1, 544.1), (960., 92., 0.38, 967.8, 76.)]``
         """
         field_names = ("point_x", "point_y", "offset", "gaze_x", "gaze_y")
-        dtype = [(name, float) for name in field_names]
+        dtypes = [(name, float) for name in field_names]
         if isinstance(data, (list, tuple)):
-            data = np.array(data)
+            data = np.array(data, dtype=np.float64)
 
         if not isinstance(data, np.ndarray):
             raise TypeError(
                 "data must be array-like of shape (n_points, 5). got {data}"
             )
-        if isinstance(data.dtype, np.dtype) and data.dtype.names == field_names:
+        if data.dtype.names == field_names:
+            # already a structured array
             structured_array = data
         else:
-            structured_array = unstructured_to_structured(data, dtype=dtype)
+            structured_array = unstructured_to_structured(data, dtype=dtypes)
         assert structured_array.ndim == 1
         if not len(structured_array[0]) == 5:
             raise ValueError(

@@ -72,7 +72,7 @@ first_cal["points"]  # show the data for the calibration points
 # The calibration points are stored as a :class:`numpy.ndarray`. You can access
 # the data for a specific calibration point by indexing the array, or you can access a
 # specific field for all calibration points by indexing the field name. For example:
-print(f"data for the first point only: {first_cal['points'][0]}")
+print(f"data for the first point only: {first_cal['points']}")
 print(f"offset for each calibration point: {first_cal['points']['offset']}")
 
 # %%
