@@ -43,7 +43,7 @@ class Calibration(OrderedDict):
     max_error : float
         The maximum error in degrees that occurred between the calibration
         points and the actual gaze position.
-    points : array-like of float, shape (n_calibration_points, 5)
+    points : array-like of float, shape ``(n_calibration_points, 5)``
         The data for the positions, actual gaze, and offsets for each calibration point.
         Each row should contain data for 1 calibration point. The columns should be
         of shape (5,) and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
@@ -176,11 +176,11 @@ class Calibration(OrderedDict):
         Create a Numpy Array containing data regarding each calibration point.
 
         This method takes an array-like objects and converts it into a structured numpy
-        array, with field names 'point_x', 'point_y', 'offset', 'diff_x', and 'diff_y'.
+        array, with field names 'point_x', 'point_y', 'offset', 'gaze_x', and 'gaze_y'.
 
         Parameters
         ----------
-        points : array-like of float, shape (n_calibration_points, 5)
+        data : array-like of float, shape ``(n_calibration_points, 5)``
         The data for the positions, actual gaze, and offsets for each calibration point.
         Each row should contain data for 1 calibration point. The columns should be
         of shape (5,) and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
