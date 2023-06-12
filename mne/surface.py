@@ -1928,9 +1928,11 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
 
     # force double as passing integer types directly can be problematic!
     image_shape = image.shape
-    # use order='A' to automatically detect when Fortran ordering is needed
-    data_vtk = numpy_to_vtk(image.ravel(order="A").astype(float), deep=True)
-    del image
+    # use ascontiguousarray to enforce C order
+    data_vtk = numpy_to_vtk(
+        np.ascontiguousarray(image).ravel(order="C").astype(float),
+        deep=True,
+    )
 
     mc = vtkDiscreteFlyingEdges3D() if use_flying_edges else vtkDiscreteMarchingCubes()
     # create image
