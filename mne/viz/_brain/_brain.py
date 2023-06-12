@@ -2644,6 +2644,14 @@ class Brain:
         vox_mri_t = aseg.header.get_vox2ras_tkr()
         mult = 1e-3 if self._units == "m" else 1
         vox_mri_t[:3] *= mult
+        ornt = nib.orientations.axcodes2ornt(
+            nib.orientations.aff2axcodes(aseg.affine)
+        ).astype(int)
+        ras_ornt = nib.orientations.axcodes2ornt("RAS")
+        ornt_trans = nib.orientations.ornt_transform(ornt, ras_ornt)
+        aseg_data = nib.orientations.apply_orientation(aseg_data, ornt_trans)
+        aff_trans = nib.orientations.inv_ornt_aff(ornt_trans, aseg.shape)
+        vox_mri_t = np.dot(vox_mri_t, aff_trans)
         del aseg
 
         # read freesurfer lookup table
