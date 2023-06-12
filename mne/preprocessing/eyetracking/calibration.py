@@ -217,10 +217,8 @@ class Calibration(OrderedDict):
             raise TypeError(
                 "data must be array-like of shape (n_points, 5). got {data}"
             )
-        if isinstance(data.dtype, np.dtype):
-            if data.dtype.names == field_names:
-                # already a structured array
-                structured_array = data
+        if isinstance(data.dtype, np.dtype) and data.dtype.names == field_names:
+            structured_array = data
         else:
             structured_array = unstructured_to_structured(data, dtype=dtype)
         assert structured_array.ndim == 1
