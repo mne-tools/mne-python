@@ -44,14 +44,14 @@ raw = read_raw_eyelink(eyelink_fname, create_annotations=["blinks", "messages"])
 raw.crop(tmin=0, tmax=146)
 
 # %%
-# Load recording calibration
-# --------------------------
+# Checking the calibration
+# ------------------------
 #
-# We can also load the calibrations from the recording and visualize it.
+# We can also load the calibrations from the recording and visualize them.
 # Checking the quality of the calibration is a useful first step in assessing
 # the quality of the eye tracking data. Note that
-# :func:`mne.preprocessing.eyetracking.read_eyelink_calibration`
-# will return a list of :class:`mne.preprocessing.eyetracking.Calibration` instances,
+# :func:`~mne.preprocessing.eyetracking.read_eyelink_calibration`
+# will return a list of :class:`~mne.preprocessing.eyetracking.Calibration` instances,
 # one for each calibration. We can index that list to access a specific calibration.
 
 cals = read_eyelink_calibration(eyelink_fname)
@@ -66,13 +66,13 @@ print(first_cal)
 
 print(f"Eye calibrated: {first_cal['eye']}")
 print(f"Calibration average error: {first_cal['avg_error']}")
-first_cal["points"]  # show the data for the calibration points
+print(f"Calibration data {repr(first_cal['points'])})")
 
 # %%
 # The calibration points are stored as a :class:`numpy.ndarray`. You can access
 # the data for a specific calibration point by indexing the array, or you can access a
 # specific field for all calibration points by indexing the field name. For example:
-print(f"data for the first point only: {first_cal['points']}")
+print(f"data for the first point only: {first_cal['points'][0]}")
 print(f"offset for each calibration point: {first_cal['points']['offset']}")
 
 # %%
