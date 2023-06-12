@@ -1917,9 +1917,12 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
             f"{level.size} elements"
         )
 
+    image_shape = image.shape
+    order = "C" if image.flags.c_contiguous else "F"
+    image = deepcopy(image)  # don't modify original
+
     # fill holes
     if fill_hole_size is not None:
-        image = image.copy()  # don't modify original
         for val in level:
             bin_image = image == val
             mask = image == 0  # don't go into other areas
@@ -1927,14 +1930,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
             image[bin_image] = val
 
     # force double as passing integer types directly can be problematic!
-    image_shape = image.shape
-    # very confusingly, Fortran-ordered arrays seem to have c_contiguous True and
-    # f_contiguous False and C ordered arrays seem to have c_contiguous False and
-    # f_contiguous True
-    data_vtk = numpy_to_vtk(
-        image.ravel(order="F" if image.flags.c_contiguous else "C").astype(float),
-        deep=True,
-    )
+    data_vtk = numpy_to_vtk(image.ravel(order=order).astype(float), deep=True)
 
     mc = vtkDiscreteFlyingEdges3D() if use_flying_edges else vtkDiscreteMarchingCubes()
     # create image
@@ -1982,8 +1978,11 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
         polydata = geometry.GetOutput()
         rr = vtk_to_numpy(polydata.GetPoints().GetData())
         tris = vtk_to_numpy(polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
-        rr = np.ascontiguousarray(rr[:, ::-1])
-        tris = np.ascontiguousarray(tris[:, ::-1])
+        if order == 'C':
+            rr = np.fliplr(rr)
+            tris = np.fliplr(tris)
+        rr = np.ascontiguousarray(rr)
+        tris = np.ascontiguousarray(tris)
         out.append((rr, tris))
     return out
 
