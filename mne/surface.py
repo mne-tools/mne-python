@@ -1928,9 +1928,11 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
 
     # force double as passing integer types directly can be problematic!
     image_shape = image.shape
-    # use ascontiguousarray to enforce C order
+    # very confusingly, Fortran-ordered arrays seem to have c_contiguous True and
+    # f_contiguous False and C ordered arrays seem to have c_contiguous False and
+    # f_contiguous True
     data_vtk = numpy_to_vtk(
-        np.ascontiguousarray(image).ravel(order="C").astype(float),
+        image.ravel(order="F" if image.flags.c_contiguous else "C").astype(float),
         deep=True,
     )
 
