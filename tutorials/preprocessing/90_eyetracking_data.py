@@ -36,11 +36,51 @@ pupil response to light flashes (i.e. the pupillary light reflex).
 from mne import Epochs, find_events
 from mne.io import read_raw_eyelink
 from mne.datasets.eyelink import data_path
+from mne.preprocessing.eyetracking import read_eyelink_calibration
 
 eyelink_fname = data_path() / "mono_multi-block_multi-DINS.asc"
 
 raw = read_raw_eyelink(eyelink_fname, create_annotations=["blinks", "messages"])
 raw.crop(tmin=0, tmax=146)
+
+# %%
+# Load recording calibration
+# --------------------------
+#
+# We can also load the calibrations from the recording and visualize it.
+# Checking the quality of the calibration is a useful first step in assessing
+# the quality of the eye tracking data. Note that
+# :func:`mne.preprocessing.eyetracking.read_eyelink_calibration`
+# will return a list of :class:`mne.preprocessing.eyetracking.Calibration` instances,
+# one for each calibration. We can index that list to access a specific calibration.
+
+cals = read_eyelink_calibration(eyelink_fname)
+print(f"number of calibrations: {len(cals)}")
+first_cal = cals[0]  # let's access the first (and only in this case) calibration
+print(first_cal[0])
+
+# %%
+# Here we can see that a 5-point calibration was performed at the beginning of
+# the recording. Note that you can access the calibration information directly
+# as you would a dictionary:
+
+print(f"Eye calibrated: {first_cal['eye']}")
+print(f"Calibration average error: {first_cal['avg_error']}")
+first_cal["points"]  # show the data for the calibration points
+
+# %%
+# The calibration points are stored as a :class:`numpy.ndarray`. You can access
+# the data for a specific calibration point by indexing the array, or you can access a
+# specific field for all calibration points by indexing the field name. For example:
+print(f"data for the first point only: {first_cal['points'][0]}")
+print(f"offset for each calibration point: {first_cal['points']['offset']}")
+
+# %%
+# Let's plot the calibration to get a better look. We'll pass
+# ``show_offsets=True`` to show the offsets (in visual degrees) between the
+# calibration position and the actual gaze position of each calibration point.
+
+first_cal.plot(show_offsets=True)
 
 # %%
 # Get stimulus events from DIN channel
@@ -70,7 +110,8 @@ event_dict = {"flash": 3}
 # categorized as blinks). Also, notice that we have passed a custom `dict` into
 # the scalings argument of ``raw.plot``. This is necessary to make the eyegaze
 # channel traces legible when plotting, since the file contains pixel position
-# data (as opposed to eye angles, which are reported in radians).
+# data (as opposed to eye angles, which are reported in radians). We also could
+# have simply passed ``scalings='auto'``.
 
 raw.plot(
     events=events,
@@ -102,7 +143,7 @@ epochs.average().plot()
 # It is important to note that pupil size data are reported by Eyelink (and
 # stored internally by MNE) as arbitrary units (AU). While it often can be
 # preferable to convert pupil size data to millimeters, this requires
-# information that is not always present in the file. MNE does not currently
+# information that is not present in the file. MNE does not currently
 # provide methods to convert pupil size data.
 # See :ref:`tut-importing-eyetracking-data` for more information on pupil size
 # data.
