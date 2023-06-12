@@ -37,9 +37,11 @@ def _parse_validation_line(line):
     tokens = line.split()
     xy = tokens[-6].strip("[]").split(",")  # e.g. '960, 540'
     xy_diff = tokens[-2].strip("[]").split(",")  # e.g. '-1.5, -2.8'
-    vals = tuple([float(v) for v in [*xy, tokens[-4], *xy_diff]])
+    vals = [float(v) for v in [*xy, tokens[-4], *xy_diff]]
+    vals[3] = vals[0] - vals[3]  # cal_x - eye_x
+    vals[4] = vals[1] - vals[4]  # cal_y - eye_y
 
-    return vals
+    return tuple(vals)
 
 
 def _parse_calibration(

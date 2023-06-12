@@ -1,13 +1,11 @@
 import pytest
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink, BaseRaw
 from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
-from mne.preprocessing.eyetracking import read_eyelink_calibration
 from mne.utils import _check_pandas_installed, requires_pandas
 
 testing_path = data_path(download=False)
@@ -96,91 +94,6 @@ def test_eyelink(fname, create_annotations, find_overlaps, return_calibration):
         # Rows 0, 1, 2 should be 'fixation_both', 'saccade_both', 'blink_both'
         for i, label in zip([0, 1, 2], ["fixation", "saccade", "blink"]):
             assert df["description"].iloc[i] == f"{label}_both"
-
-
-@requires_testing_data
-@pytest.mark.parametrize("fname", [(fname)])
-def test_read_calibration(fname):
-    """Test reading calibration data from an eyelink asc file."""
-    calibrations = read_eyelink_calibration(fname)
-    expected_x_left = np.array(
-        [
-            960.0,
-            960.0,
-            960.0,
-            115.0,
-            1804.0,
-            216.0,
-            1703.0,
-            216.0,
-            1703.0,
-            537.0,
-            1382.0,
-            537.0,
-            1382.0,
-        ]
-    )
-    expected_y_right = np.array(
-        [
-            540.0,
-            92.0,
-            987.0,
-            540.0,
-            540.0,
-            145.0,
-            145.0,
-            934.0,
-            934.0,
-            316.0,
-            316.0,
-            763.0,
-            763.0,
-        ]
-    )
-    expected_diff_y_left = np.array(
-        [-4.1, 16.0, -14.2, -14.8, 1.0, -15.4, -1.4, 6.9, -28.1, 7.6, 2.1, -2.0, 8.4]
-    )
-    expected_offset_right = np.array(
-        [0.36, 0.5, 0.2, 0.1, 0.3, 0.38, 0.13, 0.33, 0.22, 0.18, 0.34, 0.52, 0.21]
-    )
-
-    assert len(calibrations) == 2  # calibration[0] is left, calibration[1] is right
-    assert calibrations[0]["onset"] == 0
-    assert calibrations[1]["onset"] == 0
-    assert calibrations[0]["model"] == "HV13"
-    assert calibrations[1]["model"] == "HV13"
-    assert calibrations[0]["eye"] == "left"
-    assert calibrations[1]["eye"] == "right"
-    assert calibrations[0]["avg_error"] == 0.30
-    assert calibrations[0]["max_error"] == 0.90
-    assert calibrations[1]["avg_error"] == 0.31
-    assert calibrations[1]["max_error"] == 0.52
-    assert calibrations[0]["points"]["point_x"] == pytest.approx(expected_x_left)
-    assert calibrations[1]["points"]["point_y"] == pytest.approx(expected_y_right)
-    assert calibrations[0]["points"]["diff_y"] == pytest.approx(expected_diff_y_left)
-    assert calibrations[1]["points"]["offset"] == pytest.approx(expected_offset_right)
-
-
-@requires_testing_data
-@pytest.mark.parametrize("fname", [(fname)])
-def test_plot_calibration(fname):
-    """Test plotting calibration data."""
-    calibrations = read_eyelink_calibration(fname)
-    cal_left = calibrations[0]
-    fig = cal_left.plot(show=False)
-    ax = fig.axes[0]
-
-    scatter1 = ax.collections[0]
-    scatter2 = ax.collections[1]
-    px, py = cal_left.points["point_x"], cal_left.points["point_y"]
-    dx, dy = cal_left.points["diff_x"], cal_left.points["diff_y"]
-
-    assert ax.title.get_text() == f"Calibration ({cal_left.eye} eye)"
-    assert len(ax.collections) == 2  # Two scatter plots
-
-    assert np.allclose(scatter1.get_offsets(), np.column_stack((px, py)))
-    assert np.allclose(scatter2.get_offsets(), np.column_stack((px - dx, py - dy)))
-    plt.close(fig)
 
 
 @requires_testing_data

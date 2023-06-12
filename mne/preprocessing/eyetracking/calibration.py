@@ -9,6 +9,7 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
+from numpy.lib.recfunctions import unstructured_to_structured
 
 from ...utils import _check_fname, fill_doc, logger
 
@@ -42,21 +43,20 @@ class Calibration(OrderedDict):
     max_error : float
         The maximum error in degrees that occurred between the calibration
         points and the actual gaze position.
-    points : list
-        List of tuples, each of shape (5,). Each tuple should contain data for 1
-        calibration point. The elements within each tuple should be
-        ``(point_x, point_y, offset, diff_x, diff_y)``, where:
+    points : array-like of float, shape (n_calibration_points, 5)
+        The data for the positions, actual gaze, and offsets for each calibration point.
+        Each row should contain data for 1 calibration point. The columns should be
+        of shape (5,) and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
 
-            - point_x: the x pixel-coordinate of the calibration point
-            - point_y: the y pixel-coordinate of the calibration point
-            - offset: the error in degrees between the calibration point and the
+            - point_x: the x-coordinate of the calibration point
+            - point_y: the y-coordinate of the calibration point
+            - offset: the error in degrees between the calibration position and the
                 actual gaze position
-            - diff_x: the difference in x pixel coordinates between the calibration
-                point and the actual gaze position
-            - diff_y: the difference in y pixel coordinates between the calibration
-                point and the actual gaze position
+            - gaze_x: the x-coordinate of the actual gaze position
+            - gaze_y: the y-coordinate of the actual gaze position
 
-        See the example below for more details.
+        If the value for a field is not available, use ``np.nan``. See the example below
+        for more details.
 
     screen_size : array-like of shape (2,)
         The width and height (in meters) of the screen that the eyetracking
@@ -101,8 +101,8 @@ class Calibration(OrderedDict):
 
     Examples
     --------
-    Below is an example of a list of tuples that can be passed to the points parameter:
-    ``>>> data = [(960., 540., 0.23, 9.9, -4.1), (960., 92., 0.38, -7.8, 16.)]``
+    Below is an example of data that can be passed to the points parameter:
+    ``>>> data = [(960., 540., 0.23, 950.1,  544.1), (960., 92., 0.38, 967.8, 76. )]``
     """
 
     def __init__(
@@ -123,7 +123,7 @@ class Calibration(OrderedDict):
         self["eye"] = eye
         self["avg_error"] = avg_error
         self["max_error"] = max_error
-        if points is not None and isinstance(points, list):
+        if points is not None:
             self.set_calibration_array(points)
         else:
             self["points"] = points
@@ -175,24 +175,25 @@ class Calibration(OrderedDict):
         """
         Create a Numpy Array containing data regarding each calibration point.
 
-        This method takes a list of tuples and converts it into a structured numpy
+        This method takes an array-like objects and converts it into a structured numpy
         array, with field names 'point_x', 'point_y', 'offset', 'diff_x', and 'diff_y'.
 
         Parameters
         ----------
-        data : list
-           List of tuples, each of shape (5,). Each tuple should contain data for 1
-           calibration point. The elements within each tuple should be
-           ``(point_x, point_y, offset, diff_x, diff_y)``, where:
+        points : array-like of float, shape (n_calibration_points, 5)
+        The data for the positions, actual gaze, and offsets for each calibration point.
+        Each row should contain data for 1 calibration point. The columns should be
+        of shape (5,) and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
 
-                - point_x: the x pixel-coordinate of the calibration point
-                - point_y: the y pixel-coordinate of the calibration point
-                - offset: the error in degrees between the calibration point and the
-                    actual gaze position
-                - diff_x: the difference in x pixel coordinates between the calibration
-                    point and the actual gaze position
-                - diff_y: the difference in y pixel coordinates between the calibration
-                    point and the actual gaze position
+            - point_x: the x-coordinate of the calibration point
+            - point_y: the y-coordinate of the calibration point
+            - offset: the error in degrees between the calibration position and the
+                actual gaze position
+            - gaze_x: the x-coordinate of the actual gaze position
+            - gaze_y: the y-coordinate of the actual gaze position
+
+        If the value for a field is not available, use ``np.nan``. See the example below
+        for more details.
 
         Returns
         -------
@@ -204,22 +205,28 @@ class Calibration(OrderedDict):
         Examples
         --------
         Below is an example of a list of tuples that can be passed to this method:
-        ``>>> data = [(960., 540., 0.23, 9.9, -4.1), (960., 92., 0.38, -7.8, 16.)]``
+        ``>>> data = [(960., 540., 0.23, 950.1, 544.1), (960., 92., 0.38, 967.8, 76.)]``
         """
-        field_names = ["point_x", "point_y", "offset", "diff_x", "diff_y"]
+        field_names = ("point_x", "point_y", "offset", "gaze_x", "gaze_y")
         dtype = [(name, float) for name in field_names]
-        if isinstance(data, list):
-            if not all([len(elem) == len(field_names) for elem in data]):
-                raise ValueError(
-                    f"Each tuple in the data list must have have 5 elements: "
-                    f"Got {data}"
-                )
-            structured_array = np.array(data, dtype=dtype)
-            self["points"] = structured_array
-        else:
+        if isinstance(data, (list, tuple)):
+            data = np.array(data)
+
+        if not isinstance(data, np.ndarray):
             raise TypeError(
-                f"Data must be a list. got {data} which is of type {type(data)}"
+                "data must be array-like of shape (n_points, 5). got {data}"
             )
+        if data.dtype.names == field_names:
+            # already a structured array
+            structured_array = data
+        else:
+            structured_array = unstructured_to_structured(data, dtype=dtype)
+        assert structured_array.ndim == 1
+        if not len(structured_array[0]) == 5:
+            raise ValueError(
+                f"Each column in data must have have 5 elements: got {data}"
+            )
+        self["points"] = structured_array
 
     def plot(self, title=None, show_offsets=False, invert_y_axis=True, show=True):
         """Visualize calibration.
@@ -245,11 +252,6 @@ class Calibration(OrderedDict):
         """
         import matplotlib.pyplot as plt
 
-        if not len(self["points"]):
-            raise ValueError(
-                "No calibration data to plot. Use set_calibration_array()"
-                " to set calibration data."
-            )
         if not isinstance(self["points"], np.ndarray):
             raise TypeError(
                 "Calibration points must be a numpy array. Use "
@@ -257,7 +259,7 @@ class Calibration(OrderedDict):
             )
         fig, ax = plt.subplots()
         px, py = self["points"]["point_x"], self["points"]["point_y"]
-        dx, dy = self["points"]["diff_x"], self["points"]["diff_y"]
+        gaze_x, gaze_y = self["points"]["gaze_x"], self["points"]["gaze_y"]
 
         if title is None:
             ax.set_title(f"Calibration ({self['eye']} eye)")
@@ -284,14 +286,14 @@ class Calibration(OrderedDict):
             # monitors
             ax.invert_yaxis()
         ax.scatter(px, py, color="gray")
-        ax.scatter(px - dx, py - dy, color="red", alpha=0.5)
+        ax.scatter(gaze_x, gaze_y, color="red", alpha=0.5)
 
         if show_offsets:
             for i in range(len(px)):
-                x_offset = 0.01 * (px[i] - dx[i])  # 1% to the right of the point
+                x_offset = 0.01 * gaze_x[i]  # 1% to the right of the gazepoint
                 text = ax.text(
-                    x=(px[i] - dx[i]) + x_offset,
-                    y=py[i] - dy[i],
+                    x=gaze_x[i] + x_offset,
+                    y=gaze_y[i],
                     s=self["points"]["offset"][i],
                     fontsize=8,
                     ha="left",
