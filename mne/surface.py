@@ -1978,7 +1978,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
         polydata = geometry.GetOutput()
         rr = vtk_to_numpy(polydata.GetPoints().GetData())
         tris = vtk_to_numpy(polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
-        if order == 'C':
+        if order == "C":
             rr = np.fliplr(rr)
             tris = np.fliplr(tris)
         rr = np.ascontiguousarray(rr)
