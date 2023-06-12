@@ -181,19 +181,20 @@ class Calibration(OrderedDict):
         Parameters
         ----------
         data : array-like of float, shape ``(n_calibration_points, 5)``
-        The data for the positions, actual gaze, and offsets for each calibration point.
-        Each row should contain data for 1 calibration point. The columns should be
-        of shape (5,) and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
+            The data for the positions, actual gaze, and offsets for each calibration
+            point. Each row should contain data for 1 calibration point. The columns
+            should be of shape (5,) and contain
+            ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
 
-            - point_x: the x-coordinate of the calibration point
-            - point_y: the y-coordinate of the calibration point
-            - offset: the error in degrees between the calibration position and the
-                actual gaze position
-            - gaze_x: the x-coordinate of the actual gaze position
-            - gaze_y: the y-coordinate of the actual gaze position
+                - point_x: the x-coordinate of the calibration point
+                - point_y: the y-coordinate of the calibration point
+                - offset: the error in degrees between the calibration position and the
+                    actual gaze position
+                - gaze_x: the x-coordinate of the actual gaze position
+                - gaze_y: the y-coordinate of the actual gaze position
 
-        If the value for a field is not available, use ``np.nan``. See the example below
-        for more details.
+            If the value for a field is not available, use ``np.nan``. See the example
+            below for more details.
 
         Returns
         -------
