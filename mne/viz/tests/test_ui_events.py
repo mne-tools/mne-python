@@ -4,10 +4,10 @@
 import matplotlib.pyplot as plt
 import pytest
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.viz import ui_events, Brain
 
-subjects_dir = sample.data_path(download=False) / "subjects"
+subjects_dir = testing.data_path(download=False) / "subjects"
 
 
 @pytest.fixture
