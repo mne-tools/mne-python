@@ -28,6 +28,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug where :meth:`mne.viz.Brain.add_volume_labels` used an incorrect orientation (:gh:`11730` by `Alex Rockhill`_)
 - Extended test to highlight bug in :func:`mne.stats.permutation_t_test` (:gh:`11575` by :newcontrib:`Joshua Calder-Travis`)
 - Fix bug with :func:`mne.forward.restrict_forward_to_label` where cortical patch information was not adjusted (:gh:`11694` by `Eric Larson`_)
 - Fix bug with PySide6 compatibility (:gh:`11721` by `Eric Larson`_)
