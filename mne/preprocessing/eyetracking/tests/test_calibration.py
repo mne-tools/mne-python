@@ -209,7 +209,7 @@ def test_plot_calibration(fname):
 
     calibrations = read_eyelink_calibration(fname)
     cal_left = calibrations[0]
-    fig = cal_left.plot(show=True)
+    fig = cal_left.plot(show=True, show_offsets=True)
     ax = fig.axes[0]
 
     scatter1 = ax.collections[0]
