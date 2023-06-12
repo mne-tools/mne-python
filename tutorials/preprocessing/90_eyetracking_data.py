@@ -57,7 +57,7 @@ raw.crop(tmin=0, tmax=146)
 cals = read_eyelink_calibration(eyelink_fname)
 print(f"number of calibrations: {len(cals)}")
 first_cal = cals[0]  # let's access the first (and only in this case) calibration
-print(first_cal[0])
+print(first_cal)
 
 # %%
 # Here we can see that a 5-point calibration was performed at the beginning of
