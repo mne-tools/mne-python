@@ -9,7 +9,6 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
-from numpy.lib.recfunctions import unstructured_to_structured
 
 from ...utils import _check_fname, fill_doc, logger
 
@@ -23,7 +22,7 @@ class Calibration(OrderedDict):
 
     .. note::
         When possible, this class should be instantiated via a helper function,
-        such as :func:`mne.preprocessing.eyetracking.read_eyelink_calibration`.
+        such as :func:`~mne.preprocessing.eyetracking.read_eyelink_calibration`.
 
     Parameters
     ----------
@@ -46,7 +45,8 @@ class Calibration(OrderedDict):
     points : array-like of float, shape ``(n_calibration_points, 5)``
         The data for the positions, actual gaze, and offsets for each calibration point.
         Each row should contain data for 1 calibration point. The columns should be
-        of shape (5,) and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
+        of shape ``(5,)`` and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``,
+        where:
 
             - point_x: the x-coordinate of the calibration point
             - point_y: the y-coordinate of the calibration point
@@ -58,13 +58,13 @@ class Calibration(OrderedDict):
         If the value for a field is not available, use ``np.nan``. See the example below
         for more details.
 
-    screen_size : array-like of shape (2,)
+    screen_size : array-like of shape ``(2,)``
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
         a display area of 531 x 298 mm.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
-    screen_resolution : array-like of shape (2,)
+    screen_resolution : array-like of shape ``(2,)``
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display.
@@ -87,7 +87,8 @@ class Calibration(OrderedDict):
         The maximum error in degrees that occurred between the calibration points and
         the actual gaze position.
     points : ndarray
-        a 1D structured numpy array, which contains the data for each calibration point.
+        a 1D structured numpy array of shape ``(n_calibration_points,)``, which contains
+        the data for each calibration point.
     screen_size : array-like
         The width and height (in meters) of the screen that the eyetracking data was
         collected  with. For example ``(.531, .298)`` for a monitor with a display area
@@ -176,14 +177,15 @@ class Calibration(OrderedDict):
         Create a Numpy Array containing data regarding each calibration point.
 
         This method takes an array-like objects and converts it into a structured numpy
-        array, with field names 'point_x', 'point_y', 'offset', 'gaze_x', and 'gaze_y'.
+        array, with field names ``'point_x'``, ``'point_y'``, ``'offset'``,
+        ``'gaze_x'``, and ``'gaze_y'``.
 
         Parameters
         ----------
         data : array-like of float, shape ``(n_calibration_points, 5)``
             The data for the positions, actual gaze, and offsets for each calibration
             point. Each row should contain data for 1 calibration point. The columns
-            should be of shape (5,) and contain
+            should be of shape ``(5,)`` and contain
             ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
 
                 - point_x: the x-coordinate of the calibration point
@@ -200,16 +202,18 @@ class Calibration(OrderedDict):
         -------
         self: instance of Calibration
             The Calibration instance, with the points attribute containing a structured
-            numpy array, with field names 'point_x', 'point_y', 'offset', 'diff_x', and
-            'diff_y'.
+            numpy array, with field names ``'point_x'``, ``'point_y'``, ``'offset'``,
+            ``'diff_x'``, and ``'diff_y'``.
 
         Examples
         --------
         Below is an example of a list of tuples that can be passed to this method:
         ``>>> data = [(960., 540., 0.23, 950.1, 544.1), (960., 92., 0.38, 967.8, 76.)]``
         """
+        from numpy.lib.recfunctions import unstructured_to_structured
+
         field_names = ("point_x", "point_y", "offset", "gaze_x", "gaze_y")
-        dtypes = [(name, float) for name in field_names]
+        dtypes = np.dtype([(name, float) for name in field_names])
         if isinstance(data, (list, tuple)):
             data = np.array(data, dtype=np.float64)
 
@@ -235,16 +239,16 @@ class Calibration(OrderedDict):
         Parameters
         ----------
         title : str
-            The title to be displayed. Defaults to None, which uses a generic title.
+            The title to be displayed. Defaults to ``None``, which uses a generic title.
         show_offsets : bool
             Whether to display the offset (in visual degrees) of each calibration
-            point or not. Defaults to False.
+            point or not. Defaults to ``False``.
         invert_y_axis : bool
             Whether to invert the y-axis or not. In many monitors, pixel coordinate
             (0,0), which is often referred to as origin, is at the top left of corner
-            of the screen. Defaults to True.
+            of the screen. Defaults to ``True``.
         show : bool
-            Whether to show the figure or not.
+            Whether to show the figure or not. Defaults to ``True``.
 
         Returns
         -------
@@ -319,19 +323,19 @@ def read_eyelink_calibration(
     screen_size : array-like of shape (2,)
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
-        a display area of 531 x 298 mm. Defaults to None.
+        a display area of 531 x 298 mm. Defaults to ``None``.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
-        Defaults to None.
+        Defaults to ``None``.
     screen_resolution : array-like of shape (2,)
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, ``(1920, 1080)`` for a 1920x1080
-        resolution display. Defaults to None.
+        resolution display. Defaults to ``None``.
 
     Returns
     -------
     calibrations : list
-        A list of :class:`mne.preprocessing.eyetracking.Calibration` instances, one for
+        A list of :class:`~mne.preprocessing.eyetracking.Calibration` instances, one for
         each eye of every calibration that was performed during the recording session.
     """
     from ...io.eyelink._utils import _parse_calibration

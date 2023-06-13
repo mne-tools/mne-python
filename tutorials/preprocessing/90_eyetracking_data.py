@@ -66,12 +66,15 @@ print(first_cal)
 
 print(f"Eye calibrated: {first_cal['eye']}")
 print(f"Calibration average error: {first_cal['avg_error']}")
-print(f"Calibration data {repr(first_cal['points'])})")
+print(f"Calibration data: {repr(first_cal['points'])})")
 
 # %%
-# The calibration points are stored as a :class:`numpy.ndarray`. You can access
-# the data for a specific calibration point by indexing the array, or you can access a
-# specific field for all calibration points by indexing the field name. For example:
+# The calibration points are stored as a :class:`numpy.ndarray`. Each element contains
+# data for a single calibration point: the x-coordinate and y-coordinate of the point's
+# position, the offset, and the x-coordinate and y-coordinate of the actual gaze
+# position. You can access the data for a specific calibration point by indexing the
+# array, or you can access a specific field for all calibration points by indexing the
+# field name. For example:
 print(f"data for the first point only: {first_cal['points'][0]}")
 print(f"offset for each calibration point: {first_cal['points']['offset']}")
 
