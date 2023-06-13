@@ -295,7 +295,7 @@ def read_raw_eyelink(
     apply_offsets=False,
     find_overlaps=False,
     overlap_threshold=0.05,
-    gap_description="bad_rec_gap",
+    gap_description="BAD_ACQ_SKIP",
     return_calibration=False,
     screen_size=None,
     screen_distance=None,
@@ -324,15 +324,19 @@ def read_raw_eyelink(
         saccades) if their start times and their stop times are both not
         separated by more than overlap_threshold.
     overlap_threshold : float (default 0.05)
-        Time in seconds. Threshold of allowable time-gap between the start and
-        stop times of the left and right eyes. If gap is larger than threshold,
-        the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
-        "blink_R"). If the gap is smaller than the threshold, the
-        :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_description : str (default 'bad_rec_gap')
+        Time in seconds. Threshold of allowable time-gap between both the start and
+        stop times of the left and right eyes. If the gap is larger than the threshold,
+        the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
+        ``"blink_R"``). If the gap is smaller than the threshold, the
+        :class:`mne.Annotations` will be merged and labeled as ``"blink_both"``.
+        Defaults to ``0.05`` seconds (50 ms), meaning that if the blink start times of
+        the left and right eyes are separated by less than 50 ms, and the blink stop
+        times of the left and right eyes are separated by less than 50 ms, then the
+        blink will be merged into a single :class:`mne.Annotations`.
+    gap_description : str (default 'BAD_ACQ_SKIP')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
-        blocks. Uses 'bad_rec_gap' by default so that these time periods will
+        blocks. Uses 'BAD_ACQ_SKIP' by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
     return_calibration : bool (default False)
         If True, returns a tuple of (raw, calibrations) where calibrations is
@@ -424,10 +428,10 @@ class RawEyelink(BaseRaw):
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_desc : str (default 'bad_rec_gap')
+    gap_desc : str (default 'BAD_ACQ_SKIP')
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
-        blocks. Uses 'bad_rec_gap' by default so that these time periods will
+        blocks. Uses 'BAD_ACQ_SKIP' by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
     %(preload)s
     %(verbose)s
@@ -472,7 +476,7 @@ class RawEyelink(BaseRaw):
         apply_offsets=False,
         find_overlaps=False,
         overlap_threshold=0.05,
-        gap_desc="bad_rec_gap",
+        gap_desc="BAD_ACQ_SKIP",
     ):
         logger.info("Loading {}".format(fname))
 
