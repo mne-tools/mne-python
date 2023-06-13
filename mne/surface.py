@@ -1919,15 +1919,14 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
 
     # vtkImageData indexes as slice, row, col (Z, Y, X):
     # https://discourse.vtk.org/t/very-confused-about-imdata-matrix-index-order/6608/2
-    # We can accomplish his by requiring F continuity and raveling later.
-    # We also pass double as passing integer types directly can be problematic!
-    image = np.asfortranarray(image, dtype=float)
+    # We can accomplish this by raveling with order='F' later, so we might as
+    # well make a copy with Fortran order now.
+    # We also use double as passing integer types directly can be problematic!
+    image = np.array(image, dtype=float, order="F")
     image_shape = image.shape
-    assert image.flags.f_contiguous
 
     # fill holes
     if fill_hole_size is not None:
-        image = image.copy()  # don't modify original
         for val in level:
             bin_image = image == val
             mask = image == 0  # don't go into other areas
