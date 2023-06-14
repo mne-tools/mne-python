@@ -57,7 +57,6 @@ class Calibration(dict):
 
         If the value for a field is not available, use ``np.nan``. See the example below
         for more details.
-
     screen_size : array-like of shape ``(2,)``
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
@@ -118,19 +117,20 @@ class Calibration(dict):
         screen_distance=None,
         screen_resolution=None,
     ):
-        super().__init__()
-        self["onset"] = onset
-        self["model"] = model
-        self["eye"] = eye
-        self["avg_error"] = avg_error
-        self["max_error"] = max_error
+        super().__init__(
+            onset=onset,
+            model=model,
+            eye=eye,
+            avg_error=avg_error,
+            max_error=max_error,
+            screen_size=screen_size,
+            screen_distance=screen_distance,
+            screen_resolution=screen_resolution,
+        )
         if points is not None:
             self.set_calibration_array(points)
         else:
             self["points"] = points
-        self["screen_size"] = screen_size
-        self["screen_distance"] = screen_distance
-        self["screen_resolution"] = screen_resolution
 
     def __repr__(self):
         """Return a summary of the Calibration object."""
@@ -167,7 +167,7 @@ class Calibration(dict):
 
         Returns
         -------
-        info : instance of Calibration
+        cal : instance of Calibration
             The copied Calibration.
         """
         return deepcopy(self)
@@ -262,7 +262,7 @@ class Calibration(dict):
                 "Calibration points must be a numpy array. Use "
                 "set_calibration_array() to set calibration data."
             )
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(constrained_layout=True)
         px, py = self["points"]["point_x"], self["points"]["point_y"]
         gaze_x, gaze_y = self["points"]["gaze_x"], self["points"]["gaze_y"]
 
@@ -305,7 +305,6 @@ class Calibration(dict):
                     va="center",
                 )
 
-        fig.tight_layout()
         fig.show() if show else None
         return fig
 
