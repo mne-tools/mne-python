@@ -17,7 +17,7 @@ Got any questions? Let us know on the `MNE Forum`_!
         :class-content: text-center
         :name: linux-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/1.4.2/MNE-Python-1.4.2_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.2/MNE-Python-1.4.2_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
@@ -38,7 +38,7 @@ Got any questions? Let us know on the `MNE Forum`_!
         :class-content: text-center
         :name: macos-intel-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/1.4.2/MNE-Python-1.4.2_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.2/MNE-Python-1.4.2_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -54,7 +54,7 @@ Got any questions? Let us know on the `MNE Forum`_!
         :class-content: text-center
         :name: macos-apple-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/1.4.2/MNE-Python-1.4.2_0-macOS_M1.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.2/MNE-Python-1.4.2_0-macOS_M1.pkg
             :ref-type: ref
             :color: primary
             :shadow:
@@ -70,7 +70,7 @@ Got any questions? Let us know on the `MNE Forum`_!
         :class-content: text-center
         :name: windows-installers
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/1.4.2/MNE-Python-1.4.2_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.4.2/MNE-Python-1.4.2_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:
