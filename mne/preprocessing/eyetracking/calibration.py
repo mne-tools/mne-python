@@ -14,7 +14,7 @@ from ...utils import _check_fname, fill_doc, logger
 
 
 @fill_doc
-class Calibration(OrderedDict):
+class Calibration(dict):
     """Eye-tracking calibration info.
 
     This data structure behaves like a dictionary. It contains information regarding a
