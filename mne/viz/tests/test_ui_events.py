@@ -42,7 +42,7 @@ def test_get_event_channel(event_channels):
     assert len(event_channels) == 0
 
     # Test different types of figures
-    fig = Brain("sample", subjects_dir=subjects_dir)
+    fig = Brain("sample", subjects_dir=subjects_dir, surf="white")
     ui_events._get_event_channel(fig)
     assert len(event_channels) == 1
     assert fig in event_channels

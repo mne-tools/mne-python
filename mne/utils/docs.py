@@ -1511,8 +1511,6 @@ fiducials : list | dict | str
     and if absent, falls back to ``'estimated'``.
 """
 
-docdict["figure"] = "matplotlib.figure.Figure | " "MNEFigure | " "Figure3D | " "Brain"
-
 docdict[
     "fig_facecolor"
 ] = """\
@@ -1520,6 +1518,8 @@ fig_facecolor : str | tuple
     A matplotlib-compatible color to use for the figure background.
     Defaults to black.
 """
+
+docdict["figure"] = "matplotlib.figure.Figure | MNEFigure | Figure3D | Brain"
 
 docdict[
     "filter_length"
