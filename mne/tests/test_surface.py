@@ -245,12 +245,13 @@ def test_normal_orth():
 
 # 0.06 s locally even with all these params
 @pytest.mark.parametrize("dtype", (np.float64, np.uint16, ">i4"))
+@pytest.mark.parametrize("order", "FC")
 @pytest.mark.parametrize("value", (1, 12))
 @pytest.mark.parametrize("smooth", (0, 0.9))
-def test_marching_cubes(dtype, value, smooth):
+def test_marching_cubes(dtype, value, smooth, order):
     """Test creating surfaces via marching cubes."""
     pytest.importorskip("pyvista")
-    data = np.zeros((50, 50, 50), dtype=dtype)
+    data = np.zeros((50, 50, 50), dtype=dtype, order=order)
     data[20:30, 20:30, 20:30] = value
     level = [value]
     out = _marching_cubes(data, level, smooth=smooth)
@@ -260,8 +261,7 @@ def test_marching_cubes(dtype, value, smooth):
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     tri_sum = triangles.sum(axis=0).tolist()
-    # old VTK (9.2.6), new VTK
-    assert tri_sum in [[363402, 360865, 350588], [364089, 359867, 350408]]
+    assert tri_sum in ([350588, 360865, 363402], [350408, 359867, 364089])
     # test fill holes
     data[24:27, 24:27, 24:27] = 0
     verts, triangles = _marching_cubes(data, level, smooth=smooth, fill_hole_size=2)[0]
