@@ -2688,8 +2688,10 @@ class FilterMixin:
         o_sfreq = self.info["sfreq"]
         if sfreq == o_sfreq:
             logger.info(
-                f"Sampling frequency of the instance is already {sfreq}, "
-                / "returning unmodified."
+                (
+                    f"Sampling frequency of the instance is already {sfreq}, "
+                    "returning unmodified."
+                )
             )
             return self
 

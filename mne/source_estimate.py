@@ -852,8 +852,10 @@ class _BaseSourceEstimate(TimeMixin):
         o_sfreq = 1.0 / self.tstep
         if sfreq == o_sfreq:
             logger.info(
-                f"Sampling frequency of the instance is already {float(sfreq)}, "
-                / "returning unmodified."
+                (
+                    f"Sampling frequency of the instance is already {float(sfreq)}, "
+                    "returning unmodified."
+                )
             )
             return self
 

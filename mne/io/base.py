@@ -1320,8 +1320,10 @@ class BaseRaw(
         o_sfreq = float(self.info["sfreq"])
         if sfreq == o_sfreq:
             logger.info(
-                f"Sampling frequency of the instance is already {sfreq}, "
-                / "returning unmodified."
+                (
+                    f"Sampling frequency of the instance is already {sfreq}"
+                    "returning unmodified."
+                )
             )
             return self
 
