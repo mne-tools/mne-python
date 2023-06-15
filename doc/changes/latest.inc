@@ -36,7 +36,7 @@ Bugs
 - Fix bug with PySide6 compatibility (:gh:`11721` by `Eric Larson`_)
 - Fix hanging interpreter with matplotlib figures using ``mne/viz/_mpl_figure.py`` in spyder console and jupyter notebooks`(:gh:`11696` by `Mathieu Scheltienne`_)
 - Fix bug with overlapping text for :meth:`mne.Evoked.plot` (:gh:`11698` by `Alex Rockhill`_)
-- Deprecated ``gap_description`` kwarg of :func:`mne.io.read_raw_eyelink` and changed default value to ``'BAD_ACQ_SKIP'`` (:gh:`11719` by `Scott Huberty`_)
+- Deprecated ``gap_description`` keyword argument of :func:`mne.io.read_raw_eyelink` and changed default value to ``'BAD_ACQ_SKIP'`` (:gh:`11719` by `Scott Huberty`_)
 
 API changes
 ~~~~~~~~~~~
