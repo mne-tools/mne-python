@@ -1321,7 +1321,7 @@ class BaseRaw(
         if sfreq == o_sfreq:
             logger.info(
                 (
-                    f"Sampling frequency of the instance is already {sfreq}"
+                    f"Sampling frequency of the instance is already {sfreq}, "
                     "returning unmodified."
                 )
             )
