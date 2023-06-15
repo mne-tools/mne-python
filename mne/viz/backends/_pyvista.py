@@ -993,7 +993,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         center,
     ):
         # Now we can actually construct the visualization
-        grid = pyvista.UniformGrid()
+        try:
+            grid = pyvista.ImageData()
+        except AttributeError:  # PV < 0.40
+            grid = pyvista.UniformGrid()
         grid.dimensions = dimensions + 1  # inject data on the cells
         grid.origin = origin
         grid.spacing = spacing

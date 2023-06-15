@@ -401,7 +401,10 @@ def test_report_raw_psd_and_date(tmp_path):
 def test_render_add_sections(renderer, tmp_path):
     """Test adding figures/images to section."""
     pytest.importorskip("nibabel")
-    from pyvista.plotting import plotting
+    try:
+        from pyvista.plotting.plotter import _ALL_PLOTTERS
+    except Exception:  # PV < 0.40
+        from pyvista.plotting.plotting import _ALL_PLOTTERS
 
     report = Report(subjects_dir=subjects_dir)
     # Check add_figure functionality
@@ -427,15 +430,15 @@ def test_render_add_sections(renderer, tmp_path):
         report.add_image(image="foobar.xxx", title="H")
 
     evoked = read_evokeds(evoked_fname, condition="Left Auditory", baseline=(-0.2, 0.0))
-    n_before = len(plotting._ALL_PLOTTERS)
+    n_before = len(_ALL_PLOTTERS)
     fig = plot_alignment(
         evoked.info, trans_fname, subject="sample", subjects_dir=subjects_dir
     )
     n_after = n_before + 1
-    assert n_after == len(plotting._ALL_PLOTTERS)
+    assert n_after == len(_ALL_PLOTTERS)
 
     report.add_figure(fig=fig, title="random image")
-    assert n_after == len(plotting._ALL_PLOTTERS)  # not closed
+    assert n_after == len(_ALL_PLOTTERS)  # not closed
     assert repr(report)
     fname = tmp_path / "test.html"
     report.save(fname, open_browser=False)
