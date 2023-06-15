@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.io import read_raw_eyelink, BaseRaw
+from mne.io import read_raw_eyelink
 from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.utils import _check_pandas_installed, requires_pandas
@@ -26,29 +26,21 @@ def test_eyetrack_not_data_ch():
 @requires_testing_data
 @requires_pandas
 @pytest.mark.parametrize(
-    "fname, create_annotations, find_overlaps, return_calibration",
+    "fname, create_annotations, find_overlaps",
     [
-        (fname, False, False, False),
-        (fname, False, False, True),
-        (fname, True, False, False),
-        (fname, True, True, False),
-        (fname, ["fixations", "saccades", "blinks"], True, False),
+        (fname, False, False),
+        (fname, False, False),
+        (fname, True, False),
+        (fname, True, True),
+        (fname, ["fixations", "saccades", "blinks"], True),
     ],
 )
-def test_eyelink(fname, create_annotations, find_overlaps, return_calibration):
+def test_eyelink(fname, create_annotations, find_overlaps):
     """Test reading eyelink asc files."""
-    if return_calibration:
-        raw, calibrations = read_raw_eyelink(
-            fname, return_calibration=return_calibration
-        )
-        assert len(calibrations) == 2
-        assert isinstance(raw, BaseRaw)
-        return
     raw = read_raw_eyelink(
         fname,
         create_annotations=create_annotations,
         find_overlaps=find_overlaps,
-        return_calibration=return_calibration,
     )
 
     # First, tests that shouldn't change based on function arguments

@@ -10,18 +10,11 @@ testing_path = data_path(download=False)
 fname = testing_path / "eyetrack" / "test_eyelink.asc"
 
 # for test_create_calibration
-test_points = [
-    (115.0, 540.0, 0.42, 101.5, 554.8),
-    (960.0, 540.0, 0.23, 9.9, -4.1),
-    (1804.0, 540.0, 0.17, 1795.9, 539.0),
-]
-field_names = ["point_x", "point_y", "offset", "gaze_x", "gaze_y"]
-dtypes = [(name, float) for name in field_names]
-test_structured = np.array(test_points, dtype=dtypes)
-test_lists = [list(point) for point in test_points]
-test_array_2d = np.array(test_lists)
+POSITIONS = [[115.0, 540.0], [960.0, 540.0], [1804.0, 540.0]]
+OFFSETS = [0.42, 0.23, 0.17]
+GAZES = [[101.5, 554.8], [9.9, -4.1], [1795.9, 539.0]]
 
-expected_repr = (
+EXPECTED_REPR = (
     "Calibration |\n"
     "  onset: 0 seconds\n"
     "  model: H3\n"
@@ -36,35 +29,24 @@ expected_repr = (
 
 @pytest.mark.parametrize(
     (
-        "onset, model, eye, avg_error, max_error, points, screen_size, screen_distance,"
-        " screen_resolution"
+        "onset, model, eye, avg_error, max_error, positions, offsets, gaze,"
+        " screen_size, screen_distance, screen_resolution"
     ),
     [
-        (0, "H3", "right", 0.5, 1.0, test_points, (0.531, 0.298), 0.065, (1920, 1080)),
         (
             0,
             "H3",
             "right",
             0.5,
             1.0,
-            test_structured,
+            POSITIONS,
+            OFFSETS,
+            GAZES,
             (0.531, 0.298),
             0.065,
             (1920, 1080),
         ),
-        (0, "H3", "right", 0.5, 1.0, test_lists, (0.531, 0.298), 0.065, (1920, 1080)),
-        (
-            0,
-            "H3",
-            "right",
-            0.5,
-            1.0,
-            test_array_2d,
-            (0.531, 0.298),
-            0.065,
-            (1920, 1080),
-        ),
-        (None, None, None, None, None, None, None, None, None),
+        (None, None, None, None, None, None, None, None, None, None, None),
     ],
 )
 def test_create_calibration(
@@ -73,7 +55,9 @@ def test_create_calibration(
     eye,
     avg_error,
     max_error,
-    points,
+    positions,
+    offsets,
+    gaze,
     screen_size,
     screen_distance,
     screen_resolution,
@@ -85,7 +69,9 @@ def test_create_calibration(
         eye=eye,
         avg_error=avg_error,
         max_error=max_error,
-        points=points,
+        positions=positions,
+        offsets=offsets,
+        gaze=gaze,
         screen_size=screen_size,
         screen_distance=screen_distance,
         screen_resolution=screen_resolution,
@@ -96,17 +82,24 @@ def test_create_calibration(
     assert cal["eye"] == eye
     assert cal["avg_error"] == avg_error
     assert cal["max_error"] == max_error
-    if points is not None:
-        assert np.array_equal(cal["points"], test_structured)
+    if positions is not None:
+        assert isinstance(cal["positions"], np.ndarray)
+        assert np.array_equal(cal["positions"], np.array(POSITIONS))
     else:
-        assert cal["points"] is None
+        assert cal["positions"] is None
+    if offsets is None:
+        # test setting offsets with __set_item__
+        cal["offsets"] = OFFSETS
+    assert isinstance(cal["offsets"], np.ndarray)
+    assert np.array_equal(cal["offsets"], np.array(OFFSETS))
+    if gaze is None:
+        # test setting gaze with __set_item__
+        cal["gaze"] = GAZES
+    assert isinstance(cal["gaze"], np.ndarray)
+    assert np.array_equal(cal["gaze"], np.array(GAZES))
     assert cal["screen_size"] == screen_size
     assert cal["screen_distance"] == screen_distance
     assert cal["screen_resolution"] == screen_resolution
-    # test __getattr__
-    assert cal.onset == cal["onset"]
-    with pytest.raises(AttributeError):
-        assert cal.fake_key
     # test copy method
     copied_obj = cal.copy()
     # Check if the copied object is an instance of Calibration
@@ -118,7 +111,7 @@ def test_create_calibration(
     assert copied_obj["onset"] != cal["onset"]
     # test __repr__
     if cal["onset"] is not None:
-        assert repr(cal) == expected_repr  # test __repr__
+        assert repr(cal) == EXPECTED_REPR  # test __repr__
 
 
 @requires_testing_data
@@ -126,60 +119,87 @@ def test_create_calibration(
 def test_read_calibration(fname):
     """Test reading calibration data from an eyelink asc file."""
     calibrations = read_eyelink_calibration(fname)
-    expected_x_left = np.array(
-        [
-            960.0,
-            960.0,
-            960.0,
-            115.0,
-            1804.0,
-            216.0,
-            1703.0,
-            216.0,
-            1703.0,
-            537.0,
-            1382.0,
-            537.0,
-            1382.0,
-        ]
+    # These numbers were pulled from the file and confirmed.
+    POSITIONS_L = (
+        [960, 540],
+        [960, 92],
+        [960, 987],
+        [115, 540],
+        [1804, 540],
+        [216, 145],
+        [1703, 145],
+        [216, 934],
+        [1703, 934],
+        [537, 316],
+        [1382, 316],
+        [537, 763],
+        [1382, 763],
     )
-    expected_y_right = np.array(
-        [
-            540.0,
-            92.0,
-            987.0,
-            540.0,
-            540.0,
-            145.0,
-            145.0,
-            934.0,
-            934.0,
-            316.0,
-            316.0,
-            763.0,
-            763.0,
-        ]
+
+    DIFF_L = (
+        [9.9, -4.1],
+        [-7.8, 16.0],
+        [-1.9, -14.2],
+        [13.5, -14.8],
+        [8.1, 1.0],
+        [-7.0, -15.4],
+        [-10.1, -1.4],
+        [-0.3, 6.9],
+        [-32.3, -28.1],
+        [8.2, 7.6],
+        [9.6, 2.1],
+        [-10.6, -2.0],
+        [-11.8, 8.4],
     )
-    expected_gaze_y_left = np.array(
-        [
-            544.1,
-            76.0,
-            1001.2,
-            554.8,
-            539.0,
-            160.4,
-            146.4,
-            927.1,
-            962.1,
-            308.4,
-            313.9,
-            765.0,
-            754.6,
-        ]
+    GAZE_L = np.array(POSITIONS_L) + np.array(DIFF_L)
+
+    POSITIONS_R = (
+        [960, 540],
+        [960, 92],
+        [960, 987],
+        [115, 540],
+        [1804, 540],
+        [216, 145],
+        [1703, 145],
+        [216, 934],
+        [1703, 934],
+        [537, 316],
+        [1382, 316],
+        [537, 763],
+        [1382, 763],
     )
-    expected_offset_right = np.array(
-        [0.36, 0.5, 0.2, 0.1, 0.3, 0.38, 0.13, 0.33, 0.22, 0.18, 0.34, 0.52, 0.21]
+    DIFF_R = (
+        [-5.2, -16.1],
+        [23.7, 1.3],
+        [2.0, -9.3],
+        [4.4, 1.5],
+        [-6.5, -12.7],
+        [16.6, -7.5],
+        [5.7, -1.8],
+        [15.4, -3.5],
+        [-2.0, -10.2],
+        [0.1, 8.3],
+        [1.9, -15.8],
+        [-24.8, -2.3],
+        [3.2, -9.2],
     )
+    GAZE_R = np.array(POSITIONS_R) + np.array(DIFF_R)
+
+    OFFSETS_R = [
+        0.36,
+        0.50,
+        0.20,
+        0.10,
+        0.30,
+        0.38,
+        0.13,
+        0.33,
+        0.22,
+        0.18,
+        0.34,
+        0.52,
+        0.21,
+    ]
 
     assert len(calibrations) == 2  # calibration[0] is left, calibration[1] is right
     assert calibrations[0]["onset"] == 0
@@ -192,15 +212,19 @@ def test_read_calibration(fname):
     assert calibrations[0]["max_error"] == 0.90
     assert calibrations[1]["avg_error"] == 0.31
     assert calibrations[1]["max_error"] == 0.52
-    assert calibrations[0]["points"]["point_x"] == pytest.approx(expected_x_left)
-    assert calibrations[1]["points"]["point_y"] == pytest.approx(expected_y_right)
-    assert calibrations[0]["points"]["gaze_y"] == pytest.approx(expected_gaze_y_left)
-    assert calibrations[1]["points"]["offset"] == pytest.approx(expected_offset_right)
+    assert np.array_equal(POSITIONS_L, calibrations[0]["positions"])
+    assert np.array_equal(POSITIONS_R, calibrations[1]["positions"])
+    assert np.array_equal(GAZE_L, calibrations[0]["gaze"])
+    assert np.array_equal(GAZE_R, calibrations[1]["gaze"])
+    assert np.array_equal(OFFSETS_R, calibrations[1]["offsets"])
 
 
 @requires_testing_data
-@pytest.mark.parametrize("fname", [(fname)])
-def test_plot_calibration(fname):
+@pytest.mark.parametrize(
+    "fname, origin",
+    [(fname, "top-left"), (fname, "top-right"), (fname, "bottom-right")],
+)
+def test_plot_calibration(fname, origin):
     """Test plotting calibration data."""
     import matplotlib.pyplot as plt
 
@@ -209,15 +233,15 @@ def test_plot_calibration(fname):
 
     calibrations = read_eyelink_calibration(fname)
     cal_left = calibrations[0]
-    fig = cal_left.plot(show=True, show_offsets=True)
+    fig = cal_left.plot(show=True, show_offsets=True, origin=origin)
     ax = fig.axes[0]
 
     scatter1 = ax.collections[0]
     scatter2 = ax.collections[1]
-    px, py = cal_left.points["point_x"], cal_left.points["point_y"]
-    gaze_x, gaze_y = cal_left.points["gaze_x"], cal_left.points["gaze_y"]
+    px, py = cal_left["positions"].T
+    gaze_x, gaze_y = cal_left["gaze"].T
 
-    assert ax.title.get_text() == f"Calibration ({cal_left.eye} eye)"
+    assert ax.title.get_text() == f"Calibration ({cal_left['eye']} eye)"
     assert len(ax.collections) == 2  # Two scatter plots
 
     assert np.allclose(scatter1.get_offsets(), np.column_stack((px, py)))

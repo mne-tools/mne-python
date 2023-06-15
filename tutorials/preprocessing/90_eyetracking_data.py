@@ -61,22 +61,24 @@ print(first_cal)
 
 # %%
 # Here we can see that a 5-point calibration was performed at the beginning of
-# the recording. Note that you can access the calibration information directly
-# as you would a dictionary:
+# the recording. Note that you can access the calibration information using
+# dictionary style indexing:
 
 print(f"Eye calibrated: {first_cal['eye']}")
+print(f"Calibration model: {first_cal['model']}")
 print(f"Calibration average error: {first_cal['avg_error']}")
-print(f"Calibration data: {repr(first_cal['points'])})")
 
 # %%
-# The calibration points are stored as a :class:`numpy.ndarray`. Each element contains
-# data for a single calibration point: the x-coordinate and y-coordinate of the point's
-# position, the offset, and the x-coordinate and y-coordinate of the actual gaze
-# position. You can access the data for a specific calibration point by indexing the
-# array, or you can access a specific field for all calibration points by indexing the
-# field name. For example:
-print(f"data for the first point only: {first_cal['points'][0]}")
-print(f"offset for each calibration point: {first_cal['points']['offset']}")
+# The data for individual calibration points are stored as :class:`numpy.ndarray`
+# arrays, in the ``'positions'``, ``'gaze'``, and ``'offsets'`` keys. ``'positions'``
+# contains the x and y coordinates of each calibration point. ``'gaze'`` contains the
+# x and y coordinates of the actual gaze position for each calibration point.
+# ``'offsets'`` contains the offset (in visual degrees) between the calibration position
+# and the actual gaze position for each calibration point. Below is an example of
+# how to access these data:
+print(f"offset of the first calibration point: {first_cal['offsets'][0]}")
+print(f"offset for each calibration point: {first_cal['offsets']}")
+print(f"x-coordinate for each calibration point: {first_cal['positions'].T[0]}")
 
 # %%
 # Let's plot the calibration to get a better look. We'll pass

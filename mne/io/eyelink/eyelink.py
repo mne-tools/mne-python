@@ -295,11 +295,7 @@ def read_raw_eyelink(
     apply_offsets=False,
     find_overlaps=False,
     overlap_threshold=0.05,
-    gap_description="BAD_ACQ_SKIP",
-    return_calibration=False,
-    screen_size=None,
-    screen_distance=None,
-    screen_resolution=None,
+    gap_description=None,
 ):
     """Reader for an Eyelink .asc file.
 
@@ -338,24 +334,6 @@ def read_raw_eyelink(
         the annotation that will span across the gap period between the
         blocks. Uses 'BAD_ACQ_SKIP' by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
-    return_calibration : bool (default False)
-        If True, returns a tuple of (raw, calibrations) where calibrations is
-        a list of Calibration instances, each containing information about a
-        single calibration collected during the recording.
-    screen_size : array-like of shape (2,)
-        Only set if 'return_calibration' is set to True.
-        The width and height (in meters) of the screen that the eyetracking
-        data was collected with. For example (.531, .298) for a monitor with
-        a display area of 531 x 298 cm. Defaults to None.
-    screen_distance : float
-        Only set if 'return_calibration' is set to True.
-        The distance from the participant's eyes to the screen in meters.
-        Defaults to None.
-    screen_resolution : array-like of shape (2,)
-        Only set if 'return_calibration' is set to True.
-        The resolution (in pixels) of the screen that the eyetracking data
-        was collected with. For example, (1920, 1080) for a 1920x1080
-        resolution display. Defaults to None.
 
     Returns
     -------
@@ -386,18 +364,7 @@ def read_raw_eyelink(
         overlap_threshold=overlap_threshold,
         gap_desc=gap_description,
     )
-    if return_calibration:
-        from ...preprocessing.eyetracking import read_eyelink_calibration
-
-        calibrations = read_eyelink_calibration(
-            fname=fname,
-            screen_size=screen_size,
-            screen_distance=screen_distance,
-            screen_resolution=screen_resolution,
-        )
-        return raw_eyelink, calibrations
-    else:
-        return raw_eyelink
+    return raw_eyelink
 
 
 @fill_doc
@@ -428,11 +395,15 @@ class RawEyelink(BaseRaw):
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_desc : str (default 'BAD_ACQ_SKIP')
+    gap_desc : str
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
-        blocks. Uses 'BAD_ACQ_SKIP' by default so that these time periods will
-        be considered bad by MNE and excluded from operations like epoching.
+        blocks. Default is ``None``, which uses 'BAD_ACQ_SKIP' by default so that these
+        timeperiods will be considered bad by MNE and excluded from operations like
+        epoching. Note that this parameter is deprecated and will be removed in 1.6.
+        Use ``mne.annotations.rename`` instead.
+
+
     %(preload)s
     %(verbose)s
 
@@ -459,7 +430,8 @@ class RawEyelink(BaseRaw):
         Whether whether a single eye was tracked ('monocular'), or both
         ('binocular').
     _gap_desc : str
-        The description to be used for annotations returned by _make_gap_annots
+        The description to be used for annotations returned by _make_gap_annots.
+        Deprecated and will be removed in 1.6. Use ``mne.annotations.rename``
 
     See Also
     --------
@@ -476,7 +448,7 @@ class RawEyelink(BaseRaw):
         apply_offsets=False,
         find_overlaps=False,
         overlap_threshold=0.05,
-        gap_desc="BAD_ACQ_SKIP",
+        gap_desc=None,
     ):
         logger.info("Loading {}".format(fname))
 
@@ -487,6 +459,15 @@ class RawEyelink(BaseRaw):
         self._tracking_mode = None  # assigned in self._infer_col_names
         self._meas_date = None
         self._rec_info = None
+        if gap_desc is None:
+            gap_desc = "BAD_ACQ_SKIP"
+        else:
+            logger.warn(
+                "gap_description is deprecated in 1.5 and will be removed in 1.6, "
+                "use raw.annotations.rename to use a description other than "
+                "'BAD_ACQ_SKIP'",
+                FutureWarning,
+            )
         self._gap_desc = gap_desc
         self.dataframes = {}
 

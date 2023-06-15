@@ -5,12 +5,12 @@
 #          Adapted from: https://github.com/pyeparse/pyeparse
 # License: BSD-3-Clause
 
-from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
 
 from ...utils import _check_fname, fill_doc, logger
+from ...viz.utils import plt_show
 
 
 @fill_doc
@@ -21,7 +21,7 @@ class Calibration(dict):
     calibration that was conducted during an eye-tracking recording.
 
     .. note::
-        When possible, this class should be instantiated via a helper function,
+        When possible, a Calibration instance should be created with a helper function,
         such as :func:`~mne.preprocessing.eyetracking.read_eyelink_calibration`.
 
     Parameters
@@ -37,26 +37,18 @@ class Calibration(dict):
     eye : str
         The eye that was calibrated. For example, ``'left'``, or ``'right'``.
     avg_error : float
-        The average error in degrees between the calibration points and the
+        The average error in degrees between the calibration positions and the
         actual gaze position.
     max_error : float
         The maximum error in degrees that occurred between the calibration
-        points and the actual gaze position.
-    points : array-like of float, shape ``(n_calibration_points, 5)``
-        The data for the positions, actual gaze, and offsets for each calibration point.
-        Each row should contain data for 1 calibration point. The columns should be
-        of shape ``(5,)`` and contain ``(point_x, point_y, offset, gaze_x, gaze_y)``,
-        where:
-
-            - point_x: the x-coordinate of the calibration point
-            - point_y: the y-coordinate of the calibration point
-            - offset: the error in degrees between the calibration position and the
-                actual gaze position
-            - gaze_x: the x-coordinate of the actual gaze position
-            - gaze_y: the y-coordinate of the actual gaze position
-
-        If the value for a field is not available, use ``np.nan``. See the example below
-        for more details.
+        positions and the actual gaze position.
+    positions : array-like of float, shape ``(n_calibration_points, 2)``
+        The x and y coordinates of the calibration points.
+    offsets : array-like of float, shape ``(n_calibration_points,)``
+        The error in degrees between the calibration position and the actual
+        gaze position for each calibration point.
+    gaze : array-like of float, shape ``(n_calibration_points, 2)``
+        The x and y coordinates of the actual gaze position for each calibration point.
     screen_size : array-like of shape ``(2,)``
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
@@ -85,9 +77,13 @@ class Calibration(dict):
     max_error : float
         The maximum error in degrees that occurred between the calibration points and
         the actual gaze position.
-    points : ndarray
-        a 1D structured numpy array of shape ``(n_calibration_points,)``, which contains
-        the data for each calibration point.
+    positions : ndarray of float, shape ``(n_calibration_points, 2)``
+        The x and y coordinates of the calibration points.
+    offsets : ndarray of float, shape ``(n_calibration_points,)``
+        The error in degrees between the calibration position and the actual
+        gaze position for each calibration point.
+    gaze : ndarray of float, shape ``(n_calibration_points, 2)``
+        The x and y coordinates of the actual gaze position for each calibration point.
     screen_size : array-like
         The width and height (in meters) of the screen that the eyetracking data was
         collected  with. For example ``(.531, .298)`` for a monitor with a display area
@@ -98,11 +94,6 @@ class Calibration(dict):
         The resolution (in pixels) of the screen that the eyetracking data was
         collected with. For example, ``(1920, 1080)`` for a 1920x1080 resolution
         display.
-
-    Examples
-    --------
-    Below is an example of data that can be passed to the points parameter:
-    ``>>> data = [(960., 540., 0.23, 950.1,  544.1), (960., 92., 0.38, 967.8, 76. )]``
     """
 
     def __init__(
@@ -112,7 +103,9 @@ class Calibration(dict):
         eye=None,
         avg_error=None,
         max_error=None,
-        points=None,
+        positions=None,
+        offsets=None,
+        gaze=None,
         screen_size=None,
         screen_distance=None,
         screen_resolution=None,
@@ -127,10 +120,9 @@ class Calibration(dict):
             screen_distance=screen_distance,
             screen_resolution=screen_resolution,
         )
-        if points is not None:
-            self.set_calibration_array(points)
-        else:
-            self["points"] = points
+        self["positions"] = positions
+        self["offsets"] = offsets
+        self["gaze"] = gaze
 
     def __repr__(self):
         """Return a summary of the Calibration object."""
@@ -154,14 +146,6 @@ class Calibration(dict):
             f"  screen resolution: {screen_resolution} pixels\n"
         )
 
-    def __getattr__(self, name):
-        """Allow dot indexing of dict keys."""
-        if name in self:
-            return self[name]
-        raise AttributeError(
-            f"'{self.__class__.__name__}' object has no attribute '{name}'"
-        )
-
     def copy(self):
         """Copy the instance.
 
@@ -172,68 +156,17 @@ class Calibration(dict):
         """
         return deepcopy(self)
 
-    def set_calibration_array(self, data):
+    def __setitem__(self, key, value):
+        """Make sure that some keys are caste as numpy arrays.
+
+        Because methods like plot expect numpy arrays.
         """
-        Create a Numpy Array containing data regarding each calibration point.
+        if key in ("positions", "offsets", "gaze") and isinstance(value, (tuple, list)):
+            logger.info("Converting %s to numpy array", key)
+            value = np.array(value)
+        super().__setitem__(key, value)
 
-        This method takes an array-like objects and converts it into a structured numpy
-        array, with field names ``'point_x'``, ``'point_y'``, ``'offset'``,
-        ``'gaze_x'``, and ``'gaze_y'``.
-
-        Parameters
-        ----------
-        data : array-like of float, shape ``(n_calibration_points, 5)``
-            The data for the positions, actual gaze, and offsets for each calibration
-            point. Each row should contain data for 1 calibration point. The columns
-            should be of shape ``(5,)`` and contain
-            ``(point_x, point_y, offset, gaze_x, gaze_y)``, where:
-
-                - point_x: the x-coordinate of the calibration point
-                - point_y: the y-coordinate of the calibration point
-                - offset: the error in degrees between the calibration position and the
-                    actual gaze position
-                - gaze_x: the x-coordinate of the actual gaze position
-                - gaze_y: the y-coordinate of the actual gaze position
-
-            If the value for a field is not available, use ``np.nan``. See the example
-            below for more details.
-
-        Returns
-        -------
-        self: instance of Calibration
-            The Calibration instance, with the points attribute containing a structured
-            numpy array, with field names ``'point_x'``, ``'point_y'``, ``'offset'``,
-            ``'diff_x'``, and ``'diff_y'``.
-
-        Examples
-        --------
-        Below is an example of a list of tuples that can be passed to this method:
-        ``>>> data = [(960., 540., 0.23, 950.1, 544.1), (960., 92., 0.38, 967.8, 76.)]``
-        """
-        from numpy.lib.recfunctions import unstructured_to_structured
-
-        field_names = ("point_x", "point_y", "offset", "gaze_x", "gaze_y")
-        dtypes = np.dtype([(name, float) for name in field_names])
-        if isinstance(data, (list, tuple)):
-            data = np.array(data, dtype=np.float64)
-
-        if not isinstance(data, np.ndarray):
-            raise TypeError(
-                "data must be array-like of shape (n_points, 5). got {data}"
-            )
-        if data.dtype.names == field_names:
-            # already a structured array
-            structured_array = data
-        else:
-            structured_array = unstructured_to_structured(data, dtype=dtypes)
-        assert structured_array.ndim == 1
-        if not len(structured_array[0]) == 5:
-            raise ValueError(
-                f"Each column in data must have have 5 elements: got {data}"
-            )
-        self["points"] = structured_array
-
-    def plot(self, title=None, show_offsets=False, invert_y_axis=True, show=True):
+    def plot(self, title=None, show_offsets=False, origin="top-left", show=True):
         """Visualize calibration.
 
         Parameters
@@ -243,10 +176,11 @@ class Calibration(dict):
         show_offsets : bool
             Whether to display the offset (in visual degrees) of each calibration
             point or not. Defaults to ``False``.
-        invert_y_axis : bool
-            Whether to invert the y-axis or not. In many monitors, pixel coordinate
-            (0,0), which is often referred to as origin, is at the top left of corner
-            of the screen. Defaults to ``True``.
+        origin : str
+            What should be considered the origin of the screen. Can be ``'top-left'``,
+            ``'top-right'``, ``'bottom-left'``, or ``'bottom-right'``. Defaults to
+            ``'top-left'`` because for most monitors, pixel coordinate ``(0,0)``, often
+            referred to as origin, is at the top left of corner of the screen.
         show : bool
             Whether to show the figure or not. Defaults to ``True``.
 
@@ -257,14 +191,13 @@ class Calibration(dict):
         """
         import matplotlib.pyplot as plt
 
-        if not isinstance(self["points"], np.ndarray):
-            raise TypeError(
-                "Calibration points must be a numpy array. Use "
-                "set_calibration_array() to set calibration data."
-            )
+        msg = "positions and gaze keys must both be 2D numpy arrays."
+        assert isinstance(self["positions"], np.ndarray), msg
+        assert isinstance(self["gaze"], np.ndarray), msg
+
         fig, ax = plt.subplots(constrained_layout=True)
-        px, py = self["points"]["point_x"], self["points"]["point_y"]
-        gaze_x, gaze_y = self["points"]["gaze_x"], self["points"]["gaze_y"]
+        px, py = self["positions"].T
+        gaze_x, gaze_y = self["gaze"].T
 
         if title is None:
             ax.set_title(f"Calibration ({self['eye']} eye)")
@@ -286,10 +219,21 @@ class Calibration(dict):
             fontsize=8,
         )
 
-        if invert_y_axis:
+        msg = (
+            "origin must be 'top-left', 'top-right', 'bottom-left', or 'bottom-right."
+            f" got {origin}"
+        )
+        assert origin in ("top-left", "top-right", "bottom-left", "bottom-right"), msg
+        if origin == "top-left":
             # Invert the y-axis because origin is at the top left corner for most
             # monitors
             ax.invert_yaxis()
+        elif origin == "top-right":
+            ax.invert_yaxis()
+            ax.invert_xaxis()
+        elif origin == "bottom-right":
+            ax.invert_xaxis()
+        # if origin is 'bottom-left' no need to do anything
         ax.scatter(px, py, color="gray")
         ax.scatter(gaze_x, gaze_y, color="red", alpha=0.5)
 
@@ -299,13 +243,13 @@ class Calibration(dict):
                 text = ax.text(
                     x=gaze_x[i] + x_offset,
                     y=gaze_y[i],
-                    s=self["points"]["offset"][i],
+                    s=self["offsets"][i],
                     fontsize=8,
                     ha="left",
                     va="center",
                 )
 
-        fig.show() if show else None
+        plt_show(show)
         return fig
 
 
@@ -319,14 +263,14 @@ def read_eyelink_calibration(
     ----------
     fname : path-like
         Path to the eyelink file (.asc).
-    screen_size : array-like of shape (2,)
+    screen_size : array-like of shape ``(2,)``
         The width and height (in meters) of the screen that the eyetracking
         data was collected with. For example ``(.531, .298)`` for a monitor with
         a display area of 531 x 298 mm. Defaults to ``None``.
     screen_distance : float
         The distance (in meters) from the participant's eyes to the screen.
         Defaults to ``None``.
-    screen_resolution : array-like of shape (2,)
+    screen_resolution : array-like of shape ``(2,)``
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display. Defaults to ``None``.

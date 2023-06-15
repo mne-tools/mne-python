@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 
 import re
+import numpy as np
 
 
 def _find_recording_start(lines):
@@ -38,8 +39,8 @@ def _parse_validation_line(line):
     xy = tokens[-6].strip("[]").split(",")  # e.g. '960, 540'
     xy_diff = tokens[-2].strip("[]").split(",")  # e.g. '-1.5, -2.8'
     vals = [float(v) for v in [*xy, tokens[-4], *xy_diff]]
-    vals[3] = vals[0] - vals[3]  # cal_x - eye_x
-    vals[4] = vals[1] - vals[4]  # cal_y - eye_y
+    vals[3] += vals[0]  # pos_x + eye_x i.e. 960 + -1.5
+    vals[4] += vals[1]  # pos_y + eye_y
 
     return tuple(vals)
 
@@ -89,7 +90,7 @@ def _parse_calibration(
             calibration["avg_error"] = avg_error
             calibration["max_error"] = max_error
 
-            n_points = int(regex.search(calibration["model"]).group())  # e.g. 9
+            n_points = int(regex.search(calibration["model"]).group())  # e.g. 13
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
             # The next n_point lines contain the validation data
             points = []
@@ -104,6 +105,8 @@ def _parse_calibration(
                 point_info = _parse_validation_line(subline)
                 points.append(point_info)
             # Convert the list of validation data into a numpy array
-            calibration.set_calibration_array(points)
+            calibration["positions"] = np.array([point[:2] for point in points])
+            calibration["offsets"] = np.array([point[2] for point in points])
+            calibration["gaze"] = np.array([point[3:] for point in points])
             calibrations.append(calibration)
     return calibrations

@@ -724,8 +724,6 @@ bibtex_footbibliography_header = ""
 nitpicky = True
 nitpick_ignore = [
     ("py:class", "None.  Remove all items from D."),
-    ("py:class", "None.  Remove all items from od."),
-    ("py:class", "a shallow copy of od"),
     ("py:class", "a set-like object providing a view on D's items"),
     ("py:class", "a set-like object providing a view on D's keys"),
     (
