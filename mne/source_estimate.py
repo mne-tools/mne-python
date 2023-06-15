@@ -849,11 +849,18 @@ class _BaseSourceEstimate(TimeMixin):
 
         Note that the sample rate of the original data is inferred from tstep.
         """
+        o_sfreq = 1.0 / self.tstep
+        if sfreq == o_sfreq:
+            logger.info(
+                f"Sampling frequency of the instance is already {float(sfreq)}, "
+                / "returning unmodified."
+            )
+            return self
+
         # resampling in sensor instead of source space gives a somewhat
         # different result, so we don't allow it
         self._remove_kernel_sens_data_()
 
-        o_sfreq = 1.0 / self.tstep
         data = self.data
         if data.dtype == np.float32:
             data = data.astype(np.float64)

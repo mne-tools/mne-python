@@ -1316,6 +1316,15 @@ class BaseRaw(
         ``self.load_data()``, but this increases memory requirements. The
         resulting raw object will have the data loaded into memory.
         """
+        sfreq = float(sfreq)
+        o_sfreq = float(self.info["sfreq"])
+        if sfreq == o_sfreq:
+            logger.info(
+                f"Sampling frequency of the instance is already {sfreq}, "
+                / "returning unmodified."
+            )
+            return self
+
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
         # for a variety of reasons, e.g. if no stim channel is present or it is
@@ -1326,9 +1335,6 @@ class BaseRaw(
                 original_events = find_events(self)
             except Exception:
                 pass
-
-        sfreq = float(sfreq)
-        o_sfreq = float(self.info["sfreq"])
 
         offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
 

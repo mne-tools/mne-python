@@ -2684,10 +2684,16 @@ class FilterMixin:
         # mne.io.base.BaseRaw overrides this method
         assert isinstance(self, (BaseEpochs, Evoked))
 
-        _check_preload(self, "inst.resample")
-
         sfreq = float(sfreq)
         o_sfreq = self.info["sfreq"]
+        if sfreq == o_sfreq:
+            logger.info(
+                f"Sampling frequency of the instance is already {sfreq}, "
+                / "returning unmodified."
+            )
+            return self
+
+        _check_preload(self, "inst.resample")
         self._data = resample(
             self._data, sfreq, o_sfreq, npad, window=window, n_jobs=n_jobs, pad=pad
         )
