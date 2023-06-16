@@ -41,4 +41,4 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - The ``baseline`` argument can now be array-like (e.g. ``list``, ``tuple``, ``np.ndarray``, ...) instead of only a ``tuple`` (:gh:`11713` by `Clemens Brunner`_)
-- Deprecated ``gap_description`` keyword argument of :func:`mne.io.read_raw_eyelink`, which will be removed in mne version 1.6, in favor of using :func:`mne.Annotations.rename` (:gh:`11719` by `Scott Huberty`_)
+- Deprecated ``gap_description`` keyword argument of :func:`mne.io.read_raw_eyelink`, which will be removed in mne version 1.6, in favor of using :meth:`mne.Annotations.rename` (:gh:`11719` by `Scott Huberty`_)
