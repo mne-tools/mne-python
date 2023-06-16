@@ -166,7 +166,7 @@ class Calibration(dict):
             value = np.array(value)
         super().__setitem__(key, value)
 
-    def plot(self, title=None, show_offsets=False, origin="top-left", show=True):
+    def plot(self, title=None, show_offsets=True, origin="top-left", show=True):
         """Visualize calibration.
 
         Parameters
