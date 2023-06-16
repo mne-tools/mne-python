@@ -137,7 +137,11 @@ _BUILTIN_STANDARD_MONTAGES = [
     ),
     _BuiltinStandardMontage(
         name="easycap-M10",
-        description="EasyCap with numbered electrodes (61 locations)",
+        description="EasyCap with numbered electrodes (61 locations)", 
+    ),
+    _BuiltinStandardMontage(
+        name="easycap-M43",
+        description="EasyCap with numbered electrodes (64 locations)",
     ),
     _BuiltinStandardMontage(
         name="EGI_256",
