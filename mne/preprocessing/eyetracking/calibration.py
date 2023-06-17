@@ -9,7 +9,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from ...utils import _check_fname, fill_doc, logger
+from ...utils import _check_fname, _check_option, fill_doc, logger
 from ...viz.utils import plt_show
 
 
