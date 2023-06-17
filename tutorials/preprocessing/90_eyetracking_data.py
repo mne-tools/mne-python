@@ -33,14 +33,13 @@ pupil response to light flashes (i.e. the pupillary light reflex).
 # ``'eyegaze'``, channels (X/Y), 1 ``'pupil'`` channel, and 1 ``'stim'``
 # channel.
 
-from mne import Epochs, find_events
-from mne.io import read_raw_eyelink
+import mne
 from mne.datasets.eyelink import data_path
 
 eyelink_fname = data_path() / "mono_multi-block_multi-DINS.asc"
 
-raw = read_raw_eyelink(eyelink_fname, create_annotations=["blinks", "messages"])
-raw.crop(tmin=0, tmax=146)
+raw = mne.io.read_raw_eyelink(eyelink_fname, create_annotations=["blinks", "messages"])
+raw.crop(tmin=0, tmax=130)  # for this demonstration, let's take a subset of the data
 
 # %%
 # Get stimulus events from DIN channel
@@ -55,7 +54,9 @@ raw.crop(tmin=0, tmax=146)
 # In the example data, the DIN channel contains the onset of light flashes on
 # the screen. We now extract these events to visualize the pupil response.
 
-events = find_events(raw, "DIN", shortest_event=1, min_duration=0.02, uint_cast=True)
+events = mne.find_events(
+    raw, "DIN", shortest_event=1, min_duration=0.02, uint_cast=True
+)
 event_dict = {"flash": 3}
 
 
@@ -81,25 +82,86 @@ raw.plot(
     scalings=dict(eyegaze=1e3),
 )
 
+# %%
+# Dealing with artifacts
+# ----------------------
+# From the plot above, we see that there are some artifacts in the data that we should
+# remove before analyzing the pupil response. First, we notice that there is some
+# high frequency noise in the pupil signal, likely due to the sub-optimal calibration
+# of the eye tracker. We can remove this noise by low-pass filtering the data:
+
+# Apply a low pass filter to the pupil channel
+raw.filter(l_freq=None, h_freq=40, picks=["pupil_right"])
+
+# %%
+# Dealing with blink artifacts
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# We also notice that, naturally, there are blinks in our data, and these blink periods
+# occur within ``"blink_R"``  annotations. During blink periods, ``"eyegaze"``
+# coordinates are not reported, and ``"pupil"`` size data are ``0``. We don't want these
+# blink artifacts biasing our analysis, so we have two options: We can either remove the
+# blink periods from our data (by using ``raw.annotations.rename({blink_R: bad_blink})``
+# so that the blinks are removed before epoching), or we can interpolate the pupil size
+# data during the blink periods. If we were interested in analyzing the eye position
+# data, we would need to remove the blink periods from our data. However, since we are
+# only interested in the pupil size data, let's interpolate the missing pupil sizes in
+# the ``"pupil"`` channel during blinks:
+
+mne.preprocessing.eyetracking.interpolate_blinks(raw, buffer=0.05)
+# Let's plot our data again to see the result of the interpolation:
+raw.pick(["pupil_right"])  # Let's pick just the pupil channel
+raw.plot(events=events, event_id={"Flash": 3}, event_color="g")
+
+# %%
+# :func:`~mne.preprocessing.eyetracking.interpolate_blinks` performs a simple linear
+# interpolation of the pupil size data during blink periods. the ``buffer`` keyword
+# argument specifies the amount of time (in seconds) before and after the blinks to
+# include in the interpolation. This is helpful because the ``blink`` annotations
+# do not always capture the entire blink in the signal. We specified a value of ``.05``
+# seconds (50 ms), which is slightly more than the default value of ``.025``.
+
+# %%
+# Rejecting bad spans of data
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Even after filtering the pupil data and interpolating the blink periods, we still see
+# some artifacts in the data (the large spikes) that we don't want to include in our
+# analysis. Let's epoch our data and then reject any epochs that might contain these
+# artifacts. We'll use :class:`mne.Epochs` to epoch our data, and pass in the
+# ``events`` array and ``event_dict`` that we created earlier. We'll also pass in the
+# ``reject`` keyword argument to reject any epochs that contain data that exceeds a
+# peak-to-peak signal amplitude threshold of ``1500`` in the ``"pupil"`` channel.
+# Note that this threshold is arbitrary, and should be adjusted based on the data.
+# We chose 1500 because eyelink reports pupil size in arbitrary units (AU), which
+# typically ranges from 800 to 3000 units. Our epochs already contains large
+# signal fluctuations due to the pupil response, so a threshold of 1500 is conservative
+# enough to reject epochs only with large artifacts.
+
+epochs = mne.Epochs(
+    raw,
+    events,
+    tmin=-0.3,
+    tmax=5,
+    event_id=event_dict,
+    preload=True,
+    reject=dict(pupil=1500),
+)
+epochs.plot()
+
+# %%
+# We can clearly see the prominent decrease in pupil size following the
+# stimulation.
 
 # %%
 # Plot average pupil response
 # ---------------------------
 #
-# We now visualize the pupillary light reflex.
-# Therefore, we select only the pupil channel and plot the evoked response to
-# the light flashes.
-#
-# As we see, there is a prominent decrease in pupil size following the
-# stimulation. The noise starting about 2.5 s after stimulus onset stems from
-# eyeblinks and artifacts in some of the 16 trials.
+# Finally, let's plot the evoked response to the light flashes to get a sense of the
+# average pupillary light response.
 
-epochs = Epochs(raw, events, tmin=-0.3, tmax=5, event_id=event_dict, preload=True)
-epochs.pick_types(eyetrack="pupil")
 epochs.average().plot()
 
 # %%
-# It is important to note that pupil size data are reported by Eyelink (and
+# Again, it is important to note that pupil size data are reported by Eyelink (and
 # stored internally by MNE) as arbitrary units (AU). While it often can be
 # preferable to convert pupil size data to millimeters, this requires
 # information that is not always present in the file. MNE does not currently

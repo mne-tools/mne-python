@@ -154,6 +154,7 @@ Projections:
    :toctree: generated/
 
    set_channel_types_eyetrack
+   interpolate_blinks
 
 EEG referencing:
 
