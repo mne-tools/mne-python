@@ -7,11 +7,14 @@ import pytest
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.preprocessing.eyetracking import interpolate_blinks
+from mne.utils import requires_pandas
+
 
 fname = data_path(download=False) / "eyetrack" / "test_eyelink.asc"
 
 
 @requires_testing_data
+@requires_pandas
 @pytest.mark.parametrize("buffer", [0.025, (0.025, 0.1)])
 def test_interpolate_blinks(buffer):
     """Test interpolating pupil data during blinks."""
