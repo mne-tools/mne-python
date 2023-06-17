@@ -5,7 +5,6 @@ License: BSD-3-Clause
 """
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from ...io import BaseRaw
 from ...utils import logger, _check_preload, _validate_type
@@ -33,6 +32,8 @@ def interpolate_blinks(raw, buffer=0.025):
     self : instance of Raw
         The data with interpolated blinks.
     """
+    from scipy.interpolate import interp1d
+
     _check_preload(raw, "interpolate_blinks")
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(buffer, (float, tuple, list, np.ndarray), "buffer")
