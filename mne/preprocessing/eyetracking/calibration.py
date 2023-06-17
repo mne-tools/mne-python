@@ -59,53 +59,19 @@ class Calibration(dict):
         The resolution (in pixels) of the screen that the eyetracking data
         was collected with. For example, ``(1920, 1080)`` for a 1920x1080
         resolution display.
-
-    Attributes
-    ----------
-    onset : float
-        The onset of the calibration in seconds. If the calibration was
-        performed before the recording started, the onset will be ``0`` seconds.
-    model : str
-        A string, which is the model of the calibration that was applied. For
-        example ``'H3'`` for a horizontal only 3-point calibration, or ``'HV3'`` for a
-        horizontal and vertical 3-point calibration.
-    eye : str
-        The eye that was calibrated. For example, ``'left'``, or ``'right'``.
-    avg_error : float
-        The average error in degrees between the calibration points and the actual gaze
-        position.
-    max_error : float
-        The maximum error in degrees that occurred between the calibration points and
-        the actual gaze position.
-    positions : ndarray of float, shape ``(n_calibration_points, 2)``
-        The x and y coordinates of the calibration points.
-    offsets : ndarray of float, shape ``(n_calibration_points,)``
-        The error in degrees between the calibration position and the actual
-        gaze position for each calibration point.
-    gaze : ndarray of float, shape ``(n_calibration_points, 2)``
-        The x and y coordinates of the actual gaze position for each calibration point.
-    screen_size : array-like
-        The width and height (in meters) of the screen that the eyetracking data was
-        collected  with. For example ``(.531, .298)`` for a monitor with a display area
-        of 531 x 298 mm.
-    screen_distance : float
-        The distance (in meters) from the participant's eyes to the screen.
-    screen_resolution : array-like
-        The resolution (in pixels) of the screen that the eyetracking data was
-        collected with. For example, ``(1920, 1080)`` for a 1920x1080 resolution
-        display.
     """
 
     def __init__(
         self,
-        onset=None,
-        model=None,
-        eye=None,
-        avg_error=None,
-        max_error=None,
-        positions=None,
-        offsets=None,
-        gaze=None,
+        *,
+        onset,
+        model,
+        eye,
+        avg_error,
+        max_error,
+        positions,
+        offsets,
+        gaze,
         screen_size=None,
         screen_distance=None,
         screen_resolution=None,
@@ -119,10 +85,10 @@ class Calibration(dict):
             screen_size=screen_size,
             screen_distance=screen_distance,
             screen_resolution=screen_resolution,
+            positions=positions,
+            offsets=offsets,
+            gaze=gaze,
         )
-        self["positions"] = positions
-        self["offsets"] = offsets
-        self["gaze"] = gaze
 
     def __repr__(self):
         """Return a summary of the Calibration object."""
@@ -223,7 +189,7 @@ class Calibration(dict):
             "origin must be 'top-left', 'top-right', 'bottom-left', or 'bottom-right."
             f" got {origin}"
         )
-        assert origin in ("top-left", "top-right", "bottom-left", "bottom-right"), msg
+        _check_option('origin', origin, ("top-left", "top-right", "bottom-left", "bottom-right"))
         if origin == "top-left":
             # Invert the y-axis because origin is at the top left corner for most
             # monitors
