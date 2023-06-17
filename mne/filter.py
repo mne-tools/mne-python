@@ -2435,6 +2435,18 @@ def _triage_filter_params(
     )
 
 
+def _check_resamp_noop(sfreq, o_sfreq, rtol=0):
+    if np.isclose(sfreq, o_sfreq, atol=0, rtol=rtol):
+        logger.info(
+            (
+                f"Sampling frequency of the instance is already {sfreq}, "
+                "returning unmodified."
+            )
+        )
+        return True
+    return False
+
+
 class FilterMixin:
     """Object for Epoch/Evoked filtering."""
 
@@ -2686,13 +2698,7 @@ class FilterMixin:
 
         sfreq = float(sfreq)
         o_sfreq = self.info["sfreq"]
-        if sfreq == o_sfreq:
-            logger.info(
-                (
-                    f"Sampling frequency of the instance is already {sfreq}, "
-                    "returning unmodified."
-                )
-            )
+        if _check_resamp_noop(sfreq, o_sfreq):
             return self
 
         _check_preload(self, "inst.resample")

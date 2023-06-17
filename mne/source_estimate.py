@@ -849,14 +849,10 @@ class _BaseSourceEstimate(TimeMixin):
 
         Note that the sample rate of the original data is inferred from tstep.
         """
+        from .filter import _check_resamp_noop
+
         o_sfreq = 1.0 / self.tstep
-        if sfreq == o_sfreq:
-            logger.info(
-                (
-                    f"Sampling frequency of the instance is already {float(sfreq)}, "
-                    "returning unmodified."
-                )
-            )
+        if _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
             return self
 
         # resampling in sensor instead of source space gives a somewhat

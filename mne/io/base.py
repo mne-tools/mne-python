@@ -1316,15 +1316,11 @@ class BaseRaw(
         ``self.load_data()``, but this increases memory requirements. The
         resulting raw object will have the data loaded into memory.
         """
+        from ..filter import _check_resamp_noop
+
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
-        if sfreq == o_sfreq:
-            logger.info(
-                (
-                    f"Sampling frequency of the instance is already {sfreq}, "
-                    "returning unmodified."
-                )
-            )
+        if _check_resamp_noop(sfreq, o_sfreq):
             return self
 
         # When no event object is supplied, some basic detection of dropped
