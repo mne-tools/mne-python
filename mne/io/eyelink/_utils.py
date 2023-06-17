@@ -70,27 +70,15 @@ def _parse_calibration(
         if (
             "!CAL VALIDATION " in line and "ABORTED" not in line
         ):  # Start of a calibration
-            calibration = Calibration(
-                screen_size=screen_size,
-                screen_distance=screen_distance,
-                screen_resolution=screen_resolution,
-            )
             tokens = line.split()
-            this_eye = tokens[6].lower()
-            assert this_eye in ["left", "right"], this_eye
-            calibration["model"] = tokens[4]  # e.g. 'HV13'
-            assert calibration["model"].startswith("H")
-            calibration["eye"] = this_eye
+            model = tokens[4]  # e.g. 'HV13'
+            this_eye = tokens[6].lower()  # e.g. 'left'
             timestamp = float(tokens[1])
             onset = (timestamp - rec_start) / 1000.0  # in seconds
-            calibration["onset"] = 0 if onset < 0 else onset
-
             avg_error = float(line.split("avg.")[0].split()[-1])  # e.g. 0.3
             max_error = float(line.split("max")[0].split()[-1])  # e.g. 0.9
-            calibration["avg_error"] = avg_error
-            calibration["max_error"] = max_error
 
-            n_points = int(regex.search(calibration["model"]).group())  # e.g. 13
+            n_points = int(regex.search(model).group())  # e.g. 13
             n_points *= 2 if "LR" in line else 1  # one point per eye if "LR"
             # The next n_point lines contain the validation data
             points = []
@@ -98,15 +86,28 @@ def _parse_calibration(
                 subline = lines[line_number + validation_index + 1]
                 if "!CAL VALIDATION" in subline:
                     continue  # for bino mode, skip the second eye's validation summary
-                subline_eye = subline.split("at")[0].split()[-1].lower()
-                assert subline_eye in ["left", "right"], subline_eye
+                subline_eye = subline.split("at")[0].split()[-1].lower()  # e.g. 'left'
                 if subline_eye != this_eye:
                     continue  # skip the validation lines for the other eye
                 point_info = _parse_validation_line(subline)
                 points.append(point_info)
             # Convert the list of validation data into a numpy array
-            calibration["positions"] = np.array([point[:2] for point in points])
-            calibration["offsets"] = np.array([point[2] for point in points])
-            calibration["gaze"] = np.array([point[3:] for point in points])
+            positions = np.array([point[:2] for point in points])
+            offsets = np.array([point[2] for point in points])
+            gaze = np.array([point[3:] for point in points])
+            # create the Calibration instance
+            calibration = Calibration(
+                onset=0 if onset < 0 else onset,  # 0 if calibrated before recording
+                model=model,
+                eye=this_eye,
+                avg_error=avg_error,
+                max_error=max_error,
+                positions=positions,
+                offsets=offsets,
+                gaze=gaze,
+                screen_size=screen_size,
+                screen_distance=screen_distance,
+                screen_resolution=screen_resolution,
+            )
             calibrations.append(calibration)
     return calibrations

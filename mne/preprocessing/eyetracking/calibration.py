@@ -92,24 +92,16 @@ class Calibration(dict):
 
     def __repr__(self):
         """Return a summary of the Calibration object."""
-        onset = self.get("onset", "N/A")
-        model = self.get("model", "N/A")
-        eye = self.get("eye", "N/A")
-        avg_error = self.get("avg_error", "N/A")
-        max_error = self.get("max_error", "N/A")
-        screen_size = self.get("screen_size", "N/A")
-        screen_distance = self.get("screen_distance", "N/A")
-        screen_resolution = self.get("screen_resolution", "N/A")
         return (
             f"Calibration |\n"
-            f"  onset: {onset} seconds\n"
-            f"  model: {model}\n"
-            f"  eye: {eye}\n"
-            f"  average error: {avg_error} degrees\n"
-            f"  max error: {max_error} degrees\n"
-            f"  screen size: {screen_size} meters\n"
-            f"  screen distance: {screen_distance} meters\n"
-            f"  screen resolution: {screen_resolution} pixels\n"
+            f"  onset: {self['onset']} seconds\n"
+            f"  model: {self['model']}\n"
+            f"  eye: {self['eye']}\n"
+            f"  average error: {self['avg_error']} degrees\n"
+            f"  max error: {self['max_error']} degrees\n"
+            f"  screen size: {self['screen_size']} meters\n"
+            f"  screen distance: {self['screen_distance']} meters\n"
+            f"  screen resolution: {self['screen_resolution']} pixels\n"
         )
 
     def copy(self):
@@ -122,16 +114,6 @@ class Calibration(dict):
         """
         return deepcopy(self)
 
-    def __setitem__(self, key, value):
-        """Make sure that some keys are caste as numpy arrays.
-
-        Because methods like plot expect numpy arrays.
-        """
-        if key in ("positions", "offsets", "gaze") and isinstance(value, (tuple, list)):
-            logger.info("Converting %s to numpy array", key)
-            value = np.array(value)
-        super().__setitem__(key, value)
-
     def plot(self, title=None, show_offsets=True, origin="top-left", show=True):
         """Visualize calibration.
 
@@ -141,7 +123,7 @@ class Calibration(dict):
             The title to be displayed. Defaults to ``None``, which uses a generic title.
         show_offsets : bool
             Whether to display the offset (in visual degrees) of each calibration
-            point or not. Defaults to ``False``.
+            point or not. Defaults to ``True``.
         origin : str
             What should be considered the origin of the screen. Can be ``'top-left'``,
             ``'top-right'``, ``'bottom-left'``, or ``'bottom-right'``. Defaults to
@@ -189,7 +171,9 @@ class Calibration(dict):
             "origin must be 'top-left', 'top-right', 'bottom-left', or 'bottom-right."
             f" got {origin}"
         )
-        _check_option('origin', origin, ("top-left", "top-right", "bottom-left", "bottom-right"))
+        _check_option(
+            "origin", origin, ("top-left", "top-right", "bottom-left", "bottom-right")
+        )
         if origin == "top-left":
             # Invert the y-axis because origin is at the top left corner for most
             # monitors

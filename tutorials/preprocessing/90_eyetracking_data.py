@@ -81,9 +81,10 @@ print(f"offset for each calibration point: {first_cal['offsets']}")
 print(f"x-coordinate for each calibration point: {first_cal['positions'].T[0]}")
 
 # %%
-# Let's plot the calibration to get a better look. We'll pass
-# ``show_offsets=True`` to show the offsets (in visual degrees) between the
-# calibration position and the actual gaze position of each calibration point.
+# Let's plot the calibration to get a better look. Below we see the location that each
+# calibration point was displayed (gray dots), the positions of the actual gaze (red),
+# and the offsets (in visual degrees) between the calibration position and the actual
+# gaze position of each calibration point.
 
 first_cal.plot(show_offsets=True)
 

@@ -10,9 +10,9 @@ testing_path = data_path(download=False)
 fname = testing_path / "eyetrack" / "test_eyelink.asc"
 
 # for test_create_calibration
-POSITIONS = [[115.0, 540.0], [960.0, 540.0], [1804.0, 540.0]]
-OFFSETS = [0.42, 0.23, 0.17]
-GAZES = [[101.5, 554.8], [9.9, -4.1], [1795.9, 539.0]]
+POSITIONS = np.array([[115.0, 540.0], [960.0, 540.0], [1804.0, 540.0]])
+OFFSETS = np.array([0.42, 0.23, 0.17])
+GAZES = np.array([[101.5, 554.8], [9.9, -4.1], [1795.9, 539.0]])
 
 EXPECTED_REPR = (
     "Calibration |\n"
@@ -87,16 +87,12 @@ def test_create_calibration(
         assert np.array_equal(cal["positions"], np.array(POSITIONS))
     else:
         assert cal["positions"] is None
-    if offsets is None:
-        # test setting offsets with __set_item__
-        cal["offsets"] = OFFSETS
-    assert isinstance(cal["offsets"], np.ndarray)
-    assert np.array_equal(cal["offsets"], np.array(OFFSETS))
-    if gaze is None:
-        # test setting gaze with __set_item__
-        cal["gaze"] = GAZES
-    assert isinstance(cal["gaze"], np.ndarray)
-    assert np.array_equal(cal["gaze"], np.array(GAZES))
+    if offsets is not None:
+        assert isinstance(cal["offsets"], np.ndarray)
+        assert np.array_equal(cal["offsets"], np.array(OFFSETS))
+    if gaze is not None:
+        assert isinstance(cal["gaze"], np.ndarray)
+        assert np.array_equal(cal["gaze"], np.array(GAZES))
     assert cal["screen_size"] == screen_size
     assert cal["screen_distance"] == screen_distance
     assert cal["screen_resolution"] == screen_resolution

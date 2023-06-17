@@ -333,7 +333,7 @@ def read_raw_eyelink(
         This parameter is deprecated and will be removed in 1.6.
         Use :meth:`mne.Annotations.rename` instead.
         the annotation that will span across the gap period between the
-        blocks. Uses 'BAD_ACQ_SKIP' by default so that these time periods will
+        blocks. Uses ``'BAD_ACQ_SKIP'`` by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
 
     Returns
@@ -344,6 +344,14 @@ def read_raw_eyelink(
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    It is common for SR Research Eyelink eye trackers to only record data during trials.
+    To avoid frequent data discontinuities and to ensure that the data is continuous
+    so that it can be aligned with EEG and MEG data (if applicable), this reader will
+    preserve the times between recording trials and annotate them with
+    ``'BAD_ACQ_SKIP'``.
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
     extension = fname.suffix
@@ -415,24 +423,6 @@ class RawEyelink(BaseRaw):
     dataframes : dict
         Dictionary of pandas DataFrames. One for eyetracking samples,
         and one for each type of eyelink event (blinks, messages, etc)
-    _sample_lines : list
-        List of lists, each list is one sample containing eyetracking
-        X/Y and pupil channel data (+ other channels, if they exist)
-    _event_lines : dict
-        Each key contains a list of lists, for an event-type that occurred
-        during the recording period. Events can vary, from occular events
-        (blinks, saccades, fixations), to messages from the stimulus
-        presentation software, or info from a response controller.
-    _system_lines : list
-        List of tab delimited strings. Each string is a system message,
-        that in most cases aren't needed. System messages occur for
-        Eyelinks DataViewer application.
-    _tracking_mode : str
-        Whether whether a single eye was tracked ('monocular'), or both
-        ('binocular').
-    _gap_desc : str
-        The description to be used for annotations returned by _make_gap_annots.
-        Deprecated and will be removed in 1.6. Use ``mne.annotations.rename``
 
     See Also
     --------
@@ -454,9 +444,9 @@ class RawEyelink(BaseRaw):
         logger.info("Loading {}".format(fname))
 
         self.fname = Path(fname)
-        self._sample_lines = None
-        self._event_lines = None
-        self._system_lines = None
+        self._sample_lines = None  # sample lines from file
+        self._event_lines = None  # event messages from file
+        self._system_lines = None  # unparsed lines of system messages from file
         self._tracking_mode = None  # assigned in self._infer_col_names
         self._meas_date = None
         self._rec_info = None
