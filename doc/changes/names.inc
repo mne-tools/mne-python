@@ -1,3 +1,5 @@
+.. _Aaron Earle-Richardson: https://github.com/Aaronearlerichardson
+
 .. _Abram Hindle: https://softwareprocess.es
 
 .. _Adam Li: https://github.com/adam2392
