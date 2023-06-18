@@ -25,6 +25,7 @@ Enhancements
 ~~~~~~~~~~~~
 - Add ``cmap`` argument for the :func:`mne.viz.plot_sensors` (:gh:`11720` by :newcontrib:`Gennadiy Belonosov`)
 - When failing to locate a file, we now print the full path in quotation marks to help spot accidentally added trailing spaces (:gh:`11718` by `Richard Höchenberger`_)
+- Add standard montage lookup table for `easycap-M43` (:gh:`11742` by :newcontrib:`Diptyajit Das`)
 
 Bugs
 ~~~~
