@@ -8,6 +8,7 @@ import pytest
 from mne.io import read_raw_nsx
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io.constants import FIFF
+from mne import make_fixed_length_epochs
 
 
 testing_path = data_path(download=False)
@@ -30,7 +31,7 @@ def test_nsx_ver_31():
     assert raw.info["chs"][0]["cal"] == 0.6103515625
     assert raw.info["chs"][0]["range"] == 0.001
 
-    # check raw_extras
+    # Check raw_extras
     for r in raw._raw_extras:
         assert r["orig_format"] == raw.orig_format
         assert r["orig_nchan"] == 128
@@ -45,6 +46,13 @@ def test_nsx_ver_31():
     raw_data, times = raw[:]
     n_channels, n_times = raw_data.shape
     assert times.shape[0] == n_times
+
+    # Check data
+    # There are two contiguous data packets (samples 0--100 and
+    # samples 150--300. Each data was generated as:
+    #     ```data = np.ones((n_samples, ch_count))
+    #        data[n_samples // 2] = np.arange(ch_count) + 10
+    #        data[:, ch_count // 2] = np.arange(n_samples) + 100```
     orig_data = raw_data / (raw.info["chs"][0]["cal"] * raw.info["chs"][0]["range"])
     assert np.allclose(sum(orig_data[:, 50] - 10 - np.arange(n_channels)), 76.0)
 
@@ -55,6 +63,11 @@ def test_nsx_ver_31():
     assert n_channels, 10 == data.shape
 
     data, times = raw.get_data(start=0, stop=300, return_times=True)
+    epochs = make_fixed_length_epochs(raw, duration=0.05, preload=False)
+    assert len(epochs.events) == 3
+    epochs = make_fixed_length_epochs(raw, duration=0.05, preload=True)
+    assert len(epochs) == 2
+    assert "BAD_ACQ_SKIP" in epochs.drop_log[1]
 
 
 @requires_testing_data
@@ -87,6 +100,12 @@ def test_nsx_ver_22():
     raw_data, times = raw[:]
     n_channels, n_times = raw_data.shape
     assert times.shape[0] == n_times
+    # Check data
+    # There is only one contiguous data packet, samples 0--100. Data
+    # was generated as:
+    #     ```data = np.ones((n_samples, ch_count))
+    #        data[n_samples // 2] = np.arange(ch_count) + 10
+    #        data[:, ch_count // 2] = np.arange(n_samples) + 100```
     orig_data = raw_data / (raw.info["chs"][0]["cal"] * raw.info["chs"][0]["range"])
     assert np.allclose(sum(orig_data[:, 50] - 10 - np.arange(n_channels)), 76.0)
 
@@ -96,6 +115,14 @@ def test_nsx_ver_22():
     assert n_channels, 10 == data.shape
 
     data, times = raw.get_data(start=0, stop=300, return_times=True)
+    epochs = make_fixed_length_epochs(raw, duration=0.05, preload=True, id=1)
+    assert len(epochs) == 1
+    assert epochs.event_id["1"] == 1
+    with pytest.raises(ValueError) as excinfo:
+        _ = make_fixed_length_epochs(raw, duration=0.5, preload=True)
+    assert "No events produced, check the values of start, stop, and duration" in str(
+        excinfo.value
+    )
 
 
 @requires_testing_data
