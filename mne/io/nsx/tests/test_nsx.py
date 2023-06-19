@@ -2,11 +2,13 @@
 #
 # License: BSD-3-Clause
 import os
+import warnings
 import numpy as np
 import pytest
 
 from mne.io import read_raw_nsx
 from mne.datasets.testing import data_path, requires_testing_data
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.constants import FIFF
 from mne import make_fixed_length_epochs
 
@@ -42,7 +44,19 @@ def test_nsx_ver_31():
     assert raw.annotations[0]["onset"] * raw.info["sfreq"] == 101
     assert raw.annotations[0]["duration"] * raw.info["sfreq"] == 49
 
-    raw.load_data()
+    # Ignore following RuntimeWarning in mne/io/base.py in _write_raw_fid
+    # "Acquisition skips detected but did not fit evenly into output"
+    # "buffer_size, will be written as zeroes."
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        raw = _test_raw_reader(
+            read_raw_nsx,
+            input_fname=nsx_31_fname,
+            eog=None,
+            misc=None,
+            test_scaling=False,
+            test_rank=False,
+        )
     raw_data, times = raw[:]
     n_channels, n_times = raw_data.shape
     assert times.shape[0] == n_times
@@ -96,7 +110,14 @@ def test_nsx_ver_22():
     # Check annotations
     assert len(raw.annotations) == 0
 
-    raw.load_data()
+    raw = _test_raw_reader(
+        read_raw_nsx,
+        input_fname=nsx_22_fname,
+        eog=None,
+        misc=None,
+        test_scaling=False,  # XXX this should be True
+        test_rank=False,
+    )
     raw_data, times = raw[:]
     n_channels, n_times = raw_data.shape
     assert times.shape[0] == n_times
