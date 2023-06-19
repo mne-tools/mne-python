@@ -414,8 +414,8 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
 
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
-        chan_info["logno"] = nsx_info["extended"]["electrode_id"][idx]
-        chan_info["scanno"] = nsx_info["extended"]["electrode_id"][idx]
+        chan_info["logno"] = int(nsx_info["extended"]["electrode_id"][idx])
+        chan_info["scanno"] = int(nsx_info["extended"]["electrode_id"][idx])
         chan_info["ch_name"] = ch_name
         ch_unit = ch_units[idx]
         if ch_unit == "":
