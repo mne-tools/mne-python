@@ -140,6 +140,10 @@ _BUILTIN_STANDARD_MONTAGES = [
         description="EasyCap with numbered electrodes (61 locations)",
     ),
     _BuiltinStandardMontage(
+        name="easycap-M43",
+        description="EasyCap with numbered electrodes (64 locations)",
+    ),
+    _BuiltinStandardMontage(
         name="EGI_256",
         description="Geodesic Sensor Net (256 locations)",
     ),
