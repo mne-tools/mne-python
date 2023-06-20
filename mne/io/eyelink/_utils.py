@@ -97,7 +97,7 @@ def _parse_calibration(
             gaze = np.array([point[3:] for point in points])
             # create the Calibration instance
             calibration = Calibration(
-                onset=0 if onset < 0 else onset,  # 0 if calibrated before recording
+                onset=max(0., onset),  # 0 if calibrated before recording
                 model=model,
                 eye=this_eye,
                 avg_error=avg_error,
