@@ -398,6 +398,7 @@ numpydoc_validation_exclude = {  # set of regex
     r"\.fromkeys",
     r"\.items",
     r"\.keys",
+    r"\.move_to_end",
     r"\.pop",
     r"\.popitem",
     r"\.setdefault",
@@ -735,6 +736,7 @@ nitpick_ignore = [
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
+    ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\.BaseRaw.*"),

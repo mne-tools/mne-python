@@ -29,6 +29,7 @@ def test_eyetrack_not_data_ch():
     "fname, create_annotations, find_overlaps",
     [
         (fname, False, False),
+        (fname, False, False),
         (fname, True, False),
         (fname, True, True),
         (fname, ["fixations", "saccades", "blinks"], True),
@@ -37,7 +38,9 @@ def test_eyetrack_not_data_ch():
 def test_eyelink(fname, create_annotations, find_overlaps):
     """Test reading eyelink asc files."""
     raw = read_raw_eyelink(
-        fname, create_annotations=create_annotations, find_overlaps=find_overlaps
+        fname,
+        create_annotations=create_annotations,
+        find_overlaps=find_overlaps,
     )
 
     # First, tests that shouldn't change based on function arguments
