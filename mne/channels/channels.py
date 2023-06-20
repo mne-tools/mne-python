@@ -385,7 +385,7 @@ class SetChannelsMixin(MontageMixin):
         mapping : dict
             A dictionary mapping channel names to sensor types, e.g.,
             ``{'EEG061': 'eog'}``.
-        on_unit_change : 'raise' | 'warn' | 'ignore'
+        on_unit_change : ``'raise'`` | ``'warn'`` | ``'ignore'``
             What to do if the measurement unit of a channel is changed
             automatically to match the new sensor type.
 
@@ -476,7 +476,7 @@ class SetChannelsMixin(MontageMixin):
         return self
 
     @verbose
-    def rename_channels(self, mapping, allow_duplicates=False, verbose=None):
+    def rename_channels(self, mapping, allow_duplicates=False, *, verbose=None):
         """Rename channels.
 
         Parameters
@@ -527,6 +527,7 @@ class SetChannelsMixin(MontageMixin):
         block=False,
         show=True,
         sphere=None,
+        *,
         verbose=None,
     ):
         """Plot sensor positions.
@@ -1244,7 +1245,7 @@ class InterpolationMixin:
 
 
 @verbose
-def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
+def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     """Rename channels.
 
     Parameters
