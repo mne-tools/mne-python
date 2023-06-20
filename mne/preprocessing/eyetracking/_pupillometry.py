@@ -19,7 +19,7 @@ def interpolate_blinks(raw, buffer=0.025):
     Parameters
     ----------
     raw : instance of Raw
-        The data.
+        The raw data with at least one ``'pupil'`` channel.
     buffer : float | array-like of float, shape ``(2,))``
         The time in seconds before and after a blink to consider invalid and
         include in the segment to be interpolated over. Default is ``0.025`` seconds
@@ -30,7 +30,7 @@ def interpolate_blinks(raw, buffer=0.025):
     Returns
     -------
     self : instance of Raw
-        The data with interpolated blinks.
+        Returns the modified instance
     """
     from scipy.interpolate import interp1d
 
