@@ -1127,6 +1127,12 @@ html_context = {
             url="https://www.ru.nl/donders/",
             size=xl,
         ),
+        dict(
+            name="Human Neuroscience Platforn at Fondation Campus Biotech Geneva",  # noqa E501
+            img="FCBG.svg",
+            url="https://hnp.fcbg.ch/",
+            size=sm,
+        ),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
