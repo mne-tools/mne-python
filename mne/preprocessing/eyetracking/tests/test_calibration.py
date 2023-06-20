@@ -217,19 +217,21 @@ def test_read_calibration(fname):
 
 @requires_testing_data
 @pytest.mark.parametrize(
-    "fname, origin",
-    [(fname, "top-left"), (fname, "top-right"), (fname, "bottom-right")],
+    "fname, axes",
+    [(fname, None), (fname, True)],
 )
-def test_plot_calibration(fname, origin):
+def test_plot_calibration(fname, axes):
     """Test plotting calibration data."""
     import matplotlib.pyplot as plt
 
     # Set the non-interactive backend
     plt.switch_backend("agg")
 
+    if axes:
+        axes = plt.subplot()
     calibrations = read_eyelink_calibration(fname)
     cal_left = calibrations[0]
-    fig = cal_left.plot(show=True, show_offsets=True, origin=origin)
+    fig = cal_left.plot(show=True, show_offsets=True, axes=axes)
     ax = fig.axes[0]
 
     scatter1 = ax.collections[0]

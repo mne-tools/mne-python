@@ -9,7 +9,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from ...utils import _check_fname, _check_option, fill_doc, logger
+from ...utils import _check_fname, _validate_type, fill_doc, logger
 from ...viz.utils import plt_show
 
 
@@ -28,8 +28,8 @@ class Calibration(dict):
     ----------
     onset : float
         The onset of the calibration in seconds. If the calibration was
-        performed before the recording started, then the onset should be
-        set to ``0`` seconds.
+        performed before the recording started, the the onset can be
+        negative.
     model : str
         A string, which is the model of the eye-tracking calibration that was applied.
         For example ``'H3'`` for a horizontal only 3-point calibration, or ``'HV3'``
@@ -114,7 +114,7 @@ class Calibration(dict):
         """
         return deepcopy(self)
 
-    def plot(self, title=None, show_offsets=True, origin="top-left", show=True):
+    def plot(self, title=None, show_offsets=True, axes=None, show=True):
         """Visualize calibration.
 
         Parameters
@@ -124,11 +124,9 @@ class Calibration(dict):
         show_offsets : bool
             Whether to display the offset (in visual degrees) of each calibration
             point or not. Defaults to ``True``.
-        origin : str
-            What should be considered the origin of the screen. Can be ``'top-left'``,
-            ``'top-right'``, ``'bottom-left'``, or ``'bottom-right'``. Defaults to
-            ``'top-left'`` because for most monitors, pixel coordinate ``(0,0)``, often
-            referred to as origin, is at the top left of corner of the screen.
+        axes : instance of matplotlib.axes.Axes | None
+            Axes to draw the calibration positions to. If ``None`` (default), a new axes
+            will be created.
         show : bool
             Whether to show the figure or not. Defaults to ``True``.
 
@@ -143,7 +141,14 @@ class Calibration(dict):
         assert isinstance(self["positions"], np.ndarray), msg
         assert isinstance(self["gaze"], np.ndarray), msg
 
-        fig, ax = plt.subplots(constrained_layout=True)
+        if axes is not None:
+            from matplotlib.axes import Axes
+
+            _validate_type(axes, Axes, "axes")
+            ax = axes
+            fig = ax.get_figure()
+        else:  # create new figure and axes
+            fig, ax = plt.subplots(constrained_layout=True)
         px, py = self["positions"].T
         gaze_x, gaze_y = self["gaze"].T
 
@@ -167,23 +172,8 @@ class Calibration(dict):
             fontsize=8,
         )
 
-        msg = (
-            "origin must be 'top-left', 'top-right', 'bottom-left', or 'bottom-right."
-            f" got {origin}"
-        )
-        _check_option(
-            "origin", origin, ("top-left", "top-right", "bottom-left", "bottom-right")
-        )
-        if origin == "top-left":
-            # Invert the y-axis because origin is at the top left corner for most
-            # monitors
-            ax.invert_yaxis()
-        elif origin == "top-right":
-            ax.invert_yaxis()
-            ax.invert_xaxis()
-        elif origin == "bottom-right":
-            ax.invert_xaxis()
-        # if origin is 'bottom-left' no need to do anything
+        # Invert y-axis because the origin is in the top left corner
+        ax.invert_yaxis()
         ax.scatter(px, py, color="gray")
         ax.scatter(gaze_x, gaze_y, color="red", alpha=0.5)
 
