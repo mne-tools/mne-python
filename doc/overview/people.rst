@@ -27,8 +27,8 @@ Steering Council
 * `Guillaume Favelier`_
 * `Luke Bloy`_
 * `Mainak Jas`_
-* `Mathieu Scheltienne`_
 * `Marijn van Vliet`_
+* `Mathieu Scheltienne`_
 * `Mikołaj Magnuski`_
 * `Richard Höchenberger`_
 * `Robert Luke`_
