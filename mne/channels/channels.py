@@ -542,9 +542,9 @@ class SetChannelsMixin(MontageMixin):
             control key. The selected channels are returned along with the
             figure instance. Defaults to 'topomap'.
         ch_type : None | str
-            The channel type to plot. Available options 'mag', 'grad', 'eeg',
-            'seeg', 'dbs', 'ecog', 'all'. If ``'all'``, all the available mag,
-            grad, eeg, seeg, dbs, and ecog channels are plotted. If
+            The channel type to plot. Available options ``'mag'``, ``'grad'``,
+            ``'eeg'``, ``'seeg'``, ``'dbs'``, ``'ecog'``, ``'all'``. If ``'all'``, all
+            the available mag, grad, eeg, seeg, dbs, and ecog channels are plotted. If
             None (default), then channels are chosen in the order given above.
         title : str | None
             Title for the figure. If None (default), equals to ``'Sensor
@@ -1897,7 +1897,7 @@ def _compute_ch_adjacency(info, ch_type):
     %(info_not_none)s
     ch_type : str
         The channel type for computing the adjacency matrix. Currently
-        supports 'mag', 'grad' and 'eeg'.
+        supports ``'mag'``, ``'grad'`` and ``'eeg'``.
 
     Returns
     -------
