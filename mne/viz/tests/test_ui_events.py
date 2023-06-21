@@ -27,6 +27,8 @@ def event_channel_links():
 @testing.requires_testing_data
 def test_get_event_channel(event_channels):
     """Test creating and obtaining a figure's UI event channel."""
+    pytest.importorskip("pyvista")
+
     # At first, no event channels exist
     assert len(event_channels) == 0
 
