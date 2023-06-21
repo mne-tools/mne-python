@@ -1,93 +1,100 @@
 """
-==================================================================================
-Problem statement:
-sometimes a few MEG channels can be completely turned off during an experimental
-recording on purpose (i.e., bad sensors contain high noise).
-This is done inorder to stop noise spreading towards the other sensors.
-Therefore, physical location of the sensor is completely missing from
-the recording data. Therefore, the sensor can't be interpolated anymore.
-==================================================================================
+.. _ex-interpolate-missing-channels:
 
-@author: diptyajit das <bmedasdiptyajit@gmail.com>
-Created on Jun 16, 2023
+================================================================
+Reconstruct and interpolate a missing channel for MEG recordings
+================================================================
 
+Sometimes, a noisy bad MEG channel can be completely turned off during
+an experimental recording on purpose. This is mainly done inorder to stop
+bad channel noises to spread over other channels. As a result, physical
+location of the channel is completely missing from the recording data.
+Therefore, the bad channel can't be interpolated anymore.
+
+This example shows how to:
+
+- Reconstruct a MEG channel which is turned off during the recording.
+- Interpolate the reconstruct channel using field interpolation.
+
+In this example, one gradiometer channel will be dropped on purpose to
+mimic a missing channel scenario in practice. Only the data in that channel
+is reconstructed and later replaced by interpolation.
 """
+# Authors: Diptyajit Das <bmedasdiptyajit@gmail.com>
+#          co-author name if required.
+#
+# License: BSD-3-Clause
 
-# import some packages
+# %%
+
 import mne
 from mne.datasets import sample
-from mne import read_evokeds
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec as grd
 
 print(__doc__)
 
-# define meg data path
 data_path = sample.data_path()
-evk_fname = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
+meg_path = data_path / "MEG" / "sample"
+fname = meg_path / "sample_audvis-ave.fif"
+evoked = mne.read_evokeds(fname, condition="Left Auditory", baseline=(None, 0))
+# pick only gradiometer channels
+evoked = evoked.copy().pick_types(meg="grad")
 
-# read sample evoked data
-evk = read_evokeds(evk_fname)[0]
+# %%
+# Lets drop one channel (we choose 'MEG 0212') to create a missing channel scenario.
+# In practice, this can be any bad channel which is turned off during recording.
+ch_names = evoked.info["ch_names"]
+drop_ch = "MEG 0212"
+drop_ch_pos = ch_names.index(drop_ch)
+# Our missing channel data
+evoked_drop = evoked.copy().drop_channels(ch_names[drop_ch_pos])
 
-# pick only grad channels and crop the data
-evk_grad = evk.copy().pick_types(meg='grad').crop(-0.05, 0.4)
+# %%
+# Lets create a flat gradiometer channel to reconstruct the missing channel.
+# We will use the EvokedArray class constructor to do this.
+sampling_freq = evoked_drop.info["sfreq"]
+ch_types = "grad"
+info = mne.create_info([drop_ch], ch_types=ch_types, sfreq=sampling_freq)
+times = evoked.times
+data = np.arange(len(times)).reshape(1, len(times))
+flat_channel_data = np.zeros_like(data)
+flat_evoked = mne.EvokedArray(
+    flat_channel_data,
+    info,
+    tmin=times[0],
+    nave=flat_channel_data.shape[0],
+    comment="reconstructed channel",
+)
+evoked_recon = evoked_drop.add_channels([flat_evoked], force_update_info=True)
+# plot evoked with reconstructed channel
+evoked_recon.plot()
 
-# correct baseline
-evk_grad.apply_baseline(baseline=(None, 0))
+# %%
+# Now, we have to update two channel field parameters (i.e., channel description and
+# channel order). We will replace the reconstructed channel description with the
+# original one. This can also be added from the built-in MEG layout, currently available
+# in MNE.
+evoked_recon.info["chs"][-1] = evoked.info["chs"][drop_ch_pos]
+# Reorder the channels
+evoked_recon.reorder_channels(ch_names)
+# Since our reconstructed is still a flat channel, we add the channel as a bad
+# channel manually to perform interpolation.
+evoked_recon.info["bads"] = [drop_ch]
+evoked_interp = evoked_recon.interpolate_bads(reset_bads=False)
 
-# get the original channel names
-grad_ch_names = evk_grad.info['ch_names']
-
-# we specify one sensor (left auditory),
-# later we want to drop this sensor to create a missing sensor data file
-mark_channel = 'MEG 0212'
-pos = grad_ch_names.index(mark_channel)  # get sensor position
-
-# print the location // 'MEG 0212'
-print(evk_grad.info['chs'][pos]['loc'])
-
-# now lets drop the mark channel (in this case we choose a grad channel:'MEG 0212')
-# to create a missing channel scenario. this can be any bad sensor in practice
-mis_channel = 'MEG 0212'
-mis_channel_evk = evk_grad.copy().drop_channels(grad_ch_names[pos])
-
-# using MNE function to add an extra reference channel
-# it's a dummy reference channel ('flat' channel) inorder to retrieve our missing channel
-evk_recon = mne.add_reference_channels(mis_channel_evk, ref_channels=[mis_channel])
-
-# now change the channel type to grad
-evk_recon.set_channel_types({mis_channel: 'grad'})
-
-# check the info file that contains channel order
-# newly added channel name can be seen at the end of the channel order
-print('check the order of the channel names: ', evk_recon.info['ch_names'])
-
-# let's check our channel description that has the location of the sensor
-print('newly added channel location', evk_recon.info['chs'][-1]['loc'])
-
-# we replace the channel description with the original one
-evk_recon.info['chs'][-1] = evk_grad.info['chs'][pos]  # original the grad channel description
-
-# let's reorder channels now as it was for original case
-evk_recon.reorder_channels(grad_ch_names)
-
-# since our newly added channel is still a flat channel,
-# we add the channel as a bad channel manually to perform interpolation
-evk_recon.info['bads'] = [mis_channel]
-evk_recon.interpolate_bads()
-
-# compare original vs reconstructed/interpolated evoked
-# create figure
-fig = plt.figure(figsize=(10, 8), constrained_layout=False)
+# %%
+# Plot original vs interpolated channels
+fig = plt.figure(figsize=(10, 8), constrained_layout=True)
 gs = grd.GridSpec(ncols=1, nrows=1, figure=fig)
-
-# set axis
 ax = fig.add_subplot(gs[0, 0])
-conds = ('Original channel', 'interpolated channel')
-evks = dict(zip(conds, [evk_grad, evk_recon]))
-x_fills = [50, 150]  # 50-150 ms (highlight auditory activity for our sample data)
-mne.viz.plot_compare_evokeds(evks, axes=ax, picks=mis_channel, legend=True, show=False, time_unit='ms')
-ax.axvspan(x_fills[0], x_fills[1], alpha=0.5, color='grey')
-plt.tight_layout()
+conditions = ("Original", "Interpolated")
+evokeds = dict(zip(conditions, [evoked, evoked_interp]))
+x_fills = [50, 150]  # 50-150 ms (highlight auditory activity)
+mne.viz.plot_compare_evokeds(
+    evokeds, axes=ax, picks=drop_ch, legend=True, show=False, time_unit="ms"
+)
+ax.axvspan(x_fills[0], x_fills[1], alpha=0.5, color="grey")
 plt.margins(y=0.2)
 plt.show()
