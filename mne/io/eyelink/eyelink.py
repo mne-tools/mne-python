@@ -1,3 +1,5 @@
+"""SR Research Eyelink Load Function."""
+
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Scott Huberty <seh33@uw.edu>
 #          Christian O'Reilly <christian.oreilly@sc.edu>
@@ -12,7 +14,7 @@ from ..constants import FIFF
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, _check_pandas_installed
+from ...utils import _check_fname, _check_pandas_installed, fill_doc, logger, verbose
 
 EYELINK_COLS = {
     "timestamp": ("time",),
@@ -293,13 +295,13 @@ def read_raw_eyelink(
     apply_offsets=False,
     find_overlaps=False,
     overlap_threshold=0.05,
-    gap_description="bad_rec_gap",
+    gap_description=None,
 ):
     """Reader for an Eyelink .asc file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the eyelink file (.asc).
     %(preload)s
     %(verbose)s
@@ -318,15 +320,20 @@ def read_raw_eyelink(
         saccades) if their start times and their stop times are both not
         separated by more than overlap_threshold.
     overlap_threshold : float (default 0.05)
-        Time in seconds. Threshold of allowable time-gap between the start and
-        stop times of the left and right eyes. If gap is larger than threshold,
-        the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
-        "blink_R"). If the gap is smaller than the threshold, the
-        :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_description : str (default 'bad_rec_gap')
-        If there are multiple recording blocks in the file, the description of
+        Time in seconds. Threshold of allowable time-gap between both the start and
+        stop times of the left and right eyes. If the gap is larger than the threshold,
+        the :class:`mne.Annotations` will be kept separate (i.e. ``"blink_L"``,
+        ``"blink_R"``). If the gap is smaller than the threshold, the
+        :class:`mne.Annotations` will be merged and labeled as ``"blink_both"``.
+        Defaults to ``0.05`` seconds (50 ms), meaning that if the blink start times of
+        the left and right eyes are separated by less than 50 ms, and the blink stop
+        times of the left and right eyes are separated by less than 50 ms, then the
+        blink will be merged into a single :class:`mne.Annotations`.
+    gap_description : str (default 'BAD_ACQ_SKIP')
+        This parameter is deprecated and will be removed in 1.6.
+        Use :meth:`mne.Annotations.rename` instead.
         the annotation that will span across the gap period between the
-        blocks. Uses 'bad_rec_gap' by default so that these time periods will
+        blocks. Uses ``'BAD_ACQ_SKIP'`` by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
 
     Returns
@@ -337,17 +344,26 @@ def read_raw_eyelink(
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    It is common for SR Research Eyelink eye trackers to only record data during trials.
+    To avoid frequent data discontinuities and to ensure that the data is continuous
+    so that it can be aligned with EEG and MEG data (if applicable), this reader will
+    preserve the times between recording trials and annotate them with
+    ``'BAD_ACQ_SKIP'``.
     """
-    extension = Path(fname).suffix
+    fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
+    extension = fname.suffix
     if extension not in ".asc":
         raise ValueError(
             "This reader can only read eyelink .asc files."
-            f" Got extension {extension} instead. consult eyelink"
-            " manual for converting eyelink data format (.edf)"
+            f" Got extension {extension} instead. consult EyeLink"
+            " manual for converting EyeLink data format (.edf)"
             " files to .asc format."
         )
 
-    return RawEyelink(
+    raw_eyelink = RawEyelink(
         fname,
         preload=preload,
         verbose=verbose,
@@ -357,6 +373,7 @@ def read_raw_eyelink(
         overlap_threshold=overlap_threshold,
         gap_desc=gap_description,
     )
+    return raw_eyelink
 
 
 @fill_doc
@@ -365,7 +382,7 @@ class RawEyelink(BaseRaw):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Path to the data file (.XXX).
     create_annotations : bool | list (default True)
         Whether to create mne.Annotations from occular events
@@ -387,11 +404,15 @@ class RawEyelink(BaseRaw):
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_desc : str (default 'bad_rec_gap')
+    gap_desc : str
         If there are multiple recording blocks in the file, the description of
         the annotation that will span across the gap period between the
-        blocks. Uses 'bad_rec_gap' by default so that these time periods will
-        be considered bad by MNE and excluded from operations like epoching.
+        blocks. Default is ``None``, which uses 'BAD_ACQ_SKIP' by default so that these
+        timeperiods will be considered bad by MNE and excluded from operations like
+        epoching. Note that this parameter is deprecated and will be removed in 1.6.
+        Use ``mne.annotations.rename`` instead.
+
+
     %(preload)s
     %(verbose)s
 
@@ -402,23 +423,6 @@ class RawEyelink(BaseRaw):
     dataframes : dict
         Dictionary of pandas DataFrames. One for eyetracking samples,
         and one for each type of eyelink event (blinks, messages, etc)
-    _sample_lines : list
-        List of lists, each list is one sample containing eyetracking
-        X/Y and pupil channel data (+ other channels, if they exist)
-    _event_lines : dict
-        Each key contains a list of lists, for an event-type that occurred
-        during the recording period. Events can vary, from occular events
-        (blinks, saccades, fixations), to messages from the stimulus
-        presentation software, or info from a response controller.
-    _system_lines : list
-        List of tab delimited strings. Each string is a system message,
-        that in most cases aren't needed. System messages occur for
-        Eyelinks DataViewer application.
-    _tracking_mode : str
-        Whether whether a single eye was tracked ('monocular'), or both
-        ('binocular').
-    _gap_desc : str
-        The description to be used for annotations returned by _make_gap_annots
 
     See Also
     --------
@@ -435,17 +439,26 @@ class RawEyelink(BaseRaw):
         apply_offsets=False,
         find_overlaps=False,
         overlap_threshold=0.05,
-        gap_desc="bad_rec_gap",
+        gap_desc=None,
     ):
         logger.info("Loading {}".format(fname))
 
         self.fname = Path(fname)
-        self._sample_lines = None
-        self._event_lines = None
-        self._system_lines = None
+        self._sample_lines = None  # sample lines from file
+        self._event_lines = None  # event messages from file
+        self._system_lines = None  # unparsed lines of system messages from file
         self._tracking_mode = None  # assigned in self._infer_col_names
         self._meas_date = None
         self._rec_info = None
+        if gap_desc is None:
+            gap_desc = "BAD_ACQ_SKIP"
+        else:
+            logger.warn(
+                "gap_description is deprecated in 1.5 and will be removed in 1.6, "
+                "use raw.annotations.rename to use a description other than "
+                "'BAD_ACQ_SKIP'",
+                FutureWarning,
+            )
         self._gap_desc = gap_desc
         self.dataframes = {}
 

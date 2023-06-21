@@ -14,21 +14,6 @@ Code projects, while others require more extensive work.
 Open
 ----
 
-.. _time-frequency-viz:
-
-Time-frequency visualization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We should implement a viewer for interactive visualization of volumetric
-source-time-frequency (5-D) maps on MRI slices (orthogonal 2D viewer).
-`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/master/contrib/nutmegtrip>`__
-(written by Sarang Dalal) provides similar functionality in Matlab in
-conjunction with FieldTrip. Example of NutmegTrip's source-time-frequency mode
-in action (click for link to YouTube):
-
-.. image:: https://i.ytimg.com/vi/xKdjZZphdNc/maxresdefault.jpg
-   :target: https://www.youtube.com/watch?v=xKdjZZphdNc
-   :width: 50%
-
 Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 The current clustering statistics code has limited functionality. It should be
@@ -73,29 +58,14 @@ as well as:
 - `BNCI Horizon <https://bnci-horizon-2020.eu/database/data-sets>`__
     BCI datasets.
 
-Integrate OpenMEEG via improved Python bindings
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-`OpenMEEG <http://openmeeg.github.io>`__ is a state-of-the art solver for
-forward modeling in the field of brain imaging with MEG/EEG. It solves
-numerically partial differential equations (PDE). It is written in C++ with
-Python bindings written in `SWIG <https://github.com/openmeeg/openmeeg>`__.
-The ambition of the project is to integrate OpenMEEG into MNE offering to MNE
-the ability to solve more forward problems (cortical mapping, intracranial
-recordings, etc.). Some software tasks that shall be completed:
-
-- Cleanup Python bindings (remove useless functions, check memory managements,
-  etc.)
-- Write example scripts for OpenMEEG that automatically generate web pages as
-  for `MNE <http://martinos.org/mne/stable/auto_examples/index.html>`__
-- Understand how MNE encodes info about sensors (location, orientation,
-  integration points etc.) and allow OpenMEEG to be used.
-- Help package OpenMEEG for Debian/Ubuntu
-- Help manage `the continuous integration system
-  <https://ci.inria.fr/>`__
-
-
 In progress
 -----------
+
+Eye-tracking support
+^^^^^^^^^^^^^^^^^^^^
+We had a GSoC student funded to improve support for eye-tracking data, see
+`the GSoC proposal <https://summerofcode.withgoogle.com/programs/2023/projects/nUP0jGKi>`__
+for details.
 
 Diversity, Equity, and Inclusion (DEI)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -186,6 +156,41 @@ Our documentation has many minor issues, which can be found under the tag
 
 Completed
 ---------
+
+Integrate OpenMEEG via improved Python bindings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+`OpenMEEG <http://openmeeg.github.io>`__ is a state-of-the art solver for
+forward modeling in the field of brain imaging with MEG/EEG. It solves
+numerically partial differential equations (PDE). It is written in C++ with
+Python bindings written in `SWIG <https://github.com/openmeeg/openmeeg>`__.
+The ambition of the project is to integrate OpenMEEG into MNE offering to MNE
+the ability to solve more forward problems (cortical mapping, intracranial
+recordings, etc.). Tasks that have been completed:
+
+- Cleanup Python bindings (remove useless functions, check memory managements,
+  etc.)
+- Understand how MNE encodes info about sensors (location, orientation,
+  integration points etc.) and allow OpenMEEG to be used.
+- Modernize CI systems (e.g., using ``cibuildwheel``).
+
+See `OpenMEEG`_ for details.
+
+.. _time-frequency-viz:
+
+Time-frequency visualization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+We implemented a viewer for interactive visualization of volumetric
+source-time-frequency (5-D) maps on MRI slices (orthogonal 2D viewer).
+`NutmegTrip <https://github.com/fieldtrip/fieldtrip/tree/master/contrib/nutmegtrip>`__
+(written by Sarang Dalal) provides similar functionality in MATLAB in
+conjunction with FieldTrip. Example of NutmegTrip's source-time-frequency mode
+in action (click for link to YouTube):
+
+.. image:: https://i.ytimg.com/vi/xKdjZZphdNc/maxresdefault.jpg
+   :target: https://www.youtube.com/watch?v=xKdjZZphdNc
+   :width: 50%
+
+See :func:`mne-gui-addons:mne_gui_addons.view_vol_stc`.
 
 Distributed computing support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

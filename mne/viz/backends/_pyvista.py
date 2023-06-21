@@ -43,7 +43,11 @@ with warnings.catch_warnings():
     import pyvista
     from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
     from pyvistaqt import BackgroundPlotter
-    from pyvista.plotting.plotting import _ALL_PLOTTERS
+
+    try:
+        from pyvista.plotting.plotter import _ALL_PLOTTERS
+    except Exception:  # PV < 0.40
+        from pyvista.plotting.plotting import _ALL_PLOTTERS
 
 from vtkmodules.vtkCommonCore import vtkCommand, vtkLookupTable, VTK_UNSIGNED_CHAR
 from vtkmodules.vtkCommonDataModel import VTK_VERTEX, vtkPiecewiseFunction
@@ -989,7 +993,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         center,
     ):
         # Now we can actually construct the visualization
-        grid = pyvista.UniformGrid()
+        try:
+            grid = pyvista.ImageData()
+        except AttributeError:  # PV < 0.40
+            grid = pyvista.UniformGrid()
         grid.dimensions = dimensions + 1  # inject data on the cells
         grid.origin = origin
         grid.spacing = spacing

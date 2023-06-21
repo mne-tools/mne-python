@@ -1607,7 +1607,7 @@ def get_active_chpi(raw, *, on_missing="raise", verbose=None):
         )
     # extract hpi info
     chpi_info = get_chpi_info(raw.info, on_missing=on_missing)
-    if len(chpi_info[2]) == 0:
+    if (len(chpi_info[2]) == 0) or (chpi_info[1] is None):
         return np.zeros_like(raw.times)
 
     # extract hpi time series and infer which one was on

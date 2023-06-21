@@ -1917,20 +1917,23 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
             f"{level.size} elements"
         )
 
+    # vtkImageData indexes as slice, row, col (Z, Y, X):
+    # https://discourse.vtk.org/t/very-confused-about-imdata-matrix-index-order/6608/2
+    # We can accomplish this by raveling with order='F' later, so we might as
+    # well make a copy with Fortran order now.
+    # We also use double as passing integer types directly can be problematic!
+    image = np.array(image, dtype=float, order="F")
+    image_shape = image.shape
+
     # fill holes
     if fill_hole_size is not None:
-        image = image.copy()  # don't modify original
         for val in level:
             bin_image = image == val
             mask = image == 0  # don't go into other areas
             bin_image = binary_dilation(bin_image, iterations=fill_hole_size, mask=mask)
             image[bin_image] = val
 
-    # force double as passing integer types directly can be problematic!
-    image_shape = image.shape
-    # use order='A' to automatically detect when Fortran ordering is needed
-    data_vtk = numpy_to_vtk(image.ravel(order="A").astype(float), deep=True)
-    del image
+    data_vtk = numpy_to_vtk(image.ravel(order="F"), deep=False)
 
     mc = vtkDiscreteFlyingEdges3D() if use_flying_edges else vtkDiscreteMarchingCubes()
     # create image
@@ -1978,8 +1981,8 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None, use_flying_edge
         polydata = geometry.GetOutput()
         rr = vtk_to_numpy(polydata.GetPoints().GetData())
         tris = vtk_to_numpy(polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
-        rr = np.ascontiguousarray(rr[:, ::-1])
-        tris = np.ascontiguousarray(tris[:, ::-1])
+        rr = np.ascontiguousarray(rr)
+        tris = np.ascontiguousarray(tris)
         out.append((rr, tris))
     return out
 
