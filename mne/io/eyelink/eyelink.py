@@ -906,6 +906,18 @@ class RawEyelink(BaseRaw):
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
         """Create Annotations for each df in self.dataframes."""
+        eye_ch_map = {
+            "L": ("xpos_left", "ypos_left", "pupil_left"),
+            "R": ("xpos_right", "ypos_right", "pupil_right"),
+            "both": (
+                "xpos_left",
+                "ypos_left",
+                "pupil_left",
+                "xpos_right",
+                "ypos_right",
+                "pupil_right",
+            ),
+        }
         valid_descs = ["blinks", "saccades", "fixations", "messages"]
         msg = (
             "create_annotations must be True or a list containing one or"
@@ -930,8 +942,12 @@ class RawEyelink(BaseRaw):
                 durations = df["duration"]
                 # Create annotations for both eyes
                 descriptions = f"{key[:-1]}_" + df["eye"]  # i.e "blink_r"
+                ch_names = df["eye"].map(eye_ch_map).tolist()
                 this_annot = Annotations(
-                    onset=onsets, duration=durations, description=descriptions
+                    onset=onsets,
+                    duration=durations,
+                    description=descriptions,
+                    ch_names=ch_names,
                 )
             elif (key in ["messages"]) and (key in descs):
                 if apply_offsets:

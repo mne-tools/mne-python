@@ -87,6 +87,28 @@ def test_eyelink(fname, create_annotations, find_overlaps):
         for i, label in zip([0, 1, 2], ["fixation", "saccade", "blink"]):
             assert df["description"].iloc[i] == f"{label}_both"
 
+    # Test that annotations ch_name key is set correctly
+    if create_annotations:
+        mapping = {
+            "L": ["xpos_left", "ypos_left", "pupil_left"],
+            "R": ["xpos_right", "ypos_right", "pupil_right"],
+            "both": [
+                "xpos_left",
+                "ypos_left",
+                "pupil_left",
+                "xpos_right",
+                "ypos_right",
+                "pupil_right",
+            ],
+        }
+        for annot in raw.annotations:
+            if annot["description"].endswith("both"):
+                assert np.array_equal(annot["ch_names"], mapping["both"])
+            elif annot["description"].endswith("L"):
+                assert np.array_equal(annot["ch_names"], mapping["L"])
+            elif annot["description"].endswith("R"):
+                assert np.array_equal(annot["ch_names"], mapping["R"])
+
 
 @requires_testing_data
 @requires_pandas
