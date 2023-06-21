@@ -35,7 +35,8 @@ class TimeCallBack:
         if self.callback is not None:
             self.callback()
         if self.widget is not None:
-            self.widget.set_value(int(time_idx))
+            # self.widget.set_value(int(time_idx))
+            self.widget.set_value(time_idx)
 
 
 class UpdateColorbarScale:

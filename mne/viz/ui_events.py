@@ -35,6 +35,7 @@ from weakref import WeakKeyDictionary
 import re
 
 from ..utils import fill_doc
+from .backends._abstract import Figure3D
 
 
 # Global dict {fig: channel} containing all currently active event channels.
@@ -135,6 +136,8 @@ def _get_event_channel(fig):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
         elif isinstance(fig, Brain):
             fig._renderer._window_close_connect(delete_event_channel, after=False)
+        elif isinstance(fig, Figure3D):
+            fig.plotter.window().signal_close.connect(delete_event_channel)
         else:
             raise NotImplementedError("This figure type is not support yet.")
 

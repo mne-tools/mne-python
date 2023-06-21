@@ -2088,9 +2088,9 @@ docdict[
     "interpolation_brain_time"
 ] = """
 interpolation : str | None
-    Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
-    Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
-    or 'cubic'.
+    Interpolation method to use when selecting times that fall between sample
+    points (:class:`scipy.interpolate.interp1d` parameter). Must be one of
+    'linear', 'nearest', 'zero', 'slinear', 'quadratic', or 'cubic'.
 """
 
 docdict[
