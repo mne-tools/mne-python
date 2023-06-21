@@ -71,7 +71,6 @@ from ..transforms import (
     _frame_to_str,
     _get_transforms_to_coord_frame,
 )
-from . import ui_events
 from ..utils import (
     get_subjects_dir,
     logger,
@@ -88,9 +87,7 @@ from ..utils import (
     _check_option,
     _to_rgb,
 )
-from ._3d_overlay import _LayeredMesh
 from .utils import (
-    mne_analyze_colormap,
     _get_color_list,
     _get_cmap,
     plt_show,
@@ -99,7 +96,7 @@ from .utils import (
     _check_time_unit,
 )
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
-
+from .evoked_field import EvokedField
 
 verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_RPA)
@@ -408,9 +405,11 @@ def plot_evoked_field(
     vmax=None,
     n_contours=21,
     *,
+    show_density=True,
     alpha=None,
     interpolation="nearest",
     interaction="terrain",
+    time_viewer="auto",
     verbose=None,
 ):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
@@ -427,11 +426,13 @@ def plot_evoked_field(
     time_label : str | None
         How to print info about the time instant visualized.
     %(n_jobs)s
-    fig : instance of Figure3D | None
+    fig : Figure3D | Brain | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
 
         .. versionadded:: 0.20
+        .. versionadded:: 1.4
+            ``fig`` can also be a ``Brain`` figure.
     vmax : float | dict | None
         Maximum intensity. Can be a dictionary with two entries ``"eeg"`` and ``"meg"``
         to specify separate values for EEG and MEG fields respectively. Can be
@@ -459,233 +460,36 @@ def plot_evoked_field(
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.1
+    time_viewer : bool | str
+        Display time viewer GUI. Can also be ``"auto"``, which will mean
+        ``True`` for the PyVista backend and ``False`` otherwise.
     %(verbose)s
 
     Returns
     -------
-    fig : instance of Figure3D
+    fig : Figure3D | Brain
         The figure.
     """
-    # Update the backend
-    from .backends.renderer import _get_renderer
-    from scipy.interpolate import interp1d
-
-    types = [t for t in ["eeg", "grad", "mag"] if t in evoked]
-    _validate_type(vmax, (None, "numeric", dict), "vmax")
-    n_contours = _ensure_int(n_contours, "n_contours")
-    time_interpolation = _check_option(
-        "interpolation",
-        interpolation,
-        ("linear", "nearest", "zero", "slinear", "quadratic", "cubic"),
+    evoked_field = EvokedField(
+        evoked,
+        surf_maps,
+        time=time,
+        time_label=time_label,
+        n_jobs=n_jobs,
+        fig=fig,
+        vmax=vmax,
+        n_contours=n_contours,
+        show_density=show_density,
+        alpha=alpha,
+        interpolation=interpolation,
+        interaction=interaction,
+        time_viewer=time_viewer,
+        verbose=verbose,
     )
-    _check_option("interaction", interaction, ["trackball", "terrain"])
-
-    # Setup figure parameters
-
-    if time is None:
-        time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
-    del types
-
-    if not evoked.times[0] <= time <= evoked.times[-1]:
-        raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
-
-    surf_map_kinds = [surf_map["kind"] for surf_map in surf_maps]
-    if vmax is None:
-        vmax = {kind: None for kind in surf_map_kinds}
-    elif isinstance(vmax, dict):
-        for kind in surf_map_kinds:
-            if kind not in vmax:
-                raise ValueError(f'No entry for "{kind}" found in the vmax dictionary')
-    else:  # float value
-        vmax = {kind: vmax for kind in surf_map_kinds}
-
-    if alpha is None:
-        alpha = {surf_map["kind"]: val for surf_map, val in zip(surf_maps, [1.0, 0.5])}
-    elif isinstance(alpha, dict):
-        for kind in surf_map_kinds:
-            if kind not in alpha:
-                raise ValueError(f'No entry for "{kind}" found in the alpha dictionary')
-    else:  # float value
-        alpha = {kind: alpha for kind in surf_map_kinds}
-
-    colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
-    colormap = mne_analyze_colormap(format="vtk")
-    colormap_lines = np.concatenate(
-        [
-            np.tile([0.0, 0.0, 255.0, 255.0], (127, 1)),
-            np.tile([0.0, 0.0, 0.0, 255.0], (2, 1)),
-            np.tile([255.0, 0.0, 0.0, 255.0], (127, 1)),
-        ]
-    )
-
-    data_interp = interp1d(
-        evoked.times, evoked.data, kind=interpolation, assume_sorted=True
-    )
-
-    from ._brain import Brain
-
-    if isinstance(fig, Brain):
-        print("Hijacking brain renderer")
-        renderer = fig._renderer
-    else:
-        renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
-    renderer.set_interaction(interaction)
-
-    # The time_change callback will need write access to a global state (to
-    # update the contours actor), hence we provide this global state as a
-    # dictionary to the callback function.
-    viz_data = dict(
-        data_interp=data_interp,
-        colormap_lines=colormap_lines,
-        surf_map_data=list(),  # gets populated in the loop below
-        time_interpolation=time_interpolation,
-    )
-
-    for ii, this_map in enumerate(surf_maps):
-        surf = this_map["surf"]
-        if isinstance(fig, Brain) and fig._units == "mm":
-            surf["rr"] *= 1000
-        map_data = this_map["data"]
-        map_type = this_map["kind"]
-        map_ch_names = this_map["ch_names"]
-
-        if map_type == "eeg":
-            pick = pick_types(evoked.info, meg=False, eeg=True)
-        else:
-            pick = pick_types(evoked.info, meg=True, eeg=False, ref_meg=False)
-
-        ch_names = [evoked.ch_names[k] for k in pick]
-
-        set_ch_names = set(ch_names)
-        set_map_ch_names = set(map_ch_names)
-        if set_ch_names != set_map_ch_names:
-            message = ["Channels in map and data do not match."]
-            diff = set_map_ch_names - set_ch_names
-            if len(diff):
-                message += ["%s not in data file. " % list(diff)]
-            diff = set_ch_names - set_map_ch_names
-            if len(diff):
-                message += ["%s not in map file." % list(diff)]
-            raise RuntimeError(" ".join(message))
-
-        data = np.dot(map_data, data_interp(time)[pick])
-
-        # Make a solid surface
-        map_vmax = vmax.get(map_type)
-        if map_vmax is None:
-            map_vmax = float(np.max(np.abs(data)))
-        mesh = _LayeredMesh(
-            renderer=renderer,
-            vertices=surf["rr"],
-            triangles=surf["tris"],
-            normals=surf["nn"],
-        )
-        mesh.map()
-        color = _to_rgb(colors[ii], alpha=True)
-        cmap = np.array(
-            [
-                (
-                    0,
-                    0,
-                    0,
-                    0,
-                ),
-                color,
-            ]
-        )
-        ctable = np.round(cmap * 255).astype(np.uint8)
-        mesh.add_overlay(
-            scalars=np.ones(len(data)),
-            colormap=ctable,
-            rng=[0, 1],
-            opacity=alpha[map_type],
-            name="surf",
-        )
-        # Now show our field pattern
-        mesh.add_overlay(
-            scalars=data,
-            colormap=colormap,
-            rng=[-map_vmax, map_vmax],
-            opacity=1.0,
-            name="field",
-        )
-
-        # And the field lines on top
-        if n_contours > 0:
-            contours = np.linspace(-map_vmax, map_vmax, n_contours)
-            contours_actor, _ = renderer.contour(
-                surface=surf,
-                scalars=data,
-                contours=contours,
-                vmin=-map_vmax,
-                vmax=map_vmax,
-                colormap=colormap_lines,
-            )
-        else:
-            contours = None  # noqa
-            contours_actor = None
-
-        # Add information about this surface map to the global viz_data state
-        viz_data["surf_map_data"].append(
-            dict(
-                pick=pick,
-                map_data=map_data,
-                mesh=mesh,
-                contours=contours,
-                contours_actor=contours_actor,
-                surf=surf,
-                map_vmax=map_vmax,
-            )
-        )
-
-    if time_label is not None:
-        viz_data["time_label"] = time_label
-        if "%" in time_label:
-            time_label = time_label % np.round(1e3 * time)
-        viz_data["time_label_actor"] = renderer.text2d(
-            x_window=0.01, y_window=0.01, text=time_label
-        )
-
-    # Register a callback to update the field pattern and contour lines
-    # upon receiving a time_change UI event.
-    def on_time_change(event, viz_data):
-        for surf_map_data in viz_data["surf_map_data"]:
-            data = np.dot(
-                surf_map_data["map_data"],
-                viz_data["data_interp"](event.time)[surf_map_data["pick"]],
-            )
-            surf_map_data["mesh"].update_overlay(name="field", scalars=data)
-            if surf_map_data["contours"] is not None:
-                renderer.plotter.remove_actor(
-                    surf_map_data["contours_actor"], render=False
-                )
-                surf_map_data["contours_actor"], _ = renderer.contour(
-                    surface=surf_map_data["surf"],
-                    scalars=data,
-                    contours=surf_map_data["contours"],
-                    vmin=-surf_map_data["map_vmax"],
-                    vmax=surf_map_data["map_vmax"],
-                    colormap=viz_data["colormap_lines"],
-                )
-        if "time_label" in viz_data:
-            renderer.plotter.remove_actor(viz_data["time_label_actor"], render=False)
-            time_label = viz_data["time_label"]
-            if "%" in viz_data["time_label"]:
-                time_label = time_label % np.round(1e3 * event.time)
-            viz_data["time_label_actor"] = renderer.text2d(
-                x_window=0.01, y_window=0.01, text=time_label
-            )
-
-        renderer.plotter.update()
-
     if fig is None:
-        fig = renderer.scene()
-
-    ui_events.subscribe(fig, "time_change", partial(on_time_change, viz_data=viz_data))
-
-    renderer.set_camera(azimuth=10, elevation=60)
-    renderer.show()
-    return fig
+        return evoked_field._renderer.scene()
+    else:
+        return fig
 
 
 @verbose
