@@ -46,10 +46,11 @@ into MNE using :func:`mne.io.read_raw_eyelink`.
 
 Supported measurement types from Eyelink files include eye position, pupil
 size, saccadic velocity, resolution, and head position (for recordings
-collected in remote mode). Eyelink files often report occular events (blinks,
+collected in remote mode). Eyelink files often report ocular events (blinks,
 saccades, and fixations), MNE will store these events as `mne.Annotations`.
-For More information on the various measurement types that can be present in
-Eyelink files, read below.
+Blink annotation descriptions will start with ``'BAD_'`` (i.e. ``'BAD_blink'``). For
+more information on the various measurement types that can be present in Eyelink files,
+read below.
 
 Eye Position Data
 -----------------
