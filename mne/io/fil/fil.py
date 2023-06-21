@@ -104,14 +104,16 @@ class RawFIL(BaseRaw):
             nlocs = len(chanpos["name"])
             for ii in range(0, nlocs):
                 idx = chans["name"].index(chanpos["name"][ii])
-                tmp = np.array([chanpos["Px"][ii], chanpos["Py"][ii], chanpos["Pz"][ii]])
+                tmp = np.array(
+                    [chanpos["Px"][ii], chanpos["Py"][ii], chanpos["Pz"][ii]]
+                )
                 chans["pos"][idx] = tmp.astype(np.float64)
-                tmp = np.array([chanpos["Ox"][ii], chanpos["Oy"][ii], chanpos["Oz"][ii]])
+                tmp = np.array(
+                    [chanpos["Ox"][ii], chanpos["Oy"][ii], chanpos["Oz"][ii]]
+                )
                 chans["ori"][idx] = tmp.astype(np.float64)
         else:
-            warn(
-                "No sensor position information found."
-            )
+            warn("No sensor position information found.")
 
         with open(files["meg"], "r") as fid:
             meg = json.load(fid)
