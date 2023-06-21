@@ -173,7 +173,7 @@ class EvokedField:
         ]
 
         # Draw the time label
-        self._time_label = str(time_label)
+        self._time_label = time_label
         if time_label is not None:
             if "%" in time_label:
                 time_label = time_label % np.round(1e3 * time)
