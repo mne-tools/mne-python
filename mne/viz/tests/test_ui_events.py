@@ -24,6 +24,7 @@ def event_channel_links():
     return ui_events._event_channel_links
 
 
+@testing.requires_testing_data
 def test_get_event_channel(event_channels):
     """Test creating and obtaining a figure's UI event channel."""
     # At first, no event channels exist
