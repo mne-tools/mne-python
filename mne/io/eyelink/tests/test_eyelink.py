@@ -73,18 +73,18 @@ def test_eyelink(fname, create_annotations, find_overlaps):
         )
         # There is a blink in this data at 8.9 seconds
         cond = (df["time_in_sec"] > 8.899) & (df["time_in_sec"] < 8.95)
-        assert df[cond]["description"].values[0].startswith("blink")
+        assert df[cond]["description"].values[0].startswith("BAD_blink")
     if find_overlaps is True:
         df = raw.annotations.to_data_frame()
         # these should both be True so long as _find_overlaps is not
         # majorly refactored.
-        assert "blink_L" in df["description"].unique()
-        assert "blink_both" in df["description"].unique()
+        assert "BAD_blink_L" in df["description"].unique()
+        assert "BAD_blink_both" in df["description"].unique()
     if isinstance(create_annotations, list) and find_overlaps:
         # the last pytest parametrize condition should hit this
         df = raw.annotations.to_data_frame()
         # Rows 0, 1, 2 should be 'fixation_both', 'saccade_both', 'blink_both'
-        for i, label in zip([0, 1, 2], ["fixation", "saccade", "blink"]):
+        for i, label in zip([0, 1, 2], ["fixation", "saccade", "BAD_blink"]):
             assert df["description"].iloc[i] == f"{label}_both"
 
     # Test that annotations ch_name key is set correctly
