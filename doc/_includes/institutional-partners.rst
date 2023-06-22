@@ -19,6 +19,7 @@ Current partners
 - `Children’s Hospital of Philadelphia Research Institute <https://www.research.chop.edu/imaging/>`_
 - `Donders Institute for Brain, Cognition and Behaviour at Radboud University <https://www.ru.nl/donders/>`_
 - `Harvard Medical School <https://hms.harvard.edu/>`_
+- `Human Neuroscience Platform at Fondation Campus Biotech Geneva <https://hnp.fcbg.ch/>`_
 - `Institut national de recherche en informatique et en automatique <https://www.inria.fr/>`_
 - `Karl-Franzens-Universität Graz <https://www.uni-graz.at/>`_
 - `Massachusetts General Hospital <https://www.massgeneral.org/>`_
