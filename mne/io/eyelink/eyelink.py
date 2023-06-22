@@ -708,7 +708,7 @@ class RawEyelink(BaseRaw):
                 onsets = df["time"]
                 durations = df["duration"]
                 # Create annotations for both eyes
-                descriptions = f"{key[:-1]}_" + df["eye"]  # i.e "blink_r"
+                descriptions = key[:-1]  # i.e "blink", "fixation", "saccade"
                 if key == "blinks":
                     descriptions = "BAD_" + descriptions
                 ch_names = df["eye"].map(eye_ch_map).tolist()

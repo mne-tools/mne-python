@@ -8,6 +8,19 @@ from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.utils import _check_pandas_installed, requires_pandas
 
+MAPPING = {
+    "left": ["xpos_left", "ypos_left", "pupil_left"],
+    "right": ["xpos_right", "ypos_right", "pupil_right"],
+    "both": [
+        "xpos_left",
+        "ypos_left",
+        "pupil_left",
+        "xpos_right",
+        "ypos_right",
+        "pupil_right",
+    ],
+}
+
 testing_path = data_path(download=False)
 fname = testing_path / "eyetrack" / "test_eyelink.asc"
 fname_href = testing_path / "eyetrack" / "test_eyelink_HREF.asc"
@@ -74,40 +87,17 @@ def test_eyelink(fname, create_annotations, find_overlaps):
         # There is a blink in this data at 8.9 seconds
         cond = (df["time_in_sec"] > 8.899) & (df["time_in_sec"] < 8.95)
         assert df[cond]["description"].values[0].startswith("BAD_blink")
-    if find_overlaps is True:
-        df = raw.annotations.to_data_frame()
-        # these should both be True so long as _find_overlaps is not
-        # majorly refactored.
-        assert "BAD_blink_L" in df["description"].unique()
-        assert "BAD_blink_both" in df["description"].unique()
+
+        # Check that the annotation ch_names are set correctly
+        assert np.array_equal(raw.annotations[0]["ch_names"], MAPPING["both"])
+        assert np.array_equal(raw.annotations[36]["ch_names"], MAPPING["right"])
+        assert np.array_equal(raw.annotations[37]["ch_names"], MAPPING["left"])
+
     if isinstance(create_annotations, list) and find_overlaps:
         # the last pytest parametrize condition should hit this
-        df = raw.annotations.to_data_frame()
-        # Rows 0, 1, 2 should be 'fixation_both', 'saccade_both', 'blink_both'
-        for i, label in zip([0, 1, 2], ["fixation", "saccade", "BAD_blink"]):
-            assert df["description"].iloc[i] == f"{label}_both"
-
-    # Test that annotations ch_name key is set correctly
-    if create_annotations:
-        mapping = {
-            "L": ["xpos_left", "ypos_left", "pupil_left"],
-            "R": ["xpos_right", "ypos_right", "pupil_right"],
-            "both": [
-                "xpos_left",
-                "ypos_left",
-                "pupil_left",
-                "xpos_right",
-                "ypos_right",
-                "pupil_right",
-            ],
-        }
-        for annot in raw.annotations:
-            if annot["description"].endswith("both"):
-                assert np.array_equal(annot["ch_names"], mapping["both"])
-            elif annot["description"].endswith("L"):
-                assert np.array_equal(annot["ch_names"], mapping["L"])
-            elif annot["description"].endswith("R"):
-                assert np.array_equal(annot["ch_names"], mapping["R"])
+        assert np.array_equal(raw.annotations[0]["ch_names"], MAPPING["both"])
+        assert np.array_equal(raw.annotations[32]["ch_names"], MAPPING["right"])
+        assert np.array_equal(raw.annotations[33]["ch_names"], MAPPING["left"])
 
 
 @requires_testing_data
