@@ -963,7 +963,9 @@ def plot_epochs(
         event_samps = events[:, 0]
         epoch_n_samps = len(epochs.times)
         # handle overlapping epochs (each event may show up in multiple places)
-        boundaries = epochs.events[:, [0]] + np.array([-1, 1]) * epochs.time_as_index(0)
+        boundaries = epochs.events[:, [0]] + np.array([-1, 1]) * epochs.time_as_index(
+            [0, epochs.tmax]
+        )
         in_bounds = np.logical_and(
             boundaries[:, [0]] <= event_samps, event_samps < boundaries[:, [1]]
         )
