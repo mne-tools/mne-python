@@ -39,21 +39,42 @@ def test_eyetrack_not_data_ch():
 @requires_testing_data
 @requires_pandas
 @pytest.mark.parametrize(
-    "fname, create_annotations, find_overlaps",
+    "fname, create_annotations, find_overlaps, apply_offsets",
     [
-        (fname, False, False),
-        (fname, False, False),
-        (fname, True, False),
-        (fname, True, True),
-        (fname, ["fixations", "saccades", "blinks"], True),
+        (fname, False, False, True),
+        (
+            fname,
+            False,
+            False,
+            False,
+        ),
+        (
+            fname,
+            True,
+            False,
+            False,
+        ),
+        (
+            fname,
+            True,
+            True,
+            False,
+        ),
+        (
+            fname,
+            ["fixations", "saccades", "blinks"],
+            True,
+            False,
+        ),
     ],
 )
-def test_eyelink(fname, create_annotations, find_overlaps):
+def test_eyelink(fname, create_annotations, find_overlaps, apply_offsets):
     """Test reading eyelink asc files."""
     raw = read_raw_eyelink(
         fname,
         create_annotations=create_annotations,
         find_overlaps=find_overlaps,
+        apply_offsets=apply_offsets,
     )
 
     # First, tests that shouldn't change based on function arguments

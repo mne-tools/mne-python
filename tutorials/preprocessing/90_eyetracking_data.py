@@ -52,7 +52,7 @@ print(raw.annotations[0])  # a blink in the right eye
 # argument of `mne.io.read_raw_eyelink`. above, we only created annotations
 # for blinks, and experiment messages.
 #
-# Note that ``'blink'`` annotations are prepended with ``'BAD_'``, and MNE will treat
+# Note that ``'blink'`` annotations are read in as ``'BAD_blink'``, and MNE will treat
 # these as bad segments of data. This means that blink periods will be dropped during
 # epoching by default.
 

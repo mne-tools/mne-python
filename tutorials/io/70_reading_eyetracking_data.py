@@ -48,9 +48,8 @@ Supported measurement types from Eyelink files include eye position, pupil
 size, saccadic velocity, resolution, and head position (for recordings
 collected in remote mode). Eyelink files often report ocular events (blinks,
 saccades, and fixations), MNE will store these events as `mne.Annotations`.
-Blink annotation descriptions will start with ``'BAD_'`` (i.e. ``'BAD_blink'``). For
-more information on the various measurement types that can be present in Eyelink files,
-read below.
+Blink annotation descriptions will be ``'BAD_blink'``. For more information
+on the various measurement types that can be present in Eyelink files. read below.
 
 Eye Position Data
 -----------------

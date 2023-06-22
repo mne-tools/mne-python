@@ -121,14 +121,6 @@ def read_raw_eyelink(
     ``'BAD_ACQ_SKIP'``.
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
-    extension = fname.suffix
-    if extension not in ".asc":
-        raise ValueError(
-            "This reader can only read eyelink .asc files."
-            f" Got extension {extension} instead. consult EyeLink"
-            " manual for converting EyeLink data format (.edf)"
-            " files to .asc format."
-        )
 
     raw_eyelink = RawEyelink(
         fname,
@@ -402,21 +394,12 @@ class RawEyelink(BaseRaw):
                     if line.startswith("** DATE:"):
                         dt_str = line.replace("** DATE:", "").strip()
                         fmt = "%a %b %d %H:%M:%S %Y"
-                        try:
-                            # Eyelink measdate timestamps are timezone naive.
-                            # Force datetime to be in UTC.
-                            # Even though dt is probably in local time zone.
-                            dt_naive = datetime.strptime(dt_str, fmt)
-                            dt_aware = dt_naive.replace(tzinfo=tz)
-                            self._meas_date = dt_aware
-                        except Exception:
-                            msg = (
-                                "Extraction of measurement date failed."
-                                " Please report this as a github issue."
-                                " The date is being set to None"
-                            )
-                            logger.warning(msg)
-                        break
+                        # Eyelink measdate timestamps are timezone naive.
+                        # Force datetime to be in UTC.
+                        # Even though dt is probably in local time zone.
+                        dt_naive = datetime.strptime(dt_str, fmt)
+                        dt_aware = dt_naive.replace(tzinfo=tz)
+                        self._meas_date = dt_aware
 
     def _href_to_radian(self, opposite, f=15_000):
         """Convert HREF eyegaze samples to radians.
@@ -720,12 +703,6 @@ class RawEyelink(BaseRaw):
                 )
             elif (key in ["messages"]) and (key in descs):
                 if apply_offsets:
-                    if df["offset"].isnull().all():
-                        logger.warning(
-                            "There are no offsets for the messages"
-                            f" in {self.fname}. Not applying any"
-                            " offset"
-                        )
                     # If df['offset] is all NaNs, time is not changed
                     onsets = df["time"] + df["offset"].fillna(0)
                 else:
