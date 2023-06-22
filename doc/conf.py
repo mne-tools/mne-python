@@ -398,6 +398,7 @@ numpydoc_validation_exclude = {  # set of regex
     r"\.fromkeys",
     r"\.items",
     r"\.keys",
+    r"\.move_to_end",
     r"\.pop",
     r"\.popitem",
     r"\.setdefault",
@@ -735,6 +736,7 @@ nitpick_ignore = [
     ("py:class", "(k, v), remove and return some (key, value) pair as a"),
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
+    ("py:class", "None.  Remove all items from od."),
 ]
 nitpick_ignore_regex = [
     ("py:.*", r"mne\.io\.BaseRaw.*"),
@@ -1092,6 +1094,20 @@ html_context = {
             klass="only-dark",
         ),
         dict(
+            name="AE Studio",
+            img="AE-Studio-light.svg",
+            url="https://ae.studio/",
+            size=xxl,
+            klass="only-light",
+        ),
+        dict(
+            name="AE Studio",
+            img="AE-Studio-dark.svg",
+            url="https://ae.studio/",
+            size=xxl,
+            klass="only-dark",
+        ),
+        dict(
             name="Children’s Hospital of Philadelphia Research Institute",
             img="CHOP.svg",
             url="https://www.research.chop.edu/imaging",
@@ -1110,6 +1126,12 @@ html_context = {
             img="Donders.png",
             url="https://www.ru.nl/donders/",
             size=xl,
+        ),
+        dict(
+            name="Human Neuroscience Platforn at Fondation Campus Biotech Geneva",  # noqa E501
+            img="FCBG.svg",
+            url="https://hnp.fcbg.ch/",
+            size=sm,
         ),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
@@ -1481,6 +1503,7 @@ needed_plot_redirects = {
     "psf_ctf_vertices_lcmv.py",
     "publication_figure.py",
     "rap_music.py",
+    "trap_music.py",
     "read_inverse.py",
     "read_neo_format.py",
     "read_noise_covariance_matrix.py",

@@ -150,7 +150,7 @@ def test_array_raw():
 
     # plotting
     raw2.plot()
-    (raw2.compute_psd(tmax=2.0, n_fft=1024).plot(average=True, spatial_colors=False))
+    raw2.compute_psd(tmax=2.0, n_fft=1024).plot(average=True, spatial_colors=False)
     plt.close("all")
 
     # epoching

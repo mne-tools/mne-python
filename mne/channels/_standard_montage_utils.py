@@ -124,6 +124,7 @@ standard_montage_look_up_table = {
     "EGI_256": _egi_256,
     "easycap-M1": partial(_easycap, basename="easycap-M1.txt"),
     "easycap-M10": partial(_easycap, basename="easycap-M10.txt"),
+    "easycap-M43": partial(_easycap, basename="easycap-M43.txt"),
     "GSN-HydroCel-128": partial(_hydrocel, basename="GSN-HydroCel-128.sfp"),
     "GSN-HydroCel-129": partial(_hydrocel, basename="GSN-HydroCel-129.sfp"),
     "GSN-HydroCel-256": partial(_hydrocel, basename="GSN-HydroCel-256.sfp"),

@@ -2279,11 +2279,11 @@ class AverageTFR(_BaseTFR):
                     baseline=baseline,
                     mode=mode,
                     cmap=None,
-                    title=ch_type,
-                    vmin=None,
-                    vmax=None,
+                    vlim=(None, None),
                     axes=ax,
                 )
+                ax.set_title(ch_type)
+            fig.tight_layout()
 
     @verbose
     def plot_topo(

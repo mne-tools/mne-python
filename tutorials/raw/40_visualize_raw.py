@@ -119,7 +119,7 @@ raw.plot()
 # object has a :meth:`~mne.time_frequency.Spectrum.plot` method:
 
 spectrum = raw.compute_psd()
-spectrum.plot(average=True)
+spectrum.plot(average=True, picks="data", exclude="bads")
 
 # %%
 # If the data have been filtered, vertical dashed lines will automatically
@@ -133,7 +133,7 @@ spectrum.plot(average=True)
 # documentation of `~mne.time_frequency.Spectrum.plot` for full details):
 
 midline = ["EEG 002", "EEG 012", "EEG 030", "EEG 048", "EEG 058", "EEG 060"]
-spectrum.plot(picks=midline)
+spectrum.plot(picks=midline, exclude="bads")
 
 # %%
 # It is also possible to plot spectral power estimates across sensors as a

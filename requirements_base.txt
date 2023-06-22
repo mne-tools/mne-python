@@ -1,7 +1,7 @@
 # requirements for basic MNE-Python functionality
 numpy>=1.15.4
 scipy>=1.6.3
-matplotlib
+matplotlib>=3.4.0
 tqdm
 pooch>=1.5
 decorator

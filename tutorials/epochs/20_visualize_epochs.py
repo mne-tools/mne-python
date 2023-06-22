@@ -145,7 +145,7 @@ epochs.plot_sensors(kind="topomap", ch_type="all")
 # :class:`~mne.time_frequency.EpochsSpectrum`'s
 # :meth:`~mne.time_frequency.EpochsSpectrum.plot` method.
 
-epochs["auditory"].compute_psd().plot(picks="eeg")
+epochs["auditory"].compute_psd().plot(picks="eeg", exclude="bads")
 
 # %%
 # It is also possible to plot spectral power estimates across sensors as a
