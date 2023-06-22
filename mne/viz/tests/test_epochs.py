@@ -99,7 +99,7 @@ def test_plot_epochs_colors(epochs, browser_backend):
 
 def test_plot_epochs_scale_bar(epochs, browser_backend):
     """Test scale bar for epochs."""
-    fig = epochs.plot(events=False)
+    fig = epochs.plot(**ev)
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
     if browser_backend.name == "pyqtgraph":
@@ -152,7 +152,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys, browser_backend):
     fig._close_event()  # XXX workaround, MPL Agg doesn't trigger close event
     assert len(epochs_full) == 6
     # test rightclick → image plot
-    fig = epochs_full.plot(events=False)
+    fig = epochs_full.plot(**ev)
     fig._click_ch_name(ch_index=0, button=3)  # show image plot
     assert len(fig.mne.child_figs) == 1
     # test scroll wheel
@@ -237,7 +237,7 @@ def test_plot_epochs_nodata(browser_backend):
     info = create_info(2, 1000.0, "stim")
     epochs = EpochsArray(data, info)
     with pytest.raises(ValueError, match="consider passing picks explicitly"):
-        epochs.plot(events=False)
+        epochs.plot(**ev)
 
 
 @pytest.mark.slowtest
@@ -423,7 +423,7 @@ def test_plot_epochs_ctf(raw_ctf, browser_backend):
     )
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
-    epochs.plot(events=False)
+    epochs.plot(**ev)
     browser_backend._close_all()
 
     # test butterfly
