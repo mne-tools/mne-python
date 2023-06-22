@@ -281,7 +281,8 @@ class _COLA:
         window="hann",
         tol=1e-10,
         *,
-        verbose=None
+        name="COLA",
+        verbose=None,
     ):
         from scipy.signal import get_window
 
@@ -309,6 +310,7 @@ class _COLA:
         self._store = _check_store(store)
         self._idx = 0
         self._in_buffers = self._out_buffers = None
+        self.name = name
 
         # Create our window boundaries
         window_name = window if isinstance(window, str) else "custom"
@@ -357,6 +359,7 @@ class _COLA:
             raise ValueError(
                 "Got %d array(s), needed %d" % (len(datas), len(self._in_buffers))
             )
+        current_offset = 0  # should be updated below
         for di, data in enumerate(datas):
             if not isinstance(data, np.ndarray) or data.ndim < 1:
                 raise TypeError(
@@ -386,9 +389,12 @@ class _COLA:
                         data.shape[:-1],
                     )
                 )
+            # This gets updated on first iteration, so store it before it updates
+            if di == 0:
+                current_offset = self._in_offset
             logger.debug(
-                "    + Appending %d->%d"
-                % (self._in_offset, self._in_offset + data.shape[-1])
+                f"    + {self.name}[{di}] Appending  "
+                f"{current_offset}:{current_offset + data.shape[-1]}"
             )
             self._in_buffers[di] = np.concatenate([self._in_buffers[di], data], -1)
             if self._in_offset > self.stops[-1]:
@@ -412,14 +418,19 @@ class _COLA:
             if self._idx == 0:
                 for offset in range(self._n_samples - self._step, 0, -self._step):
                     this_window[:offset] += self._window[-offset:]
-            logger.debug("    * Processing %d->%d" % (start, stop))
             this_proc = [in_[..., :this_len].copy() for in_ in self._in_buffers]
+            logger.debug(
+                f"    * {self.name}[:] Processing {start}:{stop} "
+                f"(e.g., {this_proc[0].flat[[0, -1]]})"
+            )
             if not all(
                 proc.shape[-1] == this_len == this_window.size for proc in this_proc
             ):
                 raise RuntimeError("internal indexing error")
             start = self._store.idx
             stop = self._store.idx + this_len
+            # TODO: Remove this
+            # print(this_proc[1].flat[[0, -1]])
             outs = self._process(*this_proc, start=start, stop=stop, **kwargs)
             if self._out_buffers is None:
                 max_len = np.max(self.stops - self.starts)
@@ -435,9 +446,12 @@ class _COLA:
             else:
                 next_start = self.stops[-1]
             delta = next_start - self.starts[self._idx - 1]
+            logger.debug(
+                f"    - {self.name}[:] Shifting input and output buffers by "
+                f"{delta} samples (storing {start}:{stop})"
+            )
             for di in range(len(self._in_buffers)):
                 self._in_buffers[di] = self._in_buffers[di][..., delta:]
-            logger.debug("    - Shifting input/output buffers by %d samples" % (delta,))
             self._store(*[o[..., :delta] for o in self._out_buffers])
             for ob in self._out_buffers:
                 ob[..., :-delta] = ob[..., delta:]
@@ -456,9 +470,9 @@ def _check_cola(win, nperseg, step, window_name, tol=1e-10):
     deviation = np.max(np.abs(binsums - const))
     if deviation > tol:
         raise ValueError(
-            "segment length %d with step %d for %s window "
-            "type does not provide a constant output "
-            "(%g%% deviation)" % (nperseg, step, window_name, 100 * deviation / const)
+            f"segment length {nperseg} with step {step} for {window_name} "
+            "window type does not provide a constant output "
+            f"({100 * deviation / const:g}% deviation)"
         )
     return const
 

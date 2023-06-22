@@ -764,9 +764,13 @@ def _run_maxwell_filter(
         else:
             n_overlap = 0
             window = "boxcar"
+        if st_fixed and st_correlation is not None:
+            fun = partial(_do_tSSS_on_avg_trans, mc=mc)
+        else:
+            fun = _do_tSSS
         tsss = _COLA(
             partial(
-                _do_tSSS,
+                fun,
                 st_correlation=st_correlation,
                 tsss_valid=tsss_valid,
                 sfreq=sfreq,
@@ -777,14 +781,11 @@ def _run_maxwell_filter(
             n_overlap,
             sfreq,
             window,
+            name="tSSS-COLA",
         )
 
         # Generate time points to break up data into equal-length windows
-        # TODO: here we must use st_duration if present to make feed_avg work :(
-        if st_fixed and st_correlation is not None:
-            use_n = min(st_duration, n)
-        else:
-            use_n = int(round(raw_sss.buffer_size_sec * raw_sss.info["sfreq"]))
+        use_n = int(round(raw_sss.buffer_size_sec * raw_sss.info["sfreq"]))
         read_lims = list(range(onset, end, use_n)) + [end]
         assert len(read_lims) >= 2
         assert read_lims[0] == onset and read_lims[-1] == end
@@ -802,33 +803,20 @@ def _run_maxwell_filter(
             # Apply the average transform and feed data to the tSSS pre-mc
             # operator, which will pass its results to raw_sss._data
             if st_fixed and st_correlation is not None:
-                in_data, resid, n_positions = mc.feed_avg(ctc_data)
                 if st_only:
                     proc = raw_sss._data[meg_picks, start:stop]
                 else:
                     proc = ctc_data
                 tsss.feed(
                     proc,
-                    in_data,
-                    resid,
-                    n_positions=n_positions,
+                    ctc_data,
                     sfreq=info["sfreq"],
                 )
             else:
                 raw_sss._data[meg_picks[good_mask], start:stop] = ctc_data
 
-        # Here we can use a smaller buffer size (might as well)
-        read_lims = list(
-            range(
-                onset, end, int(round(raw_sss.buffer_size_sec * raw_sss.info["sfreq"]))
-            )
-        )
-        read_lims.append(end)
-        assert len(read_lims) >= 2
-        assert read_lims[0] == onset and read_lims[-1] == end
-
         # Second pass: movement compensation, st_fixed=False
-        for ii, (start, stop) in enumerate(zip(read_lims[:-1], read_lims[1:])):
+        for start, stop in zip(read_lims[:-1], read_lims[1:]):
             data, orig_in_data, resid, pos_data, n_positions = mc.feed(
                 raw_sss._data[meg_picks, start:stop], good_mask, st_only
             )
@@ -886,13 +874,10 @@ class _MoveComp(object):
         self.get_decomp = get_decomp
         # For the average passes
         self.last_avg_quat = np.nan * np.ones(6)
-        self.avg_offset = 0
 
-    def feed_avg(self, good_data):
+    def get_avg_op(self, *, start, stop):
         """Apply an average transformation over the next interval."""
-        n_pos, avg_quat = _trans_lims(
-            self.pos, self.avg_offset, self.avg_offset + good_data.shape[-1]
-        )[1:]
+        n_pos, avg_quat = _trans_lims(self.pos, start, stop)[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
             self.last_avg_quat = avg_quat
             avg_trans = np.vstack(
@@ -902,20 +887,17 @@ class _MoveComp(object):
                 ]
             )
             S_decomp_st, _, pS_decomp_st, _, n_use_in_st = self.get_decomp(
-                avg_trans, t=self.avg_offset / self.sfreq
+                avg_trans, t=start / self.sfreq
             )
-            self.op_in = np.dot(
+            self.op_in_avg = np.dot(
                 S_decomp_st[:, :n_use_in_st], pS_decomp_st[:n_use_in_st]
             )
-            self.op_resid = (
-                np.eye(len(self.op_in))
-                - self.op_in
+            self.op_resid_avg = (
+                np.eye(len(self.op_in_avg))
+                - self.op_in_avg
                 - np.dot(S_decomp_st[:, n_use_in_st:], pS_decomp_st[n_use_in_st:])
             )
-        in_data = np.dot(self.op_in, good_data)
-        resid = np.dot(self.op_resid, good_data)
-        self.avg_offset += good_data.shape[1]
-        return in_data, resid, n_pos
+        return self.op_in_avg, self.op_resid_avg, n_pos
 
     def feed(self, data, good_mask, st_only):
         n_samp = data.shape[1]
@@ -1157,6 +1139,34 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
             ]
         )
     return trans, rel_starts, rel_stops, quats, avg_trans
+
+
+def _do_tSSS_on_avg_trans(
+    clean_data,
+    orig_data,
+    *,
+    st_correlation,
+    tsss_valid,
+    mc,
+    start,
+    stop,
+    sfreq,
+):
+    # Get the average transformation over the start, stop interval and split data
+    op_in, op_resid, n_positions = mc.get_avg_op(start=start, stop=stop)
+    orig_in_data = op_in @ orig_data
+    resid = op_resid @ orig_data
+    return _do_tSSS(
+        clean_data,
+        orig_in_data,
+        resid,
+        st_correlation=st_correlation,
+        n_positions=n_positions,
+        tsss_valid=tsss_valid,
+        start=start,
+        stop=stop,
+        sfreq=sfreq,
+    )
 
 
 def _do_tSSS(
@@ -2493,18 +2503,19 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine, extended_remove)
         max_info = np.max(I_tots)
         lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
         in_removes = remove_order[:lim_idx]
-        for ii, ri in enumerate(in_removes):
-            eig = eigs[ii]
-            logger.debug(
-                f"            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = "
-                f"{eig[0] / eig[1]:03.1f}, Removing in component "
-                f"{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}"
-            )
-        logger.debug(
-            f"        Resulting information: {I_tots[lim_idx]:0.1f} "
-            f"bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak "
-            f"{max_info:0.1f})"
-        )
+        # TODO: Uncomment!
+        # for ii, ri in enumerate(in_removes):
+        #     eig = eigs[ii]
+        #     logger.debug(
+        #         f"            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = "
+        #         f"{eig[0] / eig[1]:03.1f}, Removing in component "
+        #         f"{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}"
+        #     )
+        # logger.debug(
+        #     f"        Resulting information: {I_tots[lim_idx]:0.1f} "
+        #     f"bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak "
+        #     f"{max_info:0.1f})"
+        # )
     else:
         in_removes = remove_order[:0]
     return in_removes, out_removes

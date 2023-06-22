@@ -86,7 +86,7 @@ def test_cola(ndim):
     sfreq = 1000.0
     rng = np.random.RandomState(0)
 
-    def processor(x):
+    def processor(x, *, start, stop):
         return (x / 2.0,)  # halve the signal
 
     for n_total in (999, 1000, 1001):
