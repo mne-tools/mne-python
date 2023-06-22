@@ -877,7 +877,7 @@ class _MoveComp(object):
 
     def get_avg_op(self, *, start, stop):
         """Apply an average transformation over the next interval."""
-        n_pos, avg_quat = _trans_lims(self.pos, start, stop)[1:]
+        n_positions, avg_quat = _trans_lims(self.pos, start, stop)[1:]
         if not np.allclose(avg_quat, self.last_avg_quat, atol=1e-7):
             self.last_avg_quat = avg_quat
             avg_trans = np.vstack(
@@ -897,7 +897,8 @@ class _MoveComp(object):
                 - self.op_in_avg
                 - np.dot(S_decomp_st[:, n_use_in_st:], pS_decomp_st[n_use_in_st:])
             )
-        return self.op_in_avg, self.op_resid_avg, n_pos
+        print(n_positions)
+        return self.op_in_avg, self.op_resid_avg, n_positions
 
     def feed(self, data, good_mask, st_only):
         n_samp = data.shape[1]
@@ -939,6 +940,7 @@ def _trans_lims(pos, start, stop):
     pos_idx = np.arange(*np.searchsorted(pos[1], [start, stop]))
     used = np.zeros(stop - start, bool)
     quats = np.empty((9, stop - start))
+    n_positions = len(pos_idx)
     for ti in range(-1, len(pos_idx)):
         # first iteration for this block of data
         if ti < 0:
@@ -948,6 +950,7 @@ def _trans_lims(pos, start, stop):
             if rel_start == rel_stop:
                 continue  # our first pos occurs on first time sample
             this_quat = pos[2][max(pos_idx[0] - 1 if len(pos_idx) else 0, 0)]
+            n_positions += 1
         else:
             rel_start = pos[1][pos_idx[ti]] - start
             if ti == len(pos_idx) - 1:
@@ -966,7 +969,7 @@ def _trans_lims(pos, start, stop):
     avg_quat = _average_quats(quats[:3].T)
     avg_t = np.mean(quats[3:6], axis=1)
     avg_quat = np.concatenate([avg_quat, avg_t])
-    return quats, len(pos_idx), avg_quat
+    return quats, n_positions, avg_quat
 
 
 def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):

@@ -1983,24 +1983,47 @@ def test_prepare_emptyroom_annot_first_samp(
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.parametrize("movecomp", (True,))  # False))
-@pytest.mark.parametrize("st_fixed", (True,))  # False))
-@pytest.mark.parametrize("st_only", (False,))  # TODO: True
+@pytest.mark.parametrize("mc_interp", ("zero",))  # TODO: "zero", "hann", False))
+@pytest.mark.parametrize("st_fixed", (False,))  # TODO: True, False))  WORKING
+@pytest.mark.parametrize("st_only", (False,))  # TODO: True, False))  WORKING!
 @pytest.mark.filterwarnings("ignore:st_fixed=False is untested.*:RuntimeWarning")
-def test_feed_avg(st_fixed, st_only, movecomp):
+def test_feed_avg(st_fixed, st_only, mc_interp):
     """Test that feed_avg gives the correct data for tSSS."""
+    if mc_interp is False:
+        movecomp = False
+        mc_interp = "zero"
+    else:
+        movecomp = True
     raw = read_crop(raw_fname, (0, 3.0)).load_data()  # 0-1, 0.5-1.5, ...
+    # Use every third mag just for speed
+    raw.pick("mag")
+    raw.pick(raw.ch_names[::3])
     head_pos = read_head_pos(pos_fname) if movecomp else None
-    kwargs = dict(st_duration=1, st_fixed=st_fixed, st_only=st_only, verbose="debug")
-    log_0_1 = "Projecting 13 intersecting tSSS components for    0.000 -    0.999 s"
-    n = 14 if st_fixed else 26
-    log_0p5_1p5 = (
-        f"Projecting {n} intersecting tSSS components for    0.000 -    0.999 s"
+    kwargs = dict(
+        int_order=3, st_duration=1, st_fixed=st_fixed, st_only=st_only, verbose="debug"
     )
-    n = 14 if movecomp else 13
-    log_1_2 = f"Projecting {n} intersecting tSSS components for    1.000 -    1.999 s"
+    n = 8 if (movecomp and mc_interp == "hann" and not st_fixed) else 4
+    log_0_1 = f"Projecting  {n} intersecting tSSS components for    0.000 -    0.999 s"
+    if st_fixed:
+        n = 4
+    else:
+        if movecomp:
+            n = 12 if mc_interp == "hann" else 8
+        else:
+            n = 4
+    log_0p5_1p5 = (
+        f"Projecting {n:2d} intersecting tSSS components for    0.000 -    0.999 s"
+    )
+    if movecomp and st_fixed:
+        log_0p5_1p5 += " (across  2 positions)\n"
+    n = 8 if (movecomp and mc_interp == "hann" and not st_fixed) else 4
+    log_1_2 = (
+        f"Projecting  {n} intersecting tSSS components for    1.000 -    1.999 s\n"
+    )
     with catch_logging() as log:
-        maxwell_filter(raw, head_pos=head_pos, **kwargs)
+        _maxwell_filter_ola(
+            raw, head_pos=head_pos, st_overlap=False, mc_interp=mc_interp, **kwargs
+        )
     log = log.getvalue()
     print(log)
     assert log_0_1 in log
@@ -2008,11 +2031,19 @@ def test_feed_avg(st_fixed, st_only, movecomp):
     if movecomp:
         this_head_pos = head_pos.copy()
         assert raw.first_time == 9.0
-        this_head_pos = head_pos[head_pos[:, 0] >= 9.5]
+        this_head_pos = head_pos[np.where(head_pos[:, 0] >= 9.5)[0][0] - 1 :]
+        this_head_pos[0, 0] = 9.5
+        assert this_head_pos[1, 0] > this_head_pos[0, 0]
     else:
         this_head_pos = None
     with catch_logging() as log_crop:
-        maxwell_filter(raw.copy().crop(0.5, None), head_pos=this_head_pos, **kwargs)
+        _maxwell_filter_ola(
+            raw.copy().crop(0.5, None),
+            head_pos=this_head_pos,
+            st_overlap=False,
+            mc_interp=mc_interp,
+            **kwargs,
+        )
     log_crop = log_crop.getvalue()
     print(log_crop)
     assert log_0p5_1p5 in log_crop
@@ -2022,7 +2053,7 @@ def test_feed_avg(st_fixed, st_only, movecomp):
         _maxwell_filter_ola(
             raw,
             st_overlap=True,
-            mc_interp="hann",
+            mc_interp=mc_interp,
             head_pos=head_pos,
             **kwargs,
         )
