@@ -26,11 +26,15 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink"):
         (50 ms). if array-like, the first element is the time before the blink and the
         second element is the time after the blink to consider invalid, for example,
         ``(0.025, .1)``.
+    match : str | list of str
+        The description of annotations to interpolate over. If a list, data within
+        annotations matching any of the strings in the list will interpolated over.
+        Defaults to ``'BAD_blink'``.
 
     Returns
     -------
     self : instance of Raw
-        Returns the modified instance
+        Returns the modified instance.
     """
     _check_preload(raw, "interpolate_blinks")
     _validate_type(raw, BaseRaw, "raw")
