@@ -950,7 +950,7 @@ def plot_epochs(
             "The current default events=None is deprecated and will change to "
             "events=True in MNE 1.5. Set events=False to suppress this "
             "warning.",
-            category=FutureWarning
+            category=FutureWarning,
         )
         events = False
     if events is False:
