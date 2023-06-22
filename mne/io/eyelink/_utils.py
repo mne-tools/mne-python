@@ -5,7 +5,7 @@
 import re
 import numpy as np
 
-from ...utils import _check_pandas_installed
+from ...utils import _check_pandas_installed, _validate_type
 
 
 def _isfloat(token):
@@ -16,16 +16,13 @@ def _isfloat(token):
     token : str
         Single element from tokens list.
     """
-    if isinstance(token, str):
-        try:
-            float(token)
-            return True
-        except ValueError:
-            return False
+    _validate_type(token, str, "token")
+    try:
+        float(token)
+    except ValueError:
+        return False
     else:
-        raise ValueError(
-            "input should be a string," f" but {token} is of type {type(token)}"
-        )
+        return True
 
 
 def _convert_types(tokens):
@@ -65,8 +62,6 @@ def _parse_line(line):
     splits it into a list of tokens, and converts the type
     for each token in the list.
     """
-    if not len(line):
-        raise ValueError("line is empty, nothing to parse")
     tokens = line.split()
     return _convert_types(tokens)
 
