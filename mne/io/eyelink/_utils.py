@@ -65,11 +65,10 @@ def _parse_line(line):
     splits it into a list of tokens, and converts the type
     for each token in the list.
     """
-    if len(line):
-        tokens = line.split()
-        return _convert_types(tokens)
-    else:
+    if not len(line):
         raise ValueError("line is empty, nothing to parse")
+    tokens = line.split()
+    return _convert_types(tokens)
 
 
 def _is_sys_msg(line):
@@ -98,7 +97,7 @@ def _is_sys_msg(line):
     - !V APLAYSTART 0 1 library/audio
     - !MODE RECORD CR 500 2 1 R
     """
-    return any(["!V" in line, "!MODE" in line, ";" in line])
+    return "!V" in line or "!MODE" in line or ";" in line
 
 
 def _get_sfreq(rec_info):
@@ -114,10 +113,7 @@ def _get_sfreq(rec_info):
     -------
     sfreq : int | float
     """
-    for i, token in enumerate(rec_info):
-        if token == "RATE":
-            # sfreq is the first token after RATE
-            return rec_info[i + 1]
+    return rec_info[rec_info.index("RATE") + 1]
 
 
 def _sort_by_time(df, col="time"):
