@@ -211,14 +211,19 @@ def test_plot_overlapping_epochs_with_events(browser_backend):
     sfreq = 100
     info = create_info(ch_names=("a", "b"), ch_types=("misc", "misc"), sfreq=sfreq)
     # 90% overlap, so all 3 events should appear in all 3 epochs when plotted:
-    events = np.column_stack(([50, 60, 70], [0, 0, 0], [1, 2, 3]))
-    epochs = EpochsArray(data, info, tmin=-0.5, events=events)
-    fig = epochs.plot(events=events, picks="misc")
-    if browser_backend.name == "matplotlib":
-        n_event_lines = len(fig.mne.event_lines.get_segments())
-    else:
-        n_event_lines = len(fig.mne.event_lines)
-    assert n_event_lines == 9
+    events = np.column_stack(([40, 50, 60], [0, 0, 0], [1, 2, 3]))
+    epochs = EpochsArray(data, info, tmin=-0.4, events=events)
+    fig1 = epochs.plot(events=events, picks="misc")
+    # regression test for https://mne.discourse.group/t/6334
+    # plot 1 epoch with its defining event plus events at its first & last sample
+    events2 = np.row_stack(([[0, 0, 4]], events[[0]], [[99, 0, 4]]))
+    fig2 = epochs[0].plot(events=events2, picks="misc")
+    # now check that the event lines are there
+    for fig, expected_n_lines in ((fig1, 9), (fig2, 3)):
+        event_lines = fig.mne.event_lines
+        if browser_backend.name == "matplotlib":
+            event_lines = event_lines.get_segments()
+        assert len(event_lines) == expected_n_lines
 
 
 def test_epochs_plot_sensors(epochs):
