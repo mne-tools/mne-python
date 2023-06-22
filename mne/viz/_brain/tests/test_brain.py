@@ -425,26 +425,31 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     info["chs"][0]["coord_frame"] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
         brain.add_sensors(info, trans=fname_trans)
+    brain.close()
 
     # test sEEG projection onto inflated
     # make temp path to fake pial surface
     os.makedirs(tmp_path / subject / "surf", exist_ok=True)
     for hemi in ("lh", "rh"):
-        # fake white surface for pial
+        # fake white surface for pial, and no .curv file
         copyfile(
             subjects_dir / subject / "surf" / f"{hemi}.white",
             tmp_path / subject / "surf" / f"{hemi}.pial",
         )
         copyfile(
-            subjects_dir / subject / "surf" / f"{hemi}.curv",
-            tmp_path / subject / "surf" / f"{hemi}.curv",
-        )
-        copyfile(
             subjects_dir / subject / "surf" / f"{hemi}.inflated",
             tmp_path / subject / "surf" / f"{hemi}.inflated",
         )
-
-    brain._subjects_dir = tmp_path
+    brain = Brain(
+        hemi=hemi,
+        surf=surf,
+        size=size,
+        title=title,
+        cortex=cortex,
+        units="m",
+        subject=subject,
+        subjects_dir=tmp_path,
+    )
     proj_info = create_info([f"Ch{i}" for i in range(1, 7)], 1000, "seeg")
     pos = (
         np.array(

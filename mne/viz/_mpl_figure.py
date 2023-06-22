@@ -75,14 +75,12 @@ from .utils import (
 )
 
 name = "matplotlib"
-plt.ion()
-BACKEND = get_backend()
-#   This  ↑↑↑↑↑↑↑↑↑↑↑↑↑  does weird things:
+with plt.ion():
+    BACKEND = get_backend()
+#   This      ↑↑↑↑↑↑↑↑↑↑↑↑↑ does weird things:
 #   https://github.com/matplotlib/matplotlib/issues/23298
-#   but wrapping it in ion() context makes it go away (can't actually use
-#   `with plt.ion()` as context manager, though, for compat reasons).
+#   but wrapping it in ion() context makes it go away.
 #   Moving this bit to a separate function in ../../fixes.py doesn't work.
-plt.ioff()
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1

@@ -52,7 +52,7 @@ raw.info["bads"] = ["MEG1933", "MEG2421"]
 # noise (five peaks around 300 Hz). Here, we use only the first 30 seconds
 # to save memory:
 
-raw.compute_psd(tmax=30).plot(average=False)
+raw.compute_psd(tmax=30).plot(average=False, picks="data", exclude="bads")
 
 # %%
 # Our phantom produces sinusoidal bursts at 20 Hz:

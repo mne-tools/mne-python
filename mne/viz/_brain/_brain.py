@@ -435,8 +435,12 @@ class Brain:
                         normals=self.geo[h].nn,
                     )
                     mesh.map()  # send to GPU
+                    if self.geo[h].bin_curv is None:
+                        scalars = mesh._default_scalars[:, 0]
+                    else:
+                        scalars = self.geo[h].bin_curv
                     mesh.add_overlay(
-                        scalars=self.geo[h].bin_curv,
+                        scalars=scalars,
                         colormap=geo_kwargs["colormap"],
                         rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
                         opacity=alpha,

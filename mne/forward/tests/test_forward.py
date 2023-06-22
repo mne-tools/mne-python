@@ -44,6 +44,7 @@ fname_meeg_grad = (
 fname_evoked = (
     Path(__file__).parent.parent.parent / "io" / "tests" / "data" / "test-ave.fif"
 )
+label_path = data_path / "MEG" / "sample" / "labels"
 
 
 def assert_forward_allclose(f1, f2, rtol=1e-7):
@@ -318,7 +319,6 @@ def test_restrict_forward_to_label(tmp_path):
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True, use_cps=True)
     fwd = pick_types_forward(fwd, meg=True)
 
-    label_path = data_path / "MEG" / "sample" / "labels"
     labels = ["Aud-lh", "Vis-rh"]
     label_lh = read_label(label_path / (labels[0] + ".label"))
     label_rh = read_label(label_path / (labels[1] + ".label"))
@@ -344,7 +344,6 @@ def test_restrict_forward_to_label(tmp_path):
     fwd = read_forward_solution(fname_meeg)
     fwd = pick_types_forward(fwd, meg=True)
 
-    label_path = data_path / "MEG" / "sample" / "labels"
     labels = ["Aud-lh", "Vis-rh"]
     label_lh = read_label(label_path / (labels[0] + ".label"))
     label_rh = read_label(label_path / (labels[1] + ".label"))
@@ -373,6 +372,48 @@ def test_restrict_forward_to_label(tmp_path):
     write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
     assert_forward_allclose(fwd_out, fwd_out_read)
+
+
+@pytest.mark.parametrize("use_cps", [True, False])
+@testing.requires_testing_data
+def test_restrict_forward_to_label_cps(tmp_path, use_cps):
+    """Test for gh-11689."""
+    label_lh = read_label(label_path / "Aud-lh.label")
+    fwd = read_forward_solution(fname_meeg)
+    convert_forward_solution(
+        fwd, surf_ori=True, force_fixed=False, copy=False, use_cps=use_cps
+    )
+    fwd = pick_types_forward(fwd, meg="mag")
+    fwd_out = restrict_forward_to_label(fwd, label_lh)
+    vert = fwd_out["src"][0]["vertno"][0]
+
+    assert fwd["surf_ori"]
+    assert not is_fixed_orient(fwd)
+    idx = list(fwd["src"][0]["vertno"]).index(vert)
+    assert idx == 126
+    go1 = fwd["_orig_sol"][:, idx * 3 : idx * 3 + 3].copy()
+    gs1 = fwd["sol"]["data"][:, idx * 3 : idx * 3 + 3].copy()
+
+    assert fwd_out["surf_ori"]
+    assert not is_fixed_orient(fwd_out)
+    idx = list(fwd_out["src"][0]["vertno"]).index(vert)
+    assert idx == 0
+    go2 = fwd_out["_orig_sol"][:, idx * 3 : idx * 3 + 3].copy()
+    gs2 = fwd_out["sol"]["data"][:, idx * 3 : idx * 3 + 3].copy()
+    assert_allclose(go2, go1)
+    assert_allclose(gs2, gs1)
+
+    # should be a no-op
+    convert_forward_solution(
+        fwd_out, surf_ori=True, force_fixed=False, copy=False, use_cps=use_cps
+    )
+    assert fwd_out["surf_ori"]
+    assert not is_fixed_orient(fwd_out)
+    assert list(fwd_out["src"][0]["vertno"]).index(vert) == 0
+    go3 = fwd_out["_orig_sol"][:, idx * 3 : idx * 3 + 3].copy()
+    gs3 = fwd_out["sol"]["data"][:, idx * 3 : idx * 3 + 3].copy()
+    assert_allclose(go3, go1)
+    assert_allclose(gs3, gs1)
 
 
 @testing.requires_testing_data

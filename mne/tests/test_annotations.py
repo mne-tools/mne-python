@@ -1459,9 +1459,9 @@ def test_annotation_ch_names():
     assert raw_2.annotations.ch_names[1] == tuple(raw.ch_names[4:5])
     for ch_drop in raw_2.annotations.ch_names:
         assert all(name in raw_2.ch_names for name in ch_drop)
-    with pytest.raises(ValueError, match="channel name in annotations miss"):
+    with pytest.raises(ValueError, match="channel name in annotations missing"):
         raw_2.set_annotations(annot)
-    with pytest.warns(RuntimeWarning, match="channel name in annotations mis"):
+    with pytest.warns(RuntimeWarning, match="channel name in annotations missing"):
         raw_2.set_annotations(annot, on_missing="warn")
     assert raw_2.annotations is not annot_pruned
     _assert_annotations_equal(raw_2.annotations, annot_pruned)
