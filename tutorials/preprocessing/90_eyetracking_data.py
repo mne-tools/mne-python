@@ -107,7 +107,8 @@ raw.filter(l_freq=None, h_freq=40, picks=["pupil_right"])
 # only interested in the pupil size data, let's interpolate the missing pupil sizes in
 # the ``"pupil"`` channel during blinks:
 
-mne.preprocessing.eyetracking.interpolate_blinks(raw, buffer=0.05)
+# TODO: remove comment after PR 11746 is merged
+# mne.preprocessing.eyetracking.interpolate_blinks(raw, buffer=0.05)
 # Let's plot our data again to see the result of the interpolation:
 raw.pick(["pupil_right"])  # Let's pick just the pupil channel
 raw.plot(events=events, event_id={"Flash": 3}, event_color="g")

@@ -15,15 +15,19 @@ fname = data_path(download=False) / "eyetrack" / "test_eyelink.asc"
 
 @requires_testing_data
 @requires_pandas
-@pytest.mark.parametrize("buffer", [0.025, (0.025, 0.1)])
-def test_interpolate_blinks(buffer):
+@pytest.mark.xfail(reason="This will fail until PR 11746 is merged")
+@pytest.mark.parametrize(
+    "buffer, match",
+    [(0.025, "BAD_blink"), ((0.025, 0.025), ["BAD_blink", "blink_manual"])],
+)
+def test_interpolate_blinks(buffer, match):
     """Test interpolating pupil data during blinks."""
     raw = read_raw_eyelink(
         fname, preload=True, create_annotations=["blinks"], find_overlaps=True
     )
     first_blink_start = raw.annotations[0]["onset"]
     first_blink_end = raw.annotations[0]["onset"] + raw.annotations[0]["duration"]
-    interpolate_blinks(raw, buffer=buffer)
+    interpolate_blinks(raw, buffer=buffer, match=match)
 
     # Now get the data and check that the blinks are interpolated
     data, times = raw.get_data(return_times=True)
