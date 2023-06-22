@@ -25,6 +25,7 @@ Enhancements
 ~~~~~~~~~~~~
 - Add ``cmap`` argument for the :func:`mne.viz.plot_sensors` (:gh:`11720` by :newcontrib:`Gennadiy Belonosov`)
 - When failing to locate a file, we now print the full path in quotation marks to help spot accidentally added trailing spaces (:gh:`11718` by `Richard Höchenberger`_)
+- Add standard montage lookup table for ``easycap-M43`` (:gh:`11744` by :newcontrib:`Diptyajit Das`)
 - Added :class:`mne.preprocessing.eyetracking.Calibration` to store eye-tracking calibration info, and :func:`mne.preprocessing.eyetracking.read_eyelink_calibration` to read calibration data from EyeLink systems (:gh:`11719` by `Scott Huberty`_)
 - Ocular :class:`mne.Annotations` read in by :func:`mne.io.read_raw_eyelink` are now channel aware. This means if the left eye blinked, the associated annotation will store this in the ``'ch_names'`` key. (:gh:`11746` by `Scott Huberty`_)
 
@@ -38,6 +39,7 @@ Bugs
 - Fix hanging interpreter with matplotlib figures using ``mne/viz/_mpl_figure.py`` in spyder console and jupyter notebooks (:gh:`11696` by `Mathieu Scheltienne`_)
 - Fix bug with overlapping text for :meth:`mne.Evoked.plot` (:gh:`11698` by `Alex Rockhill`_)
 - For :func:`mne.io.read_raw_eyelink`, the default value of the ``gap_description`` parameter is now ``'BAD_ACQ_SKIP'``, following MNE convention (:gh:`11719` by `Scott Huberty`_)
+- Allow int-like for the argument ``id`` of `~mne.make_fixed_length_events` (:gh:`11748` by `Mathieu Scheltienne`_)
 - blink :class:`mne.Annotations` read in by :func:`mne.io.read_raw_eyelink` now begin with ``'BAD_'``, i.e. ``'BAD_blink'``, because ocular data are missing during blinks. (:gh:`11746` by `Scott Huberty`_)
 
 API changes
