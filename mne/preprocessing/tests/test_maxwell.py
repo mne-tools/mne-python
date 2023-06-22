@@ -1979,3 +1979,41 @@ def test_prepare_emptyroom_annot_first_samp(
         raw_er_prepared.get_data([0], reject_by_annotation="nan")
     ).mean()
     assert_allclose(prop_bad, prop_bad_er)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_feed_avg():
+    """Test that feed_avg gives the correct data for tSSS."""
+    raw = read_crop(raw_fname, (0, 3.0)).load_data()  # 0-1, 0.5-1.5, ...
+    head_pos = read_head_pos(pos_fname)
+    kwargs = dict(st_duration=1, verbose=True)
+    log_0_1 = "Projecting 13 intersecting tSSS components for    0.000 -    0.999 s"
+    log_0p5_1p5 = "Projecting 14 intersecting tSSS components for    0.000 -    0.999 s"
+    log_1_2 = "Projecting 14 intersecting tSSS components for    1.000 -    1.999 s"
+    with catch_logging() as log:
+        maxwell_filter(raw, head_pos=head_pos, **kwargs)
+    log = log.getvalue()
+    assert log_0_1 in log
+    assert log_1_2 in log
+    this_head_pos = head_pos.copy()
+    assert raw.first_time == 9.0
+    this_head_pos = head_pos[head_pos[:, 0] >= 9.5]
+    with catch_logging() as log_crop:
+        maxwell_filter(raw.copy().crop(0.5, None), head_pos=this_head_pos, **kwargs)
+    log_crop = log_crop.getvalue()
+    assert log_0p5_1p5 in log_crop
+    # The full / OLA version of this will reflect the actual offset
+    log_0p5_1p5 = log_0p5_1p5.replace("0.000", "0.500").replace("0.999", "1.499")
+    with catch_logging() as log_ola:
+        _maxwell_filter_ola(
+            raw,
+            st_overlap=True,
+            mc_interp="hann",
+            head_pos=head_pos,
+            **kwargs,
+        )
+    log_ola = log_ola.getvalue()
+    assert log_0_1 in log_ola
+    assert log_1_2 in log_ola
+    assert log_0p5_1p5 in log_ola
