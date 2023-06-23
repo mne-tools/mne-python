@@ -158,6 +158,6 @@ def test_fil_no_positions(tmp_path):
 
     with pytest.warns(RuntimeWarning, match="No sensor positions*"):
         raw = read_raw_fil(binname)
-        chs = raw.info["chs"]
-        locs = array([ch["loc"][:] for ch in chs])
-        assert isnan(locs).all()
+    chs = raw.info["chs"]
+    locs = array([ch["loc"][:] for ch in chs])
+    assert isnan(locs).all()
