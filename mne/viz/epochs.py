@@ -860,9 +860,11 @@ def plot_epochs(
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
     event_id : bool | dict
-        If ``True``, use ``epochs.event_id``. If ``False``, use event numbers
-        instead of IDs. If ``dict``, use keys as event labels (e.g. 'aud_l')
-        for values corresponding to event integers.
+        Determines to label the event markers on the plot. If ``True``, uses
+        ``epochs.event_id``. If ``False``, uses integer event codes instead of IDs.
+        If a ``dict`` is passed, uses its *keys* as event labels on the plot for
+        entries whose *values* are integer codes for events being drawn. Ignored if
+        ``events=False``.
 
         .. versionadded:: 0.20
     %(group_by_browse)s
