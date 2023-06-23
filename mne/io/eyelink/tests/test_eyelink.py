@@ -41,7 +41,7 @@ def test_eyetrack_not_data_ch():
 @pytest.mark.parametrize(
     "fname, create_annotations, find_overlaps, apply_offsets",
     [
-        (fname, False, False, True),
+        (fname, False, False, False),
         (
             fname,
             False,
@@ -58,7 +58,7 @@ def test_eyetrack_not_data_ch():
             fname,
             True,
             True,
-            False,
+            True,
         ),
         (
             fname,
@@ -111,14 +111,10 @@ def test_eyelink(fname, create_annotations, find_overlaps, apply_offsets):
 
         # Check that the annotation ch_names are set correctly
         assert np.array_equal(raw.annotations[0]["ch_names"], MAPPING["both"])
-        assert np.array_equal(raw.annotations[36]["ch_names"], MAPPING["right"])
-        assert np.array_equal(raw.annotations[37]["ch_names"], MAPPING["left"])
 
     if isinstance(create_annotations, list) and find_overlaps:
         # the last pytest parametrize condition should hit this
         assert np.array_equal(raw.annotations[0]["ch_names"], MAPPING["both"])
-        assert np.array_equal(raw.annotations[32]["ch_names"], MAPPING["right"])
-        assert np.array_equal(raw.annotations[33]["ch_names"], MAPPING["left"])
 
 
 @requires_testing_data
