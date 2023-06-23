@@ -866,7 +866,12 @@ class _MoveComp(object):
 
     def initialize(self, get_decomp, dev_head_t, S_recon):
         """Secondary initialization."""
-        self.smooth = _Interp2(self.pos[1], self.get_decomp_by_offset, self.interp)
+        self.smooth = _Interp2(
+            self.pos[1],
+            self.get_decomp_by_offset,
+            interp=self.interp,
+            name="MC",
+        )
         _, _, pS_decomp, self.reg_moments_0, _ = get_decomp(dev_head_t, t=0.0)
         self.n_good = pS_decomp.shape[1]
         self.S_recon = S_recon
@@ -897,7 +902,6 @@ class _MoveComp(object):
                 - self.op_in_avg
                 - np.dot(S_decomp_st[:, n_use_in_st:], pS_decomp_st[n_use_in_st:])
             )
-        print(n_positions)
         return self.op_in_avg, self.op_resid_avg, n_positions
 
     def feed(self, data, good_mask, st_only):

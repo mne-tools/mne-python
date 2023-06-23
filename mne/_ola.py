@@ -42,7 +42,7 @@ class _Interp2:
 
     """
 
-    def __init__(self, control_points, values, interp="hann"):
+    def __init__(self, control_points, values, interp="hann", *, name="Interp2"):
         # set up interpolation
         self.control_points = np.array(control_points, int).ravel()
         if not np.array_equal(np.unique(self.control_points), self.control_points):
@@ -81,6 +81,7 @@ class _Interp2:
         self._position = 0  # start at zero
         self._left_idx = 0
         self._left = self._right = self._use_interp = None
+        self.name = name
         known_types = ("cos2", "linear", "zero", "hann")
         if interp not in known_types:
             raise ValueError(
@@ -94,10 +95,10 @@ class _Interp2:
         n_pts = _ensure_int(n_pts, "n_pts")
         original_position = self._position
         stop = self._position + n_pts
-        logger.debug("Feed %s (%s-%s)" % (n_pts, self._position, stop))
+        logger.debug(f"    ~ {self.name} Feed {n_pts} ({self._position}-{stop})")
         used = np.zeros(n_pts, bool)
         if self._left is None:  # first one
-            logger.debug("  Eval @ %s (%s)" % (0, self.control_points[0]))
+            logger.debug(f"    ~   {self.name} Eval @ 0 ({self.control_points[0]})")
             self._left = self.values(self.control_points[0])
             if len(self.control_points) == 1:
                 self._right = self._left
@@ -106,7 +107,7 @@ class _Interp2:
         # Left zero-order hold condition
         if self._position < self.control_points[self._left_idx]:
             n_use = min(self.control_points[self._left_idx] - self._position, n_pts)
-            logger.debug("  Left ZOH %s" % n_use)
+            logger.debug(f"    ~   {self.name} Left ZOH {n_use}")
             this_sl = slice(None, n_use)
             assert used[this_sl].size == n_use
             assert not used[this_sl].any()
@@ -131,7 +132,9 @@ class _Interp2:
                     self._left_idx += 1
                     self._use_interp = None  # need to recreate it
                 eval_pt = self.control_points[self._left_idx + 1]
-                logger.debug("  Eval @ %s (%s)" % (self._left_idx + 1, eval_pt))
+                logger.debug(
+                    f"    ~   {self.name} Eval @ {self._left_idx + 1} ({eval_pt})"
+                )
                 self._right = self.values(eval_pt)
             assert self._right is not None
             left_point = self.control_points[self._left_idx]
@@ -152,8 +155,8 @@ class _Interp2:
             n_use = min(stop, right_point) - self._position
             if n_use > 0:
                 logger.debug(
-                    "  Interp %s %s (%s-%s)"
-                    % (self._interp, n_use, left_point, right_point)
+                    f"    ~   {self.name} Interp {self._interp} {n_use} "
+                    f"({left_point}-{right_point})"
                 )
                 interp_start = self._position - left_point
                 assert interp_start >= 0
@@ -174,7 +177,7 @@ class _Interp2:
         if self.control_points[self._left_idx] <= self._position:
             n_use = stop - self._position
             if n_use > 0:
-                logger.debug("  Right ZOH %s" % n_use)
+                logger.debug(f"    ~   {self.name} Right ZOH %s" % n_use)
                 this_sl = slice(n_pts - n_use, None)
                 assert not used[this_sl].any()
                 used[this_sl] = True
@@ -447,7 +450,7 @@ class _COLA:
                 next_start = self.stops[-1]
             delta = next_start - self.starts[self._idx - 1]
             logger.debug(
-                f"    - {self.name}[:] Shifting input and output buffers by "
+                f"    + {self.name}[:] Shifting input and output buffers by "
                 f"{delta} samples (storing {start}:{stop})"
             )
             for di in range(len(self._in_buffers)):
