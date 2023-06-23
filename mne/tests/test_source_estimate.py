@@ -619,6 +619,7 @@ def test_stc_methods():
         assert_array_almost_equal(stc_new.data, stc.data, 5)
 
 
+@testing.requires_testing_data
 def test_stc_resamp_noop():
     """Tests resampling doesn't affect data if sfreq is identical."""
     stc = read_source_estimate(fname_stc)

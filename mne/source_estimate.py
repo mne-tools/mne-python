@@ -852,7 +852,7 @@ class _BaseSourceEstimate(TimeMixin):
         from .filter import _check_resamp_noop
 
         o_sfreq = 1.0 / self.tstep
-        if _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
+        if _check_resamp_noop(sfreq, o_sfreq):
             return self
 
         # resampling in sensor instead of source space gives a somewhat
