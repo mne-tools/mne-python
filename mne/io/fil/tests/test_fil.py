@@ -156,7 +156,7 @@ def test_fil_no_positions(tmp_path):
 
     remove(posname)
 
-    with pytest.warns(RuntimeWarning, match="No sensor positions.*"):
+    with pytest.warns(RuntimeWarning, match="No sensor position.*"):
         raw = read_raw_fil(binname)
     chs = raw.info["chs"]
     locs = array([ch["loc"][:] for ch in chs])
