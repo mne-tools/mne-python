@@ -1,3 +1,5 @@
+.. _Aaron Earle-Richardson: https://github.com/Aaronearlerichardson
+
 .. _Abram Hindle: https://softwareprocess.es
 
 .. _Adam Li: https://github.com/adam2392
@@ -118,6 +120,8 @@
 
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 
+.. _Diptyajit Das: https://github.com/dasdiptyajit
+
 .. _Dirk Gütlin: https://github.com/DiGyt
 
 .. _Dmitrii Altukhov: https://github.com/dmalt
@@ -169,6 +173,8 @@
 .. _Frederik Weber: https://github.com/Frederik-D-Weber
 
 .. _Fu-Te Wong: https://github.com/zuxfoucault
+
+.. _Gennadiy Belonosov: https://github.com/Genuster
 
 .. _Geoff Brookshire: https://github.com/gbrookshire
 
@@ -255,6 +261,8 @@
 .. _Jose Alanis: https://github.com/JoseAlanis
 
 .. _Joshua Bear: https://github.com/joshbear
+
+.. _Joshua Calder-Travis: https://github.com/jCalderTravis
 
 .. _Joshua Teves: https://github.com/jbteves
 

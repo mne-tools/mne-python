@@ -2351,7 +2351,7 @@ docdict[
 ] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
-    e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+    e.g. ``{'EEG061' : 'EEG161'}``. Can also be a callable function
     that takes and returns a string.
 
     .. versionchanged:: 0.10.0
