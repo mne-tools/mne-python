@@ -917,8 +917,15 @@ def plot_epochs(
     unit_scalings = _handle_default("scalings", None)
     decim, picks_data = _handle_decim(epochs.info.copy(), decim, None)
     noise_cov = _check_cov(noise_cov, epochs.info)
-    event_id_rev = {v: k for k, v in (event_id or {}).items()}
     _check_option("group_by", group_by, ("selection", "position", "original", "type"))
+    # handle event labels
+    if not event_id:
+        event_id = dict()
+    else:
+        if not hasattr(event_id, "keys"):
+            event_id = dict()
+        event_id = epochs.event_id | event_id
+    event_id_rev = {v: k for k, v in event_id.items()}
     # validate epoch_colors
     _validate_type(epoch_colors, (list, None), "epoch_colors")
     if epoch_colors is not None:
