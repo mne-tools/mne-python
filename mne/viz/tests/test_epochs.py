@@ -16,11 +16,14 @@ from mne.datasets import testing
 from mne.event import make_fixed_length_events
 from mne.viz import plot_drop_log
 
+# TODO: deprecation cycle handling, remove this and all `**ev` after 1.5 release
+ev = dict(events=False)
+
 
 def test_plot_epochs_not_preloaded(epochs_unloaded, browser_backend):
     """Test plotting non-preloaded epochs."""
     assert epochs_unloaded._data is None
-    epochs_unloaded.plot()
+    epochs_unloaded.plot(**ev)
     assert epochs_unloaded._data is None
 
 
@@ -29,7 +32,7 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys, browser_ba
     assert len(epochs.events) == 1
     with epochs.info._unlock():
         epochs.info["lowpass"] = 10.0  # allow heavy decim during plotting
-    fig = epochs.plot(scalings=None, title="Epochs")
+    fig = epochs.plot(**ev, scalings=None, title="Epochs")
     ticks = fig._get_ticklabels("x")
     assert ticks == ["2"]
     browser_backend._close_all()
@@ -38,38 +41,38 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys, browser_ba
     assert noise_cov_io["bads"] == []
     assert epochs.info["bads"] == []  # all good
     with pytest.warns(RuntimeWarning, match="projection"):
-        epochs.plot(noise_cov=noise_cov_io)
+        epochs.plot(**ev, noise_cov=noise_cov_io)
     browser_backend._close_all()
     # add a channel to the epochs.info['bads']
     epochs.info["bads"] = [epochs.ch_names[0]]
     with pytest.warns(RuntimeWarning, match="projection"):
-        epochs.plot(noise_cov=noise_cov_io)
+        epochs.plot(**ev, noise_cov=noise_cov_io)
     browser_backend._close_all()
     # add a channel to cov['bads']
     noise_cov_io["bads"] = [epochs.ch_names[1]]
     with pytest.warns(RuntimeWarning, match="projection"):
-        epochs.plot(noise_cov=noise_cov_io)
+        epochs.plot(**ev, noise_cov=noise_cov_io)
     browser_backend._close_all()
     # have a data channel missing from the covariance
     noise_cov_io["names"] = noise_cov_io["names"][:306]
     noise_cov_io["data"] = noise_cov_io["data"][:306][:306]
     with pytest.warns(RuntimeWarning, match="projection"):
-        epochs.plot(noise_cov=noise_cov_io)
+        epochs.plot(**ev, noise_cov=noise_cov_io)
     browser_backend._close_all()
     # other options
-    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
+    fig = epochs[0].plot(**ev, picks=[0, 2, 3], scalings=None)
     fig._fake_keypress("escape")
     with pytest.raises(ValueError, match="No appropriate channels found"):
-        epochs.plot(picks=[])
+        epochs.plot(**ev, picks=[])
     # gh-5906
     assert len(epochs_full) == 7
     epochs_full.info["bads"] = [epochs_full.ch_names[0]]
     capsys.readouterr()
     # test title error handling
     with pytest.raises(TypeError, match="title must be None or a string, got"):
-        epochs_full.plot(title=7)
+        epochs_full.plot(**ev, title=7)
     # test auto-generated title, and selection mode
-    epochs_full.plot(group_by="selection", title="")
+    epochs_full.plot(**ev, group_by="selection", title="")
 
 
 @pytest.mark.parametrize(
@@ -77,24 +80,26 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys, browser_ba
 )
 def test_plot_epochs_scalings(epochs, scalings, browser_backend):
     """Test the valid options for scalings."""
-    epochs.plot(scalings=scalings)
+    epochs.plot(**ev, scalings=scalings)
 
 
 def test_plot_epochs_colors(epochs, browser_backend):
     """Test epoch_colors, for compatibility with autoreject."""
     epoch_colors = [["r"] * len(epochs.ch_names) for _ in range(len(epochs.events))]
-    epochs.plot(epoch_colors=epoch_colors)
+    epochs.plot(**ev, epoch_colors=epoch_colors)
     with pytest.raises(ValueError, match="length equal to the number of epo"):
-        epochs.plot(epoch_colors=[["r"], ["b"]])  # epochs obj has only 1 epoch
+        # epochs obj has only 1 epoch
+        epochs.plot(epoch_colors=[["r"], ["b"]])
     with pytest.raises(ValueError, match=r"epoch colors for epoch \d+ has"):
-        epochs.plot(epoch_colors=[["r"]])  # need 1 color for each channel
+        # need 1 color for each channel
+        epochs.plot(**ev, epoch_colors=[["r"]])
     # also test event_color
-    epochs.plot(event_color="b")
+    epochs.plot(**ev, event_color="b")
 
 
 def test_plot_epochs_scale_bar(epochs, browser_backend):
     """Test scale bar for epochs."""
-    fig = epochs.plot()
+    fig = epochs.plot(**ev)
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
     if browser_backend.name == "pyqtgraph":
@@ -108,7 +113,7 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
 
 def test_plot_epochs_clicks(epochs, epochs_full, capsys, browser_backend):
     """Test plot_epochs mouse interaction."""
-    fig = epochs.plot(events=epochs.events)
+    fig = epochs.plot(events=True)
     x = fig.mne.traces[0].get_xdata()[3]
     y = fig.mne.traces[0].get_ydata()[3]
     n_epochs = len(epochs)
@@ -126,7 +131,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys, browser_backend):
     assert n_epochs - 1 == len(epochs)
     # test marking bad channels
     # need more than 1 epoch this time
-    fig = epochs_full.plot(n_epochs=3)
+    fig = epochs_full.plot(**ev, n_epochs=3)
     first_ch = fig._get_ticklabels("y")[0]
     assert first_ch not in fig.mne.info["bads"]
     fig._click_ch_name(ch_index=0, button=1)  # click ch name to mark bad
@@ -147,7 +152,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys, browser_backend):
     fig._close_event()  # XXX workaround, MPL Agg doesn't trigger close event
     assert len(epochs_full) == 6
     # test rightclick → image plot
-    fig = epochs_full.plot()
+    fig = epochs_full.plot(**ev)
     fig._click_ch_name(ch_index=0, button=3)  # show image plot
     assert len(fig.mne.child_figs) == 1
     # test scroll wheel
@@ -159,7 +164,7 @@ def test_plot_epochs_keypresses(epochs_full, browser_backend):
     """Test plot_epochs keypress interaction."""
     # we need more than 1 epoch
     epochs_full.drop_bad(dict(mag=4e-12))  # for histogram plot coverage
-    fig = epochs_full.plot(n_epochs=3)
+    fig = epochs_full.plot(**ev, n_epochs=3)
     # make sure green vlines are visible first (for coverage)
     sample_idx = len(epochs_full.times) // 2  # halfway through the first epoch
     x = fig.mne.traces[0].get_xdata()[sample_idx]
@@ -200,20 +205,49 @@ def test_plot_epochs_keypresses(epochs_full, browser_backend):
     fig._fake_click([x, y], xform="data", button=3)  # remove vlines
 
 
-def test_plot_overlapping_epochs_with_events(browser_backend):
+def _get_event_lines_and_texts(fig):
+    """Get event lines and labels (helper function)."""
+    lines = fig.mne.event_lines
+    texts = fig.mne.event_texts
+    if hasattr(lines, "get_segments"):  # matplotlib backend
+        lines = lines.get_segments()
+        texts = [t.get_text() for t in texts]
+    return lines, texts
+
+
+@pytest.mark.parametrize(
+    "event_id,expected_texts",
+    [(False, set("123")), (True, set("abc")), (dict(f=1), set("fbc"))],
+)
+def test_plot_overlapping_epochs_with_events(browser_backend, event_id, expected_texts):
     """Test drawing of event lines in overlapping epochs."""
     data = np.zeros(shape=(3, 2, 100))  # 3 epochs, 2 channels, 100 samples
     sfreq = 100
     info = create_info(ch_names=("a", "b"), ch_types=("misc", "misc"), sfreq=sfreq)
     # 90% overlap, so all 3 events should appear in all 3 epochs when plotted:
-    events = np.column_stack(([50, 60, 70], [0, 0, 0], [1, 2, 3]))
-    epochs = EpochsArray(data, info, tmin=-0.5, events=events)
-    fig = epochs.plot(events=events, picks="misc")
+    events = np.column_stack(([40, 50, 60], [0, 0, 0], [1, 2, 3]))
+    epochs = EpochsArray(
+        data, info, tmin=-0.4, events=events, event_id=dict(a=1, b=2, c=3)
+    )
+    fig = epochs.plot(events=events, picks="misc", event_id=event_id)
+    # check that the event lines are there and the labels are correct
+    lines, texts = _get_event_lines_and_texts(fig)
+    assert len(lines) == len(epochs) * len(events)
+    # TODO: Qt browser doesn't show event names, only integers
     if browser_backend.name == "matplotlib":
-        n_event_lines = len(fig.mne.event_lines.get_segments())
-    else:
-        n_event_lines = len(fig.mne.event_lines)
-    assert n_event_lines == 9
+        assert set(texts) == expected_texts
+    # plot one epoch with its defining event plus events at its first & last sample
+    # (regression test for https://mne.discourse.group/t/6334)
+    events = np.row_stack(([[0, 0, 4]], events[[0]], [[99, 0, 4]]))
+    fig = epochs[0].plot(events=events, picks="misc", event_id=event_id)
+    expected_texts.add("4")
+    for text in ("2", "3", "b", "c"):
+        expected_texts.discard(text)
+    lines, texts = _get_event_lines_and_texts(fig)
+    assert len(lines) == len(events)
+    # TODO: Qt browser doesn't show event names, only integers
+    if browser_backend.name == "matplotlib":
+        assert set(texts) == expected_texts
 
 
 def test_epochs_plot_sensors(epochs):
@@ -227,7 +261,7 @@ def test_plot_epochs_nodata(browser_backend):
     info = create_info(2, 1000.0, "stim")
     epochs = EpochsArray(data, info)
     with pytest.raises(ValueError, match="consider passing picks explicitly"):
-        epochs.plot()
+        epochs.plot(**ev)
 
 
 @pytest.mark.slowtest
@@ -413,11 +447,11 @@ def test_plot_epochs_ctf(raw_ctf, browser_backend):
     )
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
-    epochs.plot()
+    epochs.plot(**ev)
     browser_backend._close_all()
 
     # test butterfly
-    fig = epochs.plot(butterfly=True)
+    fig = epochs.plot(**ev, butterfly=True)
     # leave fullscreen testing to Raw / _figure abstraction (too annoying here)
     keys = (
         "b",
@@ -476,4 +510,4 @@ def test_plot_epochs_selection_butterfly(raw, browser_backend):
     events = make_fixed_length_events(raw)[:1]
     epochs = Epochs(raw, events, tmin=0, tmax=0.5, preload=True, baseline=None)
     assert len(epochs) == 1
-    epochs.plot(group_by="selection", butterfly=True)
+    epochs.plot(**ev, group_by="selection", butterfly=True)
