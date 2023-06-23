@@ -10,6 +10,14 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import numpy as np
+from ._utils import (
+    _convert_times,
+    _fill_times,
+    _find_overlaps,
+    _get_sfreq,
+    _is_sys_msg,
+    _parse_line,
+)  # helper functions
 from ..constants import FIFF
 from ..base import BaseRaw
 from ..meas_info import create_info
@@ -43,247 +51,6 @@ EYELINK_COLS = {
         "peak_velocity",
     ),
 }
-
-
-def _isfloat(token):
-    """Boolean test for whether string can be of type float.
-
-    Parameters
-    ----------
-    token : str
-        Single element from tokens list.
-    """
-    if isinstance(token, str):
-        try:
-            float(token)
-            return True
-        except ValueError:
-            return False
-    else:
-        raise ValueError(
-            "input should be a string," f" but {token} is of type {type(token)}"
-        )
-
-
-def _convert_types(tokens):
-    """Convert the type of each token in list.
-
-    The tokens input is a list of string elements.
-    Posix timestamp strings can be integers, eye gaze position and
-    pupil size can be floats. flags token ("...") remains as string.
-    Missing eye/head-target data (indicated by '.' or 'MISSING_DATA')
-    are replaced by np.nan.
-
-    Parameters
-    ----------
-    Tokens : list
-        List of string elements.
-
-    Returns
-    -------
-        Tokens list with elements of various types.
-    """
-    return [
-        int(token)
-        if token.isdigit()  # execute this before _isfloat()
-        else float(token)
-        if _isfloat(token)
-        else np.nan
-        if token in (".", "MISSING_DATA")
-        else token  # remains as string
-        for token in tokens
-    ]
-
-
-def _parse_line(line):
-    """Parse tab delminited string from eyelink ASCII file.
-
-    Takes a tab deliminited string from eyelink file,
-    splits it into a list of tokens, and converts the type
-    for each token in the list.
-    """
-    if len(line):
-        tokens = line.split()
-        return _convert_types(tokens)
-    else:
-        raise ValueError("line is empty, nothing to parse")
-
-
-def _is_sys_msg(line):
-    """Flag lines from eyelink ASCII file that contain a known system message.
-
-    Some lines in eyelink files are system outputs usually
-    only meant for Eyelinks DataViewer application to read.
-    These shouldn't need to be parsed.
-
-    Parameters
-    ----------
-    line : string
-        single line from Eyelink asc file
-
-    Returns
-    -------
-    bool :
-        True if any of the following strings that are
-        known to indicate a system message are in the line
-
-    Notes
-    -----
-    Examples of eyelink system messages:
-    - ;Sess:22Aug22;Tria:1;Tri2:False;ESNT:182BFE4C2F4;
-    - ;NTPT:182BFE55C96;SMSG:__NTP_CLOCK_SYNC__;DIFF:-1;
-    - !V APLAYSTART 0 1 library/audio
-    - !MODE RECORD CR 500 2 1 R
-    """
-    return any(["!V" in line, "!MODE" in line, ";" in line])
-
-
-def _get_sfreq(rec_info):
-    """Get sampling frequency from Eyelink ASCII file.
-
-    Parameters
-    ----------
-    rec_info : list
-        the first list in self._event_lines['SAMPLES'].
-        The sfreq occurs after RATE: i.e. [..., RATE, 1000, ...].
-
-    Returns
-    -------
-    sfreq : int | float
-    """
-    for i, token in enumerate(rec_info):
-        if token == "RATE":
-            # sfreq is the first token after RATE
-            return rec_info[i + 1]
-
-
-def _sort_by_time(df, col="time"):
-    df.sort_values(col, ascending=True, inplace=True)
-    df.reset_index(drop=True, inplace=True)
-
-
-def _convert_times(df, first_samp, col="time"):
-    """Set initial time to 0, converts from ms to seconds in place.
-
-    Parameters
-    ----------
-       df pandas.DataFrame:
-           One of the dataframes in the self.dataframes dict.
-
-       first_samp int:
-           timestamp of the first sample of the recording. This should
-           be the first sample of the first recording block.
-        col str (default 'time'):
-            column name to sort pandas.DataFrame by
-
-    Notes
-    -----
-    Each sample in an Eyelink file has a posix timestamp string.
-    Subtracts the "first" sample's timestamp from each timestamp.
-    The "first" sample is inferred to be the first sample of
-    the first recording block, i.e. the first "START" line.
-    """
-    _sort_by_time(df, col)
-    for col in df.columns:
-        if col.endswith("time"):  # 'time' and 'end_time' cols
-            df[col] -= first_samp
-            df[col] /= 1000
-        if col in ["duration", "offset"]:
-            df[col] /= 1000
-
-
-def _fill_times(
-    df,
-    sfreq,
-    time_col="time",
-):
-    """Fill missing timestamps if there are multiple recording blocks.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame:
-        dataframe of the eyetracking data samples, BEFORE
-        _convert_times() is applied to the dataframe
-
-    sfreq : int | float:
-        sampling frequency of the data
-
-    time_col : str (default 'time'):
-        name of column with the timestamps (e.g. 9511881, 9511882, ...)
-
-    Returns
-    -------
-    %(df_return)s
-
-    Notes
-    -----
-    After _parse_recording_blocks, Files with multiple recording blocks will
-    have missing timestamps for the duration of the period between the blocks.
-    This would cause the occular annotations (i.e. blinks) to not line up with
-    the signal.
-    """
-    pd = _check_pandas_installed()
-
-    first, last = df[time_col].iloc[[0, -1]]
-    step = 1000 / sfreq
-    df[time_col] = df[time_col].astype(float)
-    new_times = pd.DataFrame(
-        np.arange(first, last + step / 2, step), columns=[time_col]
-    )
-    return pd.merge_asof(
-        new_times, df, on=time_col, direction="nearest", tolerance=step / 10
-    )
-
-
-def _find_overlaps(df, max_time=0.05):
-    """Merge left/right eye events with onset/offset diffs less than max_time.
-
-    df : pandas.DataFrame
-        Pandas DataFrame with occular events (fixations, saccades, blinks)
-    max_time : float (default 0.05)
-        Time in seconds. Defaults to .05 (50 ms)
-
-    Returns
-    -------
-    DataFrame: %(df_return)s
-        :class:`pandas.DataFrame` specifying overlapped eye events, if any
-    Notes
-    -----
-    The idea is to cumulative sum the boolean values for rows with onset and
-    offset differences (against the previous row) that are greater than the
-    max_time. If onset and offset diffs are less than max_time then no_overlap
-    will become False. Alternatively, if either the onset or offset diff is
-    greater than max_time, no_overlap becomes True. Cumulatively summing over
-    these boolean values will leave rows with no_overlap == False unchanged
-    and hence with the same group number.
-    """
-    pd = _check_pandas_installed()
-
-    df = df.copy()
-    df["overlap_start"] = df.sort_values("time")["time"].diff().lt(max_time)
-
-    df["overlap_end"] = df["end_time"].diff().abs().lt(max_time)
-
-    df["no_overlap"] = ~(df["overlap_end"] & df["overlap_start"])
-    df["group"] = df["no_overlap"].cumsum()
-
-    # now use groupby on 'group'. If one left and one right eye in group
-    # the new start/end times are the mean of the two eyes
-    ovrlp = pd.concat(
-        [
-            pd.DataFrame(g[1].drop(columns="eye").mean()).T
-            if (len(g[1]) == 2) and (len(g[1].eye.unique()) == 2)
-            else g[1]  # not an overlap, return group unchanged
-            for g in df.groupby("group")
-        ]
-    )
-    # overlapped events get a "both" value in the "eye" col
-    if "eye" in ovrlp.columns:
-        ovrlp["eye"] = ovrlp["eye"].fillna("both")
-    else:
-        ovrlp["eye"] = "both"
-    tmp_cols = ["overlap_start", "overlap_end", "no_overlap", "group"]
-    return ovrlp.drop(columns=tmp_cols).reset_index(drop=True)
 
 
 @fill_doc
@@ -354,14 +121,6 @@ def read_raw_eyelink(
     ``'BAD_ACQ_SKIP'``.
     """
     fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
-    extension = fname.suffix
-    if extension not in ".asc":
-        raise ValueError(
-            "This reader can only read eyelink .asc files."
-            f" Got extension {extension} instead. consult EyeLink"
-            " manual for converting EyeLink data format (.edf)"
-            " files to .asc format."
-        )
 
     raw_eyelink = RawEyelink(
         fname,
@@ -635,21 +394,12 @@ class RawEyelink(BaseRaw):
                     if line.startswith("** DATE:"):
                         dt_str = line.replace("** DATE:", "").strip()
                         fmt = "%a %b %d %H:%M:%S %Y"
-                        try:
-                            # Eyelink measdate timestamps are timezone naive.
-                            # Force datetime to be in UTC.
-                            # Even though dt is probably in local time zone.
-                            dt_naive = datetime.strptime(dt_str, fmt)
-                            dt_aware = dt_naive.replace(tzinfo=tz)
-                            self._meas_date = dt_aware
-                        except Exception:
-                            msg = (
-                                "Extraction of measurement date failed."
-                                " Please report this as a github issue."
-                                " The date is being set to None"
-                            )
-                            logger.warning(msg)
-                        break
+                        # Eyelink measdate timestamps are timezone naive.
+                        # Force datetime to be in UTC.
+                        # Even though dt is probably in local time zone.
+                        dt_naive = datetime.strptime(dt_str, fmt)
+                        dt_aware = dt_naive.replace(tzinfo=tz)
+                        self._meas_date = dt_aware
 
     def _href_to_radian(self, opposite, f=15_000):
         """Convert HREF eyegaze samples to radians.
@@ -906,6 +656,18 @@ class RawEyelink(BaseRaw):
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
         """Create Annotations for each df in self.dataframes."""
+        eye_ch_map = {
+            "L": ("xpos_left", "ypos_left", "pupil_left"),
+            "R": ("xpos_right", "ypos_right", "pupil_right"),
+            "both": (
+                "xpos_left",
+                "ypos_left",
+                "pupil_left",
+                "xpos_right",
+                "ypos_right",
+                "pupil_right",
+            ),
+        }
         valid_descs = ["blinks", "saccades", "fixations", "messages"]
         msg = (
             "create_annotations must be True or a list containing one or"
@@ -929,18 +691,18 @@ class RawEyelink(BaseRaw):
                 onsets = df["time"]
                 durations = df["duration"]
                 # Create annotations for both eyes
-                descriptions = f"{key[:-1]}_" + df["eye"]  # i.e "blink_r"
+                descriptions = key[:-1]  # i.e "blink", "fixation", "saccade"
+                if key == "blinks":
+                    descriptions = "BAD_" + descriptions
+                ch_names = df["eye"].map(eye_ch_map).tolist()
                 this_annot = Annotations(
-                    onset=onsets, duration=durations, description=descriptions
+                    onset=onsets,
+                    duration=durations,
+                    description=descriptions,
+                    ch_names=ch_names,
                 )
             elif (key in ["messages"]) and (key in descs):
                 if apply_offsets:
-                    if df["offset"].isnull().all():
-                        logger.warning(
-                            "There are no offsets for the messages"
-                            f" in {self.fname}. Not applying any"
-                            " offset"
-                        )
                     # If df['offset] is all NaNs, time is not changed
                     onsets = df["time"] + df["offset"].fillna(0)
                 else:
