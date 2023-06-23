@@ -2,10 +2,13 @@
 #
 # License: BSD-3-Clause
 
-from numpy import isnan, empty
+from numpy import isnan, empty, array
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from os import remove
 
 import pytest
+import shutil
+
 
 from mne.datasets import testing
 from mne.io import read_raw_fil
@@ -127,7 +130,7 @@ def _fil_sensorpos(raw_test, raw_mat):
 
 
 @testing.requires_testing_data
-def test_fil_all():
+def test_fil_complete():
     """Test FIL reader, match to known answers from .mat file."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
     matname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_fieldtrip.mat"
@@ -140,3 +143,21 @@ def test_fil_all():
     _fil_megmag(raw, mat)
     _fil_stim(raw, mat)
     _fil_sensorpos(raw, mat)
+
+
+@testing.requires_testing_data
+def test_fil_no_positions(tmp_path):
+    """Test FIL reader in cases where a position file is missing."""
+    test_path = tmp_path / "FIL"
+    shutil.copytree(fil_path, test_path)
+
+    posname = test_path / "sub-noise_ses-001_task-noise220622_run-001_positions.tsv"
+    binname = test_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
+
+    remove(posname)
+
+    with pytest.warns(RuntimeWarning, match="No sensor position.*"):
+        raw = read_raw_fil(binname)
+    chs = raw.info["chs"]
+    locs = array([ch["loc"][:] for ch in chs])
+    assert isnan(locs).all()
