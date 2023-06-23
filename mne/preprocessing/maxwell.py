@@ -2510,19 +2510,18 @@ def _regularize_in(int_order, ext_order, S_decomp, mag_or_fine, extended_remove)
         max_info = np.max(I_tots)
         lim_idx = np.where(I_tots >= 0.98 * max_info)[0][0]
         in_removes = remove_order[:lim_idx]
-        # TODO: Uncomment!
-        # for ii, ri in enumerate(in_removes):
-        #     eig = eigs[ii]
-        #     logger.debug(
-        #         f"            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = "
-        #         f"{eig[0] / eig[1]:03.1f}, Removing in component "
-        #         f"{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}"
-        #     )
-        # logger.debug(
-        #     f"        Resulting information: {I_tots[lim_idx]:0.1f} "
-        #     f"bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak "
-        #     f"{max_info:0.1f})"
-        # )
+        for ii, ri in enumerate(in_removes):
+            eig = eigs[ii]
+            logger.debug(
+                f"            Condition {eig[0]:0.3f} / {eig[1]:0.3f} = "
+                f"{eig[0] / eig[1]:03.1f}, Removing in component "
+                f"{ri}: l={degrees[ri]}, m={orders[ri]:+0.0f}"
+            )
+        logger.debug(
+            f"        Resulting information: {I_tots[lim_idx]:0.1f} "
+            f"bits/sample ({100 * I_tots[lim_idx] / max_info:0.1f}% of peak "
+            f"{max_info:0.1f})"
+        )
     else:
         in_removes = remove_order[:0]
     return in_removes, out_removes

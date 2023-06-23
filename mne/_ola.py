@@ -432,8 +432,6 @@ class _COLA:
                 raise RuntimeError("internal indexing error")
             start = self._store.idx
             stop = self._store.idx + this_len
-            # TODO: Remove this
-            # print(this_proc[1].flat[[0, -1]])
             outs = self._process(*this_proc, start=start, stop=stop, **kwargs)
             if self._out_buffers is None:
                 max_len = np.max(self.stops - self.starts)
