@@ -925,11 +925,18 @@ def plot_epochs(
     if not event_id:  # False or None
         event_id = dict()
     else:
-        event_id = dict() if event_id is True else event_id  # to dict
-        # Let passed-in event_id take precedence (and avoid repeated kwargs)
-        # TODO: when min py=3.9, change to `epochs.event_id | event_id`
-        event_id = epochs.event_id.copy()
-        event_id.update(event_id)
+        # make our own copy of the dict
+        event_id = dict() if event_id is True else event_id.copy()  # to dict
+        # TODO: when min py=3.9, change to `epochs.event_id | event_id` (maybe).
+        # Passed-in event_id should take precedence, i.e., not replace existing
+        # keys *or* repeat existing values. For example, if epochs.event_id has
+        # a=1 and passed-in event_id has f=1, the second takes precedence.
+        event_values = set(event_id.values())
+        event_id.update(
+            (k, v)
+            for k, v in epochs.event_id.items()
+            if k not in event_id and v not in event_values
+        )
     event_id_rev = {v: k for k, v in event_id.items()}
     # validate epoch_colors
     _validate_type(epoch_colors, (list, None), "epoch_colors")
