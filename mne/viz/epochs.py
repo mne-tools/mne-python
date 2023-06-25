@@ -921,12 +921,15 @@ def plot_epochs(
     noise_cov = _check_cov(noise_cov, epochs.info)
     _check_option("group_by", group_by, ("selection", "position", "original", "type"))
     # handle event labels
-    if not event_id:
+    _validate_type(event_id, (bool, dict, None), "event_id")
+    if not event_id:  # False or None
         event_id = dict()
-    elif isinstance(event_id, dict):
+    else:
+        event_id = dict() if event_id is True else event_id  # to dict
         # Let passed-in event_id take precedence (and avoid repeated kwargs)
         # TODO: when min py=3.9, change to `epochs.event_id | event_id`
-        event_id = epochs.event_id.copy().update(event_id)
+        event_id = epochs.event_id.copy()
+        event_id.update(event_id)
     event_id_rev = {v: k for k, v in event_id.items()}
     # validate epoch_colors
     _validate_type(epoch_colors, (list, None), "epoch_colors")
