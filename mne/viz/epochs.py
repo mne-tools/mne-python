@@ -923,15 +923,10 @@ def plot_epochs(
     # handle event labels
     if not event_id:
         event_id = dict()
-    else:
-        if not hasattr(event_id, "keys"):
-            event_id = dict()
-        # TODO: when min py=3.9, change to `epochs.event_id | event_id`
+    elif isinstance(event_id, dict):
         # Let passed-in event_id take precedence (and avoid repeated kwargs)
-        event_id = dict(
-            **{k: v for k, v in epochs.event_id.items() if k not in event_id},
-            **event_id,
-        )
+        # TODO: when min py=3.9, change to `epochs.event_id | event_id`
+        event_id = epochs.event_id.copy().update(event_id)
     event_id_rev = {v: k for k, v in event_id.items()}
     # validate epoch_colors
     _validate_type(epoch_colors, (list, None), "epoch_colors")
