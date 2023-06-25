@@ -217,7 +217,12 @@ def _get_event_lines_and_texts(fig):
 
 @pytest.mark.parametrize(
     "event_id,expected_texts",
-    [(False, set("123")), (True, set("abc")), (dict(f=1), set("fbc"))],
+    [
+        (False, set("123")),
+        (True, set("abc")),
+        (dict(f=1), set("fbc")),
+        (dict(a=1), set("abc")),
+    ],
 )
 def test_plot_overlapping_epochs_with_events(browser_backend, event_id, expected_texts):
     """Test drawing of event lines in overlapping epochs."""

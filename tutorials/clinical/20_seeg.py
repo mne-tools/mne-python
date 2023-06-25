@@ -197,7 +197,7 @@ brain.show_view(azimuth=120, elevation=90, distance=0.25)
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.
 
-epochs.plot()
+epochs.plot(events=True)
 
 # %%
 # We can visualize this raw data on the ``fsaverage`` brain (in MNI space) as

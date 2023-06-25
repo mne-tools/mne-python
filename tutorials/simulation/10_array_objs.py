@@ -148,7 +148,7 @@ data = np.array(
 )
 
 simulated_epochs = mne.EpochsArray(data, info)
-simulated_epochs.plot(picks="misc", show_scrollbars=False)
+simulated_epochs.plot(picks="misc", show_scrollbars=False, events=True)
 
 # %%
 # Since we did not supply an events array, the `~mne.EpochsArray` constructor

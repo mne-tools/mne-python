@@ -927,7 +927,11 @@ def plot_epochs(
         if not hasattr(event_id, "keys"):
             event_id = dict()
         # TODO: when min py=3.9, change to `epochs.event_id | event_id`
-        event_id = dict(**epochs.event_id, **event_id)
+        # Let passed-in event_id take precedence (and avoid repeated kwargs)
+        event_id = dict(
+            **{k: v for k, v in epochs.event_id.items() if k not in event_id},
+            **event_id,
+        )
     event_id_rev = {v: k for k, v in event_id.items()}
     # validate epoch_colors
     _validate_type(epoch_colors, (list, None), "epoch_colors")
