@@ -40,7 +40,8 @@ fname = meg_path / "sample_audvis-ave.fif"
 evoked = mne.read_evokeds(fname, condition="Left Auditory", baseline=(None, 0))
 # pick only meg channels
 evoked = evoked.copy().pick_types(meg=True)
-
+import pdb
+pdb.set_trace()
 
 # %%
 # Lets drop one gradiometer and one magnetometer channel to create missing channel's scenario.
@@ -72,8 +73,7 @@ flat_evoked = mne.EvokedArray(
 )
 
 # Lets update channel location
-# read channel config from (.json) file
-file = join('/', 'media', 'dip_meg', 'Volume', 'VectorView_mne_loc.json')
+file = '/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/resources/VectorView_mne_loc.json'
 
 with open(file, 'r') as f:
     chs_loc = json.load(f)
