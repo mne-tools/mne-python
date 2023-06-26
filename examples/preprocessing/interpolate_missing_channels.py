@@ -69,16 +69,17 @@ flat_evoked = mne.EvokedArray(
     comment="reconstructed channel",
 )
 
-# Now we have to update channels location. For this, we will use MNE's in-built MEG layout
-# configuration
+# Now we have to update channels location. For this, we will use MNE's
+# in-built MEG layout configuration
 
-file = '/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/resources/VectorView_mne_loc.json'
+file = "/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/resources/" \
+       "VectorView_mne_loc.json"
 
-with open(file, 'r') as f:
+with open(file, "r") as f:
     chs_loc = json.load(f)
 
 for itype, ch in enumerate(chs_drop):
-    flat_evoked.info["chs"][itype]['loc'] = np.array(chs_loc[ch])
+    flat_evoked.info["chs"][itype]["loc"] = np.array(chs_loc[ch])
 
 evoked_recon = grad_evoked_mis.add_channels([flat_evoked], force_update_info=True)
 
@@ -106,8 +107,13 @@ ax = [ax1, ax2]
 for itype, i in enumerate(ax):
     x_fills = [75, 125]  # 75-125 ms (highlight auditory activity)
     mne.viz.plot_compare_evokeds(
-        evokeds, axes=i, picks=chs_drop[itype], legend=True,
-        linestyles=dict(Original="solid", Interpolated="dashed"), show=False, time_unit="ms"
+        evokeds,
+        axes=i,
+        picks=chs_drop[itype],
+        legend=True,
+        linestyles=dict(Original="solid", Interpolated="dashed"),
+        show=False,
+        time_unit="ms",
     )
     i.axvspan(x_fills[0], x_fills[1], alpha=0.5, color="grey")
 
