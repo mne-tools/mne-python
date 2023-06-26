@@ -77,7 +77,7 @@ def _interpolate_blinks(raw, buffer, blink_annots):
         # Create an empty boolean mask
         mask = np.zeros_like(raw.times, dtype=bool)
         for annot in blink_annots:
-            if "ch_names" not in annot:
+            if "ch_names" not in annot or not annot["ch_names"]:
                 msg = "blink annotation missing 'ch_names' key. got: {}".format(annot)
                 raise ValueError(msg)
             start = annot["onset"] - pre_buffer
@@ -95,10 +95,10 @@ def _interpolate_blinks(raw, buffer, blink_annots):
             non_blink_indices, raw._data[i, non_blink_indices], kind="linear"
         )
         # Interpolate the blink periods
-        interpolated_pupil_sizes = interpolator(blink_indices)
+        interpolated_samples = interpolator(blink_indices)
 
-        # Replace the pupil size at the blink_indices with the interpolated values
-        raw._data[i, blink_indices] = interpolated_pupil_sizes
+        # Replace the samples at the blink_indices with the interpolated values
+        raw._data[i, blink_indices] = interpolated_samples
 
 
 # specific function to set eyetrack channels
