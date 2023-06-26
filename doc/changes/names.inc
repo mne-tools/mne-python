@@ -120,6 +120,8 @@
 
 .. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
 
+.. _Diptyajit Das: https://github.com/dasdiptyajit
+
 .. _Dirk Gütlin: https://github.com/DiGyt
 
 .. _Dmitrii Altukhov: https://github.com/dmalt

@@ -620,6 +620,15 @@ def test_stc_methods():
 
 
 @testing.requires_testing_data
+def test_stc_resamp_noop():
+    """Tests resampling doesn't affect data if sfreq is identical."""
+    stc = read_source_estimate(fname_stc)
+    data_before = stc.data
+    data_after = stc.resample(sfreq=1.0 / stc.tstep).data
+    assert_array_equal(data_before, data_after)
+
+
+@testing.requires_testing_data
 def test_center_of_mass():
     """Test computing the center of mass on an stc."""
     stc = read_source_estimate(fname_stc)

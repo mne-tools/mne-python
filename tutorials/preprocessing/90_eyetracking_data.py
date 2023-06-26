@@ -22,13 +22,6 @@ pupil response to light flashes (i.e. the pupillary light reflex).
 # First we will load an eye tracker recording from SR research's proprietary
 # ``'.asc'`` file format.
 #
-# By default, Eyelink files will output events for occular events (blinks,
-# saccades, fixations), and experiment messages. MNE will store these events
-# as `mne.Annotations`. If we are only interested in certain event types from
-# the Eyelink file, we can select for these using the ``'create_annotations'``
-# argument of `mne.io.read_raw_eyelink`. Here, we will only create annotations
-# for blinks, and experiment messages.
-#
 # The info structure tells us we loaded a monocular recording with 2
 # ``'eyegaze'``, channels (X/Y), 1 ``'pupil'`` channel, and 1 ``'stim'``
 # channel.
@@ -42,6 +35,26 @@ eyelink_fname = data_path() / "mono_multi-block_multi-DINS.asc"
 
 raw = read_raw_eyelink(eyelink_fname, create_annotations=["blinks", "messages"])
 raw.crop(tmin=0, tmax=146)
+
+# %%
+# Ocular annotations
+# ------------------
+# By default, Eyelink files will output events for ocular events (blinks,
+# saccades, fixations), and experiment messages. MNE will store these events
+# as `mne.Annotations`. Ocular annotations contain channel information, in the
+# ``'ch_names'``` key. This means that we can see which eye an ocular event occurred in:
+
+print(raw.annotations[0])  # a blink in the right eye
+
+# %%
+# If we are only interested in certain event types from
+# the Eyelink file, we can select for these using the ``'create_annotations'``
+# argument of `mne.io.read_raw_eyelink`. above, we only created annotations
+# for blinks, and experiment messages.
+#
+# Note that ``'blink'`` annotations are read in as ``'BAD_blink'``, and MNE will treat
+# these as bad segments of data. This means that blink periods will be dropped during
+# epoching by default.
 
 # %%
 # Checking the calibration
@@ -99,7 +112,8 @@ first_cal.plot(show_offsets=True)
 # `mne.Annotations`.
 #
 # In the example data, the DIN channel contains the onset of light flashes on
-# the screen. We now extract these events to visualize the pupil response.
+# the screen. We now extract these events to visualize the pupil response. We will use
+# these later in this tutorial.
 
 events = find_events(raw, "DIN", shortest_event=1, min_duration=0.02, uint_cast=True)
 event_dict = {"flash": 3}
