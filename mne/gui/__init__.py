@@ -4,7 +4,7 @@
 #
 # License: BSD-3-Clause
 
-from ..utils import verbose, get_config, warn, deprecated
+from ..utils import verbose, get_config, warn
 
 
 @verbose
@@ -227,93 +227,6 @@ def coregistration(
     )
 
 
-@deprecated(
-    "Use the :mod:`mne-gui-addons:mne_gui_addons` package instead, "
-    "will be removed in version 1.5.0"
-)
-@verbose
-def locate_ieeg(
-    info,
-    trans,
-    base_image,
-    subject=None,
-    subjects_dir=None,
-    groups=None,
-    show=True,
-    block=False,
-    verbose=None,
-):
-    """Locate intracranial electrode contacts.
-
-    Parameters
-    ----------
-    %(info_not_none)s
-    %(trans_not_none)s
-    base_image : path-like | nibabel.spatialimages.SpatialImage
-        The CT or MR image on which the electrode contacts can located. It
-        must be aligned to the Freesurfer T1 if ``subject`` and
-        ``subjects_dir`` are provided. Path-like inputs and nibabel image
-        objects are supported.
-    %(subject)s
-    %(subjects_dir)s
-    groups : dict | None
-        A dictionary with channels as keys and their group index as values.
-        If None, the groups will be inferred by the channel names. Channel
-        names must have a format like ``LAMY 7`` where a string prefix
-        like ``LAMY`` precedes a numeric index like ``7``. If the channels
-        are formatted improperly, group plotting will work incorrectly.
-        Group assignments can be adjusted in the GUI.
-    show : bool
-        Show the GUI if True.
-    block : bool
-        Whether to halt program execution until the figure is closed.
-    %(verbose)s
-
-    Returns
-    -------
-    gui : instance of IntracranialElectrodeLocator
-        The graphical user interface (GUI) window.
-    """
-    try:
-        import mne_gui_addons as mne_gui
-    except ImportError:
-        from ..viz.backends._utils import _qt_app_exec
-        from ._ieeg_locate import IntracranialElectrodeLocator
-        from qtpy.QtWidgets import QApplication
-
-        mne_gui = None
-        # get application
-        app = QApplication.instance()
-        if app is None:
-            app = QApplication(["Intracranial Electrode Locator"])
-        gui = IntracranialElectrodeLocator(
-            info,
-            trans,
-            base_image,
-            subject=subject,
-            subjects_dir=subjects_dir,
-            groups=groups,
-            show=show,
-            verbose=verbose,
-        )
-        if block:
-            _qt_app_exec(app)
-    return (
-        mne_gui.locate_ieeg(
-            info=info,
-            trans=trans,
-            base_image=base_image,
-            subject=subject,
-            subjects_dir=subjects_dir,
-            groups=groups,
-            show=show,
-            block=block,
-        )
-        if mne_gui
-        else gui
-    )
-
-
 class _GUIScraper:
     """Scrape GUI outputs."""
 
@@ -321,13 +234,9 @@ class _GUIScraper:
         return "<GUIScraper>"
 
     def __call__(self, block, block_vars, gallery_conf):
-        from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
 
-        gui_classes = (
-            IntracranialElectrodeLocator,
-            CoregistrationUI,
-        )
+        gui_classes = (CoregistrationUI,)
         try:
             from mne_gui_addons._ieeg_locate import (
                 IntracranialElectrodeLocator,

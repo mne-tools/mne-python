@@ -48,7 +48,6 @@ from .io.pick import (
     pick_channels_forward,
     pick_types_forward,
     pick_channels_cov,
-    pick_channels_evoked,
     pick_info,
     channel_type,
     channel_indices_by_type,
@@ -144,7 +143,6 @@ from .surface import (
     get_head_surf,
     get_meg_helmet_surf,
     dig_mri_distances,
-    warp_montage_volume,
     get_montage_volume_labels,
 )
 from .morph_map import read_morph_map

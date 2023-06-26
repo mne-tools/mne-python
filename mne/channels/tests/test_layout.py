@@ -104,22 +104,6 @@ def test_io_layout_lout(tmp_path):
     assert layout.names == layout_read.names
     assert "<Layout |" in layout.__repr__()
 
-    # deprecation
-    with pytest.warns(DeprecationWarning, match="should not be provided"):
-        layout_read = read_layout(
-            fname=tmp_path / "foobar.lout",
-            kind="Vectorview-all",
-            scale=False,
-        )
-    with pytest.warns(DeprecationWarning, match="should not be provided"):
-        layout_read = read_layout(
-            fname=tmp_path / "foobar.lout",
-            path=None,
-            scale=False,
-        )
-    with pytest.warns(DeprecationWarning, match="'kind' and 'path' are deprecated"):
-        layout_read = read_layout(kind="Vectorview-all", scale=False)
-
 
 def test_io_layout_lay(tmp_path):
     """Test IO with .lay files."""

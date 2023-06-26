@@ -791,29 +791,32 @@ def test_plot_raw_filtered(filtorder, raw, browser_backend):
 def test_plot_raw_psd(raw, raw_orig):
     """Test plotting of raw psds."""
     raw_unchanged = raw.copy()
-    # normal mode
     spectrum = raw.compute_psd()
+    # deprecation change handler
+    old_defaults = dict(picks="data", exclude="bads")
     fig = spectrum.plot(average=False)
+    # normal mode
+    fig = spectrum.plot(average=False, **old_defaults)
     fig.canvas.callbacks.process(
         "resize_event", backend_bases.ResizeEvent("resize_event", fig.canvas)
     )
     # specific mode
     picks = pick_types(spectrum.info, meg="mag", eeg=False)[:4]
-    spectrum.plot(picks=picks, ci="range", spatial_colors=True)
-    raw.compute_psd(tmax=20.0).plot(color="yellow", dB=False, alpha=0.4)
+    spectrum.plot(picks=picks, ci="range", spatial_colors=True, exclude="bads")
+    raw.compute_psd(tmax=20.0).plot(color="yellow", dB=False, alpha=0.4, **old_defaults)
     plt.close("all")
     # one axes supplied
     ax = plt.axes()
-    spectrum.plot(picks=picks, axes=ax, average=True)
+    spectrum.plot(picks=picks, axes=ax, average=True, exclude="bads")
     plt.close("all")
     # two axes supplied
     _, axs = plt.subplots(2)
-    spectrum.plot(axes=axs, average=True)
+    spectrum.plot(axes=axs, average=True, **old_defaults)
     plt.close("all")
     # need 2, got 1
     ax = plt.axes()
     with pytest.raises(ValueError, match="of length 2.*the length is 1"):
-        spectrum.plot(axes=ax, average=True)
+        spectrum.plot(axes=ax, average=True, **old_defaults)
     plt.close("all")
     # topo psd
     ax = plt.subplot()
@@ -859,8 +862,8 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = raw_orig.crop(0, 1)
     picks = pick_types(raw.info, meg=True)
     spectrum = raw.compute_psd(picks=picks)
-    spectrum.plot(average=False)
-    spectrum.plot(average=True)
+    spectrum.plot(average=False, **old_defaults)
+    spectrum.plot(average=True, **old_defaults)
     plt.close("all")
     raw.set_channel_types(
         {
@@ -871,7 +874,7 @@ def test_plot_raw_psd(raw, raw_orig):
         },
         verbose="error",
     )
-    fig = raw.compute_psd().plot()
+    fig = raw.compute_psd().plot(**old_defaults)
     assert len(fig.axes) == 10
     plt.close("all")
 
@@ -882,7 +885,7 @@ def test_plot_raw_psd(raw, raw_orig):
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
     spectrum = raw.compute_psd(picks=picks, n_fft=n_fft)
-    spectrum.plot(spatial_colors=False, picks=picks)
+    spectrum.plot(spatial_colors=False, picks=picks, exclude="bads")
     plt.close("all")
 
 

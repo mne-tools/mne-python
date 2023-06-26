@@ -1760,7 +1760,7 @@ def restrict_forward_to_stc(fwd, stc, on_missing="ignore"):
     """
     _validate_type(on_missing, str, "on_missing")
     _check_option("on_missing", on_missing, ("ignore", "warn", "raise"))
-    src_sel, _, vertices = _stc_src_sel(fwd["src"], stc, on_missing=on_missing)
+    src_sel, _, _ = _stc_src_sel(fwd["src"], stc, on_missing=on_missing)
     del stc
     return _restrict_forward_to_src_sel(fwd, src_sel)
 
@@ -1844,81 +1844,12 @@ def restrict_forward_to_label(fwd, labels):
         vertices[i] = np.append(vertices[i], label.vertices)
     # Remove duplicates and sort
     vertices = [np.unique(vert_hemi) for vert_hemi in vertices]
-
-    fwd_out = deepcopy(fwd)
-    fwd_out["source_rr"] = np.zeros((0, 3))
-    fwd_out["nsource"] = 0
-    fwd_out["source_nn"] = np.zeros((0, 3))
-    fwd_out["sol"]["data"] = np.zeros((fwd["sol"]["data"].shape[0], 0))
-    fwd_out["_orig_sol"] = np.zeros((fwd["_orig_sol"].shape[0], 0))
-    if fwd["sol_grad"] is not None:
-        fwd_out["sol_grad"]["data"] = np.zeros((fwd["sol_grad"]["data"].shape[0], 0))
-        fwd_out["_orig_sol_grad"] = np.zeros((fwd["_orig_sol_grad"].shape[0], 0))
-    fwd_out["sol"]["ncol"] = 0
-    nuse_lh = fwd["src"][0]["nuse"]
-
-    for i in range(2):
-        fwd_out["src"][i]["vertno"] = np.array([], int)
-        fwd_out["src"][i]["nuse"] = 0
-        fwd_out["src"][i]["inuse"] = fwd["src"][i]["inuse"].copy()
-        fwd_out["src"][i]["inuse"].fill(0)
-        fwd_out["src"][i]["use_tris"] = np.array([[]], int)
-        fwd_out["src"][i]["nuse_tri"] = np.array([0])
-
-        # src_sel is idx to cols in fwd that are in any label per hemi
-        src_sel = np.intersect1d(fwd["src"][i]["vertno"], vertices[i])
-        src_sel = np.searchsorted(fwd["src"][i]["vertno"], src_sel)
-
-        # Reconstruct each src
-        vertno = fwd["src"][i]["vertno"][src_sel]
-        fwd_out["src"][i]["inuse"][vertno] = 1
-        fwd_out["src"][i]["nuse"] += len(vertno)
-        fwd_out["src"][i]["vertno"] = np.where(fwd_out["src"][i]["inuse"])[0]
-
-        # Reconstruct part of fwd that is not sol data
-        src_sel += i * nuse_lh  # Add column shift to right hemi
-        fwd_out["source_rr"] = np.vstack(
-            [fwd_out["source_rr"], fwd["source_rr"][src_sel]]
-        )
-        fwd_out["nsource"] += len(src_sel)
-
-        if is_fixed_orient(fwd):
-            idx = src_sel
-            if fwd["sol_grad"] is not None:
-                idx_grad = (3 * src_sel[:, None] + np.arange(3)).ravel()
-        else:
-            idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
-            if fwd["sol_grad"] is not None:
-                idx_grad = (9 * src_sel[:, None] + np.arange(9)).ravel()
-
-        fwd_out["source_nn"] = np.vstack([fwd_out["source_nn"], fwd["source_nn"][idx]])
-        fwd_out["sol"]["data"] = np.hstack(
-            [fwd_out["sol"]["data"], fwd["sol"]["data"][:, idx]]
-        )
-        if fwd["sol_grad"] is not None:
-            fwd_out["sol_grad"]["data"] = np.hstack(
-                [fwd_out["sol_grad"]["data"], fwd["sol_rad"]["data"][:, idx_grad]]
-            )
-        fwd_out["sol"]["ncol"] += len(idx)
-
-        if is_fixed_orient(fwd, orig=True):
-            idx = src_sel
-            if fwd["sol_grad"] is not None:
-                idx_grad = (3 * src_sel[:, None] + np.arange(3)).ravel()
-        else:
-            idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
-            if fwd["sol_grad"] is not None:
-                idx_grad = (9 * src_sel[:, None] + np.arange(9)).ravel()
-
-        fwd_out["_orig_sol"] = np.hstack(
-            [fwd_out["_orig_sol"], fwd["_orig_sol"][:, idx]]
-        )
-        if fwd["sol_grad"] is not None:
-            fwd_out["_orig_sol_grad"] = np.hstack(
-                [fwd_out["_orig_sol_grad"], fwd["_orig_sol_grad"][:, idx_grad]]
-            )
-
-    return fwd_out
+    vertices = [
+        vert_hemi[np.in1d(vert_hemi, s["vertno"])]
+        for vert_hemi, s in zip(vertices, fwd["src"])
+    ]
+    src_sel, _, _ = _stc_src_sel(fwd["src"], vertices, on_missing="raise")
+    return _restrict_forward_to_src_sel(fwd, src_sel)
 
 
 def _do_forward_solution(
