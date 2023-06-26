@@ -7,7 +7,7 @@ import numpy as np
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
-from ...utils import logger, _check_preload, _validate_type
+from ...utils import logger, _check_preload, _validate_type, warn
 
 
 def interpolate_blinks(raw, buffer=0.05, match="BAD_blink"):
@@ -52,7 +52,7 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink"):
     # get the blink annotations
     blink_annots = [annot for annot in raw.annotations if annot["description"] in match]
     if not blink_annots:
-        logger.warn("No annotations matching {} found. Aborting.".format(match))
+        warn("No annotations matching {} found. Aborting.".format(match))
         return raw
     _interpolate_blinks(raw, buffer, blink_annots)
 
