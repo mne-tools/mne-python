@@ -14,7 +14,7 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink"):
     """Interpolate eyetracking signals during blinks.
 
     This function uses the timing of blink annotations to estimate missing
-    data.
+    data. Operates in place.
 
     Parameters
     ----------
