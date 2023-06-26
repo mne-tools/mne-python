@@ -72,8 +72,10 @@ flat_evoked = mne.EvokedArray(
 # Now we have to update channels location. For this, we will use MNE's
 # in-built MEG layout configuration
 
-file = "/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/resources/" \
-       "VectorView_mne_loc.json"
+file = (
+    "/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/resources/"
+    "VectorView_mne_loc.json"
+)
 
 with open(file, "r") as f:
     chs_loc = json.load(f)
