@@ -55,8 +55,8 @@ raw.plot(noise_cov=noise_cov, events=events, butterfly=True)
 # %%
 # Epochs with whitening
 # ---------------------
-epochs.plot()
-epochs.plot(noise_cov=noise_cov)
+epochs.plot(events=True)
+epochs.plot(noise_cov=noise_cov, events=True)
 
 # %%
 # Evoked data with whitening

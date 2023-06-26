@@ -8,6 +8,19 @@ from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.utils import _check_pandas_installed, requires_pandas
 
+MAPPING = {
+    "left": ["xpos_left", "ypos_left", "pupil_left"],
+    "right": ["xpos_right", "ypos_right", "pupil_right"],
+    "both": [
+        "xpos_left",
+        "ypos_left",
+        "pupil_left",
+        "xpos_right",
+        "ypos_right",
+        "pupil_right",
+    ],
+}
+
 testing_path = data_path(download=False)
 fname = testing_path / "eyetrack" / "test_eyelink.asc"
 fname_href = testing_path / "eyetrack" / "test_eyelink_HREF.asc"
@@ -26,21 +39,42 @@ def test_eyetrack_not_data_ch():
 @requires_testing_data
 @requires_pandas
 @pytest.mark.parametrize(
-    "fname, create_annotations, find_overlaps",
+    "fname, create_annotations, find_overlaps, apply_offsets",
     [
-        (fname, False, False),
-        (fname, False, False),
-        (fname, True, False),
-        (fname, True, True),
-        (fname, ["fixations", "saccades", "blinks"], True),
+        (fname, False, False, False),
+        (
+            fname,
+            False,
+            False,
+            False,
+        ),
+        (
+            fname,
+            True,
+            False,
+            False,
+        ),
+        (
+            fname,
+            True,
+            True,
+            True,
+        ),
+        (
+            fname,
+            ["fixations", "saccades", "blinks"],
+            True,
+            False,
+        ),
     ],
 )
-def test_eyelink(fname, create_annotations, find_overlaps):
+def test_eyelink(fname, create_annotations, find_overlaps, apply_offsets):
     """Test reading eyelink asc files."""
     raw = read_raw_eyelink(
         fname,
         create_annotations=create_annotations,
         find_overlaps=find_overlaps,
+        apply_offsets=apply_offsets,
     )
 
     # First, tests that shouldn't change based on function arguments
@@ -73,19 +107,14 @@ def test_eyelink(fname, create_annotations, find_overlaps):
         )
         # There is a blink in this data at 8.9 seconds
         cond = (df["time_in_sec"] > 8.899) & (df["time_in_sec"] < 8.95)
-        assert df[cond]["description"].values[0].startswith("blink")
-    if find_overlaps is True:
-        df = raw.annotations.to_data_frame()
-        # these should both be True so long as _find_overlaps is not
-        # majorly refactored.
-        assert "blink_L" in df["description"].unique()
-        assert "blink_both" in df["description"].unique()
+        assert df[cond]["description"].values[0].startswith("BAD_blink")
+
+        # Check that the annotation ch_names are set correctly
+        assert np.array_equal(raw.annotations[0]["ch_names"], MAPPING["both"])
+
     if isinstance(create_annotations, list) and find_overlaps:
         # the last pytest parametrize condition should hit this
-        df = raw.annotations.to_data_frame()
-        # Rows 0, 1, 2 should be 'fixation_both', 'saccade_both', 'blink_both'
-        for i, label in zip([0, 1, 2], ["fixation", "saccade", "blink"]):
-            assert df["description"].iloc[i] == f"{label}_both"
+        assert np.array_equal(raw.annotations[0]["ch_names"], MAPPING["both"])
 
 
 @requires_testing_data

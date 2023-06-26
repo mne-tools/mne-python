@@ -118,9 +118,8 @@ epochs.plot_projs_topomap(vlim="joint")
 # Note that these field maps illustrate aspects of the signal that *have
 # already been removed* (because projectors in `~mne.io.Raw` data are
 # applied by default when epoching, and because we called
-# `~mne.Epochs.apply_proj` after adding additional ECG projectors from
-# file). You can check this by examining the ``'active'`` field of the
-# projectors:
+# `~mne.Epochs.apply_proj` after adding additional ECG projectors from file).
+# You can check this by examining the ``'active'`` field of the projectors:
 
 print(all(proj["active"] for proj in epochs.info["projs"]))
 

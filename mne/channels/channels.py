@@ -36,7 +36,7 @@ from ..utils import (
     _on_missing,
     legacy,
 )
-from ..io.constants import FIFF
+from ..io.constants import FIFF, _ch_unit_mul_named
 from ..io.meas_info import (
     anonymize_info,
     Info,
@@ -442,6 +442,8 @@ class SetChannelsMixin(MontageMixin):
                 if this_change not in unit_changes:
                     unit_changes[this_change] = list()
                 unit_changes[this_change].append(ch_name)
+                # reset unit multiplication factor since the unit has now changed
+                self.info["chs"][c_ind]["unit_mul"] = _ch_unit_mul_named[0]
             self.info["chs"][c_ind]["unit"] = _human2unit[ch_type]
             if ch_type in ["eeg", "seeg", "ecog", "dbs"]:
                 coil_type = FIFF.FIFFV_COIL_EEG
