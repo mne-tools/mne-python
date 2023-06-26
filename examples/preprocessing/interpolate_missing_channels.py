@@ -15,7 +15,7 @@ This example shows how to:
 
 In this example, two MEG channels (i.e., gradiometer and magnetometer) are dropped
 on purpose to mimic the missing channels scenario in practice. Only those channels
-are reconstructed and later the channel data is replaced using interpolation.
+are reconstructed and later the channel data are replaced using interpolation.
 """
 # Author: Diptyajit Das <bmedasdiptyajit@gmail.com>
 #
