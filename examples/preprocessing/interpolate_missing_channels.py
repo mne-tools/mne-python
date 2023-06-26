@@ -13,9 +13,9 @@ This example shows how to:
 - Reconstruct MEG channels which are turned off during the recording.
 - Interpolate the reconstruct channels using field interpolation.
 
-In this example, one gradiometer and one magnetometer channel will be dropped
-on purpose to mimic the missing channels scenario in practice. Only those
-channels are reconstructed and later the channel data is replaced by interpolation.
+In this example, two MEG channels (i.e., gradiometer and magnetometer) are dropped
+on purpose to mimic the missing channels scenario in practice. Only those channels
+are reconstructed and later the channel data is replaced by interpolation.
 """
 # Author: Diptyajit Das <bmedasdiptyajit@gmail.com>
 #
@@ -27,7 +27,6 @@ import mne
 from mne.datasets import sample
 import numpy as np
 import json
-from os.path import join
 import matplotlib.pyplot as plt
 from matplotlib import gridspec as grd
 
@@ -42,9 +41,9 @@ evoked = mne.read_evokeds(fname, condition="Left Auditory", baseline=(None, 0))
 evoked = evoked.copy().pick_types(meg=True)
 
 # %%
-# Lets drop one gradiometer and one magnetometer channel to create missing channel's scenario.
-# We choose "MEG 0212" and "MEG 1321" in this case. In practice, this can be any noisy channel
-# which is turned off during recording.
+# Lets drop two MEG channels to create missing channel's scenario.
+# Here, we choose "MEG 0212" and "MEG 1321" as the missing channels. In practice,
+# this can be any noisy channel that was turned off during recording.
 ch_names = evoked.info["ch_names"]
 chs_drop = ["MEG 0212", "MEG 1321"]
 
@@ -70,7 +69,9 @@ flat_evoked = mne.EvokedArray(
     comment="reconstructed channel",
 )
 
-# Lets update channel location
+# Now we have to update channels location. For this, we will use MNE's in-built MEG layout
+# configuration
+
 file = '/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/resources/VectorView_mne_loc.json'
 
 with open(file, 'r') as f:
@@ -84,7 +85,7 @@ evoked_recon = grad_evoked_mis.add_channels([flat_evoked], force_update_info=Tru
 # plot evoked with reconstructed channels
 evoked_recon.plot()
 
-# Reorder the channels
+# Reorder the channel naming
 evoked_recon.reorder_channels(ch_names)
 
 # Since our reconstructed channels are still flat channels, we first add them as bad
