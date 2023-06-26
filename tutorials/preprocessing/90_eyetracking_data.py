@@ -155,21 +155,16 @@ raw.plot(
 raw.filter(l_freq=None, h_freq=40, picks=["pupil_right"])
 
 # %%
-# Dealing with blink artifacts
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# handling blink artifacts
+# ^^^^^^^^^^^^^^^^^^^^^^^^
 # We also notice that, naturally, there are blinks in our data, and these blink periods
-# occur within ``"blink_R"``  annotations. During blink periods, ``"eyegaze"``
+# occur within ``"BAD_blink"``  annotations. During blink periods, ``"eyegaze"``
 # coordinates are not reported, and ``"pupil"`` size data are ``0``. We don't want these
-# blink artifacts biasing our analysis, so we have two options: We can either remove the
-# blink periods from our data (by using ``raw.annotations.rename({blink_R: bad_blink})``
-# so that the blinks are removed before epoching), or we can interpolate the pupil size
-# data during the blink periods. If we were interested in analyzing the eye position
-# data, we would need to remove the blink periods from our data. However, since we are
-# only interested in the pupil size data, let's interpolate the missing pupil sizes in
-# the ``"pupil"`` channel during blinks:
+# blink artifacts biasing our analysis, so we have two options: We can either drop the
+# blink periods from our data during epoching, or we can interpolate the missing data
+# during the blink periods. For this tutorial, let's interpolate the missing samples:
 
-# TODO: remove comment after PR 11746 is merged
-# mne.preprocessing.eyetracking.interpolate_blinks(raw, buffer=0.05)
+mne.preprocessing.eyetracking.interpolate_blinks(raw, buffer=0.05)
 # Let's plot our data again to see the result of the interpolation:
 raw.pick(["pupil_right"])  # Let's pick just the pupil channel
 raw.plot(events=events, event_id={"Flash": 3}, event_color="g")
@@ -207,7 +202,7 @@ epochs = mne.Epochs(
     preload=True,
     reject=dict(pupil=1500),
 )
-epochs.plot()
+epochs.plot(events=events, event_id=event_dict)
 
 # %%
 # We can clearly see the prominent decrease in pupil size following the
