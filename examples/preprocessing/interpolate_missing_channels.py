@@ -40,8 +40,6 @@ fname = meg_path / "sample_audvis-ave.fif"
 evoked = mne.read_evokeds(fname, condition="Left Auditory", baseline=(None, 0))
 # pick only meg channels
 evoked = evoked.copy().pick_types(meg=True)
-import pdb
-pdb.set_trace()
 
 # %%
 # Lets drop one gradiometer and one magnetometer channel to create missing channel's scenario.
