@@ -73,7 +73,7 @@ flat_evoked = mne.EvokedArray(
 # in-built MEG layout configuration
 
 file = (
-    "/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/resources/"
+    "/home/dip_linux/PycharmProjects/mne-python/mne/io/fiff/"
     "VectorView_mne_loc.json"
 )
 
