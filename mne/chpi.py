@@ -1245,6 +1245,8 @@ def _compute_chpi_amp_or_snr(
         #
         amps_or_snrs = _fit_chpi_amplitudes(raw, time_sl, hpi, snr)
         if snr:
+            if amps_or_snrs is None:
+                amps_or_snrs = np.full((n_freqs, grad_offset + 3), np.nan)
             # unpack the SNR estimates. mag & grad are returned in one array
             # (because of Numba) so take care with which column is which.
             # note that mean residual is a scalar (same for all HPI freqs) but

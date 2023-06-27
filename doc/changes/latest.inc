@@ -41,6 +41,7 @@ Bugs
 - Fix bug with overlapping text for :meth:`mne.Evoked.plot` (:gh:`11698` by `Alex Rockhill`_)
 - For :func:`mne.io.read_raw_eyelink`, the default value of the ``gap_description`` parameter is now ``'BAD_ACQ_SKIP'``, following MNE convention (:gh:`11719` by `Scott Huberty`_)
 - Fix bug with :func:`mne.io.read_raw_fil` where datasets without sensor positions would not import (:gh:`11733` by `George O'Neill`_)
+- Fix bug with :func:`mne.chpi.compute_chpi_snr` where cHPI being off for part of the recording led to an error (:gh:`11754` by `Eric Larson`_)
 - Allow int-like for the argument ``id`` of `~mne.make_fixed_length_events` (:gh:`11748` by `Mathieu Scheltienne`_)
 - blink :class:`mne.Annotations` read in by :func:`mne.io.read_raw_eyelink` now begin with ``'BAD_'``, i.e. ``'BAD_blink'``, because ocular data are missing during blinks. (:gh:`11746` by `Scott Huberty`_)
 
