@@ -385,6 +385,7 @@ def test_calculate_chpi_snr():
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes")
     # include handling of NaN (when cHPI was off at the beginning)
     raw.load_data()
+    raw.info["bads"] = ["MEG0342", "MEG1443"]
     stop = int(round(raw.info["sfreq"])) * 2
     raw._data[raw.ch_names.index("STI201"), :stop] = 0
 
