@@ -383,6 +383,11 @@ def test_calculate_chpi_positions_vv():
 def test_calculate_chpi_snr():
     """Test cHPI SNR calculation."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield="yes")
+    # include handling of NaN (when cHPI was off at the beginning)
+    raw.load_data()
+    stop = int(round(raw.info["sfreq"])) * 2
+    raw._data[raw.ch_names.index("STI201"), :stop] = 0
+
     result = compute_chpi_snr(raw)
     # make sure all the entries are there
     keys = {
@@ -392,10 +397,15 @@ def test_calculate_chpi_snr():
     }
     assert set(result) == keys.union({"times", "freqs"})
     # make sure the values are plausible, given the sample data file
-    assert result["mag_snr"].min() > 1
-    assert result["mag_snr"].max() < 40
-    assert result["grad_snr"].min() > 1
-    assert result["grad_snr"].max() < 40
+    n_pts = len(raw.times) // int(round(raw.info["sfreq"] * 0.01))
+    # our logic in this test for this length is not perfect
+    assert_allclose(result["mag_snr"].shape[0], n_pts, atol=5)
+    n_nan = np.where(result["times"] <= raw.first_time + 2)[0][-1]
+    assert_allclose(result["mag_snr"][:n_nan], np.nan)
+    assert result["mag_snr"][n_nan:].min() > 1
+    assert result["mag_snr"][n_nan:].max() < 40
+    assert result["grad_snr"][n_nan:].min() > 1
+    assert result["grad_snr"][n_nan:].max() < 40
 
 
 @testing.requires_testing_data
