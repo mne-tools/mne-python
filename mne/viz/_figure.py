@@ -163,10 +163,10 @@ class BrowserBase(ABC):
             if color != red and key in labels:
                 next(color_cycle)
         for idx, key in enumerate(labels):
-            if key in segment_colors:
-                continue
-            elif key.lower().startswith("bad") or key.lower().startswith("edge"):
+            if key.lower().startswith("bad") or key.lower().startswith("edge"):
                 segment_colors[key] = red
+            elif key in segment_colors:
+                continue
             else:
                 segment_colors[key] = next(color_cycle)
         self.mne.annotation_segment_colors = segment_colors
