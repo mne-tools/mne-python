@@ -41,7 +41,7 @@ Enhancements
 
 - Add ``head_source`` argument to :func:`mne.make_field_map` to allow selecting which head source to use (:gh:`10568` by `Eric Larson`_)
 
-- Add support for ``n_jobs=None`` to support :func:`joblib:joblib.parallel_backend` for more precise control over parallelization (:gh:`10567` by `Eric Larson`_)
+- Add support for ``n_jobs=None`` to support ``joblib:joblib.parallel_backend`` for more precise control over parallelization (:gh:`10567` by `Eric Larson`_)
 
 - It is now possible to compute inverse solutions with restricted source orientations using discrete forward models (:gh:`10464` by `Marijn van Vliet`_)
 
