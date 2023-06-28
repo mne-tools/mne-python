@@ -1,4 +1,5 @@
 # Authors: Dominik Welke <dominik.welke@mailbox.org>
+#          Scott Huberty <seh33@uw.edu>
 #
 # License: BSD-3-Clause
 
@@ -28,8 +29,8 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink"):
         ``(0.025, .1)``.
     match : str | list of str
         The description of annotations to interpolate over. If a list, the data within
-        all annotations that match any of the strings in the list will be interpolated over.
-        Defaults to ``'BAD_blink'``.
+        all annotations that match any of the strings in the list will be interpolated
+        over. Defaults to ``'BAD_blink'``.
 
     Returns
     -------
@@ -82,8 +83,7 @@ def _interpolate_blinks(raw, buffer, blink_annots):
                 raise ValueError(msg)
             start = annot["onset"] - pre_buffer
             end = annot["onset"] + annot["duration"] + post_buffer
-            ch_names = annot["ch_names"]
-            if ch_info["ch_name"] not in ch_names:
+            if ch_info["ch_name"] not in annot["ch_names"]:
                 continue  # skip if the channel is not in the blink annotation
             # Update the mask for times within the current blink period
             mask |= (raw.times >= start) & (raw.times <= end)
