@@ -23,12 +23,12 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink"):
     buffer : float | array-like of float, shape ``(2,))``
         The time in seconds before and after a blink to consider invalid and
         include in the segment to be interpolated over. Default is ``0.05`` seconds
-        (50 ms). if array-like, the first element is the time before the blink and the
+        (50 ms). If array-like, the first element is the time before the blink and the
         second element is the time after the blink to consider invalid, for example,
         ``(0.025, .1)``.
     match : str | list of str
-        The description of annotations to interpolate over. If a list, data within
-        annotations matching any of the strings in the list will interpolated over.
+        The description of annotations to interpolate over. If a list, the data within
+        all annotations that match any of the strings in the list will be interpolated over.
         Defaults to ``'BAD_blink'``.
 
     Returns
