@@ -17,14 +17,15 @@ fname = data_path(download=False) / "eyetrack" / "test_eyelink.asc"
 @requires_testing_data
 @requires_pandas
 @pytest.mark.parametrize(
-    "buffer, match, cause_error",
+    "buffer, match, cause_error, interpolate_gaze",
     [
-        (0.025, "BAD_blink", False),
-        ((0.025, 0.025), ["random_annot"], False),
-        (0.025, "BAD_blink", True),
+        (0.025, "BAD_blink", False, False),
+        (0.025, "BAD_blink", False, True),
+        ((0.025, 0.025), ["random_annot"], False, False),
+        (0.025, "BAD_blink", True, False),
     ],
 )
-def test_interpolate_blinks(buffer, match, cause_error):
+def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze):
     """Test interpolating pupil data during blinks."""
     raw = read_raw_eyelink(
         fname, preload=True, create_annotations=["blinks"], find_overlaps=True
@@ -52,14 +53,17 @@ def test_interpolate_blinks(buffer, match, cause_error):
             interpolate_blinks(raw, buffer=buffer, match=match)
         return
     else:
-        interpolate_blinks(raw, buffer=buffer, match=match)
+        interpolate_blinks(
+            raw, buffer=buffer, match=match, interpolate_gaze=interpolate_gaze
+        )
 
     # Now get the data and check that the blinks are interpolated
     data, times = raw.get_data(return_times=True)
     # Get the indices of the first blink
-    first_blink_indices = np.where(
-        np.logical_and((times > first_blink_start), (times < first_blink_end))
-    )[0]
+    blink_ind = np.where((times >= first_blink_start) & (times <= first_blink_end))[0]
     # pupil data during blinks are zero, check that interpolated data are not zeros
-    assert not np.any(data[2, first_blink_indices] == 0)  # left eye
-    assert not np.any(data[5, first_blink_indices] == 0)  # right eye
+    assert not np.any(data[2, blink_ind] == 0)  # left eye
+    assert not np.any(data[5, blink_ind] == 0)  # right eye
+    if interpolate_gaze:
+        assert not np.isnan(data[0, blink_ind]).any()  # left eye
+        assert not np.isnan(data[1, blink_ind]).any()  # right eye
