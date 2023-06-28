@@ -832,16 +832,32 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     xdata = event.xdata - self.mne.first_time
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
-                    ann_idx = np.where((xdata > start) & (xdata < end))[0]
-                    # determine which annotation is "on top" and only remove that one
-                    zorders = np.array([span.zorder for span in ax_main.collections])
-                    top_to_bottom = np.argsort(zorders[ann_idx])[::-1]
-                    for idx in ann_idx[top_to_bottom]:
-                        # only remove visible annotation spans
-                        descr = inst.annotations[idx]["description"]
-                        if self.mne.visible_annotations[descr]:
-                            inst.annotations.delete(idx)
-                            break
+                    was_clicked = (xdata > start) & (xdata < end)
+                    # determine which annotation label is "selected"
+                    buttons = self.mne.fig_annotation.mne.radio_ax.buttons
+                    current_label = buttons.value_selected
+                    is_active_label = inst.annotations.description == current_label
+                    # use z-order as tiebreaker (or if click wasn't on an active span)
+                    is_onscreen = self.mne.onscreen_annotations
+                    zorders = np.zeros_like(is_onscreen).astype(int)
+                    offset = np.nonzero(is_onscreen)[0][0]
+                    visible_zorders = np.array(
+                        [span.zorder for span in ax_main.collections]
+                    )
+                    zorders[offset : (offset + len(visible_zorders))] = visible_zorders
+
+                    active_clicked = was_clicked & is_active_label
+                    if any(active_clicked):
+                        highest_active_clicked = (
+                            zorders == zorders[active_clicked].max()
+                        )
+                        ann_idx = np.where(highest_active_clicked)[0]
+                    else:
+                        # determine which is "on top" and only remove that one
+                        is_highest = zorders == zorders.max()
+                        ann_idx = np.where(was_clicked & is_highest)[0]
+                    for idx in ann_idx:
+                        inst.annotations.delete(idx)
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
@@ -1396,6 +1412,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._clear_annotations()
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
+        onscreen_annotations = np.zeros(len(segments), dtype=bool)
         times = self.mne.times
         ax = self.mne.ax_main
         ylim = ax.get_ylim()
@@ -1413,6 +1430,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 if np.diff(visible_segment) > 0:
                     annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
                     self.mne.annotations.append(annot)
+                    onscreen_annotations[idx] = True
                     xy = (visible_segment.mean(), ylim[1])
                     text = ax.annotate(
                         descr,
@@ -1424,6 +1442,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                         color=segment_color,
                     )
                     self.mne.annotation_texts.append(text)
+        self.mne.onscreen_annotations = onscreen_annotations
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHANNEL SELECTION GUI
