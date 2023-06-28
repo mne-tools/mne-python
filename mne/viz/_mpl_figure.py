@@ -833,11 +833,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
                     ann_idx = np.where((xdata > start) & (xdata < end))[0]
-                    for idx in sorted(ann_idx)[::-1]:
+                    # determine which annotation is "on top" and only remove that one
+                    zorders = np.array([span.zorder for span in ax_main.collections])
+                    top_to_bottom = np.argsort(zorders[ann_idx])[::-1]
+                    for idx in ann_idx[top_to_bottom]:
                         # only remove visible annotation spans
                         descr = inst.annotations[idx]["description"]
                         if self.mne.visible_annotations[descr]:
                             inst.annotations.delete(idx)
+                            break
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
@@ -1398,7 +1402,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         for idx, (start, end) in enumerate(segments):
             descr = self.mne.inst.annotations.description[idx]
             segment_color = self.mne.annotation_segment_colors[descr]
-            kwargs = dict(color=segment_color, alpha=0.3, zorder=self.mne.zorder["ann"])
+            zorder = self.mne.zorder["ann"] + idx
+            kwargs = dict(color=segment_color, alpha=0.3, zorder=zorder)
             if self.mne.visible_annotations[descr]:
                 # draw all segments on ax_hscroll
                 annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
