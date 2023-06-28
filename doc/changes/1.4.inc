@@ -1,3 +1,13 @@
+.. _changes_1_4_3:
+
+Version 1.4.3 (unreleased)
+--------------------------
+
+Bugs
+~~~~
+
+- Fix bug with :func:`mne.chpi.compute_chpi_snr` where cHPI being off for part of the recording or bad channels being defined led to an error or incorrect behavior (:gh:`11754`, :gh:`11755` by `Eric Larson`_)
+
 .. _changes_1_4_2:
 
 Version 1.4.2 (2023-06-06)
@@ -7,7 +17,6 @@ Bugs
 ~~~~
 
 - Fix bug with PySide6 compatibility (:gh:`11721` by `Eric Larson`_)
-- Fix bug with :func:`mne.chpi.compute_chpi_snr` where cHPI being off for part of the recording led to an error (:gh:`11754` by `Eric Larson`_)
 
 .. _changes_1_4_1:
 
