@@ -838,26 +838,19 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     current_label = buttons.value_selected
                     is_active_label = inst.annotations.description == current_label
                     # use z-order as tiebreaker (or if click wasn't on an active span)
-                    is_onscreen = self.mne.onscreen_annotations
+                    # (ax_main.collections only includes *visible* annots, so we offset)
+                    visible_zorders = [span.zorder for span in ax_main.collections]
+                    is_onscreen = self.mne.onscreen_annotations  # boolean array
                     zorders = np.zeros_like(is_onscreen).astype(int)
-                    offset = np.nonzero(is_onscreen)[0][0]
-                    visible_zorders = np.array(
-                        [span.zorder for span in ax_main.collections]
-                    )
+                    offset = np.where(is_onscreen)[0][0]
                     zorders[offset : (offset + len(visible_zorders))] = visible_zorders
-
+                    # among overlapping clicked spans, prefer removing spans whose label
+                    # is the active label; then fall back to zorder as deciding factor
                     active_clicked = was_clicked & is_active_label
-                    if any(active_clicked):
-                        highest_active_clicked = (
-                            zorders == zorders[active_clicked].max()
-                        )
-                        ann_idx = np.where(highest_active_clicked)[0]
-                    else:
-                        # determine which is "on top" and only remove that one
-                        is_highest = zorders == zorders.max()
-                        ann_idx = np.where(was_clicked & is_highest)[0]
-                    for idx in ann_idx:
-                        inst.annotations.delete(idx)
+                    mask = active_clicked if any(active_clicked) else was_clicked
+                    highest = zorders == zorders[mask].max()
+                    idx = np.where(highest)[0]
+                    inst.annotations.delete(idx)
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
