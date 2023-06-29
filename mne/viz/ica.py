@@ -1302,7 +1302,7 @@ def _plot_sources(
     info["bads"] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)
-        inst_array.set_annotations(inst.annotations)
+        inst_array._annotations = inst.annotations
     else:
         data = data.reshape(-1, len(inst), len(inst.times)).swapaxes(0, 1)
         inst_array = EpochsArray(data, info)
