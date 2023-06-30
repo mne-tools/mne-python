@@ -767,14 +767,19 @@ def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx)
     def _get_visible_labels(fig_dot_mne):
         if ismpl:
             # MPL backend's `fig.mne.annotation_texts` → only the visible ones
-            visible_labels = [x.get_text() for x in fig.mne.annotation_texts]
+            visible_labels = [x.get_text() for x in fig_dot_mne.annotation_texts]
         else:
             # PyQtGraph backend's `fig.mne.regions` → all annots (even offscreen ones)
+            # so we need to (1) get annotations from fig.mne.inst, and (2) compute
+            # ourselves which ones are visible.
+            _annot = fig_dot_mne.inst.annotations
+            _start = start + fig_dot_mne.inst.first_time
+            _end = _start + duration
             visible_indices = np.nonzero(
-                np.logical_and(annot.onset > start, annot.onset < (start + duration))
+                np.logical_and(_annot.onset > _start, _annot.onset < _end)
             )
             visible_labels = np.array(
-                [x.label_item.toPlainText() for x in fig.mne.regions]
+                [x.label_item.toPlainText() for x in fig_dot_mne.regions]
             )[visible_indices].tolist()
         return visible_labels
 
