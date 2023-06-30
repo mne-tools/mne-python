@@ -77,7 +77,7 @@ or via :code:`conda`
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
 
-If you already have MNE-Python with core dependencies (e.g. via `pip install mne`),
+If you already have MNE-Python with core dependencies (e.g. via ``pip install mne``),
 you can install these two packages to unlock HDF5 support:
 
 .. code-block:: console
