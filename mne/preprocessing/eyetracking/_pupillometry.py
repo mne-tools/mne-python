@@ -69,8 +69,6 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
 
 def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
     """Interpolate eyetracking signals during blinks in-place."""
-    from scipy.interpolate import interp1d
-
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
     # iterate over each eyetrack channel and interpolate the blinks
@@ -85,7 +83,7 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
         mask = np.zeros_like(raw.times, dtype=bool)
         for annot in blink_annots:
             if "ch_names" not in annot or not annot["ch_names"]:
-                msg = "blink annotation missing 'ch_names' key. got: {}".format(annot)
+                msg = f"Blink annotation missing values for 'ch_names' key: {annot}"
                 raise ValueError(msg)
             start = annot["onset"] - pre_buffer
             end = annot["onset"] + annot["duration"] + post_buffer
@@ -96,12 +94,11 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
         blink_indices = np.where(mask)[0]
         non_blink_indices = np.where(~mask)[0]
 
-        # Create the interpolation object
-        interpolator = interp1d(
-            non_blink_indices, raw._data[i, non_blink_indices], kind="linear"
+        # Linear interpolation
+        interpolated_samples = np.interp(
+            raw.times[blink_indices],
+            raw.times[non_blink_indices],
+            raw._data[i, non_blink_indices],
         )
-        # Interpolate the blink periods
-        interpolated_samples = interpolator(blink_indices)
-
         # Replace the samples at the blink_indices with the interpolated values
         raw._data[i, blink_indices] = interpolated_samples
