@@ -319,7 +319,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     assert browser_backend._get_n_figs() == 0
     del long_raw
 
-    # test with annotations
+    # test with annotations and a measurement date
     orig_annot = raw.annotations
     raw.set_annotations(Annotations([0.2], [0.1], "Test"))
     fig = ica.plot_sources(raw)
@@ -328,6 +328,22 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
         assert len(fig.mne.ax_hscroll.collections) == 1
     else:
         assert len(fig.mne.regions) == 1
+        assert np.allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
+
+    # test with annotations and no measurement date
+    orig_meas_date = raw.info["meas_date"]
+    raw.set_meas_date(None)
+    assert raw.first_samp != 0
+    raw.set_annotations(Annotations([0.2], [0.1], "Test"))
+    fig = ica.plot_sources(raw)
+    if browser_backend.name == "matplotlib":
+        assert len(fig.mne.ax_main.collections) == 1
+        assert len(fig.mne.ax_hscroll.collections) == 1
+    else:
+        assert len(fig.mne.regions) == 1
+        assert np.allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
+
+    raw.set_meas_date(orig_meas_date)
     raw.set_annotations(orig_annot)
 
     # test error handling
