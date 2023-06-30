@@ -3678,7 +3678,7 @@ docdict[
     "remove_dc"
 ] = """
 remove_dc : bool
-    If ``True``, the mean is subtracted from each segment. If ``False``, 
+    If ``True``, the mean is subtracted from each segment. If ``False``,
     the data is left as is.
 """
 

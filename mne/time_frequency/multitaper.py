@@ -241,8 +241,7 @@ def _mt_spectra(x, dpss, sfreq, remove_dc=True, n_fft=None):
         The tapers
     sfreq : float
         The sampling frequency
-    remove_dc : bool
-	Whether or not to remove the DC component of the signal.
+    %(remove_dc)s
     n_fft : int | None
         Length of the FFT. If None, the number of samples in the input signal
         will be used.
