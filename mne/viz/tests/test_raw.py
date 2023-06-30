@@ -745,6 +745,56 @@ def test_plot_annotations(raw, browser_backend):
         assert fig.mne.regions[0].isVisible()
 
 
+@pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
+def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
+    """Test deletion of annotations via right-click."""
+    ismpl = browser_backend.name == "matplotlib"
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    annot_labels = list("abc")
+    # the test applies to the middle three annotations; those before and after are
+    # there to ensure our bookkeeping works
+    annot = Annotations(
+        onset=[3, 3.4, 3.7, 13, 13.4, 13.7, 19, 19.4, 19.7],
+        duration=[2, 1, 3] * 3,
+        description=annot_labels * 3,
+    )
+    raw.set_annotations(annot)
+    start = 10
+    duration = 8
+    fig = raw.plot(start=start, duration=duration)
+
+    def _get_visible_labels(fig_dot_mne):
+        if ismpl:
+            # MPL backend's `fig.mne.annotation_texts` → only the visible ones
+            visible_labels = [x.get_text() for x in fig.mne.annotation_texts]
+        else:
+            # PyQtGraph backend's `fig.mne.regions` → all annots (even offscreen ones)
+            visible_indices = np.nonzero(
+                np.logical_and(annot.onset > start, annot.onset < (start + duration))
+            )
+            visible_labels = np.array(
+                [x.label_item.toPlainText() for x in fig.mne.regions]
+            )[visible_indices].tolist()
+        return visible_labels
+
+    assert annot_labels == _get_visible_labels(fig.mne)
+    fig._fake_keypress("a")  # start annotation mode
+    if ismpl:
+        buttons = fig.mne.fig_annotation.mne.radio_ax.buttons
+        buttons.set_active(active_annot_idx)
+        current_active = buttons.value_selected
+    else:
+        buttons = fig.mne.fig_annotation.description_cmbx
+        buttons.setCurrentIndex(active_annot_idx)
+        current_active = buttons.currentText()
+    assert current_active == annot_labels[active_annot_idx]
+    # x value of 14 is in area that overlaps all 3 visible annotations
+    fig._fake_click((14, 1.0), xform="data", button=3)
+    expected = set(annot_labels) - set(annot_labels[active_annot_idx])
+    assert expected == set(_get_visible_labels(fig.mne))
+
+
 @pytest.mark.parametrize("hide_which", ([], [0], [1], [0, 1]))
 def test_remove_annotations(raw, hide_which, browser_backend):
     """Test that right-click doesn't remove hidden annotation spans."""
