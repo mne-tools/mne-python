@@ -345,9 +345,9 @@ MNE_DATASETS["fake"] = dict(
 
 # eyelink dataset
 MNE_DATASETS["eyelink"] = dict(
-    archive_name="eyelink_example_data.zip",
-    hash="md5:081950c05f35267458d9c751e178f161",
-    url=("https://osf.io/r5ndq/download?version=1"),
+    archive_name="eeg-eyetrack_data.zip",
+    hash="md5:c4fc788fe01737e08e9086c90cab642d",
+    url=("https://osf.io/63fjm/download?version=1"),
     folder_name="eyelink-example-data",
     config_key="MNE_DATASETS_EYELINK_PATH",
 )
