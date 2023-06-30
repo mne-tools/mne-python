@@ -11,14 +11,14 @@ Install via :code:`pip` or :code:`conda`
    instead.
 
 MNE-Python requires Python version |min_python_version| or higher. If you
-need to install Python, please see our :ref:`install-python` guide.
+need help installing Python, please refer to our :ref:`install-python` guide.
 
 Installing MNE-Python with all dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We suggest to install MNE-Python into its own ``conda`` environment.
+If you use Anaconda, we suggest installing MNE-Python into its own ``conda`` environment.
 
 The dependency stack is large and may take a long time (several tens of
-minutes) to resolve on some systems via the default ``conda`` solver. We
+minutes) to resolve on some systems via the default ``conda`` command. We
 therefore highly recommend using `mamba <https://mamba.readthedocs.io/>`__
 instead, a ``conda`` replacement that is **much** faster.
 
@@ -60,7 +60,8 @@ functionality later on, you can install individual packages as needed.
 
 Installing MNE-Python with HDF5 support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you plan to use MNE-Python's functions that require **HDF5** I/O (this
+If you plan to use MNE-Python's functions that require
+`HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`__ I/O (this
 includes :func:`mne.io.read_raw_eeglab`, :meth:`mne.SourceMorph.save`, and
 others), you should run via :code:`pip`:
 
@@ -68,7 +69,7 @@ others), you should run via :code:`pip`:
 
    $ pip install mne[hdf5]
 
-or via :code:`conda`
+or via :code:`conda`:
 
 .. code-block:: console
 
@@ -77,7 +78,7 @@ or via :code:`conda`
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
 
-If you already have MNE-Python with core dependencies (e.g. via ``pip install mne``),
+If you have already installed MNE-Python with core dependencies (e.g. via ``pip install mne``),
 you can install these two packages to unlock HDF5 support:
 
 .. code-block:: console
@@ -102,7 +103,7 @@ Python development are:
 - `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
   development-focused text editor that supports many programming languages in
   addition to Python, includes an integrated terminal console, and has a rich
-  ecosystem of packages to extend its capabilities. Installing
+  extension ecosystem. Installing
   `Microsoft's Python Extension
   <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
   enough to get most Python users up and running. VS Code is free and
@@ -145,5 +146,5 @@ Python development are:
   environment.
 
 - `PyCharm`_ is an IDE specifically for Python development that provides an
-  all-in-one installation (no extension packages needed). PyCharm comes in a
-  free and open-source Community edition and a paid "professional" edition.
+  all-in-one solution (no extension packages needed). PyCharm comes in a
+  free and open-source Community edition as well as a paid Professional edition.
