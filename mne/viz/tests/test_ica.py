@@ -328,7 +328,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
         assert len(fig.mne.ax_hscroll.collections) == 1
     else:
         assert len(fig.mne.regions) == 1
-        assert assert_allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
+        assert_allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
 
     # test with annotations and no measurement date
     orig_meas_date = raw.info["meas_date"]
@@ -341,7 +341,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
         assert len(fig.mne.ax_hscroll.collections) == 1
     else:
         assert len(fig.mne.regions) == 1
-        assert assert_allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
+        assert_allclose(fig.mne.regions[0].getRegion(), (0.2, 0.3))
 
     raw.set_meas_date(orig_meas_date)
     raw.set_annotations(orig_annot)
