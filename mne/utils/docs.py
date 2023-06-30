@@ -2494,9 +2494,9 @@ docdict[
 ] = """\
 **method_kw
     Additional keyword arguments passed to the spectral estimation
-    function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+    function (e.g., ``n_fft, n_overlap, n_per_seg, average, window, remove_dc``
     for Welch method, or
-    ``bandwidth, adaptive, low_bias, normalization`` for multitaper
+    ``bandwidth, adaptive, low_bias, normalization, remove_dc`` for multitaper
     method). See :func:`~mne.time_frequency.psd_array_welch` and
     :func:`~mne.time_frequency.psd_array_multitaper` for details.
 """
@@ -3672,6 +3672,14 @@ reject : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 
     If ``reject`` is ``None`` (default), no rejection is performed.
+"""
+
+docdict[
+    "remove_dc"
+] = """
+remove_dc : bool
+    If ``True``, the mean is subtracted from each segment. If ``False``, 
+    the data is left as is.
 """
 
 docdict[

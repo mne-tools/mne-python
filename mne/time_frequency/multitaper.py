@@ -230,7 +230,7 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
     return csd
 
 
-def _mt_spectra(x, dpss, sfreq, n_fft=None):
+def _mt_spectra(x, dpss, sfreq, remove_dc=True, n_fft=None):
     """Compute tapered spectra.
 
     Parameters
@@ -241,6 +241,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
         The tapers
     sfreq : float
         The sampling frequency
+    remove_dc : bool
+	Whether or not to remove the DC component of the signal.
     n_fft : int | None
         Length of the FFT. If None, the number of samples in the input signal
         will be used.
@@ -258,7 +260,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
         n_fft = x.shape[-1]
 
     # remove mean (do not use in-place subtraction as it may modify input x)
-    x = x - np.mean(x, axis=-1, keepdims=True)
+    if remove_dc:
+        x = x - np.mean(x, axis=-1, keepdims=True)
 
     # only keep positive frequencies
     freqs = rfftfreq(n_fft, 1.0 / sfreq)
@@ -330,6 +333,7 @@ def psd_array_multitaper(
     adaptive=False,
     low_bias=True,
     normalization="length",
+    remove_dc=True,
     output="power",
     n_jobs=None,
     *,
@@ -360,6 +364,7 @@ def psd_array_multitaper(
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
+    %(remove_dc)s
     output : str
         The format of the returned ``psds`` array, ``'complex'`` or
         ``'power'``:
@@ -429,7 +434,7 @@ def psd_array_multitaper(
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), 1)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
-        x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
+        x_mt = _mt_spectra(x[start:stop], dpss, sfreq, remove_dc=remove_dc)[0]
         if output == "power":
             if not adaptive:
                 psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
