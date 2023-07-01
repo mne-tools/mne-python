@@ -6,3 +6,4 @@
 
 from .eyetracking import set_channel_types_eyetrack
 from .calibration import Calibration, read_eyelink_calibration
+from ._pupillometry import interpolate_blinks
