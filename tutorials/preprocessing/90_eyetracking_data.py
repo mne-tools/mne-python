@@ -114,9 +114,7 @@ first_cal.plot(show_offsets=True)
 # the screen. We now extract these events to visualize the pupil response. We will use
 # these later in this tutorial.
 
-events = mne.find_events(
-    raw, "DIN", shortest_event=1, min_duration=0.02, uint_cast=True
-)
+events = mne.find_events(raw, shortest_event=1, min_duration=0.02, uint_cast=True)
 event_dict = {"flash": 3}
 
 
@@ -144,19 +142,8 @@ raw.plot(
 )
 
 # %%
-# Dealing with artifacts
-# ----------------------
-# From the plot above, we see that there are some artifacts in the data that we should
-# remove before analyzing the pupil response. First, we notice that there is some
-# high frequency noise in the pupil signal, likely due to the sub-optimal calibration
-# of the eye tracker. We can remove this noise by low-pass filtering the data:
-
-# Apply a low pass filter to the pupil channel
-raw.filter(l_freq=None, h_freq=40, picks=["pupil_right"])
-
-# %%
 # handling blink artifacts
-# ^^^^^^^^^^^^^^^^^^^^^^^^
+# ------------------------
 # We also notice that, naturally, there are blinks in our data, and these blink periods
 # occur within ``"BAD_blink"``  annotations. During blink periods, ``"eyegaze"``
 # coordinates are not reported, and ``"pupil"`` size data are ``0``. We don't want these
@@ -176,6 +163,15 @@ raw.plot(events=events, event_id={"Flash": 3}, event_color="g")
 # include in the interpolation. This is helpful because the ``blink`` annotations
 # do not always capture the entire blink in the signal. We specified a value of ``.05``
 # seconds (50 ms), which is slightly more than the default value of ``.025``.
+
+# %%
+# Dealing with high frequency noise
+# ---------------------------------
+# From the plot above, we notice that there is some high frequency noise in the pupil
+# signal. We can remove this noise by low-pass filtering the data:
+
+# Apply a low pass filter to the pupil channel
+raw.filter(l_freq=None, h_freq=40, picks=["pupil_right"])
 
 # %%
 # Rejecting bad spans of data

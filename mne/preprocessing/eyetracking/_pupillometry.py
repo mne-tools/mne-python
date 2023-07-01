@@ -38,6 +38,10 @@ def interpolate_blinks(raw, buffer=0.05, match="BAD_blink", interpolate_gaze=Fal
     -------
     self : instance of Raw
         Returns the modified instance.
+
+    Notes
+    -----
+    .. versionadded:: 1.5
     """
     _check_preload(raw, "interpolate_blinks")
     _validate_type(raw, BaseRaw, "raw")
@@ -72,7 +76,7 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
     logger.info("Interpolating missing data during blinks...")
     pre_buffer, post_buffer = buffer
     # iterate over each eyetrack channel and interpolate the blinks
-    for i, ch_info in enumerate(raw.info["chs"]):
+    for ci, ch_info in enumerate(raw.info["chs"]):
         if interpolate_gaze:  # interpolate over all eyetrack channels
             if ch_info["kind"] != FIFF.FIFFV_EYETRACK_CH:
                 continue
@@ -98,7 +102,7 @@ def _interpolate_blinks(raw, buffer, blink_annots, interpolate_gaze):
         interpolated_samples = np.interp(
             raw.times[blink_indices],
             raw.times[non_blink_indices],
-            raw._data[i, non_blink_indices],
+            raw._data[ci, non_blink_indices],
         )
         # Replace the samples at the blink_indices with the interpolated values
-        raw._data[i, blink_indices] = interpolated_samples
+        raw._data[ci, blink_indices] = interpolated_samples
