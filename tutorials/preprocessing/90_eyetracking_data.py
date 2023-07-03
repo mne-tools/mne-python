@@ -111,22 +111,22 @@ first_cal.plot(show_offsets=True)
 # Extract common stimulus events from the data
 # --------------------------------------------
 #
-# In this experiment, a photodiode was attached to the screen and recorded the onsets of
-# light flashes. The photodiode was connected to both the EEG and eye-tracking systems,
-# so that these onsets were recorded in both the EEG and eye-tracking data.
-# MNE will load these data as ``'stim'`` channels.
+# In this experiment, a photodiode attached to the display screen was connected to both
+# the EEG and eye-tracking systems. The photodiode was triggered by the the light flash
+# stimuli, causing a signal to be sent to both systems simultaneously, signifying the
+# onset of the flash. The photodiode signal was recorded as a digital input channel in
+# the EEG and eye-tracking data. MNE loads these data as ``'stim'`` channels.
 #
-# We'll extract the flash event onsets from both the EEG and eye-tracking data, for use
-# later in the tutorial, as they are necessary for aligning the EEG and eye-tracking
-# data.
+# We'll extract the flash event onsets from both the EEG and eye-tracking data, as they
+# are necessary for aligning the EEG and eye-tracking data.
 
 et_events = mne.find_events(raw_et, min_duration=0.01, shortest_event=1, uint_cast=True)
 event_dict = {"Flash": 2}
 eeg_events = mne.find_events(raw_eeg, stim_channel="DIN3")
 
 # %%
-# Plot raw data
-# -------------
+# Plot the raw eye-tracking data
+# ------------------------------
 #
 # Let's plot the raw eye-tracking data. We'll pass a custom `dict` into
 # the scalings argument to make the eyegaze channel traces legible when plotting,
@@ -137,7 +137,7 @@ raw_et.plot(
     events=et_events,
     event_id=event_dict,
     event_color="g",
-    duration=30,
+    duration=15,
     scalings=dict(eyegaze=1e3),
 )
 
@@ -158,7 +158,7 @@ mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
 # Aligning the eye-tracking data with EEG data
 # --------------------------------------------
 #
-# The eye-tracking data and EEG data were recorded simultaneously, but on different
+# Eye-tracking and EEG data were recorded simultaneously, but on different
 # systems, so we'll need to align the data before we can analyze them together. We can
 # do this using the :func:`~mne.preprocessing.realign_raw` function, which will align
 # the data based on the timing of the shared events that are present in both
@@ -166,10 +166,6 @@ mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
 # above, but first we need to convert the event onsets from samples to seconds. Once the
 # data have been aligned, we'll add the EEG channels to the eye-tracking raw object.
 
-# Define a few channel groups of interest
-frontal = ["E19", "E11", "E4", "E12", "E5"]
-posterior = ["E61", "E62", "E78", "E67", "E72", "E77"]
-pupil = ["pupil_right"]
 # Convert event onsets from samples to seconds
 et_din_times = et_events[:, 0] / raw_et.info["sfreq"]
 eeg_din_times = eeg_events[:, 0] / raw_eeg.info["sfreq"]
@@ -177,11 +173,17 @@ eeg_din_times = eeg_events[:, 0] / raw_eeg.info["sfreq"]
 mne.preprocessing.realign_raw(
     raw_et, raw_eeg, et_din_times, eeg_din_times, verbose="error"
 )
-raw_eeg.pick(frontal + posterior)  # so that all channels fit in the plot below
-raw_et.pick("pupil_right")
 # Add EEG channels to the eye-tracking raw object
 raw_et.add_channels([raw_eeg], force_update_info=True)
-raw_et.plot(events=et_events, event_id=event_dict, event_color="g")
+
+# Define a few channel groups of interest and plot the data
+frontal = ["E19", "E11", "E4", "E12", "E5"]
+occipital = ["E61", "E62", "E78", "E67", "E72", "E77"]
+pupil = ["pupil_right"]
+picks_idx = mne.pick_channels(
+    raw_et.ch_names, frontal + occipital + pupil, ordered=True
+)
+raw_et.plot(events=et_events, event_id=event_dict, event_color="g", order=picks_idx)
 
 
 # %%
@@ -194,10 +196,9 @@ epochs = mne.Epochs(
     event_id=event_dict,
     tmin=-0.3,
     tmax=3,
-    picks=posterior + pupil,
     preload=True,
 )
-epochs[:8].plot(events=et_events, event_id=event_dict)
+epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 
 # %%
 # We can clearly see the prominent decrease in pupil size following the
@@ -210,4 +211,4 @@ epochs[:8].plot(events=et_events, event_id=event_dict)
 # Finally, let's plot the evoked responses to the light flashes to get a sense of the
 # average pupillary light response, and the ERP in the EEG data.
 
-epochs.average().plot()
+epochs.average().plot(picks=occipital + pupil)
