@@ -155,6 +155,10 @@ raw_et.plot(
 mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
 
 # %%
+# .. note:: By default, :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, will
+#           only interpolate blinks in ``"pupil"`` channels.
+
+# %%
 # Aligning the eye-tracking data with EEG data
 # --------------------------------------------
 #
