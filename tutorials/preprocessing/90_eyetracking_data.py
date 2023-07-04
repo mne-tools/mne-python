@@ -59,7 +59,7 @@ print(raw_et.annotations[0])  # a blink in the right eye
 # %%
 # If we are only interested in certain event types from
 # the EyeLink file, we can select for these using the ``'create_annotations'``
-# argument of `~mne.io.read_raw_eyelink`. above, we only created annotations
+# argument of `~mne.io.read_raw_eyelink`. Above, we only created annotations
 # for blinks, which are read in as ``'BAD_blink'`` so that MNE will treat
 # these as bad segments of data.
 
