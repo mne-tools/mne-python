@@ -44,6 +44,7 @@ print(f"RawEyelink info: {raw_et.info}")
 
 # %%
 # .. seealso:: :ref:`tut-importing-eyetracking-data`
+     :class: sidebar
 
 # %%
 # Ocular annotations
@@ -54,11 +55,11 @@ print(f"RawEyelink info: {raw_et.info}")
 # ``'ch_names'`` key. This means that we can see which eye an ocular event occurred in,
 # which can be useful for binocular recordings:
 
-print(raw_et.annotations[0])  # a blink in the right eye
+print(raw_et.annotations[0]["ch_names"]) # a blink in the right eye
 
 # %%
 # If we are only interested in certain event types from
-# the EyeLink file, we can select for these using the ``'create_annotations'``
+# the EyeLink file, we can select for these using the ``create_annotations``
 # argument of `~mne.io.read_raw_eyelink`. Above, we only created annotations
 # for blinks, which are read in as ``'BAD_blink'`` so that MNE will treat
 # these as bad segments of data.
@@ -67,8 +68,9 @@ print(raw_et.annotations[0])  # a blink in the right eye
 # Checking the calibration
 # ------------------------
 #
-# We can also load and visualize eye-tracking calibrations, which is a useful first step
-# in assessing the quality of the eye-tracking data.
+# EyeLink ``.asc`` files can also include calibration information.
+# MNE-Python can load and visualize those eye-tracking calibrations, which
+# is a useful first step in assessing the quality of the eye-tracking data.
 # :func:`~mne.preprocessing.eyetracking.read_eyelink_calibration`
 # will return a list of :class:`~mne.preprocessing.eyetracking.Calibration` instances,
 # one for each calibration. We can index that list to access a specific calibration.
@@ -155,8 +157,8 @@ raw_et.plot(
 mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
 
 # %%
-# .. note:: By default, :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, will
-#           only interpolate blinks in ``"pupil"`` channels. Setting
+# .. important:: By default, :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, will
+#           only interpolate blinks in ``"pupil"`` channels. Passing
 #           ``interpolate_gaze=True`` will also interpolate the blink periods of the
 #           ``"eyegaze"`` channels. Be aware, however, that eye movements can occur
 #           during blinks which makes the gaze data less suitable for interpolation.
@@ -165,7 +167,7 @@ mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
 # Aligning the eye-tracking data with EEG data
 # --------------------------------------------
 #
-# Eye-tracking and EEG data were recorded simultaneously, but on different
+# In this dataset, eye-tracking and EEG data were recorded simultaneously, but on different
 # systems, so we'll need to align the data before we can analyze them together. We can
 # do this using the :func:`~mne.preprocessing.realign_raw` function, which will align
 # the data based on the timing of the shared events that are present in both
