@@ -23,12 +23,10 @@ the ERP and pupil response to the light flashes (i.e. the pupillary light reflex
 #
 # As usual we start by importing the modules we need and loading some
 # :ref:`example data <eyelink-dataset>`: eye-tracking data recorded from SR research's
-# ``'.asc'`` file format, and EEG data recorded from EGI's ``'.mff'`` file format.
-#
-# The info structure of the eye-tracking data tells us we loaded a monocular recording
-# with 2 ``'eyegaze'``, channels (X/Y), 1 ``'pupil'`` channel, 1 ``'stim'`` channel, and
-# 3 channels for the head distance and position (since this data was collected using
-# EyeLink's Remote mode).
+# ``'.asc'`` file format, and EEG data recorded from EGI's ``'.mff'`` file format. We'll
+# pass ``create_annotations=["blinks"]``` to :func:`~mne.io.read_raw_eyelink` so that
+# only blinks annotations are created (by default, annotations are created for blinks,
+# saccades, fixations, and experiment messages).
 
 import mne
 from mne.datasets.eyelink import data_path
@@ -37,32 +35,32 @@ from mne.preprocessing.eyetracking import read_eyelink_calibration
 et_fpath = data_path() / "sub-01_task-plr_eyetrack.asc"
 eeg_fpath = data_path() / "sub-01_task-plr_eeg.mff"
 
-raw_et = mne.io.read_raw_eyelink(et_fpath, create_annotations=["blinks"])
+raw_et = mne.io.read_raw_eyelink(et_fpath, preload=True, create_annotations=["blinks"])
 raw_eeg = mne.io.read_raw_egi(eeg_fpath, preload=True, verbose="warning")
-raw_eeg.filter(1, 30, verbose="warning")
-print(f"RawEyelink info: {raw_et.info}")
+raw_eeg.filter(1, 30)
 
 # %%
 # .. seealso:: :ref:`tut-importing-eyetracking-data`
-     :class: sidebar
+#     :class: sidebar
+
+# %%
+# The info structure of the eye-tracking data tells us we loaded a monocular recording
+# with 2 eyegaze, channels (X/Y), 1 pupil channel, 1 stim channel, and 3 channels for
+# the head distance and position (since this data was collected using EyeLink's Remote
+# mode).
+
+raw_et.info
 
 # %%
 # Ocular annotations
 # ------------------
-# By default, EyeLink files will output events for ocular events (blinks,
-# saccades, fixations), and experiment messages. MNE will store these events
+# By default, EyeLink files will output ocular events (blinks, saccades, and
+# fixations), and experiment messages. MNE will store these events
 # as `mne.Annotations`. Ocular annotations contain channel information, in the
 # ``'ch_names'`` key. This means that we can see which eye an ocular event occurred in,
 # which can be useful for binocular recordings:
 
-print(raw_et.annotations[0]["ch_names"]) # a blink in the right eye
-
-# %%
-# If we are only interested in certain event types from
-# the EyeLink file, we can select for these using the ``create_annotations``
-# argument of `~mne.io.read_raw_eyelink`. Above, we only created annotations
-# for blinks, which are read in as ``'BAD_blink'`` so that MNE will treat
-# these as bad segments of data.
+print(raw_et.annotations[0]["ch_names"])  # a blink in the right eye
 
 # %%
 # Checking the calibration
@@ -81,22 +79,13 @@ first_cal = cals[0]  # let's access the first (and only in this case) calibratio
 print(first_cal)
 
 # %%
-# Here we can see that a 5-point calibration was performed at the beginning of
-# the recording. Note that you can access the calibration information using
-# dictionary style indexing:
+# Calibrations have dict-like attribute access; in addition to the attributes shown in
+# the output above, additional attributes are ``'positions'`` (the x and y coordinates
+# of each calibration point), ``'gaze'`` (the x and y coordinates of the actual gaze
+# position to each calibration point), and ``'offsets'`` (the offset in visual degrees
+# between the calibration position and the actual gaze position for each calibration
+# point). Below is an example of how to access these data:
 
-print(f"Eye calibrated: {first_cal['eye']}")
-print(f"Calibration model: {first_cal['model']}")
-print(f"Calibration average error: {first_cal['avg_error']}")
-
-# %%
-# The data for individual calibration points are stored as :class:`numpy.ndarray`
-# arrays, in the ``'positions'``, ``'gaze'``, and ``'offsets'`` keys. ``'positions'``
-# contains the x and y coordinates of each calibration point. ``'gaze'`` contains the
-# x and y coordinates of the actual gaze position for each calibration point.
-# ``'offsets'`` contains the offset (in visual degrees) between the calibration position
-# and the actual gaze position for each calibration point. Below is an example of
-# how to access these data:
 print(f"offset of the first calibration point: {first_cal['offsets'][0]}")
 print(f"offset for each calibration point: {first_cal['offsets']}")
 print(f"x-coordinate for each calibration point: {first_cal['positions'].T[0]}")
@@ -107,7 +96,41 @@ print(f"x-coordinate for each calibration point: {first_cal['positions'].T[0]}")
 # and the offsets (in visual degrees) between the calibration position and the actual
 # gaze position of each calibration point.
 
-first_cal.plot(show_offsets=True)
+first_cal.plot()
+
+# %%
+# Plot the raw eye-tracking data
+# ------------------------------
+#
+# Let's plot the raw eye-tracking data. We'll pass a custom `dict` into
+# the scalings argument to make the eyegaze channel traces legible when plotting,
+# since this file contains pixel position data (as opposed to eye angles,
+# which are reported in radians).
+
+raw_et.plot(scalings=dict(eyegaze=1e3))
+
+# %%
+# Handling blink artifacts
+# ------------------------
+#
+# Naturally, there are blinks in our data, which occur within ``"BAD_blink"``
+# annotations. During blink periods, eyegaze coordinates are not reported, and pupil
+# size data are ``0``. We don't want these blink artifacts biasing our analysis, so we
+# have two options: Drop the blink periods from our data during epoching, or interpolate
+# the missing data during the blink periods. For this tutorial, let's interpolate the
+# blink samples. We'll pass ``(0.05, 0.2)``` to
+# :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, expanding the interpolation
+# window 50 ms before and 200 ms after the blink, so that the noisy data surrounding
+# the blink is also interpolated.
+
+mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
+
+# %%
+# .. important:: By default, :func:`~mne.preprocessing.eyetracking.interpolate_blinks`,
+#           will only interpolate blinks in pupil channels. Passing
+#           ``interpolate_gaze=True`` will also interpolate the blink periods of the
+#           eyegaze channels. Be aware, however, that eye movements can occur
+#           during blinks which makes the gaze data less suitable for interpolation.
 
 # %%
 # Extract common stimulus events from the data
@@ -117,61 +140,23 @@ first_cal.plot(show_offsets=True)
 # the EEG and eye-tracking systems. The photodiode was triggered by the the light flash
 # stimuli, causing a signal to be sent to both systems simultaneously, signifying the
 # onset of the flash. The photodiode signal was recorded as a digital input channel in
-# the EEG and eye-tracking data. MNE loads these data as ``'stim'`` channels.
+# the EEG and eye-tracking data. MNE loads these data as a :term:`stim channel`.
 #
 # We'll extract the flash event onsets from both the EEG and eye-tracking data, as they
-# are necessary for aligning the EEG and eye-tracking data.
+# are necessary for aligning the data from the two recordings.
 
 et_events = mne.find_events(raw_et, min_duration=0.01, shortest_event=1, uint_cast=True)
 event_dict = {"Flash": 2}
 eeg_events = mne.find_events(raw_eeg, stim_channel="DIN3")
-
 # %%
-# Plot the raw eye-tracking data
-# ------------------------------
+# Align the eye-tracking data with EEG data
+# -----------------------------------------
 #
-# Let's plot the raw eye-tracking data. We'll pass a custom `dict` into
-# the scalings argument to make the eyegaze channel traces legible when plotting,
-# since this file contains pixel position data (as opposed to eye angles,
-# which are reported in radians). We also could have simply passed ``scalings='auto'``.
-
-raw_et.plot(
-    events=et_events,
-    event_id=event_dict,
-    event_color="g",
-    duration=15,
-    scalings=dict(eyegaze=1e3),
-)
-
-# %%
-# Handling blink artifacts
-# ------------------------
-#
-# Naturally, there are blinks in our data, and these blink periods
-# occur within ``"BAD_blink"``  annotations. During blink periods, ``"eyegaze"``
-# coordinates are not reported, and ``"pupil"`` size data are ``0``. We don't want these
-# blink artifacts biasing our analysis, so we have two options: Drop the blink periods
-# from our data during epoching, or interpolate the missing data during the blink
-# periods. For this tutorial, let's interpolate the blink samples:
-
-mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
-
-# %%
-# .. important:: By default, :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, will
-#           only interpolate blinks in ``"pupil"`` channels. Passing
-#           ``interpolate_gaze=True`` will also interpolate the blink periods of the
-#           ``"eyegaze"`` channels. Be aware, however, that eye movements can occur
-#           during blinks which makes the gaze data less suitable for interpolation.
-
-# %%
-# Aligning the eye-tracking data with EEG data
-# --------------------------------------------
-#
-# In this dataset, eye-tracking and EEG data were recorded simultaneously, but on different
-# systems, so we'll need to align the data before we can analyze them together. We can
-# do this using the :func:`~mne.preprocessing.realign_raw` function, which will align
-# the data based on the timing of the shared events that are present in both
-# :class:`~mne.io.Raw` objects. We'll use the shared photodiode events we extracted
+# In this dataset, eye-tracking and EEG data were recorded simultaneously, but on
+# different systems, so we'll need to align the data before we can analyze them
+# together. We can do this using the :func:`~mne.preprocessing.realign_raw` function,
+# which will align the data based on the timing of the shared events that are present in
+# both :class:`~mne.io.Raw` objects. We'll use the shared photodiode events we extracted
 # above, but first we need to convert the event onsets from samples to seconds. Once the
 # data have been aligned, we'll add the EEG channels to the eye-tracking raw object.
 
@@ -196,8 +181,10 @@ raw_et.plot(events=et_events, event_id=event_dict, event_color="g", order=picks_
 
 
 # %%
-# Epoching the data
-# -----------------
+# Showing the pupillary light reflex
+# ----------------------------------
+# Now let's extract epochs around our flash events. We should see a clear pupil
+# constriction response to the flashes.
 
 epochs = mne.Epochs(
     raw_et,
@@ -209,9 +196,6 @@ epochs = mne.Epochs(
 )
 epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 
-# %%
-# We can clearly see the prominent decrease in pupil size following the
-# stimulation.
 
 # %%
 # Plot the evoked response
