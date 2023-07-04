@@ -156,7 +156,10 @@ mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
 
 # %%
 # .. note:: By default, :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, will
-#           only interpolate blinks in ``"pupil"`` channels.
+#           only interpolate blinks in ``"pupil"`` channels. Setting
+#           ``interpolate_gaze=True`` will also interpolate the blink periods of the
+#           ``"eyegaze"`` channels. Be aware, however, that eye movements can occur
+#           during blinks which makes the gaze data less suitable for interpolation.
 
 # %%
 # Aligning the eye-tracking data with EEG data
