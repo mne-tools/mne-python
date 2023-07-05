@@ -478,7 +478,7 @@ class RawEEGLAB(BaseRaw):
             )
 
         # create event_ch from annotations
-        annot = read_annotations(input_fname, uint16_codec=uint16_codec) # fix: none -> uint16_codec
+        annot = read_annotations(input_fname, uint16_codec=uint16_codec)
         self.set_annotations(annot)
         _check_boundary(annot, None)
 
