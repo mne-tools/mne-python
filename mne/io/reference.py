@@ -251,7 +251,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
             "scanno": nchan + 1,
             "cal": 1,
             "range": 1.0,
-            "unit_mul": 0.0,
+            "unit_mul": FIFF.FIFF_UNITM_NONE,
             "unit": FIFF.FIFF_UNIT_V,
             "coord_frame": FIFF.FIFFV_COORD_HEAD,
             "loc": ref_dig_array,
