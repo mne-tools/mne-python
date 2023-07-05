@@ -400,6 +400,8 @@
 
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
+.. _Ping-Keng Jao: https://github.com/nafraw
+
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
