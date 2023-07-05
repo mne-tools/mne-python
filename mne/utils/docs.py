@@ -1313,7 +1313,7 @@ exclude_frontal : bool
 _exclude_spectrum = """\
 exclude : list of str | 'bads'
     Channel names to exclude{}. If ``'bads'``, channels
-    in ``spectrum.info['bads']`` are excluded; pass an empty list to
+    in ``spectrum.info['bads']`` are excluded; pass an empty list or tuple to
     plot all channels (including "bad" channels, if any).
 """
 
@@ -2341,7 +2341,7 @@ docdict[
 ] = """
 mapping : dict | callable
     A dictionary mapping the old channel to a new channel name
-    e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
+    e.g. ``{'EEG061' : 'EEG161'}``. Can also be a callable function
     that takes and returns a string.
 
     .. versionchanged:: 0.10.0

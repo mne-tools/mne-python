@@ -56,101 +56,156 @@ def set_memmap_min_size(memmap_min_size):
         mapping for parallel processing, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays.
     """
+    _validate_type(memmap_min_size, (str, None), "memmap_min_size")
     if memmap_min_size is not None:
-        if not isinstance(memmap_min_size, str):
-            raise ValueError("'memmap_min_size' has to be a string.")
         if memmap_min_size[-1] not in ["K", "M", "G"]:
             raise ValueError(
                 "The size has to be given in kilo-, mega-, or "
-                "gigabytes, e.g., 100K, 500M, 1G."
+                f"gigabytes, e.g., 100K, 500M, 1G, got {repr(memmap_min_size)}"
             )
 
     set_config("MNE_MEMMAP_MIN_SIZE", memmap_min_size, set_env=False)
 
 
 # List the known configuration values
-known_config_types = (
-    "MNE_3D_OPTION_ANTIALIAS",
-    "MNE_3D_OPTION_DEPTH_PEELING",
-    "MNE_3D_OPTION_MULTI_SAMPLES",
-    "MNE_3D_OPTION_SMOOTH_SHADING",
-    "MNE_3D_OPTION_THEME",
-    "MNE_BROWSE_RAW_SIZE",
-    "MNE_BROWSER_BACKEND",
-    "MNE_BROWSER_OVERVIEW_MODE",
-    "MNE_BROWSER_PRECOMPUTE",
-    "MNE_BROWSER_THEME",
-    "MNE_BROWSER_USE_OPENGL",
-    "MNE_CACHE_DIR",
-    "MNE_COREG_ADVANCED_RENDERING",
-    "MNE_COREG_COPY_ANNOT",
-    "MNE_COREG_FULLSCREEN",
-    "MNE_COREG_GUESS_MRI_SUBJECT",
-    "MNE_COREG_HEAD_HIGH_RES",
-    "MNE_COREG_HEAD_OPACITY",
-    "MNE_COREG_HEAD_INSIDE",
-    "MNE_COREG_INTERACTION",
-    "MNE_COREG_MARK_INSIDE",
-    "MNE_COREG_PREPARE_BEM",
-    "MNE_COREG_ORIENT_TO_SURFACE",
-    "MNE_COREG_SCALE_LABELS",
-    "MNE_COREG_SCALE_BY_DISTANCE",
-    "MNE_COREG_SCENE_SCALE",
-    "MNE_COREG_WINDOW_HEIGHT",
-    "MNE_COREG_WINDOW_WIDTH",
-    "MNE_COREG_SUBJECTS_DIR",
-    "MNE_CUDA_DEVICE",
-    "MNE_CUDA_IGNORE_PRECISION",
-    "MNE_DATA",
-    "MNE_DATASETS_BRAINSTORM_PATH",
-    "MNE_DATASETS_EEGBCI_PATH",
-    "MNE_DATASETS_EPILEPSY_ECOG_PATH",
-    "MNE_DATASETS_EYELINK_PATH",
-    "MNE_DATASETS_HF_SEF_PATH",
-    "MNE_DATASETS_MEGSIM_PATH",
-    "MNE_DATASETS_MISC_PATH",
-    "MNE_DATASETS_MTRF_PATH",
-    "MNE_DATASETS_SAMPLE_PATH",
-    "MNE_DATASETS_SOMATO_PATH",
-    "MNE_DATASETS_MULTIMODAL_PATH",
-    "MNE_DATASETS_FNIRS_MOTOR_PATH",
-    "MNE_DATASETS_OPM_PATH",
-    "MNE_DATASETS_SPM_FACE_DATASETS_TESTS",
-    "MNE_DATASETS_SPM_FACE_PATH",
-    "MNE_DATASETS_TESTING_PATH",
-    "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH",
-    "MNE_DATASETS_KILOWORD_PATH",
-    "MNE_DATASETS_FIELDTRIP_CMC_PATH",
-    "MNE_DATASETS_PHANTOM_4DBTI_PATH",
-    "MNE_DATASETS_LIMO_PATH",
-    "MNE_DATASETS_REFMEG_NOISE_PATH",
-    "MNE_DATASETS_SSVEP_PATH",
-    "MNE_DATASETS_ERP_CORE_PATH",
-    "MNE_DATASETS_EPILEPSY_ECOG_PATH",
-    "MNE_DATASETS_UCL_OPM_AUDITORY_PATH",
-    "MNE_FORCE_SERIAL",
-    "MNE_KIT2FIFF_STIM_CHANNELS",
-    "MNE_KIT2FIFF_STIM_CHANNEL_CODING",
-    "MNE_KIT2FIFF_STIM_CHANNEL_SLOPE",
-    "MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD",
-    "MNE_LOGGING_LEVEL",
-    "MNE_MEMMAP_MIN_SIZE",
-    "MNE_REPR_HTML",
-    "MNE_SKIP_FTP_TESTS",
-    "MNE_SKIP_NETWORK_TESTS",
-    "MNE_SKIP_TESTING_DATASET_TESTS",
-    "MNE_STIM_CHANNEL",
-    "MNE_TQDM",
-    "MNE_USE_CUDA",
-    "MNE_USE_NUMBA",
-    "SUBJECTS_DIR",
-)
+_known_config_types = {
+    "MNE_3D_OPTION_ANTIALIAS": (
+        "bool, whether to use full-screen antialiasing in 3D plots"
+    ),
+    "MNE_3D_OPTION_DEPTH_PEELING": "bool, whether to use depth peeling in 3D plots",
+    "MNE_3D_OPTION_MULTI_SAMPLES": (
+        "int, number of samples to use for full-screen antialiasing"
+    ),
+    "MNE_3D_OPTION_SMOOTH_SHADING": ("bool, whether to use smooth shading in 3D plots"),
+    "MNE_3D_OPTION_THEME": ("str, the color theme (light or dark) to use for 3D plots"),
+    "MNE_BROWSE_RAW_SIZE": (
+        "tuple, width and height of the raw browser window (in inches)"
+    ),
+    "MNE_BROWSER_BACKEND": (
+        "str, the backend to use for the MNE Browse Raw window (qt or matplotlib)"
+    ),
+    "MNE_BROWSER_OVERVIEW_MODE": (
+        "str, the overview mode to use in the MNE Browse Raw window )"
+        "(see mne.viz.plot_raw for valid options)"
+    ),
+    "MNE_BROWSER_PRECOMPUTE": (
+        "bool, whether to precompute raw data in the MNE Browse Raw window"
+    ),
+    "MNE_BROWSER_THEME": "str, the color theme (light or dark) to use for the browser",
+    "MNE_BROWSER_USE_OPENGL": (
+        "bool, whether to use OpenGL for rendering in the MNE Browse Raw window"
+    ),
+    "MNE_CACHE_DIR": "str, path to the cache directory for parallel execution",
+    "MNE_COREG_ADVANCED_RENDERING": (
+        "bool, whether to use advanced OpenGL rendering in mne coreg"
+    ),
+    "MNE_COREG_COPY_ANNOT": (
+        "bool, whether to copy the annotation files during warping"
+    ),
+    "MNE_COREG_FULLSCREEN": "bool, whether to use full-screen mode in mne coreg",
+    "MNE_COREG_GUESS_MRI_SUBJECT": (
+        "bool, whether to guess the MRI subject in mne coreg"
+    ),
+    "MNE_COREG_HEAD_HIGH_RES": (
+        "bool, whether to use high-res head surface in mne coreg"
+    ),
+    "MNE_COREG_HEAD_OPACITY": ("bool, the head surface opacity to use in mne coreg"),
+    "MNE_COREG_HEAD_INSIDE": (
+        "bool, whether to add an opaque inner scalp head surface to help "
+        "occlude points behind the head in mne coreg"
+    ),
+    "MNE_COREG_INTERACTION": (
+        "str, interaction style in mne coreg (trackball or terrain)"
+    ),
+    "MNE_COREG_MARK_INSIDE": (
+        "bool, whether to mark points inside the head surface in mne coreg"
+    ),
+    "MNE_COREG_PREPARE_BEM": (
+        "bool, whether to prepare the BEM solution after warping in mne coreg"
+    ),
+    "MNE_COREG_ORIENT_TO_SURFACE": (
+        "bool, whether to orient the digitization markers to the head surface "
+        "in mne coreg"
+    ),
+    "MNE_COREG_SCALE_LABELS": (
+        "bool, whether to scale the MRI labels during warping in mne coreg"
+    ),
+    "MNE_COREG_SCALE_BY_DISTANCE": (
+        "bool, whether to scale the digitization markers by their distance from "
+        "the scalp in mne coreg"
+    ),
+    "MNE_COREG_SCENE_SCALE": (
+        "float, the scale factor of the 3D scene in mne coreg (default 0.16)"
+    ),
+    "MNE_COREG_WINDOW_HEIGHT": "int, window height for mne coreg",
+    "MNE_COREG_WINDOW_WIDTH": "int, window width for mne coreg",
+    "MNE_COREG_SUBJECTS_DIR": "str, path to the subjects directory for mne coreg",
+    "MNE_CUDA_DEVICE": "int, CUDA device to use for GPU processing",
+    "MNE_DATA": "str, default data directory",
+    "MNE_DATASETS_BRAINSTORM_PATH": "str, path for brainstorm data",
+    "MNE_DATASETS_EEGBCI_PATH": "str, path for EEGBCI data",
+    "MNE_DATASETS_EPILEPSY_ECOG_PATH": "str, path for epilepsy_ecog data",
+    "MNE_DATASETS_HF_SEF_PATH": "str, path for HF_SEF data",
+    "MNE_DATASETS_MEGSIM_PATH": "str, path for MEGSIM data",
+    "MNE_DATASETS_MISC_PATH": "str, path for misc data",
+    "MNE_DATASETS_MTRF_PATH": "str, path for MTRF data",
+    "MNE_DATASETS_SAMPLE_PATH": "str, path for sample data",
+    "MNE_DATASETS_SOMATO_PATH": "str, path for somato data",
+    "MNE_DATASETS_MULTIMODAL_PATH": "str, path for multimodal data",
+    "MNE_DATASETS_FNIRS_MOTOR_PATH": "str, path for fnirs_motor data",
+    "MNE_DATASETS_OPM_PATH": "str, path for OPM data",
+    "MNE_DATASETS_SPM_FACE_DATASETS_TESTS": "str, path for spm_face data",
+    "MNE_DATASETS_SPM_FACE_PATH": "str, path for spm_face data",
+    "MNE_DATASETS_TESTING_PATH": "str, path for testing data",
+    "MNE_DATASETS_VISUAL_92_CATEGORIES_PATH": "str, path for visual_92_categories data",
+    "MNE_DATASETS_KILOWORD_PATH": "str, path for kiloword data",
+    "MNE_DATASETS_FIELDTRIP_CMC_PATH": "str, path for fieldtrip_cmc data",
+    "MNE_DATASETS_PHANTOM_4DBTI_PATH": "str, path for phantom_4dbti data",
+    "MNE_DATASETS_LIMO_PATH": "str, path for limo data",
+    "MNE_DATASETS_REFMEG_NOISE_PATH": "str, path for refmeg_noise data",
+    "MNE_DATASETS_SSVEP_PATH": "str, path for ssvep data",
+    "MNE_DATASETS_ERP_CORE_PATH": "str, path for erp_core data",
+    "MNE_FORCE_SERIAL": "bool, force serial rather than parallel execution",
+    "MNE_LOGGING_LEVEL": (
+        "str or int, controls the level of verbosity of any function "
+        "decorated with @verbose. See "
+        "https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging"
+    ),
+    "MNE_MEMMAP_MIN_SIZE": (
+        "str, threshold on the minimum size of arrays passed to the workers that "
+        "triggers automated memory mapping, e.g., 1M or 0.5G"
+    ),
+    "MNE_REPR_HTML": (
+        "bool, represent some of our objects with rich HTML in a notebook "
+        "environment"
+    ),
+    "MNE_SKIP_NETWORK_TESTS": (
+        "bool, used in a test decorator (@requires_good_network) to skip "
+        "tests that include large downloads"
+    ),
+    "MNE_SKIP_TESTING_DATASET_TESTS": (
+        "bool, used in test decorators (@requires_spm_data, "
+        "@requires_bstraw_data) to skip tests that require specific datasets"
+    ),
+    "MNE_STIM_CHANNEL": "string, the default channel name for mne.find_events",
+    "MNE_TQDM": (
+        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence '
+        "of progress bars"
+    ),
+    "MNE_USE_CUDA": "bool, use GPU for filtering/resampling",
+    "MNE_USE_NUMBA": (
+        "bool, use Numba just-in-time compiler for some of our intensive "
+        "computations"
+    ),
+    "SUBJECTS_DIR": "path-like, directory of freesurfer MRI files for each subject",
+}
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
-known_config_wildcards = (
-    "MNE_STIM_CHANNEL",
-    "MNE_DATASETS_FNIRS",
-    "MNE_NIRS",
+_known_config_wildcards = (
+    "MNE_STIM_CHANNEL",  # can have multiple stim channels
+    "MNE_DATASETS_FNIRS",  # mne-nirs
+    "MNE_NIRS",  # mne-nirs
+    "MNE_KIT2FIFF",  # mne-kit-gui
 )
 
 
@@ -229,7 +284,9 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     _validate_type(key, (str, type(None)), "key", "string or None")
 
     if key == "":
-        return known_config_types
+        # These are str->str (immutable) so we should just copy the dict
+        # itself, no need for deepcopy
+        return _known_config_types.copy()
 
     # first, check to see if key is in env
     if use_env and key is not None and key in os.environ:
@@ -245,7 +302,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None, use_env
     if key is None:
         # update config with environment variables
         if use_env:
-            env_keys = set(config).union(known_config_types).intersection(os.environ)
+            env_keys = set(config).union(_known_config_types).intersection(os.environ)
             config.update({key: os.environ[key] for key in env_keys})
         return config
     elif raise_error is True and key not in config:
@@ -301,8 +358,8 @@ def set_config(key, value, home_dir=None, set_env=True):
     if value is not None:
         value = str(value)
 
-    if key not in known_config_types and not any(
-        key.startswith(k) for k in known_config_wildcards
+    if key not in _known_config_types and not any(
+        key.startswith(k) for k in _known_config_wildcards
     ):
         warn('Setting non-standard config type: "%s"' % key)
 

@@ -461,7 +461,7 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
             new_dict[key] = value
         return new_dict
     elif event_color is None:  # make a dict from color cycle
-        uniq_events = set() if events is None else np.unique(events[:, 2])
+        uniq_events = set() if events is False else np.unique(events[:, 2])
         return _handle_event_colors(event_color, uniq_events, event_id)
     else:  # if event_color is a MPL color-like thing, use it for all events
         return defaultdict(lambda: event_color)
@@ -1017,6 +1017,8 @@ def plot_sensors(
     sphere=None,
     pointsize=None,
     linewidth=2,
+    *,
+    cmap=None,
     verbose=None,
 ):
     """Plot sensors positions.
@@ -1074,6 +1076,10 @@ def plot_sensors(
         ``kind='3d'``, or ``25`` otherwise.
     linewidth : float
         The width of the outline. If ``0``, the outline will not be drawn.
+    cmap : str | instance of matplotlib.colors.Colormap | None
+        Colormap for coloring ch_groups. Has effect only when ``ch_groups``
+        is list of list. If None, set to ``matplotlib.rcParams["image.cmap"]``.
+        Defaults to None.
     %(verbose)s
 
     Returns
@@ -1197,10 +1203,9 @@ def plot_sensors(
                 color = np.mean(_rgb(x, y, z), axis=0)
                 color_vals[idx, :3] = color  # mean of spatial color
         else:  # array-like
-            import matplotlib.pyplot as plt
-
+            cmap = _get_cmap(cmap)
             colors = np.linspace(0, 1, len(ch_groups))
-            color_vals = [plt.cm.jet(colors[i]) for i in range(len(ch_groups))]
+            color_vals = [cmap(colors[i]) for i in range(len(ch_groups))]
         colors = np.zeros((len(picks), 4))
         for pick_idx, pick in enumerate(picks):
             for ind, value in enumerate(ch_groups):

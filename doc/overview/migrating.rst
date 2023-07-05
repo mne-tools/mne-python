@@ -86,6 +86,6 @@ Potential pitfalls
 - The concept of channel types is critical in MNE because it supports analysis
   of multimodal data (e.g., EEG, MEG, EOG, Stim channel, etc) whereas most
   EEGLAB functions assume all channels are of the same type (EEG). To restrict
-  channels to a single type, see :func:`mne.pick_types`, :meth:`raw.pick_types
-  <mne.io.Raw.pick_types>`, :meth:`epochs.pick_types <mne.Epochs.pick_types>`,
-  :meth:`evoked.pick_types <mne.Evoked.pick_types>`, etc.
+  channels to a single type, see :func:`mne.pick_types`,
+  :meth:`raw.pick() <mne.io.Raw.pick>`, :meth:`epochs.pick() <mne.Epochs.pick>`
+  and :meth:`evoked.pick() <mne.Evoked.pick>`.

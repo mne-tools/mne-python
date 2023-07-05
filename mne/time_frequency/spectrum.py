@@ -574,7 +574,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         alpha=None,
         spatial_colors=True,
         sphere=None,
-        exclude="bads",
+        exclude=(),
         axes=None,
         show=True,
     ):
@@ -582,7 +582,12 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         Parameters
         ----------
-        %(picks_good_data_noref)s
+        %(picks_all_data_noref)s
+
+            .. versionchanged:: 1.5
+                In version 1.5, the default behavior changed so that all
+                :term:`data channels` (not just "good" data channels) are shown
+                by default.
         average : bool
             Whether to average across channels before plotting. If ``True``,
             interactive plotting of scalp topography is disabled, and
@@ -615,6 +620,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
+
+            .. versionchanged:: 1.5
+                In version 1.5, the default behavior changed from
+                ``exclude='bads'`` to ``exclude=()``.
         %(axes_spectrum_plot_topomap)s
         %(show)s
 
@@ -640,7 +649,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         else:  # amplitude is boolean
             estimate = "amplitude" if amplitude else "power"
         # split picks by channel type
-        picks = _picks_to_idx(self.info, picks, "data", with_ref_meg=False)
+        picks = _picks_to_idx(
+            self.info, picks, "data", exclude=exclude, with_ref_meg=False
+        )
         (picks_list, units_list, scalings_list, titles_list) = _split_picks_by_type(
             self, picks, units, scalings, titles
         )

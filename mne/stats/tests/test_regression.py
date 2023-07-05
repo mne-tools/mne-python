@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
 
-from scipy.signal import hann
+from scipy.signal.windows import hann
 
 import mne
 from mne import read_source_estimate
