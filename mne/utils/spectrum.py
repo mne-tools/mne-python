@@ -15,13 +15,15 @@ def _update_old_psd_kwargs(kwargs):
     """
     from ..viz import plot_raw_psd as fallback_fun
 
-    kwargs["axes"] = _pop_with_fallback(kwargs, "ax", fallback_fun)
-    kwargs["alpha"] = _pop_with_fallback(kwargs, "line_alpha", fallback_fun)
-    kwargs["ci_alpha"] = _pop_with_fallback(kwargs, "area_alpha", fallback_fun)
+    kwargs.setdefault("axes", _pop_with_fallback(kwargs, "ax", fallback_fun))
+    kwargs.setdefault("alpha", _pop_with_fallback(kwargs, "line_alpha", fallback_fun))
+    kwargs.setdefault(
+        "ci_alpha", _pop_with_fallback(kwargs, "area_alpha", fallback_fun)
+    )
     est = _pop_with_fallback(kwargs, "estimate", fallback_fun)
-    kwargs["amplitude"] = "auto" if est == "auto" else (est == "amplitude")
+    kwargs.setdefault("amplitude", "auto" if est == "auto" else (est == "amplitude"))
     area_mode = _pop_with_fallback(kwargs, "area_mode", fallback_fun)
-    kwargs["ci"] = "sd" if area_mode == "std" else area_mode
+    kwargs.setdefault("ci", "sd" if area_mode == "std" else area_mode)
 
 
 def _split_psd_kwargs(*, plot_fun=None, kwargs=None):
