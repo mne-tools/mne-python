@@ -24,7 +24,7 @@ the ERP and pupil response to the light flashes (i.e. the pupillary light reflex
 # As usual we start by importing the modules we need and loading some
 # :ref:`example data <eyelink-dataset>`: eye-tracking data recorded from SR research's
 # ``'.asc'`` file format, and EEG data recorded from EGI's ``'.mff'`` file format. We'll
-# pass ``create_annotations=["blinks"]``` to :func:`~mne.io.read_raw_eyelink` so that
+# pass ``create_annotations=["blinks"]`` to :func:`~mne.io.read_raw_eyelink` so that
 # only blinks annotations are created (by default, annotations are created for blinks,
 # saccades, fixations, and experiment messages).
 
@@ -45,9 +45,9 @@ raw_eeg.filter(1, 30)
 
 # %%
 # The info structure of the eye-tracking data tells us we loaded a monocular recording
-# with 2 eyegaze, channels (X/Y), 1 pupil channel, 1 stim channel, and 3 channels for
-# the head distance and position (since this data was collected using EyeLink's Remote
-# mode).
+# with 2 eyegaze channels (x- and y-coordinate positions), 1 pupil channel, 1 stim
+# channel, and 3 channels for the head distance and position (since this data was
+# collected using EyeLink's Remote mode).
 
 raw_et.info
 
@@ -56,7 +56,7 @@ raw_et.info
 # ------------------
 # By default, EyeLink files will output ocular events (blinks, saccades, and
 # fixations), and experiment messages. MNE will store these events
-# as `mne.Annotations`. Ocular annotations contain channel information, in the
+# as `mne.Annotations`. Ocular annotations contain channel information in the
 # ``'ch_names'`` key. This means that we can see which eye an ocular event occurred in,
 # which can be useful for binocular recordings:
 
@@ -149,8 +149,8 @@ et_events = mne.find_events(raw_et, min_duration=0.01, shortest_event=1, uint_ca
 event_dict = {"Flash": 2}
 eeg_events = mne.find_events(raw_eeg, stim_channel="DIN3")
 # %%
-# Align the eye-tracking data with EEG data
-# -----------------------------------------
+# Align the eye-tracking data with EEG the data
+# ---------------------------------------------
 #
 # In this dataset, eye-tracking and EEG data were recorded simultaneously, but on
 # different systems, so we'll need to align the data before we can analyze them
@@ -196,11 +196,7 @@ epochs = mne.Epochs(
 )
 epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 
-
 # %%
-# Plot the evoked response
-# ------------------------
-#
 # Finally, let's plot the evoked responses to the light flashes to get a sense of the
 # average pupillary light response, and the ERP in the EEG data.
 
