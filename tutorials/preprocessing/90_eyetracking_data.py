@@ -118,7 +118,7 @@ raw_et.plot(scalings=dict(eyegaze=1e3))
 # size data are ``0``. We don't want these blink artifacts biasing our analysis, so we
 # have two options: Drop the blink periods from our data during epoching, or interpolate
 # the missing data during the blink periods. For this tutorial, let's interpolate the
-# blink samples. We'll pass ``(0.05, 0.2)``` to
+# blink samples. We'll pass ``(0.05, 0.2)`` to
 # :func:`~mne.preprocessing.eyetracking.interpolate_blinks`, expanding the interpolation
 # window 50 ms before and 200 ms after the blink, so that the noisy data surrounding
 # the blink is also interpolated.
