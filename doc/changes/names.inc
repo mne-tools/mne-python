@@ -554,6 +554,8 @@
 
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 
+.. _Yiping Zuo: https://github.com/frostime
+
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 
 .. _Yu-Han Luo: https://github.com/yh-luo
