@@ -1,4 +1,5 @@
 from inspect import currentframe, getargvalues, signature
+from ..utils import warn
 
 
 def _pop_with_fallback(mapping, key, fallback_fun):
@@ -15,6 +16,14 @@ def _update_old_psd_kwargs(kwargs):
     """
     from ..viz import plot_raw_psd as fallback_fun
 
+    may_change = ("axes", "alpha", "ci_alpha", "amplitude", "ci")
+    for kwarg in may_change:
+        if kwarg in kwargs:
+            warn(
+                "The legacy plot_psd() method got an unexpected keyword argument "
+                f"'{kwarg}', which is a parameter of Spectrum.plot(). Try rewriting as "
+                f"object.compute_psd(...).plot(..., {kwarg}=<whatever>)."
+            )
     kwargs.setdefault("axes", _pop_with_fallback(kwargs, "ax", fallback_fun))
     kwargs.setdefault("alpha", _pop_with_fallback(kwargs, "line_alpha", fallback_fun))
     kwargs.setdefault(
