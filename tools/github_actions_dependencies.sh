@@ -16,7 +16,6 @@ else
 	pip uninstall -yq numpy
 	echo "PyQt6"
 	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
-	pip install $STD_ARGS --pre --only-binary ":all:" PyQt6
 	echo "NumPy/SciPy/pandas etc."
 	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" numpy scipy scikit-learn pandas matplotlib pillow statsmodels
 	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
