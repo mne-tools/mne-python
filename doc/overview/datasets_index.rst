@@ -475,14 +475,17 @@ standard.
 
     * :ref:`tut-ssvep`
 
+.. _eyelink-dataset:
+
 EYELINK
 =======
 :func:`mne.datasets.eyelink.data_path`
 
-A small example dataset in SR research's proprietary .asc format.
-1 participant fixated on the screen while short light flashes appeared.
-Monocular recording of gaze position and pupil size, 1000 Hz sampling 
-frequency.
+A small example dataset from a pupillary light reflex experiment. Both EEG (EGI) and
+eye-tracking (SR Research EyeLink; ASCII format) data were recorded and stored in
+separate files. 1 participant fixated on the screen while short light flashes appeared.
+Event onsets were recorded by a photodiode attached to the screen and were
+sent to both the EEG and eye-tracking systems.
 
 .. topic:: Examples
 
