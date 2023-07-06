@@ -14,9 +14,6 @@ else
 	python -m pip install $STD_ARGS pip setuptools wheel packaging
 	echo "Numpy"
 	pip uninstall -yq numpy
-	echo "Date utils"
-	# https://pip.pypa.io/en/latest/user_guide/#possible-ways-to-reduce-backtracking-occurring
-	pip install $STD_ARGS --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six
 	echo "PyQt6"
 	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
 	pip install $STD_ARGS --pre --only-binary ":all:" PyQt6
