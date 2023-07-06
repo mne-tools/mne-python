@@ -266,9 +266,7 @@ def _plot_update_evoked_topomap(params, bools):
     assert len(data.T) == len(params["images"])
     for cont, ax, im, d in zip(use_contours, params["axes"], params["images"], data.T):
         Zi = interp.set_values(d)()
-        print(np.nanmax(Zi))
         im.set_data(Zi)
-        print(im, id(im))
         if cont is None:
             continue
         # must be removed and re-added
