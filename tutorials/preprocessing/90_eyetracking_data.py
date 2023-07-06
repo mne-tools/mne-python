@@ -146,8 +146,15 @@ mne.preprocessing.eyetracking.interpolate_blinks(raw_et, buffer=(0.05, 0.2))
 # are necessary for aligning the data from the two recordings.
 
 et_events = mne.find_events(raw_et, min_duration=0.01, shortest_event=1, uint_cast=True)
-event_dict = {"Flash": 2}
 eeg_events = mne.find_events(raw_eeg, stim_channel="DIN3")
+
+# %%
+# The output above shows us that both the EEG and EyeLink data used event ID ``2`` for
+# the flash events, so we'll create a dictionary to use later when plotting to label
+# those events.
+
+event_dict = dict(Flash=2)
+
 # %%
 # Align the eye-tracking data with EEG the data
 # ---------------------------------------------
@@ -161,11 +168,11 @@ eeg_events = mne.find_events(raw_eeg, stim_channel="DIN3")
 # data have been aligned, we'll add the EEG channels to the eye-tracking raw object.
 
 # Convert event onsets from samples to seconds
-et_din_times = et_events[:, 0] / raw_et.info["sfreq"]
-eeg_din_times = eeg_events[:, 0] / raw_eeg.info["sfreq"]
+et_flash_times = et_events[:, 0] / raw_et.info["sfreq"]
+eeg_flash_times = eeg_events[:, 0] / raw_eeg.info["sfreq"]
 # Align the data
 mne.preprocessing.realign_raw(
-    raw_et, raw_eeg, et_din_times, eeg_din_times, verbose="error"
+    raw_et, raw_eeg, et_flash_times, eeg_flash_times, verbose="error"
 )
 # Add EEG channels to the eye-tracking raw object
 raw_et.add_channels([raw_eeg], force_update_info=True)
@@ -198,6 +205,6 @@ epochs[:8].plot(events=et_events, event_id=event_dict, order=picks_idx)
 
 # %%
 # Finally, let's plot the evoked responses to the light flashes to get a sense of the
-# average pupillary light response, and the ERP in the EEG data.
+# average pupillary light response, and the associated ERP in the EEG data.
 
 epochs.average().plot(picks=occipital + pupil)
