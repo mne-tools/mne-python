@@ -11,7 +11,7 @@ elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 else
 	echo "Install pip-pre dependencies"
 	test "${MNE_CI_KIND}" == "pip-pre"
-	python -m pip install $STD_ARGS pip setuptools wheel
+	python -m pip install $STD_ARGS pip setuptools wheel packaging
 	echo "Numpy"
 	pip uninstall -yq numpy
 	echo "Date utils"
