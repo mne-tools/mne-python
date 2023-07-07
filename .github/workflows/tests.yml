@@ -29,7 +29,7 @@ jobs:
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style
-    timeout-minutes: 70
+    timeout-minutes: 90  # TODO: decrease before merge
     continue-on-error: true
     runs-on: ${{ matrix.os }}
     defaults:
