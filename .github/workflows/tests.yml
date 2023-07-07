@@ -37,8 +37,6 @@ jobs:
         shell: bash -el {0}
     env:
       PYTHON_VERSION: '${{ matrix.python }}'
-      MKL_NUM_THREADS: '1'
-      OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       MNE_CI_KIND: '${{ matrix.kind }}'
       CI_OS_NAME: '${{ matrix.os }}'
