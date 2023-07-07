@@ -237,12 +237,10 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         nnz = int(dims[0])
         nrow = int(dims[1])
         ncol = int(dims[2])
-        # fromfile is better than frombuffer here because the latter can lead
-        # to this error:
+        # We need to make a copy so that we can own the data, otherwise we get:
         #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
         # E   ValueError: WRITEBACKIFCOPY base is read-only
-        # So it seems to own its data better in some way.
-        data = np.fromfile(fid, dtype=">f4", count=nnz)
+        data = np.frombuffer(fid.read(4 * nnz), dtype=">f4").copy()
         shape = (dims[1], dims[2])
         if matrix_coding == _matrix_coding_CCS:
             #    CCS
