@@ -257,10 +257,9 @@ def _plot_update_evoked_topomap(params, bools):
 
     interp = params["interp"]
     new_contours = list()
-    if params["contours"] == 0:
+    use_contours = params["contours_"]
+    if not len(use_contours):
         use_contours = [None] * len(params["axes"])
-    else:
-        use_contours = params["contours_"]
     assert len(use_contours) == len(params["images"])
     assert len(params["axes"]) == len(params["images"])
     assert len(data.T) == len(params["images"])
