@@ -51,17 +51,13 @@ class Tag:
         self.data = None
 
     def __repr__(self):  # noqa: D105
-        out = "<Tag | kind %s - type %s - size %s - next %s - pos %s" % (
-            self.kind,
-            self.type,
-            self.size,
-            self.next,
-            self.pos,
-        )
-        if hasattr(self, "data"):
-            out += " - data %s" % self.data
-        out += ">"
-        return out
+        attrs = list()
+        for attr in ("kind", "type", "size", "next", "pos", "data"):
+            try:
+                attrs.append(f"{attr} {getattr(self, attr)}")
+            except AttributeError:
+                pass
+        return "<Tag | " + " - ".join(attrs) + ">"
 
     def __eq__(self, tag):  # noqa: D105
         return int(
@@ -96,7 +92,8 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
         have_shape = tag_size // item_size
         if want_shape != have_shape:
             raise ValueError(
-                "Wrong shape specified, requested %s have %s" % (want_shape, have_shape)
+                f"Wrong shape specified, requested {want_shape} but got "
+                f"{have_shape}"
             )
         if not len(rlims) == 2:
             raise ValueError("rlims must have two elements")
@@ -190,7 +187,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
     if shape is not None or rlims is not None:
-        raise ValueError("Row reading not implemented for matrices " "yet")
+        raise ValueError("Row reading not implemented for matrices yet")
 
     #   Matrices
     if matrix_coding == _matrix_coding_dense:
@@ -207,14 +204,16 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
 
         if ndim > 3:
             raise Exception(
-                "Only 2 or 3-dimensional matrices are " "supported at this time"
+                "Only 2 or 3-dimensional matrices are supported at this time"
             )
 
         matrix_type = _data_type & tag.type
         try:
             bit, dtype = _matrix_bit_dtype[matrix_type]
         except KeyError:
-            raise RuntimeError("Cannot handle matrix of type %d yet" % matrix_type)
+            raise RuntimeError(
+                f"Cannot handle matrix of type {matrix_type} yet"
+            ) from None
         data = fid.read(int(bit * dims.prod()))
         data = np.frombuffer(data, dtype=dtype)
         # Note: we need the non-conjugate transpose here
@@ -231,9 +230,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         fid.seek(-(ndim + 2) * 4, 1)
         dims = np.frombuffer(fid.read(4 * (ndim + 1)), dtype=">i4")
         if ndim != 2:
-            raise Exception(
-                "Only two-dimensional matrices are " "supported at this time"
-            )
+            raise Exception("Only two-dimensional matrices are supported at this time")
 
         # Back to where the data start
         fid.seek(pos, 0)
@@ -282,7 +279,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
             data = sparse.csr_matrix((data, indices, indptr), shape=shape)
     else:
-        raise Exception("Cannot handle other than dense or sparse " "matrices yet")
+        raise Exception("Cannot handle other than dense or sparse matrices yet")
     return data
 
 
@@ -500,7 +497,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
             try:
                 fun = _call_dict[tag.type]
             except KeyError:
-                raise Exception("Unimplemented tag data type %s" % tag.type)
+                raise Exception(f"Unimplemented tag data type {tag.type}")
             tag.data = fun(fid, tag, shape, rlims)
     if tag.next != FIFF.FIFFV_NEXT_SEQ:
         # f.seek(tag.next,0)
