@@ -3,7 +3,7 @@
 set -eo pipefail
 
 if [[ "${CI_OS_NAME}" != "macos"* ]]; then
-  if [[ "${MNE_CI_KIND}" == "pip-pre"]]; then
+  if [[ "${MNE_CI_KIND}" == "pip-pre" ]]; then
     CONDITION="not (slowtest or pgtest)"
   else
     CONDITION="not (ultraslowtest or pgtest)"
