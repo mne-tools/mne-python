@@ -189,7 +189,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
 
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
-    if shape is not None:
+    if shape is not None or rlims is not None:
         raise ValueError("Row reading not implemented for matrices " "yet")
 
     #   Matrices
@@ -240,6 +240,11 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         nnz = int(dims[0])
         nrow = int(dims[1])
         ncol = int(dims[2])
+        # fromfile is better than frombuffer here because the latter can lead
+        # to this error:
+        #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
+        # E   ValueError: WRITEBACKIFCOPY base is read-only
+        # So it seems to own its data better in some way.
         data = np.fromfile(fid, dtype=">f4", count=nnz)
         shape = (dims[1], dims[2])
         if matrix_coding == _matrix_coding_CCS:
@@ -258,7 +263,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                     )
                 )
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = sparse.csc_matrix((data.copy(), indices, indptr), shape=shape)
+            data = sparse.csc_matrix((data, indices, indptr), shape=shape)
         else:
             #    RCS
             tmp_indices = fid.read(4 * nnz)
