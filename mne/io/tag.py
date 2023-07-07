@@ -240,7 +240,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         nnz = int(dims[0])
         nrow = int(dims[1])
         ncol = int(dims[2])
-        data = np.frombuffer(fid.read(4 * nnz), dtype=">f4")
+        data = np.fromfile(fid, dtype=">f4", count=nnz)
         shape = (dims[1], dims[2])
         if matrix_coding == _matrix_coding_CCS:
             #    CCS
@@ -258,7 +258,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                     )
                 )
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = sparse.csc_matrix((data, indices, indptr), shape=shape)
+            data = sparse.csc_matrix((data.copy(), indices, indptr), shape=shape)
         else:
             #    RCS
             tmp_indices = fid.read(4 * nnz)
