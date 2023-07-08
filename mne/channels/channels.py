@@ -2300,6 +2300,7 @@ def combine_channels(
             new_data,
             info,
             events=inst.events,
+            event_id=inst.event_id,
             tmin=inst.times[0],
             baseline=inst.baseline,
         )
