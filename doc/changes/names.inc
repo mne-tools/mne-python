@@ -458,6 +458,8 @@
 
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 
+.. _Samuel Louviot: https://github.com/Sam54000
+
 .. _Samuel Powell: https://github.com/samuelpowell
 
 .. _Santeri Ruuskanen: https://github.com/ruuskas
