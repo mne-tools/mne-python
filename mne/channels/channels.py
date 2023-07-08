@@ -65,51 +65,41 @@ from ..io.proj import setup_proj
 def _get_meg_system(info):
     """Educated guess for the helmet type based on channels."""
     have_helmet = True
-
     for ch in info["chs"]:
         if ch["kind"] == FIFF.FIFFV_MEG_CH:
             # Only take first 16 bits, as higher bits store CTF grad comp order
             coil_type = ch["coil_type"] & 0xFFFF
             nmag = np.sum([c["kind"] == FIFF.FIFFV_MEG_CH for c in info["chs"]])
-
             if coil_type == FIFF.FIFFV_COIL_NM_122:
                 system = "122m"
-
                 break
             elif coil_type // 1000 == 3:  # All Vectorview coils are 30xx
                 system = "306m"
-
                 break
             elif (
                 coil_type == FIFF.FIFFV_COIL_MAGNES_MAG
                 or coil_type == FIFF.FIFFV_COIL_MAGNES_GRAD
             ):
                 system = "Magnes_3600wh" if nmag > 150 else "Magnes_2500wh"
-
                 break
             elif coil_type == FIFF.FIFFV_COIL_CTF_GRAD:
                 system = "CTF_275"
-
                 break
             elif coil_type == FIFF.FIFFV_COIL_KIT_GRAD:
                 system = "KIT"
                 # Our helmet does not match very well, so let's just create it
                 have_helmet = False
-
                 break
             elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
                 system = "BabySQUID"
-
                 break
             elif coil_type == FIFF.FIFFV_COIL_ARTEMIS123_GRAD:
                 system = "ARTEMIS123"
                 have_helmet = False
-
                 break
     else:
         system = "unknown"
         have_helmet = False
-
     return system, have_helmet
 
 
@@ -119,7 +109,6 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
     """
-
     if ch_type is None:
         allowed_types = [
             "mag",
@@ -139,20 +128,16 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
             "dbs",
         ]
         allowed_types += ["ref_meg"] if allow_ref_meg else []
-
         for type_ in allowed_types:
             if isinstance(inst, Info):
                 if _contains_ch_type(inst, type_):
                     ch_type = type_
-
                     break
             elif type_ in inst:
                 ch_type = type_
-
                 break
         else:
             raise RuntimeError("No plottable channel types found")
-
     return ch_type
 
 
@@ -212,7 +197,6 @@ def equalize_channels(instances, copy=True, verbose=None):
     allowed_types_str = (
         "Raw, Epochs, Evoked, TFR, Forward, Covariance, " "CrossSpectralDensity or Info"
     )
-
     for inst in instances:
         _validate_type(
             inst, allowed_types, "Instances to be modified", allowed_types_str
@@ -232,10 +216,8 @@ def equalize_channels(instances, copy=True, verbose=None):
     # Update all instances to match the common_channels list
     reordered = False
     equalized_instances = []
-
     for inst in instances:
         # Only perform picking when needed
-
         if inst.ch_names != common_channels:
             if isinstance(inst, Info):
                 sel = pick_channels(
@@ -246,7 +228,6 @@ def equalize_channels(instances, copy=True, verbose=None):
                 if copy:
                     inst = inst.copy()
                 inst.pick_channels(common_channels, ordered=True)
-
             if len(inst.ch_names) == len(common_channels):
                 reordered = True
         equalized_instances.append(inst)
@@ -281,7 +262,6 @@ _unit2human = {
 def _check_set(ch, projs, ch_type):
     """Ensure type change is compatible with projectors."""
     new_kind = _human2fiff[ch_type]
-
     if ch["kind"] != new_kind:
         for proj in projs:
             if ch["ch_name"] in proj["data"]["col_names"]:
@@ -358,12 +338,10 @@ class SetChannelsMixin(MontageMixin):
         chs = self.info["chs"]
         pos = np.array([chs[k]["loc"][:3] for k in picks])
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
-
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError(
                 "Could not extract channel positions for " "{} channels".format(n_zero)
             )
-
         return pos
 
     def _set_channel_positions(self, pos, names):
@@ -380,19 +358,16 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-
         if len(pos) != len(names):
             raise ValueError(
                 "Number of channel positions not equal to " "the number of names given."
             )
         pos = np.asarray(pos, dtype=np.float64)
-
         if pos.shape[-1] != 3 or pos.ndim != 2:
             msg = "Channel positions must have the shape (n_points, 3) " "not %s." % (
                 pos.shape,
             )
             raise ValueError(msg)
-
         for name, p in zip(names, pos):
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
@@ -440,7 +415,6 @@ class SetChannelsMixin(MontageMixin):
 
         # first check and assemble clean mappings of index and name
         unit_changes = dict()
-
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
                 raise ValueError(
@@ -448,7 +422,6 @@ class SetChannelsMixin(MontageMixin):
                 )
 
             c_ind = ch_names.index(ch_name)
-
             if ch_type not in _human2fiff:
                 raise ValueError(
                     "This function cannot change to this "
@@ -459,23 +432,19 @@ class SetChannelsMixin(MontageMixin):
             _check_set(self.info["chs"][c_ind], self.info["projs"], ch_type)
             unit_old = self.info["chs"][c_ind]["unit"]
             unit_new = _human2unit[ch_type]
-
             if unit_old not in _unit2human:
                 raise ValueError(
                     "Channel '%s' has unknown unit (%s). Please "
                     "fix the measurement info of your data." % (ch_name, unit_old)
                 )
-
             if unit_old != _human2unit[ch_type]:
                 this_change = (_unit2human[unit_old], _unit2human[unit_new])
-
                 if this_change not in unit_changes:
                     unit_changes[this_change] = list()
                 unit_changes[this_change].append(ch_name)
                 # reset unit multiplication factor since the unit has now changed
                 self.info["chs"][c_ind]["unit_mul"] = _ch_unit_mul_named[0]
             self.info["chs"][c_ind]["unit"] = _human2unit[ch_type]
-
             if ch_type in ["eeg", "seeg", "ecog", "dbs"]:
                 coil_type = FIFF.FIFFV_COIL_EEG
             elif ch_type == "hbo":
@@ -499,7 +468,6 @@ class SetChannelsMixin(MontageMixin):
             self.info["chs"][c_ind]["coil_type"] = coil_type
 
         msg = "The unit for channel(s) {0} has changed from {1} to {2}."
-
         for this_change, names in unit_changes.items():
             _on_missing(
                 on_missing=on_unit_change,
@@ -536,16 +504,13 @@ class SetChannelsMixin(MontageMixin):
         rename_channels(self.info, mapping, allow_duplicates)
 
         # Update self._orig_units for Raw
-
         if isinstance(self, BaseRaw):
             # whatever mapping was provided, now we can just use a dict
             mapping = dict(zip(ch_names_orig, self.info["ch_names"]))
-
             for old_name, new_name in mapping.items():
                 if old_name in self._orig_units:
                     self._orig_units[new_name] = self._orig_units.pop(old_name)
             ch_names = self.annotations.ch_names
-
             for ci, ch in enumerate(ch_names):
                 ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
 
@@ -676,7 +641,6 @@ class SetChannelsMixin(MontageMixin):
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his, verbose=verbose)
         self.set_meas_date(self.info["meas_date"])  # unify annot update
-
         return self
 
     def set_meas_date(self, meas_date):
@@ -716,11 +680,9 @@ class SetChannelsMixin(MontageMixin):
             self.info["meas_date"] = meas_date
 
         # clear file_id and meas_id if needed
-
         if meas_date is None:
             for key in ("file_id", "meas_id"):
                 value = self.info.get(key)
-
                 if value is not None:
                     assert "msecs" not in value
                     value["secs"] = DATE_NONE[0]
@@ -733,7 +695,6 @@ class SetChannelsMixin(MontageMixin):
 
         if hasattr(self, "annotations"):
             self.annotations._orig_time = meas_date
-
         return self
 
 
@@ -828,11 +789,9 @@ class UpdateChannelsMixin:
         self._pick_drop_channels(idx)
 
         # remove dropped channel types from reject and flat
-
         if getattr(self, "reject", None) is not None:
             # use list(self.reject) to avoid RuntimeError for changing
             # dictionary size during iteration
-
             for ch_type in list(self.reject):
                 if ch_type not in self:
                     del self.reject[ch_type]
@@ -878,7 +837,6 @@ class UpdateChannelsMixin:
         .. versionadded:: 0.9.0
         """
         picks = pick_channels(self.info["ch_names"], ch_names, ordered=ordered)
-
         return self._pick_drop_channels(picks)
 
     @verbose
@@ -901,7 +859,6 @@ class UpdateChannelsMixin:
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude, allow_empty=False)
-
         return self._pick_drop_channels(picks)
 
     def reorder_channels(self, ch_names):
@@ -932,14 +889,11 @@ class UpdateChannelsMixin:
         """
         _check_excludes_includes(ch_names)
         idx = list()
-
         for ch_name in ch_names:
             ii = self.ch_names.index(ch_name)
-
             if ii in idx:
                 raise ValueError("Channel name repeated: %s" % (ch_name,))
             idx.append(ii)
-
         return self._pick_drop_channels(idx)
 
     @fill_doc
@@ -967,7 +921,6 @@ class UpdateChannelsMixin:
         -----
         .. versionadded:: 0.9.0
         """
-
         if isinstance(ch_names, str):
             ch_names = [ch_names]
 
@@ -986,14 +939,12 @@ class UpdateChannelsMixin:
             )
 
         missing = [ch for ch in ch_names if ch not in self.ch_names]
-
         if len(missing) > 0:
             msg = "Channel(s) {0} not found, nothing dropped."
             _on_missing(on_missing, msg.format(", ".join(missing)))
 
         bad_idx = [self.ch_names.index(ch) for ch in ch_names if ch in self.ch_names]
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
-
         return self._pick_drop_channels(idx)
 
     @verbose
@@ -1004,7 +955,6 @@ class UpdateChannelsMixin:
         from ..time_frequency.spectrum import BaseSpectrum
 
         msg = "adding, dropping, or reordering channels"
-
         if isinstance(self, BaseRaw):
             if self._projector is not None:
                 _check_preload(self, f"{msg} after calling .apply_proj()")
@@ -1024,7 +974,6 @@ class UpdateChannelsMixin:
 
         for key in ("_comp", "_projector"):
             mat = getattr(self, key, None)
-
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
@@ -1034,7 +983,6 @@ class UpdateChannelsMixin:
             axis = -3
         else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
             axis = -2
-
         if hasattr(self, "_data"):  # skip non-preloaded Raw
             self._data = self._data.take(idx, axis=axis)
         else:
@@ -1047,13 +995,11 @@ class UpdateChannelsMixin:
             }
 
         self._pick_projs()
-
         return self
 
     def _pick_projs(self):
         """Keep only projectors which apply to at least 1 data channel."""
         drop_idx = []
-
         for idx, proj in enumerate(self.info["projs"]):
             if not set(self.info["ch_names"]) & set(proj["data"]["col_names"]):
                 drop_idx.append(idx)
@@ -1102,10 +1048,8 @@ class UpdateChannelsMixin:
         _validate_type(add_list, (list, tuple), "Input")
 
         # Object-specific checks
-
         for inst in add_list + [self]:
             _check_preload(inst, "adding channels")
-
         if isinstance(self, BaseRaw):
             con_axis = 0
             comp_class = BaseRaw
@@ -1115,7 +1059,6 @@ class UpdateChannelsMixin:
         else:
             con_axis = 0
             comp_class = type(self)
-
         for inst in add_list:
             _validate_type(inst, comp_class, "All input")
         data = [inst._data for inst in [self] + add_list]
@@ -1123,7 +1066,6 @@ class UpdateChannelsMixin:
         # Make sure that all dimensions other than channel axis are the same
         compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
         shapes = np.array([dat.shape for dat in data])[:, compare_axes]
-
         for shape in shapes:
             if not ((shapes[0] - shape) == 0).all():
                 raise ValueError(
@@ -1137,7 +1079,6 @@ class UpdateChannelsMixin:
         new_info = _merge_info(infos, force_update_to_first=force_update_info)
 
         # Now update the attributes
-
         if (
             isinstance(self._data, np.memmap)
             and con_axis == 0
@@ -1154,7 +1095,6 @@ class UpdateChannelsMixin:
             assert self._data.shape == out_shape
             assert self._data.nbytes == n_bytes
             offset = len(data[0])
-
             for d in data[1:]:
                 this_len = len(d)
                 self._data[offset : offset + this_len] = d
@@ -1162,7 +1102,6 @@ class UpdateChannelsMixin:
         else:
             self._data = np.concatenate(data, axis=con_axis)
         self.info = new_info
-
         if isinstance(self, BaseRaw):
             self._cals = np.concatenate(
                 [getattr(inst, "_cals") for inst in [self] + add_list]
@@ -1175,12 +1114,10 @@ class UpdateChannelsMixin:
                 np.concatenate([r, extra_idx]) for r in self._read_picks
             ]
             assert all(len(r) == self.info["nchan"] for r in self._read_picks)
-
             for other in add_list:
                 self._orig_units.update(other._orig_units)
         elif isinstance(self, BaseEpochs):
             self.picks = np.arange(self._data.shape[1])
-
             if hasattr(self, "_projector"):
                 activate = False if self._do_delayed_proj else self.proj
                 self._projector, self.info = setup_proj(
@@ -1282,7 +1219,6 @@ class InterpolationMixin:
 
         _check_preload(self, "interpolation")
         method = _handle_default("interpolation_method", method)
-
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
         _check_option("method['eeg']", method["eeg"], ("spline", "MNE"))
@@ -1291,11 +1227,9 @@ class InterpolationMixin:
 
         if len(self.info["bads"]) == 0:
             warn("No bad channels to interpolate. Doing nothing...")
-
             return self
         logger.info("Interpolating bad channels")
         origin = _check_origin(origin, self.info)
-
         if method["eeg"] == "spline":
             _interpolate_bads_eeg(self, origin=origin, exclude=exclude)
             eeg_mne = False
@@ -1328,7 +1262,6 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
     ch_names = list(info["ch_names"])
 
     # first check and assemble clean mappings of index and name
-
     if isinstance(mapping, dict):
         _check_dict_keys(
             mapping,
@@ -1345,12 +1278,10 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
         raise ValueError("mapping must be callable or dict, not %s" % (type(mapping),))
 
     # check we got all strings out of the mapping
-
     for new_name in new_names:
         _validate_type(new_name[1], "str", "New channel mappings")
 
     # do the remapping locally
-
     for c_ind, new_name in new_names:
         for bi, bad in enumerate(bads):
             if bad == ch_names[c_ind]:
@@ -1358,20 +1289,17 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
         ch_names[c_ind] = new_name
 
     # check that all the channel names are unique
-
     if len(ch_names) != len(np.unique(ch_names)) and not allow_duplicates:
         raise ValueError("New channel names are not unique, renaming failed")
 
     # do the remapping in info
     info["bads"] = bads
     ch_names_mapping = dict()
-
     for ch, ch_name in zip(info["chs"], ch_names):
         ch_names_mapping[ch["ch_name"]] = ch_name
         ch["ch_name"] = ch_name
     # .get b/c fwd info omits it
     _rename_comps(info.get("comps", []), ch_names_mapping)
-
     if "projs" in info:  # fwd might omit it
         for proj in info["projs"]:
             proj["data"]["col_names"][:] = _rename_list(
@@ -1383,11 +1311,9 @@ def rename_channels(info, mapping, allow_duplicates=False, *, verbose=None):
 
 def _recursive_flatten(cell, dtype):
     """Unpack mat files in Python."""
-
     if len(cell) > 0:
         while not isinstance(cell[0], dtype):
             cell = [c for d in cell for c in d]
-
     return cell
 
 
@@ -1703,7 +1629,6 @@ def get_builtin_ch_adjacencies(*, descriptions=False):
     -----
     .. versionadded:: 1.1
     """
-
     if descriptions:
         return sorted(
             [(m.name, m.description) for m in _BUILTIN_CHANNEL_ADJACENCIES],
@@ -1771,7 +1696,6 @@ def read_ch_adjacency(fname, picks=None):
     else:  # built-in FieldTrip neighbors
         ch_adj_name = fname
         del fname
-
         if ch_adj_name.endswith("_neighb.mat"):  # backward-compat
             ch_adj_name = ch_adj_name.replace("_neighb.mat", "")
 
@@ -1804,7 +1728,6 @@ def read_ch_adjacency(fname, picks=None):
     ch_names = [ch_names[p] for p in picks]
 
     # make sure MEG channel names contain space after "MEG"
-
     for idx, ch_name in enumerate(ch_names):
         if ch_name.startswith("MEG") and not ch_name[3] == " ":
             ch_name = ch_name.replace("MEG", "MEG ")
@@ -1836,7 +1759,6 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
         raise ValueError("`ch_names` and `neighbors` must " "have the same length")
     set_neighbors = {c for d in neighbors for c in d}
     rest = set_neighbors - set(ch_names)
-
     if len(rest) > 0:
         raise ValueError(
             "Some of your neighbors are not present in the " "list of channel names"
@@ -1847,11 +1769,9 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
             raise ValueError("`neighbors` must be a list of lists of str")
 
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
-
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
     ch_adjacency = sparse.csr_matrix(ch_adjacency)
-
     return ch_adjacency
 
 
@@ -1906,10 +1826,8 @@ def find_ch_adjacency(info, ch_type):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
-
     if ch_type is None:
         picks = channel_indices_by_type(info)
-
         if sum([len(p) != 0 for p in picks.values()]) != 1:
             raise ValueError(
                 "info must contain only one channel type if " "ch_type is None."
@@ -1933,7 +1851,6 @@ def find_ch_adjacency(info, ch_type):
         has_csd_coils,
     ) = _get_ch_info(info)
     conn_name = None
-
     if has_vv_mag and ch_type == "mag":
         conn_name = "neuromag306mag"
     elif has_vv_grad and ch_type == "grad":
@@ -1943,14 +1860,12 @@ def find_ch_adjacency(info, ch_type):
             idx = info["ch_names"].index("MEG 248")
             grad = info["chs"][idx]["coil_type"] == FIFF.FIFFV_COIL_MAGNES_GRAD
             mag = info["chs"][idx]["coil_type"] == FIFF.FIFFV_COIL_MAGNES_MAG
-
             if ch_type == "grad" and grad:
                 conn_name = "bti248grad"
             elif ch_type == "mag" and mag:
                 conn_name = "bti248"
         elif "MEG 148" in info["ch_names"] and ch_type == "mag":
             idx = info["ch_names"].index("MEG 148")
-
             if info["chs"][idx]["coil_type"] == FIFF.FIFFV_COIL_MAGNES_MAG:
                 conn_name = "bti148"
     elif has_CTF_grad and ch_type == "mag":
@@ -1967,13 +1882,11 @@ def find_ch_adjacency(info, ch_type):
 
     if conn_name is not None:
         logger.info(f"Reading adjacency matrix for {conn_name}.")
-
         return read_ch_adjacency(conn_name)
     logger.info(
         "Could not find a adjacency matrix for the data. "
         "Computing adjacency based on Delaunay triangulations."
     )
-
     return _compute_ch_adjacency(info, ch_type)
 
 
@@ -2003,17 +1916,14 @@ def _compute_ch_adjacency(info, ch_type):
     combine_grads = ch_type == "grad" and any(
         [
             coil_type in [ch["coil_type"] for ch in info["chs"]]
-
             for coil_type in [FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFFV_COIL_NM_122]
         ]
     )
 
     picks = dict(_picks_by_type(info, exclude=[]))[ch_type]
     ch_names = [info["ch_names"][pick] for pick in picks]
-
     if combine_grads:
         pairs = _pair_grad_sensors(info, topomap_coords=False, exclude=[])
-
         if len(pairs) != len(picks):
             raise RuntimeError(
                 "Cannot find a pair for some of the "
@@ -2029,7 +1939,6 @@ def _compute_ch_adjacency(info, ch_type):
 
     if combine_grads:
         ch_adjacency = np.eye(len(picks), dtype=bool)
-
         for idx, neigbs in zip(neighbors.row, neighbors.col):
             for ii in range(2):  # make sure each pair is included
                 for jj in range(2):
@@ -2093,17 +2002,14 @@ def _get_T1T2_mag_inds(info, use_cal=False):
     # From email exchanges, systems with the larger T2 coil only use the cal
     # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10
     # (Triux). So we can use a simple check for > 3e-11.
-
     for ii in picks:
         ch = info["chs"][ii]
-
         if ch["coil_type"] in (FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2):
             if use_cal:
                 if ch["cal"] > 3e-11:
                     old_mag_inds.append(ii)
             else:
                 old_mag_inds.append(ii)
-
     return old_mag_inds
 
 
@@ -2116,7 +2022,6 @@ def _get_ch_info(info):
 
     has_vv_mag = any(
         k in coil_types
-
         for k in [
             FIFF.FIFFV_COIL_VV_MAG_T1,
             FIFF.FIFFV_COIL_VV_MAG_T2,
@@ -2125,7 +2030,6 @@ def _get_ch_info(info):
     )
     has_vv_grad = any(
         k in coil_types
-
         for k in [
             FIFF.FIFFV_COIL_VV_PLANAR_T1,
             FIFF.FIFFV_COIL_VV_PLANAR_T2,
@@ -2227,10 +2131,8 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
         pos = None
 
     selections = dict(Left=[], Midline=[], Right=[])
-
     for pick, channel in enumerate(ch_names):
         last_char = channel[-1].lower()  # in 10/20, last char codes hemisphere
-
         if last_char in midline:
             selection = "Midline"
         elif last_char.isdigit():
@@ -2244,12 +2146,10 @@ def make_1020_channel_selections(info, midline="z", *, return_ch_names=False):
         # (y-coordinate of the position info in the layout)
         selections = {
             selection: np.array(picks)[pos[picks, 1].argsort()]
-
             for selection, picks in selections.items()
         }
 
     # convert channel indices to names if requested
-
     if return_ch_names:
         for selection, ch_indices in selections.items():
             selections[selection] = [info.ch_names[idx] for idx in ch_indices]
@@ -2319,11 +2219,9 @@ def combine_channels(
 
     # Convert string values of ``method`` into callables
     # XXX Possibly de-duplicate with _make_combine_callable of mne/viz/utils.py
-
     if isinstance(method, str):
         method_dict = {
             key: partial(getattr(np, key), axis=ch_axis)
-
             for key in ("mean", "median", "std")
         }
         try:
@@ -2336,13 +2234,10 @@ def combine_channels(
 
     # Instantiate channel info and data
     new_ch_names, new_ch_types, new_data = [], [], []
-
     if not isinstance(keep_stim, bool):
         raise TypeError('"keep_stim" must be of type bool, not ' f"{type(keep_stim)}.")
-
     if keep_stim:
         stim_ch_idx = list(pick_types(inst.info, meg=False, stim=True))
-
         if stim_ch_idx:
             new_ch_names = [ch_names[idx] for idx in stim_ch_idx]
             new_ch_types = [ch_types[idx] for idx in stim_ch_idx]
@@ -2352,23 +2247,18 @@ def combine_channels(
 
     # Get indices of bad channels
     ch_idx_bad = []
-
     if not isinstance(drop_bad, bool):
         raise TypeError('"drop_bad" must be of type bool, not ' f"{type(drop_bad)}.")
-
     if drop_bad and inst.info["bads"]:
         ch_idx_bad = pick_channels(ch_names, inst.info["bads"])
 
     # Check correctness of combinations
-
     for this_group, this_picks in groups.items():
         # Check if channel indices are out of bounds
-
         if not all(idx in ch_idx for idx in this_picks):
             raise ValueError("Some channel indices are out of bounds.")
         # Check if heterogeneous sensor type combinations
         this_ch_type = np.array(ch_types)[this_picks]
-
         if len(set(this_ch_type)) > 1:
             types = ", ".join(set(this_ch_type))
             raise ValueError(
@@ -2378,13 +2268,11 @@ def combine_channels(
         # Remove bad channels
         these_bads = [idx for idx in this_picks if idx in ch_idx_bad]
         this_picks = [idx for idx in this_picks if idx not in ch_idx_bad]
-
         if these_bads:
             logger.info(
                 "Dropped the following channels in group " f"{this_group}: {these_bads}"
             )
         #  Check if combining less than 2 channel
-
         if len(set(this_picks)) < 2:
             warn(
                 f'Less than 2 channels in group "{this_group}" when '
@@ -2394,7 +2282,6 @@ def combine_channels(
         groups[this_group] = dict(picks=this_picks, ch_type=this_ch_type[0])
 
     # Combine channels and add them to the new instance
-
     for this_group, this_group_dict in groups.items():
         new_ch_names.append(this_group)
         new_ch_types.append(this_group_dict["ch_type"])
@@ -2406,7 +2293,6 @@ def combine_channels(
         sfreq=inst.info["sfreq"], ch_names=new_ch_names, ch_types=new_ch_types
     )
     # create new instances and make sure to copy important attributes
-
     if isinstance(inst, BaseRaw):
         combined_inst = RawArray(new_data, info, first_samp=inst.first_samp)
     elif isinstance(inst, BaseEpochs):
@@ -2414,11 +2300,9 @@ def combine_channels(
             new_data,
             info,
             events=inst.events,
-            event_id=inst.event_id,
             tmin=inst.times[0],
             baseline=inst.baseline,
         )
-
         if inst.metadata is not None:
             combined_inst.metadata = inst.metadata.copy()
     elif isinstance(inst, Evoked):
@@ -2482,7 +2366,6 @@ def _divide_to_regions(info, add_stim=True):
 
     l_mean = np.mean(x[lt])
     r_mean = np.mean(x[rt])
-
     for outlier in outliers:
         if abs(l_mean - x[outlier]) < abs(r_mean - x[outlier]):
             lt.append(outlier)
@@ -2491,11 +2374,9 @@ def _divide_to_regions(info, add_stim=True):
 
     if add_stim:
         stim_ch = _get_stim_channel(None, info, raise_error=False)
-
         if len(stim_ch) > 0:
             for region in [lf, rf, lo, ro, lp, rp, lt, rt]:
                 region.append(info["ch_names"].index(stim_ch[0]))
-
     return OrderedDict(
         [
             ("Left-frontal", lf),
@@ -2521,7 +2402,6 @@ def _divide_side(lobe, x):
 
     left = np.sort(np.concatenate([left, lobe[medians[1::2]]]))
     right = np.sort(np.concatenate([right, lobe[medians[::2]]]))
-
     return list(left), list(right)
 
 
@@ -2553,13 +2433,10 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         List with channel names in the selection.
     """
     # convert name to list of string
-
     if not isinstance(name, (list, tuple)):
         name = [name]
-
     if isinstance(info, Info):
         picks = pick_types(info, meg=True, exclude=())
-
         if len(picks) > 0 and " " not in info["ch_names"][picks[0]]:
             spacing = "new"
         else:
@@ -2572,7 +2449,6 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
         spacing = "old"
 
     # use built-in selections by default
-
     if fname is None:
         fname = op.join(op.dirname(__file__), "..", "data", "mne_analyze.sel")
 
@@ -2582,34 +2458,27 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     name_found = {n: False for n in name}
     with open(fname, "r") as fid:
         sel = []
-
         for line in fid:
             line = line.strip()
             # skip blank lines and comments
-
             if len(line) == 0 or line[0] == "#":
                 continue
             # get the name of the selection in the file
             pos = line.find(":")
-
             if pos < 0:
                 logger.info(
                     '":" delimiter not found in selections file, ' "skipping line"
                 )
-
                 continue
             sel_name_file = line[:pos]
             # search for substring match with name provided
-
             for n in name:
                 if sel_name_file.find(n) >= 0:
                     sel.extend(line[pos + 1 :].split("|"))
                     name_found[n] = True
-
                     break
 
     # make sure we found at least one match for each name
-
     for n, found in name_found.items():
         if not found:
             raise ValueError('No match for selection name "%s" found' % n)
@@ -2617,8 +2486,6 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     # make the selection a sorted list with unique elements
     sel = list(set(sel))
     sel.sort()
-
     if spacing == "new":  # "new" or "old" by now, "old" is default
         sel = [s.replace("MEG ", "MEG") for s in sel]
-
     return sel
