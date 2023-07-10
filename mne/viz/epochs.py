@@ -806,10 +806,11 @@ def plot_epochs(
     title : str | None
         The title of the window. If None, the event names (from
         ``epochs.event_id``) will be displayed. Defaults to None.
-    events : None | array, shape (n_events, 3)
+    events : bool | array, shape (n_events, 3)
         Events to show with vertical bars. You can use `~mne.viz.plot_events`
         as a legend for the colors. By default, the coloring scheme is the
-        same. Defaults to ``None``.
+        same. ``True`` plots ``epochs.events``. Defaults to ``False`` (do not
+        plot events).
 
         .. warning::  If the epochs have been resampled, the events no longer
             align with the data.
@@ -858,12 +859,12 @@ def plot_epochs(
         .. versionadded:: 0.24.0
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
-    event_id : dict | None
-        Dictionary of event labels (e.g. 'aud_l') as keys and associated event
-        integers as values. Useful when ``events`` contains event numbers not
-        present in ``epochs.event_id`` (e.g., because of event subselection).
-        Values in ``event_id`` will take precedence over those in
-        ``epochs.event_id`` when there are overlapping keys.
+    event_id : bool | dict
+        Determines to label the event markers on the plot. If ``True``, uses
+        ``epochs.event_id``. If ``False``, uses integer event codes instead of IDs.
+        If a ``dict`` is passed, uses its *keys* as event labels on the plot for
+        entries whose *values* are integer codes for events being drawn. Ignored if
+        ``events=False``.
 
         .. versionadded:: 0.20
     %(group_by_browse)s
@@ -918,8 +919,25 @@ def plot_epochs(
     unit_scalings = _handle_default("scalings", None)
     decim, picks_data = _handle_decim(epochs.info.copy(), decim, None)
     noise_cov = _check_cov(noise_cov, epochs.info)
-    event_id_rev = {v: k for k, v in (event_id or {}).items()}
     _check_option("group_by", group_by, ("selection", "position", "original", "type"))
+    # handle event labels
+    _validate_type(event_id, (bool, dict, None), "event_id")
+    if not event_id:  # False or None
+        event_id = dict()
+    else:
+        # make our own copy of the dict
+        event_id = dict() if event_id is True else event_id.copy()  # to dict
+        # TODO: when min py=3.9, change to `epochs.event_id | event_id` (maybe).
+        # Passed-in event_id should take precedence, i.e., not replace existing
+        # keys *or* repeat existing values. For example, if epochs.event_id has
+        # a=1 and passed-in event_id has f=1, the second takes precedence.
+        event_values = set(event_id.values())
+        event_id.update(
+            (k, v)
+            for k, v in epochs.event_id.items()
+            if k not in event_id and v not in event_values
+        )
+    event_id_rev = {v: k for k, v in event_id.items()}
     # validate epoch_colors
     _validate_type(epoch_colors, (list, None), "epoch_colors")
     if epoch_colors is not None:
@@ -946,12 +964,26 @@ def plot_epochs(
     boundary_times = np.arange(len(epochs) + 1) * len(epochs.times) / sfreq
 
     # events
-    if events is not None:
+    if events is None:
+        warn(
+            "The current default events=None is deprecated and will change to "
+            "events=True in MNE 1.6. Set events=False to suppress this warning.",
+            category=FutureWarning,
+        )
+        events = False
+    if events is False:
+        event_nums = None
+        event_times = None
+    else:  # True or ndarray
+        if events is True:  # use epochs.events
+            events = epochs.events
         event_nums = events[:, 2]
         event_samps = events[:, 0]
         epoch_n_samps = len(epochs.times)
         # handle overlapping epochs (each event may show up in multiple places)
-        boundaries = epochs.events[:, [0]] + np.array([-1, 1]) * epochs.time_as_index(0)
+        boundaries = epochs.events[:, [0]] + np.array([-1, 1]) * epochs.time_as_index(
+            [0, epochs.tmax]
+        )
         in_bounds = np.logical_and(
             boundaries[:, [0]] <= event_samps, event_samps < boundaries[:, [1]]
         )
@@ -973,9 +1005,7 @@ def plot_epochs(
             event_numbers.extend([num] * len(_ixs))
         event_nums = np.array(event_numbers)
         event_times = np.array(event_times)
-    else:
-        event_nums = None
-        event_times = None
+
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
 
     # determine trace order

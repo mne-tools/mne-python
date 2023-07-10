@@ -3309,7 +3309,7 @@ def test_array_epochs(tmp_path, browser_backend):
     assert_array_equal(epochs.events, epochs2.events)
 
     # plotting
-    epochs[0].plot()
+    epochs[0].plot(events=False)
 
     # indexing
     assert_array_equal(np.unique(epochs["1"].events[:, 2]), np.array([1]))

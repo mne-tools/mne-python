@@ -250,9 +250,9 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
             def _fun(x):
                 return np.nanmean(np.abs(x))
 
+            agg_df = gb.agg(_fun)
         else:
-            _fun = np.nanmean
-        agg_df = gb.aggregate(_fun)
+            agg_df = gb.mean()  # excludes missing values itself
     else:
         gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
         agg_df = gb.apply(_agg_helper, spectrum._mt_weights, grouping_cols)

@@ -410,6 +410,14 @@ def test_evoked_resample(tmp_path):
     assert ave_new.info["lowpass"] == 25.0
 
 
+def test_evoked_resamp_noop():
+    """Tests resampling doesn't affect data if sfreq is identical."""
+    ave = read_evokeds(fname, 0)
+    data_before = ave.data
+    data_after = ave.resample(sfreq=ave.info["sfreq"]).data
+    assert_array_equal(data_before, data_after)
+
+
 def test_evoked_filter():
     """Test filtering evoked data."""
     # this is mostly a smoke test as the Epochs and raw tests are more complete
