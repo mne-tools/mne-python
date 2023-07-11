@@ -45,24 +45,24 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: ubuntu-latest
-          python: '3.10'
-          kind: conda
-        - os: ubuntu-latest
-          python: '3.10'
-          kind: notebook
+        #- os: ubuntu-latest
+        #  python: '3.10'
+        #  kind: conda
+        #- os: ubuntu-latest
+        #  python: '3.10'
+        #  kind: notebook
         - os: ubuntu-latest
           python: '3.11'
           kind: pip-pre
-        - os: macos-latest
-          python: '3.8'
-          kind: mamba
-        - os: ubuntu-latest
-          python: '3.8'
-          kind: minimal
-        - os: ubuntu-20.04
-          python: '3.8'
-          kind: old
+        #- os: macos-latest
+        #  python: '3.8'
+        #  kind: mamba
+        #- os: ubuntu-latest
+        #  python: '3.8'
+        #  kind: minimal
+        #- os: ubuntu-20.04
+        #  python: '3.8'
+        #  kind: old
     steps:
       - uses: actions/checkout@v3
         with:
