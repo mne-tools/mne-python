@@ -169,7 +169,8 @@ def _test_raw_reader(
         elif "fnirs_cw_amplitude" in raw:
             fnirs, atol = "fnirs_cw_amplitude", 1e-10
         else:
-            assert "seeg" in raw, "New channel type necessary?"
+            # e.g., https://github.com/mne-tools/mne-python/pull/11432/files
+            assert "seeg" in raw, "New channel type necessary? See gh-11432 for example"
             seeg, atol = True, 1e-18
 
         picks = pick_types(other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs, seeg=seeg)
