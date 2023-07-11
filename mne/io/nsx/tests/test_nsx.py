@@ -6,6 +6,8 @@ import warnings
 import numpy as np
 import pytest
 
+from numpy.testing import assert_allclose
+
 from mne.io import read_raw_nsx
 from mne.io.nsx.nsx import _decode_online_filters
 from mne.io.meas_info import _empty_info
@@ -94,10 +96,10 @@ def test_nsx_ver_31():
     #        data[n_samples // 2] = np.arange(ch_count) + 10
     #        data[:, ch_count // 2] = np.arange(n_samples) + 100```
     orig_data = raw_data / (raw.info["chs"][0]["cal"] * raw.info["chs"][0]["range"])
-    assert np.allclose(sum(orig_data[:, 50] - 10 - np.arange(n_channels)), 76.0)
+    assert_allclose(sum(orig_data[:, 50] - 10 - np.arange(n_channels)), 76.0)
 
-    assert np.allclose(orig_data[n_channels // 2, :100] - 100, np.arange(100))
-    assert np.allclose(orig_data[n_channels // 2, 150:] - 100, np.arange(150))
+    assert_allclose(orig_data[n_channels // 2, :100] - 100, np.arange(100))
+    assert_allclose(orig_data[n_channels // 2, 150:] - 100, np.arange(150))
 
     data, times = raw.get_data(start=10, stop=20, return_times=True)
     assert n_channels, 10 == data.shape
@@ -154,9 +156,9 @@ def test_nsx_ver_22():
     #        data[n_samples // 2] = np.arange(ch_count) + 10
     #        data[:, ch_count // 2] = np.arange(n_samples) + 100```
     orig_data = raw_data / (raw.info["chs"][0]["cal"] * raw.info["chs"][0]["range"])
-    assert np.allclose(sum(orig_data[:, 50] - 10 - np.arange(n_channels)), 76.0)
+    assert_allclose(sum(orig_data[:, 50] - 10 - np.arange(n_channels)), 76.0)
 
-    assert np.allclose(orig_data[n_channels // 2, :100] - 100, np.arange(100))
+    assert_allclose(orig_data[n_channels // 2, :100] - 100, np.arange(100))
 
     data, times = raw.get_data(start=10, stop=20, return_times=True)
     assert n_channels, 10 == data.shape
@@ -165,11 +167,8 @@ def test_nsx_ver_22():
     epochs = make_fixed_length_epochs(raw, duration=0.05, preload=True, id=1)
     assert len(epochs) == 1
     assert epochs.event_id["1"] == 1
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match="No events produced"):
         _ = make_fixed_length_epochs(raw, duration=0.5, preload=True)
-    assert "No events produced, check the values of start, stop, and duration" in str(
-        excinfo.value
-    )
 
 
 @requires_testing_data
@@ -190,12 +189,10 @@ def test_stim_eog_misc_chs_in_nsx():
     stims = [ch_info["kind"] == FIFF.FIFFV_STIM_CH for ch_info in raw.info["chs"]]
     assert np.any(stims)
     assert raw.info["chs"][126]["kind"] == FIFF.FIFFV_EOG_CH
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match="Invalid stim_channel"):
         raw = read_raw_nsx(nsx_22_fname, stim_channel=["elec128", 129], eog=["elec126"])
-    assert "Invalid stim_channel" in str(excinfo.value)
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match="Invalid stim_channel"):
         raw = read_raw_nsx(nsx_22_fname, stim_channel=("elec128",), eog=["elec126"])
-    assert "Invalid stim_channel" in str(excinfo.value)
 
     raw = read_raw_nsx(nsx_22_fname, stim_channel="elec127", misc=["elec126", "elec1"])
     assert raw.info["chs"][126]["kind"] == FIFF.FIFFV_MISC_CH
@@ -205,5 +202,5 @@ def test_stim_eog_misc_chs_in_nsx():
 @requires_testing_data
 def test_nsx_ver_21():
     """Primary tests for NEURALSG reader."""
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NotImplementedError, match="(= NEURALSG)*not supported"):
         read_raw_nsx(nsx_21_fname)
