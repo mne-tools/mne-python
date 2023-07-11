@@ -14,12 +14,12 @@ from mne.utils import _check_option, fill_doc, _validate_type
 def _check_stc(stc1, stc2):
     """Check that stcs are compatible."""
     if stc1.data.shape != stc2.data.shape:
-        raise ValueError('Data in stcs must have the same size')
+        raise ValueError("Data in stcs must have the same size")
     if np.all(stc1.times != stc2.times):
-        raise ValueError('Times of two stcs must match.')
+        raise ValueError("Times of two stcs must match.")
 
 
-def source_estimate_quantification(stc1, stc2, metric='rms'):
+def source_estimate_quantification(stc1, stc2, metric="rms"):
     """Calculate STC similarities across all sources and times.
 
     Parameters
@@ -45,7 +45,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
 
     .. versionadded:: 0.10.0
     """
-    _check_option('metric', metric, ['rms', 'cosine'])
+    _check_option("metric", metric, ["rms", "cosine"])
 
     # This is checking that the data are having the same size meaning
     # no comparison between distributed and sparse can be done so far.
@@ -53,11 +53,11 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     data1, data2 = stc1.data, stc2.data
 
     # Calculate root mean square difference between two matrices
-    if metric == 'rms':
+    if metric == "rms":
         score = np.sqrt(np.mean((data1 - data2) ** 2))
     # Calculate correlation coefficient between matrix elements
-    elif metric == 'cosine':
-        score = 1. - _cosine(data1, data2)
+    elif metric == "cosine":
+        score = 1.0 - _cosine(data1, data2)
     return score
 
 
@@ -68,9 +68,10 @@ def _uniform_stc(stc1, stc2):
     inserting zeros in data for missing vertices.
     """
     if len(stc1.vertices) != len(stc2.vertices):
-        raise ValueError('Data in stcs must have the same number of vertices '
-                         'components. Got %d != %d.' %
-                         (len(stc1.vertices), len(stc2.vertices)))
+        raise ValueError(
+            "Data in stcs must have the same number of vertices "
+            "components. Got %d != %d." % (len(stc1.vertices), len(stc2.vertices))
+        )
     idx_start1 = 0
     idx_start2 = 0
     stc1 = stc1.copy()
@@ -81,10 +82,12 @@ def _uniform_stc(stc1, stc2):
         vert = np.union1d(vert1, vert2)
         data1 = np.zeros([len(vert), stc1.data.shape[1]])
         data2 = np.zeros([len(vert), stc2.data.shape[1]])
-        data1[np.searchsorted(vert, vert1)] = \
-            stc1.data[idx_start1:idx_start1 + len(vert1)]
-        data2[np.searchsorted(vert, vert2)] = \
-            stc2.data[idx_start2:idx_start2 + len(vert2)]
+        data1[np.searchsorted(vert, vert1)] = stc1.data[
+            idx_start1 : idx_start1 + len(vert1)
+        ]
+        data2[np.searchsorted(vert, vert2)] = stc2.data[
+            idx_start2 : idx_start2 + len(vert2)
+        ]
         idx_start1 += len(vert1)
         idx_start2 += len(vert2)
         stc1.vertices[i] = vert
@@ -107,8 +110,7 @@ def _apply(func, stc_true, stc_est, per_sample):
     if per_sample:
         metric = np.empty(stc_true.data.shape[1])  # one value per time point
         for i in range(stc_true.data.shape[1]):
-            metric[i] = func(stc_true.data[:, i:i + 1],
-                             stc_est.data[:, i:i + 1])
+            metric[i] = func(stc_true.data[:, i : i + 1], stc_est.data[:, i : i + 1])
     else:
         metric = func(stc_true.data, stc_est.data)
     return metric
@@ -119,14 +121,16 @@ def _thresholding(stc_true, stc_est, threshold):
     threshold = _check_threshold(threshold)
     if relative:
         if stc_true is not None:
-            stc_true._data[np.abs(stc_true._data) <=
-                           threshold * np.max(np.abs(stc_true._data))] = 0.
-        stc_est._data[np.abs(stc_est._data) <=
-                      threshold * np.max(np.abs(stc_est._data))] = 0.
+            stc_true._data[
+                np.abs(stc_true._data) <= threshold * np.max(np.abs(stc_true._data))
+            ] = 0.0
+        stc_est._data[
+            np.abs(stc_est._data) <= threshold * np.max(np.abs(stc_est._data))
+        ] = 0.0
     else:
         if stc_true is not None:
-            stc_true._data[np.abs(stc_true._data) <= threshold] = 0.
-        stc_est._data[np.abs(stc_est._data) <= threshold] = 0.
+            stc_true._data[np.abs(stc_true._data) <= threshold] = 0.0
+        stc_est._data[np.abs(stc_est._data) <= threshold] = 0.0
     return stc_true, stc_est
 
 
@@ -168,17 +172,19 @@ def cosine_score(stc_true, stc_est, per_sample=True):
 
 def _check_threshold(threshold):
     """Accept a float or a string that ends with %."""
-    _validate_type(threshold, ('numeric', str), 'threshold')
+    _validate_type(threshold, ("numeric", str), "threshold")
     if isinstance(threshold, str):
         if not threshold.endswith("%"):
-            raise ValueError('Threshold if a string must end with '
-                             '"%%". Got %s.' % threshold)
+            raise ValueError(
+                "Threshold if a string must end with " '"%%". Got %s.' % threshold
+            )
         threshold = float(threshold[:-1]) / 100.0
     threshold = float(threshold)
     if not 0 <= threshold <= 1:
         raise ValueError(
-            'Threshold proportion must be between 0 and 1 (inclusive), but '
-            f'got {threshold}')
+            "Threshold proportion must be between 0 and 1 (inclusive), but "
+            f"got {threshold}"
+        )
     return threshold
 
 
@@ -189,26 +195,26 @@ def _abs_col_sum(x):
 def _dle(p, q, src, stc):
     """Aux function to compute dipole localization error."""
     from scipy.spatial.distance import cdist
+
     p = _abs_col_sum(p)
     q = _abs_col_sum(q)
     idx1 = np.nonzero(p)[0]
     idx2 = np.nonzero(q)[0]
     points = []
     for i in range(len(src)):
-        points.append(src[i]['rr'][stc.vertices[i]])
+        points.append(src[i]["rr"][stc.vertices[i]])
     points = np.concatenate(points, axis=0)
     if len(idx1) and len(idx2):
         D = cdist(points[idx1], points[idx2])
         D_min_1 = np.min(D, axis=0)
         D_min_2 = np.min(D, axis=1)
-        return (np.mean(D_min_1) + np.mean(D_min_2)) / 2.
+        return (np.mean(D_min_1) + np.mean(D_min_2)) / 2.0
     else:
         return np.inf
 
 
 @fill_doc
-def region_localization_error(stc_true, stc_est, src, threshold='90%',
-                              per_sample=True):
+def region_localization_error(stc_true, stc_est, src, threshold="90%", per_sample=True):
     r"""Compute region localization error (RLE) between 2 source estimates.
 
     .. math::
@@ -261,6 +267,7 @@ def region_localization_error(stc_true, stc_est, src, threshold='90%',
 
 def _roc_auc_score(p, q):
     from sklearn.metrics import roc_auc_score
+
     return roc_auc_score(np.abs(p) > 0, np.abs(q))
 
 
@@ -296,11 +303,12 @@ def roc_auc_score(stc_true, stc_est, per_sample=True):
 
 def _f1_score(p, q):
     from sklearn.metrics import f1_score
+
     return f1_score(_abs_col_sum(p) > 0, _abs_col_sum(q) > 0)
 
 
 @fill_doc
-def f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
+def f1_score(stc_true, stc_est, threshold="90%", per_sample=True):
     """Compute the F1 score, also known as balanced F-score or F-measure.
 
     The F1 score can be interpreted as a weighted average of the precision
@@ -339,11 +347,12 @@ def f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
 def _precision_score(p, q):
     from sklearn.metrics import precision_score
+
     return precision_score(_abs_col_sum(p) > 0, _abs_col_sum(q) > 0)
 
 
 @fill_doc
-def precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
+def precision_score(stc_true, stc_est, threshold="90%", per_sample=True):
     """Compute the precision.
 
     The precision is the ratio ``tp / (tp + fp)`` where ``tp`` is the number of
@@ -381,11 +390,12 @@ def precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
 def _recall_score(p, q):
     from sklearn.metrics import recall_score
+
     return recall_score(_abs_col_sum(p) > 0, _abs_col_sum(q) > 0)
 
 
 @fill_doc
-def recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
+def recall_score(stc_true, stc_est, threshold="90%", per_sample=True):
     """Compute the recall.
 
     The recall is the ratio ``tp / (tp + fn)`` where ``tp`` is the number of
@@ -420,24 +430,25 @@ def recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
     return metric
 
 
-def _prepare_ppe_sd(stc_true, stc_est, src, threshold='50%'):
+def _prepare_ppe_sd(stc_true, stc_est, src, threshold="50%"):
     stc_true = stc_true.copy()
     stc_est = stc_est.copy()
     n_dipoles = 0
     for i, v in enumerate(stc_true.vertices):
         if len(v):
             n_dipoles += len(v)
-            r_true = src[i]['rr'][v]
+            r_true = src[i]["rr"][v]
     if n_dipoles != 1:
-        raise ValueError('True source must contain only one dipole, got %d.'
-                         % n_dipoles)
+        raise ValueError(
+            "True source must contain only one dipole, got %d." % n_dipoles
+        )
 
     _, stc_est = _thresholding(None, stc_est, threshold)
 
     r_est = np.empty([0, 3])
     for i, v in enumerate(stc_est.vertices):
         if len(v):
-            r_est = np.vstack([r_est, src[i]['rr'][v]])
+            r_est = np.vstack([r_est, src[i]["rr"][v]])
     return stc_est, r_true, r_est
 
 
@@ -452,8 +463,7 @@ def _peak_position_error(p, q, r_est, r_true):
 
 
 @fill_doc
-def peak_position_error(stc_true, stc_est, src, threshold='50%',
-                        per_sample=True):
+def peak_position_error(stc_true, stc_est, src, threshold="50%", per_sample=True):
     r"""Compute the peak position error.
 
     The peak position error measures the distance between the center-of-mass
@@ -510,15 +520,14 @@ def _spatial_deviation(p, q, r_est, r_true):
         q /= np.sum(q)
         r_true_tile = np.tile(r_true, (r_est.shape[0], 1))
         r_diff = r_est - r_true_tile
-        r_diff_norm = np.sum(r_diff ** 2, axis=1)
+        r_diff_norm = np.sum(r_diff**2, axis=1)
         return np.sqrt(np.dot(q, r_diff_norm))
     else:
         return np.inf
 
 
 @fill_doc
-def spatial_deviation_error(stc_true, stc_est, src, threshold='50%',
-                            per_sample=True):
+def spatial_deviation_error(stc_true, stc_est, src, threshold="50%", per_sample=True):
     r"""Compute the spatial deviation.
 
     The spatial deviation characterizes the spread of the estimate source

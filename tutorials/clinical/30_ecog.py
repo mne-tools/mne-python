@@ -46,7 +46,7 @@ print(__doc__)
 # paths to mne datasets - sample ECoG and FreeSurfer subject
 bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = sample_path / 'subjects'
+subjects_dir = sample_path / "subjects"
 
 # %%
 # Load in data and perform basic preprocessing
@@ -60,13 +60,19 @@ subjects_dir = sample_path / 'subjects'
 #     not need to do this in general!
 
 # first define the bids path
-bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
-                     task='ictal', datatype='ieeg', extension='.vhdr')
+bids_path = BIDSPath(
+    root=bids_root,
+    subject="pt1",
+    session="presurgery",
+    task="ictal",
+    datatype="ieeg",
+    extension=".vhdr",
+)
 
 # Then we'll use it to load in the sample dataset. This function changes the
 # units of some channels, so we suppress a related warning here by using
 # verbose='error'.
-raw = read_raw_bids(bids_path=bids_path, verbose='error')
+raw = read_raw_bids(bids_path=bids_path, verbose="error")
 
 # Pick only the ECoG channels, removing the EKG channels
 raw.pick_types(ecog=True)
@@ -78,11 +84,11 @@ raw.load_data()
 raw.notch_filter([60], trans_bandwidth=3)
 
 # drop bad channels
-raw.drop_channels(raw.info['bads'])
+raw.drop_channels(raw.info["bads"])
 
 # the coordinate frame of the montage
 montage = raw.get_montage()
-print(montage.get_positions()['coord_frame'])
+print(montage.get_positions()["coord_frame"])
 
 # add fiducials to montage
 montage.add_mni_fiducials(subjects_dir)
@@ -98,8 +104,14 @@ events, event_id = mne.events_from_annotations(raw)
 
 # Make a 25 second epoch that spans before and after the seizure onset
 epoch_length = 25  # seconds
-epochs = mne.Epochs(raw, events, event_id=event_id['onset'],
-                    tmin=13, tmax=13 + epoch_length, baseline=None)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id=event_id["onset"],
+    tmin=13,
+    tmax=13 + epoch_length,
+    baseline=None,
+)
 # Make evoked from the one epoch and resample
 evoked = epochs.average().resample(200)
 del epochs
@@ -115,9 +127,15 @@ del epochs
 # (along with xy positions of each electrode in the image), so that later
 # we can plot frequency band power on top of it.
 
-fig = plot_alignment(raw.info, trans='fsaverage',
-                     subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], coord_frame='head', sensor_colors=None)
+fig = plot_alignment(
+    raw.info,
+    trans="fsaverage",
+    subject="fsaverage",
+    subjects_dir=subjects_dir,
+    surfaces=["pial"],
+    coord_frame="head",
+    sensor_colors=None,
+)
 mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
@@ -130,8 +148,9 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 # downsampling the result to 10 Hz (to save time).
 
 sfreq = 10
-gamma_power_t = evoked.copy().filter(30, 90).apply_hilbert(
-    envelope=True).resample(sfreq)
+gamma_power_t = (
+    evoked.copy().filter(30, 90).apply_hilbert(envelope=True).resample(sfreq)
+)
 gamma_info = gamma_power_t.info
 
 # %%
@@ -142,17 +161,22 @@ gamma_info = gamma_power_t.info
 # Therefore we extract the evoked time sample at 15s and normalize
 # it in a range of 0 to 1 in order to map it using a matplotlib colormap.
 
-gamma_power_at_15s = gamma_power_t.to_data_frame(index='time').loc[15]
+gamma_power_at_15s = gamma_power_t.to_data_frame(index="time").loc[15]
 # scale values to be between 0 and 1, then map to colors
 gamma_power_at_15s -= gamma_power_at_15s.min()
 gamma_power_at_15s /= gamma_power_at_15s.max()
 rgba = colormaps.get_cmap("viridis")
 sensor_colors = gamma_power_at_15s.map(rgba).tolist()
 
-fig = plot_alignment(raw.info, trans='fsaverage',
-                     subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], coord_frame='head',
-                     sensor_colors=sensor_colors)
+fig = plot_alignment(
+    raw.info,
+    trans="fsaverage",
+    subject="fsaverage",
+    subjects_dir=subjects_dir,
+    surfaces=["pial"],
+    coord_frame="head",
+    sensor_colors=sensor_colors,
+)
 
 mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
 
@@ -169,22 +193,23 @@ xy, im = snapshot_brain_montage(fig, raw.info)
 # to the brain figure.
 
 # convert from a dictionary to array to plot
-xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
+xy_pts = np.vstack([xy[ch] for ch in raw.info["ch_names"]])
 
 # get a colormap to color nearby points similar colors
-cmap = plt.colormaps['viridis']
+cmap = plt.colormaps["viridis"]
 
 # create the figure of the brain with the electrode positions
 fig, ax = plt.subplots(figsize=(5, 5))
-ax.set_title('Gamma power over time', size='large')
+ax.set_title("Gamma power over time", size="large")
 ax.imshow(im)
 ax.set_axis_off()
 
 # normalize gamma power for plotting
 gamma_power = -100 * gamma_power_t.data / gamma_power_t.data.max()
 # add the time course overlaid on the positions
-x_line = np.linspace(-0.025 * im.shape[0], 0.025 * im.shape[0],
-                     gamma_power_t.data.shape[1])
+x_line = np.linspace(
+    -0.025 * im.shape[0], 0.025 * im.shape[0], gamma_power_t.data.shape[1]
+)
 for i, pos in enumerate(xy_pts):
     x, y = pos
     color = cmap(i / xy_pts.shape[0])
@@ -201,21 +226,36 @@ for i, pos in enumerate(xy_pts):
 
 # sphinx_gallery_thumbnail_number = 3
 
-xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
+xyz_pts = np.array([dig["r"] for dig in evoked.info["dig"]])
 
-src = mne.read_source_spaces(subjects_dir / 'fsaverage' / 'bem' /
-                             'fsaverage-ico-5-src.fif')
-stc = mne.stc_near_sensors(gamma_power_t, trans='fsaverage',
-                           subject='fsaverage', subjects_dir=subjects_dir,
-                           src=src, surface='pial', mode='nearest',
-                           distance=0.02)
+src = mne.read_source_spaces(
+    subjects_dir / "fsaverage" / "bem" / "fsaverage-ico-5-src.fif"
+)
+stc = mne.stc_near_sensors(
+    gamma_power_t,
+    trans="fsaverage",
+    subject="fsaverage",
+    subjects_dir=subjects_dir,
+    src=src,
+    surface="pial",
+    mode="nearest",
+    distance=0.02,
+)
 vmin, vmid, vmax = np.percentile(gamma_power_t.data, [10, 25, 90])
-clim = dict(kind='value', lims=[vmin, vmid, vmax])
-brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
-                 clim=clim, views=['lat', 'med'], subjects_dir=subjects_dir,
-                 size=(250, 250), smoothing_steps='nearest',
-                 time_viewer=False)
-brain.add_sensors(raw.info, trans='fsaverage')
+clim = dict(kind="value", lims=[vmin, vmid, vmax])
+brain = stc.plot(
+    surface="pial",
+    hemi="rh",
+    colormap="inferno",
+    colorbar=False,
+    clim=clim,
+    views=["lat", "med"],
+    subjects_dir=subjects_dir,
+    size=(250, 250),
+    smoothing_steps="nearest",
+    time_viewer=False,
+)
+brain.add_sensors(raw.info, trans="fsaverage")
 del brain
 
 # You can save a movie like the one on our documentation website with:

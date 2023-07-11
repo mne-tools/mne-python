@@ -1,12 +1,3 @@
-.. NOTE: we are now using links to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
-
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Changelog" for new features
-   - "Bug" for bug fixes
-   - "API" for backward-incompatible changes
-
 .. _changes_0_19:
 
 Version 0.19 (2019-09-24)
@@ -37,7 +28,7 @@ Changelog
 
 - Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_
 
-- Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
+- Unknown events code in GDF are now visible in the ``event_id`` by `Théodore Papadopoulo`_
 
 - Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
 

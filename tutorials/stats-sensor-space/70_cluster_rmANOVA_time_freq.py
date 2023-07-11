@@ -43,9 +43,9 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_raw.fif'
-event_fname = meg_path / 'sample_audvis_raw-eve.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_raw.fif"
+event_fname = meg_path / "sample_audvis_raw-eve.fif"
 tmin, tmax = -0.2, 0.5
 
 # Setup for reading the raw data
@@ -53,20 +53,35 @@ raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
-raw.info['bads'] += ['MEG 2443']  # bads
+raw.info["bads"] += ["MEG 2443"]  # bads
 
 # picks MEG gradiometers
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                       stim=False, include=include, exclude='bads')
+picks = mne.pick_types(
+    raw.info,
+    meg="grad",
+    eeg=False,
+    eog=True,
+    stim=False,
+    include=include,
+    exclude="bads",
+)
 
-ch_name = 'MEG 1332'
+ch_name = "MEG 1332"
 
 # Load conditions
 reject = dict(grad=4000e-13, eog=150e-6)
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    picks=picks, baseline=(None, 0), preload=True,
-                    reject=reject)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    picks=picks,
+    baseline=(None, 0),
+    preload=True,
+    reject=reject,
+)
 epochs.pick_channels([ch_name])  # restrict example to one channel
 
 # %%
@@ -89,10 +104,16 @@ zero_mean = False  # don't correct morlet wavelet to be of mean zero
 # ---------------------------------------------
 epochs_power = list()
 for condition in [epochs[k] for k in event_id]:
-    this_tfr = tfr_morlet(condition, freqs, n_cycles=n_cycles,
-                          decim=decim, average=False, zero_mean=zero_mean,
-                          return_itc=False)
-    this_tfr.apply_baseline(mode='ratio', baseline=(None, 0))
+    this_tfr = tfr_morlet(
+        condition,
+        freqs,
+        n_cycles=n_cycles,
+        decim=decim,
+        average=False,
+        zero_mean=zero_mean,
+        return_itc=False,
+    )
+    this_tfr.apply_baseline(mode="ratio", baseline=(None, 0))
     this_power = this_tfr.data[:, 0, :, :]  # we only have one channel.
     epochs_power.append(this_power)
 
@@ -108,7 +129,7 @@ n_conditions = len(epochs.event_id)
 n_replications = epochs.events.shape[0] // n_conditions
 
 factor_levels = [2, 2]  # number of levels in each factor
-effects = 'A*B'  # this is the default signature for computing all effects
+effects = "A*B"  # this is the default signature for computing all effects
 # Other possible options are 'A' or 'B' for the corresponding main effects
 # or 'A:B' for the interaction effect only (this notation is borrowed from the
 # R formula language)
@@ -149,22 +170,32 @@ print(data.shape)
 
 fvals, pvals = f_mway_rm(data, factor_levels, effects=effects)
 
-effect_labels = ['modality', 'location', 'modality by location']
+effect_labels = ["modality", "location", "modality by location"]
 
 fig, axes = plt.subplots(3, 1, figsize=(6, 6))
 
 # let's visualize our effects by computing f-images
 for effect, sig, effect_label, ax in zip(fvals, pvals, effect_labels, axes):
     # show naive F-values in gray
-    ax.imshow(effect, cmap='gray', aspect='auto', origin='lower',
-              extent=[times[0], times[-1], freqs[0], freqs[-1]])
+    ax.imshow(
+        effect,
+        cmap="gray",
+        aspect="auto",
+        origin="lower",
+        extent=[times[0], times[-1], freqs[0], freqs[-1]],
+    )
     # create mask for significant time-frequency locations
     effect[sig >= 0.05] = np.nan
-    c = ax.imshow(effect, cmap='autumn', aspect='auto', origin='lower',
-                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
+    c = ax.imshow(
+        effect,
+        cmap="autumn",
+        aspect="auto",
+        origin="lower",
+        extent=[times[0], times[-1], freqs[0], freqs[-1]],
+    )
     fig.colorbar(c, ax=ax)
-    ax.set_xlabel('Time (ms)')
-    ax.set_ylabel('Frequency (Hz)')
+    ax.set_xlabel("Time (ms)")
+    ax.set_ylabel("Frequency (Hz)")
     ax.set_title(f'Time-locked response for "{effect_label}" ({ch_name})')
 
 fig.tight_layout()
@@ -176,7 +207,7 @@ fig.tight_layout()
 # First we need to slightly modify the ANOVA function to be suitable for
 # the clustering procedure. Also want to set some defaults.
 # Let's first override effects to confine the analysis to the interaction
-effects = 'A:B'
+effects = "A:B"
 
 # %%
 # A stat_fun must deal with a variable number of input arguments.
@@ -188,38 +219,54 @@ effects = 'A:B'
 
 
 def stat_fun(*args):
-    return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
-                     effects=effects, return_pvals=False)[0]
+    return f_mway_rm(
+        np.swapaxes(args, 1, 0),
+        factor_levels=factor_levels,
+        effects=effects,
+        return_pvals=False,
+    )[0]
 
 
 # The ANOVA returns a tuple f-values and p-values, we will pick the former.
 pthresh = 0.001  # set threshold rather high to save some time
-f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects,
-                               pthresh)
+f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects, pthresh)
 tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
 F_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
-    epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail,
-    n_jobs=None, n_permutations=n_permutations, buffer_size=None,
-    out_type='mask')
+    epochs_power,
+    stat_fun=stat_fun,
+    threshold=f_thresh,
+    tail=tail,
+    n_jobs=None,
+    n_permutations=n_permutations,
+    buffer_size=None,
+    out_type="mask",
+)
 
 # %%
 # Create new stats image with only significant clusters:
 
-good_clusters = np.where(cluster_p_values < .05)[0]
+good_clusters = np.where(cluster_p_values < 0.05)[0]
 F_obs_plot = F_obs.copy()
 F_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
 
 fig, ax = plt.subplots(figsize=(6, 4))
-for f_image, cmap in zip([F_obs, F_obs_plot], ['gray', 'autumn']):
-    c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
-                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
+for f_image, cmap in zip([F_obs, F_obs_plot], ["gray", "autumn"]):
+    c = ax.imshow(
+        f_image,
+        cmap=cmap,
+        aspect="auto",
+        origin="lower",
+        extent=[times[0], times[-1], freqs[0], freqs[-1]],
+    )
 
 fig.colorbar(c, ax=ax)
-ax.set_xlabel('Time (ms)')
-ax.set_ylabel('Frequency (Hz)')
-ax.set_title(f'Time-locked response for "modality by location" ({ch_name})\n'
-             'cluster-level corrected (p <= 0.05)')
+ax.set_xlabel("Time (ms)")
+ax.set_ylabel("Frequency (Hz)")
+ax.set_title(
+    f'Time-locked response for "modality by location" ({ch_name})\n'
+    "cluster-level corrected (p <= 0.05)"
+)
 fig.tight_layout()
 
 # %%
@@ -230,15 +277,22 @@ F_obs_plot2 = F_obs.copy()
 F_obs_plot2[~mask.reshape(F_obs_plot.shape)] = np.nan
 
 fig, ax = plt.subplots(figsize=(6, 4))
-for f_image, cmap in zip([F_obs, F_obs_plot2], ['gray', 'autumn']):
-    c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
-                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
+for f_image, cmap in zip([F_obs, F_obs_plot2], ["gray", "autumn"]):
+    c = ax.imshow(
+        f_image,
+        cmap=cmap,
+        aspect="auto",
+        origin="lower",
+        extent=[times[0], times[-1], freqs[0], freqs[-1]],
+    )
 
 fig.colorbar(c, ax=ax)
-ax.set_xlabel('Time (ms)')
-ax.set_ylabel('Frequency (Hz)')
-ax.set_title(f'Time-locked response for "modality by location" ({ch_name})\n'
-             'FDR corrected (p <= 0.05)')
+ax.set_xlabel("Time (ms)")
+ax.set_ylabel("Frequency (Hz)")
+ax.set_title(
+    f'Time-locked response for "modality by location" ({ch_name})\n'
+    "FDR corrected (p <= 0.05)"
+)
 fig.tight_layout()
 
 # %%

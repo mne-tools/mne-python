@@ -1,7 +1,7 @@
 # requirements for full MNE-Python functionality (other than raw/epochs export)
 numpy>=1.15.4
 scipy>=1.6.3
-matplotlib
+matplotlib>=3.4.0
 tqdm
 pooch>=1.5
 decorator
@@ -9,7 +9,7 @@ h5io
 packaging
 pymatreader
 qtpy
-PySide6!=6.3.0,!=6.4.0,!=6.4.0.1,!=6.5.0  # incompat with Matplotlib 3.6.1 and qtpy
+PySide6!=6.5.1
 pyobjc-framework-Cocoa>=5.2.0; platform_system=="Darwin"
 sip
 scikit-learn
@@ -32,7 +32,7 @@ xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
 traitlets
-pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5
+pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6
 pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets
@@ -43,4 +43,3 @@ mne-qt-browser
 darkdetect
 qdarkstyle
 threadpoolctl
-mne-gui-addons

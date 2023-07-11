@@ -46,10 +46,10 @@ into MNE using :func:`mne.io.read_raw_eyelink`.
 
 Supported measurement types from Eyelink files include eye position, pupil
 size, saccadic velocity, resolution, and head position (for recordings
-collected in remote mode). Eyelink files often report occular events (blinks,
+collected in remote mode). Eyelink files often report ocular events (blinks,
 saccades, and fixations), MNE will store these events as `mne.Annotations`.
-For More information on the various measurement types that can be present in
-Eyelink files, read below.
+Blink annotation descriptions will be ``'BAD_blink'``. For more information
+on the various measurement types that can be present in Eyelink files. read below.
 
 Eye Position Data
 -----------------
@@ -83,9 +83,8 @@ from mne.io import read_raw_eyelink
 from mne.datasets import misc
 
 # %%
-fpath = misc.data_path() / 'eyetracking' / 'eyelink'
-raw = read_raw_eyelink(fpath / 'px_textpage_ws.asc',
-                       create_annotations=['blinks'])
+fpath = misc.data_path() / "eyetracking" / "eyelink"
+raw = read_raw_eyelink(fpath / "px_textpage_ws.asc", create_annotations=["blinks"])
 custom_scalings = dict(eyegaze=1e3)
 raw.pick_types(eyetrack=True).plot(scalings=custom_scalings)
 
@@ -123,9 +122,8 @@ raw.pick_types(eyetrack=True).plot(scalings=custom_scalings)
 
 
 # %%
-fpath = misc.data_path() / 'eyetracking' / 'eyelink'
-raw = read_raw_eyelink(fpath / 'HREF_textpage_ws.asc',
-                       create_annotations=['blinks'])
+fpath = misc.data_path() / "eyetracking" / "eyelink"
+raw = read_raw_eyelink(fpath / "HREF_textpage_ws.asc", create_annotations=["blinks"])
 raw.pick_types(eyetrack=True).plot()
 
 # %%

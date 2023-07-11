@@ -47,7 +47,7 @@ from mne.datasets import fetch_fsaverage
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = sample_path / 'subjects'
+subjects_dir = sample_path / "subjects"
 
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
@@ -55,11 +55,11 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # %%
 # Let's load some sEEG data with channel locations and make epochs.
 
-raw = mne.io.read_raw(misc_path / 'seeg' / 'sample_seeg_ieeg.fif')
+raw = mne.io.read_raw(misc_path / "seeg" / "sample_seeg_ieeg.fif")
 
 events, event_id = mne.events_from_annotations(raw)
 epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
-epochs = epochs['Response'][0]  # just process one epoch of data for speed
+epochs = epochs["Response"][0]  # just process one epoch of data for speed
 
 # %%
 # Let use the Talairach transform computed in the Freesurfer recon-all
@@ -69,20 +69,19 @@ montage = epochs.get_montage()
 
 # first we need a head to mri transform since the data is stored in "head"
 # coordinates, let's load the mri to head transform and invert it
-this_subject_dir = misc_path / 'seeg'
-head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', this_subject_dir)
+this_subject_dir = misc_path / "seeg"
+head_mri_t = mne.coreg.estimate_head_mri_t("sample_seeg", this_subject_dir)
 # apply the transform to our montage
 montage.apply_trans(head_mri_t)
 
 # now let's load our Talairach transform and apply it
-mri_mni_t = mne.read_talxfm('sample_seeg', misc_path / 'seeg')
+mri_mni_t = mne.read_talxfm("sample_seeg", misc_path / "seeg")
 montage.apply_trans(mri_mni_t)  # mri to mni_tal (MNI Taliarach)
 
 # for fsaverage, "mri" and "mni_tal" are equivalent and, since
 # we want to plot in fsaverage "mri" space, we need use an identity
 # transform to equate these coordinate frames
-montage.apply_trans(
-    mne.transforms.Transform(fro='mni_tal', to='mri', trans=np.eye(4)))
+montage.apply_trans(mne.transforms.Transform(fro="mni_tal", to="mri", trans=np.eye(4)))
 
 epochs.set_montage(montage)
 
@@ -103,10 +102,15 @@ trans = mne.channels.compute_native_head_t(montage)
 #      mne.transforms.combine_transforms(head_mri_t, mri_mni_t))``
 
 view_kwargs = dict(azimuth=105, elevation=100, focalpoint=(0, 0, -15))
-brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
-                      cortex='low_contrast', alpha=0.25, background='white')
+brain = mne.viz.Brain(
+    "fsaverage",
+    subjects_dir=subjects_dir,
+    cortex="low_contrast",
+    alpha=0.25,
+    background="white",
+)
 brain.add_sensors(epochs.info, trans=trans)
-brain.add_head(alpha=0.25, color='tan')
+brain.add_head(alpha=0.25, color="tan")
 brain.show_view(distance=400, **view_kwargs)
 
 # %%
@@ -115,61 +119,85 @@ brain.show_view(distance=400, **view_kwargs)
 # the pial surface translate to the inflated brain and flat map:
 #
 # .. youtube:: OOy7t1yq8IM
-brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
-                      surf='inflated', background='black')
-brain.add_annotation('aparc.a2009s')
+brain = mne.viz.Brain(
+    "fsaverage", subjects_dir=subjects_dir, surf="inflated", background="black"
+)
+brain.add_annotation("aparc.a2009s")
 brain.add_sensors(epochs.info, trans=trans)
 brain.show_view(distance=500, **view_kwargs)
 
 # %%
 # Let's also show the sensors on a flat brain.
-brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
-                      surf='flat', background='black')
-brain.add_annotation('aparc.a2009s')
+brain = mne.viz.Brain(
+    "fsaverage", subjects_dir=subjects_dir, surf="flat", background="black"
+)
+brain.add_annotation("aparc.a2009s")
 brain.add_sensors(epochs.info, trans=trans)
 
 # %%
 # Let's also look at which regions of interest are nearby our electrode
 # contacts.
 
-aseg = 'aparc+aseg'  # parcellation/anatomical segmentation atlas
+aseg = "aparc+aseg"  # parcellation/anatomical segmentation atlas
 labels, colors = mne.get_montage_volume_labels(
-    montage, 'fsaverage', subjects_dir=subjects_dir, aseg=aseg)
+    montage, "fsaverage", subjects_dir=subjects_dir, aseg=aseg
+)
 
 # separate by electrodes which have names like LAMY 1
-electrodes = set([''.join([lttr for lttr in ch_name
-                           if not lttr.isdigit() and lttr != ' '])
-                  for ch_name in montage.ch_names])
-print(f'Electrodes in the dataset: {electrodes}')
+electrodes = set(
+    [
+        "".join([lttr for lttr in ch_name if not lttr.isdigit() and lttr != " "])
+        for ch_name in montage.ch_names
+    ]
+)
+print(f"Electrodes in the dataset: {electrodes}")
 
-electrodes = ('LPM', 'LSMA')  # choose two for this example
+electrodes = ("LPM", "LSMA")  # choose two for this example
 for elec in electrodes:
     picks = [ch_name for ch_name in epochs.ch_names if elec in ch_name]
     fig, ax = mne.viz.plot_channel_labels_circle(labels, colors, picks=picks)
-    fig.text(0.3, 0.9, 'Anatomical Labels', color='white')
+    fig.text(0.3, 0.9, "Anatomical Labels", color="white")
 
 # %%
 # Now, let's the electrodes and a few regions of interest that the contacts
 # of the electrode are proximal to.
 
-picks = [ii for ii, ch_name in enumerate(epochs.ch_names) if
-         any([elec in ch_name for elec in electrodes])]
-labels = ('ctx-lh-caudalmiddlefrontal', 'ctx-lh-precentral',
-          'ctx-lh-superiorfrontal', 'Left-Putamen')
+picks = [
+    ii
+    for ii, ch_name in enumerate(epochs.ch_names)
+    if any([elec in ch_name for elec in electrodes])
+]
+labels = (
+    "ctx-lh-caudalmiddlefrontal",
+    "ctx-lh-precentral",
+    "ctx-lh-superiorfrontal",
+    "Left-Putamen",
+)
 
-fig = mne.viz.plot_alignment(mne.pick_info(epochs.info, picks), trans,
-                             'fsaverage', subjects_dir=subjects_dir,
-                             surfaces=[], coord_frame='mri')
+fig = mne.viz.plot_alignment(
+    mne.pick_info(epochs.info, picks),
+    trans,
+    "fsaverage",
+    subjects_dir=subjects_dir,
+    surfaces=[],
+    coord_frame="mri",
+)
 
-brain = mne.viz.Brain('fsaverage', alpha=0.1, cortex='low_contrast',
-                      subjects_dir=subjects_dir, units='m', figure=fig)
-brain.add_volume_labels(aseg='aparc+aseg', labels=labels)
+brain = mne.viz.Brain(
+    "fsaverage",
+    alpha=0.1,
+    cortex="low_contrast",
+    subjects_dir=subjects_dir,
+    units="m",
+    figure=fig,
+)
+brain.add_volume_labels(aseg="aparc+aseg", labels=labels)
 brain.show_view(azimuth=120, elevation=90, distance=0.25)
 
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.
 
-epochs.plot()
+epochs.plot(events=True)
 
 # %%
 # We can visualize this raw data on the ``fsaverage`` brain (in MNI space) as
@@ -179,16 +207,15 @@ epochs.plot()
 # to visualize source activity on the brain in various different formats.
 
 # get standard fsaverage volume (5mm grid) source space
-fname_src = (subjects_dir / 'fsaverage' / 'bem' /
-             'fsaverage-vol-5-src.fif')
+fname_src = subjects_dir / "fsaverage" / "bem" / "fsaverage-vol-5-src.fif"
 vol_src = mne.read_source_spaces(fname_src)
 
 evoked = epochs.average()
 stc = mne.stc_near_sensors(
-    evoked, trans, 'fsaverage', subjects_dir=subjects_dir, src=vol_src,
-    verbose='error')  # ignore missing electrode warnings
+    evoked, trans, "fsaverage", subjects_dir=subjects_dir, src=vol_src, verbose="error"
+)  # ignore missing electrode warnings
 stc = abs(stc)  # just look at magnitude
-clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
+clim = dict(kind="value", lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 
 # %%
 # Plot 3D source (brain region) visualization:
@@ -201,10 +228,15 @@ clim = dict(kind='value', lims=np.percentile(abs(evoked.data), [10, 50, 75]))
 # sphinx_gallery_thumbnail_number = 6
 
 brain = stc.plot_3d(
-    src=vol_src, subjects_dir=subjects_dir,
-    view_layout='horizontal', views=['axial', 'coronal', 'sagittal'],
-    size=(800, 300), show_traces=0.4, clim=clim,
-    add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)))
+    src=vol_src,
+    subjects_dir=subjects_dir,
+    view_layout="horizontal",
+    views=["axial", "coronal", "sagittal"],
+    size=(800, 300),
+    show_traces=0.4,
+    clim=clim,
+    add_data_kwargs=dict(colorbar_kwargs=dict(label_font_size=8)),
+)
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=3, interpolation='linear', framerate=5,

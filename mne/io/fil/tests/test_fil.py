@@ -2,10 +2,13 @@
 #
 # License: BSD-3-Clause
 
-from numpy import isnan, empty
+from numpy import isnan, empty, array
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from os import remove
 
 import pytest
+import shutil
+
 
 from mne.datasets import testing
 from mne.io import read_raw_fil
@@ -15,31 +18,33 @@ from mne.io.pick import pick_types
 import scipy.io
 
 
-fil_path = testing.data_path(download=False) / 'FIL'
+fil_path = testing.data_path(download=False) / "FIL"
 
 
 # TODO: Ignore this warning in all these tests until we deal with this properly
 pytestmark = pytest.mark.filterwarnings(
-    'ignore:.*problems later!:RuntimeWarning',
+    "ignore:.*problems later!:RuntimeWarning",
 )
 
 
 def unpack_mat(matin):
     """Extract relevant entries from unstructred readmat."""
-    data = matin['data']
-    grad = data[0][0]['grad']
+    data = matin["data"]
+    grad = data[0][0]["grad"]
     label = list()
     coil_label = list()
-    for ii in range(len(data[0][0]['label'])):
-        label.append(str(data[0][0]['label'][ii][0][0]))
-    for ii in range(len(grad[0][0]['label'])):
-        coil_label.append(str(grad[0][0]['label'][ii][0][0]))
+    for ii in range(len(data[0][0]["label"])):
+        label.append(str(data[0][0]["label"][ii][0][0]))
+    for ii in range(len(grad[0][0]["label"])):
+        coil_label.append(str(grad[0][0]["label"][ii][0][0]))
 
-    matout = {'label': label,
-              'trial': data['trial'][0][0][0][0],
-              'coil_label': coil_label,
-              'coil_pos': grad[0][0]['coilpos'],
-              'coil_ori': grad[0][0]['coilori']}
+    matout = {
+        "label": label,
+        "trial": data["trial"][0][0][0][0],
+        "coil_label": coil_label,
+        "coil_pos": grad[0][0]["coilpos"],
+        "coil_ori": grad[0][0]["coilori"],
+    }
     return matout
 
 
@@ -65,8 +70,7 @@ def _get_channels_with_positions(info):
 
 def _fil_megmag(raw_test, raw_mat):
     """Test the magnetometer channels."""
-    test_inds = pick_types(raw_test.info, meg="mag",
-                           ref_meg=False, exclude="bads")
+    test_inds = pick_types(raw_test.info, meg="mag", ref_meg=False, exclude="bads")
     test_list = list(raw_test.info["ch_names"][i] for i in test_inds)
     mat_list = raw_mat["label"]
     mat_inds = _match_str(test_list, mat_list)
@@ -126,12 +130,10 @@ def _fil_sensorpos(raw_test, raw_mat):
 
 
 @testing.requires_testing_data
-def test_fil_all():
+def test_fil_complete():
     """Test FIL reader, match to known answers from .mat file."""
     binname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
-    matname = (
-        fil_path / "sub-noise_ses-001_task-noise220622_run-001_fieldtrip.mat"
-    )
+    matname = fil_path / "sub-noise_ses-001_task-noise220622_run-001_fieldtrip.mat"
 
     raw = read_raw_fil(binname)
     raw.load_data(verbose=False)
@@ -141,3 +143,21 @@ def test_fil_all():
     _fil_megmag(raw, mat)
     _fil_stim(raw, mat)
     _fil_sensorpos(raw, mat)
+
+
+@testing.requires_testing_data
+def test_fil_no_positions(tmp_path):
+    """Test FIL reader in cases where a position file is missing."""
+    test_path = tmp_path / "FIL"
+    shutil.copytree(fil_path, test_path)
+
+    posname = test_path / "sub-noise_ses-001_task-noise220622_run-001_positions.tsv"
+    binname = test_path / "sub-noise_ses-001_task-noise220622_run-001_meg.bin"
+
+    remove(posname)
+
+    with pytest.warns(RuntimeWarning, match="No sensor position.*"):
+        raw = read_raw_fil(binname)
+    chs = raw.info["chs"]
+    locs = array([ch["loc"][:] for ch in chs])
+    assert isnan(locs).all()

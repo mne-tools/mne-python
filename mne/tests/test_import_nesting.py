@@ -47,6 +47,7 @@ exit(len(out))
 
 def test_module_nesting():
     """Test that module imports are properly nested."""
-    stdout, stderr, code = run_subprocess([sys.executable, '-c', run_script],
-                                          return_code=True)
+    stdout, stderr, code = run_subprocess(
+        [sys.executable, "-c", run_script], return_code=True
+    )
     assert code == 0, stdout + stderr

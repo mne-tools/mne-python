@@ -1,0 +1,52 @@
+[tool.codespell]
+ignore-words = "ignore_words.txt"
+builtin = "clear,rare,informal,names,usage"
+skip = "doc/references.bib"
+
+[tool.ruff]
+select = ["E", "F", "W", "D"]
+exclude = ["__init__.py", "constants.py", "fixes.py", "resources.py"]
+ignore = [
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D413", # Missing blank line after last section
+]
+
+[tool.ruff.pydocstyle]
+convention = "numpy"
+ignore-decorators = [
+    "property",
+    "setter",
+    "mne.utils.copy_function_doc_to_method_doc",
+    "mne.utils.copy_doc",
+    "mne.utils.deprecated"
+]
+
+[tool.ruff.per-file-ignores]
+"tutorials/time-freq/10_spectrum_class.py" = [
+    "E501" # line too long
+]
+"mne/datasets/*/*.py" = [
+    "D103", # Missing docstring in public function
+]
+"mne/utils/tests/test_docs.py" = [
+    "D101", # Missing docstring in public class
+    "D410", # Missing blank line after section
+    "D411", # Missing blank line before section
+    "D414", # Section has no content
+]
+"examples/*/*.py" = [
+    "D205", # 1 blank line required between summary line and description
+]
+
+[tool.pytest.ini_options]
+addopts = """--durations=20 --doctest-modules -ra --cov-report= --tb=short \
+    --doctest-ignore-import-errors --junit-xml=junit-results.xml \
+    --ignore=doc --ignore=logo --ignore=examples --ignore=tutorials \
+    --ignore=mne/gui/_*.py --ignore=mne/icons --ignore=tools \
+    --ignore=mne/report/js_and_css \
+    --color=yes --capture=sys"""
+junit_family = "xunit2"
+
+[tool.black]
+exclude = "(dist/)|(build/)|(.*\\.ipynb)"

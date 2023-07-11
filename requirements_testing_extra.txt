@@ -5,4 +5,5 @@ sphinx-gallery
 eeglabio
 EDFlib-Python
 pybv
-imageio-ffmpeg
+imageio>=2.6.1
+imageio-ffmpeg>=0.4.1

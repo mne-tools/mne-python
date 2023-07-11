@@ -19,13 +19,19 @@ import mne
 data_path = mne.datasets.sample.data_path()
 
 raw_erm = mne.io.read_raw_fif(
-    data_path / 'MEG' / 'sample' / 'ernoise_raw.fif', preload=True
+    data_path / "MEG" / "sample" / "ernoise_raw.fif", preload=True
 )
 
 # %%
 # We can plot the absolute noise levels:
-raw_erm.compute_psd(tmax=10).plot(average=True, spatial_colors=False,
-                                  dB=False, xscale='log')
+raw_erm.compute_psd(tmax=10).plot(
+    average=True,
+    spatial_colors=False,
+    dB=False,
+    xscale="log",
+    picks="data",
+    exclude="bads",
+)
 # %%
 # References
 # ----------

@@ -112,7 +112,7 @@ print(limo_epochs.metadata.head())
 # metadata.
 
 # We want include all columns in the summary table
-epochs_summary = limo_epochs.metadata.describe(include='all').round(3)
+epochs_summary = limo_epochs.metadata.describe(include="all").round(3)
 print(epochs_summary)
 
 # %%
@@ -137,13 +137,13 @@ print(epochs_summary)
 ts_args = dict(xlim=(-0.25, 0.5))
 
 # plot evoked response for face A
-limo_epochs['Face/A'].average().plot_joint(times=[0.15],
-                                           title='Evoked response: Face A',
-                                           ts_args=ts_args)
+limo_epochs["Face/A"].average().plot_joint(
+    times=[0.15], title="Evoked response: Face A", ts_args=ts_args
+)
 # and face B
-limo_epochs['Face/B'].average().plot_joint(times=[0.15],
-                                           title='Evoked response: Face B',
-                                           ts_args=ts_args)
+limo_epochs["Face/B"].average().plot_joint(
+    times=[0.15], title="Evoked response: Face B", ts_args=ts_args
+)
 
 # %%
 # We can also compute the difference wave contrasting Face A and Face B.
@@ -151,12 +151,12 @@ limo_epochs['Face/B'].average().plot_joint(times=[0.15],
 # differences among these face-stimuli.
 
 # Face A minus Face B
-difference_wave = combine_evoked([limo_epochs['Face/A'].average(),
-                                  limo_epochs['Face/B'].average()],
-                                 weights=[1, -1])
+difference_wave = combine_evoked(
+    [limo_epochs["Face/A"].average(), limo_epochs["Face/B"].average()], weights=[1, -1]
+)
 
 # plot difference wave
-difference_wave.plot_joint(times=[0.15], title='Difference Face A - Face B')
+difference_wave.plot_joint(times=[0.15], title="Difference Face A - Face B")
 
 # %%
 # As expected, no clear pattern appears when contrasting
@@ -167,11 +167,10 @@ difference_wave.plot_joint(times=[0.15], title='Difference Face A - Face B')
 
 # Create a dictionary containing the evoked responses
 conditions = ["Face/A", "Face/B"]
-evokeds = {condition: limo_epochs[condition].average()
-           for condition in conditions}
+evokeds = {condition: limo_epochs[condition].average() for condition in conditions}
 
 # concentrate analysis an occipital electrodes (e.g. B11)
-pick = evokeds["Face/A"].ch_names.index('B11')
+pick = evokeds["Face/A"].ch_names.index("B11")
 
 # compare evoked responses
 plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 7.5)))
@@ -188,26 +187,30 @@ plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 7.5)))
 # one could expect that faces with high phase-coherence should evoke stronger
 # activation patterns along occipital electrodes.
 
-phase_coh = limo_epochs.metadata['phase-coherence']
+phase_coh = limo_epochs.metadata["phase-coherence"]
 # get levels of phase coherence
 levels = sorted(phase_coh.unique())
 # create labels for levels of phase coherence (i.e., 0 - 85%)
-labels = ["{0:.2f}".format(i) for i in np.arange(0., 0.90, 0.05)]
+labels = ["{0:.2f}".format(i) for i in np.arange(0.0, 0.90, 0.05)]
 
 # create dict of evokeds for each level of phase-coherence
-evokeds = {label: limo_epochs[phase_coh == level].average()
-           for level, label in zip(levels, labels)}
+evokeds = {
+    label: limo_epochs[phase_coh == level].average()
+    for level, label in zip(levels, labels)
+}
 
 # pick channel to plot
-electrodes = ['C22', 'B11']
+electrodes = ["C22", "B11"]
 # create figures
 for electrode in electrodes:
     fig, ax = plt.subplots(figsize=(8, 4))
-    plot_compare_evokeds(evokeds,
-                         axes=ax,
-                         ylim=dict(eeg=(-20, 15)),
-                         picks=electrode,
-                         cmap=("Phase coherence", "magma"))
+    plot_compare_evokeds(
+        evokeds,
+        axes=ax,
+        ylim=dict(eeg=(-20, 15)),
+        picks=electrode,
+        cmap=("Phase coherence", "magma"),
+    )
 
 # %%
 # As shown above, there are some considerable differences between the
@@ -225,7 +228,7 @@ for electrode in electrodes:
 # present in the data:
 
 limo_epochs.interpolate_bads(reset_bads=True)
-limo_epochs.drop_channels(['EXG1', 'EXG2', 'EXG3', 'EXG4'])
+limo_epochs.drop_channels(["EXG1", "EXG2", "EXG3", "EXG4"])
 
 # %%
 # Define predictor variables and design matrix
@@ -238,21 +241,19 @@ limo_epochs.drop_channels(['EXG1', 'EXG2', 'EXG3', 'EXG4'])
 # ``limo_epochs.metadata``: phase-coherence and Face A vs. Face B.
 
 # name of predictors + intercept
-predictor_vars = ['face a - face b', 'phase-coherence', 'intercept']
+predictor_vars = ["face a - face b", "phase-coherence", "intercept"]
 
 # create design matrix
-design = limo_epochs.metadata[['phase-coherence', 'face']].copy()
-design['face a - face b'] = np.where(design['face'] == 'A', 1, -1)
-design['intercept'] = 1
+design = limo_epochs.metadata[["phase-coherence", "face"]].copy()
+design["face a - face b"] = np.where(design["face"] == "A", 1, -1)
+design["intercept"] = 1
 design = design[predictor_vars]
 
 # %%
 # Now we can set up the linear model to be used in the analysis using
 # MNE-Python's func:`~mne.stats.linear_regression` function.
 
-reg = linear_regression(limo_epochs,
-                        design_matrix=design,
-                        names=predictor_vars)
+reg = linear_regression(limo_epochs, design_matrix=design, names=predictor_vars)
 
 # %%
 # Extract regression coefficients
@@ -262,8 +263,8 @@ reg = linear_regression(limo_epochs,
 # which is a dictionary of evoked objects containing
 # multiple inferential measures for each predictor in the design matrix.
 
-print('predictors are:', list(reg))
-print('fields are:', [field for field in getattr(reg['intercept'], '_fields')])
+print("predictors are:", list(reg))
+print("fields are:", [field for field in getattr(reg["intercept"], "_fields")])
 
 # %%
 # Plot model results
@@ -279,25 +280,23 @@ print('fields are:', [field for field in getattr(reg['intercept'], '_fields')])
 # the activity measured at occipital electrodes around 200 to 250 ms following
 # stimulus onset.
 
-reg['phase-coherence'].beta.plot_joint(ts_args=ts_args,
-                                       title='Effect of Phase-coherence',
-                                       times=[0.23])
+reg["phase-coherence"].beta.plot_joint(
+    ts_args=ts_args, title="Effect of Phase-coherence", times=[0.23]
+)
 
 # %%
 # We can also plot the corresponding T values.
 
 # use unit=False and scale=1 to keep values at their original
 # scale (i.e., avoid conversion to micro-volt).
-ts_args = dict(xlim=(-0.25, 0.5),
-               unit=False)
-topomap_args = dict(scalings=dict(eeg=1),
-                    average=0.05)
+ts_args = dict(xlim=(-0.25, 0.5), unit=False)
+topomap_args = dict(scalings=dict(eeg=1), average=0.05)
 
 # sphinx_gallery_thumbnail_number = 9
-fig = reg['phase-coherence'].t_val.plot_joint(ts_args=ts_args,
-                                              topomap_args=topomap_args,
-                                              times=[0.23])
-fig.axes[0].set_ylabel('T-value')
+fig = reg["phase-coherence"].t_val.plot_joint(
+    ts_args=ts_args, topomap_args=topomap_args, times=[0.23]
+)
+fig.axes[0].set_ylabel("T-value")
 
 # %%
 # Conversely, there appears to be no (or very small) systematic effects when
@@ -305,9 +304,9 @@ fig.axes[0].set_ylabel('T-value')
 # difference wave approach presented above.
 ts_args = dict(xlim=(-0.25, 0.5))
 
-reg['face a - face b'].beta.plot_joint(ts_args=ts_args,
-                                       title='Effect of Face A vs. Face B',
-                                       times=[0.23])
+reg["face a - face b"].beta.plot_joint(
+    ts_args=ts_args, title="Effect of Face A vs. Face B", times=[0.23]
+)
 
 # %%
 # References

@@ -10,15 +10,14 @@ from ...utils import warn
 class _LinkViewer:
     """Class to link multiple Brain objects."""
 
-    def __init__(self, brains, time=True, camera=False, colorbar=True,
-                 picking=False):
+    def __init__(self, brains, time=True, camera=False, colorbar=True, picking=False):
         self.brains = brains
         self.leader = self.brains[0]  # select a brain as leader
 
         # check time infos
         times = [brain._times for brain in brains]
         if time and not all(np.allclose(x, times[0]) for x in times):
-            warn('stc.times do not match, not linking time')
+            warn("stc.times do not match, not linking time")
             time = False
 
         if camera:
@@ -51,11 +50,13 @@ class _LinkViewer:
             def _time_func(*args, **kwargs):
                 for brain in self.brains:
                     brain.callbacks["time"](*args, **kwargs)
+
             for brain in self.brains:
                 if brain.show_traces:
                     brain.mpl_canvas.time_func = _time_func
 
         if picking:
+
             def _func_add(*args, **kwargs):
                 for brain in self.brains:
                     brain._add_vertex_glyph2(*args, **kwargs)
@@ -67,11 +68,10 @@ class _LinkViewer:
 
             # save initial picked points
             initial_points = dict()
-            for hemi in ('lh', 'rh'):
+            for hemi in ("lh", "rh"):
                 initial_points[hemi] = set()
                 for brain in self.brains:
-                    initial_points[hemi] |= \
-                        set(brain.picked_points[hemi])
+                    initial_points[hemi] |= set(brain.picked_points[hemi])
 
             # link the viewers
             for brain in self.brains:
@@ -96,12 +96,10 @@ class _LinkViewer:
                 brain.callbacks["fmin"](fmin)
                 brain.callbacks["fmid"](fmid)
                 brain.callbacks["fmax"](fmax)
-            for name in ('fmin', 'fmid', 'fmax'):
+            for name in ("fmin", "fmid", "fmax"):
                 func = getattr(self, "set_" + name)
                 self.link_widgets(
-                    name=name,
-                    callback=func,
-                    signal_type="floatValueChanged"
+                    name=name, callback=func, signal_type="floatValueChanged"
                 )
 
     def set_fmin(self, value):

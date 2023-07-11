@@ -54,8 +54,8 @@ print(info)
 # as type "misc" (where it says ``chs: 32 MISC``). You can assign the channel
 # type when initializing the `~mne.Info` object if you want:
 
-ch_names = [f'MEG{n:03}' for n in range(1, 10)] + ['EOG001']
-ch_types = ['mag', 'grad', 'grad'] * 3 + ['eog']
+ch_names = [f"MEG{n:03}" for n in range(1, 10)] + ["EOG001"]
+ch_types = ["mag", "grad", "grad"] * 3 + ["eog"]
 info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
 print(info)
 
@@ -64,10 +64,10 @@ print(info)
 # spatial locations can be automatically added using the
 # `~mne.Info.set_montage` method:
 
-ch_names = ['Fp1', 'Fp2', 'Fz', 'Cz', 'Pz', 'O1', 'O2']
-ch_types = ['eeg'] * 7
+ch_names = ["Fp1", "Fp2", "Fz", "Cz", "Pz", "O1", "O2"]
+ch_types = ["eeg"] * 7
 info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
-info.set_montage('standard_1020')
+info.set_montage("standard_1020")
 
 # %%
 # .. admonition:: Info consistency
@@ -88,8 +88,8 @@ info.set_montage('standard_1020')
 # Additional fields can be added in the same way that Python dictionaries are
 # modified, using square-bracket key assignment:
 
-info['description'] = 'My custom dataset'
-info['bads'] = ['O1']  # Names of bad channels
+info["description"] = "My custom dataset"
+info["bads"] = ["O1"]  # Names of bad channels
 print(info)
 
 # %%
@@ -118,9 +118,9 @@ sine = np.sin(20 * np.pi * times)
 cosine = np.cos(10 * np.pi * times)
 data = np.array([sine, cosine])
 
-info = mne.create_info(ch_names=['10 Hz sine', '5 Hz cosine'],
-                       ch_types=['misc'] * 2,
-                       sfreq=sampling_freq)
+info = mne.create_info(
+    ch_names=["10 Hz sine", "5 Hz cosine"], ch_types=["misc"] * 2, sfreq=sampling_freq
+)
 
 simulated_raw = mne.io.RawArray(data, info)
 simulated_raw.plot(show_scrollbars=False, show_scalebars=False)
@@ -137,14 +137,18 @@ simulated_raw.plot(show_scrollbars=False, show_scalebars=False)
 # Notice that we have to pass ``picks='misc'`` to the `~mne.Epochs.plot`
 # method, because by default it only plots :term:`data channels`.
 
-data = np.array([[0.2 * sine, 1.0 * cosine],
-                 [0.4 * sine, 0.8 * cosine],
-                 [0.6 * sine, 0.6 * cosine],
-                 [0.8 * sine, 0.4 * cosine],
-                 [1.0 * sine, 0.2 * cosine]])
+data = np.array(
+    [
+        [0.2 * sine, 1.0 * cosine],
+        [0.4 * sine, 0.8 * cosine],
+        [0.6 * sine, 0.6 * cosine],
+        [0.8 * sine, 0.4 * cosine],
+        [1.0 * sine, 0.2 * cosine],
+    ]
+)
 
 simulated_epochs = mne.EpochsArray(data, info)
-simulated_epochs.plot(picks='misc', show_scrollbars=False)
+simulated_epochs.plot(picks="misc", show_scrollbars=False, events=True)
 
 # %%
 # Since we did not supply an events array, the `~mne.EpochsArray` constructor
@@ -161,14 +165,20 @@ print(simulated_epochs.events[:, -1])
 # land in the middle of each epoch (the events are always placed at time=0 in
 # each epoch).
 
-events = np.column_stack((np.arange(0, 1000, sampling_freq),
-                          np.zeros(5, dtype=int),
-                          np.array([1, 2, 1, 2, 1])))
+events = np.column_stack(
+    (
+        np.arange(0, 1000, sampling_freq),
+        np.zeros(5, dtype=int),
+        np.array([1, 2, 1, 2, 1]),
+    )
+)
 event_dict = dict(condition_A=1, condition_B=2)
-simulated_epochs = mne.EpochsArray(data, info, tmin=-0.5, events=events,
-                                   event_id=event_dict)
-simulated_epochs.plot(picks='misc', show_scrollbars=False, events=events,
-                      event_id=event_dict)
+simulated_epochs = mne.EpochsArray(
+    data, info, tmin=-0.5, events=events, event_id=event_dict
+)
+simulated_epochs.plot(
+    picks="misc", show_scrollbars=False, events=events, event_id=event_dict
+)
 
 # %%
 # You could also create simulated epochs by using the normal `~mne.Epochs`
@@ -190,8 +200,9 @@ simulated_epochs.plot(picks='misc', show_scrollbars=False, events=events,
 # NumPy array and use the resulting averaged data to make our `~mne.Evoked`.
 
 # Create the Evoked object
-evoked_array = mne.EvokedArray(data.mean(axis=0), info, tmin=-0.5,
-                               nave=data.shape[0], comment='simulated')
+evoked_array = mne.EvokedArray(
+    data.mean(axis=0), info, tmin=-0.5, nave=data.shape[0], comment="simulated"
+)
 print(evoked_array)
 evoked_array.plot()
 
@@ -208,7 +219,8 @@ evoked_array.plot()
 # compute power spectrum
 
 psd, freqs = mne.time_frequency.psd_array_welch(
-    data, info['sfreq'], n_fft=128, n_per_seg=32)
+    data, info["sfreq"], n_fft=128, n_per_seg=32
+)
 
 psd_ave = psd.mean(0)
 
@@ -218,26 +230,33 @@ psd_ave = psd.mean(0)
 def spectrum_from_array(
     data: np.ndarray,  # spectral features
     freqs: np.ndarray,  # frequencies
-    inst_info: mne.Info  # the meta data of MNE instance
+    inst_info: mne.Info,  # the meta data of MNE instance
 ) -> mne.time_frequency.Spectrum:  # Spectrum object
     """Create MNE averaged power spectrum object from custom data"""
     state = dict(
-        method='my_welch',
+        method="my_welch",
         data=data,
-        sfreq=inst_info['sfreq'],
-        dims=('channel', 'freq'),
+        sfreq=inst_info["sfreq"],
+        dims=("channel", "freq"),
         freqs=freqs,
-        inst_type_str='Raw',
-        data_type='Averaged Power Spectrum',
+        inst_type_str="Raw",
+        data_type="Averaged Power Spectrum",
         info=inst_info,
     )
     defaults = dict(
-        method=None, fmin=None, fmax=None, tmin=None, tmax=None,
-        picks=None, proj=None, reject_by_annotation=None, n_jobs=None,
-        verbose=None
+        method=None,
+        fmin=None,
+        fmax=None,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=None,
+        reject_by_annotation=None,
+        n_jobs=None,
+        verbose=None,
     )
     return mne.time_frequency.Spectrum(state, **defaults)
 
 
 spectrum = spectrum_from_array(data=psd_ave, freqs=freqs, inst_info=info)
-spectrum.plot(picks=[0, 1], spatial_colors=False)
+spectrum.plot(picks=[0, 1], spatial_colors=False, exclude="bads")
