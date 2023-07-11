@@ -1,4 +1,4 @@
-# Author: Porloy Das <pdas6@mgh.harvard.edu>
+# Author: Proloy Das <pdas6@mgh.harvard.edu>
 #
 # License: BSD-3-Clause
 import os
