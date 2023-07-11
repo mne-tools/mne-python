@@ -3,40 +3,43 @@
 # License: BSD-3-Clause
 import os
 from datetime import datetime, timezone
-from warnings import warn
 
 import numpy as np
 
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..base import BaseRaw
+from ..base import BaseRaw, _get_scaling
 from ..utils import _read_segments_file
 
 from ...annotations import Annotations
-from ...utils import logger, fill_doc
+from ...utils import logger, fill_doc, warn
 
 
 # common channel type names mapped to internal ch types
+# CH_TYPE_MAPPING = {
+#     "EEG": FIFF.FIFFV_EEG_CH,
+#     "SEEG": FIFF.FIFFV_SEEG_CH,
+#     "CC": FIFF.FIFFV_SEEG_CH,
+#     "ECOG": FIFF.FIFFV_ECOG_CH,
+#     "DBS": FIFF.FIFFV_DBS_CH,
+#     "EOG": FIFF.FIFFV_EOG_CH,
+#     "ECG": FIFF.FIFFV_ECG_CH,
+#     "EMG": FIFF.FIFFV_EMG_CH,
+#     "BIO": FIFF.FIFFV_BIO_CH,
+#     "RESP": FIFF.FIFFV_RESP_CH,
+#     "TEMP": FIFF.FIFFV_TEMPERATURE_CH,
+#     "MISC": FIFF.FIFFV_MISC_CH,
+#     "SAO2": FIFF.FIFFV_BIO_CH,
+# }
+
 CH_TYPE_MAPPING = {
-    "EEG": FIFF.FIFFV_EEG_CH,
-    "SEEG": FIFF.FIFFV_SEEG_CH,
-    "CC": FIFF.FIFFV_SEEG_CH,
-    "ECOG": FIFF.FIFFV_ECOG_CH,
-    "DBS": FIFF.FIFFV_DBS_CH,
-    "EOG": FIFF.FIFFV_EOG_CH,
-    "ECG": FIFF.FIFFV_ECG_CH,
-    "EMG": FIFF.FIFFV_EMG_CH,
-    "BIO": FIFF.FIFFV_BIO_CH,
-    "RESP": FIFF.FIFFV_RESP_CH,
-    "TEMP": FIFF.FIFFV_TEMPERATURE_CH,
-    "MISC": FIFF.FIFFV_MISC_CH,
-    "SAO2": FIFF.FIFFV_BIO_CH,
+    "CC": "SEEG",
 }
+
 
 DATA_BYTE_SIZE = 2
 ORIG_FORMAT = "short"
 
-_unit_range_dict = {"V": 1, "µV": 1e-6, "uV": 1e-6, "mV": 1e-3}  # V stands for Volt
 
 nsx_header_dict = {
     "basic": [
@@ -290,23 +293,8 @@ def _read_header(fname):
             "('NEURALCD', 'BRSMPGRP')"
         )
 
-    try:
-        time_origin = datetime(
-            *[
-                basic_header[xx]
-                for xx in (
-                    "year",
-                    "month",
-                    "day",
-                    "hour",
-                    "minute",
-                    "second",
-                    "millisecond",
-                )
-            ],
-            tzinfo=timezone.utc,
-        )
-        [
+    time_origin = datetime(
+        *[
             basic_header.pop(xx)
             for xx in (
                 "year",
@@ -317,9 +305,9 @@ def _read_header(fname):
                 "second",
                 "millisecond",
             )
-        ]
-    except KeyError:
-        time_origin = None
+        ],
+        tzinfo=timezone.utc,
+    )
     basic_header["meas_date"] = time_origin
     return basic_header
 
@@ -409,41 +397,33 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
     chs = list()
     pick_mask = np.ones(len(ch_names))
 
-    chs_without_types = list()
     orig_units = {}
-
     for idx, ch_name in enumerate(ch_names):
         chan_info = {}
         chan_info["logno"] = int(nsx_info["extended"]["electrode_id"][idx])
         chan_info["scanno"] = int(nsx_info["extended"]["electrode_id"][idx])
         chan_info["ch_name"] = ch_name
+        chan_info["unit_mul"] = FIFF.FIFF_UNITM_NONE
         ch_unit = ch_units[idx]
-        if ch_unit == "":
-            chan_info["unit_mul"] = FIFF.FIFF_UNITM_NONE
-            chan_info["unit"] = FIFF.FIFF_UNIT_UNITLESS
-            chan_info["range"] = 1
-        else:
-            chan_info["unit_mul"] = FIFF.FIFF_UNITM_NONE
-            chan_info["unit"] = FIFF.FIFF_UNIT_V
-            chan_info["range"] = _unit_range_dict[ch_units[idx]]
+        chan_info["unit"] = FIFF.FIFF_UNIT_V
+        # chan_info["range"] = _unit_range_dict[ch_units[idx]]
+        chan_info["range"] = 1 / _get_scaling("eeg", ch_units[idx])
         chan_info["cal"] = cals[idx]
         chan_info["coord_frame"] = FIFF.FIFFV_COORD_HEAD
         chan_info["coil_type"] = FIFF.FIFFV_COIL_EEG
-        chan_info["kind"] = FIFF.FIFFV_EEG_CH
+        chan_info["kind"] = FIFF.FIFFV_SEEG_CH
         # montage can't be stored in NSx so channel locs are unknown:
         chan_info["loc"] = np.full(12, np.nan)
         orig_units[ch_name] = ch_unit
 
         # if the NSx info contained channel type information
-        # set it now
+        # set it now. They are always set to 'CC'.
+        # If not inferable, set it to 'SEEG' with a warning.
         ch_type = ch_types[idx]
-        if ch_type is not None and ch_type in CH_TYPE_MAPPING:
-            chan_info["kind"] = CH_TYPE_MAPPING.get(ch_type)
-            if ch_type not in ["EEG", "ECOG", "SEEG", "DBS", "CC"]:
-                chan_info["coil_type"] = FIFF.FIFFV_COIL_NONE
-                pick_mask[idx] = False
+        ch_const = getattr(FIFF, f"FIFFV_{CH_TYPE_MAPPING.get(ch_type, 'SEEG')}_CH")
+        chan_info["kind"] = ch_const
         # if user passes in explicit mapping for eog, misc and stim
-        # channels set them here
+        # channels set them here.
         if ch_name in eog or idx in eog or idx - nchan in eog:
             chan_info["coil_type"] = FIFF.FIFFV_COIL_NONE
             chan_info["kind"] = FIFF.FIFFV_EOG_CH
@@ -459,17 +439,7 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
             pick_mask[idx] = False
             chan_info["ch_name"] = ch_name
             ch_names[idx] = chan_info["ch_name"]
-        elif ch_type not in CH_TYPE_MAPPING:
-            chs_without_types.append(ch_name)
         chs.append(chan_info)
-
-    # warn if channel type was not inferable
-    if len(chs_without_types):
-        msg = (
-            "Could not determine channel type of the following channels, "
-            f'they will be set as EEG:\n{", ".join(chs_without_types)}'
-        )
-        logger.info(msg)
 
     sfreq = nsx_info["timestamp_resolution"] / nsx_info["period"]
     info = _empty_info(sfreq)
@@ -585,9 +555,6 @@ def _check_stim_channel(stim_channel, ch_names):
     ch_names_low = [ch.lower() for ch in ch_names]
     found = list(set(valid_stim_ch_names) & set(ch_names_low))
 
-    if not found:
-        return [], []
-    else:
-        stim_channel_idxs = [ch_names_low.index(f) for f in found]
-        names = [ch_names[idx] for idx in stim_channel_idxs]
-        return stim_channel_idxs, names
+    stim_channel_idxs = [ch_names_low.index(f) for f in found]
+    names = [ch_names[idx] for idx in stim_channel_idxs]
+    return stim_channel_idxs, names
