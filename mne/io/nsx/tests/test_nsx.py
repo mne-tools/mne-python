@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 
 from mne.io import read_raw_nsx
+from mne.io.nsx.nsx import _decode_online_filters
+from mne.io.meas_info import _empty_info
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.constants import FIFF
@@ -17,6 +19,30 @@ testing_path = data_path(download=False)
 nsx_21_fname = os.path.join(testing_path, "nsx", "test_NEURALSG_raw.ns3")
 nsx_22_fname = os.path.join(testing_path, "nsx", "test_NEURALCD_raw.ns3")
 nsx_31_fname = os.path.join(testing_path, "nsx", "test_BRSMPGRP_raw.ns3")
+
+
+def test_decode_online_filters():
+    """Tests for online low/high-pass filter decoding."""
+    info = _empty_info(100.0)
+    highpass = np.array([0.0, 0.1])
+    lowpass = np.array([50, 50])
+    with pytest.raises(RuntimeWarning, match="different highpass filters"):
+        _decode_online_filters(info, highpass, lowpass)
+    assert info["highpass"] == 0.1
+
+    info = _empty_info(100.0)
+    highpass = np.array([0.0, 0.0])
+    lowpass = np.array([40, 50])
+    with pytest.raises(RuntimeWarning, match="different lowpass filters"):
+        _decode_online_filters(info, highpass, lowpass)
+    assert info["lowpass"] == 40
+
+    info = _empty_info(100.0)
+    highpass = np.array(["NaN", "NaN"])
+    lowpass = np.array(["NaN", "NaN"])
+    _decode_online_filters(info, highpass, lowpass)
+    assert info["highpass"] == 0.0
+    assert info["lowpass"] == 50.0
 
 
 @requires_testing_data

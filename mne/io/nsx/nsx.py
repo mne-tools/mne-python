@@ -342,7 +342,7 @@ def _read_header_22_and_above(fname):
 
     # The following values are stored in mHz
     # See:
-    # https://blackrockneurotech.com/research/wp-content/ifu/LB-0023-7.00_NEV_File_Format.pdf)
+    # https://blackrockneurotech.com/wp-content/uploads/LB-0023-7.00_NEV_File_Format.pdf
     basic_header["highpass"] = basic_header["extended"]["hi_freq_corner"]
     basic_header["lowpass"] = basic_header["extended"]["lo_freq_corner"]
     for x in ["highpass", "lowpass"]:
@@ -479,45 +479,7 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
 
     highpass = nsx_info["highpass"][:128]
     lowpass = nsx_info["lowpass"][:128]
-    if np.all(highpass == highpass[0]):
-        if highpass[0] == "NaN":
-            # Placeholder for future use. Highpass set in _empty_info.
-            pass
-        else:
-            hp = highpass[0]
-            try:
-                hp = float(hp)
-            except Exception:
-                hp = 0.0
-            info["highpass"] = hp
-    else:
-        info["highpass"] = float(np.max(highpass))
-        warn(
-            "Channels contain different highpass filters. Highest filter "
-            "setting will be stored."
-        )
-
-    if np.all(lowpass == lowpass[0]):
-        if lowpass[0] in ("NaN", "0", "0.0"):
-            # Placeholder for future use. Lowpass set in _empty_info.
-            pass
-        else:
-            info["lowpass"] = float(lowpass[0])
-    else:
-        info["lowpass"] = float(np.min(lowpass))
-        warn(
-            "Channels contain different lowpass filters. Lowest filter "
-            "setting will be stored."
-        )
-
-    if info["highpass"] > info["lowpass"]:
-        warn(
-            f'Highpass cutoff frequency {info["highpass"]} is greater '
-            f'than lowpass cutoff frequency {info["lowpass"]}, '
-            "setting values to 0 and Nyquist."
-        )
-        info["highpass"] = 0.0
-        info["lowpass"] = info["sfreq"] / 2.0
+    _decode_online_filters(info, highpass, lowpass)
 
     # Some keys to be consistent with FIF measurement info
     info["description"] = None
@@ -551,6 +513,36 @@ def _get_hdr_info(fname, stim_channel=True, eog=None, misc=None):
         raw_extras,
         orig_units,
     )
+
+
+def _decode_online_filters(info, highpass, lowpass):
+    """Decode low/high-pass filters that are applied online."""
+    if np.all(highpass == highpass[0]):
+        if highpass[0] == "NaN":
+            # Placeholder for future use. Highpass set in _empty_info.
+            pass
+        else:
+            hp = float(highpass[0])
+            info["highpass"] = hp
+    else:
+        info["highpass"] = float(np.max(highpass))
+        warn(
+            "Channels contain different highpass filters. Highest filter "
+            "setting will be stored."
+        )
+
+    if np.all(lowpass == lowpass[0]):
+        if lowpass[0] in ("NaN", "0", "0.0"):
+            # Placeholder for future use. Lowpass set in _empty_info.
+            pass
+        else:
+            info["lowpass"] = float(lowpass[0])
+    else:
+        info["lowpass"] = float(np.min(lowpass))
+        warn(
+            "Channels contain different lowpass filters. Lowest filter "
+            "setting will be stored."
+        )
 
 
 def _check_stim_channel(stim_channel, ch_names):
