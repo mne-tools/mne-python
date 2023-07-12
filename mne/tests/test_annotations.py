@@ -26,6 +26,7 @@ from mne import (
     read_annotations,
     annotations_from_events,
     events_from_annotations,
+    count_annotations
 )
 from mne import Epochs, Annotations
 from mne.utils import (
@@ -1746,3 +1747,10 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
         assert len(this_raw.annotations) == 1
         assert_allclose(this_raw.annotations.onset, want_onset)
         assert_allclose(this_raw.annotations.duration, annot.duration[2:])
+
+
+def test_count_annotations():
+    annotations = Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
+    assert annotations.count() == {"T0": 2, "T1": 1}
+    assert count_annotations(annotations) == {"T0": 2, "T1": 1}
+    
