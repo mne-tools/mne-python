@@ -31,6 +31,7 @@ Enhancements
 - Ocular :class:`mne.Annotations` read in by :func:`mne.io.read_raw_eyelink` are now channel aware. This means if the left eye blinked, the associated annotation will store this in the ``'ch_names'`` key. (:gh:`11746` by `Scott Huberty`_)
 - Added :func:`mne.preprocessing.eyetracking.interpolate_blinks` to linear interpolate eyetrack signals during blink periods. (:gh:`11740` by `Scott Huberty`_)
 - Added a section for combining eye-tracking and EEG data to the preprocessing tutorial "working with eye tracker data in MNE-Python" (:gh:`11770` by `Scott Huberty`_)
+- Add :meth:`mne.Annotations.count` and :func:`mne.count_annotations` to count unique annotations (:gh:`11796` by `Clemens Brunner`_)
 
 Bugs
 ~~~~
