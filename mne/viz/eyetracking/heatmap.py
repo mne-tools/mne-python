@@ -2,7 +2,6 @@
 #
 # License: BSD-3-Clause
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from ..utils import plt_show
@@ -66,6 +65,7 @@ def plot_gaze(
     fig : instance of matplotlib.figure.Figure
         The resulting figure object for the heatmap plot.
     """
+    import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
     from scipy.ndimage import gaussian_filter
     from mne import BaseEpochs
