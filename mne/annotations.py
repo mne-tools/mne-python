@@ -473,7 +473,7 @@ class Annotations:
         counts : dict
             A dictionary containing unique annotation descriptions as keys with their
             counts as values.
-    """
+        """
         return count_annotations(self)
 
     def _any_ch_names(self):
