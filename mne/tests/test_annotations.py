@@ -26,7 +26,7 @@ from mne import (
     read_annotations,
     annotations_from_events,
     events_from_annotations,
-    count_annotations
+    count_annotations,
 )
 from mne import Epochs, Annotations
 from mne.utils import (
@@ -1753,4 +1753,3 @@ def test_count_annotations():
     annotations = Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
     assert annotations.count() == {"T0": 2, "T1": 1}
     assert count_annotations(annotations) == {"T0": 2, "T1": 1}
-    
