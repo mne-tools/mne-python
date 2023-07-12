@@ -207,9 +207,11 @@ class RawNSX(BaseRaw):
             orig_units,
         ) = _get_hdr_info(input_fname, stim_channel=stim_channel, eog=eog, misc=misc)
         raw_extras["orig_format"] = orig_format
+        first_samps = (raw_extras["timestamp"][0],)
         super(RawNSX, self).__init__(
             info,
-            last_samps=[n_samples - 1],
+            first_samps=first_samps,
+            last_samps=[first_samps[0] + n_samples - 1],
             filenames=[data_fname],
             orig_format=orig_format,
             preload=preload,
