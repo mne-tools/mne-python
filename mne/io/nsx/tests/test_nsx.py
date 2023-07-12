@@ -21,6 +21,7 @@ testing_path = data_path(download=False)
 nsx_21_fname = os.path.join(testing_path, "nsx", "test_NEURALSG_raw.ns3")
 nsx_22_fname = os.path.join(testing_path, "nsx", "test_NEURALCD_raw.ns3")
 nsx_31_fname = os.path.join(testing_path, "nsx", "test_BRSMPGRP_raw.ns3")
+nsx_test_fname = os.path.join(testing_path, "nsx", "test_anonymized.ns3")
 
 
 def test_decode_online_filters():
@@ -204,3 +205,57 @@ def test_nsx_ver_21():
     """Primary tests for NEURALSG reader."""
     with pytest.raises(NotImplementedError, match="(= NEURALSG)*not supported"):
         read_raw_nsx(nsx_21_fname)
+
+
+@requires_testing_data
+def test_nsx():
+    """Tests for NEURALCD reader using real anonymized data."""
+    raw = read_raw_nsx(
+        nsx_test_fname,
+    )
+    assert getattr(raw, "_data", False) is False
+    assert raw.info["sfreq"] == 2000
+
+    # Check info object
+    assert raw.info["meas_date"].day == 13
+    assert raw.info["meas_date"].year == 2000
+    assert raw.info["meas_date"].month == 6
+    assert raw.info["lowpass"] == 1000
+    assert raw.info["highpass"] == 0.3
+    assert raw.info["chs"][0]["cal"] == 0.25
+    assert raw.info["chs"][0]["range"] == 1e-6
+
+    # check raw_extras
+    for r in raw._raw_extras:
+        assert r["orig_format"] == raw.orig_format
+        assert r["orig_nchan"] == 5
+        assert len(r["timestamp"]) == len(r["nb_data_points"])
+        assert len(r["timestamp"]) == len(r["offset_to_data_block"])
+
+    # Check annotations
+    assert len(raw.annotations) == 0
+
+    raw = _test_raw_reader(
+        read_raw_nsx,
+        input_fname=nsx_test_fname,
+        eog=None,
+        misc=None,
+        test_scaling=True,  # XXX this should be True
+        test_rank=False,
+    )
+    raw_data, times = raw[:]
+    n_channels, n_times = raw_data.shape
+    assert times.shape[0] == n_times
+    assert n_channels == 5
+    # Check data
+    assert_allclose(
+        raw_data.mean(axis=-1),
+        np.array([-52.6375, 88.57, 70.5825, -22.055, -166.5]) * 1e-6,  # uV
+    )
+    assert raw.first_time == 3.8
+
+    epochs = make_fixed_length_epochs(raw, duration=0.05, preload=True, id=1)
+    assert len(epochs) == 1
+    assert epochs.event_id["1"] == 1
+    with pytest.raises(ValueError, match="No events produced"):
+        _ = make_fixed_length_epochs(raw, duration=0.5, preload=True)
