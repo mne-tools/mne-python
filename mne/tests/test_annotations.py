@@ -1750,6 +1750,7 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
 
 
 def test_count_annotations():
+    """Test counting unique annotations."""
     annotations = Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
     assert annotations.count() == {"T0": 2, "T1": 1}
     assert count_annotations(annotations) == {"T0": 2, "T1": 1}
