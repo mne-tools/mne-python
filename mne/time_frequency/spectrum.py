@@ -1194,10 +1194,10 @@ class SpectrumArray(Spectrum):
 
     See Also
     --------
-    create_info
-    EpochsArray
-    EvokedArray
-    io.RawArray
+    mne.create_info
+    mne.EpochsArray
+    mne.EvokedArray
+    mne.io.RawArray
     EpochsSpectrumArray
 
     Notes
@@ -1451,15 +1451,15 @@ class EpochsSpectrumArray(EpochsSpectrum):
 
     See Also
     --------
-    create_info
-    EpochsArray
-    EvokedArray
-    io.RawArray
+    mne.create_info
+    mne.EpochsArray
+    mne.EvokedArray
+    mne.io.RawArray
     SpectrumArray
 
     Notes
     -----
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
     """
 
     @verbose
