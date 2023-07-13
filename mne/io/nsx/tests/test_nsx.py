@@ -21,7 +21,7 @@ testing_path = data_path(download=False)
 nsx_21_fname = os.path.join(testing_path, "nsx", "test_NEURALSG_raw.ns3")
 nsx_22_fname = os.path.join(testing_path, "nsx", "test_NEURALCD_raw.ns3")
 nsx_31_fname = os.path.join(testing_path, "nsx", "test_BRSMPGRP_raw.ns3")
-nsx_test_fname = os.path.join(testing_path, "nsx", "test_anonymized.ns3")
+nsx_test_fname = os.path.join(testing_path, "nsx", "Test_anonymized.ns3")
 
 
 def test_decode_online_filters():
