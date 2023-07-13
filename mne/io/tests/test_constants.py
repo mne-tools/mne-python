@@ -230,6 +230,7 @@ def test_constants(tmp_path):
     re_prim = re.compile(r'^primitive\((.*)\)\s*(\S*)\s*"(.*)"$')
     re_enum = re.compile(r'^enum\((\S*)\)\s*".*"$')
     re_enum_entry = re.compile(r'\s*(\S*)\s*(\S*)\s*"(.*)"$')
+    re_deri = re.compile(r"^derived_type\((.*)\)\s*(\S*)\s*$")
     re_defi = re.compile(r'#define\s*(\S*)\s*(\S*)\s*"(.*)"$')
     used_enums = list()
     for extra in ("", "_MNE"):
@@ -240,6 +241,7 @@ def test_constants(tmp_path):
                     p = re_prim.match(line)
                     e = re_enum.match(line)
                     d = re_defi.match(line)
+                    r = re_deri.match(line)
                     if p is not None:
                         t, s, d = p.groups()
                         s = int(s)
@@ -257,8 +259,13 @@ def test_constants(tmp_path):
                         t, s, d = d.groups()
                         s = int(s)
                         fif["defines"][t] = [s, d]
+                    elif r is not None:
+                        t, s = r.groups()
+                        s = int(s, 16)
+                        fif["types"][s] = t
                     else:
                         assert not line.startswith("enum(")
+                        assert not line.startswith("derived_type")
                 else:  # in an enum
                     if line == "{":
                         continue

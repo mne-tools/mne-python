@@ -166,83 +166,45 @@ def _safe_name_list(lst, operation, name):
 
 def write_float_matrix(fid, kind, mat):
     """Write a single-precision floating-point matrix tag."""
-    data_size = 4 * mat.size + 4 * (mat.ndim + 1)
-
-    fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFT_MATRIX_FLOAT, dtype=">i4").tobytes())
-    fid.write(np.array(data_size, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
-    fid.write(np.array(mat, dtype=">f4").tobytes())
-
-    dims = np.empty(mat.ndim + 1, dtype=np.int32)
-    dims[: mat.ndim] = mat.shape[::-1]
-    dims[-1] = mat.ndim
-    fid.write(np.array(dims, dtype=">i4").tobytes())
-    check_fiff_length(fid)
+    _write_matrix_data(fid, kind, mat, FIFF.FIFFT_FLOAT)
 
 
 def write_double_matrix(fid, kind, mat):
     """Write a double-precision floating-point matrix tag."""
-    data_size = 8 * mat.size + 4 * (mat.ndim + 1)
-
-    fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFT_MATRIX_DOUBLE, dtype=">i4").tobytes())
-    fid.write(np.array(data_size, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
-    fid.write(np.array(mat, dtype=">f8").tobytes())
-
-    dims = np.empty(mat.ndim + 1, dtype=np.int32)
-    dims[: mat.ndim] = mat.shape[::-1]
-    dims[-1] = mat.ndim
-    fid.write(np.array(dims, dtype=">i4").tobytes())
-    check_fiff_length(fid)
+    _write_matrix_data(fid, kind, mat, FIFF.FIFFT_DOUBLE)
 
 
 def write_int_matrix(fid, kind, mat):
     """Write integer 32 matrix tag."""
-    data_size = 4 * mat.size + 4 * 3
-
-    fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFT_MATRIX_INT, dtype=">i4").tobytes())
-    fid.write(np.array(data_size, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
-    fid.write(np.array(mat, dtype=">i4").tobytes())
-
-    dims = np.empty(3, dtype=np.int32)
-    dims[0] = mat.shape[1]
-    dims[1] = mat.shape[0]
-    dims[2] = 2
-    fid.write(np.array(dims, dtype=">i4").tobytes())
-    check_fiff_length(fid)
+    _write_matrix_data(fid, kind, mat, FIFF.FIFFT_INT)
 
 
 def write_complex_float_matrix(fid, kind, mat):
     """Write complex 64 matrix tag."""
-    data_size = 4 * 2 * mat.size + 4 * (mat.ndim + 1)
-
-    fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFT_MATRIX_COMPLEX_FLOAT, dtype=">i4").tobytes())
-    fid.write(np.array(data_size, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
-    fid.write(np.array(mat, dtype=">c8").tobytes())
-
-    dims = np.empty(mat.ndim + 1, dtype=np.int32)
-    dims[: mat.ndim] = mat.shape[::-1]
-    dims[-1] = mat.ndim
-    fid.write(np.array(dims, dtype=">i4").tobytes())
-    check_fiff_length(fid)
+    _write_matrix_data(fid, kind, mat, FIFF.FIFFT_COMPLEX_FLOAT)
 
 
 def write_complex_double_matrix(fid, kind, mat):
     """Write complex 128 matrix tag."""
-    data_size = 8 * 2 * mat.size + 4 * (mat.ndim + 1)
+    _write_matrix_data(fid, kind, mat, FIFF.FIFFT_COMPLEX_DOUBLE)
 
+
+def _write_matrix_data(fid, kind, mat, data_type):
+    dtype = {
+        FIFF.FIFFT_FLOAT: ">f4",
+        FIFF.FIFFT_DOUBLE: ">f8",
+        FIFF.FIFFT_COMPLEX_FLOAT: ">c8",
+        FIFF.FIFFT_COMPLEX_DOUBLE: ">c16",
+        FIFF.FIFFT_INT: ">i4",
+    }[data_type]
+    dtype = np.dtype(dtype)
+    data_size = dtype.itemsize * mat.size + 4 * (mat.ndim + 1)
+    matrix_type = data_type | FIFF.FIFFT_MATRIX
     fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFF.FIFFT_MATRIX_COMPLEX_DOUBLE, dtype=">i4").tobytes())
+    fid.write(np.array(matrix_type, dtype=">i4").tobytes())
     fid.write(np.array(data_size, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
-    fid.write(np.array(mat, dtype=">c16").tobytes())
-
+    fid.write(np.array(mat, dtype=dtype).tobytes())
     dims = np.empty(mat.ndim + 1, dtype=np.int32)
     dims[: mat.ndim] = mat.shape[::-1]
     dims[-1] = mat.ndim
