@@ -393,10 +393,7 @@ def test_spectrumarray_raw(raw):
     """Test SpectrumArray for Raw-derived spectra."""
     spect = raw.compute_psd()
     spect2 = SpectrumArray(
-        data=spect.get_data(),
-        freqs=spect.freqs,
-        info=spect.info,
-        method=spect.method
+        data=spect.get_data(), freqs=spect.freqs, info=spect.info, method=spect.method
     )
     assert_array_equal(spect.get_data(), spect2.get_data())
     assert_array_equal(spect.freqs, spect2.freqs)
@@ -414,6 +411,7 @@ def test_epochsspectrumaray(epochs):
         event_id=epochs.event_id,
         metadata=epochs.metadata,
         selection=epochs.selection,
-        drop_log=epochs.drop_log)
+        drop_log=epochs.drop_log,
+    )
     assert_array_equal(spect.get_data(), spect2.get_data())
     assert_array_equal(spect.freqs, spect2.freqs)

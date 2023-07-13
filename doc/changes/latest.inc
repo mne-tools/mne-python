@@ -32,6 +32,7 @@ Enhancements
 - Added :func:`mne.preprocessing.eyetracking.interpolate_blinks` to linear interpolate eyetrack signals during blink periods. (:gh:`11740` by `Scott Huberty`_)
 - Added a section for combining eye-tracking and EEG data to the preprocessing tutorial "working with eye tracker data in MNE-Python" (:gh:`11770` by `Scott Huberty`_)
 - Add :meth:`mne.Annotations.count` and :func:`mne.count_annotations` to count unique annotations (:gh:`11796` by `Clemens Brunner`_)
+- Add :class:`mne.time_frequency.spectrum.EpochsSpectrumArray` and :class:`mne.time_frequency.spectrum.SpectrumArray` to allow for instantiating power spectra from scratch (:gh:`11803` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

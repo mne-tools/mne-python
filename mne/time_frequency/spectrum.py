@@ -1491,7 +1491,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
                 event_id=event_id,
                 metadata=metadata,
                 selection=selection,
-                drop_log=drop_log
+                drop_log=drop_log,
             )
         )
 
