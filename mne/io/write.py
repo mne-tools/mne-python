@@ -13,7 +13,7 @@ import uuid
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, _file_like
+from ..utils import logger, _file_like, _validate_type
 from ..utils.numerics import _cal_to_julian
 
 # We choose a "magic" date to store (because meas_date is obligatory)
@@ -166,13 +166,10 @@ def _safe_name_list(lst, operation, name):
 
 def write_float_matrix(fid, kind, mat):
     """Write a single-precision floating-point matrix tag."""
-    FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_FLOAT = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
-
     data_size = 4 * mat.size + 4 * (mat.ndim + 1)
 
     fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype=">i4").tobytes())
+    fid.write(np.array(FIFF.FIFFT_MATRIX_FLOAT, dtype=">i4").tobytes())
     fid.write(np.array(data_size, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
     fid.write(np.array(mat, dtype=">f4").tobytes())
@@ -186,13 +183,10 @@ def write_float_matrix(fid, kind, mat):
 
 def write_double_matrix(fid, kind, mat):
     """Write a double-precision floating-point matrix tag."""
-    FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_DOUBLE = FIFF.FIFFT_DOUBLE | FIFFT_MATRIX
-
     data_size = 8 * mat.size + 4 * (mat.ndim + 1)
 
     fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFFT_MATRIX_DOUBLE, dtype=">i4").tobytes())
+    fid.write(np.array(FIFF.FIFFT_MATRIX_DOUBLE, dtype=">i4").tobytes())
     fid.write(np.array(data_size, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
     fid.write(np.array(mat, dtype=">f8").tobytes())
@@ -206,13 +200,10 @@ def write_double_matrix(fid, kind, mat):
 
 def write_int_matrix(fid, kind, mat):
     """Write integer 32 matrix tag."""
-    FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_INT = FIFF.FIFFT_INT | FIFFT_MATRIX
-
     data_size = 4 * mat.size + 4 * 3
 
     fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFFT_MATRIX_INT, dtype=">i4").tobytes())
+    fid.write(np.array(FIFF.FIFFT_MATRIX_INT, dtype=">i4").tobytes())
     fid.write(np.array(data_size, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
     fid.write(np.array(mat, dtype=">i4").tobytes())
@@ -227,13 +218,10 @@ def write_int_matrix(fid, kind, mat):
 
 def write_complex_float_matrix(fid, kind, mat):
     """Write complex 64 matrix tag."""
-    FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_COMPLEX_FLOAT = FIFF.FIFFT_COMPLEX_FLOAT | FIFFT_MATRIX
-
     data_size = 4 * 2 * mat.size + 4 * (mat.ndim + 1)
 
     fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFFT_MATRIX_COMPLEX_FLOAT, dtype=">i4").tobytes())
+    fid.write(np.array(FIFF.FIFFT_MATRIX_COMPLEX_FLOAT, dtype=">i4").tobytes())
     fid.write(np.array(data_size, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
     fid.write(np.array(mat, dtype=">c8").tobytes())
@@ -247,13 +235,10 @@ def write_complex_float_matrix(fid, kind, mat):
 
 def write_complex_double_matrix(fid, kind, mat):
     """Write complex 128 matrix tag."""
-    FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_COMPLEX_DOUBLE = FIFF.FIFFT_COMPLEX_DOUBLE | FIFFT_MATRIX
-
     data_size = 8 * 2 * mat.size + 4 * (mat.ndim + 1)
 
     fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFFT_MATRIX_COMPLEX_DOUBLE, dtype=">i4").tobytes())
+    fid.write(np.array(FIFF.FIFFT_MATRIX_COMPLEX_DOUBLE, dtype=">i4").tobytes())
     fid.write(np.array(data_size, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
     fid.write(np.array(mat, dtype=">c16").tobytes())
@@ -471,33 +456,23 @@ def write_float_sparse_ccs(fid, kind, mat):
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
     from scipy import sparse
-    from .tag import _matrix_coding_CCS, _matrix_coding_RCS
 
     if fmt == "auto":
         fmt = "csr" if isinstance(mat, sparse.csr_matrix) else "csc"
     if fmt == "csr":
         need = sparse.csr_matrix
-        bits = _matrix_coding_RCS
+        matrix_type = FIFF.FIFFT_SPARSE_RCS_MATRIX
     else:
         need = sparse.csc_matrix
-        bits = _matrix_coding_CCS
-    if not isinstance(mat, need):
-        raise TypeError(
-            "Must write %s, got %s"
-            % (
-                fmt.upper(),
-                type(mat),
-            )
-        )
-    FIFFT_MATRIX = bits << 16
-    FIFFT_MATRIX_FLOAT_RCS = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
-
+        matrix_type = FIFF.FIFFT_SPARSE_CCS_MATRIX
+    _validate_type(mat, need, "sparse")
+    matrix_type = matrix_type | FIFF.FIFFT_MATRIX | FIFF.FIFFT_FLOAT
     nnzm = mat.nnz
     nrow = mat.shape[0]
     data_size = 4 * nnzm + 4 * nnzm + 4 * (nrow + 1) + 4 * 4
 
     fid.write(np.array(kind, dtype=">i4").tobytes())
-    fid.write(np.array(FIFFT_MATRIX_FLOAT_RCS, dtype=">i4").tobytes())
+    fid.write(np.array(matrix_type, dtype=">i4").tobytes())
     fid.write(np.array(data_size, dtype=">i4").tobytes())
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype=">i4").tobytes())
 

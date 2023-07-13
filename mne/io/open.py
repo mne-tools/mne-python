@@ -9,7 +9,7 @@ from gzip import GzipFile
 
 import numpy as np
 
-from .tag import read_tag_info, read_tag, Tag, _call_dict_names
+from .tag import read_tag_info, read_tag, Tag, _call_dict_names, _matrix_info
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose, _file_like, warn
@@ -162,10 +162,13 @@ def _fiff_open(fname, fid, preload):
     read_slow = True
     if dirpos > 0:
         dir_tag = read_tag(fid, dirpos)
-        if dir_tag is None:
+        if dir_tag is None or dir_tag.data is None:
+            fid.seek(0, 2)
+            sz = fid.tell()
+            extra = "" if sz > dirpos else f" > file size {sz}"
             warn(
-                f"FIF tag directory missing at the end of the file, possibly "
-                f"corrupted file: {fname}"
+                "FIF tag directory missing at the end of the file "
+                f"(at byte {dirpos}{extra}), possibly corrupted file: {fname}"
             )
         else:
             directory = dir_tag.data
@@ -275,12 +278,8 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
-    out = [
-        this_idt
-        + str(int(tree["block"]))
-        + " = "
-        + "/".join(_find_type(tree["block"], fmts=["FIFFB_"]))
-    ]
+    found_types = "/".join(_find_type(tree["block"], fmts=["FIFFB_"]))
+    out = [f"{this_idt}{str(int(tree['block'])).ljust(4)} = {found_types}"]
     tag_found = False
     if tag_id is None or out[0].strip().startswith(str(tag_id)):
         tag_found = True
@@ -331,17 +330,14 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                     else:
                         postpend += " ... type=" + str(type(tag.data))
                 postpend = ">" * 20 + "BAD" if not good else postpend
+                matrix_info = _matrix_info(tag)
+                if matrix_info is not None:
+                    _, type_, _, _ = matrix_info
                 type_ = _call_dict_names.get(type_, "?%s?" % (type_,))
+                this_type = "/".join(this_type)
                 out += [
-                    next_idt
-                    + prepend
-                    + str(k)
-                    + " = "
-                    + "/".join(this_type)
-                    + " ("
-                    + str(size)
-                    + "b %s)" % type_
-                    + postpend
+                    f"{next_idt}{prepend}{str(k).ljust(4)} = "
+                    f"{this_type} ({size}b {type_}) {postpend}"
                 ]
                 out[-1] = out[-1].replace("\n", "¶")
                 counter = 0
