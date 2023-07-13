@@ -203,6 +203,8 @@ def show_fiff(
     max_str=30,
     output=str,
     tag=None,
+    *,
+    show_bytes=False,
     verbose=None,
 ):
     """Show FIFF information.
@@ -226,6 +228,8 @@ def show_fiff(
     tag : int | None
         Provide information about this tag. If None (default), all information
         is shown.
+    show_bytes : bool
+        If True (default False), print the byte offsets of each tag.
     %(verbose)s
 
     Returns
@@ -250,6 +254,7 @@ def show_fiff(
             read_limit=read_limit,
             max_str=max_str,
             tag_id=tag,
+            show_bytes=show_bytes,
         )
     if output == str:
         out = "\n".join(out)
@@ -271,7 +276,17 @@ def _find_type(value, fmts=["FIFF_"], exclude=["FIFF_UNIT"]):
     return vals
 
 
-def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
+def _show_tree(
+    fid,
+    tree,
+    indent,
+    level,
+    read_limit,
+    max_str,
+    tag_id,
+    *,
+    show_bytes=False,
+):
     """Show FIFF tree."""
     from scipy import sparse
 
@@ -305,6 +320,10 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                 # don't print if the next item is the same type (count 'em)
                 counter += 1
             else:
+                if show_bytes:
+                    at = f" @{pos}"
+                else:
+                    at = ""
                 # find the tag type
                 this_type = _find_type(k, fmts=["FIFF_"])
                 # prepend a count if necessary
@@ -337,7 +356,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                 this_type = "/".join(this_type)
                 out += [
                     f"{next_idt}{prepend}{str(k).ljust(4)} = "
-                    f"{this_type} ({size}b {type_}) {postpend}"
+                    f"{this_type}{at} ({size}b {type_}) {postpend}"
                 ]
                 out[-1] = out[-1].replace("\n", "¶")
                 counter = 0
@@ -349,5 +368,14 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
         level = -1  # removes extra indent
     # deal with children
     for branch in tree["children"]:
-        out += _show_tree(fid, branch, indent, level + 1, read_limit, max_str, tag_id)
+        out += _show_tree(
+            fid,
+            branch,
+            indent,
+            level + 1,
+            read_limit,
+            max_str,
+            tag_id,
+            show_bytes=show_bytes,
+        )
     return out
