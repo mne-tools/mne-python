@@ -27,6 +27,12 @@ from .csd import (
 )
 from .ar import fit_iir_model_raw
 from .multitaper import dpss_windows, psd_array_multitaper, tfr_array_multitaper
-from .spectrum import EpochsSpectrum, Spectrum, read_spectrum
+from .spectrum import (
+    EpochsSpectrum,
+    EpochsSpectrumArray,
+    Spectrum,
+    SpectrumArray,
+    read_spectrum,
+)
 from ._stft import stft, istft, stftfreq
 from ._stockwell import tfr_stockwell, tfr_array_stockwell

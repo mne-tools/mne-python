@@ -1180,6 +1180,56 @@ class Spectrum(BaseSpectrum):
 
 
 @fill_doc
+class SpectrumArray(Spectrum):
+    """Spectrum object from numpy array.
+
+    Parameters
+    ----------
+    data : array, shape (n_channels, n_freqs)
+        The channels' power spectral density for each epoch.
+    %(freqs_tfr)s
+    %(info_not_none)s
+    %(method_psd)s
+    %(verbose)s
+
+    See Also
+    --------
+    create_info
+    EpochsArray
+    EvokedArray
+    io.RawArray
+    EpochsSpectrumArray
+
+    Notes
+    -----
+        .. versionadded:: 1.4.0
+    """
+
+    @verbose
+    def __init__(
+        self,
+        data,
+        info,
+        freqs,
+        method=None,
+        *,
+        verbose=None,
+    ):
+        self.__setstate__(
+            dict(
+                method=method,
+                data=data,
+                sfreq=info["sfreq"],
+                dims=("channel", "freq"),
+                freqs=freqs,
+                inst_type_str="Raw",
+                data_type="Average Power Spectrum",
+                info=info,
+            )
+        )
+
+
+@fill_doc
 class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     """Data object for spectral representations of epoched data.
 
@@ -1366,6 +1416,84 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             verbose=None,
         )
         return Spectrum(state, **defaults)
+
+
+@fill_doc
+class EpochsSpectrumArray(EpochsSpectrum):
+    """EpochsSpectrum object from numpy array.
+
+    Parameters
+    ----------
+    data : array, shape (n_epochs, n_channels, n_freqs)
+        The channels' power spectral density for each epoch.
+    %(freqs_tfr)s
+    %(info_not_none)s
+    %(method_psd)s
+    events : None | array of int, shape (n_events, 3)
+        The events typically returned by the read_events function.
+        If some events don't match the events of interest as specified
+        by event_id, they will be marked as 'IGNORED' in the drop log.
+        If None (default), all event values are set to 1 and event time-samples
+        are set to range(n_epochs).
+    event_id : int | list of int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to access associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, all events will be used with
+        and a dict is created with string integer names corresponding
+        to the event id integers.
+    metadata : instance of pandas.DataFrame | None
+        See :class:`mne.Epochs` docstring for details.
+    %(selection)s
+    %(drop_log)s
+    %(verbose)s
+
+    See Also
+    --------
+    create_info
+    EpochsArray
+    EvokedArray
+    io.RawArray
+    SpectrumArray
+
+    Notes
+    -----
+        .. versionadded:: 1.4.0
+    """
+
+    @verbose
+    def __init__(
+        self,
+        data,
+        info,
+        freqs,
+        method=None,
+        events=None,
+        event_id=None,
+        metadata=None,
+        selection=None,
+        drop_log=None,
+        *,
+        verbose=None,
+    ):
+        self.__setstate__(
+            dict(
+                method=method,
+                data=data,
+                sfreq=info["sfreq"],
+                dims=("epochs", "channel", "freq"),
+                freqs=freqs,
+                inst_type_str="Epochs",
+                data_type="Epochs Power Spectra",
+                info=info,
+                events=events,
+                event_id=event_id,
+                metadata=metadata,
+                selection=selection,
+                drop_log=drop_log
+            )
+        )
 
 
 def read_spectrum(fname):

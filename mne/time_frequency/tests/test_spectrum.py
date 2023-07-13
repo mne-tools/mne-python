@@ -10,6 +10,7 @@ from mne.io import RawArray
 from mne import Annotations
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
+from mne.time_frequency.spectrum import SpectrumArray, EpochsSpectrumArray
 
 
 def test_spectrum_errors(raw):
@@ -386,3 +387,33 @@ def test_spectrum_kwarg_triaging(raw):
         raw.plot_psd(axes=axes)
     # `ax` is the correct legacy param name
     raw.plot_psd(ax=axes)
+
+
+def test_spectrumarray_raw(raw):
+    """Test SpectrumArray for Raw-derived spectra."""
+    spect = raw.compute_psd()
+    spect2 = SpectrumArray(
+        data=spect.get_data(),
+        freqs=spect.freqs,
+        info=spect.info,
+        method=spect.method
+    )
+    assert_array_equal(spect.get_data(), spect2.get_data())
+    assert_array_equal(spect.freqs, spect2.freqs)
+
+
+def test_epochsspectrumaray(epochs):
+    """Test EpochsSpectrumArray for Epochs-derived spectra."""
+    spect = epochs.compute_psd()
+    spect2 = EpochsSpectrumArray(
+        data=spect.get_data(),
+        freqs=spect.freqs,
+        info=spect.info,
+        method=spect.method,
+        events=epochs.events,
+        event_id=epochs.event_id,
+        metadata=epochs.metadata,
+        selection=epochs.selection,
+        drop_log=epochs.drop_log)
+    assert_array_equal(spect.get_data(), spect2.get_data())
+    assert_array_equal(spect.freqs, spect2.freqs)
