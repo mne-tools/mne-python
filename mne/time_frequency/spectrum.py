@@ -1202,7 +1202,7 @@ class SpectrumArray(Spectrum):
 
     Notes
     -----
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
     """
 
     @verbose
