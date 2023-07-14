@@ -1482,7 +1482,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
                 method=method,
                 data=data,
                 sfreq=info["sfreq"],
-                dims=("epochs", "channel", "freq"),
+                dims=("epoch", "channel", "freq"),
                 freqs=freqs,
                 inst_type_str="Epochs",
                 data_type="Epochs Power Spectra",
