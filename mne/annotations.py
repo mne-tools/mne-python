@@ -45,7 +45,7 @@ from .io.write import (
     write_name_list_sanitized,
     _safe_name_list,
     write_double,
-    start_file,
+    start_and_end_file,
     write_string,
 )
 from .io.constants import FIFF
@@ -551,7 +551,7 @@ class Annotations:
         elif fname.suffix == ".csv":
             _write_annotations_csv(fname, self)
         else:
-            with start_file(fname) as fid:
+            with start_and_end_file(fname) as fid:
                 _write_annotations(fid, self)
 
     def _sort(self):
