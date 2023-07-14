@@ -1084,7 +1084,6 @@ class Spectrum(BaseSpectrum):
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
-    SpectrumArray
 
     References
     ----------
@@ -1426,10 +1425,8 @@ class EpochsSpectrumArray(EpochsSpectrum):
         The channels' power spectral density for each epoch.
     %(info_not_none)s
     %(freqs_tfr)s
-    %(method_psd)s
     %(events_epochs)s
     %(event_id)s
-    %(metadata_epochs)s
     %(verbose)s
 
     See Also
@@ -1451,7 +1448,6 @@ class EpochsSpectrumArray(EpochsSpectrum):
         freqs,
         events=None,
         event_id=None,
-        metadata=None,
         *,
         verbose=None,
     ):
@@ -1467,7 +1463,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
                 info=info,
                 events=events,
                 event_id=event_id,
-                metadata=metadata,
+                metadata=None,
                 selection=np.arange(data.shape[0]),
                 drop_log=tuple(tuple() for _ in range(data.shape[0])),
             )

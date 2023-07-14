@@ -213,7 +213,6 @@ evoked_array.plot()
 # process pre-computed power spectra in MNE.
 # Following the same logic, it is possible to instantiate averaged power
 # spectrum using the :class:`~mne.time_frequency.SpectrumArray` class.
-# This is slightly experimental at the moment but works.
 
 # compute power spectrum
 
