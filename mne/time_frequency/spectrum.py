@@ -1426,8 +1426,8 @@ class EpochsSpectrumArray(EpochsSpectrum):
     ----------
     data : array, shape (n_epochs, n_channels, n_freqs)
         The channels' power spectral density for each epoch.
-    %(freqs_tfr)s
     %(info_not_none)s
+    %(freqs_tfr)s
     %(method_psd)s
     events : None | array of int, shape (n_events, 3)
         The events typically returned by the read_events function.
