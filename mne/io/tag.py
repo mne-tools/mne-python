@@ -534,7 +534,7 @@ def _matrix_info(tag):
         FIFF.FIFFT_MATRIX | FIFF.FIFFT_SPARSE_CCS_MATRIX: "sparse CCS",
         FIFF.FIFFT_MATRIX | FIFF.FIFFT_SPARSE_RCS_MATRIX: "sparse RCS",
     }
-    _check_option("matrix_coding", matrix_coding, list(matrix_coding_dict.keys()))
+    _check_option("matrix_coding", matrix_coding, list(matrix_coding_dict))
     matrix_coding = matrix_coding_dict[matrix_coding]
     matrix_bit_dtype = {
         FIFF.FIFFT_INT: (4, ">i4"),
@@ -544,6 +544,6 @@ def _matrix_info(tag):
         FIFF.FIFFT_COMPLEX_FLOAT: (8, ">f4"),
         FIFF.FIFFT_COMPLEX_DOUBLE: (16, ">f8"),
     }
-    _check_option("matrix_type", matrix_type, list(matrix_bit_dtype.keys()))
+    _check_option("matrix_type", matrix_type, list(matrix_bit_dtype))
     bit, dtype = matrix_bit_dtype[matrix_type]
     return matrix_coding, matrix_type, bit, dtype

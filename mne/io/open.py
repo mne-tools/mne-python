@@ -163,9 +163,9 @@ def _fiff_open(fname, fid, preload):
     if dirpos > 0:
         dir_tag = read_tag(fid, dirpos)
         if dir_tag is None or dir_tag.data is None:
-            fid.seek(0, 2)
-            sz = fid.tell()
-            extra = "" if sz > dirpos else f" > file size {sz}"
+            fid.seek(0, 2)  # move to end of file
+            size = fid.tell()
+            extra = "" if size > dirpos else f" > file size {size}"
             warn(
                 "FIF tag directory missing at the end of the file "
                 f"(at byte {dirpos}{extra}), possibly corrupted file: {fname}"
