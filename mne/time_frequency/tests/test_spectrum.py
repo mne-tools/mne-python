@@ -419,19 +419,23 @@ def test_plot_spectrumaray(raw, epochs):
     """Test SpectrumArray and EpochsSpectrumArray plotting."""
     spects = list()
     spect_orig = raw.compute_psd()
-    spects.append(SpectrumArray(
-        data=spect_orig.get_data(),
-        freqs=spect_orig.freqs,
-        info=spect_orig.info,
-    ))
+    spects.append(
+        SpectrumArray(
+            data=spect_orig.get_data(),
+            freqs=spect_orig.freqs,
+            info=spect_orig.info,
+        )
+    )
     spect_orig = epochs.compute_psd()
-    spects.append(EpochsSpectrumArray(
-        data=spect_orig.get_data(),
-        freqs=spect_orig.freqs,
-        info=spect_orig.info,
-        events=epochs.events,
-        event_id=epochs.event_id,
-    ))
+    spects.append(
+        EpochsSpectrumArray(
+            data=spect_orig.get_data(),
+            freqs=spect_orig.freqs,
+            info=spect_orig.info,
+            events=epochs.events,
+            event_id=epochs.event_id,
+        )
+    )
     for spect in spects:
         spect.plot(average=True, amplitude=True, spatial_colors=True)
         spect.plot(average=False, amplitude=False, spatial_colors=False)
