@@ -4517,6 +4517,13 @@ tmin : scalar
 """
 
 docdict[
+    "tmin_epochs"
+] = """
+tmin : float
+    Start time before event. If nothing provided, defaults to 0.
+"""
+
+docdict[
     "tmin_raw"
 ] = """
 tmin : float

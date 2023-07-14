@@ -388,7 +388,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._data_type = state["data_type"]
         self.preload = True
         # instance type
-        inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked)
+        inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
         self._inst_type = inst_types[state["inst_type_str"]]
 
     def __repr__(self):
@@ -1083,6 +1083,7 @@ class Spectrum(BaseSpectrum):
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
+    SpectrumArray
 
     References
     ----------
@@ -1181,7 +1182,7 @@ class Spectrum(BaseSpectrum):
 
 @fill_doc
 class SpectrumArray(Spectrum):
-    """Spectrum object from numpy array.
+    """Data object for precomputed spectral data (in NumPy array format).
 
     Parameters
     ----------
@@ -1189,13 +1190,11 @@ class SpectrumArray(Spectrum):
         The channels' power spectral density for each epoch.
     %(info_not_none)s
     %(freqs_tfr)s
-    %(method_psd)s
     %(verbose)s
 
     See Also
     --------
     mne.create_info
-    mne.EpochsArray
     mne.EvokedArray
     mne.io.RawArray
     EpochsSpectrumArray
@@ -1211,19 +1210,18 @@ class SpectrumArray(Spectrum):
         data,
         info,
         freqs,
-        method=None,
         *,
         verbose=None,
     ):
         self.__setstate__(
             dict(
-                method=method,
+                method="array",
                 data=data,
                 sfreq=info["sfreq"],
                 dims=("channel", "freq"),
                 freqs=freqs,
-                inst_type_str="Raw",
-                data_type="Average Power Spectrum",
+                inst_type_str="Array",
+                data_type="Unknown",
                 info=info,
             )
         )
@@ -1263,10 +1261,9 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
 
     See Also
     --------
+    EpochsSpectrumArray
     Spectrum
-    mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
-    mne.Evoked.compute_psd
 
     References
     ----------
@@ -1420,7 +1417,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
 
 @fill_doc
 class EpochsSpectrumArray(EpochsSpectrum):
-    """EpochsSpectrum object from numpy array.
+    """Data object for precomputed epoched spectral data (in NumPy array format).
 
     Parameters
     ----------
@@ -1429,32 +1426,15 @@ class EpochsSpectrumArray(EpochsSpectrum):
     %(info_not_none)s
     %(freqs_tfr)s
     %(method_psd)s
-    events : None | array of int, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be marked as 'IGNORED' in the drop log.
-        If None (default), all event values are set to 1 and event time-samples
-        are set to range(n_epochs).
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
-    metadata : instance of pandas.DataFrame | None
-        See :class:`mne.Epochs` docstring for details.
-    %(selection)s
-    %(drop_log)s
+    %(events_epochs)s
+    %(event_id)s
+    %(metadata_epochs)s
     %(verbose)s
 
     See Also
     --------
     mne.create_info
     mne.EpochsArray
-    mne.EvokedArray
-    mne.io.RawArray
     SpectrumArray
 
     Notes
@@ -1468,30 +1448,27 @@ class EpochsSpectrumArray(EpochsSpectrum):
         data,
         info,
         freqs,
-        method=None,
         events=None,
         event_id=None,
         metadata=None,
-        selection=None,
-        drop_log=None,
         *,
         verbose=None,
     ):
         self.__setstate__(
             dict(
-                method=method,
+                method="array",
                 data=data,
                 sfreq=info["sfreq"],
                 dims=("epoch", "channel", "freq"),
                 freqs=freqs,
-                inst_type_str="Epochs",
-                data_type="Epochs Power Spectra",
+                inst_type_str="Array",
+                data_type="Unknown",
                 info=info,
                 events=events,
                 event_id=event_id,
                 metadata=metadata,
-                selection=selection,
-                drop_log=drop_log,
+                selection=np.arange(data.shape[0]),
+                drop_log=tuple(tuple() for _ in range(data.shape[0])),
             )
         )
 
