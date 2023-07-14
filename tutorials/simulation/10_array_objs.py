@@ -224,6 +224,8 @@ psd, freqs = mne.time_frequency.psd_array_welch(
 psd_ave = psd.mean(0)
 
 spectrum = mne.time_frequency.SpectrumArray(
-    data=psd_ave, freqs=freqs, info=info,
+    data=psd_ave,
+    freqs=freqs,
+    info=info,
 )
 spectrum.plot(picks=[0, 1], spatial_colors=False, exclude="bads")

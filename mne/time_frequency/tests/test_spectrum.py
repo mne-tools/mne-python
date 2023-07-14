@@ -393,7 +393,9 @@ def test_spectrumarray_raw(raw):
     """Test SpectrumArray for Raw-derived spectra."""
     spect = raw.compute_psd()
     spect2 = SpectrumArray(
-        data=spect.get_data(), freqs=spect.freqs, info=spect.info,
+        data=spect.get_data(),
+        freqs=spect.freqs,
+        info=spect.info,
     )
     spect2.plot()
     assert_array_equal(spect.get_data(), spect2.get_data())
