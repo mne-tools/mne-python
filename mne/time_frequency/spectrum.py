@@ -1080,6 +1080,7 @@ class Spectrum(BaseSpectrum):
     See Also
     --------
     EpochsSpectrum
+    SpectrumArray
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
@@ -1264,6 +1265,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     See Also
     --------
     Spectrum
+    EpochsSpectrumArray
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
