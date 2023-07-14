@@ -289,7 +289,7 @@ stages:
         ./tools/azure_dependencies.sh
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: Install dependencies with pip
-    - script: conda install -c conda-forge mamba
+    - script: conda install -c conda-forge mamba "conda!=23.5.0"
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Get mamba
     - script: mamba env update --name base --file environment.yml
