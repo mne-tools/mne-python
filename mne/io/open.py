@@ -9,7 +9,7 @@ from gzip import GzipFile
 
 import numpy as np
 
-from .tag import read_tag_info, read_tag, Tag, _call_dict_names
+from .tag import read_tag_info, read_tag, Tag, _call_dict_names, _matrix_info
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose, _file_like, warn
@@ -162,10 +162,13 @@ def _fiff_open(fname, fid, preload):
     read_slow = True
     if dirpos > 0:
         dir_tag = read_tag(fid, dirpos)
-        if dir_tag is None:
+        if dir_tag is None or dir_tag.data is None:
+            fid.seek(0, 2)  # move to end of file
+            size = fid.tell()
+            extra = "" if size > dirpos else f" > file size {size}"
             warn(
-                f"FIF tag directory missing at the end of the file, possibly "
-                f"corrupted file: {fname}"
+                "FIF tag directory missing at the end of the file "
+                f"(at byte {dirpos}{extra}), possibly corrupted file: {fname}"
             )
         else:
             directory = dir_tag.data
@@ -200,6 +203,8 @@ def show_fiff(
     max_str=30,
     output=str,
     tag=None,
+    *,
+    show_bytes=False,
     verbose=None,
 ):
     """Show FIFF information.
@@ -223,6 +228,8 @@ def show_fiff(
     tag : int | None
         Provide information about this tag. If None (default), all information
         is shown.
+    show_bytes : bool
+        If True (default False), print the byte offsets of each tag.
     %(verbose)s
 
     Returns
@@ -247,6 +254,7 @@ def show_fiff(
             read_limit=read_limit,
             max_str=max_str,
             tag_id=tag,
+            show_bytes=show_bytes,
         )
     if output == str:
         out = "\n".join(out)
@@ -268,19 +276,25 @@ def _find_type(value, fmts=["FIFF_"], exclude=["FIFF_UNIT"]):
     return vals
 
 
-def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
+def _show_tree(
+    fid,
+    tree,
+    indent,
+    level,
+    read_limit,
+    max_str,
+    tag_id,
+    *,
+    show_bytes=False,
+):
     """Show FIFF tree."""
     from scipy import sparse
 
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
-    out = [
-        this_idt
-        + str(int(tree["block"]))
-        + " = "
-        + "/".join(_find_type(tree["block"], fmts=["FIFFB_"]))
-    ]
+    found_types = "/".join(_find_type(tree["block"], fmts=["FIFFB_"]))
+    out = [f"{this_idt}{str(int(tree['block'])).ljust(4)} = {found_types}"]
     tag_found = False
     if tag_id is None or out[0].strip().startswith(str(tag_id)):
         tag_found = True
@@ -306,6 +320,10 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                 # don't print if the next item is the same type (count 'em)
                 counter += 1
             else:
+                if show_bytes:
+                    at = f" @{pos}"
+                else:
+                    at = ""
                 # find the tag type
                 this_type = _find_type(k, fmts=["FIFF_"])
                 # prepend a count if necessary
@@ -331,17 +349,14 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
                     else:
                         postpend += " ... type=" + str(type(tag.data))
                 postpend = ">" * 20 + "BAD" if not good else postpend
+                matrix_info = _matrix_info(tag)
+                if matrix_info is not None:
+                    _, type_, _, _ = matrix_info
                 type_ = _call_dict_names.get(type_, "?%s?" % (type_,))
+                this_type = "/".join(this_type)
                 out += [
-                    next_idt
-                    + prepend
-                    + str(k)
-                    + " = "
-                    + "/".join(this_type)
-                    + " ("
-                    + str(size)
-                    + "b %s)" % type_
-                    + postpend
+                    f"{next_idt}{prepend}{str(k).ljust(4)} = "
+                    f"{this_type}{at} ({size}b {type_}) {postpend}"
                 ]
                 out[-1] = out[-1].replace("\n", "¶")
                 counter = 0
@@ -353,5 +368,14 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str, tag_id):
         level = -1  # removes extra indent
     # deal with children
     for branch in tree["children"]:
-        out += _show_tree(fid, branch, indent, level + 1, read_limit, max_str, tag_id)
+        out += _show_tree(
+            fid,
+            branch,
+            indent,
+            level + 1,
+            read_limit,
+            max_str,
+            tag_id,
+            show_bytes=show_bytes,
+        )
     return out

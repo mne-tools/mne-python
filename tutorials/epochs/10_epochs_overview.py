@@ -183,7 +183,7 @@ print(epochs.drop_log[-4:])
 # The :class:`~mne.Epochs` object can be visualized (and browsed interactively)
 # using its :meth:`~mne.Epochs.plot` method:
 
-epochs.plot(n_epochs=10)
+epochs.plot(n_epochs=10, events=True)
 
 # %%
 # Notice that the individual epochs are sequentially numbered along the bottom

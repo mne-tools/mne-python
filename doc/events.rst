@@ -24,6 +24,7 @@ Events
    concatenate_epochs
    events_from_annotations
    annotations_from_events
+   count_annotations
 
 :py:mod:`mne.event`:
 

@@ -156,6 +156,8 @@ def pytest_configure(config):
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
     # pandas
     ignore:.*np\.find_common_type is deprecated.*:DeprecationWarning
+    # https://github.com/joblib/joblib/issues/1454
+    ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()

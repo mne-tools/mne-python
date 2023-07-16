@@ -957,7 +957,7 @@ def make_fixed_length_events(
     from .io.base import BaseRaw
 
     _validate_type(raw, BaseRaw, "raw")
-    _validate_type(id, int, "id")
+    _validate_type(id, "int", "id")
     _validate_type(duration, "numeric", "duration")
     _validate_type(overlap, "numeric", "overlap")
     duration, overlap = float(duration), float(overlap)

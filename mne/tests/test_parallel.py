@@ -34,7 +34,12 @@ def test_parallel_func(n_jobs):
     if isinstance(n_jobs, str):
         backend, n_jobs = n_jobs.split()
         n_jobs = want_jobs = int(n_jobs)
-        ctx = joblib.parallel_backend(backend, n_jobs)
+        try:
+            func = joblib.parallel_config
+        except AttributeError:
+            # joblib < 1.3
+            func = joblib.parallel_backend
+        ctx = func(backend, n_jobs=n_jobs)
         n_jobs = None
     else:
         ctx = nullcontext()
@@ -43,5 +48,5 @@ def test_parallel_func(n_jobs):
         else:
             want_jobs = 1
     with ctx:
-        parallel, p_fun, got_jobs = parallel_func(fun, n_jobs)
+        parallel, p_fun, got_jobs = parallel_func(fun, n_jobs, verbose="debug")
     assert got_jobs == want_jobs

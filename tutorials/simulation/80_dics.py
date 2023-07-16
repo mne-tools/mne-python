@@ -216,7 +216,7 @@ picks = mne.pick_channels(
     mne.read_vectorview_selection("Left-frontal"),
     ordered=False,
 )
-epochs.plot(picks=picks)
+epochs.plot(picks=picks, events=True)
 
 # %%
 # Power mapping

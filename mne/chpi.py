@@ -661,13 +661,15 @@ def _setup_hpi_amplitude_fitting(
     inv_model_reord = _reorder_inv_model(inv_model, len(hpi_freqs))
     proj, proj_op, meg_picks = _setup_ext_proj(info, ext_order)
     # include mag and grad picks separately, for SNR computations
-    mag_picks = _picks_to_idx(info, "mag", allow_empty=True)
-    grad_picks = _picks_to_idx(info, "grad", allow_empty=True)
+    mag_subpicks = _picks_to_idx(info, "mag", allow_empty=True)
+    mag_subpicks = np.searchsorted(meg_picks, mag_subpicks)
+    grad_subpicks = _picks_to_idx(info, "grad", allow_empty=True)
+    grad_subpicks = np.searchsorted(meg_picks, grad_subpicks)
     # Set up magnetic dipole fits
     hpi = dict(
         meg_picks=meg_picks,
-        mag_picks=mag_picks,
-        grad_picks=grad_picks,
+        mag_subpicks=mag_subpicks,
+        grad_subpicks=grad_subpicks,
         hpi_pick=hpi_pick,
         model=model,
         inv_model=inv_model,
@@ -779,8 +781,8 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi, snr=False):
             len(hpi["freqs"]),
             hpi["model"],
             hpi["inv_model"],
-            hpi["mag_picks"],
-            hpi["grad_picks"],
+            hpi["mag_subpicks"],
+            hpi["grad_subpicks"],
         )
     return _fast_fit(
         this_data,
@@ -1245,6 +1247,8 @@ def _compute_chpi_amp_or_snr(
         #
         amps_or_snrs = _fit_chpi_amplitudes(raw, time_sl, hpi, snr)
         if snr:
+            if amps_or_snrs is None:
+                amps_or_snrs = np.full((n_freqs, grad_offset + 3), np.nan)
             # unpack the SNR estimates. mag & grad are returned in one array
             # (because of Numba) so take care with which column is which.
             # note that mean residual is a scalar (same for all HPI freqs) but

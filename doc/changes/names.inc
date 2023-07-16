@@ -458,6 +458,8 @@
 
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
 
+.. _Samuel Louviot: https://github.com/Sam54000
+
 .. _Samuel Powell: https://github.com/samuelpowell
 
 .. _Santeri Ruuskanen: https://github.com/ruuskas
@@ -553,6 +555,8 @@
 .. _Xiaokai Xia: https://github.com/dddd1007
 
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
+
+.. _Yiping Zuo: https://github.com/frostime
 
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 

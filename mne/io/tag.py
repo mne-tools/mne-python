@@ -18,6 +18,7 @@ from .constants import (
     _ch_unit_mul_named,
 )
 from ..utils.numerics import _julian_to_cal
+from ..utils import warn, _check_option
 
 
 ##############################################################################
@@ -51,17 +52,13 @@ class Tag:
         self.data = None
 
     def __repr__(self):  # noqa: D105
-        out = "<Tag | kind %s - type %s - size %s - next %s - pos %s" % (
-            self.kind,
-            self.type,
-            self.size,
-            self.next,
-            self.pos,
-        )
-        if hasattr(self, "data"):
-            out += " - data %s" % self.data
-        out += ">"
-        return out
+        attrs = list()
+        for attr in ("kind", "type", "size", "next", "pos", "data"):
+            try:
+                attrs.append(f"{attr} {getattr(self, attr)}")
+            except AttributeError:
+                pass
+        return "<Tag | " + " - ".join(attrs) + ">"
 
     def __eq__(self, tag):  # noqa: D105
         return int(
@@ -96,7 +93,8 @@ def _frombuffer_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
         have_shape = tag_size // item_size
         if want_shape != have_shape:
             raise ValueError(
-                "Wrong shape specified, requested %s have %s" % (want_shape, have_shape)
+                f"Wrong shape specified, requested {want_shape} but got "
+                f"{have_shape}"
             )
         if not len(rlims) == 2:
             raise ValueError("rlims must have two elements")
@@ -155,45 +153,31 @@ def _loc_to_eeg_loc(loc):
 # See ``read_tag`` for variable descriptions. Return values are implied
 # by the function names.
 
-_is_matrix = 4294901760  # ffff0000
-_matrix_coding_dense = 16384  # 4000
-_matrix_coding_CCS = 16400  # 4010
-_matrix_coding_RCS = 16416  # 4020
-_data_type = 65535  # ffff
-
 
 def _read_tag_header(fid):
     """Read only the header of a Tag."""
     s = fid.read(4 * 4)
-    if len(s) == 0:
+    if len(s) != 16:
+        where = fid.tell() - len(s)
+        extra = f" in file {fid.name}" if hasattr(fid, "name") else ""
+        warn(f"Invalid tag with only {len(s)}/16 bytes at position {where}{extra}")
         return None
     # struct.unpack faster than np.frombuffer, saves ~10% of time some places
     return Tag(*struct.unpack(">iIii", s))
 
 
-_matrix_bit_dtype = {
-    FIFF.FIFFT_INT: (4, ">i4"),
-    FIFF.FIFFT_JULIAN: (4, ">i4"),
-    FIFF.FIFFT_FLOAT: (4, ">f4"),
-    FIFF.FIFFT_DOUBLE: (8, ">f8"),
-    FIFF.FIFFT_COMPLEX_FLOAT: (8, ">f4"),
-    FIFF.FIFFT_COMPLEX_DOUBLE: (16, ">f8"),
-}
-
-
-def _read_matrix(fid, tag, shape, rlims, matrix_coding):
+def _read_matrix(fid, tag, shape, rlims):
     """Read a matrix (dense or sparse) tag."""
     from scipy import sparse
 
-    matrix_coding = matrix_coding >> 16
-
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
-    if shape is not None:
-        raise ValueError("Row reading not implemented for matrices " "yet")
+    if shape is not None or rlims is not None:
+        raise ValueError("Row reading not implemented for matrices yet")
 
-    #   Matrices
-    if matrix_coding == _matrix_coding_dense:
+    matrix_coding, matrix_type, bit, dtype = _matrix_info(tag)
+
+    if matrix_coding == "dense":
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
@@ -207,14 +191,9 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
 
         if ndim > 3:
             raise Exception(
-                "Only 2 or 3-dimensional matrices are " "supported at this time"
+                "Only 2 or 3-dimensional matrices are supported at this time"
             )
 
-        matrix_type = _data_type & tag.type
-        try:
-            bit, dtype = _matrix_bit_dtype[matrix_type]
-        except KeyError:
-            raise RuntimeError("Cannot handle matrix of type %d yet" % matrix_type)
         data = fid.read(int(bit * dims.prod()))
         data = np.frombuffer(data, dtype=dtype)
         # Note: we need the non-conjugate transpose here
@@ -223,7 +202,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
             data = data.view(">c16")
         data.shape = dims
-    elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
+    else:
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
@@ -231,19 +210,19 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         fid.seek(-(ndim + 2) * 4, 1)
         dims = np.frombuffer(fid.read(4 * (ndim + 1)), dtype=">i4")
         if ndim != 2:
-            raise Exception(
-                "Only two-dimensional matrices are " "supported at this time"
-            )
+            raise Exception("Only two-dimensional matrices are supported at this time")
 
         # Back to where the data start
         fid.seek(pos, 0)
         nnz = int(dims[0])
         nrow = int(dims[1])
         ncol = int(dims[2])
-        data = np.frombuffer(fid.read(4 * nnz), dtype=">f4")
+        # We need to make a copy so that we can own the data, otherwise we get:
+        #     _sparsetools.csr_sort_indices(len(self.indptr) - 1, self.indptr,
+        # E   ValueError: WRITEBACKIFCOPY base is read-only
+        data = np.frombuffer(fid.read(bit * nnz), dtype=dtype).copy()
         shape = (dims[1], dims[2])
-        if matrix_coding == _matrix_coding_CCS:
-            #    CCS
+        if matrix_coding == "sparse CCS":
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (ncol + 1))
@@ -260,7 +239,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
             data = sparse.csc_matrix((data, indices, indptr), shape=shape)
         else:
-            #    RCS
+            assert matrix_coding == "sparse RCS", matrix_coding
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype=">i4")
             tmp_ptr = fid.read(4 * (nrow + 1))
@@ -276,8 +255,6 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                 )
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
             data = sparse.csr_matrix((data, indices, indptr), shape=shape)
-    else:
-        raise Exception("Cannot handle other than dense or sparse " "matrices yet")
     return data
 
 
@@ -487,15 +464,14 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     if tag is None:
         return tag
     if tag.size > 0:
-        matrix_coding = _is_matrix & tag.type
-        if matrix_coding != 0:
-            tag.data = _read_matrix(fid, tag, shape, rlims, matrix_coding)
+        if _matrix_info(tag) is not None:
+            tag.data = _read_matrix(fid, tag, shape, rlims)
         else:
             #   All other data types
             try:
                 fun = _call_dict[tag.type]
             except KeyError:
-                raise Exception("Unimplemented tag data type %s" % tag.type)
+                raise Exception(f"Unimplemented tag data type {tag.type}") from None
             tag.data = fun(fid, tag, shape, rlims)
     if tag.next != FIFF.FIFFV_NEXT_SEQ:
         # f.seek(tag.next,0)
@@ -546,3 +522,28 @@ def _int_item(x):
 
 def _float_item(x):
     return float(x.item())
+
+
+def _matrix_info(tag):
+    matrix_coding = tag.type & 0xFFFF0000
+    if matrix_coding == 0 or tag.size == 0:
+        return None
+    matrix_type = tag.type & 0x0000FFFF
+    matrix_coding_dict = {
+        FIFF.FIFFT_MATRIX: "dense",
+        FIFF.FIFFT_MATRIX | FIFF.FIFFT_SPARSE_CCS_MATRIX: "sparse CCS",
+        FIFF.FIFFT_MATRIX | FIFF.FIFFT_SPARSE_RCS_MATRIX: "sparse RCS",
+    }
+    _check_option("matrix_coding", matrix_coding, list(matrix_coding_dict))
+    matrix_coding = matrix_coding_dict[matrix_coding]
+    matrix_bit_dtype = {
+        FIFF.FIFFT_INT: (4, ">i4"),
+        FIFF.FIFFT_JULIAN: (4, ">i4"),
+        FIFF.FIFFT_FLOAT: (4, ">f4"),
+        FIFF.FIFFT_DOUBLE: (8, ">f8"),
+        FIFF.FIFFT_COMPLEX_FLOAT: (8, ">f4"),
+        FIFF.FIFFT_COMPLEX_DOUBLE: (16, ">f8"),
+    }
+    _check_option("matrix_type", matrix_type, list(matrix_bit_dtype))
+    bit, dtype = matrix_bit_dtype[matrix_type]
+    return matrix_coding, matrix_type, bit, dtype

@@ -972,3 +972,11 @@ def test_get_data_tmin_tmax():
 
     with pytest.raises(TypeError, match="tmax must be .* float"):
         raw.get_data(tmax=[1, 2])
+
+
+def test_resamp_noop():
+    """Tests resampling doesn't affect data if sfreq is identical."""
+    raw = read_raw_fif(raw_fname)
+    data_before = raw.get_data()
+    data_after = raw.resample(sfreq=raw.info["sfreq"]).get_data()
+    assert_array_equal(data_before, data_after)
