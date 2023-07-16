@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-fix-meshes:
 
@@ -32,9 +31,9 @@ import shutil
 import mne
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = data_path / 'subjects'
-bem_dir = subjects_dir / 'sample' / 'bem' / 'flash'
-surf_dir = subjects_dir / 'sample' / 'surf'
+subjects_dir = data_path / "subjects"
+bem_dir = subjects_dir / "sample" / "bem" / "flash"
+surf_dir = subjects_dir / "sample" / "surf"
 
 # %%
 # Exporting surfaces to Blender
@@ -50,22 +49,22 @@ surf_dir = subjects_dir / 'sample' / 'surf'
 # folder called ``conv`` inside the FreeSurfer subject folder to keep them in.
 
 # Put the converted surfaces in a separate 'conv' folder
-conv_dir = subjects_dir / 'sample' / 'conv'
+conv_dir = subjects_dir / "sample" / "conv"
 os.makedirs(conv_dir, exist_ok=True)
 
 # Load the inner skull surface and create a problem
 # The metadata is empty in this example. In real study, we want to write the
 # original metadata to the fixed surface file. Set read_metadata=True to do so.
-coords, faces = mne.read_surface(bem_dir / 'inner_skull.surf')
+coords, faces = mne.read_surface(bem_dir / "inner_skull.surf")
 coords[0] *= 1.1  # Move the first vertex outside the skull
 
 # Write the inner skull surface as an .obj file that can be imported by
 # Blender.
-mne.write_surface(conv_dir / 'inner_skull.obj', coords, faces, overwrite=True)
+mne.write_surface(conv_dir / "inner_skull.obj", coords, faces, overwrite=True)
 
 # Also convert the outer skull surface.
-coords, faces = mne.read_surface(bem_dir / 'outer_skull.surf')
-mne.write_surface(conv_dir / 'outer_skull.obj', coords, faces, overwrite=True)
+coords, faces = mne.read_surface(bem_dir / "outer_skull.surf")
+mne.write_surface(conv_dir / "outer_skull.obj", coords, faces, overwrite=True)
 
 # %%
 # Editing in Blender
@@ -122,10 +121,9 @@ mne.write_surface(conv_dir / 'outer_skull.obj', coords, faces, overwrite=True)
 # In order to be able to run this tutorial script top to bottom, we here
 # simulate the edits you did manually in Blender using Python code:
 
-coords, faces = mne.read_surface(conv_dir / 'inner_skull.obj')
+coords, faces = mne.read_surface(conv_dir / "inner_skull.obj")
 coords[0] /= 1.1  # Move the first vertex back inside the skull
-mne.write_surface(conv_dir / 'inner_skull_fixed.obj', coords, faces,
-                  overwrite=True)
+mne.write_surface(conv_dir / "inner_skull_fixed.obj", coords, faces, overwrite=True)
 
 # %%
 # Back in Python, you can read the fixed .obj files and save them as
@@ -135,10 +133,10 @@ mne.write_surface(conv_dir / 'inner_skull_fixed.obj', coords, faces,
 # surfaces in case you make a mistake!
 
 # Read the fixed surface
-coords, faces = mne.read_surface(conv_dir / 'inner_skull_fixed.obj')
+coords, faces = mne.read_surface(conv_dir / "inner_skull_fixed.obj")
 
 # Backup the original surface
-shutil.copy(bem_dir / 'inner_skull.surf', bem_dir / 'inner_skull_orig.surf')
+shutil.copy(bem_dir / "inner_skull.surf", bem_dir / "inner_skull_orig.surf")
 
 # Overwrite the original surface with the fixed version
 # In real study you should provide the correct metadata using ``volume_info=``
@@ -164,7 +162,7 @@ shutil.copy(bem_dir / 'inner_skull.surf', bem_dir / 'inner_skull_orig.surf')
 # ``-head.fif`` from the edited surface file for coregistration.
 
 # Load the fixed surface
-coords, faces = mne.read_surface(bem_dir / 'outer_skin.surf')
+coords, faces = mne.read_surface(bem_dir / "outer_skin.surf")
 
 # Make sure we are in the correct directory
 head_dir = bem_dir.parent
@@ -186,21 +184,20 @@ head_dir = bem_dir.parent
 # If ``-head-dense.fif`` does not exist, you need to run
 # ``mne make_scalp_surfaces`` first.
 # [0] because a list of surfaces is returned
-surf = mne.read_bem_surfaces(head_dir / 'sample-head.fif')[0]
+surf = mne.read_bem_surfaces(head_dir / "sample-head.fif")[0]
 
 # For consistency only
-coords = surf['rr']
-faces = surf['tris']
+coords = surf["rr"]
+faces = surf["tris"]
 
 # Write the head as an .obj file for editing
-mne.write_surface(conv_dir / 'sample-head.obj',
-                  coords, faces, overwrite=True)
+mne.write_surface(conv_dir / "sample-head.obj", coords, faces, overwrite=True)
 
 # Usually here you would go and edit your meshes.
 #
 # Here we just use the same surface as if it were fixed
 # Read in the .obj file
-coords, faces = mne.read_surface(conv_dir / 'sample-head.obj')
+coords, faces = mne.read_surface(conv_dir / "sample-head.obj")
 
 # Remember to backup the original head file in advance!
 # Overwrite the original head file

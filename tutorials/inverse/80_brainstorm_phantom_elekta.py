@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-brainstorm-elekta-phantom:
 
@@ -36,7 +35,7 @@ print(__doc__)
 # are read to construct instances of :class:`mne.io.Raw`.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 
-raw_fname = data_path / 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif'
+raw_fname = data_path / "kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif"
 raw = read_raw_fif(raw_fname)
 
 # %%
@@ -44,16 +43,16 @@ raw = read_raw_fif(raw_fname)
 # 102 axial magnetometers, and 3 stimulus channels. Let's get the events
 # for the phantom, where each dipole (1-32) gets its own event:
 
-events = find_events(raw, 'STI201')
+events = find_events(raw, "STI201")
 raw.plot(events=events)
-raw.info['bads'] = ['MEG1933', 'MEG2421']
+raw.info["bads"] = ["MEG1933", "MEG2421"]
 
 # %%
 # The data has strong line frequency (60 Hz and harmonics) and cHPI coil
 # noise (five peaks around 300 Hz). Here, we use only the first 30 seconds
 # to save memory:
 
-raw.plot_psd(tmax=30., average=False)
+raw.compute_psd(tmax=30).plot(average=False, picks="data", exclude="bads")
 
 # %%
 # Our phantom produces sinusoidal bursts at 20 Hz:
@@ -68,9 +67,10 @@ raw.plot(events=events)
 tmin, tmax = -0.1, 0.1
 bmax = -0.05  # Avoid capture filter ringing into baseline
 event_id = list(range(1, 33))
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=(None, bmax),
-                    preload=False)
-epochs['1'].average().plot(time_unit='s')
+epochs = mne.Epochs(
+    raw, events, event_id, tmin, tmax, baseline=(None, bmax), preload=False
+)
+epochs["1"].average().plot(time_unit="s")
 
 # %%
 # .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
@@ -87,14 +87,21 @@ epochs['1'].average().plot(time_unit='s')
 # here.
 
 subjects_dir = data_path
-fetch_phantom('otaniemi', subjects_dir=subjects_dir)
-sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)
-subject = 'phantom_otaniemi'
-trans = mne.transforms.Transform('head', 'mri', np.eye(4))
+fetch_phantom("otaniemi", subjects_dir=subjects_dir)
+sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.0), head_radius=0.08)
+subject = "phantom_otaniemi"
+trans = mne.transforms.Transform("head", "mri", np.eye(4))
 mne.viz.plot_alignment(
-    epochs.info, subject=subject, show_axes=True, bem=sphere, dig=True,
-    surfaces=('head-dense', 'inner_skull'), trans=trans, mri_fiducials=True,
-    subjects_dir=subjects_dir)
+    epochs.info,
+    subject=subject,
+    show_axes=True,
+    bem=sphere,
+    dig=True,
+    surfaces=("head-dense", "inner_skull"),
+    trans=trans,
+    mri_fiducials=True,
+    subjects_dir=subjects_dir,
+)
 
 # %%
 # Let's do some dipole fits. We first compute the noise covariance,
@@ -104,7 +111,7 @@ mne.viz.plot_alignment(
 # here we can get away with using method='oas' for speed (faster than "shrunk")
 # but in general "shrunk" is usually better
 cov = mne.compute_covariance(epochs, tmax=bmax)
-mne.viz.plot_evoked_white(epochs['1'].average(), cov)
+mne.viz.plot_evoked_white(epochs["1"].average(), cov)
 
 data = []
 t_peak = 0.036  # true for Elekta phantom
@@ -112,7 +119,7 @@ for ii in event_id:
     # Avoid the first and last trials -- can contain dipole-switching artifacts
     evoked = epochs[str(ii)][1:-1].average().crop(t_peak, t_peak)
     data.append(evoked.data[:, 0])
-evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
+evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.0)
 del epochs
 dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 
@@ -127,37 +134,36 @@ for ax in axes:
     for text in list(ax.texts):
         text.remove()
     for line in ax.lines:
-        line.set_color('#98df81')
+        line.set_color("#98df81")
 residual.plot(axes=axes)
 
 # %%
 # Now we can compare to the actual locations, taking the difference in mm:
 
 actual_pos, actual_ori = mne.dipole.get_phantom_dipoles()
-actual_amp = 100.  # nAm
+actual_amp = 100.0  # nAm
 
-fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, figsize=(6, 7))
+fig, (ax1, ax2, ax3) = plt.subplots(
+    nrows=3, ncols=1, figsize=(6, 7), constrained_layout=True
+)
 
 diffs = 1000 * np.sqrt(np.sum((dip.pos - actual_pos) ** 2, axis=-1))
-print('mean(position error) = %0.1f mm' % (np.mean(diffs),))
+print("mean(position error) = %0.1f mm" % (np.mean(diffs),))
 ax1.bar(event_id, diffs)
-ax1.set_xlabel('Dipole index')
-ax1.set_ylabel('Loc. error (mm)')
+ax1.set_xlabel("Dipole index")
+ax1.set_ylabel("Loc. error (mm)")
 
 angles = np.rad2deg(np.arccos(np.abs(np.sum(dip.ori * actual_ori, axis=1))))
-print(u'mean(angle error) = %0.1f°' % (np.mean(angles),))
+print("mean(angle error) = %0.1f°" % (np.mean(angles),))
 ax2.bar(event_id, angles)
-ax2.set_xlabel('Dipole index')
-ax2.set_ylabel(u'Angle error (°)')
+ax2.set_xlabel("Dipole index")
+ax2.set_ylabel("Angle error (°)")
 
 amps = actual_amp - dip.amplitude / 1e-9
-print('mean(abs amplitude error) = %0.1f nAm' % (np.mean(np.abs(amps)),))
+print("mean(abs amplitude error) = %0.1f nAm" % (np.mean(np.abs(amps)),))
 ax3.bar(event_id, amps)
-ax3.set_xlabel('Dipole index')
-ax3.set_ylabel('Amplitude error (nAm)')
-
-fig.tight_layout()
-plt.show()
+ax3.set_xlabel("Dipole index")
+ax3.set_ylabel("Amplitude error (nAm)")
 
 # %%
 # Let's plot the positions and the orientations of the actual and the estimated
@@ -165,22 +171,29 @@ plt.show()
 
 actual_amp = np.ones(len(dip))  # misc amp to create Dipole instance
 actual_gof = np.ones(len(dip))  # misc GOF to create Dipole instance
-dip_true = \
-    mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
+dip_true = mne.Dipole(dip.times, actual_pos, actual_amp, actual_ori, actual_gof)
 
 fig = mne.viz.plot_alignment(
-    evoked.info, trans, subject, bem=sphere, surfaces={'head-dense': 0.2},
-    coord_frame='head', meg='helmet', show_axes=True,
-    subjects_dir=subjects_dir)
+    evoked.info,
+    trans,
+    subject,
+    bem=sphere,
+    surfaces={"head-dense": 0.2},
+    coord_frame="head",
+    meg="helmet",
+    show_axes=True,
+    subjects_dir=subjects_dir,
+)
 
 # Plot the position and the orientation of the actual dipole
-fig = mne.viz.plot_dipole_locations(dipoles=dip_true, mode='arrow',
-                                    subject=subject, color=(0., 0., 0.),
-                                    fig=fig)
+fig = mne.viz.plot_dipole_locations(
+    dipoles=dip_true, mode="arrow", subject=subject, color=(0.0, 0.0, 0.0), fig=fig
+)
 
 # Plot the position and the orientation of the estimated dipole
-fig = mne.viz.plot_dipole_locations(dipoles=dip, mode='arrow', subject=subject,
-                                    color=(0.2, 1., 0.5), fig=fig)
+fig = mne.viz.plot_dipole_locations(
+    dipoles=dip, mode="arrow", subject=subject, color=(0.2, 1.0, 0.5), fig=fig
+)
 
 mne.viz.set_3d_view(figure=fig, azimuth=70, elevation=80, distance=0.5)
 

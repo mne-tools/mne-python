@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-annotate-raw:
 
@@ -22,8 +21,9 @@ from datetime import timedelta
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 
@@ -48,9 +48,11 @@ raw.crop(tmax=60).load_data()
 # you can even pass lists or arrays to the `~mne.Annotations`
 # constructor to annotate multiple spans at once:
 
-my_annot = mne.Annotations(onset=[3, 5, 7],  # in seconds
-                           duration=[1, 0.5, 0.25],  # in seconds, too
-                           description=['AAA', 'BBB', 'CCC'])
+my_annot = mne.Annotations(
+    onset=[3, 5, 7],  # in seconds
+    duration=[1, 0.5, 0.25],  # in seconds, too
+    description=["AAA", "BBB", "CCC"],
+)
 print(my_annot)
 
 # %%
@@ -64,7 +66,7 @@ raw.set_annotations(my_annot)
 print(raw.annotations)
 
 # convert meas_date (a tuple of seconds, microseconds) into a float:
-meas_date = raw.info['meas_date']
+meas_date = raw.info["meas_date"]
 orig_time = raw.annotations.orig_time
 print(meas_date == orig_time)
 
@@ -76,7 +78,7 @@ print(meas_date == orig_time)
 # raw.info['sfreq']``) was added to the ``onset`` values of each annotation
 # (see :ref:`time-as-index` for more info on ``raw.first_samp``):
 
-time_of_first_sample = raw.first_samp / raw.info['sfreq']
+time_of_first_sample = raw.first_samp / raw.info["sfreq"]
 print(my_annot.onset + time_of_first_sample)
 print(raw.annotations.onset)
 
@@ -90,14 +92,16 @@ print(raw.annotations.onset)
 # options); here we'll use an `ISO 8601`_ formatted string, and set it to be 50
 # seconds later than ``raw.info['meas_date']``.
 
-time_format = '%Y-%m-%d %H:%M:%S.%f'
+time_format = "%Y-%m-%d %H:%M:%S.%f"
 new_orig_time = (meas_date + timedelta(seconds=50)).strftime(time_format)
 print(new_orig_time)
 
-later_annot = mne.Annotations(onset=[3, 5, 7],
-                              duration=[1, 0.5, 0.25],
-                              description=['DDD', 'EEE', 'FFF'],
-                              orig_time=new_orig_time)
+later_annot = mne.Annotations(
+    onset=[3, 5, 7],
+    duration=[1, 0.5, 0.25],
+    description=["DDD", "EEE", "FFF"],
+    orig_time=new_orig_time,
+)
 
 raw2 = raw.copy().set_annotations(later_annot)
 print(later_annot.onset)
@@ -133,7 +137,7 @@ fig = raw.plot(start=2, duration=6)
 # focused; this will bring up the annotation controls:
 
 fig = raw.plot(start=2, duration=6)
-fig.fake_keypress('a')
+fig.fake_keypress("a")
 
 # %%
 # The drop-down-menu on the left determines which existing label will be
@@ -195,7 +199,7 @@ fig.fake_keypress('a')
 # `~mne.Annotations` objects can be combined by simply adding them with
 # the ``+`` operator, as long as they share the same ``orig_time``:
 
-new_annot = mne.Annotations(onset=3.75, duration=0.75, description='AAA')
+new_annot = mne.Annotations(onset=3.75, duration=0.75, description="AAA")
 raw.set_annotations(my_annot + new_annot)
 raw.plot(start=2, duration=6)
 
@@ -211,8 +215,8 @@ raw.plot(start=2, duration=6)
 # achieved by either slicing or indexing with a list, tuple, or array of
 # indices:
 
-print(raw.annotations[0])       # just the first annotation
-print(raw.annotations[:2])      # the first two annotations
+print(raw.annotations[0])  # just the first annotation
+print(raw.annotations[:2])  # the first two annotations
 print(raw.annotations[(3, 2)])  # the fourth and third annotations
 
 # %%
@@ -220,9 +224,9 @@ print(raw.annotations[(3, 2)])  # the fourth and third annotations
 # object:
 
 for ann in raw.annotations:
-    descr = ann['description']
-    start = ann['onset']
-    end = ann['onset'] + ann['duration']
+    descr = ann["description"]
+    start = ann["onset"]
+    end = ann["onset"] + ann["duration"]
     print("'{}' goes from {} to {}".format(descr, start, end))
 
 # %%
@@ -236,9 +240,9 @@ later_annot.onset[0] = 99
 
 # later_annot WILL NOT be changed, because later_annot[0] returns a copy
 # before the 'onset' field is changed:
-later_annot[0]['onset'] = 77
+later_annot[0]["onset"] = 77
 
-print(later_annot[0]['onset'])
+print(later_annot[0]["onset"])
 
 # %%
 # Reading and writing Annotations to/from a file
@@ -252,8 +256,8 @@ print(later_annot[0]['onset'])
 # onset as timestamps, :file:`.txt` files write floats (in seconds). There is a
 # corresponding :func:`~mne.read_annotations` function to load them from disk:
 
-raw.annotations.save('saved-annotations.csv', overwrite=True)
-annot_from_file = mne.read_annotations('saved-annotations.csv')
+raw.annotations.save("saved-annotations.csv", overwrite=True)
+annot_from_file = mne.read_annotations("saved-annotations.csv")
 print(annot_from_file)
 
 # %%

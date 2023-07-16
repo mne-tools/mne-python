@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-head-pos:
 
@@ -33,10 +32,10 @@ harmonics).
 from os import path as op
 import mne
 
-data_path = op.join(mne.datasets.testing.data_path(verbose=True), 'SSS')
-fname_raw = op.join(data_path, 'test_move_anon_raw.fif')
-raw = mne.io.read_raw_fif(fname_raw, allow_maxshield='yes').load_data()
-raw.plot_psd()
+data_path = op.join(mne.datasets.testing.data_path(verbose=True), "SSS")
+fname_raw = op.join(data_path, "test_move_anon_raw.fif")
+raw = mne.io.read_raw_fif(fname_raw, allow_maxshield="yes").load_data()
+raw.compute_psd().plot(picks="data", exclude="bads")
 
 # %%
 # We can use `mne.chpi.get_chpi_info` to retrieve the coil frequencies,
@@ -44,7 +43,7 @@ raw.plot_psd()
 # respective "event codes" associated with each coil's activity.
 
 chpi_freqs, ch_idx, chpi_codes = mne.chpi.get_chpi_info(info=raw.info)
-print(f'cHPI coil frequencies extracted from raw: {chpi_freqs} Hz')
+print(f"cHPI coil frequencies extracted from raw: {chpi_freqs} Hz")
 
 # %%
 # Estimating continuous head position
@@ -76,13 +75,13 @@ head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
 
 # sphinx_gallery_thumbnail_number = 2
 
-mne.viz.plot_head_positions(head_pos, mode='traces')
+mne.viz.plot_head_positions(head_pos, mode="traces")
 
 # %%
 # Or we can visualize them as a continuous field (with the vectors pointing
 # in the head-upward direction):
 
-mne.viz.plot_head_positions(head_pos, mode='field')
+mne.viz.plot_head_positions(head_pos, mode="field")
 
 # %%
 # These head positions can then be used with

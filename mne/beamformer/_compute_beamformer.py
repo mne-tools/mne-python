@@ -15,78 +15,124 @@ from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
 from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
-from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_mat_pow, warn,
-                     _import_h5io_funcs)
+from ..utils import (
+    verbose,
+    check_fname,
+    _reg_pinv,
+    _check_option,
+    logger,
+    _pl,
+    _check_src_normal,
+    _sym_mat_pow,
+    warn,
+    _import_h5io_funcs,
+)
 from ..time_frequency.csd import CrossSpectralDensity
 
 
 def _check_proj_match(proj, filters):
     """Check whether SSP projections in data and spatial filter match."""
-    proj_data, _, _ = make_projector(proj, filters['ch_names'])
-    if not np.allclose(proj_data, filters['proj'],
-                       atol=np.finfo(float).eps, rtol=1e-13):
-        raise ValueError('The SSP projections present in the data '
-                         'do not match the projections used when '
-                         'calculating the spatial filter.')
+    proj_data, _, _ = make_projector(proj, filters["ch_names"])
+    if not np.allclose(
+        proj_data, filters["proj"], atol=np.finfo(float).eps, rtol=1e-13
+    ):
+        raise ValueError(
+            "The SSP projections present in the data "
+            "do not match the projections used when "
+            "calculating the spatial filter."
+        )
 
 
 def _check_src_type(filters):
     """Check whether src_type is in filters and set custom warning."""
-    if 'src_type' not in filters:
-        filters['src_type'] = None
-    warn_text = ('The spatial filter does not contain src_type and a robust '
-                 'guess of src_type is not possible without src. Consider '
-                 'recomputing the filter.')
+    if "src_type" not in filters:
+        filters["src_type"] = None
+    warn_text = (
+        "The spatial filter does not contain src_type and a robust "
+        "guess of src_type is not possible without src. Consider "
+        "recomputing the filter."
+    )
     return filters, warn_text
 
 
-def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
-                              noise_cov=None, rank=None, pca=False, loose=None,
-                              combine_xyz='fro', exp=None, limit=None,
-                              allow_fixed_depth=True, limit_depth_chs=False):
+def _prepare_beamformer_input(
+    info,
+    forward,
+    label=None,
+    pick_ori=None,
+    noise_cov=None,
+    rank=None,
+    pca=False,
+    loose=None,
+    combine_xyz="fro",
+    exp=None,
+    limit=None,
+    allow_fixed_depth=True,
+    limit_depth_chs=False,
+):
     """Input preparation common for LCMV, DICS, and RAP-MUSIC."""
-    _check_option('pick_ori', pick_ori,
-                  ('normal', 'max-power', 'vector', None))
+    _check_option("pick_ori", pick_ori, ("normal", "max-power", "vector", None))
 
     # Restrict forward solution to selected vertices
     if label is not None:
-        _, src_sel = label_src_vertno_sel(label, forward['src'])
+        _, src_sel = label_src_vertno_sel(label, forward["src"])
         forward = _restrict_forward_to_src_sel(forward, src_sel)
 
     if loose is None:
-        loose = 0. if is_fixed_orient(forward) else 1.
+        loose = 0.0 if is_fixed_orient(forward) else 1.0
     # TODO: Deduplicate with _check_one_ch_type, should not be necessary
     # (DICS hits this code path, LCMV does not)
     if noise_cov is None:
-        noise_cov = make_ad_hoc_cov(info, std=1.)
-    forward, info_picked, gain, _, orient_prior, _, trace_GRGT, noise_cov, \
-        whitener = _prepare_forward(
-            forward, info, noise_cov, 'auto', loose, rank=rank, pca=pca,
-            use_cps=True, exp=exp, limit_depth_chs=limit_depth_chs,
-            combine_xyz=combine_xyz, limit=limit,
-            allow_fixed_depth=allow_fixed_depth)
+        noise_cov = make_ad_hoc_cov(info, std=1.0)
+    (
+        forward,
+        info_picked,
+        gain,
+        _,
+        orient_prior,
+        _,
+        trace_GRGT,
+        noise_cov,
+        whitener,
+    ) = _prepare_forward(
+        forward,
+        info,
+        noise_cov,
+        "auto",
+        loose,
+        rank=rank,
+        pca=pca,
+        use_cps=True,
+        exp=exp,
+        limit_depth_chs=limit_depth_chs,
+        combine_xyz=combine_xyz,
+        limit=limit,
+        allow_fixed_depth=allow_fixed_depth,
+    )
     is_free_ori = not is_fixed_orient(forward)  # could have been changed
-    nn = forward['source_nn']
+    nn = forward["source_nn"]
     if is_free_ori:  # take Z coordinate
         nn = nn[2::3]
     nn = nn.copy()
-    vertno = _get_vertno(forward['src'])
-    if forward['surf_ori']:
+    vertno = _get_vertno(forward["src"])
+    if forward["surf_ori"]:
         nn[...] = [0, 0, 1]  # align to local +Z coordinate
     if pick_ori is not None and not is_free_ori:
         raise ValueError(
-            'Normal or max-power orientation (got %r) can only be picked when '
-            'a forward operator with free orientation is used.' % (pick_ori,))
-    if pick_ori == 'normal' and not forward['surf_ori']:
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator oriented in surface coordinates is '
-                         'used.')
-    _check_src_normal(pick_ori, forward['src'])
+            "Normal or max-power orientation (got %r) can only be picked when "
+            "a forward operator with free orientation is used." % (pick_ori,)
+        )
+    if pick_ori == "normal" and not forward["surf_ori"]:
+        raise ValueError(
+            "Normal orientation can only be picked when a "
+            "forward operator oriented in surface coordinates is "
+            "used."
+        )
+    _check_src_normal(pick_ori, forward["src"])
     del forward, info
 
     # Undo the scaling that MNE prefers
-    scale = np.sqrt((noise_cov['eig'] > 0).sum() / trace_GRGT)
+    scale = np.sqrt((noise_cov["eig"] > 0).sum() / trace_GRGT)
     gain /= scale
     if orient_prior is not None:
         orient_std = np.sqrt(orient_prior)
@@ -94,10 +140,8 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
         orient_std = np.ones(gain.shape[1])
 
     # Get the projector
-    proj, _, _ = make_projector(
-        info_picked['projs'], info_picked['ch_names'])
-    return (is_free_ori, info_picked, proj, vertno, gain, whitener, nn,
-            orient_std)
+    proj, _, _ = make_projector(info_picked["projs"], info_picked["ch_names"])
+    return (is_free_ori, info_picked, proj, vertno, gain, whitener, nn, orient_std)
 
 
 def _reduce_leadfield_rank(G):
@@ -115,12 +159,12 @@ def _reduce_leadfield_rank(G):
 def _sym_inv_sm(x, reduce_rank, inversion, sk):
     """Symmetric inversion with single- or matrix-style inversion."""
     if x.shape[1:] == (1, 1):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            x_inv = 1. / x
-        x_inv[~np.isfinite(x_inv)] = 1.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            x_inv = 1.0 / x
+        x_inv[~np.isfinite(x_inv)] = 1.0
     else:
         assert x.shape[1:] == (3, 3)
-        if inversion == 'matrix':
+        if inversion == "matrix":
             x_inv = _sym_mat_pow(x, -1, reduce_rank=reduce_rank)
             # Reapply source covariance after inversion
             x_inv *= sk[:, :, np.newaxis]
@@ -128,22 +172,33 @@ def _sym_inv_sm(x, reduce_rank, inversion, sk):
         else:
             # Invert for each dipole separately using plain division
             diags = np.diagonal(x, axis1=1, axis2=2)
-            assert not reduce_rank   # guaranteed earlier
-            with np.errstate(divide='ignore'):
-                diags = 1. / diags
+            assert not reduce_rank  # guaranteed earlier
+            with np.errstate(divide="ignore"):
+                diags = 1.0 / diags
             # set the diagonal of each 3x3
             x_inv = np.zeros_like(x)
             for k in range(x.shape[0]):
                 this = diags[k]
                 # Reapply source covariance after inversion
-                this *= (sk[k] * sk[k])
+                this *= sk[k] * sk[k]
                 x_inv[k].flat[::4] = this
     return x_inv
 
 
-def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
-                        reduce_rank, rank, inversion, nn, orient_std,
-                        whitener):
+def _compute_beamformer(
+    G,
+    Cm,
+    reg,
+    n_orient,
+    weight_norm,
+    pick_ori,
+    reduce_rank,
+    rank,
+    inversion,
+    nn,
+    orient_std,
+    whitener,
+):
     """Compute a spatial beamformer filter (LCMV or DICS).
 
     For more detailed information on the parameters, see the docstrings of
@@ -181,22 +236,26 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     W : ndarray, shape (n_dipoles, n_channels)
         The beamformer filter weights.
     """
-    _check_option('weight_norm', weight_norm,
-                  ['unit-noise-gain-invariant', 'unit-noise-gain',
-                   'nai', None])
+    _check_option(
+        "weight_norm",
+        weight_norm,
+        ["unit-noise-gain-invariant", "unit-noise-gain", "nai", None],
+    )
 
     # Whiten the data covariance
     Cm = whitener @ Cm @ whitener.T.conj()
     # Restore to properly Hermitian as large whitening coefs can have bad
     # rounding error
-    Cm[:] = (Cm + Cm.T.conj()) / 2.
+    Cm[:] = (Cm + Cm.T.conj()) / 2.0
 
     assert Cm.shape == (G.shape[0],) * 2
     s, _ = np.linalg.eigh(Cm)
     if not (s >= -s.max() * 1e-7).all():
         # This shouldn't ever happen, but just in case
-        warn('data covariance does not appear to be positive semidefinite, '
-             'results will likely be incorrect')
+        warn(
+            "data covariance does not appear to be positive semidefinite, "
+            "results will likely be incorrect"
+        )
     # Tikhonov regularization using reg parameter to control for
     # trade-off between spatial resolution and noise sensitivity
     # eq. 25 in Gross and Ioannides, 1999 Phys. Med. Biol. 44 2081
@@ -206,41 +265,47 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     n_sources = G.shape[1] // n_orient
     assert nn.shape == (n_sources, 3)
 
-    logger.info('Computing beamformer filters for %d source%s'
-                % (n_sources, _pl(n_sources)))
+    logger.info(
+        "Computing beamformer filters for %d source%s" % (n_sources, _pl(n_sources))
+    )
     n_channels = G.shape[0]
     assert n_orient in (3, 1)
     Gk = np.reshape(G.T, (n_sources, n_orient, n_channels)).transpose(0, 2, 1)
     assert Gk.shape == (n_sources, n_channels, n_orient)
     sk = np.reshape(orient_std, (n_sources, n_orient))
     del G, orient_std
-    pinv_kwargs = dict()
-    if check_version('numpy', '1.17'):
-        pinv_kwargs['hermitian'] = True
 
-    _check_option('reduce_rank', reduce_rank, (True, False))
+    _check_option("reduce_rank", reduce_rank, (True, False))
 
     # inversion of the denominator
-    _check_option('inversion', inversion, ('matrix', 'single'))
-    if inversion == 'single' and n_orient > 1 and pick_ori == 'vector' and \
-            weight_norm == 'unit-noise-gain-invariant':
+    _check_option("inversion", inversion, ("matrix", "single"))
+    if (
+        inversion == "single"
+        and n_orient > 1
+        and pick_ori == "vector"
+        and weight_norm == "unit-noise-gain-invariant"
+    ):
         raise ValueError(
             'Cannot use pick_ori="vector" with inversion="single" and '
-            'weight_norm="unit-noise-gain-invariant"')
-    if reduce_rank and inversion == 'single':
-        raise ValueError('reduce_rank cannot be used with inversion="single"; '
-                         'consider using inversion="matrix" if you have a '
-                         'rank-deficient forward model (i.e., from a sphere '
-                         'model with MEG channels), otherwise consider using '
-                         'reduce_rank=False')
+            'weight_norm="unit-noise-gain-invariant"'
+        )
+    if reduce_rank and inversion == "single":
+        raise ValueError(
+            'reduce_rank cannot be used with inversion="single"; '
+            'consider using inversion="matrix" if you have a '
+            "rank-deficient forward model (i.e., from a sphere "
+            "model with MEG channels), otherwise consider using "
+            "reduce_rank=False"
+        )
     if n_orient > 1:
         _, Gk_s, _ = np.linalg.svd(Gk, full_matrices=False)
         assert Gk_s.shape == (n_sources, n_orient)
         if not reduce_rank and (Gk_s[:, 0] > 1e6 * Gk_s[:, 2]).any():
             raise ValueError(
-                'Singular matrix detected when estimating spatial filters. '
-                'Consider reducing the rank of the forward operator by using '
-                'reduce_rank=True.')
+                "Singular matrix detected when estimating spatial filters. "
+                "Consider reducing the rank of the forward operator by using "
+                "reduce_rank=True."
+            )
         del Gk_s
 
     #
@@ -257,7 +322,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     #
     # 2. Reorient lead field in direction of max power or normal
     #
-    if pick_ori == 'max-power':
+    if pick_ori == "max-power":
         assert n_orient == 3
         _, bf_denom = _compute_bf_terms(Gk, Cm_inv)
         if weight_norm is None:
@@ -268,7 +333,8 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             ori_numer = bf_denom
             # Cm_inv should be Hermitian so no need for .T.conj()
             ori_denom = np.matmul(
-                np.matmul(Gk.swapaxes(-2, -1).conj(), Cm_inv @ Cm_inv), Gk)
+                np.matmul(Gk.swapaxes(-2, -1).conj(), Cm_inv @ Cm_inv), Gk
+            )
         ori_denom_inv = _sym_inv_sm(ori_denom, reduce_rank, inversion, sk)
         ori_pick = np.matmul(ori_denom_inv, ori_numer)
         assert ori_pick.shape == (n_sources, n_orient, n_orient)
@@ -283,7 +349,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
         # set the (otherwise arbitrary) sign to match the normal
         signs = np.sign(np.sum(max_power_ori * nn, axis=1, keepdims=True))
-        signs[signs == 0] = 1.
+        signs[signs == 0] = 1.0
         max_power_ori *= signs
 
         # Compute the lead field for the optimal orientation,
@@ -292,7 +358,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         n_orient = 1
     else:
         max_power_ori = None
-        if pick_ori == 'normal':
+        if pick_ori == "normal":
             Gk = Gk[..., 2:3]
             n_orient = 1
 
@@ -341,16 +407,17 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         #
         # Sekihara 2008 says to use sqrt(diag(W_ug @ W_ug.T)), which is not
         # rotation invariant:
-        if weight_norm in ('unit-noise-gain', 'nai'):
+        if weight_norm in ("unit-noise-gain", "nai"):
             noise_norm = np.matmul(W, W.swapaxes(-2, -1).conj()).real
             noise_norm = np.reshape(  # np.diag operation over last two axes
-                noise_norm, (n_sources, -1, 1))[:, ::n_orient + 1]
+                noise_norm, (n_sources, -1, 1)
+            )[:, :: n_orient + 1]
             np.sqrt(noise_norm, out=noise_norm)
             noise_norm[noise_norm == 0] = np.inf
             assert noise_norm.shape == (n_sources, n_orient, 1)
             W /= noise_norm
         else:
-            assert weight_norm == 'unit-noise-gain-invariant'
+            assert weight_norm == "unit-noise-gain-invariant"
             # Here we use sqrtm. The shortcut:
             #
             #    use = W
@@ -360,9 +427,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             use = bf_numer
             inner = np.matmul(use, use.swapaxes(-2, -1).conj())
             W = np.matmul(_sym_mat_pow(inner, -0.5), use)
-            noise_norm = 1.
+            noise_norm = 1.0
 
-        if weight_norm == 'nai':
+        if weight_norm == "nai":
             # Estimate noise level based on covariance matrix, taking the
             # first eigenvalue that falls outside the signal subspace or the
             # loading factor used during regularization, whichever is largest.
@@ -371,10 +438,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 # Use the loading factor as noise ceiling.
                 if loading_factor == 0:
                     raise RuntimeError(
-                        'Cannot compute noise subspace with a full-rank '
-                        'covariance matrix and no regularization. Try '
-                        'manually specifying the rank of the covariance '
-                        'matrix or using regularization.')
+                        "Cannot compute noise subspace with a full-rank "
+                        "covariance matrix and no regularization. Try "
+                        "manually specifying the rank of the covariance "
+                        "matrix or using regularization."
+                    )
                 noise = loading_factor
             else:
                 noise, _ = np.linalg.eigh(Cm)
@@ -383,7 +451,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             W /= np.sqrt(noise)
 
     W = W.reshape(n_sources * n_orient, n_channels)
-    logger.info('Filter computation complete')
+    logger.info("Filter computation complete")
     return W, max_power_ori
 
 
@@ -405,8 +473,9 @@ def _compute_power(Cm, W, n_orient):
     n_sources = W.shape[0] // n_orient
 
     Wk = W.reshape(n_sources, n_orient, W.shape[1])
-    source_power = np.trace((Wk @ Cm @ Wk.conj().transpose(0, 2, 1)).real,
-                            axis1=1, axis2=2)
+    source_power = np.trace(
+        (Wk @ Cm @ Wk.conj().transpose(0, 2, 1)).real, axis1=1, axis2=2
+    )
 
     return source_power
 
@@ -430,23 +499,27 @@ class Beamformer(dict):
         return deepcopy(self)
 
     def __repr__(self):  # noqa: D105
-        n_verts = sum(len(v) for v in self['vertices'])
-        n_channels = len(self['ch_names'])
-        if self['subject'] is None:
-            subject = 'unknown'
+        n_verts = sum(len(v) for v in self["vertices"])
+        n_channels = len(self["ch_names"])
+        if self["subject"] is None:
+            subject = "unknown"
         else:
-            subject = '"%s"' % (self['subject'],)
-        out = ('<Beamformer | %s, subject %s, %s vert, %s ch'
-               % (self['kind'], subject, n_verts, n_channels))
-        if self['pick_ori'] is not None:
-            out += ', %s ori' % (self['pick_ori'],)
-        if self['weight_norm'] is not None:
-            out += ', %s norm' % (self['weight_norm'],)
-        if self.get('inversion') is not None:
-            out += ', %s inversion' % (self['inversion'],)
-        if 'rank' in self:
-            out += ', rank %s' % (self['rank'],)
-        out += '>'
+            subject = '"%s"' % (self["subject"],)
+        out = "<Beamformer | %s, subject %s, %s vert, %s ch" % (
+            self["kind"],
+            subject,
+            n_verts,
+            n_channels,
+        )
+        if self["pick_ori"] is not None:
+            out += ", %s ori" % (self["pick_ori"],)
+        if self["weight_norm"] is not None:
+            out += ", %s norm" % (self["weight_norm"],)
+        if self.get("inversion") is not None:
+            out += ", %s inversion" % (self["inversion"],)
+        if "rank" in self:
+            out += ", rank %s" % (self["rank"],)
+        out += ">"
         return out
 
     @verbose
@@ -463,17 +536,17 @@ class Beamformer(dict):
         """
         _, write_hdf5 = _import_h5io_funcs()
 
-        ending = '-%s.h5' % (self['kind'].lower(),)
-        check_fname(fname, self['kind'], (ending,))
+        ending = "-%s.h5" % (self["kind"].lower(),)
+        check_fname(fname, self["kind"], (ending,))
         csd_orig = None
         try:
-            if 'csd' in self:
-                csd_orig = self['csd']
-                self['csd'] = self['csd'].__getstate__()
-            write_hdf5(fname, self, overwrite=overwrite, title='mnepython')
+            if "csd" in self:
+                csd_orig = self["csd"]
+                self["csd"] = self["csd"].__getstate__()
+            write_hdf5(fname, self, overwrite=overwrite, title="mnepython")
         finally:
             if csd_orig is not None:
-                self['csd'] = csd_orig
+                self["csd"] = csd_orig
 
 
 def read_beamformer(fname):
@@ -490,34 +563,46 @@ def read_beamformer(fname):
         The beamformer filter.
     """
     read_hdf5, _ = _import_h5io_funcs()
-    beamformer = read_hdf5(fname, title='mnepython')
-    if 'csd' in beamformer:
-        beamformer['csd'] = CrossSpectralDensity(**beamformer['csd'])
+    beamformer = read_hdf5(fname, title="mnepython")
+    if "csd" in beamformer:
+        beamformer["csd"] = CrossSpectralDensity(**beamformer["csd"])
     # h5io seems to cast `bool` to `int` on round-trip, probably a bug
     # we should fix at some point (if possible -- could be HDF5 limitation)
-    for key in ('normalize_fwd', 'is_free_ori', 'is_ssp'):
+    for key in ("normalize_fwd", "is_free_ori", "is_ssp"):
         if key in beamformer:
             beamformer[key] = bool(beamformer[key])
-    for key in ('data_cov', 'noise_cov'):
+    for key in ("data_cov", "noise_cov"):
         if beamformer.get(key) is not None:
-            for pi, p in enumerate(beamformer[key]['projs']):
+            for pi, p in enumerate(beamformer[key]["projs"]):
                 p = Projection(**p)
-                p['active'] = bool(p['active'])
-                beamformer[key]['projs'][pi] = p
+                p["active"] = bool(p["active"])
+                beamformer[key]["projs"][pi] = p
             beamformer[key] = Covariance(
-                *[beamformer[key].get(arg)
-                  for arg in ('data', 'names', 'bads', 'projs', 'nfree', 'eig',
-                              'eigvec', 'method', 'loglik')])
+                *[
+                    beamformer[key].get(arg)
+                    for arg in (
+                        "data",
+                        "names",
+                        "bads",
+                        "projs",
+                        "nfree",
+                        "eig",
+                        "eigvec",
+                        "method",
+                        "loglik",
+                    )
+                ]
+            )
     return Beamformer(beamformer)
 
 
 def _proj_whiten_data(M, proj, filters):
-    if filters.get('is_ssp', True):
+    if filters.get("is_ssp", True):
         # check whether data and filter projs match
         _check_proj_match(proj, filters)
-        if filters['whitener'] is None:
-            M = np.dot(filters['proj'], M)
+        if filters["whitener"] is None:
+            M = np.dot(filters["proj"], M)
 
-    if filters['whitener'] is not None:
-        M = np.dot(filters['whitener'], M)
+    if filters["whitener"] is not None:
+        M = np.dot(filters["whitener"], M)
     return M

@@ -1,10 +1,21 @@
-#!/bin/bash -ef
+#!/bin/bash
 
-USE_DIRS="mne/"
-if [ "${CI_OS_NAME}" != "osx" ]; then
-  CONDITION="not (ultraslowtest or pgtest)"
+set -eo pipefail
+
+if [[ "${CI_OS_NAME}" != "macos"* ]]; then
+  if [[ "${MNE_CI_KIND}" == "pip-pre" ]]; then
+    CONDITION="not (slowtest or pgtest)"
+  else
+    CONDITION="not (ultraslowtest or pgtest)"
+  fi
 else
   CONDITION="not (slowtest or pgtest)"
 fi
-echo 'pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}'
+if [ "${MNE_CI_KIND}" == "notebook" ]; then
+  USE_DIRS=mne/viz/
+else
+  USE_DIRS="mne/"
+fi
+set -x
 pytest -m "${CONDITION}" --tb=short --cov=mne --cov-report xml -vv ${USE_DIRS}
+set +x

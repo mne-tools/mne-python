@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-filter-resample:
 
@@ -22,11 +21,12 @@ import matplotlib.pyplot as plt
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 # use just 60 seconds of data and mag channels, to save memory
-raw.crop(0, 60).pick_types(meg='mag', stim=True).load_data()
+raw.crop(0, 60).pick_types(meg="mag", stim=True).load_data()
 
 # %%
 # Background on filtering
@@ -58,8 +58,7 @@ raw.crop(0, 60).pick_types(meg='mag', stim=True).load_data()
 # more readily visible. Here we plot 60 seconds, showing all the magnetometer
 # channels:
 
-raw.plot(duration=60, proj=False, n_channels=len(raw.ch_names),
-         remove_dc=False)
+raw.plot(duration=60, proj=False, n_channels=len(raw.ch_names), remove_dc=False)
 
 # %%
 # A half-period of this slow drift appears to last around 10 seconds, so a full
@@ -70,12 +69,14 @@ raw.plot(duration=60, proj=False, n_channels=len(raw.ch_names),
 
 for cutoff in (0.1, 0.2):
     raw_highpass = raw.copy().filter(l_freq=cutoff, h_freq=None)
-    with mne.viz.use_browser_backend('matplotlib'):
-        fig = raw_highpass.plot(duration=60, proj=False,
-                                n_channels=len(raw.ch_names), remove_dc=False)
+    with mne.viz.use_browser_backend("matplotlib"):
+        fig = raw_highpass.plot(
+            duration=60, proj=False, n_channels=len(raw.ch_names), remove_dc=False
+        )
     fig.subplots_adjust(top=0.9)
-    fig.suptitle('High-pass filtered at {} Hz'.format(cutoff), size='xx-large',
-                 weight='bold')
+    fig.suptitle(
+        "High-pass filtered at {} Hz".format(cutoff), size="xx-large", weight="bold"
+    )
 
 # %%
 # Looks like 0.1 Hz was not quite high enough to fully remove the slow drifts.
@@ -89,8 +90,9 @@ for cutoff in (0.1, 0.2):
 # (the sampling frequency of the data), so we'll extract those from our
 # :class:`~mne.io.Raw` object:
 
-filter_params = mne.filter.create_filter(raw.get_data(), raw.info['sfreq'],
-                                         l_freq=0.2, h_freq=None)
+filter_params = mne.filter.create_filter(
+    raw.get_data(), raw.info["sfreq"], l_freq=0.2, h_freq=None
+)
 
 # %%
 # Notice that the output is the same as when we applied this filter to the data
@@ -98,7 +100,7 @@ filter_params = mne.filter.create_filter(raw.get_data(), raw.info['sfreq'],
 # parameters (and the sampling frequency) to :func:`~mne.viz.plot_filter` to
 # plot the filter:
 
-mne.viz.plot_filter(filter_params, raw.info['sfreq'], flim=(0.01, 5))
+mne.viz.plot_filter(filter_params, raw.info["sfreq"], flim=(0.01, 5))
 
 # %%
 # .. _tut-section-line-noise:
@@ -109,8 +111,11 @@ mne.viz.plot_filter(filter_params, raw.info['sfreq'], flim=(0.01, 5))
 # Power line noise is an environmental artifact that manifests as persistent
 # oscillations centered around the `AC power line frequency`_. Power line
 # artifacts are easiest to see on plots of the spectrum, so we'll use
-# :meth:`~mne.io.Raw.plot_psd` to illustrate. We'll also write a little
-# function that adds arrows to the spectrum plot to highlight the artifacts:
+# :meth:`~mne.io.Raw.compute_psd` to get a
+# :class:`~mne.time_frequency.Spectrum` object, and use its
+# :meth:`~mne.time_frequency.Spectrum.plot` method to illustrate. We'll also
+# write a little function that adds arrows to the spectrum plot to highlight
+# the artifacts:
 
 
 def add_arrows(axes):
@@ -121,12 +126,20 @@ def add_arrows(axes):
         for freq in (60, 120, 180, 240):
             idx = np.searchsorted(freqs, freq)
             # get ymax of a small region around the freq. of interest
-            y = psds[(idx - 4):(idx + 5)].max()
-            ax.arrow(x=freqs[idx], y=y + 18, dx=0, dy=-12, color='red',
-                     width=0.1, head_width=3, length_includes_head=True)
+            y = psds[(idx - 4) : (idx + 5)].max()
+            ax.arrow(
+                x=freqs[idx],
+                y=y + 18,
+                dx=0,
+                dy=-12,
+                color="red",
+                width=0.1,
+                head_width=3,
+                length_includes_head=True,
+            )
 
 
-fig = raw.plot_psd(fmax=250, average=True)
+fig = raw.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
 add_arrows(fig.axes[:2])
 
 # %%
@@ -141,10 +154,10 @@ add_arrows(fig.axes[:2])
 meg_picks = mne.pick_types(raw.info, meg=True)
 freqs = (60, 120, 180, 240)
 raw_notch = raw.copy().notch_filter(freqs=freqs, picks=meg_picks)
-for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
-    fig = data.plot_psd(fmax=250, average=True)
+for title, data in zip(["Un", "Notch "], [raw, raw_notch]):
+    fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
     fig.subplots_adjust(top=0.85)
-    fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
+    fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
 # %%
@@ -159,11 +172,12 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
 # line noise at those frequencies:
 
 raw_notch_fit = raw.copy().notch_filter(
-    freqs=freqs, picks=meg_picks, method='spectrum_fit', filter_length='10s')
-for title, data in zip(['Un', 'spectrum_fit '], [raw, raw_notch_fit]):
-    fig = data.plot_psd(fmax=250, average=True)
+    freqs=freqs, picks=meg_picks, method="spectrum_fit", filter_length="10s"
+)
+for title, data in zip(["Un", "spectrum_fit "], [raw, raw_notch_fit]):
+    fig = data.compute_psd(fmax=250).plot(average=True, picks="data", exclude="bads")
     fig.subplots_adjust(top=0.85)
-    fig.suptitle('{}filtered'.format(title), size='xx-large', weight='bold')
+    fig.suptitle("{}filtered".format(title), size="xx-large", weight="bold")
     add_arrows(fig.axes[:2])
 
 # %%
@@ -196,8 +210,8 @@ for title, data in zip(['Un', 'spectrum_fit '], [raw, raw_notch_fit]):
 
 raw_downsampled = raw.copy().resample(sfreq=200)
 
-for data, title in zip([raw, raw_downsampled], ['Original', 'Downsampled']):
-    fig = data.plot_psd(average=True)
+for data, title in zip([raw, raw_downsampled], ["Original", "Downsampled"]):
+    fig = data.compute_psd().plot(average=True, picks="data", exclude="bads")
     fig.subplots_adjust(top=0.9)
     fig.suptitle(title)
     plt.setp(fig.axes, xlim=(0, 300))
@@ -260,19 +274,22 @@ for data, title in zip([raw, raw_downsampled], ['Original', 'Downsampled']):
 # 600.614990234375 Hz, ending up with a specific sampling frequency like (say)
 # 90 Hz will not be possible:
 
-current_sfreq = raw.info['sfreq']
+current_sfreq = raw.info["sfreq"]
 desired_sfreq = 90  # Hz
 decim = np.round(current_sfreq / desired_sfreq).astype(int)
 obtained_sfreq = current_sfreq / decim
-lowpass_freq = obtained_sfreq / 3.
+lowpass_freq = obtained_sfreq / 3.0
 
 raw_filtered = raw.copy().filter(l_freq=None, h_freq=lowpass_freq)
 events = mne.find_events(raw_filtered)
 epochs = mne.Epochs(raw_filtered, events, decim=decim)
 
-print('desired sampling frequency was {} Hz; decim factor of {} yielded an '
-      'actual sampling frequency of {} Hz.'
-      .format(desired_sfreq, decim, epochs.info['sfreq']))
+print(
+    "desired sampling frequency was {} Hz; decim factor of {} yielded an "
+    "actual sampling frequency of {} Hz.".format(
+        desired_sfreq, decim, epochs.info["sfreq"]
+    )
+)
 
 # %%
 # If for some reason you cannot follow the above-recommended best practices,

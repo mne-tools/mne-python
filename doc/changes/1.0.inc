@@ -1,21 +1,3 @@
-.. NOTE: we use cross-references to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
-
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Enhancements" for new features
-   - "Bugs" for bug fixes
-   - "API changes" for backward-incompatible changes
-
-.. NOTE: changes from first-time contributors should be added to the TOP of
-   the relevant section (Enhancements / Bugs / API changes), and should look
-   like this (where xxxx is the pull request number):
-
-       - description of enhancement/bugfix/API change (:gh:`xxxx` by
-         :newcontrib:`Firstname Lastname`)
-
-   Also add a corresponding entry for yourself in doc/changes/names.inc
-
 .. _changes_1_0_0:
 
 Version 1.0.0 (2022-03-21)
@@ -38,9 +20,9 @@ Enhancements
 
 - :func:`mne.time_frequency.tfr_array_multitaper` can now return results for ``output='phase'`` instead of an error (:gh:`10281` by `Mikołaj Magnuski`_)
 
-- Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
+- Add show local maxima toggling button to ``mne.gui.locate_ieeg`` (:gh:`9952` by `Alex Rockhill`_)
 
-- Show boundaries in :func:`mne.gui.locate_ieeg` (:gh:`10379` by `Eric Larson`_)
+- Show boundaries in ``mne.gui.locate_ieeg`` (:gh:`10379` by `Eric Larson`_)
 
 - Add argument ``cval`` to :func:`mne.transforms.apply_volume_registration` to set interpolation values outside the image domain (:gh:`10379` by `Eric Larson`_)
 
@@ -84,7 +66,7 @@ Enhancements
 
 - :meth:`mne.Epochs.plot_drop_log` now also includes the absolute number of epochs dropped in the title (:gh:`10186` by `Richard Höchenberger`_)
 
-- Add a button to show the maximum intensity projection in :func:`mne.gui.locate_ieeg` (:gh:`10185` by `Alex Rockhill`_)
+- Add a button to show the maximum intensity projection in ``mne.gui.locate_ieeg`` (:gh:`10185` by `Alex Rockhill`_)
 
 - Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor and are supported when saving Epochs (:gh:`9969` and :gh:`10019` by `Adam Li`_)
 
@@ -102,9 +84,9 @@ Enhancements
 
 - :class:`mne.coreg.Coregistration` gained a new attribute, ``fiducials``, allowing for convenient retrieval of the MRI fiducial points (:gh:`10243`, by `Richard Höchenberger`_)
 
-- Added plotting points to represent contacts on the max intensity projection plot for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
+- Added plotting points to represent contacts on the max intensity projection plot for ``mne.gui.locate_ieeg`` (:gh:`10212` by `Alex Rockhill`_)
 
-- Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
+- Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact for ``mne.gui.locate_ieeg`` (:gh:`10212` by `Alex Rockhill`_)
 
 - Add a ``block`` parameter to :class:`mne.viz.Brain` and the UI of :class:`mne.coreg.Coregistration` to prevent the windows from closing immediately when running in a non-interactive Python session (:gh:`10222` by `Guillaume Favelier`_)
 
@@ -122,7 +104,7 @@ Enhancements
 
 - Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain as well as :meth:`mne.viz.Brain.remove_dipole` and :meth:`mne.viz.Brain.remove_forward` (:gh:`10373` by `Alex Rockhill`_)
 
-- Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
+- Made anterior/posterior slice scrolling in ``mne.gui.locate_ieeg`` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
 
 - Add support for ``theme='auto'`` for automatic dark-mode support in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions and methods when using the ``'qt'`` backend (:gh:`10417` by `Eric Larson`_)
 
@@ -246,7 +228,7 @@ Bugs
 
 - Fix bug with blank 3D rendering with MESA software rendering (:gh:`10400` by `Eric Larson`_)
 
-- Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
+- Fix a bug in ``mne.gui.locate_ieeg`` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
 
 - Fix misleading color scale in :ref:`tut-cluster-tfr` for the plotting of cluster F-statistics (:gh:`10393` by `Alex Rockhill`_)
 

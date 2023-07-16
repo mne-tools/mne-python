@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-lcmv-beamformer:
 
@@ -47,13 +46,13 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # activity on the trials with left auditory stimulation.
 
 data_path = sample.data_path()
-subjects_dir = data_path / 'subjects'
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / "subjects"
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 
 # Read the raw data
 raw = mne.io.read_raw_fif(raw_fname)
-raw.info['bads'] = ['MEG 2443']  # bad MEG channel
+raw.info["bads"] = ["MEG 2443"]  # bad MEG channel
 
 # Set up the epoching
 event_id = 1  # those are the trials with left-ear auditory stimuli
@@ -61,13 +60,21 @@ tmin, tmax = -0.2, 0.5
 events = mne.find_events(raw)
 
 # pick relevant channels
-raw.pick(['meg', 'eog'])  # pick channels of interest
+raw.pick(["meg", "eog"])  # pick channels of interest
 
 # Create epochs
 proj = False  # already applied
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    baseline=(None, 0), preload=True, proj=proj,
-                    reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    baseline=(None, 0),
+    preload=True,
+    proj=proj,
+    reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6),
+)
 
 # for speed purposes, cut to a window of interest
 evoked = epochs.average().crop(0.05, 0.15)
@@ -98,10 +105,8 @@ del raw  # save memory
 # stimulus and extend the period to account for a low number of trials (72) and
 # low sampling rate of 150 Hz.
 
-data_cov = mne.compute_covariance(epochs, tmin=0.01, tmax=0.25,
-                                  method='empirical')
-noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
-                                   method='empirical')
+data_cov = mne.compute_covariance(epochs, tmin=0.01, tmax=0.25, method="empirical")
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method="empirical")
 data_cov.plot(epochs.info)
 del epochs
 
@@ -129,7 +134,7 @@ del epochs
 
 # Read forward model
 
-fwd_fname = meg_path / 'sample_audvis-meg-vol-7-fwd.fif'
+fwd_fname = meg_path / "sample_audvis-meg-vol-7-fwd.fif"
 forward = mne.read_forward_solution(fwd_fname)
 
 # %%
@@ -163,9 +168,16 @@ forward = mne.read_forward_solution(fwd_fname)
 # This gives us one source estimate per source (i.e., voxel), which is known
 # as a scalar beamformer.
 
-filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
-                    noise_cov=noise_cov, pick_ori='max-power',
-                    weight_norm='unit-noise-gain', rank=None)
+filters = make_lcmv(
+    evoked.info,
+    forward,
+    data_cov,
+    reg=0.05,
+    noise_cov=noise_cov,
+    pick_ori="max-power",
+    weight_norm="unit-noise-gain",
+    rank=None,
+)
 
 # You can save the filter for later use with:
 # filters.save('filters-lcmv.h5')
@@ -181,11 +193,18 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 # :footcite:`WestnerEtAl2022`.
 # We will compute another set of filters using the vector beamformer approach:
 
-filters_vec = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
-                        noise_cov=noise_cov, pick_ori='vector',
-                        weight_norm='unit-noise-gain-invariant', rank=None)
+filters_vec = make_lcmv(
+    evoked.info,
+    forward,
+    data_cov,
+    reg=0.05,
+    noise_cov=noise_cov,
+    pick_ori="vector",
+    weight_norm="unit-noise-gain-invariant",
+    rank=None,
+)
 # save a bit of memory
-src = forward['src']
+src = forward["src"]
 del forward
 
 # %%
@@ -215,20 +234,25 @@ del filters, filters_vec
 # auditory stimulation of the experiment.
 
 lims = [0.3, 0.45, 0.6]
-kwargs = dict(src=src, subject='sample', subjects_dir=subjects_dir,
-              initial_time=0.087, verbose=True)
+kwargs = dict(
+    src=src,
+    subject="sample",
+    subjects_dir=subjects_dir,
+    initial_time=0.087,
+    verbose=True,
+)
 
 # %%
 # On MRI slices (orthoview; 2D)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+stc.plot(mode="stat_map", clim=dict(kind="value", pos_lims=lims), **kwargs)
 
 # %%
 # On MNI glass brain (orthoview; 2D)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
+stc.plot(mode="glass_brain", clim=dict(kind="value", lims=lims), **kwargs)
 
 # %%
 # Volumetric rendering (3D) with vectors
@@ -243,12 +267,15 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 # sphinx_gallery_thumbnail_number = 7
 
 brain = stc_vec.plot_3d(
-    clim=dict(kind='value', lims=lims), hemi='both', size=(600, 600),
-    views=['sagittal'],
+    clim=dict(kind="value", lims=lims),
+    hemi="both",
+    size=(600, 600),
+    views=["sagittal"],
     # Could do this for a 3-panel figure:
     # view_layout='horizontal', views=['coronal', 'sagittal', 'axial'],
     brain_kwargs=dict(silhouette=True),
-    **kwargs)
+    **kwargs
+)
 
 # %%
 # Visualize the activity of the maximum voxel with all three components
@@ -258,13 +285,16 @@ brain = stc_vec.plot_3d(
 
 peak_vox, _ = stc_vec.get_peak(tmin=0.08, tmax=0.1, vert_as_index=True)
 
-ori_labels = ['x', 'y', 'z']
+ori_labels = ["x", "y", "z"]
 fig, ax = plt.subplots(1)
 for ori, label in zip(stc_vec.data[peak_vox, :, :], ori_labels):
-    ax.plot(stc_vec.times, ori, label='%s component' % label)
-ax.legend(loc='lower right')
-ax.set(title='Activity per orientation in the peak voxel', xlabel='Time (s)',
-       ylabel='Amplitude (a. u.)')
+    ax.plot(stc_vec.times, ori, label="%s component" % label)
+ax.legend(loc="lower right")
+ax.set(
+    title="Activity per orientation in the peak voxel",
+    xlabel="Time (s)",
+    ylabel="Amplitude (a. u.)",
+)
 mne.viz.utils.plt_show()
 del stc_vec
 
@@ -280,19 +310,30 @@ del stc_vec
 # the morph, we will crop the ``stc``:
 
 fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
-fname_fs_src = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-vol-5-src.fif'
+fname_fs_src = subjects_dir / "fsaverage" / "bem" / "fsaverage-vol-5-src.fif"
 
 src_fs = mne.read_source_spaces(fname_fs_src)
 morph = mne.compute_source_morph(
-    src, subject_from='sample', src_to=src_fs, subjects_dir=subjects_dir,
-    niter_sdr=[5, 5, 2], niter_affine=[5, 5, 2], zooms=7,  # just for speed
-    verbose=True)
+    src,
+    subject_from="sample",
+    src_to=src_fs,
+    subjects_dir=subjects_dir,
+    niter_sdr=[5, 5, 2],
+    niter_affine=[5, 5, 2],
+    zooms=7,  # just for speed
+    verbose=True,
+)
 stc_fs = morph.apply(stc)
 del stc
 
 stc_fs.plot(
-    src=src_fs, mode='stat_map', initial_time=0.085, subjects_dir=subjects_dir,
-    clim=dict(kind='value', pos_lims=lims), verbose=True)
+    src=src_fs,
+    mode="stat_map",
+    initial_time=0.085,
+    subjects_dir=subjects_dir,
+    clim=dict(kind="value", pos_lims=lims),
+    verbose=True,
+)
 
 # %%
 # References

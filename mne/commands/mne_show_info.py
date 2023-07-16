@@ -17,8 +17,7 @@ import mne
 
 def run():
     """Run command."""
-    parser = mne.commands.utils.get_optparser(
-        __file__, usage='mne show_info <file>')
+    parser = mne.commands.utils.get_optparser(__file__, usage="mne show_info <file>")
     options, args = parser.parse_args()
     if len(args) != 1:
         parser.print_help()
@@ -26,8 +25,8 @@ def run():
 
     fname = args[0]
 
-    if not fname.endswith('.fif'):
-        raise ValueError('%s does not seem to be a .fif file.' % fname)
+    if not fname.endswith(".fif"):
+        raise ValueError("%s does not seem to be a .fif file." % fname)
 
     info = mne.io.read_info(fname)
     print("File : %s" % fname)

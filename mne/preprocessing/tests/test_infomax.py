@@ -47,8 +47,9 @@ def test_infomax_blowup():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
-                       [np.sin(phi), -np.cos(phi)]])
+    mixing = np.array(
+        [[np.cos(phi), np.sin(phi)], [np.sin(phi), -np.cos(phi)]]  # noqa: E241
+    )
     m = np.dot(mixing, s)
 
     center_and_norm(m)
@@ -87,8 +88,9 @@ def test_infomax_simple():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
-                       [np.sin(phi), -np.cos(phi)]])
+    mixing = np.array(
+        [[np.cos(phi), np.sin(phi)], [np.sin(phi), -np.cos(phi)]]  # noqa: E241
+    )
     for add_noise in (False, True):
         m = np.dot(mixing, s)
         if add_noise:
@@ -185,8 +187,7 @@ def test_infomax_n_iter(return_n_iter):
     """Test the return_n_iter kwarg."""
     X = np.random.random((3, 100))
     max_iter = 1
-    r = infomax(X, max_iter=max_iter, extended=True,
-                return_n_iter=return_n_iter)
+    r = infomax(X, max_iter=max_iter, extended=True, return_n_iter=return_n_iter)
 
     if return_n_iter:
         assert isinstance(r, tuple)
@@ -197,5 +198,5 @@ def test_infomax_n_iter(return_n_iter):
 
 def _get_pca(rng=None):
     from sklearn.decomposition import PCA
-    return PCA(n_components=2, whiten=True, svd_solver='randomized',
-               random_state=rng)
+
+    return PCA(n_components=2, whiten=True, svd_solver="randomized", random_state=rng)

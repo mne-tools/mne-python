@@ -14,13 +14,17 @@ import numpy as np
 
 from .constants import KIT, FIFF
 from .._digitization import _make_dig_points
-from ...transforms import (Transform, apply_trans, get_ras_to_neuromag_trans,
-                           als_ras_trans)
+from ...transforms import (
+    Transform,
+    apply_trans,
+    get_ras_to_neuromag_trans,
+    als_ras_trans,
+)
 from ...utils import warn, _check_option, _check_fname
 
 
-INT32 = '<i4'
-FLOAT64 = '<f8'
+INT32 = "<i4"
+FLOAT64 = "<f8"
 
 
 def read_mrk(fname):
@@ -40,14 +44,12 @@ def read_mrk(fname):
     from .kit import _read_dirs
 
     fname = Path(fname)
-    _check_option(
-        "file extension", fname.suffix, (".sqd", ".mrk", ".txt", ".pickled")
-    )
+    _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt", ".pickled"))
     _check_fname(fname, "read", must_exist=True, name="mrk file")
     if fname.suffix in (".sqd", ".mrk"):
-        with open(fname, 'rb', buffering=0) as fid:
+        with open(fname, "rb", buffering=0) as fid:
             dirs = _read_dirs(fid)
-            fid.seek(dirs[KIT.DIR_INDEX_COREG]['offset'])
+            fid.seek(dirs[KIT.DIR_INDEX_COREG]["offset"])
             # skips match_done, meg_to_mri and mri_to_meg
             fid.seek(KIT.INT + (2 * KIT.DOUBLE * 16), SEEK_CUR)
             mrk_count = np.fromfile(fid, INT32, 1)[0]
@@ -60,21 +62,20 @@ def read_mrk(fname):
                     pts.append(meg_pts)
             mrk_points = np.array(pts)
     elif fname.suffix == ".txt":
-        mrk_points = _read_dig_kit(fname, unit='m')
+        mrk_points = _read_dig_kit(fname, unit="m")
     elif fname.suffix == ".pickled":
-        with open(fname, 'rb') as fid:
+        with open(fname, "rb") as fid:
             food = pickle.load(fid)
         try:
-            mrk_points = food['mrk']
+            mrk_points = food["mrk"]
         except Exception:
-            err = ("%r does not contain marker points." % fname)
+            err = "%r does not contain marker points." % fname
             raise ValueError(err)
 
     # check output
     mrk_points = np.asarray(mrk_points)
     if mrk_points.shape != (5, 3):
-        err = ("%r is no marker file, shape is "
-               "%s" % (fname, mrk_points.shape))
+        err = "%r is no marker file, shape is " "%s" % (fname, mrk_points.shape)
         raise ValueError(err)
     return mrk_points
 
@@ -92,9 +93,11 @@ def read_sns(fname):
     locs : numpy.array, shape = (n_points, 3)
         Sensor coil location.
     """
-    p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),' +
-                   r'([\.\-0-9]+),([\.\-0-9]+),' +
-                   r'([\.\-0-9]+),([\.\-0-9]+)')
+    p = re.compile(
+        r"\d,[A-Za-z]*,([\.\-0-9]+),"
+        + r"([\.\-0-9]+),([\.\-0-9]+),"
+        + r"([\.\-0-9]+),([\.\-0-9]+)"
+    )
     with open(fname) as fid:
         locs = np.array(p.findall(fid.read()), dtype=float)
     return locs
@@ -139,21 +142,27 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     if n_pts > KIT.DIG_POINTS:
         hsp = _decimate_points(hsp, res=0.005)
         n_new = len(hsp)
-        warn("The selected head shape contained {n_in} points, which is "
-             "more than recommended ({n_rec}), and was automatically "
-             "downsampled to {n_new} points. The preferred way to "
-             "downsample is using FastScan.".format(
-                 n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new))
+        warn(
+            "The selected head shape contained {n_in} points, which is "
+            "more than recommended ({n_rec}), and was automatically "
+            "downsampled to {n_new} points. The preferred way to "
+            "downsample is using FastScan.".format(
+                n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new
+            )
+        )
 
     if isinstance(elp, (str, Path, PathLike)):
         elp_points = _read_dig_kit(elp)
         if len(elp_points) != 8:
-            raise ValueError("File %r should contain 8 points; got shape "
-                             "%s." % (elp, elp_points.shape))
+            raise ValueError(
+                "File %r should contain 8 points; got shape "
+                "%s." % (elp, elp_points.shape)
+            )
         elp = elp_points
     elif len(elp) not in (6, 7, 8):
-        raise ValueError("ELP should contain 6 ~ 8 points; got shape "
-                         "%s." % (elp.shape,))
+        raise ValueError(
+            "ELP should contain 6 ~ 8 points; got shape " "%s." % (elp.shape,)
+        )
     if isinstance(mrk, (str, Path, PathLike)):
         mrk = read_mrk(mrk)
 
@@ -166,55 +175,64 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     eeg = OrderedDict((k, apply_trans(nmtrans, p)) for k, p in eeg.items())
 
     # device head transform
-    trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+    trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out="trans")
 
     nasion, lpa, rpa = elp[:3]
     elp = elp[3:]
 
     dig_points = _make_dig_points(nasion, lpa, rpa, elp, hsp, dig_ch_pos=eeg)
-    dev_head_t = Transform('meg', 'head', trans)
+    dev_head_t = Transform("meg", "head", trans)
 
-    hpi_results = [dict(dig_points=[
-        dict(ident=ci, r=r, kind=FIFF.FIFFV_POINT_HPI,
-             coord_frame=FIFF.FIFFV_COORD_UNKNOWN)
-        for ci, r in enumerate(mrk)], coord_trans=dev_head_t)]
+    hpi_results = [
+        dict(
+            dig_points=[
+                dict(
+                    ident=ci,
+                    r=r,
+                    kind=FIFF.FIFFV_POINT_HPI,
+                    coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                )
+                for ci, r in enumerate(mrk)
+            ],
+            coord_trans=dev_head_t,
+        )
+    ]
 
     return dig_points, dev_head_t, hpi_results
 
 
-def _read_dig_kit(fname, unit='auto'):
+def _read_dig_kit(fname, unit="auto"):
     # Read dig points from a file and return ndarray, using FastSCAN for .txt
     from ...channels.montage import (
-        read_polhemus_fastscan, read_dig_polhemus_isotrak, read_custom_montage,
-        _check_dig_shape)
+        read_polhemus_fastscan,
+        read_dig_polhemus_isotrak,
+        read_custom_montage,
+        _check_dig_shape,
+    )
 
-    fname = _check_fname(
-        fname, "read", must_exist=True, name="hsp or elp file"
-    )
-    assert unit in ('auto', 'm', 'mm')
-    _check_option(
-        "file extension", fname.suffix, (".hsp", ".elp", ".mat", ".txt")
-    )
+    fname = _check_fname(fname, "read", must_exist=True, name="hsp or elp file")
+    assert unit in ("auto", "m", "mm")
+    _check_option("file extension", fname.suffix, (".hsp", ".elp", ".mat", ".txt"))
     if fname.suffix == ".txt":
-        unit = 'mm' if unit == 'auto' else unit
-        out = read_polhemus_fastscan(fname, unit=unit,
-                                     on_header_missing='ignore')
+        unit = "mm" if unit == "auto" else unit
+        out = read_polhemus_fastscan(fname, unit=unit, on_header_missing="ignore")
     elif fname.suffix in (".hsp", ".elp"):
-        unit = 'm' if unit == 'auto' else unit
+        unit = "m" if unit == "auto" else unit
         mon = read_dig_polhemus_isotrak(fname, unit=unit)
         if fname.suffix == ".hsp":
-            dig = [d['r'] for d in mon.dig
-                   if d['kind'] != FIFF.FIFFV_POINT_CARDINAL]
+            dig = [d["r"] for d in mon.dig if d["kind"] != FIFF.FIFFV_POINT_CARDINAL]
         else:
-            dig = [d['r'] for d in mon.dig]
-            if dig and \
-                    mon.dig[0]['kind'] == FIFF.FIFFV_POINT_CARDINAL and \
-                    mon.dig[0]['ident'] == FIFF.FIFFV_POINT_LPA:
+            dig = [d["r"] for d in mon.dig]
+            if (
+                dig
+                and mon.dig[0]["kind"] == FIFF.FIFFV_POINT_CARDINAL
+                and mon.dig[0]["ident"] == FIFF.FIFFV_POINT_LPA
+            ):
                 # LPA, Nasion, RPA -> NLR
                 dig[:3] = [dig[1], dig[0], dig[2]]
         out = np.array(dig, float)
     else:
         assert fname.suffix == ".mat"
-        out = np.array([d['r'] for d in read_custom_montage(fname).dig])
+        out = np.array([d["r"] for d in read_custom_montage(fname).dig])
     _check_dig_shape(out)
     return out

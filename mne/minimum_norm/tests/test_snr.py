@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
@@ -15,9 +14,9 @@ from mne.minimum_norm import read_inverse_operator, estimate_snr
 
 from mne.utils import requires_mne, run_subprocess
 
-s_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
-fname_inv = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
-fname_evoked = op.join(s_path, 'sample_audvis-ave.fif')
+s_path = op.join(testing.data_path(download=False), "MEG", "sample")
+fname_inv = op.join(s_path, "sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif")
+fname_evoked = op.join(s_path, "sample_audvis-ave.fif")
 
 
 @testing.requires_testing_data
@@ -31,13 +30,23 @@ def test_snr(tmp_path):
     orig_dir = os.getcwd()
     os.chdir(tempdir)
     try:
-        cmd = ['mne_compute_mne', '--inv', fname_inv, '--meas', fname_evoked,
-               '--snronly', '--bmin', '-200', '--bmax', '0']
+        cmd = [
+            "mne_compute_mne",
+            "--inv",
+            fname_inv,
+            "--meas",
+            fname_evoked,
+            "--snronly",
+            "--bmin",
+            "-200",
+            "--bmax",
+            "0",
+        ]
         run_subprocess(cmd)
     except Exception:
         pass  # this returns 1 for some reason
     finally:
         os.chdir(orig_dir)
-    times, snr_c, _ = np.loadtxt(op.join(tempdir, 'SNR')).T
-    assert_allclose(times / 1000., evoked.times, atol=1e-2)
+    times, snr_c, _ = np.loadtxt(op.join(tempdir, "SNR")).T
+    assert_allclose(times / 1000.0, evoked.times, atol=1e-2)
     assert_allclose(snr, snr_c, atol=1e-2, rtol=1e-2)

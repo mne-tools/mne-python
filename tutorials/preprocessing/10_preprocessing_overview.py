@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-overview:
 
@@ -20,8 +19,9 @@ import numpy as np
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(0, 60).load_data()  # just use a fraction of data for speed here
 
@@ -109,7 +109,7 @@ raw.crop(0, 60).load_data()  # just use a fraction of data for speed here
 # :meth:`~mne.io.Raw.del_proj` method, so that we can inspect our data in it's
 # original, raw state:
 
-ssp_projectors = raw.info['projs']
+ssp_projectors = raw.info["projs"]
 raw.del_proj()
 
 # %%
@@ -121,9 +121,8 @@ raw.del_proj()
 # relatively long time span and to disable channel-wise DC shift correction.
 # Here we plot 60 seconds and show all the magnetometer channels:
 
-mag_channels = mne.pick_types(raw.info, meg='mag')
-raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
-         remove_dc=False)
+mag_channels = mne.pick_types(raw.info, meg="mag")
+raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels), remove_dc=False)
 
 # %%
 # Low-frequency drifts are readily removed by high-pass filtering at a fairly
@@ -131,22 +130,31 @@ raw.plot(duration=60, order=mag_channels, n_channels=len(mag_channels),
 # around 20 seconds, so in this case a cutoff of 0.1 Hz would probably suppress
 # most of the drift).
 #
-#
 # Power line noise
 # ~~~~~~~~~~~~~~~~
 #
 # Power line artifacts are easiest to see on plots of the spectrum, so we'll
 # use :meth:`~mne.io.Raw.plot_psd` to illustrate.
 
-fig = raw.plot_psd(tmax=np.inf, fmax=250, average=True)
+fig = raw.compute_psd(tmax=np.inf, fmax=250).plot(
+    average=True, picks="data", exclude="bads"
+)
 # add some arrows at 60 Hz and its harmonics:
 for ax in fig.axes[1:]:
     freqs = ax.lines[-1].get_xdata()
     psds = ax.lines[-1].get_ydata()
     for freq in (60, 120, 180, 240):
         idx = np.searchsorted(freqs, freq)
-        ax.arrow(x=freqs[idx], y=psds[idx] + 18, dx=0, dy=-12, color='red',
-                 width=0.1, head_width=3, length_includes_head=True)
+        ax.arrow(
+            x=freqs[idx],
+            y=psds[idx] + 18,
+            dx=0,
+            dy=-12,
+            color="red",
+            width=0.1,
+            head_width=3,
+            length_includes_head=True,
+        )
 
 
 # %%
@@ -175,7 +183,7 @@ for ax in fig.axes[1:]:
 
 # sphinx_gallery_thumbnail_number = 4
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
-ecg_epochs.plot_image(combine='mean')
+ecg_epochs.plot_image(combine="mean")
 
 # %%
 # The horizontal streaks in the magnetometer image plot reflect the fact that
@@ -220,7 +228,7 @@ avg_ecg_epochs.plot_joint(times=[-0.25, -0.025, 0, 0.025, 0.25])
 # blinks than heartbeats, which makes the image plots appear somewhat blocky:
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw, baseline=(-0.5, -0.2))
-eog_epochs.plot_image(combine='mean')
+eog_epochs.plot_image(combine="mean")
 eog_epochs.average().plot_joint()
 
 # %%

@@ -9,8 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP, _ajd_pham, SPoC
@@ -46,23 +45,39 @@ def simulate_data(target, n_trials=100, n_channels=10, random_state=42):
     return X, mixing_mat
 
 
-def deterministic_toy_data(classes=('class_a', 'class_b')):
+def deterministic_toy_data(classes=("class_a", "class_b")):
     """Generate a small deterministic toy data set.
 
     Four independent sources are modulated by the target class and mixed
     into signal space.
     """
-    sources_a = np.array([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-                          [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
-                          [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]],
-                         dtype=float) * 2 - 1
+    sources_a = (
+        np.array(
+            [
+                [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+                [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+            ],
+            dtype=float,
+        )
+        * 2
+        - 1
+    )
 
-    sources_b = np.array([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-                          [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
-                          [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
-                          [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]],
-                         dtype=float) * 2 - 1
+    sources_b = (
+        np.array(
+            [
+                [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+                [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+            ],
+            dtype=float,
+        )
+        * 2
+        - 1
+    )
 
     sources_a[0, :] *= 1
     sources_a[1, :] *= 2
@@ -70,10 +85,14 @@ def deterministic_toy_data(classes=('class_a', 'class_b')):
     sources_b[2, :] *= 3
     sources_b[3, :] *= 4
 
-    mixing = np.array([[1.0, 0.8, 0.6, 0.4],
-                       [0.8, 1.0, 0.8, 0.6],
-                       [0.6, 0.8, 1.0, 0.8],
-                       [0.4, 0.6, 0.8, 1.0]])
+    mixing = np.array(
+        [
+            [1.0, 0.8, 0.6, 0.4],
+            [0.8, 1.0, 0.8, 0.6],
+            [0.6, 0.8, 1.0, 0.8],
+            [0.4, 0.6, 0.8, 1.0],
+        ]
+    )
 
     x_class_a = mixing @ sources_a
     x_class_b = mixing @ sources_b
@@ -89,28 +108,38 @@ def test_csp():
     """Test Common Spatial Patterns algorithm on epochs."""
     raw = io.read_raw_fif(raw_fname, preload=False)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+    picks = pick_types(
+        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
     picks = picks[2:12:3]  # subselect channels -> disable proj!
     raw.add_proj([], remove_existing=True)
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True, proj=False)
+    epochs = Epochs(
+        raw,
+        events,
+        event_id,
+        tmin,
+        tmax,
+        picks=picks,
+        baseline=(None, 0),
+        preload=True,
+        proj=False,
+    )
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
     y = epochs.events[:, -1]
 
     # Init
-    pytest.raises(ValueError, CSP, n_components='foo', norm_trace=False)
-    for reg in ['foo', -0.1, 1.1]:
+    pytest.raises(ValueError, CSP, n_components="foo", norm_trace=False)
+    for reg in ["foo", -0.1, 1.1]:
         csp = CSP(reg=reg, norm_trace=False)
         pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
-    for reg in ['oas', 'ledoit_wolf', 0, 0.5, 1.]:
+    for reg in ["oas", "ledoit_wolf", 0, 0.5, 1.0]:
         CSP(reg=reg, norm_trace=False)
-    for cov_est in ['foo', None]:
+    for cov_est in ["foo", None]:
         pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
-    with pytest.raises(TypeError, match='instance of bool'):
-        CSP(norm_trace='foo')
-    for cov_est in ['concat', 'epoch']:
+    with pytest.raises(TypeError, match="instance of bool"):
+        CSP(norm_trace="foo")
+    for cov_est in ["concat", "epoch"]:
         CSP(cov_est=cov_est, norm_trace=False)
 
     n_components = 3
@@ -125,33 +154,40 @@ def test_csp():
     # Transform
     X = csp.fit_transform(epochs_data, y)
     sources = csp.transform(epochs_data)
-    assert (sources.shape[1] == n_components)
-    assert (csp.filters_.shape == (n_channels, n_channels))
-    assert (csp.patterns_.shape == (n_channels, n_channels))
+    assert sources.shape[1] == n_components
+    assert csp.filters_.shape == (n_channels, n_channels)
+    assert csp.patterns_.shape == (n_channels, n_channels)
     assert_array_almost_equal(sources, X)
 
     # Test data exception
-    pytest.raises(ValueError, csp.fit, epochs_data,
-                  np.zeros_like(epochs.events))
+    pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
     pytest.raises(ValueError, csp.fit, epochs, y)
     pytest.raises(ValueError, csp.transform, epochs)
 
     # Test plots
-    epochs.pick_types(meg='mag')
-    cmap = ('RdBu', True)
+    epochs.pick_types(meg="mag")
+    cmap = ("RdBu", True)
     components = np.arange(n_components)
     for plot in (csp.plot_patterns, csp.plot_filters):
         plot(epochs.info, components=components, res=12, show=False, cmap=cmap)
 
     # Test with more than 2 classes
-    epochs = Epochs(raw, events, tmin=tmin, tmax=tmax, picks=picks,
-                    event_id=dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4),
-                    baseline=(None, 0), proj=False, preload=True)
+    epochs = Epochs(
+        raw,
+        events,
+        tmin=tmin,
+        tmax=tmax,
+        picks=picks,
+        event_id=dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4),
+        baseline=(None, 0),
+        proj=False,
+        preload=True,
+    )
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 
     n_channels = epochs_data.shape[1]
-    for cov_est in ['concat', 'epoch']:
+    for cov_est in ["concat", "epoch"]:
         csp = CSP(n_components=n_components, cov_est=cov_est, norm_trace=False)
         csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
         assert_equal(len(csp._classes), 4)
@@ -160,31 +196,31 @@ def test_csp():
 
     # Test average power transform
     n_components = 2
-    assert (csp.transform_into == 'average_power')
+    assert csp.transform_into == "average_power"
     feature_shape = [len(epochs_data), n_components]
     X_trans = dict()
     for log in (None, True, False):
         csp = CSP(n_components=n_components, log=log, norm_trace=False)
-        assert (csp.log is log)
+        assert csp.log is log
         Xt = csp.fit_transform(epochs_data, epochs.events[:, 2])
         assert_array_equal(Xt.shape, feature_shape)
         X_trans[str(log)] = Xt
     # log=None => log=True
-    assert_array_almost_equal(X_trans['None'], X_trans['True'])
+    assert_array_almost_equal(X_trans["None"], X_trans["True"])
     # Different normalization return different transform
-    assert (np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
+    assert np.sum((X_trans["True"] - X_trans["False"]) ** 2) > 1.0
     # Check wrong inputs
-    pytest.raises(ValueError, CSP, transform_into='average_power', log='foo')
+    pytest.raises(ValueError, CSP, transform_into="average_power", log="foo")
 
     # Test csp space transform
-    csp = CSP(transform_into='csp_space', norm_trace=False)
-    assert (csp.transform_into == 'csp_space')
-    for log in ('foo', True, False):
-        pytest.raises(ValueError, CSP, transform_into='csp_space', log=log,
-                      norm_trace=False)
+    csp = CSP(transform_into="csp_space", norm_trace=False)
+    assert csp.transform_into == "csp_space"
+    for log in ("foo", True, False):
+        pytest.raises(
+            ValueError, CSP, transform_into="csp_space", log=log, norm_trace=False
+        )
     n_components = 2
-    csp = CSP(n_components=n_components, transform_into='csp_space',
-              norm_trace=False)
+    csp = CSP(n_components=n_components, transform_into="csp_space", norm_trace=False)
     Xt = csp.fit(epochs_data, epochs.events[:, 2]).transform(epochs_data)
     feature_shape = [len(epochs_data), n_components, epochs_data.shape[2]]
     assert_array_equal(Xt.shape, feature_shape)
@@ -193,7 +229,7 @@ def test_csp():
     y = np.array([100] * 50 + [1] * 50)
     X, A = simulate_data(y)
 
-    for cov_est in ['concat', 'epoch']:
+    for cov_est in ["concat", "epoch"]:
         # fit csp
         csp = CSP(n_components=1, cov_est=cov_est, norm_trace=False)
         csp.fit(X, y)
@@ -214,36 +250,35 @@ def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance."""
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
-    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+    picks = pick_types(
+        raw.info, meg=True, stim=False, ecg=False, eog=False, exclude="bads"
+    )
     picks = picks[1:13:3]
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True)
+    epochs = Epochs(
+        raw, events, event_id, tmin, tmax, picks=picks, baseline=(None, 0), preload=True
+    )
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 
     n_components = 3
-    reg_cov = [None, 0.05, 'ledoit_wolf', 'oas']
+    reg_cov = [None, 0.05, "ledoit_wolf", "oas"]
     for reg in reg_cov:
-        csp = CSP(n_components=n_components, reg=reg, norm_trace=False,
-                  rank=None)
+        csp = CSP(n_components=n_components, reg=reg, norm_trace=False, rank=None)
         csp.fit(epochs_data, epochs.events[:, -1])
         y = epochs.events[:, -1]
         X = csp.fit_transform(epochs_data, y)
-        assert (csp.filters_.shape == (n_channels, n_channels))
-        assert (csp.patterns_.shape == (n_channels, n_channels))
-        assert_array_almost_equal(csp.fit(epochs_data, y).
-                                  transform(epochs_data), X)
+        assert csp.filters_.shape == (n_channels, n_channels)
+        assert csp.patterns_.shape == (n_channels, n_channels)
+        assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
         # test init exception
-        pytest.raises(ValueError, csp.fit, epochs_data,
-                      np.zeros_like(epochs.events))
+        pytest.raises(ValueError, csp.fit, epochs_data, np.zeros_like(epochs.events))
         pytest.raises(ValueError, csp.fit, epochs, y)
         pytest.raises(ValueError, csp.transform, epochs)
 
         csp.n_components = n_components
         sources = csp.transform(epochs_data)
-        assert (sources.shape[1] == n_components)
+        assert sources.shape[1] == n_components
 
 
 @requires_sklearn
@@ -251,31 +286,34 @@ def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
+
     csp = CSP(reg=1, norm_trace=False)
     svc = SVC()
     pipe = Pipeline([("CSP", csp), ("SVC", svc)])
     pipe.set_params(CSP__reg=0.2)
-    assert (pipe.get_params()["CSP__reg"] == 0.2)
+    assert pipe.get_params()["CSP__reg"] == 0.2
 
 
 def test_ajd():
     """Test approximate joint diagonalization."""
-    # The implementation shuold obtain the same
+    # The implementation should obtain the same
     # results as the Matlab implementation by Pham Dinh-Tuan.
     # Generate a set of cavariances matrices for test purpose
     n_times, n_channels = 10, 3
     seed = np.random.RandomState(0)
     diags = 2.0 + 0.1 * seed.randn(n_times, n_channels)
     A = 2 * seed.rand(n_channels, n_channels) - 1
-    A /= np.atleast_2d(np.sqrt(np.sum(A ** 2, 1))).T
+    A /= np.atleast_2d(np.sqrt(np.sum(A**2, 1))).T
     covmats = np.empty((n_times, n_channels, n_channels))
     for i in range(n_times):
         covmats[i] = np.dot(np.dot(A, np.diag(diags[i])), A.T)
     V, D = _ajd_pham(covmats)
     # Results obtained with original matlab implementation
-    V_matlab = [[-3.507280775058041, -5.498189967306344, 7.720624541198574],
-                [0.694689013234610, 0.775690358505945, -1.162043086446043],
-                [-0.592603135588066, -0.598996925696260, 1.009550086271192]]
+    V_matlab = [
+        [-3.507280775058041, -5.498189967306344, 7.720624541198574],
+        [0.694689013234610, 0.775690358505945, -1.162043086446043],
+        [-0.592603135588066, -0.598996925696260, 1.009550086271192],
+    ]
     assert_array_almost_equal(V, V_matlab)
 
 
@@ -288,7 +326,7 @@ def test_spoc():
     spoc.fit(X, y)
     Xt = spoc.transform(X)
     assert_array_equal(Xt.shape, [10, 4])
-    spoc = SPoC(n_components=4, transform_into='csp_space')
+    spoc = SPoC(n_components=4, transform_into="csp_space")
     spoc.fit(X, y)
     Xt = spoc.transform(X)
     assert_array_equal(Xt.shape, [10, 4, 20])
@@ -299,7 +337,7 @@ def test_spoc():
     pytest.raises(ValueError, spoc.fit, X, y * 0)
 
     # Check that doesn't take CSP-spcific input
-    pytest.raises(TypeError, SPoC, cov_est='epoch')
+    pytest.raises(TypeError, SPoC, cov_est="epoch")
 
     # Check mixing matrix on simulated data
     rs = np.random.RandomState(42)
@@ -322,33 +360,32 @@ def test_spoc():
 
 def test_csp_twoclass_symmetry():
     """Test that CSP is symmetric when swapping classes."""
-    x, y = deterministic_toy_data(['class_a', 'class_b'])
-    csp = CSP(norm_trace=False, transform_into='average_power', log=True)
+    x, y = deterministic_toy_data(["class_a", "class_b"])
+    csp = CSP(norm_trace=False, transform_into="average_power", log=True)
     log_power = csp.fit_transform(x, y)
     log_power_ratio_ab = log_power[0] - log_power[1]
 
-    x, y = deterministic_toy_data(['class_b', 'class_a'])
-    csp = CSP(norm_trace=False, transform_into='average_power', log=True)
+    x, y = deterministic_toy_data(["class_b", "class_a"])
+    csp = CSP(norm_trace=False, transform_into="average_power", log=True)
     log_power = csp.fit_transform(x, y)
     log_power_ratio_ba = log_power[0] - log_power[1]
 
-    assert_array_almost_equal(log_power_ratio_ab,
-                              log_power_ratio_ba)
+    assert_array_almost_equal(log_power_ratio_ab, log_power_ratio_ba)
 
 
 def test_csp_component_ordering():
     """Test that CSP component ordering works as expected."""
-    x, y = deterministic_toy_data(['class_a', 'class_b'])
+    x, y = deterministic_toy_data(["class_a", "class_b"])
 
-    pytest.raises(ValueError, CSP, component_order='invalid')
+    pytest.raises(ValueError, CSP, component_order="invalid")
 
     # component_order='alternate' only works with two classes
-    csp = CSP(component_order='alternate')
+    csp = CSP(component_order="alternate")
     with pytest.raises(ValueError):
-        csp.fit(np.zeros((3, 0, 0)), ['a', 'b', 'c'])
+        csp.fit(np.zeros((3, 0, 0)), ["a", "b", "c"])
 
-    p_alt = CSP(component_order='alternate').fit(x, y).patterns_
-    p_mut = CSP(component_order='mutual_info').fit(x, y).patterns_
+    p_alt = CSP(component_order="alternate").fit(x, y).patterns_
+    p_mut = CSP(component_order="mutual_info").fit(x, y).patterns_
 
     # This permutation of p_alt and p_mut is explained by the particular
     # eigenvalues of the toy data: [0.06, 0.1,   0.5,  0.8].

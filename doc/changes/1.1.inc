@@ -1,21 +1,3 @@
-.. NOTE: we use cross-references to highlight new functions and classes.
-   Please follow the examples below like :func:`mne.stats.f_mway_rm`, so the
-   whats_new page will have a link to the function/class documentation.
-
-.. NOTE: there are 3 separate sections for changes, based on type:
-   - "Enhancements" for new features
-   - "Bugs" for bug fixes
-   - "API changes" for backward-incompatible changes
-
-.. NOTE: changes from first-time contributors should be added to the TOP of
-   the relevant section (Enhancements / Bugs / API changes), and should look
-   like this (where xxxx is the pull request number):
-
-       - description of enhancement/bugfix/API change (:gh:`xxxx` by
-         :newcontrib:`Firstname Lastname`)
-
-   Also add a corresponding entry for yourself in doc/changes/names.inc
-
 .. _changes_1_1_0:
 
 Version 1.1.0 (2022-08-03)
@@ -59,7 +41,7 @@ Enhancements
 
 - Add ``head_source`` argument to :func:`mne.make_field_map` to allow selecting which head source to use (:gh:`10568` by `Eric Larson`_)
 
-- Add support for ``n_jobs=None`` to support :func:`joblib:joblib.parallel_backend` for more precise control over parallelization (:gh:`10567` by `Eric Larson`_)
+- Add support for ``n_jobs=None`` to support ``joblib:joblib.parallel_backend`` for more precise control over parallelization (:gh:`10567` by `Eric Larson`_)
 
 - It is now possible to compute inverse solutions with restricted source orientations using discrete forward models (:gh:`10464` by `Marijn van Vliet`_)
 
@@ -201,7 +183,7 @@ Bugs
 
 - Add a video on how to operate the coregistration GUI in :ref:`tut-source-alignment` (:gh:`10802` by `Alex Rockhill`_)
 
-- Add ``show`` and ``block`` arguments to :func:`mne.gui.coregistration` and :func:`mne.gui.locate_ieeg` to pop up the GUIs and halt execution of subsequent code respectively (:gh:`10802` by `Alex Rockhill`_)
+- Add ``show`` and ``block`` arguments to :func:`mne.gui.coregistration` and ``mne.gui.locate_ieeg`` to pop up the GUIs and halt execution of subsequent code respectively (:gh:`10802` by `Alex Rockhill`_)
 
 - Correctly report the number of available projections when printing measurement info in a Jupyter notebook (:gh:`10471` by `Clemens Brunner`_)
 

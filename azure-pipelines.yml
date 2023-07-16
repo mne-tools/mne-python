@@ -39,7 +39,7 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     variables:
-      PYTHON_VERSION: '3.9'
+      PYTHON_VERSION: '3.11'
       PYTHON_ARCH: 'x64'
     steps:
     - bash: echo $(COMMIT_MSG)
@@ -50,23 +50,14 @@ stages:
         addToPath: true
       displayName: 'Get Python'
     - bash: |
-        set -e
+        set -eo pipefail
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
+        pre-commit install --install-hooks
       displayName: Install dependencies
     - bash: |
-        make flake
-      displayName: make flake
-    - bash: |
-        make codespell-error
-      displayName: make codespell
-    - bash: |
-        make pydocstyle
-      displayName: make pydocstyle
-      condition: always()
-    - bash: |
-        make docstring
-      displayName: make docstring
+        make pre-commit
+      displayName: make pre-commit
       condition: always()
     - bash: |
         make nesting
@@ -89,7 +80,7 @@ stages:
   jobs:
   - job: Ultraslow_PG
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-22.04'
     variables:
       DISPLAY: ':99'
       OPENBLAS_NUM_THREADS: '1'
@@ -115,15 +106,15 @@ stages:
       displayName: 'Get Python'
     - bash: |
         set -e
-        python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
-        python -m pip install --progress-bar off mne-qt-browser[opengl] pyvista scikit-learn pytest-error-for-skips python-picard "PySide6!=6.3.0,!=6.4.0,!=6.4.0.1" qtpy
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off mne-qt-browser[opengl] pyvista scikit-learn pytest-error-for-skips python-picard "PySide6!=6.5.1" qtpy
         python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
+        mne sys_info -pd | grep "qtpy .*(PySide6=.*)$"
       displayName: Print config
     # Uncomment if "xcb not found" Qt errors/segfaults come up again
     # - bash: |
@@ -158,7 +149,7 @@ stages:
 
   - job: Qt
     pool:
-      vmImage: 'ubuntu-20.04'
+      vmImage: 'ubuntu-22.04'
     variables:
       DISPLAY: ':99'
       OPENBLAS_NUM_THREADS: '1'
@@ -177,7 +168,7 @@ stages:
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
         python -c "import vtk"
-        python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
         python -m pip install -e .
       displayName: 'Install dependencies with pip'
     - bash: |
@@ -198,15 +189,17 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide6
       displayName: 'PySide6'
     - bash: |
         set -e
         python -m pip install PyQt6
+        # Uncomment if "xcb not found" Qt errors/segfaults come up again
+        # LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
         mne sys_info -pd
-        mne sys_info -pd | grep "^qtpy: .*{PyQt6=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
       displayName: 'PyQt6'
@@ -214,7 +207,7 @@ stages:
         set -e
         python -m pip install PySide2
         mne sys_info -pd
-        mne sys_info -pd | grep "^qtpy: .*{PySide2=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PySide2=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide2
       displayName: 'PySide2'
@@ -223,7 +216,7 @@ stages:
         set -e
         python -m pip install PyQt5
         mne sys_info -pd
-        mne sys_info -pd | grep "^qtpy: .*{PyQt5=.*}$"
+        mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
       displayName: 'PyQt5'
@@ -296,7 +289,7 @@ stages:
         ./tools/azure_dependencies.sh
       condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: Install dependencies with pip
-    - script: conda install -c conda-forge mamba
+    - script: conda install -c conda-forge "mamba!=1.4.9"
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Get mamba
     - script: mamba env update --name base --file environment.yml
@@ -312,7 +305,7 @@ stages:
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: 'Install MNE-Python dev'
-    - script: pip install --progress-bar off -e .[test] codecov
+    - script: pip install --progress-bar off -e .[test]
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Install testing requirements
     - script: mne sys_info -pd
@@ -344,36 +337,3 @@ stages:
         codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
-
-  - job: SphinxWindows
-    pool:
-      vmImage: 'windows-latest'
-    variables:
-      AZURE_CI_WINDOWS: 'true'
-    steps:
-    - bash: |
-        set -e
-        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-        powershell gl-ci-helpers/appveyor/install_opengl.ps1
-      displayName: Install OpenGL
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.10'
-    - bash: |
-        set -eo pipefail
-        PYTHONUTF8=1 pip install --progress-bar off -r requirements.txt -r requirements_doc.txt
-      displayName: Install documentation dependencies
-    - script: pip install -e .
-      displayName: Install dev MNE
-    - script: mne sys_info -pd
-      displayName: Print config and test access to commands
-    - script: python -c "import numpy; numpy.show_config()"
-      displayName: Print NumPy config
-    - bash: |
-        set -eo pipefail
-        sed -i 's/.. graphviz::/.. graphviz/g' doc/install/contributing.rst
-        sed -i 's/.. graphviz::/.. graphviz/g' tutorials/preprocessing/40_artifact_correction_ica.py
-        sed -i '/sphinx\.ext\.graphviz/d' doc/conf.py
-      displayName: Skip graph that we cannot render
-    - bash: make -C doc html_dev-noplot
-      displayName: 'Build doc'

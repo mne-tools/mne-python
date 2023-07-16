@@ -7,9 +7,7 @@
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
     /* colors that aren't responsive to light/dark mode */
     --mne-color-discord: #5865F2;
-    --mne-color-twitter: #55acee;
     --mne-color-primary: #007bff;
-    --mne-color-primary-text: #fff;
     --mne-color-primary-highlight: #0063cc;
     /* font weight */
     --mne-font-weight-semibold: 600;
@@ -29,7 +27,6 @@ html[data-theme="light"] {
     --mne-color-heading: #003e80;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-text: var(--mne-color-primary-text);
     --pst-color-primary-highlight: var(--mne-color-primary-highlight);
     --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #ccc;
@@ -57,7 +54,6 @@ html[data-theme="dark"] {
     --mne-color-heading: #b8cbe0;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
-    --pst-color-primary-text: var(--mne-color-primary-text);
     --pst-color-primary-highlight: var(--mne-color-primary-highlight);
     --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #333;
@@ -67,7 +63,7 @@ html[data-theme="dark"] {
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
-    --sg-download-a-color: #fff;
+    --sg-download-a-color: #000;
     --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
@@ -151,6 +147,32 @@ iframe.sg_report {
     display: none;
 }
 
+/* Make our external thumbnails (e.g., mne-gui-addons) act like standard SG ones */
+.sphx-glr-thumbcontainer a.external {
+    bottom: 0;
+    display: block;
+    left: 0;
+    box-sizing: border-box;
+    padding: 150px 10px 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+/* TODO: Either pydata-sphinx-theme (for using Bootstrap) or sphinx-gallery (for adding table formatting) should fix this */
+.table-striped-columns>:not(caption)>tr>:nth-child(2n),.table-striped>tbody>tr:nth-of-type(odd)>* {
+    --bs-table-accent-bg: var(--bs-table-striped-bg);
+    color: var(--pst-color-text-base);
+}
+.table-hover>tbody>tr:hover>* {
+    --bs-table-accent-bg: var(--bs-table-hover-bg);
+    color: var(--pst-color-text-base);
+}
+.rendered_html table {
+    color: var(--pst-color-text-base);
+}
+
+
 /* ***************************************************** sphinx-design fixes */
 p.btn a {
     color: unset;
@@ -185,9 +207,6 @@ aside.footnote:last-child {
 /* ******************************************************* navbar icon links */
 #navbar-icon-links i.fa-square-github::before {
     color: var(--mne-color-github);
-}
-#navbar-icon-links i.fa-square-twitter::before {
-    color: var(--mne-color-twitter);
 }
 #navbar-icon-links i.fa-discourse::before {
     color: var(--mne-color-discourse);

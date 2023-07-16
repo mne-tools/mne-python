@@ -1,11 +1,10 @@
 # requirements for basic MNE-Python functionality
 numpy>=1.15.4
-scipy>=1.1.0
-matplotlib
+scipy>=1.6.3
+matplotlib>=3.4.0
 tqdm
 pooch>=1.5
 decorator
 packaging
 jinja2
-importlib_resources>=5.10.2
-importlib_metadata; python_version < '3.8'
+importlib_resources>=5.10.2; python_version<'3.9'

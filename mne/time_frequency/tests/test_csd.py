@@ -9,87 +9,130 @@ from itertools import product
 import mne
 from mne.channels import equalize_channels
 from mne.utils import sum_squared, requires_version
-from mne.time_frequency import (csd_fourier, csd_multitaper,
-                                csd_morlet, csd_array_fourier,
-                                csd_array_multitaper, csd_array_morlet,
-                                tfr_morlet, csd_tfr,
-                                CrossSpectralDensity, read_csd,
-                                pick_channels_csd)
+from mne.time_frequency import (
+    csd_fourier,
+    csd_multitaper,
+    csd_morlet,
+    csd_array_fourier,
+    csd_array_multitaper,
+    csd_array_morlet,
+    tfr_morlet,
+    csd_tfr,
+    CrossSpectralDensity,
+    read_csd,
+    pick_channels_csd,
+)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
 from mne.proj import Projection
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_fname = op.join(base_dir, 'test-eve.fif')
+base_dir = op.join(op.dirname(__file__), "..", "..", "io", "tests", "data")
+raw_fname = op.join(base_dir, "test_raw.fif")
+event_fname = op.join(base_dir, "test-eve.fif")
 
 
 def _make_csd(add_proj=False):
     """Make a simple CrossSpectralDensity object."""
-    frequencies = [1., 2., 3., 4.]
+    frequencies = [1.0, 2.0, 3.0, 4.0]
     n_freqs = len(frequencies)
-    names = ['CH1', 'CH2', 'CH3']
-    tmin, tmax = (0., 1.)
-    data = np.arange(6. * n_freqs).reshape(n_freqs, 6).T
+    names = ["CH1", "CH2", "CH3"]
+    tmin, tmax = (0.0, 1.0)
+    data = np.arange(6.0 * n_freqs).reshape(n_freqs, 6).T
     if add_proj:
-        proj_data = dict(
-            col_names=names, row_names=None, data=np.ones((1, len(names)))
-        )
+        proj_data = dict(col_names=names, row_names=None, data=np.ones((1, len(names))))
         projs = [Projection(data=proj_data)]
     else:
         projs = None
-    return CrossSpectralDensity(
-        data, names, frequencies, 1, tmin, tmax, projs=projs
-    )
+    return CrossSpectralDensity(data, names, frequencies, 1, tmin, tmax, projs=projs)
 
 
 def test_csd():
     """Test constructing a CrossSpectralDensity."""
-    csd = CrossSpectralDensity([1, 2, 3], ['CH1', 'CH2'], frequencies=1,
-                               n_fft=1, tmin=0, tmax=1)
+    csd = CrossSpectralDensity(
+        [1, 2, 3], ["CH1", "CH2"], frequencies=1, n_fft=1, tmin=0, tmax=1
+    )
     assert_array_equal(csd._data, [[1], [2], [3]])  # Conversion to 2D array
     assert_array_equal(csd.frequencies, [1])  # Conversion to 1D array
 
     # Channels don't match
-    raises(ValueError, CrossSpectralDensity, [1, 2, 3],
-           ['CH1', 'CH2', 'Too many!'], tmin=0, tmax=1, frequencies=1, n_fft=1)
-    raises(ValueError, CrossSpectralDensity, [1, 2, 3], ['too little'],
-           tmin=0, tmax=1, frequencies=1, n_fft=1)
+    raises(
+        ValueError,
+        CrossSpectralDensity,
+        [1, 2, 3],
+        ["CH1", "CH2", "Too many!"],
+        tmin=0,
+        tmax=1,
+        frequencies=1,
+        n_fft=1,
+    )
+    raises(
+        ValueError,
+        CrossSpectralDensity,
+        [1, 2, 3],
+        ["too little"],
+        tmin=0,
+        tmax=1,
+        frequencies=1,
+        n_fft=1,
+    )
 
     # Frequencies don't match
-    raises(ValueError, CrossSpectralDensity,
-           [[1, 2], [3, 4], [5, 6]], ['CH1', 'CH2'],
-           tmin=0, tmax=1, frequencies=1, n_fft=1)
+    raises(
+        ValueError,
+        CrossSpectralDensity,
+        [[1, 2], [3, 4], [5, 6]],
+        ["CH1", "CH2"],
+        tmin=0,
+        tmax=1,
+        frequencies=1,
+        n_fft=1,
+    )
 
     # Invalid dims
-    raises(ValueError, CrossSpectralDensity, [[[1]]], ['CH1'], frequencies=1,
-           n_fft=1, tmin=0, tmax=1)
+    raises(
+        ValueError,
+        CrossSpectralDensity,
+        [[[1]]],
+        ["CH1"],
+        frequencies=1,
+        n_fft=1,
+        tmin=0,
+        tmax=1,
+    )
 
 
 def test_csd_repr():
     """Test string representation of CrossSpectralDensity."""
     csd = _make_csd()
-    assert str(csd) == ('<CrossSpectralDensity | n_channels=3, time=0.0 to '
-                        '1.0 s, frequencies=1.0, 2.0, 3.0, 4.0 Hz.>')
+    assert str(csd) == (
+        "<CrossSpectralDensity | n_channels=3, time=0.0 to "
+        "1.0 s, frequencies=1.0, 2.0, 3.0, 4.0 Hz.>"
+    )
 
-    assert str(csd.mean()) == ('<CrossSpectralDensity | n_channels=3, '
-                               'time=0.0 to 1.0 s, frequencies=1.0-4.0 Hz.>')
+    assert str(csd.mean()) == (
+        "<CrossSpectralDensity | n_channels=3, "
+        "time=0.0 to 1.0 s, frequencies=1.0-4.0 Hz.>"
+    )
 
     csd_binned = csd.mean(fmin=[1, 3], fmax=[2, 4])
-    assert str(csd_binned) == ('<CrossSpectralDensity | n_channels=3, '
-                               'time=0.0 to 1.0 s, frequencies=1.0-2.0, '
-                               '3.0-4.0 Hz.>')
+    assert str(csd_binned) == (
+        "<CrossSpectralDensity | n_channels=3, "
+        "time=0.0 to 1.0 s, frequencies=1.0-2.0, "
+        "3.0-4.0 Hz.>"
+    )
 
     csd_binned = csd.mean(fmin=[1, 2], fmax=[1, 4])
-    assert str(csd_binned) == ('<CrossSpectralDensity | n_channels=3, '
-                               'time=0.0 to 1.0 s, frequencies=1.0, 2.0-4.0 '
-                               'Hz.>')
+    assert str(csd_binned) == (
+        "<CrossSpectralDensity | n_channels=3, "
+        "time=0.0 to 1.0 s, frequencies=1.0, 2.0-4.0 "
+        "Hz.>"
+    )
 
     csd_no_time = csd.copy()
     csd_no_time.tmin = None
     csd_no_time.tmax = None
     assert str(csd_no_time) == (
-        '<CrossSpectralDensity | n_channels=3, time=unknown, '
-        'frequencies=1.0, 2.0, 3.0, 4.0 Hz.>'
+        "<CrossSpectralDensity | n_channels=3, time=unknown, "
+        "frequencies=1.0, 2.0, 3.0, 4.0 Hz.>"
     )
 
 
@@ -109,23 +152,13 @@ def test_csd_mean():
     csd_binned = csd.mean(fmin=[1, 3], fmax=[2, 4])
     assert_array_equal(
         csd_binned._data,
-        [[3, 15],
-         [4, 16],
-         [5, 17],
-         [6, 18],
-         [7, 19],
-         [8, 20]],
+        [[3, 15], [4, 16], [5, 17], [6, 18], [7, 19], [8, 20]],
     )
 
     csd_binned = csd.mean(fmin=[1, 3], fmax=[1, 4])
     assert_array_equal(
         csd_binned._data,
-        [[0, 15],
-         [1, 16],
-         [2, 17],
-         [3, 18],
-         [4, 19],
-         [5, 20]],
+        [[0, 15], [1, 16], [2, 17], [3, 18], [4, 19], [5, 20]],
     )
 
     # This flag should be set after averaging
@@ -133,8 +166,7 @@ def test_csd_mean():
 
     # Test construction of .frequency attribute
     assert csd.mean().frequencies == [[1, 2, 3, 4]]
-    assert (csd.mean(fmin=[1, 3], fmax=[2, 4]).frequencies ==
-            [[1, 2], [3, 4]])
+    assert csd.mean(fmin=[1, 3], fmax=[2, 4]).frequencies == [[1, 2], [3, 4]]
 
     # Test invalid inputs
     raises(ValueError, csd.mean, fmin=1, fmax=[2, 3])
@@ -167,21 +199,11 @@ def test_csd_pick_frequency():
 
     csd2 = csd.pick_frequency(freq=2)
     assert csd2.frequencies == [2]
-    assert_array_equal(
-        csd2.get_data(),
-        [[6, 7, 8],
-         [7, 9, 10],
-         [8, 10, 11]]
-    )
+    assert_array_equal(csd2.get_data(), [[6, 7, 8], [7, 9, 10], [8, 10, 11]])
 
     csd2 = csd.pick_frequency(index=1)
     assert csd2.frequencies == [2]
-    assert_array_equal(
-        csd2.get_data(),
-        [[6, 7, 8],
-         [7, 9, 10],
-         [8, 10, 11]]
-    )
+    assert_array_equal(csd2.get_data(), [[6, 7, 8], [7, 9, 10], [8, 10, 11]])
 
     # Nonexistent frequency
     raises(IndexError, csd.pick_frequency, -1)
@@ -199,27 +221,15 @@ def test_csd_get_data():
     csd = _make_csd()
 
     # CSD matrix corresponding to 2 Hz.
-    assert_array_equal(
-        csd.get_data(frequency=2),
-        [[6, 7, 8],
-         [7, 9, 10],
-         [8, 10, 11]]
-    )
+    assert_array_equal(csd.get_data(frequency=2), [[6, 7, 8], [7, 9, 10], [8, 10, 11]])
 
     # Mean CSD matrix
-    assert_array_equal(
-        csd.mean().get_data(),
-        [[9, 10, 11],
-         [10, 12, 13],
-         [11, 13, 14]]
-    )
+    assert_array_equal(csd.mean().get_data(), [[9, 10, 11], [10, 12, 13], [11, 13, 14]])
 
     # Average across frequency bins, select bin
     assert_array_equal(
         csd.mean(fmin=[1, 3], fmax=[2, 4]).get_data(index=1),
-        [[15, 16, 17],
-         [16, 18, 19],
-         [17, 19, 20]]
+        [[15, 16, 17], [16, 18, 19], [17, 19, 20]],
     )
 
     # Invalid inputs
@@ -230,11 +240,11 @@ def test_csd_get_data():
     raises(IndexError, csd.mean().get_data, index=15)
 
 
-@requires_version('h5io')
+@requires_version("h5io")
 def test_csd_save(tmp_path):
     """Test saving and loading a CrossSpectralDensity."""
     csd = _make_csd(add_proj=True)
-    fname = op.join(str(tmp_path), 'csd.h5')
+    fname = op.join(str(tmp_path), "csd.h5")
     csd.save(fname)
     csd2 = read_csd(fname)
     assert_array_equal(csd._data, csd2._data)
@@ -250,10 +260,10 @@ def test_csd_pickle(tmp_path):
     """Test pickling and unpickling a CrossSpectralDensity."""
     csd = _make_csd()
     tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'csd.dat')
-    with open(fname, 'wb') as f:
+    fname = op.join(tempdir, "csd.dat")
+    with open(fname, "wb") as f:
         pickle.dump(csd, f)
-    with open(fname, 'rb') as f:
+    with open(fname, "rb") as f:
         csd2 = pickle.load(f)
     assert_array_equal(csd._data, csd2._data)
     assert csd.tmin == csd2.tmin
@@ -266,34 +276,28 @@ def test_csd_pickle(tmp_path):
 def test_pick_channels_csd():
     """Test selecting channels from a CrossSpectralDensity."""
     csd = _make_csd()
-    csd = pick_channels_csd(csd, ['CH1', 'CH3'])
-    assert csd.ch_names == ['CH1', 'CH3']
-    assert_array_equal(csd._data, [[0, 6, 12, 18],
-                                   [2, 8, 14, 20],
-                                   [5, 11, 17, 23]])
+    csd = pick_channels_csd(csd, ["CH1", "CH3"])
+    assert csd.ch_names == ["CH1", "CH3"]
+    assert_array_equal(csd._data, [[0, 6, 12, 18], [2, 8, 14, 20], [5, 11, 17, 23]])
 
 
 def test_sym_mat_to_vector():
     """Test converting between vectors and symmetric matrices."""
-    mat = np.array([[0, 1, 2, 3],
-                    [1, 4, 5, 6],
-                    [2, 5, 7, 8],
-                    [3, 6, 8, 9]])
-    assert_array_equal(_sym_mat_to_vector(mat),
-                       [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    mat = np.array([[0, 1, 2, 3], [1, 4, 5, 6], [2, 5, 7, 8], [3, 6, 8, 9]])
+    assert_array_equal(_sym_mat_to_vector(mat), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
     vec = np.arange(10)
-    assert_array_equal(_vector_to_sym_mat(vec),
-                       [[0, 1, 2, 3],
-                        [1, 4, 5, 6],
-                        [2, 5, 7, 8],
-                        [3, 6, 8, 9]])
+    assert_array_equal(
+        _vector_to_sym_mat(vec),
+        [[0, 1, 2, 3], [1, 4, 5, 6], [2, 5, 7, 8], [3, 6, 8, 9]],
+    )
 
     # Test complex values: diagonals should be complex conjugates
     comp_vec = np.arange(3) + 1j
-    assert_array_equal(_vector_to_sym_mat(comp_vec),
-                       [[0. + 0.j, 1. + 1.j],
-                        [1. - 1.j, 2. + 0.j]])
+    assert_array_equal(
+        _vector_to_sym_mat(comp_vec),
+        [[0.0 + 0.0j, 1.0 + 1.0j], [1.0 - 1.0j, 2.0 + 0.0j]],
+    )
 
     # Test preservation of data type
     assert _sym_mat_to_vector(mat.astype(np.int8)).dtype == np.int8
@@ -310,22 +314,21 @@ def _generate_coherence_data():
     for channels 1 and 3, with the same phase, so there is coherence between
     these channels.
     """
-    ch_names = ['CH1', 'CH2', 'CH3']
-    sfreq = 50.
-    info = mne.create_info(ch_names, sfreq, 'eeg')
-    tstep = 1. / sfreq
+    ch_names = ["CH1", "CH2", "CH3"]
+    sfreq = 50.0
+    info = mne.create_info(ch_names, sfreq, "eeg")
+    tstep = 1.0 / sfreq
     n_samples = int(10 * sfreq)  # 10 seconds of data
     times = np.arange(n_samples) * tstep
     events = np.array([[0, 1, 1]])  # one event
 
     # Phases for the signals
-    phases = np.arange(info['nchan']) * 0.3 * np.pi
+    phases = np.arange(info["nchan"]) * 0.3 * np.pi
 
     # Generate 10 Hz sine waves with different phases
-    signal = np.vstack([np.sin(times * 2 * np.pi * 10 + phase)
-                        for phase in phases])
+    signal = np.vstack([np.sin(times * 2 * np.pi * 10 + phase) for phase in phases])
 
-    data = np.zeros((1, info['nchan'], n_samples))
+    data = np.zeros((1, info["nchan"], n_samples))
     data[0, :, :] = signal
 
     # Generate 22Hz sine wave at the first and last electrodes with the same
@@ -341,7 +344,7 @@ def _test_csd_matrix(csd):
     # Check shape of the CSD matrix
     n_chan = len(csd.ch_names)
     assert n_chan == 3
-    assert csd.ch_names == ['CH1', 'CH2', 'CH3']
+    assert csd.ch_names == ["CH1", "CH2", "CH3"]
     n_freqs = len(csd.frequencies)
     assert n_freqs == 3
     assert csd._data.shape == (6, 3)  # Only upper triangle of CSD matrix
@@ -362,7 +365,7 @@ def _test_csd_matrix(csd):
     assert np.abs(csd_10[1, 2].imag) > 0.4
 
     # No phase differences at 22 Hz
-    assert np.all(np.abs(csd_22[0, 2].imag) < 1E-3)
+    assert np.all(np.abs(csd_22[0, 2].imag) < 1e-3)
 
     # Test CSD between the two channels that have a 20Hz signal and the one
     # that has only a 10 Hz signal
@@ -379,20 +382,55 @@ def _test_csd_matrix(csd):
 def _test_fourier_multitaper_parameters(epochs, csd_epochs, csd_array):
     """Parameter tests for csd_*_fourier and csd_*_multitaper."""
     raises(ValueError, csd_epochs, epochs, fmin=20, fmax=10)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, fmin=20, fmax=10)
+    raises(
+        ValueError,
+        csd_array,
+        epochs._data,
+        epochs.info["sfreq"],
+        epochs.tmin,
+        fmin=20,
+        fmax=10,
+    )
     raises(ValueError, csd_epochs, epochs, fmin=20, fmax=20.1)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, fmin=20, fmax=20.1)
+    raises(
+        ValueError,
+        csd_array,
+        epochs._data,
+        epochs.info["sfreq"],
+        epochs.tmin,
+        fmin=20,
+        fmax=20.1,
+    )
     raises(ValueError, csd_epochs, epochs, tmin=0.15, tmax=0.1)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, tmin=0.15, tmax=0.1)
+    raises(
+        ValueError,
+        csd_array,
+        epochs._data,
+        epochs.info["sfreq"],
+        epochs.tmin,
+        tmin=0.15,
+        tmax=0.1,
+    )
     raises(ValueError, csd_epochs, epochs, tmin=-1, tmax=10)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, tmin=-1, tmax=10)
+    raises(
+        ValueError,
+        csd_array,
+        epochs._data,
+        epochs.info["sfreq"],
+        epochs.tmin,
+        tmin=-1,
+        tmax=10,
+    )
     raises(ValueError, csd_epochs, epochs, tmin=10, tmax=11)
-    raises(ValueError, csd_array, epochs._data, epochs.info['sfreq'],
-           epochs.tmin, tmin=10, tmax=11)
+    raises(
+        ValueError,
+        csd_array,
+        epochs._data,
+        epochs.info["sfreq"],
+        epochs.tmin,
+        tmin=10,
+        tmax=11,
+    )
 
     # Test checks for data types and sizes
     diff_types = [np.random.randn(3, 5), "error"]
@@ -405,7 +443,7 @@ def _test_fourier_multitaper_parameters(epochs, csd_epochs, csd_array):
 def test_csd_fourier():
     """Test computing cross-spectral density using short-term Fourier."""
     epochs = _generate_coherence_data()
-    sfreq = epochs.info['sfreq']
+    sfreq = epochs.info["sfreq"]
     _test_fourier_multitaper_parameters(epochs, csd_fourier, csd_array_fourier)
 
     # Compute CSDs using various parameters
@@ -414,9 +452,16 @@ def test_csd_fourier():
     parameters = product(times, as_arrays)
     for (tmin, tmax), as_array in parameters:
         if as_array:
-            csd = csd_array_fourier(epochs.get_data(), sfreq, epochs.tmin,
-                                    fmin=9, fmax=23, tmin=tmin, tmax=tmax,
-                                    ch_names=epochs.ch_names)
+            csd = csd_array_fourier(
+                epochs.get_data(),
+                sfreq,
+                epochs.tmin,
+                fmin=9,
+                fmax=23,
+                tmin=tmin,
+                tmax=tmax,
+                ch_names=epochs.ch_names,
+            )
         else:
             csd = csd_fourier(epochs, fmin=9, fmax=23, tmin=tmin, tmax=tmax)
 
@@ -434,26 +479,27 @@ def test_csd_fourier():
 
     # Power per sample should not depend on time window length
     for tmax in [12, 18]:
-        t_mask = (times <= tmax)
+        t_mask = times <= tmax
         n_samples = sum(t_mask)
 
         # Power per sample should not depend on number of FFT points
         for add_n_fft in [0, 30]:
             n_fft = n_samples + add_n_fft
-            csd = csd_array_fourier(signal, sfreq, tmax=tmax,
-                                    n_fft=n_fft).sum().get_data()
+            csd = (
+                csd_array_fourier(signal, sfreq, tmax=tmax, n_fft=n_fft)
+                .sum()
+                .get_data()
+            )
             first_samp = csd[0, 0]
             fourier_power_per_sample = np.abs(first_samp) * sfreq / n_fft
-            assert abs(signal_power_per_sample -
-                       fourier_power_per_sample) < 0.001
+            assert abs(signal_power_per_sample - fourier_power_per_sample) < 0.001
 
 
 def test_csd_multitaper():
     """Test computing cross-spectral density using multitapers."""
     epochs = _generate_coherence_data()
-    sfreq = epochs.info['sfreq']
-    _test_fourier_multitaper_parameters(epochs, csd_multitaper,
-                                        csd_array_multitaper)
+    sfreq = epochs.info["sfreq"]
+    _test_fourier_multitaper_parameters(epochs, csd_multitaper, csd_array_multitaper)
 
     # Compute CSDs using various parameters
     times = [(None, None), (1, 9)]
@@ -462,13 +508,21 @@ def test_csd_multitaper():
     parameters = product(times, as_arrays, adaptives)
     for (tmin, tmax), as_array, adaptive in parameters:
         if as_array:
-            csd = csd_array_multitaper(epochs.get_data(), sfreq, epochs.tmin,
-                                       adaptive=adaptive, fmin=9, fmax=23,
-                                       tmin=tmin, tmax=tmax,
-                                       ch_names=epochs.ch_names)
+            csd = csd_array_multitaper(
+                epochs.get_data(),
+                sfreq,
+                epochs.tmin,
+                adaptive=adaptive,
+                fmin=9,
+                fmax=23,
+                tmin=tmin,
+                tmax=tmax,
+                ch_names=epochs.ch_names,
+            )
         else:
-            csd = csd_multitaper(epochs, adaptive=adaptive, fmin=9, fmax=23,
-                                 tmin=tmin, tmax=tmax)
+            csd = csd_multitaper(
+                epochs, adaptive=adaptive, fmin=9, fmax=23, tmin=tmin, tmax=tmax
+            )
         if tmin is None and tmax is None:
             assert csd.tmin == 0 and csd.tmax == 9.98
         else:
@@ -477,12 +531,11 @@ def test_csd_multitaper():
         _test_csd_matrix(csd)
 
     # Test equivalence with PSD
-    spectrum = epochs.compute_psd(fmin=1e-3, normalization='full')  # omit DC
+    spectrum = epochs.compute_psd(fmin=1e-3, normalization="full")  # omit DC
     psd, psd_freqs = spectrum.get_data(return_freqs=True)
     csd = csd_multitaper(epochs)
     assert_allclose(psd_freqs, csd.frequencies)
-    csd = np.array([np.diag(csd.get_data(index=ii))
-                    for ii in range(len(csd))]).T
+    csd = np.array([np.diag(csd.get_data(index=ii)) for ii in range(len(csd))]).T
     assert_allclose(psd[0], csd)
 
     # For the next test, generate a simple sine wave with a known power
@@ -492,16 +545,20 @@ def test_csd_multitaper():
 
     # Power per sample should not depend on time window length
     for tmax in [12, 18]:
-        t_mask = (times <= tmax)
+        t_mask = times <= tmax
         n_samples = sum(t_mask)
         n_fft = len(times)
 
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 5]:
             bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
-            csd_mt = csd_array_multitaper(signal, sfreq, tmax=tmax,
-                                          bandwidth=bandwidth,
-                                          n_fft=n_fft).sum().get_data()
+            csd_mt = (
+                csd_array_multitaper(
+                    signal, sfreq, tmax=tmax, bandwidth=bandwidth, n_fft=n_fft
+                )
+                .sum()
+                .get_data()
+            )
             mt_power_per_sample = np.abs(csd_mt[0, 0]) * sfreq / n_fft
             assert abs(signal_power_per_sample - mt_power_per_sample) < 0.001
 
@@ -509,7 +566,7 @@ def test_csd_multitaper():
 def test_csd_morlet():
     """Test computing cross-spectral density using Morlet wavelets."""
     epochs = _generate_coherence_data()
-    sfreq = epochs.info['sfreq']
+    sfreq = epochs.info["sfreq"]
 
     # Compute CSDs by a variety of methods
     freqs = [10, 15, 22]
@@ -519,13 +576,20 @@ def test_csd_morlet():
     parameters = product(times, as_arrays)
     for (tmin, tmax), as_array in parameters:
         if as_array:
-            csd = csd_array_morlet(epochs.get_data(), sfreq, freqs,
-                                   t0=epochs.tmin, n_cycles=n_cycles,
-                                   tmin=tmin, tmax=tmax,
-                                   ch_names=epochs.ch_names)
+            csd = csd_array_morlet(
+                epochs.get_data(),
+                sfreq,
+                freqs,
+                t0=epochs.tmin,
+                n_cycles=n_cycles,
+                tmin=tmin,
+                tmax=tmax,
+                ch_names=epochs.ch_names,
+            )
         else:
-            csd = csd_morlet(epochs, frequencies=freqs, n_cycles=n_cycles,
-                             tmin=tmin, tmax=tmax)
+            csd = csd_morlet(
+                epochs, frequencies=freqs, n_cycles=n_cycles, tmin=tmin, tmax=tmax
+            )
         if tmin is None and tmax is None:
             assert csd.tmin == 0 and csd.tmax == 9.98
         else:
@@ -539,27 +603,26 @@ def test_csd_morlet():
     assert_allclose(csd._data[[0, 3, 5]] * sfreq, power)
 
     # Test using plain convolution instead of FFT
-    csd = csd_morlet(epochs, frequencies=freqs, n_cycles=n_cycles,
-                     use_fft=False)
+    csd = csd_morlet(epochs, frequencies=freqs, n_cycles=n_cycles, use_fft=False)
     assert_allclose(csd._data[[0, 3, 5]] * sfreq, power)
 
     # Test baselining warning
     epochs_nobase = epochs.copy()
     epochs_nobase.baseline = None
     with epochs_nobase.info._unlock():
-        epochs_nobase.info['highpass'] = 0
-    with pytest.warns(RuntimeWarning, match='baseline'):
+        epochs_nobase.info["highpass"] = 0
+    with pytest.warns(RuntimeWarning, match="baseline"):
         csd = csd_morlet(epochs_nobase, frequencies=[10], decim=20)
 
 
 def test_equalize_channels():
     """Test equalization of channels for instances of CrossSpectralDensity."""
     csd1 = _make_csd()
-    csd2 = csd1.copy().pick_channels(['CH2', 'CH1'], ordered=True)
+    csd2 = csd1.copy().pick_channels(["CH2", "CH1"], ordered=True)
     csd1, csd2 = equalize_channels([csd1, csd2])
 
-    assert csd1.ch_names == ['CH1', 'CH2']
-    assert csd2.ch_names == ['CH1', 'CH2']
+    assert csd1.ch_names == ["CH1", "CH2"]
+    assert csd2.ch_names == ["CH1", "CH2"]
 
 
 def test_csd_tfr():
@@ -569,14 +632,13 @@ def test_csd_tfr():
     info = mne.io.read_info(raw_fname)
     info = mne.pick_info(info, mne.pick_types(info, eeg=True))
     freqs = np.arange(38, 40)
-    times = np.linspace(0, 1, int(round(info['sfreq'])))
-    data = rng.normal(
-        size=(n_epochs, len(info.ch_names), times.size)) * 1e-6
+    times = np.linspace(0, 1, int(round(info["sfreq"])))
+    data = rng.normal(size=(n_epochs, len(info.ch_names), times.size)) * 1e-6
     epochs = mne.EpochsArray(data, info)
     csd_test = csd_morlet(epochs, freqs, n_cycles=7, tmin=0.25, tmax=0.75)
-    epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=7,
-                            average=False, return_itc=False,
-                            output='complex')
+    epochs_tfr = tfr_morlet(
+        epochs, freqs, n_cycles=7, average=False, return_itc=False, output="complex"
+    )
     csd = csd_tfr(epochs_tfr, tmin=0.25, tmax=0.75)
     assert_allclose(csd._data, csd_test._data)
     assert_array_equal(csd.frequencies, freqs)

@@ -26,9 +26,19 @@ import webbrowser
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from .. import (read_evokeds, read_events, read_cov,
-                read_source_estimate, read_trans, sys_info,
-                Evoked, SourceEstimate, Covariance, Info, Transform)
+from .. import (
+    read_evokeds,
+    read_events,
+    read_cov,
+    read_source_estimate,
+    read_trans,
+    sys_info,
+    Evoked,
+    SourceEstimate,
+    Covariance,
+    Info,
+    Transform,
+)
 from ..channels import _get_ch_type
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
@@ -36,14 +46,38 @@ from ..io._read_raw import supported as extension_reader_map
 from ..io.pick import _DATA_CH_TYPES_SPLIT
 from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
-from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
-                     fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname, _pl,
-                     _check_ch_locs, _import_h5io_funcs, _verbose_safe_false,
-                     check_version)
-from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                   plot_compare_evokeds, set_3d_view, get_3d_backend,
-                   Figure3D, use_browser_backend)
+from ..utils import (
+    logger,
+    verbose,
+    get_subjects_dir,
+    warn,
+    _ensure_int,
+    fill_doc,
+    _check_option,
+    _validate_type,
+    _safe_input,
+    _path_like,
+    use_log_level,
+    _check_fname,
+    _pl,
+    _check_ch_locs,
+    _import_h5io_funcs,
+    _verbose_safe_false,
+    check_version,
+    _import_nibabel,
+)
+from ..utils.spectrum import _split_psd_kwargs
+from ..viz import (
+    plot_events,
+    plot_alignment,
+    plot_cov,
+    plot_projs_topomap,
+    plot_compare_evokeds,
+    set_3d_view,
+    get_3d_backend,
+    Figure3D,
+    use_browser_backend,
+)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..viz._scraper import _mne_qt_browser_screenshot
@@ -54,7 +88,7 @@ from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func
 
-_BEM_VIEWS = ('axial', 'sagittal', 'coronal')
+_BEM_VIEWS = ("axial", "sagittal", "coronal")
 
 
 # For raw files, we want to support different suffixes + extensions for all
@@ -62,44 +96,55 @@ _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
 RAW_EXTENSIONS = []
 for ext in SUPPORTED_READ_RAW_EXTENSIONS:
-    RAW_EXTENSIONS.append(f'raw{ext}')
-    if ext not in ('.bdf', '.edf', '.set', '.vhdr'):  # EEG-only formats
-        RAW_EXTENSIONS.append(f'meg{ext}')
-    RAW_EXTENSIONS.append(f'eeg{ext}')
-    RAW_EXTENSIONS.append(f'ieeg{ext}')
-    RAW_EXTENSIONS.append(f'nirs{ext}')
+    RAW_EXTENSIONS.append(f"raw{ext}")
+    if ext not in (".bdf", ".edf", ".set", ".vhdr"):  # EEG-only formats
+        RAW_EXTENSIONS.append(f"meg{ext}")
+    RAW_EXTENSIONS.append(f"eeg{ext}")
+    RAW_EXTENSIONS.append(f"ieeg{ext}")
+    RAW_EXTENSIONS.append(f"nirs{ext}")
 
 # Processed data will always be in (gzipped) FIFF format
-VALID_EXTENSIONS = ('sss.fif', 'sss.fif.gz',
-                    'eve.fif', 'eve.fif.gz',
-                    'cov.fif', 'cov.fif.gz',
-                    'proj.fif', 'prof.fif.gz',
-                    'trans.fif', 'trans.fif.gz',
-                    'fwd.fif', 'fwd.fif.gz',
-                    'epo.fif', 'epo.fif.gz',
-                    'inv.fif', 'inv.fif.gz',
-                    'ave.fif', 'ave.fif.gz',
-                    'T1.mgz') + tuple(RAW_EXTENSIONS)
+VALID_EXTENSIONS = (
+    "sss.fif",
+    "sss.fif.gz",
+    "eve.fif",
+    "eve.fif.gz",
+    "cov.fif",
+    "cov.fif.gz",
+    "proj.fif",
+    "prof.fif.gz",
+    "trans.fif",
+    "trans.fif.gz",
+    "fwd.fif",
+    "fwd.fif.gz",
+    "epo.fif",
+    "epo.fif.gz",
+    "inv.fif",
+    "inv.fif.gz",
+    "ave.fif",
+    "ave.fif.gz",
+    "T1.mgz",
+) + tuple(RAW_EXTENSIONS)
 del RAW_EXTENSIONS
 
 CONTENT_ORDER = (
-    'raw',
-    'events',
-    'epochs',
-    'ssp-projectors',
-    'evoked',
-    'covariance',
-    'coregistration',
-    'bem',
-    'forward-solution',
-    'inverse-operator',
-    'source-estimate'
+    "raw",
+    "events",
+    "epochs",
+    "ssp-projectors",
+    "evoked",
+    "covariance",
+    "coregistration",
+    "bem",
+    "forward-solution",
+    "inverse-operator",
+    "source-estimate",
 )
 
-html_include_dir = Path(__file__).parent / 'js_and_css'
-template_dir = Path(__file__).parent / 'templates'
-JAVASCRIPT = (html_include_dir / 'report.js').read_text(encoding='utf-8')
-CSS = (html_include_dir / 'report.sass').read_text(encoding='utf-8')
+html_include_dir = Path(__file__).parent / "js_and_css"
+template_dir = Path(__file__).parent / "templates"
+JAVASCRIPT = (html_include_dir / "report.js").read_text(encoding="utf-8")
+CSS = (html_include_dir / "report.sass").read_text(encoding="utf-8")
 
 MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
@@ -112,91 +157,117 @@ def _get_ch_types(inst):
 ###############################################################################
 # HTML generation
 
+
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('header.html.jinja')
+
+    t = report_templates_env.get_template("header.html.jinja")
     t_rendered = t.render(
-        lang=lang, include=include, js=js, css=css, title=title, tags=tags,
-        mne_logo_img=mne_logo_img
+        lang=lang,
+        include=include,
+        js=js,
+        css=css,
+        title=title,
+        tags=tags,
+        mne_logo_img=mne_logo_img,
     )
     return t_rendered
 
 
 def _html_footer_element(*, mne_version, date):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('footer.html.jinja')
+
+    t = report_templates_env.get_template("footer.html.jinja")
     t_rendered = t.render(mne_version=mne_version, date=date)
     return t_rendered
 
 
 def _html_toc_element(*, titles, dom_ids, tags):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('toc.html.jinja')
+
+    t = report_templates_env.get_template("toc.html.jinja")
     t_rendered = t.render(titles=titles, dom_ids=dom_ids, tags=tags)
     return t_rendered
 
 
 def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('forward.html.jinja')
+
+    t = report_templates_env.get_template("forward.html.jinja")
     t_rendered = t.render(
-        id=id, repr=repr, sensitivity_maps=sensitivity_maps, tags=tags,
-        title=title
+        id=id, repr=repr, sensitivity_maps=sensitivity_maps, tags=tags, title=title
     )
     return t_rendered
 
 
 def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('inverse.html.jinja')
+
+    t = report_templates_env.get_template("inverse.html.jinja")
     t_rendered = t.render(
         id=id, repr=repr, source_space=source_space, tags=tags, title=title
     )
     return t_rendered
 
 
-def _html_slider_element(*, id, images, captions, start_idx, image_format,
-                         title, tags, klass=''):
+def _html_slider_element(
+    *, id, images, captions, start_idx, image_format, title, tags, klass=""
+):
     from ..html_templates import report_templates_env
+
     captions_ = []
     for caption in captions:
         if caption is None:
-            caption = ''
+            caption = ""
         captions_.append(caption)
     del captions
 
-    t = report_templates_env.get_template('slider.html.jinja')
+    t = report_templates_env.get_template("slider.html.jinja")
     t_rendered = t.render(
-        id=id, images=images, captions=captions_, tags=tags, title=title,
-        start_idx=start_idx, image_format=image_format, klass=klass
+        id=id,
+        images=images,
+        captions=captions_,
+        tags=tags,
+        title=title,
+        start_idx=start_idx,
+        image_format=image_format,
+        klass=klass,
     )
     return t_rendered
 
 
-def _html_image_element(*, id, img, image_format, caption, show, div_klass,
-                        img_klass, title, tags):
+def _html_image_element(
+    *, id, img, image_format, caption, show, div_klass, img_klass, title, tags
+):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('image.html.jinja')
+
+    t = report_templates_env.get_template("image.html.jinja")
     t_rendered = t.render(
-        id=id, img=img, caption=caption, tags=tags, title=title,
-        image_format=image_format, div_klass=div_klass, img_klass=img_klass,
-        show=show
+        id=id,
+        img=img,
+        caption=caption,
+        tags=tags,
+        title=title,
+        image_format=image_format,
+        div_klass=div_klass,
+        img_klass=img_klass,
+        show=show,
     )
     return t_rendered
 
 
 def _html_code_element(*, id, code, language, title, tags):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('code.html.jinja')
-    t_rendered = t.render(
-        id=id, code=code, language=language, title=title, tags=tags
-    )
+
+    t = report_templates_env.get_template("code.html.jinja")
+    t_rendered = t.render(id=id, code=code, language=language, title=title, tags=tags)
     return t_rendered
 
 
 def _html_section_element(*, id, div_klass, htmls, title, tags):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('section.html.jinja')
+
+    t = report_templates_env.get_template("section.html.jinja")
     t_rendered = t.render(
         id=id, div_klass=div_klass, htmls=htmls, title=title, tags=tags
     )
@@ -204,26 +275,35 @@ def _html_section_element(*, id, div_klass, htmls, title, tags):
 
 
 def _html_bem_element(
-    *, id, div_klass, html_slider_axial, html_slider_sagittal,
-    html_slider_coronal, title, tags
+    *,
+    id,
+    div_klass,
+    html_slider_axial,
+    html_slider_sagittal,
+    html_slider_coronal,
+    title,
+    tags,
 ):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('bem.html.jinja')
+
+    t = report_templates_env.get_template("bem.html.jinja")
     t_rendered = t.render(
-        id=id, div_klass=div_klass, html_slider_axial=html_slider_axial,
+        id=id,
+        div_klass=div_klass,
+        html_slider_axial=html_slider_axial,
         html_slider_sagittal=html_slider_sagittal,
-        html_slider_coronal=html_slider_coronal, title=title,
-        tags=tags
+        html_slider_coronal=html_slider_coronal,
+        title=title,
+        tags=tags,
     )
     return t_rendered
 
 
 def _html_element(*, id, div_klass, html, title, tags):
     from ..html_templates import report_templates_env
-    t = report_templates_env.get_template('html.html.jinja')
-    t_rendered = t.render(
-        id=id, div_klass=div_klass, html=html, title=title, tags=tags
-    )
+
+    t = report_templates_env.get_template("html.html.jinja")
+    t_rendered = t.render(id=id, div_klass=div_klass, html=html, title=title, tags=tags)
     return t_rendered
 
 
@@ -244,23 +324,22 @@ def _check_tags(tags) -> Tuple[str]:
         tags = tuple(tags)
     else:
         raise TypeError(
-            f'tags must be a string (without spaces or special characters) or '
-            f'an array-like object of such strings, but got {type(tags)} '
-            f'instead: {tags}'
+            f"tags must be a string (without spaces or special characters) or "
+            f"an array-like object of such strings, but got {type(tags)} "
+            f"instead: {tags}"
         )
 
     # Check for invalid dtypes
-    bad_tags = [tag for tag in tags
-                if not isinstance(tag, str)]
+    bad_tags = [tag for tag in tags if not isinstance(tag, str)]
     if bad_tags:
         raise TypeError(
-            f'All tags must be strings without spaces or special characters, '
-            f'but got the following instead: '
+            f"All tags must be strings without spaces or special characters, "
+            f"but got the following instead: "
             f'{", ".join([str(tag) for tag in bad_tags])}'
         )
 
     # Check for invalid characters
-    invalid_chars = (' ', '"', '\n')  # we'll probably find more :-)
+    invalid_chars = (" ", '"', "\n")  # we'll probably find more :-)
     bad_tags = []
     for tag in tags:
         for invalid_char in invalid_chars:
@@ -269,7 +348,7 @@ def _check_tags(tags) -> Tuple[str]:
                 break
     if bad_tags:
         raise ValueError(
-            f'The following tags contained invalid characters: '
+            f"The following tags contained invalid characters: "
             f'{", ".join(repr(tag) for tag in bad_tags)}'
         )
 
@@ -300,19 +379,18 @@ def _constrain_fig_resolution(fig, *, max_width, max_res):
     fig.set_dpi(dpi)
 
 
-def _fig_to_img(fig, *, image_format='png', own_figure=True):
+def _fig_to_img(fig, *, image_format="png", own_figure=True):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
+
     if isinstance(fig, np.ndarray):
         # In this case, we are creating the fig, so we might as well
         # auto-close in all cases
         fig = _ndarray_to_fig(fig)
         if own_figure:
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         own_figure = True  # close the figure we just created
     elif isinstance(fig, Figure):
         pass  # nothing to do
@@ -320,11 +398,12 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
         # Don't attempt a mne_qt_browser import here (it might pull in Qt
         # libraries we don't want), so use a probably good enough class name
         # check instead
-        if fig.__class__.__name__ in ('MNEQtBrowser', 'PyQtGraphBrowser'):
-            img = _mne_qt_browser_screenshot(fig, return_type='ndarray')
+        if fig.__class__.__name__ in ("MNEQtBrowser", "PyQtGraphBrowser"):
+            img = _mne_qt_browser_screenshot(fig, return_type="ndarray")
             print(img.shape, img.max(), img.min(), img.mean())
         elif isinstance(fig, Figure3D):
             from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+
             backend._check_3d_figure(figure=fig)
             if not MNE_3D_BACKEND_TESTING:
                 img = backend._take_3d_screenshot(figure=fig)
@@ -334,40 +413,39 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
                 backend._close_3d_figure(figure=fig)
         else:
             raise TypeError(
-                'figure must be an instance of np.ndarray, matplotlib Figure, '
-                'mne_qt_browser.figure.MNEQtBrowser, or mne.viz.Figure3D, got '
-                f'{type(fig)}')
+                "figure must be an instance of np.ndarray, matplotlib Figure, "
+                "mne_qt_browser.figure.MNEQtBrowser, or mne.viz.Figure3D, got "
+                f"{type(fig)}"
+            )
         fig = _ndarray_to_fig(img)
         if own_figure:
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         own_figure = True  # close the fig we just created
 
     output = BytesIO()
     dpi = fig.get_dpi()
     logger.debug(
-        f'Saving figure with dimension {fig.get_size_inches()} inches with '
-        f'{{dpi}} dpi'
+        f"Saving figure with dimension {fig.get_size_inches()} inches with "
+        f"{{dpi}} dpi"
     )
 
     # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
     mpl_kwargs = dict()
     pil_kwargs = dict()
-    has_pillow = check_version('PIL')
+    has_pillow = check_version("PIL")
     if has_pillow:
-        if image_format == 'webp':
+        if image_format == "webp":
             pil_kwargs.update(lossless=True, method=6)
-        elif image_format == 'png':
+        elif image_format == "png":
             pil_kwargs.update(optimize=True, compress_level=9)
     if pil_kwargs:
         # matplotlib modifies the passed dict, which is a bug
-        mpl_kwargs['pil_kwargs'] = pil_kwargs.copy()
+        mpl_kwargs["pil_kwargs"] = pil_kwargs.copy()
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            action='ignore',
-            message='.*Axes that are not compatible with tight_layout.*',
-            category=UserWarning
+            action="ignore",
+            message=".*Axes that are not compatible with tight_layout.*",
+            category=UserWarning,
         )
         fig.savefig(output, format=image_format, dpi=dpi, **mpl_kwargs)
 
@@ -375,19 +453,23 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
         plt.close(fig)
 
     # Remove alpha
-    if image_format != 'svg' and has_pillow:
+    if image_format != "svg" and has_pillow:
         from PIL import Image
+
         output.seek(0)
         orig = Image.open(output)
-        if orig.mode == 'RGBA':
-            background = Image.new('RGBA', orig.size, (255, 255, 255))
-            new = Image.alpha_composite(background, orig).convert('RGB')
+        if orig.mode == "RGBA":
+            background = Image.new("RGBA", orig.size, (255, 255, 255))
+            new = Image.alpha_composite(background, orig).convert("RGB")
             output = BytesIO()
             new.save(output, format=image_format, dpi=(dpi, dpi), **pil_kwargs)
 
     output = output.getvalue()
-    return (output.decode('utf-8') if image_format == 'svg' else
-            base64.b64encode(output).decode('ascii'))
+    return (
+        output.decode("utf-8")
+        if image_format == "svg"
+        else base64.b64encode(output).decode("ascii")
+    )
 
 
 def _scale_mpl_figure(fig, scale):
@@ -403,24 +485,25 @@ def _scale_mpl_figure(fig, scale):
     fig.set_size_inches(fig.get_size_inches() * scale)
     fig.set_dpi(fig.get_dpi() * scale)
     import matplotlib as mpl
+
     if scale >= 1:
-        sfactor = scale ** 2
+        sfactor = scale**2
     else:
-        sfactor = -((1. / scale) ** 2)
+        sfactor = -((1.0 / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
         new_size = fs + sfactor
         if new_size <= 0:
-            raise ValueError('could not rescale matplotlib fonts, consider '
-                             'increasing "scale"')
+            raise ValueError(
+                "could not rescale matplotlib fonts, consider " 'increasing "scale"'
+            )
         text.set_fontsize(new_size)
 
     fig.canvas.draw()
 
 
 def _get_bem_contour_figs_as_arrays(
-    *, sl, n_jobs, mri_fname, surfaces, orientation, src, show,
-    show_orientation, width
+    *, sl, n_jobs, mri_fname, surfaces, orientation, src, show, show_orientation, width
 ):
     """Render BEM surface contours on MRI slices.
 
@@ -429,19 +512,20 @@ def _get_bem_contour_figs_as_arrays(
     list of array
         A list of NumPy arrays that represent the generated Matplotlib figures.
     """
-    # Matplotlib <3.2 doesn't work nicely with process-based parallelization
-    kwargs = dict()
-    if not check_version('matplotilb', '3.2'):
-        kwargs['prefer'] = 'threads'
-
     parallel, p_fun, n_jobs = parallel_func(
-        _plot_mri_contours, n_jobs, max_jobs=len(sl), **kwargs)
+        _plot_mri_contours, n_jobs, max_jobs=len(sl), prefer="threads"
+    )
     outs = parallel(
         p_fun(
-            slices=s, mri_fname=mri_fname, surfaces=surfaces,
-            orientation=orientation, src=src, show=show,
-            show_orientation=show_orientation, width=width,
-            slices_as_subplots=False
+            slices=s,
+            mri_fname=mri_fname,
+            surfaces=surfaces,
+            orientation=orientation,
+            src=src,
+            show=show,
+            show_orientation=show_orientation,
+            width=width,
+            slices_as_subplots=False,
         )
         for s in np.array_split(sl, n_jobs)
     )
@@ -455,17 +539,17 @@ def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     from ..viz import create_3d_figure
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+
     # TODO: Eventually maybe we should expose the size option?
     size = (80, 80) if MNE_3D_BACKEND_TESTING else (800, 800)
     fig = create_3d_figure(size, bgcolor=(0.5, 0.5, 0.5))
     from ..viz.backends.renderer import backend
+
     try:
         try:
-            return _itv(
-                function, fig, surfaces={'head-dense': alpha}, **kwargs
-            )
-        except IOError:
-            return _itv(function, fig, surfaces={'head': alpha}, **kwargs)
+            return _itv(function, fig, surfaces={"head-dense": alpha}, **kwargs)
+        except OSError:
+            return _itv(function, fig, surfaces={"head": alpha}, **kwargs)
     finally:
         backend._close_3d_figure(fig)
 
@@ -473,17 +557,15 @@ def _iterate_trans_views(function, alpha, **kwargs):
 def _itv(function, fig, **kwargs):
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
     from ..viz._brain.view import views_dicts
+
     function(fig=fig, **kwargs)
 
-    views = (
-        'frontal', 'lateral', 'medial',
-        'axial', 'rostral', 'coronal'
-    )
+    views = ("frontal", "lateral", "medial", "axial", "rostral", "coronal")
 
     images = []
     for view in views:
         if not MNE_3D_BACKEND_TESTING:
-            set_3d_view(fig, **views_dicts['both'][view])
+            set_3d_view(fig, **views_dicts["both"][view])
             backend._check_3d_figure(fig)
             im = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
@@ -491,22 +573,25 @@ def _itv(function, fig, **kwargs):
         images.append(im)
 
     images = np.concatenate(
-        [np.concatenate(images[:3], axis=1),
-         np.concatenate(images[3:], axis=1)],
-        axis=0)
+        [np.concatenate(images[:3], axis=1), np.concatenate(images[3:], axis=1)], axis=0
+    )
 
     try:
-        dists = dig_mri_distances(info=kwargs['info'],
-                                  trans=kwargs['trans'],
-                                  subject=kwargs['subject'],
-                                  subjects_dir=kwargs['subjects_dir'],
-                                  on_defects='ignore')
-        caption = (f'Average distance from {len(dists)} digitized points to '
-                   f'head: {1e3 * np.mean(dists):.2f} mm')
+        dists = dig_mri_distances(
+            info=kwargs["info"],
+            trans=kwargs["trans"],
+            subject=kwargs["subject"],
+            subjects_dir=kwargs["subjects_dir"],
+            on_defects="ignore",
+        )
+        caption = (
+            f"Average distance from {len(dists)} digitized points to "
+            f"head: {1e3 * np.mean(dists):.2f} mm"
+        )
     except BaseException as e:
-        caption = 'Distances could not be calculated from digitized points'
-        warn(f'{caption}: {e}')
-    img = _fig_to_img(images, image_format='png')
+        caption = "Distances could not be calculated from digitized points"
+        warn(f"{caption}: {e}")
+    img = _fig_to_img(images, image_format="png")
 
     return img, caption
 
@@ -528,36 +613,29 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         figs = ica.plot_properties(inst=inst, picks=pick, show=False)
         assert len(figs) == 1
         fig = figs[0]
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         with io.BytesIO() as buff:
             fig.savefig(
                 buff,
-                format='png',
+                format="png",
                 pad_inches=0,
             )
             buff.seek(0)
-            fig_array = plt.imread(buff, format='png')
+            fig_array = plt.imread(buff, format="png")
 
         plt.close(fig)
         return fig_array
 
     parallel, p_fun, n_jobs = parallel_func(
-        func=_plot_one_ica_property,
-        n_jobs=n_jobs,
-        max_jobs=len(picks)
+        func=_plot_one_ica_property, n_jobs=n_jobs, max_jobs=len(picks)
     )
-    outs = parallel(
-        p_fun(
-            ica=ica, inst=inst, pick=pick
-        ) for pick in picks
-    )
+    outs = parallel(p_fun(ica=ica, inst=inst, pick=pick) for pick in picks)
     return outs
 
 
 ###############################################################################
 # TOC FUNCTIONS
+
 
 def _endswith(fname, suffixes):
     """Aux function to test if file name includes the specified suffixes."""
@@ -565,8 +643,14 @@ def _endswith(fname, suffixes):
         suffixes = [suffixes]
     for suffix in suffixes:
         for ext in SUPPORTED_READ_RAW_EXTENSIONS:
-            if fname.endswith((f'-{suffix}{ext}', f'-{suffix}{ext}',
-                               f'_{suffix}{ext}', f'_{suffix}{ext}')):
+            if fname.endswith(
+                (
+                    f"-{suffix}{ext}",
+                    f"-{suffix}{ext}",
+                    f"_{suffix}{ext}",
+                    f"_{suffix}{ext}",
+                )
+            ):
                 return True
     return False
 
@@ -598,14 +682,15 @@ def open_report(fname, **params):
     if op.exists(fname):
         # Check **params with the loaded report
         read_hdf5, _ = _import_h5io_funcs()
-        state = read_hdf5(fname, title='mnepython')
+        state = read_hdf5(fname, title="mnepython")
         for param in params.keys():
             if param not in state:
-                raise ValueError('The loaded report has no attribute %s' %
-                                 param)
+                raise ValueError("The loaded report has no attribute %s" % param)
             if params[param] != state[param]:
-                raise ValueError("Attribute '%s' of loaded report does not "
-                                 "match the given parameter." % param)
+                raise ValueError(
+                    "Attribute '%s' of loaded report does not "
+                    "match the given parameter." % param
+                )
         report = Report()
         report.__setstate__(state)
     else:
@@ -619,40 +704,40 @@ def open_report(fname, **params):
 ###############################################################################
 # HTML scan renderer
 
-mne_logo_path = Path(__file__).parents[1] / 'icons' / 'mne_icon-cropped.png'
-mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode('ascii')
+mne_logo_path = Path(__file__).parents[1] / "icons" / "mne_icon-cropped.png"
+mne_logo = base64.b64encode(mne_logo_path.read_bytes()).decode("ascii")
 
-_ALLOWED_IMAGE_FORMATS = ('png', 'svg', 'webp')
+_ALLOWED_IMAGE_FORMATS = ("png", "svg", "webp")
 
 
 def _webp_supported():
-    good = check_version('matplotlib', '3.6') and check_version('PIL')
+    good = check_version("matplotlib", "3.6") and check_version("PIL")
     if good:
         from PIL import features
-        good = features.check('webp')
+
+        good = features.check("webp")
     return good
 
 
 def _check_scale(scale):
     """Ensure valid scale value is passed."""
     if np.isscalar(scale) and scale <= 0:
-        raise ValueError('scale must be positive, not %s' % scale)
+        raise ValueError("scale must be positive, not %s" % scale)
 
 
 def _check_image_format(rep, image_format):
     """Ensure fmt is valid."""
     if rep is None or image_format is not None:
-        allowed = list(_ALLOWED_IMAGE_FORMATS) + ['auto']
-        extra = ''
+        allowed = list(_ALLOWED_IMAGE_FORMATS) + ["auto"]
+        extra = ""
         if not _webp_supported():
-            allowed.pop(allowed.index('webp'))
+            allowed.pop(allowed.index("webp"))
             extra = '("webp" supported on matplotlib 3.6+ with PIL installed)'
-        _check_option(
-            'image_format', image_format, allowed_values=allowed, extra=extra)
+        _check_option("image_format", image_format, allowed_values=allowed, extra=extra)
     else:
         image_format = rep.image_format
-    if image_format == 'auto':
-        image_format = 'webp' if _webp_supported() else 'png'
+    if image_format == "auto":
+        image_format = "webp" if _webp_supported() else "png"
     return image_format
 
 
@@ -687,9 +772,11 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -717,9 +804,11 @@ class Report:
     raw_psd : bool | dict
         If True, include PSD plots for raw files. Can be False (default) to
         omit, True to plot, or a dict to pass as ``kwargs`` to
-        :meth:`mne.io.Raw.plot_psd`.
+        :meth:`mne.time_frequency.Spectrum.plot`.
 
         .. versionadded:: 0.17
+        .. versionchanged:: 1.4
+           kwargs are sent to ``spectrum.plot`` instead of ``raw.plot_psd``.
     projs : bool
         Whether to include topographic plots of SSP projectors, if present in
         the data. Defaults to ``False``.
@@ -745,10 +834,20 @@ class Report:
     """
 
     @verbose
-    def __init__(self, info_fname=None, subjects_dir=None,
-                 subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='auto', raw_psd=False, projs=False, *,
-                 verbose=None):
+    def __init__(
+        self,
+        info_fname=None,
+        subjects_dir=None,
+        subject=None,
+        title=None,
+        cov_fname=None,
+        baseline=None,
+        image_format="auto",
+        raw_psd=False,
+        projs=False,
+        *,
+        verbose=None,
+    ):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
@@ -765,10 +864,9 @@ class Report:
         self._dom_id = 0
         self._content = []
         self.include = []
-        self.lang = 'en-us'  # language setting for the HTML file
+        self.lang = "en-us"  # language setting for the HTML file
         if not isinstance(raw_psd, bool) and not isinstance(raw_psd, dict):
-            raise TypeError('raw_psd must be bool or dict, got %s'
-                            % (type(raw_psd),))
+            raise TypeError("raw_psd must be bool or dict, got %s" % (type(raw_psd),))
         self.raw_psd = raw_psd
         self._init_render()  # Initialize the renderer
 
@@ -779,31 +877,31 @@ class Report:
         """Print useful info about report."""
         htmls, _, titles, _ = self._content_as_html()
         items = self._content
-        s = '<Report'
-        s += f' | {len(titles)} title{_pl(titles)}'
-        s += f' | {len(items)} item{_pl(items)}'
+        s = "<Report"
+        s += f" | {len(titles)} title{_pl(titles)}"
+        s += f" | {len(items)} item{_pl(items)}"
         if self.title is not None:
-            s += f' | {self.title}'
+            s += f" | {self.title}"
         if len(titles) > 0:
-            titles = [f' {t}' for t in titles]  # indent
+            titles = [f" {t}" for t in titles]  # indent
             tr = max(len(s), 50)  # trim to larger of opening str and 50
-            titles = [f'{t[:tr - 2]} …' if len(t) > tr else t for t in titles]
+            titles = [f"{t[:tr - 2]} …" if len(t) > tr else t for t in titles]
             # then trim to the max length of all of these
             tr = max(len(title) for title in titles)
             tr = max(tr, len(s))
-            b_to_mb = 1. / (1024. ** 2)
+            b_to_mb = 1.0 / (1024.0**2)
             content_element_mb = [len(html) * b_to_mb for html in htmls]
-            total_mb = f'{sum(content_element_mb):0.1f}'
+            total_mb = f"{sum(content_element_mb):0.1f}"
             content_element_mb = [
-                f'{sz:0.1f}'.rjust(len(total_mb))
-                for sz in content_element_mb
+                f"{sz:0.1f}".rjust(len(total_mb)) for sz in content_element_mb
             ]
-            s = f'{s.ljust(tr + 1)} | {total_mb} MB'
-            s += '\n' + '\n'.join(
-                f'{title[:tr].ljust(tr + 1)} | {sz} MB'
-                for title, sz in zip(titles, content_element_mb))
-            s += '\n'
-        s += '>'
+            s = f"{s.ljust(tr + 1)} | {total_mb} MB"
+            s += "\n" + "\n".join(
+                f"{title[:tr].ljust(tr + 1)} | {sz} MB"
+                for title, sz in zip(titles, content_element_mb)
+            )
+            s += "\n"
+        s += ">"
         return s
 
     def __len__(self):
@@ -820,10 +918,21 @@ class Report:
     def _get_state_params():
         # Which attributes to store in and read from HDF5 files
         return (
-            'baseline', 'cov_fname', 'include', '_content', 'image_format',
-            'info_fname', '_dom_id', 'raw_psd', 'projs',
-            'subjects_dir', 'subject', 'title', 'data_path', 'lang',
-            'fname',
+            "baseline",
+            "cov_fname",
+            "include",
+            "_content",
+            "image_format",
+            "info_fname",
+            "_dom_id",
+            "raw_psd",
+            "projs",
+            "subjects_dir",
+            "subject",
+            "title",
+            "data_path",
+            "lang",
+            "fname",
         )
 
     def _get_dom_id(self, increment=True):
@@ -838,10 +947,10 @@ class Report:
         if increment:
             self._dom_id += 1
 
-        return f'global-{self._dom_id}'
+        return f"global-{self._dom_id}"
 
     def _validate_topomap_kwargs(self, topomap_kwargs):
-        _validate_type(topomap_kwargs, (dict, None), 'topomap_kwargs')
+        _validate_type(topomap_kwargs, (dict, None), "topomap_kwargs")
         topomap_kwargs = dict() if topomap_kwargs is None else topomap_kwargs
         return topomap_kwargs
 
@@ -856,13 +965,13 @@ class Report:
         if comments is not None and len(comments) != len(items):
             raise ValueError(
                 f'Number of "comments" and report items must be equal, '
-                f'or comments should be None; got '
-                f'{len(comments)} and {len(items)}'
+                f"or comments should be None; got "
+                f"{len(comments)} and {len(items)}"
             )
         elif captions is not None and len(captions) != len(items):
             raise ValueError(
                 f'Number of "captions" and report items must be equal; '
-                f'got {len(captions)} and {len(items)}'
+                f"got {len(captions)} and {len(items)}"
             )
         return items, captions, comments
 
@@ -900,14 +1009,13 @@ class Report:
 
                 # Add all elements belonging to the current section
                 section_elements = [
-                    el for el in content_elements[idx:]
+                    el
+                    for el in content_elements[idx:]
                     if el.section == content_element.section
                 ]
                 section_htmls = [el.html for el in section_elements]
                 section_tags = tuple(
-                    sorted((set([t
-                                 for el in section_elements
-                                 for t in el.tags])))
+                    sorted((set([t for el in section_elements for t in el.tags])))
                 )
                 # Generate a unique DOM ID, but don't alter the global counter
                 if section_dom_ids:
@@ -915,8 +1023,8 @@ class Report:
                 else:
                     section_dom_id = self._get_dom_id(increment=False)
 
-                label, counter = section_dom_id.split('-')
-                section_dom_id = f'{label}-{int(counter) + 1}'
+                label, counter = section_dom_id.split("-")
+                section_dom_id = f"{label}-{int(counter) + 1}"
                 section_dom_ids.append(section_dom_id)
 
                 # Finally, create the section HTML element.
@@ -925,7 +1033,7 @@ class Report:
                     htmls=section_htmls,
                     tags=section_tags,
                     title=content_element.section,
-                    div_klass='section',
+                    div_klass="section",
                 )
                 htmls.append(section_html)
                 dom_ids.append(section_dom_id)
@@ -991,8 +1099,16 @@ class Report:
 
     @fill_doc
     def add_epochs(
-        self, epochs, title, *, psd=True, projs=None, topomap_kwargs=None,
-        drop_log_ignore=('IGNORED',), tags=('epochs',), replace=False
+        self,
+        epochs,
+        title,
+        *,
+        psd=True,
+        projs=None,
+        topomap_kwargs=None,
+        drop_log_ignore=("IGNORED",),
+        tags=("epochs",),
+        replace=False,
     ):
         """Add `~mne.Epochs` to the report.
 
@@ -1045,9 +1161,17 @@ class Report:
 
     @fill_doc
     def add_evokeds(
-        self, evokeds, *, titles=None, noise_cov=None, projs=None,
-        n_time_points=None, tags=('evoked',), replace=False,
-        topomap_kwargs=None, n_jobs=None
+        self,
+        evokeds,
+        *,
+        titles=None,
+        noise_cov=None,
+        projs=None,
+        n_time_points=None,
+        tags=("evoked",),
+        replace=False,
+        topomap_kwargs=None,
+        n_jobs=None,
     ):
         """Add `~mne.Evoked` objects to the report.
 
@@ -1085,12 +1209,11 @@ class Report:
             pass
         else:
             evoked_fname = evokeds
-            logger.debug(f'Evoked: Reading {evoked_fname}')
+            logger.debug(f"Evoked: Reading {evoked_fname}")
             evokeds = read_evokeds(evoked_fname, verbose=False)
 
         if self.baseline is not None:
-            evokeds = [e.copy().apply_baseline(self.baseline)
-                       for e in evokeds]
+            evokeds = [e.copy().apply_baseline(self.baseline) for e in evokeds]
 
         if titles is None:
             titles = [e.comment for e in evokeds]
@@ -1099,8 +1222,8 @@ class Report:
 
         if len(evokeds) != len(titles):
             raise ValueError(
-                f'Number of evoked objects ({len(evokeds)}) must '
-                f'match number of captions ({len(titles)})'
+                f"Number of evoked objects ({len(evokeds)}) must "
+                f"match number of captions ({len(titles)})"
             )
 
         if noise_cov is None:
@@ -1127,8 +1250,17 @@ class Report:
 
     @fill_doc
     def add_raw(
-        self, raw, title, *, psd=None, projs=None, butterfly=True,
-        scalings=None, tags=('raw',), replace=False, topomap_kwargs=None
+        self,
+        raw,
+        title,
+        *,
+        psd=None,
+        projs=None,
+        butterfly=True,
+        scalings=None,
+        tags=("raw",),
+        replace=False,
+        topomap_kwargs=None,
     ):
         """Add `~mne.io.Raw` objects to the report.
 
@@ -1185,9 +1317,16 @@ class Report:
 
     @fill_doc
     def add_stc(
-        self, stc, title, *, subject=None, subjects_dir=None,
-        n_time_points=None, tags=('source-estimate',),
-        replace=False, stc_plot_kwargs=None
+        self,
+        stc,
+        title,
+        *,
+        subject=None,
+        subjects_dir=None,
+        n_time_points=None,
+        tags=("source-estimate",),
+        replace=False,
+        stc_plot_kwargs=None,
     ):
         """Add a `~mne.SourceEstimate` (STC) to the report.
 
@@ -1232,8 +1371,14 @@ class Report:
 
     @fill_doc
     def add_forward(
-        self, forward, title, *, subject=None, subjects_dir=None,
-        tags=('forward-solution',), replace=False
+        self,
+        forward,
+        title,
+        *,
+        subject=None,
+        subjects_dir=None,
+        tags=("forward-solution",),
+        replace=False,
     ):
         """Add a forward solution.
 
@@ -1260,16 +1405,27 @@ class Report:
         tags = _check_tags(tags)
 
         self._add_forward(
-            forward=forward, subject=subject, subjects_dir=subjects_dir,
-            title=title, image_format=self.image_format, section=None,
-            tags=tags, replace=replace,
+            forward=forward,
+            subject=subject,
+            subjects_dir=subjects_dir,
+            title=title,
+            image_format=self.image_format,
+            section=None,
+            tags=tags,
+            replace=replace,
         )
 
     @fill_doc
     def add_inverse_operator(
-        self, inverse_operator, title, *, subject=None,
-        subjects_dir=None, trans=None, tags=('inverse-operator',),
-        replace=False
+        self,
+        inverse_operator,
+        title,
+        *,
+        subject=None,
+        subjects_dir=None,
+        trans=None,
+        tags=("inverse-operator",),
+        replace=False,
     ):
         """Add an inverse operator.
 
@@ -1298,21 +1454,35 @@ class Report:
         """
         tags = _check_tags(tags)
 
-        if ((subject is not None and trans is None) or
-                (trans is not None and subject is None)):
-            raise ValueError('Please pass subject AND trans, or neither.')
+        if (subject is not None and trans is None) or (
+            trans is not None and subject is None
+        ):
+            raise ValueError("Please pass subject AND trans, or neither.")
 
         self._add_inverse_operator(
-            inverse_operator=inverse_operator, subject=subject,
-            subjects_dir=subjects_dir, trans=trans, title=title,
-            image_format=self.image_format, section=None, tags=tags,
+            inverse_operator=inverse_operator,
+            subject=subject,
+            subjects_dir=subjects_dir,
+            trans=trans,
+            title=title,
+            image_format=self.image_format,
+            section=None,
+            tags=tags,
             replace=replace,
         )
 
     @fill_doc
     def add_trans(
-        self, trans, *, info, title, subject=None, subjects_dir=None,
-        alpha=None, tags=('coregistration',), replace=False
+        self,
+        trans,
+        *,
+        info,
+        title,
+        subject=None,
+        subjects_dir=None,
+        alpha=None,
+        tags=("coregistration",),
+        replace=False,
     ):
         """Add a coregistration visualization to the report.
 
@@ -1356,9 +1526,7 @@ class Report:
         )
 
     @fill_doc
-    def add_covariance(
-        self, cov, *, info, title, tags=('covariance',), replace=False
-    ):
+    def add_covariance(self, cov, *, info, title, tags=("covariance",), replace=False):
         """Add covariance to the report.
 
         Parameters
@@ -1388,8 +1556,15 @@ class Report:
 
     @fill_doc
     def add_events(
-        self, events, title, *, event_id=None, sfreq, first_samp=0,
-        tags=('events',), replace=False
+        self,
+        events,
+        title,
+        *,
+        event_id=None,
+        sfreq,
+        first_samp=0,
+        tags=("events",),
+        replace=False,
     ):
         """Add events to the report.
 
@@ -1427,8 +1602,16 @@ class Report:
         )
 
     @fill_doc
-    def add_projs(self, *, info, projs=None, title, topomap_kwargs=None,
-                  tags=('ssp',), replace=False):
+    def add_projs(
+        self,
+        *,
+        info,
+        projs=None,
+        title,
+        topomap_kwargs=None,
+        tags=("ssp",),
+        replace=False,
+    ):
         """Render (SSP) projection vectors.
 
         Parameters
@@ -1452,28 +1635,29 @@ class Report:
         """
         tags = _check_tags(tags)
         self._add_projs(
-            info=info, projs=projs, title=title,
-            image_format=self.image_format, section=None, tags=tags,
-            topomap_kwargs=topomap_kwargs, replace=replace
+            info=info,
+            projs=projs,
+            title=title,
+            image_format=self.image_format,
+            section=None,
+            tags=tags,
+            topomap_kwargs=topomap_kwargs,
+            replace=replace,
         )
 
-    def _add_ica_overlay(
-        self, *, ica, inst, image_format, section, tags, replace
-    ):
+    def _add_ica_overlay(self, *, ica, inst, image_format, section, tags, replace):
         if isinstance(inst, BaseRaw):
             inst_ = inst
         else:  # Epochs
             inst_ = inst.average()
 
-        fig = ica.plot_overlay(inst=inst_, show=False, on_baseline='reapply')
+        fig = ica.plot_overlay(inst=inst_, show=False, on_baseline="reapply")
         del inst_
         tight_layout(fig=fig)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
-            title='Original and cleaned signal',
+            title="Original and cleaned signal",
             caption=None,
             image_format=image_format,
             section=section,
@@ -1488,34 +1672,36 @@ class Report:
         ch_type = _get_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
-            warn(f'No {ch_type_name} channel locations found, cannot '
-                 f'create ICA properties plots')
+            warn(
+                f"No {ch_type_name} channel locations found, cannot "
+                f"create ICA properties plots"
+            )
             return
 
         figs = _plot_ica_properties_as_arrays(
             ica=ica, inst=inst, picks=picks, n_jobs=n_jobs
         )
-        rel_explained_var = (ica.pca_explained_variance_ /
-                             ica.pca_explained_variance_.sum())
+        rel_explained_var = (
+            ica.pca_explained_variance_ / ica.pca_explained_variance_.sum()
+        )
         cum_explained_var = np.cumsum(rel_explained_var)
         captions = []
         for idx, rel_var, cum_var in zip(
             range(len(figs)),
-            rel_explained_var[:len(figs)],
-            cum_explained_var[:len(figs)]
+            rel_explained_var[: len(figs)],
+            cum_explained_var[: len(figs)],
         ):
             caption = (
-                f'ICA component {idx}. '
-                f'Variance explained: {round(100 * rel_var)}%'
+                f"ICA component {idx}. " f"Variance explained: {round(100 * rel_var)}%"
             )
             if idx == 0:
-                caption += '.'
+                caption += "."
             else:
-                caption += f' ({round(100 * cum_var)}% cumulative).'
+                caption += f" ({round(100 * cum_var)}% cumulative)."
 
             captions.append(caption)
 
-        title = 'ICA component properties'
+        title = "ICA component properties"
         # Only render a slider if we have more than 1 component.
         if len(figs) == 1:
             self._add_figure(
@@ -1545,14 +1731,12 @@ class Report:
     def _add_ica_artifact_sources(
         self, *, ica, inst, artifact_type, image_format, section, tags, replace
     ):
-        with use_browser_backend('matplotlib'):
+        with use_browser_backend("matplotlib"):
             fig = ica.plot_sources(inst=inst, show=False)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
-            title=f'Original and cleaned {artifact_type} epochs',
+            title=f"Original and cleaned {artifact_type} epochs",
             caption=None,
             image_format=image_format,
             tags=tags,
@@ -1562,16 +1746,13 @@ class Report:
         )
 
     def _add_ica_artifact_scores(
-        self, *, ica, scores, artifact_type, image_format, section, tags,
-        replace
+        self, *, ica, scores, artifact_type, image_format, section, tags, replace
     ):
         fig = ica.plot_scores(scores=scores, title=None, show=False)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
-            title=f'Scores for matching {artifact_type} patterns',
+            title=f"Scores for matching {artifact_type} patterns",
             caption=None,
             image_format=image_format,
             tags=tags,
@@ -1580,31 +1761,27 @@ class Report:
             own_figure=True,
         )
 
-    def _add_ica_components(
-        self, *, ica, picks, image_format, section, tags, replace
-    ):
+    def _add_ica_components(self, *, ica, picks, image_format, section, tags, replace):
         ch_type = _get_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
-            warn(f'No {ch_type_name} channel locations found, cannot '
-                 f'create ICA component plots')
-            return ''
+            warn(
+                f"No {ch_type_name} channel locations found, cannot "
+                f"create ICA component plots"
+            )
+            return ""
 
-        figs = ica.plot_components(
-            picks=picks, title='', colorbar=True, show=False
-        )
+        figs = ica.plot_components(picks=picks, title="", colorbar=True, show=False)
         if not isinstance(figs, list):
             figs = [figs]
 
         for fig in figs:
             tight_layout(fig=fig)
 
-        title = 'ICA component topographies'
+        title = "ICA component topographies"
         if len(figs) == 1:
             fig = figs[0]
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
                 title=title,
@@ -1625,20 +1802,32 @@ class Report:
                 image_format=image_format,
                 section=section,
                 tags=tags,
-                replace=replace
+                replace=replace,
             )
 
     def _add_ica(
-        self, *, ica, inst, picks, ecg_evoked,
-        eog_evoked, ecg_scores, eog_scores, title, image_format,
-        section, tags, n_jobs, replace
+        self,
+        *,
+        ica,
+        inst,
+        picks,
+        ecg_evoked,
+        eog_evoked,
+        ecg_scores,
+        eog_scores,
+        title,
+        image_format,
+        section,
+        tags,
+        n_jobs,
+        replace,
     ):
         if _path_like(ica):
             ica = read_ica(ica)
 
-        if ica.current_fit == 'unfitted':
+        if ica.current_fit == "unfitted":
             raise RuntimeError(
-                'ICA must be fitted before it can be added to the report.'
+                "ICA must be fitted before it can be added to the report."
             )
 
         if inst is None:
@@ -1648,8 +1837,8 @@ class Report:
             # read a Raw, and if that fails, try to load Epochs
             fname = str(inst)  # could e.g. be a Path!
             raw_kwargs = dict(fname=fname, preload=False)
-            if fname.endswith(('.fif', '.fif.gz')):
-                raw_kwargs['allow_maxshield'] = 'yes'
+            if fname.endswith((".fif", ".fif.gz")):
+                raw_kwargs["allow_maxshield"] = "yes"
 
             try:
                 inst = read_raw(**raw_kwargs)
@@ -1658,14 +1847,14 @@ class Report:
                     inst = read_epochs(fname)
                 except ValueError:
                     raise ValueError(
-                        f'The specified file, {fname}, does not seem to '
-                        f'contain Raw data or Epochs'
+                        f"The specified file, {fname}, does not seem to "
+                        f"contain Raw data or Epochs"
                     )
         elif not inst.preload:
             raise RuntimeError(
                 'You passed an object to Report.add_ica() via the "inst" '
-                'parameter that was not preloaded. Please preload the data  '
-                'via the load_data() method'
+                "parameter that was not preloaded. Please preload the data  "
+                "via the load_data() method"
             )
 
         if _path_like(ecg_evoked):
@@ -1677,67 +1866,106 @@ class Report:
         # Summary table
         self._add_html_repr(
             inst=ica,
-            title='Info',
+            title="Info",
             tags=tags,
             section=section,
             replace=replace,
-            div_klass='ica',
+            div_klass="ica",
         )
 
         # Overlay plot
         if inst:
             self._add_ica_overlay(
-                ica=ica, inst=inst, image_format=image_format, section=section,
-                tags=tags, replace=replace,
+                ica=ica,
+                inst=inst,
+                image_format=image_format,
+                section=section,
+                tags=tags,
+                replace=replace,
             )
 
         # ECG artifact
         if ecg_scores is not None:
             self._add_ica_artifact_scores(
-                ica=ica, scores=ecg_scores, artifact_type='ECG',
-                image_format=image_format, section=section, tags=tags,
+                ica=ica,
+                scores=ecg_scores,
+                artifact_type="ECG",
+                image_format=image_format,
+                section=section,
+                tags=tags,
                 replace=replace,
             )
         if ecg_evoked:
             self._add_ica_artifact_sources(
-                ica=ica, inst=ecg_evoked, artifact_type='ECG',
-                image_format=image_format, section=section, tags=tags,
+                ica=ica,
+                inst=ecg_evoked,
+                artifact_type="ECG",
+                image_format=image_format,
+                section=section,
+                tags=tags,
                 replace=replace,
             )
 
         # EOG artifact
         if eog_scores is not None:
             self._add_ica_artifact_scores(
-                ica=ica, scores=eog_scores, artifact_type='EOG',
-                image_format=image_format, section=section, tags=tags,
+                ica=ica,
+                scores=eog_scores,
+                artifact_type="EOG",
+                image_format=image_format,
+                section=section,
+                tags=tags,
                 replace=replace,
             )
         if eog_evoked:
             self._add_ica_artifact_sources(
-                ica=ica, inst=eog_evoked, artifact_type='EOG',
-                image_format=image_format, section=section, tags=tags,
+                ica=ica,
+                inst=eog_evoked,
+                artifact_type="EOG",
+                image_format=image_format,
+                section=section,
+                tags=tags,
                 replace=replace,
             )
 
         # Component topography plots
         self._add_ica_components(
-            ica=ica, picks=picks, image_format=image_format, section=section,
-            tags=tags, replace=replace,
+            ica=ica,
+            picks=picks,
+            image_format=image_format,
+            section=section,
+            tags=tags,
+            replace=replace,
         )
 
         # Properties plots
         if inst:
             self._add_ica_properties(
-                ica=ica, picks=picks, inst=inst, n_jobs=n_jobs,
-                image_format=image_format, section=section, tags=tags,
+                ica=ica,
+                picks=picks,
+                inst=inst,
+                n_jobs=n_jobs,
+                image_format=image_format,
+                section=section,
+                tags=tags,
                 replace=replace,
             )
 
     @fill_doc
     def add_ica(
-        self, ica, title, *, inst, picks=None, ecg_evoked=None,
-        eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=None,
-        tags=('ica',), replace=False
+        self,
+        ica,
+        title,
+        *,
+        inst,
+        picks=None,
+        ecg_evoked=None,
+        eog_evoked=None,
+        ecg_scores=None,
+        eog_scores=None,
+        n_jobs=None,
+        tags=("ica",),
+        replace=False,
     ):
         """Add (a fitted) `~mne.preprocessing.ICA` to the report.
 
@@ -1771,11 +1999,19 @@ class Report:
         """
         tags = _check_tags(tags)
         self._add_ica(
-            ica=ica, inst=inst, picks=picks,
-            ecg_evoked=ecg_evoked, eog_evoked=eog_evoked,
-            ecg_scores=ecg_scores, eog_scores=eog_scores,
-            title=title, image_format=self.image_format,
-            tags=tags, section=title, n_jobs=n_jobs, replace=replace,
+            ica=ica,
+            inst=inst,
+            picks=picks,
+            ecg_evoked=ecg_evoked,
+            eog_evoked=eog_evoked,
+            ecg_scores=ecg_scores,
+            eog_scores=eog_scores,
+            title=title,
+            image_format=self.image_format,
+            tags=tags,
+            section=title,
+            n_jobs=n_jobs,
+            replace=replace,
         )
 
     def remove(self, *, title=None, tags=None, remove_all=False):
@@ -1817,8 +2053,7 @@ class Report:
         remove_idx = []
         for idx, element in enumerate(self._content):
             if element.name == title:
-                if (tags is not None and
-                        not all(t in element.tags for t in tags)):
+                if tags is not None and not all(t in element.tags for t in tags):
                     continue
                 remove_idx.append(idx)
 
@@ -1829,15 +2064,14 @@ class Report:
             del self._content[remove_idx]
         else:  # remove all occurrences
             remove_idx = tuple(remove_idx)
-            self._content = [e for idx, e in enumerate(self._content)
-                             if idx not in remove_idx]
+            self._content = [
+                e for idx, e in enumerate(self._content) if idx not in remove_idx
+            ]
 
         return remove_idx
 
     @fill_doc
-    def _add_or_replace(
-        self, *, title, section, dom_id, tags, html, replace=False
-    ):
+    def _add_or_replace(self, *, title, section, dom_id, tags, html, replace=False):
         """Append HTML content report, or replace it if it already exists.
 
         Parameters
@@ -1857,11 +2091,7 @@ class Report:
         assert isinstance(html, str)  # otherwise later will break
 
         new_content = _ContentElement(
-            name=title,
-            section=section,
-            dom_id=dom_id,
-            tags=tags,
-            html=html
+            name=title, section=section, dom_id=dom_id, tags=tags, html=html
         )
 
         append = True
@@ -1883,11 +2113,7 @@ class Report:
 
         dom_id = self._get_dom_id()
         html = _html_code_element(
-            tags=tags,
-            title=title,
-            id=dom_id,
-            code=code,
-            language=language
+            tags=tags, title=title, id=dom_id, code=code, language=language
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1895,13 +2121,12 @@ class Report:
             section=section,
             tags=tags,
             html=html,
-            replace=replace
+            replace=replace,
         )
 
     @fill_doc
     def add_code(
-        self, code, title, *, language='python', tags=('code',),
-        replace=False
+        self, code, title, *, language="python", tags=("code",), replace=False
     ):
         """Add a code snippet (e.g., an analysis script) to the report.
 
@@ -1928,12 +2153,16 @@ class Report:
         tags = _check_tags(tags)
         language = language.lower()
         self._add_code(
-            code=code, title=title, language=language, section=None, tags=tags,
+            code=code,
+            title=title,
+            language=language,
+            section=None,
+            tags=tags,
             replace=replace,
         )
 
     @fill_doc
-    def add_sys_info(self, title, *, tags=('mne-sysinfo',), replace=False):
+    def add_sys_info(self, title, *, tags=("mne-sysinfo",), replace=False):
         """Add a MNE-Python system information to the report.
 
         This is a convenience method that captures the output of
@@ -1955,18 +2184,31 @@ class Report:
             sys_info(f)
             info = f.getvalue()
         self.add_code(
-            code=info, title=title, language='shell', tags=tags,
-            replace=replace
+            code=info, title=title, language="shell", tags=tags, replace=replace
         )
 
     def _add_image(
-        self, *, img, title, caption, image_format, tags, section, replace,
+        self,
+        *,
+        img,
+        title,
+        caption,
+        image_format,
+        tags,
+        section,
+        replace,
     ):
         dom_id = self._get_dom_id()
         html = _html_image_element(
-            img=img, div_klass='custom-image', img_klass='custom-image',
-            title=title, caption=caption, show=True,
-            image_format=image_format, id=dom_id, tags=tags
+            img=img,
+            div_klass="custom-image",
+            img_klass="custom-image",
+            title=title,
+            caption=caption,
+            show=True,
+            image_format=image_format,
+            id=dom_id,
+            tags=tags,
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -1974,25 +2216,34 @@ class Report:
             section=section,
             tags=tags,
             html=html,
-            replace=replace
+            replace=replace,
         )
 
     def _add_figure(
-        self, *, fig, title, caption, image_format, tags, section, replace,
-        own_figure
+        self, *, fig, title, caption, image_format, tags, section, replace, own_figure
     ):
-        img = _fig_to_img(
-            fig=fig, image_format=image_format, own_figure=own_figure
-        )
+        img = _fig_to_img(fig=fig, image_format=image_format, own_figure=own_figure)
         self._add_image(
-            img=img, title=title, caption=caption, image_format=image_format,
-            tags=tags, section=section, replace=replace
+            img=img,
+            title=title,
+            caption=caption,
+            image_format=image_format,
+            tags=tags,
+            section=section,
+            replace=replace,
         )
 
     @fill_doc
     def add_figure(
-        self, fig, title, *, caption=None, image_format=None,
-        tags=('custom-figure',), section=None, replace=False
+        self,
+        fig,
+        title,
+        *,
+        caption=None,
+        image_format=None,
+        tags=("custom-figure",),
+        section=None,
+        replace=False,
     ):
         """Add figures to the report.
 
@@ -2021,7 +2272,7 @@ class Report:
         if image_format is None:
             image_format = self.image_format
 
-        if hasattr(fig, '__len__') and not isinstance(fig, np.ndarray):
+        if hasattr(fig, "__len__") and not isinstance(fig, np.ndarray):
             figs = tuple(fig)
         else:
             figs = (fig,)
@@ -2029,10 +2280,10 @@ class Report:
         for fig in figs:
             if _path_like(fig):
                 raise TypeError(
-                    f'It seems you passed a path to `add_figure`. However, '
-                    f'only Matplotlib figures, PyVista scenes, and NumPy '
-                    f'arrays are accepted. You may want to try `add_image` '
-                    f'instead. The provided path was: {fig}'
+                    f"It seems you passed a path to `add_figure`. However, "
+                    f"only Matplotlib figures, PyVista scenes, and NumPy "
+                    f"arrays are accepted. You may want to try `add_image` "
+                    f"instead. The provided path was: {fig}"
                 )
         del fig
 
@@ -2041,7 +2292,7 @@ class Report:
         elif caption is None and len(figs) == 1:
             captions = [None]
         elif caption is None and len(figs) > 1:
-            captions = [f'Figure {i+1}' for i in range(len(figs))]
+            captions = [f"Figure {i+1}" for i in range(len(figs))]
         else:
             captions = tuple(caption)
 
@@ -2050,21 +2301,39 @@ class Report:
         assert figs
         if len(figs) == 1:
             self._add_figure(
-                title=title, fig=figs[0], caption=captions[0],
-                image_format=image_format, section=section, tags=tags,
-                replace=replace, own_figure=False
+                title=title,
+                fig=figs[0],
+                caption=captions[0],
+                image_format=image_format,
+                section=section,
+                tags=tags,
+                replace=replace,
+                own_figure=False,
             )
         else:
             self._add_slider(
-                figs=figs, imgs=None, title=title, captions=captions,
-                start_idx=0, image_format=image_format, section=section,
-                tags=tags, own_figure=False, replace=replace
+                figs=figs,
+                imgs=None,
+                title=title,
+                captions=captions,
+                start_idx=0,
+                image_format=image_format,
+                section=section,
+                tags=tags,
+                own_figure=False,
+                replace=replace,
             )
 
     @fill_doc
     def add_image(
-        self, image, title, *, caption=None, tags=('custom-image',),
-        section=None, replace=False
+        self,
+        image,
+        title,
+        *,
+        caption=None,
+        tags=("custom-image",),
+        section=None,
+        replace=False,
     ):
         """Add an image (e.g., PNG or JPEG pictures) to the report.
 
@@ -2085,11 +2354,14 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        image = Path(_check_fname(image, overwrite='read', must_exist=True))
+        image = Path(_check_fname(image, overwrite="read", must_exist=True))
         img_format = Path(image).suffix.lower()[1:]  # omit leading period
-        _check_option('Image format', value=img_format,
-                      allowed_values=list(_ALLOWED_IMAGE_FORMATS) + ['gif'])
-        img_base64 = base64.b64encode(image.read_bytes()).decode('ascii')
+        _check_option(
+            "Image format",
+            value=img_format,
+            allowed_values=list(_ALLOWED_IMAGE_FORMATS) + ["gif"],
+        )
+        img_base64 = base64.b64encode(image.read_bytes()).decode("ascii")
         self._add_image(
             img=img_base64,
             title=title,
@@ -2097,13 +2369,12 @@ class Report:
             image_format=img_format,
             tags=tags,
             section=section,
-            replace=replace
+            replace=replace,
         )
 
     @fill_doc
     def add_html(
-        self, html, title, *, tags=('custom-html',), section=None,
-        replace=False
+        self, html, title, *, tags=("custom-html",), section=None, replace=False
     ):
         """Add HTML content to the report.
 
@@ -2126,8 +2397,7 @@ class Report:
         tags = _check_tags(tags)
         dom_id = self._get_dom_id()
         html_element = _html_element(
-            id=dom_id, html=html, title=title, tags=tags,
-            div_klass='custom-html'
+            id=dom_id, html=html, title=title, tags=tags, div_klass="custom-html"
         )
         self._add_or_replace(
             dom_id=dom_id,
@@ -2135,13 +2405,21 @@ class Report:
             section=None,
             tags=tags,
             html=html_element,
-            replace=replace
+            replace=replace,
         )
 
     @fill_doc
     def add_bem(
-        self, subject, title, *, subjects_dir=None, decim=2, width=512,
-        n_jobs=None, tags=('bem',), replace=False
+        self,
+        subject,
+        title,
+        *,
+        subjects_dir=None,
+        decim=2,
+        width=512,
+        n_jobs=None,
+        tags=("bem",),
+        replace=False,
     ):
         """Render a visualization of the boundary element model (BEM) surfaces.
 
@@ -2169,36 +2447,51 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        width = _ensure_int(width, 'width')
+        width = _ensure_int(width, "width")
         self._add_bem(
-            subject=subject, subjects_dir=subjects_dir,
-            decim=decim, n_jobs=n_jobs, width=width,
-            image_format=self.image_format, title=title, tags=tags,
-            replace=replace
+            subject=subject,
+            subjects_dir=subjects_dir,
+            decim=decim,
+            n_jobs=n_jobs,
+            width=width,
+            image_format=self.image_format,
+            title=title,
+            tags=tags,
+            replace=replace,
         )
 
     def _render_slider(
-        self, *, figs, imgs, title, captions, start_idx,
-        image_format, tags, klass, own_figure
+        self,
+        *,
+        figs,
+        imgs,
+        title,
+        captions,
+        start_idx,
+        image_format,
+        tags,
+        klass,
+        own_figure,
     ):
         # This method only exists to make add_bem()'s life easier…
         if figs is not None and imgs is not None:
-            raise ValueError('Must only provide either figs or imgs')
+            raise ValueError("Must only provide either figs or imgs")
 
         if figs is not None and len(figs) != len(captions):
             raise ValueError(
-                f'Number of captions ({len(captions)}) must be equal to the '
-                f'number of figures ({len(figs)})'
+                f"Number of captions ({len(captions)}) must be equal to the "
+                f"number of figures ({len(figs)})"
             )
         elif imgs is not None and len(imgs) != len(captions):
             raise ValueError(
-                f'Number of captions ({len(captions)}) must be equal to the '
-                f'number of images ({len(imgs)})'
+                f"Number of captions ({len(captions)}) must be equal to the "
+                f"number of images ({len(imgs)})"
             )
         elif figs:  # figs can be None if imgs is provided
-            imgs = [_fig_to_img(fig=fig, image_format=image_format,
-                                own_figure=own_figure)
-                    for fig in figs]
+            imgs = [
+                _fig_to_img(fig=fig, image_format=image_format, own_figure=own_figure)
+                for fig in figs
+            ]
 
         dom_id = self._get_dom_id()
         html = _html_slider_element(
@@ -2209,18 +2502,35 @@ class Report:
             images=imgs,
             image_format=image_format,
             start_idx=start_idx,
-            klass=klass
+            klass=klass,
         )
         return html, dom_id
 
     def _add_slider(
-        self, *, figs, imgs, title, captions, start_idx,
-        image_format, tags, section, replace, klass='', own_figure=True
+        self,
+        *,
+        figs,
+        imgs,
+        title,
+        captions,
+        start_idx,
+        image_format,
+        tags,
+        section,
+        replace,
+        klass="",
+        own_figure=True,
     ):
         html, dom_id = self._render_slider(
-            figs=figs, imgs=imgs, title=title, captions=captions,
-            start_idx=start_idx, image_format=image_format, tags=tags,
-            klass=klass, own_figure=own_figure
+            figs=figs,
+            imgs=imgs,
+            title=title,
+            captions=captions,
+            start_idx=start_idx,
+            image_format=image_format,
+            tags=tags,
+            klass=klass,
+            own_figure=own_figure,
         )
         self._add_or_replace(
             title=title,
@@ -2228,7 +2538,7 @@ class Report:
             dom_id=dom_id,
             tags=tags,
             html=html,
-            replace=replace
+            replace=replace,
         )
 
     ###########################################################################
@@ -2237,128 +2547,159 @@ class Report:
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
         inc_fnames = [
-            'jquery-3.6.0.min.js',
-            'bootstrap.bundle.min.js',
-            'bootstrap.min.css',
-            'bootstrap-table/bootstrap-table.min.js',
-            'bootstrap-table/bootstrap-table.min.css',
-            'bootstrap-table/bootstrap-table-copy-rows.min.js',
-            'bootstrap-table/bootstrap-table-export.min.js',
-            'bootstrap-table/tableExport.min.js',
-            'bootstrap-icons/bootstrap-icons.mne.min.css',
-            'highlightjs/highlight.min.js',
-            'highlightjs/atom-one-dark-reasonable.min.css'
+            "jquery-3.6.0.min.js",
+            "bootstrap.bundle.min.js",
+            "bootstrap.min.css",
+            "bootstrap-table/bootstrap-table.min.js",
+            "bootstrap-table/bootstrap-table.min.css",
+            "bootstrap-table/bootstrap-table-copy-rows.min.js",
+            "bootstrap-table/bootstrap-table-export.min.js",
+            "bootstrap-table/tableExport.min.js",
+            "bootstrap-icons/bootstrap-icons.mne.min.css",
+            "highlightjs/highlight.min.js",
+            "highlightjs/atom-one-dark-reasonable.min.css",
         ]
 
         include = list()
         for inc_fname in inc_fnames:
-            logger.info(f'Embedding : {inc_fname}')
+            logger.info(f"Embedding : {inc_fname}")
             fname = html_include_dir / inc_fname
-            file_content = fname.read_text(encoding='utf-8')
+            file_content = fname.read_text(encoding="utf-8")
 
-            if inc_fname.endswith('.js'):
+            if inc_fname.endswith(".js"):
                 include.append(
                     f'<script type="text/javascript">\n'
-                    f'{file_content}\n'
-                    f'</script>'
+                    f"{file_content}\n"
+                    f"</script>"
                 )
-            elif inc_fname.endswith('.css'):
+            elif inc_fname.endswith(".css"):
                 include.append(
-                    f'<style type="text/css">\n'
-                    f'{file_content}\n'
-                    f'</style>'
+                    f'<style type="text/css">\n' f"{file_content}\n" f"</style>"
                 )
-        self.include = ''.join(include)
+        self.include = "".join(include)
 
-    def _iterate_files(self, *, fnames, cov, sfreq, raw_butterfly,
-                       n_time_points_evokeds, n_time_points_stcs, on_error,
-                       stc_plot_kwargs, topomap_kwargs):
+    def _iterate_files(
+        self,
+        *,
+        fnames,
+        cov,
+        sfreq,
+        raw_butterfly,
+        n_time_points_evokeds,
+        n_time_points_stcs,
+        on_error,
+        stc_plot_kwargs,
+        topomap_kwargs,
+    ):
         """Parallel process in batch mode."""
         assert self.data_path is not None
 
         for fname in fnames:
-            logger.info(
-                f"Rendering : {op.join('…' + self.data_path[-20:], fname)}"
-            )
+            logger.info(f"Rendering : {op.join('…' + self.data_path[-20:], fname)}")
 
             title = Path(fname).name
             try:
-                if _endswith(fname, ['raw', 'sss', 'meg', 'nirs']):
+                if _endswith(fname, ["raw", "sss", "meg", "nirs"]):
                     self.add_raw(
-                        raw=fname, title=title, psd=self.raw_psd,
-                        projs=self.projs, butterfly=raw_butterfly
+                        raw=fname,
+                        title=title,
+                        psd=self.raw_psd,
+                        projs=self.projs,
+                        butterfly=raw_butterfly,
                     )
-                elif _endswith(fname, 'fwd'):
+                elif _endswith(fname, "fwd"):
                     self.add_forward(
-                        forward=fname, title=title, subject=self.subject,
-                        subjects_dir=self.subjects_dir
+                        forward=fname,
+                        title=title,
+                        subject=self.subject,
+                        subjects_dir=self.subjects_dir,
                     )
-                elif _endswith(fname, 'inv'):
+                elif _endswith(fname, "inv"):
                     # XXX if we pass trans, we can plot the source space, too…
-                    self.add_inverse_operator(
-                        inverse_operator=fname, title=title
-                    )
-                elif _endswith(fname, 'ave'):
+                    self.add_inverse_operator(inverse_operator=fname, title=title)
+                elif _endswith(fname, "ave"):
                     evokeds = read_evokeds(fname)
-                    titles = [
-                        f'{Path(fname).name}: {e.comment}'
-                        for e in evokeds
-                    ]
+                    titles = [f"{Path(fname).name}: {e.comment}" for e in evokeds]
                     self.add_evokeds(
-                        evokeds=fname, titles=titles, noise_cov=cov,
+                        evokeds=fname,
+                        titles=titles,
+                        noise_cov=cov,
                         n_time_points=n_time_points_evokeds,
-                        topomap_kwargs=topomap_kwargs
+                        topomap_kwargs=topomap_kwargs,
                     )
-                elif _endswith(fname, 'eve'):
+                elif _endswith(fname, "eve"):
                     if self.info_fname is not None:
-                        sfreq = read_info(self.info_fname)['sfreq']
+                        sfreq = read_info(self.info_fname)["sfreq"]
                     else:
                         sfreq = None
                     self.add_events(events=fname, title=title, sfreq=sfreq)
-                elif _endswith(fname, 'epo'):
+                elif _endswith(fname, "epo"):
                     self.add_epochs(epochs=fname, title=title)
-                elif _endswith(fname, 'cov') and self.info_fname is not None:
-                    self.add_covariance(cov=fname, info=self.info_fname,
-                                        title=title)
-                elif _endswith(fname, 'proj') and self.info_fname is not None:
-                    self.add_projs(info=self.info_fname, projs=fname,
-                                   title=title, topomap_kwargs=topomap_kwargs)
+                elif _endswith(fname, "cov") and self.info_fname is not None:
+                    self.add_covariance(cov=fname, info=self.info_fname, title=title)
+                elif _endswith(fname, "proj") and self.info_fname is not None:
+                    self.add_projs(
+                        info=self.info_fname,
+                        projs=fname,
+                        title=title,
+                        topomap_kwargs=topomap_kwargs,
+                    )
                 # XXX TODO We could render ICA components here someday
                 # elif _endswith(fname, 'ica') and ica:
                 #     pass
-                elif (_endswith(fname, 'trans') and
-                        self.info_fname is not None and
-                        self.subjects_dir is not None and
-                        self.subject is not None):
+                elif (
+                    _endswith(fname, "trans")
+                    and self.info_fname is not None
+                    and self.subjects_dir is not None
+                    and self.subject is not None
+                ):
                     self.add_trans(
-                        trans=fname, info=self.info_fname,
-                        subject=self.subject, subjects_dir=self.subjects_dir,
-                        title=title
+                        trans=fname,
+                        info=self.info_fname,
+                        subject=self.subject,
+                        subjects_dir=self.subjects_dir,
+                        title=title,
                     )
-                elif (fname.endswith('-lh.stc') or
-                        fname.endswith('-rh.stc') and
-                        self.info_fname is not None and
-                        self.subjects_dir is not None and
-                        self.subject is not None):
+                elif (
+                    fname.endswith("-lh.stc")
+                    or fname.endswith("-rh.stc")
+                    and self.info_fname is not None
+                    and self.subjects_dir is not None
+                    and self.subject is not None
+                ):
                     self.add_stc(
-                        stc=fname, title=title, subject=self.subject,
+                        stc=fname,
+                        title=title,
+                        subject=self.subject,
                         subjects_dir=self.subjects_dir,
                         n_time_points=n_time_points_stcs,
-                        stc_plot_kwargs=stc_plot_kwargs
+                        stc_plot_kwargs=stc_plot_kwargs,
                     )
             except Exception as e:
-                if on_error == 'warn':
+                if on_error == "warn":
                     warn(f'Failed to process file {fname}:\n"{e}"')
-                elif on_error == 'raise':
+                elif on_error == "raise":
                     raise
 
     @verbose
-    def parse_folder(self, data_path, pattern=None, n_jobs=None, mri_decim=2,
-                     sort_content=True, *, on_error='warn',
-                     image_format=None, render_bem=True,
-                     n_time_points_evokeds=None, n_time_points_stcs=None,
-                     raw_butterfly=True, stc_plot_kwargs=None,
-                     topomap_kwargs=None, verbose=None):
+    def parse_folder(
+        self,
+        data_path,
+        pattern=None,
+        n_jobs=None,
+        mri_decim=2,
+        sort_content=True,
+        *,
+        on_error="warn",
+        image_format=None,
+        render_bem=True,
+        n_time_points_evokeds=None,
+        n_time_points_stcs=None,
+        raw_butterfly=True,
+        stc_plot_kwargs=None,
+        topomap_kwargs=None,
+        verbose=None,
+    ):
         r"""Render all the files in the folder.
 
         Parameters
@@ -2415,18 +2756,18 @@ class Report:
             .. versionadded:: 0.24.0
         %(verbose)s
         """
-        _validate_type(data_path, 'path-like', 'data_path')
+        _validate_type(data_path, "path-like", "data_path")
         data_path = str(data_path)
         image_format = _check_image_format(self, image_format)
-        _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
+        _check_option("on_error", on_error, ["ignore", "warn", "raise"])
 
         self.data_path = data_path
 
         if self.title is None:
-            self.title = f'MNE Report for {self.data_path[-20:]}'
+            self.title = f"MNE Report for {self.data_path[-20:]}"
 
         if pattern is None:
-            pattern = [f'*{ext}' for ext in SUPPORTED_READ_RAW_EXTENSIONS]
+            pattern = [f"*{ext}" for ext in SUPPORTED_READ_RAW_EXTENSIONS]
         elif not isinstance(pattern, (list, tuple)):
             pattern = [pattern]
 
@@ -2445,31 +2786,31 @@ class Report:
             fnames.extend(sorted(_recursive_search(data_path, p)))
 
         if not fnames and not render_bem:
-            raise RuntimeError(f'No matching files found in {self.data_path}')
+            raise RuntimeError(f"No matching files found in {self.data_path}")
 
         fnames_to_remove = []
         for fname in fnames:
             # For split files, only keep the first one.
-            if _endswith(fname, ('raw', 'sss', 'meg')):
+            if _endswith(fname, ("raw", "sss", "meg")):
                 kwargs = dict(fname=fname, preload=False)
-                if fname.endswith(('.fif', '.fif.gz')):
-                    kwargs['allow_maxshield'] = 'yes'
+                if fname.endswith((".fif", ".fif.gz")):
+                    kwargs["allow_maxshield"] = "yes"
                 inst = read_raw(**kwargs)
 
                 if len(inst.filenames) > 1:
                     fnames_to_remove.extend(inst.filenames[1:])
             # For STCs, only keep one hemisphere
-            elif fname.endswith('-lh.stc') or fname.endswith('-rh.stc'):
+            elif fname.endswith("-lh.stc") or fname.endswith("-rh.stc"):
                 first_hemi_fname = fname
-                if first_hemi_fname.endswidth('-lh.stc'):
-                    second_hemi_fname = (first_hemi_fname
-                                         .replace('-lh.stc', '-rh.stc'))
+                if first_hemi_fname.endswidth("-lh.stc"):
+                    second_hemi_fname = first_hemi_fname.replace("-lh.stc", "-rh.stc")
                 else:
-                    second_hemi_fname = (first_hemi_fname
-                                         .replace('-rh.stc', '-lh.stc'))
+                    second_hemi_fname = first_hemi_fname.replace("-rh.stc", "-lh.stc")
 
-                if (second_hemi_fname in fnames and
-                        first_hemi_fname not in fnames_to_remove):
+                if (
+                    second_hemi_fname in fnames
+                    and first_hemi_fname not in fnames_to_remove
+                ):
                     fnames_to_remove.extend(first_hemi_fname)
             else:
                 continue
@@ -2482,18 +2823,19 @@ class Report:
 
         if self.info_fname is not None:
             info = read_info(self.info_fname, verbose=False)
-            sfreq = info['sfreq']
+            sfreq = info["sfreq"]
         else:
             # only warn if relevant
-            if any(_endswith(fname, 'cov') for fname in fnames):
-                warn('`info_fname` not provided. Cannot render '
-                     '-cov.fif(.gz) files.')
-            if any(_endswith(fname, 'trans') for fname in fnames):
-                warn('`info_fname` not provided. Cannot render '
-                     '-trans.fif(.gz) files.')
-            if any(_endswith(fname, 'proj') for fname in fnames):
-                warn('`info_fname` not provided. Cannot render '
-                     '-proj.fif(.gz) files.')
+            if any(_endswith(fname, "cov") for fname in fnames):
+                warn("`info_fname` not provided. Cannot render " "-cov.fif(.gz) files.")
+            if any(_endswith(fname, "trans") for fname in fnames):
+                warn(
+                    "`info_fname` not provided. Cannot render " "-trans.fif(.gz) files."
+                )
+            if any(_endswith(fname, "proj") for fname in fnames):
+                warn(
+                    "`info_fname` not provided. Cannot render " "-proj.fif(.gz) files."
+                )
             info, sfreq = None, None
 
         cov = None
@@ -2501,36 +2843,46 @@ class Report:
             cov = read_cov(self.cov_fname)
 
         # render plots in parallel; check that n_jobs <= # of files
-        logger.info(f'Iterating over {len(fnames)} potential files '
-                    f'(this may take some ')
+        logger.info(
+            f"Iterating over {len(fnames)} potential files " f"(this may take some "
+        )
         parallel, p_fun, n_jobs = parallel_func(
-            self._iterate_files, n_jobs, max_jobs=len(fnames))
+            self._iterate_files, n_jobs, max_jobs=len(fnames)
+        )
         parallel(
             p_fun(
-                fnames=fname, cov=cov, sfreq=sfreq,
+                fnames=fname,
+                cov=cov,
+                sfreq=sfreq,
                 raw_butterfly=raw_butterfly,
                 n_time_points_evokeds=n_time_points_evokeds,
-                n_time_points_stcs=n_time_points_stcs, on_error=on_error,
-                stc_plot_kwargs=stc_plot_kwargs, topomap_kwargs=topomap_kwargs,
-            ) for fname in np.array_split(fnames, n_jobs)
+                n_time_points_stcs=n_time_points_stcs,
+                on_error=on_error,
+                stc_plot_kwargs=stc_plot_kwargs,
+                topomap_kwargs=topomap_kwargs,
+            )
+            for fname in np.array_split(fnames, n_jobs)
         )
 
         # Render BEM
         if render_bem:
             if self.subjects_dir is not None and self.subject is not None:
-                logger.info('Rendering BEM')
+                logger.info("Rendering BEM")
                 self.add_bem(
-                    subject=self.subject, subjects_dir=self.subjects_dir,
-                    title='BEM surfaces', decim=mri_decim, n_jobs=n_jobs
+                    subject=self.subject,
+                    subjects_dir=self.subjects_dir,
+                    title="BEM surfaces",
+                    decim=mri_decim,
+                    n_jobs=n_jobs,
                 )
             else:
-                warn('`subjects_dir` and `subject` not provided. Cannot '
-                     'render MRI and -trans.fif(.gz) files.')
+                warn(
+                    "`subjects_dir` and `subject` not provided. Cannot "
+                    "render MRI and -trans.fif(.gz) files."
+                )
 
         if sort_content:
-            self._content = self._sort(
-                content=self._content, order=CONTENT_ORDER
-            )
+            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
 
     def __getstate__(self):
         """Get the state of the report as a dictionary."""
@@ -2539,7 +2891,7 @@ class Report:
             param_val = getattr(self, param_name)
 
             # Workaround as h5io doesn't support dataclasses
-            if param_name == '_content':
+            if param_name == "_content":
                 assert all(dataclasses.is_dataclass(val) for val in param_val)
                 param_val = [dataclasses.asdict(val) for val in param_val]
 
@@ -2552,14 +2904,21 @@ class Report:
             param_val = state[param_name]
 
             # Workaround as h5io doesn't support dataclasses
-            if param_name == '_content':
+            if param_name == "_content":
                 param_val = [_ContentElement(**val) for val in param_val]
             setattr(self, param_name, param_val)
         return state
 
     @verbose
-    def save(self, fname=None, open_browser=True, overwrite=False,
-             sort_content=False, *, verbose=None):
+    def save(
+        self,
+        fname=None,
+        open_browser=True,
+        overwrite=False,
+        sort_content=False,
+        *,
+        verbose=None,
+    ):
         """Save the report and optionally open it in browser.
 
         Parameters
@@ -2595,64 +2954,62 @@ class Report:
         if fname is None:
             if self.data_path is None:
                 self.data_path = os.getcwd()
-                warn(f'`data_path` not provided. Using {self.data_path} '
-                     f'instead')
-            fname = op.join(self.data_path, 'report.html')
+                warn(f"`data_path` not provided. Using {self.data_path} " f"instead")
+            fname = op.join(self.data_path, "report.html")
 
         fname = str(_check_fname(fname, overwrite=overwrite, name=fname))
         fname = op.realpath(fname)  # resolve symlinks
 
         if sort_content:
-            self._content = self._sort(
-                content=self._content, order=CONTENT_ORDER
-            )
+            self._content = self._sort(content=self._content, order=CONTENT_ORDER)
 
         if not overwrite and op.isfile(fname):
-            msg = (f'Report already exists at location {fname}. '
-                   f'Overwrite it (y/[n])? ')
-            answer = _safe_input(msg, alt='pass overwrite=True')
-            if answer.lower() == 'y':
+            msg = (
+                f"Report already exists at location {fname}. " f"Overwrite it (y/[n])? "
+            )
+            answer = _safe_input(msg, alt="pass overwrite=True")
+            if answer.lower() == "y":
                 overwrite = True
 
         _, ext = op.splitext(fname)
-        is_hdf5 = ext.lower() in ['.h5', '.hdf5']
+        is_hdf5 = ext.lower() in [".h5", ".hdf5"]
 
         if overwrite or not op.isfile(fname):
-            logger.info(f'Saving report to : {fname}')
+            logger.info(f"Saving report to : {fname}")
 
             if is_hdf5:
                 _, write_hdf5 = _import_h5io_funcs()
-                write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
-                           title='mnepython')
+                write_hdf5(
+                    fname, self.__getstate__(), overwrite=overwrite, title="mnepython"
+                )
             else:
                 # Add header, TOC, and footer.
                 header_html = _html_header_element(
-                    title=self.title, include=self.include, lang=self.lang,
-                    tags=self.tags, js=JAVASCRIPT, css=CSS,
-                    mne_logo_img=mne_logo
+                    title=self.title,
+                    include=self.include,
+                    lang=self.lang,
+                    tags=self.tags,
+                    js=JAVASCRIPT,
+                    css=CSS,
+                    mne_logo_img=mne_logo,
                 )
 
                 # toc_html = _html_toc_element(content_elements=self._content)
                 _, dom_ids, titles, tags = self._content_as_html()
-                toc_html = _html_toc_element(
-                    titles=titles,
-                    dom_ids=dom_ids,
-                    tags=tags
-                )
+                toc_html = _html_toc_element(titles=titles, dom_ids=dom_ids, tags=tags)
 
                 with warnings.catch_warnings(record=True):
-                    warnings.simplefilter('ignore')
+                    warnings.simplefilter("ignore")
                     footer_html = _html_footer_element(
-                        mne_version=MNE_VERSION,
-                        date=time.strftime("%B %d, %Y")
+                        mne_version=MNE_VERSION, date=time.strftime("%B %d, %Y")
                     )
 
                 html = [header_html, toc_html, *self.html, footer_html]
-                Path(fname).write_text(data=''.join(html), encoding='utf-8')
+                Path(fname).write_text(data="".join(html), encoding="utf-8")
 
-        building_doc = os.getenv('_MNE_BUILDING_DOC', '').lower() == 'true'
+        building_doc = os.getenv("_MNE_BUILDING_DOC", "").lower() == "true"
         if open_browser and not is_hdf5 and not building_doc:
-            webbrowser.open_new_tab('file://' + fname)
+            webbrowser.open_new_tab("file://" + fname)
 
         if self.fname is None:
             self.fname = fname
@@ -2684,34 +3041,49 @@ class Report:
 
         # Now simply append the rest (custom tags)
         content_remaining = [
-            content for idx, content in enumerate(content_unsorted)
+            content
+            for idx, content in enumerate(content_unsorted)
             if idx not in content_sorted_idx
         ]
 
         content_sorted = [*content_sorted, *content_remaining]
         return content_sorted
 
-    def _render_one_bem_axis(self, *, mri_fname, surfaces,
-                             image_format, orientation, decim=2, n_jobs=None,
-                             width=512, tags):
+    def _render_one_bem_axis(
+        self,
+        *,
+        mri_fname,
+        surfaces,
+        image_format,
+        orientation,
+        decim=2,
+        n_jobs=None,
+        width=512,
+        tags,
+    ):
         """Render one axis of bem contours (only PNG)."""
-        import nibabel as nib
-
+        nib = _import_nibabel("render BEM contours")
         nim = nib.load(mri_fname)
         data = _reorient_image(nim)[0]
         axis = _mri_orientation(orientation)[0]
         n_slices = data.shape[axis]
 
         sl = np.arange(0, n_slices, decim)
-        logger.debug(f'Rendering BEM {orientation} with {len(sl)} slices')
+        logger.debug(f"Rendering BEM {orientation} with {len(sl)} slices")
         figs = _get_bem_contour_figs_as_arrays(
-            sl=sl, n_jobs=n_jobs, mri_fname=mri_fname, surfaces=surfaces,
-            orientation=orientation, src=None, show=False,
-            show_orientation='always', width=width
+            sl=sl,
+            n_jobs=n_jobs,
+            mri_fname=mri_fname,
+            surfaces=surfaces,
+            orientation=orientation,
+            src=None,
+            show=False,
+            show_orientation="always",
+            width=width,
         )
 
         # Render the slider
-        captions = [f'Slice index: {i * decim}' for i in range(len(figs))]
+        captions = [f"Slice index: {i * decim}" for i in range(len(figs))]
         start_idx = int(round(len(figs) / 2))
         html, _ = self._render_slider(
             figs=figs,
@@ -2721,15 +3093,13 @@ class Report:
             image_format=image_format,
             start_idx=start_idx,
             tags=tags,
-            klass='bem col-md',
+            klass="bem col-md",
             own_figure=True,
         )
 
         return html
 
-    def _add_html_repr(
-        self, *, inst, title, tags, section, replace, div_klass
-    ):
+    def _add_html_repr(self, *, inst, title, tags, section, replace, div_klass):
         html = inst._repr_html_()
         self._add_html_element(
             html=html,
@@ -2741,8 +3111,15 @@ class Report:
         )
 
     def _add_raw_butterfly_segments(
-        self, *, raw: BaseRaw, n_segments, scalings, image_format, tags,
-        section, replace
+        self,
+        *,
+        raw: BaseRaw,
+        n_segments,
+        scalings,
+        image_format,
+        tags,
+        section,
+        replace,
     ):
         # Pick n_segments + 2 equally-spaced 1-second time slices, but omit
         # the first and last slice, so we end up with n_segments slices
@@ -2760,14 +3137,16 @@ class Report:
             raw.set_annotations(None)
 
             # Create the figure once and re-use it for performance reasons
-            with use_browser_backend('matplotlib'):
+            with use_browser_backend("matplotlib"):
                 fig = raw.plot(
-                    butterfly=True, show_scrollbars=False, start=t_starts[0],
-                    duration=durations[0], scalings=scalings, show=False
+                    butterfly=True,
+                    show_scrollbars=False,
+                    start=t_starts[0],
+                    duration=durations[0],
+                    scalings=scalings,
+                    show=False,
                 )
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             images = [_fig_to_img(fig=fig, image_format=image_format)]
 
             for start, duration in zip(t_starts[1:], durations[1:]):
@@ -2783,19 +3162,33 @@ class Report:
 
         del orig_annotations
 
-        captions = [f'Segment {i+1} of {len(images)}'
-                    for i in range(len(images))]
+        captions = [f"Segment {i+1} of {len(images)}" for i in range(len(images))]
 
         self._add_slider(
-            figs=None, imgs=images, title='Time series', captions=captions,
-            start_idx=0, image_format=image_format, tags=tags, section=section,
-            replace=replace
+            figs=None,
+            imgs=images,
+            title="Time series",
+            captions=captions,
+            start_idx=0,
+            image_format=image_format,
+            tags=tags,
+            section=section,
+            replace=replace,
         )
 
     def _add_raw(
-        self, *, raw, add_psd, add_projs, butterfly,
-        butterfly_scalings, image_format, tags, topomap_kwargs,
-        section, replace
+        self,
+        *,
+        raw,
+        add_psd,
+        add_projs,
+        butterfly,
+        butterfly_scalings,
+        image_format,
+        tags,
+        topomap_kwargs,
+        section,
+        replace,
     ):
         """Render raw."""
         if isinstance(raw, BaseRaw):
@@ -2803,101 +3196,124 @@ class Report:
         else:
             fname = str(raw)  # could e.g. be a Path!
             kwargs = dict(fname=fname, preload=False)
-            if fname.endswith(('.fif', '.fif.gz')):
-                kwargs['allow_maxshield'] = 'yes'
+            if fname.endswith((".fif", ".fif.gz")):
+                kwargs["allow_maxshield"] = "yes"
             raw = read_raw(**kwargs)
 
         # Summary table
         self._add_html_repr(
             inst=raw,
-            title='Info',
+            title="Info",
             tags=tags,
             section=section,
             replace=replace,
-            div_klass='raw'
+            div_klass="raw",
         )
 
         # Butterfly plot
         if butterfly:
             n_butterfly_segments = 10 if butterfly is True else butterfly
             self._add_raw_butterfly_segments(
-                raw=raw, scalings=butterfly_scalings,
+                raw=raw,
+                scalings=butterfly_scalings,
                 n_segments=n_butterfly_segments,
-                image_format=image_format, tags=tags, replace=replace,
-                section=section
+                image_format=image_format,
+                tags=tags,
+                replace=replace,
+                section=section,
             )
 
         # PSD
         if isinstance(add_psd, dict):
-            if raw.info['lowpass'] is not None:
-                fmax = raw.info['lowpass'] + 15
+            if raw.info["lowpass"] is not None:
+                fmax = raw.info["lowpass"] + 15
                 # Must not exceed half the sampling frequency
-                if fmax > 0.5 * raw.info['sfreq']:
+                if fmax > 0.5 * raw.info["sfreq"]:
                     fmax = np.inf
             else:
                 fmax = np.inf
 
-            fig = raw.plot_psd(fmax=fmax, show=False, **add_psd)
+            # shim: convert legacy .plot_psd(...) → .compute_psd(...).plot(...)
+            init_kwargs, plot_kwargs = _split_psd_kwargs(kwargs=add_psd)
+            init_kwargs.setdefault("fmax", fmax)
+            plot_kwargs.setdefault("show", False)
+            fig = raw.compute_psd(**init_kwargs).plot(**plot_kwargs)
             tight_layout(fig=fig)
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
-                title='PSD',
+                title="PSD",
                 caption=None,
                 image_format=image_format,
                 tags=tags,
                 section=section,
                 replace=replace,
-                own_figure=True
+                own_figure=True,
             )
 
         # SSP projectors
         if add_projs:
             self._add_projs(
-                info=raw, projs=None, title='Projectors',
-                image_format=image_format, tags=tags,
-                topomap_kwargs=topomap_kwargs, section=section,
-                replace=replace
+                info=raw,
+                projs=None,
+                title="Projectors",
+                image_format=image_format,
+                tags=tags,
+                topomap_kwargs=topomap_kwargs,
+                section=section,
+                replace=replace,
             )
 
-    def _add_projs(self, *, info, projs, title, image_format, tags, section,
-                   topomap_kwargs, replace):
+    def _add_projs(
+        self,
+        *,
+        info,
+        projs,
+        title,
+        image_format,
+        tags,
+        section,
+        topomap_kwargs,
+        replace,
+    ):
         if isinstance(info, Info):  # no-op
             pass
-        elif hasattr(info, 'info'):  # try to get the file name
+        elif hasattr(info, "info"):  # try to get the file name
             if isinstance(info, BaseRaw):
                 fname = info.filenames[0]
             # elif isinstance(info, (Evoked, BaseEpochs)):
             #     fname = info.filename
             else:
-                fname = ''
+                fname = ""
             info = info.info
         else:  # read from a file
             fname = info
             info = read_info(fname, verbose=False)
 
         if projs is None:
-            projs = info['projs']
+            projs = info["projs"]
         elif not isinstance(projs, list):
             fname = projs
             projs = read_proj(fname)
 
         if not projs:
-            raise ValueError('No SSP projectors found')
+            raise ValueError("No SSP projectors found")
 
         if not _check_ch_locs(info=info):
             raise ValueError(
-                'The provided data does not contain digitization '
-                'information (channel locations). However, this is '
-                'required for rendering the projectors.'
+                "The provided data does not contain digitization "
+                "information (channel locations). However, this is "
+                "required for rendering the projectors."
             )
 
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
         fig = plot_projs_topomap(
-            projs=projs, info=info, colorbar=True, vlim='joint',
-            show=False, **topomap_kwargs
+            projs=projs,
+            info=info,
+            colorbar=True,
+            vlim="joint",
+            show=False,
+            **topomap_kwargs,
         )
         # TODO This seems like a bad idea, better to provide a way to set a
         # desired size in plot_projs_topomap, but that uses prepare_trellis...
@@ -2905,9 +3321,7 @@ class Report:
         # number-of-channel-types conditions...
         fig.set_size_inches((6, 4))
         tight_layout(fig=fig)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
             title=title,
@@ -2920,23 +3334,30 @@ class Report:
         )
 
     def _add_forward(
-        self, *, forward, subject, subjects_dir, title, image_format,
-        section, tags, replace
+        self,
+        *,
+        forward,
+        subject,
+        subjects_dir,
+        title,
+        image_format,
+        section,
+        tags,
+        replace,
     ):
         """Render forward solution."""
         if not isinstance(forward, Forward):
             forward = read_forward_solution(forward)
 
         subject = self.subject if subject is None else subject
-        subjects_dir = (self.subjects_dir if subjects_dir is None
-                        else subjects_dir)
+        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
 
         # XXX Todo
         # Render sensitivity maps
         if subject is not None:
-            sensitivity_maps_html = ''
+            sensitivity_maps_html = ""
         else:
-            sensitivity_maps_html = ''
+            sensitivity_maps_html = ""
 
         dom_id = self._get_dom_id()
         html = _html_forward_sol_element(
@@ -2944,7 +3365,7 @@ class Report:
             repr=forward._repr_html_(),
             sensitivity_maps=sensitivity_maps_html,
             title=title,
-            tags=tags
+            tags=tags,
         )
         self._add_or_replace(
             title=title,
@@ -2956,9 +3377,17 @@ class Report:
         )
 
     def _add_inverse_operator(
-        self, *, inverse_operator, subject,
-        subjects_dir, trans, title, image_format,
-        section, tags, replace,
+        self,
+        *,
+        inverse_operator,
+        subject,
+        subjects_dir,
+        trans,
+        title,
+        image_format,
+        section,
+        tags,
+        replace,
     ):
         """Render inverse operator."""
         if not isinstance(inverse_operator, InverseOperator):
@@ -2968,8 +3397,7 @@ class Report:
             trans = read_trans(trans)
 
         subject = self.subject if subject is None else subject
-        subjects_dir = (self.subjects_dir if subjects_dir is None
-                        else subjects_dir)
+        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
 
         # XXX Todo Render source space?
         # if subject is not None and trans is not None:
@@ -2995,7 +3423,7 @@ class Report:
         #         tags=tags
         #     )
         # else:
-        src_img_html = ''
+        src_img_html = ""
 
         dom_id = self._get_dom_id()
         html = _html_inverse_operator_element(
@@ -3015,27 +3443,30 @@ class Report:
         )
 
     def _add_evoked_joint(
-        self, *, evoked, ch_types, image_format, section, tags, topomap_kwargs,
-        replace
+        self, *, evoked, ch_types, image_format, section, tags, topomap_kwargs, replace
     ):
         for ch_type in ch_types:
             if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
                 ch_type_name = _handle_default("titles")[ch_type]
-                warn(f'No {ch_type_name} channel locations found, cannot '
-                     f'create joint plot')
+                warn(
+                    f"No {ch_type_name} channel locations found, cannot "
+                    f"create joint plot"
+                )
                 continue
 
-            with use_log_level(_verbose_safe_false(level='error')):
-                fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
-                    ts_args=dict(gfp=True),
-                    title=None,
-                    show=False,
-                    topomap_args=topomap_kwargs,
+            with use_log_level(_verbose_safe_false(level="error")):
+                fig = (
+                    evoked.copy()
+                    .pick(ch_type, verbose=False)
+                    .plot_joint(
+                        ts_args=dict(gfp=True),
+                        title=None,
+                        show=False,
+                        topomap_args=topomap_kwargs,
+                    )
                 )
 
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             title = f'Time course ({_handle_default("titles")[ch_type]})'
             self._add_figure(
                 fig=fig,
@@ -3054,64 +3485,65 @@ class Report:
         import matplotlib.pyplot as plt
 
         fig, ax = plt.subplots(
-            1, len(ch_types) * 2,
-            gridspec_kw={
-                'width_ratios': [8, 0.5] * len(ch_types)
-            },
-            figsize=(2.5 * len(ch_types), 2)
+            1,
+            len(ch_types) * 2,
+            gridspec_kw={"width_ratios": [8, 0.5] * len(ch_types)},
+            figsize=(2.5 * len(ch_types), 2),
         )
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         ch_type_ax_map = dict(
-            zip(ch_types,
-                [(ax[i], ax[i + 1]) for i in
-                    range(0, 2 * len(ch_types) - 1, 2)])
+            zip(
+                ch_types,
+                [(ax[i], ax[i + 1]) for i in range(0, 2 * len(ch_types) - 1, 2)],
+            )
         )
 
         for ch_type in ch_types:
             evoked.plot_topomap(
-                times=[time], ch_type=ch_type,
+                times=[time],
+                ch_type=ch_type,
                 vlim=(vmin[ch_type], vmax[ch_type]),
-                axes=ch_type_ax_map[ch_type], show=False,
-                **topomap_kwargs
+                axes=ch_type_ax_map[ch_type],
+                show=False,
+                **topomap_kwargs,
             )
             ch_type_ax_map[ch_type][0].set_title(ch_type)
 
         tight_layout(fig=fig)
 
         with BytesIO() as buff:
-            fig.savefig(
-                buff,
-                format='png',
-                pad_inches=0
-            )
+            fig.savefig(buff, format="png", pad_inches=0)
             plt.close(fig)
             buff.seek(0)
-            fig_array = plt.imread(buff, format='png')
+            fig_array = plt.imread(buff, format="png")
         return fig_array
 
     def _add_evoked_topomap_slider(
-        self, *, evoked, ch_types, n_time_points, image_format, section, tags,
-        topomap_kwargs, n_jobs, replace
+        self,
+        *,
+        evoked,
+        ch_types,
+        n_time_points,
+        image_format,
+        section,
+        tags,
+        topomap_kwargs,
+        n_jobs,
+        replace,
     ):
         if n_time_points is None:
             n_time_points = min(len(evoked.times), 21)
         elif n_time_points > len(evoked.times):
             raise ValueError(
-                f'The requested number of time points ({n_time_points}) '
-                f'exceeds the time points in the provided Evoked object '
-                f'({len(evoked.times)})'
+                f"The requested number of time points ({n_time_points}) "
+                f"exceeds the time points in the provided Evoked object "
+                f"({len(evoked.times)})"
             )
 
         if n_time_points == 1:  # only a single time point, pick the first one
             times = [evoked.times[0]]
         else:
-            times = np.linspace(
-                start=evoked.tmin,
-                stop=evoked.tmax,
-                num=n_time_points
-            )
+            times = np.linspace(start=evoked.tmin, stop=evoked.tmax, num=n_time_points)
 
         t_zero_idx = np.abs(times).argmin()  # index closest to zero
 
@@ -3123,15 +3555,16 @@ class Report:
         for ch_type in ch_types:
             if not _check_ch_locs(info=evoked.info, ch_type=ch_type):
                 ch_type_name = _handle_default("titles")[ch_type]
-                warn(f'No {ch_type_name} channel locations found, cannot '
-                     f'create topography plots')
+                warn(
+                    f"No {ch_type_name} channel locations found, cannot "
+                    f"create topography plots"
+                )
                 continue
 
-            vmax[ch_type] = (np.abs(evoked.copy()
-                                    .pick(ch_type, verbose=False)
-                                    .data)
-                             .max()) * scalings[ch_type]
-            if ch_type == 'grad':
+            vmax[ch_type] = (
+                np.abs(evoked.copy().pick(ch_type, verbose=False).data).max()
+            ) * scalings[ch_type]
+            if ch_type == "grad":
                 vmin[ch_type] = 0
             else:
                 vmin[ch_type] = -vmax[ch_type]
@@ -3142,22 +3575,28 @@ class Report:
             topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
             parallel, p_fun, n_jobs = parallel_func(
                 func=self._plot_one_evoked_topomap_timepoint,
-                n_jobs=n_jobs, max_jobs=len(times),
+                n_jobs=n_jobs,
+                max_jobs=len(times),
             )
-            with use_log_level(_verbose_safe_false(level='error')):
+            with use_log_level(_verbose_safe_false(level="error")):
                 fig_arrays = parallel(
                     p_fun(
-                        evoked=evoked, time=time, ch_types=ch_types,
-                        vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
-                    ) for time in times
+                        evoked=evoked,
+                        time=time,
+                        ch_types=ch_types,
+                        vmin=vmin,
+                        vmax=vmax,
+                        topomap_kwargs=topomap_kwargs,
+                    )
+                    for time in times
                 )
 
-            captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
+            captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
             self._add_slider(
                 figs=fig_arrays,
                 imgs=None,
                 captions=captions,
-                title='Topographies',
+                title="Topographies",
                 image_format=image_format,
                 start_idx=t_zero_idx,
                 section=section,
@@ -3169,26 +3608,28 @@ class Report:
         self, *, evoked, ch_types, image_format, section, tags, replace
     ):
         # Make legend labels shorter by removing the multiplicative factors
-        pattern = r'\d\.\d* × '
+        pattern = r"\d\.\d* × "
         label = evoked.comment
         if label is None:
-            label = ''
+            label = ""
         for match in re.findall(pattern=pattern, string=label):
-            label = label.replace(match, '')
+            label = label.replace(match, "")
 
         import matplotlib.pyplot as plt
+
         fig, ax = plt.subplots(len(ch_types), 1, sharex=True)
         if len(ch_types) == 1:
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
-            with use_log_level(_verbose_safe_false(level='error')):
+            with use_log_level(_verbose_safe_false(level="error")):
                 plot_compare_evokeds(
-                    evokeds={
-                        label: evoked.copy().pick(ch_type, verbose=False)
-                    },
-                    ci=None, truncate_xaxis=False,
-                    truncate_yaxis=False, legend=False,
-                    axes=ax[idx], show=False
+                    evokeds={label: evoked.copy().pick(ch_type, verbose=False)},
+                    ci=None,
+                    truncate_xaxis=False,
+                    truncate_yaxis=False,
+                    legend=False,
+                    axes=ax[idx],
+                    show=False,
                 )
             ax[idx].set_title(ch_type)
 
@@ -3197,10 +3638,8 @@ class Report:
                 ax[idx].set_xlabel(None)
 
         tight_layout(fig=fig)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
-        title = 'Global field power'
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+        title = "Global field power"
         self._add_figure(
             fig=fig,
             title=title,
@@ -3216,15 +3655,10 @@ class Report:
         self, *, evoked, noise_cov, image_format, section, tags, replace
     ):
         """Render whitened evoked."""
-        fig = evoked.plot_white(
-            noise_cov=noise_cov,
-            show=False
-        )
+        fig = evoked.plot_white(noise_cov=noise_cov, show=False)
         tight_layout(fig=fig)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
-        title = 'Whitened'
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+        title = "Whitened"
 
         self._add_figure(
             fig=fig,
@@ -3238,25 +3672,47 @@ class Report:
         )
 
     def _add_evoked(
-        self, *, evoked, noise_cov, add_projs, n_time_points,
-        image_format, section, tags, topomap_kwargs, n_jobs, replace
+        self,
+        *,
+        evoked,
+        noise_cov,
+        add_projs,
+        n_time_points,
+        image_format,
+        section,
+        tags,
+        topomap_kwargs,
+        n_jobs,
+        replace,
     ):
         ch_types = _get_ch_types(evoked)
         self._add_evoked_joint(
-            evoked=evoked, ch_types=ch_types,
-            image_format=image_format, section=section, tags=tags,
-            topomap_kwargs=topomap_kwargs, replace=replace,
+            evoked=evoked,
+            ch_types=ch_types,
+            image_format=image_format,
+            section=section,
+            tags=tags,
+            topomap_kwargs=topomap_kwargs,
+            replace=replace,
         )
         self._add_evoked_topomap_slider(
-            evoked=evoked, ch_types=ch_types,
+            evoked=evoked,
+            ch_types=ch_types,
             n_time_points=n_time_points,
             image_format=image_format,
-            section=section, tags=tags, topomap_kwargs=topomap_kwargs,
-            n_jobs=n_jobs, replace=replace,
+            section=section,
+            tags=tags,
+            topomap_kwargs=topomap_kwargs,
+            n_jobs=n_jobs,
+            replace=replace,
         )
         self._add_evoked_gfp(
-            evoked=evoked, ch_types=ch_types, image_format=image_format,
-            section=section, tags=tags, replace=replace,
+            evoked=evoked,
+            ch_types=ch_types,
+            image_format=image_format,
+            section=section,
+            tags=tags,
+            replace=replace,
         )
 
         if noise_cov is not None:
@@ -3274,7 +3730,7 @@ class Report:
             self._add_projs(
                 info=evoked,
                 projs=None,
-                title='Projectors',
+                title="Projectors",
                 image_format=image_format,
                 section=section,
                 tags=tags,
@@ -3282,11 +3738,20 @@ class Report:
                 replace=replace,
             )
 
-        logger.debug('Evoked: done')
+        logger.debug("Evoked: done")
 
     def _add_events(
-        self, *, events, event_id, sfreq, first_samp, title, section,
-        image_format, tags, replace
+        self,
+        *,
+        events,
+        event_id,
+        sfreq,
+        first_samp,
+        title,
+        section,
+        image_format,
+        tags,
+        replace,
     ):
         """Render events."""
         if not isinstance(events, np.ndarray):
@@ -3297,11 +3762,9 @@ class Report:
             event_id=event_id,
             sfreq=sfreq,
             first_samp=first_samp,
-            show=False
+            show=False,
         )
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         self._add_figure(
             fig=fig,
             title=title,
@@ -3313,64 +3776,53 @@ class Report:
             own_figure=True,
         )
 
-    def _add_epochs_psd(
-        self, *, epochs, psd, image_format, tags, section, replace
-    ):
+    def _add_epochs_psd(self, *, epochs, psd, image_format, tags, section, replace):
         epoch_duration = epochs.tmax - epochs.tmin
 
         if psd is True:  # Entire time range -> all epochs
             epochs_for_psd = epochs  # Avoid creating a copy
         else:  # Only a subset of epochs
             signal_duration = len(epochs) * epoch_duration
-            n_epochs_required = int(
-                np.ceil(psd / epoch_duration)
-            )
+            n_epochs_required = int(np.ceil(psd / epoch_duration))
             if n_epochs_required > len(epochs):
                 raise ValueError(
-                    f'You requested to calculate PSD on a duration of '
-                    f'{psd:.3f} s, but all your epochs '
-                    f'are only {signal_duration:.1f} s long'
+                    f"You requested to calculate PSD on a duration of "
+                    f"{psd:.3f} s, but all your epochs "
+                    f"are only {signal_duration:.1f} s long"
                 )
             epochs_idx = np.round(
-                np.linspace(
-                    start=0,
-                    stop=len(epochs) - 1,
-                    num=n_epochs_required
-                )
+                np.linspace(start=0, stop=len(epochs) - 1, num=n_epochs_required)
             ).astype(int)
             # Edge case: there might be duplicate indices due to rounding?
             epochs_idx_unique = np.unique(epochs_idx)
             if len(epochs_idx_unique) != len(epochs_idx):
-                duration = round(
-                    len(epochs_idx_unique) * epoch_duration, 1
+                duration = round(len(epochs_idx_unique) * epoch_duration, 1)
+                warn(
+                    f"Using {len(epochs_idx_unique)} epochs, only "
+                    f"covering {duration:.1f} s of data"
                 )
-                warn(f'Using {len(epochs_idx_unique)} epochs, only '
-                     f'covering {duration:.1f} s of data')
                 del duration
 
             epochs_for_psd = epochs[epochs_idx_unique]
 
-        if epochs.info['lowpass'] is None:
+        if epochs.info["lowpass"] is None:
             fmax = np.inf
         else:
-            fmax = epochs.info['lowpass'] + 15
+            fmax = epochs.info["lowpass"] + 15
             # Must not exceed half the sampling frequency
-            if fmax > 0.5 * epochs.info['sfreq']:
+            if fmax > 0.5 * epochs.info["sfreq"]:
                 fmax = np.inf
 
-        fig = epochs_for_psd.plot_psd(fmax=fmax, show=False)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        fig = epochs_for_psd.compute_psd(fmax=fmax).plot(show=False)
+        _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
         duration = round(epoch_duration * len(epochs_for_psd), 1)
         caption = (
-            f'PSD calculated from {len(epochs_for_psd)} epochs '
-            f'({duration:.1f} s).'
+            f"PSD calculated from {len(epochs_for_psd)} epochs " f"({duration:.1f} s)."
         )
         self._add_figure(
             fig=fig,
             image_format=image_format,
-            title='PSD',
+            title="PSD",
             caption=caption,
             tags=tags,
             section=section,
@@ -3378,16 +3830,10 @@ class Report:
             own_figure=True,
         )
 
-    def _add_html_element(
-        self, *, html, title, tags, section, replace, div_klass
-    ):
+    def _add_html_element(self, *, html, title, tags, section, replace, div_klass):
         dom_id = self._get_dom_id()
         html = _html_element(
-            div_klass=div_klass,
-            id=dom_id,
-            tags=tags,
-            title=title,
-            html=html
+            div_klass=div_klass, id=dom_id, tags=tags, title=title, html=html
         )
         self._add_or_replace(
             title=title,
@@ -3395,7 +3841,7 @@ class Report:
             dom_id=dom_id,
             tags=tags,
             html=html,
-            replace=replace
+            replace=replace,
         )
 
     def _add_epochs_metadata(self, *, epochs, section, tags, replace):
@@ -3403,7 +3849,7 @@ class Report:
 
         # Ensure we have a named index
         if not metadata.index.name:
-            metadata.index.name = 'Epoch #'
+            metadata.index.name = "Epoch #"
 
         assert metadata.index.is_unique
         index_name = metadata.index.name  # store for later use
@@ -3412,44 +3858,43 @@ class Report:
             border=0,
             index=False,
             show_dimensions=True,
-            justify='unset',
-            float_format=lambda x: f'{round(x, 3):.3f}',
-            classes='table table-hover table-striped '
-                    'table-sm table-responsive small'
+            justify="unset",
+            float_format=lambda x: f"{round(x, 3):.3f}",
+            classes="table table-hover table-striped "
+            "table-sm table-responsive small",
         )
         del metadata
 
         # Massage the table such that it woks nicely with bootstrap-table
-        htmls = html.split('\n')
-        header_pattern = '<th>(.*)</th>'
+        htmls = html.split("\n")
+        header_pattern = "<th>(.*)</th>"
 
         for idx, html in enumerate(htmls):
-            if '<table' in html:
+            if "<table" in html:
                 htmls[idx] = html.replace(
-                    '<table',
-                    '<table '
+                    "<table",
+                    "<table "
                     'id="mytable" '
                     'data-toggle="table" '
                     f'data-unique-id="{index_name}" '
-                    'data-search="true" '           # search / filter
+                    'data-search="true" '  # search / filter
                     'data-search-highlight="true" '
-                    'data-show-columns="true" '     # show/hide columns
-                    'data-show-toggle="true" '      # allow card view
+                    'data-show-columns="true" '  # show/hide columns
+                    'data-show-toggle="true" '  # allow card view
                     'data-show-columns-toggle-all="true" '
                     'data-click-to-select="true" '
                     'data-show-copy-rows="true" '
-                    'data-show-export="true" '      # export to a file
+                    'data-show-export="true" '  # export to a file
                     'data-export-types="[csv]" '
-                    "data-export-options='{\"fileName\": \"metadata\"}' "
+                    'data-export-options=\'{"fileName": "metadata"}\' '
                     'data-icon-size="sm" '
-                    'data-height="400"'
+                    'data-height="400"',
                 )
                 continue
-            elif '<tr' in html:
+            elif "<tr" in html:
                 # Add checkbox for row selection
                 htmls[idx] = (
-                    f'{html}\n'
-                    f'<th data-field="state" data-checkbox="true"></th>'
+                    f"{html}\n" f'<th data-field="state" data-checkbox="true"></th>'
                 )
                 continue
 
@@ -3459,24 +3904,32 @@ class Report:
                 assert len(col_headers) == 1
                 col_header = col_headers[0]
                 htmls[idx] = html.replace(
-                    '<th>',
-                    f'<th data-field="{col_header.lower()}" '
-                    f'data-sortable="true">'
+                    "<th>",
+                    f'<th data-field="{col_header.lower()}" ' f'data-sortable="true">',
                 )
 
-        html = '\n'.join(htmls)
+        html = "\n".join(htmls)
         self._add_html_element(
-            div_klass='epochs',
+            div_klass="epochs",
             tags=tags,
-            title='Metadata',
+            title="Metadata",
             html=html,
             section=section,
             replace=replace,
         )
 
     def _add_epochs(
-        self, *, epochs, psd, add_projs, topomap_kwargs, drop_log_ignore,
-        image_format, section, tags, replace
+        self,
+        *,
+        epochs,
+        psd,
+        add_projs,
+        topomap_kwargs,
+        drop_log_ignore,
+        image_format,
+        section,
+        tags,
+        replace,
     ):
         """Render epochs."""
         if isinstance(epochs, BaseEpochs):
@@ -3488,11 +3941,11 @@ class Report:
         # Summary table
         self._add_html_repr(
             inst=epochs,
-            title='Info',
+            title="Info",
             tags=tags,
             section=section,
             replace=replace,
-            div_klass='epochs',
+            div_klass="epochs",
         )
 
         # Metadata table
@@ -3506,24 +3959,19 @@ class Report:
         epochs.load_data()
 
         for ch_type in ch_types:
-            with use_log_level(_verbose_safe_false(level='error')):
-                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
-                    show=False
-                )
+            with use_log_level(_verbose_safe_false(level="error")):
+                figs = epochs.copy().pick(ch_type, verbose=False).plot_image(show=False)
 
             assert len(figs) == 1
             fig = figs[0]
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
-            if ch_type in ('mag', 'grad'):
-                title_start = 'ERF image'
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
+            if ch_type in ("mag", "grad"):
+                title_start = "ERF image"
             else:
-                assert 'eeg' in ch_type
-                title_start = 'ERP image'
+                assert "eeg" in ch_type
+                title_start = "ERP image"
 
-            title = (f'{title_start} '
-                     f'({_handle_default("titles")[ch_type]})')
+            title = f"{title_start} " f'({_handle_default("titles")[ch_type]})'
 
             self._add_figure(
                 fig=fig,
@@ -3538,13 +3986,13 @@ class Report:
 
         # Drop log
         if epochs._bad_dropped:
-            title = 'Drop log'
+            title = "Drop log"
 
             if epochs.drop_log_stats(ignore=drop_log_ignore) == 0:  # No drops
                 self._add_html_element(
-                    html='No epochs exceeded the rejection thresholds. '
-                         'Nothing was dropped.',
-                    div_klass='epochs',
+                    html="No epochs exceeded the rejection thresholds. "
+                    "Nothing was dropped.",
+                    div_klass="epochs",
                     title=title,
                     tags=tags,
                     section=section,
@@ -3571,14 +4019,18 @@ class Report:
 
         if psd:
             self._add_epochs_psd(
-                epochs=epochs, psd=psd, image_format=image_format, tags=tags,
-                section=section, replace=replace
+                epochs=epochs,
+                psd=psd,
+                image_format=image_format,
+                tags=tags,
+                section=section,
+                replace=replace,
             )
         if add_projs:
             self._add_projs(
                 info=epochs,
                 projs=None,
-                title='Projections',
+                title="Projections",
                 image_format=image_format,
                 tags=tags,
                 topomap_kwargs=topomap_kwargs,
@@ -3593,17 +4045,11 @@ class Report:
         if not isinstance(info, Info):
             info = read_info(info)
 
-        fig_cov, fig_svd = plot_cov(cov=cov, info=info, show=False,
-                                    show_svd=True)
+        fig_cov, fig_svd = plot_cov(cov=cov, info=info, show=False, show_svd=True)
         figs = [fig_cov, fig_svd]
-        titles = (
-            'Covariance matrix',
-            'Singular values'
-        )
+        titles = ("Covariance matrix", "Singular values")
         for fig, title in zip(figs, titles):
-            _constrain_fig_resolution(
-                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-            )
+            _constrain_fig_resolution(fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES)
             self._add_figure(
                 fig=fig,
                 title=title,
@@ -3616,8 +4062,17 @@ class Report:
             )
 
     def _add_trans(
-        self, *, trans, info, subject, subjects_dir, alpha, title, section,
-        tags, replace
+        self,
+        *,
+        trans,
+        info,
+        subject,
+        subjects_dir,
+        alpha,
+        title,
+        section,
+        tags,
+        replace,
     ):
         """Render trans (only PNG)."""
         if not isinstance(trans, Transform):
@@ -3625,10 +4080,16 @@ class Report:
         if not isinstance(info, Info):
             info = read_info(info)
 
-        kwargs = dict(info=info, trans=trans, subject=subject,
-                      subjects_dir=subjects_dir, dig=True,
-                      meg=['helmet', 'sensors'], show_axes=True,
-                      coord_frame='mri')
+        kwargs = dict(
+            info=info,
+            trans=trans,
+            subject=subject,
+            subjects_dir=subjects_dir,
+            dig=True,
+            meg=["helmet", "sensors"],
+            show_axes=True,
+            coord_frame="mri",
+        )
         img, caption = _iterate_trans_views(
             function=plot_alignment, alpha=alpha, **kwargs
         )
@@ -3637,14 +4098,24 @@ class Report:
             title=title,
             section=section,
             caption=caption,
-            image_format='png',
+            image_format="png",
             tags=tags,
             replace=replace,
         )
 
     def _add_stc(
-        self, *, stc, title, subject, subjects_dir, n_time_points,
-        image_format, section, tags, stc_plot_kwargs, replace,
+        self,
+        *,
+        stc,
+        title,
+        subject,
+        subjects_dir,
+        n_time_points,
+        image_format,
+        section,
+        tags,
+        stc_plot_kwargs,
+        replace,
     ):
         """Render STC."""
         if isinstance(stc, SourceEstimate):
@@ -3654,8 +4125,8 @@ class Report:
                     subject = stc.subject  # supplied when loading STC
                     if not subject:
                         raise ValueError(
-                            'Please specify the subject name, as it  cannot '
-                            'be found in stc.subject. You may wish to pass '
+                            "Please specify the subject name, as it  cannot "
+                            "be found in stc.subject. You may wish to pass "
                             'the "subject" parameter to read_source_estimate()'
                         )
             else:
@@ -3664,33 +4135,29 @@ class Report:
             fname = stc
             stc = read_source_estimate(fname=fname, subject=subject)
 
-        subjects_dir = (self.subjects_dir if subjects_dir is None
-                        else subjects_dir)
+        subjects_dir = self.subjects_dir if subjects_dir is None else subjects_dir
 
         if n_time_points is None:
             n_time_points = min(len(stc.times), 51)
         elif n_time_points > len(stc.times):
             raise ValueError(
-                f'The requested number of time points ({n_time_points}) '
-                f'exceeds the time points in the provided STC object '
-                f'({len(stc.times)})'
+                f"The requested number of time points ({n_time_points}) "
+                f"exceeds the time points in the provided STC object "
+                f"({len(stc.times)})"
             )
         if n_time_points == 1:  # only a single time point, pick the first one
             times = [stc.times[0]]
         else:
             times = np.linspace(
-                start=stc.times[0],
-                stop=stc.times[-1],
-                num=n_time_points
+                start=stc.times[0], stop=stc.times[-1], num=n_time_points
             )
         t_zero_idx = np.abs(times).argmin()  # index of time closest to zero
 
         # Plot using 3d backend if available, and use Matplotlib
         # otherwise.
         import matplotlib.pyplot as plt
-        stc_plot_kwargs = _handle_default(
-            'report_stc_plot_kwargs', stc_plot_kwargs
-        )
+
+        stc_plot_kwargs = _handle_default("report_stc_plot_kwargs", stc_plot_kwargs)
         stc_plot_kwargs.update(subject=subject, subjects_dir=subjects_dir)
 
         if get_3d_backend() is not None:
@@ -3704,20 +4171,19 @@ class Report:
         for t in times:
             with warnings.catch_warnings():
                 warnings.filterwarnings(
-                    action='ignore',
-                    message='More than 20 figures have been opened',
-                    category=RuntimeWarning)
+                    action="ignore",
+                    message="More than 20 figures have been opened",
+                    category=RuntimeWarning,
+                )
 
                 if backend_is_3d:
                     brain.set_time(t)
                     fig, ax = plt.subplots(figsize=(4.5, 4.5))
-                    ax.imshow(brain.screenshot(time_viewer=True, mode='rgb'))
-                    ax.axis('off')
+                    ax.imshow(brain.screenshot(time_viewer=True, mode="rgb"))
+                    ax.axis("off")
                     tight_layout(fig=fig)
                     _constrain_fig_resolution(
-                        fig,
-                        max_width=stc_plot_kwargs['size'][0],
-                        max_res=MAX_IMG_RES
+                        fig, max_width=stc_plot_kwargs["size"][0], max_res=MAX_IMG_RES
                     )
                     figs.append(fig)
                     plt.close(fig)
@@ -3726,32 +4192,34 @@ class Report:
                     fig_rh = plt.figure()
 
                     brain_lh = stc.plot(
-                        views='lat', hemi='lh',
+                        views="lat",
+                        hemi="lh",
                         initial_time=t,
-                        backend='matplotlib',
+                        backend="matplotlib",
                         subject=subject,
                         subjects_dir=subjects_dir,
-                        figure=fig_lh
+                        figure=fig_lh,
                     )
                     brain_rh = stc.plot(
-                        views='lat', hemi='rh',
+                        views="lat",
+                        hemi="rh",
                         initial_time=t,
                         subject=subject,
                         subjects_dir=subjects_dir,
-                        backend='matplotlib',
-                        figure=fig_rh
+                        backend="matplotlib",
+                        figure=fig_rh,
                     )
                     tight_layout(fig=fig_lh)  # TODO is this necessary?
                     tight_layout(fig=fig_rh)  # TODO is this necessary?
                     _constrain_fig_resolution(
                         fig_lh,
-                        max_width=stc_plot_kwargs['size'][0],
-                        max_res=MAX_IMG_RES
+                        max_width=stc_plot_kwargs["size"][0],
+                        max_res=MAX_IMG_RES,
                     )
                     _constrain_fig_resolution(
                         fig_rh,
-                        max_width=stc_plot_kwargs['size'][0],
-                        max_res=MAX_IMG_RES
+                        max_width=stc_plot_kwargs["size"][0],
+                        max_res=MAX_IMG_RES,
                     )
                     figs.append(brain_lh)
                     figs.append(brain_rh)
@@ -3764,7 +4232,7 @@ class Report:
             brain_lh.close()
             brain_rh.close()
 
-        captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
+        captions = [f"Time point: {round(t, 3):0.3f} s" for t in times]
         self._add_slider(
             figs=figs,
             imgs=None,
@@ -3778,8 +4246,17 @@ class Report:
         )
 
     def _add_bem(
-        self, *, subject, subjects_dir, decim, n_jobs, width=512,
-        image_format, title, tags, replace
+        self,
+        *,
+        subject,
+        subjects_dir,
+        decim,
+        n_jobs,
+        width=512,
+        image_format,
+        title,
+        tags,
+        replace,
     ):
         """Render mri+bem (only PNG)."""
         if subjects_dir is None:
@@ -3787,36 +4264,40 @@ class Report:
         subjects_dir = str(get_subjects_dir(subjects_dir, raise_error=True))
 
         # Get the MRI filename
-        mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+        mri_fname = op.join(subjects_dir, subject, "mri", "T1.mgz")
         if not op.isfile(mri_fname):
             warn(f'MRI file "{mri_fname}" does not exist')
 
         # Get the BEM surface filenames
-        bem_path = op.join(subjects_dir, subject, 'bem')
+        bem_path = op.join(subjects_dir, subject, "bem")
 
         surfaces = _get_bem_plotting_surfaces(bem_path)
         if not surfaces:
-            warn('No BEM surfaces found, rendering empty MRI')
+            warn("No BEM surfaces found, rendering empty MRI")
 
         htmls = dict()
         for orientation in _BEM_VIEWS:
             htmls[orientation] = self._render_one_bem_axis(
-                mri_fname=mri_fname, surfaces=surfaces,
-                orientation=orientation, decim=decim, n_jobs=n_jobs,
-                width=width, image_format=image_format,
-                tags=tags
+                mri_fname=mri_fname,
+                surfaces=surfaces,
+                orientation=orientation,
+                decim=decim,
+                n_jobs=n_jobs,
+                width=width,
+                image_format=image_format,
+                tags=tags,
             )
 
         # Special handling to deal with our tests, where we monkey-patch
         # _BEM_VIEWS to save time
-        html_slider_axial = htmls['axial'] if 'axial' in htmls else ''
-        html_slider_sagittal = htmls['sagittal'] if 'sagittal' in htmls else ''
-        html_slider_coronal = htmls['coronal'] if 'coronal' in htmls else ''
+        html_slider_axial = htmls["axial"] if "axial" in htmls else ""
+        html_slider_sagittal = htmls["sagittal"] if "sagittal" in htmls else ""
+        html_slider_coronal = htmls["coronal"] if "coronal" in htmls else ""
 
         dom_id = self._get_dom_id()
         html = _html_bem_element(
             id=dom_id,
-            div_klass='bem',
+            div_klass="bem",
             html_slider_axial=html_slider_axial,
             html_slider_sagittal=html_slider_sagittal,
             html_slider_coronal=html_slider_coronal,
@@ -3838,7 +4319,7 @@ def _clean_tags(tags):
         tags = (tags,)
 
     # Replace any whitespace characters with dashes
-    tags_cleaned = tuple(re.sub(r'[\s*]', '-', tag) for tag in tags)
+    tags_cleaned = tuple(re.sub(r"[\s*]", "-", tag) for tag in tags)
     return tags_cleaned
 
 
@@ -3858,7 +4339,7 @@ def _recursive_search(path, pattern):
 ###############################################################################
 # Scraper for sphinx-gallery
 
-_SCRAPER_TEXT = '''
+_SCRAPER_TEXT = """
 .. only:: builder_html
 
     .. container:: row
@@ -3869,12 +4350,12 @@ _SCRAPER_TEXT = '''
 
             <iframe class="sg_report" sandbox="allow-scripts" src="{0}"></iframe>
 
-'''  # noqa: E501
+"""  # noqa: E501
 # Adapted from fa-file-code
 _FA_FILE_CODE = '<svg class="sg_report" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path fill="#dec" d="M149.9 349.1l-.2-.2-32.8-28.9 32.8-28.9c3.6-3.2 4-8.8.8-12.4l-.2-.2-17.4-18.6c-3.4-3.6-9-3.7-12.4-.4l-57.7 54.1c-3.7 3.5-3.7 9.4 0 12.8l57.7 54.1c1.6 1.5 3.8 2.4 6 2.4 2.4 0 4.8-1 6.4-2.8l17.4-18.6c3.3-3.5 3.1-9.1-.4-12.4zm220-251.2L286 14C277 5 264.8-.1 252.1-.1H48C21.5 0 0 21.5 0 48v416c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48V131.9c0-12.7-5.1-25-14.1-34zM256 51.9l76.1 76.1H256zM336 464H48V48h160v104c0 13.3 10.7 24 24 24h104zM209.6 214c-4.7-1.4-9.5 1.3-10.9 6L144 408.1c-1.4 4.7 1.3 9.6 6 10.9l24.4 7.1c4.7 1.4 9.6-1.4 10.9-6L240 231.9c1.4-4.7-1.3-9.6-6-10.9zm24.5 76.9l.2.2 32.8 28.9-32.8 28.9c-3.6 3.2-4 8.8-.8 12.4l.2.2 17.4 18.6c3.3 3.5 8.9 3.7 12.4.4l57.7-54.1c3.7-3.5 3.7-9.4 0-12.8l-57.7-54.1c-3.5-3.3-9.1-3.2-12.4.4l-17.4 18.6c-3.3 3.5-3.1 9.1.4 12.4z" class=""></path></svg>'  # noqa: E501
 
 
-class _ReportScraper(object):
+class _ReportScraper:
     """Scrape Report outputs.
 
     Only works properly if conf.py is configured properly and the file
@@ -3886,26 +4367,30 @@ class _ReportScraper(object):
         self.files = dict()
 
     def __repr__(self):
-        return '<ReportScraper>'
+        return "<ReportScraper>"
 
     def __call__(self, block, block_vars, gallery_conf):
-        for report in block_vars['example_globals'].values():
-            if (isinstance(report, Report) and
-                    report.fname is not None and
-                    report.fname.endswith('.html') and
-                    gallery_conf['builder_name'] == 'html'):
+        for report in block_vars["example_globals"].values():
+            if (
+                isinstance(report, Report)
+                and report.fname is not None
+                and report.fname.endswith(".html")
+                and gallery_conf["builder_name"] == "html"
+            ):
                 # Thumbnail
-                image_path_iterator = block_vars['image_path_iterator']
+                image_path_iterator = block_vars["image_path_iterator"]
                 img_fname = next(image_path_iterator)
-                img_fname = img_fname.replace('.png', '.svg')
-                with open(img_fname, 'w') as fid:
+                img_fname = img_fname.replace(".png", ".svg")
+                with open(img_fname, "w") as fid:
                     fid.write(_FA_FILE_CODE)
                 # copy HTML file
                 html_fname = op.basename(report.fname)
                 out_dir = op.join(
                     self.app.builder.outdir,
-                    op.relpath(op.dirname(block_vars['target_file']),
-                               self.app.builder.srcdir))
+                    op.relpath(
+                        op.dirname(block_vars["target_file"]), self.app.builder.srcdir
+                    ),
+                )
                 os.makedirs(out_dir, exist_ok=True)
                 out_fname = op.join(out_dir, html_fname)
                 assert op.isfile(report.fname)
@@ -3913,7 +4398,7 @@ class _ReportScraper(object):
                 # embed links/iframe
                 data = _SCRAPER_TEXT.format(html_fname)
                 return data
-        return ''
+        return ""
 
     def copyfiles(self, *args, **kwargs):
         for key, value in self.files.items():

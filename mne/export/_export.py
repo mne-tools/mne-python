@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Authors: MNE Developers
 #
 # License: BSD-3-Clause
@@ -10,8 +9,16 @@ from ..utils import logger, verbose, warn, _check_fname, _validate_type
 
 
 @verbose
-def export_raw(fname, raw, fmt='auto', physical_range='auto',
-               add_ch_type=False, *, overwrite=False, verbose=None):
+def export_raw(
+    fname,
+    raw,
+    fmt="auto",
+    physical_range="auto",
+    add_ch_type=False,
+    *,
+    overwrite=False,
+    verbose=None,
+):
     """Export Raw to external formats.
 
     %(export_fmt_support_raw)s
@@ -41,30 +48,39 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {  # format : (extensions,)
-        'eeglab': ('set',),
-        'edf': ('edf',),
-        'brainvision': ('eeg', 'vmrk', 'vhdr',)
+        "eeglab": ("set",),
+        "edf": ("edf",),
+        "brainvision": (
+            "eeg",
+            "vmrk",
+            "vhdr",
+        ),
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
     # check for unapplied projectors
-    if any(not proj['active'] for proj in raw.info['projs']):
-        warn('Raw instance has unapplied projectors. Consider applying '
-             'them before exporting with raw.apply_proj().')
+    if any(not proj["active"] for proj in raw.info["projs"]):
+        warn(
+            "Raw instance has unapplied projectors. Consider applying "
+            "them before exporting with raw.apply_proj()."
+        )
 
-    if fmt == 'eeglab':
+    if fmt == "eeglab":
         from ._eeglab import _export_raw
+
         _export_raw(fname, raw)
-    elif fmt == 'edf':
+    elif fmt == "edf":
         from ._edf import _export_raw
+
         _export_raw(fname, raw, physical_range, add_ch_type)
-    elif fmt == 'brainvision':
+    elif fmt == "brainvision":
         from ._brainvision import _export_raw
+
         _export_raw(fname, raw, overwrite)
 
 
 @verbose
-def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
+def export_epochs(fname, epochs, fmt="auto", *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
     %(export_fmt_support_epochs)s
@@ -91,23 +107,25 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {
-        'eeglab': ('set',),
+        "eeglab": ("set",),
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
     # check for unapplied projectors
-    if any(not proj['active'] for proj in epochs.info['projs']):
-        warn('Epochs instance has unapplied projectors. Consider applying '
-             'them before exporting with epochs.apply_proj().')
+    if any(not proj["active"] for proj in epochs.info["projs"]):
+        warn(
+            "Epochs instance has unapplied projectors. Consider applying "
+            "them before exporting with epochs.apply_proj()."
+        )
 
-    if fmt == 'eeglab':
+    if fmt == "eeglab":
         from ._eeglab import _export_epochs
+
         _export_epochs(fname, epochs)
 
 
 @verbose
-def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
-                   verbose=None):
+def export_evokeds(fname, evoked, fmt="auto", *, overwrite=False, verbose=None):
     """Export evoked dataset to external formats.
 
     This function is a wrapper for format-specific export functions. The export
@@ -144,16 +162,16 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
     """
     fname = str(_check_fname(fname, overwrite=overwrite))
     supported_export_formats = {
-        'mff': ('mff',),
+        "mff": ("mff",),
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
     if not isinstance(evoked, list):
         evoked = [evoked]
 
-    logger.info(f'Exporting evoked dataset to {fname}...')
+    logger.info(f"Exporting evoked dataset to {fname}...")
 
-    if fmt == 'mff':
+    if fmt == "mff":
         export_evokeds_mff(fname, evoked, overwrite=overwrite)
 
 
@@ -175,26 +193,30 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
         Dictionary containing supported formats (as keys) and each format's
         corresponding file extensions in a tuple (e.g., {'eeglab': ('set',)})
     """
-    _validate_type(fmt, str, 'fmt')
+    _validate_type(fmt, str, "fmt")
     fmt = fmt.lower()
     if fmt == "auto":
         fmt = op.splitext(fname)[1]
         if fmt:
             fmt = fmt[1:].lower()
             # find fmt in supported formats dict's tuples
-            fmt = next((k for k, v in supported_formats.items() if fmt in v),
-                       fmt)  # default to original fmt for raising error later
+            fmt = next(
+                (k for k, v in supported_formats.items() if fmt in v), fmt
+            )  # default to original fmt for raising error later
         else:
-            raise ValueError(f"Couldn't infer format from filename {fname}"
-                             " (no extension found)")
+            raise ValueError(
+                f"Couldn't infer format from filename {fname}" " (no extension found)"
+            )
 
     if fmt not in supported_formats:
         supported = []
         for format, extensions in supported_formats.items():
-            ext_str = ', '.join(f'*.{ext}' for ext in extensions)
-            supported.append(f'{format} ({ext_str})')
+            ext_str = ", ".join(f"*.{ext}" for ext in extensions)
+            supported.append(f"{format} ({ext_str})")
 
-        supported_str = ', '.join(supported)
-        raise ValueError(f"Format '{fmt}' is not supported. "
-                         f"Supported formats are {supported_str}.")
+        supported_str = ", ".join(supported)
+        raise ValueError(
+            f"Format '{fmt}' is not supported. "
+            f"Supported formats are {supported_str}."
+        )
     return fmt
