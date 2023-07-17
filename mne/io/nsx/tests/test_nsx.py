@@ -262,8 +262,6 @@ def test_nsx():
         input_fname=nsx_test_fname,
         eog=None,
         misc=None,
-        test_scaling=True,  # XXX this should be True
-        test_rank=False,
     )
     raw_data, times = raw[:]
     n_channels, n_times = raw_data.shape
