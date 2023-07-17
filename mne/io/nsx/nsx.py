@@ -9,7 +9,7 @@ import numpy as np
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw, _get_scaling
-from ..utils import _read_segments_file
+from ..utils import _read_segments_file, _file_size
 
 from ...annotations import Annotations
 from ...utils import logger, fill_doc, warn
@@ -249,14 +249,6 @@ class RawNSX(BaseRaw):
             )
 
 
-def _get_file_size(filename):
-    """Return the file size in bytes for the given file."""
-    with open(filename, "rb") as fid:
-        fid.seek(0, os.SEEK_END)
-        file_size = fid.tell()
-    return file_size
-
-
 def _read_header(fname):
     nsx_file_id = np.fromfile(fname, count=1, dtype=[("file_id", "S8")])[0][
         "file_id"
@@ -325,7 +317,7 @@ def _read_header_22_and_above(fname):
     data_header = list()
     index = 0
     offset = basic_header["bytes_in_headers"]
-    filesize = _get_file_size(fname)
+    filesize = _file_size(fname)
     if float(basic_header["spec"]) < 3.0:
         dtype2 = nsx_header_dict["data>2.1<3"]
     else:
