@@ -84,9 +84,10 @@ def test_nsx_ver_31():
             test_scaling=False,
             test_rank=False,
         )
-    raw_data, times = raw[:]
+    raw_data, _ = raw[:]
     n_channels, n_times = raw_data.shape
-    assert times.shape[0] == n_times
+    assert n_times == 300
+    assert n_channels == 128
 
     # Check data
     # There are two contiguous data packets (samples 0--100 and
@@ -101,7 +102,7 @@ def test_nsx_ver_31():
     assert_allclose(orig_data[n_channels // 2, 150:] - 100, np.arange(150))
 
     data, times = raw.get_data(start=10, stop=20, return_times=True)
-    assert n_channels, 10 == data.shape
+    assert 128, 10 == data.shape
 
     data, times = raw.get_data(start=0, stop=300, return_times=True)
     epochs = make_fixed_length_epochs(raw, duration=0.05, preload=False)
@@ -145,9 +146,11 @@ def test_nsx_ver_22():
         test_scaling=False,  # XXX this should be True
         test_rank=False,
     )
-    raw_data, times = raw[:]
+    raw_data, _ = raw[:]
     n_channels, n_times = raw_data.shape
-    assert times.shape[0] == n_times
+    assert n_times == 100
+    assert n_channels == 128
+
     # Check data
     # There is only one contiguous data packet, samples 0--100. Data
     # was generated as:
@@ -159,10 +162,12 @@ def test_nsx_ver_22():
 
     assert_allclose(orig_data[n_channels // 2, :100] - 100, np.arange(100))
 
-    data, times = raw.get_data(start=10, stop=20, return_times=True)
-    assert n_channels, 10 == data.shape
+    data, _ = raw.get_data(start=10, stop=20, return_times=True)
+    assert 128, 10 == data.shape
 
-    data, times = raw.get_data(start=0, stop=300, return_times=True)
+    data, _ = raw.get_data(start=0, stop=300, return_times=True)
+    assert 128, 100 == data.shape
+
     epochs = make_fixed_length_epochs(raw, duration=0.05, preload=True, id=1)
     assert len(epochs) == 1
     assert epochs.event_id["1"] == 1
@@ -243,6 +248,7 @@ def test_nsx():
     )
     raw_data, times = raw[:]
     n_channels, n_times = raw_data.shape
+    assert n_times == 100
     assert times.shape[0] == n_times
     assert n_channels == 5
     # Check data
