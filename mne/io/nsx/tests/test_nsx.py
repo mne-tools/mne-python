@@ -114,6 +114,15 @@ def test_nsx_ver_31():
     data, times = raw.get_data(start=10, stop=20, return_times=True)
     assert 128, 10 == data.shape
 
+    data, times = raw.get_data(start=50, stop=110, return_times=True)
+    assert 128, 50 == data.shape
+
+    data, times = raw.get_data(start=130, stop=170, return_times=True)
+    assert 128, 40 == data.shape
+
+    data, times = raw.get_data(start=200, stop=350, return_times=True)
+    assert 128, 100 == data.shape
+
     data, times = raw.get_data(start=0, stop=300, return_times=True)
     epochs = make_fixed_length_epochs(raw, duration=0.05, preload=False)
     assert len(epochs.events) == 3
