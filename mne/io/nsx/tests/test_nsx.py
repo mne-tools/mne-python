@@ -8,7 +8,7 @@ import pytest
 from numpy.testing import assert_allclose
 
 from mne.io import read_raw_nsx
-from mne.io.nsx.nsx import _decode_online_filters
+from mne.io.nsx.nsx import _decode_online_filters, _read_header
 from mne.io.meas_info import _empty_info
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io.tests.test_raw import _test_raw_reader
@@ -21,6 +21,7 @@ nsx_21_fname = os.path.join(testing_path, "nsx", "test_NEURALSG_raw.ns3")
 nsx_22_fname = os.path.join(testing_path, "nsx", "test_NEURALCD_raw.ns3")
 nsx_31_fname = os.path.join(testing_path, "nsx", "test_BRSMPGRP_raw.ns3")
 nsx_test_fname = os.path.join(testing_path, "nsx", "Test_anonymized.ns3")
+edf_test_fname = os.path.join(testing_path, "EDF", "test_reduced.edf")
 
 
 def test_decode_online_filters():
@@ -45,6 +46,15 @@ def test_decode_online_filters():
     _decode_online_filters(info, highpass, lowpass)
     assert info["highpass"] == 0.0
     assert info["lowpass"] == 50.0
+
+
+@requires_testing_data
+def test_filetype_checks():
+    """Tests for various error meaasges for wrong filetypes."""
+    with pytest.raises(ValueError, match="does not match"):
+        _read_header(edf_test_fname)
+    with pytest.raises(NotImplementedError, match="Only NSx files"):
+        read_raw_nsx(edf_test_fname)
 
 
 @requires_testing_data
