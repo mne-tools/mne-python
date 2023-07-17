@@ -228,10 +228,7 @@ class RawNSX(BaseRaw):
         for first_samp, recording_extent, offset in zip(
             first_samps, recording_extents, offsets
         ):
-            if start > first_samp + recording_extent:
-                # There is nothing to read in this chunk
-                continue
-            if stop < first_samp:
+            if start > first_samp + recording_extent or stop < first_samp:
                 # There is nothing to read in this chunk
                 continue
             i_start = max(start, first_samp)
@@ -270,13 +267,13 @@ def _read_header(fname):
     elif nsx_file_id == "NEURALSG":
         raise NotImplementedError(
             "NSx file id (= NEURALSG), i.e., file"
-            "version 2.1 is currently not supported."
+            " version 2.1 is currently not supported."
         )
     else:
         raise ValueError(
             f"NSx file id (={nsx_file_id}) does not match"
-            "with supported file ids:"
-            "('NEURALCD', 'BRSMPGRP')"
+            " with supported file ids:"
+            " ('NEURALCD', 'BRSMPGRP')"
         )
 
     time_origin = datetime(
