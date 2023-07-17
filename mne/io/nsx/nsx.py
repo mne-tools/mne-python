@@ -15,28 +15,12 @@ from ...annotations import Annotations
 from ...utils import logger, fill_doc, warn
 
 
-# common channel type names mapped to internal ch types
-# CH_TYPE_MAPPING = {
-#     "EEG": FIFF.FIFFV_EEG_CH,
-#     "SEEG": FIFF.FIFFV_SEEG_CH,
-#     "CC": FIFF.FIFFV_SEEG_CH,
-#     "ECOG": FIFF.FIFFV_ECOG_CH,
-#     "DBS": FIFF.FIFFV_DBS_CH,
-#     "EOG": FIFF.FIFFV_EOG_CH,
-#     "ECG": FIFF.FIFFV_ECG_CH,
-#     "EMG": FIFF.FIFFV_EMG_CH,
-#     "BIO": FIFF.FIFFV_BIO_CH,
-#     "RESP": FIFF.FIFFV_RESP_CH,
-#     "TEMP": FIFF.FIFFV_TEMPERATURE_CH,
-#     "MISC": FIFF.FIFFV_MISC_CH,
-#     "SAO2": FIFF.FIFFV_BIO_CH,
-# }
-
 CH_TYPE_MAPPING = {
     "CC": "SEEG",
 }
 
 
+# See https://blackrockneurotech.com/wp-content/uploads/LB-0023-7.00_NEV_File_Format.pdf
 DATA_BYTE_SIZE = 2
 ORIG_FORMAT = "short"
 
