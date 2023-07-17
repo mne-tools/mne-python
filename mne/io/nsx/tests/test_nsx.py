@@ -2,7 +2,6 @@
 #
 # License: BSD-3-Clause
 import os
-import warnings
 import numpy as np
 import pytest
 
@@ -29,14 +28,14 @@ def test_decode_online_filters():
     info = _empty_info(100.0)
     highpass = np.array([0.0, 0.1])
     lowpass = np.array([50, 50])
-    with pytest.raises(RuntimeWarning, match="different highpass filters"):
+    with pytest.warns(RuntimeWarning, match="different highpass filters"):
         _decode_online_filters(info, highpass, lowpass)
     assert info["highpass"] == 0.1
 
     info = _empty_info(100.0)
     highpass = np.array([0.0, 0.0])
     lowpass = np.array([40, 50])
-    with pytest.raises(RuntimeWarning, match="different lowpass filters"):
+    with pytest.warns(RuntimeWarning, match="different lowpass filters"):
         _decode_online_filters(info, highpass, lowpass)
     assert info["lowpass"] == 40
 
@@ -76,8 +75,7 @@ def test_nsx_ver_31():
     # Ignore following RuntimeWarning in mne/io/base.py in _write_raw_fid
     # "Acquisition skips detected but did not fit evenly into output"
     # "buffer_size, will be written as zeroes."
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
+    with pytest.warns(RuntimeWarning, match="skips detected"):
         raw = _test_raw_reader(
             read_raw_nsx,
             input_fname=nsx_31_fname,
