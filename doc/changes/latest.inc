@@ -23,6 +23,7 @@ Current (1.5.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add reader for NSx files (Blackrock Microsystems Data Acquisition Systems) (:gh:`11432` by :newcontrib:`Proloy Das`)
 - Add ``cmap`` argument for the :func:`mne.viz.plot_sensors` (:gh:`11720` by :newcontrib:`Gennadiy Belonosov`)
 - Return unmodified instance if new sampling frequency is identical to the original in :meth:`mne.io.Raw.resample`, :meth:`mne.Epochs.resample`, :meth:`mne.Evoked.resample` and :meth:`mne.SourceEstimate.resample` (:gh:`11736` by :newcontrib:`Gennadiy Belonosov`)
 - When failing to locate a file, we now print the full path in quotation marks to help spot accidentally added trailing spaces (:gh:`11718` by `Richard Höchenberger`_)
