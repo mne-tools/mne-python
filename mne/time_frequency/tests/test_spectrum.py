@@ -389,53 +389,49 @@ def test_spectrum_kwarg_triaging(raw):
     raw.plot_psd(ax=axes)
 
 
-def test_spectrumarray_raw(raw):
+def test_spectrum_array_raw(raw_psd):
     """Test SpectrumArray for Raw-derived spectra."""
-    spect = raw.compute_psd()
-    spect2 = SpectrumArray(
-        data=spect.get_data(),
-        freqs=spect.freqs,
-        info=spect.info,
+    raw_psd2 = SpectrumArray(
+        data=raw_psd.get_data(),
+        freqs=raw_psd.freqs,
+        info=raw_psd.info,
     )
-    assert_array_equal(spect.get_data(), spect2.get_data())
-    assert_array_equal(spect.freqs, spect2.freqs)
+    assert_array_equal(raw_psd.get_data(), raw_psd2.get_data())
+    assert_array_equal(raw_psd.freqs, raw_psd2.freqs)
 
 
-def test_epochsspectrumaray(epochs):
+def test_epochs_spectrum_aray(epochs_psd):
     """Test EpochsSpectrumArray for Epochs-derived spectra."""
-    spect = epochs.compute_psd()
-    spect2 = EpochsSpectrumArray(
-        data=spect.get_data(),
-        freqs=spect.freqs,
-        info=spect.info,
-        events=epochs.events,
-        event_id=epochs.event_id,
+    epochs_psd2 = EpochsSpectrumArray(
+        data=epochs_psd.get_data(),
+        freqs=epochs_psd.freqs,
+        info=epochs_psd.info,
+        events=epochs_psd.events,
+        event_id=epochs_psd.event_id,
     )
-    assert_array_equal(spect.get_data(), spect2.get_data())
-    assert_array_equal(spect.freqs, spect2.freqs)
+    assert_array_equal(epochs_psd.get_data(), epochs_psd2.get_data())
+    assert_array_equal(epochs_psd.freqs, epochs_psd2.freqs)
 
 
-def test_plot_spectrumaray(raw, epochs):
+def test_plot_spectrum_aray(raw_psd, epochs_psd):
     """Test SpectrumArray and EpochsSpectrumArray plotting."""
-    spectra = list()
-    spect_orig = raw.compute_psd()
-    spectra.append(
+    psds = list()
+    psds.append(
         SpectrumArray(
-            data=spect_orig.get_data(),
-            freqs=spect_orig.freqs,
-            info=spect_orig.info,
+            data=raw_psd.get_data(),
+            freqs=raw_psd.freqs,
+            info=raw_psd.info,
         )
     )
-    spect_orig = epochs.compute_psd()
-    spectra.append(
+    psds.append(
         EpochsSpectrumArray(
-            data=spect_orig.get_data(),
-            freqs=spect_orig.freqs,
-            info=spect_orig.info,
-            events=epochs.events,
-            event_id=epochs.event_id,
+            data=epochs_psd.get_data(),
+            freqs=epochs_psd.freqs,
+            info=epochs_psd.info,
+            events=epochs_psd.events,
+            event_id=epochs_psd.event_id,
         )
     )
-    for spect in spectra:
-        spect.plot(average=True, amplitude=True, spatial_colors=True)
-        spect.plot(average=False, amplitude=False, spatial_colors=False)
+    for psd in psds:
+        psd.plot(average=True, amplitude=True, spatial_colors=True)
+        psd.plot(average=False, amplitude=False, spatial_colors=False)

@@ -290,6 +290,12 @@ def raw_ctf():
 
 
 @pytest.fixture(scope="function")
+def raw_psd(raw):
+    """Get raw with power spectral density computed from mne.io.tests.data."""
+    return raw.compute_psd()
+
+
+@pytest.fixture(scope="function")
 def events():
     """Get events from mne.io.tests.data."""
     return read_events(fname_event_io)
@@ -339,6 +345,12 @@ def epochs_unloaded():
 def epochs_full():
     """Get full, preloaded epochs from mne.io.tests.data."""
     return _get_epochs(None).load_data()
+
+
+@pytest.fixture()
+def epochs_psd():
+    """Get epochs with power spectral density computed from mne.io.tests.data."""
+    return _get_epochs().load_data().compute_psd()
 
 
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
