@@ -172,6 +172,10 @@ do::
     raw_fnames = eegbci.load_data(subject, runs)
     raws = [read_raw_edf(f, preload=True) for f in raw_fnames]
     raw = concatenate_raws(raws)
+    eegbci.standardize(raw)
+
+See `the dataset description <https://physionet.org/content/eegmmidb/1.0.0/>` for more
+information.
 
 .. topic:: Examples
 
