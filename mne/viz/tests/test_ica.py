@@ -408,6 +408,13 @@ def test_plot_ica_overlay():
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
+
+    # Check that the issue addressed by the following pull request is fixed:
+    # https://github.com/mne-tools/mne-python/pull/11808
+    # Issue meant that an error would be raised by plot_sources, unless picks
+    # were consecutive, starting at 0.
+    ica.plot_sources(eog_epochs.average(), picks=1)
+
     plt.close("all")
 
     # smoke test for CTF
