@@ -1,9 +1,9 @@
 """
 .. _tut-sensors-psd:
 
-===============================
-Power Spectral Density Analysis
-===============================
+====================================================
+Power Spectral Density Analysis: Spectral Decoupling
+====================================================
 
 The objective of this tutorial is describe the basics of power spectral
 density and what it can tell us about underlying brain activity.
@@ -38,8 +38,9 @@ raw.set_montage(montage)
 events, event_id = mne.events_from_annotations(raw)
 # four seconds of movement/rest; start 1 s after onset and end 1s before
 # offset for just movement/rest
-epochs = mne.Epochs(raw, events, tmin=1, tmax=3,
-                    reject=dict(eeg=4e-4), baseline=None, preload=True)
+epochs = mne.Epochs(
+    raw, events, tmin=1, tmax=3, reject=dict(eeg=4e-4), baseline=None, preload=True
+)
 
 # %%
 # First, let's compute the power spectral density and plot it.
@@ -51,21 +52,30 @@ psd.plot()
 # to the building where the data was collected, let's remove that with
 # a notch filter so that it won't dominate our signal.
 raw.notch_filter([60])
-epochs = mne.Epochs(raw, events, tmin=1, tmax=3,
-                    reject=dict(eeg=4e-4), baseline=None, preload=True)
+epochs = mne.Epochs(
+    raw, events, tmin=1, tmax=3, reject=dict(eeg=4e-4), baseline=None, preload=True
+)
 psd = epochs.compute_psd(fmax=75)
 psd.plot()
 
 # %%
 # Now, there are two main components to a power spectrum: 1) The
 # power that is present across all frequencies and decreases
-# exponentially at higher frequencies and 2) Peaks, generally with a
-# normal distribution above this background power. We can separate
-# out these using principle component analysis (PCA) as in
+# exponentially at higher frequencies (called the 1/f component
+# or power law scaling or broadband power) and 2) Peaks, generally with a
+# normal distribution above this background power. The broadband power
+# are consistent with reflecting neural activity that is aperiod and
+# asynchronous in that, when broadband power is greater, more neurons are
+# firing total, but that they are not synchronized with each other in an
+# oscillatory rhythm. Peaks in the power spectrum, on the other hand, are
+# understood as periodic, synchronous neural activity.
+
+# %%
+# We can separate out these using principal component analysis (PCA) as in
 # :footcite:`MillerEtAl2009A`. Let's see how this works:
 
 # select the only channel so the data is (epochs x freqs)
-psd_data = psd.get_data(picks=['C3'])[:, 0]
+psd_data = psd.get_data(picks=["C3"])[:, 0]
 
 # normalize
 psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
@@ -74,29 +84,112 @@ psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
 mask = np.logical_or(psd.freqs < 57, psd.freqs > 63)
 
 # set a random seed for reproducibility
-pca = PCA(svd_solver='randomized', whiten=True, random_state=99).fit(psd_data[:, mask])
+pca = PCA(svd_solver="randomized", whiten=True, random_state=99).fit(psd_data[:, mask])
 
+# %%
+# As shown below, the maroon component (1st principal component (PC)) has weights evenly
+# spread across frequencies whereas the tan component (2nd PC) is
+# peaked at around 16 Hz which is considered in the beta (13 - 30 Hz) band of frequencies.
+# Admittedly, this is not as clean in scalp electroencephalography (EEG) as it is in
+# electrocorticography (ECoG) as was done in the paper referenced. ECoG is implanted
+# on the surface of the brain so it detects more brain signal.
 fig, ax = plt.subplots()
 comp0 = np.zeros((psd.freqs.size,)) * np.nan
 comp0[mask] = pca.components_[0]
-ax.plot(psd.freqs, comp0, color='maroon')
+ax.plot(psd.freqs, comp0, color="maroon")
 comp1 = np.zeros((psd.freqs.size,)) * np.nan
 comp1[mask] = pca.components_[1]
-ax.plot(psd.freqs, comp1, color='tan')
-fig.show()
+ax.plot(psd.freqs, comp1, color="tan")
+ax.axhline(0)
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel("Component Weight")
 
-psd_data = psd.get_data(picks=['C3'])[:, 0]
+# %%
+# One thing to notice is that the principal components tend to be generally in opposite
+# directions. This is likely because principle component are required to be orthogonal.
+# This is not the case for factor analysis, which is like PCA without orthogonal axes.
+# Notice that the first and second PCs mirror each other less across the ``y=0`` line.
+psd_data = psd.get_data(picks=["C3"])[:, 0]
 psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
-n_epochs, n_freqs = psd_data.shape
-
-# make into EpochsArray with frequencies instead of times
-raw_psd = mne.io.RawArray(psd_data, mne.create_info(
-    [f'ch{i}' for i in range(n_epochs)], psd.info['sfreq'], 'eeg'))
-
-ica = mne.preprocessing.ICA(n_components=5).fit(raw_psd)
-sources_psd = ica.get_sources(raw_psd).get_data()
+mask = np.logical_or(psd.freqs < 57, psd.freqs > 63)
+fa = FactorAnalysis(rotation="varimax", random_state=99).fit(psd_data[:, mask])
 
 fig, ax = plt.subplots()
-ax.plot(psd.freqs, sources_psd[0], color='maroon')
-ax.plot(psd.freqs, sources_psd[1], color='tan')
-fig.show()
+comp0 = np.zeros((psd.freqs.size,)) * np.nan
+comp0[mask] = fa.components_[0]
+ax.plot(psd.freqs, comp0, color="maroon")
+comp1 = np.zeros((psd.freqs.size,)) * np.nan
+comp1[mask] = fa.components_[1]
+ax.plot(psd.freqs, comp1, color="tan")
+ax.axhline(0)
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel("Component Weight")
+
+# Finally, let's apply the PCA to our data and see if this helps us separate
+# movement epochs from rest epochs.
+event_mask = [entry == () for entry in epochs.drop_log]
+move_events = np.logical_or(
+    events[:, 2] == event_id["T1"], events[:, 2] == event_id["T2"]
+)[event_mask]
+rest_events = (events[:, 2] == event_id["T0"])[event_mask]
+
+# %%
+# We see that we are indeed able to recapitulate the figures from
+# :footcite:`MillerEtAl2009A`. Note particularly that as you get into
+# higher frequencies that the power spectra for the two conditions are parallel.
+# Where there are more oscillations, in the lower frequencies (below 30 Hz),
+# this becomes obscured, but, in :footcite:`MillerEtAl2009B` higher frequencies are
+# expolored using ECoG and basically this phenoma holds out at those higher frequencies
+# indicating that the connectivity of the brain probably doesn't change fundamentally
+# but rather this shift in the power spectrum happens when more neurons are firing total
+# near the recording site.
+fig, ax = plt.subplots()
+fig.suptitle("Full Recording")
+move_psd_data = np.zeros((psd.freqs.size,)) * np.nan
+move_psd_data[mask] = psd_data[move_events].mean(axis=0)[mask]
+ax.plot(psd.freqs, move_psd_data, color="green")
+rest_psd_data = np.zeros((psd.freqs.size,)) * np.nan
+rest_psd_data[mask] = psd_data[rest_events].mean(axis=0)[mask]
+ax.plot(psd.freqs, rest_psd_data, color="black")
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel(r"Power ($\mu$$V^2$)")
+
+psd_mean = psd_data[:, mask].mean(axis=0)
+
+fig, ax = plt.subplots()
+fig.suptitle("1st PC (Broadband Power)")
+move_psd_data = np.zeros((psd.freqs.size,)) * np.nan
+move_psd_data[mask] = np.mean(
+    np.dot(pca.transform(psd_data[move_events][:, mask])[:, 0:1], pca.components_[0:1])
+    + psd_mean,
+    axis=0,
+)
+ax.plot(psd.freqs, move_psd_data, color="green")
+rest_psd_data = np.zeros((psd.freqs.size,)) * np.nan
+rest_psd_data[mask] = np.mean(
+    np.dot(pca.transform(psd_data[rest_events][:, mask])[:, 0:1], pca.components_[0:1])
+    + psd_mean,
+    axis=0,
+)
+ax.plot(psd.freqs, rest_psd_data, color="black")
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel(r"Power ($\mu$$V^2$)")
+
+fig, ax = plt.subplots()
+fig.suptitle("2nd PC (Beta Oscillations)")
+move_psd_data = np.zeros((psd.freqs.size,)) * np.nan
+move_psd_data[mask] = np.mean(
+    np.dot(pca.transform(psd_data[move_events][:, mask])[:, 1:2], pca.components_[1:2])
+    + psd_mean,
+    axis=0,
+)
+ax.plot(psd.freqs, move_psd_data, color="green")
+rest_psd_data = np.zeros((psd.freqs.size,)) * np.nan
+rest_psd_data[mask] = np.mean(
+    np.dot(pca.transform(psd_data[rest_events][:, mask])[:, 1:2], pca.components_[1:2])
+    + psd_mean,
+    axis=0,
+)
+ax.plot(psd.freqs, rest_psd_data, color="black")
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel(r"Power ($\mu$$V^2$)")
