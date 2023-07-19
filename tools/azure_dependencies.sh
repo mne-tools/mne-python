@@ -5,7 +5,7 @@ if [ "${TEST_MODE}" == "pip" ]; then
 	python -m pip install --upgrade pip setuptools wheel
 	python -m pip install --upgrade --only-binary="numba,llvmlite,numpy,scipy,vtk" -r requirements.txt
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
-	python -m pip install --progress-bar off --upgrade pip setuptools wheel packaging
+	python -m pip install --progress-bar off --upgrade pip setuptools wheel packaging setuptools_scm
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" PyQt6 PyQt6-sip PyQt6-Qt6
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" numpy scipy statsmodels pandas scikit-learn matplotlib
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy

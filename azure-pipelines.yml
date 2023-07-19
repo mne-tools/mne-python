@@ -299,8 +299,13 @@ stages:
     # with basic matplotlib functionality so it must be uninstalled until fixed
     - bash: |
         set -e
+        echo "Removing MNE and ipympl"
         mamba remove -c conda-forge --force -yq mne ipympl
         rm /c/Miniconda/Scripts/mne.exe
+        echo "Checking Qt"
+        ./tools/check_qt_import.sh PyQt5
+        echo "Checking qtpy"
+        python -c "from qtpy.QtCore import Qt"
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Remove old MNE
     - script: pip install -e .
