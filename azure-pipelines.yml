@@ -298,7 +298,7 @@ stages:
     # ipympl is not tested on Windows and even its installation interferes
     # with basic matplotlib functionality so it must be uninstalled until fixed
     - bash: |
-        set -e
+        set -eo pipefail
         echo "Removing MNE and ipympl"
         mamba remove -c conda-forge --force -yq mne ipympl
         rm /c/Miniconda/Scripts/mne.exe
