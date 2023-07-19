@@ -409,10 +409,8 @@ def test_plot_ica_overlay():
     pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
 
-    # Check that the issue addressed by the following pull request is fixed:
-    # https://github.com/mne-tools/mne-python/pull/11808
-    # Issue meant that an error would be raised by plot_sources, unless picks
-    # were consecutive, starting at 0.
+    # regression test for `IndexError` when passing non-consecutive picks or consecutive
+    # picks not including `0` (https://github.com/mne-tools/mne-python/pull/11808)
     ica.plot_sources(eog_epochs.average(), picks=1)
 
     plt.close("all")
