@@ -245,10 +245,8 @@ stages:
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
-      OPENBLAS_NUM_THREADS: 1
-      MKL_NUM_THREADS: 2
+      OPENBLAS_NUM_THREADS: 2
       OMP_DYNAMIC: 'false'
-      MKL_DYNAMIC: 'false'
       PYTHONUNBUFFERED: 1
       PYTHONIOENCODING: 'utf-8'
       AZURE_CI_WINDOWS: 'true'
@@ -257,10 +255,6 @@ stages:
     strategy:
       maxParallel: 4
       matrix:
-        3.10 conda:
-          PLATFORM: 'x86-64'
-          TEST_MODE: 'conda'
-          PYTHON_VERSION: '3.10'
         3.9 pip:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.9'
@@ -273,49 +267,16 @@ stages:
         versionSpec: $(PYTHON_VERSION)
         architecture: $(PYTHON_ARCH)
         addToPath: true
-      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
       displayName: 'Get Python'
-    # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
-    # https://github.com/MicrosoftDocs/pipelines-anaconda
-    # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: |
-        echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
-      condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH, deal with Qt linking bug
     - bash: |
-        set -e
+        set -eo pipefail
         git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
         powershell gl-ci-helpers/appveyor/install_opengl.ps1
       displayName: Install OpenGL
-    - bash: |
-        set -e
-        ./tools/azure_dependencies.sh
-      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
+    - bash: ./tools/azure_dependencies.sh
       displayName: Install dependencies with pip
-    - script: conda install -c conda-forge "mamba!=1.4.9"
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Get mamba
-    - script: mamba env update --name base --file environment.yml
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Setup MNE environment
-    # ipympl is not tested on Windows and even its installation interferes
-    # with basic matplotlib functionality so it must be uninstalled until fixed
-    - bash: |
-        set -eo pipefail
-        echo "Removing MNE and ipympl"
-        mamba remove -c conda-forge --force -yq mne ipympl
-        rm /c/Miniconda/Scripts/mne.exe
-        echo "Checking Qt"
-        ./tools/check_qt_import.sh PyQt5
-        echo "Checking qtpy"
-        python -c "from qtpy.QtCore import Qt"
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Remove old MNE
     - script: pip install -e .
       displayName: 'Install MNE-Python dev'
-    - script: pip install --progress-bar off -e .[test]
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Install testing requirements
     - script: mne sys_info -pd
       displayName: 'Print config'
     - script: python -c "import numpy; numpy.show_config()"
