@@ -373,6 +373,10 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     ica.exclude = [0]
     ica.plot_sources(evoked)
 
+    # regression test for `IndexError` when passing non-consecutive picks or consecutive
+    # picks not including `0` (https://github.com/mne-tools/mne-python/pull/11808)
+    ica.plot_sources(evoked, picks=1)
+
     # pretend find_bads_eog() yielded some results
     ica.labels_ = {"eog": [0], "eog/0/crazy-channel": [0]}
     ica.plot_sources(evoked)  # now with labels
@@ -408,11 +412,6 @@ def test_plot_ica_overlay():
     pytest.raises(TypeError, ica.plot_overlay, raw[:2, :3][0])
     pytest.raises(TypeError, ica.plot_overlay, raw, exclude=2)
     ica.plot_overlay(raw)
-
-    # regression test for `IndexError` when passing non-consecutive picks or consecutive
-    # picks not including `0` (https://github.com/mne-tools/mne-python/pull/11808)
-    ica.plot_sources(eog_epochs.average(), picks=1)
-
     plt.close("all")
 
     # smoke test for CTF
