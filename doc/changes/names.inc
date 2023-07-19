@@ -106,6 +106,8 @@
 
 .. _Daniel Strohmeier: https://github.com/joewalter
 
+.. _Daniel Tse: https://github.com/Xiezhibin
+
 .. _Darin Erat Sleiter: https://github.com/dsleiter
 
 .. _David Haslacher: https://github.com/davidhaslacher
@@ -565,5 +567,3 @@
 .. _Zhi Zhang: https://github.com/tczhangzhi/
 
 .. _Zvi Baratz: https://github.com/ZviBaratz
-
-.. _Daniel Tse: https://github.com/Xiezhibin
