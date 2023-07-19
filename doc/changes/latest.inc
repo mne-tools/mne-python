@@ -54,7 +54,7 @@ Bugs
 - Fix bug where :ref:`mne show_fiff` could fail with an ambiguous error if the file is corrupt (:gh:`11800` by `Eric Larson`_)
 - Fix bug where annotation FIF files lacked an end block tag (:gh:`11800` by `Eric Larson`_)
 - Fix display of :class:`~mne.Annotations` in `mne.preprocessing.ICA.plot_sources` when the ``raw`` has ``raw.first_samp != 0`` and doesn't have a measurement date (:gh:`11766` by `Mathieu Scheltienne`_)
-- Fix bug with :func:`mne.io.snirf.read_raw_snirf` method where reader can't handle file with MeasurementTime containing milliseconds (:gh:`11804` by `Daniel Tse`_)
+- Fix bug with :func:`~mne.io.read_raw_snirf` to handle files with measurement time containing milliseconds (:gh:`11804` by :newcontrib:`Daniel Tse`)
 
 API changes
 ~~~~~~~~~~~
