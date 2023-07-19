@@ -174,7 +174,7 @@ do::
     raw = concatenate_raws(raws)
     eegbci.standardize(raw)
 
-See `the dataset description <https://physionet.org/content/eegmmidb/1.0.0/>` for more
+See the dataset `description <https://physionet.org/content/eegmmidb/1.0.0/>`_ for more
 information.
 
 .. topic:: Examples

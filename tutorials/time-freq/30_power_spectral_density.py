@@ -88,8 +88,8 @@ pca = PCA(svd_solver="randomized", whiten=True, random_state=99).fit(psd_data[:,
 
 # %%
 # As shown below, the maroon component (1st principal component (PC)) has weights evenly
-# spread across frequencies whereas the tan component (2nd PC) is
-# peaked at around 16 Hz which is considered in the beta (13 - 30 Hz) band of frequencies.
+# spread across frequencies whereas the tan component (2nd PC) is peaked at around 16 Hz
+# which is considered in the beta (13 - 30 Hz) band of frequencies.
 # Admittedly, this is not as clean in scalp electroencephalography (EEG) as it is in
 # electrocorticography (ECoG) as was done in the paper referenced. ECoG is implanted
 # on the surface of the brain so it detects more brain signal.

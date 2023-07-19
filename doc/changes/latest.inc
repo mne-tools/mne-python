@@ -34,6 +34,7 @@ Enhancements
 - Added a section for combining eye-tracking and EEG data to the preprocessing tutorial "working with eye tracker data in MNE-Python" (:gh:`11770` by `Scott Huberty`_)
 - Added a ``show_bytes`` option to :ref:`mne show_fiff` to show byte offsets (:gh:`11800` by `Eric Larson`_)
 - Add :meth:`mne.Annotations.count` and :func:`mne.count_annotations` to count unique annotations (:gh:`11796` by `Clemens Brunner`_)
+- Add tutorial about power spectral density interpretation in :ref:`tut-sensors-psd` (:gh:`11812` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
