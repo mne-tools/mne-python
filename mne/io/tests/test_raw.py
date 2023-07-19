@@ -155,7 +155,7 @@ def _test_raw_reader(
         # test projection vs cals and data units
         other_raw = reader(preload=False, **kwargs)
         other_raw.del_proj()
-        eeg = meg = fnirs = False
+        eeg = meg = fnirs = seeg = False
         if "eeg" in raw:
             eeg, atol = True, 1e-18
         elif "grad" in raw:
@@ -166,10 +166,14 @@ def _test_raw_reader(
             fnirs, atol = "hbo", 1e-10
         elif "hbr" in raw:
             fnirs, atol = "hbr", 1e-10
-        else:
-            assert "fnirs_cw_amplitude" in raw, "New channel type necessary?"
+        elif "fnirs_cw_amplitude" in raw:
             fnirs, atol = "fnirs_cw_amplitude", 1e-10
-        picks = pick_types(other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
+        else:
+            # e.g., https://github.com/mne-tools/mne-python/pull/11432/files
+            assert "seeg" in raw, "New channel type necessary? See gh-11432 for example"
+            seeg, atol = True, 1e-18
+
+        picks = pick_types(other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs, seeg=seeg)
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
         proj /= np.sqrt(proj.shape[1])
