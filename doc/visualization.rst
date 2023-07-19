@@ -87,8 +87,6 @@ Visualization
    get_browser_backend
    use_browser_backend
 
-
-
 .. currentmodule:: mne.viz.eyetracking
 
 :py:mod:`mne.viz.eyetracking`:
