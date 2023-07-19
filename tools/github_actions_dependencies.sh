@@ -4,7 +4,7 @@ STD_ARGS="--progress-bar off --upgrade"
 EXTRA_ARGS=""
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	pip uninstall -yq mne
+	sudo pip uninstall -yq mne
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
