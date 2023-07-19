@@ -181,7 +181,7 @@ rest_events = (events[:, 2] == event_id["T0"])[event_mask]
 # the beta desynchronization is more widespread across most of primary
 # motor cortex. This is evidence that ties into the spotlight hypothesis
 # of motor control where widespread inhibition of the motor system (which seems
-# to be mediated by this beta oscillation decrease) faciliates choosing the
+# to be mediated by this beta oscillation decrease) facilitates choosing the
 # correct response (potentially mediated by the broadband power increase)
 # like quieting a crowd in a stadium order to pick one person out in
 # particular :footcite:`GreenhouseEtAl2015`.
