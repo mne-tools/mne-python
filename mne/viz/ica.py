@@ -824,14 +824,14 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
                 style = cat_styles[label_name]
                 label_props[label_idx] = (color, style)
 
-    for exc_label, ii in zip(exclude_labels, picks):
-        color, style = label_props[ii]
+    for pick_idx, (exc_label, pick) in enumerate(zip(exclude_labels, picks)):
+        color, style = label_props[pick_idx]
         # ensure traces of excluded components are plotted on top
         zorder = 2 if exc_label is None else 10
         lines.extend(
             ax.plot(
                 times,
-                evoked.data[ii].T,
+                evoked.data[pick].T,
                 picker=True,
                 zorder=zorder,
                 color=color,
