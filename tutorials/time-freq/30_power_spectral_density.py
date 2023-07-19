@@ -135,61 +135,60 @@ rest_events = (events[:, 2] == event_id["T0"])[event_mask]
 
 # %%
 # We see that we are indeed able to recapitulate the figures from
-# :footcite:`MillerEtAl2009A`. Note particularly that as you get into
-# higher frequencies that the power spectra for the two conditions are parallel.
-# Where there are more oscillations, in the lower frequencies (below 30 Hz),
-# this becomes obscured, but, in :footcite:`MillerEtAl2009B` higher frequencies are
-# expolored using ECoG and basically this phenoma holds out at those higher frequencies
-# indicating that the connectivity of the brain probably doesn't change fundamentally
-# but rather this shift in the power spectrum happens when more neurons are firing total
-# near the recording site.
-fig, ax = plt.subplots()
-fig.suptitle("Full Recording")
+# :footcite:`MillerEtAl2009A` with a bit weaker effects. Note particularly that
+# as you get into higher frequencies that the power spectra for the two conditions
+# are parallel. Where there are more oscillations, in the lower frequencies
+# (below 30 Hz), this becomes obscured, but, in :footcite:`MillerEtAl2009B` higher
+# frequencies are #expolored using ECoG and basically this phenoma holds out at
+# those higher frequencies indicating that the connectivity of the brain probably
+# doesn't change fundamentally but rather this shift in the power spectrum happens
+# when more neurons are firing total near the recording site.
+fig, (ax, ax2, ax3) = plt.subplots(3, 1, figsize=(6, 10))
+ax.set_title("Full Recording")
 move_psd_data = np.zeros((psd.freqs.size,)) * np.nan
 move_psd_data[mask] = psd_data[move_events].mean(axis=0)[mask]
-ax.plot(psd.freqs, move_psd_data, color="green")
+ax.plot(psd.freqs, move_psd_data, color="green", linewidth=0.5)
 rest_psd_data = np.zeros((psd.freqs.size,)) * np.nan
 rest_psd_data[mask] = psd_data[rest_events].mean(axis=0)[mask]
-ax.plot(psd.freqs, rest_psd_data, color="black")
+ax.plot(psd.freqs, rest_psd_data, color="black", linewidth=0.5)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel(r"Power ($\mu$$V^2$)")
 
 psd_mean = psd_data[:, mask].mean(axis=0)
 
-fig, ax = plt.subplots()
-fig.suptitle("1st PC (Broadband Power)")
+ax2.set_title("1st PC (Broadband Power)")
 move_psd_data = np.zeros((psd.freqs.size,)) * np.nan
 move_psd_data[mask] = np.mean(
     np.dot(pca.transform(psd_data[move_events][:, mask])[:, 0:1], pca.components_[0:1])
     + psd_mean,
     axis=0,
 )
-ax.plot(psd.freqs, move_psd_data, color="green")
+ax2.plot(psd.freqs, move_psd_data, color="green", linewidth=0.5)
 rest_psd_data = np.zeros((psd.freqs.size,)) * np.nan
 rest_psd_data[mask] = np.mean(
     np.dot(pca.transform(psd_data[rest_events][:, mask])[:, 0:1], pca.components_[0:1])
     + psd_mean,
     axis=0,
 )
-ax.plot(psd.freqs, rest_psd_data, color="black")
-ax.set_xlabel("Frequency (Hz)")
-ax.set_ylabel(r"Power ($\mu$$V^2$)")
+ax2.plot(psd.freqs, rest_psd_data, color="black", linewidth=0.5)
+ax2.set_xlabel("Frequency (Hz)")
+ax2.set_ylabel(r"Power ($\mu$$V^2$)")
 
-fig, ax = plt.subplots()
-fig.suptitle("2nd PC (Beta Oscillations)")
+ax3.set_title("2nd PC (Beta Oscillations)")
 move_psd_data = np.zeros((psd.freqs.size,)) * np.nan
 move_psd_data[mask] = np.mean(
     np.dot(pca.transform(psd_data[move_events][:, mask])[:, 1:2], pca.components_[1:2])
     + psd_mean,
     axis=0,
 )
-ax.plot(psd.freqs, move_psd_data, color="green")
+ax3.plot(psd.freqs, move_psd_data, color="green", linewidth=0.5)
 rest_psd_data = np.zeros((psd.freqs.size,)) * np.nan
 rest_psd_data[mask] = np.mean(
     np.dot(pca.transform(psd_data[rest_events][:, mask])[:, 1:2], pca.components_[1:2])
     + psd_mean,
     axis=0,
 )
-ax.plot(psd.freqs, rest_psd_data, color="black")
-ax.set_xlabel("Frequency (Hz)")
-ax.set_ylabel(r"Power ($\mu$$V^2$)")
+ax3.plot(psd.freqs, rest_psd_data, color="black", linewidth=0.5)
+ax3.set_xlabel("Frequency (Hz)")
+ax3.set_ylabel(r"Power ($\mu$$V^2$)")
+fig.tight_layout()
