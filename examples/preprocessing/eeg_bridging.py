@@ -304,7 +304,7 @@ raw_sim = raw_sim.add_channels(
         )
     ]
 )
-raw_sim.set_montage(montage)  # add back channel positions
+raw_sim.set_montage("standard_1005")  # add back channel positions
 
 # use virtual channel method
 raw_virtual = mne.preprocessing.interpolate_bridged_electrodes(
