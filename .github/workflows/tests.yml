@@ -34,7 +34,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        shell: bash -el {0}
+        shell: bash -e {0}
     env:
       PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
