@@ -6,7 +6,34 @@ Power Spectral Density Analysis: Spectral Decoupling
 ====================================================
 
 The objective of this tutorial is describe the basics of power spectral
-density and what it can tell us about underlying brain activity.
+density and what it can tell us about underlying brain activity. Power spectral
+density represents time-series data as the magnitude of sine and cosine
+coefficients of the Fourtier Transform; how much of each different
+frequency of sinusoidal wave best represents your time-series data. While,
+understandably, this method is great at detecting oscillatory neural activity
+(activity that waxes and wanes periodically at a particular frequency
+or rhythm), interestingly, it also yields important information about
+aperiodic neural activity through the background or broadband changes in power.
+Brain activity is consistently observed to have exponentially decreasing
+background power, like pink noise, with oscillatory peaks superimposed,
+like the peaks in a nuclear magnetic resonance (NMR) spectroscopy scan. The
+peaks can tell us about oscillatory (periodic), synchronous brain activity
+and the background power can tell us about non-oscillatory (aperiodic),
+asynchronous brain activity. (For contrast, an event-related potential,
+the deflection in an electrophysiology recording after an event is shown,
+is aperiodic because it doesn't repeat but synchronous because it is
+synchronized by the event). This tutorial will demonstrate how this
+interpretation of power spectral density can be used to study a movement
+task. Unfortunately, since this method was demonstrated on
+electrocortigraphy (ECoG) which can discriminate the location of brain
+activity at much better resolution than scalp electroencephalography (EEG),
+we won't be able to show that, during movement, the broadband changes
+in power are confined to a more specific brain area (the brain area
+that controls that particular movement) whereas the oscillation is
+spread across a large portion of primary motor cortex (the gyrus that,
+when stimulated, causes movement of different body parts depending
+on the location of stimulation) but please read :footcite:`MillerEtAl2009A`
+for more details.
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
@@ -31,8 +58,7 @@ raws = [mne.io.read_raw(f, preload=True) for f in raw_fnames]
 # join files and standardize format
 raw = mne.concatenate_raws(raws)
 eegbci.standardize(raw)  # set channel names
-montage = mne.channels.make_standard_montage("standard_1005")
-raw.set_montage(montage)
+raw.set_montage("standard_1005")
 
 # make epochs
 events, event_id = mne.events_from_annotations(raw)
@@ -62,13 +88,13 @@ psd.plot()
 # Now, there are two main components to a power spectrum: 1) The
 # power that is present across all frequencies and decreases
 # exponentially at higher frequencies (called the 1/f component
-# or power law scaling or broadband power) and 2) Peaks, generally with a
+# or power law scaling or broadband power) and 2) peaks, generally with a
 # normal distribution above this background power. The broadband power
-# are consistent with reflecting neural activity that is aperiod and
-# asynchronous in that, when broadband power is greater, more neurons are
-# firing total, but that they are not synchronized with each other in an
-# oscillatory rhythm. Peaks in the power spectrum, on the other hand, are
-# understood as periodic, synchronous neural activity.
+# reflects neural activity that is aperiod and asynchronous; when broadband
+# power is greater, more neurons are firing total but that they are not
+# synchronized with each other in an oscillatory rhythm :footcite:`ManningEtAl2009`.
+# Peaks in the power spectrum, on the other hand, are interpreted
+# as periodic, synchronous neural activity.
 
 # %%
 # We can separate out these using principal component analysis (PCA) as in
@@ -106,7 +132,7 @@ ax.set_ylabel("Component Weight")
 
 # %%
 # One thing to notice is that the principal components tend to be generally in opposite
-# directions. This is likely because principle component are required to be orthogonal.
+# directions. This is likely because principal component are required to be orthogonal.
 # This is not the case for factor analysis, which is like PCA without orthogonal axes.
 # Notice that the first and second PCs mirror each other less across the ``y=0`` line.
 psd_data = psd.get_data(picks=["C3"])[:, 0]
@@ -135,14 +161,30 @@ rest_events = (events[:, 2] == event_id["T0"])[event_mask]
 
 # %%
 # We see that we are indeed able to recapitulate the figures from
-# :footcite:`MillerEtAl2009A` with a bit weaker effects. Note particularly that
-# as you get into higher frequencies that the power spectra for the two conditions
-# are parallel. Where there are more oscillations, in the lower frequencies
+# :footcite:`MillerEtAl2009A` with a bit weaker effects using scalp EEG than
+# ECOG. Note particularly that, as you get into higher frequencies,
+# the power spectra for the two conditions are parallel.
+# Where there are more oscillations, in the lower frequencies
 # (below 30 Hz), this becomes obscured, but, in :footcite:`MillerEtAl2009B` higher
-# frequencies are #expolored using ECoG and basically this phenoma holds out at
+# frequencies are expolored using ECoG and basically this phenoma holds out at
 # those higher frequencies indicating that the connectivity of the brain probably
-# doesn't change fundamentally but rather this shift in the power spectrum happens
-# when more neurons are firing total near the recording site.
+# doesn't change fundamentally but rather this broadband shape shifts up and
+# down when more or fewer neurons are firing total near the recording site.
+#
+# Finally, also note that in :footcite:`MillerEtAl2009A`, the ECoG grid
+# covered the regions of primary motor cortex responsible for multiple
+# movements, whereas the C3 electrode is roughly over primary motor cortex
+# and so records the activity of a relatively large area of primary motor
+# cortex, spanning areas that control different limbs. Because of this, we
+# are unable to see that the broadband shifts occur focally in the
+# primary motor cortex region that controls the particular movement whereas
+# the beta desynchronization is more widespread across most of primary
+# motor cortex. This is evidence that ties into the spotlight hypothesis
+# of motor control where widespread inhibition of the motor system (which seems
+# to be mediated by this beta oscillation decrease) faciliates choosing the
+# correct response (potentially mediated by the broadband power increase)
+# like quieting a crowd in a stadium order to pick one person out in
+# particular :footcite:`GreenhouseEtAl2015`.
 fig, (ax, ax2, ax3) = plt.subplots(3, 1, figsize=(6, 10))
 ax.set_title("Full Recording")
 move_psd_data = np.zeros((psd.freqs.size,)) * np.nan
