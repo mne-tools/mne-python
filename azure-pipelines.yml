@@ -238,10 +238,7 @@ stages:
 
   - job: Windows
     pool:
-      # windows-latest causes a DLL bug as of 2023/07/19
-      # https://github.com/mne-tools/mne-python/pull/11815
-      # Someday we can use Dependency Walker from OpenMEEG to diagnose and fix it (maybe)
-      vmImage: 'windows-2019'
+      vmImage: 'windows-latest'
     variables:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
