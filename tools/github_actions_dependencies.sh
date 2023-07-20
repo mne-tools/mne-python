@@ -5,7 +5,7 @@ EXTRA_ARGS=""
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
 	conda remove -c conda-forge --force -yq mne
-	sudo pip uninstall mne
+	pip uninstall -y mne
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
