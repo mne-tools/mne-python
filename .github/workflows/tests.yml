@@ -32,6 +32,9 @@ jobs:
     timeout-minutes: 70
     continue-on-error: true
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -e {0}
     env:
       PYTHON_VERSION: '${{ matrix.python }}'
       MKL_NUM_THREADS: '1'
@@ -95,12 +98,12 @@ jobs:
           mamba install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
           mamba list
         if: matrix.kind == 'notebook'
-      - run: bash ./tools/github_actions_dependencies.sh
+      - run: ./tools/github_actions_dependencies.sh
       # Minimal commands on Linux (macOS stalls)
-      - run: bash ./tools/get_minimal_commands.sh
+      - run: ./tools/get_minimal_commands.sh
         if: ${{ startswith(matrix.os, 'ubuntu') }}
-      - run: bash ./tools/github_actions_install.sh
-      - run: bash ./tools/github_actions_infos.sh
+      - run: ./tools/github_actions_install.sh
+      - run: ./tools/github_actions_infos.sh
       # Check Qt on non-notebook
       - run: ./tools/check_qt_import.sh $MNE_QT_BACKEND
         if: ${{ env.MNE_QT_BACKEND != '' }}
@@ -112,7 +115,7 @@ jobs:
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
-      - run: bash ./tools/github_actions_download.sh
-      - run: bash ./tools/github_actions_test.sh
+      - run: ./tools/github_actions_download.sh
+      - run: ./tools/github_actions_test.sh
       - uses: codecov/codecov-action@v3
         if: success()
