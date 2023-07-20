@@ -824,14 +824,14 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
                 style = cat_styles[label_name]
                 label_props[label_idx] = (color, style)
 
-    for exc_label, ii in zip(exclude_labels, picks):
-        color, style = label_props[ii]
+    for pick_idx, (exc_label, pick) in enumerate(zip(exclude_labels, picks)):
+        color, style = label_props[pick_idx]
         # ensure traces of excluded components are plotted on top
         zorder = 2 if exc_label is None else 10
         lines.extend(
             ax.plot(
                 times,
-                evoked.data[ii].T,
+                evoked.data[pick].T,
                 picker=True,
                 zorder=zorder,
                 color=color,
@@ -1302,7 +1302,7 @@ def _plot_sources(
     info["bads"] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)
-        inst_array.set_annotations(inst.annotations)
+        inst_array._annotations = inst.annotations
     else:
         data = data.reshape(-1, len(inst), len(inst.times)).swapaxes(0, 1)
         inst_array = EpochsArray(data, info)

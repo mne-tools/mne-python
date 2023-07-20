@@ -106,6 +106,8 @@
 
 .. _Daniel Strohmeier: https://github.com/joewalter
 
+.. _Daniel Tse: https://github.com/Xiezhibin
+
 .. _Darin Erat Sleiter: https://github.com/dsleiter
 
 .. _David Haslacher: https://github.com/davidhaslacher
@@ -410,6 +412,8 @@
 
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
 
+.. _Proloy Das: https://github.com/proloyd
+
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
@@ -457,6 +461,8 @@
 .. _Samu Taulu: https://phys.washington.edu/people/samu-taulu
 
 .. _Samuel Deslauriers-Gauthier: https://github.com/sdeslauriers
+
+.. _Samuel Louviot: https://github.com/Sam54000
 
 .. _Samuel Powell: https://github.com/samuelpowell
 
@@ -553,6 +559,8 @@
 .. _Xiaokai Xia: https://github.com/dddd1007
 
 .. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
+
+.. _Yiping Zuo: https://github.com/frostime
 
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 

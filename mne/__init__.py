@@ -167,6 +167,7 @@ from .annotations import (
     read_annotations,
     annotations_from_events,
     events_from_annotations,
+    count_annotations,
 )
 from .epochs import (
     BaseEpochs,
