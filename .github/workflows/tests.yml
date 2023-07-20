@@ -85,9 +85,9 @@ jobs:
       # Python (if conda)
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: ${{ env.CONDA_ACTIVATE_ENV }}
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
+          activate-environment: mne
           miniforge-version: latest
           miniforge-variant: Mambaforge
           use-mamba: ${{ matrix.kind != 'conda' }}
