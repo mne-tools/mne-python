@@ -313,12 +313,21 @@ div.card {
 
 /* *************************************** homepage funder/institution logos */
 div#funder-logos div.card,
-div#institution-logos div.card,
 div#funder-logos div.card img,
-div#institution-logos div.card img {
+div#institution-logos div.card,
+div#institution-logos div.card img,
+div#contributor-avatars div.card,
+div#contributor-avatars div.card img {
     background-color: unset;
     border: none;
     border-radius: unset;
+}
+div#contributor-avatars div.card img {
+    width: 3em;
+}
+
+.contributor-avatar {
+    clip-path: circle(closest-side);
 }
 
 /* ************************************************************ funders page */
