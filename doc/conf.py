@@ -21,7 +21,6 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
-from mne.fixes import _compare_version
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,  # noqa, analysis:ignore
