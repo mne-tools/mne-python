@@ -103,6 +103,24 @@ html[data-theme="dark"] img {
     color: var(--pst-color-link);
 }
 
+/* make versionadded smaller and inline with param name */
+div.deprecated > p, div.versionadded > p, div.versionchanged > p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+div.versionadded,
+div.versionchanged,
+div.deprecated {
+    position: absolute;
+    right: 0%;
+    bottom: 100%;
+    margin-bottom: 0;
+}
+dd {
+    position: relative;
+}
+
+
 /* **************************************************** sphinx-gallery fixes */
 
 /* backreference links: restore hover decoration that SG removes */
