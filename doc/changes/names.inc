@@ -106,6 +106,8 @@
 
 .. _Daniel Strohmeier: https://github.com/joewalter
 
+.. _Daniel Tse: https://github.com/Xiezhibin
+
 .. _Darin Erat Sleiter: https://github.com/dsleiter
 
 .. _David Haslacher: https://github.com/davidhaslacher
@@ -409,6 +411,8 @@
 .. _Pierre Ablin: https://pierreablin.com
 
 .. _Pierre-Antoine Bannier: https://github.com/PABannier
+
+.. _Proloy Das: https://github.com/proloyd
 
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 
