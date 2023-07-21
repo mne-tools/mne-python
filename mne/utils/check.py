@@ -308,6 +308,8 @@ def _check_preload(inst, msg):
                 "loaded. Use preload=True (or string) in the constructor or "
                 "%s.load_data()." % (name, name)
             )
+        elif name == "epochs" and len(inst) == 0:
+            raise RuntimeError("This Epochs object doesn't contain any epochs.")
 
 
 def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):

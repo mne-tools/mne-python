@@ -382,19 +382,11 @@ def _warn_empty(meth):
     def wrapper(*args, **kwargs):
         # Prevent method from running if epochs are empty
         inst = args[0]
-        if inst.preload and len(inst) == 0:
-            warn(f'{meth.__name__} can not run because Epochs are empty!')
-        else:
-            # Catch exceptions when epochs are dropped
-            # during execution of the method
-            try:
-                return meth(*args, **kwargs)
-            except (ZeroDivisionError, ValueError, IndexError):
-                if args[0].events.shape[0] == 0:
-                    traceback.print_exc()
-                    warn(f'{meth.__name__} failed because Epochs are empty!')
-                else:
-                    traceback.print_exc()
+        # Check if epochs are empty
+        if len(inst.events) == 0:
+            raise RuntimeError(f'{meth.__name__} can not run because Epochs are empty!')
+        inst._raise_empty = True
+
 
     return wrapper
 
@@ -500,6 +492,10 @@ class BaseEpochs(
         annotations=None,
         verbose=None,
     ):  # noqa: D102
+
+        # internal attribute to indicate raise empty check
+        self._raise_empty = False
+
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             events_max = events.max()
@@ -1189,6 +1185,7 @@ class BaseEpochs(
                 )
             data = np.zeros((n_channels, n_times))
             n_events = 0
+            # __iter__ here??
             for e in self:
                 if np.iscomplexobj(e):
                     data = data.astype(np.complex128)
