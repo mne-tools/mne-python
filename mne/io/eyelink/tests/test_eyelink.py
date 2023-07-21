@@ -148,17 +148,17 @@ def test_fill_times(fname):
     with np.arange don't result in the time columns not merging
     correctly - i.e. 1560687.0 and 1560687.000001 should merge.
     """
-    from ..eyelink import _fill_times
+    from ..eyelink import _adjust_times
 
     raw = read_raw_eyelink(fname, create_annotations=False)
     sfreq = raw.info["sfreq"]
     # just take first 1000 points for testing
-    df = raw.dataframes["samples"].iloc[:1000].reset_index(drop=True)
+    df = raw.to_data_frame()[:1000]
     # even during blinks, pupil val is 0, so there should be no nans
     # in this column
     assert not df["pupil_left"].isna().sum()
     nan_count = df["pupil_left"].isna().sum()  # i.e 0
-    df_merged = _fill_times(df, sfreq)
+    df_merged = _adjust_times(df, sfreq)
     # If times dont merge correctly, there will be additional rows in
     # in df_merged with all nan values
     assert df_merged["pupil_left"].isna().sum() == nan_count  # i.e. 0
