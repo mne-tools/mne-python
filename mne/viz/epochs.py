@@ -767,7 +767,7 @@ def plot_epochs(
     n_epochs=20,
     n_channels=20,
     title=None,
-    events=None,
+    events=False,
     event_color=None,
     order=None,
     show=True,
@@ -816,6 +816,11 @@ def plot_epochs(
             align with the data.
 
         .. versionadded:: 0.14.0
+
+        .. versionchanged:: 1.5
+            Passing ``events=None`` is deprecated and will be removed in version 1.6.
+            The new equivalent is ``events=False``.
+
     %(event_color)s
         Defaults to ``None``.
     order : array of str | None
