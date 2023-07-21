@@ -104,22 +104,20 @@ html[data-theme="dark"] img {
 }
 
 /* make versionadded smaller and inline with param name */
-div.deprecated > p, div.versionadded > p, div.versionchanged > p {
+/* don't do for deprecated / versionchanged; they have extra info (too long to fit) */
+div.versionadded > p {
     margin-top: 0;
     margin-bottom: 0;
 }
-div.versionadded,
-div.versionchanged,
-div.deprecated {
-    position: absolute;
-    right: 0%;
-    bottom: 100%;
-    margin-bottom: 0;
+div.versionadded {
+    margin: 0;
+    margin-left: 0.5rem;
+    display: inline-block;
 }
-dd {
-    position: relative;
+/* when FF supports :has(), change to →  dd > p:has(+div.versionadded) */
+dd>p {
+    display: inline;
 }
-
 
 /* **************************************************** sphinx-gallery fixes */
 

@@ -16,6 +16,7 @@ import warnings
 import numpy as np
 import matplotlib
 import sphinx
+from sphinx.domains.changeset import versionlabels
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
@@ -751,6 +752,10 @@ nitpick_ignore_regex = [
 ]
 suppress_warnings = ["image.nonlocal_uri"]  # we intentionally link outside
 
+
+# -- Sphinx hacks / overrides ------------------------------------------------
+
+versionlabels["versionadded"] = sphinx.locale._("New in v%s")
 
 # -- Options for HTML output -------------------------------------------------
 
