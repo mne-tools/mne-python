@@ -377,6 +377,8 @@ def plot_projs_topomap(
 
         .. versionadded:: 0.20
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -937,6 +939,8 @@ def plot_topomap(
 
         .. versionadded:: 0.18
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap_simple)s
@@ -1793,6 +1797,8 @@ def plot_tfr_topomap(
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -1985,6 +1991,8 @@ def plot_evoked_topomap(
 
         .. versionadded:: 0.18
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2518,6 +2526,8 @@ def plot_epochs_psd_topomap(
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2611,6 +2621,8 @@ def plot_psds_topomap(
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -3865,6 +3877,8 @@ def plot_regression_weights(
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s

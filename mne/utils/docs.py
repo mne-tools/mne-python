@@ -492,8 +492,6 @@ docdict[
 border : float | 'mean'
     Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
     then each extrapolated point has the average value of its neighbours.
-
-    .. versionadded:: 0.20
 """
 
 docdict[

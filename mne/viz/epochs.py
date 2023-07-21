@@ -820,7 +820,6 @@ def plot_epochs(
         .. versionchanged:: 1.5
             Passing ``events=None`` is deprecated and will be removed in version 1.6.
             The new equivalent is ``events=False``.
-
     %(event_color)s
         Defaults to ``None``.
     order : array of str | None

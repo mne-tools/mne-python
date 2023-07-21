@@ -2538,6 +2538,8 @@ class AverageTFR(_BaseTFR):
         %(image_interp_topomap)s
         %(extrapolate_topomap)s
         %(border_topomap)s
+
+            .. versionadded:: 0.20
         %(res_topomap)s
         %(size_topomap)s
         %(cmap_topomap)s
