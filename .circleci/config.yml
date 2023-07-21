@@ -99,8 +99,10 @@ jobs:
             name: Install fonts needed for diagrams
             command: |
               mkdir -p $HOME/.fonts
+              echo "Source Code Pro"
               curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.038R-ro/1.058R-it/1.018R-VAR | tar xz -C $HOME/.fonts
-              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/3.028R | tar xz -C $HOME/.fonts
+              echo "Source Sans Pro"
+              curl https://codeload.github.com/adobe-fonts/source-sans/tar.gz/3.028R | tar xz -C $HOME/.fonts
               fc-cache -f
 
         # Load pip cache
