@@ -193,9 +193,8 @@ class RawCTF(BaseRaw):
         )
         annot = marker_annot if annot is None else annot + marker_annot
         self.set_annotations(annot)
-
         if clean_names:
-            self._clean_names()
+            _clean_names_inst(self)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -222,15 +221,14 @@ class RawCTF(BaseRaw):
                 _mult_cal_one(data_view, this_data, idx, cals, mult)
                 offset += n_read
 
-    def _clean_names(self):
-        """Clean up CTF suffixes from channel names."""
-        mapping = dict(zip(self.ch_names, _clean_names(self.ch_names)))
 
-        self.rename_channels(mapping)
-
-        for comp in self.info["comps"]:
-            for key in ("row_names", "col_names"):
-                comp["data"][key] = _clean_names(comp["data"][key])
+def _clean_names_inst(inst):
+    """Clean up CTF suffixes from channel names."""
+    mapping = dict(zip(inst.ch_names, _clean_names(inst.ch_names)))
+    inst.rename_channels(mapping)
+    for comp in inst.info["comps"]:
+        for key in ("row_names", "col_names"):
+            comp["data"][key] = _clean_names(comp["data"][key])
 
 
 def _get_sample_info(fname, res4, system_clock):

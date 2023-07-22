@@ -432,6 +432,8 @@ def _read_raw_egi_mff(
 class RawMff(BaseRaw):
     """RawMff class."""
 
+    _extra_attributes = ("event_id",)
+
     @verbose
     def __init__(
         self,
