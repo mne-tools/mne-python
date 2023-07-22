@@ -178,9 +178,6 @@ class RawEyelink(BaseRaw):
     ----------
     fname : pathlib.Path
         Eyelink filename
-    dataframes : dict
-        Dictionary of pandas DataFrames. One for eyetracking samples,
-        and one for each type of eyelink event (blinks, messages, etc)
 
     See Also
     --------
@@ -319,12 +316,12 @@ class RawEyelink(BaseRaw):
                 if line.startswith("START"):  # start of recording block
                     is_recording_block = True
                 if is_recording_block:
-                    if _is_sys_msg(line):
-                        continue  # system messages don't need to be parsed.
                     tokens = line.split()
                     if tokens[0][0].isnumeric():  # Samples
                         self._sample_lines.append(tokens)
                     elif tokens[0] in self._event_lines.keys():
+                        if _is_sys_msg(line):
+                            continue  # system messages don't need to be parsed.
                         event_key, event_info = tokens[0], tokens[1:]
                         self._event_lines[event_key].append(event_info)
                         if tokens[0] == "END":  # end of recording block
@@ -603,18 +600,23 @@ class RawEyelink(BaseRaw):
     def _set_df_dtypes(self):
         from ...utils import _set_pandas_dtype
 
-        missing_vals = (".", "MISSING_DATA")
         for key, df in self.dataframes.items():
             if key in ["samples", "DINS"]:
                 # convert missing position values to NaN
-                for col in df.columns:
-                    if key == "samples" and col.startswith(("xpos", "ypos")):
-                        df[col] = df[col].replace(missing_vals, np.nan)
+                self._set_missing_values(df)
                 _set_pandas_dtype(df, df.columns, float, verbose="warning")
             elif key in ["blinks", "fixations", "saccades"]:
                 _set_pandas_dtype(df, df.columns[1:], float, verbose="warning")
             elif key == "messages":
                 _set_pandas_dtype(df, ["time"], float, verbose="warning")  # timestamp
+
+    def _set_missing_values(self, df):
+        """Set missing values to NaN. operates in-place."""
+        missing_vals = (".", "MISSING_DATA")
+        for col in df.columns:
+            if col.startswith(("xpos", "ypos")):
+                # we explicitly use numpy instead of pd.replace because it is faster
+                df[col] = np.where(df[col].isin(missing_vals), np.nan, df[col])
 
     def _create_info(self, ch_names, sfreq):
         """Create info object for RawEyelink."""
