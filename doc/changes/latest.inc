@@ -37,6 +37,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug where :func:`mne.io.read_raw_cnt` imports unnecessary durations (:gh:`11824` by `Jacob Woessner`)
 - Fix bug where epochs ``event_id`` was not kept by :func:`mne.channels.combine_channels` (:gh:`11786` by :newcontrib:`Samuel Louviot`)
 - Fix bug where user-provided codec was not used to read annotations when loading EEGLAB ``.set`` files (:gh:`11773` by :newcontrib:`Yiping Zuo`)
 - Fix bug that required curv.*h files to create Brain object (:gh:`11704` by :newcontrib:`Aaron Earle-Richardson`)
