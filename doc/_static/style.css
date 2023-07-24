@@ -103,6 +103,22 @@ html[data-theme="dark"] img {
     color: var(--pst-color-link);
 }
 
+/* make versionadded smaller and inline with param name */
+/* don't do for deprecated / versionchanged; they have extra info (too long to fit) */
+div.versionadded > p {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+div.versionadded {
+    margin: 0;
+    margin-left: 0.5rem;
+    display: inline-block;
+}
+/* when FF supports :has(), change to →  dd > p:has(+div.versionadded) */
+dd>p {
+    display: inline;
+}
+
 /* **************************************************** sphinx-gallery fixes */
 
 /* backreference links: restore hover decoration that SG removes */
