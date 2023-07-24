@@ -2530,13 +2530,23 @@ class AverageTFR(_BaseTFR):
               ('zlogratio')
         %(sensors_topomap)s
         %(show_names_topomap)s
+
+            .. versionadded:: 1.2
         %(mask_evoked_topomap)s
+
+            .. versionadded:: 1.2
         %(mask_params_topomap)s
+
+            .. versionadded:: 1.2
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
         %(image_interp_topomap)s
+
+            .. versionadded:: 1.2
         %(extrapolate_topomap)s
+
+            .. versionadded:: 1.2
         %(border_topomap)s
 
             .. versionadded:: 0.20

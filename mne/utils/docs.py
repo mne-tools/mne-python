@@ -1471,12 +1471,6 @@ extrapolate : str
         the head circle when the sensors are contained within the head circle,
         but it can extend beyond the head when sensors are plotted outside
         the head circle.
-
-    .. versionchanged:: 0.21
-
-       - The default was changed to ``'local'`` for MEG sensors.
-       - ``'local'`` was changed to use a convex hull mask
-       - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
 
 # %%
