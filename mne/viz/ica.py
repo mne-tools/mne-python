@@ -49,7 +49,7 @@ def plot_ica_sources(
     use_opengl=None,
     *,
     theme=None,
-    overview_mode=None
+    overview_mode=None,
 ):
     """Plot estimated latent sources given the unmixing matrix.
 
@@ -233,7 +233,7 @@ def _plot_ica_properties(
         combine=None,
         colorbar=False,
         show=False,
-        **image_args
+        **image_args,
     )
 
     # spectrum
@@ -403,7 +403,7 @@ def plot_ica_properties(
     reject="auto",
     reject_by_annotation=True,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Display component properties.
 
@@ -521,7 +521,7 @@ def _fast_plot_ica_properties(
     precomputed_data=None,
     reject_by_annotation=True,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Display component properties."""
     from ..preprocessing import ICA
@@ -1027,7 +1027,7 @@ def plot_ica_overlay(
     n_pca_components=None,
     *,
     on_baseline="warn",
-    verbose=None
+    verbose=None,
 ):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
@@ -1253,7 +1253,7 @@ def _plot_sources(
     use_opengl,
     *,
     theme=None,
-    overview_mode=None
+    overview_mode=None,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
