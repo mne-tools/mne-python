@@ -1122,7 +1122,7 @@ def plot_ica_overlay(
     return fig
 
 
-def _plot_ica_overlay_raw(raw, raw_cln, picks, start, stop, title, show):
+def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     """Plot evoked after and before ICA cleaning.
 
     Parameters
