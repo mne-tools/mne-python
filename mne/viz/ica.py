@@ -26,7 +26,7 @@ from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..channels.channels import _get_ch_type
 from ..utils import _validate_type, fill_doc
-from ..defaults import _handle_default
+from ..defaults import _handle_default, DEFAULTS
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
 from ..utils import _reject_data_segments, verbose
@@ -1148,10 +1148,11 @@ def _plot_ica_overlay_raw(raw, raw_cln, picks, start, stop, title, show):
     """
     import matplotlib.pyplot as plt
 
-    _ch_type_names = {"mag": "Magnetometers", "grad": "Gradiometers", "eeg": "EEG"}
     ch_types = raw.get_channel_types(picks=picks, unique=True)
     for ch_type in ch_types:
-        fig, ax = plt.subplots(2 if ch_type in _ch_type_names else 1, 1, sharex=True)
+        fig, ax = plt.subplots(
+            2 if ch_type in ("mag", "grad", "eeg") else 1, 1, sharex=True
+        )
         plt.suptitle(title)
         ax = [ax] if isinstance(ax, plt.Axes) else ax
 
@@ -1164,7 +1165,9 @@ def _plot_ica_overlay_raw(raw, raw_cln, picks, start, stop, title, show):
         # plot all sensors of the same type together
         ax[0].plot(times, data.T, color="r")
         ax[0].plot(times, data_cln.T, color="k")
-        _ch_type = _ch_type_names[ch_type] if ch_type in _ch_type_names else ch_type
+        _ch_type = (
+            DEFAULTS["titles"][ch_type] if ch_type in DEFAULTS["titles"] else ch_type
+        )
         ax[0].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"Raw {_ch_type} data")
 
         # second plot for M/EEG using GFP or RMS
