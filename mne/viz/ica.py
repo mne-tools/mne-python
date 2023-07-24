@@ -1040,7 +1040,7 @@ def plot_ica_overlay(
     inst : instance of Raw or Evoked
         The signal to plot. If `~mne.io.Raw`, the raw data per channel type is displayed
         before and after cleaning. A second panel with the RMS for MEG sensors and the
-        :ref:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
+        :term:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
         signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
         The components marked for exclusion. If ``None`` (default), the components
