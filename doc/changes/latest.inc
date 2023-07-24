@@ -37,13 +37,13 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug where :func:`mne.io.read_raw_cnt` imports unnecessary durations (:gh:`11828` by `Jacob Woessner`)
 - Fix bug where epochs ``event_id`` was not kept by :func:`mne.channels.combine_channels` (:gh:`11786` by :newcontrib:`Samuel Louviot`)
 - Fix bug where user-provided codec was not used to read annotations when loading EEGLAB ``.set`` files (:gh:`11773` by :newcontrib:`Yiping Zuo`)
 - Fix bug that required curv.*h files to create Brain object (:gh:`11704` by :newcontrib:`Aaron Earle-Richardson`)
 - Extended test to highlight bug in :func:`mne.stats.permutation_t_test` (:gh:`11575` by :newcontrib:`Joshua Calder-Travis`)
 - Fix bug that used wrong indices for line/label styles (sometimes causing an ``IndexError``) in :meth:`mne.preprocessing.ICA.plot_sources` under certain conditions (:gh:`11808` by :newcontrib:`Joshua Calder-Travis`)
 - Fix bug with :func:`~mne.io.read_raw_snirf` to handle files with measurement time containing milliseconds (:gh:`11804` by :newcontrib:`Daniel Tse`)
+- Fix bug where :func:`mne.io.read_raw_cnt` imports unnecessary durations (:gh:`11828` by `Jacob Woessner`_)
 - Fix bug where :meth:`mne.viz.Brain.add_volume_labels` used an incorrect orientation (:gh:`11730` by `Alex Rockhill`_)
 - Fix bug with :func:`mne.forward.restrict_forward_to_label` where cortical patch information was not adjusted (:gh:`11694` by `Eric Larson`_)
 - Fix bug with PySide6 compatibility (:gh:`11721` by `Eric Larson`_)
