@@ -1214,9 +1214,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     ch_types_used_cln = [c for c in ["mag", "grad", "eeg"] if c in evoked_cln]
 
     if len(ch_types_used) != len(ch_types_used_cln):
-        raise ValueError(
-            "Raw and clean evokeds must match. " "Found different channels."
-        )
+        raise ValueError("Raw and clean evokeds must match. Found different channels.")
 
     fig, axes = plt.subplots(n_rows, 1)
     if title is None:
