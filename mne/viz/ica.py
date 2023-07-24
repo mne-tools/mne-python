@@ -1079,19 +1079,14 @@ def plot_ica_overlay(
         title = "Signals before (red) and after (black) cleaning"
     picks = ica.ch_names if picks is None else picks
     picks = _picks_to_idx(inst.info, picks, exclude=())
-    ch_types_used = inst.get_channel_types(picks=picks, unique=True)
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
         raise TypeError("exclude must be of type list. Got %s" % type(exclude))
     if isinstance(inst, BaseRaw):
-        if start is None:
-            start = 0.0
-        if stop is None:
-            stop = 3.0
-        start_compare, stop_compare = _check_start_stop(inst, start, stop)
-        data, times = inst[picks, start_compare:stop_compare]
-
+        start = 0.0 if start is None else start
+        stop = 3.0 if stop is None else stop
+        start, stop = _check_start_stop(inst, start, stop)
         raw_cln = ica.apply(
             inst.copy(),
             exclude=exclude,
@@ -1099,13 +1094,13 @@ def plot_ica_overlay(
             stop=stop,
             n_pca_components=n_pca_components,
         )
-        data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(
-            data=data,
-            data_cln=data_cln,
-            times=times,
+            raw=inst,
+            raw_cln=raw_cln,
+            picks=picks,
+            start=start,
+            stop=stop,
             title=title,
-            ch_types_used=ch_types_used,
             show=show,
         )
     else:
@@ -1128,15 +1123,23 @@ def plot_ica_overlay(
     return fig
 
 
-def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
+def _plot_ica_overlay_raw(raw, raw_cln, picks, start, stop, title, show):
     """Plot evoked after and before ICA cleaning.
 
     Parameters
     ----------
-    ica : instance of mne.preprocessing.ICA
-        The ICA object.
-    epochs : instance of mne.Epochs
-        The Epochs to be regarded.
+    raw : Raw
+        Raw data before exclusion of ICs.
+    raw_cln : Raw
+        Data after exclusion of ICs.
+    picks : array of shape (n_channels_selected,)
+        Array of selected channels indices.
+    start : float
+        Start time to plot. Default to 0 seconds.
+    stop : float
+        Stop time to plot. Default to 3 seconds.
+    title : str
+        Title of the figure(s).
     show : bool
         Show figure if True.
 
@@ -1146,26 +1149,43 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     """
     import matplotlib.pyplot as plt
 
-    # Restore sensor space data and keep all PCA components
-    # let's now compare the date before and after cleaning.
-    # first the raw data
-    assert data.shape == data_cln.shape
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-    plt.suptitle(title)
-    ax1.plot(times, data.T, color="r")
-    ax1.plot(times, data_cln.T, color="k")
-    ax1.set(xlabel="Time (s)", xlim=times[[0, -1]], title="Raw data")
+    _ch_type_names = {"mag": "Magnetometers", "grad": "Gradiometers", "eeg": "EEG"}
+    ch_types = raw.get_channel_types(picks=picks, unique=True)
+    for ch_type in ch_types:
+        fig, ax = plt.subplots(2 if ch_type in _ch_type_names else 1, 1, sharex=True)
+        plt.suptitle(title)
+        ax = [ax] if isinstance(ax, plt.Axes) else ax
 
-    _ch_types = {"mag": "Magnetometers", "grad": "Gradiometers", "eeg": "EEG"}
-    ch_types = ", ".join([_ch_types[k] for k in ch_types_used])
-    ax2.set_title("Average across channels ({})".format(ch_types))
-    ax2.plot(times, data.mean(0), color="r")
-    ax2.plot(times, data_cln.mean(0), color="k")
-    ax2.set(xlabel="Time (s)", xlim=times[[0, -1]])
-    tight_layout(fig=fig)
+        # select sensors and retrieve data array
+        picks_by_type = _picks_to_idx(raw.info, ch_type, exclude=())
+        picks_ = np.intersect1d(picks, picks_by_type)
+        data, times = raw[picks_, start:stop]
+        data_cln, _ = raw_cln[picks_, start:stop]
 
-    fig.subplots_adjust(top=0.90)
-    fig.canvas.draw()
+        # plot all sensors of the same type together
+        ax[0].plot(times, data.T, color="r")
+        ax[0].plot(times, data_cln.T, color="k")
+        _ch_type = _ch_type_names[ch_type] if ch_type in _ch_type_names else ch_type
+        ax[0].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"Raw {_ch_type} data")
+
+        # second plot for M/EEG using GFP or RMS
+        if ch_type == "eeg":  # Global Field Power
+            ax[1].plot(times, np.std(data, axis=0), color="r")
+            ax[1].plot(times, np.std(data_cln, axis=0), color="k")
+            ax[1].set(
+                xlabel="Time (s)",
+                xlim=times[[0, -1]],
+                title=f"{_ch_type} Global Field Power",
+            )
+        elif ch_type in ("mag", "grad"):  # RMS
+            ax[1].plot(times, np.sqrt((data**2).mean(axis=0)), color="r")
+            ax[1].plot(times, np.sqrt((data_cln**2).mean(axis=0)), color="k")
+            ax[1].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"{_ch_type} RMS")
+
+        # figure format
+        tight_layout(fig=fig)
+        fig.subplots_adjust(top=0.90)
+        fig.canvas.draw()
     plt_show(show)
     return fig
 
