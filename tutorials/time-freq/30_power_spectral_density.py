@@ -43,6 +43,8 @@ for more details.
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA, FactorAnalysis
+from scipy.optimize import minimize
+from scipy.signal import find_peaks, find_peaks_cwt
 
 import mne
 from mne.datasets import eegbci
@@ -85,7 +87,50 @@ psd = epochs.compute_psd(fmax=75)
 psd.plot()
 
 # %%
-# Now, there are two main components to a power spectrum: 1) The
+# By not passing a method, we used the default ``method='multitaper'``. The
+# Fourier Transform can perfectly resolve a signal into sinusoidal components
+# of different frequencies given an infinite length signal. Since we only
+# collect data for a finite amount of time, this causes artifacts in the
+# power spectrum. The multitaper method uses windows (tapers) of different shapes
+# each with their own particular artifact that, when averaged, balance out
+# each other's artifact. ``method='welch'`` on the other hand, uses a specified
+# window but uses a sliding window across time in order to average out artifact.
+# The default for ``method='welch'`` is ``window='hamming'`` which tries to correct
+# for the artifact/distortion as well as possible with a single window.
+psd = epochs.compute_psd(fmax=75, method="welch")
+psd.plot()
+
+# In general, these methods give similar results in most cases with default
+# parameters as shown below but the strength of having two methods is the ability
+# to use different parameters. For the Welch method, the tradeoff between using
+# a larger ``n_fft`` and resolving higher frequencies compared to a smaller ``n_fft``
+# and averaging more windows for a cleaner signal can be explored for better signal
+# resolution. Similarly, adjusting the bandwidth for the multitaper method can
+# optimize the time resolution-frequency resolution tradeoff.
+fig, axes = plt.subplots(2, 5, figsize=(10, 5))
+
+for ax, bandwidth in zip(axes[0], range(1, 12, 2)):
+    psd = epochs.compute_psd(fmax=75, method="multitaper", bandwidth=bandwidth)
+    psd.plot(axes=ax)
+    ax.set_title(f"bandwidth={bandwidth}")
+
+for ax, n_fft in zip(axes[1], [2**i for i in range(4, 10)]):
+    psd = epochs.compute_psd(fmax=75, method="welch", n_fft=n_fft)
+    psd.plot(axes=ax)
+    ax.set_title(f"n_fft={n_fft}")
+
+for ax in axes[:, 1:].flatten():
+    ax.set_ylabel("")
+
+fig.subplots_adjust(hspace=0.25, wspace=0.2, top=0.9, bottom=0.1, left=0.1, right=0.95)
+fig.text(
+    -0.5, 0.5, "Multitaper", rotation=90, va="center", transform=axes[0, 0].transAxes
+)
+fig.text(-0.5, 0.5, "Welch", rotation=90, ha="center", transform=axes[1, 0].transAxes)
+
+
+# %%
+# There are two main components to a power spectrum: 1) The
 # power that is present across all frequencies and decreases
 # exponentially at higher frequencies (called the 1/f component
 # or power law scaling or broadband power) and 2) peaks, generally with a
@@ -100,10 +145,12 @@ psd.plot()
 # We can separate out these using principal component analysis (PCA) as in
 # :footcite:`MillerEtAl2009A`. Let's see how this works:
 
+psd = epochs.compute_psd(fmax=75)
+
 # select the only channel so the data is (epochs x freqs)
 psd_data = psd.get_data(picks=["C3"])[:, 0]
 
-# normalize
+# convert to log scale and subtract the mean
 psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
 
 # prepare to remove frequencies contaminated by line noise
@@ -115,9 +162,13 @@ pca = PCA(svd_solver="randomized", whiten=True, random_state=99).fit(psd_data[:,
 # %%
 # As shown below, the maroon component (1st principal component (PC)) has weights evenly
 # spread across frequencies whereas the tan component (2nd PC) is peaked at around 16 Hz
-# which is considered in the beta (13 - 30 Hz) band of frequencies.
-# Admittedly, this is not as clean in scalp electroencephalography (EEG) as it is in
-# electrocorticography (ECoG) as was done in the paper referenced. ECoG is implanted
+# which is considered in the beta (13 - 30 Hz) band of frequencies. Because the
+# oscillations are shaped like normal distributions, a common approach is to fit them
+# with a normal distribution as in :footcite:`DonoghueEtAl2020`.
+#
+# Admittedly, the separation between oscillatory and broadband components
+# is not as clean in scalp electroencephalography (EEG) as it is in
+# electrocorticography (ECoG) as was done in :footcite:`MillerEtAl2009A`. ECoG is implanted
 # on the surface of the brain so it detects more brain signal.
 fig, ax = plt.subplots()
 comp0 = np.zeros((psd.freqs.size,)) * np.nan
@@ -151,6 +202,7 @@ ax.axhline(0)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Component Weight")
 
+# %%
 # Finally, let's apply the PCA to our data and see if this helps us separate
 # movement epochs from rest epochs.
 event_mask = [entry == () for entry in epochs.drop_log]
@@ -234,3 +286,81 @@ ax3.plot(psd.freqs, rest_psd_data, color="black", linewidth=0.5)
 ax3.set_xlabel("Frequency (Hz)")
 ax3.set_ylabel(r"Power ($\mu$$V^2$)")
 fig.tight_layout()
+
+# %%
+# Finally, let's calculate the peaks of the components to quantify
+# our oscillations.
+
+
+def gaussian(x, a, b, c):
+    return a * np.exp(-(x - b)**2 / 2 * c**2)
+
+
+
+
+# %%
+# Lastly, let's simulate some data and show
+
+sfreq = epochs.info['sfreq']
+n_epochs = len(epochs)
+times = epochs.times
+epochs_data = np.zeros((n_epochs, times.size))
+slope = 0.1
+freq = 16
+n_fft_points = times.size // 2 + 1 + times.size % 2
+
+rng = np.random.default_rng(11)  # seed a random number generator
+
+shifts = list()
+amps = list()
+for i in range(epochs_data.shape[0]):
+    # generate pink noise
+    shift = 1  # decouple from beta
+    amplitude = rng.normal(2)  # decouple from broadband
+    x = shift * np.exp(rng.normal(size=n_fft_points) + rng.normal(size=n_fft_points) * 1j)
+
+    scaling = np.sqrt(np.arange(1, x.size + 1) ** slope)
+
+    x /= scaling
+    y = np.fft.irfft(x).real
+    y /= y.std()
+    y = y[:-times.size % 2]
+    epochs_data[i] = y * rng.normal(80, scale=5) * 1e-6  # different amounts per trial
+    # add 16 Hz beta oscillation
+    phase = rng.random() * 2 * np.pi
+    freq += (rng.random() - 0.5)
+    # epochs_data[i] += np.sin(2 * np.pi * freq * epochs.times + phase) * amplitude
+    shifts.append(shift)
+    amps.append(amplitude)
+
+# make epochs object, compute psd
+info = mne.create_info(["C3"], sfreq=sfreq, ch_types="eeg")
+epochs_sim = mne.EpochsArray(epochs_data[:, None], info)
+psd_sim = epochs_sim.compute_psd(fmax=75)
+psd_sim.plot()
+
+# check that our method works
+psd_data = psd.get_data()[:, 0]
+psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
+
+# prepare to remove frequencies contaminated by line noise
+mask = np.logical_or(psd.freqs < 57, psd.freqs > 63)
+
+# set a random seed for reproducibility
+pca = PCA(svd_solver="randomized", whiten=True, random_state=99).fit(psd_data[:, mask])
+
+fig, ax = plt.subplots()
+comp0 = np.zeros((psd.freqs.size,)) * np.nan
+comp0[mask] = pca.components_[0]
+ax.plot(psd.freqs, comp0, color="maroon")
+comp1 = np.zeros((psd.freqs.size,)) * np.nan
+comp1[mask] = pca.components_[1]
+ax.plot(psd.freqs, comp1, color="tan")
+ax.axhline(0)
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel("Component Weight")
+for i in range(2, 5):
+    comp = np.zeros((psd.freqs.size,)) * np.nan
+    comp[mask] = pca.components_[i]
+    ax.plot(psd.freqs, comp)
+fig.show()
