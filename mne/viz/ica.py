@@ -1038,14 +1038,13 @@ def plot_ica_overlay(
     ica : instance of mne.preprocessing.ICA
         The ICA object.
     inst : instance of Raw or Evoked
-        The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
-        and after cleaning. In a second panel, the cross-channel average will
-        be displayed. Since dipolar sources will be canceled out, this
-        representation is sensitive to artifacts. If `~mne.Evoked`, butterfly
-        traces for signals before and after cleaning will be superimposed.
+        The signal to plot. If `~mne.io.Raw`, the raw data per channel type is displayed
+        before and after cleaning. A second panel with the RMS for MEG sensors and the
+        :ref:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
+        signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
-        The components marked for exclusion. If ``None`` (default), ICA.exclude
-        will be used.
+        The components marked for exclusion. If ``None`` (default), the components
+        listed in ``ICA.exclude`` will be used.
     %(picks_base)s all channels that were included during fitting.
     start, stop : float | None
        The first and last time point (in seconds) of the data to plot. If
