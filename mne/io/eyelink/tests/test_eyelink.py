@@ -284,7 +284,6 @@ def test_multi_block_misc_channels(fname, tmp_path):
     data, times = raw.get_data(return_times=True)
     assert not np.isnan(data[0, np.where(times < 1)[0]]).any()
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
-    out_file.unlink()
 
 
 @pytest.mark.xfail(reason="Attributes and test_preloading fail")
