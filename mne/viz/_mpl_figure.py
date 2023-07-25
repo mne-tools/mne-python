@@ -830,22 +830,24 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self._toggle_help_fig(event)
         else:  # right-click (secondary)
             if annotating:
-                if any(c.contains(event)[0] for c in ax_main.collections):
+                spans = [
+                    span
+                    for span in ax_main.collections
+                    if isinstance(span, PolyCollection)
+                ]
+                if any(span.contains(event)[0] for span in spans):
                     xdata = event.xdata - self.mne.first_time
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
-                    was_clicked = (xdata > start) & (xdata < end)
+                    is_visible = self.mne.onscreen_annotations
+                    was_clicked = (xdata > start) & (xdata < end) & is_visible
                     # determine which annotation label is "selected"
                     buttons = self.mne.fig_annotation.mne.radio_ax.buttons
                     current_label = buttons.value_selected
                     is_active_label = inst.annotations.description == current_label
                     # use z-order as tiebreaker (or if click wasn't on an active span)
                     # (ax_main.collections only includes *visible* annots, so we offset)
-                    visible_zorders = [
-                        span.zorder
-                        for span in ax_main.collections
-                        if isinstance(span, PolyCollection)
-                    ]
+                    visible_zorders = [span.zorder for span in spans]
                     is_onscreen = self.mne.onscreen_annotations  # boolean array
                     zorders = np.zeros_like(is_onscreen).astype(int)
                     offset = np.where(is_onscreen)[0][0]

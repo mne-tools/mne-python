@@ -818,7 +818,9 @@ def test_remove_annotations(raw, hide_which, browser_backend):
             hide_key = descriptions[hide_idx]
             fig.mne.visible_annotations[hide_key] = False
         fig._update_regions_visible()
-    fig._fake_click((2.5, 0.1), xform="data", button=3)
+    # always click twice: should not affect hidden annotation spans
+    for _ in descriptions:
+        fig._fake_click((2.5, 0.1), xform="data", button=3)
     assert len(raw.annotations) == len(hide_which)
 
 
