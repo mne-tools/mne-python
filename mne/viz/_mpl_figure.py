@@ -788,6 +788,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _buttonpress(self, event):
         """Handle mouse clicks."""
+        from matplotlib.collections import PolyCollection
+
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
         ax_main = self.mne.ax_main
@@ -839,7 +841,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     is_active_label = inst.annotations.description == current_label
                     # use z-order as tiebreaker (or if click wasn't on an active span)
                     # (ax_main.collections only includes *visible* annots, so we offset)
-                    visible_zorders = [span.zorder for span in ax_main.collections]
+                    visible_zorders = [
+                        span.zorder
+                        for span in ax_main.collections
+                        if isinstance(span, PolyCollection)
+                    ]
                     is_onscreen = self.mne.onscreen_annotations  # boolean array
                     zorders = np.zeros_like(is_onscreen).astype(int)
                     offset = np.where(is_onscreen)[0][0]
