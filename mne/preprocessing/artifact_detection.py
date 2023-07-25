@@ -166,9 +166,9 @@ def annotate_movement(
         The position and quaternion parameters from cHPI fitting. Obtained
         with `mne.chpi` functions.
     rotation_velocity_limit : float
-        Head rotation velocity limit in radians per second.
+        Head rotation velocity limit in degrees per second.
     translation_velocity_limit : float
-        Head translation velocity limit in radians per second.
+        Head translation velocity limit in meters per second.
     mean_distance_limit : float
         Head position limit from mean recording in meters.
     use_dev_head_trans : 'average' (default) | 'info'

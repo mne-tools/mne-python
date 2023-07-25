@@ -49,6 +49,7 @@ from ..utils import (
     _is_numeric,
     warn,
     legacy,
+    check_version,
 )
 from .utils import (
     tight_layout,
@@ -75,6 +76,12 @@ from ..io.meas_info import Info, _simplify_info
 
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
+
+
+# 3.8+ uses a single Collection artist rather than .collections
+# https://github.com/matplotlib/matplotlib/pull/25247
+def _cont_collections(cont):
+    return (cont,) if check_version("matplotlib", "3.8") else tuple(cont.collections)
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
@@ -250,27 +257,33 @@ def _plot_update_evoked_topomap(params, bools):
 
     interp = params["interp"]
     new_contours = list()
-    for cont, ax, im, d in zip(
-        params["contours_"], params["axes"], params["images"], data.T
-    ):
+    use_contours = params["contours_"]
+    if not len(use_contours):
+        use_contours = [None] * len(params["axes"])
+    assert len(use_contours) == len(params["images"])
+    assert len(params["axes"]) == len(params["images"])
+    assert len(data.T) == len(params["images"])
+    for cont, ax, im, d in zip(use_contours, params["axes"], params["images"], data.T):
         Zi = interp.set_values(d)()
         im.set_data(Zi)
+        if cont is None:
+            continue
         # must be removed and re-added
-        color = "k"
-        if len(cont.collections) > 0:
-            tp = cont.collections[0]
-            visible = tp.get_visible()
-            patch_ = tp.get_clip_path()
-            color = tp.get_edgecolors()
-            lw = tp.get_linewidth()
-        for tp in cont.collections:
-            tp.remove()
+        cont_collections = _cont_collections(cont)
+        for col in cont_collections:
+            col.remove()
+        col = cont_collections[0]
+        lw = col.get_linewidth()
+        visible = col.get_visible()
+        patch_ = col.get_clip_path()
+        color = col.get_edgecolors()
         cont = ax.contour(
             interp.Xi, interp.Yi, Zi, params["contours"], colors=color, linewidths=lw
         )
-        for tp in cont.collections:
-            tp.set_visible(visible)
-            tp.set_clip_path(patch_)
+        cont_collections = _cont_collections(cont)
+        for col in cont_collections:
+            col.set_visible(visible)
+            col.set_clip_path(patch_)
         new_contours.append(cont)
     params["contours_"] = new_contours
 
@@ -363,7 +376,15 @@ def plot_projs_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.20
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -923,7 +944,15 @@ def plot_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap_simple)s
@@ -1280,7 +1309,7 @@ def _plot_topomap(
     if patch_ is not None:
         im.set_clip_path(patch_)
         if cont is not None:
-            for col in cont.collections:
+            for col in _cont_collections(cont):
                 col.set_clip_path(patch_)
 
     pos_x, pos_y = pos.T
@@ -1779,7 +1808,15 @@ def plot_tfr_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -1971,7 +2008,15 @@ def plot_evoked_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2315,7 +2360,7 @@ def plot_evoked_topomap(
             plot_update_proj_callback=_plot_update_evoked_topomap,
             merge_channels=merge_channels,
             scale=scaling,
-            axes=axes,
+            axes=axes[: len(axes) - bool(interactive)],
             contours=contours,
             interp=interp,
             extrapolate=extrapolate,
@@ -2504,7 +2549,15 @@ def plot_epochs_psd_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2597,7 +2650,15 @@ def plot_psds_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2984,14 +3045,15 @@ def _init_anim(
     params["text"] = text
     items.append(im)
     items.append(text)
-    for col in cont.collections:
+    cont_collections = _cont_collections(cont)
+    for col in cont_collections:
         col.set_clip_path(patch_)
 
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({"patch": patch_, "outlines": outlines_})
     tight_layout(fig=ax.figure)
-    return tuple(items) + tuple(cont.collections)
+    return tuple(items) + cont_collections
 
 
 def _animate(frame, ax, ax_line, params):
@@ -3042,7 +3104,8 @@ def _animate(frame, ax, ax_line, params):
         cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors="k", linewidths=1)
 
     im.set_clip_path(patch)
-    for col in cont.collections:
+    cont_collections = _cont_collections(cont)
+    for col in cont_collections:
         col.set_clip_path(patch)
 
     items = [im, text]
@@ -3055,7 +3118,7 @@ def _animate(frame, ax, ax_line, params):
         ax_line.set_ylim(ylim)
         items.append(params["line"])
     params["frame"] = frame
-    return tuple(items) + tuple(cont.collections)
+    return tuple(items) + cont_collections
 
 
 def _pause_anim(event, params):
@@ -3406,6 +3469,12 @@ def plot_arrowmap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(sphere_topomap_auto)s
 
     Returns
@@ -3849,7 +3918,15 @@ def plot_regression_weights(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s

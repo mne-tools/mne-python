@@ -2038,7 +2038,8 @@ def test_split_symlink(tmp_path):
 
 
 @testing.requires_testing_data
-def test_corrupted(tmp_path):
+@pytest.mark.parametrize("offset", (0, 1))
+def test_corrupted(tmp_path, offset):
     """Test that a corrupted file can still be read."""
     # Must be a file written by Neuromag, not us, since we don't write the dir
     # at the end, so use the skip one (straight from acq).
@@ -2049,7 +2050,7 @@ def test_corrupted(tmp_path):
         dirpos = int(tag.data.item())
         assert dirpos == 12641532
         fid.seek(0)
-        data = fid.read(dirpos)
+        data = fid.read(dirpos + offset)
     bad_fname = tmp_path / "test_raw.fif"
     with open(bad_fname, "wb") as fid:
         fid.write(data)

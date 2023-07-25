@@ -45,7 +45,7 @@ from .io.write import (
     write_name_list_sanitized,
     _safe_name_list,
     write_double,
-    start_file,
+    start_and_end_file,
     write_string,
 )
 from .io.constants import FIFF
@@ -465,6 +465,17 @@ class Annotations:
         df = pd.DataFrame(df)
         return df
 
+    def count(self):
+        """Count annotations.
+
+        Returns
+        -------
+        counts : dict
+            A dictionary containing unique annotation descriptions as keys with their
+            counts as values.
+        """
+        return count_annotations(self)
+
     def _any_ch_names(self):
         return any(len(ch) for ch in self.ch_names)
 
@@ -540,7 +551,7 @@ class Annotations:
         elif fname.suffix == ".csv":
             _write_annotations_csv(fname, self)
         else:
-            with start_file(fname) as fid:
+            with start_and_end_file(fname) as fid:
                 _write_annotations(fid, self)
 
     def _sort(self):
@@ -1694,3 +1705,27 @@ def _adjust_onset_meas_date(annot, raw):
     # account the first_samp / first_time.
     if raw.info["meas_date"] is not None:
         annot.onset += raw.first_time
+
+
+def count_annotations(annotations):
+    """Count annotations.
+
+    Parameters
+    ----------
+    annotations : mne.Annotations
+        The annotations instance.
+
+    Returns
+    -------
+    counts : dict
+        A dictionary containing unique annotation descriptions as keys with their
+        counts as values.
+
+    Examples
+    --------
+        >>> annotations = mne.Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
+        >>> count_annotations(annotations)
+        {'T0': 2, 'T1': 1}
+    """
+    types, counts = np.unique(annotations.description, return_counts=True)
+    return {t: count for t, count in zip(types, counts)}

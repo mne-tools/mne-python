@@ -2770,6 +2770,7 @@ def ica_find_eog_events(
     """
     eog_events = _find_eog_events(
         eog_source[np.newaxis],
+        ch_names=None,
         event_id=event_id,
         l_freq=l_freq,
         h_freq=h_freq,
