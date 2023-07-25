@@ -170,6 +170,8 @@ class BaseRaw(
           (only needed for types that support on-demand disk reads)
     """
 
+    _extra_attributes = ()
+
     @verbose
     def __init__(
         self,

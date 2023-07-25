@@ -178,6 +178,8 @@ def read_raw_egi(
 class RawEGI(BaseRaw):
     """Raw object from EGI simple binary file."""
 
+    _extra_attributes = ("event_id",)
+
     @verbose
     def __init__(
         self,

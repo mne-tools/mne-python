@@ -1086,7 +1086,7 @@ class RawBTi(BaseRaw):
             sort_by_ch_name=sort_by_ch_name,
             eog_ch=eog_ch,
         )
-        self.bti_ch_labels = [c["chan_label"] for c in bti_info["chs"]]
+        bti_info["bti_ch_labels"] = [c["chan_label"] for c in bti_info["chs"]]
         # make Raw repr work if we have a BytesIO as input
         if isinstance(pdf_fname, BytesIO):
             pdf_fname = repr(pdf_fname)
