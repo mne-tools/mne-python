@@ -839,8 +839,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     xdata = event.xdata - self.mne.first_time
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
-                    is_visible = self.mne.onscreen_annotations
-                    was_clicked = (xdata > start) & (xdata < end) & is_visible
+                    is_onscreen = self.mne.onscreen_annotations  # boolean array
+                    was_clicked = (xdata > start) & (xdata < end) & is_onscreen
                     # determine which annotation label is "selected"
                     buttons = self.mne.fig_annotation.mne.radio_ax.buttons
                     current_label = buttons.value_selected
@@ -848,7 +848,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                     # use z-order as tiebreaker (or if click wasn't on an active span)
                     # (ax_main.collections only includes *visible* annots, so we offset)
                     visible_zorders = [span.zorder for span in spans]
-                    is_onscreen = self.mne.onscreen_annotations  # boolean array
                     zorders = np.zeros_like(is_onscreen).astype(int)
                     offset = np.where(is_onscreen)[0][0]
                     zorders[offset : (offset + len(visible_zorders))] = visible_zorders
