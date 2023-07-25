@@ -48,7 +48,7 @@ def _get_sfreq_from_ascii(rec_info):
 
     Returns
     -------
-    sfreq : int | float
+    sfreq : float
     """
     return float(rec_info[rec_info.index("RATE") + 1])
 
@@ -156,35 +156,35 @@ def _find_overlaps(df, max_time=0.05):
     """
     pd = _check_pandas_installed()
 
-    if len(df):
-        df["overlap_start"] = df.sort_values("time")["time"].diff().lt(max_time)
+    if not len(df):
+        return
+    df["overlap_start"] = df.sort_values("time")["time"].diff().lt(max_time)
 
-        df["overlap_end"] = df["end_time"].diff().abs().lt(max_time)
+    df["overlap_end"] = df["end_time"].diff().abs().lt(max_time)
 
-        df["no_overlap"] = ~(df["overlap_end"] & df["overlap_start"])
-        df["group"] = df["no_overlap"].cumsum()
+    df["no_overlap"] = ~(df["overlap_end"] & df["overlap_start"])
+    df["group"] = df["no_overlap"].cumsum()
 
-        # now use groupby on 'group'. If one left and one right eye in group
-        # the new start/end times are the mean of the two eyes
-        ovrlp = pd.concat(
-            [
-                pd.DataFrame(g[1].drop(columns="eye").mean()).T
-                if (len(g[1]) == 2) and (len(g[1].eye.unique()) == 2)
-                else g[1]  # not an overlap, return group unchanged
-                for g in df.groupby("group")
-            ]
-        )
-        # overlapped events get a "both" value in the "eye" col
-        if "eye" in ovrlp.columns:
-            ovrlp["eye"] = ovrlp["eye"].fillna("both")
-        else:
-            ovrlp["eye"] = "both"
-        tmp_cols = ["overlap_start", "overlap_end", "no_overlap", "group"]
-        return ovrlp.drop(columns=tmp_cols).reset_index(drop=True)
-    return
+    # now use groupby on 'group'. If one left and one right eye in group
+    # the new start/end times are the mean of the two eyes
+    ovrlp = pd.concat(
+        [
+            pd.DataFrame(g[1].drop(columns="eye").mean()).T
+            if (len(g[1]) == 2) and (len(g[1].eye.unique()) == 2)
+            else g[1]  # not an overlap, return group unchanged
+            for g in df.groupby("group")
+        ]
+    )
+    # overlapped events get a "both" value in the "eye" col
+    if "eye" in ovrlp.columns:
+        ovrlp["eye"] = ovrlp["eye"].fillna("both")
+    else:
+        ovrlp["eye"] = "both"
+    tmp_cols = ["overlap_start", "overlap_end", "no_overlap", "group"]
+    return ovrlp.drop(columns=tmp_cols).reset_index(drop=True)
 
 
-# Used by read_eyelinke_calibration
+# Used by read_eyelink_calibration
 
 
 def _find_recording_start(lines):

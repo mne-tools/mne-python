@@ -35,9 +35,7 @@ EYELINK_COLS = {
     },
     "resolution": ("xres", "yres"),
     "input": ("DIN",),
-    "flags": ("flags",),
     "remote": ("x_head", "y_head", "distance"),
-    "remote_flags": ("head_flags",),
     "block_num": ("block",),
     "eye_event": ("eye", "time", "end_time", "duration"),
     "fixation": ("fix_avg_x", "fix_avg_y", "fix_avg_pupil_size"),
@@ -208,7 +206,7 @@ class RawEyelink(BaseRaw):
         if gap_desc is None:
             gap_desc = "BAD_ACQ_SKIP"
         else:
-            logger.warn(
+            logger.warning(
                 "gap_description is deprecated in 1.5 and will be removed in 1.6, "
                 "use raw.annotations.rename to use a description other than "
                 "'BAD_ACQ_SKIP'",
@@ -326,12 +324,6 @@ class RawEyelink(BaseRaw):
                         self._event_lines[event_key].append(event_info)
                         if tokens[0] == "END":  # end of recording block
                             is_recording_block = False
-            if not self._event_lines["START"]:
-                raise ValueError(
-                    "Could not determine the start of the"
-                    " recording. When converting to ASCII, START"
-                    " events should not be suppressed."
-                )
             if not self._sample_lines:  # no samples parsed
                 raise ValueError(f"Couldn't find any samples in {self.fname}")
             self._validate_data()
@@ -358,21 +350,11 @@ class RawEyelink(BaseRaw):
         elif "PUPIL" in self._rec_info:
             logger.warning("Raw eyegaze coordinates detected. Analyze with caution.")
         if "AREA" in self._pupil_info:
-            logger.info("Pupil-size area reported.")
+            logger.info("Pupil-size area detected.")
         elif "DIAMETER" in self._pupil_info:
-            logger.info("Pupil-size diameter reported.")
-        # If more than 1 recording period, make sure sfreq didn't change.
+            logger.info("Pupil-size diameter detected.")
+        # If more than 1 recording period, check whether eye being tracked changed.
         if self._n_blocks > 1:
-            err_msg = (
-                "The sampling frequency changed during the recording."
-                " This file cannot be read into MNE."
-            )
-            for block_info in self._event_lines["SAMPLES"][1:]:
-                block_sfreq = _get_sfreq_from_ascii(block_info)
-                if block_sfreq != self._ascii_sfreq:
-                    raise ValueError(
-                        err_msg + f" Got both {self._ascii_sfreq} and {block_sfreq} Hz."
-                    )
             if self._tracking_mode == "monocular":
                 eye = self._rec_info[1]
                 blocks_list = self._event_lines["SAMPLES"]
@@ -443,10 +425,8 @@ class RawEyelink(BaseRaw):
         """Build column and channel names for data from Eyelink ASCII file.
 
         Returns the expected column names for the sample lines and event
-        lines, to be passed into pd.DataFrame. Sample and event lines in
-        eyelink files have a fixed order of columns, but the columns that
-        are present can vary. The order that col_names is built below should
-        NOT change.
+        lines, to be passed into pd.DataFrame. The columns present in an eyelink ASCII
+        file can vary. The order that col_names are built below should NOT change.
         """
         col_names = {}
         # initiate the column names for the sample lines
@@ -501,9 +481,7 @@ class RawEyelink(BaseRaw):
 
         return col_names, ch_names
 
-    def _create_dataframes(
-        self,
-    ):  # col_names, sfreq, find_overlaps=False, threshold=0.05
+    def _create_dataframes(self):
         """Create pandas.DataFrame for Eyelink samples and events.
 
         Creates a pandas DataFrame for self._sample_lines and for each
@@ -533,13 +511,13 @@ class RawEyelink(BaseRaw):
             for tokens in self._event_lines["MSG"]:
                 timestamp = tokens[0]
                 # if offset token exists, it will be the 1st index and is numeric
-                if tokens[1].replace(".", "").isnumeric():
+                if tokens[1].lstrip("-").replace(".", "", 1).isnumeric():
                     offset = float(tokens[1])
-                    msg = " ".join(str(x) for x in tokens[2:-1])
+                    msg = " ".join(str(x) for x in tokens[2:])
                 else:
                     # there is no offset token
                     offset = np.nan
-                    msg = " ".join(str(x) for x in tokens[1:-1])
+                    msg = " ".join(str(x) for x in tokens[1:])
                 msgs.append([timestamp, offset, msg])
             self.dataframes["messages"] = pd.DataFrame(msgs)
 
@@ -562,16 +540,13 @@ class RawEyelink(BaseRaw):
     def _drop_status_col(self):
         """Drop STATUS column from samples dataframe.
 
-        see https://github.com/mne-tools/mne-python/issues/11809.
-        and section 4.9.2.1 of the Eyelink 1000 Plus User Manual, version 1.0.19.
-        ASCII files won't tell us whether the STATUS column is present so we have to
-        check manually. We want to avoid iterating over entire columns because this
-        can be very slow. We know that the STATUS column will contain dots and are
-        either 3, 5, 13, or 17 characters long, i.e. "...", ".....", "I..", ".C..." etc.
+        see https://github.com/mne-tools/mne-python/issues/11809, and section 4.9.2.1 of
+        the Eyelink 1000 Plus User Manual, version 1.0.19. We know that the STATUS
+        column is either 3, 5, 13, or 17 characters long, i.e. "...", ".....", ".C."
         """
         status_cols = []
         # we know the first 3 columns will be the time, xpos, ypos
-        for col in self.dataframes["samples"].columns[2:]:
+        for col in self.dataframes["samples"].columns[3:]:
             if self.dataframes["samples"][col][0][0].isnumeric():
                 # if the value is numeric, it's not a status column
                 continue

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 import numpy as np
@@ -7,6 +9,7 @@ from mne.io import read_raw_eyelink
 from mne.io.constants import FIFF
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.utils import _check_pandas_installed, requires_pandas
+
 
 MAPPING = {
     "left": ["xpos_left", "ypos_left", "pupil_left"],
@@ -189,3 +192,95 @@ def test_find_overlaps():
     assert len(overlap_df["eye"].unique()) == 3  # ['both', 'left', 'right']
     assert len(overlap_df) == 5  # ['both', 'L', 'R', 'L', 'L']
     assert overlap_df["eye"].iloc[0] == "both"
+
+
+def _simulate_eye_tracking_data(in_file, out_file):
+    out_file = Path(out_file)
+
+    new_samples_line = (
+        "SAMPLES\tPUPIL\tLEFT\tVEL\tRES\tHTARGET\tRATE\t1000.00"
+        "\tTRACKING\tCR\tFILTER\t2\tINPUT"
+    )
+    with out_file.open("w") as fp:
+        in_recording_block = False
+        events = []
+
+        for line in Path(in_file).read_text().splitlines():
+            if line.startswith("START"):
+                in_recording_block = True
+            if in_recording_block:
+                tokens = line.split()
+                event_type = tokens[0]
+                if event_type.isnumeric():  # samples
+                    tokens[4:4] = ["100", "20", "45", "45", "127.0"]  # vel, res, DIN
+                    tokens.extend(["1497.0", "5189.0", "512.5", "............."])
+                elif event_type in ("EFIX", "ESACC"):
+                    tokens.extend(["45", "45"])  # resolution
+                elif event_type == "SAMPLES":
+                    tokens[1] = "PUPIL"  # simulate raw coordinate data
+                    tokens[3:3] = ["VEL", "RES", "HTARGET"]
+                    tokens.append("INPUT")
+                elif event_type == "EBLINK":
+                    continue  # simulate no blink events
+                elif event_type == "END":
+                    pass
+                else:
+                    fp.write("%s\n" % line)
+                    continue
+                events.append("\t".join(tokens))
+                if event_type == "END":
+                    fp.write("\n".join(events) + "\n")
+                    events.clear()
+                    in_recording_block = False
+            else:
+                fp.write("%s\n" % line)
+
+        fp.write("%s\n" % "START\t7452389\tRIGHT\tSAMPLES\tEVENTS")
+        fp.write("%s\n" % new_samples_line)
+
+        for timestamp in np.arange(7452389, 7453390):  # simulate a second block
+            fp.write(
+                "%s\n"
+                % (
+                    f"{timestamp}\t-2434.0\t-1760.0\t840.0\t100\t20\t45\t45\t127.0\t"
+                    "...\t1497\t5189\t512.5\t............."
+                )
+            )
+
+        fp.write("%s\n" % "END\t7453390\tRIGHT\tSAMPLES\tEVENTS")
+
+
+@requires_testing_data
+@requires_pandas
+@pytest.mark.parametrize("fname", [(fname_href)])
+def test_multi_block_misc_channels(fname):
+    """Test an eyelink file with multiple blocks and additional misc channels."""
+    out_file = Path("./tmp_eyelink.asc")
+    _simulate_eye_tracking_data(fname, out_file)
+
+    raw = read_raw_eyelink(out_file)
+
+    chs_in_file = [
+        "xpos_right",
+        "ypos_right",
+        "pupil_right",
+        "xvel_right",
+        "yvel_right",
+        "xres",
+        "yres",
+        "DIN",
+        "x_head",
+        "y_head",
+        "distance",
+    ]
+
+    assert raw.ch_names == chs_in_file
+    assert raw.annotations.description[1] == "SYNCTIME"
+    assert raw.annotations.description[-1] == "BAD_ACQ_SKIP"
+    assert np.isclose(raw.annotations.onset[-1], 1.001)
+    assert np.isclose(raw.annotations.duration[-1], 0.1)
+
+    data, times = raw.get_data(return_times=True)
+    assert not np.isnan(data[0, np.where(times < 1)[0]]).any()
+    assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
+    out_file.unlink()
