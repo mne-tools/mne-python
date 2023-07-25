@@ -253,10 +253,10 @@ def _simulate_eye_tracking_data(in_file, out_file):
 
 @requires_testing_data
 @requires_pandas
-@pytest.mark.parametrize("fname", [(fname_href)])
-def test_multi_block_misc_channels(fname):
+@pytest.mark.parametrize("fname", [fname_href])
+def test_multi_block_misc_channels(fname, tmp_path):
     """Test an eyelink file with multiple blocks and additional misc channels."""
-    out_file = Path("./tmp_eyelink.asc")
+    out_file = tmp_path / "tmp_eyelink.asc"
     _simulate_eye_tracking_data(fname, out_file)
 
     raw = read_raw_eyelink(out_file)
