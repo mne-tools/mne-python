@@ -1,38 +1,27 @@
 .. -*- mode: rst -*-
 
-|GH-Linux|_ |GH-macOS|_ |Cirrus|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
+|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_
 
 |MNE|_
 
-.. |GH-Linux| image:: https://github.com/mne-tools/mne-python/workflows/linux%20/%20conda/badge.svg?branch=main
-.. _GH-Linux: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
-
-.. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=main
-.. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
-
-.. |Cirrus| image:: https://api.cirrus-ci.com/github/mne-tools/mne-python.svg
-.. _Cirrus: https://cirrus-ci.com/github/mne-tools/mne-python
-
-.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=main
-.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
-
-.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=shield
-.. _Circle: https://circleci.com/gh/mne-tools/mne-python
-
-.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/main/graph/badge.svg
-.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
-
-.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
+.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI
 .. _PyPI: https://pypi.org/project/mne/
 
-.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
+.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda
 .. _conda-forge: https://anaconda.org/conda-forge/mne
 
 .. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
 .. _Zenodo: https://doi.org/10.5281/zenodo.592483
 
+.. |Discourse| image:: https://img.shields.io/discourse/status?label=Community&server=https%3A%2F%2Fmne.discourse.group%2F
+.. _Discourse: https://mne.discourse.group/
+
+.. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
+.. _Codecov: https://codecov.io/gh/mne-tools/mne-python
+
 .. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
 .. _MNE: https://mne.tools/dev/
+
 
 MNE-Python
 ==========
@@ -50,6 +39,14 @@ Documentation
 `MNE documentation`_ for MNE-Python is available online.
 
 
+Forum
+^^^^^^
+
+Our user forum is https://mne.discourse.group and is the best place to ask
+questions about MNE-Python usage or about the contribution process. It also
+includes job opportunities and other announcements.
+
+
 Installing MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -57,12 +54,13 @@ To install the latest stable version of MNE-Python, you can use pip_ in a termin
 
 .. code-block:: console
 
-    $ pip install -U mne
+    $ pip install --upgrade mne
 
 - MNE-Python 0.17 was the last release to support Python 2.7
 - MNE-Python 0.18 requires Python 3.5 or higher
 - MNE-Python 0.21 requires Python 3.6 or higher
 - MNE-Python 0.24 requires Python 3.7 or higher
+- MNE-Python 1.4 requires Python 3.8 or higher
 
 For more complete instructions and more advanced installation methods (e.g. for
 the latest development version), see the `installation guide`_.
@@ -75,7 +73,7 @@ To install the latest version of the code using pip_ open a terminal and type:
 
 .. code-block:: console
 
-    $ pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
+    $ pip install --upgrade git+https://github.com/mne-tools/mne-python@main
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
@@ -83,19 +81,16 @@ To get the latest code using `git <https://git-scm.com/>`__, open a terminal and
 
     $ git clone https://github.com/mne-tools/mne-python.git
 
-Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
-
 
 Dependencies
 ^^^^^^^^^^^^
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 3.7
-- NumPy >= 1.18.1
-- SciPy >= 1.4.1
-- Matplotlib >= 3.1.0
+- Python >= 3.8
+- NumPy >= 1.20.2
+- SciPy >= 1.6.3
+- Matplotlib >= 3.4.0
 - pooch >= 1.5
 - tqdm
 - Jinja2
@@ -103,18 +98,26 @@ The minimum required dependencies to run MNE-Python are:
 
 For full functionality, some functions require:
 
-- Scikit-learn >= 0.22.0
+- Scikit-learn >= 0.24.2
 - joblib >= 0.15 (for parallelization control)
-- Numba >= 0.48.0
-- NiBabel >= 2.5.0
-- OpenMEEG >= 2.5.5
-- Pandas >= 1.0.0
+- mne-qt-browser >= 0.1 (for fast raw data visualization)
+- Qt5 >= 5.12 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
+
+  - PyQt6 >= 6.0
+  - PySide6 >= 6.0
+  - PyQt5 >= 5.12
+  - PySide2 >= 5.12
+
+- Numba >= 0.53.1
+- NiBabel >= 3.2.1
+- OpenMEEG >= 2.5.6
+- Pandas >= 1.2.4
 - Picard >= 0.3
-- CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)
-- DIPY >= 1.1.0
-- Imageio >= 2.6.1
-- PyVista >= 0.32
-- pyvistaqt >= 0.4
+- CuPy >= 9.0.0 (for NVIDIA CUDA acceleration)
+- DIPY >= 1.4.0
+- Imageio >= 2.8.0
+- PyVista >= 0.32 (for 3D visualization)
+- pyvistaqt >= 0.4 (for 3D visualization)
 - mffpy >= 0.5.7
 - h5py
 - h5io
@@ -126,12 +129,6 @@ Contributing to MNE-Python
 Please see the documentation on the MNE-Python homepage:
 
 https://mne.tools/dev/install/contributing.html
-
-
-Forum
-^^^^^^
-
-https://mne.discourse.group
 
 
 Licensing

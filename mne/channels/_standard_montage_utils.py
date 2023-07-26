@@ -17,28 +17,32 @@ from ..transforms import _sph_to_cart
 from ..utils import warn, _pl
 from . import __file__ as _CHANNELS_INIT_FILE
 
-MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
+MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), "data", "montages")
 
-_str = 'U100'
+_str = "U100"
 
 
 # In standard_1020, T9=LPA, T10=RPA, Nasion is the same as Iz with a
 # sign-flipped Y value
 
+
 def _egi_256(head_size):
-    fname = op.join(MONTAGE_PATH, 'EGI_256.csd')
+    fname = op.join(MONTAGE_PATH, "EGI_256.csd")
     montage = _read_csd(fname, head_size)
     ch_pos = montage._get_ch_pos()
 
     # For this cap, the Nasion is the frontmost electrode,
     # LPA/RPA we approximate by putting 75% of the way (toward the front)
     # between the two electrodes that are halfway down the ear holes
-    nasion = ch_pos['E31']
-    lpa = 0.75 * ch_pos['E67'] + 0.25 * ch_pos['E94']
-    rpa = 0.75 * ch_pos['E219'] + 0.25 * ch_pos['E190']
+    nasion = ch_pos["E31"]
+    lpa = 0.75 * ch_pos["E67"] + 0.25 * ch_pos["E94"]
+    rpa = 0.75 * ch_pos["E219"] + 0.25 * ch_pos["E190"]
 
     fids_montage = make_dig_montage(
-        coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
+        coord_frame="unknown",
+        nasion=nasion,
+        lpa=lpa,
+        rpa=rpa,
     )
 
     montage += fids_montage  # add fiducials to montage
@@ -63,119 +67,117 @@ def _str_names(ch_names):
 
 def _safe_np_loadtxt(fname, **kwargs):
     out = np.genfromtxt(fname, **kwargs)
-    ch_names = _str_names(out['f0'])
-    others = tuple(out['f%d' % ii] for ii in range(1, len(out.dtype.fields)))
+    ch_names = _str_names(out["f0"])
+    others = tuple(out["f%d" % ii] for ii in range(1, len(out.dtype.fields)))
     return (ch_names,) + others
 
 
 def _biosemi(basename, head_size):
     fname = op.join(MONTAGE_PATH, basename)
-    fid_names = ('Nz', 'LPA', 'RPA')
+    fid_names = ("Nz", "LPA", "RPA")
     return _read_theta_phi_in_degrees(fname, head_size, fid_names)
 
 
-def _mgh_or_standard(basename, head_size, coord_frame='unknown'):
-    fid_names = ('Nz', 'LPA', 'RPA')
+def _mgh_or_standard(basename, head_size, coord_frame="unknown"):
+    fid_names = ("Nz", "LPA", "RPA")
     fname = op.join(MONTAGE_PATH, basename)
 
     ch_names_, pos = [], []
     with open(fname) as fid:
         # Ignore units as we will scale later using the norms anyway
         for line in fid:
-            if 'Positions\n' in line:
+            if "Positions\n" in line:
                 break
         pos = []
         for line in fid:
-            if 'Labels\n' in line:
+            if "Labels\n" in line:
                 break
             pos.append(list(map(float, line.split())))
         for line in fid:
-            if not line or not set(line) - {' '}:
+            if not line or not set(line) - {" "}:
                 break
-            ch_names_.append(line.strip(' ').strip('\n'))
+            ch_names_.append(line.strip(" ").strip("\n"))
 
-    pos = np.array(pos) / 1000.
+    pos = np.array(pos) / 1000.0
     ch_pos = _check_dupes_odict(ch_names_, pos)
     nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
     if head_size is None:
-        scale = 1.
+        scale = 1.0
     else:
         scale = head_size / np.median(np.linalg.norm(pos, axis=1))
     for value in ch_pos.values():
         value *= scale
     # if we are in MRI/MNI coordinates, we need to replace nasion, LPA, and RPA
     # with those of fsaverage for ``trans='fsaverage'`` to work
-    if coord_frame == 'mri':
-        lpa, nasion, rpa = [
-            x['r'].copy() for x in get_mni_fiducials('fsaverage')]
+    if coord_frame == "mri":
+        lpa, nasion, rpa = [x["r"].copy() for x in get_mni_fiducials("fsaverage")]
     nasion *= scale
     lpa *= scale
     rpa *= scale
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame=coord_frame,
-                            nasion=nasion, lpa=lpa, rpa=rpa)
+    return make_dig_montage(
+        ch_pos=ch_pos, coord_frame=coord_frame, nasion=nasion, lpa=lpa, rpa=rpa
+    )
 
 
 standard_montage_look_up_table = {
-    'EGI_256': _egi_256,
-
-    'easycap-M1': partial(_easycap, basename='easycap-M1.txt'),
-    'easycap-M10': partial(_easycap, basename='easycap-M10.txt'),
-
-    'GSN-HydroCel-128': partial(_hydrocel, basename='GSN-HydroCel-128.sfp'),
-    'GSN-HydroCel-129': partial(_hydrocel, basename='GSN-HydroCel-129.sfp'),
-    'GSN-HydroCel-256': partial(_hydrocel, basename='GSN-HydroCel-256.sfp'),
-    'GSN-HydroCel-257': partial(_hydrocel, basename='GSN-HydroCel-257.sfp'),
-    'GSN-HydroCel-32': partial(_hydrocel, basename='GSN-HydroCel-32.sfp'),
-    'GSN-HydroCel-64_1.0': partial(_hydrocel,
-                                   basename='GSN-HydroCel-64_1.0.sfp'),
-    'GSN-HydroCel-65_1.0': partial(_hydrocel,
-                                   basename='GSN-HydroCel-65_1.0.sfp'),
-
-    'biosemi128': partial(_biosemi, basename='biosemi128.txt'),
-    'biosemi16': partial(_biosemi, basename='biosemi16.txt'),
-    'biosemi160': partial(_biosemi, basename='biosemi160.txt'),
-    'biosemi256': partial(_biosemi, basename='biosemi256.txt'),
-    'biosemi32': partial(_biosemi, basename='biosemi32.txt'),
-    'biosemi64': partial(_biosemi, basename='biosemi64.txt'),
-
-    'mgh60': partial(_mgh_or_standard, basename='mgh60.elc',
-                     coord_frame='mri'),
-    'mgh70': partial(_mgh_or_standard, basename='mgh70.elc',
-                     coord_frame='mri'),
-    'standard_1005': partial(_mgh_or_standard,
-                             basename='standard_1005.elc', coord_frame='mri'),
-    'standard_1020': partial(_mgh_or_standard,
-                             basename='standard_1020.elc', coord_frame='mri'),
-    'standard_alphabetic': partial(_mgh_or_standard,
-                                   basename='standard_alphabetic.elc',
-                                   coord_frame='mri'),
-    'standard_postfixed': partial(_mgh_or_standard,
-                                  basename='standard_postfixed.elc',
-                                  coord_frame='mri'),
-    'standard_prefixed': partial(_mgh_or_standard,
-                                 basename='standard_prefixed.elc',
-                                 coord_frame='mri'),
-    'standard_primed': partial(_mgh_or_standard,
-                               basename='standard_primed.elc',
-                               coord_frame='mri'),
-    'artinis-octamon': partial(_mgh_or_standard, coord_frame='mri',
-                               basename='artinis-octamon.elc'),
-    'artinis-brite23': partial(_mgh_or_standard, coord_frame='mri',
-                               basename='artinis-brite23.elc'),
-    'brainproducts-RNP-BA-128': partial(
-        _easycap, basename='brainproducts-RNP-BA-128.txt')
+    "EGI_256": _egi_256,
+    "easycap-M1": partial(_easycap, basename="easycap-M1.txt"),
+    "easycap-M10": partial(_easycap, basename="easycap-M10.txt"),
+    "easycap-M43": partial(_easycap, basename="easycap-M43.txt"),
+    "GSN-HydroCel-128": partial(_hydrocel, basename="GSN-HydroCel-128.sfp"),
+    "GSN-HydroCel-129": partial(_hydrocel, basename="GSN-HydroCel-129.sfp"),
+    "GSN-HydroCel-256": partial(_hydrocel, basename="GSN-HydroCel-256.sfp"),
+    "GSN-HydroCel-257": partial(_hydrocel, basename="GSN-HydroCel-257.sfp"),
+    "GSN-HydroCel-32": partial(_hydrocel, basename="GSN-HydroCel-32.sfp"),
+    "GSN-HydroCel-64_1.0": partial(_hydrocel, basename="GSN-HydroCel-64_1.0.sfp"),
+    "GSN-HydroCel-65_1.0": partial(_hydrocel, basename="GSN-HydroCel-65_1.0.sfp"),
+    "biosemi128": partial(_biosemi, basename="biosemi128.txt"),
+    "biosemi16": partial(_biosemi, basename="biosemi16.txt"),
+    "biosemi160": partial(_biosemi, basename="biosemi160.txt"),
+    "biosemi256": partial(_biosemi, basename="biosemi256.txt"),
+    "biosemi32": partial(_biosemi, basename="biosemi32.txt"),
+    "biosemi64": partial(_biosemi, basename="biosemi64.txt"),
+    "mgh60": partial(_mgh_or_standard, basename="mgh60.elc", coord_frame="mri"),
+    "mgh70": partial(_mgh_or_standard, basename="mgh70.elc", coord_frame="mri"),
+    "standard_1005": partial(
+        _mgh_or_standard, basename="standard_1005.elc", coord_frame="mri"
+    ),
+    "standard_1020": partial(
+        _mgh_or_standard, basename="standard_1020.elc", coord_frame="mri"
+    ),
+    "standard_alphabetic": partial(
+        _mgh_or_standard, basename="standard_alphabetic.elc", coord_frame="mri"
+    ),
+    "standard_postfixed": partial(
+        _mgh_or_standard, basename="standard_postfixed.elc", coord_frame="mri"
+    ),
+    "standard_prefixed": partial(
+        _mgh_or_standard, basename="standard_prefixed.elc", coord_frame="mri"
+    ),
+    "standard_primed": partial(
+        _mgh_or_standard, basename="standard_primed.elc", coord_frame="mri"
+    ),
+    "artinis-octamon": partial(
+        _mgh_or_standard, coord_frame="mri", basename="artinis-octamon.elc"
+    ),
+    "artinis-brite23": partial(
+        _mgh_or_standard, coord_frame="mri", basename="artinis-brite23.elc"
+    ),
+    "brainproducts-RNP-BA-128": partial(
+        _easycap, basename="brainproducts-RNP-BA-128.txt"
+    ),
 }
 
 
 def _read_sfp(fname, head_size):
     """Read .sfp BESA/EGI files."""
     # fname has been already checked
-    fid_names = ('FidNz', 'FidT9', 'FidT10')
-    options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
+    fid_names = ("FidNz", "FidT9", "FidT10")
+    options = dict(dtype=(_str, "f4", "f4", "f4"))
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
     # deal with "headshape"
-    mask = np.array([ch_name == 'headshape' for ch_name in ch_names], bool)
+    mask = np.array([ch_name == "headshape" for ch_name in ch_names], bool)
     hsp = np.stack([xs[mask], ys[mask], zs[mask]], axis=-1)
     mask = ~mask
     pos = np.stack([xs[mask], ys[mask], zs[mask]], axis=-1)
@@ -193,14 +195,16 @@ def _read_sfp(fname, head_size):
         lpa = lpa * scale if lpa is not None else None
         rpa = rpa * scale if rpa is not None else None
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
-                            nasion=nasion, rpa=rpa, lpa=lpa, hsp=hsp)
+    return make_dig_montage(
+        ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, rpa=rpa, lpa=lpa, hsp=hsp
+    )
 
 
 def _read_csd(fname, head_size):
     # Label, Theta, Phi, Radius, X, Y, Z, off sphere surface
-    options = dict(comments='//',
-                   dtype=(_str, 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4'))
+    options = dict(
+        comments="//", dtype=(_str, "f4", "f4", "f4", "f4", "f4", "f4", "f4")
+    )
     ch_names, _, _, _, xs, ys, zs, _ = _safe_np_loadtxt(fname, **options)
     pos = np.stack([xs, ys, zs], axis=-1)
 
@@ -213,16 +217,15 @@ def _read_csd(fname, head_size):
 def _check_dupes_odict(ch_names, pos):
     """Warn if there are duplicates, then turn to ordered dict."""
     ch_names = list(ch_names)
-    dups = OrderedDict((ch_name, ch_names.count(ch_name))
-                       for ch_name in ch_names)
-    dups = OrderedDict((ch_name, count) for ch_name, count in dups.items()
-                       if count > 1)
+    dups = OrderedDict((ch_name, ch_names.count(ch_name)) for ch_name in ch_names)
+    dups = OrderedDict((ch_name, count) for ch_name, count in dups.items() if count > 1)
     n = len(dups)
     if n:
-        dups = ', '.join(
-            f'{ch_name} ({count})' for ch_name, count in dups.items())
-        warn(f'Duplicate channel position{_pl(n)} found, the last will be '
-             f'used for {dups}')
+        dups = ", ".join(f"{ch_name} ({count})" for ch_name, count in dups.items())
+        warn(
+            f"Duplicate channel position{_pl(n)} found, the last will be "
+            f"used for {dups}"
+        )
     return OrderedDict(zip(ch_names, pos))
 
 
@@ -242,30 +245,30 @@ def _read_elc(fname, head_size):
     montage : instance of DigMontage
         The montage in [m].
     """
-    fid_names = ('Nz', 'LPA', 'RPA')
+    fid_names = ("Nz", "LPA", "RPA")
 
     ch_names_, pos = [], []
     with open(fname) as fid:
         # _read_elc does require to detect the units. (see _mgh_or_standard)
         for line in fid:
-            if 'UnitPosition' in line:
+            if "UnitPosition" in line:
                 units = line.split()[1]
-                scale = dict(m=1., mm=1e-3)[units]
+                scale = dict(m=1.0, mm=1e-3)[units]
                 break
         else:
-            raise RuntimeError('Could not detect units in file %s' % fname)
+            raise RuntimeError("Could not detect units in file %s" % fname)
         for line in fid:
-            if 'Positions\n' in line:
+            if "Positions\n" in line:
                 break
         pos = []
         for line in fid:
-            if 'Labels\n' in line:
+            if "Labels\n" in line:
                 break
             pos.append(list(map(float, line.split())))
         for line in fid:
-            if not line or not set(line) - {' '}:
+            if not line or not set(line) - {" "}:
                 break
-            ch_names_.append(line.strip(' ').strip('\n'))
+            ch_names_.append(line.strip(" ").strip("\n"))
 
     pos = np.array(pos) * scale
     if head_size is not None:
@@ -274,14 +277,15 @@ def _read_elc(fname, head_size):
     ch_pos = _check_dupes_odict(ch_names_, pos)
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
-                            nasion=nasion, lpa=lpa, rpa=rpa)
+    return make_dig_montage(
+        ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
+    )
 
 
-def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
-                               add_fiducials=False):
-    ch_names, theta, phi = _safe_np_loadtxt(fname, skip_header=1,
-                                            dtype=(_str, 'i4', 'i4'))
+def _read_theta_phi_in_degrees(fname, head_size, fid_names=None, add_fiducials=False):
+    ch_names, theta, phi = _safe_np_loadtxt(
+        fname, skip_header=1, dtype=(_str, "i4", "i4")
+    )
     if add_fiducials:
         # Add fiducials based on 10/20 spherical coordinate definitions
         # http://chgd.umich.edu/wp-content/uploads/2014/06/
@@ -290,7 +294,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
         # https://www.easycap.de/wp-content/uploads/2018/02/
         # Easycap-Equidistant-Layouts.pdf
         assert fid_names is None
-        fid_names = ['Nasion', 'LPA', 'RPA']
+        fid_names = ["Nasion", "LPA", "RPA"]
         ch_names.extend(fid_names)
         theta = np.append(theta, [115, -115, 115])
         phi = np.append(phi, [90, 0, 0])
@@ -303,23 +307,23 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
     if fid_names is not None:
         nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
-                            nasion=nasion, lpa=lpa, rpa=rpa)
+    return make_dig_montage(
+        ch_pos=ch_pos, coord_frame="unknown", nasion=nasion, lpa=lpa, rpa=rpa
+    )
 
 
 def _read_elp_besa(fname, head_size):
     # This .elp is not the same as polhemus elp. see _read_isotrak_elp_points
-    dtype = np.dtype('S8, S8, f8, f8, f8')
+    dtype = np.dtype("S8, S8, f8, f8, f8")
     data = np.loadtxt(fname, dtype=dtype)
 
-    ch_names = data['f1'].astype(str).tolist()
-    az = data['f2']
-    horiz = data['f3']
-    radius = np.abs(az / 180.)
-    az = np.deg2rad(np.array([h if a >= 0. else 180 + h
-                              for h, a in zip(horiz, az)]))
+    ch_names = data["f1"].astype(str).tolist()
+    az = data["f2"]
+    horiz = data["f3"]
+    radius = np.abs(az / 180.0)
+    az = np.deg2rad(np.array([h if a >= 0.0 else 180 + h for h, a in zip(horiz, az)]))
     pol = radius * np.pi
-    rad = data['f4'] / 100
+    rad = data["f4"] / 100
     pos = _sph_to_cart(np.array([rad, az, pol]).T)
 
     if head_size is not None:
@@ -327,7 +331,7 @@ def _read_elp_besa(fname, head_size):
 
     ch_pos = _check_dupes_odict(ch_names, pos)
 
-    fid_names = ('Nz', 'LPA', 'RPA')
+    fid_names = ("Nz", "LPA", "RPA")
     # No one grants that the fid names actually exist.
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 

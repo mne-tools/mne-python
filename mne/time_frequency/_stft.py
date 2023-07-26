@@ -34,6 +34,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     stftfreq
     """
     from scipy.fft import rfft
+
     if not np.isrealobj(x):
         raise ValueError("x is not a real valued array")
 
@@ -45,7 +46,7 @@ def stft(x, wsize, tstep=None, verbose=None):
 
     # Errors and warnings
     if wsize % 4:
-        raise ValueError('The window length must be a multiple of 4.')
+        raise ValueError("The window length must be a multiple of 4.")
 
     if tstep is None:
         tstep = wsize / 2
@@ -53,12 +54,15 @@ def stft(x, wsize, tstep=None, verbose=None):
     tstep = int(tstep)
 
     if (wsize % tstep) or (tstep % 2):
-        raise ValueError('The step size must be a multiple of 2 and a '
-                         'divider of the window length.')
+        raise ValueError(
+            "The step size must be a multiple of 2 and a "
+            "divider of the window length."
+        )
 
     if tstep > wsize / 2:
-        raise ValueError('The step size must be smaller than half the '
-                         'window length.')
+        raise ValueError(
+            "The step size must be smaller than half the " "window length."
+        )
 
     n_step = int(ceil(T / float(tstep)))
     n_freq = wsize // 2 + 1
@@ -71,24 +75,23 @@ def stft(x, wsize, tstep=None, verbose=None):
         return X
 
     # Defining sine window
-    win = np.sin(np.arange(.5, wsize + .5) / wsize * np.pi)
-    win2 = win ** 2
+    win = np.sin(np.arange(0.5, wsize + 0.5) / wsize * np.pi)
+    win2 = win**2
 
     swin = np.zeros((n_step - 1) * tstep + wsize)
     for t in range(n_step):
-        swin[t * tstep:t * tstep + wsize] += win2
+        swin[t * tstep : t * tstep + wsize] += win2
     swin = np.sqrt(wsize * swin)
 
     # Zero-padding and Pre-processing for edges
-    xp = np.zeros((n_signals, wsize + (n_step - 1) * tstep),
-                  dtype=x.dtype)
-    xp[:, (wsize - tstep) // 2: (wsize - tstep) // 2 + T] = x
+    xp = np.zeros((n_signals, wsize + (n_step - 1) * tstep), dtype=x.dtype)
+    xp[:, (wsize - tstep) // 2 : (wsize - tstep) // 2 + T] = x
     x = xp
 
     for t in range(n_step):
         # Framing
-        wwin = win / swin[t * tstep: t * tstep + wsize]
-        frame = x[:, t * tstep: t * tstep + wsize] * wwin[None, :]
+        wwin = win / swin[t * tstep : t * tstep + wsize]
+        frame = x[:, t * tstep : t * tstep + wsize] * wwin[None, :]
         # FFT
         X[:, :, t] = rfft(frame)
 
@@ -119,28 +122,33 @@ def istft(X, tstep=None, Tx=None):
     """
     # Errors and warnings
     from scipy.fft import irfft
+
     X = np.asarray(X)
     if X.ndim < 2:
-        raise ValueError(f'X must have ndim >= 2, got {X.ndim}')
+        raise ValueError(f"X must have ndim >= 2, got {X.ndim}")
     n_win, n_step = X.shape[-2:]
     signal_shape = X.shape[:-2]
     if n_win % 2 == 0:
-        raise ValueError('The number of rows of the STFT matrix must be odd.')
+        raise ValueError("The number of rows of the STFT matrix must be odd.")
 
     wsize = 2 * (n_win - 1)
     if tstep is None:
         tstep = wsize / 2
 
     if wsize % tstep:
-        raise ValueError('The step size must be a divider of two times the '
-                         'number of rows of the STFT matrix minus two.')
+        raise ValueError(
+            "The step size must be a divider of two times the "
+            "number of rows of the STFT matrix minus two."
+        )
 
     if wsize % 2:
-        raise ValueError('The step size must be a multiple of 2.')
+        raise ValueError("The step size must be a multiple of 2.")
 
     if tstep > wsize / 2:
-        raise ValueError('The step size must be smaller than the number of '
-                         'rows of the STFT matrix minus one.')
+        raise ValueError(
+            "The step size must be smaller than the number of "
+            "rows of the STFT matrix minus one."
+        )
 
     if Tx is None:
         Tx = n_step * tstep
@@ -153,24 +161,24 @@ def istft(X, tstep=None, Tx=None):
         return x[..., :Tx]
 
     # Defining sine window
-    win = np.sin(np.arange(.5, wsize + .5) / wsize * np.pi)
+    win = np.sin(np.arange(0.5, wsize + 0.5) / wsize * np.pi)
     # win = win / norm(win);
 
     # Pre-processing for edges
     swin = np.zeros(T + wsize - tstep, dtype=np.float64)
     for t in range(n_step):
-        swin[t * tstep:t * tstep + wsize] += win ** 2
+        swin[t * tstep : t * tstep + wsize] += win**2
     swin = np.sqrt(swin / wsize)
 
     for t in range(n_step):
         # IFFT
         frame = irfft(X[..., t], wsize)
         # Overlap-add
-        frame *= win / swin[t * tstep:t * tstep + wsize]
-        x[..., t * tstep: t * tstep + wsize] += frame
+        frame *= win / swin[t * tstep : t * tstep + wsize]
+        x[..., t * tstep : t * tstep + wsize] += frame
 
     # Truncation
-    x = x[..., (wsize - tstep) // 2: (wsize - tstep) // 2 + T + 1]
+    x = x[..., (wsize - tstep) // 2 : (wsize - tstep) // 2 + T + 1]
     x = x[..., :Tx].copy()
     return x
 
@@ -197,6 +205,7 @@ def stftfreq(wsize, sfreq=None):  # noqa: D401
     istft
     """
     from scipy.fft import rfftfreq
+
     freqs = rfftfreq(wsize)
     if sfreq is not None:
         freqs *= float(sfreq)
@@ -221,8 +230,11 @@ def stft_norm2(X):
     """
     X2 = (X * X.conj()).real
     # compute all L2 coefs and remove first and last frequency once.
-    norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1) -
-              np.sum(X2[:, -1, :], axis=1))
+    norms2 = (
+        2.0 * X2.sum(axis=2).sum(axis=1)
+        - np.sum(X2[:, 0, :], axis=1)
+        - np.sum(X2[:, -1, :], axis=1)
+    )
     return norms2
 
 
@@ -243,6 +255,9 @@ def stft_norm1(X):
     """
     X_abs = np.abs(X)
     # compute all L1 coefs and remove first and last frequency once.
-    norms = (2. * X_abs.sum(axis=(1, 2)) -
-             np.sum(X_abs[:, 0, :], axis=1) - np.sum(X_abs[:, -1, :], axis=1))
+    norms = (
+        2.0 * X_abs.sum(axis=(1, 2))
+        - np.sum(X_abs[:, 0, :], axis=1)
+        - np.sum(X_abs[:, -1, :], axis=1)
+    )
     return norms

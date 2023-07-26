@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """TimeDelayingRidge class."""
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Ross Maddox <ross.maddox@rochester.edu>
@@ -14,8 +13,9 @@ from ..fixes import jit
 from ..utils import warn, ProgressBar, logger
 
 
-def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
-                   edge_correction=True):
+def _compute_corrs(
+    X, y, smin, smax, n_jobs=None, fit_intercept=False, edge_correction=True
+):
     """Compute auto- and cross-correlations."""
     if fit_intercept:
         # We could do this in the Fourier domain, too, but it should
@@ -28,7 +28,7 @@ def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
         X = X - X_offset
         y = y - y_offset
     else:
-        X_offset = y_offset = 0.
+        X_offset = y_offset = 0.0
     if X.ndim == 2:
         assert y.ndim == 2
         X = X[:, np.newaxis, :]
@@ -42,7 +42,8 @@ def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 
     _, cuda_dict = _setup_cuda_fft_multiply_repeated(
-        n_jobs, [1.], n_fft, 'correlation calculations')
+        n_jobs, [1.0], n_fft, "correlation calculations"
+    )
     del n_jobs  # only used to set as CUDA
 
     # create our Toeplitz indexer
@@ -50,26 +51,27 @@ def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
     for ii in range(len_trf):
         ij[ii, ii:] = np.arange(len_trf - ii)
         x = np.arange(n_fft - 1, n_fft - len_trf + ii, -1)
-        ij[ii + 1:, ii] = x
+        ij[ii + 1 :, ii] = x
 
     x_xt = np.zeros([n_ch_x * len_trf] * 2)
-    x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order='F')
+    x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order="F")
     n = n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x)
-    logger.info('Fitting %d epochs, %d channels' % (n_epochs, n_ch_x))
-    pb = ProgressBar(n, mesg='Sample')
+    logger.info("Fitting %d epochs, %d channels" % (n_epochs, n_ch_x))
+    pb = ProgressBar(n, mesg="Sample")
     count = 0
     pb.update(count)
     for ei in range(n_epochs):
         this_X = X[:, ei, :]
         # XXX maybe this is what we should parallelize over CPUs at some point
-        X_fft = cuda_dict['rfft'](this_X, n=n_fft, axis=0)
+        X_fft = cuda_dict["rfft"](this_X, n=n_fft, axis=0)
         X_fft_conj = X_fft.conj()
-        y_fft = cuda_dict['rfft'](y[:, ei, :], n=n_fft, axis=0)
+        y_fft = cuda_dict["rfft"](y[:, ei, :], n=n_fft, axis=0)
 
         for ch0 in range(n_ch_x):
             for oi, ch1 in enumerate(range(ch0, n_ch_x)):
-                this_result = cuda_dict['irfft'](
-                    X_fft[:, ch0] * X_fft_conj[:, ch1], n=n_fft, axis=0)
+                this_result = cuda_dict["irfft"](
+                    X_fft[:, ch0] * X_fft_conj[:, ch1], n=n_fft, axis=0
+                )
                 # Our autocorrelation structure is a Toeplitz matrix, but
                 # it's faster to create the Toeplitz ourselves than use
                 # linalg.toeplitz.
@@ -86,40 +88,43 @@ def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
                     _edge_correct(this_result, this_X, smax, smin, ch0, ch1)
 
                 # Store the results in our output matrix
-                x_xt[ch0 * len_trf:(ch0 + 1) * len_trf,
-                     ch1 * len_trf:(ch1 + 1) * len_trf] += this_result
+                x_xt[
+                    ch0 * len_trf : (ch0 + 1) * len_trf,
+                    ch1 * len_trf : (ch1 + 1) * len_trf,
+                ] += this_result
                 if ch0 != ch1:
-                    x_xt[ch1 * len_trf:(ch1 + 1) * len_trf,
-                         ch0 * len_trf:(ch0 + 1) * len_trf] += this_result.T
+                    x_xt[
+                        ch1 * len_trf : (ch1 + 1) * len_trf,
+                        ch0 * len_trf : (ch0 + 1) * len_trf,
+                    ] += this_result.T
                 count += 1
                 pb.update(count)
 
             # compute the crosscorrelations
-            cc_temp = cuda_dict['irfft'](
-                y_fft * X_fft_conj[:, slice(ch0, ch0 + 1)], n=n_fft, axis=0)
+            cc_temp = cuda_dict["irfft"](
+                y_fft * X_fft_conj[:, slice(ch0, ch0 + 1)], n=n_fft, axis=0
+            )
             if smin < 0 and smax >= 0:
                 x_y[:-smin, ch0] += cc_temp[smin:]
-                x_y[len_trf - smax:, ch0] += cc_temp[:smax]
+                x_y[len_trf - smax :, ch0] += cc_temp[:smax]
             else:
                 x_y[:, ch0] += cc_temp[smin:smax]
             count += 1
             pb.update(count)
 
-    x_y = np.reshape(x_y, (n_ch_x * len_trf, n_ch_y), order='F')
+    x_y = np.reshape(x_y, (n_ch_x * len_trf, n_ch_y), order="F")
     return x_xt, x_y, n_ch_x, X_offset, y_offset
 
 
 @jit()
 def _edge_correct(this_result, this_X, smax, smin, ch0, ch1):
     if smax > 0:
-        tail = _toeplitz_dot(this_X[-1:-smax:-1, ch0],
-                             this_X[-1:-smax:-1, ch1])
+        tail = _toeplitz_dot(this_X[-1:-smax:-1, ch0], this_X[-1:-smax:-1, ch1])
         if smin > 0:
-            tail = tail[smin - 1:, smin - 1:]
-        this_result[max(-smin + 1, 0):, max(-smin + 1, 0):] -= tail
+            tail = tail[smin - 1 :, smin - 1 :]
+        this_result[max(-smin + 1, 0) :, max(-smin + 1, 0) :] -= tail
     if smin < 0:
-        head = _toeplitz_dot(this_X[:-smin, ch0],
-                             this_X[:-smin, ch1])[::-1, ::-1]
+        head = _toeplitz_dot(this_X[:-smin, ch0], this_X[:-smin, ch1])[::-1, ::-1]
         if smax < 0:
             head = head[:smax, :smax]
         this_result[:-smin, :-smin] -= head
@@ -137,28 +142,28 @@ def _toeplitz_dot(a, b):
     assert a.shape == b.shape and a.ndim == 1
     out = np.outer(a, b)
     for ii in range(1, len(a)):
-        out[ii, ii:] += out[ii - 1, ii - 1:-1]
-        out[ii + 1:, ii] += out[ii:-1, ii - 1]
+        out[ii, ii:] += out[ii - 1, ii - 1 : -1]
+        out[ii + 1 :, ii] += out[ii:-1, ii - 1]
     return out
 
 
-def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
-                           normed=False):
+def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method="direct", normed=False):
     """Compute regularization parameter from neighbors."""
     from scipy import linalg
     from scipy.sparse.csgraph import laplacian
-    known_types = ('ridge', 'laplacian')
+
+    known_types = ("ridge", "laplacian")
     if isinstance(reg_type, str):
         reg_type = (reg_type,) * 2
     if len(reg_type) != 2:
-        raise ValueError('reg_type must have two elements, got %s'
-                         % (len(reg_type),))
+        raise ValueError("reg_type must have two elements, got %s" % (len(reg_type),))
     for r in reg_type:
         if r not in known_types:
-            raise ValueError('reg_type entries must be one of %s, got %s'
-                             % (known_types, r))
-    reg_time = (reg_type[0] == 'laplacian' and n_delays > 1)
-    reg_chs = (reg_type[1] == 'laplacian' and n_ch_x > 1)
+            raise ValueError(
+                "reg_type entries must be one of %s, got %s" % (known_types, r)
+            )
+    reg_time = reg_type[0] == "laplacian" and n_delays > 1
+    reg_chs = reg_type[1] == "laplacian" and n_ch_x > 1
     if not reg_time and not reg_chs:
         return np.eye(n_ch_x * n_delays)
     # regularize time
@@ -167,7 +172,7 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
         stride = n_delays + 1
         reg.flat[1::stride] += -1
         reg.flat[n_delays::stride] += -1
-        reg.flat[n_delays + 1:-n_delays - 1:stride] += 1
+        reg.flat[n_delays + 1 : -n_delays - 1 : stride] += 1
         args = [reg] * n_ch_x
         reg = linalg.block_diag(*args)
     else:
@@ -179,12 +184,12 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
         row_offset = block * n_ch_x
         stride = n_delays * n_ch_x + 1
         reg.flat[n_delays:-row_offset:stride] += -1
-        reg.flat[n_delays + row_offset::stride] += 1
+        reg.flat[n_delays + row_offset :: stride] += 1
         reg.flat[row_offset:-n_delays:stride] += -1
-        reg.flat[:-(n_delays + row_offset):stride] += 1
+        reg.flat[: -(n_delays + row_offset) : stride] += 1
     assert np.array_equal(reg[::-1, ::-1], reg)
 
-    if method == 'direct':
+    if method == "direct":
         if normed:
             norm = np.sqrt(np.diag(reg))
             reg /= norm
@@ -202,6 +207,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
     # do the regularized solving
     from scipy import linalg
+
     n_ch_out = x_y.shape[1]
     assert x_y.shape[0] % n_ch_x == 0
     n_delays = x_y.shape[0] // n_ch_x
@@ -212,11 +218,13 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         # Note: we must use overwrite_a=False in order to be able to
         #       use the fall-back solution below in case a LinAlgError
         #       is raised
-        w = linalg.solve(mat, x_y, overwrite_a=False, assume_a='pos')
+        w = linalg.solve(mat, x_y, overwrite_a=False, assume_a="pos")
     except np.linalg.LinAlgError:
-        warn('Singular matrix in solving dual problem. Using '
-             'least-squares solution instead.')
-        w = linalg.lstsq(mat, x_y, lapack_driver='gelsy')[0]
+        warn(
+            "Singular matrix in solving dual problem. Using "
+            "least-squares solution instead."
+        )
+        w = linalg.lstsq(mat, x_y, lapack_driver="gelsy")[0]
     w = w.T.reshape([n_ch_out, n_ch_in, n_delays])
     return w
 
@@ -271,11 +279,19 @@ class TimeDelayingRidge(BaseEstimator):
 
     _estimator_type = "regressor"
 
-    def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
-                 fit_intercept=True, n_jobs=None, edge_correction=True):
+    def __init__(
+        self,
+        tmin,
+        tmax,
+        sfreq,
+        alpha=0.0,
+        reg_type="ridge",
+        fit_intercept=True,
+        n_jobs=None,
+        edge_correction=True,
+    ):
         if tmin > tmax:
-            raise ValueError('tmin must be <= tmax, got %s and %s'
-                             % (tmin, tmax))
+            raise ValueError("tmin must be <= tmax, got %s and %s" % (tmin, tmax))
         self.tmin = float(tmin)
         self.tmax = float(tmax)
         self.sfreq = float(sfreq)
@@ -318,15 +334,22 @@ class TimeDelayingRidge(BaseEstimator):
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
         self.cov_, x_y_, n_ch_x, X_offset, y_offset = _compute_corrs(
-            X, y, self._smin, self._smax, self.n_jobs, self.fit_intercept,
-            self.edge_correction)
-        self.coef_ = _fit_corrs(self.cov_, x_y_, n_ch_x,
-                                self.reg_type, self.alpha, n_ch_x)
+            X,
+            y,
+            self._smin,
+            self._smax,
+            self.n_jobs,
+            self.fit_intercept,
+            self.edge_correction,
+        )
+        self.coef_ = _fit_corrs(
+            self.cov_, x_y_, n_ch_x, self.reg_type, self.alpha, n_ch_x
+        )
         # This is the sklearn formula from LinearModel (will be 0. for no fit)
         if self.fit_intercept:
             self.intercept_ = y_offset - np.dot(X_offset, self.coef_.sum(-1).T)
         else:
-            self.intercept_ = 0.
+            self.intercept_ = 0.0
         return self
 
     def predict(self, X):
@@ -356,8 +379,8 @@ class TimeDelayingRidge(BaseEstimator):
             for oi in range(self.coef_.shape[0]):
                 for fi in range(self.coef_.shape[1]):
                     temp = fftconvolve(X[:, ei, fi], self.coef_[oi, fi])
-                    temp = temp[max(-smin, 0):][:len(out) - offset]
-                    out[offset:len(temp) + offset, ei, oi] += temp
+                    temp = temp[max(-smin, 0) :][: len(out) - offset]
+                    out[offset : len(temp) + offset, ei, oi] += temp
         out += self.intercept_
         if singleton:
             out = out[:, 0, :]

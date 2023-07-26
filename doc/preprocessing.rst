@@ -83,6 +83,7 @@ Projections:
    compute_maxwell_basis
    compute_proj_ecg
    compute_proj_eog
+   compute_proj_hfc
    cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
@@ -138,6 +139,24 @@ Projections:
    :toctree: generated/
 
    project_sensors_onto_brain
+   make_montage_volume
+   warp_montage
+
+:py:mod:`mne.preprocessing.eyetracking`:
+
+.. currentmodule:: mne.preprocessing.eyetracking
+
+.. automodule:: mne.preprocessing.eyetracking
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   Calibration
+   read_eyelink_calibration
+   set_channel_types_eyetrack
+   interpolate_blinks
 
 EEG referencing:
 

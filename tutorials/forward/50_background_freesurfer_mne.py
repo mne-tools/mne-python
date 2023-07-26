@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-freesurfer-mne:
 
@@ -40,9 +39,9 @@ from mne.io.constants import FIFF
 # :meth:`~nibabel.spatialimages.SpatialImage.orthoview` method to view it.
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = data_path / 'subjects'
-subject = 'sample'
-t1_fname = subjects_dir / subject / 'mri' / 'T1.mgz'
+subjects_dir = data_path / "subjects"
+subject = "sample"
+t1_fname = subjects_dir / subject / "mri" / "T1.mgz"
 t1 = nibabel.load(t1_fname)
 t1.orthoview()
 
@@ -102,8 +101,9 @@ print(data.shape)
 print(t1.affine)
 vox = np.array([122, 119, 102])
 xyz_ras = apply_trans(t1.affine, vox)
-print('Our voxel has real-world coordinates {}, {}, {} (mm)'
-      .format(*np.round(xyz_ras, 3)))
+print(
+    "Our voxel has real-world coordinates {}, {}, {} (mm)".format(*np.round(xyz_ras, 3))
+)
 
 # %%
 # If you have a point ``(x, y, z)`` in scanner-native RAS space and you want
@@ -114,7 +114,7 @@ print('Our voxel has real-world coordinates {}, {}, {} (mm)'
 ras_coords_mm = np.array([1, -17, -18])
 inv_affine = np.linalg.inv(t1.affine)
 i_, j_, k_ = np.round(apply_trans(inv_affine, ras_coords_mm)).astype(int)
-print(f'Our real-world coordinates correspond to voxel ({i_}, {j_}, {k_})')
+print(f"Our real-world coordinates correspond to voxel ({i_}, {j_}, {k_})")
 
 # %%
 # Let's write a short function to visualize where our voxel lies in an
@@ -127,38 +127,41 @@ def imshow_mri(data, img, vox, xyz, suptitle):
     fig, ax = plt.subplots(1, figsize=(6, 6))
     codes = nibabel.orientations.aff2axcodes(img.affine)
     # Figure out the title based on the code of this axis
-    ori_slice = dict(P='Coronal', A='Coronal',
-                     I='Axial', S='Axial',
-                     L='Sagittal', R='Saggital')
-    ori_names = dict(P='posterior', A='anterior',
-                     I='inferior', S='superior',
-                     L='left', R='right')
+    ori_slice = dict(
+        P="Coronal", A="Coronal", I="Axial", S="Axial", L="Sagittal", R="Sagittal"
+    )
+    ori_names = dict(
+        P="posterior", A="anterior", I="inferior", S="superior", L="left", R="right"
+    )
     title = ori_slice[codes[0]]
-    ax.imshow(data[i], vmin=10, vmax=120, cmap='gray', origin='lower')
-    ax.axvline(k, color='y')
-    ax.axhline(j, color='y')
+    ax.imshow(data[i], vmin=10, vmax=120, cmap="gray", origin="lower")
+    ax.axvline(k, color="y")
+    ax.axhline(j, color="y")
     for kind, coords in xyz.items():
-        annotation = ('{}: {}, {}, {} mm'
-                      .format(kind, *np.round(coords).astype(int)))
-        text = ax.text(k, j, annotation, va='baseline', ha='right',
-                       color=(1, 1, 0.7))
-        text.set_path_effects([
-            path_effects.Stroke(linewidth=2, foreground='black'),
-            path_effects.Normal()])
+        annotation = "{}: {}, {}, {} mm".format(kind, *np.round(coords).astype(int))
+        text = ax.text(k, j, annotation, va="baseline", ha="right", color=(1, 1, 0.7))
+        text.set_path_effects(
+            [
+                path_effects.Stroke(linewidth=2, foreground="black"),
+                path_effects.Normal(),
+            ]
+        )
     # reorient view so that RAS is always rightward and upward
-    x_order = -1 if codes[2] in 'LIP' else 1
-    y_order = -1 if codes[1] in 'LIP' else 1
-    ax.set(xlim=[0, data.shape[2] - 1][::x_order],
-           ylim=[0, data.shape[1] - 1][::y_order],
-           xlabel=f'k ({ori_names[codes[2]]}+)',
-           ylabel=f'j ({ori_names[codes[1]]}+)',
-           title=f'{title} view: i={i} ({ori_names[codes[0]]}+)')
+    x_order = -1 if codes[2] in "LIP" else 1
+    y_order = -1 if codes[1] in "LIP" else 1
+    ax.set(
+        xlim=[0, data.shape[2] - 1][::x_order],
+        ylim=[0, data.shape[1] - 1][::y_order],
+        xlabel=f"k ({ori_names[codes[2]]}+)",
+        ylabel=f"j ({ori_names[codes[1]]}+)",
+        title=f"{title} view: i={i} ({ori_names[codes[0]]}+)",
+    )
     fig.suptitle(suptitle)
     fig.subplots_adjust(0.1, 0.1, 0.95, 0.85)
     return fig
 
 
-imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
+imshow_mri(data, t1, vox, {"Scanner RAS": xyz_ras}, "MRI slice")
 
 # %%
 # Notice that the axis scales (``i``, ``j``, and ``k``) are still in voxels
@@ -212,7 +215,7 @@ Torig = t1.header.get_vox2ras_tkr()
 print(t1.affine)
 print(Torig)
 xyz_mri = apply_trans(Torig, vox)
-imshow_mri(data, t1, vox, dict(MRI=xyz_mri), 'MRI slice')
+imshow_mri(data, t1, vox, dict(MRI=xyz_mri), "MRI slice")
 
 # %%
 # Knowing these relationships and being mindful about transformations, we
@@ -220,7 +223,7 @@ imshow_mri(data, t1, vox, dict(MRI=xyz_mri), 'MRI slice')
 # by plotting the Nasion on a sagittal MRI slice:
 
 fiducials = mne.coreg.get_mni_fiducials(subject, subjects_dir=subjects_dir)
-nasion_mri = [d for d in fiducials if d['ident'] == FIFF.FIFFV_POINT_NASION][0]
+nasion_mri = [d for d in fiducials if d["ident"] == FIFF.FIFFV_POINT_NASION][0]
 print(nasion_mri)  # note it's in Freesurfer MRI coords
 
 # %%
@@ -229,11 +232,11 @@ print(nasion_mri)  # note it's in Freesurfer MRI coords
 # :ref:`actually stored in meters <units>`,
 # so before transforming and plotting we'll convert to millimeters:
 
-nasion_mri = nasion_mri['r'] * 1000  # meters → millimeters
-nasion_vox = np.round(
-    apply_trans(np.linalg.inv(Torig), nasion_mri)).astype(int)
-imshow_mri(data, t1, nasion_vox, dict(MRI=nasion_mri),
-           'Nasion estimated from MRI transform')
+nasion_mri = nasion_mri["r"] * 1000  # meters → millimeters
+nasion_vox = np.round(apply_trans(np.linalg.inv(Torig), nasion_mri)).astype(int)
+imshow_mri(
+    data, t1, nasion_vox, dict(MRI=nasion_mri), "Nasion estimated from MRI transform"
+)
 
 # %%
 # We can also take the digitization point from the MEG data, which is in the
@@ -241,11 +244,12 @@ imshow_mri(data, t1, nasion_vox, dict(MRI=nasion_mri),
 #
 # Let's look at the nasion in the head coordinate frame:
 
-info = mne.io.read_info(data_path / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
-nasion_head = [d for d in info['dig'] if
-               d['kind'] == FIFF.FIFFV_POINT_CARDINAL and
-               d['ident'] == FIFF.FIFFV_POINT_NASION][0]
+info = mne.io.read_info(data_path / "MEG" / "sample" / "sample_audvis_raw.fif")
+nasion_head = [
+    d
+    for d in info["dig"]
+    if d["kind"] == FIFF.FIFFV_POINT_CARDINAL and d["ident"] == FIFF.FIFFV_POINT_NASION
+][0]
 print(nasion_head)  # note it's in "head" coordinates
 
 # %%
@@ -272,17 +276,20 @@ print(nasion_head)  # note it's in "head" coordinates
 # :func:`mne.setup_volume_source_space`, and :func:`mne.compute_source_morph`
 # make extensive use of these coordinate frames.
 
-trans = mne.read_trans(data_path / 'MEG' / 'sample' /
-                       'sample_audvis_raw-trans.fif')
+trans = mne.read_trans(data_path / "MEG" / "sample" / "sample_audvis_raw-trans.fif")
 
 # first we transform from head to MRI, and *then* convert to millimeters
-nasion_dig_mri = apply_trans(trans, nasion_head['r']) * 1000
+nasion_dig_mri = apply_trans(trans, nasion_head["r"]) * 1000
 
 # ...then we can use Torig to convert MRI to voxels:
-nasion_dig_vox = np.round(
-    apply_trans(np.linalg.inv(Torig), nasion_dig_mri)).astype(int)
-imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
-           'Nasion transformed from digitization')
+nasion_dig_vox = np.round(apply_trans(np.linalg.inv(Torig), nasion_dig_mri)).astype(int)
+imshow_mri(
+    data,
+    t1,
+    nasion_dig_vox,
+    dict(MRI=nasion_dig_mri),
+    "Nasion transformed from digitization",
+)
 
 # %%
 # Using FreeSurfer's surface reconstructions
@@ -294,23 +301,24 @@ imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
 # (``tris``) with shape ``(n_tris, 3)`` defining which vertices in ``rr`` form
 # each triangular facet of the mesh.
 
-fname = subjects_dir / subject / 'surf' / 'rh.white'
+fname = subjects_dir / subject / "surf" / "rh.white"
 rr_mm, tris = mne.read_surface(fname)
-print(f'rr_mm.shape == {rr_mm.shape}')
-print(f'tris.shape == {tris.shape}')
-print(f'rr_mm.max() = {rr_mm.max()}')  # just to show that we are in mm
+print(f"rr_mm.shape == {rr_mm.shape}")
+print(f"tris.shape == {tris.shape}")
+print(f"rr_mm.max() = {rr_mm.max()}")  # just to show that we are in mm
 
 # %%
 # Let's actually plot it:
 
 renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(600, 600), bgcolor='w', scene=False)
+    size=(600, 600), bgcolor="w", scene=False
+)
 gray = (0.5, 0.5, 0.5)
 renderer.mesh(*rr_mm.T, triangles=tris, color=gray)
 view_kwargs = dict(elevation=90, azimuth=0)  # camera at +X with +Z up
 mne.viz.set_3d_view(
-    figure=renderer.figure, distance=350, focalpoint=(0., 0., 40.),
-    **view_kwargs)
+    figure=renderer.figure, distance=350, focalpoint=(0.0, 0.0, 40.0), **view_kwargs
+)
 renderer.show()
 
 # %%
@@ -320,14 +328,21 @@ renderer.show()
 # transform:
 
 rr_vox = apply_trans(np.linalg.inv(Torig), rr_mm)
-fig = imshow_mri(data, t1, vox, {'Scanner RAS': xyz_ras}, 'MRI slice')
+fig = imshow_mri(data, t1, vox, {"Scanner RAS": xyz_ras}, "MRI slice")
 # Based on how imshow_mri works, the "X" here is the last dim of the MRI vol,
 # the "Y" is the middle dim, and the "Z" is the first dim, so now that our
 # points are in the correct coordinate frame, we need to ask matplotlib to
 # do a tricontour slice like:
-fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
-                       levels=[vox[0]], colors='r', linewidths=1.0,
-                       zorder=1)
+fig.axes[0].tricontour(
+    rr_vox[:, 2],
+    rr_vox[:, 1],
+    tris,
+    rr_vox[:, 0],
+    levels=[vox[0]],
+    colors="r",
+    linewidths=1.0,
+    zorder=1,
+)
 
 # %%
 # This is the method used by :func:`mne.viz.plot_bem` to show the BEM surfaces.
@@ -341,30 +356,45 @@ fig.axes[0].tricontour(rr_vox[:, 2], rr_vox[:, 1], tris, rr_vox[:, 0],
 # sphere, a given vertex in the source (sample) mesh can be mapped easily
 # to the same location in the destination (fsaverage) mesh, and vice-versa.
 
-renderer_kwargs = dict(bgcolor='w')
+renderer_kwargs = dict(bgcolor="w")
 renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(800, 400), scene=False, **renderer_kwargs)
+    size=(800, 400), scene=False, **renderer_kwargs
+)
 curvs = [
-    (mne.surface.read_curvature(subjects_dir / subj / 'surf' / 'rh.curv',
-                                binary=False) > 0).astype(float)
-    for subj in ('sample', 'fsaverage') for _ in range(2)]
-fnames = [subjects_dir / subj / 'surf' / surf
-          for subj in ('sample', 'fsaverage')
-          for surf in ('rh.white', 'rh.sphere')]
+    (
+        mne.surface.read_curvature(
+            subjects_dir / subj / "surf" / "rh.curv", binary=False
+        )
+        > 0
+    ).astype(float)
+    for subj in ("sample", "fsaverage")
+    for _ in range(2)
+]
+fnames = [
+    subjects_dir / subj / "surf" / surf
+    for subj in ("sample", "fsaverage")
+    for surf in ("rh.white", "rh.sphere")
+]
 y_shifts = [-450, -150, 450, 150]
 z_shifts = [-40, 0, -30, 0]
 for name, y_shift, z_shift, curv in zip(fnames, y_shifts, z_shifts, curvs):
     this_rr, this_tri = mne.read_surface(name)
     this_rr += [0, y_shift, z_shift]
-    renderer.mesh(*this_rr.T, triangles=this_tri, color=None, scalars=curv,
-                  colormap='copper_r', vmin=-0.2, vmax=1.2)
-zero = [0., 0., 0.]
-width = 50.
+    renderer.mesh(
+        *this_rr.T,
+        triangles=this_tri,
+        color=None,
+        scalars=curv,
+        colormap="copper_r",
+        vmin=-0.2,
+        vmax=1.2,
+    )
+zero = [0.0, 0.0, 0.0]
+width = 50.0
 y = np.sort(y_shifts)
-y = (y[1:] + y[:-1]) / 2. - width / 2.
-renderer.quiver3d(zero, y, zero,
-                  zero, [1] * 3, zero, 'k', width, 'arrow')
-view_kwargs['focalpoint'] = (0., 0., 0.)
+y = (y[1:] + y[:-1]) / 2.0 - width / 2.0
+renderer.quiver3d(zero, y, zero, zero, [1] * 3, zero, "k", width, "arrow")
+view_kwargs["focalpoint"] = (0.0, 0.0, 0.0)
 mne.viz.set_3d_view(figure=renderer.figure, distance=1050, **view_kwargs)
 renderer.show()
 
@@ -373,21 +403,29 @@ renderer.show()
 # two spherical meshes as wireframes and zooming way in (the vertices of the
 # black mesh are separated by about 1 mm):
 
-cyan = '#66CCEE'
-black = 'k'
+cyan = "#66CCEE"
+black = "k"
 renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(800, 800), scene=False, **renderer_kwargs)
-surfs = [mne.read_surface(subjects_dir / subj / 'surf' / 'rh.sphere')
-         for subj in ('fsaverage', 'sample')]
+    size=(800, 800), scene=False, **renderer_kwargs
+)
+surfs = [
+    mne.read_surface(subjects_dir / subj / "surf" / "rh.sphere")
+    for subj in ("fsaverage", "sample")
+]
 colors = [black, cyan]
 line_widths = [2, 3]
 for surf, color, line_width in zip(surfs, colors, line_widths):
     this_rr, this_tri = surf
     # cull to the subset of tris with all positive X (toward camera)
     this_tri = this_tri[(this_rr[this_tri, 0] > 0).all(axis=1)]
-    renderer.mesh(*this_rr.T, triangles=this_tri, color=color,
-                  representation='wireframe', line_width=line_width,
-                  render_lines_as_tubes=True)
+    renderer.mesh(
+        *this_rr.T,
+        triangles=this_tri,
+        color=color,
+        representation="wireframe",
+        line_width=line_width,
+        render_lines_as_tubes=True,
+    )
 mne.viz.set_3d_view(figure=renderer.figure, distance=150, **view_kwargs)
 renderer.show()
 
@@ -407,21 +445,26 @@ renderer.show()
 # load a standard oct-6 source space, and at the same zoom level as before
 # visualize how it subsampled (in red) the dense mesh:
 
-src = mne.read_source_spaces(subjects_dir / 'sample' / 'bem' /
-                             'sample-oct-6-src.fif')
+src = mne.read_source_spaces(subjects_dir / "sample" / "bem" / "sample-oct-6-src.fif")
 print(src)
 
 # sphinx_gallery_thumbnail_number = 10
-red = '#EE6677'
+red = "#EE6677"
 renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(800, 800), scene=False, **renderer_kwargs)
+    size=(800, 800), scene=False, **renderer_kwargs
+)
 rr_sph, _ = mne.read_surface(fnames[1])
-for tris, color in [(src[1]['tris'], cyan), (src[1]['use_tris'], red)]:
+for tris, color in [(src[1]["tris"], cyan), (src[1]["use_tris"], red)]:
     # cull to the subset of tris with all positive X (toward camera)
     tris = tris[(rr_sph[tris, 0] > 0).all(axis=1)]
-    renderer.mesh(*rr_sph.T, triangles=tris, color=color,
-                  representation='wireframe', line_width=3,
-                  render_lines_as_tubes=True)
+    renderer.mesh(
+        *rr_sph.T,
+        triangles=tris,
+        color=color,
+        representation="wireframe",
+        line_width=3,
+        render_lines_as_tubes=True,
+    )
 mne.viz.set_3d_view(figure=renderer.figure, distance=150, **view_kwargs)
 renderer.show()
 
@@ -430,14 +473,22 @@ renderer.show()
 # original, high-density mesh as well as our decimated mesh white surfaces.
 
 renderer = mne.viz.backends.renderer.create_3d_figure(
-    size=(800, 400), scene=False, **renderer_kwargs)
+    size=(800, 400), scene=False, **renderer_kwargs
+)
 y_shifts = [-125, 125]
-tris = [src[1]['tris'], src[1]['use_tris']]
+tris = [src[1]["tris"], src[1]["use_tris"]]
 for y_shift, tris in zip(y_shifts, tris):
-    this_rr = src[1]['rr'] * 1000. + [0, y_shift, -40]
-    renderer.mesh(*this_rr.T, triangles=tris, color=None, scalars=curvs[0],
-                  colormap='copper_r', vmin=-0.2, vmax=1.2)
-renderer.quiver3d([0], [-width / 2.], [0], [0], [1], [0], 'k', width, 'arrow')
+    this_rr = src[1]["rr"] * 1000.0 + [0, y_shift, -40]
+    renderer.mesh(
+        *this_rr.T,
+        triangles=tris,
+        color=None,
+        scalars=curvs[0],
+        colormap="copper_r",
+        vmin=-0.2,
+        vmax=1.2,
+    )
+renderer.quiver3d([0], [-width / 2.0], [0], [0], [1], [0], "k", width, "arrow")
 mne.viz.set_3d_view(figure=renderer.figure, distance=450, **view_kwargs)
 renderer.show()
 
@@ -455,18 +506,19 @@ renderer.show()
 # affine coregistration of each subject's data to the ``fsaverage`` subject.
 # Let's pick a point for ``sample`` and plot it on the brain:
 
-brain = mne.viz.Brain('sample', 'lh', 'white', subjects_dir=subjects_dir,
-                      background='w')
+brain = mne.viz.Brain(
+    "sample", "lh", "white", subjects_dir=subjects_dir, background="w"
+)
 xyz = np.array([[-55, -10, 35]])
-brain.add_foci(xyz, hemi='lh', color='k')
-brain.show_view('lat')
+brain.add_foci(xyz, hemi="lh", color="k")
+brain.show_view("lat")
 
 # %%
 # We can take this point and transform it to MNI space:
 
 mri_mni_trans = mne.read_talxfm(subject, subjects_dir)
 print(mri_mni_trans)
-xyz_mni = apply_trans(mri_mni_trans, xyz / 1000.) * 1000.
+xyz_mni = apply_trans(mri_mni_trans, xyz / 1000.0) * 1000.0
 print(np.round(xyz_mni, 1))
 
 # %%
@@ -474,10 +526,11 @@ print(np.round(xyz_mni, 1))
 # (its MRI-to-MNI transform is identity), it should land in the equivalent
 # anatomical location:
 
-brain = mne.viz.Brain('fsaverage', 'lh', 'white', subjects_dir=subjects_dir,
-                      background='w')
-brain.add_foci(xyz_mni, hemi='lh', color='k')
-brain.show_view('lat')
+brain = mne.viz.Brain(
+    "fsaverage", "lh", "white", subjects_dir=subjects_dir, background="w"
+)
+brain.add_foci(xyz_mni, hemi="lh", color="k")
+brain.show_view("lat")
 
 # %%
 # Understanding the inflated brain

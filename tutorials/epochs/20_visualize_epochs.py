@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-visualize-epochs:
 
@@ -19,8 +18,7 @@ sample data, and cropping it to save memory:
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
+sample_data_raw_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=120)
 
 # %%
@@ -31,11 +29,16 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=120)
 # desired temporal limits of our epochs, ``tmin`` and ``tmax`` (for a
 # detailed explanation of these steps, see :ref:`tut-epochs-class`).
 
-events = mne.find_events(raw, stim_channel='STI 014')
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'face': 5, 'button': 32}
-epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, event_id=event_dict,
-                    preload=True)
+events = mne.find_events(raw, stim_channel="STI 014")
+event_dict = {
+    "auditory/left": 1,
+    "auditory/right": 2,
+    "visual/left": 3,
+    "visual/right": 4,
+    "face": 5,
+    "button": 32,
+}
+epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, event_id=event_dict, preload=True)
 del raw
 
 # %%
@@ -71,15 +74,22 @@ del raw
 # ``epochs.event_id``:
 
 catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
-epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
-                    event_color=dict(button='red', face='blue'))
+epochs["face"].plot(
+    events=catch_trials_and_buttonpresses,
+    event_id=event_dict,
+    event_color=dict(button="red", face="blue"),
+)
 
 # %%
 # To see all sensors at once, we can use butterfly mode and group by selection:
 
-epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
-                    event_color=dict(button='red', face='blue'),
-                    group_by='selection', butterfly=True)
+epochs["face"].plot(
+    events=catch_trials_and_buttonpresses,
+    event_id=event_dict,
+    event_color=dict(button="red", face="blue"),
+    group_by="selection",
+    butterfly=True,
+)
 
 # %%
 # Plotting projectors from an ``Epochs`` object
@@ -89,8 +99,7 @@ epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
 # channels, so before we continue let's load ECG projectors from disk and apply
 # them to the data:
 
-ecg_proj_file = (sample_data_folder / 'MEG' / 'sample' /
-                 'sample_audvis_ecg-proj.fif')
+ecg_proj_file = sample_data_folder / "MEG" / "sample" / "sample_audvis_ecg-proj.fif"
 ecg_projs = mne.read_proj(ecg_proj_file)
 epochs.add_proj(ecg_projs)
 epochs.apply_proj()
@@ -103,17 +112,16 @@ epochs.apply_proj()
 # `~mne.io.Raw` file, and we added two ECG projectors for each sensor
 # type, we should see nine projector topomaps:
 
-epochs.plot_projs_topomap(vlim='joint')
+epochs.plot_projs_topomap(vlim="joint")
 
 # %%
 # Note that these field maps illustrate aspects of the signal that *have
 # already been removed* (because projectors in `~mne.io.Raw` data are
 # applied by default when epoching, and because we called
-# `~mne.Epochs.apply_proj` after adding additional ECG projectors from
-# file). You can check this by examining the ``'active'`` field of the
-# projectors:
+# `~mne.Epochs.apply_proj` after adding additional ECG projectors from file).
+# You can check this by examining the ``'active'`` field of the projectors:
 
-print(all(proj['active'] for proj in epochs.info['projs']))
+print(all(proj["active"] for proj in epochs.info["projs"]))
 
 # %%
 # Plotting sensor locations
@@ -123,8 +131,8 @@ print(all(proj['active'] for proj in epochs.info['projs']))
 # keep track of sensor locations, which can be visualized with the
 # `~mne.Epochs.plot_sensors` method:
 
-epochs.plot_sensors(kind='3d', ch_type='all')
-epochs.plot_sensors(kind='topomap', ch_type='all')
+epochs.plot_sensors(kind="3d", ch_type="all")
+epochs.plot_sensors(kind="topomap", ch_type="all")
 
 # %%
 # Plotting the power spectrum of ``Epochs``
@@ -136,7 +144,7 @@ epochs.plot_sensors(kind='topomap', ch_type='all')
 # :class:`~mne.time_frequency.EpochsSpectrum`'s
 # :meth:`~mne.time_frequency.EpochsSpectrum.plot` method.
 
-epochs['auditory'].compute_psd().plot(picks='eeg')
+epochs["auditory"].compute_psd().plot(picks="eeg", exclude="bads")
 
 # %%
 # It is also possible to plot spectral power estimates across sensors as a
@@ -146,7 +154,7 @@ epochs['auditory'].compute_psd().plot(picks='eeg')
 # based on magnetometer channels (if present), and will plot the power
 # estimates on a dB-like log-scale:
 
-spectrum = epochs['visual/right'].compute_psd()
+spectrum = epochs["visual/right"].compute_psd()
 spectrum.plot_topomap()
 
 # %%
@@ -172,8 +180,8 @@ spectrum.plot_topomap()
 # providing a subplot title and values providing either single frequency bins
 # to plot, or lower/upper frequency band edges:
 
-bands = {'10 Hz': 10, '15 Hz': 15, '20 Hz': 20, '10-20 Hz': (10, 20)}
-spectrum.plot_topomap(bands=bands, vlim='joint', ch_type='grad')
+bands = {"10 Hz": 10, "15 Hz": 15, "20 Hz": 20, "10-20 Hz": (10, 20)}
+spectrum.plot_topomap(bands=bands, vlim="joint", ch_type="grad")
 
 # %%
 # If you prefer untransformed power estimates, you can pass ``dB=False``. It is
@@ -205,7 +213,7 @@ spectrum.plot_topomap(bands=bands, vlim='joint', ch_type='grad')
 # used to plot the average time series) for full details. Here we'll show the
 # mean across magnetometers for all epochs with an auditory stimulus:
 
-epochs['auditory'].plot_image(picks='mag', combine='mean')
+epochs["auditory"].plot_image(picks="mag", combine="mean")
 
 # %%
 # To plot image maps for individual sensors or a small group of sensors, use
@@ -215,8 +223,8 @@ epochs['auditory'].plot_image(picks='mag', combine='mean')
 # opposite polarity).
 
 # sphinx_gallery_thumbnail_number = 11
-epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
-epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
+epochs["auditory"].plot_image(picks=["MEG 0242", "MEG 0243"])
+epochs["auditory"].plot_image(picks=["MEG 0242", "MEG 0243"], combine="gfp")
 
 # %%
 # To plot an image map for *all* sensors, use
@@ -236,15 +244,16 @@ epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 # levels, because they can cause the colormap limits to be too extreme and
 # therefore mask smaller signal fluctuations of interest.
 
-reject_criteria = dict(mag=3000e-15,     # 3000 fT
-                       grad=3000e-13,    # 3000 fT/cm
-                       eeg=150e-6)       # 150 µV
+reject_criteria = dict(
+    mag=3000e-15, grad=3000e-13, eeg=150e-6  # 3000 fT  # 3000 fT/cm
+)  # 150 µV
 epochs.drop_bad(reject=reject_criteria)
 
-for ch_type, title in dict(mag='Magnetometers', grad='Gradiometers').items():
+for ch_type, title in dict(mag="Magnetometers", grad="Gradiometers").items():
     layout = mne.channels.find_layout(epochs.info, ch_type=ch_type)
-    epochs['auditory/left'].plot_topo_image(layout=layout, fig_facecolor='w',
-                                            font_color='k', title=title)
+    epochs["auditory/left"].plot_topo_image(
+        layout=layout, fig_facecolor="w", font_color="k", title=title
+    )
 
 # %%
 # To plot image maps for all EEG sensors, pass an EEG layout as the ``layout``
@@ -256,9 +265,10 @@ for ch_type, title in dict(mag='Magnetometers', grad='Gradiometers').items():
 # ``sigma`` can also disguise epochs that have persistent extreme values and
 # maybe should have been excluded, so it should be used with caution.
 
-layout = mne.channels.find_layout(epochs.info, ch_type='eeg')
-epochs['auditory/left'].plot_topo_image(layout=layout, fig_facecolor='w',
-                                        font_color='k', sigma=1)
+layout = mne.channels.find_layout(epochs.info, ch_type="eeg")
+epochs["auditory/left"].plot_topo_image(
+    layout=layout, fig_facecolor="w", font_color="k", sigma=1
+)
 
 # %%
 # .. LINKS

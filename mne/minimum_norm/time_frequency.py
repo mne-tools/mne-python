@@ -11,32 +11,54 @@ from ..io.constants import FIFF
 from ..io.pick import pick_info
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
-from ..time_frequency.multitaper import (_psd_from_mt, _compute_mt_params,
-                                         _psd_from_mt_adaptive, _mt_spectra)
+from ..time_frequency.multitaper import (
+    _psd_from_mt,
+    _compute_mt_params,
+    _psd_from_mt_adaptive,
+    _mt_spectra,
+)
 from ..baseline import rescale, _log_rescale
-from .inverse import (combine_xyz, _check_or_prepare, _assemble_kernel,
-                      _pick_channels_inverse_operator, INVERSE_METHODS,
-                      _check_ori, _subject_from_inverse)
+from .inverse import (
+    combine_xyz,
+    _check_or_prepare,
+    _assemble_kernel,
+    _pick_channels_inverse_operator,
+    INVERSE_METHODS,
+    _check_ori,
+    _subject_from_inverse,
+)
 from ..parallel import parallel_func
 from ..utils import logger, verbose, ProgressBar, _check_option
 
 
-def _prepare_source_params(inst, inverse_operator, label=None,
-                           lambda2=1.0 / 9.0, method="dSPM", nave=1,
-                           decim=1, pca=True, pick_ori="normal",
-                           prepared=False, method_params=None,
-                           use_cps=True, verbose=None):
+def _prepare_source_params(
+    inst,
+    inverse_operator,
+    label=None,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    nave=1,
+    decim=1,
+    pca=True,
+    pick_ori="normal",
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
     """Prepare inverse operator and params for spectral / TFR analysis."""
     from scipy import linalg
-    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
-                            method_params, prepared)
+
+    inv = _check_or_prepare(
+        inverse_operator, nave, lambda2, method, method_params, prepared
+    )
 
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(inst.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
+    logger.info("Picked %d channels from the data" % len(sel))
+    logger.info("Computing inverse...")
     #
     #   Simple matrix multiplication followed by combination of the
     #   three current components
@@ -45,28 +67,44 @@ def _prepare_source_params(inst, inverse_operator, label=None,
     #   eigenleads
     #
     K, noise_norm, vertno, _ = _assemble_kernel(
-        inv, label, method, pick_ori, use_cps=use_cps)
+        inv, label, method, pick_ori, use_cps=use_cps
+    )
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
-        logger.info('Reducing data rank %d -> %d' % (len(s), rank))
+        logger.info("Reducing data rank %d -> %d" % (len(s), rank))
     else:
         Vh = None
-    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+    is_free_ori = inverse_operator["source_ori"] == FIFF.FIFFV_MNE_FREE_ORI
 
     return K, sel, Vh, vertno, is_free_ori, noise_norm
 
 
 @verbose
-def source_band_induced_power(epochs, inverse_operator, bands, label=None,
-                              lambda2=1.0 / 9.0, method="dSPM", nave=1,
-                              n_cycles=5, df=1, use_fft=False, decim=1,
-                              baseline=None, baseline_mode='logratio',
-                              pca=True, n_jobs=None, prepared=False,
-                              method_params=None, use_cps=True, verbose=None):
+def source_band_induced_power(
+    epochs,
+    inverse_operator,
+    bands,
+    label=None,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    nave=1,
+    n_cycles=5,
+    df=1,
+    use_fft=False,
+    decim=1,
+    baseline=None,
+    baseline_mode="logratio",
+    pca=True,
+    n_jobs=None,
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
     """Compute source space induced power in given frequency bands.
 
     Parameters
@@ -135,18 +173,32 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs : dict of SourceEstimate (or VolSourceEstimate)
         The estimated source space induced power estimates.
     """  # noqa: E501
-    _check_option('method', method, INVERSE_METHODS)
+    _check_option("method", method, INVERSE_METHODS)
 
-    freqs = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
-                            for _, band in bands.items()])
+    freqs = np.concatenate(
+        [np.arange(band[0], band[1] + df / 2.0, df) for _, band in bands.items()]
+    )
 
     powers, _, vertno = _source_induced_power(
-        epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
-        method=method, nave=nave, n_cycles=n_cycles, decim=decim,
-        use_fft=use_fft, pca=pca, n_jobs=n_jobs, with_plv=False,
-        prepared=prepared, method_params=method_params, use_cps=use_cps)
+        epochs,
+        inverse_operator,
+        freqs,
+        label=label,
+        lambda2=lambda2,
+        method=method,
+        nave=nave,
+        n_cycles=n_cycles,
+        decim=decim,
+        use_fft=use_fft,
+        pca=pca,
+        n_jobs=n_jobs,
+        with_plv=False,
+        prepared=prepared,
+        method_params=method_params,
+        use_cps=use_cps,
+    )
 
-    Fs = epochs.info['sfreq']  # sampling in Hz
+    Fs = epochs.info["sfreq"]  # sampling in Hz
     stcs = dict()
 
     subject = _subject_from_inverse(inverse_operator)
@@ -158,16 +210,28 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         power = np.mean(powers[:, idx, :], axis=1)
 
         # Run baseline correction
-        power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                        copy=False, verbose=False)
+        power = rescale(
+            power,
+            epochs.times[::decim],
+            baseline,
+            baseline_mode,
+            copy=False,
+            verbose=False,
+        )
 
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
-        stc = _make_stc(power, vertices=vertno, tmin=tmin, tstep=tstep,
-                        subject=subject, src_type=inverse_operator['src'].kind)
+        stc = _make_stc(
+            power,
+            vertices=vertno,
+            tmin=tmin,
+            tstep=tstep,
+            subject=subject,
+            src_type=inverse_operator["src"].kind,
+        )
         stcs[name] = stc
 
-        logger.info('[done]')
+        logger.info("[done]")
 
     return stcs
 
@@ -178,7 +242,7 @@ def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
     n_freqs = len(Ws)
     n_sources = K.shape[0]
     is_free_ori = False
-    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None):
+    if source_ori == FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None:
         is_free_ori = True
         n_sources //= 3
 
@@ -187,8 +251,20 @@ def _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori):
 
 
 @verbose
-def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
-                     with_power, with_plv, pick_ori, decim, verbose=None):
+def _compute_pow_plv(
+    data,
+    K,
+    sel,
+    Ws,
+    source_ori,
+    use_fft,
+    Vh,
+    with_power,
+    with_plv,
+    pick_ori,
+    decim,
+    verbose=None,
+):
     """Aux function for induced power and PLV."""
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
     power = np.zeros(shape, dtype=np.float64)  # power or raw TFR
@@ -202,8 +278,16 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
             epoch = np.dot(Vh, epoch)  # reducing data rank
 
         power_e, plv_e = _single_epoch_tfr(
-            data=epoch, is_free_ori=is_free_ori, K=K, Ws=Ws, use_fft=use_fft,
-            decim=decim, shape=shape, with_plv=with_plv, with_power=with_power)
+            data=epoch,
+            is_free_ori=is_free_ori,
+            K=K,
+            Ws=Ws,
+            use_fft=use_fft,
+            decim=decim,
+            shape=shape,
+            with_plv=with_plv,
+            with_power=with_power,
+        )
 
         power += power_e
         if with_plv:
@@ -212,8 +296,9 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
     return power, plv
 
 
-def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
-                      with_plv, with_power):
+def _single_epoch_tfr(
+    data, is_free_ori, K, Ws, use_fft, decim, shape, with_plv, with_power
+):
     """Compute single trial TFRs, either ITC, power or raw TFR."""
     tfr_e = np.zeros(shape, dtype=np.float64)  # power or raw TFR
     # phase lock
@@ -243,7 +328,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
                     plv_f += 1j * sol_pick_normal
 
             if is_free_ori:
-                logger.debug('combining the current components...')
+                logger.debug("combining the current components...")
                 sol = combine_xyz(sol, square=with_power)
             elif with_power:
                 sol *= sol
@@ -262,35 +347,70 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 
 
 @verbose
-def _source_induced_power(epochs, inverse_operator, freqs, label=None,
-                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
-                          decim=1, use_fft=False, pca=True, pick_ori="normal",
-                          n_jobs=None, with_plv=True, zero_mean=False,
-                          prepared=False, method_params=None, use_cps=True,
-                          verbose=None):
+def _source_induced_power(
+    epochs,
+    inverse_operator,
+    freqs,
+    label=None,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    nave=1,
+    n_cycles=5,
+    decim=1,
+    use_fft=False,
+    pca=True,
+    pick_ori="normal",
+    n_jobs=None,
+    with_plv=True,
+    zero_mean=False,
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
     """Aux function for source induced power."""
     epochs_data = epochs.get_data()
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
-        inst=epochs, inverse_operator=inverse_operator, label=label,
-        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
-        prepared=prepared, method_params=method_params, use_cps=use_cps,
-        verbose=verbose)
+        inst=epochs,
+        inverse_operator=inverse_operator,
+        label=label,
+        lambda2=lambda2,
+        method=method,
+        nave=nave,
+        pca=pca,
+        pick_ori=pick_ori,
+        prepared=prepared,
+        method_params=method_params,
+        use_cps=use_cps,
+        verbose=verbose,
+    )
 
     inv = inverse_operator
     parallel, my_compute_source_tfrs, n_jobs = parallel_func(
-        _compute_pow_plv, n_jobs, max_jobs=len(epochs_data))
-    Fs = epochs.info['sfreq']  # sampling in Hz
+        _compute_pow_plv, n_jobs, max_jobs=len(epochs_data)
+    )
+    Fs = epochs.info["sfreq"]  # sampling in Hz
 
-    logger.info('Computing source power ...')
+    logger.info("Computing source power ...")
 
     Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
-    out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,
-                                          source_ori=inv['source_ori'],
-                                          use_fft=use_fft, Vh=Vh,
-                                          with_plv=with_plv, with_power=True,
-                                          pick_ori=pick_ori, decim=decim)
-                   for data in np.array_split(epochs_data, n_jobs))
+    out = parallel(
+        my_compute_source_tfrs(
+            data=data,
+            K=K,
+            sel=sel,
+            Ws=Ws,
+            source_ori=inv["source_ori"],
+            use_fft=use_fft,
+            Vh=Vh,
+            with_plv=with_plv,
+            with_power=True,
+            pick_ori=pick_ori,
+            decim=decim,
+        )
+        for data in np.array_split(epochs_data, n_jobs)
+    )
     power = sum(o[0] for o in out)
     power /= len(epochs_data)  # average power over epochs
 
@@ -308,12 +428,28 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
 
 
 @verbose
-def source_induced_power(epochs, inverse_operator, freqs, label=None,
-                         lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
-                         decim=1, use_fft=False, pick_ori=None,
-                         baseline=None, baseline_mode='logratio', pca=True,
-                         n_jobs=None, zero_mean=False, prepared=False,
-                         method_params=None, use_cps=True, verbose=None):
+def source_induced_power(
+    epochs,
+    inverse_operator,
+    freqs,
+    label=None,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    nave=1,
+    n_cycles=5,
+    decim=1,
+    use_fft=False,
+    pick_ori=None,
+    baseline=None,
+    baseline_mode="logratio",
+    pca=True,
+    n_jobs=None,
+    zero_mean=False,
+    prepared=False,
+    method_params=None,
+    use_cps=True,
+    verbose=None,
+):
     """Compute induced power and phase lock.
 
     Computation can optionally be restricted in a label.
@@ -388,31 +524,62 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
     power : array
         The induced power.
     """  # noqa: E501
-    _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'],
-               inverse_operator['src'])
+    _check_option("method", method, INVERSE_METHODS)
+    _check_ori(pick_ori, inverse_operator["source_ori"], inverse_operator["src"])
 
     power, plv, vertno = _source_induced_power(
-        epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
-        method=method, nave=nave, n_cycles=n_cycles, decim=decim,
-        use_fft=use_fft, pick_ori=pick_ori, pca=pca, n_jobs=n_jobs,
-        method_params=method_params, zero_mean=zero_mean,
-        prepared=prepared, use_cps=use_cps)
+        epochs,
+        inverse_operator,
+        freqs,
+        label=label,
+        lambda2=lambda2,
+        method=method,
+        nave=nave,
+        n_cycles=n_cycles,
+        decim=decim,
+        use_fft=use_fft,
+        pick_ori=pick_ori,
+        pca=pca,
+        n_jobs=n_jobs,
+        method_params=method_params,
+        zero_mean=zero_mean,
+        prepared=prepared,
+        use_cps=use_cps,
+    )
 
     # Run baseline correction
-    power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                    copy=False)
+    power = rescale(power, epochs.times[::decim], baseline, baseline_mode, copy=False)
     return power, plv
 
 
 @verbose
-def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
-                       tmin=0., tmax=None, fmin=0., fmax=200.,
-                       n_fft=2048, overlap=0.5, pick_ori=None, label=None,
-                       nave=1, pca=True, prepared=False, method_params=None,
-                       inv_split=None, bandwidth='hann', adaptive=False,
-                       low_bias=False, n_jobs=None, return_sensor=False,
-                       dB=False, *, verbose=None):
+def compute_source_psd(
+    raw,
+    inverse_operator,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    tmin=0.0,
+    tmax=None,
+    fmin=0.0,
+    fmax=200.0,
+    n_fft=2048,
+    overlap=0.5,
+    pick_ori=None,
+    label=None,
+    nave=1,
+    pca=True,
+    prepared=False,
+    method_params=None,
+    inv_split=None,
+    bandwidth="hann",
+    adaptive=False,
+    low_bias=False,
+    n_jobs=None,
+    return_sensor=False,
+    dB=False,
+    *,
+    verbose=None
+):
     """Compute source power spectral density (PSD).
 
     Parameters
@@ -517,22 +684,39 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     Otherwise the two should produce identical results.
     """
-    tmin = 0. if tmin is None else float(tmin)
+    tmin = 0.0 if tmin is None else float(tmin)
     overlap = float(overlap)
     if not 0 <= overlap < 1:
-        raise ValueError('Overlap must be at least 0 and less than 1, got %s'
-                         % (overlap,))
+        raise ValueError(
+            "Overlap must be at least 0 and less than 1, got %s" % (overlap,)
+        )
     n_fft = int(n_fft)
-    duration = ((1. - overlap) * n_fft) / raw.info['sfreq']
+    duration = ((1.0 - overlap) * n_fft) / raw.info["sfreq"]
     events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
-    epochs = Epochs(raw, events, 1, 0, (n_fft - 1) / raw.info['sfreq'],
-                    baseline=None)
+    epochs = Epochs(raw, events, 1, 0, (n_fft - 1) / raw.info["sfreq"], baseline=None)
     out = compute_source_psd_epochs(
-        epochs, inverse_operator, lambda2, method, fmin, fmax,
-        pick_ori, label, nave, pca, inv_split, bandwidth, adaptive, low_bias,
-        True, n_jobs, prepared, method_params, return_sensor=True)
-    source_data = 0.
-    sensor_data = 0.
+        epochs,
+        inverse_operator,
+        lambda2,
+        method,
+        fmin,
+        fmax,
+        pick_ori,
+        label,
+        nave,
+        pca,
+        inv_split,
+        bandwidth,
+        adaptive,
+        low_bias,
+        True,
+        n_jobs,
+        prepared,
+        method_params,
+        return_sensor=True,
+    )
+    source_data = 0.0
+    sensor_data = 0.0
     count = 0
     for stc, evoked in out:
         source_data += stc.data
@@ -543,9 +727,9 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     source_data /= count
     if dB:
         np.log10(sensor_data, out=sensor_data)
-        sensor_data *= 10.
+        sensor_data *= 10.0
         np.log10(source_data, out=source_data)
-        source_data *= 10.
+        source_data *= 10.0
     evoked.data = sensor_data
     evoked.nave = count
     stc.data = source_data
@@ -555,21 +739,44 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     return out
 
 
-def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
-                               method="dSPM", fmin=0., fmax=200.,
-                               pick_ori=None, label=None, nave=1,
-                               pca=True, inv_split=None, bandwidth=4.,
-                               adaptive=False, low_bias=True, n_jobs=None,
-                               prepared=False, method_params=None,
-                               return_sensor=False, use_cps=True):
+def _compute_source_psd_epochs(
+    epochs,
+    inverse_operator,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    fmin=0.0,
+    fmax=200.0,
+    pick_ori=None,
+    label=None,
+    nave=1,
+    pca=True,
+    inv_split=None,
+    bandwidth=4.0,
+    adaptive=False,
+    low_bias=True,
+    n_jobs=None,
+    prepared=False,
+    method_params=None,
+    return_sensor=False,
+    use_cps=True,
+):
     """Generate compute_source_psd_epochs."""
-    logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
+    logger.info("Considering frequencies %g ... %g Hz" % (fmin, fmax))
 
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
-        inst=epochs, inverse_operator=inverse_operator, label=label,
-        lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
-        prepared=prepared, method_params=method_params, use_cps=use_cps,
-        verbose=verbose)
+        inst=epochs,
+        inverse_operator=inverse_operator,
+        label=label,
+        lambda2=lambda2,
+        method=method,
+        nave=nave,
+        pca=pca,
+        pick_ori=pick_ori,
+        prepared=prepared,
+        method_params=method_params,
+        use_cps=use_cps,
+        verbose=verbose,
+    )
     # Simplify code with a tiny (rel. to other computations) penalty for eye
     # mult
     Vh = np.eye(K.shape[0]) if Vh is None else Vh
@@ -582,28 +789,30 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     # compute DPSS windows
     n_times = len(epochs.times)
-    sfreq = epochs.info['sfreq']
+    sfreq = epochs.info["sfreq"]
 
     dpss, eigvals, adaptive = _compute_mt_params(
-        n_times, sfreq, bandwidth, low_bias, adaptive, verbose=False)
+        n_times, sfreq, bandwidth, low_bias, adaptive, verbose=False
+    )
 
     n_tapers = len(dpss)
     try:
         n_epochs = len(epochs)
     except RuntimeError:
         n_epochs = len(epochs.events)
-        extra = 'on at most %d epochs' % (n_epochs,)
+        extra = "on at most %d epochs" % (n_epochs,)
     else:
-        extra = 'on %d epochs' % (n_epochs,)
+        extra = "on %d epochs" % (n_epochs,)
     if isinstance(bandwidth, str):
-        bandwidth = '%s windowing' % (bandwidth,)
+        bandwidth = "%s windowing" % (bandwidth,)
     else:
-        bandwidth = '%d tapers with bandwidth %0.1f Hz' % (n_tapers, bandwidth)
-    logger.info('Using %s %s' % (bandwidth, extra))
+        bandwidth = "%d tapers with bandwidth %0.1f Hz" % (n_tapers, bandwidth)
+    logger.info("Using %s %s" % (bandwidth, extra))
 
     if adaptive:
-        parallel, my_psd_from_mt_adaptive, n_jobs = \
-            parallel_func(_psd_from_mt_adaptive, n_jobs)
+        parallel, my_psd_from_mt_adaptive, n_jobs = parallel_func(
+            _psd_from_mt_adaptive, n_jobs
+        )
     else:
         weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
@@ -620,19 +829,20 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             freq_mask = (freqs >= fmin) & (freqs <= fmax)
             fstep = np.mean(np.diff(freqs))
             with evoked_info._unlock():
-                evoked_info['sfreq'] = 1. / fstep
+                evoked_info["sfreq"] = 1.0 / fstep
         freqs = freqs[freq_mask]
 
         # sensor space PSD
-        x_mt_sensor = np.empty((len(sel), x_mt.shape[1],
-                                x_mt.shape[2]), dtype=x_mt.dtype)
+        x_mt_sensor = np.empty(
+            (len(sel), x_mt.shape[1], x_mt.shape[2]), dtype=x_mt.dtype
+        )
         for i in range(n_tapers):
             x_mt_sensor[:, i, :] = np.dot(Vh.T, x_mt[:, i, :])
         if adaptive:
-            out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                           for x in np.array_split(x_mt_sensor,
-                                                   min(n_jobs,
-                                                       len(x_mt_sensor))))
+            out = parallel(
+                my_psd_from_mt_adaptive(x, eigvals, freq_mask)
+                for x in np.array_split(x_mt_sensor, min(n_jobs, len(x_mt_sensor)))
+            )
             sensor_psd = np.concatenate(out)
         else:
             x_mt_sensor = x_mt_sensor[:, :, freq_mask]
@@ -647,8 +857,9 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         pos = 0
         for K_part in K_split:
             # allocate space for tapered spectra in source space
-            x_mt_src = np.empty((K_part.shape[0], x_mt.shape[1],
-                                 x_mt.shape[2]), dtype=x_mt.dtype)
+            x_mt_src = np.empty(
+                (K_part.shape[0], x_mt.shape[1], x_mt.shape[2]), dtype=x_mt.dtype
+            )
 
             # apply inverse to each taper (faster than equiv einsum)
             for i in range(n_tapers):
@@ -656,16 +867,16 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
             # compute the psd
             if adaptive:
-                out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                               for x in np.array_split(x_mt_src,
-                                                       min(n_jobs,
-                                                           len(x_mt_src))))
+                out = parallel(
+                    my_psd_from_mt_adaptive(x, eigvals, freq_mask)
+                    for x in np.array_split(x_mt_src, min(n_jobs, len(x_mt_src)))
+                )
                 this_psd = np.concatenate(out)
             else:
                 x_mt_src = x_mt_src[:, :, freq_mask]
                 this_psd = _psd_from_mt(x_mt_src, weights)
 
-            psd[pos:pos + K_part.shape[0], :] = this_psd
+            psd[pos : pos + K_part.shape[0], :] = this_psd
             pos += K_part.shape[0]
 
         # combine orientations
@@ -673,15 +884,23 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             psd = combine_xyz(psd, square=False)
 
         if noise_norm is not None:
-            psd *= noise_norm ** 2
+            psd *= noise_norm**2
 
-        out = _make_stc(psd, tmin=freqs[0], tstep=fstep, vertices=vertno,
-                        subject=subject, src_type=inverse_operator['src'].kind)
+        out = _make_stc(
+            psd,
+            tmin=freqs[0],
+            tstep=fstep,
+            vertices=vertno,
+            subject=subject,
+            src_type=inverse_operator["src"].kind,
+        )
 
         if return_sensor:
-            comment = 'Epoch %d PSD' % (k,)
-            out = (out, EvokedArray(sensor_psd, evoked_info.copy(), freqs[0],
-                                    comment, nave))
+            comment = "Epoch %d PSD" % (k,)
+            out = (
+                out,
+                EvokedArray(sensor_psd, evoked_info.copy(), freqs[0], comment, nave),
+            )
 
         # we return a generator object for "stream processing"
         yield out
@@ -690,14 +909,29 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
 
 @verbose
-def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
-                              method="dSPM", fmin=0., fmax=200.,
-                              pick_ori=None, label=None, nave=1,
-                              pca=True, inv_split=None, bandwidth=4.,
-                              adaptive=False, low_bias=True,
-                              return_generator=False, n_jobs=None,
-                              prepared=False, method_params=None,
-                              return_sensor=False, use_cps=True, verbose=None):
+def compute_source_psd_epochs(
+    epochs,
+    inverse_operator,
+    lambda2=1.0 / 9.0,
+    method="dSPM",
+    fmin=0.0,
+    fmax=200.0,
+    pick_ori=None,
+    label=None,
+    nave=1,
+    pca=True,
+    inv_split=None,
+    bandwidth=4.0,
+    adaptive=False,
+    low_bias=True,
+    return_generator=False,
+    n_jobs=None,
+    prepared=False,
+    method_params=None,
+    return_sensor=False,
+    use_cps=True,
+    verbose=None,
+):
     """Compute source power spectral density (PSD) from Epochs.
 
     This uses the multi-taper method to compute the PSD for each epoch.
@@ -771,12 +1005,26 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     """
     # use an auxiliary function so we can either return a generator or a list
     stcs_gen = _compute_source_psd_epochs(
-        epochs, inverse_operator, lambda2=lambda2, method=method,
-        fmin=fmin, fmax=fmax, pick_ori=pick_ori, label=label,
-        nave=nave, pca=pca, inv_split=inv_split, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, n_jobs=n_jobs, prepared=prepared,
-        method_params=method_params, return_sensor=return_sensor,
-        use_cps=use_cps)
+        epochs,
+        inverse_operator,
+        lambda2=lambda2,
+        method=method,
+        fmin=fmin,
+        fmax=fmax,
+        pick_ori=pick_ori,
+        label=label,
+        nave=nave,
+        pca=pca,
+        inv_split=inv_split,
+        bandwidth=bandwidth,
+        adaptive=adaptive,
+        low_bias=low_bias,
+        n_jobs=n_jobs,
+        prepared=prepared,
+        method_params=method_params,
+        return_sensor=return_sensor,
+        use_cps=use_cps,
+    )
 
     if return_generator:
         # return generator object

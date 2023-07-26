@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-perm-test:
 
@@ -29,9 +28,9 @@ print(__doc__)
 # %%
 # Set parameters
 data_path = sample.data_path()
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / "MEG" / "sample"
+raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
+event_fname = meg_path / "sample_audvis_filt-0-40_raw-eve.fif"
 event_id = 1
 tmin = -0.2
 tmax = 0.5
@@ -41,10 +40,19 @@ raw = io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
 # pick MEG Gradiometers
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                       exclude='bads')
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
+picks = mne.pick_types(
+    raw.info, meg="grad", eeg=False, stim=False, eog=True, exclude="bads"
+)
+epochs = mne.Epochs(
+    raw,
+    events,
+    event_id,
+    tmin,
+    tmax,
+    picks=picks,
+    baseline=(None, 0),
+    reject=dict(grad=4000e-13, eog=150e-6),
+)
 data = epochs.get_data()
 times = epochs.times
 
@@ -63,15 +71,23 @@ print("Sensors names : %s" % significant_sensors_names)
 # %%
 # View location of significantly active sensors
 
-evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis],
-                         epochs.info, tmin=0.)
+evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis], epochs.info, tmin=0.0)
 
 # Extract mask and indices of active sensors in the layout
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 mask = p_values[:, np.newaxis] <= 0.05
 
-evoked.plot_topomap(ch_type='grad', times=[0], scalings=1,
-                    time_format=None, cmap='Reds', vlim=(0., np.max),
-                    units='-log10(p)', cbar_fmt='-%0.1f', mask=mask,
-                    size=3, show_names=lambda x: x[4:] + ' ' * 20,
-                    time_unit='s')
+evoked.plot_topomap(
+    ch_type="grad",
+    times=[0],
+    scalings=1,
+    time_format=None,
+    cmap="Reds",
+    vlim=(0.0, np.max),
+    units="-log10(p)",
+    cbar_fmt="-%0.1f",
+    mask=mask,
+    size=3,
+    show_names=lambda x: x[4:] + " " * 20,
+    time_unit="s",
+)

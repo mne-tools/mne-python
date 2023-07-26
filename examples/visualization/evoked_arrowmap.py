@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-arrowmap:
 
@@ -34,13 +33,13 @@ from mne.viz import plot_arrowmap
 print(__doc__)
 
 path = sample.data_path()
-fname = path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
+fname = path / "MEG" / "sample" / "sample_audvis-ave.fif"
 
 # load evoked data
-condition = 'Left Auditory'
+condition = "Left Auditory"
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
-evoked_mag = evoked.copy().pick_types(meg='mag')
-evoked_grad = evoked.copy().pick_types(meg='grad')
+evoked_mag = evoked.copy().pick_types(meg="mag")
+evoked_grad = evoked.copy().pick_types(meg="grad")
 
 # %%
 # Plot magnetometer data as an arrowmap along with the topoplot at the time
@@ -58,8 +57,11 @@ plot_arrowmap(evoked_mag.data[:, max_time_idx], evoked_mag.info)
 # %%
 # Plot gradiometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity:
-plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
-              info_to=evoked_mag.info)
+plot_arrowmap(
+    evoked_grad.data[:, max_time_idx],
+    info_from=evoked_grad.info,
+    info_to=evoked_mag.info,
+)
 
 # %%
 # Since Vectorview 102 system perform sparse spatial sampling of the magnetic
@@ -69,10 +71,14 @@ plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
 # Plot gradiometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity:
 path = bst_raw.data_path()
-raw_fname = (path / 'MEG' / 'bst_raw' /
-             'subj001_somatosensory_20111109_01_AUX-f.ds')
+raw_fname = path / "MEG" / "bst_raw" / "subj001_somatosensory_20111109_01_AUX-f.ds"
 raw_ctf = mne.io.read_raw_ctf(raw_fname)
 raw_ctf_info = mne.pick_info(
-    raw_ctf.info, mne.pick_types(raw_ctf.info, meg=True, ref_meg=False))
-plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
-              info_to=raw_ctf_info, scale=6e-10)
+    raw_ctf.info, mne.pick_types(raw_ctf.info, meg=True, ref_meg=False)
+)
+plot_arrowmap(
+    evoked_grad.data[:, max_time_idx],
+    info_from=evoked_grad.info,
+    info_to=raw_ctf_info,
+    scale=6e-10,
+)

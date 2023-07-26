@@ -35,10 +35,12 @@ def has_imageio_ffmpeg():
     """Check if imageio-ffmpeg is installed."""
     try:
         import imageio_ffmpeg  # noqa: F401
+
         return True
     except ImportError:
         return False
 
 
 skips_if_not_pyvistaqt = pytest.mark.skipif(
-    not has_pyvistaqt(), reason='requires pyvistaqt')
+    not has_pyvistaqt(), reason="requires pyvistaqt"
+)

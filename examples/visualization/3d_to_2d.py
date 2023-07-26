@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _ex-electrode-pos-2d:
 
@@ -35,12 +34,12 @@ from mne.viz import ClickableImage  # noqa: F401
 from mne.viz import plot_alignment, set_3d_view, snapshot_brain_montage
 
 misc_path = mne.datasets.misc.data_path()
-subjects_dir = misc_path / 'ecog'
-ecog_data_fname = subjects_dir / 'sample_ecog_ieeg.fif'
+subjects_dir = misc_path / "ecog"
+ecog_data_fname = subjects_dir / "sample_ecog_ieeg.fif"
 
 # We've already clicked and exported
-layout_path = Path(dirname(mne.__file__)) / 'data' / 'image'
-layout_name = 'custom_layout.lout'
+layout_path = Path(dirname(mne.__file__)) / "data" / "image"
+layout_name = "custom_layout.lout"
 
 # %%
 # Load data
@@ -50,14 +49,14 @@ layout_name = 'custom_layout.lout'
 # a 2D snapshot.
 
 raw = read_raw_fif(ecog_data_fname)
-raw.pick_channels([f'G{i}' for i in range(1, 257)])  # pick just one grid
+raw.pick_channels([f"G{i}" for i in range(1, 257)])  # pick just one grid
 
 # Since we loaded in the ecog data from FIF, the coordinates
 # are in 'head' space, but we actually want them in 'mri' space.
 # So we will apply the head->mri transform that was used when
 # generating the dataset (the estimated head->mri transform).
 montage = raw.get_montage()
-trans = mne.coreg.estimate_head_mri_t('sample_ecog', subjects_dir)
+trans = mne.coreg.estimate_head_mri_t("sample_ecog", subjects_dir)
 montage.apply_trans(trans)
 
 # %%
@@ -69,8 +68,13 @@ montage.apply_trans(trans)
 # with the electrode positions on that image. We use this in conjunction with
 # :func:`mne.viz.plot_alignment`, which visualizes electrode positions.
 
-fig = plot_alignment(raw.info, trans=trans, subject='sample_ecog',
-                     subjects_dir=subjects_dir, surfaces=dict(pial=0.9))
+fig = plot_alignment(
+    raw.info,
+    trans=trans,
+    subject="sample_ecog",
+    subjects_dir=subjects_dir,
+    surfaces=dict(pial=0.9),
+)
 set_3d_view(figure=fig, azimuth=20, elevation=80)
 xy, im = snapshot_brain_montage(fig, montage)
 
@@ -85,9 +89,9 @@ beta_power = beta_power.max(axis=1)  # take maximum over time
 # This allows us to use matplotlib to create arbitrary 2d scatterplots
 fig2, ax = plt.subplots(figsize=(10, 10))
 ax.imshow(im)
-cmap = ax.scatter(*xy_pts.T, c=beta_power, s=100, cmap='coolwarm')
+cmap = ax.scatter(*xy_pts.T, c=beta_power, s=100, cmap="coolwarm")
 cbar = fig2.colorbar(cmap)
-cbar.ax.set_ylabel('Beta Power')
+cbar.ax.set_ylabel("Beta Power")
 ax.set_axis_off()
 
 # fig2.savefig('./brain.png', bbox_inches='tight')  # For ClickableImage
@@ -127,6 +131,6 @@ x = lt.pos[:, 0] * float(im.shape[1])
 y = (1 - lt.pos[:, 1]) * float(im.shape[0])  # Flip the y-position
 fig, ax = plt.subplots()
 ax.imshow(im)
-ax.scatter(x, y, s=80, color='r')
+ax.scatter(x, y, s=80, color="r")
 fig.tight_layout()
 ax.set_axis_off()

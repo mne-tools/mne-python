@@ -22,12 +22,13 @@ subjects_dir = data_path / "subjects"
 @testing.requires_testing_data
 def test_make_morph_maps(tmp_path):
     """Test reading and creating morph maps."""
+    pytest.importorskip("nibabel")
     # make a new fake subjects_dir
-    for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
+    for subject in ("sample", "sample_ds", "fsaverage_ds"):
         os.mkdir(tmp_path / subject)
         os.mkdir(tmp_path / subject / "surf")
-        regs = ('reg', 'left_right') if subject == 'fsaverage_ds' else ('reg',)
-        for hemi in ['lh', 'rh']:
+        regs = ("reg", "left_right") if subject == "fsaverage_ds" else ("reg",)
+        for hemi in ["lh", "rh"]:
             for reg in regs:
                 copyfile(
                     subjects_dir / subject / "surf" / f"{hemi}.sphere.{reg}",
@@ -35,17 +36,18 @@ def test_make_morph_maps(tmp_path):
                 )
 
     for subject_from, subject_to, xhemi in (
-            ('fsaverage_ds', 'sample_ds', False),
-            ('fsaverage_ds', 'fsaverage_ds', True)):
+        ("fsaverage_ds", "sample_ds", False),
+        ("fsaverage_ds", "fsaverage_ds", True),
+    ):
         # trigger the creation of morph-maps dir and create the map
         with catch_logging() as log:
-            mmap = read_morph_map(subject_from, subject_to, tmp_path,
-                                  xhemi=xhemi, verbose=True)
+            mmap = read_morph_map(
+                subject_from, subject_to, tmp_path, xhemi=xhemi, verbose=True
+            )
         log = log.getvalue()
-        assert 'does not exist' in log
-        assert 'Creating' in log
-        mmap2 = read_morph_map(subject_from, subject_to, subjects_dir,
-                               xhemi=xhemi)
+        assert "does not exist" in log
+        assert "Creating" in log
+        mmap2 = read_morph_map(subject_from, subject_to, subjects_dir, xhemi=xhemi)
         assert len(mmap) == len(mmap2)
         for m1, m2 in zip(mmap, mmap2):
             # deal with sparse matrix stuff
@@ -54,6 +56,6 @@ def test_make_morph_maps(tmp_path):
 
     # This will also trigger creation, but it's trivial
     with _record_warnings():
-        mmap = read_morph_map('sample', 'sample', subjects_dir=tmp_path)
+        mmap = read_morph_map("sample", "sample", subjects_dir=tmp_path)
     for mm in mmap:
         assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0

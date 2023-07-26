@@ -19,7 +19,7 @@ import sys
 import mne
 import os.path as op
 
-ANONYMIZE_FILE_PREFIX = 'anon'
+ANONYMIZE_FILE_PREFIX = "anon"
 
 
 def mne_anonymize(fif_fname, out_fname, keep_his, daysback, overwrite):
@@ -49,8 +49,7 @@ def mne_anonymize(fif_fname, out_fname, keep_his, daysback, overwrite):
     dir_name = op.split(fif_fname)[0]
     if out_fname is None:
         fif_bname = op.basename(fif_fname)
-        out_fname = op.join(dir_name,
-                            "{}-{}".format(ANONYMIZE_FILE_PREFIX, fif_bname))
+        out_fname = op.join(dir_name, "{}-{}".format(ANONYMIZE_FILE_PREFIX, fif_bname))
     elif not op.isabs(out_fname):
         out_fname = op.join(dir_name, out_fname)
 
@@ -63,20 +62,48 @@ def run():
 
     parser = get_optparser(__file__)
 
-    parser.add_option("-f", "--file", type="string", dest="file",
-                      help="Name of file to modify.", metavar="FILE",
-                      default=None)
-    parser.add_option("-o", "--output", type="string", dest="output",
-                      help="Name of anonymized output file."
-                      "`anon-` prefix is added to FILE if not given",
-                      metavar="OUTFILE", default=None)
-    parser.add_option("--keep_his", dest="keep_his", action="store_true",
-                      help="Keep the HIS tag (not advised)", default=False)
-    parser.add_option("-d", "--daysback", type="int", dest="daysback",
-                      help="Move dates in file backwards by this many days.",
-                      metavar="N_DAYS", default=None)
-    parser.add_option("--overwrite", dest="overwrite", action="store_true",
-                      help="Overwrite input file.", default=False)
+    parser.add_option(
+        "-f",
+        "--file",
+        type="string",
+        dest="file",
+        help="Name of file to modify.",
+        metavar="FILE",
+        default=None,
+    )
+    parser.add_option(
+        "-o",
+        "--output",
+        type="string",
+        dest="output",
+        help="Name of anonymized output file."
+        "`anon-` prefix is added to FILE if not given",
+        metavar="OUTFILE",
+        default=None,
+    )
+    parser.add_option(
+        "--keep_his",
+        dest="keep_his",
+        action="store_true",
+        help="Keep the HIS tag (not advised)",
+        default=False,
+    )
+    parser.add_option(
+        "-d",
+        "--daysback",
+        type="int",
+        dest="daysback",
+        help="Move dates in file backwards by this many days.",
+        metavar="N_DAYS",
+        default=None,
+    )
+    parser.add_option(
+        "--overwrite",
+        dest="overwrite",
+        action="store_true",
+        help="Overwrite input file.",
+        default=False,
+    )
 
     options, args = parser.parse_args()
     if options.file is None:
@@ -88,12 +115,12 @@ def run():
     keep_his = options.keep_his
     daysback = options.daysback
     overwrite = options.overwrite
-    if not fname.endswith('.fif'):
-        raise ValueError('%s does not seem to be a .fif file.' % fname)
+    if not fname.endswith(".fif"):
+        raise ValueError("%s does not seem to be a .fif file." % fname)
 
     mne_anonymize(fname, out_fname, keep_his, daysback, overwrite)
 
 
-is_main = (__name__ == '__main__')
+is_main = __name__ == "__main__"
 if is_main:
     run()

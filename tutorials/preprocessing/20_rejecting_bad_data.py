@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 .. _tut-reject-data-spans:
 
@@ -24,11 +23,13 @@ import os
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_filt-0-40_raw.fif')
+sample_data_raw_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_filt-0-40_raw.fif"
+)
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
-events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                           'sample_audvis_filt-0-40_raw-eve.fif')
+events_file = os.path.join(
+    sample_data_folder, "MEG", "sample", "sample_audvis_filt-0-40_raw-eve.fif"
+)
 events = mne.read_events(events_file)
 
 # %%
@@ -51,7 +52,7 @@ events = mne.read_events(events_file)
 # existing annotation labels can be selected for use.
 
 fig = raw.plot()
-fig.fake_keypress('a')  # Simulates user pressing 'a' on the keyboard.
+fig.fake_keypress("a")  # Simulates user pressing 'a' on the keyboard.
 
 # %%
 # You can see that you need to add a description first to start with
@@ -97,11 +98,12 @@ fig.fake_keypress('a')  # Simulates user pressing 'a' on the keyboard.
 
 # sphinx_gallery_thumbnail_number = 3
 eog_events = mne.preprocessing.find_eog_events(raw)
-onsets = eog_events[:, 0] / raw.info['sfreq'] - 0.25
+onsets = eog_events[:, 0] / raw.info["sfreq"] - 0.25
 durations = [0.5] * len(eog_events)
-descriptions = ['bad blink'] * len(eog_events)
-blink_annot = mne.Annotations(onsets, durations, descriptions,
-                              orig_time=raw.info['meas_date'])
+descriptions = ["bad blink"] * len(eog_events)
+blink_annot = mne.Annotations(
+    onsets, durations, descriptions, orig_time=raw.info["meas_date"]
+)
 raw.set_annotations(blink_annot)
 
 # %%
@@ -132,17 +134,16 @@ raw.plot(events=eog_events, order=eeg_picks)
 # .. note:: We need to take ``raw.first_time`` into account, otherwise the
 #           onsets will be incorrect!
 
-onsets = [
-    raw.first_time + 30,
-    raw.first_time + 180
-]
+onsets = [raw.first_time + 30, raw.first_time + 180]
 durations = [60, 60]
-descriptions = ['block_1', 'block_2']
+descriptions = ["block_1", "block_2"]
 
-block_annots = mne.Annotations(onset=onsets,
-                               duration=durations,
-                               description=descriptions,
-                               orig_time=raw.info['meas_date'])
+block_annots = mne.Annotations(
+    onset=onsets,
+    duration=durations,
+    description=descriptions,
+    orig_time=raw.info["meas_date"],
+)
 raw.set_annotations(raw.annotations + block_annots)  # add to existing
 raw.plot()
 
@@ -154,7 +155,7 @@ break_annots = mne.preprocessing.annotate_break(
     raw=raw,
     min_break_duration=20,  # consider segments of at least 20 s duration
     t_start_after_previous=5,  # start annotation 5 s after end of previous one
-    t_stop_before_next=2  # stop annotation 2 s before beginning of next one
+    t_stop_before_next=2,  # stop annotation 2 s before beginning of next one
 )
 
 raw.set_annotations(raw.annotations + break_annots)  # add to existing
@@ -190,7 +191,7 @@ events_subset = events_subset[3:-3]
 break_annots = mne.preprocessing.annotate_break(
     raw=raw,
     events=events_subset,  # passing events will ignore existing annotations
-    min_break_duration=25  # pick a longer break duration this time
+    min_break_duration=25,  # pick a longer break duration this time
 )
 
 # replace existing annotations (otherwise it becomes difficult to see any
@@ -213,14 +214,14 @@ raw.plot(events=events_subset)
 # can be used to set *minimum* acceptable peak-to-peak amplitudes for each
 # channel type in an epoch:
 
-reject_criteria = dict(mag=3000e-15,     # 3000 fT
-                       grad=3000e-13,    # 3000 fT/cm
-                       eeg=100e-6,       # 100 µV
-                       eog=200e-6)       # 200 µV
+reject_criteria = dict(
+    mag=3000e-15,  # 3000 fT
+    grad=3000e-13,  # 3000 fT/cm
+    eeg=100e-6,  # 100 µV
+    eog=200e-6,
+)  # 200 µV
 
-flat_criteria = dict(mag=1e-15,          # 1 fT
-                     grad=1e-13,         # 1 fT/cm
-                     eeg=1e-6)           # 1 µV
+flat_criteria = dict(mag=1e-15, grad=1e-13, eeg=1e-6)  # 1 fT  # 1 fT/cm  # 1 µV
 
 # %%
 # The values that are appropriate are dataset- and hardware-dependent, so some
@@ -238,9 +239,17 @@ flat_criteria = dict(mag=1e-15,          # 1 fT
 # generated with the :meth:`~mne.Epochs.plot_drop_log` method:
 
 raw.set_annotations(blink_annot)  # restore the EOG annotations
-epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, reject_tmax=0,
-                    reject=reject_criteria, flat=flat_criteria,
-                    reject_by_annotation=False, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    tmin=-0.2,
+    tmax=0.5,
+    reject_tmax=0,
+    reject=reject_criteria,
+    flat=flat_criteria,
+    reject_by_annotation=False,
+    preload=True,
+)
 epochs.plot_drop_log()
 
 # %%
@@ -251,8 +260,16 @@ epochs.plot_drop_log()
 # fluctuations were probably blink-related, and were subsumed by rejections
 # based on the "bad blink" label).
 
-epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, reject_tmax=0,
-                    reject=reject_criteria, flat=flat_criteria, preload=True)
+epochs = mne.Epochs(
+    raw,
+    events,
+    tmin=-0.2,
+    tmax=0.5,
+    reject_tmax=0,
+    reject=reject_criteria,
+    flat=flat_criteria,
+    preload=True,
+)
 epochs.plot_drop_log()
 
 # %%
@@ -298,10 +315,12 @@ epochs.drop_bad()
 # :meth:`~mne.Epochs.drop_bad` later instead; this can also be a way of
 # imposing progressively more stringent rejection criteria:
 
-stronger_reject_criteria = dict(mag=2000e-15,     # 2000 fT
-                                grad=2000e-13,    # 2000 fT/cm
-                                eeg=100e-6,       # 100 µV
-                                eog=100e-6)       # 100 µV
+stronger_reject_criteria = dict(
+    mag=2000e-15,  # 2000 fT
+    grad=2000e-13,  # 2000 fT/cm
+    eeg=100e-6,  # 100 µV
+    eog=100e-6,
+)  # 100 µV
 
 epochs.drop_bad(reject=stronger_reject_criteria)
 print(epochs.drop_log)
