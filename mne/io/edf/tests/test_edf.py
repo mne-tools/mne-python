@@ -198,7 +198,7 @@ def test_edf_others(fname, stim_channel):
         stim_channel=stim_channel,
         verbose="error",
         test_preloading=False,
-        preload=True,  # no preload for mixed sfreqs
+        preload=True,  # no preload=False for mixed sfreqs
     )
 
 
