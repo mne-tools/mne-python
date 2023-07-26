@@ -165,10 +165,8 @@ def pytest_configure(config):
             config.addinivalue_line("filterwarnings", warning_line)
     # TODO: Fix this with casts?
     # https://github.com/numpy/numpy/pull/22449
-    try:
-        np.set_printoptions(legacy=125)
-    except Exception:
-        pass  # probably missing kwarg
+    if check_version("numpy", "1.26"):
+        np.set_printoptions(legacy="1.25")
 
 
 # Have to be careful with autouse=True, but this is just an int comparison
