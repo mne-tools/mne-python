@@ -1223,9 +1223,7 @@ class SpectrumArray(Spectrum):
                 dims=("channel", "freq"),
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type="Complex Spectrum"
-                if np.iscomplexobj(data)
-                else "Real Spectrum",
+                data_type=f"{'Complex' if np.iscomplexobj(data) else 'Real'} Spectrum",
                 info=info,
             )
         )
