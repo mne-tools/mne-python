@@ -39,7 +39,7 @@ ipywidgets
 ipympl; platform_system!="Windows"  # XXX: Add support when ipympl CIs include Windows
 ipyevents
 ipyvtklink
-mne-qt-browser
+git+https://github.com/mscheltienne/mne-qt-browser.git@more-annotation-stuff#egg=mne-qt-browser
 darkdetect
 qdarkstyle
 threadpoolctl

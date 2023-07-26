@@ -51,9 +51,10 @@ dependencies:
 - jupyter_client
 - nbformat
 - nbclient
-- mne-qt-browser
 - pymatreader
 - eeglabio
 - edflib-python
 - pybv
 - mamba
+- pip:
+  - "git+https://github.com/mscheltienne/mne-qt-browser.git@more-annotation-stuff#egg=mne-qt-browser"
