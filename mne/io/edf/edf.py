@@ -402,8 +402,6 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             ).reshape(n_read, -1)
             r_sidx = r_lims[ai][0]
             r_eidx = buf_len * (n_read - 1) + r_lims[ai + n_read - 1][1]
-            d_sidx = d_lims[ai][0]
-            d_eidx = d_lims[ai + n_read - 1][1]
 
             # loop over selected channels, ci=channel selection
             for ii, ci in enumerate(read_sel):
@@ -446,16 +444,26 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             assert max(n_smp_read) == smp_exp
 
             # resample data after loading all chunks to prevent edge artifacts
+            resampled = False
             for i, smp_read in enumerate(n_smp_read):
                 # nothing read, nothing to resample
                 if smp_read == 0:
                     continue
-                # resample if n_samples is lower than from highest sfreq
+                # upsample if n_samples is lower than from highest sfreq
                 if smp_read != smp_exp:
                     assert (ones[i, smp_read:] == 0).all()  # sanity check
                     ones[i, :] = resample(
                                     ones[i, :smp_read].astype(np.float64),
                                     smp_exp, smp_read, npad=0, axis=-1)
+                    resampled = True
+
+            # give warning if we resampled a subselection
+            if resampled and raw_extras['nsamples']!=(stop-start):
+                warn("Loading an EDF with mixed sampling freqencies and \
+                     preload=False will result in edge artifacts. \
+                     It is recommended to use preload=True preload=Buffer. \
+                     See also https://github.com/mne-tools/mne-python/issues/10635")
+
             _mult_cal_one(data[:, :], ones, idx, cals, mult)
 
     if len(tal_data) > 1:

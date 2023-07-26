@@ -193,18 +193,42 @@ def test_bdf_crop_save_stim_channel(tmp_path):
 def test_edf_others(fname, stim_channel):
     """Test EDF with various sampling rates and overlapping annotations."""
     _test_raw_reader(
-        read_raw_edf, input_fname=fname, stim_channel=stim_channel, verbose="error"
+        read_raw_edf, input_fname=fname, stim_channel=stim_channel,
+        verbose="error", test_preloading=False,
+        preload=True# no preload for mixed sfreqs
     )
 
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('stim_channel', (None, False, 'auto'))
-def test_edf_differen_sfreq(stim_channel):
-    """Test EDF with various sampling rates and overlapping annotations."""
-    raw = read_raw_edf(input_fname=edf_reduced, stim_channel=stim_channel,
-                       verbose='error')
+def test_edf_different_sfreqs(stim_channel):
+    """Test EDF with various sampling rates"""
+    rng = np.random.RandomState(0)
+    # load with and without preloading, should procude the same results
+    raw1 = read_raw_edf(input_fname=edf_reduced, stim_channel=stim_channel,
+                       verbose='error', preload=False)
+    raw2 = read_raw_edf(input_fname=edf_reduced, stim_channel=stim_channel,
+                       verbose='error', preload=True)
 
+    picks = rng.permutation(np.arange(len(raw1.ch_names) - 1))[:10]
+    data1, times1 = raw1[picks, :]
+    data2, times2 = raw2[picks, :]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
 
+    # loading slices should throw a warning as they have different
+    # edge artifacts than when loading the entire file at once
+    with pytest.warns():
+        data1, times1 = raw1[picks, :512]
+        data2, times2 = raw2[picks, :512]
+
+    # should NOT throw a warning when loading channels that have all the same
+    # sampling frequency - here, no edge artifacts can appear
+    picks = np.arange(15, 20)  # these channels all have 512 Hz
+    data1, times1 = raw1[picks, :512]
+    data2, times2 = raw2[picks, :512]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
 
 def test_edf_data_broken(tmp_path):
     """Test edf files."""
