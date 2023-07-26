@@ -126,7 +126,8 @@ def test_eyelink(fname, create_annotations, find_overlaps, apply_offsets):
 @pytest.mark.parametrize("fname_href", [(fname_href)])
 def test_radian(fname_href):
     """Test converting HREF position data to radians."""
-    raw = read_raw_eyelink(fname_href, create_annotations=["blinks"])
+    with pytest.warns(RuntimeWarning, match="Annotations for"):
+        raw = read_raw_eyelink(fname_href, create_annotations=["blinks"])
     # Test channel types
     assert raw.get_channel_types() == ["eyegaze", "eyegaze", "pupil"]
 
@@ -259,7 +260,8 @@ def test_multi_block_misc_channels(fname, tmp_path):
     out_file = tmp_path / "tmp_eyelink.asc"
     _simulate_eye_tracking_data(fname, out_file)
 
-    raw = read_raw_eyelink(out_file)
+    with pytest.warns(RuntimeWarning, match="Raw eyegaze coordinates"):
+        raw = read_raw_eyelink(out_file)
 
     chs_in_file = [
         "xpos_right",

@@ -21,7 +21,14 @@ from ..constants import FIFF
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ...annotations import Annotations
-from ...utils import _check_fname, _check_pandas_installed, fill_doc, logger, verbose
+from ...utils import (
+    _check_fname,
+    _check_pandas_installed,
+    fill_doc,
+    logger,
+    verbose,
+    warn,
+)
 
 EYELINK_COLS = {
     "timestamp": ("time",),
@@ -210,7 +217,7 @@ class RawEyelink(BaseRaw):
         if gap_desc is None:
             gap_desc = "BAD_ACQ_SKIP"
         else:
-            logger.warning(
+            warn(
                 "gap_description is deprecated in 1.5 and will be removed in 1.6, "
                 "use raw.annotations.rename to use a description other than "
                 "'BAD_ACQ_SKIP'",
@@ -344,15 +351,16 @@ class RawEyelink(BaseRaw):
             self._tracking_mode = "monocular"
         # Detect the datatypes that are in file.
         if "GAZE" in self._rec_info:
-            logger.info("Pixel coordinate data detected.")
-            logger.warning(
+            logger.info(
+                "Pixel coordinate data detected."
                 "Pass `scalings=dict(eyegaze=1e3)` when using plot"
                 " method to make traces more legible."
             )
+
         elif "HREF" in self._rec_info:
             logger.info("Head-referenced eye-angle (HREF) data detected.")
         elif "PUPIL" in self._rec_info:
-            logger.warning("Raw eyegaze coordinates detected. Analyze with caution.")
+            warn("Raw eyegaze coordinates detected. Analyze with caution.")
         if "AREA" in self._pupil_info:
             logger.info("Pupil-size area detected.")
         elif "DIAMETER" in self._pupil_info:
@@ -364,7 +372,7 @@ class RawEyelink(BaseRaw):
                 blocks_list = self._event_lines["SAMPLES"]
                 eye_per_block = [block_info[1] for block_info in blocks_list]
                 if not all([this_eye == eye for this_eye in eye_per_block]):
-                    logger.warning(
+                    warn(
                         "The eye being tracked changed during the"
                         " recording. The channel names will reflect"
                         " the eye that was tracked at the start of"
@@ -715,8 +723,6 @@ class RawEyelink(BaseRaw):
             elif annots:
                 annots += this_annot
         if not annots:
-            logger.warning(
-                f"Annotations for {descs} were requested but" " none could be made."
-            )
+            warn(f"Annotations for {descs} were requested but none could be made.")
             return
         return annots
