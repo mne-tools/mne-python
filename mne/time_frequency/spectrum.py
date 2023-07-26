@@ -1201,7 +1201,7 @@ class SpectrumArray(Spectrum):
 
     Notes
     -----
-        .. versionadded:: 1.5.0
+        .. versionadded:: 1.5
     """
 
     @verbose
@@ -1221,7 +1221,7 @@ class SpectrumArray(Spectrum):
                 dims=("channel", "freq"),
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type="Unknown",
+                data_type="Complex Spectrum" if np.iscomplexobj(data) else "Power Spectrum",
                 info=info,
             )
         )
@@ -1459,7 +1459,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
                 dims=("epoch", "channel", "freq"),
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type="Unknown",
+                data_type="Complex Spectrum" if np.iscomplexobj(data) else "Power Spectrum",
                 info=info,
                 events=events,
                 event_id=event_id,
