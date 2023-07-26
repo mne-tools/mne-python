@@ -59,6 +59,7 @@ Bugs
 - Fix bug where :ref:`mne show_fiff` could fail with an ambiguous error if the file is corrupt (:gh:`11800` by `Eric Larson`_)
 - Fix bug where annotation FIF files lacked an end block tag (:gh:`11800` by `Eric Larson`_)
 - Fix display of :class:`~mne.Annotations` in `mne.preprocessing.ICA.plot_sources` when the ``raw`` has ``raw.first_samp != 0`` and doesn't have a measurement date (:gh:`11766` by `Mathieu Scheltienne`_)
+- Fix bug in read_raw_eyelink, where STATUS information of samples was always assumed to be in the file. Performance and memory improvements were also made. (:gh:`11823` by `Scott Huberty`_)
 
 API changes
 ~~~~~~~~~~~
