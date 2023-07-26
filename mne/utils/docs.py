@@ -2766,6 +2766,16 @@ docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
 
 docdict[
+    "notes_spectrum_array"
+] = """
+It is assumed that the data passed in represent spectral *power* (not amplitude,
+phase, model coefficients, etc) and downstream methods (such as
+:meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
+something other than power, at the very least axis labels will be inaccurate (and
+other things may also not work or be incorrect).
+"""
+
+docdict[
     "notes_tmax_included_by_default"
 ] = """
 Unlike Python slices, MNE time intervals by default include **both**

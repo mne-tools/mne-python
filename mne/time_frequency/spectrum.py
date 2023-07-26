@@ -1203,6 +1203,8 @@ class SpectrumArray(Spectrum):
 
     Notes
     -----
+    %(notes_spectrum_array)s
+
         .. versionadded:: 1.5
     """
 
@@ -1439,6 +1441,8 @@ class EpochsSpectrumArray(EpochsSpectrum):
 
     Notes
     -----
+    %(notes_spectrum_array)s
+
         .. versionadded:: 1.5.0
     """
 
