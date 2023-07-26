@@ -166,7 +166,7 @@ def pytest_configure(config):
     # TODO: Fix this with casts?
     # https://github.com/numpy/numpy/pull/22449
     try:
-        np.set_printoptions(legacy="1.25")
+        np.set_printoptions(legacy=125)
     except Exception:
         pass  # probably missing kwarg
 
