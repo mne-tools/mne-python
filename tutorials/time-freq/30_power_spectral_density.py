@@ -5,7 +5,7 @@
 Power Spectral Density Analysis: Spectral Decoupling
 ====================================================
 
-The objective of this tutorial is describe the basics of power spectral
+The objective of this tutorial is to describe the basics of power spectral
 density and what it can tell us about underlying brain activity. Power spectral
 density represents time-series data as the magnitude of sine and cosine
 coefficients of the Fourtier Transform; how much of each different
@@ -292,46 +292,40 @@ fig.tight_layout()
 # our oscillations.
 
 
-def gaussian(x, a, b, c):
+def gauss1d(x, a, b, c):
     return a * np.exp(-(x - b)**2 / 2 * c**2)
 
 
 
 
 # %%
-# Lastly, let's simulate some data and show
+# Lastly, let's simulate some data and show that we are able
 
 sfreq = epochs.info['sfreq']
 n_epochs = len(epochs)
 times = epochs.times
 epochs_data = np.zeros((n_epochs, times.size))
-slope = 0.1
+slope = 2
 freq = 16
 n_fft_points = times.size // 2 + 1 + times.size % 2
 
 rng = np.random.default_rng(11)  # seed a random number generator
 
-shifts = list()
-amps = list()
 for i in range(epochs_data.shape[0]):
     # generate pink noise
-    shift = 1  # decouple from beta
-    amplitude = rng.normal(2)  # decouple from broadband
-    x = shift * np.exp(rng.normal(size=n_fft_points) + rng.normal(size=n_fft_points) * 1j)
-
-    scaling = np.sqrt(np.arange(1, x.size + 1) ** slope)
-
-    x /= scaling
+    shift = rng.normal(1)  # decouple from beta
+    amplitude = rng.normal(0.05, scale=0.02)  # decouple from broadband
+    std = rng.normal(3, scale=1)
+    x = shift * (np.exp(rng.normal(size=n_fft_points) + rng.normal(size=n_fft_points) * 1j))
+    # add beta oscillation
+    x /= np.sqrt(np.arange(1, x.size + 1) ** slope)
+    freqs = np.linspace(0, n_fft_points // 2, n_fft_points)
+    x += gauss1d(freqs, amplitude, freq, 3)
+    x += 1j * gauss1d(freqs, amplitude, freq, 3)
     y = np.fft.irfft(x).real
     y /= y.std()
-    y = y[:-times.size % 2]
-    epochs_data[i] = y * rng.normal(80, scale=5) * 1e-6  # different amounts per trial
-    # add 16 Hz beta oscillation
-    phase = rng.random() * 2 * np.pi
-    freq += (rng.random() - 0.5)
-    # epochs_data[i] += np.sin(2 * np.pi * freq * epochs.times + phase) * amplitude
-    shifts.append(shift)
-    amps.append(amplitude)
+    y = y[:-(times.size % 2)]
+    epochs_data[i] = y * rng.normal(40, scale=5) * 1e-6  # different amounts per trial
 
 # make epochs object, compute psd
 info = mne.create_info(["C3"], sfreq=sfreq, ch_types="eeg")
@@ -340,14 +334,14 @@ psd_sim = epochs_sim.compute_psd(fmax=75)
 psd_sim.plot()
 
 # check that our method works
-psd_data = psd.get_data()[:, 0]
+psd_data = psd_sim.get_data()[:, 0]
 psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
 
 # prepare to remove frequencies contaminated by line noise
 mask = np.logical_or(psd.freqs < 57, psd.freqs > 63)
 
 # set a random seed for reproducibility
-pca = PCA(svd_solver="randomized", whiten=True, random_state=99).fit(psd_data[:, mask])
+pca = PCA(whiten=True, random_state=99).fit(psd_data[:, mask])
 
 fig, ax = plt.subplots()
 comp0 = np.zeros((psd.freqs.size,)) * np.nan
@@ -359,8 +353,3 @@ ax.plot(psd.freqs, comp1, color="tan")
 ax.axhline(0)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Component Weight")
-for i in range(2, 5):
-    comp = np.zeros((psd.freqs.size,)) * np.nan
-    comp[mask] = pca.components_[i]
-    ax.plot(psd.freqs, comp)
-fig.show()
