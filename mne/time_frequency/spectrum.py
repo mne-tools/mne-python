@@ -1217,7 +1217,7 @@ class SpectrumArray(Spectrum):
     ):
         self.__setstate__(
             dict(
-                method="array",
+                method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
                 dims=("channel", "freq"),
@@ -1225,7 +1225,7 @@ class SpectrumArray(Spectrum):
                 inst_type_str="Array",
                 data_type="Complex Spectrum"
                 if np.iscomplexobj(data)
-                else "Power Spectrum",
+                else "Real Spectrum",
                 info=info,
             )
         )
