@@ -80,7 +80,7 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
     one = np.asarray(one, dtype=data_view.dtype)
     assert data_view.shape[1] == one.shape[1], (data_view.shape[1], one.shape[1])  # noqa: E501
     if mult is not None:
-        mult.ndim == one.ndim == 2
+        assert mult.ndim == one.ndim == 2
         data_view[:] = mult @ one[idx]
     else:
         assert cals is not None

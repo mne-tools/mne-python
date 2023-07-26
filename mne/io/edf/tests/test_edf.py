@@ -182,6 +182,15 @@ def test_edf_others(fname, stim_channel):
         verbose='error')
 
 
+@testing.requires_testing_data
+@pytest.mark.parametrize('stim_channel', (None, False, 'auto'))
+def test_edf_differen_sfreq(stim_channel):
+    """Test EDF with various sampling rates and overlapping annotations."""
+    raw = read_raw_edf(input_fname=edf_reduced, stim_channel=stim_channel,
+                       verbose='error')
+
+
+
 def test_edf_data_broken(tmp_path):
     """Test edf files."""
     raw = _test_raw_reader(read_raw_edf, input_fname=edf_path,
