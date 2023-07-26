@@ -205,9 +205,9 @@ def test_edf_others(fname, stim_channel):
 @testing.requires_testing_data
 @pytest.mark.parametrize("stim_channel", (None, False, "auto"))
 def test_edf_different_sfreqs(stim_channel):
-    """Test EDF with various sampling rates"""
+    """Test EDF with various sampling rates."""
     rng = np.random.RandomState(0)
-    # load with and without preloading, should procude the same results
+    # load with and without preloading, should produce the same results
     raw1 = read_raw_edf(
         input_fname=edf_reduced,
         stim_channel=stim_channel,

@@ -463,7 +463,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
             # give warning if we resampled a subselection
             if resampled and raw_extras["nsamples"] != (stop - start):
                 warn(
-                    "Loading an EDF with mixed sampling freqencies and \
+                    "Loading an EDF with mixed sampling frequencies and \
                      preload=False will result in edge artifacts. \
                      It is recommended to use preload=True preload=Buffer. \
                      See also https://github.com/mne-tools/mne-python/issues/10635"
