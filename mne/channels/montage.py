@@ -1171,25 +1171,22 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
     chs = [info["chs"][ii] for ii in picks]
     non_names = [info["chs"][ii]["ch_name"] for ii in non_picks]
     del picks
-    ref_pos = [ch["loc"][3:6] for ch in chs]
+    ref_pos = np.array([ch["loc"][3:6] for ch in chs])
 
     # keep reference location from EEG-like channels if they
     # already exist and are all the same.
-    custom_eeg_ref_dig = False
     # Note: ref position is an empty list for fieldtrip data
-    if ref_pos:
-        if (
-            all([np.equal(ref_pos[0], pos).all() for pos in ref_pos])
-            and not np.equal(ref_pos[0], [0, 0, 0]).all()
-        ):
-            eeg_ref_pos = ref_pos[0]
-            # since we have an EEG reference position, we have
-            # to add it into the info['dig'] as EEG000
-            custom_eeg_ref_dig = True
-    if not custom_eeg_ref_dig:
+    if len(ref_pos) and ref_pos[0].any() and (ref_pos[0] == ref_pos).all():
+        eeg_ref_pos = ref_pos[0]
+        # since we have an EEG reference position, we have
+        # to add it into the info['dig'] as EEG000
+        custom_eeg_ref_dig = True
+    else:
         refs = set(ch_pos) & {"EEG000", "REF"}
         assert len(refs) <= 1
         eeg_ref_pos = np.zeros(3) if not refs else ch_pos.pop(refs.pop())
+        custom_eeg_ref_dig = False
+    del ref_pos
 
     # This raises based on info being subset/superset of montage
     info_names = [ch["ch_name"] for ch in chs]

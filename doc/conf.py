@@ -16,11 +16,11 @@ import warnings
 import numpy as np
 import matplotlib
 import sphinx
+from sphinx.domains.changeset import versionlabels
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
-from mne.fixes import _compare_version
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,  # noqa, analysis:ignore
@@ -751,6 +751,10 @@ nitpick_ignore_regex = [
 ]
 suppress_warnings = ["image.nonlocal_uri"]  # we intentionally link outside
 
+
+# -- Sphinx hacks / overrides ------------------------------------------------
+
+versionlabels["versionadded"] = sphinx.locale._("New in v%s")
 
 # -- Options for HTML output -------------------------------------------------
 

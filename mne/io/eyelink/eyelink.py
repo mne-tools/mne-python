@@ -97,11 +97,15 @@ def read_raw_eyelink(
         times of the left and right eyes are separated by less than 50 ms, then the
         blink will be merged into a single :class:`mne.Annotations`.
     gap_description : str (default 'BAD_ACQ_SKIP')
-        This parameter is deprecated and will be removed in 1.6.
-        Use :meth:`mne.Annotations.rename` instead.
-        the annotation that will span across the gap period between the
+        Label for annotations that span across the gap period between the
         blocks. Uses ``'BAD_ACQ_SKIP'`` by default so that these time periods will
         be considered bad by MNE and excluded from operations like epoching.
+
+        .. deprecated:: 1.5
+
+           This parameter is deprecated and will be removed in version 1.6. Use
+           :meth:`mne.Annotations.rename` if you want something other than
+           ``BAD_ACQ_SKIP`` as the annotation label.
 
     Returns
     -------
