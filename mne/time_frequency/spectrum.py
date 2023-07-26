@@ -1189,7 +1189,7 @@ class SpectrumArray(Spectrum):
     Parameters
     ----------
     data : array, shape (n_channels, n_freqs)
-        The channels' power spectral density for each epoch.
+        The power spectral density for each channel.
     %(info_not_none)s
     %(freqs_tfr)s
     %(verbose)s
