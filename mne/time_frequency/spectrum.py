@@ -478,6 +478,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             inst_type_str = "Epochs"
         elif self._inst_type in (Evoked, EvokedArray):
             inst_type_str = "Evoked"
+        elif self._inst_type is np.ndarray:
+            inst_type_str = "Array"
         else:
             raise RuntimeError(f"Unknown instance type {self._inst_type} in Spectrum")
         return inst_type_str
