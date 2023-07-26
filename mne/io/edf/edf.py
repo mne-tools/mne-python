@@ -381,8 +381,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
     n_per = max(10 * 1024 * 1024 // (ch_offsets[-1] * dtype_byte), 1)
     with open(filenames, "rb", buffering=0) as fid:
         # Extract data
-        start_offset = (data_offset +
-                        block_start_idx * ch_offsets[-1] * dtype_byte)
+        start_offset = data_offset + block_start_idx * ch_offsets[-1] * dtype_byte
 
         # first read everything into the `ones` array. For channels with
         # lower sampling frequency, there will be zeros left at the end of the
@@ -436,7 +435,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
 
                 # note how many samples have been read
                 smp_read = n_smp_read[orig_idx]
-                ones[orig_idx, smp_read:smp_read+len(one_i)] = one_i
+                ones[orig_idx, smp_read : smp_read + len(one_i)] = one_i
                 n_smp_read[orig_idx] += len(one_i)
 
         # skip if no data was requested, ie. only annotations were read
@@ -454,8 +453,12 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                 if smp_read != smp_exp:
                     assert (ones[i, smp_read:] == 0).all()  # sanity check
                     ones[i, :] = resample(
-                                    ones[i, :smp_read].astype(np.float64),
-                                    smp_exp, smp_read, npad=0, axis=-1)
+                        ones[i, :smp_read].astype(np.float64),
+                        smp_exp,
+                        smp_read,
+                        npad=0,
+                        axis=-1,
+                    )
             _mult_cal_one(data[:, :], ones, idx, cals, mult)
 
     if len(tal_data) > 1:
