@@ -77,6 +77,12 @@ class Raw(BaseRaw):
     %(verbose)s
     """
 
+    _extra_attributes = (
+        "fix_mag_coil_types",
+        "acqparser",
+        "_read_raw_file",  # this would be ugly to move, but maybe we should
+    )
+
     @verbose
     def __init__(
         self,

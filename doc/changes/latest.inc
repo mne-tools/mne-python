@@ -43,6 +43,7 @@ Bugs
 - Extended test to highlight bug in :func:`mne.stats.permutation_t_test` (:gh:`11575` by :newcontrib:`Joshua Calder-Travis`)
 - Fix bug that used wrong indices for line/label styles (sometimes causing an ``IndexError``) in :meth:`mne.preprocessing.ICA.plot_sources` under certain conditions (:gh:`11808` by :newcontrib:`Joshua Calder-Travis`)
 - Fix bug with :func:`~mne.io.read_raw_snirf` to handle files with measurement time containing milliseconds (:gh:`11804` by :newcontrib:`Daniel Tse`)
+- Fix bug where :func:`mne.io.read_raw_cnt` imports unnecessary durations (:gh:`11828` by `Jacob Woessner`_)
 - Fix bug where :meth:`mne.viz.Brain.add_volume_labels` used an incorrect orientation (:gh:`11730` by `Alex Rockhill`_)
 - Fix bug with :func:`mne.forward.restrict_forward_to_label` where cortical patch information was not adjusted (:gh:`11694` by `Eric Larson`_)
 - Fix bug with PySide6 compatibility (:gh:`11721` by `Eric Larson`_)
@@ -52,11 +53,13 @@ Bugs
 - Fix bug with :func:`mne.io.read_raw_fil` where datasets without sensor positions would not import (:gh:`11733` by `George O'Neill`_)
 - Fix bug with :func:`mne.chpi.compute_chpi_snr` where cHPI being off for part of the recording or bad channels being defined led to an error or incorrect behavior (:gh:`11754`, :gh:`11755` by `Eric Larson`_)
 - Allow int-like for the argument ``id`` of `~mne.make_fixed_length_events` (:gh:`11748` by `Mathieu Scheltienne`_)
+- Fix bug where :func:`mne.io.read_raw_egi` did not properly set the EEG reference location for the reference channel itself (:gh:`11822` by `Eric Larson`_)
 - Fix bug with legacy :meth:`~mne.io.Raw.plot_psd` method where passed axes were not used (:gh:`11778` by `Daniel McCloy`_)
 - blink :class:`mne.Annotations` read in by :func:`mne.io.read_raw_eyelink` now begin with ``'BAD_'``, i.e. ``'BAD_blink'``, because ocular data are missing during blinks. (:gh:`11746` by `Scott Huberty`_)
 - Fix bug where :ref:`mne show_fiff` could fail with an ambiguous error if the file is corrupt (:gh:`11800` by `Eric Larson`_)
 - Fix bug where annotation FIF files lacked an end block tag (:gh:`11800` by `Eric Larson`_)
 - Fix display of :class:`~mne.Annotations` in `mne.preprocessing.ICA.plot_sources` when the ``raw`` has ``raw.first_samp != 0`` and doesn't have a measurement date (:gh:`11766` by `Mathieu Scheltienne`_)
+- Fix bug in read_raw_eyelink, where STATUS information of samples was always assumed to be in the file. Performance and memory improvements were also made. (:gh:`11823` by `Scott Huberty`_)
 
 API changes
 ~~~~~~~~~~~

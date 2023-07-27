@@ -51,22 +51,24 @@ MNE-Python, including packages for:
   (`alphaCSC`_)
 - independent component analysis (ICA) with good performance on real data
   (`PICARD`_)
+- automatic labeling of ICA components (`MNE-ICAlabel`_)
 - phase-amplitude coupling (`pactools`_)
 - representational similarity analysis (`rsa`_)
 - microstate analysis (`microstate`_)
 - connectivity analysis using dynamic imaging of coherent sources (DICS)
   (`conpy`_)
+- other connectivity algorithms (`MNE-Connectivity`_)
 - general-purpose statistical analysis of M/EEG data (`eelbrain`_)
 - post-hoc modification of linear models (`posthoc`_)
 - a python implementation of the Preprocessing Pipeline (PREP) for EEG data
   (`pyprep`_)
 - automatic multi-dipole localization and uncertainty quantification with
   the Bayesian algorithm SESAME (`sesameeg`_)
-- GLM and group level analysis of near-infrared spectroscopy data (`mne-nirs`_)
-- High-level EEG Python library for all kinds of EEG inverse solutions (`invertmeeg`_)
+- GLM and group level analysis of near-infrared spectroscopy data (`MNE-NIRS`_)
+- high-level EEG Python library for all kinds of EEG inverse solutions (`invertmeeg`_)
 - All-Resolutions Inference (ARI) for statistically valid circular inference
   and effect localization (`MNE-ARI`_)
-
+- real-time analysis (`MNE-Realtime`_)
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -109,6 +111,5 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
 .. _pyprep: https://github.com/sappelhoff/pyprep
 .. _sesameeg: https://pybees.github.io/sesameeg
-.. _mne-nirs: https://github.com/mne-tools/mne-nirs
 .. _invertmeeg: https://github.com/LukeTheHecker/invert
 .. _MNE-ARI: https://github.com/john-veillette/mne_ari
