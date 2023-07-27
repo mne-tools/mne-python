@@ -443,7 +443,7 @@ def _get_psd_varients(raw_psds, epochs_psds):
 
 
 def test_spectrum_arrays(raw_psds, epochs_psds, tmp_path):
-    """Test EpochsSpectrumArray and Spectrum Array"""
+    """Test EpochsSpectrumArray and Spectrum Array."""
     with pytest.raises(ValueError, match="Expected freq size to be 10"):
         SpectrumArray(
             data=np.zeros((8, 11)), freqs=np.arange(10), info=raw_psds[0].info
