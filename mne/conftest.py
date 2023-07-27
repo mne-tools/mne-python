@@ -290,9 +290,16 @@ def raw_ctf():
 
 
 @pytest.fixture(scope="function")
-def raw_psd(raw):
+def raw_psds(raw):
     """Get raw with power spectral density computed from mne.io.tests.data."""
-    return raw.compute_psd()
+    return [
+        raw.compute_psd(
+            output="complex",
+            method=method,
+            **dict(average=None) if method == "welch" else dict(),
+        )
+        for method in ("welch", "multitaper")
+    ]
 
 
 @pytest.fixture(scope="function")
@@ -348,9 +355,18 @@ def epochs_full():
 
 
 @pytest.fixture()
-def epochs_psd():
+def epochs_psds():
     """Get epochs with power spectral density computed from mne.io.tests.data."""
-    return _get_epochs().load_data().compute_psd()
+    return [
+        _get_epochs()
+        .load_data()
+        .compute_psd(
+            output="complex",
+            method=method,
+            **dict(average=False) if method == "welch" else dict(),
+        )
+        for method in ("welch", "multitaper")
+    ]
 
 
 @pytest.fixture(scope="session", params=[testing._pytest_param()])

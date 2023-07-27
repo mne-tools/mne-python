@@ -4,6 +4,7 @@ from functools import partial
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_allclose
+import matplotlib.pyplot as plt
 
 from mne import create_info, make_fixed_length_epochs
 from mne.io import RawArray
@@ -389,49 +390,106 @@ def test_spectrum_kwarg_triaging(raw):
     raw.plot_psd(ax=axes)
 
 
-def test_spectrum_array_raw(raw_psd):
-    """Test SpectrumArray for Raw-derived spectra."""
-    raw_psd2 = SpectrumArray(
-        data=raw_psd.get_data(),
-        freqs=raw_psd.freqs,
-        info=raw_psd.info,
-    )
-    assert_array_equal(raw_psd.get_data(), raw_psd2.get_data())
-    assert_array_equal(raw_psd.freqs, raw_psd2.freqs)
-
-
-def test_epochs_spectrum_aray(epochs_psd):
-    """Test EpochsSpectrumArray for Epochs-derived spectra."""
-    epochs_psd2 = EpochsSpectrumArray(
-        data=epochs_psd.get_data(),
-        freqs=epochs_psd.freqs,
-        info=epochs_psd.info,
-        events=epochs_psd.events,
-        event_id=epochs_psd.event_id,
-    )
-    assert_array_equal(epochs_psd.get_data(), epochs_psd2.get_data())
-    assert_array_equal(epochs_psd.freqs, epochs_psd2.freqs)
-
-
-def test_plot_spectrum_aray(raw_psd, epochs_psd):
-    """Test SpectrumArray and EpochsSpectrumArray plotting."""
+def _get_psd_varients(raw_psds, epochs_psds):
     psds = list()
-    psds.append(
+    for raw_psd in raw_psds:
+        data = raw_psd.get_data()
+        psds.append(  # complex
+            SpectrumArray(
+                data=data,
+                freqs=raw_psd.freqs,
+                info=raw_psd.info,
+                method=raw_psd.method,
+                weights=raw_psd._mt_weights if raw_psd.method == "multitaper" else None,
+            )
+        )
+        psds.append(
+            SpectrumArray(
+                data=((data * data.conj()).real).mean(
+                    axis=1 if raw_psd.method == "multitaper" else 2
+                ),
+                freqs=raw_psd.freqs,
+                info=raw_psd.info,
+                method=raw_psd.method,
+            )
+        )
+    for epochs_psd in epochs_psds:
+        data = epochs_psd.get_data()
+        psds.append(
+            EpochsSpectrumArray(
+                data=data,
+                freqs=epochs_psd.freqs,
+                info=epochs_psd.info,
+                events=epochs_psd.events,
+                event_id=epochs_psd.event_id,
+                method=epochs_psd.method,
+                weights=epochs_psd._mt_weights
+                if epochs_psd.method == "multitaper"
+                else None,
+            )
+        )
+        psds.append(
+            EpochsSpectrumArray(
+                data=((data * data.conj()).real).mean(
+                    axis=2 if epochs_psd.method == "multitaper" else 3
+                ),
+                freqs=epochs_psd.freqs,
+                info=epochs_psd.info,
+                events=epochs_psd.events,
+                event_id=epochs_psd.event_id,
+            )
+        )
+    return psds
+
+
+def test_spectrum_arrays(raw_psds, epochs_psds, tmp_path):
+    """Test EpochsSpectrumArray and Spectrum Array"""
+    with pytest.raises(ValueError, match="Expected freq size to be 10"):
         SpectrumArray(
-            data=raw_psd.get_data(),
-            freqs=raw_psd.freqs,
-            info=raw_psd.info,
+            data=np.zeros((8, 11)), freqs=np.arange(10), info=raw_psds[0].info
         )
-    )
-    psds.append(
+    with pytest.raises(ValueError, match="Expected weights"):
+        SpectrumArray(
+            data=np.zeros((8, 10, 7), dtype=complex),
+            freqs=np.arange(10),
+            info=raw_psds[1].info,
+            method="multitaper",
+        )
+    with pytest.raises(ValueError, match="Expected weights"):
         EpochsSpectrumArray(
-            data=epochs_psd.get_data(),
-            freqs=epochs_psd.freqs,
-            info=epochs_psd.info,
-            events=epochs_psd.events,
-            event_id=epochs_psd.event_id,
+            data=np.zeros((5, 19, 10, 7), dtype=complex),
+            freqs=np.arange(10),
+            info=epochs_psds[1].info,
+            method="multitaper",
         )
-    )
+    psds = _get_psd_varients(raw_psds, epochs_psds)
+    for psd2, psd in zip(
+        psds,
+        [psd for tup in zip(raw_psds, raw_psds) for psd in tup]
+        + [psd for tup in zip(epochs_psds, epochs_psds) for psd in tup],
+    ):
+        data = psd.get_data()
+        data2 = psd2.get_data()
+        axis = -2 if psd.method == "multitaper" else -1
+        assert_array_equal(
+            data
+            if np.iscomplexobj(data2)
+            else ((data * data.conj()).real).mean(axis=axis),
+            data2,
+        )
+        assert_array_equal(psd.freqs, psd2.freqs)
+        psd2.save(tmp_path / "psd.hdf5", overwrite=True)
+        assert_array_equal(data2, read_spectrum(tmp_path / "psd.hdf5").get_data())
+        len(psd2.to_data_frame()) == 8
+        psd2.units() == ""
+
+
+def test_plot_spectrum_array(raw_psds, epochs_psds):
+    """Test SpectrumArray and EpochsSpectrumArray plotting."""
+    psds = _get_psd_varients(raw_psds, epochs_psds)
     for psd in psds:
         psd.plot(average=True, amplitude=True, spatial_colors=True)
         psd.plot(average=False, amplitude=False, spatial_colors=False)
+        psd.plot_topo()
+        psd.plot_topomap()
+        plt.close('all')

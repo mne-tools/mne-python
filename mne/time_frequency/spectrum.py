@@ -390,6 +390,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked, Array=np.ndarray)
         self._inst_type = inst_types[state["inst_type_str"]]
+        if "weights" in state and state["weights"] is not None:
+            self._mt_weights = state["weights"]
 
     def __repr__(self):
         """Build string representation of the Spectrum object."""
@@ -420,7 +422,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         assert len(self._dims) == self._data.ndim, (self._dims, self._data.ndim)
         assert self._data.shape == self._shape
         # negative values OK if the spectrum is really fourier coefficients
-        if "taper" in self._dims:
+        if np.iscomplexobj(self._data):
             return
         # TODO: should this be more fine-grained (report "chan X in epoch Y")?
         ch_dim = self._dims.index("channel")
@@ -670,6 +672,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             _f = _identity_function
         ch_axis = self._dims.index("channel")
         psd_list = [_f(self._data.take(_p, axis=ch_axis)) for _p in picks_list]
+        if np.iscomplexobj(psd_list[0]):  # convert to power for plotting
+            psd_list = [(psds * psds.conj()).real for psds in psd_list]
         # handle epochs
         if "epoch" in self._dims:
             # XXX TODO FIXME decide how to properly aggregate across repeated
@@ -754,12 +758,27 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
+        from .multitaper import _psd_from_mt
+
         if layout is None:
             from ..channels.layout import find_layout
 
             layout = find_layout(self.info)
 
         psds, freqs = self.get_data(return_freqs=True)
+        # handle unaggregated multitaper
+        if hasattr(self, "_mt_weights"):
+            logger.info("Aggregating multitaper estimates before plotting...")
+            psds = _psd_from_mt(psds, weights=self._mt_weights)
+        # handle unaggregated Welch
+        elif "segment" in self._dims:
+            logger.info("Aggregating Welch estimates (median) before plotting...")
+            seg_axis = self._dims.index("segment")
+            psds = np.nanmedian(psds, axis=seg_axis)
+        if np.iscomplexobj(psds):  # convert to power for plotting
+            psds = (psds * psds.conj()).real
+        if "epoch" in self._dims:
+            psds = np.mean(psds, axis=self._dims.index("epoch"))
         if dB:
             psds = 10 * np.log10(psds)
             y_label = "dB"
@@ -852,6 +871,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
+        from .multitaper import _psd_from_mt
+
         ch_type = _get_ch_type(self, ch_type)
         if units is None:
             units = _handle_default("units", None)
@@ -871,6 +892,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         psds, freqs = self.get_data(picks=picks, return_freqs=True)
+        # handle unaggregated multitaper
+        if hasattr(self, "_mt_weights"):
+            logger.info("Aggregating multitaper estimates before plotting...")
+            psds = _psd_from_mt(psds, weights=self._mt_weights)
+        # handle unaggregated Welch
+        elif "segment" in self._dims:
+            logger.info("Aggregating Welch estimates (median) before plotting...")
+            seg_axis = self._dims.index("segment")
+            psds = np.nanmedian(psds, axis=seg_axis)
+        if np.iscomplexobj(psds):  # convert to power for plotting
+            psds = (psds * psds.conj()).real
         if "epoch" in self._dims:
             psds = np.mean(psds, axis=self._dims.index("epoch"))
         psds *= scaling**2
@@ -971,7 +1003,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # triage for Epoch-derived or unaggregated spectra
-        from_epo = self._get_instance_type_string() == "Epochs"
+        from_epo = self._dims[0] == "epoch"
         unagg_welch = "segment" in self._dims
         unagg_mt = "taper" in self._dims
         # arg checking
@@ -1182,6 +1214,14 @@ class Spectrum(BaseSpectrum):
         return BaseRaw._getitem(self, item, return_times=False)
 
 
+def _check_data_shape(param, dim, data, expected):
+    if data.shape[dim] != expected:
+        raise ValueError(
+            f"Expected {param} size to be {expected} in data, "
+            f"got {data.shape[dim]} (dimension {dim})"
+        )
+
+
 @fill_doc
 class SpectrumArray(Spectrum):
     """Data object for precomputed spectral data (in NumPy array format).
@@ -1192,6 +1232,10 @@ class SpectrumArray(Spectrum):
         The power spectral density for each channel.
     %(info_not_none)s
     %(freqs_tfr)s
+    %(method_psd)s
+    weights : ndarray
+        The weights used for averaging across tapers. Only required
+        for :func:`mne.time_frequency.psd_array_multitaper` with ``output='complex'``.
     %(verbose)s
 
     See Also
@@ -1214,19 +1258,43 @@ class SpectrumArray(Spectrum):
         data,
         info,
         freqs,
+        method="unknown",
+        weights=None,
         *,
         verbose=None,
     ):
+        _check_option("data.ndim", data.ndim, (2, 3))
+        dims = ("channel", "freq")
+        _check_data_shape("channel", 0, data, _pick_data_channels(info).size)
+        if data.ndim == 3:
+            _check_option("method", method, ("welch", "multitaper"))
+            dims = (
+                ("channel", "taper", "freq")
+                if method == "multitaper"
+                else ("channel", "freq", "segment")
+            )
+        if np.iscomplexobj(data) and method == "multitaper":
+            actual = None if weights is None else weights.size
+            expected = data.shape[list(dims).index("taper")]
+            if actual != expected:
+                raise ValueError(
+                    f"Expected weights to be {expected} size, got {actual}"
+                )
+        else:
+            _check_option("weights", weights, [None])
+        _check_data_shape("freq", list(dims).index("freq"), data, freqs.size)
+
         self.__setstate__(
             dict(
-                method="unknown",
+                method=method,
                 data=data,
                 sfreq=info["sfreq"],
-                dims=("channel", "freq"),
+                dims=dims,
                 freqs=freqs,
                 inst_type_str="Array",
                 data_type=f"{'Complex' if np.iscomplexobj(data) else 'Real'} Spectrum",
                 info=info,
+                weights=weights,
             )
         )
 
@@ -1431,6 +1499,10 @@ class EpochsSpectrumArray(EpochsSpectrum):
     %(freqs_tfr)s
     %(events_epochs)s
     %(event_id)s
+    %(method_psd)s
+    weights : ndarray
+        The weights used for averaging across tapers. Only required
+        for :func:`mne.time_frequency.psd_array_multitaper` with ``output='complex'``.
     %(verbose)s
 
     See Also
@@ -1454,26 +1526,49 @@ class EpochsSpectrumArray(EpochsSpectrum):
         freqs,
         events=None,
         event_id=None,
+        method="unknown",
+        weights=None,
         *,
         verbose=None,
     ):
+        _check_option("data.ndim", data.ndim, (3, 4))
+        dims = ("epoch", "channel", "freq")
+        if events is not None:
+            _check_data_shape("epoch", 0, data, events.shape[0])
+        _check_data_shape("channel", 1, data, _pick_data_channels(info).size)
+        if data.ndim == 4:
+            _check_option("method", method, ("welch", "multitaper"))
+            dims = (
+                ("epoch", "channel", "taper", "freq")
+                if method == "multitaper"
+                else ("epoch", "channel", "freq", "segment")
+            )
+        if np.iscomplexobj(data) and method == "multitaper":
+            actual = None if weights is None else weights.size
+            expected = data.shape[list(dims).index("taper")]
+            if actual != expected:
+                raise ValueError(
+                    f"Expected weights to be {expected} size, got {actual}"
+                )
+        else:
+            _check_option("weights", weights, [None])
+        _check_data_shape("freq", list(dims).index("freq"), data, freqs.size)
         self.__setstate__(
             dict(
-                method="array",
+                method=method,
                 data=data,
                 sfreq=info["sfreq"],
-                dims=("epoch", "channel", "freq"),
+                dims=dims,
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type="Complex Spectrum"
-                if np.iscomplexobj(data)
-                else "Power Spectrum",
+                data_type=f"{'Complex' if np.iscomplexobj(data) else 'Real'} Spectrum",
                 info=info,
                 events=events,
                 event_id=event_id,
                 metadata=None,
                 selection=np.arange(data.shape[0]),
                 drop_log=tuple(tuple() for _ in range(data.shape[0])),
+                weights=weights,
             )
         )
 
