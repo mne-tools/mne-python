@@ -343,7 +343,7 @@ class GetEpochsMixin:
         :meth:`mne.Epochs.next`.
         """
         if len(self) == 0:
-            raise RuntimeError('Empty!')
+            raise RuntimeError("Empty!")
         self._current = 0
         self._current_detrend_picks = self._detrend_picks
         return self
