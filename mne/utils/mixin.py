@@ -379,8 +379,8 @@ class GetEpochsMixin:
                     self._stop_iter()
                     # Check for empty epochs
                     if loop_count == len(self.events):
-                        if getattr(self, '_raise_empty', False):
-                            raise RuntimeError('This epochs is empty.')
+                        if getattr(self, "_raise_empty", False):
+                            raise RuntimeError("This epochs is empty.")
 
                 epoch_noproj = self._get_epoch_from_raw(self._current)
                 epoch_noproj = self._detrend_offset_decim(

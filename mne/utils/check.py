@@ -301,7 +301,7 @@ def _check_preload(inst, msg):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else "raw"
-        if not inst.preload:
+        if not getattr(inst, "preload", False):
             raise RuntimeError(
                 "By default, MNE does not load data into main memory to "
                 "conserve resources. " + msg + " requires %s data to be "

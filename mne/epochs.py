@@ -377,20 +377,6 @@ def _handle_event_repeated(events, event_id, event_repeated, selection, drop_log
     return new_events, event_id, selection, drop_log
 
 
-def _warn_empty(meth):
-    @wraps(meth)
-    def wrapper(*args, **kwargs):
-        # Prevent method from running if epochs are empty
-        inst = args[0]
-        # Check if epochs are empty
-        if len(inst.events) == 0:
-            raise RuntimeError(f'{meth.__name__} can not run because Epochs are empty!')
-        inst._raise_empty = True
-
-
-    return wrapper
-
-
 @fill_doc
 class BaseEpochs(
     ProjMixin,
@@ -492,7 +478,6 @@ class BaseEpochs(
         annotations=None,
         verbose=None,
     ):  # noqa: D102
-
         # internal attribute to indicate raise empty check
         self._raise_empty = False
 
@@ -998,7 +983,7 @@ class BaseEpochs(
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
-    @_warn_empty
+    #ToDo: Warn Empty
     def subtract_evoked(self, evoked=None):
         """Subtract an evoked response from each epoch.
 
@@ -1080,7 +1065,7 @@ class BaseEpochs(
 
         return self
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @fill_doc
     def average(self, picks=None, method="mean", by_event_type=False):
         """Compute an average over epochs.
@@ -1132,7 +1117,7 @@ class BaseEpochs(
             evokeds = self._compute_aggregate(picks=picks, mode=method)
         return evokeds
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @fill_doc
     def standard_error(self, picks=None, by_event_type=False):
         """Compute standard error over epochs.
@@ -1299,7 +1284,7 @@ class BaseEpochs(
         """Channel names."""
         return self.info["ch_names"]
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(
         self,
@@ -1353,7 +1338,7 @@ class BaseEpochs(
             overview_mode=overview_mode,
         )
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(
         self,
@@ -1484,7 +1469,7 @@ class BaseEpochs(
             show=show,
         )
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @copy_function_doc_to_method_doc(plot_epochs_image)
     def plot_image(
         self,
@@ -1531,7 +1516,7 @@ class BaseEpochs(
             clear=clear,
         )
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @verbose
     def drop(self, indices, reason="USER", verbose=None):
         """Drop epochs based on indices or boolean mask.
@@ -1769,11 +1754,13 @@ class BaseEpochs(
             logger.info(f"{n_bads_dropped} bad epochs dropped")
 
             if n_bads_dropped == n_events:
-                warn('All epochs were dropped!\n'
-                     'You might need to alter reject/flat-criteria '
-                     'or drop bad channels to avoid this.\n'
-                     'Tip: With Epochs.plot_drop_log() you can see which '
-                     'channels are responsible for the dropping of epochs.')
+                warn(
+                    "All epochs were dropped!\n"
+                    "You might need to alter reject/flat-criteria "
+                    "or drop bad channels to avoid this.\n"
+                    "Tip: With Epochs.plot_drop_log() you can see which "
+                    "channels are responsible for the dropping of epochs."
+                )
 
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
@@ -2189,7 +2176,7 @@ class BaseEpochs(
                 this_epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite
             )
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @verbose
     def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
@@ -2370,7 +2357,7 @@ class BaseEpochs(
         # actually remove the indices
         return self, indices
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @verbose
     def compute_psd(
         self,
@@ -2430,7 +2417,7 @@ class BaseEpochs(
             **method_kw,
         )
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @verbose
     def plot_psd(
         self,
@@ -2528,7 +2515,7 @@ class BaseEpochs(
             **method_kw,
         )
 
-    @_warn_empty
+    #ToDo: Warn Empty
     @verbose
     def to_data_frame(
         self,
@@ -2605,7 +2592,7 @@ class BaseEpochs(
         )
         return df
 
-    @_warn_empty
+    #ToDo: Warn Empty
     def as_type(self, ch_type="grad", mode="fast"):
         """Compute virtual epochs using interpolated fields.
 
