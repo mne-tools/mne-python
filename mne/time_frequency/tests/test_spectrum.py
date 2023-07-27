@@ -492,4 +492,4 @@ def test_plot_spectrum_array(raw_psds, epochs_psds):
         psd.plot(average=False, amplitude=False, spatial_colors=False)
         psd.plot_topo()
         psd.plot_topomap()
-        plt.close('all')
+        plt.close("all")
