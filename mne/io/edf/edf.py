@@ -96,6 +96,12 @@ class RawEDF(BaseRaw):
 
     Notes
     -----
+    :class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+    Therefore, if mixed sampling frequency signals are requested, all signals
+    are upsampled to the highest loaded sampling frequency. In this case, using
+    preload=True is recommended, as otherwise, edge artifacts appear when
+    slices of the signal are requested.
+
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
     codes (CMS in/out-of range, battery low, etc.) are coded in bits 16-23 of
     the status channel (see http://www.biosemi.com/faq/trigger_signals.htm).
@@ -1578,6 +1584,12 @@ def read_raw_edf(
 
     Notes
     -----
+    :class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+    Therefore, if mixed sampling frequency signals are requested, all signals
+    are upsampled to the highest loaded sampling frequency. In this case, using
+    preload=True is recommended, as otherwise, edge artifacts appear when
+    slices of the signal are requested.
+
     It is worth noting that in some special cases, it may be necessary to shift
     event values in order to retrieve correct event triggers. This depends on
     the triggering device used to perform the synchronization. For instance, in
@@ -1709,6 +1721,12 @@ def read_raw_bdf(
 
     Notes
     -----
+    :class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+    Therefore, if mixed sampling frequency signals are requested, all signals
+    are upsampled to the highest loaded sampling frequency. In this case, using
+    preload=True is recommended, as otherwise, edge artifacts appear when
+    slices of the signal are requested.
+
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
     codes (CMS in/out-of range, battery low, etc.) are coded in bits 16-23 of
     the status channel (see http://www.biosemi.com/faq/trigger_signals.htm).

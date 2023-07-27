@@ -37,6 +37,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix loading of EDF with mixed sampling frequencies with :func:`mne.io.read_raw_edf`: Upsampling is now applied to the entire signal and no longer block based, significantly reducing edge artifacts (:gh:`11549` by `Simon Kern`_).
 - Fix bug where epochs ``event_id`` was not kept by :func:`mne.channels.combine_channels` (:gh:`11786` by :newcontrib:`Samuel Louviot`)
 - Fix bug where user-provided codec was not used to read annotations when loading EEGLAB ``.set`` files (:gh:`11773` by :newcontrib:`Yiping Zuo`)
 - Fix bug that required curv.*h files to create Brain object (:gh:`11704` by :newcontrib:`Aaron Earle-Richardson`)
