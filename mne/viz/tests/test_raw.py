@@ -23,6 +23,7 @@ from mne.utils import (
     get_config,
     set_config,
     _assert_no_instances,
+    check_version,
 )
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress
@@ -749,6 +750,8 @@ def test_plot_annotations(raw, browser_backend):
 def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
     """Test deletion of annotations via right-click."""
     ismpl = browser_backend.name == "matplotlib"
+    if not ismpl and not check_version("mne_qt_browser", "0.5.2"):
+        pytest.xfail("Old mne-qt-browser")
     with raw.info._unlock():
         raw.info["lowpass"] = 10.0
     annot_labels = list("abc")
