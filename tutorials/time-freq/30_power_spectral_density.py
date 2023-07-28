@@ -294,7 +294,7 @@ fig.tight_layout()
 # :func:`scipy.signal.find_peaks` and 3) using :func:`scipy.signal.find_peaks_cwt`.
 # As shown below, with reasonable parameters, all three of these methods
 # can be used to quantify peaks in the power spectrum. One parameter that must
-# be determined is the prominance that specifies how much greater than baseline
+# be determined is the prominence that specifies how much greater than baseline
 # the peak needs to be for consideration in subsequent analyses. This might be
 # done based on previous literature or by checking different parameter values
 # on data not used in the analysis.
