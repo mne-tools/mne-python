@@ -373,6 +373,7 @@ for i in range(epochs_data.shape[0]):
 
 # make epochs object, compute psd
 info = mne.create_info(["C3"], sfreq=sfreq, ch_types="eeg")
+info.set_montage(epochs.get_montage())
 epochs_sim = mne.EpochsArray(epochs_data[:, None], info)
 psd_sim = epochs_sim.compute_psd(fmax=75)
 psd_sim.plot()
