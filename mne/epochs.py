@@ -57,10 +57,11 @@ from .io.pick import (
 )
 from .io.proj import setup_proj, ProjMixin
 from .io.base import BaseRaw, TimeMixin, _get_ch_factors
+from .io.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import UpdateChannelsMixin, SetChannelsMixin, InterpolationMixin
+from .channels.channels import UpdateChannelsMixin, InterpolationMixin
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
