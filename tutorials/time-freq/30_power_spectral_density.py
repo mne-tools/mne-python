@@ -307,7 +307,7 @@ def gauss1d(x, a, b, c, d=0):
 
 for i, comp in enumerate(pca.components_[:3]):
     comp -= comp.mean()
-    thresh = comp.std() * 3
+    thresh = comp.std() * 2
     # 1D gaussian fit
     gauss_fits = list()
     comp_copy = comp.copy()
