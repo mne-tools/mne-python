@@ -14,6 +14,7 @@ from pathlib import Path
 from time import time
 
 import numpy as np
+from scipy import sparse
 
 import shutil
 import os
@@ -283,8 +284,6 @@ def _block_diag(A, n):
     bd : scipy.sparse.spmatrix
         The block diagonal matrix
     """
-    from scipy import sparse
-
     if sparse.issparse(A):  # then make block sparse
         raise NotImplementedError("sparse reversal not implemented yet")
     ma, na = A.shape
@@ -737,8 +736,6 @@ def convert_forward_solution(
     fwd : Forward
         The modified forward solution.
     """
-    from scipy import sparse
-
     fwd = fwd.copy() if copy else fwd
 
     if force_fixed is True:

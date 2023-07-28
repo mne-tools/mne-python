@@ -11,6 +11,7 @@ from functools import partial
 import warnings
 
 import numpy as np
+from scipy.stats import gaussian_kde
 
 from .utils import (
     tight_layout,
@@ -201,7 +202,6 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-    from scipy.stats import gaussian_kde
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 

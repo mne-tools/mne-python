@@ -11,6 +11,7 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
+from scipy import ndimage
 
 from ..io.pick import channel_type, pick_types
 from ..utils import _clean_names, _check_option, Bunch, fill_doc, _to_rgb
@@ -731,7 +732,6 @@ def _erfimage_imshow(
     vlim_array=None,
 ):
     """Plot erfimage on sensor topography."""
-    from scipy import ndimage
     import matplotlib.pyplot as plt
 
     this_data = data[:, ch_idx, :]
@@ -789,8 +789,6 @@ def _erfimage_imshow_unified(
     vlim_array=None,
 ):
     """Plot erfimage topography using a single axis."""
-    from scipy import ndimage
-
     _compute_ax_scalings(bn, (tmin, tmax), (0, len(epochs.events)))
     ax = bn.ax
     data_lines = bn.data_lines

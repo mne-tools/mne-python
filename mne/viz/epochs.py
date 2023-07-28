@@ -16,6 +16,7 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 
 from .raw import _setup_channel_selections
 from ..fixes import _sharex
@@ -224,7 +225,6 @@ def plot_epochs_image(
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
-    from scipy.ndimage import gaussian_filter1d
     from .. import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")

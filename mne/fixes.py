@@ -21,7 +21,9 @@ import os
 import warnings
 
 import numpy as np
-
+from scipy import linalg, sparse
+from scipy.sparse import csc_matrix
+from scipy.special import gammaln
 
 ###############################################################################
 # distutils
@@ -82,8 +84,6 @@ def _safe_svd(A, **kwargs):
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
     # lapack_driver='gesvd' instead.
-    from scipy import linalg
-
     if kwargs.get("overwrite_a", False):
         raise ValueError("Cannot set overwrite_a=True with this function")
     try:
@@ -96,8 +96,6 @@ def _safe_svd(A, **kwargs):
 
 
 def _csc_matrix_cast(x):
-    from scipy.sparse import csc_matrix
-
     return csc_matrix(x)
 
 
@@ -723,8 +721,6 @@ def _infer_dimension_(spectrum, n_samples, n_features):
 
 
 def _assess_dimension_(spectrum, rank, n_samples, n_features):
-    from scipy.special import gammaln
-
     if rank > len(spectrum):
         raise ValueError("The tested rank cannot exceed the rank of the" " dataset")
 

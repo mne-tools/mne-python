@@ -13,6 +13,8 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
+from scipy.fft import fft, ifft
+from scipy.signal import argrelmax
 
 from .multitaper import dpss_windows
 
@@ -349,8 +351,6 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
-    from scipy.fft import fft, ifft
-
     _check_option("mode", mode, ["same", "valid", "full"])
     decim = _check_decim(decim)
     X = np.asarray(X)
@@ -3239,8 +3239,6 @@ def _get_timefreqs(tfr, timefreqs):
 
     # If None, automatic identification of max peak
     else:
-        from scipy.signal import argrelmax
-
         order = max((1, tfr.data.shape[2] // 30))
         peaks_idx = argrelmax(tfr.data, order=order, axis=2)
         if peaks_idx[0].size == 0:

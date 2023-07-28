@@ -4,6 +4,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import linalg
 
 from ..epochs import Epochs, make_fixed_length_events
 from ..evoked import EvokedArray
@@ -47,8 +48,6 @@ def _prepare_source_params(
     verbose=None,
 ):
     """Prepare inverse operator and params for spectral / TFR analysis."""
-    from scipy import linalg
-
     inv = _check_or_prepare(
         inverse_operator, nave, lambda2, method, method_params, prepared
     )

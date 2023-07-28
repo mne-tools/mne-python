@@ -12,6 +12,9 @@ import os
 import os.path as op
 
 import numpy as np
+from scipy.sparse import csr_matrix, triu
+from scipy.sparse.csgraph import dijkstra
+from scipy.spatial.distance import cdist
 
 from .io.constants import FIFF
 from .io.meas_info import create_info, Info
@@ -1316,8 +1319,6 @@ def _write_source_spaces(fid, src):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space."""
-    from scipy import sparse
-
     if this["type"] == "surf":
         src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
     elif this["type"] == "vol":
@@ -1377,7 +1378,7 @@ def _write_one_source_space(fid, this, verbose=None):
         mri_width, mri_height, mri_depth, nvox = _src_vol_dims(this)
         interpolator = this.get("interpolator")
         if interpolator is None:
-            interpolator = sparse.csr_matrix((nvox, this["np"]))
+            interpolator = csr_matrix((nvox, this["np"]))
         write_float_sparse_rcs(
             fid, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR, interpolator
         )
@@ -1402,7 +1403,7 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        dists = sparse.triu(dists, format=dists.format)
+        dists = triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
@@ -2331,8 +2332,6 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
-    from scipy import sparse
-
     mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #
@@ -2357,7 +2356,7 @@ def _add_interpolator(sp):
         order=1,
         inuse=inuse,
     )
-    assert isinstance(interp, sparse.csr_matrix)
+    assert isinstance(interp, csr_matrix)
 
     # Compose the sparse matrices
     for si, s in enumerate(sp):
@@ -2382,7 +2381,7 @@ def _add_interpolator(sp):
             indices = interp.indices[mask]
             data = interp.data[mask]
             assert data.shape == indices.shape == (indptr[-1],)
-            this_interp = sparse.csr_matrix((data, indices, indptr), shape=interp.shape)
+            this_interp = csr_matrix((data, indices, indptr), shape=interp.shape)
         s["interpolator"] = this_interp
         logger.info(
             "    %d/%d nonzero values for %s"
@@ -2393,8 +2392,6 @@ def _add_interpolator(sp):
 
 def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     """Compute a grid-to-grid linear or nearest interpolation given."""
-    from scipy import sparse
-
     from_shape = np.array(from_shape, int)
     to_shape = np.array(to_shape, int)
     trans = np.array(trans, np.float64)  # to -> from
@@ -2409,7 +2406,7 @@ def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     data = np.concatenate(data)
     indices = np.concatenate(indices)
     indptr = np.cumsum(indptr)
-    interp = sparse.csr_matrix((data, indices, indptr), shape=shape)
+    interp = csr_matrix((data, indices, indptr), shape=shape)
     return interp
 
 
@@ -2709,9 +2706,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
-    from scipy.sparse import csr_matrix
-    from scipy.sparse.csgraph import dijkstra
-
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2781,8 +2775,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
 
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
-    from scipy.sparse.csgraph import dijkstra
-
     func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
@@ -3103,7 +3095,6 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_,
         assert_array_less,
     )
-    from scipy.spatial.distance import cdist
 
     if mode != "exact" and "approx" not in mode:  # 'nointerp' can be appended
         raise RuntimeError("unknown mode %s" % mode)
@@ -3261,8 +3252,6 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
         The Euclidean distances of source space vertices with respect to
         sensors.
     """
-    from scipy.spatial.distance import cdist
-
     assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), "info")
 

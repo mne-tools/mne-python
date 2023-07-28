@@ -9,6 +9,8 @@ import itertools as itt
 from math import log
 
 import numpy as np
+from scipy.linalg import svd
+from scipy.sparse import issparse
 
 from .defaults import (
     _INTERPOLATION_DEFAULT,
@@ -1963,8 +1965,6 @@ def regularize(
     --------
     mne.compute_covariance
     """  # noqa: E501
-    from scipy import linalg
-
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default("scalings_cov_rank", scalings)
@@ -2060,7 +2060,7 @@ def regularize(
                 P, ncomp, _ = make_projector(projs, this_ch_names)
                 if ncomp > 0:
                     # This adjustment ends up being redundant if rank is None:
-                    U = linalg.svd(P)[0][:, :-ncomp]
+                    U = svd(P)[0][:, :-ncomp]
                     logger.info(
                         "    Created an SSP operator for %s "
                         "(dimension = %d)" % (desc, ncomp)
@@ -2307,8 +2307,6 @@ def whiten_evoked(
 def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
-    from scipy import sparse
-
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
         raise ValueError("No covariance matrices found")
@@ -2369,7 +2367,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
                     )
 
             else:
-                if not sparse.issparse(tag.data):
+                if not issparse(tag.data):
                     #   Lower diagonal is stored
                     vals = tag.data
                     data = np.zeros((dim, dim))

@@ -20,6 +20,8 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
+from scipy import linalg
+from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
 
 from ..defaults import DEFAULTS
 from .._freesurfer import _reorient_image, _read_mri_info, _check_mri, _mri_orientation
@@ -140,7 +142,7 @@ def plot_cov(
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
-    from scipy import linalg
+
     from ..cov import Covariance
 
     info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
@@ -1108,7 +1110,6 @@ def plot_filter(
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
     import matplotlib.pyplot as plt
 
     sfreq = float(sfreq)

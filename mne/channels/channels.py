@@ -20,6 +20,10 @@ import string
 from typing import Union
 
 import numpy as np
+from scipy.io import loadmat
+from scipy.sparse import csr_matrix, lil_matrix
+from scipy.spatial import Delaunay
+from scipy.stats import zscore
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (
@@ -1683,8 +1687,6 @@ def read_ch_adjacency(fname, picks=None):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
-    from scipy.io import loadmat
-
     if op.isabs(fname):
         fname = str(
             _check_fname(
@@ -1753,8 +1755,6 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency : scipy.sparse.spmatrix
         The adjacency matrix.
     """
-    from scipy import sparse
-
     if len(ch_names) != len(neighbors):
         raise ValueError("`ch_names` and `neighbors` must " "have the same length")
     set_neighbors = {c for d in neighbors for c in d}
@@ -1771,7 +1771,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_adjacency = sparse.csr_matrix(ch_adjacency)
+    ch_adjacency = csr_matrix(ch_adjacency)
     return ch_adjacency
 
 
@@ -1908,8 +1908,6 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
-    from scipy import sparse
-    from scipy.spatial import Delaunay
     from .. import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
 
@@ -1944,9 +1942,9 @@ def _compute_ch_adjacency(info, ch_type):
                 for jj in range(2):
                     ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_adjacency = sparse.csr_matrix(ch_adjacency)
+        ch_adjacency = csr_matrix(ch_adjacency)
     else:
-        ch_adjacency = sparse.lil_matrix(neighbors)
+        ch_adjacency = lil_matrix(neighbors)
         ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
         ch_adjacency = ch_adjacency.tocsr()
 
@@ -2331,8 +2329,6 @@ _EEG_SELECTIONS = ["EEG 1-32", "EEG 33-64", "EEG 65-96", "EEG 97-128"]
 
 def _divide_to_regions(info, add_stim=True):
     """Divide channels to regions by positions."""
-    from scipy.stats import zscore
-
     picks = _pick_data_channels(info, exclude=[])
     chs_in_lobe = len(picks) // 4
     pos = np.array([ch["loc"][:3] for ch in info["chs"]])

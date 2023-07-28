@@ -3,6 +3,7 @@
 # License: Simplified BSD
 
 import numpy as np
+from scipy import linalg
 
 from ..forward import is_fixed_orient
 from ..minimum_norm.inverse import _check_reference, _log_exp_var
@@ -59,8 +60,6 @@ def _gamma_map_opt(
     active_set : array, shape=(n_active,)
         Indices of active sources.
     """
-    from scipy import linalg
-
     G = G.copy()
     M = M.copy()
 

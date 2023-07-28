@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 import numpy as np
+from scipy import linalg
 
 from ..source_estimate import SourceEstimate, _BaseSourceEstimate, _make_stc
 from ..minimum_norm.inverse import (
@@ -456,8 +457,6 @@ def mixed_norm(
     ----------
     .. footbibliography::
     """
-    from scipy import linalg
-
     _validate_type(alpha, ("numeric", str), "alpha")
     if isinstance(alpha, str):
         _check_option("alpha", alpha, ("sure",))

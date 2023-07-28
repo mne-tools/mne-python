@@ -17,6 +17,7 @@ import operator
 import os.path as op
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from .io.utils import _construct_bids_filename
 from .io.write import (
@@ -3430,8 +3431,6 @@ def _get_drop_indices(event_times, method):
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
-    from scipy.interpolate import interp1d
-
     keep = np.ones((len(t_longer)), dtype=bool)
     # special case: length zero or one
     if len(t_shorter) < 2:  # interp1d won't work

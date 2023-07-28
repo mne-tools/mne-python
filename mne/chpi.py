@@ -19,9 +19,12 @@
 # License: BSD-3-Clause
 
 from functools import partial
+import itertools
 
 import numpy as np
-import itertools
+from scipy.linalg import orth
+from scipy.optimize import fmin_cobyla
+from scipy.spatial.distance import cdist
 
 from .event import find_events
 from .io.base import BaseRaw
@@ -532,8 +535,6 @@ def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
-    from scipy.optimize import fmin_cobyla
-
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     objective = partial(
@@ -710,8 +711,6 @@ def _reorder_inv_model(inv_model, n_freqs):
 
 
 def _setup_ext_proj(info, ext_order):
-    from scipy import linalg
-
     meg_picks = pick_types(info, meg=True, eeg=False, exclude="bads")
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
     _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
@@ -723,7 +722,7 @@ def _setup_ext_proj(info, ext_order):
     ).T
     out_removes = _regularize_out(0, 1, mag_or_fine, [])
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
-    ext = linalg.orth(ext.T).T
+    ext = orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)
     proj = Projection(
         kind=FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD,
@@ -1555,8 +1554,6 @@ def filter_chpi(
 
 def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     """Compute good coils based on distances."""
-    from scipy.spatial.distance import cdist
-
     these_dists = cdist(new_pos, new_pos)
     these_dists = np.abs(hpi_coil_dists - these_dists)
     # there is probably a better algorithm for finding the bad ones...

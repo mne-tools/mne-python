@@ -19,6 +19,9 @@ import math
 import json
 
 import numpy as np
+from scipy import linalg, stats
+from scipy.spatial import distance
+from scipy.special import expit
 
 from .ecg import qrs_detector, _get_ecg_channel_index, _make_ecg, create_ecg_epochs
 from .eog import _find_eog_events, _get_eog_channel_index
@@ -142,9 +145,6 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
-    from scipy import stats
-    from scipy.spatial import distance
-
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -1008,8 +1008,6 @@ class ICA(ContainsMixin):
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
-        from scipy import linalg
-
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
@@ -1995,9 +1993,6 @@ class ICA(ContainsMixin):
         -----
         .. versionadded:: 1.1
         """
-        from scipy.spatial.distance import pdist, squareform
-        from scipy.special import expit
-
         _validate_type(threshold, "numeric", "threshold")
 
         sources = self.get_sources(inst, start=start, stop=stop)
@@ -2026,10 +2021,10 @@ class ICA(ContainsMixin):
 
         # compute metric #3: smoothness
         smoothnesses = np.zeros((components.shape[1],))
-        dists = squareform(pdist(pos))
+        dists = distance.squareform(distance.pdist(pos))
         dists = 1 - (dists / dists.max())  # invert
         for idx, comp in enumerate(components.T):
-            comp_dists = squareform(pdist(comp[:, np.newaxis]))
+            comp_dists = distance.squareform(distance.pdist(comp[:, np.newaxis]))
             comp_dists /= comp_dists.max()
             smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
 
@@ -3450,8 +3445,6 @@ def read_ica_eeglab(fname, *, verbose=None):
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
-    from scipy import linalg
-
     eeg = _check_load_mat(fname, None)
     info, eeg_montage, _ = _get_info(eeg)
     info.set_montage(eeg_montage)

@@ -18,6 +18,7 @@ import shutil
 from collections import defaultdict
 
 import numpy as np
+from scipy.stats import scoreatpercentile
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
@@ -2291,8 +2292,6 @@ class BaseRaw(
             If data_frame=False, returns None. If data_frame=True, returns
             results in a pandas.DataFrame (requires pandas).
         """
-        from scipy.stats import scoreatpercentile as q
-
         nchan = self.info["nchan"]
 
         # describe each channel
@@ -2304,9 +2303,9 @@ class BaseRaw(
             cols["type"].append(channel_type(self.info, i))
             cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
-            cols["Q1"].append(q(data, 25))
+            cols["Q1"].append(scoreatpercentile(data, 25))
             cols["median"].append(np.median(data))
-            cols["Q3"].append(q(data, 75))
+            cols["Q3"].append(scoreatpercentile(data, 75))
             cols["max"].append(np.max(data))
 
         if data_frame:  # return data frame

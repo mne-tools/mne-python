@@ -26,6 +26,7 @@ import webbrowser
 
 from decorator import decorator
 import numpy as np
+from scipy.signal import argrelmax
 
 from ..defaults import _handle_default
 from ..io import show_fiff, Info
@@ -953,8 +954,6 @@ def _find_peaks(evoked, npeaks):
 
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
-    from scipy.signal import argrelmax
-
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:
