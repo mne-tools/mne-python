@@ -4,7 +4,8 @@ STD_ARGS="--progress-bar off --upgrade"
 EXTRA_ARGS=""
 if [ ! -z "$CONDA_ENV" ]; then
 	echo "Uninstalling MNE for CONDA_ENV=${CONDA_ENV}"
-	pip uninstall -yq mne
+	conda remove -c conda-forge --force -yq mne
+	python -m pip uninstall -y mne
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	echo "Using Mamba to install CONDA_DEPENDENCIES=${CONDA_DEPENDENCIES}"
 	mamba install -y $CONDA_DEPENDENCIES
@@ -37,13 +38,19 @@ else
 	pip install --progress-bar off git+https://github.com/mne-tools/mne-qt-browser
 	EXTRA_ARGS="--pre"
 fi
+echo ""
+
 # for compat_minimal and compat_old, we don't want to --upgrade
 if [ ! -z "$CONDA_DEPENDENCIES" ]; then
-	pip install -r requirements_base.txt -r requirements_testing.txt
+	echo "Installing dependencies for conda"
+	python -m pip install -r requirements_base.txt -r requirements_testing.txt
 else
-	pip install $STD_ARGS $EXTRA_ARGS -r requirements_base.txt -r requirements_testing.txt -r requirements_hdf5.txt
+	echo "Installing dependencies using pip"
+	python -m pip install $STD_ARGS $EXTRA_ARGS -r requirements_base.txt -r requirements_testing.txt -r requirements_hdf5.txt
 fi
+echo ""
 
 if [ "${DEPS}" != "minimal" ]; then
-	pip install $STD_ARGS $EXTRA_ARGS -r requirements_testing_extra.txt
+	echo "Installing non-minimal dependencies"
+	python -m pip install $STD_ARGS $EXTRA_ARGS -r requirements_testing_extra.txt
 fi

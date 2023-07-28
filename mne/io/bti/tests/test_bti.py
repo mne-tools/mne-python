@@ -285,10 +285,12 @@ def test_info_no_rename_no_reorder_no_pdf():
         preload=True,
     )
 
-    sort_idx = [raw1.bti_ch_labels.index(ch) for ch in raw2.bti_ch_labels]
+    bti_ch_labels_1 = raw1._raw_extras[0]["bti_ch_labels"]
+    bti_ch_labels_2 = raw2._raw_extras[0]["bti_ch_labels"]
+    sort_idx = [bti_ch_labels_1.index(ch) for ch in bti_ch_labels_2]
     raw1._data = raw1._data[sort_idx]
     assert_array_equal(raw1._data, raw2._data)
-    assert_array_equal(raw2.bti_ch_labels, raw2.ch_names)
+    assert_array_equal(bti_ch_labels_2, raw2.ch_names)
 
 
 def test_no_conversion():

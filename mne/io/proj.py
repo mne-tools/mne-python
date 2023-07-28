@@ -143,6 +143,8 @@ class Projection(dict):
 
             .. versionadded:: 1.2
         %(border_topomap)s
+
+            .. versionadded:: 0.20
         %(res_topomap)s
         %(size_topomap)s
         %(cmap_topomap)s
@@ -427,7 +429,15 @@ class ProjMixin:
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.20
+
+            .. versionchanged:: 0.21
+
+               - The default was changed to ``'local'`` for MEG sensors.
+               - ``'local'`` was changed to use a convex hull mask
+               - ``'head'`` was changed to extrapolate out to the clipping circle.
         %(border_topomap)s
+
+            .. versionadded:: 0.20
         %(res_topomap)s
         %(size_topomap)s
             Only applies when plotting multiple topomaps at a time.
