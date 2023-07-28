@@ -289,19 +289,61 @@ fig.tight_layout()
 
 # %%
 # Finally, let's calculate the peaks of the components to quantify
-# our oscillations.
+# our oscillations. We'll examine three ways: 1) Fitting a normal
+# distribution (as in :footcite:`DonoghueEtAl2020`), 2) using
+# :func:`scipy.signal.find_peaks` and 3) using :func:`scipy.signal.find_peaks_cwt`.
+# As shown below, with reasonable parameters, all three of these methods
+# can be used to quantify peaks in the power spectrum. One parameter that must
+# be determined is the prominance that specifies how much greater than baseline
+# the peak needs to be for consideration in subsequent analyses. This might be
+# done based on previous literature or by checking different parameter values
+# on data not used in the analysis.
 
 
-def gauss1d(x, a, b, c):
-    return a * np.exp(-(x - b)**2 / 2 * c**2)
+def gauss1d(x, a, b, c, d=0):
+    return a * np.exp(-((x - b) ** 2) / 2 * c**2) + d
 
 
+for i, comp in enumerate(pca.components_[:3]):
+    comp -= comp.mean()
+    res = minimize(
+        lambda params: np.sum((gauss1d(psd.freqs[mask], *params) - comp) ** 2),
+        x0=[abs(comp).max(), psd.freqs[mask][abs(comp).argmax()], 1, 0],
+    )
+    comp_padded = np.pad(comp, 10)
+    # find_peaks
+    peaks, props = find_peaks(comp_padded, comp.std() * 3)
+    peaks -= 10
+    peaks = peaks[peaks < comp.size]
+    # find_peaks_cwt
+    peaks2 = find_peaks_cwt(comp_padded, 10)
+    peaks2 -= 10
+    peaks2 = peaks2[peaks2 < comp.size]
+    fig, ax = plt.subplots()
+    ax.set_title(f"PC {i + 1}")
+    comp_plot = np.zeros((psd.freqs.size)) * np.nan
+    comp_plot[mask] = comp
+    ax.plot(psd.freqs, comp_plot, label="PC")
+    fit_plot = np.zeros((psd.freqs.size)) * np.nan
+    fit_plot[mask] = gauss1d(psd.freqs[mask], *res.x)
+    ax.plot(psd.freqs, fit_plot, label="gauss")
+    for peak in peaks:
+        ax.scatter(psd.freqs[peak], comp[peak], color="red")
+    ax.scatter([np.nan], [np.nan], color="red", label="find_peaks")  # for legend
+    for peak2 in peaks2:
+        ax.scatter(psd.freqs[peak2], comp[peak2], color="blue")
+    ax.scatter([np.nan], [np.nan], color="blue", label="find_peaks_cwt")
+    ax.legend()
 
 
 # %%
-# Lastly, let's simulate some data and show that we are able
+# Lastly, let's simulate some data and show that, if broadband power shifts and
+# oscillations are created directly, we are able to decouple them using the
+# principal component method used above. Indeed, as shown below, a simulated power
+# spectrum can be separated into a broadband power shift and oscillation
+# in the first and second principal components respectively.
 
-sfreq = epochs.info['sfreq']
+sfreq = epochs.info["sfreq"]
 n_epochs = len(epochs)
 times = epochs.times
 epochs_data = np.zeros((n_epochs, times.size))
@@ -316,7 +358,9 @@ for i in range(epochs_data.shape[0]):
     shift = rng.normal(1)  # decouple from beta
     amplitude = rng.normal(0.05, scale=0.02)  # decouple from broadband
     std = rng.normal(3, scale=1)
-    x = shift * (np.exp(rng.normal(size=n_fft_points) + rng.normal(size=n_fft_points) * 1j))
+    x = shift * (
+        np.exp(rng.normal(size=n_fft_points) + rng.normal(size=n_fft_points) * 1j)
+    )
     # add beta oscillation
     x /= np.sqrt(np.arange(1, x.size + 1) ** slope)
     freqs = np.linspace(0, n_fft_points // 2, n_fft_points)
@@ -324,7 +368,7 @@ for i in range(epochs_data.shape[0]):
     x += 1j * gauss1d(freqs, amplitude, freq, 3)
     y = np.fft.irfft(x).real
     y /= y.std()
-    y = y[:-(times.size % 2)]
+    y = y[: -(times.size % 2)]
     epochs_data[i] = y * rng.normal(40, scale=5) * 1e-6  # different amounts per trial
 
 # make epochs object, compute psd
