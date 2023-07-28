@@ -222,12 +222,10 @@ psd, freqs = mne.time_frequency.psd_array_welch(
 
 psd_ave = psd.mean(0)
 
-evoked_array = evoked_array.set_channel_types(
-    {ch: "eeg" for ch in evoked_array.ch_names}
-)
+info = mne.create_info(['Ch 1', 'Ch2'], sfreq=sampling_freq, ch_types='eeg')
 spectrum = mne.time_frequency.SpectrumArray(
     data=psd_ave,
     freqs=freqs,
-    info=evoked_array.info,
+    info=info,
 )
 spectrum.plot(picks=[0, 1], spatial_colors=False, exclude="bads")

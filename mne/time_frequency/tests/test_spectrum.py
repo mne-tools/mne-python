@@ -440,6 +440,7 @@ def _get_psd_varients(raw_psds, epochs_psds):
 
 def test_spectrum_arrays(raw_psds, epochs_psds, tmp_path):
     """Test EpochsSpectrumArray and Spectrum Array."""
+    pytest.importorskip("h5py")
     with pytest.raises(ValueError, match="Expected freq size to be 10"):
         SpectrumArray(
             data=np.zeros((8, 11)), freqs=np.arange(10), info=raw_psds[0].info
@@ -474,8 +475,8 @@ def test_spectrum_arrays(raw_psds, epochs_psds, tmp_path):
             data2,
         )
         assert_array_equal(psd.freqs, psd2.freqs)
-        psd2.save(tmp_path / "psd.hdf5", overwrite=True)
-        assert_array_equal(data2, read_spectrum(tmp_path / "psd.hdf5").get_data())
+        psd2.save(tmp_path / "psd.h5", overwrite=True)
+        assert_array_equal(data2, read_spectrum(tmp_path / "psd.h5").get_data())
         len(psd2.to_data_frame()) == 8
         psd2.units() == ""
 
