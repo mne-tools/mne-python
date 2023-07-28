@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from functools import partial
 
 import numpy as np
@@ -347,7 +346,6 @@ def test_spectrum_complex(method, average):
     kwargs = dict(output="complex", method=method)
     if method == "welch":
         kwargs["n_fft"] = sfreq
-        ctx = pytest.warns(UserWarning, match="Zero value")
         want_dims = ("epoch", "channel", "freq")
         want_shape = (5, 1, sfreq // 2 + 1)
         if not average:
@@ -357,11 +355,9 @@ def test_spectrum_complex(method, average):
     else:
         assert method == "multitaper"
         assert not average
-        ctx = nullcontext()
         want_dims = ("epoch", "channel", "taper", "freq")
         want_shape = (5, 1, 7, sfreq + 1)
-    with ctx:
-        spectrum = epochs.compute_psd(**kwargs)
+    spectrum = epochs.compute_psd(**kwargs)
     idx = np.argmin(np.abs(spectrum.freqs - freq))
     assert spectrum.freqs[idx] == freq
     assert spectrum._dims == want_dims
