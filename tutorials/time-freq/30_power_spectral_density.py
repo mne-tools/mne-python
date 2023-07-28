@@ -44,7 +44,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA, FactorAnalysis
 from scipy.optimize import minimize
-from scipy.signal import find_peaks, find_peaks_cwt
+from scipy.signal import find_peaks
 
 import mne
 from mne.datasets import eegbci
@@ -100,6 +100,7 @@ psd.plot()
 psd = epochs.compute_psd(fmax=75, method="welch")
 psd.plot()
 
+# %%
 # In general, these methods give similar results in most cases with default
 # parameters as shown below but the strength of having two methods is the ability
 # to use different parameters. For the Welch method, the tradeoff between using
@@ -289,10 +290,10 @@ fig.tight_layout()
 
 # %%
 # Finally, let's calculate the peaks of the components to quantify
-# our oscillations. We'll examine three ways: 1) Fitting a normal
+# our oscillations. We'll examine two ways: 1) Fitting a normal
 # distribution (as in :footcite:`DonoghueEtAl2020`), 2) using
-# :func:`scipy.signal.find_peaks` and 3) using :func:`scipy.signal.find_peaks_cwt`.
-# As shown below, with reasonable parameters, all three of these methods
+# :func:`scipy.signal.find_peaks`.
+# As shown below, with reasonable parameters, these methods
 # can be used to quantify peaks in the power spectrum. One parameter that must
 # be determined is the prominence that specifies how much greater than baseline
 # the peak needs to be for consideration in subsequent analyses. This might be
@@ -306,33 +307,51 @@ def gauss1d(x, a, b, c, d=0):
 
 for i, comp in enumerate(pca.components_[:3]):
     comp -= comp.mean()
-    res = minimize(
-        lambda params: np.sum((gauss1d(psd.freqs[mask], *params) - comp) ** 2),
-        x0=[abs(comp).max(), psd.freqs[mask][abs(comp).argmax()], 1, 0],
-    )
-    comp_padded = np.pad(comp, 10)
+    thresh = comp.std() * 3
+    # 1D gaussian fit
+    gauss_fits = list()
+    comp_copy = comp.copy()
+    keep_going = True
+    while keep_going:
+        # start at highest peak height and frequency
+        a0 = comp_copy.max() if comp_copy.max() > -comp_copy.min() else comp_copy.min()
+        b0 = psd.freqs[mask][abs(comp_copy).argmax()]
+        c0 = 3  # 3 Hz standard deviation initial guess
+        d0 = 0  # no up-down shift initial guess
+        res = minimize(
+            lambda params: np.sum((gauss1d(psd.freqs[mask], *params) - comp_copy) ** 2),
+            x0=[a0, b0, c0, d0],
+        )
+        if abs(res.x[0]) > thresh:
+            gauss_fits.append(res)
+            comp_copy -= gauss1d(
+                psd.freqs[mask], *res.x
+            )  # remove peak after it's found
+        else:
+            keep_going = False
     # find_peaks
-    peaks, props = find_peaks(comp_padded, comp.std() * 3)
-    peaks -= 10
-    peaks = peaks[peaks < comp.size]
-    # find_peaks_cwt
-    peaks2 = find_peaks_cwt(comp_padded, 10)
-    peaks2 -= 10
-    peaks2 = peaks2[peaks2 < comp.size]
+    peaks = np.concatenate(
+        [
+            find_peaks(comp, prominence=thresh)[0],
+            find_peaks(-comp, prominence=thresh)[0],
+        ]
+    )
+    # plot
     fig, ax = plt.subplots()
     ax.set_title(f"PC {i + 1}")
     comp_plot = np.zeros((psd.freqs.size)) * np.nan
     comp_plot[mask] = comp
-    ax.plot(psd.freqs, comp_plot, label="PC")
-    fit_plot = np.zeros((psd.freqs.size)) * np.nan
-    fit_plot[mask] = gauss1d(psd.freqs[mask], *res.x)
-    ax.plot(psd.freqs, fit_plot, label="gauss")
+    ax.plot(psd.freqs, comp_plot, color="black", label="PC")
+    for res in gauss_fits:
+        fit_plot = np.zeros((psd.freqs.size)) * np.nan
+        fit_plot[mask] = gauss1d(psd.freqs[mask], *res.x)
+        ax.plot(psd.freqs, fit_plot, color="orange", label="gauss")
+        peak = res.x[1]
+        if peak >= psd.freqs[0] and peak <= psd.freqs[-1]:
+            ax.axvline(peak, color="orange")
     for peak in peaks:
-        ax.scatter(psd.freqs[peak], comp[peak], color="red")
+        ax.scatter(psd.freqs[mask][peak], comp[peak], color="red")
     ax.scatter([np.nan], [np.nan], color="red", label="find_peaks")  # for legend
-    for peak2 in peaks2:
-        ax.scatter(psd.freqs[peak2], comp[peak2], color="blue")
-    ax.scatter([np.nan], [np.nan], color="blue", label="find_peaks_cwt")
     ax.legend()
 
 
