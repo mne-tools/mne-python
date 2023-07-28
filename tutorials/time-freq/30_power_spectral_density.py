@@ -168,8 +168,8 @@ pca = PCA(svd_solver="randomized", whiten=True, random_state=99).fit(psd_data[:,
 #
 # Admittedly, the separation between oscillatory and broadband components
 # is not as clean in scalp electroencephalography (EEG) as it is in
-# electrocorticography (ECoG) as was done in :footcite:`MillerEtAl2009A`. ECoG is implanted
-# on the surface of the brain so it detects more brain signal.
+# electrocorticography (ECoG) as was done in :footcite:`MillerEtAl2009A`. ECoG is
+# implanted on the surface of the brain so it detects more brain signal.
 fig, ax = plt.subplots()
 comp0 = np.zeros((psd.freqs.size,)) * np.nan
 comp0[mask] = pca.components_[0]
