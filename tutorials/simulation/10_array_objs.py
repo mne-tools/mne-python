@@ -222,7 +222,7 @@ psd, freqs = mne.time_frequency.psd_array_welch(
 
 psd_ave = psd.mean(0)
 
-info = mne.create_info(['Ch 1', 'Ch2'], sfreq=sampling_freq, ch_types='eeg')
+info = mne.create_info(["Ch 1", "Ch2"], sfreq=sampling_freq, ch_types="eeg")
 spectrum = mne.time_frequency.SpectrumArray(
     data=psd_ave,
     freqs=freqs,
