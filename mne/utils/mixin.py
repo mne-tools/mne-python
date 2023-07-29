@@ -375,7 +375,6 @@ class GetEpochsMixin:
             while not is_good:
                 if self._current >= len(self.events):
                     self._stop_iter()
-
                 epoch_noproj = self._get_epoch_from_raw(self._current)
                 epoch_noproj = self._detrend_offset_decim(
                     epoch_noproj, self._current_detrend_picks
