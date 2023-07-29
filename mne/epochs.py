@@ -478,7 +478,6 @@ class BaseEpochs(
         annotations=None,
         verbose=None,
     ):  # noqa: D102
-
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             events_max = events.max()
