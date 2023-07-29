@@ -366,23 +366,15 @@ class GetEpochsMixin:
         if not hasattr(self, "_current_detrend_picks"):
             self.__iter__()  # ensure we're ready to iterate
         if self.preload:
-            if getattr(self, "_raise_empty", False):
-                if len(self._data) == 0:
-                    raise RuntimeError("No epochs found.")
             if self._current >= len(self._data):
                 self._stop_iter()
             epoch = self._data[self._current]
             self._current += 1
         else:
             is_good = False
-            loop_count = 0
             while not is_good:
                 if self._current >= len(self.events):
                     self._stop_iter()
-                    # Check for empty epochs
-                    if loop_count == len(self.events):
-                        if getattr(self, "_raise_empty", False):
-                            raise RuntimeError("This epochs is empty.")
 
                 epoch_noproj = self._get_epoch_from_raw(self._current)
                 epoch_noproj = self._detrend_offset_decim(
@@ -391,7 +383,6 @@ class GetEpochsMixin:
                 epoch = self._project_epoch(epoch_noproj)
                 self._current += 1
                 is_good, _ = self._is_good_epoch(epoch)
-                loop_count += 1
             # If delayed-ssp mode, pass 'virgin' data after rejection decision.
             if self._do_delayed_proj:
                 epoch = epoch_noproj
