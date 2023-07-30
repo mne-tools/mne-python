@@ -37,7 +37,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug in convert_flash_mris, when flash30 and no flash5_reg.mgz file regenrated, add missing_ok=True as it is done in line 2074. (:gh:`11842` by :newcontrib: `Hamza Abdelhedi`)
+- Fix bug in convert_flash_mris, when flash30 and no flash5_reg.mgz file regenerated, add missing_ok=True as it is done in line 2074. (:gh:`11842` by :newcontrib: `Hamza Abdelhedi`)
 - Fix bug where epochs ``event_id`` was not kept by :func:`mne.channels.combine_channels` (:gh:`11786` by :newcontrib:`Samuel Louviot`)
 - Fix bug where user-provided codec was not used to read annotations when loading EEGLAB ``.set`` files (:gh:`11773` by :newcontrib:`Yiping Zuo`)
 - Fix bug that required curv.*h files to create Brain object (:gh:`11704` by :newcontrib:`Aaron Earle-Richardson`)
