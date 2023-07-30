@@ -37,6 +37,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug in convert_flash_mris, when flash30 and no flash5_reg.mgz file regenrated, add missing_ok=True as it is done in line 2074. (:gh:`11842` by :newcontrib: `Hamza Abdelhedi`_)
 - Fix bug where epochs ``event_id`` was not kept by :func:`mne.channels.combine_channels` (:gh:`11786` by :newcontrib:`Samuel Louviot`)
 - Fix bug where user-provided codec was not used to read annotations when loading EEGLAB ``.set`` files (:gh:`11773` by :newcontrib:`Yiping Zuo`)
 - Fix bug that required curv.*h files to create Brain object (:gh:`11704` by :newcontrib:`Aaron Earle-Richardson`)
@@ -60,7 +61,6 @@ Bugs
 - Fix bug where annotation FIF files lacked an end block tag (:gh:`11800` by `Eric Larson`_)
 - Fix display of :class:`~mne.Annotations` in `mne.preprocessing.ICA.plot_sources` when the ``raw`` has ``raw.first_samp != 0`` and doesn't have a measurement date (:gh:`11766` by `Mathieu Scheltienne`_)
 - Fix bug in read_raw_eyelink, where STATUS information of samples was always assumed to be in the file. Performance and memory improvements were also made. (:gh:`11823` by `Scott Huberty`_)
-- Fix bug in convert_flash_mris, when flash30 and no flash5_reg.mgz file regenrated, add missing_ok=True as it is done in line 2074. (:gh:`11842` by `Hamza Abdelhedi`_)
 
 API changes
 ~~~~~~~~~~~
