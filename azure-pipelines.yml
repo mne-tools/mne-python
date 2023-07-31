@@ -52,7 +52,7 @@ stages:
     - bash: |
         set -eo pipefail
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
+        python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt PyQt6
         pre-commit install --install-hooks
       displayName: Install dependencies
     - bash: |
