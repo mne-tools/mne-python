@@ -57,7 +57,7 @@ def test_search_light():
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
     y_pred = sl.predict(X)
-    assert y_pred.dtype == int
+    assert y_pred.dtype == float
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
     y_proba = sl.predict_proba(X)
     assert y_proba.dtype == float
@@ -314,3 +314,26 @@ def test_cross_val_predict():
 
     estimator = SlidingEstimator(LinearDiscriminantAnalysis())
     cross_val_predict(estimator, X, y, method="predict_proba", cv=2)
+
+
+@pytest.mark.slowtest
+@requires_sklearn
+def test_sklearn_compliance():
+    """Test LinearModel compliance with sklearn."""
+    from sklearn.utils.estimator_checks import check_estimator
+    from sklearn.linear_model import LogisticRegression
+
+    est = SlidingEstimator(LogisticRegression(), allow_2d=True)
+
+    ignores = (
+        "check_estimator_sparse_data",  # we densify
+        "check_classifiers_one_label_sample_weights",  # don't handle singleton
+        "check_classifiers_classes",  # dim mismatch
+        "check_classifiers_train",
+        "check_decision_proba_consistency",
+        "check_parameters_default_constructible",
+    )
+    for est, check in check_estimator(est, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)

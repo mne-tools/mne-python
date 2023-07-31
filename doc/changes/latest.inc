@@ -54,6 +54,9 @@ Bugs
 - Fix bug with :func:`mne.io.read_raw_fil` where datasets without sensor positions would not import (:gh:`11733` by `George O'Neill`_)
 - Fix bug with :func:`mne.chpi.compute_chpi_snr` where cHPI being off for part of the recording or bad channels being defined led to an error or incorrect behavior (:gh:`11754`, :gh:`11755` by `Eric Larson`_)
 - Allow int-like for the argument ``id`` of `~mne.make_fixed_length_events` (:gh:`11748` by `Mathieu Scheltienne`_)
+- Fix bugs with :mod:`mne.decoding` classes (:gh:`11845` by `Eric Larson`_):
+  - :class:`mne.decoding.ReceptiveField` now sets ``rf.fit_intercept_`` during ``fit()`` rather than overwriting ``rf.fit_intercept``
+  - :class:`mne.decoding.SlidingEstimator` now returns the same ``dtype`` as ``X`` (usually ``float64``) in ``sl.predict(X)`` rather than always returning ``int``
 - Fix bug where :func:`mne.io.read_raw_egi` did not properly set the EEG reference location for the reference channel itself (:gh:`11822` by `Eric Larson`_)
 - Fix bug with legacy :meth:`~mne.io.Raw.plot_psd` method where passed axes were not used (:gh:`11778` by `Daniel McCloy`_)
 - blink :class:`mne.Annotations` read in by :func:`mne.io.read_raw_eyelink` now begin with ``'BAD_'``, i.e. ``'BAD_blink'``, because ocular data are missing during blinks. (:gh:`11746` by `Scott Huberty`_)

@@ -162,6 +162,13 @@ align : bool
 """
 
 docdict[
+    "allow_2d"
+] = """
+allow_2d : bool
+    If True, allow 2D data as input (i.e. n_samples, n_features).
+"""
+
+docdict[
     "allow_empty_eltc"
 ] = """
 allow_empty : bool | str
