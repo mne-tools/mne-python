@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from numbers import Integral
 from time import time
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass
 from typing import Optional, List, Literal
 import warnings
 
@@ -112,15 +112,14 @@ __all__ = (
 
 def _make_xy_sfunc(func, ndim_output=False):
     """Aux function."""
-    if ndim_output:
 
-        def sfunc(x, y):
-            return np.array([func(a, y.ravel()) for a in x])[:, 0]
-
-    else:
-
-        def sfunc(x, y):
-            return np.array([func(a, y.ravel()) for a in x])
+    def sfunc(x, y, ndim_output=ndim_output):
+        out = [func(a, y.ravel()) for a in x]
+        if len(out) and is_dataclass(out[0]):  # PermutationTestResult
+            out = [(o.statistic, o.pvalue) for o in out]
+        if ndim_output:
+            out = np.array(out)[:, 0]
+        return out
 
     sfunc.__name__ = ".".join(["score_func", func.__module__, func.__name__])
     sfunc.__doc__ = func.__doc__
