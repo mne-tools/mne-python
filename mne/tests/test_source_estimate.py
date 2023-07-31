@@ -75,8 +75,6 @@ from mne.minimum_norm import (
 )
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (
-    requires_pandas,
-    requires_sklearn,
     catch_logging,
     requires_version,
     _record_warnings,
@@ -1087,9 +1085,9 @@ def test_transform():
     assert_array_equal(stc.data, data_t)
 
 
-@requires_sklearn
 def test_spatio_temporal_tris_adjacency():
     """Test spatio-temporal adjacency from triangles."""
+    pytest.importorskip("sklearn")
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     adjacency = spatio_temporal_tris_adjacency(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
@@ -1139,9 +1137,9 @@ def test_spatio_temporal_src_adjacency():
     assert_equal(grade_to_tris(5).shape, [40960, 3])
 
 
-@requires_pandas
 def test_to_data_frame():
     """Test stc Pandas exporter."""
+    pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
@@ -1162,10 +1160,10 @@ def test_to_data_frame():
         assert set(expected) == set(df_long.columns)
 
 
-@requires_pandas
 @pytest.mark.parametrize("index", ("time", ["time", "subject"], None))
 def test_to_data_frame_index(index):
     """Test index creation in stc Pandas exporter."""
+    pytest.importorskip("pandas")
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int64), np.empty(0, dtype=np.int64)]
     data = rng.randn(n_vert, n_times)
@@ -1532,10 +1530,10 @@ def test_epochs_vector_inverse():
     assert_allclose(stc_epo.data, stc_evo.data, rtol=1e-9, atol=0)
 
 
-@requires_sklearn
 @testing.requires_testing_data
 def test_vol_adjacency():
     """Test volume adjacency."""
+    pytest.importorskip("sklearn")
     vol = read_source_spaces(fname_vsrc)
 
     pytest.raises(ValueError, spatial_src_adjacency, vol, dist=1.0)
@@ -1578,11 +1576,11 @@ def test_spatial_src_adjacency():
     assert_array_equal(con_lh.indices, con_lh_tris.indices)
 
 
-@requires_sklearn
 @testing.requires_testing_data
 def test_vol_mask():
     """Test extraction of volume mask."""
     pytest.importorskip("nibabel")
+    pytest.importorskip("sklearn")
     src = read_source_spaces(fname_vsrc)
     mask = _get_vol_mask(src)
     # Let's use an alternative way that should be equivalent

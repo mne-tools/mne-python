@@ -54,7 +54,6 @@ from mne.viz.topomap import (
     plot_ch_adjacency,
 )
 from mne.viz.utils import _find_peaks, _fake_click, _fake_keypress, _fake_scroll
-from mne.utils import requires_sklearn
 
 from mne.viz.tests.test_raw import _proj_status
 
@@ -735,9 +734,9 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
     plt.close("all")
 
 
-@requires_sklearn
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
+    pytest.importorskip("sklearn")
     from mne.preprocessing import ICA
 
     fnirs_epochs = fnirs_epochs.load_data().pick(picks="hbo")

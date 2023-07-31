@@ -14,7 +14,6 @@ from numpy.testing import (
 import pytest
 
 from mne import create_info, EpochsArray
-from mne.utils import requires_sklearn
 from mne.decoding.base import (
     _get_inverse_funcs,
     LinearModel,
@@ -24,6 +23,9 @@ from mne.decoding.base import (
 )
 from mne.decoding.search_light import SlidingEstimator
 from mne.decoding import Scaler, TransformerMixin, Vectorizer, GeneralizingEstimator
+
+
+pytest.importorskip("sklearn")
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -65,7 +67,6 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@requires_sklearn
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     from sklearn.base import (
@@ -204,7 +205,6 @@ class _Noop(BaseEstimator, TransformerMixin):
     inverse_transform = transform
 
 
-@requires_sklearn
 @pytest.mark.parametrize("inverse", (True, False))
 @pytest.mark.parametrize(
     "Scale, kwargs",
@@ -241,7 +241,6 @@ def test_get_coef_inverse_transform(inverse, Scale, kwargs):
             assert_array_equal(filters_t, filters[:, t])
 
 
-@requires_sklearn
 @pytest.mark.parametrize("n_features", [1, 5])
 @pytest.mark.parametrize("n_targets", [1, 3])
 def test_get_coef_multiclass(n_features, n_targets):
@@ -288,7 +287,6 @@ def test_get_coef_multiclass(n_features, n_targets):
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "n_classes, n_channels, n_times",
     [
@@ -336,7 +334,6 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
     assert_allclose(patterns[:, 1:], 0.0, atol=1e-7)  # no other channels useful
 
 
-@requires_sklearn
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
@@ -394,7 +391,6 @@ def test_linearmodel():
         clf.fit(X, wrong_y)
 
 
-@requires_sklearn
 def test_cross_val_multiscore():
     """Test cross_val_multiscore for computing scores on decoding over time."""
     from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
