@@ -50,7 +50,7 @@ from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import requires_sklearn, catch_logging, assert_snr, _record_warnings
+from mne.utils import catch_logging, assert_snr, _record_warnings
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
@@ -373,9 +373,9 @@ def test_cov_estimation_on_raw(method, tmp_path):
 
 
 @pytest.mark.slowtest
-@requires_sklearn
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
+    pytest.importorskip("sklearn")
     raw = read_raw_fif(raw_fname, preload=True)
     with raw.info._unlock():
         raw.info["sfreq"] /= 10.0
@@ -587,9 +587,9 @@ def test_regularized_covariance():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_sklearn
 def test_auto_low_rank():
     """Test probabilistic low rank estimators."""
+    pytest.importorskip("sklearn")
     n_samples, n_features, rank = 400, 10, 5
     sigma = 0.1
 
@@ -629,9 +629,9 @@ def test_auto_low_rank():
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize("rank", ("full", None, "info"))
-@requires_sklearn
 def test_compute_covariance_auto_reg(rank):
     """Test automated regularization."""
+    pytest.importorskip("sklearn")
     raw = read_raw_fif(raw_fname, preload=True)
     raw.resample(100, npad="auto")  # much faster estimation
     events = find_events(raw, stim_channel="STI 014")
@@ -766,10 +766,10 @@ def raw_epochs_events():
     return (raw, epochs, events)
 
 
-@requires_sklearn
 @pytest.mark.parametrize("rank", (None, "full", "info"))
 def test_low_rank_methods(rank, raw_epochs_events):
     """Test low-rank covariance matrix estimation."""
+    pytest.importorskip("sklearn")
     epochs = raw_epochs_events[1]
     sss_proj_rank = 139  # 80 MEG + 60 EEG - 1 proj
     n_ch = 366
@@ -800,9 +800,9 @@ def test_low_rank_methods(rank, raw_epochs_events):
         assert these_bounds[0] < cov["loglik"] < these_bounds[1], (rank, method)
 
 
-@requires_sklearn
 def test_low_rank_cov(raw_epochs_events):
     """Test additional properties of low rank computations."""
+    pytest.importorskip("sklearn")
     raw, epochs, events = raw_epochs_events
     sss_proj_rank = 139  # 80 MEG + 60 EEG - 1 proj
     n_ch = 366
@@ -876,9 +876,9 @@ def test_low_rank_cov(raw_epochs_events):
 
 
 @testing.requires_testing_data
-@requires_sklearn
 def test_cov_ctf():
     """Test basic cov computation on ctf data with/without compensation."""
+    pytest.importorskip("sklearn")
     raw = read_raw_ctf(ctf_fname).crop(0.0, 2.0).load_data()
     events = make_fixed_length_events(raw, 99999)
     assert len(events) == 2

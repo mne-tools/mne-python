@@ -34,7 +34,7 @@ from mne.report.report import (
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import Bunch, requires_version, requires_sklearn
+from mne.utils import Bunch
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -596,9 +596,9 @@ def test_validate_input():
     items_new, captions_new, comments_new = values
 
 
-@requires_version("h5io")
 def test_open_report(tmp_path):
     """Test the open_report function."""
+    pytest.importorskip("h5io")
     hdf5 = str(tmp_path / "report.h5")
 
     # Test creating a new report through the open_report function
@@ -810,10 +810,10 @@ def test_survive_pickle(tmp_path):
 
 
 @pytest.mark.slowtest  # ~30 s on Azure Windows
-@requires_sklearn
 @testing.requires_testing_data
 def test_manual_report_2d(tmp_path, invisible_fig):
     """Simulate user manually creating report by adding one file at a time."""
+    pytest.importorskip("sklearn")
     from sklearn.exceptions import ConvergenceWarning
 
     r = Report(title="My Report")
