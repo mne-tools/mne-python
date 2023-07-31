@@ -458,6 +458,7 @@ def test_cross_val_multiscore():
 
 def test_sklearn_compliance():
     """Test LinearModel compliance with sklearn."""
+    pytest.importorskip("sklearn")
     from sklearn.utils.estimator_checks import check_estimator
     from sklearn.linear_model import LogisticRegression
 
