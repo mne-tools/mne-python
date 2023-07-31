@@ -1683,5 +1683,5 @@ def count_events(events, ids=None):
     counts = np.bincount(events[:, 2])
     counts = {i: int(count) for i, count in enumerate(counts) if count > 0}
     if ids is not None:
-        counts = {id_: int(counts.get(id_, 0)) for id_ in ids}
+        counts = {id_: counts.get(id_, 0) for id_ in ids}
     return counts
