@@ -7,12 +7,13 @@ import numpy as np
 from numpy.testing import assert_array_equal
 import pytest
 
+from mne.utils import requires_sklearn
 from mne.decoding.time_frequency import TimeFrequency
 
 
+@requires_sklearn
 def test_timefrequency():
     """Test TimeFrequency."""
-    pytest.importorskip("sklearn")
     from sklearn.base import clone
 
     # Init

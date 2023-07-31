@@ -21,7 +21,7 @@ from mne import (
 )
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import catch_logging, _record_warnings
+from mne.utils import requires_sklearn, catch_logging, _record_warnings
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click, _fake_keypress
 
@@ -32,8 +32,6 @@ cov_fname = base_dir / "test-cov.fif"
 event_name = base_dir / "test-eve.fif"
 event_id, tmin, tmax = 1, -0.1, 0.2
 raw_ctf_fname = base_dir / "test_ctf_raw.fif"
-
-pytest.importorskip("sklearn")
 
 
 def _get_raw(preload=False):
@@ -61,6 +59,7 @@ def _get_epochs():
     return epochs
 
 
+@requires_sklearn
 def test_plot_ica_components():
     """Test plotting of ICA solutions."""
     res = 8
@@ -139,6 +138,7 @@ def test_plot_ica_components():
 
 
 @pytest.mark.slowtest
+@requires_sklearn
 def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
@@ -262,6 +262,7 @@ def test_plot_ica_properties():
     ica.plot_properties(raw_annot, reject_by_annotation=False, **topoargs)
 
 
+@requires_sklearn
 def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     """Test plotting of ICA panel."""
     raw = raw_orig.copy().crop(0, 1)
@@ -386,6 +387,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
 
 
 @pytest.mark.slowtest
+@requires_sklearn
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
@@ -434,6 +436,7 @@ def _get_geometry(fig):
         return fig.axes[0].get_geometry()  # pragma: no cover
 
 
+@requires_sklearn
 def test_plot_ica_scores():
     """Test plotting of ICA scores."""
     raw = _get_raw()
@@ -472,6 +475,7 @@ def test_plot_ica_scores():
         ica.plot_scores([0.2])
 
 
+@requires_sklearn
 def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()

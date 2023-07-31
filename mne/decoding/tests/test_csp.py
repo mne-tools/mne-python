@@ -13,6 +13,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP, _ajd_pham, SPoC
+from mne.utils import requires_sklearn
 
 data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = data_dir / "test_raw.fif"
@@ -244,9 +245,9 @@ def test_csp():
         assert np.abs(corr) > 0.95
 
 
+@requires_sklearn
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance."""
-    pytest.importorskip("sklearn")
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks = pick_types(
@@ -280,9 +281,9 @@ def test_regularized_csp():
         assert sources.shape[1] == n_components
 
 
+@requires_sklearn
 def test_csp_pipeline():
     """Test if CSP works in a pipeline."""
-    pytest.importorskip("sklearn")
     from sklearn.svm import SVC
     from sklearn.pipeline import Pipeline
 

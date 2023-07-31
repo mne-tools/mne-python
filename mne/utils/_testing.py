@@ -17,7 +17,6 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 from ._logging import warn, ClosingStringIO
-from .docs import deprecated
 from .check import check_version
 from .numerics import object_diff
 
@@ -99,17 +98,7 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
 
 requires_pandas = partial(requires_module, name="pandas")
 requires_pylsl = partial(requires_module, name="pylsl")
-
-
-@deprecated(
-    "requires_sklearn is deprecated and will be removed in 1.6, "
-    "use pytest.importorskip('sklearn') instead"
-)
-def requires_sklearn(func):
-    """Require sklearn."""
-    return requires_module(name="sklearn")(func)
-
-
+requires_sklearn = partial(requires_module, name="sklearn")
 requires_mne = partial(requires_module, name="MNE-C", call=_mne_call)
 requires_mne_qt_browser = partial(requires_module, name="mne_qt_browser")
 

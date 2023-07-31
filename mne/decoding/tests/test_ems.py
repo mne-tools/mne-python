@@ -9,6 +9,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
 
 from mne import io, Epochs, read_events, pick_types
+from mne.utils import requires_sklearn
 from mne.decoding import compute_ems, EMS
 
 data_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
@@ -17,9 +18,8 @@ event_name = data_dir / "test-eve.fif"
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
-pytest.importorskip("sklearn")
 
-
+@requires_sklearn
 def test_ems():
     """Test event-matched spatial filters."""
     from sklearn.model_selection import StratifiedKFold

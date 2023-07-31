@@ -50,7 +50,7 @@ from mne.label import (
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 from mne.surface import _mesh_borders
-from mne.utils import get_subjects_dir, _record_warnings
+from mne.utils import requires_sklearn, get_subjects_dir, _record_warnings
 
 
 data_path = testing.data_path(download=False)
@@ -739,11 +739,11 @@ def test_write_labels_to_annot(tmp_path):
     pytest.raises(ValueError, write_labels_to_annot, labels4, annot_fname=fnames[0])
 
 
+@requires_sklearn
 @testing.requires_testing_data
 def test_split_label():
     """Test splitting labels."""
     pytest.importorskip("nibabel")
-    pytest.importorskip("sklearn")
     aparc = read_labels_from_annot(
         "fsaverage", "aparc", "lh", regexp="lingual", subjects_dir=subjects_dir
     )
@@ -839,10 +839,10 @@ def test_split_label():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+@requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label."""
     pytest.importorskip("nibabel")
-    pytest.importorskip("sklearn")
     src = read_source_spaces(fwd_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, "sample")
