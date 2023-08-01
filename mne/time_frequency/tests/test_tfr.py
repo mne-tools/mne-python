@@ -20,7 +20,7 @@ from mne import (
     Transform,
 )
 from mne.io import read_raw_fif
-from mne.utils import requires_version, requires_pandas, grand_average, catch_logging
+from mne.utils import grand_average, catch_logging
 from mne.time_frequency.tfr import (
     morlet,
     tfr_morlet,
@@ -569,11 +569,10 @@ def test_decim():
     assert tfr.data.shape == ((3, 3, 3, 1000 // 3 + 1))
 
 
-@requires_version("h5io")
-@requires_pandas
 def test_io(tmp_path):
     """Test TFR IO capacities."""
-    from pandas import DataFrame
+    pd = pytest.importorskip("pandas")
+    pytest.importorskip("h5io")
 
     fname = tmp_path / "test-tfr.h5"
     data = np.zeros((3, 2, 3))
@@ -640,7 +639,7 @@ def test_io(tmp_path):
     rt = np.round(rng.uniform(size=(n_events,)), 3)
     trialtypes = np.array(["face", "place"])
     trial = trialtypes[(rng.uniform(size=(n_events,)) > 0.5).astype(int)]
-    meta = DataFrame(dict(RT=rt, Trial=trial))
+    meta = pd.DataFrame(dict(RT=rt, Trial=trial))
     # fake events and event_id
     events = np.zeros([n_events, 3])
     events[:, 0] = np.arange(n_events)
@@ -1243,10 +1242,9 @@ def test_averaging_freqsandtimes_epochsTFR(copy):
         assert isinstance(avgpower, AverageTFR)
 
 
-@requires_pandas
 def test_getitem_epochsTFR():
     """Test GetEpochsMixin in the context of EpochsTFR."""
-    from pandas import DataFrame
+    pd = pytest.importorskip("pandas")
 
     # Setup for reading the raw data and select a few trials
     raw = read_raw_fif(raw_fname)
@@ -1259,7 +1257,7 @@ def test_getitem_epochsTFR():
         rt = rng.uniform(size=(n_events,))
         trialtypes = np.array(["face", "place"])
         trial = trialtypes[(rng.uniform(size=(n_events,)) > 0.5).astype(int)]
-        meta = DataFrame(dict(RT=rt, Trial=trial))
+        meta = pd.DataFrame(dict(RT=rt, Trial=trial))
         event_id = dict(a=1, b=2, c=3, d=4)
         epochs = Epochs(
             raw, events[:n_events], event_id=event_id, metadata=meta, decim=1
@@ -1327,10 +1325,10 @@ def test_getitem_epochsTFR():
     assert power.info["sfreq"] / 2.0 == power_decim.info["sfreq"]
 
 
-@requires_pandas
 def test_to_data_frame():
     """Test EpochsTFR Pandas exporter."""
     # Create fake EpochsTFR data:
+    pytest.importorskip("pandas")
     n_epos = 3
     ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
     n_picks = len(ch_names)
@@ -1408,7 +1406,6 @@ def test_to_data_frame():
     assert df.loc[(freqs[1], times[2]), ch_names[3]] == data[3, 1, 2]
 
 
-@requires_pandas
 @pytest.mark.parametrize(
     "index",
     ("time", ["condition", "time", "freq"], ["freq", "time"], ["time", "freq"], None),
@@ -1416,6 +1413,7 @@ def test_to_data_frame():
 def test_to_data_frame_index(index):
     """Test index creation in epochs Pandas exporter."""
     # Create fake EpochsTFR data:
+    pytest.importorskip("pandas")
     n_epos = 3
     ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
     n_picks = len(ch_names)
@@ -1444,12 +1442,10 @@ def test_to_data_frame_index(index):
         assert all(np.in1d(non_index, df.columns))
 
 
-@requires_pandas
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
-    from pandas import Timedelta
-
+    pd = pytest.importorskip("pandas")
     n_epos = 3
     ch_names = ["EEG 001", "EEG 002", "EEG 003", "EEG 004"]
     n_picks = len(ch_names)
@@ -1469,5 +1465,5 @@ def test_to_data_frame_time_format(time_format):
     )
     # test time_format
     df = tfr.to_data_frame(time_format=time_format)
-    dtypes = {None: np.float64, "ms": np.int64, "timedelta": Timedelta}
+    dtypes = {None: np.float64, "ms": np.int64, "timedelta": pd.Timedelta}
     assert isinstance(df["time"].iloc[0], dtypes[time_format])

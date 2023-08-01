@@ -13,7 +13,8 @@ from scipy import stats
 from scipy import linalg
 
 from mne.preprocessing.infomax_ import infomax
-from mne.utils import requires_sklearn
+
+pytest.importorskip("sklearn")
 
 
 def center_and_norm(x, axis=-1):
@@ -32,7 +33,6 @@ def center_and_norm(x, axis=-1):
     x /= x.std(axis=0)
 
 
-@requires_sklearn
 def test_infomax_blowup():
     """Test the infomax algorithm blowup condition."""
     # scipy.stats uses the global RNG:
@@ -72,7 +72,6 @@ def test_infomax_blowup():
     assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=2)
 
 
-@requires_sklearn
 def test_infomax_simple():
     """Test the infomax algorithm on very simple data."""
     rng = np.random.RandomState(0)
@@ -133,7 +132,6 @@ def test_infomax_weights_ini():
     assert_almost_equal(w2, weights)
 
 
-@requires_sklearn
 def test_non_square_infomax():
     """Test non-square infomax."""
     rng = np.random.RandomState(0)
