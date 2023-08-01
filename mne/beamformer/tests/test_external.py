@@ -11,7 +11,6 @@ import mne
 from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_cov
 from mne.beamformer.tests.test_lcmv import _get_data
 from mne.datasets import testing
-from mne.utils import requires_version
 
 data_path = testing.data_path(download=False)
 ft_data_path = data_path / "fieldtrip" / "beamformer"
@@ -64,7 +63,6 @@ def _get_bf_data(save_fieldtrip=False):
 
 # beamformer types to be tested: unit-gain (vector and scalar) and
 # unit-noise-gain (time series and power output [apply_lcmv_cov])
-@requires_version("pymatreader")
 @pytest.mark.parametrize(
     "bf_type, weight_norm, pick_ori, pwr",
     [
@@ -77,7 +75,7 @@ def _get_bf_data(save_fieldtrip=False):
 )
 def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     """Test LCMV vs fieldtrip output."""
-    from pymatreader import read_mat
+    pymatreader = pytest.importorskip("pymatreader")
 
     evoked, data_cov, fwd = _get_bf_data
 
@@ -98,7 +96,7 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
 
     # load the FieldTrip output
     ft_fname = ft_data_path / ("ft_source_" + bf_type + "-vol.mat")
-    stc_ft_data = read_mat(ft_fname)["stc"]
+    stc_ft_data = pymatreader.read_mat(ft_fname)["stc"]
     if stc_ft_data.ndim == 1:
         stc_ft_data.shape = (stc_ft_data.size, 1)
 

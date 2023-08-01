@@ -15,7 +15,7 @@ from mne.datasets import testing
 from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.constants import FIFF
-from mne.utils import get_config, catch_logging, requires_version
+from mne.utils import get_config, catch_logging
 from mne.channels import DigMontage
 from mne.coreg import Coregistration
 from mne.viz import _3d
@@ -308,10 +308,10 @@ def test_fullscreen(renderer_interactive_pyvistaqt):
 
 
 @pytest.mark.slowtest
-@requires_version("sphinx_gallery")
 @testing.requires_testing_data
 def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
     """Test the scrapper for the coregistration GUI."""
+    pytest.importorskip("sphinx_gallery")
     from mne.gui import coregistration
 
     coreg = coregistration(

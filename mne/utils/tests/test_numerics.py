@@ -31,7 +31,6 @@ from mne.utils import (
     _apply_scaling_array,
     _undo_scaling_array,
     _PCA,
-    requires_sklearn,
     _array_equal_nan,
     _julian_to_cal,
     _cal_to_julian,
@@ -433,11 +432,11 @@ def test_hash():
     assert object_hash(np.bool_(True)) != 0
 
 
-@requires_sklearn
 @pytest.mark.parametrize("n_components", (None, 0.9999, 8, "mle"))
 @pytest.mark.parametrize("whiten", (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
+    pytest.importorskip("sklearn")
     from sklearn.decomposition import PCA
 
     n_samples, n_dim = 1000, 10
