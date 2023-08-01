@@ -57,8 +57,10 @@ def test_search_light():
 
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
+    y_trans = sl.transform(X)
+    assert X.dtype == y_trans.dtype == float
     y_pred = sl.predict(X)
-    assert y_pred.dtype == float
+    assert y_pred.dtype == int
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
     y_proba = sl.predict_proba(X)
     assert y_proba.dtype == float
