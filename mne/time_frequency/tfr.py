@@ -2744,6 +2744,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     metadata : pandas.DataFrame, shape (n_events, n_cols) | None
         DataFrame containing pertinent information for each trial
+
     Notes
     -----
     .. versionadded:: 0.13.0

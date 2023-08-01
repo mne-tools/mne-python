@@ -84,7 +84,7 @@ def ICA(*args, **kwargs):
 def _skip_check_picard(method):
     if method == "picard":
         try:
-            import picard  # noqa, analysis:ignore
+            import picard  # noqa: F401, analysis:ignore
         except Exception as exp:
             pytest.skip("Picard is not installed (%s)." % (exp,))
 
