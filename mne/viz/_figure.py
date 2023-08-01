@@ -85,17 +85,18 @@ class BrowserBase(ABC):
         self.mne.whitened_ch_names = list()
         if hasattr(self.mne, "noise_cov"):
             self.mne.use_noise_cov = self.mne.noise_cov is not None
+        # allow up to 10000 zorder levels for annotations
         self.mne.zorder = dict(
             patch=0,
             grid=1,
             ann=2,
-            events=3,
-            bads=4,
-            data=5,
-            mag=6,
-            grad=7,
-            scalebar=8,
-            vline=9,
+            events=10003,
+            bads=10004,
+            data=10005,
+            mag=10006,
+            grad=10007,
+            scalebar=10008,
+            vline=10009,
         )
         # additional params for epochs (won't affect raw / ICA)
         self.mne.epoch_traces = list()

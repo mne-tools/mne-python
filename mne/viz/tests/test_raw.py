@@ -23,6 +23,7 @@ from mne.utils import (
     get_config,
     set_config,
     _assert_no_instances,
+    check_version,
 )
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress
@@ -745,6 +746,63 @@ def test_plot_annotations(raw, browser_backend):
         assert fig.mne.regions[0].isVisible()
 
 
+@pytest.mark.parametrize("active_annot_idx", (0, 1, 2))
+def test_overlapping_annotation_deletion(raw, browser_backend, active_annot_idx):
+    """Test deletion of annotations via right-click."""
+    ismpl = browser_backend.name == "matplotlib"
+    if not ismpl and not check_version("mne_qt_browser", "0.5.2"):
+        pytest.xfail("Old mne-qt-browser")
+    with raw.info._unlock():
+        raw.info["lowpass"] = 10.0
+    annot_labels = list("abc")
+    # the test applies to the middle three annotations; those before and after are
+    # there to ensure our bookkeeping works
+    annot = Annotations(
+        onset=[3, 3.4, 3.7, 13, 13.4, 13.7, 19, 19.4, 19.7],
+        duration=[2, 1, 3] * 3,
+        description=annot_labels * 3,
+    )
+    raw.set_annotations(annot)
+    start = 10
+    duration = 8
+    fig = raw.plot(start=start, duration=duration)
+
+    def _get_visible_labels(fig_dot_mne):
+        if ismpl:
+            # MPL backend's `fig.mne.annotation_texts` → only the visible ones
+            visible_labels = [x.get_text() for x in fig_dot_mne.annotation_texts]
+        else:
+            # PyQtGraph backend's `fig.mne.regions` → all annots (even offscreen ones)
+            # so we need to (1) get annotations from fig.mne.inst, and (2) compute
+            # ourselves which ones are visible.
+            _annot = fig_dot_mne.inst.annotations
+            _start = start + fig_dot_mne.inst.first_time
+            _end = _start + duration
+            visible_indices = np.nonzero(
+                np.logical_and(_annot.onset > _start, _annot.onset < _end)
+            )
+            visible_labels = np.array(
+                [x.label_item.toPlainText() for x in fig_dot_mne.regions]
+            )[visible_indices].tolist()
+        return visible_labels
+
+    assert annot_labels == _get_visible_labels(fig.mne)
+    fig._fake_keypress("a")  # start annotation mode
+    if ismpl:
+        buttons = fig.mne.fig_annotation.mne.radio_ax.buttons
+        buttons.set_active(active_annot_idx)
+        current_active = buttons.value_selected
+    else:
+        buttons = fig.mne.fig_annotation.description_cmbx
+        buttons.setCurrentIndex(active_annot_idx)
+        current_active = buttons.currentText()
+    assert current_active == annot_labels[active_annot_idx]
+    # x value of 14 is in area that overlaps all 3 visible annotations
+    fig._fake_click((14, 1.0), xform="data", button=3)
+    expected = set(annot_labels) - set(annot_labels[active_annot_idx])
+    assert expected == set(_get_visible_labels(fig.mne))
+
+
 @pytest.mark.parametrize("hide_which", ([], [0], [1], [0, 1]))
 def test_remove_annotations(raw, hide_which, browser_backend):
     """Test that right-click doesn't remove hidden annotation spans."""
@@ -763,7 +821,9 @@ def test_remove_annotations(raw, hide_which, browser_backend):
             hide_key = descriptions[hide_idx]
             fig.mne.visible_annotations[hide_key] = False
         fig._update_regions_visible()
-    fig._fake_click((2.5, 0.1), xform="data", button=3)
+    # always click twice: should not affect hidden annotation spans
+    for _ in descriptions:
+        fig._fake_click((2.5, 0.1), xform="data", button=3)
     assert len(raw.annotations) == len(hide_which)
 
 

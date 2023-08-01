@@ -190,6 +190,8 @@
 
 .. _Hamid Maymandi: https://github.com/HamidMandi
 
+.. _Hamza Abdelhedi: https://github.com/BabaSanfour
+
 .. _Hakimeh Pourakbari: https://github.com/Hpakbari
 
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
