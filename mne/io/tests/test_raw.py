@@ -36,7 +36,6 @@ from mne.utils import (
     _stamp_to_dt,
     object_diff,
     check_version,
-    requires_pandas,
     _import_h5io_funcs,
 )
 from mne.io.meas_info import _get_valid_units
@@ -844,10 +843,10 @@ def test_describe_print():
     )
 
 
-@requires_pandas
 @pytest.mark.slowtest
 def test_describe_df():
     """Test returned data frame of describe method."""
+    pytest.importorskip("pandas")
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
 
