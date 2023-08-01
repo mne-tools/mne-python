@@ -8,9 +8,10 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.constants import FIFF
+from mne.io.eyelink.eyelink import _adjust_times, _find_overlaps
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
-from mne.utils import _check_pandas_installed, requires_pandas
 
+pd = pytest.importorskip("pandas")
 
 MAPPING = {
     "left": ["xpos_left", "ypos_left", "pupil_left"],
@@ -41,7 +42,6 @@ def test_eyetrack_not_data_ch():
 
 
 @requires_testing_data
-@requires_pandas
 @pytest.mark.parametrize(
     "fname, create_annotations, find_overlaps, apply_offsets",
     [
@@ -122,7 +122,6 @@ def test_eyelink(fname, create_annotations, find_overlaps, apply_offsets):
 
 
 @requires_testing_data
-@requires_pandas
 @pytest.mark.parametrize("fname_href", [(fname_href)])
 def test_radian(fname_href):
     """Test converting HREF position data to radians."""
@@ -142,7 +141,6 @@ def test_radian(fname_href):
 
 
 @requires_testing_data
-@requires_pandas
 @pytest.mark.parametrize("fname", [(fname)])
 def test_fill_times(fname):
     """Test use of pd.merge_asof in _fill_times.
@@ -153,8 +151,6 @@ def test_fill_times(fname):
     with np.arange don't result in the time columns not merging
     correctly - i.e. 1560687.0 and 1560687.000001 should merge.
     """
-    from ..eyelink import _adjust_times
-
     raw = read_raw_eyelink(fname, create_annotations=False)
     sfreq = raw.info["sfreq"]
     # just take first 1000 points for testing
@@ -169,7 +165,6 @@ def test_fill_times(fname):
     assert df_merged["pupil_left"].isna().sum() == nan_count  # i.e. 0
 
 
-@requires_pandas
 def test_find_overlaps():
     """Test finding overlapping occular events between the left and right eyes.
 
@@ -180,9 +175,6 @@ def test_find_overlaps():
     (4.20 - 4.14 = .06). The 5th and 6th rows will not be considered an
     overlap because they are both left eye events.
     """
-    from ..eyelink import _find_overlaps
-
-    pd = _check_pandas_installed()
     blink_df = pd.DataFrame(
         {
             "eye": ["L", "R", "L", "R", "L", "L"],
@@ -253,7 +245,6 @@ def _simulate_eye_tracking_data(in_file, out_file):
 
 
 @requires_testing_data
-@requires_pandas
 @pytest.mark.parametrize("fname", [fname_href])
 def test_multi_block_misc_channels(fname, tmp_path):
     """Test an eyelink file with multiple blocks and additional misc channels."""

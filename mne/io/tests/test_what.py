@@ -11,16 +11,16 @@ from mne import what, create_info
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.preprocessing import ICA
-from mne.utils import requires_sklearn, _record_warnings
+from mne.utils import _record_warnings
 
 data_path = testing.data_path(download=False)
 
 
 @pytest.mark.slowtest
-@requires_sklearn
 @testing.requires_testing_data
 def test_what(tmp_path, verbose_debug):
     """Test mne.what."""
+    pytest.importorskip("sklearn")
     # ICA
     ica = ICA(max_iter=1)
     raw = RawArray(np.random.RandomState(0).randn(3, 10), create_info(3, 1000.0, "eeg"))

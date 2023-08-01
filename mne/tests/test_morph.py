@@ -35,7 +35,7 @@ from mne._freesurfer import _get_mri_info_data, _get_atlas_values
 from mne.minimum_norm import apply_inverse, read_inverse_operator, make_inverse_operator
 from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
-from mne.utils import check_version, requires_version, catch_logging, _record_warnings
+from mne.utils import check_version, catch_logging, _record_warnings
 
 # Setup paths
 
@@ -297,10 +297,10 @@ def assert_power_preserved(orig, new, limits=(1.0, 1.05)):
         assert min_ < power_ratio < max_, f"Power ratio {kind} = {power_ratio}"
 
 
-@requires_version("h5io")
 @testing.requires_testing_data
 def test_surface_vector_source_morph(tmp_path):
     """Test surface and vector source estimate morph."""
+    pytest.importorskip("h5io")
     inverse_operator_surf = read_inverse_operator(fname_inv_surf)
 
     stc_surf = read_source_estimate(fname_smorph, subject="sample")
@@ -354,12 +354,12 @@ def test_surface_vector_source_morph(tmp_path):
         source_morph_surf.apply(stc_vol)
 
 
-@requires_version("h5io")
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_volume_source_morph_basic(tmp_path):
     """Test volume source estimate morph, special cases and exceptions."""
     nib = pytest.importorskip("nibabel")
+    pytest.importorskip("h5io")
     pytest.importorskip("dipy")
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
     stc_vol = read_source_estimate(fname_vol_w, "sample")
@@ -551,7 +551,6 @@ def test_volume_source_morph_basic(tmp_path):
     assert_allclose(img_vol, img_vol_2)
 
 
-@requires_version("h5io")
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
@@ -569,6 +568,7 @@ def test_volume_source_morph_round_trip(
 ):
     """Test volume source estimate morph round-trips well."""
     nib = pytest.importorskip("nibabel")
+    pytest.importorskip("h5io")
     pytest.importorskip("dipy")
     from nibabel.processing import resample_from_to
 
