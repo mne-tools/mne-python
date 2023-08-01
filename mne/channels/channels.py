@@ -37,10 +37,12 @@ from ..utils import (
     legacy,
 )
 from ..io.constants import FIFF
-from ..io.meas_info import (
+from ..io.meas_info import (  # noqa F401
     Info,
+    MontageMixin,
     create_info,
     _rename_comps,
+    _unit2human,  # TODO: pybv relies on this, should be made public
 )
 from ..io.pick import (
     channel_type,
@@ -234,6 +236,57 @@ def equalize_channels(instances, copy=True, verbose=None):
         logger.info("Channels have been re-ordered.")
 
     return equalized_instances
+
+
+class ReferenceMixin(MontageMixin):
+    """Mixin class for Raw, Evoked, Epochs."""
+
+    @verbose
+    def set_eeg_reference(
+        self,
+        ref_channels="average",
+        projection=False,
+        ch_type="auto",
+        forward=None,
+        *,
+        joint=False,
+        verbose=None,
+    ):
+        """Specify which reference to use for EEG data.
+
+        Use this function to explicitly specify the desired reference for EEG.
+        This can be either an existing electrode or a new virtual channel.
+        This function will re-reference the data according to the desired
+        reference.
+
+        Parameters
+        ----------
+        %(ref_channels_set_eeg_reference)s
+        %(projection_set_eeg_reference)s
+        %(ch_type_set_eeg_reference)s
+        %(forward_set_eeg_reference)s
+        %(joint_set_eeg_reference)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            Data with EEG channels re-referenced. If ``ref_channels='average'``
+            and ``projection=True`` a projection will be added instead of
+            directly re-referencing the data.
+        %(set_eeg_reference_see_also_notes)s
+        """
+        from ..io.reference import set_eeg_reference
+
+        return set_eeg_reference(
+            self,
+            ref_channels=ref_channels,
+            copy=False,
+            projection=projection,
+            ch_type=ch_type,
+            forward=forward,
+            joint=joint,
+        )[0]
 
 
 class UpdateChannelsMixin:

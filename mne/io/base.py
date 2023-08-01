@@ -32,6 +32,7 @@ from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (
     UpdateChannelsMixin,
     InterpolationMixin,
+    ReferenceMixin,
 )
 from .meas_info import _unit2human
 from .compensator import set_current_comp, make_compensator
@@ -108,6 +109,7 @@ class BaseRaw(
     ProjMixin,
     ContainsMixin,
     UpdateChannelsMixin,
+    ReferenceMixin,
     SetChannelsMixin,
     InterpolationMixin,
     TimeMixin,

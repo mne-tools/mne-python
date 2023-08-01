@@ -12,7 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import UpdateChannelsMixin, InterpolationMixin
+from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .filter import detrend, FilterMixin, _check_fun
@@ -99,6 +99,7 @@ class Evoked(
     ProjMixin,
     ContainsMixin,
     UpdateChannelsMixin,
+    ReferenceMixin,
     SetChannelsMixin,
     InterpolationMixin,
     FilterMixin,

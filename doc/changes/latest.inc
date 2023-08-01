@@ -34,6 +34,7 @@ Enhancements
 - Added a section for combining eye-tracking and EEG data to the preprocessing tutorial "working with eye tracker data in MNE-Python" (:gh:`11770` by `Scott Huberty`_)
 - Added a ``show_bytes`` option to :ref:`mne show_fiff` to show byte offsets (:gh:`11800` by `Eric Larson`_)
 - Add :meth:`mne.Annotations.count` and :func:`mne.count_annotations` to count unique annotations (:gh:`11796` by `Clemens Brunner`_)
+- Add :meth:`mne.Info.set_channel_types`, :meth:`mne.Info.rename_channels`, :meth:`mne.Info.plot_sensors`, :meth:`mne.Info.anonymize`, :meth:`mne.Info.set_meas_date` (:gh:`11839` by `Alex Rockhill`_)
 - Curry and NEDF raw files can now also be read with the generic :func:`mne.io.read_raw` function (:gh:`11841` by `Richard Höchenberger`_)
 
 Bugs
