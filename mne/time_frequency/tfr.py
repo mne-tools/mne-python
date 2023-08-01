@@ -1138,6 +1138,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin)
 
     def __init__(self):
         self.baseline = None
+        self._decim = 1
 
     @property
     def data(self):
@@ -2809,7 +2810,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         self.data = data
         self._set_times(np.array(times, dtype=float))
         self._raw_times = self.times.copy()  # needed for decimate
-        self._decim = 1
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
         self.event_id = event_id
