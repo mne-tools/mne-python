@@ -191,6 +191,7 @@ class GetEpochsMixin:
         return_indices: bool
             return the indices of selected epochs from the original object
             in addition to the new `Epochs` objects
+
         Returns
         -------
         `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True

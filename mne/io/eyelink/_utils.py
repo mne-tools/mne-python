@@ -135,6 +135,8 @@ def _adjust_times(
 def _find_overlaps(df, max_time=0.05):
     """Merge left/right eye events with onset/offset diffs less than max_time.
 
+    Parameters
+    ----------
     df : pandas.DataFrame
         Pandas DataFrame with occular events (fixations, saccades, blinks)
     max_time : float (default 0.05)
@@ -144,6 +146,7 @@ def _find_overlaps(df, max_time=0.05):
     -------
     DataFrame: %(df_return)s
         :class:`pandas.DataFrame` specifying overlapped eye events, if any
+
     Notes
     -----
     The idea is to cumulative sum the boolean values for rows with onset and
