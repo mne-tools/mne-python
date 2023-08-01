@@ -552,10 +552,6 @@ class TimeMixin:
 
         return start, stop
 
-
-class ExtendedTimeMixin(TimeMixin):
-    """Class for time operations on epochs/evoked-like MNE objects."""
-
     @property
     def times(self):
         """Time vector in seconds."""
@@ -567,6 +563,10 @@ class ExtendedTimeMixin(TimeMixin):
         # changed directly, but rather via this method
         self._times_readonly = times.copy()
         self._times_readonly.flags["WRITEABLE"] = False
+
+
+class ExtendedTimeMixin(TimeMixin):
+    """Class for time operations on epochs/evoked-like MNE objects."""
 
     @property
     def tmin(self):
@@ -749,9 +749,9 @@ class ExtendedTimeMixin(TimeMixin):
 
     def _update_first_last(self):
         """Update self.first and self.last (sample indices)."""
-        from .. import Evoked
+        from .. import Evoked, DipoleFixed
 
-        if isinstance(self, Evoked):
+        if isinstance(self, (Evoked, DipoleFixed)):
             self.first = int(round(self.times[0] * self.info["sfreq"]))
             self.last = len(self.times) + self.first - 1
 
