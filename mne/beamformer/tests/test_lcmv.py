@@ -42,7 +42,7 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
-from mne.utils import object_diff, requires_version, catch_logging, _record_warnings
+from mne.utils import object_diff, catch_logging, _record_warnings
 
 
 data_path = testing.data_path(download=False)
@@ -257,7 +257,6 @@ def test_lcmv_vector():
 
 
 @pytest.mark.slowtest
-@requires_version("h5io")
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "reg, proj, kind",
@@ -270,6 +269,7 @@ def test_lcmv_vector():
 )
 def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     """Test LCMV with evoked data and single trials."""
+    pytest.importorskip("h5io")
     (
         raw,
         epochs,

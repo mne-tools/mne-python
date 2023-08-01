@@ -5048,7 +5048,7 @@ def copy_function_doc_to_method_doc(source):
             -----
             .. versionadded:: 0.13.0
     <BLANKLINE>
-    """
+    """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
         doc = source.__doc__.split("\n")

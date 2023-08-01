@@ -53,6 +53,7 @@ stages:
         set -eo pipefail
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
+        python -m pip uninstall -yq pytest-qt  # don't want to set up display, etc. for this
         pre-commit install --install-hooks
       displayName: Install dependencies
     - bash: |
@@ -190,7 +191,7 @@ stages:
         set -e
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
+        PYTEST_QT_API=PySide6 pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide6
       displayName: 'PySide6'
     - bash: |
@@ -200,7 +201,7 @@ stages:
         # LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
+        PYTEST_QT_API=PyQt6 pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
       displayName: 'PyQt6'
     - bash: |
@@ -208,7 +209,7 @@ stages:
         python -m pip install PySide2
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PySide2=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
+        PYTEST_QT_API=PySide2 pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide2
       displayName: 'PySide2'
     # PyQt5 leaves cruft behind, so run it last
@@ -217,7 +218,7 @@ stages:
         python -m pip install PyQt5
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
+        PYTEST_QT_API=PyQt5 pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
       displayName: 'PyQt5'
     # Coverage

@@ -25,7 +25,6 @@ import pytest
 from mne import pick_types, Annotations
 from mne.annotations import events_from_annotations, read_annotations
 from mne.datasets import testing
-from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import (
@@ -378,10 +377,10 @@ def test_no_data_channels():
         read_raw_edf(edf_annot_only)
 
 
-@requires_pandas
 @pytest.mark.parametrize("fname", [edf_path, bdf_path])
 def test_to_data_frame(fname):
     """Test EDF/BDF Raw Pandas exporter."""
+    pytest.importorskip("pandas")
     ext = fname.suffix
     if ext == ".edf":
         raw = read_raw_edf(fname, preload=True, verbose="error")
