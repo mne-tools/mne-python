@@ -36,7 +36,7 @@ from .utils import (
     _check_time_format,
     _check_preload,
     _check_fname,
-    TimeMixin,
+    ExtendedTimeMixin,
 )
 from .viz import (
     plot_evoked,
@@ -101,7 +101,7 @@ class Evoked(
     SetChannelsMixin,
     InterpolationMixin,
     FilterMixin,
-    TimeMixin,
+    ExtendedTimeMixin,
     SizeMixin,
     SpectrumMixin,
 ):

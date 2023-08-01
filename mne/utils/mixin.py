@@ -481,7 +481,80 @@ def _check_decim(info, decim, offset, check_filter=True):
 
 
 class TimeMixin:
-    """Class to handle operations on time for MNE objects."""
+    """Class for time operations on any MNE object that has a time axis."""
+
+    def time_as_index(self, times, use_rounding=False):
+        """Convert time to indices.
+
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_rounding : bool
+            If True, use rounding (instead of truncation) when converting
+            times to indices. This can help avoid non-unique indices.
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        from ..source_estimate import _BaseSourceEstimate
+
+        if isinstance(self, _BaseSourceEstimate):
+            sfreq = 1.0 / self.tstep
+        else:
+            sfreq = self.info["sfreq"]
+        index = (np.atleast_1d(times) - self.times[0]) * sfreq
+        if use_rounding:
+            index = np.round(index)
+        return index.astype(int)
+
+    def _handle_tmin_tmax(self, tmin, tmax):
+        """Convert seconds to index into data.
+
+        Parameters
+        ----------
+        tmin : int | float | None
+            Start time of data to get in seconds.
+        tmax : int | float | None
+            End time of data to get in seconds.
+
+        Returns
+        -------
+        start : int
+            Integer index into data corresponding to tmin.
+        stop : int
+            Integer index into data corresponding to tmax.
+
+        """
+        _validate_type(
+            tmin,
+            types=("numeric", None),
+            item_name="tmin",
+            type_name="int, float, None",
+        )
+        _validate_type(
+            tmax,
+            types=("numeric", None),
+            item_name="tmax",
+            type_name="int, float, None",
+        )
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin)[0]
+        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
+        return start, stop
+
+
+class ExtendedTimeMixin(TimeMixin):
+    """Class for time operations on epochs/evoked-like MNE objects."""
 
     @property
     def times(self):
@@ -565,7 +638,7 @@ class TimeMixin:
         return self
 
     @verbose
-    def decimate(self, decim, offset=0, verbose=None):
+    def decimate(self, decim, offset=0, *, verbose=None):
         """Decimate the time-series data.
 
         Parameters
@@ -599,98 +672,48 @@ class TimeMixin:
         # if epochs have frequencies, they are not in time (EpochsTFR)
         # and so do not need to be checked whether they have been
         # appropriately filtered to avoid aliasing
+        from .. import Evoked, BaseEpochs
+        from ..time_frequency import EpochsTFR, AverageTFR
+
+        # This should be the list of classes that inherit
+        _validate_type(self, (BaseEpochs, Evoked, EpochsTFR, AverageTFR), "inst")
         decim, offset, new_sfreq = _check_decim(
             self.info, decim, offset, check_filter=not hasattr(self, "freqs")
         )
-        start_idx = int(round(-self._raw_times[0] * (self.info["sfreq"] * self._decim)))
-        self._decim *= decim
-        i_start = start_idx % self._decim + offset
-        decim_slice = slice(i_start, None, self._decim)
+        if isinstance(self, (BaseEpochs, EpochsTFR)):
+            kind = "epochs"
+            start_idx = int(
+                round(-self._raw_times[0] * (self.info["sfreq"] * self._decim))
+            )
+            self._decim *= decim
+            i_start = start_idx % self._decim + offset
+            decim_slice = slice(i_start, None, self._decim)
+        else:
+            kind = "evoked"
+            decim_slice = slice(offset, None, decim)
         with self.info._unlock():
             self.info["sfreq"] = new_sfreq
 
         if self.preload:
             if decim != 1:
                 self._data = self._data[..., decim_slice].copy()
-                self._raw_times = self._raw_times[decim_slice].copy()
+                if kind == "epochs":
+                    self._raw_times = self._raw_times[decim_slice].copy()
             else:
                 self._data = np.ascontiguousarray(self._data)
-            self._decim_slice = slice(None)
-            self._decim = 1
+            if kind == "epochs":
+                self._decim_slice = slice(None)
+                self._decim = 1
         else:
+            assert kind == "epochs"  # the only non-preload we allow
             self._decim_slice = decim_slice
-        self._set_times(self._raw_times[self._decim_slice])
+        if kind == "epochs":
+            times = self._raw_times[self._decim_slice]
+        else:
+            times = self.times[decim_slice]
+        self._set_times(times)
         self._update_first_last()
         return self
-
-    def time_as_index(self, times, use_rounding=False):
-        """Convert time to indices.
-
-        Parameters
-        ----------
-        times : list-like | float | int
-            List of numbers or a number representing points in time.
-        use_rounding : bool
-            If True, use rounding (instead of truncation) when converting
-            times to indices. This can help avoid non-unique indices.
-
-        Returns
-        -------
-        index : ndarray
-            Indices corresponding to the times supplied.
-        """
-        from ..source_estimate import _BaseSourceEstimate
-
-        if isinstance(self, _BaseSourceEstimate):
-            sfreq = 1.0 / self.tstep
-        else:
-            sfreq = self.info["sfreq"]
-        index = (np.atleast_1d(times) - self.times[0]) * sfreq
-        if use_rounding:
-            index = np.round(index)
-        return index.astype(int)
-
-    def _handle_tmin_tmax(self, tmin, tmax):
-        """Convert seconds to index into data.
-
-        Parameters
-        ----------
-        tmin : int | float | None
-            Start time of data to get in seconds.
-        tmax : int | float | None
-            End time of data to get in seconds.
-
-        Returns
-        -------
-        start : int
-            Integer index into data corresponding to tmin.
-        stop : int
-            Integer index into data corresponding to tmax.
-
-        """
-        _validate_type(
-            tmin,
-            types=("numeric", None),
-            item_name="tmin",
-            type_name="int, float, None",
-        )
-        _validate_type(
-            tmax,
-            types=("numeric", None),
-            item_name="tmax",
-            type_name="int, float, None",
-        )
-
-        # handle tmin/tmax as start and stop indices into data array
-        n_times = self.times.size
-        start = 0 if tmin is None else self.time_as_index(tmin)[0]
-        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
-
-        # truncate start/stop to the open interval [0, n_times]
-        start = min(max(0, start), n_times)
-        stop = min(max(0, stop), n_times)
-
-        return start, stop
 
     def shift_time(self, tshift, relative=True):
         """Shift time scale in epoched or evoked data.
@@ -726,8 +749,11 @@ class TimeMixin:
 
     def _update_first_last(self):
         """Update self.first and self.last (sample indices)."""
-        self.first = int(round(self.times[0] * self.info["sfreq"]))
-        self.last = len(self.times) + self.first - 1
+        from .. import Evoked
+
+        if isinstance(self, Evoked):
+            self.first = int(round(self.times[0] * self.info["sfreq"]))
+            self.last = len(self.times) + self.first - 1
 
 
 def _prepare_write_metadata(metadata):

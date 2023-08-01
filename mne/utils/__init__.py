@@ -202,6 +202,7 @@ from .mixin import (
     SizeMixin,
     GetEpochsMixin,
     TimeMixin,
+    ExtendedTimeMixin,
     _prepare_read_metadata,
     _prepare_write_metadata,
     _FakeNoPandas,

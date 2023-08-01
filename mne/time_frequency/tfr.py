@@ -27,7 +27,7 @@ from ..utils import (
     check_fname,
     sizeof_fmt,
     GetEpochsMixin,
-    TimeMixin,
+    ExtendedTimeMixin,
     _prepare_read_metadata,
     fill_doc,
     _prepare_write_metadata,
@@ -1133,7 +1133,7 @@ def tfr_multitaper(
 # TFR(s) class
 
 
-class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
     """Base TFR class."""
 
     def __init__(self):
