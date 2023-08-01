@@ -460,53 +460,6 @@ def _check_set(ch, projs, ch_type):
 class SetChannelsMixin(MontageMixin):
     """Mixin class for Raw, Evoked, Epochs."""
 
-    @verbose
-    def set_eeg_reference(
-        self,
-        ref_channels="average",
-        projection=False,
-        ch_type="auto",
-        forward=None,
-        *,
-        joint=False,
-        verbose=None,
-    ):
-        """Specify which reference to use for EEG data.
-
-        Use this function to explicitly specify the desired reference for EEG.
-        This can be either an existing electrode or a new virtual channel.
-        This function will re-reference the data according to the desired
-        reference.
-
-        Parameters
-        ----------
-        %(ref_channels_set_eeg_reference)s
-        %(projection_set_eeg_reference)s
-        %(ch_type_set_eeg_reference)s
-        %(forward_set_eeg_reference)s
-        %(joint_set_eeg_reference)s
-        %(verbose)s
-
-        Returns
-        -------
-        inst : instance of Raw | Epochs | Evoked
-            Data with EEG channels re-referenced. If ``ref_channels='average'``
-            and ``projection=True`` a projection will be added instead of
-            directly re-referencing the data.
-        %(set_eeg_reference_see_also_notes)s
-        """
-        from ..io.reference import set_eeg_reference
-
-        return set_eeg_reference(
-            self,
-            ref_channels=ref_channels,
-            copy=False,
-            projection=projection,
-            ch_type=ch_type,
-            forward=forward,
-            joint=joint,
-        )[0]
-
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
 
@@ -519,8 +472,9 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        picks = _picks_to_idx(self.info, picks)
-        chs = self.info["chs"]
+        info = self if isinstance(self, Info) else self.info
+        picks = _picks_to_idx(info, picks)
+        chs = info["chs"]
         pos = np.array([chs[k]["loc"][:3] for k in picks])
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
@@ -543,6 +497,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
+        info = self if isinstance(self, Info) else self.info
         if len(pos) != len(names):
             raise ValueError(
                 "Number of channel positions not equal to " "the number of names given."
@@ -556,7 +511,7 @@ class SetChannelsMixin(MontageMixin):
         for name, p in zip(names, pos):
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
-                self.info["chs"][idx]["loc"][:3] = p
+                info["chs"][idx]["loc"][:3] = p
             else:
                 msg = "%s was not found in the info. Cannot be updated." % name
                 raise ValueError(msg)
@@ -596,7 +551,8 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.9.0
         """
-        ch_names = self.info["ch_names"]
+        info = self if isinstance(self, Info) else self.info
+        ch_names = info["ch_names"]
 
         # first check and assemble clean mappings of index and name
         unit_changes = dict()
@@ -614,8 +570,8 @@ class SetChannelsMixin(MontageMixin):
                     "are %s." % (ch_type, ", ".join(sorted(_human2unit.keys())))
                 )
             # Set sensor type
-            _check_set(self.info["chs"][c_ind], self.info["projs"], ch_type)
-            unit_old = self.info["chs"][c_ind]["unit"]
+            _check_set(info["chs"][c_ind], info["projs"], ch_type)
+            unit_old = info["chs"][c_ind]["unit"]
             unit_new = _human2unit[ch_type]
             if unit_old not in _unit2human:
                 raise ValueError(
@@ -628,8 +584,8 @@ class SetChannelsMixin(MontageMixin):
                     unit_changes[this_change] = list()
                 unit_changes[this_change].append(ch_name)
                 # reset unit multiplication factor since the unit has now changed
-                self.info["chs"][c_ind]["unit_mul"] = _ch_unit_mul_named[0]
-            self.info["chs"][c_ind]["unit"] = _human2unit[ch_type]
+                info["chs"][c_ind]["unit_mul"] = _ch_unit_mul_named[0]
+            info["chs"][c_ind]["unit"] = _human2unit[ch_type]
             if ch_type in ["eeg", "seeg", "ecog", "dbs"]:
                 coil_type = FIFF.FIFFV_COIL_EEG
             elif ch_type == "hbo":
@@ -650,7 +606,7 @@ class SetChannelsMixin(MontageMixin):
                 coil_type = FIFF.FIFFV_COIL_EYETRACK_PUPIL
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
-            self.info["chs"][c_ind]["coil_type"] = coil_type
+            info["chs"][c_ind]["coil_type"] = coil_type
 
         msg = "The unit for channel(s) {0} has changed from {1} to {2}."
         for this_change, names in unit_changes.items():
@@ -686,13 +642,15 @@ class SetChannelsMixin(MontageMixin):
         from . import BaseRaw
         from ..channels.channels import rename_channels
 
-        ch_names_orig = list(self.info["ch_names"])
-        rename_channels(self.info, mapping, allow_duplicates)
+        info = self if isinstance(self, Info) else self.info
+
+        ch_names_orig = list(info["ch_names"])
+        rename_channels(info, mapping, allow_duplicates)
 
         # Update self._orig_units for Raw
         if isinstance(self, BaseRaw):
             # whatever mapping was provided, now we can just use a dict
-            mapping = dict(zip(ch_names_orig, self.info["ch_names"]))
+            mapping = dict(zip(ch_names_orig, info["ch_names"]))
             for old_name, new_name in mapping.items():
                 if old_name in self._orig_units:
                     self._orig_units[new_name] = self._orig_units.pop(old_name)
@@ -787,10 +745,11 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.12.0
         """
+        from ..io import Info
         from ..viz.utils import plot_sensors
 
         return plot_sensors(
-            self.info,
+            self if isinstance(self, Info) else self.info,
             kind=kind,
             ch_type=ch_type,
             title=title,
@@ -825,8 +784,9 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.13.0
         """
-        anonymize_info(self.info, daysback=daysback, keep_his=keep_his, verbose=verbose)
-        self.set_meas_date(self.info["meas_date"])  # unify annot update
+        info = self if isinstance(self, Info) else self.info
+        anonymize_info(info, daysback=daysback, keep_his=keep_his, verbose=verbose)
+        self.set_meas_date(info["meas_date"])  # unify annot update
         return self
 
     def set_meas_date(self, meas_date):
@@ -861,14 +821,16 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..annotations import _handle_meas_date
 
+        info = self if isinstance(self, Info) else self.info
+
         meas_date = _handle_meas_date(meas_date)
-        with self.info._unlock():
-            self.info["meas_date"] = meas_date
+        with info._unlock():
+            info["meas_date"] = meas_date
 
         # clear file_id and meas_id if needed
         if meas_date is None:
             for key in ("file_id", "meas_id"):
-                value = self.info.get(key)
+                value = info.get(key)
                 if value is not None:
                     assert "msecs" not in value
                     value["secs"] = DATE_NONE[0]
@@ -1030,7 +992,7 @@ def _check_helium_info(helium_info):
     return helium_info
 
 
-class Info(dict, MontageMixin, ContainsMixin):
+class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
