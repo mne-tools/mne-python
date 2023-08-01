@@ -230,7 +230,7 @@ def test_edf_different_sfreqs(stim_channel):
     # edge artifacts than when loading the entire file at once
     with pytest.warns(RuntimeWarning, match="mixed sampling frequencies"):
         data1, times1 = raw1[picks, :512]
-with pytest.warns(RuntimeWarning, match="mixed sampling frequencies"):
+    with pytest.warns(RuntimeWarning, match="mixed sampling frequencies"):
         data2, times2 = raw2[picks, :512]
 
     # should NOT throw a warning when loading channels that have all the same
