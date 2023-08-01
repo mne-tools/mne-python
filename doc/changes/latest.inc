@@ -45,6 +45,7 @@ Bugs
 - Extended test to highlight bug in :func:`mne.stats.permutation_t_test` (:gh:`11575` by :newcontrib:`Joshua Calder-Travis`)
 - Fix bug that used wrong indices for line/label styles (sometimes causing an ``IndexError``) in :meth:`mne.preprocessing.ICA.plot_sources` under certain conditions (:gh:`11808` by :newcontrib:`Joshua Calder-Travis`)
 - Fix bug with :func:`~mne.io.read_raw_snirf` to handle files with measurement time containing milliseconds (:gh:`11804` by :newcontrib:`Daniel Tse`)
+- Fix loading of EDF with mixed sampling frequencies with :func:`mne.io.read_raw_edf`: Upsampling is now applied to the entire signal and no longer block based, significantly reducing edge artifacts (:gh:`11549` by `Simon Kern`_)
 - Fix bug where :func:`mne.io.read_raw_cnt` imports unnecessary durations (:gh:`11828` by `Jacob Woessner`_)
 - Fix bug where :meth:`mne.viz.Brain.add_volume_labels` used an incorrect orientation (:gh:`11730` by `Alex Rockhill`_)
 - Fix bug with :func:`mne.forward.restrict_forward_to_label` where cortical patch information was not adjusted (:gh:`11694` by `Eric Larson`_)
