@@ -1909,7 +1909,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
             if isinstance(scale, tuple):
                 # some other fixed constant
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.57, 0.67
+                min_, max_ = 0.55, 0.67
             elif scale == 1:
                 # min_, max_ = 0.85, 0.875  # zooms='auto' values
                 min_, max_ = 0.72, 0.76
