@@ -34,10 +34,12 @@ Enhancements
 - Added a section for combining eye-tracking and EEG data to the preprocessing tutorial "working with eye tracker data in MNE-Python" (:gh:`11770` by `Scott Huberty`_)
 - Added a ``show_bytes`` option to :ref:`mne show_fiff` to show byte offsets (:gh:`11800` by `Eric Larson`_)
 - Add :meth:`mne.Annotations.count` and :func:`mne.count_annotations` to count unique annotations (:gh:`11796` by `Clemens Brunner`_)
+- Curry and NEDF raw files can now also be read with the generic :func:`mne.io.read_raw` function (:gh:`11841` by `Richard Höchenberger`_)
 - Add tutorial about power spectral density interpretation in :ref:`tut-sensors-psd` (:gh:`11812` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
+- Fix bug in :func:`mne.bem.convert_flash_mris` to handle missing "flash5_reg.mgz" when processing "flash30" data. (:gh:`11842` by :newcontrib:`Hamza Abdelhedi`)
 - Fix bug where epochs ``event_id`` was not kept by :func:`mne.channels.combine_channels` (:gh:`11786` by :newcontrib:`Samuel Louviot`)
 - Fix bug where user-provided codec was not used to read annotations when loading EEGLAB ``.set`` files (:gh:`11773` by :newcontrib:`Yiping Zuo`)
 - Fix bug that required curv.*h files to create Brain object (:gh:`11704` by :newcontrib:`Aaron Earle-Richardson`)
