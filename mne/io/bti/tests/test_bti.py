@@ -3,8 +3,9 @@
 # License: BSD-3-Clause
 
 from collections import Counter
-from io import BytesIO
 from functools import reduce, partial
+from io import BytesIO
+import os
 from pathlib import Path
 
 import numpy as np
@@ -185,6 +186,10 @@ def test_raw(pdf, config, hs, exported, tmp_path):
             assert ra.info[key] is not None
             for ent in ("to", "from", "trans"):
                 assert_allclose(ex.info[key][ent], ra.info[key][ent])
+
+    # MNE-BIDS needs these
+    for key in ("pdf_fname", "config_fname", "head_shape_fname"):
+        assert os.path.isfile(ra._raw_extras[0][key])
 
     ra.save(tmp_raw_fname)
     re = read_raw_fif(tmp_raw_fname)
