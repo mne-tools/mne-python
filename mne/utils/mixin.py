@@ -680,38 +680,24 @@ class ExtendedTimeMixin(TimeMixin):
         decim, offset, new_sfreq = _check_decim(
             self.info, decim, offset, check_filter=not hasattr(self, "freqs")
         )
-        if isinstance(self, (BaseEpochs, EpochsTFR)):
-            kind = "epochs"
-            start_idx = int(
-                round(-self._raw_times[0] * (self.info["sfreq"] * self._decim))
-            )
-            self._decim *= decim
-            i_start = start_idx % self._decim + offset
-            decim_slice = slice(i_start, None, self._decim)
-        else:
-            kind = "evoked"
-            decim_slice = slice(offset, None, decim)
+        start_idx = int(round(-self._raw_times[0] * (self.info["sfreq"] * self._decim)))
+        self._decim *= decim
+        i_start = start_idx % self._decim + offset
+        decim_slice = slice(i_start, None, self._decim)
         with self.info._unlock():
             self.info["sfreq"] = new_sfreq
 
         if self.preload:
             if decim != 1:
                 self._data = self._data[..., decim_slice].copy()
-                if kind == "epochs":
-                    self._raw_times = self._raw_times[decim_slice].copy()
+                self._raw_times = self._raw_times[decim_slice].copy()
             else:
                 self._data = np.ascontiguousarray(self._data)
-            if kind == "epochs":
-                self._decim_slice = slice(None)
-                self._decim = 1
+            self._decim_slice = slice(None)
+            self._decim = 1
         else:
-            assert kind == "epochs"  # the only non-preload we allow
             self._decim_slice = decim_slice
-        if kind == "epochs":
-            times = self._raw_times[self._decim_slice]
-        else:
-            times = self.times[decim_slice]
-        self._set_times(times)
+        self._set_times(self._raw_times[self._decim_slice])
         self._update_first_last()
         return self
 
