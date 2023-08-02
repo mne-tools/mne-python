@@ -24,7 +24,6 @@ jobs:
       resource_class: macos.m1.medium.gen1
       environment:
         HOMEBREW_NO_AUTO_UPDATE: 1
-        CI_OS_NAME: macos-arm64  # make github_actions_test.sh happy
       steps:
         - checkout
         - run:
@@ -40,7 +39,7 @@ jobs:
         - run:
             command: mne sys_info
         - run:
-            command: bash ./tools/github_actions_test.sh
+            command: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report xml -vv mne
         - run:
             command: cp -av *.xml test-results
         - store_test_results:
