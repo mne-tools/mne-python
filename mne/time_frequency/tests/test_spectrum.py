@@ -386,7 +386,7 @@ def test_spectrum_kwarg_triaging(raw):
     raw.plot_psd(ax=axes)
 
 
-def _get_psd_varients(raw_psds, epochs_psds):
+def _get_psd_variants(raw_psds, epochs_psds):
     psds = list()
     for raw_psd in raw_psds:
         data = raw_psd.get_data()
@@ -459,7 +459,7 @@ def test_spectrum_arrays(raw_psds, epochs_psds, tmp_path):
             info=epochs_psds[1].info,
             method="multitaper",
         )
-    psds = _get_psd_varients(raw_psds, epochs_psds)
+    psds = _get_psd_variants(raw_psds, epochs_psds)
     for psd2, psd in zip(
         psds,
         [psd for tup in zip(raw_psds, raw_psds) for psd in tup]
@@ -483,7 +483,7 @@ def test_spectrum_arrays(raw_psds, epochs_psds, tmp_path):
 
 def test_plot_spectrum_array(raw_psds, epochs_psds):
     """Test SpectrumArray and EpochsSpectrumArray plotting."""
-    psds = _get_psd_varients(raw_psds, epochs_psds)
+    psds = _get_psd_variants(raw_psds, epochs_psds)
     for psd in psds:
         psd.plot(average=True, amplitude=True, spatial_colors=True)
         psd.plot(average=False, amplitude=False, spatial_colors=False)
