@@ -22,14 +22,19 @@ import numpy as np
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
 from .pick import pick_types, pick_channels, pick_info, _picks_to_idx, channel_type
-from .meas_info import write_meas_info, _ensure_infos_match, ContainsMixin
+from .meas_info import (
+    write_meas_info,
+    _ensure_infos_match,
+    ContainsMixin,
+    SetChannelsMixin,
+)
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (
     UpdateChannelsMixin,
-    SetChannelsMixin,
     InterpolationMixin,
-    _unit2human,
+    ReferenceMixin,
 )
+from .meas_info import _unit2human
 from .compensator import set_current_comp, make_compensator
 from .write import (
     start_and_end_file,
@@ -104,6 +109,7 @@ class BaseRaw(
     ProjMixin,
     ContainsMixin,
     UpdateChannelsMixin,
+    ReferenceMixin,
     SetChannelsMixin,
     InterpolationMixin,
     TimeMixin,

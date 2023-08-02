@@ -293,6 +293,15 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     stc = apply_lcmv(evoked, filters)
     stc.crop(0.02, None)
 
+    # Smoke test for label= support for surfaces only
+    label = mne.read_label(fname_label)
+    if kind == "volume":
+        ctx = pytest.raises(ValueError, match="volume source space")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        make_lcmv(evoked.info, fwd, data_cov, reg=reg, noise_cov=noise_cov, label=label)
+
     stc_pow = np.sum(np.abs(stc.data), axis=1)
     idx = np.argmax(stc_pow)
     max_stc = stc.data[idx]
