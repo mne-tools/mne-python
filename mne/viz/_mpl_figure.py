@@ -1057,21 +1057,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         instructions_ax = div.append_axes(
             position="top", size=Fixed(1), pad=Fixed(5 * ANNOTATION_FIG_PAD)
         )
-        # XXX when we support a newer matplotlib (something >3.0) the
-        # instructions can have inline bold formatting:
-        # instructions = '\n'.join(
-        #     [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',  # noqa E501
-        #      r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
-        #      r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
-        #      r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
-        #      r'$\mathbf{Esc:}$ exit annotation mode & close this window'])
         instructions = "\n".join(
             [
-                "Left click & drag on plot: create/modify annotation",
-                "Right click on annotation highlight: delete annotation",
-                "Type in this window: modify new label name",
-                "Enter (or click button): add new label to list",
-                "Esc: exit annotation mode & close this dialog window",
+                r"$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation",
+                r"$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation",
+                r"$\mathbf{Type~in~annotation~window:}$ modify new label name",
+                r"$\mathbf{Enter~(or~click~button):}$ add new label to list",
+                r"$\mathbf{Esc:}$ exit annotation mode & close this window",
             ]
         )
         instructions_ax.text(
