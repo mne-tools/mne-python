@@ -1105,6 +1105,16 @@ ecog : bool
 """
 
 docdict[
+    "edf_resamp_note"
+] = """
+:class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+Therefore, if mixed sampling frequency signals are requested, all signals
+are upsampled to the highest loaded sampling frequency. In this case, using
+preload=True is recommended, as otherwise, edge artifacts appear when
+slices of the signal are requested.
+"""
+
+docdict[
     "eeg"
 ] = """
 eeg : bool | str | list
@@ -5055,7 +5065,7 @@ def copy_function_doc_to_method_doc(source):
             -----
             .. versionadded:: 0.13.0
     <BLANKLINE>
-    """
+    """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
         doc = source.__doc__.split("\n")

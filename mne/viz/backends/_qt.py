@@ -720,6 +720,10 @@ class _MNEMainWindow(MainWindow):
             MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
+        from . import renderer
+
+        if renderer.MNE_3D_BACKEND_TESTING:
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnBottomHint)
 
 
 class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget, metaclass=_BaseWidget):

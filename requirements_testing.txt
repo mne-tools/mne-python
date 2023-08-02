@@ -3,6 +3,7 @@ pytest
 pytest-cov
 pytest-timeout
 pytest-harvest
+pytest-qt
 ruff
 numpydoc
 codespell
