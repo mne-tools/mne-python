@@ -10,8 +10,41 @@
 #   and deploy docs rather than waiting for the nightly build
 
 version: 2.1
+orbs:
+  codecov: codecov/codecov@3.2.5
 
 jobs:
+    pytest:
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
+      macos:
+        xcode: "14.2.0"
+      resource_class: macos.m1.medium.gen1
+      environment:
+        HOMEBREW_NO_AUTO_UPDATE: 1
+        CI_OS_NAME: macos-arm64  # make github_actions_test.sh happy
+      steps:
+        - checkout
+        - run:
+            name: Install Python and dependencies
+            command: |
+              brew install python@3.11
+              which python
+              which pip
+              pip install --upgrade -ve . -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt PyQt6
+              mkdir -p test-results
+        - run:
+            command: mne sys_info
+        - run:
+            command: bash ./tools/github_actions_test.sh
+        - run:
+            command: cp -av *.xml test-results
+        - store_test_results:
+            path: ./test-results
+        - codecov/upload
+
     build_docs:
       parameters:
         scheduled:
@@ -484,6 +517,8 @@ jobs:
 workflows:
   default:
     jobs:
+      - pytest:
+          name: pytest
       - build_docs:
           name: build_docs
       - linkcheck:
