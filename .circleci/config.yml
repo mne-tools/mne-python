@@ -38,10 +38,19 @@ jobs:
               mkdir -p test-results
         - run:
             command: mne sys_info
+        - restore_cache:
+            keys:
+              - data-cache-testing
         - run:
-            command: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report xml -vv mne
+            command: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+        - save_cache:
+            key: data-cache-testing
+            paths:
+              - ~/mne_data/MNE-testing-data  # (2.5 G)
         - run:
-            command: cp -av *.xml test-results
+            command: pytest -m "not slowtest" --tb=short --cov=mne --cov-report xml -vv mne
+        - run:
+            command: cp -av junit-results.xml test-results/junit.xml
         - store_test_results:
             path: ./test-results
         - codecov/upload
