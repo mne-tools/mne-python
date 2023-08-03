@@ -836,6 +836,8 @@ def test_merge_annotations(raw, browser_backend):
     """
     if browser_backend.name == "matplotlib":
         pytest.skip("The MPL backend does not support draggable annotations.")
+    elif not check_version("mne_qt_browser", "0.5.3"):
+        pytest.xfail("mne_qt_browser < 0.5.3 does not merge properly")
     annot = Annotations(
         onset=[1, 3, 4, 5, 7, 8],
         duration=[1, 0.5, 0.8, 1, 0.5, 0.5],
