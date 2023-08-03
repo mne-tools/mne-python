@@ -895,16 +895,16 @@ def test_merge_annotations(raw, browser_backend):
     )
     # drag annotation and merge 2 annotations not in focus
     fig._fake_click(
-        (5.5, 1.0), add_points=[(7.2, 1.0)], xform="data", button=1, kind="drag"
+        (5.6, 1.0), add_points=[(7.2, 1.0)], xform="data", button=1, kind="drag"
     )
     assert len(raw.annotations) == 2
     assert_allclose(
         raw.annotations.onset,
-        np.array([2.5, 6.7]) + raw.first_samp / raw.info["sfreq"],
+        np.array([2.5, 6.6]) + raw.first_samp / raw.info["sfreq"],
         atol=1 / raw.info["sfreq"],
     )
     assert_allclose(
-        raw.annotations.duration, np.array([2.3, 1.8]), atol=1 / raw.info["sfreq"]
+        raw.annotations.duration, np.array([2.3, 1.9]), atol=1 / raw.info["sfreq"]
     )
 
 
