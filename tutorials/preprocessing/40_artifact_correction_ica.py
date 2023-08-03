@@ -63,7 +63,6 @@ raw.load_data()
 # is usually possible to separate the sources using ICA, and then re-construct
 # the sensor signals after excluding the sources that are unwanted.
 #
-#
 # ICA in MNE-Python
 # ~~~~~~~~~~~~~~~~~
 #
