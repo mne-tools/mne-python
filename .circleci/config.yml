@@ -42,7 +42,7 @@ jobs:
             name: Install Python and dependencies
             command: |
               set -eo pipefail
-              brew install python@3.11 gnupg gnupg2
+              brew install python@3.11
               which python
               which pip
               pip install --upgrade pip setuptools wheel
@@ -54,18 +54,20 @@ jobs:
             command: mne sys_info
         - restore_cache:
             keys:
-              - data-cache-testing
+              - data-cache-testing-pytest
         - run:
             command: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
         - save_cache:
-            key: data-cache-testing
+            key: data-cache-testing-pytest
             paths:
               - ~/mne_data/MNE-testing-data  # (2.5 G)
         - run:
             command: pytest -m "not slowtest" --tb=short --cov=mne --cov-report xml -vv mne
         - run:
+            name: Prepare test data upload
             command: |
               cp -av junit-results.xml test-results/junit.xml
+              brew install gnupg gnupg2
               gpg --export -a circle@mne.tools | gpg --no-default-keyring --keyring ~/.gnupg/trustedkeys.kbx --import
         - store_test_results:
             path: ./test-results
