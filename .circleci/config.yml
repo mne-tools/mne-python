@@ -18,7 +18,7 @@ _check_skip: &check_skip
   command: |
     set -e
     export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-    if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
+    if [[ "$CIRCLE_PULL_REQUEST" != "" ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
       echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
       circleci-agent step halt;
     fi
