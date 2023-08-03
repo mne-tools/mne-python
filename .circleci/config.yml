@@ -435,7 +435,13 @@ jobs:
               - source-cache
         - checkout
         - run:
-            <<: *check_skip
+            name: Check-skip
+            command: |
+              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+              if [[ "$COMMIT_MESSAGE" != *"[circle linkcheck]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
+                echo "Skip detected, exiting job ${CIRCLE_JOB}."
+                circleci-agent step halt;
+              fi
         - run:
             name: Set BASH_ENV
             command: ./tools/circleci_bash_env.sh
