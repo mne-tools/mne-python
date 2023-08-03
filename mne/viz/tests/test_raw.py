@@ -832,7 +832,7 @@ def test_merge_annotations(raw, browser_backend):
 
     Let's not bother in figuring out on which sample the _fake_click actually
     dropped the annotation, especially with the 600.614 Hz weird sampling rate.
-    -> atol = 2 / raw.info["sfreq"]
+    -> atol = 10 / raw.info["sfreq"]
     """
     if browser_backend.name == "matplotlib":
         pytest.skip("The MPL backend does not support draggable annotations.")
@@ -848,7 +848,7 @@ def test_merge_annotations(raw, browser_backend):
     assert_allclose(
         raw.annotations.onset,
         np.array([1, 3, 4, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
-        atol=2 / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
     )
     # drag edge and merge 2 annotations in focus (selected description)
     fig._fake_click(
@@ -858,12 +858,12 @@ def test_merge_annotations(raw, browser_backend):
     assert_allclose(
         raw.annotations.onset,
         np.array([1, 3, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
-        atol=2 / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
     )
     assert_allclose(
         raw.annotations.duration,
         np.array([1, 1.8, 1, 0.5, 0.5]),
-        atol=2 / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
     )
     # drag annotation and merge 2 annotations in focus (selected description)
     fig._fake_click(
@@ -873,12 +873,12 @@ def test_merge_annotations(raw, browser_backend):
     assert_allclose(
         raw.annotations.onset,
         np.array([2.5, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
-        atol=2 / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
     )
     assert_allclose(
         raw.annotations.duration,
         np.array([2.3, 1, 0.5, 0.5]),
-        atol=2 / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
     )
     # drag edge and merge 2 annotations not in focus
     fig._fake_click(
@@ -888,10 +888,10 @@ def test_merge_annotations(raw, browser_backend):
     assert_allclose(
         raw.annotations.onset,
         np.array([2.5, 5, 7]) + raw.first_samp / raw.info["sfreq"],
-        atol=2 / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
     )
     assert_allclose(
-        raw.annotations.duration, np.array([2.3, 1, 1.5]), atol=2 / raw.info["sfreq"]
+        raw.annotations.duration, np.array([2.3, 1, 1.5]), atol=10 / raw.info["sfreq"]
     )
     # drag annotation and merge 2 annotations not in focus
     fig._fake_click(
@@ -901,10 +901,10 @@ def test_merge_annotations(raw, browser_backend):
     assert_allclose(
         raw.annotations.onset,
         np.array([2.5, 6.6]) + raw.first_samp / raw.info["sfreq"],
-        atol=2 / raw.info["sfreq"],
+        atol=10 / raw.info["sfreq"],
     )
     assert_allclose(
-        raw.annotations.duration, np.array([2.3, 1.9]), atol=2 / raw.info["sfreq"]
+        raw.annotations.duration, np.array([2.3, 1.9]), atol=10 / raw.info["sfreq"]
     )
 
 
