@@ -41,6 +41,7 @@ jobs:
         - run:
             name: Install Python and dependencies
             command: |
+              set -eo pipefail
               brew install python@3.11
               which python
               which pip
@@ -48,6 +49,7 @@ jobs:
               pip install --upgrade --only-binary "numpy,scipy,dipy,statsmodels" -ve . -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt PyQt6
               pip uninstall -y vtk pyvista pyvistaqt  # too slow on Apple's software renderer!
               mkdir -p test-results
+              echo "set -eo pipefail" >> $BASH_ENV
         - run:
             command: mne sys_info
         - restore_cache:
