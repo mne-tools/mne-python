@@ -29,6 +29,7 @@ from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default, DEFAULTS
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
+from ..io.proj import _has_eeg_average_ref_proj
 from ..utils import _reject_data_segments, verbose
 
 
@@ -1150,11 +1151,13 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
 
     ch_types = raw.get_channel_types(picks=picks, unique=True)
     for ch_type in ch_types:
-        fig, ax = plt.subplots(
-            2 if ch_type in ("mag", "grad", "eeg") else 1, 1, sharex=True
-        )
+        if ch_type in ("mag", "grad"):
+            fig, ax = plt.subplots(3, 1, sharex=True)
+        elif ch_type == "eeg" and not _has_eeg_average_ref_proj(raw.info):
+            fig, ax = plt.subplots(3, 1, sharex=True)
+        else:
+            fig, ax = plt.subplots(2, 1, sharex=True)
         plt.suptitle(title)
-        ax = [ax] if isinstance(ax, plt.Axes) else ax
 
         # select sensors and retrieve data array
         picks_by_type = _picks_to_idx(raw.info, ch_type, exclude=())
@@ -1183,6 +1186,16 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
             ax[1].plot(times, np.sqrt((data**2).mean(axis=0)), color="r")
             ax[1].plot(times, np.sqrt((data_cln**2).mean(axis=0)), color="k")
             ax[1].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"{_ch_type} RMS")
+
+        # last plot with the average across all channels of the same type
+        if ch_type != "eeg" or not _has_eeg_average_ref_proj(raw.info):
+            ax[-1].plot(times, data.mean(axis=0), color="r")
+            ax[-1].plot(times, data_cln.mean(axis=0), color="k")
+            ax[-1].set(
+                xlabel="Time (s)",
+                xlim=times[[0, -1]],
+                title=f"Average across {_ch_type} channels",
+            )
 
         # figure format
         tight_layout(fig=fig)
