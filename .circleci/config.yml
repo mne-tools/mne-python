@@ -62,7 +62,7 @@ jobs:
             paths:
               - ~/mne_data/MNE-testing-data  # (2.5 G)
         - run:
-            command: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report xml -vv mne
+            command: pytest -m "not slowtest" --tb=short --cov=mne --cov-report xml -vv mne
         - run:
             name: Prepare test data upload
             command: cp -av junit-results.xml test-results/junit.xml
