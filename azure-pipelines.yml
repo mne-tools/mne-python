@@ -108,19 +108,19 @@ stages:
     - bash: |
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off mne-qt-browser[opengl] pyvista scikit-learn pytest-error-for-skips python-picard "PySide6!=6.5.1" qtpy
+        python -m pip install --progress-bar off mne-qt-browser[opengl] pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1" qtpy
         python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep "qtpy .*(PySide6=.*)$"
+        mne sys_info -pd | grep "qtpy .*(PyQt6=.*)$"
       displayName: Print config
     # Uncomment if "xcb not found" Qt errors/segfaults come up again
     # - bash: |
     #     set -e
-    #     LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
+    #     LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
@@ -189,13 +189,6 @@ stages:
       displayName: 'Get test data'
     - bash: |
         set -e
-        mne sys_info -pd
-        mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
-        PYTEST_QT_API=PySide6 pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PySide6
-      displayName: 'PySide6'
-    - bash: |
-        set -e
         python -m pip install PyQt6
         # Uncomment if "xcb not found" Qt errors/segfaults come up again
         # LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
@@ -204,6 +197,14 @@ stages:
         PYTEST_QT_API=PyQt6 pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
       displayName: 'PyQt6'
+    - bash: |
+        set -e
+        python -m pip install PySide6
+        mne sys_info -pd
+        mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
+        PYTEST_QT_API=PySide6 pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PySide6
+      displayName: 'PySide6'
     - bash: |
         set -e
         python -m pip install PySide2
