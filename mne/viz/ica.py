@@ -1153,7 +1153,9 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     for ch_type in ch_types:
         if ch_type in ("mag", "grad"):
             fig, ax = plt.subplots(3, 1, sharex=True)
-        elif ch_type == "eeg" and not _has_eeg_average_ref_proj(raw.info):
+        elif ch_type == "eeg" and not _has_eeg_average_ref_proj(
+            raw.info, check_active=True
+        ):
             fig, ax = plt.subplots(3, 1, sharex=True)
         else:
             fig, ax = plt.subplots(2, 1, sharex=True)
@@ -1188,7 +1190,9 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
             ax[1].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"{_ch_type} RMS")
 
         # last plot with the average across all channels of the same type
-        if ch_type != "eeg" or not _has_eeg_average_ref_proj(raw.info):
+        if ch_type != "eeg" or not _has_eeg_average_ref_proj(
+            raw.info, check_active=True
+        ):
             ax[-1].plot(times, data.mean(axis=0), color="r")
             ax[-1].plot(times, data_cln.mean(axis=0), color="k")
             ax[-1].set(
