@@ -827,6 +827,87 @@ def test_remove_annotations(raw, hide_which, browser_backend):
     assert len(raw.annotations) == len(hide_which)
 
 
+def test_merge_annotations(raw, browser_backend):
+    """Test merging of annotations in the Qt backend.
+
+    Let's not bother in figuring out on which sample the _fake_click actually
+    dropped the annotation, especially with the 600.614 Hz weird sampling rate.
+    -> atol = 1 / raw.info["sfreq"]
+    """
+    if browser_backend.name == "matplotlib":
+        pytest.skip("The MPL backend does not support draggable annotations.")
+    annot = Annotations(
+        onset=[1, 3, 4, 5, 7, 8],
+        duration=[1, 0.5, 0.8, 1, 0.5, 0.5],
+        description=["bad_test", "bad_test", "bad_test", "test", "test", "test"],
+    )
+    raw.set_annotations(annot)
+    fig = raw.plot()
+    fig._fake_keypress("a")  # start annotation mode
+    assert len(raw.annotations) == 6
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([1, 3, 4, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
+        atol=1 / raw.info["sfreq"],
+    )
+    # drag edge and merge 2 annotations in focus (selected description)
+    fig._fake_click(
+        (3.5, 1.0), add_points=[(4.2, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 5
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([1, 3, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
+        atol=1 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration,
+        np.array([1, 1.8, 1, 0.5, 0.5]),
+        atol=1 / raw.info["sfreq"],
+    )
+    # drag annotation and merge 2 annotations in focus (selected description)
+    fig._fake_click(
+        (1.5, 1.0), add_points=[(3, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 4
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([2.5, 5, 7, 8]) + raw.first_samp / raw.info["sfreq"],
+        atol=1 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration,
+        np.array([2.3, 1, 0.5, 0.5]),
+        atol=1 / raw.info["sfreq"],
+    )
+    # drag edge and merge 2 annotations not in focus
+    fig._fake_click(
+        (7.5, 1.0), add_points=[(8.2, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 3
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([2.5, 5, 7]) + raw.first_samp / raw.info["sfreq"],
+        atol=1 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration, np.array([2.3, 1, 1.5]), atol=1 / raw.info["sfreq"]
+    )
+    # drag annotation and merge 2 annotations not in focus
+    fig._fake_click(
+        (5.5, 1.0), add_points=[(7.2, 1.0)], xform="data", button=1, kind="drag"
+    )
+    assert len(raw.annotations) == 2
+    assert_allclose(
+        raw.annotations.onset,
+        np.array([2.5, 6.7]) + raw.first_samp / raw.info["sfreq"],
+        atol=1 / raw.info["sfreq"],
+    )
+    assert_allclose(
+        raw.annotations.duration, np.array([2.3, 1.8]), atol=1 / raw.info["sfreq"]
+    )
+
+
 @pytest.mark.parametrize("filtorder", (0, 2))  # FIR, IIR
 def test_plot_raw_filtered(filtorder, raw, browser_backend):
     """Test filtering of raw plots."""
