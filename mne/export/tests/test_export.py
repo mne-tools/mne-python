@@ -25,12 +25,9 @@ from mne.io import (
 )
 from mne.io.meas_info import create_info
 from mne.utils import (
-    _check_eeglabio_installed,
-    requires_version,
     object_diff,
     _check_edflib_installed,
     _resource_path,
-    _check_pybv_installed,
     _record_warnings,
 )
 from mne.tests.test_epochs import _get_data
@@ -43,9 +40,6 @@ egi_evoked_fname = data_path / "EGI" / "test_egi_evoked.mff"
 misc_path = misc.data_path(download=False)
 
 
-@pytest.mark.skipif(
-    not _check_pybv_installed(strict=False), reason="pybv not installed"
-)
 @pytest.mark.parametrize(
     ["meas_date", "orig_time", "ext"],
     [
@@ -55,6 +49,7 @@ misc_path = misc.data_path(download=False)
 )
 def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     """Test saving a Raw instance to BrainVision format via pybv."""
+    pytest.importorskip("pybv")
     raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
 
@@ -85,12 +80,9 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     assert_allclose(raw.get_data(), raw_read.get_data())
 
 
-@requires_version("pymatreader")
-@pytest.mark.skipif(
-    not _check_eeglabio_installed(strict=False), reason="eeglabio not installed"
-)
 def test_export_raw_eeglab(tmp_path):
     """Test saving a Raw instance to EEGLAB's set format."""
+    pytest.importorskip("eeglabio")
     raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
     temp_fname = tmp_path / "test.set"
@@ -396,15 +388,10 @@ def test_export_raw_edf(tmp_path, dataset, format):
 
 
 @pytest.mark.xfail(reason="eeglabio (usage?) bugs that should be fixed")
-@requires_version("pymatreader")
-@pytest.mark.skipif(
-    not _check_eeglabio_installed(strict=False), reason="eeglabio not installed"
-)
 @pytest.mark.parametrize("preload", (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
-    import eeglabio
-
+    eeglabio = pytest.importorskip("eeglabio")
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
@@ -446,12 +433,12 @@ def test_export_epochs_eeglab(tmp_path, preload):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @testing.requires_testing_data
 @pytest.mark.parametrize("fmt", ("auto", "mff"))
 @pytest.mark.parametrize("do_history", (True, False))
 def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     """Test exporting evoked dataset to MFF."""
+    pytest.importorskip("mffpy", "0.5.7")
     evoked = read_evokeds_mff(egi_evoked_fname)
     export_fname = tmp_path / "evoked.mff"
     history = [
@@ -504,10 +491,10 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 @testing.requires_testing_data
 def test_export_to_mff_no_device():
     """Test no device type throws ValueError."""
+    pytest.importorskip("mffpy", "0.5.7")
     evoked = read_evokeds_mff(egi_evoked_fname, condition="Category 1")
     evoked.info["device_info"] = None
     with pytest.raises(ValueError, match="No device type."):
@@ -515,9 +502,9 @@ def test_export_to_mff_no_device():
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@requires_version("mffpy", "0.5.7")
 def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
+    pytest.importorskip("mffpy", "0.5.7")
     evoked = read_evokeds(fname_evoked)
     with pytest.raises(ValueError, match=f'sfreq: {evoked[0].info["sfreq"]}'):
         export_evokeds("output.mff", evoked)

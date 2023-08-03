@@ -52,12 +52,14 @@ class _MNEQtBrowserScraper:
 
 @contextmanager
 def _screenshot_mode(browser):
-    browser.mne.toolbar.setVisible(False)
+    if hasattr(browser.mne, "toolbar"):  # if there is an error, it might not
+        browser.mne.toolbar.setVisible(False)
     browser.statusBar().setVisible(False)
     try:
         yield
     finally:
-        browser.mne.toolbar.setVisible(True)
+        if hasattr(browser.mne, "toolbar"):
+            browser.mne.toolbar.setVisible(True)
         browser.statusBar().setVisible(True)
 
 

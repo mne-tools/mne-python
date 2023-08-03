@@ -2060,7 +2060,7 @@ def convert_flash_mris(
                 (pm_dir / "flash5.mgz"),
             ]
             run_subprocess_env(cmd)
-            (pm_dir / "flash5_reg.mgz").unlink()
+            (pm_dir / "flash5_reg.mgz").unlink(missing_ok=True)
         else:
             logger.info("Synthesized flash 5 volume is already there")
     else:

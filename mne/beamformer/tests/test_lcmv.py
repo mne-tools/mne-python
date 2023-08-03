@@ -42,7 +42,7 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
-from mne.utils import object_diff, requires_version, catch_logging, _record_warnings
+from mne.utils import object_diff, catch_logging, _record_warnings
 
 
 data_path = testing.data_path(download=False)
@@ -257,7 +257,6 @@ def test_lcmv_vector():
 
 
 @pytest.mark.slowtest
-@requires_version("h5io")
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     "reg, proj, kind",
@@ -270,6 +269,7 @@ def test_lcmv_vector():
 )
 def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     """Test LCMV with evoked data and single trials."""
+    pytest.importorskip("h5io")
     (
         raw,
         epochs,
@@ -292,6 +292,15 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg, noise_cov=noise_cov)
     stc = apply_lcmv(evoked, filters)
     stc.crop(0.02, None)
+
+    # Smoke test for label= support for surfaces only
+    label = mne.read_label(fname_label)
+    if kind == "volume":
+        ctx = pytest.raises(ValueError, match="volume source space")
+    else:
+        ctx = nullcontext()
+    with ctx:
+        make_lcmv(evoked.info, fwd, data_cov, reg=reg, noise_cov=noise_cov, label=label)
 
     stc_pow = np.sum(np.abs(stc.data), axis=1)
     idx = np.argmax(stc_pow)

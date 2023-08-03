@@ -10,7 +10,7 @@ import numpy as np
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
 from mne.preprocessing.nirs import optical_density, beer_lambert_law
-from mne.utils import _validate_type, requires_version
+from mne.utils import _validate_type
 from mne.datasets import testing
 
 testing_path = data_path(download=False)
@@ -71,12 +71,10 @@ def test_beer_lambert_unordered_errors():
         beer_lambert_law(raw_od)
 
 
-@requires_version("pymatreader")
 @testing.requires_testing_data
 def test_beer_lambert_v_matlab():
     """Compare MNE results to MATLAB toolbox."""
-    from pymatreader import read_mat
-
+    pymatreader = pytest.importorskip("pymatreader")
     raw = read_raw_nirx(fname_nirx_15_0)
     raw = optical_density(raw)
     raw = beer_lambert_law(raw, ppf=0.121)
@@ -85,7 +83,7 @@ def test_beer_lambert_v_matlab():
     matlab_fname = (
         testing_path / "NIRx" / "nirscout" / "validation" / "nirx_15_0_recording_bl.mat"
     )
-    matlab_data = read_mat(matlab_fname)
+    matlab_data = pymatreader.read_mat(matlab_fname)
 
     for idx in range(raw.get_data().shape[0]):
         mean_error = np.mean(matlab_data["data"][:, idx] - raw._data[idx])

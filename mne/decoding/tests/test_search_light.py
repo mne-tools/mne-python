@@ -8,9 +8,11 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn, _record_warnings, use_log_level
+from mne.utils import _record_warnings, use_log_level
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
+
+pytest.importorskip("sklearn")
 
 
 def make_data():
@@ -25,7 +27,6 @@ def make_data():
     return X, y
 
 
-@requires_sklearn
 def test_search_light():
     """Test SlidingEstimator."""
     from sklearn.linear_model import Ridge, LogisticRegression
@@ -167,7 +168,6 @@ def test_search_light():
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
 
 
-@requires_sklearn
 def test_generalization_light():
     """Test GeneralizingEstimator."""
     from sklearn.pipeline import make_pipeline
@@ -254,7 +254,6 @@ def test_generalization_light():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "n_jobs, verbose", [(1, False), (2, False), (1, True), (2, "info")]
 )
@@ -280,7 +279,6 @@ def test_verbose_arg(capsys, n_jobs, verbose):
                 assert any(len(channel) > 0 for channel in (stdout, stderr))
 
 
-@requires_sklearn
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
     from sklearn.linear_model import LinearRegression

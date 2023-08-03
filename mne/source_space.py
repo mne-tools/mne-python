@@ -1208,7 +1208,10 @@ def label_src_vertno_sel(label, src):
         Indices of the selected vertices in sourse space.
     """
     if src[0]["type"] != "surf":
-        return Exception("Labels are only supported with surface source " "spaces")
+        raise ValueError(
+            "Labels are only supported with surface source spaces, "
+            f"got {_src_kind_dict[src[0]['type']]} source space"
+        )
 
     vertno = [src[0]["vertno"], src[1]["vertno"]]
 

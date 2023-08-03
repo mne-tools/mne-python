@@ -788,6 +788,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _buttonpress(self, event):
         """Handle mouse clicks."""
+        from matplotlib.collections import PolyCollection
+
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
         ax_main = self.mne.ax_main
@@ -828,16 +830,34 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 self._toggle_help_fig(event)
         else:  # right-click (secondary)
             if annotating:
-                if any(c.contains(event)[0] for c in ax_main.collections):
+                spans = [
+                    span
+                    for span in ax_main.collections
+                    if isinstance(span, PolyCollection)
+                ]
+                if any(span.contains(event)[0] for span in spans):
                     xdata = event.xdata - self.mne.first_time
                     start = _sync_onset(inst, inst.annotations.onset)
                     end = start + inst.annotations.duration
-                    ann_idx = np.where((xdata > start) & (xdata < end))[0]
-                    for idx in sorted(ann_idx)[::-1]:
-                        # only remove visible annotation spans
-                        descr = inst.annotations[idx]["description"]
-                        if self.mne.visible_annotations[descr]:
-                            inst.annotations.delete(idx)
+                    is_onscreen = self.mne.onscreen_annotations  # boolean array
+                    was_clicked = (xdata > start) & (xdata < end) & is_onscreen
+                    # determine which annotation label is "selected"
+                    buttons = self.mne.fig_annotation.mne.radio_ax.buttons
+                    current_label = buttons.value_selected
+                    is_active_label = inst.annotations.description == current_label
+                    # use z-order as tiebreaker (or if click wasn't on an active span)
+                    # (ax_main.collections only includes *visible* annots, so we offset)
+                    visible_zorders = [span.zorder for span in spans]
+                    zorders = np.zeros_like(is_onscreen).astype(int)
+                    offset = np.where(is_onscreen)[0][0]
+                    zorders[offset : (offset + len(visible_zorders))] = visible_zorders
+                    # among overlapping clicked spans, prefer removing spans whose label
+                    # is the active label; then fall back to zorder as deciding factor
+                    active_clicked = was_clicked & is_active_label
+                    mask = active_clicked if any(active_clicked) else was_clicked
+                    highest = zorders == zorders[mask].max()
+                    idx = np.where(highest)[0]
+                    inst.annotations.delete(idx)
                 self._remove_annotation_hover_line()
                 self._draw_annotations()
                 self.canvas.draw_idle()
@@ -1392,13 +1412,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._clear_annotations()
         self._update_annotation_segments()
         segments = self.mne.annotation_segments
+        onscreen_annotations = np.zeros(len(segments), dtype=bool)
         times = self.mne.times
         ax = self.mne.ax_main
         ylim = ax.get_ylim()
         for idx, (start, end) in enumerate(segments):
             descr = self.mne.inst.annotations.description[idx]
             segment_color = self.mne.annotation_segment_colors[descr]
-            kwargs = dict(color=segment_color, alpha=0.3, zorder=self.mne.zorder["ann"])
+            zorder = self.mne.zorder["ann"] + idx
+            kwargs = dict(color=segment_color, alpha=0.3, zorder=zorder)
             if self.mne.visible_annotations[descr]:
                 # draw all segments on ax_hscroll
                 annot = self.mne.ax_hscroll.fill_betweenx((0, 1), start, end, **kwargs)
@@ -1408,6 +1430,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 if np.diff(visible_segment) > 0:
                     annot = ax.fill_betweenx(ylim, *visible_segment, **kwargs)
                     self.mne.annotations.append(annot)
+                    onscreen_annotations[idx] = True
                     xy = (visible_segment.mean(), ylim[1])
                     text = ax.annotate(
                         descr,
@@ -1419,6 +1442,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                         color=segment_color,
                     )
                     self.mne.annotation_texts.append(text)
+        self.mne.onscreen_annotations = onscreen_annotations
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHANNEL SELECTION GUI

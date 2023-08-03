@@ -54,7 +54,6 @@ from mne.viz.topomap import (
     plot_ch_adjacency,
 )
 from mne.viz.utils import _find_peaks, _fake_click, _fake_keypress, _fake_scroll
-from mne.utils import requires_sklearn
 
 from mne.viz.tests.test_raw import _proj_status
 
@@ -257,7 +256,7 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     #     cbar = cbar[0]
     #     assert cbar.get_title() == expected_unit
     # ...but not all matplotlib versions support it, and we can't use
-    # @requires_version because it's hard figure out exactly which MPL version
+    # check_version because it's hard figure out exactly which MPL version
     # is the cutoff since it relies on a private attribute. Based on some
     # basic testing it's at least matplotlib version >= 3.5.
     # So for now we just do this:
@@ -735,9 +734,9 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
     plt.close("all")
 
 
-@requires_sklearn
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
+    pytest.importorskip("sklearn")
     from mne.preprocessing import ICA
 
     fnirs_epochs = fnirs_epochs.load_data().pick(picks="hbo")
