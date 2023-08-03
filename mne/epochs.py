@@ -56,7 +56,7 @@ from .io.pick import (
     _picks_to_idx,
 )
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, TimeMixin, _get_ch_factors
+from .io.base import BaseRaw, _get_ch_factors
 from .io.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
@@ -100,6 +100,7 @@ from .utils import (
     _validate_type,
     _ensure_events,
     _path_like,
+    ExtendedTimeMixin,
 )
 from .utils.docs import fill_doc
 from .annotations import (
@@ -386,7 +387,7 @@ class BaseEpochs(
     SetChannelsMixin,
     InterpolationMixin,
     FilterMixin,
-    TimeMixin,
+    ExtendedTimeMixin,
     SizeMixin,
     GetEpochsMixin,
     EpochAnnotationsMixin,
