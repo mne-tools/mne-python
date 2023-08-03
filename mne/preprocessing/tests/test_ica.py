@@ -689,7 +689,10 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
             plot=False,
             show=False,
         )
-    corrmap([ica, ica2], (0, 0), threshold=0.5, plot=False, show=False)
+    with catch_logging(True) as log:
+        corrmap([ica, ica2], (0, 0), threshold=0.5, plot=False, show=False)
+    log = log.getvalue()
+    assert "Median correlation with constructed map: 1.0" in log
     assert ica.labels_["blinks"] == ica2.labels_["blinks"]
     assert 0 in ica.labels_["blinks"]
     # test retrieval of component maps as arrays

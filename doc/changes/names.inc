@@ -494,7 +494,7 @@
 
 .. _Simeon Wong: https://github.com/dtxe
 
-.. _Simon Kern: https://github.com/skjerns
+.. _Simon Kern: https://skjerns.de
 
 .. _Simon Kornblith: https://simonster.com
 
