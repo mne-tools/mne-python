@@ -54,6 +54,7 @@ Bugs
 - Fix bug with :class:`mne.io.Raw`, :class:`mne.SourceEstimate`, and related classes where the ``decimate`` and ``shift_time`` methods were errantly added (:gh:`11853` by `Eric Larson`_)
 - Fix hanging interpreter with matplotlib figures using ``mne/viz/_mpl_figure.py`` in spyder console and jupyter notebooks (:gh:`11696` by `Mathieu Scheltienne`_)
 - Fix bug with overlapping text for :meth:`mne.Evoked.plot` (:gh:`11698` by `Alex Rockhill`_)
+- Fix bug with :func:`mne.preprocessing.corrmap` where the template iteration had non-standard map averaging (:gh:`11857` by `Eric Larson`_)
 - For :func:`mne.io.read_raw_eyelink`, the default value of the ``gap_description`` parameter is now ``'BAD_ACQ_SKIP'``, following MNE convention (:gh:`11719` by `Scott Huberty`_)
 - Fix bug with :func:`mne.io.read_raw_fil` where datasets without sensor positions would not import (:gh:`11733` by `George O'Neill`_)
 - Fix bug with :func:`mne.chpi.compute_chpi_snr` where cHPI being off for part of the recording or bad channels being defined led to an error or incorrect behavior (:gh:`11754`, :gh:`11755` by `Eric Larson`_)
