@@ -485,7 +485,7 @@ def test_spectrum_array(kind, raw_psds, epochs_psds, tmp_path, request):
                 info=epochs_psds[1].info,
                 method="multitaper",
             )
-    for psd, psd2 in zip(psds_orig, [psd for tup in zip(psds, psds) for psd in tup]):
+    for psd, psd2 in zip([psd for tup in zip(psds_orig, psds_orig) for psd in tup], psds):
         _check_psd_equivalent(psd, psd2, tmp_path)
 
 
