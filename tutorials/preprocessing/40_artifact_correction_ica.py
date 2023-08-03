@@ -6,8 +6,8 @@ Repairing artifacts with ICA
 ============================
 
 This tutorial covers the basics of independent components analysis (ICA) and shows how
-ICA can be used for artifact repair; an extended example illustrates
-repair of ocular and heartbeat artifacts. For conceptual background on ICA, see
+ICA can be used for artifact repair; an extended example illustrates repair of ocular
+and heartbeat artifacts. For conceptual background on ICA, see
 :ref:`this scikit-learn tutorial
 <sphx_glr_auto_examples_decomposition_plot_ica_blind_source_separation.py>`.
 
