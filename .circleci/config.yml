@@ -11,7 +11,68 @@
 
 version: 2.1
 
+_check_skip: &check_skip
+  name: Check-skip
+  command: |
+    set -e
+    export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+    if [[ "$CIRCLE_PULL_REQUEST" != "" ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
+      echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
+      circleci-agent step halt;
+    fi
+
 jobs:
+    pytest-macos-arm64:
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
+      macos:
+        xcode: "14.2.0"
+      resource_class: macos.m1.medium.gen1
+      environment:
+        HOMEBREW_NO_AUTO_UPDATE: 1
+      steps:
+        - checkout
+        - run:
+            <<: *check_skip
+        - run:
+            name: Install Python and dependencies
+            command: |
+              set -eo pipefail
+              brew install python@3.11
+              which python
+              which pip
+              pip install --upgrade pip setuptools wheel
+              pip install --upgrade --only-binary "numpy,scipy,dipy,statsmodels" -ve . -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt PyQt6
+              pip uninstall -y vtk pyvista pyvistaqt  # too slow on Apple's software renderer!
+              mkdir -p test-results
+              echo "set -eo pipefail" >> $BASH_ENV
+        - run:
+            command: mne sys_info
+        - run:
+            command: ./tools/get_testing_version.sh && cat testing_version.txt
+        - restore_cache:
+            keys:
+              - data-cache-testing-{{ checksum "testing_version.txt" }}
+        - run:
+            command: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+        - save_cache:
+            key: data-cache-testing-{{ checksum "testing_version.txt" }}
+            paths:
+              - ~/mne_data/MNE-testing-data  # (2.5 G)
+        - run:
+            command: pytest -m "not slowtest" --tb=short --cov=mne --cov-report xml -vv mne
+        - run:
+            name: Prepare test data upload
+            command: cp -av junit-results.xml test-results/junit.xml
+        - store_test_results:
+            path: ./test-results
+        # Codecov orb has bugs on macOS (gpg issues)
+        # - codecov/upload
+        - run:
+            command: bash <(curl -s https://codecov.io/bash)
+
     build_docs:
       parameters:
         scheduled:
@@ -41,14 +102,7 @@ jobs:
             paths:
               - ".git"
         - run:
-            name: Check-skip
-            command: |
-              set -e
-              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
-                echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
-                circleci-agent step halt;
-              fi
+            <<: *check_skip
         - run:
             name: Merge with upstream and triage run
             command: |
@@ -454,7 +508,7 @@ jobs:
         - run:
             name: Deploy docs
             command: |
-              git config --global user.email "circle@mne.com";
+              git config --global user.email "circle@mne.tools";
               git config --global user.name "Circle CI";
               cd ~/mne-tools.github.io;
               git checkout main
@@ -484,6 +538,8 @@ jobs:
 workflows:
   default:
     jobs:
+      - pytest-macos-arm64:
+          name: pytest-macos-arm64
       - build_docs:
           name: build_docs
       - linkcheck:
