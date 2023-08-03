@@ -62,7 +62,9 @@ jobs:
         - run:
             command: pytest -m "not slowtest" --tb=short --cov=mne --cov-report xml -vv mne
         - run:
-            command: cp -av junit-results.xml test-results/junit.xml
+            command: |
+              cp -av junit-results.xml test-results/junit.xml
+              gpg --export -a circle@mne.tools | gpg --no-default-keyring --keyring ~/.gnupg/trustedkeys.kbx --import
         - store_test_results:
             path: ./test-results
         - codecov/upload
@@ -496,7 +498,7 @@ jobs:
         - run:
             name: Deploy docs
             command: |
-              git config --global user.email "circle@mne.com";
+              git config --global user.email "circle@mne.tools";
               git config --global user.name "Circle CI";
               cd ~/mne-tools.github.io;
               git checkout main
