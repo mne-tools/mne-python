@@ -50,13 +50,15 @@ jobs:
               echo "set -eo pipefail" >> $BASH_ENV
         - run:
             command: mne sys_info
+        - run:
+            command: ./tools/get_testing_version.sh && cat testing_version.txt
         - restore_cache:
             keys:
-              - data-cache-testing-pytest
+              - data-cache-testing-{{ checksum "testing_version.txt" }}
         - run:
             command: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
         - save_cache:
-            key: data-cache-testing-pytest
+            key: data-cache-testing-{{ checksum "testing_version.txt" }}
             paths:
               - ~/mne_data/MNE-testing-data  # (2.5 G)
         - run:
