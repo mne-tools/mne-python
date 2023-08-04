@@ -14,7 +14,6 @@ from numpy.testing import (
 import pytest
 
 from mne import create_info, EpochsArray
-from mne.fixes import is_classifier, is_regressor
 from mne.decoding.base import (
     _get_inverse_funcs,
     LinearModel,
@@ -70,7 +69,12 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
 
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
-    from sklearn.base import TransformerMixin, BaseEstimator
+    from sklearn.base import (
+        TransformerMixin,
+        BaseEstimator,
+        is_classifier,
+        is_regressor,
+    )
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn import svm
@@ -446,3 +450,21 @@ def test_cross_val_multiscore():
         manual = cross_val(reg, X, y, cv=KFold(2))
         auto = cross_val(reg, X, y, cv=2)
         assert_array_equal(manual, auto)
+
+
+def test_sklearn_compliance():
+    """Test LinearModel compliance with sklearn."""
+    pytest.importorskip("sklearn")
+    from sklearn.utils.estimator_checks import check_estimator
+    from sklearn.linear_model import LogisticRegression
+
+    lm = LinearModel(LogisticRegression())
+    ignores = (
+        "check_estimator_sparse_data",  # we densify
+        "check_estimators_overwrite_params",  # self.model changes!
+        "check_parameters_default_constructible",
+    )
+    for est, check in check_estimator(lm, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)
