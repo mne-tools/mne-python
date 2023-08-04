@@ -1152,13 +1152,13 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     ch_types = raw.get_channel_types(picks=picks, unique=True)
     for ch_type in ch_types:
         if ch_type in ("mag", "grad"):
-            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
+            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
         elif ch_type == "eeg" and not _has_eeg_average_ref_proj(
             raw.info, check_active=True
         ):
-            fig, ax = plt.subplots(3, 1, sharex=True, layout="constrained")
+            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
         else:
-            fig, ax = plt.subplots(2, 1, sharex=True, layout="constrained")
+            fig, ax = plt.subplots(2, 1, sharex=True, constrained_layout=True)
         fig.suptitle(title)
 
         # select sensors and retrieve data array
