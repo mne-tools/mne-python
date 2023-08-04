@@ -9,6 +9,8 @@ if [ ! -z $GITHUB_ENV ]; then
 	echo "TESTING_VERSION="$TESTING_VERSION >> $GITHUB_ENV
 elif [ ! -z $AZURE_CI ]; then
 	echo "##vso[task.setvariable variable=testing_version]$TESTING_VERSION"
+elif [ ! -z $CIRCLECI ]; then
+	echo "$TESTING_VERSION" > testing_version.txt
 else
 	echo $TESTING_VERSION
 fi

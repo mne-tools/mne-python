@@ -55,10 +55,14 @@ Bugs
 - Fix bug with :class:`mne.io.Raw`, :class:`mne.SourceEstimate`, and related classes where the ``decimate`` and ``shift_time`` methods were errantly added (:gh:`11853` by `Eric Larson`_)
 - Fix hanging interpreter with matplotlib figures using ``mne/viz/_mpl_figure.py`` in spyder console and jupyter notebooks (:gh:`11696` by `Mathieu Scheltienne`_)
 - Fix bug with overlapping text for :meth:`mne.Evoked.plot` (:gh:`11698` by `Alex Rockhill`_)
+- Fix bug with :func:`mne.preprocessing.corrmap` where the template iteration had non-standard map averaging (:gh:`11857` by `Eric Larson`_)
 - For :func:`mne.io.read_raw_eyelink`, the default value of the ``gap_description`` parameter is now ``'BAD_ACQ_SKIP'``, following MNE convention (:gh:`11719` by `Scott Huberty`_)
 - Fix bug with :func:`mne.io.read_raw_fil` where datasets without sensor positions would not import (:gh:`11733` by `George O'Neill`_)
 - Fix bug with :func:`mne.chpi.compute_chpi_snr` where cHPI being off for part of the recording or bad channels being defined led to an error or incorrect behavior (:gh:`11754`, :gh:`11755` by `Eric Larson`_)
 - Allow int-like for the argument ``id`` of `~mne.make_fixed_length_events` (:gh:`11748` by `Mathieu Scheltienne`_)
+- Fix bugs with :mod:`mne.decoding` classes (:gh:`11846` by `Eric Larson`_):
+  - :class:`mne.decoding.ReceptiveField` now sets ``rf.fit_intercept_`` during ``fit()`` rather than overwriting ``rf.fit_intercept``
+  - :class:`mne.decoding.SlidingEstimator` now returns the same ``dtype`` as ``X`` (usually ``float64``) in ``sl.predict(X)`` rather than always returning ``int``
 - Fix bug with :func:`mne.beamformer.make_lcmv` where the source space was not checked properly when the ``label`` argument was provided (:gh:`11852` by `Eric Larson`_)
 - Fix bug where :func:`mne.io.read_raw_egi` did not properly set the EEG reference location for the reference channel itself (:gh:`11822` by `Eric Larson`_)
 - Fix bug with legacy :meth:`~mne.io.Raw.plot_psd` method where passed axes were not used (:gh:`11778` by `Daniel McCloy`_)
