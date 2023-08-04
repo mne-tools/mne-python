@@ -159,7 +159,7 @@ move_psd_data = psd_data[move_events]
 # compute the ratio used in the activation calculation
 n_rest = rest_events.sum()
 n_move = move_events.sum()
-ratio = n_rest * n_move / (n_rest + n_move)**2
+ratio = n_rest * n_move / (n_rest + n_move) ** 2
 
 # compute the activation
 activation = np.zeros((len(psd.ch_names), psd.freqs.size)) * np.nan
@@ -168,19 +168,21 @@ for i, freq in enumerate(psd.freqs):
         continue
     for j in range(len(psd.ch_names)):
         mean_diff = np.mean(rest_psd_data[:, j, i]) - np.mean(move_psd_data[:, j, i])
-        activation[j, i] = mean_diff**3 / abs(mean_diff) / np.var(psd_data[:, j, i]) * ratio
+        activation[j, i] = (
+            mean_diff**3 / abs(mean_diff) / np.var(psd_data[:, j, i]) * ratio
+        )
 
 fig, ax = plt.subplots(figsize=(6, 4))
 ax.set_title("Activation")
-im = ax.imshow(activation, aspect='auto')
+im = ax.imshow(activation, aspect="auto")
 ax.set_xticks(range(0, psd.freqs.size, 5))
 ax.set_xticklabels(psd.freqs[::5].round(2), rotation=90)
-ax.set_xlabel('Frequency (Hz)')
+ax.set_xlabel("Frequency (Hz)")
 ax.set_yticks(range(0, len(psd.ch_names), 3))
 ax.set_yticklabels(psd.ch_names[::3])
-ax.set_ylabel('Channel')
+ax.set_ylabel("Channel")
 cbar = fig.colorbar(im, ax=ax)
-cbar.ax.set_ylabel(r'Signed $r^2$')
+cbar.ax.set_ylabel(r"Signed $r^2$")
 fig.subplots_adjust(bottom=0.2, right=1)
 
 # choose channel with greatest mean activation
