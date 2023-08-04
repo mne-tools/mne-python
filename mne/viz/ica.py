@@ -1134,10 +1134,10 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
         Data after exclusion of ICs.
     picks : array of shape (n_channels_selected,)
         Array of selected channel indices.
-    start : float
-        Start time to plot.
-    stop : float
-        Stop time to plot.
+    start : int
+        Start time to plot in samples.
+    stop : int
+        Stop time to plot in samples.
     title : str
         Title of the figure(s).
     show : bool
