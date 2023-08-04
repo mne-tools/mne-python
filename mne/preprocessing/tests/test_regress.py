@@ -15,7 +15,6 @@ from mne.preprocessing import (
     EOGRegression,
     read_eog_regression,
 )
-from mne.utils import requires_version
 
 data_path = testing.data_path(download=False)
 raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
@@ -122,10 +121,10 @@ def test_eog_regression():
     assert fig.axes[5].title.get_text() == "eeg/EOG 061"
 
 
-@requires_version("h5io")
 @testing.requires_testing_data
 def test_read_eog_regression(tmp_path):
     """Test saving and loading an EOGRegression object."""
+    pytest.importorskip("h5io")
     raw = read_raw_fif(raw_fname).pick(["eeg", "eog"])
     raw.load_data()
     model = EOGRegression().fit(raw)
