@@ -1133,11 +1133,11 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     raw_cln : Raw
         Data after exclusion of ICs.
     picks : array of shape (n_channels_selected,)
-        Array of selected channels indices.
+        Array of selected channel indices.
     start : float
-        Start time to plot. Default to 0 seconds.
+        Start time to plot.
     stop : float
-        Stop time to plot. Default to 3 seconds.
+        Stop time to plot.
     title : str
         Title of the figure(s).
     show : bool
@@ -1159,7 +1159,7 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
             fig, ax = plt.subplots(3, 1, sharex=True)
         else:
             fig, ax = plt.subplots(2, 1, sharex=True)
-        plt.suptitle(title)
+        fig.suptitle(title)
 
         # select sensors and retrieve data array
         picks_by_type = _picks_to_idx(raw.info, ch_type, exclude=())
@@ -1170,9 +1170,7 @@ def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
         # plot all sensors of the same type together
         ax[0].plot(times, data.T, color="r")
         ax[0].plot(times, data_cln.T, color="k")
-        _ch_type = (
-            DEFAULTS["titles"][ch_type] if ch_type in DEFAULTS["titles"] else ch_type
-        )
+        _ch_type = DEFAULTS["titles"].get(ch_type, ch_type)
         ax[0].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"Raw {_ch_type} data")
 
         # second plot for M/EEG using GFP or RMS
