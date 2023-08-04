@@ -129,6 +129,63 @@ fig.text(
 )
 fig.text(-0.5, 0.5, "Welch", rotation=90, ha="center", transform=axes[1, 0].transAxes)
 
+# %%
+# Let's look at how the power spectral density differs between movement and rest
+# trials. We can compute an activation map of the squared cross correlations
+# (r\ :sup:`2`) to tell us how much of the variation in all trials can be
+# accounted for by the different means between movement and rest trials. This
+# allows us to narrow down our search to a single channel that will has
+# differences in power spectral density between the two conditions. In this
+# case, the channel is C3, the channel most directly over primary motor cortex
+# which is sensible for a movement task. We'll examine this channel going
+# forward to understand power specrtal density with the particular example of
+# movement compared to rest.
+
+# compute psd
+psd = epochs.compute_psd(fmax=75)
+
+# choose events
+event_mask = [entry == () for entry in epochs.drop_log]
+move_events = np.logical_or(
+    events[:, 2] == event_id["T1"], events[:, 2] == event_id["T2"]
+)[event_mask]
+rest_events = (events[:, 2] == event_id["T0"])[event_mask]
+
+# separate psd data by condition
+psd_data = psd.get_data()
+rest_psd_data = psd_data[rest_events]
+move_psd_data = psd_data[move_events]
+
+# compute the ratio used in the activation calculation
+n_rest = rest_events.sum()
+n_move = move_events.sum()
+ratio = n_rest * n_move / (n_rest + n_move)**2
+
+# compute the activation
+activation = np.zeros((len(psd.ch_names), psd.freqs.size)) * np.nan
+for i, freq in enumerate(psd.freqs):
+    if freq > 57 and freq < 63:  # mask line noise
+        continue
+    for j in range(len(psd.ch_names)):
+        mean_diff = np.mean(rest_psd_data[:, j, i]) - np.mean(move_psd_data[:, j, i])
+        activation[j, i] = mean_diff**3 / abs(mean_diff) / np.var(psd_data[:, j, i]) * ratio
+
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.set_title("Activation")
+im = ax.imshow(activation, aspect='auto')
+ax.set_xticks(range(0, psd.freqs.size, 5))
+ax.set_xticklabels(psd.freqs[::5].round(2), rotation=90)
+ax.set_xlabel('Frequency (Hz)')
+ax.set_yticks(range(0, len(psd.ch_names), 3))
+ax.set_yticklabels(psd.ch_names[::3])
+ax.set_ylabel('Channel')
+cbar = fig.colorbar(im, ax=ax)
+cbar.ax.set_ylabel(r'Signed $r^2$')
+fig.subplots_adjust(bottom=0.2, right=1)
+
+# choose channel with greatest mean activation
+ch = psd.ch_names[np.nanmean(abs(activation), axis=1).argmax()]
+
 
 # %%
 # There are two main components to a power spectrum: 1) The
@@ -136,7 +193,7 @@ fig.text(-0.5, 0.5, "Welch", rotation=90, ha="center", transform=axes[1, 0].tran
 # exponentially at higher frequencies (called the 1/f component
 # or power law scaling or broadband power) and 2) peaks, generally with a
 # normal distribution above this background power. The broadband power
-# reflects neural activity that is aperiod and asynchronous; when broadband
+# reflects neural activity that is aperiodic and asynchronous; when broadband
 # power is greater, more neurons are firing total but that they are not
 # synchronized with each other in an oscillatory rhythm :footcite:`ManningEtAl2009`.
 # Peaks in the power spectrum, on the other hand, are interpreted
@@ -146,10 +203,8 @@ fig.text(-0.5, 0.5, "Welch", rotation=90, ha="center", transform=axes[1, 0].tran
 # We can separate out these using principal component analysis (PCA) as in
 # :footcite:`MillerEtAl2009A`. Let's see how this works:
 
-psd = epochs.compute_psd(fmax=75)
-
 # select the only channel so the data is (epochs x freqs)
-psd_data = psd.get_data(picks=["C3"])[:, 0]
+psd_data = psd.get_data(picks=[ch])[:, 0]
 
 # convert to log scale and subtract the mean
 psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
@@ -183,11 +238,12 @@ ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Component Weight")
 
 # %%
-# One thing to notice is that the principal components tend to be generally in opposite
-# directions. This is likely because principal component are required to be orthogonal.
-# This is not the case for factor analysis, which is like PCA without orthogonal axes.
-# Notice that the first and second PCs mirror each other less across the ``y=0`` line.
-psd_data = psd.get_data(picks=["C3"])[:, 0]
+# One thing to notice is that the principal components tend to have opposite sign at
+# the same frequency. This is likely because principal component are required to be
+# orthogonal. This is not the case for factor analysis, which is PCA without
+# orthogonal axes. Notice that the first and second PCs mirror each other less
+# across the ``y=0`` line.
+psd_data = psd.get_data(picks=[ch])[:, 0]
 psd_data = np.log(psd_data) - np.log(psd_data.mean(axis=1, keepdims=True))
 mask = np.logical_or(psd.freqs < 57, psd.freqs > 63)
 fa = FactorAnalysis(rotation="varimax", random_state=99).fit(psd_data[:, mask])
@@ -204,15 +260,8 @@ ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Component Weight")
 
 # %%
-# Finally, let's apply the PCA to our data and see if this helps us separate
+# Let's apply the PCA to our data and see if this helps us separate
 # movement epochs from rest epochs.
-event_mask = [entry == () for entry in epochs.drop_log]
-move_events = np.logical_or(
-    events[:, 2] == event_id["T1"], events[:, 2] == event_id["T2"]
-)[event_mask]
-rest_events = (events[:, 2] == event_id["T0"])[event_mask]
-
-# %%
 # We see that we are indeed able to recapitulate the figures from
 # :footcite:`MillerEtAl2009A` with a bit weaker effects using scalp EEG than
 # ECOG. Note particularly that, as you get into higher frequencies,
@@ -224,7 +273,7 @@ rest_events = (events[:, 2] == event_id["T0"])[event_mask]
 # doesn't change fundamentally but rather this broadband shape shifts up and
 # down when more or fewer neurons are firing total near the recording site.
 #
-# Finally, also note that in :footcite:`MillerEtAl2009A`, the ECoG grid
+# Also note that in :footcite:`MillerEtAl2009A`, the ECoG grid
 # covered the regions of primary motor cortex responsible for multiple
 # movements, whereas the C3 electrode is roughly over primary motor cortex
 # and so records the activity of a relatively large area of primary motor
@@ -391,7 +440,7 @@ for i in range(epochs_data.shape[0]):
     epochs_data[i] = y * rng.normal(40, scale=5) * 1e-6  # different amounts per trial
 
 # make epochs object, compute psd
-info = mne.create_info(["C3"], sfreq=sfreq, ch_types="eeg")
+info = mne.create_info([ch], sfreq=sfreq, ch_types="eeg")
 info.set_montage(epochs.get_montage())
 epochs_sim = mne.EpochsArray(epochs_data[:, None], info)
 psd_sim = epochs_sim.compute_psd(fmax=75)
