@@ -553,8 +553,8 @@ def test_crop():
     assert tfr.data.shape[-2] == 2
 
 
-def test_decim():
-    """Test TFR decimation."""
+def test_decim_shift_time():
+    """Test TFR decimation and shift_time."""
     data = np.zeros((3, 3, 3, 1000))
     times = np.linspace(0, 1, 1000)
     freqs = np.array([0.10, 0.20, 0.30])
@@ -564,9 +564,25 @@ def test_decim():
     with info._unlock():
         info["lowpass"] = 100
     tfr = EpochsTFR(info, data=data, times=times, freqs=freqs)
+    tfr_ave = tfr.average()
+    assert_allclose(tfr.times, tfr_ave.times)
+    assert not hasattr(tfr_ave, "first")
+    tfr_ave.decimate(3)
+    assert not hasattr(tfr_ave, "first")
     tfr.decimate(3)
     assert tfr.times.size == 1000 // 3 + 1
     assert tfr.data.shape == ((3, 3, 3, 1000 // 3 + 1))
+    tfr_ave_2 = tfr.average()
+    assert not hasattr(tfr_ave_2, "first")
+    assert_allclose(tfr.times, tfr_ave.times)
+    assert_allclose(tfr.times, tfr_ave_2.times)
+    assert_allclose(tfr_ave_2.data, tfr_ave.data)
+    tfr.shift_time(-0.1, relative=True)
+    tfr_ave.shift_time(-0.1, relative=True)
+    tfr_ave_3 = tfr.average()
+    assert_allclose(tfr_ave_3.times, tfr_ave.times)
+    assert_allclose(tfr_ave_3.data, tfr_ave.data)
+    assert_allclose(tfr_ave_2.data, tfr_ave_3.data)  # data unchanged
 
 
 def test_io(tmp_path):
