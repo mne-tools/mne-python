@@ -4664,10 +4664,50 @@ def test_epochs_saving_with_annotations(tmp_path):
     assert loaded_epochs.annotations is None
 
 
-def test_empty_error():
-    """Test that a helpful error is raised when certain methods are called."""
-    raw, events, picks = _get_data()
-    epochs_empty = Epochs(raw, events, event_id, reject={"eeg": 1}, preload=True)
-    epochs_empty.drop_bad()
+def _get_empty_parametrize():
+    test_methods = {
+        "add_reference_channels": {"ref_channels": "EEG 999"},
+        "apply_function": {"fun": lambda x: x},
+        "apply_hilbert": {},
+        "as_type": {},
+        "average": {},
+        "compute_psd": {},
+        "crop": {"tmin": 0, "tmax": 0.1},
+        "drop": {"indices": [0]},
+        "drop_channels": {"ch_names": ["EEG 014"]},
+        "filter": {"l_freq": 1, "h_freq": 40},
+        "interpolate_bads": {},
+        "pick": {"picks": [0]},
+        "pick_channels": {"ch_names": ["EEG 014"]},
+        "pick_types": {"eeg": True},
+        "plot": {},
+        "plot_image": {},
+        "plot_psd": {},
+        "plot_psd_topo": {"tmin": 0.1, "tmax": 0.2},
+        "plot_psd_topomap": {},
+        "plot_topo_image": {},
+        "resample": {"sfreq": 100},
+        "reorder_channels": {"ch_names": ["EEG 014"]},
+        "save": {"fname": "test-epo.fif", "overwrite": True},
+        "savgol_filter": {"h_freq": 40},
+        "set_eeg_reference": {},
+        "shift_time": {"tshift": 0.1},
+        "standard_error": {},
+        "to_data_frame": {},
+    }
+    arg_values = [(k, v) for k, v in test_methods.items()]
+    arg_ids = test_methods.keys()
+    return {"argnames": "method", "argvalues": arg_values, "ids": arg_ids}
 
-    # Test that an error is raised when empty epochs are saved.
+
+@pytest.mark.parametrize(**_get_empty_parametrize())
+def test_empty_error(method, epochs_empty):
+    """Test that a helpful error is raised when certain methods are called."""
+    # Test that a RuntimeError is raised when certain methods are called
+    # for method in test_methods:
+    #     metafunc.parametrize("method", [method])
+    #     kwargs = arg_dict.get(method, dict())
+    with pytest.raises(
+        RuntimeError, match="can't run because this Epochs-object is empty."
+    ):
+        getattr(epochs_empty.copy(), method[0])(**method[1])
