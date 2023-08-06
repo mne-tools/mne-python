@@ -26,6 +26,7 @@ from ..utils import (
     _on_missing,
 )
 from ..defaults import DEFAULTS
+from ..utils.check import _check_empty
 
 
 def _copy_channel(inst, ch_name, new_ch_name):
@@ -59,6 +60,7 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     """Prepare instance for referencing."""
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
+    _check_empty(inst, "set_eeg_reference")
 
     ch_type = _get_ch_type(inst, ch_type)
     ch_dict = {**{type_: True for type_ in ch_type}, "meg": False, "ref_meg": False}
@@ -182,6 +184,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
     """
     # Check to see that data is preloaded
     _check_preload(inst, "add_reference_channels")
+    _check_empty(inst, "add_reference_channels")
     _validate_type(ref_channels, (list, tuple, str), "ref_channels")
     if isinstance(ref_channels, str):
         ref_channels = [ref_channels]

@@ -9,10 +9,10 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial, wraps
+from functools import partial
 from collections import Counter
 from copy import deepcopy
-import traceback
+
 import json
 import operator
 import os.path as op
@@ -68,6 +68,7 @@ from .parallel import parallel_func
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .fixes import rng_uniform
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
+from .utils.check import _check_empty
 from .viz import plot_epochs, plot_epochs_image, plot_topo_image_epochs, plot_drop_log
 from .utils import (
     _check_fname,
@@ -478,7 +479,6 @@ class BaseEpochs(
         annotations=None,
         verbose=None,
     ):  # noqa: D102
-
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             events_max = events.max()
@@ -1103,6 +1103,7 @@ class BaseEpochs(
 
         This would compute the trimmed mean.
         """
+        _check_empty(self, "average")
         if by_event_type:
             evokeds = list()
             for event_type in self.event_id.keys():
@@ -1306,6 +1307,7 @@ class BaseEpochs(
         theme=None,
         overview_mode=None,
     ):
+        _check_empty(self, "plot")
         return plot_epochs(
             self,
             picks=picks,
@@ -1351,6 +1353,7 @@ class BaseEpochs(
         font_color="w",
         show=True,
     ):
+        _check_empty(self, "plot_topo_image")
         return plot_topo_image_epochs(
             self,
             layout=layout,
@@ -1485,6 +1488,7 @@ class BaseEpochs(
         title=None,
         clear=False,
     ):
+        _check_empty(self, "plot_image")
         return plot_epochs_image(
             self,
             picks=picks,
@@ -1853,6 +1857,7 @@ class BaseEpochs(
             The epochs object with transformed data.
         """
         _check_preload(self, "epochs.apply_function")
+        _check_empty(self, "apply_function")
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -1977,6 +1982,7 @@ class BaseEpochs(
         """
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, "Modifying data of epochs")
+        _check_empty(self, "crop")
 
         super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
@@ -2083,14 +2089,14 @@ class BaseEpochs(
         self.drop_bad()
         # total_size tracks sizes that get split
         # over_size tracks overhead (tags, things that get written to each)
-        if len(self) == 0:
-            warn("Saving epochs with no data")
-            total_size = 0
-        else:
-            d = self[0].get_data()
-            # this should be guaranteed by subclasses
-            assert d.dtype in (">f8", "<f8", ">c16", "<c16")
-            total_size = d.nbytes * len(self)
+
+        # Check for empty epochs
+        _check_empty(self, "save")
+
+        d = self[0].get_data()
+        # this should be guaranteed by subclasses
+        assert d.dtype in (">f8", "<f8", ">c16", "<c16")
+        total_size = d.nbytes * len(self)
         self._check_consistency()
         over_size = 0
         if fmt == "single":
@@ -2392,6 +2398,8 @@ class BaseEpochs(
         method = _validate_method(method, type(self).__name__)
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
 
+        _check_empty(self, "compute_psd")
+
         return EpochsSpectrum(
             self,
             method=method,
@@ -2541,6 +2549,7 @@ class BaseEpochs(
         -------
         %(df_return)s
         """
+        _check_empty(self, "to_data_frame")
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking
@@ -2610,6 +2619,7 @@ class BaseEpochs(
         """
         from .forward import _as_meg_type_inst
 
+        _check_empty(self, "as_type")
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 

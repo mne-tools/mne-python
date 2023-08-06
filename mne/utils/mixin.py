@@ -10,7 +10,7 @@ import json
 
 import numpy as np
 
-from .check import _check_pandas_installed, _check_preload, _validate_type
+from .check import _check_pandas_installed, _check_preload, _validate_type, _check_empty
 from ._logging import warn, verbose
 from .numerics import object_size, object_hash, _time_mask
 
@@ -342,8 +342,6 @@ class GetEpochsMixin:
         Where ``epoch`` is given by successive outputs of
         :meth:`mne.Epochs.next`.
         """
-        if len(self) == 0:
-            raise RuntimeError("Empty!")
         self._current = 0
         self._current_detrend_picks = self._detrend_picks
         return self
@@ -719,6 +717,7 @@ class TimeMixin:
         or change the *data* values in any way.
         """
         _check_preload(self, "shift_time")
+        _check_empty(self, "shift_time")
         start = tshift + (self.times[0] if relative else 0.0)
         new_times = start + np.arange(len(self.times)) / self.info["sfreq"]
         self._set_times(new_times)

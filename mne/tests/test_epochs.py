@@ -4662,3 +4662,12 @@ def test_epochs_saving_with_annotations(tmp_path):
     loaded_epochs = read_epochs(fname)
     assert epochs._raw_sfreq == loaded_epochs._raw_sfreq
     assert loaded_epochs.annotations is None
+
+
+def test_empty_error():
+    """Test that a helpful error is raised when certain methods are called."""
+    raw, events, picks = _get_data()
+    epochs_empty = Epochs(raw, events, event_id, reject={"eeg": 1}, preload=True)
+    epochs_empty.drop_bad()
+
+    # Test that an error is raised when empty epochs are saved.

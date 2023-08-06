@@ -28,6 +28,7 @@ from .utils import (
     _ensure_int,
 )
 from ._ola import _COLA
+from .utils.check import _check_empty
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -2498,6 +2499,7 @@ class FilterMixin:
         from scipy.signal import savgol_filter
 
         _check_preload(self, "inst.savgol_filter")
+        _check_empty(self, "savgol_filter")
         h_freq = float(h_freq)
         if h_freq >= self.info["sfreq"] / 2.0:
             raise ValueError("h_freq must be less than half the sample rate")
@@ -2600,6 +2602,7 @@ class FilterMixin:
         from .io.base import BaseRaw
 
         _check_preload(self, "inst.filter")
+        _check_empty(self, "filter")
         if pad is None and method != "iir":
             pad = "edge"
         update_info, picks = _filt_check_picks(self.info, picks, l_freq, h_freq)
@@ -2702,6 +2705,8 @@ class FilterMixin:
             return self
 
         _check_preload(self, "inst.resample")
+        _check_empty(self, "resample")
+
         self._data = resample(
             self._data, sfreq, o_sfreq, npad, window=window, n_jobs=n_jobs, pad=pad
         )
@@ -2787,6 +2792,8 @@ class FilterMixin:
         inverse, and computing the envelope in source space.
         """
         _check_preload(self, "inst.apply_hilbert")
+        _check_empty(self, "apply_hilbert")
+
         if n_fft is None:
             n_fft = len(self.times)
         elif isinstance(n_fft, str):
