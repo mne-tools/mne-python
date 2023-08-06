@@ -1728,4 +1728,4 @@ def count_annotations(annotations):
         {'T0': 2, 'T1': 1}
     """
     types, counts = np.unique(annotations.description, return_counts=True)
-    return {t: count for t, count in zip(types, counts)}
+    return {str(t): int(count) for t, count in zip(types, counts)}

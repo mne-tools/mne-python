@@ -190,6 +190,8 @@
 
 .. _Hamid Maymandi: https://github.com/HamidMandi
 
+.. _Hamza Abdelhedi: https://github.com/BabaSanfour
+
 .. _Hakimeh Pourakbari: https://github.com/Hpakbari
 
 .. _Hari Bharadwaj: https://github.com/haribharadwaj
@@ -492,7 +494,7 @@
 
 .. _Simeon Wong: https://github.com/dtxe
 
-.. _Simon Kern: https://github.com/skjerns
+.. _Simon Kern: https://skjerns.de
 
 .. _Simon Kornblith: https://simonster.com
 

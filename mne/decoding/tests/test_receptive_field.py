@@ -10,7 +10,6 @@ from numpy import einsum
 from numpy.fft import rfft, irfft
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne.utils import requires_sklearn
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (
     _delay_time_series,
@@ -78,10 +77,10 @@ def test_compute_reg_neighbors():
                 )
 
 
-@requires_sklearn
 def test_rank_deficiency():
     """Test signals that are rank deficient."""
     # See GH#4253
+    pytest.importorskip("sklearn")
     from sklearn.linear_model import Ridge
 
     N = 256
@@ -174,9 +173,9 @@ def test_time_delay():
 
 @pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
-@requires_sklearn
 def test_receptive_field_basic(n_jobs):
     """Test model prep and fitting."""
+    pytest.importorskip("sklearn")
     from sklearn.linear_model import Ridge
 
     # Make sure estimator pulling works
@@ -372,9 +371,9 @@ def test_time_delaying_fast_calc(n_jobs):
 
 
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
-@requires_sklearn
 def test_receptive_field_1d(n_jobs):
     """Test that the fast solving works like Ridge."""
+    pytest.importorskip("sklearn")
     from sklearn.linear_model import Ridge
 
     rng = np.random.RandomState(0)
@@ -433,9 +432,9 @@ def test_receptive_field_1d(n_jobs):
 
 
 @pytest.mark.parametrize("n_jobs", n_jobs_test)
-@requires_sklearn
 def test_receptive_field_nd(n_jobs):
     """Test multidimensional support."""
+    pytest.importorskip("sklearn")
     from sklearn.linear_model import Ridge
 
     # multidimensional
@@ -552,9 +551,9 @@ def _make_data(n_feats, n_targets, n_samples, tmin, tmax):
     return X, y
 
 
-@requires_sklearn
 def test_inverse_coef():
     """Test inverse coefficients computation."""
+    pytest.importorskip("sklearn")
     from sklearn.linear_model import Ridge
 
     tmin, tmax = 0.0, 10.0
@@ -583,9 +582,9 @@ def test_inverse_coef():
         assert_allclose(np.dot(c0, c1.T), np.eye(c0.shape[0]), atol=0.2)
 
 
-@requires_sklearn
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
+    pytest.importorskip("sklearn")
     from sklearn.linear_model import Ridge
 
     n_feats, n_targets, n_samples = 5, 60, 50
@@ -596,3 +595,42 @@ def test_linalg_warning():
             (RuntimeWarning, UserWarning), match="[Singular|scipy.linalg.solve]"
         ):
             rf.fit(y, X)
+
+
+def test_tdr_sklearn_compliance():
+    """Test sklearn estimator compliance."""
+    pytest.importorskip("sklearn")
+    from sklearn.utils.estimator_checks import check_estimator
+
+    tdr = TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)
+    # We don't actually comply with a bunch of the regressor specs :(
+    ignores = (
+        "check_supervised_y_no_nan",
+        "check_regressor",
+        "check_parameters_default_constructible",
+        "check_estimators_unfitted",
+        "_invariance",
+        "check_fit2d_1sample",
+    )
+    for est, check in check_estimator(tdr, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)
+
+
+def test_rf_sklearn_compliance():
+    """Test sklearn RF compliance."""
+    pytest.importorskip("sklearn")
+    from sklearn.linear_model import Ridge
+    from sklearn.utils.estimator_checks import check_estimator
+
+    rf = ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)
+    ignores = (
+        "check_parameters_default_constructible",
+        "_invariance",
+        "check_fit2d_1sample",
+    )
+    for est, check in check_estimator(rf, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)

@@ -70,7 +70,7 @@ print(raw.info)
 # %%
 # `~mne.io.Raw` objects also have several built-in plotting methods; here we
 # show the power spectral density (PSD) for each sensor type with
-# `~mne.io.Raw.plot_psd`, as well as a plot of the raw sensor traces with
+# `~mne.io.Raw.compute_psd`, as well as a plot of the raw sensor traces with
 # `~mne.io.Raw.plot`. In the PSD plot, we'll only plot frequencies below 50 Hz
 # (since our data are low-pass filtered at 40 Hz). In interactive Python
 # sessions, `~mne.io.Raw.plot` is interactive and allows scrolling, scaling,
