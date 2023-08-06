@@ -1173,7 +1173,7 @@ def test_read_epochs_bad_events():
     epochs.drop_bad()
     assert repr(epochs)
     assert epochs._repr_html_()
-    with pytest.warns(RuntimeWarning, match="empty"):
+    with pytest.raises(RuntimeError, match="empty"):
         evoked = epochs.average()
 
     # Event at the end
@@ -4147,7 +4147,7 @@ def test_pick_types_reject_flat_keys():
         event_id,
         preload=True,
         picks=picks,
-        reject=dict(grad=1e-10, mag=1e-10, eeg=1e-3, eog=1e-3),
+        reject=dict(grad=1e-9, mag=1e-10, eeg=1e-3, eog=1e-3),
         flat=dict(grad=1e-16, mag=1e-16, eeg=1e-16, eog=1e-16),
     )
 
@@ -4672,8 +4672,6 @@ def _get_empty_parametrize():
         "as_type": {},
         "average": {},
         "compute_psd": {},
-        "crop": {"tmin": 0, "tmax": 0.1},
-        "drop": {"indices": [0]},
         "drop_channels": {"ch_names": ["EEG 014"]},
         "filter": {"l_freq": 1, "h_freq": 40},
         "interpolate_bads": {},
@@ -4688,7 +4686,6 @@ def _get_empty_parametrize():
         "plot_topo_image": {},
         "resample": {"sfreq": 100},
         "reorder_channels": {"ch_names": ["EEG 014"]},
-        "save": {"fname": "test-epo.fif", "overwrite": True},
         "savgol_filter": {"h_freq": 40},
         "set_eeg_reference": {},
         "shift_time": {"tshift": 0.1},

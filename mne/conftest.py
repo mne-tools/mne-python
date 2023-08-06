@@ -349,8 +349,7 @@ def epochs_full():
 def epochs_empty():
     """Get empty epochs from mne.io.tests.data."""
     epochs = _get_epochs(meg=True, eeg=True).load_data()
-    with pytest.warns(RuntimeWarning):
-        epochs.drop_bad(reject={"mag": 1e-20})
+    epochs.drop_bad(reject={"mag": 1e-20})
 
     return epochs
 

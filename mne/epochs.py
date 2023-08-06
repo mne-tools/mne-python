@@ -1541,7 +1541,6 @@ class BaseEpochs(
         epochs : instance of Epochs
             The epochs with indices dropped. Operates in-place.
         """
-        _check_empty(self, "drop")
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
@@ -1750,7 +1749,7 @@ class BaseEpochs(
             logger.info(f"{n_bads_dropped} bad epochs dropped")
 
             if n_bads_dropped == n_events:
-                warn(
+                logger.warning(
                     "All epochs were dropped!\n"
                     "You might need to alter reject/flat-criteria "
                     "or drop bad channels to avoid this.\n"
@@ -1983,7 +1982,6 @@ class BaseEpochs(
         """
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, "Modifying data of epochs")
-        _check_empty(self, "crop")
 
         super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
@@ -2090,14 +2088,14 @@ class BaseEpochs(
         self.drop_bad()
         # total_size tracks sizes that get split
         # over_size tracks overhead (tags, things that get written to each)
-
-        # Check for empty epochs
-        _check_empty(self, "save")
-
-        d = self[0].get_data()
-        # this should be guaranteed by subclasses
-        assert d.dtype in (">f8", "<f8", ">c16", "<c16")
-        total_size = d.nbytes * len(self)
+        if len(self) == 0:
+            warn("Saving epochs with no data")
+            total_size = 0
+        else:
+            d = self[0].get_data()
+            # this should be guaranteed by subclasses
+            assert d.dtype in (">f8", "<f8", ">c16", "<c16")
+            total_size = d.nbytes * len(self)
         self._check_consistency()
         over_size = 0
         if fmt == "single":
