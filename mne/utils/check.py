@@ -315,7 +315,7 @@ def _check_empty(inst, msg):
     from ..epochs import BaseEpochs
 
     if isinstance(inst, BaseEpochs):
-        if len(inst) == 0:
+        if len(inst.events) == 0:
             raise RuntimeError(
                 f"epochs.{msg}() can't run because this Epochs-object is empty.\n"
                 f"You might want to check Epochs.drop_log or Epochs.plot_drop_log() to "
