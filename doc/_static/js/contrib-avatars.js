@@ -6,6 +6,7 @@ async function getContribs(url) {
 
 function addCards(data, container) {
     data.forEach((entry) => {
+      if (!entry.login.endsWith("[bot]")) {
         let card = document.createElement("div");
         let anchor = document.createElement("a");
         let image = document.createElement("img");
@@ -18,14 +19,15 @@ function addCards(data, container) {
         anchor.append(image);
         card.append(anchor);
         container.append(card);
+      }
     });
 }
 
 async function putAvatarsInPage() {
     // container
-    const outer = document.createElement("div");
-    const title = document.createElement("p");
-    const inner = document.createElement("div");
+    let outer = document.createElement("div");
+    let title = document.createElement("p");
+    let inner = document.createElement("div");
     outer.setAttribute("id", "contributor-avatars");
     outer.setAttribute("class", "container my-4");
     title.setAttribute("class", "h4 text-center font-weight-light");
