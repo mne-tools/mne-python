@@ -318,8 +318,8 @@ def _check_empty(inst, msg):
         if len(inst) == 0:
             raise RuntimeError(
                 f"epochs.{msg}() can't run because this Epochs-object is empty.\n"
-                f"You might want to check Epochs.drop_log() to see why epochs were "
-                f"dropped."
+                f"You might want to check Epochs.drop_log or Epochs.plot_drop_log() to "
+                f"see why epochs were dropped."
             )
 
 

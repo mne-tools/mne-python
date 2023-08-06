@@ -1541,6 +1541,7 @@ class BaseEpochs(
         epochs : instance of Epochs
             The epochs with indices dropped. Operates in-place.
         """
+        _check_empty(self, "drop")
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
