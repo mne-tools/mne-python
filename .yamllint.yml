@@ -1,0 +1,16 @@
+extends: default
+
+ignore: |
+  .github/workflows/codeql-analysis.yml
+
+rules:
+  line-length: disable
+  document-start: disable
+  indentation:
+    # We should fix these in a follow-up PR and add to git-revs-ignore
+    ignore: |
+      .pre-commit-config.yaml
+      azure-pipelines.yml
+      .circleci/config.yml
+      environment.yml
+      .github/workflows/tests.yml
