@@ -34,6 +34,7 @@ Enhancements
 - Added a section for combining eye-tracking and EEG data to the preprocessing tutorial "working with eye tracker data in MNE-Python" (:gh:`11770` by `Scott Huberty`_)
 - Added a ``show_bytes`` option to :ref:`mne show_fiff` to show byte offsets (:gh:`11800` by `Eric Larson`_)
 - Add :meth:`mne.Annotations.count` and :func:`mne.count_annotations` to count unique annotations (:gh:`11796` by `Clemens Brunner`_)
+- Split the display of :meth:`mne.preprocessing.ICA.plot_overlay` between sensor types and display the RMS for MEG sensors and the :term:`GFP` for EEG sensors in the second panel instead of the channel average (:gh:`11830` by `Mathieu Scheltienne`_)
 - Add :meth:`mne.Info.set_channel_types`, :meth:`mne.Info.rename_channels`, :meth:`mne.Info.plot_sensors`, :meth:`mne.Info.anonymize`, :meth:`mne.Info.set_meas_date` (:gh:`11839` by `Alex Rockhill`_)
 - Curry and NEDF raw files can now also be read with the generic :func:`mne.io.read_raw` function (:gh:`11841` by `Richard Höchenberger`_)
 
@@ -61,7 +62,7 @@ Bugs
 - Allow int-like for the argument ``id`` of `~mne.make_fixed_length_events` (:gh:`11748` by `Mathieu Scheltienne`_)
 - Fix bugs with :mod:`mne.decoding` classes (:gh:`11846` by `Eric Larson`_):
   - :class:`mne.decoding.ReceptiveField` now sets ``rf.fit_intercept_`` during ``fit()`` rather than overwriting ``rf.fit_intercept``
-  - :class:`mne.decoding.SlidingEstimator` now returns the same ``dtype`` as ``X`` (usually ``float64``) in ``sl.predict(X)`` rather than always returning ``int``
+  - :class:`mne.decoding.SlidingEstimator` now returns the same ``dtype`` as ``X`` (usually ``float64``) in ``sl.transform(X)`` rather than always returning ``int``
 - Fix bug with :func:`mne.beamformer.make_lcmv` where the source space was not checked properly when the ``label`` argument was provided (:gh:`11852` by `Eric Larson`_)
 - Fix bug where :func:`mne.io.read_raw_egi` did not properly set the EEG reference location for the reference channel itself (:gh:`11822` by `Eric Larson`_)
 - Fix bug with legacy :meth:`~mne.io.Raw.plot_psd` method where passed axes were not used (:gh:`11778` by `Daniel McCloy`_)
@@ -70,6 +71,7 @@ Bugs
 - Fix bug where annotation FIF files lacked an end block tag (:gh:`11800` by `Eric Larson`_)
 - Fix display of :class:`~mne.Annotations` in `mne.preprocessing.ICA.plot_sources` when the ``raw`` has ``raw.first_samp != 0`` and doesn't have a measurement date (:gh:`11766` by `Mathieu Scheltienne`_)
 - Fix bug in read_raw_eyelink, where STATUS information of samples was always assumed to be in the file. Performance and memory improvements were also made. (:gh:`11823` by `Scott Huberty`_)
+- Fix closing of a topographic map created from an interactive drag on an Evoked or PSD plot (:gh:`11862` by `Mathieu Scheltienne`_)
 
 API changes
 ~~~~~~~~~~~

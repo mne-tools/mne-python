@@ -1,6 +1,6 @@
 trigger:
   # start a new build for every push
-  batch: False
+  batch: false
   branches:
     include:
       - 'main'
