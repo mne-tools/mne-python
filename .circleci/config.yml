@@ -45,7 +45,8 @@ jobs:
               which pip
               pip install --upgrade pip setuptools wheel
               pip install --upgrade --only-binary "numpy,scipy,dipy,statsmodels" -ve . -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt PyQt6
-              pip uninstall -y vtk pyvista pyvistaqt  # too slow on Apple's software renderer!
+              # 3D too slow on Apple's software renderer, and numba causes us problems
+              pip uninstall -y vtk pyvista pyvistaqt numba
               mkdir -p test-results
               echo "set -eo pipefail" >> $BASH_ENV
         - run:
@@ -345,7 +346,7 @@ jobs:
             paths:
               - ~/.mne
               - ~/mne_data/MNE-kiloword-data  # (28 M)
-              - ~/mne_data/MNE-eegbci-data # (35 M)
+              - ~/mne_data/MNE-eegbci-data  # (35 M)
               - ~/mne_data/MNE-misc-data  # (39 M)
               - ~/mne_data/mTRF_1.5  # (56 M)
               - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
