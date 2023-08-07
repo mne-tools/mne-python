@@ -45,7 +45,8 @@ jobs:
               which pip
               pip install --upgrade pip setuptools wheel
               pip install --upgrade --only-binary "numpy,scipy,dipy,statsmodels" -ve . -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt PyQt6
-              pip uninstall -y vtk pyvista pyvistaqt  # too slow on Apple's software renderer!
+              # Numba causes problems on arm64 on CircleCI at least
+              pip uninstall -y numba
               mkdir -p test-results
               echo "set -eo pipefail" >> $BASH_ENV
         - run:
