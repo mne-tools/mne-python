@@ -6,6 +6,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import linalg
 
 from ..forward import is_fixed_orient, convert_forward_solution
 from ..io.pick import pick_info, pick_channels_forward
@@ -47,8 +48,6 @@ def _apply_rap_music(
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
     """
-    from scipy import linalg
-
     info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation
@@ -155,8 +154,6 @@ def _apply_rap_music(
 
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
-    from scipy import linalg
-
     Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
     # Now we look at the actual rank of the forward fields
     # in G and handle the fact that it might be rank defficient
@@ -175,8 +172,6 @@ def _compute_subcorr(G, phi_sig):
 
 def _compute_proj(A):
     """Compute the orthogonal projection operation for a manifold vector A."""
-    from scipy import linalg
-
     U, _, _ = linalg.svd(A, full_matrices=False)
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
