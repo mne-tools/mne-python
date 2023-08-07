@@ -346,7 +346,7 @@ jobs:
             paths:
               - ~/.mne
               - ~/mne_data/MNE-kiloword-data  # (28 M)
-              - ~/mne_data/MNE-eegbci-data # (35 M)
+              - ~/mne_data/MNE-eegbci-data  # (35 M)
               - ~/mne_data/MNE-misc-data  # (39 M)
               - ~/mne_data/mTRF_1.5  # (56 M)
               - ~/mne_data/MNE-phantom-4DBTi  # (77 M)
