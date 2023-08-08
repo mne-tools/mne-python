@@ -209,6 +209,8 @@ def verbose_debug():
 def qt_config():
     """Configure the Qt backend for viz tests."""
     os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
+    if "_MNE_BROWSER_BACK" not in os.environ:
+        os.environ["_MNE_BROWSER_BACK"] = "true"
 
 
 @pytest.fixture(scope="session")

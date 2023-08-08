@@ -11,7 +11,7 @@ import re
 import pytest
 
 import mne
-from mne.utils import requires_numpydoc, _pl, _record_warnings
+from mne.utils import _pl, _record_warnings
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -164,11 +164,9 @@ def check_parameters_match(func, cls=None):
 
 
 @pytest.mark.slowtest
-@requires_numpydoc
 def test_docstring_parameters():
     """Test module docstring formatting."""
-    from numpydoc import docscrape
-
+    npd = pytest.importorskip("numpydoc")
     incorrect = []
     for name in public_modules:
         # Assert that by default we import all public names with `import mne`
@@ -184,7 +182,7 @@ def test_docstring_parameters():
             if cname.startswith("_"):
                 continue
             incorrect += check_parameters_match(cls)
-            cdoc = docscrape.ClassDoc(cls)
+            cdoc = npd.docscrape.ClassDoc(cls)
             for method_name in cdoc.methods:
                 method = getattr(cls, method_name)
                 incorrect += check_parameters_match(method, cls=cls)

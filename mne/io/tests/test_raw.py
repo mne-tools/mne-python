@@ -36,7 +36,6 @@ from mne.utils import (
     _stamp_to_dt,
     object_diff,
     check_version,
-    requires_pandas,
     _import_h5io_funcs,
 )
 from mne.io.meas_info import _get_valid_units
@@ -62,6 +61,25 @@ def assert_named_constants(info):
         ".*FIFF_UNITM_.*",
     ):
         assert re.match(check, r, re.DOTALL) is not None, (check, r)
+
+
+def assert_attributes(raw):
+    """Assert that the instance keeps all its extra attributes in _raw_extras."""
+    __tracebackhide__ = True
+    assert isinstance(raw, BaseRaw)
+    base_attrs = set(dir(BaseRaw(create_info(1, 1000.0, "eeg"), last_samps=[1])))
+    base_attrs = base_attrs.union(
+        [
+            "_data",  # in the case of preloaded data
+            "__slotnames__",  # something about being decorated (?)
+        ]
+    )
+    for attr in raw._extra_attributes:
+        assert attr not in base_attrs
+        base_attrs.add(attr)
+    got_attrs = set(dir(raw))
+    extra = got_attrs.difference(base_attrs)
+    assert extra == set()
 
 
 def test_orig_units():
@@ -155,7 +173,7 @@ def _test_raw_reader(
         # test projection vs cals and data units
         other_raw = reader(preload=False, **kwargs)
         other_raw.del_proj()
-        eeg = meg = fnirs = False
+        eeg = meg = fnirs = seeg = eyetrack = False
         if "eeg" in raw:
             eeg, atol = True, 1e-18
         elif "grad" in raw:
@@ -166,10 +184,23 @@ def _test_raw_reader(
             fnirs, atol = "hbo", 1e-10
         elif "hbr" in raw:
             fnirs, atol = "hbr", 1e-10
-        else:
-            assert "fnirs_cw_amplitude" in raw, "New channel type necessary?"
+        elif "fnirs_cw_amplitude" in raw:
             fnirs, atol = "fnirs_cw_amplitude", 1e-10
-        picks = pick_types(other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
+        elif "eyegaze" in raw:
+            eyetrack = "eyegaze", 1e-3
+        else:
+            # e.g., https://github.com/mne-tools/mne-python/pull/11432/files
+            assert "seeg" in raw, "New channel type necessary? See gh-11432 for example"
+            seeg, atol = True, 1e-18
+
+        picks = pick_types(
+            other_raw.info,
+            meg=meg,
+            eeg=eeg,
+            fnirs=fnirs,
+            seeg=seeg,
+            eyetrack=eyetrack,
+        )
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
         proj /= np.sqrt(proj.shape[1])
@@ -280,6 +311,7 @@ def _test_raw_reader(
         raw = reader(**kwargs)
     n_samp = len(raw.times)
     assert_named_constants(raw.info)
+    assert_attributes(raw)
     # smoke test for gh #9743
     ids = [id(ch["loc"]) for ch in raw.info["chs"]]
     assert len(set(ids)) == len(ids)
@@ -811,10 +843,10 @@ def test_describe_print():
     )
 
 
-@requires_pandas
 @pytest.mark.slowtest
 def test_describe_df():
     """Test returned data frame of describe method."""
+    pytest.importorskip("pandas")
     fname = Path(__file__).parent / "data" / "test_raw.fif"
     raw = read_raw_fif(fname)
 

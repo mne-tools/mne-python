@@ -36,7 +36,6 @@ from mne import (
     make_fixed_length_epochs,
 )
 from mne.utils import (
-    requires_pandas,
     assert_object_equal,
     _dt_to_stamp,
     requires_mne,
@@ -1472,11 +1471,9 @@ def test_raw_copy():
     assert sorted(raw.__dict__.keys()) == sorted(copied.__dict__.keys())
 
 
-@requires_pandas
 def test_to_data_frame():
     """Test raw Pandas exporter."""
-    from pandas import Timedelta
-
+    pd = pytest.importorskip("pandas")
     raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
     df = raw.to_data_frame(index="time")
     assert (df.columns == raw.ch_names).all()
@@ -1496,23 +1493,21 @@ def test_to_data_frame():
     raw.set_meas_date(None)
     with pytest.warns(RuntimeWarning, match="Cannot convert to Datetime when"):
         df = raw.to_data_frame(time_format="datetime")
-    assert isinstance(df["time"].iloc[0], Timedelta)
+    assert isinstance(df["time"].iloc[0], pd.Timedelta)
 
 
-@requires_pandas
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta", "datetime"))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
-    from pandas import Timedelta, Timestamp, to_timedelta
-
+    pd = pytest.importorskip("pandas")
     raw = read_raw_fif(test_fif_fname, preload=True)
     # test time_format
     df = raw.to_data_frame(time_format=time_format)
     dtypes = {
         None: np.float64,
         "ms": np.int64,
-        "timedelta": Timedelta,
-        "datetime": Timestamp,
+        "timedelta": pd.Timedelta,
+        "datetime": pd.Timestamp,
     }
     assert isinstance(df["time"].iloc[0], dtypes[time_format])
     # test values
@@ -1522,12 +1517,12 @@ def test_to_data_frame_time_format(time_format):
         times += raw.first_time
         offset = raw.info["meas_date"]
     elif time_format == "timedelta":
-        offset = Timedelta(0.0)
+        offset = pd.Timedelta(0.0)
     funcs = {
         None: lambda x: x,
         "ms": lambda x: np.rint(x * 1e3).astype(int),  # s → ms
-        "timedelta": partial(to_timedelta, unit="s"),
-        "datetime": partial(to_timedelta, unit="s"),
+        "timedelta": partial(pd.to_timedelta, unit="s"),
+        "datetime": partial(pd.to_timedelta, unit="s"),
     }
     assert_array_equal(funcs[time_format](times) + offset, df["time"][:10])
 
