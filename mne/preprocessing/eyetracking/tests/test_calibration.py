@@ -199,7 +199,7 @@ def test_read_calibration(fname):
 
     assert len(calibrations) == 2  # calibration[0] is left, calibration[1] is right
     assert np.isclose(calibrations[0]["onset"], -6.85)
-    assert np.isclose(calibrations[0]["onset"], -6.85)
+    assert np.isclose(calibrations[1]["onset"], -6.85)
     assert calibrations[0]["model"] == "HV13"
     assert calibrations[1]["model"] == "HV13"
     assert calibrations[0]["eye"] == "left"
