@@ -31,8 +31,6 @@ from .callback import (
     UpdateColorbarScale,
 )
 
-from .. import ui_events
-
 from ..utils import (
     _show_help_fig,
     _get_color_list,
@@ -735,7 +733,10 @@ class Brain:
         self.reset_view()
         max_time = len(self._data["time"]) - 1
         if max_time > 0:
-            ui_events.publish(self, ui_events.TimeChange(time=self.data["time"][0]))
+            self.callbacks["time"](
+                self._data["initial_time_idx"],
+                update_widget=True,
+            )
         self._renderer._update()
 
     def set_playback_speed(self, speed):
@@ -762,10 +763,15 @@ class Brain:
         delta = this_time - self._last_tick
         self._last_tick = time.time()
         time_data = self._data["time"]
+        times = np.arange(self._n_times)
         time_shift = delta * self.playback_speed
         max_time = np.max(time_data)
         time_point = min(self._current_time + time_shift, max_time)
-        ui_events.publish(self, ui_events.TimeChange(time=time_point))
+        # always use linear here -- this does not determine the data
+        # interpolation mode, it just finds where we are (in time) in
+        # terms of the time indices
+        idx = np.interp(time_point, time_data, times)
+        self.callbacks["time"](idx, update_widget=True)
         if time_point == max_time:
             self.toggle_playback(value=False)
 
@@ -820,20 +826,12 @@ class Brain:
                 brain=self,
                 callback=self.plot_time_line,
             )
-
-            def publish_time_change_event(time_idx):
-                ui_events.publish(
-                    self,
-                    ui_events.TimeChange(time=self._time_interp_inv(time_idx)),
-                )
-
-            ui_events.subscribe(self, "time_change", self.callbacks["time"])
             self.widgets["time"] = self._renderer._dock_add_slider(
                 name="Time (s)",
                 value=self._data["time_idx"],
                 rng=[0, len_time],
                 double=True,
-                callback=publish_time_change_event,
+                callback=self.callbacks["time"],
                 compact=False,
                 layout=layout,
             )
@@ -1275,12 +1273,11 @@ class Brain:
             shortcut="?",
         )
 
-    def _shift_time(self, shift_func):
-        ui_events.publish(
-            self,
-            ui_events.TimeChange(
-                time=shift_func(self._current_time, self.playback_speed)
-            ),
+    def _shift_time(self, op):
+        self.callbacks["time"](
+            value=(op(self._current_time, self.playback_speed)),
+            time_as_index=False,
+            update_widget=True,
         )
 
     def _rotate_azimuth(self, value):
@@ -1304,10 +1301,10 @@ class Brain:
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
         self.plotter.add_key_event(
-            "n", partial(self._shift_time, shift_func=lambda x, y: x + y)
+            "n", partial(self._shift_time, op=lambda x, y: x + y)
         )
         self.plotter.add_key_event(
-            "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
+            "b", partial(self._shift_time, op=lambda x, y: x - y)
         )
         for key, func, sign in (
             ("Left", self._rotate_azimuth, 1),
@@ -3497,7 +3494,7 @@ class Brain:
                         warn=False,
                     )
                 self._data[hemi]["smooth_mat"] = smooth_mat
-        self._update_current_time_idx(self._data["time_idx"])
+        self.set_time_point(self._data["time_idx"])
         self._data["smoothing_steps"] = n_steps
 
     @property
@@ -3539,8 +3536,8 @@ class Brain:
                     )
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
-    def _update_current_time_idx(self, time_idx):
-        """Update all widgets in the figure to reflect a new time point.
+    def set_time_point(self, time_idx):
+        """Set the time point shown (can be a float to interpolate).
 
         Parameters
         ----------
@@ -3611,27 +3608,6 @@ class Brain:
         self._data["time_idx"] = time_idx
         self._renderer._update()
 
-    def set_time_point(self, time_idx):
-        """Set the time point to display (can be a float to interpolate).
-
-        Parameters
-        ----------
-        time_idx : int | float
-            The time index to use. Can be a float to use interpolation
-            between indices.
-        """
-        if self._times is None:
-            raise ValueError("Cannot set time when brain has no defined times.")
-        elif 0 <= time_idx <= len(self._times):
-            ui_events.publish(
-                self, ui_events.TimeChange(time=self._time_interp_inv(time_idx))
-            )
-        else:
-            raise ValueError(
-                f"Requested time point ({time_idx}) is outside the range of "
-                f"available time points (0-{len(self._times)})."
-            )
-
     def set_time(self, time):
         """Set the time to display (in seconds).
 
@@ -3643,7 +3619,9 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif min(self._times) <= time <= max(self._times):
-            ui_events.publish(self, ui_events.TimeChange(time=time))
+            self.set_time_point(
+                np.interp(float(time), self._times, np.arange(self._n_times))
+            )
         else:
             raise ValueError(
                 f"Requested time ({time} s) is outside the range of "
@@ -4012,18 +3990,19 @@ class Brain:
         -----
         Used by movie and image sequence saving functions.
         """
-        current_time = self._current_time
+        if self.time_viewer:
+            func = partial(self.callbacks["time"], update_widget=True)
+        else:
+            func = self.set_time_point
+        current_time_idx = self._data["time_idx"]
         for ii, idx in enumerate(time_idx):
-            ui_events.publish(
-                self,
-                ui_events.TimeChange(time=self._time_interp_inv(idx)),
-            )
+            func(idx)
             if callback is not None:
                 callback(frame=ii, n_frames=len(time_idx))
             yield idx
 
         # Restore original time index
-        ui_events.publish(self, ui_events.TimeChange(time=current_time))
+        func(current_time_idx)
 
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (

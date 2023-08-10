@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 from mne.datasets import testing
-from mne.viz import ui_events, Brain
+from mne.viz import ui_events
 
 subjects_dir = testing.data_path(download=False) / "subjects"
 
@@ -44,15 +44,7 @@ def test_get_event_channel(event_channels, renderer):
     fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
 
-    # Test different types of figures
-    fig = Brain("sample", subjects_dir=subjects_dir, surf="white")
-    ui_events._get_event_channel(fig)
-    assert len(event_channels) == 1
-    assert fig in event_channels
-    fig.close()
-    assert len(event_channels) == 0
-
-    # TODO: MNEFigure, Figure3D
+    # TODO: Different types of figures: Brain, MNEFigure, Figure3D
 
 
 def test_publish(event_channels):

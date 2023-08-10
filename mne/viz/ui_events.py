@@ -3,9 +3,9 @@ Event API for inter-figure communication.
 
 The event API allows figures to communicate with each other, such that a change
 in one figure can trigger a change in another figure. For example, moving the
-time cursor in a Brain plot can update the current time in an evoked plot.
-Another scenario is two drawing routines drawing into the same window, using
-events to stay in-sync.
+time cursor in one plot can update the current time in another plot. Another
+scenario is two drawing routines drawing into the same window, using events to
+stay in-sync.
 
 Event channels and linking them
 ===============================
@@ -111,7 +111,6 @@ def _get_event_channel(fig):
         channel.
     """
     import matplotlib
-    from . import Brain
 
     # Create the event channel if it doesn't exist yet
     if fig not in _event_channels:
@@ -133,8 +132,6 @@ def _get_event_channel(fig):
         # MNE-Python has.
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
-        elif isinstance(fig, Brain):
-            fig._renderer._window_close_connect(delete_event_channel, after=False)
         else:
             raise NotImplementedError("This figure type is not support yet.")
 

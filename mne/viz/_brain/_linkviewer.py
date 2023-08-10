@@ -4,10 +4,7 @@
 #
 # License: Simplified BSD
 import numpy as np
-from itertools import combinations
-
 from ...utils import warn
-from .. import ui_events
 
 
 class _LinkViewer:
@@ -28,8 +25,11 @@ class _LinkViewer:
 
         if time:
             # link time sliders
-            for brain1, brain2 in combinations(brains, 2):
-                ui_events.link(brain1, brain2, event_names=["time_change"])
+            self.link_widgets(
+                name="time",
+                callback=self.set_time_point,
+                signal_type="floatValueChanged",
+            )
 
             # link playback speed sliders
             self.link_widgets(
@@ -45,6 +45,15 @@ class _LinkViewer:
                 signal_type="triggered",
                 actions=True,
             )
+
+            # link time course canvas
+            def _time_func(*args, **kwargs):
+                for brain in self.brains:
+                    brain.callbacks["time"](*args, **kwargs)
+
+            for brain in self.brains:
+                if brain.show_traces:
+                    brain.mpl_canvas.time_func = _time_func
 
         if picking:
 
@@ -106,7 +115,8 @@ class _LinkViewer:
             brain.callbacks["fmax"](value)
 
     def set_time_point(self, value):
-        self.brains[0].set_time_point(value)
+        for brain in self.brains:
+            brain.callbacks["time"](value, update_widget=True)
 
     def set_playback_speed(self, value):
         for brain in self.brains:
