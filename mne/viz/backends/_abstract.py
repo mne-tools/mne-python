@@ -10,7 +10,6 @@ from abc import ABC, abstractmethod, abstractclassmethod
 from contextlib import nullcontext
 import warnings
 
-from .. import ui_events
 from ..utils import tight_layout
 
 
@@ -1435,7 +1434,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         # left click (and maybe drag) in progress in axes
         if event.inaxes != self.axes or event.button != 1:
             return
-        ui_events.publish(self.brain, ui_events.TimeChange(time=event.xdata))
+        self.time_func(event.xdata, update_widget=True, time_as_index=False)
 
     on_motion_notify = on_button_press  # for now they can be the same
 

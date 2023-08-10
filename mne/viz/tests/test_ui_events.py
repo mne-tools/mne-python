@@ -6,6 +6,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.viz import ui_events
+from mne.utils.misc import _assert_no_instances
 
 subjects_dir = testing.data_path(download=False) / "subjects"
 
@@ -25,10 +26,8 @@ def event_channel_links():
 
 
 @testing.requires_testing_data
-def test_get_event_channel(event_channels, renderer):
+def test_get_event_channel(event_channels):
     """Test creating and obtaining a figure's UI event channel."""
-    pytest.importorskip("pyvista")
-
     # At first, no event channels exist
     assert len(event_channels) == 0
 
@@ -43,6 +42,12 @@ def test_get_event_channel(event_channels, renderer):
     # close event.
     fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
+
+    # Make sure no references linger
+    fig_cls = fig.__class__
+    plt.close("all")
+    del fig
+    _assert_no_instances(fig_cls)
 
     # TODO: Different types of figures: Brain, MNEFigure, Figure3D
 
