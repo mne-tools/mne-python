@@ -155,7 +155,7 @@ def _interpolate_bads_eeg(inst, origin, exclude=None, verbose=None):
     goods_idx_pos = goods_idx[picks]
 
     # test spherical fit
-    distance = np.norm(pos - origin, axis=-1)
+    distance = np.linalg.norm(pos - origin, axis=-1)
     distance = np.mean(distance / np.mean(distance))
     if np.abs(1.0 - distance) > 0.1:
         warn(
