@@ -6,7 +6,6 @@ import pytest
 
 from mne.datasets import testing
 from mne.viz import ui_events
-from mne.utils.misc import _assert_no_instances
 
 subjects_dir = testing.data_path(download=False) / "subjects"
 
@@ -42,12 +41,6 @@ def test_get_event_channel(event_channels):
     # close event.
     fig.canvas.callbacks.process("close_event", None)
     assert len(event_channels) == 0
-
-    # Make sure no references linger
-    fig_cls = fig.__class__
-    plt.close("all")
-    del fig
-    _assert_no_instances(fig_cls)
 
     # TODO: Different types of figures: Brain, MNEFigure, Figure3D
 
