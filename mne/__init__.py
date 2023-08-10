@@ -49,6 +49,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
         "io",
         "minimum_norm",
         "preprocessing",
+        "report",
         "simulation",
         "stats",
         "surface",
