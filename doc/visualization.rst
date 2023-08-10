@@ -86,7 +86,25 @@ Visualization
    set_browser_backend
    get_browser_backend
    use_browser_backend
-   ui_events.publish
-   ui_events.subscribe
-   ui_events.link
-   ui_events.unlink
+
+UI Events
+---------
+
+.. currentmodule:: mne.viz.ui_events
+
+:py:mod:`mne.viz.ui_events`:
+
+.. automodule:: mne.viz.ui_events
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   subscribe
+   publish
+   link
+   unlink
+   UIEvent
+   FigureClosing
+   TimeChange

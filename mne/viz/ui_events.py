@@ -7,30 +7,9 @@ time cursor in one plot can update the current time in another plot. Another
 scenario is two drawing routines drawing into the same window, using events to
 stay in-sync.
 
-Event channels and linking them
-===============================
-Each figure has an associated event channel. Drawing routines can publish
-events on the channel and receive any events published by other subscribers.
-When subscribing to an event, a callback function is given that will be called
-whenever a drawing routine publishes that event on the event channel.
-
-As a rule, drawing routines only subscribe and publish on the event channel
-associated with the figure they are drawing. To broadcast events across
-figures, we allow message channels to be "linked". When an event is published
-on a channel, it is also published on all linked channels.
-
-Event objects and their parameters
-==================================
-The events are modeled after matplotlib's event system. Each event has a string
-name (the snake-case version of its class name) and a list of relevant values.
-For example, the "time_change" event should have the new time as a value.
-Values can be any python object. When publishing an event, the publisher
-creates a new instance of the event's class. When subscribing to an event,
-having to dig up the correct class is a bit of a hassle. Following matplotlib's
-example, subscribers use the string name of the event to refer to it.
-
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
+from dataclasses import dataclass
 from weakref import WeakKeyDictionary
 import re
 
@@ -52,11 +31,20 @@ _camel_to_snake = re.compile(r"(?<!^)(?=[A-Z])")
 
 # List of events
 class UIEvent:
-    """Abstract base class for all events."""
+    """Abstract base class for all events.
 
-    def __init__(self):
-        self.name = _camel_to_snake.sub("_", self.__class__.__name__).lower()
-        # self.source gets set when the event is published.
+    Attributes
+    ----------
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
+    """
+
+    source = None
+
+    @property
+    def name(self):
+        """The name of the event, which is the class name in snake case."""
+        return _camel_to_snake.sub("_", self.__class__.__name__).lower()
 
 
 class FigureClosing(UIEvent):
@@ -65,7 +53,7 @@ class FigureClosing(UIEvent):
     Attributes
     ----------
     name : str
-        The name of the event: ``'figure_closing'``
+        The name of the event: ``"figure_closing"``
     source : matplotlib.figure.Figure | Figure3D
         The figure that published the event.
     """
@@ -73,22 +61,26 @@ class FigureClosing(UIEvent):
     pass
 
 
+@dataclass
 class TimeChange(UIEvent):
     """Indicates that the user has selected a time.
+
+    Parameters
+    ----------
+    time : float
+        The new time in seconds.
 
     Attributes
     ----------
     name : str
-        The name of the event: ``'time_change'``
+        The name of the event: ``"time_change"``
     source : matplotlib.figure.Figure | Figure3D
         The figure that published the event.
     time : float
         The new time in seconds.
     """
 
-    def __init__(self, time):
-        super().__init__()
-        self.time = time
+    time: float
 
 
 @fill_doc
@@ -182,7 +174,7 @@ def subscribe(fig, event_name, callback):
         The figure of which event channel to subscribe.
     event_name : str
         The name of the event to listen for.
-    callback : func
+    callback : callable
         The function that should be called whenever the event is published.
     """
     channel = _get_event_channel(fig)
@@ -205,8 +197,8 @@ def link(fig1, fig2, event_names="all"):
         The first figure whose event channel will be linked to the second.
     fig2 : matplotlib.figure.Figure | Figure3D
         The second figure whose event channel will be linked to the first.
-    event_names : "all" | list of str
-        Select which events to publish across figures. By default (`"all"`),
+    event_names : str | list of str
+        Select which events to publish across figures. By default (``"all"``),
         both figures will receive all of each other's events. Passing a list of
         event names will restrict the events being shared across the figures to
         only the given ones.
