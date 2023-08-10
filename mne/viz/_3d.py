@@ -467,10 +467,10 @@ def plot_evoked_field(
 
     Returns
     -------
-    fig : Figure3D | Brain
-        The figure.
+    fig : EvokedField
+        The artist that is drawing the evoked field.
     """
-    evoked_field = EvokedField(
+    return EvokedField(
         evoked,
         surf_maps,
         time=time,
@@ -486,10 +486,6 @@ def plot_evoked_field(
         time_viewer=time_viewer,
         verbose=verbose,
     )
-    if fig is None:
-        return evoked_field._renderer.scene()
-    else:
-        return fig
 
 
 @verbose
