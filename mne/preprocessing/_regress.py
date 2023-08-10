@@ -7,6 +7,7 @@ import numpy as np
 
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from ..epochs import BaseEpochs
+from ..evoked import Evoked
 from ..io.pick import _picks_to_idx
 from ..io.base import BaseRaw
 from ..utils import (
@@ -21,7 +22,6 @@ from ..utils import (
 )
 from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
 from ..viz import plot_regression_weights
-from .. import Evoked
 
 
 @verbose

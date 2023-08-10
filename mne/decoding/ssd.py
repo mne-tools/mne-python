@@ -6,7 +6,8 @@
 import numpy as np
 from scipy.linalg import eigh
 
-from . import TransformerMixin, BaseEstimator
+from .mixin import TransformerMixin
+from ..fixes import BaseEstimator
 from ..cov import _regularized_covariance, Covariance
 from ..defaults import _handle_default
 from ..filter import filter_data

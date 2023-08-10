@@ -10,10 +10,9 @@ import numpy as np
 
 from .mixin import TransformerMixin, EstimatorMixin
 from .base import _set_cv
-from ..io.pick import _picks_to_idx
+from ..io.pick import _picks_to_idx, pick_types, pick_info
 from ..parallel import parallel_func
 from ..utils import logger, verbose
-from .. import pick_types, pick_info
 
 
 class EMS(TransformerMixin, EstimatorMixin):

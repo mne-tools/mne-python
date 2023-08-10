@@ -16,10 +16,10 @@ import numpy as np
 from scipy.stats import gaussian_kde
 from scipy.optimize import minimize_scalar
 
-from .. import pick_types
 from ..utils import _validate_type, _ensure_int, _check_preload, verbose, logger
 from ..io import BaseRaw
 from ..io.constants import FIFF
+from ..io.pick import pick_types
 from ..epochs import BaseEpochs, make_fixed_length_epochs
 from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape

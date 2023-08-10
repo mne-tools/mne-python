@@ -23,7 +23,7 @@ from ..transforms import (
     _quat_to_affine,
 )
 from ..filter import filter_data
-from .. import Transform
+from ..transforms import Transform
 from ..utils import _mask_to_onsets_offsets, logger, verbose, _validate_type, _pl
 
 

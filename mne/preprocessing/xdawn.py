@@ -7,10 +7,10 @@
 import numpy as np
 from scipy import linalg
 
-from .. import EvokedArray, Evoked
 from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
 from ..epochs import BaseEpochs
+from ..evoked import EvokedArray, Evoked
 from ..io import BaseRaw
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import logger, _check_option

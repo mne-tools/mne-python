@@ -26,19 +26,13 @@ import webbrowser
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from .. import (
-    read_evokeds,
-    read_events,
-    read_cov,
-    read_source_estimate,
-    read_trans,
-    sys_info,
-    Evoked,
-    SourceEstimate,
-    Covariance,
-    Info,
-    Transform,
-)
+from ..evoked import read_evokeds, Evoked
+from ..event import read_events
+from ..cov import read_cov, Covariance
+from ..source_estimate import read_source_estimate, SourceEstimate
+from ..transforms import read_trans, Transform
+from ..utils import sys_info
+from ..io.meas_info import Info
 from ..channels import _get_ch_type
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
@@ -84,7 +78,7 @@ from ..viz._scraper import _mne_qt_browser_screenshot
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
-from .. import dig_mri_distances
+from ..surface import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func
 

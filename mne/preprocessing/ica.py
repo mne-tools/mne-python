@@ -27,8 +27,8 @@ from .ecg import qrs_detector, _get_ecg_channel_index, _make_ecg, create_ecg_epo
 from .eog import _find_eog_events, _get_eog_channel_index
 from .infomax_ import infomax
 
-from ..cov import compute_whitener
-from .. import Covariance, Evoked
+from ..cov import compute_whitener, Covariance
+from ..evoked import Evoked
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..io.pick import (
     pick_types,

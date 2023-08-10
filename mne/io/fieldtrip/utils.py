@@ -5,7 +5,6 @@
 # License: BSD-3-Clause
 import numpy as np
 
-from .._digitization import DigPoint, _ensure_fiducials_head
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..pick import pick_info
@@ -106,6 +105,8 @@ def _remove_missing_channels_from_trial(trial, missing_chan_idx):
 
 def _create_info_chs_dig(ft_struct):
     """Create the chs info field from the FieldTrip structure."""
+    from .._digitization import DigPoint, _ensure_fiducials_head
+
     all_channels = ft_struct["label"]
     ch_defaults = dict(
         coord_frame=FIFF.FIFFV_COORD_UNKNOWN,

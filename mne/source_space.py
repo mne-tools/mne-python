@@ -34,7 +34,6 @@ from .io.write import (
     write_id,
 )
 from .io.pick import channel_type, _picks_to_idx
-from .bem import read_bem_surfaces, ConductorModel
 from .fixes import _get_img_fdata
 from .surface import (
     read_surface,
@@ -1762,6 +1761,8 @@ def setup_volume_source_space(
     file with values corresponding to the freesurfer lookup-table (typically
     ``aseg.mgz``).
     """
+    from .bem import read_bem_surfaces, ConductorModel
+
     subjects_dir = get_subjects_dir(subjects_dir)
     _validate_type(volume_label, (str, list, tuple, dict, None), "volume_label")
     _validate_type(bem, ("path-like", ConductorModel, None), "bem")
