@@ -1,9 +1,9 @@
 import numpy as np
 
 try:
-    from scipy.io.matlab import MatlabFunction
+    from scipy.io.matlab import MatlabFunction, MatlabOpaque
 except ImportError:  # scipy < 1.8
-    from scipy.io.matlab.mio5 import MatlabFunction
+    from scipy.io.matlab.mio5 import MatlabFunction, MatlabOpaque
 from scipy.io import loadmat
 
 from ...utils import _import_pymatreader_funcs
@@ -49,11 +49,6 @@ def _handle_scipy_ndarray(data):  # taken from pymatreader.utils
 
 def _check_for_scipy_mat_struct(data):  # taken from pymatreader.utils
     """Convert all scipy.io.matlab.mio5_params.mat_struct elements."""
-    try:
-        from io.matlab import MatlabOpaque
-    except ImportError:  # scipy < 1.8
-        from io.matlab.mio5_params import MatlabOpaque
-
     if isinstance(data, dict):
         for key in data:
             data[key] = _check_for_scipy_mat_struct(data[key])
