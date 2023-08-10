@@ -7,7 +7,7 @@ repos:
 
   # Ruff mne
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.281
+    rev: v0.0.282
     hooks:
       - id: ruff
         name: ruff mne
@@ -15,7 +15,7 @@ repos:
 
   # Ruff tutorials and examples
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.281
+    rev: v0.0.282
     hooks:
       - id: ruff
         name: ruff tutorials and examples
@@ -36,7 +36,7 @@ repos:
 
   # yamllint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.29.0
+    rev: v1.32.0
     hooks:
       - id: yamllint
         args: [--strict, -c, .yamllint.yml]
