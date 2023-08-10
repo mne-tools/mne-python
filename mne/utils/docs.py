@@ -1528,8 +1528,6 @@ fig_facecolor : str | tuple
     Defaults to black.
 """
 
-docdict["figure"] = "matplotlib.figure.Figure | MNEFigure | Figure3D | Brain"
-
 docdict[
     "filter_length"
 ] = """

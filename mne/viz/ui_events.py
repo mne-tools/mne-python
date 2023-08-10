@@ -66,7 +66,7 @@ class FigureClosing(UIEvent):
     ----------
     name : str
         The name of the event: ``'figure_closing'``
-    source : %(figure)s
+    source : matplotlib.figure.Figure | Figure3D
         The figure that published the event.
     """
 
@@ -80,7 +80,7 @@ class TimeChange(UIEvent):
     ----------
     name : str
         The name of the event: ``'time_change'``
-    source : %(figure)s
+    source : matplotlib.figure.Figure | Figure3D
         The figure that published the event.
     time : float
         The new time in seconds.
@@ -100,7 +100,7 @@ def _get_event_channel(fig):
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure to get the event channel for.
 
     Returns
@@ -149,7 +149,7 @@ def publish(fig, event):
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure that publishes the event.
     event : UIEvent
         Event to publish.
@@ -178,7 +178,7 @@ def subscribe(fig, event_name, callback):
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure of which event channel to subscribe.
     event_name : str
         The name of the event to listen for.
@@ -201,12 +201,12 @@ def link(fig1, fig2, event_names="all"):
 
     Parameters
     ----------
-    fig1 : %(figure)s
+    fig1 : matplotlib.figure.Figure | Figure3D
         The first figure whose event channel will be linked to the second.
-    fig2 : %(figure)s
+    fig2 : matplotlib.figure.Figure | Figure3D
         The second figure whose event channel will be linked to the first.
-    event_names : 'all' | list of str
-        Select which events to publish across figures. By default (`'all'`),
+    event_names : "all" | list of str
+        Select which events to publish across figures. By default (`"all"`),
         both figures will receive all of each other's events. Passing a list of
         event names will restrict the events being shared across the figures to
         only the given ones.
@@ -227,7 +227,7 @@ def unlink(fig):
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure whose event channel should be unlinked from all other event
         channels.
     """
