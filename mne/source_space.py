@@ -57,6 +57,7 @@ from ._freesurfer import (
     read_freesurfer_lut,
     get_mni_fiducials,  # noqa: F401
     _check_mri,
+    get_volume_labels_from_aseg,
 )
 from .utils import (
     get_subjects_dir,
@@ -2824,7 +2825,6 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
         List of Label of segmented volumes included in src space.
     """
     from . import Label
-    from ._freesurfer import get_volume_labels_from_aseg
 
     # Read the aseg file
     aseg_fname = op.join(subjects_dir, subject, "mri", "aseg.mgz")

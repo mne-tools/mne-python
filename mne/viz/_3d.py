@@ -100,7 +100,6 @@ from .utils import (
     figure_nobar,
     _check_time_unit,
 )
-from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 
 
 verbose_dec = verbose
@@ -710,6 +709,7 @@ def plot_alignment(
     """
     # Update the backend
     from .backends.renderer import _get_renderer
+    from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 
     meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
     _check_option("interaction", interaction, ["trackball", "terrain"])

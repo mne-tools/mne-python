@@ -19,6 +19,7 @@ import re
 
 import numpy as np
 
+from .._freesurfer import get_mni_fiducials
 from ..defaults import HEAD_SIZE_DEFAULT
 from ..viz import plot_montage
 from ..transforms import (
@@ -609,8 +610,6 @@ class DigMontage:
         and then use ``mne.channels.compute_native_head_t(montage)``
         to get the head <-> MRI transform.
         """
-        from .._freesurfer import get_mni_fiducials
-
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
@@ -653,8 +652,6 @@ class DigMontage:
         those coordinate to be transformed to "head" space (origin
         between LPA and RPA).
         """
-        from .._freesurfer import get_mni_fiducials
-
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
         # get the coordinate frame and check that it's MNI TAL
