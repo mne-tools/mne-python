@@ -134,39 +134,8 @@ def _get_img_fdata(img):
 # adapted from scikit-learn
 
 
-def is_classifier(estimator):
-    """Return True if the given estimator is (probably) a classifier.
-
-    Parameters
-    ----------
-    estimator : object
-        Estimator object to test.
-
-    Returns
-    -------
-    out : bool
-        True if estimator is a classifier and False otherwise.
-    """
-    return getattr(estimator, "_estimator_type", None) == "classifier"
-
-
-def is_regressor(estimator):
-    """Return True if the given estimator is (probably) a regressor.
-
-    Parameters
-    ----------
-    estimator : object
-        Estimator object to test.
-
-    Returns
-    -------
-    out : bool
-        True if estimator is a regressor and False otherwise.
-    """
-    return getattr(estimator, "_estimator_type", None) == "regressor"
-
-
 _DEFAULT_TAGS = {
+    "array_api_support": False,
     "non_deterministic": False,
     "requires_positive_X": False,
     "requires_positive_y": False,

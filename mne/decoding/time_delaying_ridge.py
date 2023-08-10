@@ -13,7 +13,7 @@ from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
-from ..utils import warn, ProgressBar, logger
+from ..utils import warn, ProgressBar, logger, _validate_type, _check_option
 
 
 def _compute_corrs(
@@ -299,6 +299,9 @@ class TimeDelayingRidge(BaseEstimator):
         self.edge_correction = edge_correction
         self.n_jobs = n_jobs
 
+    def _more_tags(self):
+        return {"no_validation": True}
+
     @property
     def _smin(self):
         return int(round(self.tmin * self.sfreq))
@@ -322,12 +325,21 @@ class TimeDelayingRidge(BaseEstimator):
         self : instance of TimeDelayingRidge
             Returns the modified instance.
         """
+        _validate_type(X, "array-like", "X")
+        _validate_type(y, "array-like", "y")
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y, dtype=float)
         if X.ndim == 3:
             assert y.ndim == 3
             assert X.shape[:2] == y.shape[:2]
         else:
-            assert X.ndim == 2 and y.ndim == 2
-            assert X.shape[0] == y.shape[0]
+            if X.ndim == 1:
+                X = X[:, np.newaxis]
+            if y.ndim == 1:
+                y = y[:, np.newaxis]
+            assert X.ndim == 2
+            assert y.ndim == 2
+        _check_option("y.shape[0]", y.shape[0], (X.shape[0],))
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).

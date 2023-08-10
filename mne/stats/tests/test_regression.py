@@ -15,7 +15,6 @@ from mne import read_source_estimate
 from mne.datasets import testing
 from mne.stats.regression import linear_regression, linear_regression_raw
 from mne.io import RawArray
-from mne.utils import requires_sklearn
 
 data_path = testing.data_path(download=False)
 stc_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-lh.stc"
@@ -115,10 +114,10 @@ def test_continuous_regression_no_overlap():
     )
 
 
-@requires_sklearn
 @testing.requires_testing_data
 def test_continuous_regression_with_overlap():
     """Test regression with overlap correction."""
+    pytest.importorskip("sklearn")
     signal = np.zeros(100000)
     times = [1000, 2500, 3000, 5000, 5250, 7000, 7250, 8000]
     events = np.zeros((len(times), 3), int)

@@ -52,6 +52,7 @@ from .utils import (
     _get_blas_funcs,
     _validate_type,
     copy_function_doc_to_method_doc,
+    ExtendedTimeMixin,
     TimeMixin,
     _verbose_safe_false,
 )
@@ -443,7 +444,7 @@ def _read_dipole_fixed(fname):
 
 
 @fill_doc
-class DipoleFixed(TimeMixin):
+class DipoleFixed(ExtendedTimeMixin):
     """Dipole class for fixed-position dipole fits.
 
     .. note::

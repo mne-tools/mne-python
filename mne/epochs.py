@@ -57,11 +57,12 @@ from .io.pick import (
     _picks_to_idx,
 )
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, TimeMixin, _get_ch_factors
+from .io.base import BaseRaw, _get_ch_factors
+from .io.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import UpdateChannelsMixin, SetChannelsMixin, InterpolationMixin
+from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
@@ -99,6 +100,7 @@ from .utils import (
     _validate_type,
     _ensure_events,
     _path_like,
+    ExtendedTimeMixin,
 )
 from .utils.docs import fill_doc
 from .annotations import (
@@ -381,10 +383,11 @@ class BaseEpochs(
     ProjMixin,
     ContainsMixin,
     UpdateChannelsMixin,
+    ReferenceMixin,
     SetChannelsMixin,
     InterpolationMixin,
     FilterMixin,
-    TimeMixin,
+    ExtendedTimeMixin,
     SizeMixin,
     GetEpochsMixin,
     EpochAnnotationsMixin,

@@ -725,6 +725,7 @@ def _get_lut(fname=None):
                 lut[d[0]].append(part)
     lut = {d[0]: np.array(lut[d[0]], dtype=d[1]) for d in dtype}
     assert len(lut["name"]) > 0
+    lut["name"] = [str(name) for name in lut["name"]]
     return lut
 
 

@@ -163,10 +163,6 @@ def pytest_configure(config):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith("#"):
             config.addinivalue_line("filterwarnings", warning_line)
-    # TODO: Fix this with casts?
-    # https://github.com/numpy/numpy/pull/22449
-    if check_version("numpy", "1.26"):
-        np.set_printoptions(legacy="1.25")
 
 
 # Have to be careful with autouse=True, but this is just an int comparison
@@ -213,6 +209,8 @@ def verbose_debug():
 def qt_config():
     """Configure the Qt backend for viz tests."""
     os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
+    if "_MNE_BROWSER_BACK" not in os.environ:
+        os.environ["_MNE_BROWSER_BACK"] = "true"
 
 
 @pytest.fixture(scope="session")

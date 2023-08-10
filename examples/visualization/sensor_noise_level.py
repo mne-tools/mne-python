@@ -5,7 +5,7 @@
 Show noise levels from empty room data
 ======================================
 
-This shows how to use :meth:`mne.io.Raw.plot_psd` to examine noise levels
+This shows how to use :meth:`mne.io.Raw.compute_psd` to examine noise levels
 of systems. See :footcite:`KhanCohen2013` for an example.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>

@@ -84,7 +84,7 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
         one.shape[1],
     )  # noqa: E501
     if mult is not None:
-        mult.ndim == one.ndim == 2
+        assert mult.ndim == one.ndim == 2
         data_view[:] = mult @ one[idx]
     else:
         assert cals is not None

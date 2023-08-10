@@ -279,6 +279,7 @@ def _block_diag(A, n):
         The matrix
     n : int
         The block size
+
     Returns
     -------
     bd : scipy.sparse.spmatrix
