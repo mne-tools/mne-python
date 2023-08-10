@@ -57,4 +57,4 @@ dependencies:
   - edflib-python
   - pybv
   - mamba
-  - lazy_loader>=0.3
+  - lazy_loader
