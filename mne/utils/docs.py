@@ -17,6 +17,19 @@ from ..defaults import HEAD_SIZE_DEFAULT
 from ._bunch import BunchConst
 
 
+_doc_special_members = (
+    "__contains__",
+    "__getitem__",
+    "__iter__",
+    "__len__",
+    "__add__",
+    "__sub__",
+    "__mul__",
+    "__div__",
+    "__neg__",
+)
+
+
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
     """Reflow text to a nice width for terminals.
 
