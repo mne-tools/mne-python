@@ -24,7 +24,6 @@ from scipy import linalg
 from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
 
 from ..defaults import DEFAULTS
-from .._freesurfer import _reorient_image, _read_mri_info, _check_mri, _mri_orientation
 from ..rank import compute_rank
 from ..surface import read_surface
 from ..io.constants import FIFF
@@ -386,6 +385,7 @@ def _plot_mri_contours(
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+    from .._freesurfer import _reorient_image, _read_mri_info, _mri_orientation
 
     # For ease of plotting, we will do everything in voxel coordinates.
     _validate_type(show_orientation, (bool, str), "show_orientation")
@@ -674,6 +674,8 @@ def plot_bem(
     on top of the midpoint MRI slice with the BEM boundary drawn for that
     slice.
     """
+    from .._freesurfer import _check_mri
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     mri_fname = _check_mri(mri, subject, subjects_dir)
 

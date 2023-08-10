@@ -34,7 +34,6 @@ from ..constants import FIFF
 from ..meas_info import _empty_info
 from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk, _set_dig_kit
-from ...event import read_events
 
 
 FLOAT64 = "<f8"
@@ -382,6 +381,8 @@ class EpochsKIT(BaseEpochs):
         standardize_names=None,
         verbose=None,
     ):  # noqa: D102
+        from ...event import read_events
+
         if isinstance(events, (str, PathLike, Path)):
             events = read_events(events)
 

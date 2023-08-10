@@ -42,7 +42,7 @@ from .. import (
 from ..channels import _get_ch_type
 from ..defaults import _handle_default
 from ..io import read_raw, read_info, BaseRaw
-from ..io._read_raw import supported as extension_reader_map
+from ..io._read_raw import _get_supported as _get_extension_reader_map
 from ..io.pick import _DATA_CH_TYPES_SPLIT
 from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
@@ -93,7 +93,7 @@ _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
-SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(_get_extension_reader_map())
 RAW_EXTENSIONS = []
 for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     RAW_EXTENSIONS.append(f"raw{ext}")

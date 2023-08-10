@@ -18,8 +18,10 @@ import numpy as np
 from ...utils import logger, verbose, _stamp_to_dt, path_like
 from ...transforms import combine_transforms, invert_transform, Transform
 from .._digitization import _make_bti_dig_points
+from ..base import BaseRaw
 from ..constants import FIFF
-from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
+from ..meas_info import _empty_info
+from ..tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..utils import _mult_cal_one, read_str
 from .constants import BTI
 from .read import (

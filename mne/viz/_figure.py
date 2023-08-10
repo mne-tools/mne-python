@@ -13,13 +13,14 @@ from itertools import cycle
 
 import numpy as np
 
-from .. import verbose, get_config, set_config
+from .backends._utils import VALID_BROWSE_BACKENDS
+from .utils import _get_color_list, _setup_plot_projector, _show_browser
+
 from ..annotations import _sync_onset
 from ..defaults import _handle_default
 from ..utils import logger, _validate_type, _check_option
 from ..io.pick import _DATA_CH_TYPES_SPLIT
-from .backends._utils import VALID_BROWSE_BACKENDS
-from .utils import _get_color_list, _setup_plot_projector, _show_browser
+from ..utils import verbose, get_config, set_config
 
 MNE_BROWSER_BACKEND = None
 backend = None

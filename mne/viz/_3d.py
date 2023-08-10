@@ -33,7 +33,7 @@ from .._freesurfer import (
     _get_head_surface,
     _get_skull_surface,
 )
-from ..io import _loc_to_coil_trans
+from ..io.tag import _loc_to_coil_trans
 from ..io.pick import (
     pick_types,
     channel_type,

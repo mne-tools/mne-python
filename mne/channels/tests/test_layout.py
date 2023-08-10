@@ -23,8 +23,8 @@ from mne.channels import (
     make_grid_layout,
     read_layout,
     find_layout,
-    HEAD_SIZE_DEFAULT,
 )
+from mne.defaults import HEAD_SIZE_DEFAULT
 from mne.channels.layout import _box_size, _find_topomap_coords, generate_2d_layout
 from mne import pick_types, pick_info
 from mne.io import read_raw_kit, _empty_info, read_info

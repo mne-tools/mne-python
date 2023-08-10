@@ -65,7 +65,6 @@ from .channels.channels import UpdateChannelsMixin, SetChannelsMixin, Interpolat
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
-from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .fixes import rng_uniform
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
 from .viz import plot_epochs, plot_epochs_image, plot_topo_image_epochs, plot_drop_log
@@ -2763,6 +2762,8 @@ def make_metadata(
     ----------
     .. footbibliography::
     """
+    from .event import match_event_names
+
     pd = _check_pandas_installed()
 
     _validate_type(event_id, types=(dict,), item_name="event_id")
@@ -3520,6 +3521,8 @@ def _is_good(
 
 def _read_one_epoch_file(f, tree, preload):
     """Read a single FIF file."""
+    from .event import _read_events_fif
+
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
@@ -4473,6 +4476,8 @@ def make_fixed_length_epochs(
     -----
     .. versionadded:: 0.20
     """
+    from .event import make_fixed_length_events
+
     events = make_fixed_length_events(raw, id=id, duration=duration, overlap=overlap)
     delta = 1.0 / raw.info["sfreq"]
     return Epochs(

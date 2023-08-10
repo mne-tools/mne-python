@@ -18,7 +18,6 @@ import shutil
 from collections import defaultdict
 
 import numpy as np
-from scipy.stats import scoreatpercentile
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
@@ -96,7 +95,6 @@ from ..utils import (
 )
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
-from ..event import find_events, concatenate_events
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 
@@ -1320,6 +1318,7 @@ class BaseRaw(
         resulting raw object will have the data loaded into memory.
         """
         from ..filter import _check_resamp_noop
+        from ..event import find_events
 
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
@@ -2303,9 +2302,9 @@ class BaseRaw(
             cols["type"].append(channel_type(self.info, i))
             cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
-            cols["Q1"].append(scoreatpercentile(data, 25))
+            cols["Q1"].append(np.percentile(data, 25))
             cols["median"].append(np.median(data))
-            cols["Q3"].append(scoreatpercentile(data, 75))
+            cols["Q3"].append(np.percentile(data, 75))
             cols["max"].append(np.max(data))
 
         if data_frame:  # return data frame
@@ -3001,6 +3000,8 @@ def concatenate_raws(
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
+    from ..event import concatenate_events
+
     for idx, raw in enumerate(raws[1:], start=1):
         _ensure_infos_match(
             info1=raws[0].info,

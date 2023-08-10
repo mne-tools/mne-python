@@ -17,9 +17,6 @@
 #
 import lazy_loader as lazy
 
-from .utils import set_log_file, set_log_level
-
-
 try:
     from importlib.metadata import version
 
@@ -299,5 +296,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
 )
 
 # initialize logging
+from .utils import set_log_level, set_log_file
+
 set_log_level(None, False)
 set_log_file()

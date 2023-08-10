@@ -29,8 +29,6 @@ import numpy as np
 from scipy.signal import argrelmax
 
 from ..defaults import _handle_default
-from ..io import show_fiff, Info
-from ..io.constants import FIFF
 from ..io.pick import (
     channel_type,
     channel_indices_by_type,
@@ -652,6 +650,8 @@ def compare_fiff(
         The filename used for storing the diff. Could be useful for
         when a temporary file is used.
     """
+    from ..io import show_fiff
+
     file_1 = show_fiff(
         fname_1, output=list, indent=indent, read_limit=read_limit, max_str=max_str
     )
@@ -1101,6 +1101,8 @@ def plot_sensors(
     .. versionadded:: 0.12.0
     """
     from .evoked import _rgb
+    from ..io import Info
+    from ..io.constants import FIFF
 
     _check_option("kind", kind, ["topomap", "3d", "select"])
     if axes is not None:

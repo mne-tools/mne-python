@@ -7,9 +7,6 @@ import numpy as np
 from scipy import linalg
 
 from .defaults import _handle_default
-from .io.meas_info import _simplify_info
-from .io.pick import _picks_by_type, pick_info, pick_channels_cov, _picks_to_idx
-from .io.proj import make_projector
 from .utils import (
     logger,
     _compute_row_norms,
@@ -128,6 +125,8 @@ def _estimate_rank_raw(
     raw, picks=None, tol=1e-4, scalings="norm", with_ref_meg=False, tol_kind="absolute"
 ):
     """Aid the transition away from raw.estimate_rank."""
+    from .io.pick import _picks_to_idx, pick_info
+
     if picks is None:
         picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
@@ -171,6 +170,8 @@ def _estimate_rank_meeg_signals(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from .io.pick import _picks_by_type
+
     picks_list = _picks_by_type(info)
     if data.shape[1] < data.shape[0]:
         ValueError(
@@ -224,6 +225,8 @@ def _estimate_rank_meeg_cov(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
+    from .io.pick import _picks_by_type
+
     picks_list = _picks_by_type(info, exclude=[])
     scalings = _handle_default("scalings_cov_rank", scalings)
     _apply_scaling_cov(data, picks_list, scalings)
@@ -353,9 +356,12 @@ def compute_rank(
     -----
     .. versionadded:: 0.18
     """
-    from .io.base import BaseRaw
-    from .epochs import BaseEpochs
     from . import Covariance
+    from .epochs import BaseEpochs
+    from .io.base import BaseRaw
+    from .io.meas_info import _simplify_info
+    from .io.pick import _picks_by_type, pick_info, pick_channels_cov
+    from .io.proj import make_projector
 
     rank = _check_rank(rank)
     scalings = _handle_default("scalings_cov_rank", scalings)

@@ -22,7 +22,6 @@ from scipy.sparse import coo_matrix, csr_matrix
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
 
-from .channels.channels import _get_meg_system
 from .fixes import jit, prange, bincount
 from .io.constants import FIFF
 from .io.pick import pick_types
@@ -183,6 +182,7 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
     will be approximated based on the sensor locations.
     """
     from .bem import read_bem_surfaces, _fit_sphere
+    from .channels.channels import _get_meg_system
 
     system, have_helmet = _get_meg_system(info)
     if have_helmet:

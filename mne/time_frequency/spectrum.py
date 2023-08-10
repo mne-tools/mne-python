@@ -48,8 +48,8 @@ from ..utils.spectrum import _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import _format_units_psd, _plot_psd, _prepare_sensor_names, plt_show
-from . import psd_array_multitaper, psd_array_welch
-from .psd import _check_nfft
+from .multitaper import psd_array_multitaper
+from .psd import psd_array_welch, _check_nfft
 
 
 def _identity_function(x):

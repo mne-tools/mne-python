@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from . import plot_sensors
+from .utils import plot_sensors
 from ..io._digitization import _get_fid_coords
 from ..utils import logger, _check_option, _validate_type, verbose
 

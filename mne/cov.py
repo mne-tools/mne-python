@@ -316,7 +316,7 @@ class Covariance(dict):
         return self
 
     @verbose
-    @copy_function_doc_to_method_doc(viz.misc.plot_cov)
+    @copy_function_doc_to_method_doc(viz.plot_cov)
     def plot(
         self,
         info,
@@ -327,7 +327,7 @@ class Covariance(dict):
         show=True,
         verbose=None,
     ):
-        return viz.misc.plot_cov(
+        return viz.plot_cov(
             self, info, exclude, colorbar, proj, show_svd, show, verbose
         )
 

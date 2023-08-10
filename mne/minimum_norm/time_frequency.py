@@ -6,7 +6,7 @@
 import numpy as np
 from scipy import linalg
 
-from ..epochs import Epochs, make_fixed_length_events
+from ..epochs import Epochs
 from ..evoked import EvokedArray
 from ..io.constants import FIFF
 from ..io.pick import pick_info
@@ -683,6 +683,8 @@ def compute_source_psd(
 
     Otherwise the two should produce identical results.
     """
+    from ..event import make_fixed_length_events
+
     tmin = 0.0 if tmin is None else float(tmin)
     overlap = float(overlap)
     if not 0 <= overlap < 1:
