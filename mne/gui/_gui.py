@@ -1,5 +1,3 @@
-"""Convenience functions for opening GUIs."""
-
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD-3-Clause
