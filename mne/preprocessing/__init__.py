@@ -13,7 +13,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
     __name__,
     submodules=["eyetracking", "ieeg", "nirs"],
     submod_attrs={
-        "annotate_amplitude": ["annotate_amplitude"],
+        "_annotate_amplitude": ["annotate_amplitude"],
         "maxfilter": ["apply_maxfilter"],
         "ssp": ["compute_proj_ecg", "compute_proj_eog"],
         "eog": ["find_eog_events", "create_eog_epochs"],
