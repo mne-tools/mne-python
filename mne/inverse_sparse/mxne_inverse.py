@@ -204,7 +204,7 @@ def _split_gof(M, X, gain):
     res = M - M_est
     assert gain.shape[0] == M.shape[0], (gain.shape, M.shape)
     # find an orthonormal basis for our matrices that spans the actual data
-    U, s, _ = _safe_svd(gain, full_matrices=False)
+    U, s, _ = np.linalg.svd(gain, full_matrices=False)
     if U.shape[1] > 0:
         U = U[:, s >= s[0] * 1e-6]
     # the part that gets explained
