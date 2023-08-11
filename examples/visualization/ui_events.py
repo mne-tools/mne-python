@@ -1,5 +1,5 @@
 """
-.. _ex-plot-events:
+.. _ex-ui-events:
 
 ======================================
 Using the event system to link figures
