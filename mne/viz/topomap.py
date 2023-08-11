@@ -2058,6 +2058,13 @@ def plot_evoked_topomap(
     :meth:`axes.set_position() <matplotlib.axes.Axes.set_position>` method or
     :doc:`gridspec <matplotlib:tutorials/intermediate/arranging_axes>`
     interface to adjust the colorbar size yourself.
+
+    When ``time=="interactive"``, the figure will publish and subscribe to the
+    following events:
+
+    .. currentmodule:: mne.viz.ui_events
+
+    * :class:`TimeChange` whenever a new time is selected.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
