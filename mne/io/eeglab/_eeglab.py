@@ -3,7 +3,8 @@ import numpy as np
 try:
     from scipy.io.matlab import MatlabFunction, MatlabOpaque
 except ImportError:  # scipy < 1.8
-    from scipy.io.matlab.mio5 import MatlabFunction, MatlabOpaque
+    from scipy.io.matlab.mio5 import MatlabFunction
+    from scipy.io.matlab.mio5_params import MatlabOpaque
 from scipy.io import loadmat
 
 from ...utils import _import_pymatreader_funcs
