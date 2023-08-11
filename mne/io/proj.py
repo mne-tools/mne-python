@@ -12,7 +12,6 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from .fixes import _safe_svd
 from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
 from .tag import find_tag, _rename_list
 from .tree import dir_tree_find
@@ -27,6 +26,7 @@ from .write import (
     _safe_name_list,
 )
 from ..defaults import _INTERPOLATION_DEFAULT, _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
+from ..fixes import _safe_svd
 from ..utils import (
     logger,
     verbose,
