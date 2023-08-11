@@ -18,7 +18,7 @@ from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
-from .fixes import pinvh
+from .fixes import pinvh, _safe_svd
 from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
 from .viz.evoked import _plot_evoked
@@ -945,8 +945,6 @@ def _dipole_gof(uu, sing, vv, B, B2):
 
 def _fit_Q(*, sensors, fwd_data, whitener, B, B2, B_orig, rd, ori=None):
     """Fit the dipole moment once the location is known."""
-    from scipy import linalg
-
     if "fwd" in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
         assert rd is None
@@ -964,7 +962,7 @@ def _fit_Q(*, sensors, fwd_data, whitener, B, B2, B_orig, rd, ori=None):
         fwd_svd = None
     if ori is None:
         if fwd_svd is None:
-            fwd_svd = linalg.svd(fwd, full_matrices=False)
+            fwd_svd = _safe_svd(fwd, full_matrices=False)
         uu, sing, vv = fwd_svd
         gof, one = _dipole_gof(uu, sing, vv, B, B2)
         ncomp = len(one)
@@ -1470,8 +1468,6 @@ def fit_dipole(
     -----
     .. versionadded:: 0.9.0
     """
-    from scipy import linalg
-
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:
 
@@ -1673,7 +1669,7 @@ def fit_dipole(
     )
     # decompose ahead of time
     guess_fwd_svd = [
-        linalg.svd(fwd, full_matrices=False)
+        _safe_svd(fwd, full_matrices=False)
         for fwd in np.array_split(guess_fwd, len(guess_src["rr"]))
     ]
     guess_data = dict(

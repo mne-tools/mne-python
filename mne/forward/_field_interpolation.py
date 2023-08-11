@@ -11,6 +11,7 @@ import numpy as np
 
 from ..bem import _check_origin
 from ..cov import make_ad_hoc_cov
+from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
 from ..io.meas_info import _simplify_info
@@ -88,9 +89,7 @@ def _compute_mapping_matrix(fmd, info):
 
 def _pinv_trunc(x, miss):
     """Compute pseudoinverse, truncating at most "miss" fraction of varexp."""
-    from scipy import linalg
-
-    u, s, v = linalg.svd(x, full_matrices=False)
+    u, s, v = _safe_svd(x, full_matrices=False)
 
     # Eigenvalue truncation
     varexp = np.cumsum(s)
