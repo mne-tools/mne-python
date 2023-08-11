@@ -12,6 +12,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
+from .fixes import _safe_svd
 from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
 from .tag import find_tag, _rename_list
 from .tree import dir_tree_find
@@ -772,8 +773,6 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
     warning will be raised next time projectors are constructed with
     the given inputs. If inplace=True, no meaningful data are returned.
     """
-    from scipy import linalg
-
     nchan = len(ch_names)
     if nchan == 0:
         raise ValueError("No channel names specified")
@@ -871,7 +870,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
         return default_return
 
     # Reorthogonalize the vectors
-    U, S, _ = linalg.svd(vecs[:, :nvec], full_matrices=False)
+    U, S, _ = _safe_svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)
