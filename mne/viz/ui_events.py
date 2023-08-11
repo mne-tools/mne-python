@@ -24,10 +24,6 @@ _event_channels = WeakKeyDictionary()
 # must {fig2: fig1}.
 _event_channel_links = WeakKeyDictionary()
 
-# Global dict {fig: event} keeping track of the last emitted event for each
-# event channel.
-_last_event = WeakKeyDictionary()
-
 # Regex pattern used when converting CamelCase to snake_case.
 # Detects all capital letters that are not at the beginning of a word.
 _camel_to_snake = re.compile(r"(?<!^)(?=[A-Z])")
@@ -51,7 +47,6 @@ class UIEvent:
         return _camel_to_snake.sub("_", self.__class__.__name__).lower()
 
 
-@dataclass
 class FigureClosing(UIEvent):
     """Indicates that the user has requested to close a figure.
 
@@ -119,12 +114,10 @@ def _get_event_channel(fig):
         # deleted. This is a good time to set this up.
         def delete_event_channel(event=None):
             """Delete the event channel (callback function)."""
-            publish(fig, event=FigureClosing())  # notify subscribers of imminent close
-            unlink(fig)  # remove channel from the _event_channel_links dict
+            publish(fig, event=FigureClosing())  # Notify subscribers of imminent close
+            unlink(fig)  # Remove channel from the _event_channel_links dict
             if fig in _event_channels:
                 del _event_channels[fig]
-            if fig in _last_event:
-                del _last_event[fig]
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
@@ -146,11 +139,6 @@ def publish(fig, event):
     subscribers to the given event. Each subscriber had provided a callback
     function when subscribing, so we call that.
 
-    Publishing the same event more than once (same event channel, same even
-    name, same parameters) will cause the event to be silently dropped. This
-    feature is designed to circumvent infinite loops where publishing an event
-    will cause it to be generated again.
-
     Parameters
     ----------
     fig : matplotlib.figure.Figure | Figure3D
@@ -158,10 +146,6 @@ def publish(fig, event):
     event : UIEvent
         Event to publish.
     """
-    # Check if the event should be published at all
-    if _last_event.get(fig, None) == event:
-        return
-
     # Compile a list of all event channels that the event should be published
     # on.
     channels = [_get_event_channel(fig)]
@@ -174,7 +158,6 @@ def publish(fig, event):
     # Publish the event by calling the registered callback functions.
     event.source = fig
     for channel in channels:
-        _last_event[fig] = event  # keep track of last published event
         if event.name not in channel:
             channel[event.name] = set()
         for callback in channel[event.name]:
