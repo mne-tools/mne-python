@@ -63,7 +63,6 @@ from mne.epochs import (
     make_metadata,
 )
 from mne.utils import (
-    requires_pandas,
     object_diff,
     use_log_level,
     catch_logging,
@@ -2707,9 +2706,9 @@ def test_access_by_name(tmp_path):
 
 
 @pytest.mark.slowtest
-@requires_pandas
 def test_to_data_frame():
     """Test epochs Pandas exporter."""
+    pytest.importorskip("pandas")
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {"a": 1, "b": 2}, tmin, tmax, picks=picks)
     # test index checking
@@ -2739,7 +2738,6 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
 
 
-@requires_pandas
 @pytest.mark.parametrize(
     "index",
     (
@@ -2752,6 +2750,7 @@ def test_to_data_frame():
 )
 def test_to_data_frame_index(index):
     """Test index creation in epochs Pandas exporter."""
+    pytest.importorskip("pandas")
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {"a": 1, "b": 2}, tmin, tmax, picks=picks)
     df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
@@ -2765,17 +2764,15 @@ def test_to_data_frame_index(index):
         assert all(np.in1d(non_index, df.columns))
 
 
-@requires_pandas
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
-    from pandas import Timedelta
-
+    pd = pytest.importorskip("pandas")
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {"a": 1, "b": 2}, tmin, tmax, picks=picks)
     # test time_format
     df = epochs.to_data_frame(time_format=time_format)
-    dtypes = {None: np.float64, "ms": np.int64, "timedelta": Timedelta}
+    dtypes = {None: np.float64, "ms": np.int64, "timedelta": pd.Timedelta}
     assert isinstance(df["time"].iloc[0], dtypes[time_format])
 
 
@@ -3530,11 +3527,9 @@ def test_default_values():
     assert_equal(hash(epoch_1), hash(epoch_2))
 
 
-@requires_pandas
 def test_metadata(tmp_path):
     """Test metadata support with pandas."""
-    from pandas import DataFrame, Series, NA
-
+    pd = pytest.importorskip("pandas")
     data = np.random.randn(10, 2, 2000)
     chs = ["a", "b"]
     info = create_info(chs, 1000)
@@ -3542,7 +3537,7 @@ def test_metadata(tmp_path):
         [[1.0] * 5 + [3.0] * 5, ["a"] * 2 + ["b"] * 3 + ["c"] * 3 + ["µ"] * 2],
         dtype="object",
     ).T
-    meta = DataFrame(meta, columns=["num", "letter"])
+    meta = pd.DataFrame(meta, columns=["num", "letter"])
     meta["num"] = np.array(meta["num"], float)
     events = np.arange(meta.shape[0])
     events = np.column_stack([events, np.zeros([len(events), 2])]).astype(int)
@@ -3684,7 +3679,7 @@ def test_metadata(tmp_path):
     info = mne.create_info(10, 1000.0)
     raw = mne.io.RawArray(raw_data, info)
     events = [[0, 0, 1], [100, 0, 1], [200, 0, 1], [300, 0, 1]]
-    metadata = DataFrame([dict(idx=idx) for idx in range(len(events))])
+    metadata = pd.DataFrame([dict(idx=idx) for idx in range(len(events))])
     epochs = mne.Epochs(raw, events=events, tmin=-0.050, tmax=0.100, metadata=metadata)
     epochs.drop_bad()
     assert len(epochs) == len(epochs.metadata)
@@ -3706,7 +3701,7 @@ def test_metadata(tmp_path):
     raw = mne.io.RawArray(raw_data, info)
     opts = dict(raw=raw, tmin=0, tmax=0.001, baseline=None)
     events = [[0, 0, 1], [1, 0, 2]]
-    metadata = DataFrame(events, columns=["onset", "duration", "value"])
+    metadata = pd.DataFrame(events, columns=["onset", "duration", "value"])
     epochs = Epochs(events=events, event_id=1, metadata=metadata, **opts)
     epochs.drop_bad()
     assert len(epochs) == 1
@@ -3727,8 +3722,8 @@ def test_metadata(tmp_path):
         assert len(epochs.metadata) == 1
 
     # gh-10705: support boolean columns
-    metadata = DataFrame(
-        {"A": Series([True, True, True, False, False, NA], dtype="boolean")}
+    metadata = pd.DataFrame(
+        {"A": pd.Series([True, True, True, False, False, pd.NA], dtype="boolean")}
     )
     rng = np.random.default_rng()
     epochs = mne.EpochsArray(
@@ -3784,9 +3779,9 @@ def assert_metadata_equal(got, exp):
         ),
     ],
 )
-@requires_pandas
 def test_make_metadata(all_event_id, row_events, keep_first, keep_last):
     """Test that make_metadata works."""
+    pytest.importorskip("pandas")
     raw, all_events, _ = _get_data()
     tmin, tmax = -0.5, 1.5
     sfreq = raw.info["sfreq"]
@@ -4357,7 +4352,6 @@ def test_add_channels_picks():
     epochs_final.drop_channels(epochs.ch_names)
 
 
-@requires_pandas
 @pytest.mark.parametrize("first_samp", [0, 10])
 @pytest.mark.parametrize(
     "meas_date, orig_date", [[None, None], [np.pi, None], [np.pi, timedelta(seconds=1)]]
@@ -4370,6 +4364,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     - with and without meas_date
     - with and without an orig_time set in Annotations
     """
+    pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
 
     data = np.random.randn(2, 400) * 10e-12
@@ -4617,11 +4612,11 @@ def test_epochs_annotations_backwards_compat(
     assert lens == want_lens
 
 
-@requires_pandas
 def test_epochs_saving_with_annotations(tmp_path):
     """Test Epochs save correctly with Annotations."""
     # start testing with a new Epochs created and
     # then test roundtrip IO
+    pytest.importorskip("pandas")
     epochs, _, _ = _create_epochs_with_annotations()
     info = epochs.info
 

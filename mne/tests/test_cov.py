@@ -16,7 +16,6 @@ from numpy.testing import (
 )
 import pytest
 import numpy as np
-from scipy import linalg
 
 from mne.cov import (
     regularize,
@@ -46,11 +45,12 @@ from mne import (
 )
 from mne.channels import equalize_channels
 from mne.datasets import testing
+from mne.fixes import _safe_svd
 from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import requires_sklearn, catch_logging, assert_snr, _record_warnings
+from mne.utils import catch_logging, assert_snr, _record_warnings
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
 cov_fname = base_dir / "test-cov.fif"
@@ -373,9 +373,9 @@ def test_cov_estimation_on_raw(method, tmp_path):
 
 
 @pytest.mark.slowtest
-@requires_sklearn
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
+    pytest.importorskip("sklearn")
     raw = read_raw_fif(raw_fname, preload=True)
     with raw.info._unlock():
         raw.info["sfreq"] /= 10.0
@@ -389,9 +389,7 @@ def test_cov_estimation_on_raw_reg():
 
 def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
     assert_equal(cov.ch_names, cov_desired.ch_names)
-    err = linalg.norm(cov.data - cov_desired.data, ord="fro") / linalg.norm(
-        cov.data, ord="fro"
-    )
+    err = np.linalg.norm(cov.data - cov_desired.data) / np.linalg.norm(cov.data)
     assert err < tol, "%s >= %s" % (err, tol)
     if nfree:
         assert_equal(cov.nfree, cov_desired.nfree)
@@ -430,8 +428,8 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
     assert np.all(cov.data != cov_tmin_tmax.data)
-    err = linalg.norm(cov.data - cov_tmin_tmax.data, ord="fro") / linalg.norm(
-        cov_tmin_tmax.data, ord="fro"
+    err = np.linalg.norm(cov.data - cov_tmin_tmax.data) / np.linalg.norm(
+        cov_tmin_tmax.data
     )
     assert err < 0.05
 
@@ -587,9 +585,9 @@ def test_regularized_covariance():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_sklearn
 def test_auto_low_rank():
     """Test probabilistic low rank estimators."""
+    pytest.importorskip("sklearn")
     n_samples, n_features, rank = 400, 10, 5
     sigma = 0.1
 
@@ -597,7 +595,7 @@ def test_auto_low_rank():
         rng = np.random.RandomState(42)
         W = rng.randn(n_features, n_features)
         X = rng.randn(n_samples, rank)
-        U, _, _ = linalg.svd(W.copy())
+        U, _, _ = _safe_svd(W.copy())
         X = np.dot(X, U[:, :rank].T)
 
         sigmas = sigma * rng.rand(n_features) + sigma / 2.0
@@ -629,9 +627,9 @@ def test_auto_low_rank():
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize("rank", ("full", None, "info"))
-@requires_sklearn
 def test_compute_covariance_auto_reg(rank):
     """Test automated regularization."""
+    pytest.importorskip("sklearn")
     raw = read_raw_fif(raw_fname, preload=True)
     raw.resample(100, npad="auto")  # much faster estimation
     events = find_events(raw, stim_channel="STI 014")
@@ -766,10 +764,10 @@ def raw_epochs_events():
     return (raw, epochs, events)
 
 
-@requires_sklearn
 @pytest.mark.parametrize("rank", (None, "full", "info"))
 def test_low_rank_methods(rank, raw_epochs_events):
     """Test low-rank covariance matrix estimation."""
+    pytest.importorskip("sklearn")
     epochs = raw_epochs_events[1]
     sss_proj_rank = 139  # 80 MEG + 60 EEG - 1 proj
     n_ch = 366
@@ -800,9 +798,9 @@ def test_low_rank_methods(rank, raw_epochs_events):
         assert these_bounds[0] < cov["loglik"] < these_bounds[1], (rank, method)
 
 
-@requires_sklearn
 def test_low_rank_cov(raw_epochs_events):
     """Test additional properties of low rank computations."""
+    pytest.importorskip("sklearn")
     raw, epochs, events = raw_epochs_events
     sss_proj_rank = 139  # 80 MEG + 60 EEG - 1 proj
     n_ch = 366
@@ -876,9 +874,9 @@ def test_low_rank_cov(raw_epochs_events):
 
 
 @testing.requires_testing_data
-@requires_sklearn
 def test_cov_ctf():
     """Test basic cov computation on ctf data with/without compensation."""
+    pytest.importorskip("sklearn")
     raw = read_raw_ctf(ctf_fname).crop(0.0, 2.0).load_data()
     events = make_fixed_length_events(raw, 99999)
     assert len(events) == 2

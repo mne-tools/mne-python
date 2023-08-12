@@ -85,7 +85,7 @@ ax.quiver3D(
 #     ``plot(*point)`` expands to ``plot(3, 2, 5)``.
 #
 # Notice that we used matrix multiplication to compute the projection of our
-# point :math:`(3, 2, 5)`onto the :math:`x, y` plane:
+# point :math:`(3, 2, 5)` onto the :math:`x, y` plane:
 #
 # .. math::
 #

@@ -1540,7 +1540,7 @@ def _average_quats(quats, weights=None):
     A = np.einsum("ij,ik->jk", quats, quats)  # sum of outer product of each q
     avg_quat = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the avg
     # Same as the largest eigenvector from the concatenation of all as
-    # linalg.svd(quats, full_matrices=False)[-1][0], but faster.
+    # svd(quats, full_matrices=False)[-1][0], but faster.
     #
     # By local convention we take the real term (which we remove from our
     # representation) as positive. Since it can be zero, let's just ensure

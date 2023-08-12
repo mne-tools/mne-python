@@ -376,7 +376,15 @@ def plot_projs_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.20
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -936,7 +944,15 @@ def plot_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap_simple)s
@@ -1792,7 +1808,15 @@ def plot_tfr_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -1984,7 +2008,15 @@ def plot_evoked_topomap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2517,7 +2549,15 @@ def plot_epochs_psd_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2610,7 +2650,15 @@ def plot_psds_topomap(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
@@ -2682,7 +2730,8 @@ def plot_psds_topomap(
     if dB and not normalize:
         band_data = [10 * np.log10(_d) for _d in band_data]
     # handle vmin/vmax
-    if vlim == "joint":
+    joint_vlim = vlim == "joint"
+    if joint_vlim:
         vlim = (np.array(band_data).min(), np.array(band_data).max())
     # unit label
     if unit is None:
@@ -2706,7 +2755,7 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
         axes, freq_masks, band_data, bands.items()
     ):
-        colorbar = vlim != "joint" or ax == axes[-1]
+        colorbar = (not joint_vlim) or ax == axes[-1]
         _plot_topomap_multi_cbar(
             _data,
             pos,
@@ -3421,6 +3470,12 @@ def plot_arrowmap(
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(sphere_topomap_auto)s
 
     Returns
@@ -3864,7 +3919,15 @@ def plot_regression_weights(
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
     %(extrapolate_topomap)s
+
+        .. versionchanged:: 0.21
+
+           - The default was changed to ``'local'`` for MEG sensors.
+           - ``'local'`` was changed to use a convex hull mask
+           - ``'head'`` was changed to extrapolate out to the clipping circle.
     %(border_topomap)s
+
+        .. versionadded:: 0.20
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s

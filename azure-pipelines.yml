@@ -1,6 +1,6 @@
 trigger:
   # start a new build for every push
-  batch: False
+  batch: false
   branches:
     include:
       - 'main'
@@ -13,327 +13,295 @@ pr:
 
 stages:
 
-- stage: Check
-  jobs:
-    - job: Skip
-      pool:
-        vmImage: 'ubuntu-latest'
-      variables:
-        DECODE_PERCENTS: 'false'
-        RET: 'true'
-        BUILD_REASON: $(Build.Reason)
-      steps:
-      - bash: |
-          git_log=`git log --format=oneline -n 1 --skip=1`
-          echo "##vso[task.setvariable variable=log]$git_log"
-      - bash: echo "##vso[task.setvariable variable=RET]false"
-        condition: and(eq(variables.BUILD_REASON, 'PullRequest'), or(contains(variables.log, '[skip azp]'), contains(variables.log, '[azp skip]'), contains(variables.log, '[skip ci]'), contains(variables.log, '[ci skip]')))
-      - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
-        name: result
+  - stage: Check
+    jobs:
+      - job: Skip
+        pool:
+          vmImage: 'ubuntu-latest'
+        variables:
+          DECODE_PERCENTS: 'false'
+          RET: 'true'
+          BUILD_REASON: $(Build.Reason)
+        steps:
+          - bash: |
+              git_log=`git log --format=oneline -n 1 --skip=1`
+              echo "##vso[task.setvariable variable=log]$git_log"
+          - bash: echo "##vso[task.setvariable variable=RET]false"
+            condition: and(eq(variables.BUILD_REASON, 'PullRequest'), or(contains(variables.log, '[skip azp]'), contains(variables.log, '[azp skip]'), contains(variables.log, '[skip ci]'), contains(variables.log, '[ci skip]')))
+          - bash: echo "##vso[task.setvariable variable=start_main;isOutput=true]$RET"
+            name: result
 
-- stage: Style
-  variables:
-    AZURE_CI: 'true'
-  jobs:
-  - job: All
-    pool:
-      vmImage: 'ubuntu-latest'
+  - stage: Style
     variables:
-      PYTHON_VERSION: '3.11'
-      PYTHON_ARCH: 'x64'
-    steps:
-    - bash: echo $(COMMIT_MSG)
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: $(PYTHON_VERSION)
-        architecture: $(PYTHON_ARCH)
-        addToPath: true
-      displayName: 'Get Python'
-    - bash: |
-        set -eo pipefail
-        python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
-        pre-commit install --install-hooks
-      displayName: Install dependencies
-    - bash: |
-        make pre-commit
-      displayName: make pre-commit
-      condition: always()
-    - bash: |
-        make nesting
-      displayName: make nesting
-      condition: always()
-    - bash: |
-        make check-manifest
-      displayName: make check-manifest
-      condition: always()
-    - bash: |
-        make check-readme
-      displayName: make check-readme
-      condition: always()
+      AZURE_CI: 'true'
+    jobs:
+      - job: All
+        pool:
+          vmImage: 'ubuntu-latest'
+        variables:
+          PYTHON_VERSION: '3.11'
+          PYTHON_ARCH: 'x64'
+        steps:
+          - bash: echo $(COMMIT_MSG)
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(PYTHON_VERSION)
+              architecture: $(PYTHON_ARCH)
+              addToPath: true
+            displayName: 'Get Python'
+          - bash: |
+              set -eo pipefail
+              python -m pip install --progress-bar off --upgrade pip setuptools wheel
+              python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
+              python -m pip uninstall -yq pytest-qt  # don't want to set up display, etc. for this
+              pre-commit install --install-hooks
+            displayName: Install dependencies
+          - bash: |
+              make pre-commit
+            displayName: make pre-commit
+            condition: always()
+          - bash: |
+              make nesting
+            displayName: make nesting
+            condition: always()
+          - bash: |
+              make check-manifest
+            displayName: make check-manifest
+            condition: always()
+          - bash: |
+              make check-readme
+            displayName: make check-readme
+            condition: always()
 
-- stage: Test
-  condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
-  dependsOn: ['Style', 'Check']
-  variables:
-    AZURE_CI: 'true'
-  jobs:
-  - job: Ultraslow_PG
-    pool:
-      vmImage: 'ubuntu-22.04'
+  - stage: Test
+    condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
+    dependsOn: ['Style', 'Check']
     variables:
-      DISPLAY: ':99'
-      OPENBLAS_NUM_THREADS: '1'
-    steps:
-    - bash: |
-        set -e
-        ./tools/setup_xvfb.sh
-        sudo apt install -yq tcsh
-      displayName: 'Install Ubuntu dependencies'
-    - bash: |
-        source tools/get_minimal_commands.sh
-      displayName: 'Install minimal commands'
-    - bash: |
-        echo $PATH
-        mne_surf2bem --version
-        fsl_rigid_register --version
-      displayName: 'Test minimal commands'
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.9'
-        architecture: 'x64'
-        addToPath: true
-      displayName: 'Get Python'
-    - bash: |
-        set -e
-        python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off mne-qt-browser[opengl] pyvista scikit-learn pytest-error-for-skips python-picard "PySide6!=6.5.1" qtpy
-        python -m pip uninstall -yq mne
-        python -m pip install --progress-bar off --upgrade -e .[test]
-      displayName: 'Install dependencies with pip'
-    - bash: |
-        set -e
-        mne sys_info -pd
-        mne sys_info -pd | grep "qtpy .*(PySide6=.*)$"
-      displayName: Print config
-    # Uncomment if "xcb not found" Qt errors/segfaults come up again
-    # - bash: |
-    #     set -e
-    #     LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
-    - bash: source tools/get_testing_version.sh
-      displayName: 'Get testing version'
-    - task: Cache@2
-      inputs:
-        key: $(testing_version)
-        path: /home/vsts/mne_data
-      displayName: 'Cache testing data'
-    - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-      displayName: 'Get test data'
-    - script: pytest --error-for-skips -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
-      displayName: 'slow and mne-qt-browser tests'
-    # Coverage
-    - bash: bash <(curl -s https://codecov.io/bash)
-      displayName: 'Codecov'
-      condition: succeededOrFailed()
-    - task: PublishTestResults@2
-      inputs:
-        testResultsFiles: '**/junit-*.xml'
-        testRunTitle: 'Publish test results for $(Agent.JobName)'
-        failTaskOnFailedTests: true
-      condition: succeededOrFailed()
-    - task: PublishCodeCoverageResults@1
-      inputs:
-        codeCoverageTool: Cobertura
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+      AZURE_CI: 'true'
+    jobs:
+      - job: Ultraslow_PG
+        pool:
+          vmImage: 'ubuntu-22.04'
+        variables:
+          DISPLAY: ':99'
+          OPENBLAS_NUM_THREADS: '1'
+        steps:
+          - bash: |
+              set -e
+              ./tools/setup_xvfb.sh
+              sudo apt install -yq tcsh
+            displayName: 'Install Ubuntu dependencies'
+          - bash: |
+              source tools/get_minimal_commands.sh
+            displayName: 'Install minimal commands'
+          - bash: |
+              echo $PATH
+              mne_surf2bem --version
+              fsl_rigid_register --version
+            displayName: 'Test minimal commands'
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.9'
+              architecture: 'x64'
+              addToPath: true
+            displayName: 'Get Python'
+          - bash: |
+              set -e
+              python -m pip install --progress-bar off --upgrade pip setuptools wheel
+              python -m pip install --progress-bar off mne-qt-browser[opengl] pyvista scikit-learn pytest-error-for-skips python-picard "PyQt6!=6.5.1" qtpy
+              python -m pip uninstall -yq mne
+              python -m pip install --progress-bar off --upgrade -e .[test]
+            displayName: 'Install dependencies with pip'
+          - bash: |
+              set -e
+              mne sys_info -pd
+              mne sys_info -pd | grep "qtpy .*(PyQt6=.*)$"
+            displayName: Print config
+          # Uncomment if "xcb not found" Qt errors/segfaults come up again
+          # - bash: |
+          #     set -e
+          #     LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
+          - bash: source tools/get_testing_version.sh
+            displayName: 'Get testing version'
+          - task: Cache@2
+            inputs:
+              key: $(testing_version)
+              path: /home/vsts/mne_data
+            displayName: 'Cache testing data'
+          - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+            displayName: 'Get test data'
+          - script: pytest --error-for-skips -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+            displayName: 'slow and mne-qt-browser tests'
+          # Coverage
+          - bash: bash <(curl -s https://codecov.io/bash)
+            displayName: 'Codecov'
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: '**/junit-*.xml'
+              testRunTitle: 'Publish test results for $(Agent.JobName)'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+              reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
-  - job: Qt
-    pool:
-      vmImage: 'ubuntu-22.04'
-    variables:
-      DISPLAY: ':99'
-      OPENBLAS_NUM_THREADS: '1'
-      TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui mne/report"
-    steps:
-    - bash: ./tools/setup_xvfb.sh
-      displayName: 'Install Ubuntu dependencies'
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.10'
-        architecture: 'x64'
-        addToPath: true
-      displayName: 'Get Python'
-    - bash: |
-        set -e
-        python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
-        python -c "import vtk"
-        python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
-        python -m pip install -e .
-      displayName: 'Install dependencies with pip'
-    - bash: |
-        set -e
-        which mne
-        mne sys_info -pd
-        python ./tools/check_mne_location.py
-      displayName: Print config
-    - bash: source tools/get_testing_version.sh
-      displayName: 'Get testing version'
-    - task: Cache@2
-      inputs:
-        key: $(testing_version)
-        path: /home/vsts/mne_data
-      displayName: 'Cache testing data'
-    - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-      displayName: 'Get test data'
-    - bash: |
-        set -e
-        mne sys_info -pd
-        mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PySide6
-      displayName: 'PySide6'
-    - bash: |
-        set -e
-        python -m pip install PyQt6
-        # Uncomment if "xcb not found" Qt errors/segfaults come up again
-        # LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
-        mne sys_info -pd
-        mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
-      displayName: 'PyQt6'
-    - bash: |
-        set -e
-        python -m pip install PySide2
-        mne sys_info -pd
-        mne sys_info -pd | grep "qtpy .* (PySide2=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PySide2
-      displayName: 'PySide2'
-    # PyQt5 leaves cruft behind, so run it last
-    - bash: |
-        set -e
-        python -m pip install PyQt5
-        mne sys_info -pd
-        mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
-        pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
-      displayName: 'PyQt5'
-    # Coverage
-    - bash: bash <(curl -s https://codecov.io/bash)
-      displayName: 'Codecov'
-      condition: succeededOrFailed()
-    - task: PublishTestResults@2
-      inputs:
-        testResultsFiles: '**/junit-*.xml'
-        testRunTitle: 'Publish test results for $(Agent.JobName)'
-        failTaskOnFailedTests: true
-      condition: succeededOrFailed()
-    - task: PublishCodeCoverageResults@1
-      inputs:
-        codeCoverageTool: Cobertura
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+      - job: Qt
+        pool:
+          vmImage: 'ubuntu-22.04'
+        variables:
+          DISPLAY: ':99'
+          OPENBLAS_NUM_THREADS: '1'
+          TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui mne/report"
+        steps:
+          - bash: ./tools/setup_xvfb.sh
+            displayName: 'Install Ubuntu dependencies'
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.10'
+              architecture: 'x64'
+              addToPath: true
+            displayName: 'Get Python'
+          - bash: |
+              set -e
+              python -m pip install --progress-bar off --upgrade pip setuptools wheel
+              python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
+              python -c "import vtk"
+              python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
+              python -m pip install -e .
+            displayName: 'Install dependencies with pip'
+          - bash: |
+              set -e
+              which mne
+              mne sys_info -pd
+              python ./tools/check_mne_location.py
+            displayName: Print config
+          - bash: source tools/get_testing_version.sh
+            displayName: 'Get testing version'
+          - task: Cache@2
+            inputs:
+              key: $(testing_version)
+              path: /home/vsts/mne_data
+            displayName: 'Cache testing data'
+          - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+            displayName: 'Get test data'
+          - bash: |
+              set -e
+              python -m pip install PyQt6
+              # Uncomment if "xcb not found" Qt errors/segfaults come up again
+              # LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
+              mne sys_info -pd
+              mne sys_info -pd | grep "qtpy .* (PyQt6=.*)$"
+              PYTEST_QT_API=PyQt6 pytest -m "not slowtest" ${TEST_OPTIONS}
+              python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
+            displayName: 'PyQt6'
+          - bash: |
+              set -e
+              python -m pip install PySide6
+              mne sys_info -pd
+              mne sys_info -pd | grep "qtpy .* (PySide6=.*)$"
+              PYTEST_QT_API=PySide6 pytest -m "not slowtest" ${TEST_OPTIONS}
+              python -m pip uninstall -yq PySide6
+            displayName: 'PySide6'
+          - bash: |
+              set -e
+              python -m pip install PySide2
+              mne sys_info -pd
+              mne sys_info -pd | grep "qtpy .* (PySide2=.*)$"
+              PYTEST_QT_API=PySide2 pytest -m "not slowtest" ${TEST_OPTIONS}
+              python -m pip uninstall -yq PySide2
+            displayName: 'PySide2'
+          # PyQt5 leaves cruft behind, so run it last
+          - bash: |
+              set -e
+              python -m pip install PyQt5
+              mne sys_info -pd
+              mne sys_info -pd | grep "qtpy .* (PyQt5=.*)$"
+              PYTEST_QT_API=PyQt5 pytest -m "not slowtest" ${TEST_OPTIONS}
+              python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
+            displayName: 'PyQt5'
+          # Coverage
+          - bash: bash <(curl -s https://codecov.io/bash)
+            displayName: 'Codecov'
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: '**/junit-*.xml'
+              testRunTitle: 'Publish test results for $(Agent.JobName)'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+              reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
-  - job: Windows
-    pool:
-      vmImage: 'windows-latest'
-    variables:
-      MNE_LOGGING_LEVEL: 'warning'
-      MNE_FORCE_SERIAL: 'true'
-      OPENBLAS_NUM_THREADS: 1
-      MKL_NUM_THREADS: 2
-      OMP_DYNAMIC: 'false'
-      MKL_DYNAMIC: 'false'
-      PYTHONUNBUFFERED: 1
-      PYTHONIOENCODING: 'utf-8'
-      AZURE_CI_WINDOWS: 'true'
-      PYTHON_ARCH: 'x64'
-    timeoutInMinutes: 70
-    strategy:
-      maxParallel: 4
-      matrix:
-        3.10 conda:
-          PLATFORM: 'x86-64'
-          TEST_MODE: 'conda'
-          PYTHON_VERSION: '3.10'
-        3.9 pip:
-          TEST_MODE: 'pip'
-          PYTHON_VERSION: '3.9'
-        3.10 pip pre:
-          TEST_MODE: 'pip-pre'
-          PYTHON_VERSION: '3.10'
-    steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: $(PYTHON_VERSION)
-        architecture: $(PYTHON_ARCH)
-        addToPath: true
-      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
-      displayName: 'Get Python'
-    # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/anaconda
-    # https://github.com/MicrosoftDocs/pipelines-anaconda
-    # https://github.com/ContinuumIO/anaconda-issues/issues/10949
-    - script: |
-        echo "##vso[task.prependpath]%CONDA%;%CONDA%\condabin;%CONDA%\Scripts;%CONDA%\Library\bin;%PROGRAMFILES%\Git\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem;%PROGRAMFILES%\Git\usr\bin"
-      condition: in(variables['TEST_MODE'], 'conda')
-      displayName: Add conda to PATH, deal with Qt linking bug
-    - bash: |
-        set -e
-        git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-        powershell gl-ci-helpers/appveyor/install_opengl.ps1
-      displayName: Install OpenGL
-    - bash: |
-        set -e
-        ./tools/azure_dependencies.sh
-      condition: in(variables['TEST_MODE'], 'pip', 'pip-pre')
-      displayName: Install dependencies with pip
-    - script: conda install -c conda-forge mamba
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Get mamba
-    - script: mamba env update --name base --file environment.yml
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Setup MNE environment
-    # ipympl is not tested on Windows and even its installation interferes
-    # with basic matplotlib functionality so it must be uninstalled until fixed
-    - bash: |
-        set -e
-        mamba remove -c conda-forge --force -yq mne ipympl
-        rm /c/Miniconda/Scripts/mne.exe
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Remove old MNE
-    - script: pip install -e .
-      displayName: 'Install MNE-Python dev'
-    - script: pip install --progress-bar off -e .[test]
-      condition: eq(variables['TEST_MODE'], 'conda')
-      displayName: Install testing requirements
-    - script: mne sys_info -pd
-      displayName: 'Print config'
-    - script: python -c "import numpy; numpy.show_config()"
-      displayName: Print NumPy config
-    - bash: source tools/get_testing_version.sh
-      displayName: 'Get testing version'
-    - task: Cache@2
-      inputs:
-        key: $(testing_version)
-        path: C:\Users\VssAdministrator\mne_data
-      displayName: 'Cache testing data'
-    - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-      displayName: 'Get test data'
-    - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
-      displayName: 'Run tests'
-    - bash: bash <(curl -s https://codecov.io/bash)
-      displayName: 'Codecov'
-      condition: succeededOrFailed()
-    - task: PublishTestResults@2
-      inputs:
-        testResultsFiles: '**/junit-*.xml'
-        testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
-        failTaskOnFailedTests: true
-      condition: succeededOrFailed()
-    - task: PublishCodeCoverageResults@1
-      inputs:
-        codeCoverageTool: Cobertura
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
-        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+      - job: Windows
+        pool:
+          vmImage: 'windows-latest'
+        variables:
+          MNE_LOGGING_LEVEL: 'warning'
+          MNE_FORCE_SERIAL: 'true'
+          OPENBLAS_NUM_THREADS: 2
+          OMP_DYNAMIC: 'false'
+          PYTHONUNBUFFERED: 1
+          PYTHONIOENCODING: 'utf-8'
+          AZURE_CI_WINDOWS: 'true'
+          PYTHON_ARCH: 'x64'
+        timeoutInMinutes: 70
+        strategy:
+          maxParallel: 4
+          matrix:
+            3.9 pip:
+              TEST_MODE: 'pip'
+              PYTHON_VERSION: '3.9'
+            3.10 pip pre:
+              TEST_MODE: 'pip-pre'
+              PYTHON_VERSION: '3.10'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(PYTHON_VERSION)
+              architecture: $(PYTHON_ARCH)
+              addToPath: true
+            displayName: 'Get Python'
+          - bash: |
+              set -eo pipefail
+              git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
+              powershell gl-ci-helpers/appveyor/install_opengl.ps1
+            displayName: Install OpenGL
+          - bash: ./tools/azure_dependencies.sh
+            displayName: Install dependencies with pip
+          - script: pip install -e .
+            displayName: 'Install MNE-Python dev'
+          - script: mne sys_info -pd
+            displayName: 'Print config'
+          - script: python -c "import numpy; numpy.show_config()"
+            displayName: Print NumPy config
+          - bash: source tools/get_testing_version.sh
+            displayName: 'Get testing version'
+          - task: Cache@2
+            inputs:
+              key: $(testing_version)
+              path: C:\Users\VssAdministrator\mne_data
+            displayName: 'Cache testing data'
+          - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+            displayName: 'Get test data'
+          - script: pytest -m "not (slowtest or pgtest)" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+            displayName: 'Run tests'
+          - bash: bash <(curl -s https://codecov.io/bash)
+            displayName: 'Codecov'
+            condition: succeededOrFailed()
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: '**/junit-*.xml'
+              testRunTitle: 'Publish test results for $(Agent.JobName) $(TEST_MODE) $(PYTHON_VERSION)'
+              failTaskOnFailedTests: true
+            condition: succeededOrFailed()
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+              reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'

@@ -12,7 +12,6 @@ from mne.utils import (
     sys_info,
     ClosingStringIO,
     get_subjects_dir,
-    requires_mne_qt_browser,
 )
 
 
@@ -105,9 +104,9 @@ def test_sys_info():
         assert "Platform             Linux" in out
 
 
-@requires_mne_qt_browser
 def test_sys_info_qt_browser():
     """Test if mne_qt_browser is correctly detected."""
+    pytest.importorskip("mne_qt_browser")
     out = ClosingStringIO()
     sys_info(fid=out)
     out = out.getvalue()

@@ -5,65 +5,7 @@
 import re
 import numpy as np
 
-from ...utils import _check_pandas_installed, _validate_type
-
-
-def _isfloat(token):
-    """Boolean test for whether string can be of type float.
-
-    Parameters
-    ----------
-    token : str
-        Single element from tokens list.
-    """
-    _validate_type(token, str, "token")
-    try:
-        float(token)
-    except ValueError:
-        return False
-    else:
-        return True
-
-
-def _convert_types(tokens):
-    """Convert the type of each token in list.
-
-    The tokens input is a list of string elements.
-    Posix timestamp strings can be integers, eye gaze position and
-    pupil size can be floats. flags token ("...") remains as string.
-    Missing eye/head-target data (indicated by '.' or 'MISSING_DATA')
-    are replaced by np.nan.
-
-    Parameters
-    ----------
-    Tokens : list
-        List of string elements.
-
-    Returns
-    -------
-        Tokens list with elements of various types.
-    """
-    return [
-        int(token)
-        if token.isdigit()  # execute this before _isfloat()
-        else float(token)
-        if _isfloat(token)
-        else np.nan
-        if token in (".", "MISSING_DATA")
-        else token  # remains as string
-        for token in tokens
-    ]
-
-
-def _parse_line(line):
-    """Parse tab delminited string from eyelink ASCII file.
-
-    Takes a tab deliminited string from eyelink file,
-    splits it into a list of tokens, and converts the type
-    for each token in the list.
-    """
-    tokens = line.split()
-    return _convert_types(tokens)
+from ...utils import _check_pandas_installed
 
 
 def _is_sys_msg(line):
@@ -95,7 +37,7 @@ def _is_sys_msg(line):
     return "!V" in line or "!MODE" in line or ";" in line
 
 
-def _get_sfreq(rec_info):
+def _get_sfreq_from_ascii(rec_info):
     """Get sampling frequency from Eyelink ASCII file.
 
     Parameters
@@ -106,12 +48,13 @@ def _get_sfreq(rec_info):
 
     Returns
     -------
-    sfreq : int | float
+    sfreq : float
     """
-    return rec_info[rec_info.index("RATE") + 1]
+    return float(rec_info[rec_info.index("RATE") + 1])
 
 
 def _sort_by_time(df, col="time"):
+    assert col in df.columns
     df.sort_values(col, ascending=True, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
@@ -146,7 +89,7 @@ def _convert_times(df, first_samp, col="time"):
             df[col] /= 1000
 
 
-def _fill_times(
+def _adjust_times(
     df,
     sfreq,
     time_col="time",
@@ -192,6 +135,8 @@ def _fill_times(
 def _find_overlaps(df, max_time=0.05):
     """Merge left/right eye events with onset/offset diffs less than max_time.
 
+    Parameters
+    ----------
     df : pandas.DataFrame
         Pandas DataFrame with occular events (fixations, saccades, blinks)
     max_time : float (default 0.05)
@@ -201,6 +146,7 @@ def _find_overlaps(df, max_time=0.05):
     -------
     DataFrame: %(df_return)s
         :class:`pandas.DataFrame` specifying overlapped eye events, if any
+
     Notes
     -----
     The idea is to cumulative sum the boolean values for rows with onset and
@@ -213,7 +159,8 @@ def _find_overlaps(df, max_time=0.05):
     """
     pd = _check_pandas_installed()
 
-    df = df.copy()
+    if not len(df):
+        return
     df["overlap_start"] = df.sort_values("time")["time"].diff().lt(max_time)
 
     df["overlap_end"] = df["end_time"].diff().abs().lt(max_time)
@@ -240,7 +187,7 @@ def _find_overlaps(df, max_time=0.05):
     return ovrlp.drop(columns=tmp_cols).reset_index(drop=True)
 
 
-# Used by read_eyelinke_calibration
+# Used by read_eyelink_calibration
 
 
 def _find_recording_start(lines):
@@ -334,7 +281,7 @@ def _parse_calibration(
             gaze = np.array([point[3:] for point in points])
             # create the Calibration instance
             calibration = Calibration(
-                onset=max(0.0, onset),  # 0 if calibrated before recording
+                onset=onset,
                 model=model,
                 eye=this_eye,
                 avg_error=avg_error,

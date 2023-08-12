@@ -32,7 +32,7 @@ from mne.surface import _compute_nearest
 from mne.time_frequency import CrossSpectralDensity, csd_morlet, EpochsTFR, csd_tfr
 from mne.time_frequency.csd import _sym_mat_to_vector
 from mne.transforms import invert_transform, apply_trans
-from mne.utils import object_diff, requires_version, catch_logging
+from mne.utils import object_diff, catch_logging
 
 data_path = testing.data_path(download=False)
 fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
@@ -156,7 +156,6 @@ def _make_rand_csd(info, csd):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_version("h5io")
 @idx_param
 @pytest.mark.parametrize(
     "whiten",
@@ -167,6 +166,7 @@ def _make_rand_csd(info, csd):
 )
 def test_make_dics(tmp_path, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
+    pytest.importorskip("h5io")
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
 
