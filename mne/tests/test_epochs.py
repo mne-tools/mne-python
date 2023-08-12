@@ -1574,13 +1574,13 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
         (
             "bids",
             "test_epo.fif",
-            lambda i: f"test_split-{i:02d}_epo.fif" if i else "test_epo.fif",
+            lambda i: f"test_split-{i + 1:02d}_epo.fif",
         ),
         (
             "bids",
             "test-epo.fif",
             # Merely stating the fact:
-            lambda i: f"_split-{i:02d}_test-epo.fif" if i else "test-epo.fif",
+            lambda i: f"_split-{i + 1:02d}_test-epo.fif",
         ),
     ],
     ids=["neuromag", "bids", "mix"],
@@ -1636,12 +1636,7 @@ def test_saved_fname_no_splitting(
     "split_naming, dst_fname, existing_fname",
     [
         ("neuromag", "test-epo.fif", "test-epo.fif"),
-        pytest.param(
-            "neuromag",
-            "test-epo.fif",
-            "test-epo-1.fif",
-            marks=pytest.mark.xfail(reason="bug"),
-        ),
+        ("neuromag", "test-epo.fif", "test-epo-1.fif"),
         ("bids", "test_epo.fif", "test_epo.fif"),
         ("bids", "test_epo.fif", "test_split-01_epo.fif"),
         ("bids", "test_epo.fif", "test_split-02_epo.fif"),

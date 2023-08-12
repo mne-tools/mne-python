@@ -127,26 +127,22 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite):
     """
     # insert index in filename
     base, ext = op.splitext(fname)
-    if part_idx > 0:
-        if split_naming == "neuromag":
-            fname = "%s-%d%s" % (base, part_idx, ext)
-        else:
-            assert split_naming == "bids"
-            fname = _construct_bids_filename(base, ext, part_idx, validate=False)
-            _check_fname(fname, overwrite=overwrite)
+    if part_idx > 0 and split_naming == "neuromag":
+        fname = f"{base}-{part_idx:d}{ext}"
+    elif split_naming == "bids" and n_parts > 1:
+        fname = _construct_bids_filename(base, ext, part_idx + 1, validate=False)
+    _check_fname(fname, overwrite=overwrite)
 
-    next_fname = None
+    next_fname, next_idx = None, None
     if part_idx < n_parts - 1:
+        next_idx = part_idx + 1
         if split_naming == "neuromag":
-            next_fname = "%s-%d%s" % (base, part_idx + 1, ext)
+            next_fname = f"{base}-{next_idx:d}{ext}"
         else:
             assert split_naming == "bids"
             next_fname = _construct_bids_filename(
-                base, ext, part_idx + 1, validate=False
+                base, ext, next_idx + 1, validate=False
             )
-        next_idx = part_idx + 1
-    else:
-        next_idx = None
 
     with start_and_end_file(fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
