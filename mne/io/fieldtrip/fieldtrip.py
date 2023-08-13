@@ -15,8 +15,6 @@ from .utils import (
 )
 from ...utils import _check_fname, _import_pymatreader_funcs
 from ..array.array import RawArray
-from ...epochs import EpochsArray
-from ...evoked import EvokedArray
 
 
 def read_raw_fieldtrip(fname, info, data_name="data"):
@@ -117,6 +115,8 @@ def read_epochs_fieldtrip(fname, info, data_name="data", trialinfo_column=0):
     epochs : instance of EpochsArray
         An EpochsArray containing the loaded data.
     """
+    from ...epochs import EpochsArray
+
     read_mat = _import_pymatreader_funcs("FieldTrip I/O")
     ft_struct = read_mat(fname, ignore_fields=["previous"], variable_names=[data_name])
 
@@ -172,6 +172,8 @@ def read_evoked_fieldtrip(fname, info, comment=None, data_name="data"):
     evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
     """
+    from ...evoked import EvokedArray
+
     read_mat = _import_pymatreader_funcs("FieldTrip I/O")
     ft_struct = read_mat(fname, ignore_fields=["previous"], variable_names=[data_name])
     ft_struct = ft_struct[data_name]
