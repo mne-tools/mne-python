@@ -19,10 +19,9 @@ from pathlib import Path
 import shutil
 
 import numpy as np
-from scipy import linalg
 from scipy.optimize import fmin_cobyla
 
-from .fixes import _compare_version
+from .fixes import _compare_version, _safe_svd
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (
@@ -759,7 +758,7 @@ def _compose_linear_fitting_data(mu, u):
     y = u["w"][:-1] * (u["fn"][1:] - mu1ns * u["fn"][0])
     # model matrix
     M = u["w"][:-1, np.newaxis] * (mu[1:] ** k1[:, np.newaxis] - mu1ns[:, np.newaxis])
-    uu, sing, vv = linalg.svd(M, full_matrices=False)
+    uu, sing, vv = _safe_svd(M, full_matrices=False)
     ncomp = u["nfit"] - 1
     uu, sing, vv = uu[:, :ncomp], sing[:ncomp], vv[:ncomp]
     return y, uu, sing, vv

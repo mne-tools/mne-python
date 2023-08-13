@@ -9,7 +9,6 @@ import itertools as itt
 from math import log
 
 import numpy as np
-from scipy.linalg import svd
 from scipy.sparse import issparse
 
 from .defaults import (
@@ -18,6 +17,7 @@ from .defaults import (
     _BORDER_DEFAULT,
     DEFAULTS,
 )
+from .fixes import _safe_svd
 from .io.write import start_and_end_file
 from .io.proj import (
     make_projector,
@@ -2060,7 +2060,7 @@ def regularize(
                 P, ncomp, _ = make_projector(projs, this_ch_names)
                 if ncomp > 0:
                     # This adjustment ends up being redundant if rank is None:
-                    U = svd(P)[0][:, :-ncomp]
+                    U = _safe_svd(P)[0][:, :-ncomp]
                     logger.info(
                         "    Created an SSP operator for %s "
                         "(dimension = %d)" % (desc, ncomp)

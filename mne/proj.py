@@ -3,9 +3,9 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from scipy.linalg import norm, svd
 
 from .epochs import Epochs
+from .fixes import _safe_svd
 from .utils import check_fname, logger, verbose, _check_option, _check_fname
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -137,7 +137,7 @@ def _compute_proj(
             continue
         data_ind = data[ind][:, ind]
         # data is the covariance matrix: U * S**2 * Ut
-        U, Sexp2, _ = svd(data_ind, full_matrices=False)
+        U, Sexp2, _ = _safe_svd(data_ind, full_matrices=False)
         U = U[:, :n]
         exp_var = Sexp2 / Sexp2.sum()
         exp_var = exp_var[:n]
@@ -484,11 +484,11 @@ def sensitivity_map(
     for k in range(n_locations):
         gg = gain[:, 3 * k : 3 * (k + 1)]
         if mode != "fixed":
-            s = svd(gg, full_matrices=False, compute_uv=False)
+            s = _safe_svd(gg, full_matrices=False, compute_uv=False)
         if mode == "free":
             sensitivity_map[k] = s[0]
         else:
-            gz = norm(gg[:, 2])  # the normal component
+            gz = np.linalg.norm(gg[:, 2])  # the normal component
             if mode == "fixed":
                 sensitivity_map[k] = gz
             elif mode == "ratio":
@@ -497,10 +497,10 @@ def sensitivity_map(
                 sensitivity_map[k] = 1.0 - (gz / s[0])
             else:
                 if mode == "angle":
-                    co = norm(np.dot(gg[:, 2], U))
+                    co = np.linalg.norm(np.dot(gg[:, 2], U))
                     sensitivity_map[k] = co / gz
                 else:
-                    p = norm(np.dot(proj, gg[:, 2]))
+                    p = np.linalg.norm(np.dot(proj, gg[:, 2]))
                     if mode == "remaining":
                         sensitivity_map[k] = p / gz
                     elif mode == "dampening":

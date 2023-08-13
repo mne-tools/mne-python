@@ -10,7 +10,6 @@ from itertools import count
 import re
 
 import numpy as np
-from scipy.linalg import svd
 
 from .constants import FIFF
 from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
@@ -27,6 +26,7 @@ from .write import (
     _safe_name_list,
 )
 from ..defaults import _INTERPOLATION_DEFAULT, _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
+from ..fixes import _safe_svd
 from ..utils import (
     logger,
     verbose,
@@ -870,7 +870,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
         return default_return
 
     # Reorthogonalize the vectors
-    U, S, _ = svd(vecs[:, :nvec], full_matrices=False)
+    U, S, _ = _safe_svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)
