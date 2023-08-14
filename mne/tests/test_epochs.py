@@ -1479,6 +1479,7 @@ def test_epochs_io_preload(tmp_path, preload):
 @pytest.fixture(scope="session")
 def epochs_factory():
     """Function to create fake Epochs object."""
+
     def factory(n_epochs, metadata=False, concat=False):
         if metadata:
             pytest.importorskip("pandas")
@@ -1507,19 +1508,22 @@ def epochs_factory():
             epochs = concatenate_epochs([epochs[ii] for ii in range(len(epochs))])
         assert len(epochs) == n_epochs
         return epochs
+
     return factory
 
 
-@pytest.fixture(params=[
-    ("1.5MB", 9, True, True, 6),
-    ("1.5MB", 9, True, False, 6),
-    ("1.5MB", 9, False, True, 6),
-    ("1.5MB", 9, False, False, 6),
-    ("3MB", 18, True, True, 3),
-    ("3MB", 18, True, False, 3),
-    ("3MB", 18, False, True, 3),
-    ("3MB", 18, False, False, 3),
-])
+@pytest.fixture(
+    params=[
+        ("1.5MB", 9, True, True, 6),
+        ("1.5MB", 9, True, False, 6),
+        ("1.5MB", 9, False, True, 6),
+        ("1.5MB", 9, False, False, 6),
+        ("3MB", 18, True, True, 3),
+        ("3MB", 18, True, False, 3),
+        ("3MB", 18, False, True, 3),
+        ("3MB", 18, False, False, 3),
+    ]
+)
 def epochs_to_split(request, epochs_factory):
     """Epochs tailored to produce specific number of splits when saving.
 
