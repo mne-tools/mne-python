@@ -91,49 +91,87 @@ def test_subscribe(event_channels):
 
 def test_unsubscribe(event_channels):
     """Test unsubscribing from UI events."""
-    global callback_called
-    callback_called = False
+    global callback1_called
+    global callback2_called
 
-    def callback(event):
+    def callback1(event):
         """Respond to time change event."""
-        global callback_called
-        callback_called = True
+        global callback1_called
+        callback1_called = True
+
+    def callback2(event):
+        """Respond to time change event."""
+        global callback2_called
+        callback2_called = True
 
     fig = plt.figure()
 
+    def setup_events():
+        """Reset UI event scenario."""
+        global callback1_called
+        global callback2_called
+        callback1_called = False
+        callback2_called = False
+        ui_events.unsubscribe(fig, "all")
+        ui_events.subscribe(fig, "figure_closing", callback1)
+        ui_events.subscribe(fig, "time_change", callback1)
+        ui_events.subscribe(fig, "time_change", callback2)
+
     # Test unsubscribing from a single event
-    ui_events.subscribe(fig, "figure_closing", callback)
-    ui_events.subscribe(fig, "time_change", callback)
+    setup_events()
+    with pytest.warns(RuntimeWarning, match="Cannot unsubscribe"):
+        ui_events.unsubscribe(fig, "nonexisting_event")
     ui_events.unsubscribe(fig, "time_change")
     assert "time_change" not in ui_events._get_event_channel(fig)
     assert "figure_closing" in ui_events._get_event_channel(fig)
     ui_events.publish(fig, ui_events.TimeChange(time=10.2))
-    assert not callback_called
+    assert not callback1_called
+    assert not callback2_called
     ui_events.publish(fig, ui_events.FigureClosing())
-    assert callback_called
+    assert callback1_called
 
     # Test unsubscribing from all events
-    ui_events.subscribe(fig, "time_change", callback)
-    assert "time_change" in ui_events._get_event_channel(fig)
-    assert "figure_closing" in ui_events._get_event_channel(fig)
+    setup_events()
     ui_events.unsubscribe(fig, "all")
     assert "time_change" not in ui_events._get_event_channel(fig)
     assert "figure_closing" not in ui_events._get_event_channel(fig)
-    callback_called = False
     ui_events.publish(fig, ui_events.TimeChange(time=10.2))
     ui_events.publish(fig, ui_events.FigureClosing())
-    assert not callback_called
+    assert not callback1_called
+    assert not callback2_called
 
     # Test unsubscribing from a list of events
-    ui_events.subscribe(fig, "figure_closing", callback)
-    ui_events.subscribe(fig, "time_change", callback)
+    setup_events()
     ui_events.unsubscribe(fig, ["time_change", "figure_closing"])
     assert "time_change" not in ui_events._get_event_channel(fig)
     assert "figure_closing" not in ui_events._get_event_channel(fig)
-    callback_called = False
     ui_events.publish(fig, ui_events.TimeChange(time=10.2))
     ui_events.publish(fig, ui_events.FigureClosing())
-    assert not callback_called
+    assert not callback1_called
+    assert not callback2_called
+
+    # Test unsubscribing a specific callback function from a single event
+    setup_events()
+    with pytest.warns(RuntimeWarning, match="Cannot unsubscribe"):
+        ui_events.unsubscribe(fig, "figure_closing", callback2)
+    ui_events.unsubscribe(fig, "time_change", callback2)
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    assert callback1_called
+    assert not callback2_called
+
+    # Test unsubscribing a specific callback function from all events
+    setup_events()
+    ui_events.unsubscribe(fig, "all", callback2)
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    assert callback1_called
+    assert not callback2_called
+
+    # Test unsubscribing a specific callback function from a list of events
+    setup_events()
+    ui_events.unsubscribe(fig, ["time_change", "figure_closing"], callback1)
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    ui_events.publish(fig, ui_events.FigureClosing())
+    assert not callback1_called
 
 
 def test_link(event_channels, event_channel_links):
