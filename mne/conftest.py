@@ -159,7 +159,7 @@ def pytest_configure(config):
     # https://github.com/joblib/joblib/issues/1454
     ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
-    ignore:.*`numpy.distutils` is deprecated since NumPy.*:DeprecationWarning
+    ignore:(.\n)*`numpy.distutils` is deprecated since NumPy(.\n)*:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
