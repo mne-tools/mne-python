@@ -620,7 +620,6 @@ class Brain:
     @safe_event
     def _clean(self):
         # resolve the reference cycle
-        print("_clean called")
         self._renderer._window_close_disconnect()
         self.clear_glyphs()
         self.remove_annotations()
@@ -2059,14 +2058,14 @@ class Brain:
         # 5) enable UI events to interact with the data
         if time is not None and len(time) > 1:
             ui_events.subscribe(self, "time_change", self._on_time_change)
-            print("Subscribing to event")
 
     def remove_data(self):
         """Remove rendered data from the mesh."""
         self._remove("data", render=True)
 
         # Stop listening to events
-        # ui_events.unsubscribe(self, "time_change")
+        if "time_change" in ui_events._get_event_channel(self):
+            ui_events.unsubscribe(self, "time_change")
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
