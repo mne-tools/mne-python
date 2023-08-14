@@ -159,8 +159,11 @@ def pytest_configure(config):
     # https://github.com/joblib/joblib/issues/1454
     ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
-    ignore:numpy\.distutils is deprecated:DeprecationWarning
+    ignore:distutils is deprecated since NumPy:DeprecationWarning
+    ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
+    # tqdm (Fedora)
+    ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
