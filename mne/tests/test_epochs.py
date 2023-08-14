@@ -1553,17 +1553,24 @@ def test_split_saving(tmp_path, epochs_to_split, preload):
     assert_array_equal(epochs.events, epochs2.events)
 
 
-@pytest.mark.parametrize("split_naming, split_fname, split_fname_part1", [
-    ("neuromag", "test_epo.fif", lambda n: f"test_epo-{n + 1}.fif"),
-    ("bids", "test_epo.fif", lambda n: f"test_split-{n + 1:02d}_epo.fif"),
-])
-def test_split_naming(tmp_path, epochs_to_split, split_naming, split_fname, split_fname_part1):
+@pytest.mark.parametrize(
+    "split_naming, split_fname, split_fname_part1",
+    [
+        ("neuromag", "test_epo.fif", lambda n: f"test_epo-{n + 1}.fif"),
+        ("bids", "test_epo.fif", lambda n: f"test_split-{n + 1:02d}_epo.fif"),
+    ],
+)
+def test_split_naming(
+    tmp_path, epochs_to_split, split_naming, split_fname, split_fname_part1
+):
     """Test naming of the split files."""
     epochs, _, n_files = epochs_to_split
     split_fpath = tmp_path / split_fname
     # we don't test for reserved files as it's not implemented here
 
-    epochs.save(split_fpath, split_size="1.4MB", split_naming=split_naming, verbose=True)
+    epochs.save(
+        split_fpath, split_size="1.4MB", split_naming=split_naming, verbose=True
+    )
 
     # check that the filenames match the intended pattern
     assert split_fpath.is_file()
@@ -1586,7 +1593,7 @@ def test_saved_fname_no_splitting(tmp_path, epochs_to_split):
 
 @pytest.mark.parametrize("split_naming", ["neuromag", "bids"])
 def test_saving_fails_with_not_permitted_overwrite(
-        tmp_path, epochs_factory, split_naming
+    tmp_path, epochs_factory, split_naming
 ):
     """Check exception is raised when overwriting without explicit flag."""
     dst_fpath = tmp_path / "test-epo.fif"
