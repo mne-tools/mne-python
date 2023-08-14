@@ -160,6 +160,7 @@ def pytest_configure(config):
     ignore:.*`byte_bounds` is dep.*:DeprecationWarning
     # numpy distutils used by SciPy
     ignore:.*`numpy.distutils` is deprecated since NumPy.*:DeprecationWarning
+    ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
