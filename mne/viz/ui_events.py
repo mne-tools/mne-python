@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from weakref import WeakKeyDictionary
 import re
 
-from ..utils import fill_doc
+
+from ..utils import warn
 
 
 # Global dict {fig: channel} containing all currently active event channels.
@@ -83,7 +84,6 @@ class TimeChange(UIEvent):
     time: float
 
 
-@fill_doc
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -134,7 +134,6 @@ def _get_event_channel(fig):
     return _event_channels[fig]
 
 
-@fill_doc
 def publish(fig, event):
     """Publish an event to all subscribers of the figure's channel.
 
@@ -167,7 +166,6 @@ def publish(fig, event):
             callback(event=event)
 
 
-@fill_doc
 def subscribe(fig, event_name, callback):
     """Subscribe to an event on a figure's event channel.
 
@@ -186,7 +184,57 @@ def subscribe(fig, event_name, callback):
     channel[event_name].add(callback)
 
 
-@fill_doc
+def unsubscribe(fig, event_names, callback=None):
+    """Unsubscribe from an event on a figure's event channel.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure | Figure3D
+        The figure of which event channel to unsubscribe from.
+    event_names : str | list of str
+        Select which events to stop subscribing to. Can be a single string
+        event name, a list of event names or ``"all"`` which will unsubscribe
+        from all events.
+    callback : callable | None
+        The callback function that should be unsubscribed, leaving all other
+        callback functions that may be subscribed untouched. By default
+        (``None``) all callback functions are unsubscribed from the event.
+    """
+    channel = _get_event_channel(fig)
+
+    # Determine which events to unsubscribe for.
+    if event_names == "all":
+        if callback is None:
+            event_names = list(channel.keys())
+        else:
+            event_names = list(k for k, v in channel.items() if callback in v)
+    elif isinstance(event_names, str):
+        event_names = [event_names]
+
+    for event_name in event_names:
+        if event_name not in channel:
+            warn(
+                f'Cannot unsubscribe from event "{event_name}" as we have never '
+                "subscribed to it."
+            )
+            continue
+
+        if callback is None:
+            del channel[event_name]
+        else:
+            # Unsubscribe specific callback function.
+            subscribers = channel[event_name]
+            if callback in subscribers:
+                subscribers.remove(callback)
+            else:
+                warn(
+                    f'Cannot unsubscribe {callback} from event "{event_name}" '
+                    "as it was never subscribed to it."
+                )
+            if len(subscribers) == 0:
+                del channel[event_name]  # keep things tidy
+
+
 def link(fig1, fig2, event_names="all"):
     """Link the event channels of two figures together.
 
@@ -232,5 +280,5 @@ def unlink(fig):
             del _event_channel_links[linked_fig][fig]
             if len(_event_channel_links[linked_fig]) == 0:
                 del _event_channel_links[linked_fig]
-    if fig in _event_channel_links:  # Need to check again because of weak refs.
+    if fig in _event_channel_links:  # need to check again because of weak refs
         del _event_channel_links[fig]

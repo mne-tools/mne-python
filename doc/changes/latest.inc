@@ -37,6 +37,7 @@ Enhancements
 - Split the display of :meth:`mne.preprocessing.ICA.plot_overlay` between sensor types and display the RMS for MEG sensors and the :term:`GFP` for EEG sensors in the second panel instead of the channel average (:gh:`11830` by `Mathieu Scheltienne`_)
 - Add :meth:`mne.Info.set_channel_types`, :meth:`mne.Info.rename_channels`, :meth:`mne.Info.plot_sensors`, :meth:`mne.Info.anonymize`, :meth:`mne.Info.set_meas_date` (:gh:`11839` by `Alex Rockhill`_)
 - Curry and NEDF raw files can now also be read with the generic :func:`mne.io.read_raw` function (:gh:`11841` by `Richard Höchenberger`_)
+- Added functionality for linking interactive figures together, such that changing one figure will affect another, see :ref:`ex-ui-events` (:gh:`11685` by `Marijn van Vliet`_)
 
 Bugs
 ~~~~
@@ -78,3 +79,4 @@ API changes
 - The ``baseline`` argument can now be array-like (e.g. ``list``, ``tuple``, ``np.ndarray``, ...) instead of only a ``tuple`` (:gh:`11713` by `Clemens Brunner`_)
 - The ``events`` and ``event_id`` parameters of `:meth:`Epochs.plot() <mne.Epochs.plot>` now accept boolean values; see docstring for details (:gh:`11445` by `Daniel McCloy`_ and `Clemens Brunner`_)
 - Deprecated ``gap_description`` keyword argument of :func:`mne.io.read_raw_eyelink`, which will be removed in mne version 1.6, in favor of using :meth:`mne.Annotations.rename` (:gh:`11719` by `Scott Huberty`_)
+- Added :mod:`mne.viz.ui_events` API for controlling interactive figures (:gh:`11685` by `Marijn van Vliet`_).
