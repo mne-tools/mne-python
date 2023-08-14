@@ -1497,8 +1497,6 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata, c
     )
     events = mne.make_fixed_length_events(raw, 1)
     epochs = mne.Epochs(raw, events)
-    if split_size == "2MB" and (metadata or concat):
-        n_files += 1
     if metadata:
         from pandas import DataFrame
 
