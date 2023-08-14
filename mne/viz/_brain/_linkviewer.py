@@ -25,27 +25,8 @@ class _LinkViewer:
             self.link_cameras()
 
         if time:
-            # link time sliders
-            self.link_widgets(
-                name="time",
-                callback=self.set_time_point,
-                signal_type="floatValueChanged",
-            )
-
-            # link playback speed sliders
-            self.link_widgets(
-                name="playback_speed",
-                callback=self.set_playback_speed,
-                signal_type="valueChanged",
-            )
-
-            # link toggle to start/pause playback
-            self.link_widgets(
-                name="play",
-                callback=self.toggle_playback,
-                signal_type="triggered",
-                actions=True,
-            )
+            for brain in brains[1:]:
+                ui_events.link(self.leader, brain)
 
         if picking:
 
@@ -107,9 +88,7 @@ class _LinkViewer:
             brain.callbacks["fmax"](value)
 
     def set_time_point(self, value):
-        ui_events.publish(
-            self.leader, ui_events.TimeChange(time=self.leader._time_interp_inv(value))
-        )
+        self.leader.set_time_point(value)
 
     def set_playback_speed(self, value):
         for brain in self.brains:

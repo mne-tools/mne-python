@@ -175,6 +175,13 @@ def test_brain_gc(renderer_pyvistaqt, brain_gc):
 
 
 @testing.requires_testing_data
+def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
+    """Test that a version of Brain with added data gets GC'ed."""
+    brain = _create_testing_brain(hemi="both", show_traces="vertex")
+    brain.close()
+
+
+@testing.requires_testing_data
 def test_brain_routines(renderer, brain_gc):
     """Test backend agnostic Brain routines."""
     brain_klass = renderer.get_brain_class()
@@ -1077,7 +1084,7 @@ def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
     brain2 = _create_testing_brain(hemi="lh", show_traces="separate")
     brain1._times = brain1._times * 2
     with pytest.warns(RuntimeWarning, match="linking time"):
-        link_viewer = _LinkViewer(
+        _LinkViewer(
             [brain1, brain2],
             time=True,
             camera=False,
