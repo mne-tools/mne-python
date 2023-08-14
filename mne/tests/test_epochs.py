@@ -1478,7 +1478,7 @@ def test_epochs_io_preload(tmp_path, preload):
 
 @pytest.fixture(scope="session")
 def epochs_factory():
-    """Function to create fake Epochs object."""
+    """Function to create fake Epochs object."""  # noqa: D401
 
     def factory(n_epochs, metadata=False, concat=False):
         if metadata:
