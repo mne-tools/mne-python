@@ -1553,27 +1553,21 @@ def test_split_saving(tmp_path, epochs_to_split, preload):
     assert_array_equal(epochs.events, epochs2.events)
 
 
-def test_split_naming(tmp_path, epochs_to_split):
+@pytest.mark.parametrize("split_naming, split_fname, split_fname_part1", [
+    ("neuromag", "test_epo.fif", lambda n: f"test_epo-{n + 1}.fif"),
+    ("bids", "test_epo.fif", lambda n: f"test_split-{n + 1:02d}_epo.fif"),
+])
+def test_split_naming(tmp_path, epochs_to_split, split_naming, split_fname, split_fname_part1):
     """Test naming of the split files."""
     epochs, _, n_files = epochs_to_split
-    split_fname = tmp_path / "test_epo.fif"
-    split_fname_neuromag_part1 = tmp_path / f"test_epo-{n_files + 1}.fif"
-    split_fname_bids_part1 = tmp_path / f"test_split-{n_files + 1:02d}_epo.fif"
+    split_fpath = tmp_path / split_fname
     # we don't test for reserved files as it's not implemented here
 
-    epochs.save(split_fname, split_size="1.4MB", verbose=True)
+    epochs.save(split_fpath, split_size="1.4MB", split_naming=split_naming, verbose=True)
+
     # check that the filenames match the intended pattern
-    assert split_fname.is_file()
-    assert split_fname_neuromag_part1.is_file()
-    # check that filenames are being formatted correctly for BIDS
-    epochs.save(
-        split_fname,
-        split_size="1.4MB",
-        split_naming="bids",
-        overwrite=True,
-        verbose=True,
-    )
-    assert split_fname_bids_part1.is_file()
+    assert split_fpath.is_file()
+    assert (tmp_path / split_fname_part1(n_files)).is_file()
 
 
 def test_saved_fname_no_splitting(tmp_path, epochs_to_split):
