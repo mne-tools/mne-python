@@ -95,6 +95,6 @@ plt.connect("motion_notify_event", on_motion_notify)
 subscribe(fig3, "time_change", on_time_change)
 
 # Link the new figure with the topomap plots, so that the TimeChange events are
-# send to all of them.
+# sent to all of them.
 link(fig3, fig1)
 link(fig3, fig2)
