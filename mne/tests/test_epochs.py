@@ -1478,7 +1478,7 @@ def test_epochs_io_preload(tmp_path, preload):
 
 @pytest.fixture(scope="session")
 def epochs_factory():
-    """Function to create fake Epochs object."""  # noqa: D401
+    """Function to create fake Epochs object."""  # noqa: D401 (imperative mood)
 
     def factory(n_epochs, metadata=False, concat=False):
         if metadata:
@@ -1565,9 +1565,6 @@ def test_split_naming(tmp_path, epochs_to_split):
     epochs.save(split_fname, split_naming="bids", verbose=True)
     assert split_fname.is_file()
     assert not split_fname_bids_part1.is_file()
-    for split_naming in ("neuromag", "bids"):
-        with pytest.raises(FileExistsError, match="Destination file"):
-            epochs.save(split_fname, split_naming=split_naming, verbose=True)
     os.remove(split_fname)
     # we don't test for reserved files as it's not implemented here
 
@@ -1584,6 +1581,20 @@ def test_split_naming(tmp_path, epochs_to_split):
         verbose=True,
     )
     assert split_fname_bids_part1.is_file()
+
+
+@pytest.mark.parametrize("split_naming", ["neuromag", "bids"])
+def test_saving_fails_with_not_permitted_overwrite(
+        tmp_path, epochs_factory, split_naming
+):
+    """Check exception is raised when overwriting without explicit flag."""
+    dst_fpath = tmp_path / "test-epo.fif"
+    epochs = epochs_factory(n_epochs=5)
+
+    epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+
+    with pytest.raises(FileExistsError, match="Destination file"):
+        epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
 
 
 @pytest.mark.slowtest
