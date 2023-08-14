@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os
 import pickle
 from copy import deepcopy
 from datetime import timedelta
