@@ -81,6 +81,9 @@ with plt.ion():
 #   https://github.com/matplotlib/matplotlib/issues/23298
 #   but wrapping it in ion() context makes it go away.
 #   Moving this bit to a separate function in ../../fixes.py doesn't work.
+#
+#   TODO: Once we require matplotlib 3.6 we should be able to remove this.
+#   It also causes some problems... see mne/viz/utils.py:plt_show() for details.
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
