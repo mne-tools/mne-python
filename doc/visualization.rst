@@ -102,6 +102,7 @@ UI Events
    :toctree: generated/
 
    subscribe
+   unsubscribe
    publish
    link
    unlink

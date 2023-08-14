@@ -89,6 +89,53 @@ def test_subscribe(event_channels):
     assert len(event_channels) == 0
 
 
+def test_unsubscribe(event_channels):
+    """Test unsubscribing from UI events."""
+    global callback_called
+    callback_called = False
+
+    def callback(event):
+        """Respond to time change event."""
+        global callback_called
+        callback_called = True
+
+    fig = plt.figure()
+
+    # Test unsubscribing from a single event
+    ui_events.subscribe(fig, "figure_closing", callback)
+    ui_events.subscribe(fig, "time_change", callback)
+    ui_events.unsubscribe(fig, "time_change")
+    assert "time_change" not in ui_events._get_event_channel(fig)
+    assert "figure_closing" in ui_events._get_event_channel(fig)
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    assert not callback_called
+    ui_events.publish(fig, ui_events.FigureClosing())
+    assert callback_called
+
+    # Test unsubscribing from all events
+    ui_events.subscribe(fig, "time_change", callback)
+    assert "time_change" in ui_events._get_event_channel(fig)
+    assert "figure_closing" in ui_events._get_event_channel(fig)
+    ui_events.unsubscribe(fig, "all")
+    assert "time_change" not in ui_events._get_event_channel(fig)
+    assert "figure_closing" not in ui_events._get_event_channel(fig)
+    callback_called = False
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    ui_events.publish(fig, ui_events.FigureClosing())
+    assert not callback_called
+
+    # Test unsubscribing from a list of events
+    ui_events.subscribe(fig, "figure_closing", callback)
+    ui_events.subscribe(fig, "time_change", callback)
+    ui_events.unsubscribe(fig, ["time_change", "figure_closing"])
+    assert "time_change" not in ui_events._get_event_channel(fig)
+    assert "figure_closing" not in ui_events._get_event_channel(fig)
+    callback_called = False
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    ui_events.publish(fig, ui_events.FigureClosing())
+    assert not callback_called
+
+
 def test_link(event_channels, event_channel_links):
     """Test linking the event channels of two functions."""
     fig1 = plt.figure()

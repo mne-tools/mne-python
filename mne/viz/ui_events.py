@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from weakref import WeakKeyDictionary
 import re
 
-from ..utils import fill_doc
+
+from ..utils import warn
 
 
 # Global dict {fig: channel} containing all currently active event channels.
@@ -83,7 +84,6 @@ class TimeChange(UIEvent):
     time: float
 
 
-@fill_doc
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -131,7 +131,6 @@ def _get_event_channel(fig):
     return _event_channels[fig]
 
 
-@fill_doc
 def publish(fig, event):
     """Publish an event to all subscribers of the figure's channel.
 
@@ -164,7 +163,6 @@ def publish(fig, event):
             callback(event=event)
 
 
-@fill_doc
 def subscribe(fig, event_name, callback):
     """Subscribe to an event on a figure's event channel.
 
@@ -183,7 +181,34 @@ def subscribe(fig, event_name, callback):
     channel[event_name].add(callback)
 
 
-@fill_doc
+def unsubscribe(fig, event_names):
+    """Unsubscribe from events on a figure's event channel.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure | Figure3D
+        The figure of which event channel to unsubscribe from.
+    event_name : str | list of str
+        Select which events to stop subscribing to. Can be a single string
+        event name, a list of event names or ``"all"`` which will unsubscribe
+        from all events.
+    """
+    channel = _get_event_channel(fig)
+    if event_names == "all":
+        channel.clear()
+        return
+    if isinstance(event_names, str):
+        event_names = [event_names]
+    for event_name in event_names:
+        if event_name in channel:
+            del channel[event_name]
+        else:
+            warn(
+                f'Cannot unsubscribe from event "{event_name}" as we have never '
+                "subscribed to it."
+            )
+
+
 def link(fig1, fig2, event_names="all"):
     """Link the event channels of two figures together.
 
