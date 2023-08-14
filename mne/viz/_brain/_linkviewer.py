@@ -5,6 +5,7 @@
 # License: Simplified BSD
 import numpy as np
 from ...utils import warn
+from .. import ui_events
 
 
 class _LinkViewer:
@@ -45,15 +46,6 @@ class _LinkViewer:
                 signal_type="triggered",
                 actions=True,
             )
-
-            # link time course canvas
-            def _time_func(*args, **kwargs):
-                for brain in self.brains:
-                    brain.callbacks["time"](*args, **kwargs)
-
-            for brain in self.brains:
-                if brain.show_traces:
-                    brain.mpl_canvas.time_func = _time_func
 
         if picking:
 
@@ -115,15 +107,16 @@ class _LinkViewer:
             brain.callbacks["fmax"](value)
 
     def set_time_point(self, value):
-        for brain in self.brains:
-            brain.callbacks["time"](value, update_widget=True)
+        ui_events.publish(
+            self.leader, ui_events.TimeChange(time=self.leader._time_interp_inv(value))
+        )
 
     def set_playback_speed(self, value):
         for brain in self.brains:
             brain.callbacks["playback_speed"](value, update_widget=True)
 
     def toggle_playback(self):
-        value = self.leader.callbacks["time"].widget.get_value()
+        value = self.leader.widgets["time"].get_value()
         # synchronize starting points before playback
         self.set_time_point(value)
         for brain in self.brains:

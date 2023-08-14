@@ -9,31 +9,31 @@ import weakref
 from ...utils import logger
 
 
-class TimeCallBack:
-    """Callback to update the time."""
-
-    def __init__(self, brain=None, callback=None):
-        self.brain = brain
-        self.callback = callback
-        self.widget = None
-        self.label = None
-        if self.brain is not None and callable(self.brain._data["time_label"]):
-            self.time_label = self.brain._data["time_label"]
-        else:
-            self.time_label = None
-
-    def __call__(self, value, update_widget=False, time_as_index=True):
-        """Update the time slider."""
-        if not time_as_index:
-            value = self.brain._to_time_index(value)
-        self.brain.set_time_point(value)
-        if self.label is not None:
-            current_time = self.brain._current_time
-            self.label.set_value(f"{current_time: .3f}")
-        if self.callback is not None:
-            self.callback()
-        if self.widget is not None and update_widget:
-            self.widget.set_value(int(value))
+# class TimeCallBack:
+#     """Callback to update the time."""
+#
+#     def __init__(self, brain=None, callback=None):
+#         self.brain = brain
+#         self.callback = callback
+#         self.widget = None
+#         self.label = None
+#         if self.brain is not None and callable(self.brain._data["time_label"]):
+#             self.time_label = self.brain._data["time_label"]
+#         else:
+#             self.time_label = None
+#
+#     def __call__(self, value, update_widget=False, time_as_index=True):
+#         """Update the time slider."""
+#         if not time_as_index:
+#             value = self.brain._to_time_index(value)
+#         self.brain.set_time_point(value)
+#         if self.label is not None:
+#             current_time = self.brain._current_time
+#             self.label.set_value(f"{current_time: .3f}")
+#         if self.callback is not None:
+#             self.callback()
+#         if self.widget is not None and update_widget:
+#             self.widget.set_value(int(value))
 
 
 class UpdateColorbarScale:
