@@ -3136,7 +3136,7 @@ class Report:
         try:
             raw.set_annotations(None)
 
-            # Create the figure once and re-use it for performance reasons
+            # Create the figure once and reuse it for performance reasons
             with use_browser_backend("matplotlib"):
                 fig = raw.plot(
                     butterfly=True,
