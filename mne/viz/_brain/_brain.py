@@ -478,9 +478,6 @@ class Brain:
         if surf == "flat":
             self._renderer.set_interaction("rubber_band_2d")
 
-        if len(self._data["time"]) > 1:
-            ui_events.subscribe(self, "time_change", self._on_time_change)
-
     def _setup_canonical_rotation(self):
         self._rigid = np.eye(4)
         try:
@@ -559,6 +556,7 @@ class Brain:
         self.pick_table = dict()
         self._spheres = list()
         self._mouse_no_mvt = -1
+        self.callbacks = dict()
         self.widgets = dict()
         self.keys = ("fmin", "fmid", "fmax")
 
@@ -2018,7 +2016,7 @@ class Brain:
         self._add_actor("data", actor)
 
         # 2) update time and smoothing properties
-        # set_data_smoothing calls "set_time_point" for us, which will set
+        # set_data_smoothing calls "_update_current_time_idx" for us, which will set
         # _current_time
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._data["smoothing_steps"])
@@ -2057,9 +2055,16 @@ class Brain:
         # 4) update the scalar bar and opacity
         self.update_lut(alpha=alpha)
 
+        # 5) enable UI events to interact with the data
+        if time is not None and len(time) > 1:
+            ui_events.subscribe(self, "time_change", self._on_time_change)
+
     def remove_data(self):
         """Remove rendered data from the mesh."""
         self._remove("data", render=True)
+
+        # Stop listening to events
+        # ui_events.unsubscribe(self, "time_change")
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
@@ -3490,7 +3495,7 @@ class Brain:
                         warn=False,
                     )
                 self._data[hemi]["smooth_mat"] = smooth_mat
-        self.set_time_point(self._data["time_idx"])
+        self._update_current_time_idx(self._data["time_idx"])
         self._data["smoothing_steps"] = n_steps
 
     @property
@@ -3651,7 +3656,7 @@ class Brain:
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
         if "time" in self.widgets:
-            self.widget["time"].set_value(int(time_idx))
+            self.widgets["time"].set_value(time_idx)
         if "current_time" in self.widgets:
             self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
         self.plot_time_line(update=True)

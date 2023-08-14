@@ -11,6 +11,7 @@ from contextlib import nullcontext
 import warnings
 
 from ..utils import tight_layout
+from .. import ui_events
 
 
 class Figure3D(ABC):
@@ -1415,7 +1416,6 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
-        self.time_func = brain.callbacks["time"]
 
     def update_plot(self):
         """Update the plot."""
@@ -1434,7 +1434,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         # left click (and maybe drag) in progress in axes
         if event.inaxes != self.axes or event.button != 1:
             return
-        self.time_func(event.xdata, update_widget=True, time_as_index=False)
+        ui_events.publish(self.brain, ui_events.TimeChange(time=event.xdata))
 
     on_motion_notify = on_button_press  # for now they can be the same
 

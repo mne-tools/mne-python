@@ -103,6 +103,7 @@ def _get_event_channel(fig):
         channel.
     """
     import matplotlib
+    from . import Brain
 
     # Create the event channel if it doesn't exist yet
     if fig not in _event_channels:
@@ -124,6 +125,8 @@ def _get_event_channel(fig):
         # MNE-Python has.
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
+        elif isinstance(fig, Brain):
+            fig._renderer._window_close_connect(delete_event_channel, after=False)
         else:
             raise NotImplementedError("This figure type is not support yet.")
 
