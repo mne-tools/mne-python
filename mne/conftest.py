@@ -123,8 +123,6 @@ def pytest_configure(config):
     ignore:unclosed event loop <:ResourceWarning
     # ignore if joblib is missing
     ignore:joblib not installed.*:RuntimeWarning
-    # TODO: This is indicative of a problem
-    ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
     # scikit-learn using this arg

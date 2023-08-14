@@ -148,6 +148,7 @@ def plt_show(show=True, fig=None, **kwargs):
     else:
         backend = get_backend()
     if show and backend != "agg":
+        logger.debug(f"Showing plot for backend {repr(backend)}")
         (fig or plt).show(**kwargs)
 
 
