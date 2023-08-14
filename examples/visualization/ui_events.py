@@ -49,7 +49,7 @@ link(fig1, fig2)  # link the event channels
 # can :func:`publish <mne.viz.ui_events.publish>` events on the channel and
 # receive events by :func:`subscribe <mne.viz.ui_events.subscribe>`-ing to the
 # channel. When subscribing to an event on a channel, you specify a callback
-# function is will be called whenever a drawing routine publishes that event on
+# function to be called whenever a drawing routine publishes that event on
 # the event channel.
 #
 # The events are modeled after matplotlib's event system. Each event has a string
