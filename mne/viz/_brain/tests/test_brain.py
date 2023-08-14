@@ -373,6 +373,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert len(brain._actors["data"]) == 4
     brain.remove_data()
     assert "data" not in brain._actors
+    assert "time_change" not in ui_events._get_event_channel(brain)
 
     # add label
     label = read_label(fname_label)
@@ -770,7 +771,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain._rotate_elevation(15)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
-    brain.callbacks["playback_speed"](value=0.1)
+    brain.set_playback_speed(0.1)
     brain.toggle_playback()
     brain.toggle_playback(value=False)
     brain.apply_auto_scaling()

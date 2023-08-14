@@ -28,8 +28,8 @@ from .callback import (
     ShowView,
     # TimeCallBack,
     SmartCallBack,
-    UpdateLUT,
-    UpdateColorbarScale,
+    # UpdateLUT,
+    # UpdateColorbarScale,
 )
 
 from ..utils import (
@@ -558,7 +558,6 @@ class Brain:
         self._mouse_no_mvt = -1
         self.callbacks = dict()
         self.widgets = dict()
-        self.keys = ("fmin", "fmid", "fmax")
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -750,7 +749,7 @@ class Brain:
         speed : float
             The speed of the playback.
         """
-        self.playback_speed = speed
+        ui_events.publish(self, ui_events.PlaybackSpeed(speed=speed))
 
     @safe_event
     def _play(self):
@@ -841,20 +840,16 @@ class Brain:
 
         # Playback speed widget
         if len_time < 1:
-            self.callbacks["playback_speed"] = None
             self.widgets["playback_speed"] = None
         else:
-            self.callbacks["playback_speed"] = SmartCallBack(
-                callback=self.set_playback_speed,
-            )
             self.widgets["playback_speed"] = self._renderer._dock_add_spin_box(
                 name="Speed",
                 value=self.default_playback_speed_value,
                 rng=self.default_playback_speed_range,
-                callback=self.callbacks["playback_speed"],
+                callback=self.set_playback_speed,
                 layout=layout,
             )
-            self.callbacks["playback_speed"].widget = self.widgets["playback_speed"]
+            ui_events.subscribe(self, "playback_speed", self._on_playback_speed)
 
         # Time label
         current_time = self._current_time
@@ -924,28 +919,34 @@ class Brain:
             align=True,
             layout=layout,
         )
-        up = UpdateLUT(brain=self)
-        for key in self.keys:
+
+        keys = ("fmin", "fmid", "fmax")
+        for key in keys:
             hlayout = self._renderer._dock_add_layout(vertical=False)
             rng = _get_range(self)
-            self.callbacks[key] = lambda value, key=key: up(**{key: value})
             self.widgets[key] = self._renderer._dock_add_slider(
                 name=None,
                 value=self._data[key],
                 rng=rng,
-                callback=self.callbacks[key],
+                callback=lambda val: ui_events.publish(
+                    self,
+                    ui_events.ColormapRange(**{key: val}),
+                ),
                 double=True,
                 layout=hlayout,
             )
             self.widgets[f"entry_{key}"] = self._renderer._dock_add_spin_box(
                 name=None,
                 value=self._data[key],
-                callback=self.callbacks[key],
+                callback=lambda val: ui_events.publish(
+                    self,
+                    ui_events.ColormapRange(**{key: val}),
+                ),
                 rng=rng,
                 layout=hlayout,
             )
-            up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
             self._renderer._layout_add_widget(layout, hlayout)
+        ui_events.subscribe(self, "colormap_range", self._on_colormap_range)
 
         # reset / minus / plus
         hlayout = self._renderer._dock_add_layout(vertical=False)
@@ -964,22 +965,13 @@ class Brain:
             ("fminus", "➖", 1.2**-0.25),
             ("fplus", "➕", 1.2**0.25),
         ):
-            self.callbacks[key] = UpdateColorbarScale(
-                brain=self,
-                factor=val,
-            )
             self.widgets[key] = self._renderer._dock_add_button(
                 name=char,
-                callback=self.callbacks[key],
+                callback=self._update_fscale(val),
                 layout=hlayout,
                 style="toolbutton",
             )
         self._renderer._layout_add_widget(layout, hlayout)
-
-        # register colorbar slider representations
-        widgets = {key: self.widgets[key] for key in self.keys}
-        for name in ("fmin", "fmid", "fmax", "fminus", "fplus"):
-            self.callbacks[name].widgets = widgets
 
     def _configure_dock_trace_widget(self, name):
         if not self.show_traces:
@@ -1443,6 +1435,42 @@ class Brain:
             self._add_label_glyph(hemi, mesh, vertex_id)
         else:
             self._add_vertex_glyph(hemi, mesh, vertex_id)
+
+    def _on_time_change(self, event):
+        """Respond to a time change UI event."""
+        if event.time == self._current_time:
+            return
+        time_idx = self._to_time_index(event.time)
+        self._update_current_time_idx(time_idx)
+        if hasattr(self, "widgets") and "time" in self.widgets:
+            self.widgets["time"].set_value(time_idx)
+        if "current_time" in self.widgets:
+            self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
+        self.plot_time_line(update=True)
+
+    def _on_playback_speed(self, event):
+        """Respond to the playback_speed UI event."""
+        if event.speed == self.playback_speed:
+            return
+        self.playback_speed = event.speed
+        if hasattr(self, "widgets") and "playback_speed" in self.widgets:
+            self.widgets["playback_speed"].set_value(event.speed)
+
+    def _on_colormap_range(self, event):
+        """Respond to the colormap_range UI event."""
+        if (
+            (event.fmin is None or event.fmin == self._data["fmin"])
+            and (event.fmid is None or event.fmid == self._data["fmid"])
+            and (event.fmax is None or event.fmax == self._data["fmax"])
+            and (event.alpha is None or event.alpha == self._data["alpha"])
+        ):
+            return
+        for key in ["fmin", "fmid", "fmax", "alpha"]:
+            val = getattr(event, key)
+            if val is not None:
+                self._data[key] = val
+                if key != "alpha" and key in self.widgets:
+                    self.widgets[key].set_value(val)
 
     def _add_label_glyph(self, hemi, mesh, vertex_id):
         if hemi == "vol":
@@ -3395,7 +3423,21 @@ class Brain:
 
     @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
-        """Update color map.
+        """Update the range of the color map.
+
+        Parameters
+        ----------
+        %(fmin_fmid_fmax)s
+        %(alpha)s
+        """
+        ui_events.publish(
+            self,
+            ui_events.ColormapRange(fmin=fmin, fmid=fmid, fmax=fmax, alpha=alpha),
+        )
+
+    @fill_doc
+    def _update_colormap_range(self, fmin=None, fmid=None, fmax=None, alpha=None):
+        """Update the range of the color map.
 
         Parameters
         ----------
@@ -3648,19 +3690,6 @@ class Brain:
                 f"Requested time ({time} s) is outside the range of "
                 f"available times ({min(self._times)}-{max(self._times)} s)."
             )
-
-    def _on_time_change(self, event):
-        """Respond to a time change UI event."""
-        if event.time == self._current_time:
-            return
-
-        time_idx = self._to_time_index(event.time)
-        self._update_current_time_idx(time_idx)
-        if "time" in self.widgets:
-            self.widgets["time"].set_value(time_idx)
-        if "current_time" in self.widgets:
-            self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-        self.plot_time_line(update=True)
 
     def _update_glyphs(self, hemi, vectors):
         hemi_data = self._data.get(hemi)

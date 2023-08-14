@@ -84,6 +84,69 @@ class TimeChange(UIEvent):
     time: float
 
 
+@dataclass
+class PlaybackSpeed(UIEvent):
+    """Indicates that the user has selected a different playback speed for videos.
+
+    Parameters
+    ----------
+    speed : float
+        The new speed in seconds per frame.
+
+    Attributes
+    ----------
+    name : str
+        The name of the event: ``"playback_speed"``
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
+    speed : float
+        The new speed in seconds per frame.
+    """
+
+    speed: float
+
+
+@dataclass
+class ColormapRange(UIEvent):
+    """Indicates that the user has updated the bounds of the colormap.
+
+    Parameters
+    ----------
+    fmin : float | None
+        The new lower bound of the colormap or ``None`` to keep as is.
+    fmax : float | None
+        The new upper bound of the colormap or ``None`` to keep as is.
+    fmid : float | None
+        The new middle bound of the colormap or ``None`` to keep as is.
+    alpha : bool | None
+        Whether to add an alpha gradient to the colormap, set to ``None`` to keep as is.
+
+    Attributes
+    ----------
+    name : str
+        The name of the event: ``"playback_speed"``
+    source : matplotlib.figure.Figure | Figure3D
+        The figure that published the event.
+    fmin : float
+        The new lower bound of the colormap or ``None`` to keep it as is.
+    fmax : float
+        The new upper bound of the colormap or ``None`` to keep it as is.
+    fmid : float | None
+        The new middle bound of the colormap or ``None`` to keep it as is.
+        Note that not all colormaps have a middle bound, in which case ``fmid``
+        may be ignored.
+    alpha : bool | None
+        Whether to add an alpha gradient to the colormap, or ``None`` to keep as is.
+        Note that not all colormaps have an alpha gradient, in which case ``alpha``
+        may be ignored.
+    """
+
+    fmin: float = None
+    fmax: float = None
+    fmid: float = None
+    alpha: bool = None
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 

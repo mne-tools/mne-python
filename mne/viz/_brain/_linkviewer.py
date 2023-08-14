@@ -26,7 +26,7 @@ class _LinkViewer:
 
         if time:
             for brain in brains[1:]:
-                ui_events.link(self.leader, brain)
+                ui_events.link(self.leader, brain, event_names=["time_change"])
 
         if picking:
 
@@ -91,15 +91,10 @@ class _LinkViewer:
         self.leader.set_time_point(value)
 
     def set_playback_speed(self, value):
-        for brain in self.brains:
-            brain.callbacks["playback_speed"](value, update_widget=True)
+        self.leader.set_playback_speed(value)
 
     def toggle_playback(self):
-        value = self.leader.widgets["time"].get_value()
-        # synchronize starting points before playback
-        self.set_time_point(value)
-        for brain in self.brains:
-            brain.toggle_playback()
+        self.leader.toggle_playback()
 
     def link_widgets(self, name, callback, signal_type, actions=False):
         for brain in self.brains:
