@@ -1550,6 +1550,9 @@ def test_split_saving(tmp_path, epochs_to_split):
         assert_allclose(epochs2.get_data(), epochs_data)
         assert_array_equal(epochs.events, epochs2.events)
 
+
+def test_split_naming(tmp_path, epochs_to_split):
+    epochs, _, n_files = epochs_to_split
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
     split_fname = tmp_path / "test_epo.fif"
