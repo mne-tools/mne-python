@@ -1536,7 +1536,8 @@ def epochs_to_split(request, epochs_factory):
     return epochs, split_size, n_files
 
 
-def test_split_saving(tmp_path, epochs_to_split):
+@pytest.mark.parametrize("preload", [True, False], ids=["preload", "no_preload"])
+def test_split_saving(tmp_path, epochs_to_split, preload):
     """Test saving split epochs."""
     epochs, split_size, n_files = epochs_to_split
     epochs_data = epochs.get_data()
@@ -1545,10 +1546,9 @@ def test_split_saving(tmp_path, epochs_to_split):
     got_size = _get_split_size(split_size)
     _assert_splits(fname, n_files, got_size)
     assert not fname.with_name(f"{fname.stem}-{n_files + 1}{fname.suffix}").is_file()
-    for preload in (True, False):
-        epochs2 = mne.read_epochs(fname, preload=preload)
-        assert_allclose(epochs2.get_data(), epochs_data)
-        assert_array_equal(epochs.events, epochs2.events)
+    epochs2 = mne.read_epochs(fname, preload=preload)
+    assert_allclose(epochs2.get_data(), epochs_data)
+    assert_array_equal(epochs.events, epochs2.events)
 
 
 def test_split_naming(tmp_path, epochs_to_split):
