@@ -62,7 +62,7 @@ link(fig1, fig2)  # link the event channels
 # to it.
 #
 # Below, we create a custom plot and then make it publish and subscribe to
-# :class:`TimeChange <mne.viz.ui_events.TimeChange>` events so it can work
+# :class:`~mne.viz.ui_events.TimeChange` events so it can work
 # together with the topomap plots we created earlier.
 fig3, ax = plt.subplots()
 ax.plot(aud_left.times, aud_left.pick("mag").data.max(axis=0), label="Left")
