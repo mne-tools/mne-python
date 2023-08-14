@@ -1542,16 +1542,19 @@ def test_split_saving(tmp_path, epochs_to_split, preload):
     epochs, split_size, n_files = epochs_to_split
     epochs_data = epochs.get_data()
     fname = tmp_path / "test-epo.fif"
-    epochs.save(fname, split_size=split_size, overwrite=True)
     got_size = _get_split_size(split_size)
+
+    epochs.save(fname, split_size=split_size, overwrite=True)
+    epochs2 = mne.read_epochs(fname, preload=preload)
+
     _assert_splits(fname, n_files, got_size)
     assert not fname.with_name(f"{fname.stem}-{n_files + 1}{fname.suffix}").is_file()
-    epochs2 = mne.read_epochs(fname, preload=preload)
     assert_allclose(epochs2.get_data(), epochs_data)
     assert_array_equal(epochs.events, epochs2.events)
 
 
 def test_split_naming(tmp_path, epochs_to_split):
+    """Test naming of the split files."""
     epochs, _, n_files = epochs_to_split
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
