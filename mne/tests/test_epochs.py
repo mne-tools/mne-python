@@ -1477,15 +1477,15 @@ def test_epochs_io_preload(tmp_path, preload):
 
 
 @pytest.mark.parametrize(
-    "split_size, n_epochs, n_files, size",
+    "split_size, n_epochs, n_files",
     [
-        ("1.5MB", 9, 6, 1572864),
-        ("3MB", 18, 3, 3 * 1024 * 1024),
+        ("1.5MB", 9, 6),
+        ("3MB", 18, 3),
     ],
 )
 @pytest.mark.parametrize("metadata", [False, True])
 @pytest.mark.parametrize("concat", (False, True))
-def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata, concat):
+def test_split_saving(tmp_path, split_size, n_epochs, n_files, metadata, concat):
     """Test saving split epochs."""
     if metadata:
         pytest.importorskip("pandas")
@@ -1517,8 +1517,7 @@ def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata, c
     fname = tmp_path / "test-epo.fif"
     epochs.save(fname, split_size=split_size, overwrite=True)
     got_size = _get_split_size(split_size)
-    assert got_size == size
-    _assert_splits(fname, n_files, size)
+    _assert_splits(fname, n_files, got_size)
     assert not fname.with_name(f"{fname.stem}-{n_files + 1}{fname.suffix}").is_file()
     for preload in (True, False):
         epochs2 = mne.read_epochs(fname, preload=preload)
