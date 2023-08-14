@@ -16,7 +16,6 @@ from numpy.testing import (
 )
 import pytest
 import numpy as np
-from scipy import linalg
 
 from mne.cov import (
     regularize,
@@ -46,6 +45,7 @@ from mne import (
 )
 from mne.channels import equalize_channels
 from mne.datasets import testing
+from mne.fixes import _safe_svd
 from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
@@ -389,9 +389,7 @@ def test_cov_estimation_on_raw_reg():
 
 def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
     assert_equal(cov.ch_names, cov_desired.ch_names)
-    err = linalg.norm(cov.data - cov_desired.data, ord="fro") / linalg.norm(
-        cov.data, ord="fro"
-    )
+    err = np.linalg.norm(cov.data - cov_desired.data) / np.linalg.norm(cov.data)
     assert err < tol, "%s >= %s" % (err, tol)
     if nfree:
         assert_equal(cov.nfree, cov_desired.nfree)
@@ -430,8 +428,8 @@ def test_cov_estimation_with_triggers(rank, tmp_path):
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
     assert np.all(cov.data != cov_tmin_tmax.data)
-    err = linalg.norm(cov.data - cov_tmin_tmax.data, ord="fro") / linalg.norm(
-        cov_tmin_tmax.data, ord="fro"
+    err = np.linalg.norm(cov.data - cov_tmin_tmax.data) / np.linalg.norm(
+        cov_tmin_tmax.data
     )
     assert err < 0.05
 
@@ -597,7 +595,7 @@ def test_auto_low_rank():
         rng = np.random.RandomState(42)
         W = rng.randn(n_features, n_features)
         X = rng.randn(n_samples, rank)
-        U, _, _ = linalg.svd(W.copy())
+        U, _, _ = _safe_svd(W.copy())
         X = np.dot(X, U[:, :rank].T)
 
         sigmas = sigma * rng.rand(n_features) + sigma / 2.0

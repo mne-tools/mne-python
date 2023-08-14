@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 
 from ..defaults import DEFAULTS
+from ..fixes import _safe_svd
 from .._freesurfer import _reorient_image, _read_mri_info, _check_mri, _mri_orientation
 from ..rank import compute_rank
 from ..surface import read_surface
@@ -140,7 +141,6 @@ def plot_cov(
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
-    from scipy import linalg
     from ..cov import Covariance
 
     info, C, ch_names, idx_names = _index_info_cov(info, cov, exclude)
@@ -197,7 +197,7 @@ def plot_cov(
         )
         for k, (idx, name, unit, scaling, key) in enumerate(idx_names):
             this_C = C[idx][:, idx]
-            s = linalg.svd(this_C, compute_uv=False)
+            s = _safe_svd(this_C, compute_uv=False)
             this_C = Covariance(this_C, [info["ch_names"][ii] for ii in idx], [], [], 0)
             this_info = pick_info(info, idx)
             with this_info._unlock():

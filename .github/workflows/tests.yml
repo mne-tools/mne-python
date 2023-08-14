@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    - uses: psf/black@stable
-    - uses: pre-commit/action@v3.0.0
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - uses: psf/black@stable
+      - uses: pre-commit/action@v3.0.0
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
@@ -45,27 +45,27 @@ jobs:
     strategy:
       matrix:
         include:
-        - os: ubuntu-latest
-          python: '3.10'
-          kind: conda
-        - os: ubuntu-latest
-          python: '3.10'
-          kind: notebook
-        - os: ubuntu-latest
-          python: '3.11'
-          kind: pip-pre
-        - os: macos-latest
-          python: '3.8'
-          kind: mamba
-        - os: windows-latest
-          python: '3.10'
-          kind: mamba
-        - os: ubuntu-latest
-          python: '3.8'
-          kind: minimal
-        - os: ubuntu-20.04
-          python: '3.8'
-          kind: old
+          - os: ubuntu-latest
+            python: '3.10'
+            kind: conda
+          - os: ubuntu-latest
+            python: '3.10'
+            kind: notebook
+          - os: ubuntu-latest
+            python: '3.11'
+            kind: pip-pre
+          - os: macos-latest
+            python: '3.8'
+            kind: mamba
+          - os: windows-latest
+            python: '3.10'
+            kind: mamba
+          - os: ubuntu-latest
+            python: '3.8'
+            kind: minimal
+          - os: ubuntu-20.04
+            python: '3.8'
+            kind: old
     steps:
       - uses: actions/checkout@v3
         with:

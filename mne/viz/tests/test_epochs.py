@@ -7,6 +7,8 @@
 #
 # License: Simplified BSD
 
+import platform
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -22,6 +24,8 @@ ev = dict(events=False)
 
 def test_plot_epochs_not_preloaded(epochs_unloaded, browser_backend):
     """Test plotting non-preloaded epochs."""
+    if platform.machine() == "arm64":
+        pytest.xfail("Flakey verbose behavior on macOS arm64")
     assert epochs_unloaded._data is None
     epochs_unloaded.plot(**ev)
     assert epochs_unloaded._data is None

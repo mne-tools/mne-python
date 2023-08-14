@@ -2730,7 +2730,8 @@ def plot_psds_topomap(
     if dB and not normalize:
         band_data = [10 * np.log10(_d) for _d in band_data]
     # handle vmin/vmax
-    if vlim == "joint":
+    joint_vlim = vlim == "joint"
+    if joint_vlim:
         vlim = (np.array(band_data).min(), np.array(band_data).max())
     # unit label
     if unit is None:
@@ -2754,7 +2755,7 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
         axes, freq_masks, band_data, bands.items()
     ):
-        colorbar = vlim != "joint" or ax == axes[-1]
+        colorbar = (not joint_vlim) or ax == axes[-1]
         _plot_topomap_multi_cbar(
             _data,
             pos,
