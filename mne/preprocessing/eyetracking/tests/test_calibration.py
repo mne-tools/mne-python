@@ -198,8 +198,8 @@ def test_read_calibration(fname):
     ]
 
     assert len(calibrations) == 2  # calibration[0] is left, calibration[1] is right
-    assert calibrations[0]["onset"] == 0
-    assert calibrations[1]["onset"] == 0
+    np.testing.assert_allclose(calibrations[0]["onset"], -6.85)
+    np.testing.assert_allclose(calibrations[1]["onset"], -6.85)
     assert calibrations[0]["model"] == "HV13"
     assert calibrations[1]["model"] == "HV13"
     assert calibrations[0]["eye"] == "left"
@@ -208,11 +208,11 @@ def test_read_calibration(fname):
     assert calibrations[0]["max_error"] == 0.90
     assert calibrations[1]["avg_error"] == 0.31
     assert calibrations[1]["max_error"] == 0.52
-    assert np.array_equal(POSITIONS_L, calibrations[0]["positions"])
-    assert np.array_equal(POSITIONS_R, calibrations[1]["positions"])
-    assert np.array_equal(GAZE_L, calibrations[0]["gaze"])
-    assert np.array_equal(GAZE_R, calibrations[1]["gaze"])
-    assert np.array_equal(OFFSETS_R, calibrations[1]["offsets"])
+    np.testing.assert_array_equal(POSITIONS_L, calibrations[0]["positions"])
+    np.testing.assert_array_equal(POSITIONS_R, calibrations[1]["positions"])
+    np.testing.assert_array_equal(GAZE_L, calibrations[0]["gaze"])
+    np.testing.assert_array_equal(GAZE_R, calibrations[1]["gaze"])
+    np.testing.assert_array_equal(OFFSETS_R, calibrations[1]["offsets"])
 
 
 @requires_testing_data
@@ -242,6 +242,8 @@ def test_plot_calibration(fname, axes):
     assert ax.title.get_text() == f"Calibration ({cal_left['eye']} eye)"
     assert len(ax.collections) == 2  # Two scatter plots
 
-    assert np.allclose(scatter1.get_offsets(), np.column_stack((px, py)))
-    assert np.allclose(scatter2.get_offsets(), np.column_stack((gaze_x, gaze_y)))
+    np.testing.assert_allclose(scatter1.get_offsets(), np.column_stack((px, py)))
+    np.testing.assert_allclose(
+        scatter2.get_offsets(), np.column_stack((gaze_x, gaze_y))
+    )
     plt.close(fig)
