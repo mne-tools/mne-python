@@ -106,30 +106,14 @@ class ColormapRange(UIEvent):
 
     Parameters
     ----------
-    fmin : float | None
-        The new lower bound of the colormap or ``None`` to keep as is.
-    fmax : float | None
-        The new upper bound of the colormap or ``None`` to keep as is.
-    fmid : float | None
-        The new middle bound of the colormap or ``None`` to keep as is.
-    alpha : bool | None
-        Whether to add an alpha gradient to the colormap, set to ``None`` to keep as is.
+    %(fmin_fmid_fmax)s
+    %(alpha)s
 
     Attributes
     ----------
     %(ui_event_name_source)s
-    fmin : float
-        The new lower bound of the colormap or ``None`` to keep it as is.
-    fmax : float
-        The new upper bound of the colormap or ``None`` to keep it as is.
-    fmid : float | None
-        The new middle bound of the colormap or ``None`` to keep it as is.
-        Note that not all colormaps have a middle bound, in which case ``fmid``
-        may be ignored.
-    alpha : bool | None
-        Whether to add an alpha gradient to the colormap, or ``None`` to keep as is.
-        Note that not all colormaps have an alpha gradient, in which case ``alpha``
-        may be ignored.
+    %(fmin_fmid_fmax)s
+    %(alpha)s
     """
 
     fmin: float = None

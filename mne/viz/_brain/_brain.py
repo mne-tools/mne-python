@@ -946,7 +946,6 @@ class Brain:
                 layout=hlayout,
             )
             self._renderer._layout_add_widget(layout, hlayout)
-        ui_events.subscribe(self, "colormap_range", self._on_colormap_range)
 
         # reset / minus / plus
         hlayout = self._renderer._dock_add_layout(vertical=False)
@@ -967,7 +966,7 @@ class Brain:
         ):
             self.widgets[key] = self._renderer._dock_add_button(
                 name=char,
-                callback=self._update_fscale(val),
+                callback=self._update_fscale,
                 layout=hlayout,
                 style="toolbutton",
             )
@@ -2030,7 +2029,7 @@ class Brain:
         self._data["fmin"] = fmin
         self._data["fmid"] = fmid
         self._data["fmax"] = fmax
-        self.update_lut()
+        self._update_colormap_range()
 
         # 1) add the surfaces first
         actor = None
@@ -2081,9 +2080,10 @@ class Brain:
             )
 
         # 4) update the scalar bar and opacity
-        self.update_lut(alpha=alpha)
+        self._update_colormap_range(alpha=alpha)
 
         # 5) enable UI events to interact with the data
+        ui_events.subscribe(self, "colormap_range", self._on_colormap_range)
         if time is not None and len(time) > 1:
             ui_events.subscribe(self, "time_change", self._on_time_change)
 
