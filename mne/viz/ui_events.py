@@ -13,8 +13,7 @@ from dataclasses import dataclass
 from weakref import WeakKeyDictionary
 import re
 
-
-from ..utils import warn
+from ..utils import warn, fill_doc
 
 
 # Global dict {fig: channel} containing all currently active event channels.
@@ -31,13 +30,13 @@ _camel_to_snake = re.compile(r"(?<!^)(?=[A-Z])")
 
 
 # List of events
+@fill_doc
 class UIEvent:
     """Abstract base class for all events.
 
     Attributes
     ----------
-    source : matplotlib.figure.Figure | Figure3D
-        The figure that published the event.
+    %(ui_event_name_source)s
     """
 
     source = None
@@ -48,21 +47,20 @@ class UIEvent:
         return _camel_to_snake.sub("_", self.__class__.__name__).lower()
 
 
+@fill_doc
 class FigureClosing(UIEvent):
     """Indicates that the user has requested to close a figure.
 
     Attributes
     ----------
-    name : str
-        The name of the event: ``"figure_closing"``
-    source : matplotlib.figure.Figure | Figure3D
-        The figure that published the event.
+    %(ui_event_name_source)s
     """
 
     pass
 
 
 @dataclass
+@fill_doc
 class TimeChange(UIEvent):
     """Indicates that the user has selected a time.
 
@@ -73,10 +71,7 @@ class TimeChange(UIEvent):
 
     Attributes
     ----------
-    name : str
-        The name of the event: ``"time_change"``
-    source : matplotlib.figure.Figure | Figure3D
-        The figure that published the event.
+    %(ui_event_name_source)s
     time : float
         The new time in seconds.
     """
@@ -85,6 +80,7 @@ class TimeChange(UIEvent):
 
 
 @dataclass
+@fill_doc
 class PlaybackSpeed(UIEvent):
     """Indicates that the user has selected a different playback speed for videos.
 
@@ -95,10 +91,7 @@ class PlaybackSpeed(UIEvent):
 
     Attributes
     ----------
-    name : str
-        The name of the event: ``"playback_speed"``
-    source : matplotlib.figure.Figure | Figure3D
-        The figure that published the event.
+    %(ui_event_name_source)s
     speed : float
         The new speed in seconds per frame.
     """
@@ -107,6 +100,7 @@ class PlaybackSpeed(UIEvent):
 
 
 @dataclass
+@fill_doc
 class ColormapRange(UIEvent):
     """Indicates that the user has updated the bounds of the colormap.
 
@@ -123,10 +117,7 @@ class ColormapRange(UIEvent):
 
     Attributes
     ----------
-    name : str
-        The name of the event: ``"playback_speed"``
-    source : matplotlib.figure.Figure | Figure3D
-        The figure that published the event.
+    %(ui_event_name_source)s
     fmin : float
         The new lower bound of the colormap or ``None`` to keep it as is.
     fmax : float
@@ -145,6 +136,36 @@ class ColormapRange(UIEvent):
     fmax: float = None
     fmid: float = None
     alpha: bool = None
+
+
+@dataclass
+@fill_doc
+class CameraMove(UIEvent):
+    """Indicates that the user has moved the 3D camera.
+
+    Parameters
+    ----------
+    %(roll)s
+    %(distance)s
+    %(azimuth)s
+    %(elevation)s
+    %(focalpoint)s
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    %(roll)s
+    %(distance)s
+    %(azimuth)s
+    %(elevation)s
+    %(focalpoint)s
+    """
+
+    roll: float = None
+    distance: float = None
+    azimuth: float = None
+    elevation: float = None
+    focalpoint: tuple = None
 
 
 def _get_event_channel(fig):

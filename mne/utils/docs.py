@@ -4631,6 +4631,15 @@ tstep : scalar
 # U
 
 docdict[
+    "ui_event_name_source"
+] = """
+name : str
+    The name of the event (same as its class name but in snake_case).
+source : matplotlib.figure.Figure | Figure3D
+    The figure that published the event.
+"""
+
+docdict[
     "uint16_codec"
 ] = """
 uint16_codec : str | None
