@@ -1587,6 +1587,7 @@ def test_split_naming(
     epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
+    assert len(list(tmp_path.iterdir())) == n_files
     for i in range(n_files):
         assert (tmp_path / split_fname_fn(i)).is_file()
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
