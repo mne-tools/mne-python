@@ -1581,7 +1581,8 @@ def test_split_naming(
 
     # check that the filenames match the intended pattern
     assert split_0_fpath.is_file()
-    assert (tmp_path / split_fname_fn(n_files - 1)).is_file()
+    for i in range(n_files, 1):
+        assert (tmp_path / split_fname_fn(i)).is_file()
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
 
 
