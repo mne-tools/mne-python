@@ -1600,11 +1600,11 @@ def test_split_naming(
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
 
 
-def test_saved_fname_no_splitting(tmp_path, epochs_to_split):
+def test_saved_fname_no_splitting(tmp_path, epochs_factory):
     """Test saved fname doesn't get split suffix when splitting not needed."""
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
-    epochs, _, _ = epochs_to_split
+    epochs = epochs_factory(n_epochs=9)
     split_fname = tmp_path / "test_epo.fif"
     split_fname_bids_part1 = tmp_path / "test_split-1_epo.fif"
 
