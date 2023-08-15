@@ -1658,7 +1658,7 @@ def test_splits_overwrite(
     (tmp_path / existing_fname).touch()
 
     with pytest.raises(FileExistsError, match="Destination file"):
-        epochs.save(dst_fpath, verbose=True, **save_kwargs)
+        epochs.save(dst_fpath, verbose=True, overwrite=False, **save_kwargs)
 
 
 @pytest.mark.slowtest
