@@ -16,10 +16,10 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. _current:
+.. _changes_1_5_0:
 
-Current (1.5.dev0)
-------------------
+Version 1.5.0 (2023-08-14)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -78,3 +78,30 @@ API changes
 - The ``baseline`` argument can now be array-like (e.g. ``list``, ``tuple``, ``np.ndarray``, ...) instead of only a ``tuple`` (:gh:`11713` by `Clemens Brunner`_)
 - The ``events`` and ``event_id`` parameters of `:meth:`Epochs.plot() <mne.Epochs.plot>` now accept boolean values; see docstring for details (:gh:`11445` by `Daniel McCloy`_ and `Clemens Brunner`_)
 - Deprecated ``gap_description`` keyword argument of :func:`mne.io.read_raw_eyelink`, which will be removed in mne version 1.6, in favor of using :meth:`mne.Annotations.rename` (:gh:`11719` by `Scott Huberty`_)
+
+Authors
+~~~~~~~
+* Aaron Earle-Richardson+
+* Alex Rockhill
+* Alexandre Gramfort
+* Britta Westner
+* Clemens Brunner
+* Daniel McCloy
+* Daniel Tse+
+* Diptyajit Das+
+* Eric Larson
+* Gennadiy Belonosov+
+* George O'Neill
+* Hamza Abdelhedi+
+* Jacob Woessner
+* Joshua Calder-Travis+
+* Mathieu Scheltienne
+* Proloy Das
+* Richard Höchenberger
+* Rob Luke
+* Samuel Louviot+
+* Scott Huberty
+* Simon Kern
+* Stefan Appelhoff
+* Thomas Moreau
+* Yiping Zuo+

@@ -405,13 +405,13 @@ def test_stc_attributes():
 
     # Changing .tmin or .tstep re-computes .times
     stc.tmin = 1
-    assert type(stc.tmin) == float
+    assert isinstance(stc.tmin, float)
     assert_array_almost_equal(
         stc.times, [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
     )
 
     stc.tstep = 1
-    assert type(stc.tstep) == float
+    assert isinstance(stc.tstep, float)
     assert_array_almost_equal(
         stc.times, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     )
