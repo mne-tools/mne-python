@@ -1573,15 +1573,15 @@ def test_split_naming(
     """Test naming of the split files."""
     epochs, split_size, n_files = epochs_to_split
     split_fpath = tmp_path / split_fname
+    save_kwargs = {"split_size": split_size, "split_naming": split_naming}
     # we don't test for reserved files as it's not implemented here
 
-    epochs.save(
-        split_fpath, split_size=split_size, split_naming=split_naming, verbose=True
-    )
+    epochs.save(split_fpath, verbose=True, **save_kwargs)
 
     # check that the filenames match the intended pattern
     assert split_fpath.is_file()
     assert (tmp_path / split_fname_fn(n_files - 1)).is_file()
+    assert not (tmp_path / split_fname_fn(n_files)).is_file()
 
 
 def test_saved_fname_no_splitting(tmp_path, epochs_to_split):
