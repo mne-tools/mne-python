@@ -1490,7 +1490,7 @@ def epochs_factory():
         n_ch, fs = 100, 1000.0
         n_times = int(round(fs * (n_epochs + 1)))
         raw_data = np.random.RandomState(0).randn(n_ch, n_times)
-        raw = mne.io.RawArray(raw_data , mne.create_info(n_ch, fs))
+        raw = mne.io.RawArray(raw_data, mne.create_info(n_ch, fs))
         events = mne.make_fixed_length_events(raw, 1)
         epochs = mne.Epochs(raw, events)
         if metadata:
@@ -1641,12 +1641,12 @@ def test_saved_fname_no_splitting(
             "neuromag",
             "test-epo.fif",
             "test-epo-1.fif",
-            marks=pytest.mark.xfail(reason="bug")
+            marks=pytest.mark.xfail(reason="bug"),
         ),
         ("bids", "test_epo.fif", "test_epo.fif"),
         ("bids", "test_epo.fif", "test_split-01_epo.fif"),
         ("bids", "test_epo.fif", "test_split-02_epo.fif"),
-    ]
+    ],
 )
 def test_splits_overwrite(
     tmp_path, epochs_to_split, split_naming, dst_fname, existing_fname
