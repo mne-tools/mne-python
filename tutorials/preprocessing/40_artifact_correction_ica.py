@@ -99,7 +99,7 @@ raw.load_data()
 # :footcite:`AblinEtAl2018` for more information.
 #
 # The ICA interface in MNE-Python is similar to the interface in
-# `scikit-learn`_: some general parameters are specified when creating an
+# `sklearn`_: some general parameters are specified when creating an
 # `~mne.preprocessing.ICA` object, then the `~mne.preprocessing.ICA` object is
 # fit to the data using its `~mne.preprocessing.ICA.fit` method. The results of
 # the fitting are added to the `~mne.preprocessing.ICA` object as attributes
@@ -625,7 +625,7 @@ print(template_eog_component)
 #    https://en.wikipedia.org/wiki/Signal_separation
 # .. _`statistically independent`:
 #    https://en.wikipedia.org/wiki/Independence_(probability_theory)
-# .. _`scikit-learn`: https://scikit-learn.org
+# .. _`sklearn`: https://scikit-learn.org
 # .. _`random seed`: https://en.wikipedia.org/wiki/Random_seed
 # .. _`regular expression`: https://www.regular-expressions.info/
 # .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex

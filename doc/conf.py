@@ -806,7 +806,8 @@ html_theme_options = {
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
-        "json_url": "https://mne.tools/dev/_static/versions.json",
+        # TODO: Revert before merge
+        "json_url": "https://github.com/larsoner/mne-python/raw/versions/doc/_static/versions.json",
         "version_match": switcher_version_match,
     },
 }
@@ -1395,6 +1396,11 @@ for icon, classes in icon_class.items():
 
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
+
+.. include:: /links.inc
+.. include:: /changes/names.inc
+
+.. currentmodule:: mne
 """
 
 # -- Dependency info ----------------------------------------------------------
