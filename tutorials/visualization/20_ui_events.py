@@ -1,5 +1,5 @@
 """
-.. _ex-ui-events:
+.. _tut-ui-events:
 
 ======================================
 Using the event system to link figures
