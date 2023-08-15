@@ -1573,8 +1573,14 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
             "test_epo.fif",
             lambda i: f"test_split-{i:02d}_epo.fif" if i else "test_epo.fif",
         ),
+        (
+            "bids",
+            "test-epo.fif",
+            # Merely stating the fact:
+            lambda i: f"_split-{i:02d}_test-epo.fif" if i else "test-epo.fif",
+        ),
     ],
-    ids=["neuromag", "bids"],
+    ids=["neuromag", "bids", "mix"],
 )
 def test_split_naming(
     tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn
