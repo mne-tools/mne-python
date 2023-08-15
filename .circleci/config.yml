@@ -496,24 +496,6 @@ workflows:
                 - main
                 - /maint\/.*/
 
-  main:
-    jobs:
-      - build_docs:
-          scheduled: "true"
-          name: build_docs_stable
-      - deploy:
-          name: deploy_stable
-          requires:
-            - build_docs_stable
-    triggers:
-      - schedule:
-          # "At 4:00 AM GMT every day"
-          cron: "0 4 * * *"
-          filters:
-            branches:
-              only:
-                - /maint\/.*/
-
   weekly:
     jobs:
       - linkcheck:
