@@ -1563,25 +1563,25 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
 @pytest.mark.parametrize(
     "split_naming, split_fname, split_fname_fn",
     [
-        ("neuromag", "test_epo.fif", lambda n: f"test_epo-{n + 1}.fif"),
-        ("bids", "test_epo.fif", lambda n: f"test_split-{n + 1:02d}_epo.fif"),
+        ("neuromag", "test_epo.fif", lambda n: f"test_epo-{n}.fif"),
+        ("bids", "test_epo.fif", lambda n: f"test_split-{n:02d}_epo.fif"),
     ],
 )
 def test_split_naming(
     tmp_path, epochs_to_split, split_naming, split_fname, split_fname_fn
 ):
     """Test naming of the split files."""
-    epochs, _, n_files = epochs_to_split
+    epochs, split_size, n_files = epochs_to_split
     split_fpath = tmp_path / split_fname
     # we don't test for reserved files as it's not implemented here
 
     epochs.save(
-        split_fpath, split_size="1.4MB", split_naming=split_naming, verbose=True
+        split_fpath, split_size=split_size, split_naming=split_naming, verbose=True
     )
 
     # check that the filenames match the intended pattern
     assert split_fpath.is_file()
-    assert (tmp_path / split_fname_fn(n_files)).is_file()
+    assert (tmp_path / split_fname_fn(n_files - 1)).is_file()
 
 
 def test_saved_fname_no_splitting(tmp_path, epochs_to_split):
