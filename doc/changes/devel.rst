@@ -18,8 +18,8 @@
 
 .. _current:
 
-Current (1.6.dev0)
-------------------
+Development version (1.6.dev0)
+------------------------------
 
 Enhancements
 ~~~~~~~~~~~~

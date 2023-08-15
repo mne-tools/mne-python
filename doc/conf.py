@@ -807,7 +807,7 @@ html_theme_options = {
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
         # TODO: Revert before merge
-        "json_url": "https://github.com/larsoner/mne-python/raw/versions/doc/_static/versions.json",
+        "json_url": "https://mne.tools/versions_temp.json",
         "version_match": switcher_version_match,
     },
 }
