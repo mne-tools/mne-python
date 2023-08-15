@@ -2628,8 +2628,6 @@ class Brain:
         import nibabel as nib
 
         # load anatomical segmentation image
-        if not aseg.endswith("aseg"):
-            raise RuntimeError(f'`aseg` file path must end with "aseg", got {aseg}')
         aseg = str(
             _check_fname(
                 op.join(
