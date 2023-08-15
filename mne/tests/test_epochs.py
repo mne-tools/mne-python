@@ -1477,7 +1477,11 @@ def test_epochs_io_preload(tmp_path, preload):
 
 @pytest.fixture(scope="session")
 def epochs_factory():
-    """Function to create fake Epochs object."""  # noqa: D401 (imperative mood)
+    """Function to create fake Epochs object.
+
+    Metadata and concat address gh-5102, gh-7897.
+
+    """  # noqa: D401 (imperative mood)
 
     def factory(n_epochs, metadata=False, concat=False):
         if metadata:
@@ -1536,8 +1540,12 @@ def epochs_to_split(request, epochs_factory):
 
 
 @pytest.mark.parametrize("preload", [True, False], ids=["preload", "no_preload"])
-def test_split_saving(tmp_path, epochs_to_split, preload):
-    """Test saving split epochs."""
+def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
+    """Test saving split epochs and loading them back.
+
+    In particular, check events after loading splits to test against gh-5102.
+
+    """
     epochs, split_size, n_files = epochs_to_split
     epochs_data = epochs.get_data()
     fname = tmp_path / "test-epo.fif"
