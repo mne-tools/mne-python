@@ -1521,6 +1521,13 @@ def epochs_factory():
         ("1.5MB", 8, True, False, 6),
         ("1.5MB", 8, False, True, 6),
         ("1.5MB", 8, False, False, 6),
+
+        ("1.5MB", 11, True, True, 8),
+        ("1.5MB", 11, True, False, 8),
+        ("1.5MB", 11, False, True, 8),
+        ("1.5MB", 11, False, False, 7),
+        ("1.5MB", 12, False, False, 8),
+
         ("3MB", 18, True, True, 3),
         ("3MB", 18, True, False, 3),
         ("3MB", 18, False, True, 3),
