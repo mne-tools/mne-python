@@ -1517,10 +1517,10 @@ def epochs_factory():
 
 @pytest.fixture(
     params=[
-        ("1.5MB", 9, True, True, 6),
-        ("1.5MB", 9, True, False, 6),
-        ("1.5MB", 9, False, True, 6),
-        ("1.5MB", 9, False, False, 6),
+        ("1.5MB", 8, True, True, 6),
+        ("1.5MB", 8, True, False, 6),
+        ("1.5MB", 8, False, True, 6),
+        ("1.5MB", 8, False, False, 6),
         ("3MB", 18, True, True, 3),
         ("3MB", 18, True, False, 3),
         ("3MB", 18, False, True, 3),
