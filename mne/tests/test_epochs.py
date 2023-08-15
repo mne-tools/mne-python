@@ -1626,18 +1626,36 @@ def test_saved_fname_no_splitting(
     assert not split_1_fpath.is_file()
 
 
-@pytest.mark.parametrize("split_naming", ["neuromag", "bids"])
+@pytest.mark.parametrize(
+    "epochs_to_split", [("3MB", 18, False, False, 3)], indirect=True
+)
+@pytest.mark.parametrize(
+    "split_naming, dst_fname, existing_fname",
+    [
+        ("neuromag", "test-epo.fif", "test-epo.fif"),
+        pytest.param(
+            "neuromag",
+            "test-epo.fif",
+            "test-epo-1.fif",
+            marks=pytest.mark.xfail(reason="bug")
+        ),
+        ("bids", "test_epo.fif", "test_epo.fif"),
+        ("bids", "test_epo.fif", "test_split-01_epo.fif"),
+        ("bids", "test_epo.fif", "test_split-02_epo.fif"),
+    ]
+)
 def test_saving_fails_with_not_permitted_overwrite(
-    tmp_path, epochs_factory, split_naming
+    tmp_path, epochs_to_split, split_naming, dst_fname, existing_fname
 ):
     """Check exception is raised when overwriting without explicit flag."""
-    dst_fpath = tmp_path / "test-epo.fif"
-    epochs = epochs_factory(n_epochs=5)
+    dst_fpath = tmp_path / dst_fname
+    epochs, split_size, _ = epochs_to_split
+    save_kwargs = {"split_naming": split_naming, "split_size": split_size}
 
-    epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+    (tmp_path / existing_fname).touch()
 
     with pytest.raises(FileExistsError, match="Destination file"):
-        epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+        epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
 
 @pytest.mark.slowtest
