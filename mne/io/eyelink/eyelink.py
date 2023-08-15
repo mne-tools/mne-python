@@ -60,13 +60,13 @@ EYELINK_COLS = {
 @fill_doc
 def read_raw_eyelink(
     fname,
-    preload=False,
-    verbose=None,
+    *,
     create_annotations=True,
     apply_offsets=False,
     find_overlaps=False,
     overlap_threshold=0.05,
-    gap_description=None,
+    preload=False,
+    verbose=None,
 ):
     """Reader for an Eyelink .asc file.
 
@@ -74,8 +74,6 @@ def read_raw_eyelink(
     ----------
     fname : path-like
         Path to the eyelink file (.asc).
-    %(preload)s
-    %(verbose)s
     create_annotations : bool | list (default True)
         Whether to create mne.Annotations from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
@@ -100,6 +98,8 @@ def read_raw_eyelink(
         the left and right eyes are separated by less than 50 ms, and the blink stop
         times of the left and right eyes are separated by less than 50 ms, then the
         blink will be merged into a single :class:`mne.Annotations`.
+    %(preload)s
+    %(verbose)s
 
     Returns
     -------
