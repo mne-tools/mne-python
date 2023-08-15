@@ -590,20 +590,20 @@ class RawEyelink(BaseRaw):
         for key, df in self.dataframes.items():
             if key in ["samples", "DINS"]:
                 # convert missing position values to NaN
-                self._set_missing_values(df)
+                self._set_missing_values(df, df.columns[1:])
                 _set_pandas_dtype(df, df.columns, float, verbose="warning")
             elif key in ["blinks", "fixations", "saccades"]:
+                self._set_missing_values(df, df.columns[1:])
                 _set_pandas_dtype(df, df.columns[1:], float, verbose="warning")
             elif key == "messages":
                 _set_pandas_dtype(df, ["time"], float, verbose="warning")  # timestamp
 
-    def _set_missing_values(self, df):
+    def _set_missing_values(self, df, columns):
         """Set missing values to NaN. operates in-place."""
         missing_vals = (".", "MISSING_DATA")
-        for col in df.columns:
-            if col.startswith(("xpos", "ypos")):
-                # we explicitly use numpy instead of pd.replace because it is faster
-                df[col] = np.where(df[col].isin(missing_vals), np.nan, df[col])
+        for col in columns:
+            # we explicitly use numpy instead of pd.replace because it is faster
+            df[col] = np.where(df[col].isin(missing_vals), np.nan, df[col])
 
     def _create_info(self, ch_names, sfreq):
         """Create info object for RawEyelink."""

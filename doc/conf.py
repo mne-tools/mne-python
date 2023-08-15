@@ -1300,6 +1300,10 @@ def reset_warnings(gallery_conf, fname):
         "ignore",
         message="Matplotlib is currently using agg, which is a non-GUI backend.*",
     )
+    warnings.filterwarnings(
+        "ignore",
+        message=".*is non-interactive, and thus cannot.*",
+    )
     # seaborn
     warnings.filterwarnings(
         "ignore",
