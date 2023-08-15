@@ -1604,9 +1604,9 @@ def test_saved_fname_no_splitting(tmp_path, epochs_to_split):
     """Test saved fname doesn't get split suffix when splitting not needed."""
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
-    epochs, _, n_files = epochs_to_split
+    epochs, _, _ = epochs_to_split
     split_fname = tmp_path / "test_epo.fif"
-    split_fname_bids_part1 = tmp_path / f"test_split-{n_files + 1:02d}_epo.fif"
+    split_fname_bids_part1 = tmp_path / "test_split-1_epo.fif"
 
     epochs.save(split_fname, split_naming="bids", verbose=True)
 
