@@ -1644,10 +1644,13 @@ def test_saved_fname_no_splitting(
         ("bids", "test_epo.fif", "test_split-02_epo.fif"),
     ]
 )
-def test_saving_fails_with_not_permitted_overwrite(
+def test_splits_overwrite(
     tmp_path, epochs_to_split, split_naming, dst_fname, existing_fname
 ):
-    """Check exception is raised when overwriting without explicit flag."""
+    """Check exception is raised when overwriting without explicit flag.
+
+    Check a case when overwrite occurs because of a split.
+    """
     dst_fpath = tmp_path / dst_fname
     epochs, split_size, _ = epochs_to_split
     save_kwargs = {"split_naming": split_naming, "split_size": split_size}
