@@ -8,6 +8,9 @@ import os.path as op
 
 from setuptools import setup
 
+if "SETUPTOOLS_SCM_PRETEND_VERSION" not in os.environ:
+    os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = "1.5.0"
+
 
 def parse_requirements_file(fname):
     requirements = list()
