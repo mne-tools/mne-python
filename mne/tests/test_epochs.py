@@ -1608,7 +1608,7 @@ def test_split_naming(
     ],
 )
 def test_saved_fname_no_splitting(
-        tmp_path, epochs_factory, dst_fname, split_naming, split_1_fname
+    tmp_path, epochs_factory, dst_fname, split_naming, split_1_fname
 ):
     """Test saved fname when splitting not needed.
 
