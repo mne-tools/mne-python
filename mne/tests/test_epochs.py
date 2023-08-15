@@ -1600,15 +1600,27 @@ def test_split_naming(
     assert not (tmp_path / split_fname_fn(n_files)).is_file()
 
 
-def test_saved_fname_no_splitting(tmp_path, epochs_factory):
-    """Test saved fname doesn't get split suffix when splitting not needed."""
-    # Check that if BIDS is used and no split is needed it defaults to
-    # simple writing without _split- entity.
-    epochs = epochs_factory(n_epochs=9)
-    dst_fpath = tmp_path / "test_epo.fif"
-    split_1_fpath = tmp_path / "test_split-1_epo.fif"
+@pytest.mark.parametrize(
+    "dst_fname, split_naming, split_1_fname",
+    [
+        ("test_epo.fif", "neuromag", "test_epo-1.fif"),
+        ("test_epo.fif", "bids", "test_split-01_epo.fif"),
+    ],
+)
+def test_saved_fname_no_splitting(
+        tmp_path, epochs_factory, dst_fname, split_naming, split_1_fname
+):
+    """Test saved fname when splitting not needed.
 
-    epochs.save(dst_fpath, split_naming="bids", verbose=True)
+    - Check "zero-th split" doesn't get the split suffix
+    - Check "first split" isn't produced
+
+    """
+    epochs = epochs_factory(n_epochs=9)
+    dst_fpath = tmp_path / dst_fname
+    split_1_fpath = tmp_path / split_1_fname
+
+    epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
 
     assert dst_fpath.is_file()
     assert not split_1_fpath.is_file()
