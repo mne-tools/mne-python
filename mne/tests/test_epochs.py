@@ -1487,11 +1487,10 @@ def epochs_factory():
         if metadata:
             pytest.importorskip("pandas")
         # See gh-5102
-        fs = 1000.0
+        n_ch, fs = 100, 1000.0
         n_times = int(round(fs * (n_epochs + 1)))
-        raw = mne.io.RawArray(
-            np.random.RandomState(0).randn(100, n_times), mne.create_info(100, 1000.0)
-        )
+        raw_data = np.random.RandomState(0).randn(n_ch, n_times)
+        raw = mne.io.RawArray(raw_data , mne.create_info(n_ch, fs))
         events = mne.make_fixed_length_events(raw, 1)
         epochs = mne.Epochs(raw, events)
         if metadata:
