@@ -1605,13 +1605,13 @@ def test_saved_fname_no_splitting(tmp_path, epochs_factory):
     # Check that if BIDS is used and no split is needed it defaults to
     # simple writing without _split- entity.
     epochs = epochs_factory(n_epochs=9)
-    split_fname = tmp_path / "test_epo.fif"
-    split_fname_bids_part1 = tmp_path / "test_split-1_epo.fif"
+    dst_fpath = tmp_path / "test_epo.fif"
+    split_1_fpath = tmp_path / "test_split-1_epo.fif"
 
-    epochs.save(split_fname, split_naming="bids", verbose=True)
+    epochs.save(dst_fpath, split_naming="bids", verbose=True)
 
-    assert split_fname.is_file()
-    assert not split_fname_bids_part1.is_file()
+    assert dst_fpath.is_file()
+    assert not split_1_fpath.is_file()
 
 
 @pytest.mark.parametrize("split_naming", ["neuromag", "bids"])
