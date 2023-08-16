@@ -157,6 +157,33 @@ class CameraMove(UIEvent):
     focalpoint: tuple = None
 
 
+@dataclass
+@fill_doc
+class VertexSelect(UIEvent):
+    """Indicates that the user has selected a vertex.
+
+    Parameters
+    ----------
+    hemi : str
+        The hemisphere the vertex was selected on.
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``
+    vertex : int
+        The vertex number (in the high resolution mesh) that was selected.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    hemi : str
+        The hemisphere the vertex was selected on.
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``
+    vertex_id : int
+        The vertex number (in the high resolution mesh) that was selected.
+    """
+
+    hemi: str
+    vertex_id: int
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 

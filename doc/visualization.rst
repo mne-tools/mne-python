@@ -110,3 +110,6 @@ UI Events
    UIEvent
    FigureClosing
    TimeChange
+   PlaybackSpeed
+   ColorbarRange
+   VertexSelect

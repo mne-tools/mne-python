@@ -911,23 +911,30 @@ class Brain:
         )
 
     def _configure_dock_colormap_widget(self, name):
+        fmin, fmax, fscale, fscale_power = _get_range(self)
+        rng = [fmin * fscale, fmax * fscale]
+        self._data["fscale"] = fscale
+
         layout = self._renderer._dock_add_group_box(name)
+        text = "min / mid / max"
+        if fscale_power != 0:
+            text += f" (×1e{fscale_power:d})"
         self._renderer._dock_add_label(
-            value="min / mid / max",
+            value=text,
             align=True,
             layout=layout,
         )
 
         def update_single_lut_value(value, key):
-            self.update_lut(**{key: value})
+            # Called by the sliders and spin boxes.
+            self.update_lut(**{key: value / self._data["fscale"]})
 
         keys = ("fmin", "fmid", "fmax")
         for key in keys:
             hlayout = self._renderer._dock_add_layout(vertical=False)
-            rng = _get_range(self)
             self.widgets[key] = self._renderer._dock_add_slider(
                 name=None,
-                value=self._data[key],
+                value=self._data[key] * self._data["fscale"],
                 rng=rng,
                 callback=partial(update_single_lut_value, key=key),
                 double=True,
@@ -935,7 +942,7 @@ class Brain:
             )
             self.widgets[f"entry_{key}"] = self._renderer._dock_add_spin_box(
                 name=None,
-                value=self._data[key],
+                value=self._data[key] * self._data["fscale"],
                 callback=partial(update_single_lut_value, key=key),
                 rng=rng,
                 layout=hlayout,
@@ -1154,12 +1161,10 @@ class Brain:
             ind = np.unravel_index(
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
-            if hemi == "vol":
-                mesh = hemi_data["grid"]
-            else:
-                mesh = self._layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
-            self._add_vertex_glyph(hemi, mesh, vertex_id, update=False)
+            ui_events.publish(
+                self, ui_events.VertexSelect(hemi=hemi, vertex_id=vertex_id)
+            )
 
     def _configure_picking(self):
         # get data for each hemi
@@ -1186,6 +1191,7 @@ class Brain:
             self._on_button_release,
             self._on_pick,
         )
+        ui_events.subscribe(self, "vertex_select", self._on_vertex_select)
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
@@ -1425,14 +1431,10 @@ class Brain:
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-        if self.traces_mode == "label":
-            self._add_label_glyph(hemi, mesh, vertex_id)
-        else:
-            self._add_vertex_glyph(hemi, mesh, vertex_id)
+        ui_events.publish(self, ui_events.VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
-        print(event)
         if event.time == self._current_time:
             return
         time_idx = self._to_time_index(event.time)
@@ -1446,7 +1448,6 @@ class Brain:
 
     def _on_playback_speed(self, event):
         """Respond to the playback_speed UI event."""
-        print(event)
         if event.speed == self.playback_speed:
             return
         self.playback_speed = event.speed
@@ -1456,7 +1457,6 @@ class Brain:
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
-        print(event)
         lims = {key: getattr(event, key) for key in ("fmin", "fmid", "fmax", "alpha")}
         # Check if limits have changed at all.
         if all(val is None or val == self._data[key] for key, val in lims.items()):
@@ -1466,11 +1466,30 @@ class Brain:
             for key, val in lims.items():
                 if val is not None:
                     if key in self.widgets:
-                        self.widgets[key].set_value(val)
-                    if "entry_" + key in self.widgets:
-                        self.widgets["entry_" + key].set_value(val)
+                        self.widgets[key].set_value(val * self._data["fscale"])
+                    entry_key = "entry_" + key
+                    if entry_key in self.widgets:
+                        self.widgets[entry_key].set_value(val * self._data["fscale"])
         # Update the render.
         self._update_colormap_range(**lims)
+
+    def _on_vertex_select(self, event):
+        """Respond to vertex_select UI event."""
+        print(event)
+        if event.hemi == "vol":
+            try:
+                mesh = self._data[event.hemi]["grid"]
+            except KeyError:
+                return
+        else:
+            try:
+                mesh = self._layered_meshes[event.hemi]._polydata
+            except KeyError:
+                return
+        if self.traces_mode == "label":
+            self._add_label_glyph(event.hemi, mesh, event.vertex_id)
+        else:
+            self._add_vertex_glyph(event.hemi, mesh, event.vertex_id)
 
     def _add_label_glyph(self, hemi, mesh, vertex_id):
         if hemi == "vol":
@@ -4212,8 +4231,24 @@ def _update_monotonic(lims, fmin, fmid, fmax):
 
 
 def _get_range(brain):
+    """Get the data limits.
+
+    Since they may be very small (1E-10 and such), we apply a scaling factor
+    such that the data range lies somewhere between 0.01 and 100. This makes
+    for more usable sliders. When setting a value on the slider, the value is
+    multiplied by the scaling factor and when getting a value, this value
+    should be divided by the scaling factor.
+    """
     val = np.abs(np.concatenate(list(brain._current_act_data.values())))
-    return [np.min(val), np.max(val)]
+    fmin, fmax = np.min(val), np.max(val)
+    if 1e-02 <= fmax <= 1e02:
+        fscale_power = 0
+    else:
+        fscale_power = int(np.log10(fmax))
+        if fscale_power < 0:
+            fscale_power -= 1
+    fscale = 10**-fscale_power
+    return fmin, fmax, fscale, fscale_power
 
 
 class _FakeIren:

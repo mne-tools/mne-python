@@ -1679,9 +1679,10 @@ fnirs : str | list | bool | None
 docdict[
     "focalpoint"
 ] = """
-focalpoint : tuple, shape (3,) | None
+focalpoint : tuple, shape (3,) | str | None
     The focal point of the camera rendering the view: (x, y, z) in
-    plot units (either m or mm).
+    plot units (either m or mm). When ``"auto"``, it is set to the center of
+    mass of the visible bounds.
 """
 
 docdict[
