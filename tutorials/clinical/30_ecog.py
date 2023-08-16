@@ -20,8 +20,8 @@ For a complementary example that involves sEEG data, channel locations in MNI
 space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 
 Please note that this tutorial requires 3D plotting dependencies (see
-:ref:`manual-install`) as well as :mod:`mne_bids:mne_bids` which can be
-installed using ``pip``.
+:ref:`manual-install`) as well as ``mne_bids`` which can be installed using
+``pip``.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
@@ -52,7 +52,7 @@ subjects_dir = sample_path / "subjects"
 # Load in data and perform basic preprocessing
 # --------------------------------------------
 #
-# Let's load some ECoG electrode data with :mod:`mne_bids:mne_bids`.
+# Let's load some ECoG electrode data with `MNE-BIDS`_.
 #
 # .. note::
 #     Downsampling is just to save execution time in this example, you should

@@ -49,7 +49,7 @@
         "url": "https://mne.tools/0.21/"
     },
     {
-        "name": "older...",
+        "name": "≤ 0.20 ...",
         "version": "0.20",
         "url": "https://mne.tools/dev/old_versions/"
     }
