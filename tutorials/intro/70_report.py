@@ -471,7 +471,8 @@ for angle in rotation_angles:
     captions.append(f"Rotation angle: {round(angle, 1)}°")
 
 # can also be a MNEQtBrowser instance
-figs.append(raw.plot())
+with mne.viz.use_browser_backend("qt"):
+    figs.append(raw.plot())
 captions.append("... plus a raw data plot")
 
 report = mne.Report(title="Multiple figures example")
