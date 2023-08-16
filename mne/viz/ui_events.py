@@ -298,10 +298,8 @@ def disable_ui_events(fig):
     fig : matplotlib.figure.Figure | Figure3D
         The figure whose UI event generation should be temporarily disabled.
     """
-    print("disabling events for", fig)
     _disabled_event_channels.add(fig)
     try:
         yield
     finally:
         _disabled_event_channels.remove(fig)
-        print("enabling events for", fig)
