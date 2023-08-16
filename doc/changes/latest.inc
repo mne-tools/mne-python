@@ -23,7 +23,7 @@ Current (1.6.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- None yet
+- Improve tests for saving splits with `Epochs` (:gh:`11884` by `Dmitrii Altukhov`_) 
 
 Bugs
 ~~~~
