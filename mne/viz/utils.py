@@ -145,9 +145,19 @@ def plt_show(show=True, fig=None, **kwargs):
 
     if hasattr(fig, "mne") and hasattr(fig.mne, "backend"):
         backend = fig.mne.backend
+        # TODO: This is a hack to deal with the fact that the
+        # with plt.ion():
+        #     BACKEND = get_backend()
+        # an the top of _mpl_figure detects QtAgg during testing even though
+        # we've set the backend to Agg.
+        if backend != "agg":
+            gotten_backend = get_backend()
+            if gotten_backend == "agg":
+                backend = "agg"
     else:
         backend = get_backend()
     if show and backend != "agg":
+        logger.debug(f"Showing plot for backend {repr(backend)}")
         (fig or plt).show(**kwargs)
 
 

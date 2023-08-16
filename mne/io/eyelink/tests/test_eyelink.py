@@ -209,6 +209,8 @@ def _simulate_eye_tracking_data(in_file, out_file):
                     tokens[4:4] = ["100", "20", "45", "45", "127.0"]  # vel, res, DIN
                     tokens.extend(["1497.0", "5189.0", "512.5", "............."])
                 elif event_type in ("EFIX", "ESACC"):
+                    if event_type == "ESACC":
+                        tokens[5:7] = [".", "."]  # pretend start pos is unknown
                     tokens.extend(["45", "45"])  # resolution
                 elif event_type == "SAMPLES":
                     tokens[1] = "PUPIL"  # simulate raw coordinate data

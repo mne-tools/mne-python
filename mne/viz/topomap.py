@@ -2062,9 +2062,7 @@ def plot_evoked_topomap(
     When ``time=="interactive"``, the figure will publish and subscribe to the
     following events:
 
-    .. currentmodule:: mne.viz.ui_events
-
-    * :class:`TimeChange` whenever a new time is selected.
+    * :class:`~mne.viz.ui_events.TimeChange` whenever a new time is selected.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec

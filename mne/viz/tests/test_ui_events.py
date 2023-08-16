@@ -24,6 +24,13 @@ def event_channel_links():
     return ui_events._event_channel_links
 
 
+@pytest.fixture
+def disabled_event_channels():
+    """Fixture that makes sure each test starts with a fresh disabled channels set."""
+    ui_events._disabled_event_channels.clear()
+    return ui_events._disabled_event_channels
+
+
 @testing.requires_testing_data
 def test_get_event_channel(event_channels):
     """Test creating and obtaining a figure's UI event channel."""
@@ -243,3 +250,22 @@ def test_unlink(event_channel_links):
     # Fig2 is involved in all links, unlinking it should clear them all.
     ui_events.unlink(fig2)
     assert len(event_channel_links) == 0
+
+
+def test_disable_ui_events(event_channels, disabled_event_channels):
+    """Test disable_ui_events context manager."""
+    global callback_called
+    callback_called = False
+
+    def callback(event):
+        """Respond to time change event."""
+        global callback_called
+        callback_called = True
+
+    fig = plt.figure()
+    ui_events.subscribe(fig, "time_change", callback)
+    with ui_events.disable_ui_events(fig):
+        ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    assert not callback_called
+    ui_events.publish(fig, ui_events.TimeChange(time=10.2))
+    assert callback_called

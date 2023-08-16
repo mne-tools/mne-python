@@ -1,5 +1,5 @@
 """
-.. _ex-ui-events:
+.. _tut-ui-events:
 
 ======================================
 Using the event system to link figures
@@ -49,7 +49,7 @@ link(fig1, fig2)  # link the event channels
 # can :func:`publish <mne.viz.ui_events.publish>` events on the channel and
 # receive events by :func:`subscribe <mne.viz.ui_events.subscribe>`-ing to the
 # channel. When subscribing to an event on a channel, you specify a callback
-# function is will be called whenever a drawing routine publishes that event on
+# function to be called whenever a drawing routine publishes that event on
 # the event channel.
 #
 # The events are modeled after matplotlib's event system. Each event has a string
@@ -62,7 +62,7 @@ link(fig1, fig2)  # link the event channels
 # to it.
 #
 # Below, we create a custom plot and then make it publish and subscribe to
-# :class:`TimeChange <mne.viz.ui_events.TimeChange>` events so it can work
+# :class:`~mne.viz.ui_events.TimeChange` events so it can work
 # together with the topomap plots we created earlier.
 fig3, ax = plt.subplots()
 ax.plot(aud_left.times, aud_left.pick("mag").data.max(axis=0), label="Left")
@@ -95,6 +95,6 @@ plt.connect("motion_notify_event", on_motion_notify)
 subscribe(fig3, "time_change", on_time_change)
 
 # Link the new figure with the topomap plots, so that the TimeChange events are
-# send to all of them.
+# sent to all of them.
 link(fig3, fig1)
 link(fig3, fig2)

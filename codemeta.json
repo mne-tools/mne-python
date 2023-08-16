@@ -5,11 +5,11 @@
     "codeRepository": "git+https://github.com/mne-tools/mne-python.git",
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
-    "dateModified": "2023-05-10",
-    "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v1.4.0.zip",
+    "dateModified": "2023-08-15",
+    "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v1.5.0.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
     "name": "MNE-Python",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "MNE-Python is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data. It provides methods for data input/output, preprocessing, visualization, source estimation, time-frequency analysis, connectivity analysis, machine learning, and statistics.",
     "applicationCategory": "Neuroscience",
     "developmentStatus": "active",
@@ -152,15 +152,15 @@
         },
         {
            "@type":"Person",
-           "email":"mailsik@gmail.com",
-           "givenName":"Joan",
-           "familyName": "Massich"
-        },
-        {
-           "@type":"Person",
            "email":"aprockhill206@gmail.com",
            "givenName":"Alex",
            "familyName": "Rockhill"
+        },
+        {
+           "@type":"Person",
+           "email":"mailsik@gmail.com",
+           "givenName":"Joan",
+           "familyName": "Massich"
         },
         {
            "@type":"Person",
@@ -185,6 +185,12 @@
            "email":"andrew.r.dykstra@gmail.com",
            "givenName":"Andrew",
            "familyName": "Dykstra"
+        },
+        {
+           "@type":"Person",
+           "email":"mathieu.scheltienne@gmail.com",
+           "givenName":"Mathieu",
+           "familyName": "Scheltienne"
         },
         {
            "@type":"Person",
@@ -215,12 +221,6 @@
            "email":"mmagnuski@swps.edu.pl",
            "givenName":"Mikołaj",
            "familyName": "Magnuski"
-        },
-        {
-           "@type":"Person",
-           "email":"mathieu.scheltienne@gmail.com",
-           "givenName":"Mathieu",
-           "familyName": "Scheltienne"
         },
         {
            "@type":"Person",
@@ -383,6 +383,12 @@
            "email":"deep@introspection.eu",
            "givenName":"Guillaume",
            "familyName": "Dumas"
+        },
+        {
+           "@type":"Person",
+           "email":"",
+           "givenName":"Scott",
+           "familyName": "Huberty"
         },
         {
            "@type":"Person",
@@ -602,9 +608,9 @@
         },
         {
            "@type":"Person",
-           "email":"",
-           "givenName":"Scott",
-           "familyName": "Huberty"
+           "email":"simon.kern@online.de",
+           "givenName":"Simon",
+           "familyName": "Kern"
         },
         {
            "@type":"Person",
@@ -674,9 +680,9 @@
         },
         {
            "@type":"Person",
-           "email":"simon.kern@online.de",
-           "givenName":"Simon",
-           "familyName": "Kern"
+           "email":"agramfort@fb.com",
+           "givenName":"Alexandre",
+           "familyName": "Gramfort"
         },
         {
            "@type":"Person",
@@ -759,12 +765,6 @@
         {
            "@type":"Person",
            "email":"",
-           "givenName":"",
-           "familyName": "dependabot[bot]"
-        },
-        {
-           "@type":"Person",
-           "email":"",
            "givenName":"Andrew",
            "familyName": "Quinn"
         },
@@ -839,6 +839,12 @@
            "email":"stoutjd@nih.gov",
            "givenName":"Jeff",
            "familyName": "Stout"
+        },
+        {
+           "@type":"Person",
+           "email":"",
+           "givenName":"Joshua",
+           "familyName": "Calder-Travis"
         },
         {
            "@type":"Person",
@@ -932,12 +938,6 @@
         },
         {
            "@type":"Person",
-           "email":"agramfort@fb.com",
-           "givenName":"Alexandre",
-           "familyName": "Gramfort"
-        },
-        {
-           "@type":"Person",
            "email":"a.pascarella@iac.cnr.it",
            "givenName":"Annalisa",
            "familyName": "Pascarella"
@@ -968,6 +968,12 @@
         },
         {
            "@type":"Person",
+           "email":"dm.altukhov@ya.ru",
+           "givenName":"Dmitrii",
+           "familyName": "Altukhov"
+        },
+        {
+           "@type":"Person",
            "email":"raymon92@gmail.com",
            "givenName":"Dominik",
            "familyName": "Krzemiński"
@@ -989,6 +995,24 @@
            "email":"",
            "givenName":"Ezequiel",
            "familyName": "Mikulan"
+        },
+        {
+           "@type":"Person",
+           "email":"",
+           "givenName":"Gennadiy",
+           "familyName": "Belonosov"
+        },
+        {
+           "@type":"Person",
+           "email":"g.o'neill@ucl.ac.uk",
+           "givenName":"George",
+           "familyName": "O'Neill"
+        },
+        {
+           "@type":"Person",
+           "email":"Woessner.jacob@gmail.com",
+           "givenName":"Jacob",
+           "familyName": "Woessner"
         },
         {
            "@type":"Person",
@@ -1220,6 +1244,12 @@
         },
         {
            "@type":"Person",
+           "email":"Jakdaxter31@gmail.com",
+           "givenName":"Aaron",
+           "familyName": "Earle-Richardson"
+        },
+        {
+           "@type":"Person",
            "email":"abram.hindle@softwareprocess.es",
            "givenName":"Abram",
            "familyName": "Hindle"
@@ -1352,6 +1382,12 @@
         },
         {
            "@type":"Person",
+           "email":"xiezhibin.0.0.superman@gmail.com",
+           "givenName":"Daniel",
+           "familyName": "Tse"
+        },
+        {
+           "@type":"Person",
            "email":"darin.sleiter@gmail.com",
            "givenName":"Darin Erat",
            "familyName": "Sleiter"
@@ -1388,9 +1424,9 @@
         },
         {
            "@type":"Person",
-           "email":"dm.altukhov@ya.ru",
-           "givenName":"Dmitrii",
-           "familyName": "Altukhov"
+           "email":"",
+           "givenName":"Diptyajit",
+           "familyName": "Das"
         },
         {
            "@type":"Person",
@@ -1484,12 +1520,6 @@
         },
         {
            "@type":"Person",
-           "email":"g.o'neill@ucl.ac.uk",
-           "givenName":"George",
-           "familyName": "O'Neill"
-        },
-        {
-           "@type":"Person",
            "email":"george.oneill.90@gmail.com",
            "givenName":"George",
            "familyName": "O'Neill"
@@ -1505,6 +1535,12 @@
            "email":"",
            "givenName":"Hamid",
            "familyName": "Maymandi"
+        },
+        {
+           "@type":"Person",
+           "email":"hamza.abdelhedii@gmail.com",
+           "givenName":"Hamza",
+           "familyName": "Abdelhedi"
         },
         {
            "@type":"Person",
@@ -1535,12 +1571,6 @@
            "email":"",
            "givenName":"Ilias",
            "familyName": "Machairas"
-        },
-        {
-           "@type":"Person",
-           "email":"Woessner.jacob@gmail.com",
-           "givenName":"Jacob",
-           "familyName": "Woessner"
         },
         {
            "@type":"Person",
@@ -1838,6 +1868,12 @@
         },
         {
            "@type":"Person",
+           "email":"proloy@umd.edu",
+           "givenName":"Proloy",
+           "familyName": "Das"
+        },
+        {
+           "@type":"Person",
            "email":"glia@dtu.dk",
            "givenName":"Quanliang",
            "familyName": "Li"
@@ -1919,6 +1955,12 @@
            "email":"u1265119@unimail.hud.ac.uk",
            "givenName":"Sam",
            "familyName": "Perry"
+        },
+        {
+           "@type":"Person",
+           "email":"",
+           "givenName":"Samuel",
+           "familyName": "Louviot"
         },
         {
            "@type":"Person",
@@ -2036,6 +2078,12 @@
         },
         {
            "@type":"Person",
+           "email":"thomas.moreau.2010@gmail.com",
+           "givenName":"Thomas",
+           "familyName": "Moreau"
+        },
+        {
+           "@type":"Person",
            "email":"radman.thomas@gmail.com",
            "givenName":"Thomas",
            "familyName": "Radman"
@@ -2075,6 +2123,12 @@
            "email":"xia@xiaokai.me",
            "givenName":"Xiaokai",
            "familyName": "Xia"
+        },
+        {
+           "@type":"Person",
+           "email":"frostime@foxmail.com",
+           "givenName":"Yiping",
+           "familyName": "Zuo"
         },
         {
            "@type":"Person",

@@ -577,6 +577,7 @@ sphinx_gallery_conf = {
             "../tutorials/clinical/",
             "../tutorials/simulation/",
             "../tutorials/sample-datasets/",
+            "../tutorials/visualization/",
             "../tutorials/misc/",
         ]
     ),
@@ -1299,6 +1300,10 @@ def reset_warnings(gallery_conf, fname):
         "ignore",
         message="Matplotlib is currently using agg, which is a non-GUI backend.*",
     )
+    warnings.filterwarnings(
+        "ignore",
+        message=".*is non-interactive, and thus cannot.*",
+    )
     # seaborn
     warnings.filterwarnings(
         "ignore",
@@ -1568,6 +1573,7 @@ sd = "sample-datasets"
 ml = "machine-learning"
 tf = "time-freq"
 si = "simulation"
+vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
@@ -1624,6 +1630,7 @@ custom_redirects = {
     f"{ex}/{co}/mne_inverse_envelope_correlation.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation.html",  # noqa E501
     f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
     f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",  # noqa E501
+    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",  # noqa E501
 }
 
 

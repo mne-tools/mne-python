@@ -162,7 +162,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    with pytest.raises(RuntimeError, match="requires epochs data to be loade"):
+    with pytest.raises(RuntimeError, match="requires epochs data to be load"):
         epochs_eeg.interpolate_bads(**kw)
     epochs_eeg.preload = True
 

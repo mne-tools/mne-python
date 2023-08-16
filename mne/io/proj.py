@@ -26,6 +26,7 @@ from .write import (
     _safe_name_list,
 )
 from ..defaults import _INTERPOLATION_DEFAULT, _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
+from ..fixes import _safe_svd
 from ..utils import (
     logger,
     verbose,
@@ -772,8 +773,6 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
     warning will be raised next time projectors are constructed with
     the given inputs. If inplace=True, no meaningful data are returned.
     """
-    from scipy import linalg
-
     nchan = len(ch_names)
     if nchan == 0:
         raise ValueError("No channel names specified")
@@ -871,7 +870,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True, inplace=False
         return default_return
 
     # Reorthogonalize the vectors
-    U, S, _ = linalg.svd(vecs[:, :nvec], full_matrices=False)
+    U, S, _ = _safe_svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)

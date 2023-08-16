@@ -5,6 +5,7 @@
 import numpy as np
 
 from .epochs import Epochs
+from .fixes import _safe_svd
 from .utils import check_fname, logger, verbose, _check_option, _check_fname
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -89,8 +90,6 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
 def _compute_proj(
     data, info, n_grad, n_mag, n_eeg, desc_prefix, meg="separate", verbose=None
 ):
-    from scipy import linalg
-
     grad_ind = pick_types(info, meg="grad", ref_meg=False, exclude="bads")
     mag_ind = pick_types(info, meg="mag", ref_meg=False, exclude="bads")
     eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude="bads")
@@ -138,7 +137,7 @@ def _compute_proj(
             continue
         data_ind = data[ind][:, ind]
         # data is the covariance matrix: U * S**2 * Ut
-        U, Sexp2, _ = linalg.svd(data_ind, full_matrices=False)
+        U, Sexp2, _ = _safe_svd(data_ind, full_matrices=False)
         U = U[:, :n]
         exp_var = Sexp2 / Sexp2.sum()
         exp_var = exp_var[:n]
@@ -426,8 +425,6 @@ def sensitivity_map(
     When mode is ``'fixed'`` or ``'free'``, the sensitivity map is normalized
     by its maximum value.
     """
-    from scipy import linalg
-
     # check strings
     _check_option("ch_type", ch_type, ["eeg", "grad", "mag"])
     _check_option(
@@ -487,11 +484,11 @@ def sensitivity_map(
     for k in range(n_locations):
         gg = gain[:, 3 * k : 3 * (k + 1)]
         if mode != "fixed":
-            s = linalg.svd(gg, full_matrices=False, compute_uv=False)
+            s = _safe_svd(gg, full_matrices=False, compute_uv=False)
         if mode == "free":
             sensitivity_map[k] = s[0]
         else:
-            gz = linalg.norm(gg[:, 2])  # the normal component
+            gz = np.linalg.norm(gg[:, 2])  # the normal component
             if mode == "fixed":
                 sensitivity_map[k] = gz
             elif mode == "ratio":
@@ -500,10 +497,10 @@ def sensitivity_map(
                 sensitivity_map[k] = 1.0 - (gz / s[0])
             else:
                 if mode == "angle":
-                    co = linalg.norm(np.dot(gg[:, 2], U))
+                    co = np.linalg.norm(np.dot(gg[:, 2], U))
                     sensitivity_map[k] = co / gz
                 else:
-                    p = linalg.norm(np.dot(proj, gg[:, 2]))
+                    p = np.linalg.norm(np.dot(proj, gg[:, 2]))
                     if mode == "remaining":
                         sensitivity_map[k] = p / gz
                     elif mode == "dampening":
