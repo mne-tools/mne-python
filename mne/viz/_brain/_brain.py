@@ -1437,10 +1437,11 @@ class Brain:
             return
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
-        if hasattr(self, "widgets") and "time" in self.widgets:
-            self.widgets["time"].set_value(time_idx)
-        if "current_time" in self.widgets:
-            self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
+        with ui_events.disable_ui_events(self):
+            if hasattr(self, "widgets") and "time" in self.widgets:
+                self.widgets["time"].set_value(time_idx)
+            if "current_time" in self.widgets:
+                self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
         self.plot_time_line(update=True)
 
     def _on_playback_speed(self, event):
@@ -1450,7 +1451,8 @@ class Brain:
             return
         self.playback_speed = event.speed
         if hasattr(self, "widgets") and "playback_speed" in self.widgets:
-            self.widgets["playback_speed"].set_value(event.speed)
+            with ui_events.disable_ui_events(self):
+                self.widgets["playback_speed"].set_value(event.speed)
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
@@ -1460,12 +1462,13 @@ class Brain:
         if all(val is None or val == self._data[key] for key, val in lims.items()):
             return
         # Update the GUI elements.
-        for key, val in lims.items():
-            if val is not None:
-                if key in self.widgets:
-                    self.widgets[key].set_value(val)
-                if "entry_" + key in self.widgets:
-                    self.widgets["entry_" + key].set_value(val)
+        with ui_events.disable_ui_events(self):
+            for key, val in lims.items():
+                if val is not None:
+                    if key in self.widgets:
+                        self.widgets[key].set_value(val)
+                    if "entry_" + key in self.widgets:
+                        self.widgets["entry_" + key].set_value(val)
         # Update the render.
         self._update_colormap_range(**lims)
 
