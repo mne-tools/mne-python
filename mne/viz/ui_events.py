@@ -9,8 +9,9 @@ stay in-sync.
 
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
+import contextlib
 from dataclasses import dataclass
-from weakref import WeakKeyDictionary
+from weakref import WeakKeyDictionary, WeakSet
 import re
 
 
@@ -24,6 +25,10 @@ _event_channels = WeakKeyDictionary()
 # of these links. Links are bi-directional, so if {fig1: fig2} exists, then so
 # must {fig2: fig1}.
 _event_channel_links = WeakKeyDictionary()
+
+# Event channels that are temporarily disabled by the disable_ui_events context
+# manager.
+_disabled_event_channels = WeakSet()
 
 # Regex pattern used when converting CamelCase to snake_case.
 # Detects all capital letters that are not at the beginning of a word.
@@ -145,6 +150,9 @@ def publish(fig, event):
     event : UIEvent
         Event to publish.
     """
+    if fig in _disabled_event_channels:
+        return
+
     # Compile a list of all event channels that the event should be published
     # on.
     channels = [_get_event_channel(fig)]
@@ -279,3 +287,21 @@ def unlink(fig):
                 del _event_channel_links[linked_fig]
     if fig in _event_channel_links:  # need to check again because of weak refs
         del _event_channel_links[fig]
+
+
+@contextlib.contextmanager
+def disable_ui_events(fig):
+    """Temporarily disable generation of UI events. Use as context manager.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure | Figure3D
+        The figure whose UI event generation should be temporarily disabled.
+    """
+    print("disabling events for", fig)
+    _disabled_event_channels.add(fig)
+    try:
+        yield
+    finally:
+        _disabled_event_channels.remove(fig)
+        print("enabling events for", fig)

@@ -106,6 +106,7 @@ UI Events
    publish
    link
    unlink
+   disable_ui_events
    UIEvent
    FigureClosing
    TimeChange
