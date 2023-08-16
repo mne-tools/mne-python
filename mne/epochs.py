@@ -1287,7 +1287,7 @@ class BaseEpochs(
         n_epochs=20,
         n_channels=20,
         title=None,
-        events=None,
+        events=False,
         event_color=None,
         order=None,
         show=True,
