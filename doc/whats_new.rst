@@ -39,4 +39,4 @@ Changes for each version of MNE-Python are listed below.
    changes/v0.3.rst
    changes/v0.2.rst
    changes/v0.1.rst
-   old_versions.rst
+   old_versions/index.rst
