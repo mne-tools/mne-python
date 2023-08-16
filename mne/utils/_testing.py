@@ -125,51 +125,6 @@ requires_good_network = partial(
 )
 
 
-# %%
-# Deprecated
-def requires_version(library, min_version="0.0"):
-    """Check for a library version."""
-    warn(
-        f"requires_version({repr(library)}, min_version={repr(min_version)}) "
-        "is deprecated and will be removed in 1.6, use pytest.importorskip("
-        f"{repr(library)}, minversion={repr(min_version)}) instead",
-        FutureWarning,
-    )
-    import pytest
-
-    reason = f"Requires {library}"
-    if min_version != "0.0":
-        reason += f" version >= {min_version}"
-    return pytest.mark.skipif(not check_version(library, min_version), reason=reason)
-
-
-def requires_module(function, name, call=None):
-    """Skip a test if package is not available (decorator)."""
-    msg = f"@requires_module({repr(name)}) is deprecated and will be removed " f"in 1.6"
-    if call is None:
-        msg += f" use pytest.importorskip({repr(name)}) instead"
-    else:
-        msg += f" use pytest.mark.skipif instead with the condition:\n\n{call}\n"
-    warn(msg, FutureWarning)
-    return _requires_module(function, name, call=call)
-
-
-_n2ft_call = """
-if 'NEUROMAG2FT_ROOT' not in os.environ:
-    raise ImportError
-"""
-requires_pandas = partial(requires_module, name="pandas")
-requires_pylsl = partial(requires_module, name="pylsl")
-requires_sklearn = partial(requires_module, name="sklearn")
-requires_mne_qt_browser = partial(requires_module, name="mne_qt_browser")
-requires_neuromag2ft = partial(requires_module, name="neuromag2ft", call=_n2ft_call)
-requires_nitime = partial(requires_module, name="nitime")
-requires_h5py = partial(requires_module, name="h5py")
-requires_numpydoc = partial(requires_version, "numpydoc", "1.0")
-
-# %% End deprecated
-
-
 def run_command_if_main():
     """Run a given command if it's __main__."""
     local_vars = inspect.currentframe().f_back.f_locals
