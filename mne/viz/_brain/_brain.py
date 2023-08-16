@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-import contextlib
 from functools import partial
 from io import BytesIO
 import os
@@ -363,7 +362,6 @@ class Brain:
         self._layered_meshes = dict()
         self._actors = dict()
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
-        self._lut_locked = None
         self._cleaned = False
         # default values for silhouette
         self._silhouette = {
@@ -920,6 +918,9 @@ class Brain:
             layout=layout,
         )
 
+        def update_single_lut_value(value, key):
+            self.update_lut(**{key: value})
+
         keys = ("fmin", "fmid", "fmax")
         for key in keys:
             hlayout = self._renderer._dock_add_layout(vertical=False)
@@ -928,20 +929,14 @@ class Brain:
                 name=None,
                 value=self._data[key],
                 rng=rng,
-                callback=lambda val: ui_events.publish(
-                    self,
-                    ui_events.ColormapRange(**{key: val}),
-                ),
+                callback=partial(update_single_lut_value, key=key),
                 double=True,
                 layout=hlayout,
             )
             self.widgets[f"entry_{key}"] = self._renderer._dock_add_spin_box(
                 name=None,
                 value=self._data[key],
-                callback=lambda val: ui_events.publish(
-                    self,
-                    ui_events.ColormapRange(**{key: val}),
-                ),
+                callback=partial(update_single_lut_value, key=key),
                 rng=rng,
                 layout=hlayout,
             )
@@ -966,7 +961,7 @@ class Brain:
         ):
             self.widgets[key] = self._renderer._dock_add_button(
                 name=char,
-                callback=self._update_fscale,
+                callback=partial(self._update_fscale, fscale=val),
                 layout=hlayout,
                 style="toolbutton",
             )
@@ -1437,6 +1432,7 @@ class Brain:
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
+        print(event)
         if event.time == self._current_time:
             return
         time_idx = self._to_time_index(event.time)
@@ -1449,6 +1445,7 @@ class Brain:
 
     def _on_playback_speed(self, event):
         """Respond to the playback_speed UI event."""
+        print(event)
         if event.speed == self.playback_speed:
             return
         self.playback_speed = event.speed
@@ -1457,19 +1454,20 @@ class Brain:
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
-        if (
-            (event.fmin is None or event.fmin == self._data["fmin"])
-            and (event.fmid is None or event.fmid == self._data["fmid"])
-            and (event.fmax is None or event.fmax == self._data["fmax"])
-            and (event.alpha is None or event.alpha == self._data["alpha"])
-        ):
+        print(event)
+        lims = {key: getattr(event, key) for key in ("fmin", "fmid", "fmax", "alpha")}
+        # Check if limits have changed at all.
+        if all(val is None or val == self._data[key] for key, val in lims.items()):
             return
-        for key in ["fmin", "fmid", "fmax", "alpha"]:
-            val = getattr(event, key)
+        # Update the GUI elements.
+        for key, val in lims.items():
             if val is not None:
-                self._data[key] = val
-                if key != "alpha" and key in self.widgets:
+                if key in self.widgets:
                     self.widgets[key].set_value(val)
+                if "entry_" + key in self.widgets:
+                    self.widgets["entry_" + key].set_value(val)
+        # Update the render.
+        self._update_colormap_range(**lims)
 
     def _add_label_glyph(self, hemi, mesh, vertex_id):
         if hemi == "vol":
@@ -3412,15 +3410,6 @@ class Brain:
             )
         return img
 
-    @contextlib.contextmanager
-    def _no_lut_update(self, why):
-        orig = self._lut_locked
-        self._lut_locked = why
-        try:
-            yield
-        finally:
-            self._lut_locked = orig
-
     @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update the range of the color map.
@@ -3445,9 +3434,6 @@ class Brain:
         %(alpha)s
         """
         args = f"{fmin}, {fmid}, {fmax}, {alpha}"
-        if self._lut_locked is not None:
-            logger.debug(f"LUT update postponed with {args}")
-            return
         logger.debug(f"Updating LUT with {args}")
         center = self._data["center"]
         colormap = self._data["colormap"]
@@ -3499,10 +3485,6 @@ class Brain:
                         self._renderer._set_colormap_range(
                             glyph_actor_, ctable, self._scalar_bar, rng
                         )
-        if self.time_viewer:
-            with self._no_lut_update(f"update_lut {args}"):
-                for key in ("fmin", "fmid", "fmax"):
-                    self.callbacks[key](lims[key])
         self._renderer._update()
 
     def set_data_smoothing(self, n_steps):
