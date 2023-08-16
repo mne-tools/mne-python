@@ -1477,11 +1477,10 @@ def test_epochs_io_preload(tmp_path, preload):
 
 @pytest.fixture(scope="session")
 def epochs_factory():
-    """Function to create fake Epochs object.
+    """Create fake Epochs object.
 
     Metadata and concat address gh-5102, gh-7897.
-
-    """  # noqa: D401 (imperative mood)
+    """
 
     def factory(n_epochs, metadata=False, concat=False):
         if metadata:
