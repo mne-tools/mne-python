@@ -741,17 +741,19 @@ def test_add_or_replace(tags):
     # And if we add a duplicate in a different section, it gets a different
     # DOM ID
     old_html = html
+    section = "<div whatever 😀   etc."
+    sec_san = "_div_whatever___etc_"
     r.add_figure(
         fig=fig2,
         title="duplicate",
-        section="foo",
+        section=section,
         replace=True,  # should have no effect
     )
     html = r.html
     assert len(html) == 6
     assert html[:5] == old_html
-    assert ' id="foo" ' in html[5]  # section anchor
-    assert ' id="foo-duplicate" ' in html[5]  # and section-title anchor
+    assert f' id="{sec_san}" ' in html[5]  # section anchor
+    assert f' id="{sec_san}-duplicate" ' in html[5]  # and section-title anchor
 
 
 def test_add_or_replace_section():

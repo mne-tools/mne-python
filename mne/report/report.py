@@ -2084,7 +2084,7 @@ class Report:
         tags : tuple of str
             The tags associated with the added element.
         html_partial : callable
-            The renderer for HTML that renders str, called as::
+            Callable that renders a HTML string, called as::
 
                 html_partial(id_=...)
         replace : bool
