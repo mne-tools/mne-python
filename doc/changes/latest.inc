@@ -23,7 +23,7 @@ Current (1.6.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Added functionality for linking interactive figures together, such that changing one figure will affect another, see :ref:`tut-ui-events` (:gh:`11685` by `Marijn van Vliet`_)
+- Added functionality for linking interactive figures together, such that changing one figure will affect another, see :ref:`tut-ui-events` and :mod:`mne.viz.ui_events` (:gh:`11685` by `Marijn van Vliet`_)
 
 Bugs
 ~~~~
@@ -31,4 +31,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Added :mod:`mne.viz.ui_events` API for controlling interactive figures (:gh:`11685` by `Marijn van Vliet`_).
+- None yet
