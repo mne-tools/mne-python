@@ -5263,3 +5263,20 @@ def test_empty_error(method, epochs_empty):
         pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
+
+
+def test_epochs_sme():
+    """Test SME computation."""
+    raw, events, _ = _get_data()
+    epochs = Epochs(raw, events)
+    sme = epochs.compute_sme(start=0, stop=0.1)
+    assert sme.shape == (376,)
+
+    with pytest.raises(TypeError, match="int or float"):
+        epochs.compute_sme("0", 0.1)
+    with pytest.raises(TypeError, match="int or float"):
+        epochs.compute_sme(0, "0.1")
+    with pytest.raises(ValueError, match="out of bounds"):
+        epochs.compute_sme(-1.2, 0.3)
+    with pytest.raises(ValueError, match="out of bounds"):
+        epochs.compute_sme(-0.1, 0.8)
