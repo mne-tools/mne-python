@@ -806,8 +806,7 @@ html_theme_options = {
     "secondary_sidebar_items": ["page-toc", "edit-this-page"],
     "analytics": dict(google_analytics_id="G-5TBCPCRB6X"),
     "switcher": {
-        # TODO: Revert before merge
-        "json_url": "https://mne.tools/versions_temp.json",
+        "json_url": "https://mne.tools/dev/_static/versions.json",
         "version_match": switcher_version_match,
     },
 }
