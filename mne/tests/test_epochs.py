@@ -1639,7 +1639,7 @@ def test_saved_fname_no_splitting(
 )
 @pytest.mark.parametrize("dst_fname", ["test-epo.fif", "a_b_c-epo.fif"])
 def test_bids_splits_fail_for_bad_fname_ending(epochs_to_split, dst_fname, tmp_path):
-    """Make sure split_naming=bids is only used with bids endings
+    """Make sure split_naming=bids is only used with bids endings.
 
     Non-bids endings can cause surprising split names, e.g. test-epo.fif
     producing splits _split-01_test-epo.fif.
