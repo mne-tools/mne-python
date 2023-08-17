@@ -16,6 +16,16 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. _changes_1_5_1:
+
+Version 1.5.1 (unreleased)
+--------------------------
+
+Bugs
+~~~~
+- Fix bug with multi-plot 3D rendering where only one plot was updated (:gh:`11896` by `Eric Larson`_)
+
+
 .. _changes_1_5_0:
 
 Version 1.5.0 (2023-08-14)

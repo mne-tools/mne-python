@@ -42,7 +42,6 @@ data_path = sample.data_path()
 subjects_dir = data_path / "subjects"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis-meg-oct-6-fwd.fif"
 fname_inv = data_path / "MEG" / "sample" / "sample_audvis-meg-oct-6-meg-fixed-inv.fif"
-
 fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
 
 # %%
