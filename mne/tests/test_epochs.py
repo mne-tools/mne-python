@@ -1647,7 +1647,7 @@ def test_saved_fname_no_splitting(
         pytest.param(
             "a_b_c-epo.fif",
             marks=pytest.mark.xfail(reason="No check for several bids clauses"),
-        )
+        ),
     ],
 )
 def test_bids_splits_fail_for_bad_fname_ending(epochs_to_split, dst_fname, tmp_path):
