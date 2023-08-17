@@ -139,7 +139,7 @@ def _get_psf_ctf(
 
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
-        if type(verts) is int:
+        if isinstance(verts, int):
             verts = [verts]  # to keep array dimensions
         funcs = resmat[:, verts]
 

@@ -103,7 +103,7 @@ def _get_path(path, key, name):
     # 1. Input
     _validate_type(path, ("path-like", None), path)
     if path is not None:
-        return path
+        return Path(path).expanduser()
     # 2. get_config(key) — unless key is None or "" (special get_config values)
     # 3. get_config('MNE_DATA')
     path = get_config(key or "MNE_DATA", get_config("MNE_DATA"))
@@ -133,7 +133,7 @@ def _get_path(path, key, name):
                 "write permissions, for ex:data_path"
                 "('/home/xyz/me2/')" % (path)
             )
-    return Path(path)
+    return Path(path).expanduser()
 
 
 def _do_path_update(path, update_path, key, name):

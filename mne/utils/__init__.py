@@ -67,7 +67,6 @@ from .check import (
     _import_nibabel,
     _import_pymatreader_funcs,
     _check_head_radius,
-    has_nibabel,
 )
 from .config import (
     set_config,
@@ -129,24 +128,16 @@ from .misc import (
 from .progressbar import ProgressBar
 from ._testing import (
     run_command_if_main,
-    requires_sklearn,
-    requires_version,
     requires_mne,
     requires_good_network,
-    requires_pandas,
-    requires_h5py,
     ArgvSetter,
     SilenceStdout,
     has_freesurfer,
     has_mne_c,
     _TempDir,
     buggy_mkl_svd,
-    requires_numpydoc,
     requires_freesurfer,
-    requires_nitime,
     requires_mne_mark,
-    requires_neuromag2ft,
-    requires_pylsl,
     assert_object_equal,
     assert_and_remove_boundary_annot,
     _raw_annot,
@@ -156,7 +147,6 @@ from ._testing import (
     assert_stcs_equal,
     _click_ch_name,
     requires_openmeeg_mark,
-    requires_mne_qt_browser,
 )
 from .numerics import (
     hashfunc,
@@ -202,6 +192,7 @@ from .mixin import (
     SizeMixin,
     GetEpochsMixin,
     TimeMixin,
+    ExtendedTimeMixin,
     _prepare_read_metadata,
     _prepare_write_metadata,
     _FakeNoPandas,

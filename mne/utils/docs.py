@@ -162,6 +162,13 @@ align : bool
 """
 
 docdict[
+    "allow_2d"
+] = """
+allow_2d : bool
+    If True, allow 2D data as input (i.e. n_samples, n_features).
+"""
+
+docdict[
     "allow_empty_eltc"
 ] = """
 allow_empty : bool | str
@@ -492,8 +499,6 @@ docdict[
 border : float | 'mean'
     Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
     then each extrapolated point has the average value of its neighbours.
-
-    .. versionadded:: 0.20
 """
 
 docdict[
@@ -1107,6 +1112,16 @@ ecog : bool
 """
 
 docdict[
+    "edf_resamp_note"
+] = """
+:class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+Therefore, if mixed sampling frequency signals are requested, all signals
+are upsampled to the highest loaded sampling frequency. In this case, using
+preload=True is recommended, as otherwise, edge artifacts appear when
+slices of the signal are requested.
+"""
+
+docdict[
     "eeg"
 ] = """
 eeg : bool | str | list
@@ -1473,12 +1488,6 @@ extrapolate : str
         the head circle when the sensors are contained within the head circle,
         but it can extend beyond the head when sensors are plotted outside
         the head circle.
-
-    .. versionchanged:: 0.21
-
-       - The default was changed to ``'local'`` for MEG sensors.
-       - ``'local'`` was changed to use a convex hull mask
-       - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
 
 # %%
@@ -1518,8 +1527,6 @@ fig_facecolor : str | tuple
     A matplotlib-compatible color to use for the figure background.
     Defaults to black.
 """
-
-docdict["figure"] = "matplotlib.figure.Figure | MNEFigure | Figure3D | Brain"
 
 docdict[
     "filter_length"
@@ -1672,9 +1679,10 @@ fnirs : str | list | bool | None
 docdict[
     "focalpoint"
 ] = """
-focalpoint : tuple, shape (3,) | None
+focalpoint : tuple, shape (3,) | str | None
     The focal point of the camera rendering the view: (x, y, z) in
-    plot units (either m or mm).
+    plot units (either m or mm). When ``"auto"``, it is set to the center of
+    mass of the visible bounds.
 """
 
 docdict[
@@ -2626,7 +2634,7 @@ n_jobs : int | None
     to the number of CPU cores. Requires the :mod:`joblib` package.
     ``None`` (default) is a marker for 'unset' that will be interpreted
     as ``n_jobs=1`` (sequential execution) unless the call is performed under
-    a :func:`joblib:joblib.parallel_backend` context manager that sets another
+    a :class:`joblib:joblib.parallel_config` context manager that sets another
     value for ``n_jobs``.
 """
 
@@ -4624,6 +4632,15 @@ tstep : scalar
 # U
 
 docdict[
+    "ui_event_name_source"
+] = """
+name : str
+    The name of the event (same as its class name but in snake_case).
+source : matplotlib.figure.Figure | Figure3D
+    The figure that published the event.
+"""
+
+docdict[
     "uint16_codec"
 ] = """
 uint16_codec : str | None
@@ -5048,7 +5065,7 @@ def copy_function_doc_to_method_doc(source):
             -----
             .. versionadded:: 0.13.0
     <BLANKLINE>
-    """
+    """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
         doc = source.__doc__.split("\n")

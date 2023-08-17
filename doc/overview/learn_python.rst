@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _learn-python:
 
 Getting started with Python

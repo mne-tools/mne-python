@@ -27,7 +27,7 @@ from ..utils import (
     check_fname,
     sizeof_fmt,
     GetEpochsMixin,
-    TimeMixin,
+    ExtendedTimeMixin,
     _prepare_read_metadata,
     fill_doc,
     _prepare_write_metadata,
@@ -1133,11 +1133,12 @@ def tfr_multitaper(
 # TFR(s) class
 
 
-class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, ExtendedTimeMixin):
     """Base TFR class."""
 
     def __init__(self):
         self.baseline = None
+        self._decim = 1
 
     @property
     def data(self):
@@ -2530,14 +2531,26 @@ class AverageTFR(_BaseTFR):
               ('zlogratio')
         %(sensors_topomap)s
         %(show_names_topomap)s
+
+            .. versionadded:: 1.2
         %(mask_evoked_topomap)s
+
+            .. versionadded:: 1.2
         %(mask_params_topomap)s
+
+            .. versionadded:: 1.2
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
         %(image_interp_topomap)s
+
+            .. versionadded:: 1.2
         %(extrapolate_topomap)s
+
+            .. versionadded:: 1.2
         %(border_topomap)s
+
+            .. versionadded:: 0.20
         %(res_topomap)s
         %(size_topomap)s
         %(cmap_topomap)s
@@ -2732,6 +2745,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
 
     metadata : pandas.DataFrame, shape (n_events, n_cols) | None
         DataFrame containing pertinent information for each trial
+
     Notes
     -----
     .. versionadded:: 0.13.0
@@ -2796,7 +2810,6 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         self.data = data
         self._set_times(np.array(times, dtype=float))
         self._raw_times = self.times.copy()  # needed for decimate
-        self._decim = 1
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
         self.event_id = event_id

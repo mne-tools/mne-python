@@ -957,7 +957,7 @@ def make_fixed_length_events(
     from .io.base import BaseRaw
 
     _validate_type(raw, BaseRaw, "raw")
-    _validate_type(id, int, "id")
+    _validate_type(id, "int", "id")
     _validate_type(duration, "numeric", "duration")
     _validate_type(overlap, "numeric", "overlap")
     duration, overlap = float(duration), float(overlap)
@@ -1681,7 +1681,7 @@ def count_events(events, ids=None):
         {1: 2, 11: 0}
     """
     counts = np.bincount(events[:, 2])
-    counts = {i: count for i, count in enumerate(counts) if count > 0}
+    counts = {i: int(count) for i, count in enumerate(counts) if count > 0}
     if ids is not None:
-        return {id: counts.get(id, 0) for id in ids}
+        counts = {id_: counts.get(id_, 0) for id_ in ids}
     return counts

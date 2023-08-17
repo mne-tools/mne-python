@@ -1,4 +1,4 @@
-on: [status]
+on: [status]  # yamllint disable-line rule:truthy
 jobs:
   circleci_artifacts_redirector_job:
     if: "${{ startsWith(github.event.context, 'ci/circleci: build_docs') }}"

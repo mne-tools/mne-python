@@ -25,7 +25,6 @@ import pytest
 from mne import pick_types, Annotations
 from mne.annotations import events_from_annotations, read_annotations
 from mne.datasets import testing
-from mne.utils import requires_pandas
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import (
@@ -193,8 +192,53 @@ def test_bdf_crop_save_stim_channel(tmp_path):
 def test_edf_others(fname, stim_channel):
     """Test EDF with various sampling rates and overlapping annotations."""
     _test_raw_reader(
-        read_raw_edf, input_fname=fname, stim_channel=stim_channel, verbose="error"
+        read_raw_edf,
+        input_fname=fname,
+        stim_channel=stim_channel,
+        verbose="error",
+        test_preloading=False,
+        preload=True,  # no preload=False for mixed sfreqs
     )
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize("stim_channel", (None, False, "auto"))
+def test_edf_different_sfreqs(stim_channel):
+    """Test EDF with various sampling rates."""
+    rng = np.random.RandomState(0)
+    # load with and without preloading, should produce the same results
+    raw1 = read_raw_edf(
+        input_fname=edf_reduced,
+        stim_channel=stim_channel,
+        verbose="error",
+        preload=False,
+    )
+    raw2 = read_raw_edf(
+        input_fname=edf_reduced,
+        stim_channel=stim_channel,
+        verbose="error",
+        preload=True,
+    )
+
+    picks = rng.permutation(np.arange(len(raw1.ch_names) - 1))[:10]
+    data1, times1 = raw1[picks, :]
+    data2, times2 = raw2[picks, :]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
+
+    # loading slices should throw a warning as they have different
+    # edge artifacts than when loading the entire file at once
+    with pytest.warns(RuntimeWarning, match="mixed sampling frequencies"):
+        data1, times1 = raw1[picks, :512]
+    data2, times2 = raw2[picks, :512]
+
+    # should NOT throw a warning when loading channels that have all the same
+    # sampling frequency - here, no edge artifacts can appear
+    picks = np.arange(15, 20)  # these channels all have 512 Hz
+    data1, times1 = raw1[picks, :512]
+    data2, times2 = raw2[picks, :512]
+    assert_allclose(data1, data2, err_msg="Data mismatch with preload")
+    assert_allclose(times1, times2)
 
 
 def test_edf_data_broken(tmp_path):
@@ -333,10 +377,10 @@ def test_no_data_channels():
         read_raw_edf(edf_annot_only)
 
 
-@requires_pandas
 @pytest.mark.parametrize("fname", [edf_path, bdf_path])
 def test_to_data_frame(fname):
     """Test EDF/BDF Raw Pandas exporter."""
+    pytest.importorskip("pandas")
     ext = fname.suffix
     if ext == ".edf":
         raw = read_raw_edf(fname, preload=True, verbose="error")

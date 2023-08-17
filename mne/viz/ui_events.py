@@ -3,39 +3,19 @@ Event API for inter-figure communication.
 
 The event API allows figures to communicate with each other, such that a change
 in one figure can trigger a change in another figure. For example, moving the
-time cursor in a Brain plot can update the current time in an evoked plot.
-Another scenario is two drawing routines drawing into the same window, using
-events to stay in-sync.
-
-Event channels and linking them
-===============================
-Each figure has an associated event channel. Drawing routines can publish
-events on the channel and receive any events published by other subscribers.
-When subscribing to an event, a callback function is given that will be called
-whenever a drawing routine publishes that event on the event channel.
-
-As a rule, drawing routines only subscribe and publish on the event channel
-associated with the figure they are drawing. To broadcast events across
-figures, we allow message channels to be "linked". When an event is published
-on a channel, it is also published on all linked channels.
-
-Event objects and their parameters
-==================================
-The events are modeled after matplotlib's event system. Each event has a string
-name (the snake-case version of its class name) and a list of relevant values.
-For example, the "time_change" event should have the new time as a value.
-Values can be any python object. When publishing an event, the publisher
-creates a new instance of the event's class. When subscribing to an event,
-having to dig up the correct class is a bit of a hassle. Following matplotlib's
-example, subscribers use the string name of the event to refer to it.
+time cursor in one plot can update the current time in another plot. Another
+scenario is two drawing routines drawing into the same window, using events to
+stay in-sync.
 
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
-from weakref import WeakKeyDictionary
+import contextlib
+from dataclasses import dataclass
+from weakref import WeakKeyDictionary, WeakSet
 import re
 
-from ..utils import fill_doc
 from .backends._abstract import Figure3D
+from ..utils import warn, fill_doc
 
 
 # Global dict {fig: channel} containing all currently active event channels.
@@ -46,53 +26,165 @@ _event_channels = WeakKeyDictionary()
 # must {fig2: fig1}.
 _event_channel_links = WeakKeyDictionary()
 
+# Event channels that are temporarily disabled by the disable_ui_events context
+# manager.
+_disabled_event_channels = WeakSet()
+
 # Regex pattern used when converting CamelCase to snake_case.
 # Detects all capital letters that are not at the beginning of a word.
 _camel_to_snake = re.compile(r"(?<!^)(?=[A-Z])")
 
 
 # List of events
+@fill_doc
 class UIEvent:
-    """Abstract base class for all events."""
+    """Abstract base class for all events.
 
-    def __init__(self):
-        self.name = _camel_to_snake.sub("_", self.__class__.__name__).lower()
-        # self.source gets set when the event is published.
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    """
+
+    source = None
+
+    @property
+    def name(self):
+        """The name of the event, which is the class name in snake case."""
+        return _camel_to_snake.sub("_", self.__class__.__name__).lower()
 
 
+@fill_doc
 class FigureClosing(UIEvent):
     """Indicates that the user has requested to close a figure.
 
     Attributes
     ----------
-    name : str
-        The name of the event: ``'figure_closing'``
-    source : %(figure)s
-        The figure that published the event.
+    %(ui_event_name_source)s
     """
 
     pass
 
 
+@dataclass
+@fill_doc
 class TimeChange(UIEvent):
     """Indicates that the user has selected a time.
 
+    Parameters
+    ----------
+    time : float
+        The new time in seconds.
+
     Attributes
     ----------
-    name : str
-        The name of the event: ``'time_change'``
-    source : %(figure)s
-        The figure that published the event.
+    %(ui_event_name_source)s
     time : float
         The new time in seconds.
     """
 
-    def __init__(self, time):
-        super().__init__()
-        self.time = time
+    time: float
 
 
+@dataclass
 @fill_doc
+class PlaybackSpeed(UIEvent):
+    """Indicates that the user has selected a different playback speed for videos.
+
+    Parameters
+    ----------
+    speed : float
+        The new speed in seconds per frame.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    speed : float
+        The new speed in seconds per frame.
+    """
+
+    speed: float
+
+
+@dataclass
+@fill_doc
+class ColormapRange(UIEvent):
+    """Indicates that the user has updated the bounds of the colormap.
+
+    Parameters
+    ----------
+    %(fmin_fmid_fmax)s
+    %(alpha)s
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    %(fmin_fmid_fmax)s
+    %(alpha)s
+    """
+
+    fmin: float = None
+    fmax: float = None
+    fmid: float = None
+    alpha: bool = None
+
+
+@dataclass
+@fill_doc
+class CameraMove(UIEvent):
+    """Indicates that the user has moved the 3D camera.
+
+    Parameters
+    ----------
+    %(roll)s
+    %(distance)s
+    %(azimuth)s
+    %(elevation)s
+    %(focalpoint)s
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    %(roll)s
+    %(distance)s
+    %(azimuth)s
+    %(elevation)s
+    %(focalpoint)s
+    """
+
+    roll: float = None
+    distance: float = None
+    azimuth: float = None
+    elevation: float = None
+    focalpoint: tuple = None
+
+
+@dataclass
+@fill_doc
+class VertexSelect(UIEvent):
+    """Indicates that the user has selected a vertex.
+
+    Parameters
+    ----------
+    hemi : str
+        The hemisphere the vertex was selected on.
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``
+    vertex : int
+        The vertex number (in the high resolution mesh) that was selected.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    hemi : str
+        The hemisphere the vertex was selected on.
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``
+    vertex_id : int
+        The vertex number (in the high resolution mesh) that was selected.
+    """
+
+    hemi: str
+    vertex_id: int
+
+
 def _get_event_channel(fig):
     """Get the event channel associated with a figure.
 
@@ -101,7 +193,7 @@ def _get_event_channel(fig):
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure to get the event channel for.
 
     Returns
@@ -144,7 +236,6 @@ def _get_event_channel(fig):
     return _event_channels[fig]
 
 
-@fill_doc
 def publish(fig, event):
     """Publish an event to all subscribers of the figure's channel.
 
@@ -154,11 +245,14 @@ def publish(fig, event):
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure that publishes the event.
     event : UIEvent
         Event to publish.
     """
+    if fig in _disabled_event_channels:
+        return
+
     # Compile a list of all event channels that the event should be published
     # on.
     channels = [_get_event_channel(fig)]
@@ -177,17 +271,16 @@ def publish(fig, event):
             callback(event=event)
 
 
-@fill_doc
 def subscribe(fig, event_name, callback):
     """Subscribe to an event on a figure's event channel.
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure of which event channel to subscribe.
     event_name : str
         The name of the event to listen for.
-    callback : func
+    callback : callable
         The function that should be called whenever the event is published.
     """
     channel = _get_event_channel(fig)
@@ -196,7 +289,57 @@ def subscribe(fig, event_name, callback):
     channel[event_name].add(callback)
 
 
-@fill_doc
+def unsubscribe(fig, event_names, callback=None):
+    """Unsubscribe from an event on a figure's event channel.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure | Figure3D
+        The figure of which event channel to unsubscribe from.
+    event_names : str | list of str
+        Select which events to stop subscribing to. Can be a single string
+        event name, a list of event names or ``"all"`` which will unsubscribe
+        from all events.
+    callback : callable | None
+        The callback function that should be unsubscribed, leaving all other
+        callback functions that may be subscribed untouched. By default
+        (``None``) all callback functions are unsubscribed from the event.
+    """
+    channel = _get_event_channel(fig)
+
+    # Determine which events to unsubscribe for.
+    if event_names == "all":
+        if callback is None:
+            event_names = list(channel.keys())
+        else:
+            event_names = list(k for k, v in channel.items() if callback in v)
+    elif isinstance(event_names, str):
+        event_names = [event_names]
+
+    for event_name in event_names:
+        if event_name not in channel:
+            warn(
+                f'Cannot unsubscribe from event "{event_name}" as we have never '
+                "subscribed to it."
+            )
+            continue
+
+        if callback is None:
+            del channel[event_name]
+        else:
+            # Unsubscribe specific callback function.
+            subscribers = channel[event_name]
+            if callback in subscribers:
+                subscribers.remove(callback)
+            else:
+                warn(
+                    f'Cannot unsubscribe {callback} from event "{event_name}" '
+                    "as it was never subscribed to it."
+                )
+            if len(subscribers) == 0:
+                del channel[event_name]  # keep things tidy
+
+
 def link(fig1, fig2, event_names="all"):
     """Link the event channels of two figures together.
 
@@ -206,12 +349,12 @@ def link(fig1, fig2, event_names="all"):
 
     Parameters
     ----------
-    fig1 : %(figure)s
+    fig1 : matplotlib.figure.Figure | Figure3D
         The first figure whose event channel will be linked to the second.
-    fig2 : %(figure)s
+    fig2 : matplotlib.figure.Figure | Figure3D
         The second figure whose event channel will be linked to the first.
-    event_names : 'all' | list of str
-        Select which events to publish across figures. By default (`'all'`),
+    event_names : str | list of str
+        Select which events to publish across figures. By default (``"all"``),
         both figures will receive all of each other's events. Passing a list of
         event names will restrict the events being shared across the figures to
         only the given ones.
@@ -232,7 +375,7 @@ def unlink(fig):
 
     Parameters
     ----------
-    fig : %(figure)s
+    fig : matplotlib.figure.Figure | Figure3D
         The figure whose event channel should be unlinked from all other event
         channels.
     """
@@ -242,5 +385,21 @@ def unlink(fig):
             del _event_channel_links[linked_fig][fig]
             if len(_event_channel_links[linked_fig]) == 0:
                 del _event_channel_links[linked_fig]
-    if fig in _event_channel_links:  # Need to check again because of weak refs.
+    if fig in _event_channel_links:  # need to check again because of weak refs
         del _event_channel_links[fig]
+
+
+@contextlib.contextmanager
+def disable_ui_events(fig):
+    """Temporarily disable generation of UI events. Use as context manager.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure | Figure3D
+        The figure whose UI event generation should be temporarily disabled.
+    """
+    _disabled_event_channels.add(fig)
+    try:
+        yield
+    finally:
+        _disabled_event_channels.remove(fig)

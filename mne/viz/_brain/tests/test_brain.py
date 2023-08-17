@@ -35,7 +35,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.datasets import testing
 from mne.io import read_info
-from mne.utils import check_version, requires_version
+from mne.utils import check_version
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
@@ -171,6 +171,13 @@ def test_layered_mesh(renderer_interactive_pyvistaqt):
 def test_brain_gc(renderer_pyvistaqt, brain_gc):
     """Test that a minimal version of Brain gets GC'ed."""
     brain = Brain("fsaverage", "both", "inflated", subjects_dir=subjects_dir)
+    brain.close()
+
+
+@testing.requires_testing_data
+def test_brain_data_gc(renderer_interactive_pyvistaqt, brain_gc):
+    """Test that a version of Brain with added data gets GC'ed."""
+    brain = _create_testing_brain(hemi="both", show_traces="vertex")
     brain.close()
 
 
@@ -366,6 +373,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert len(brain._actors["data"]) == 4
     brain.remove_data()
     assert "data" not in brain._actors
+    assert "time_change" not in ui_events._get_event_channel(brain)
 
     # add label
     label = read_label(fname_label)
@@ -733,8 +741,8 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain._configure_vertex_time_course()
     brain._configure_label_time_course()
     brain.setup_time_viewer()  # for coverage
-    ui_events.publish(brain, ui_events.TimeChange(time=2.0))
-    assert brain._current_time == 2.0
+    brain.set_time(1)
+    brain.set_time_point(0)
     assert "renderer" not in brain.callbacks
     brain.callbacks["orientation"](value="lat", update_widget=True)
     brain.callbacks["orientation"](value="medial", update_widget=True)
@@ -743,6 +751,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     _assert_brain_range(brain, [0.1, 0.3])
     from mne.utils import use_log_level
 
+    print("\nCallback fmin\n")
     with use_log_level("debug"):
         brain.callbacks["fmin"](value=12.0)
     assert brain._data["fmin"] == 12.0
@@ -762,7 +771,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain._rotate_elevation(15)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
-    brain.callbacks["playback_speed"](value=0.1)
+    brain.set_playback_speed(0.1)
     brain.toggle_playback()
     brain.toggle_playback(value=False)
     brain.apply_auto_scaling()
@@ -1025,10 +1034,10 @@ something
 # https://github.com/mne-tools/mne-python/pull/10935
 # for some reason there is a dependency issue with ipympl even using pyvista
 @pytest.mark.skipif(sys.platform == "win32", reason="ipympl issue on Windows")
-@requires_version("sphinx_gallery")
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
+    pytest.importorskip("sphinx_gallery")
     stc = read_source_estimate(fname_stc, subject="sample")
     size = (600, 300)
     brain = stc.plot(
@@ -1076,7 +1085,7 @@ def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
     brain2 = _create_testing_brain(hemi="lh", show_traces="separate")
     brain1._times = brain1._times * 2
     with pytest.warns(RuntimeWarning, match="linking time"):
-        link_viewer = _LinkViewer(
+        _LinkViewer(
             [brain1, brain2],
             time=True,
             camera=False,
@@ -1093,13 +1102,14 @@ def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
         colorbar=True,
         picking=True,
     )
+    link_viewer.leader.set_time(1)
     link_viewer.leader.set_time_point(0)
-    link_viewer.leader.mpl_canvas.time_func(ui_events.TimeChange(time=0))
     link_viewer.leader.callbacks["fmin"](0)
     link_viewer.leader.callbacks["fmid"](0.5)
     link_viewer.leader.callbacks["fmax"](1)
     link_viewer.leader.set_playback_speed(0.1)
     link_viewer.leader.toggle_playback()
+    ui_events.publish(link_viewer.leader, ui_events.TimeChange(time=0))
     brain2.close()
     brain_data.close()
 

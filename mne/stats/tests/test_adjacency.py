@@ -7,10 +7,10 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne.stats import combine_adjacency
-from mne.utils import requires_sklearn
+
+pytest.importorskip("sklearn")
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "shape",
     [

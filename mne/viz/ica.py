@@ -26,9 +26,10 @@ from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..channels.channels import _get_ch_type
 from ..utils import _validate_type, fill_doc
-from ..defaults import _handle_default
+from ..defaults import _handle_default, DEFAULTS
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
+from ..io.proj import _has_eeg_average_ref_proj
 from ..utils import _reject_data_segments, verbose
 
 
@@ -49,7 +50,7 @@ def plot_ica_sources(
     use_opengl=None,
     *,
     theme=None,
-    overview_mode=None
+    overview_mode=None,
 ):
     """Plot estimated latent sources given the unmixing matrix.
 
@@ -233,7 +234,7 @@ def _plot_ica_properties(
         combine=None,
         colorbar=False,
         show=False,
-        **image_args
+        **image_args,
     )
 
     # spectrum
@@ -403,7 +404,7 @@ def plot_ica_properties(
     reject="auto",
     reject_by_annotation=True,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Display component properties.
 
@@ -521,7 +522,7 @@ def _fast_plot_ica_properties(
     precomputed_data=None,
     reject_by_annotation=True,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Display component properties."""
     from ..preprocessing import ICA
@@ -824,14 +825,14 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica, labels=No
                 style = cat_styles[label_name]
                 label_props[label_idx] = (color, style)
 
-    for exc_label, ii in zip(exclude_labels, picks):
-        color, style = label_props[ii]
+    for pick_idx, (exc_label, pick) in enumerate(zip(exclude_labels, picks)):
+        color, style = label_props[pick_idx]
         # ensure traces of excluded components are plotted on top
         zorder = 2 if exc_label is None else 10
         lines.extend(
             ax.plot(
                 times,
-                evoked.data[ii].T,
+                evoked.data[pick].T,
                 picker=True,
                 zorder=zorder,
                 color=color,
@@ -1027,7 +1028,7 @@ def plot_ica_overlay(
     n_pca_components=None,
     *,
     on_baseline="warn",
-    verbose=None
+    verbose=None,
 ):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
@@ -1038,14 +1039,13 @@ def plot_ica_overlay(
     ica : instance of mne.preprocessing.ICA
         The ICA object.
     inst : instance of Raw or Evoked
-        The signal to plot. If `~mne.io.Raw`, the raw data is displayed before
-        and after cleaning. In a second panel, the cross-channel average will
-        be displayed. Since dipolar sources will be canceled out, this
-        representation is sensitive to artifacts. If `~mne.Evoked`, butterfly
-        traces for signals before and after cleaning will be superimposed.
+        The signal to plot. If `~mne.io.Raw`, the raw data per channel type is displayed
+        before and after cleaning. A second panel with the RMS for MEG sensors and the
+        :term:`GFP` for EEG sensors is displayed. If `~mne.Evoked`, butterfly traces for
+        signals before and after cleaning will be superimposed.
     exclude : array-like of int | None (default)
-        The components marked for exclusion. If ``None`` (default), ICA.exclude
-        will be used.
+        The components marked for exclusion. If ``None`` (default), the components
+        listed in ``ICA.exclude`` will be used.
     %(picks_base)s all channels that were included during fitting.
     start, stop : float | None
        The first and last time point (in seconds) of the data to plot. If
@@ -1079,19 +1079,14 @@ def plot_ica_overlay(
         title = "Signals before (red) and after (black) cleaning"
     picks = ica.ch_names if picks is None else picks
     picks = _picks_to_idx(inst.info, picks, exclude=())
-    ch_types_used = inst.get_channel_types(picks=picks, unique=True)
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
         raise TypeError("exclude must be of type list. Got %s" % type(exclude))
     if isinstance(inst, BaseRaw):
-        if start is None:
-            start = 0.0
-        if stop is None:
-            stop = 3.0
-        start_compare, stop_compare = _check_start_stop(inst, start, stop)
-        data, times = inst[picks, start_compare:stop_compare]
-
+        start = 0.0 if start is None else start
+        stop = 3.0 if stop is None else stop
+        start, stop = _check_start_stop(inst, start, stop)
         raw_cln = ica.apply(
             inst.copy(),
             exclude=exclude,
@@ -1099,13 +1094,13 @@ def plot_ica_overlay(
             stop=stop,
             n_pca_components=n_pca_components,
         )
-        data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(
-            data=data,
-            data_cln=data_cln,
-            times=times,
+            raw=inst,
+            raw_cln=raw_cln,
+            picks=picks,
+            start=start,
+            stop=stop,
             title=title,
-            ch_types_used=ch_types_used,
             show=show,
         )
     else:
@@ -1128,15 +1123,23 @@ def plot_ica_overlay(
     return fig
 
 
-def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
+def _plot_ica_overlay_raw(*, raw, raw_cln, picks, start, stop, title, show):
     """Plot evoked after and before ICA cleaning.
 
     Parameters
     ----------
-    ica : instance of mne.preprocessing.ICA
-        The ICA object.
-    epochs : instance of mne.Epochs
-        The Epochs to be regarded.
+    raw : Raw
+        Raw data before exclusion of ICs.
+    raw_cln : Raw
+        Data after exclusion of ICs.
+    picks : array of shape (n_channels_selected,)
+        Array of selected channel indices.
+    start : int
+        Start time to plot in samples.
+    stop : int
+        Stop time to plot in samples.
+    title : str
+        Title of the figure(s).
     show : bool
         Show figure if True.
 
@@ -1146,26 +1149,55 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     """
     import matplotlib.pyplot as plt
 
-    # Restore sensor space data and keep all PCA components
-    # let's now compare the date before and after cleaning.
-    # first the raw data
-    assert data.shape == data_cln.shape
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-    plt.suptitle(title)
-    ax1.plot(times, data.T, color="r")
-    ax1.plot(times, data_cln.T, color="k")
-    ax1.set(xlabel="Time (s)", xlim=times[[0, -1]], title="Raw data")
+    ch_types = raw.get_channel_types(picks=picks, unique=True)
+    for ch_type in ch_types:
+        if ch_type in ("mag", "grad"):
+            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+        elif ch_type == "eeg" and not _has_eeg_average_ref_proj(
+            raw.info, check_active=True
+        ):
+            fig, ax = plt.subplots(3, 1, sharex=True, constrained_layout=True)
+        else:
+            fig, ax = plt.subplots(2, 1, sharex=True, constrained_layout=True)
+        fig.suptitle(title)
 
-    _ch_types = {"mag": "Magnetometers", "grad": "Gradiometers", "eeg": "EEG"}
-    ch_types = ", ".join([_ch_types[k] for k in ch_types_used])
-    ax2.set_title("Average across channels ({})".format(ch_types))
-    ax2.plot(times, data.mean(0), color="r")
-    ax2.plot(times, data_cln.mean(0), color="k")
-    ax2.set(xlabel="Time (s)", xlim=times[[0, -1]])
-    tight_layout(fig=fig)
+        # select sensors and retrieve data array
+        picks_by_type = _picks_to_idx(raw.info, ch_type, exclude=())
+        picks_ = np.intersect1d(picks, picks_by_type)
+        data, times = raw[picks_, start:stop]
+        data_cln, _ = raw_cln[picks_, start:stop]
 
-    fig.subplots_adjust(top=0.90)
-    fig.canvas.draw()
+        # plot all sensors of the same type together
+        ax[0].plot(times, data.T, color="r")
+        ax[0].plot(times, data_cln.T, color="k")
+        _ch_type = DEFAULTS["titles"].get(ch_type, ch_type)
+        ax[0].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"Raw {_ch_type} data")
+
+        # second plot for M/EEG using GFP or RMS
+        if ch_type == "eeg":  # Global Field Power
+            ax[1].plot(times, np.std(data, axis=0), color="r")
+            ax[1].plot(times, np.std(data_cln, axis=0), color="k")
+            ax[1].set(
+                xlabel="Time (s)",
+                xlim=times[[0, -1]],
+                title=f"{_ch_type} Global Field Power",
+            )
+        elif ch_type in ("mag", "grad"):  # RMS
+            ax[1].plot(times, np.sqrt((data**2).mean(axis=0)), color="r")
+            ax[1].plot(times, np.sqrt((data_cln**2).mean(axis=0)), color="k")
+            ax[1].set(xlabel="Time (s)", xlim=times[[0, -1]], title=f"{_ch_type} RMS")
+
+        # last plot with the average across all channels of the same type
+        if ch_type != "eeg" or not _has_eeg_average_ref_proj(
+            raw.info, check_active=True
+        ):
+            ax[-1].plot(times, data.mean(axis=0), color="r")
+            ax[-1].plot(times, data_cln.mean(axis=0), color="k")
+            ax[-1].set(
+                xlabel="Time (s)",
+                xlim=times[[0, -1]],
+                title=f"Average across {_ch_type} channels",
+            )
     plt_show(show)
     return fig
 
@@ -1195,9 +1227,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     ch_types_used_cln = [c for c in ["mag", "grad", "eeg"] if c in evoked_cln]
 
     if len(ch_types_used) != len(ch_types_used_cln):
-        raise ValueError(
-            "Raw and clean evokeds must match. " "Found different channels."
-        )
+        raise ValueError("Raw and clean evokeds must match. Found different channels.")
 
     fig, axes = plt.subplots(n_rows, 1)
     if title is None:
@@ -1236,7 +1266,7 @@ def _plot_sources(
     use_opengl,
     *,
     theme=None,
-    overview_mode=None
+    overview_mode=None,
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
@@ -1302,7 +1332,7 @@ def _plot_sources(
     info["bads"] = [ch_names[x] for x in exclude if x in picks]
     if is_raw:
         inst_array = RawArray(data, info, inst.first_samp)
-        inst_array.set_annotations(inst.annotations)
+        inst_array._annotations = inst.annotations
     else:
         data = data.reshape(-1, len(inst), len(inst.times)).swapaxes(0, 1)
         inst_array = EpochsArray(data, info)

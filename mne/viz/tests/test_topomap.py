@@ -54,7 +54,6 @@ from mne.viz.topomap import (
     plot_ch_adjacency,
 )
 from mne.viz.utils import _find_peaks, _fake_click, _fake_keypress, _fake_scroll
-from mne.utils import requires_sklearn
 
 from mne.viz.tests.test_raw import _proj_status
 
@@ -257,7 +256,7 @@ def test_plot_evoked_topomap_units(evoked, units, scalings, expected_unit):
     #     cbar = cbar[0]
     #     assert cbar.get_title() == expected_unit
     # ...but not all matplotlib versions support it, and we can't use
-    # @requires_version because it's hard figure out exactly which MPL version
+    # check_version because it's hard figure out exactly which MPL version
     # is the cutoff since it relies on a private attribute. Based on some
     # basic testing it's at least matplotlib version >= 3.5.
     # So for now we just do this:
@@ -457,14 +456,21 @@ def test_plot_topomap_basic():
 
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0), proj=False)
+    plt.close("all")
     fig1 = evoked.plot_topomap(
         "interactive", ch_type="mag", proj="interactive", **fast_test
     )
-    _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
+    # TODO: Clicking the slider creates a *new* image rather than updating
+    # the data directly. This makes it so that the projection is not applied
+    # to the correct matplotlib Image object.
+    # _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
     data_max = np.max(fig1.axes[0].images[0]._A)
-    fig2 = plt.gcf()
-    _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
+    proj_fig = plt.figure(plt.get_fignums()[-1])
+    assert fig1.mne.proj_checkboxes.get_status() == [False, False, False]
+    pos = proj_fig.axes[0].texts[0].get_position() + np.array([0.01, 0])
+    _fake_click(proj_fig, proj_fig.axes[0], pos)  # toggle projector
     # make sure projector gets toggled
+    assert fig1.mne.proj_checkboxes.get_status() == [True, False, False]
     assert np.max(fig1.axes[0].images[0]._A) != data_max
 
     for ch in evoked.info["chs"]:
@@ -728,9 +734,9 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
     plt.close("all")
 
 
-@requires_sklearn
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
+    pytest.importorskip("sklearn")
     from mne.preprocessing import ICA
 
     fnirs_epochs = fnirs_epochs.load_data().pick(picks="hbo")

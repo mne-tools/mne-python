@@ -26,12 +26,11 @@ from mne import (
     read_annotations,
     annotations_from_events,
     events_from_annotations,
+    count_annotations,
 )
 from mne import Epochs, Annotations
 from mne.utils import (
-    requires_version,
     catch_logging,
-    requires_pandas,
     assert_and_remove_boundary_annot,
     _raw_annot,
     _dt_to_stamp,
@@ -983,11 +982,10 @@ def test_io_annotation(dummy_annotation_file, tmp_path, fmt, ch_names):
     _assert_annotations_equal(annot, annot2)
 
 
-@requires_version("pandas")
 def test_broken_csv(tmp_path):
     """Test broken .csv that does not use timestamps."""
+    pytest.importorskip("pandas")
     content = "onset,duration,description\n" "1.,1.0,AA\n" "3.,2.425,BB"
-
     fname = tmp_path / "annotations_broken.csv"
     with open(fname, "w") as f:
         f.write(content)
@@ -1413,9 +1411,9 @@ def test_repr():
     assert r == "<Annotations | 0 segments>"
 
 
-@requires_pandas
 def test_annotation_to_data_frame():
     """Test annotation class to data frame conversion."""
+    pytest.importorskip("pandas")
     onset = np.arange(1, 10)
     durations = np.full_like(onset, [4, 5, 6, 4, 5, 6, 4, 5, 6])
     description = ["yy"] * onset.shape[0]
@@ -1746,3 +1744,10 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
         assert len(this_raw.annotations) == 1
         assert_allclose(this_raw.annotations.onset, want_onset)
         assert_allclose(this_raw.annotations.duration, annot.duration[2:])
+
+
+def test_count_annotations():
+    """Test counting unique annotations."""
+    annotations = Annotations([0, 1, 2], [1, 2, 1], ["T0", "T1", "T0"])
+    assert annotations.count() == {"T0": 2, "T1": 1}
+    assert count_annotations(annotations) == {"T0": 2, "T1": 1}

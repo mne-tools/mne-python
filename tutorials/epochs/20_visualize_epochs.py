@@ -105,12 +105,11 @@ epochs.add_proj(ecg_projs)
 epochs.apply_proj()
 
 # %%
-# Just as we saw in the :ref:`tut-section-raw-plot-proj` section, we can plot
-# the projectors present in an `~mne.Epochs` object using the same
-# `~mne.Epochs.plot_projs_topomap` method. Since the original three
-# empty-room magnetometer projectors were inherited from the
-# `~mne.io.Raw` file, and we added two ECG projectors for each sensor
-# type, we should see nine projector topomaps:
+# Just as we saw in the :ref:`tut-section-raw-plot-proj` section, we can plot the
+# projectors present in an `~mne.Epochs` object using the same
+# `~mne.Epochs.plot_projs_topomap` method. Since the original three empty-room
+# magnetometer projectors were inherited from the `~mne.io.Raw` file, and we added two
+# ECG projectors for each sensor type, we should see nine projector topomaps:
 
 epochs.plot_projs_topomap(vlim="joint")
 
@@ -118,9 +117,8 @@ epochs.plot_projs_topomap(vlim="joint")
 # Note that these field maps illustrate aspects of the signal that *have
 # already been removed* (because projectors in `~mne.io.Raw` data are
 # applied by default when epoching, and because we called
-# `~mne.Epochs.apply_proj` after adding additional ECG projectors from
-# file). You can check this by examining the ``'active'`` field of the
-# projectors:
+# `~mne.Epochs.apply_proj` after adding additional ECG projectors from file).
+# You can check this by examining the ``'active'`` field of the projectors:
 
 print(all(proj["active"] for proj in epochs.info["projs"]))
 

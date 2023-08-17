@@ -25,7 +25,7 @@ from mne.decoding import (
     TemporalFilter,
 )
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn, check_version, use_log_level
+from mne.utils import check_version, use_log_level
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -217,9 +217,9 @@ def test_vectorizer():
     pytest.raises(ValueError, vect.inverse_transform, np.random.rand(102, 12, 12))
 
 
-@requires_sklearn
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
+    pytest.importorskip("sklearn")
     from sklearn.decomposition import PCA
     from sklearn.kernel_ridge import KernelRidge
 

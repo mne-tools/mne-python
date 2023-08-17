@@ -410,8 +410,6 @@ class RawNihon(BaseRaw):
         ]
 
         raw_extras = dict(cal=cal, offsets=offsets, gains=gains, header=header)
-        self._header = header
-
         for i_ch, ch_name in enumerate(info["ch_names"]):
             t_range = chs[ch_name]["phys_max"] - chs[ch_name]["phys_min"]
             info["chs"][i_ch]["range"] = t_range
@@ -430,7 +428,7 @@ class RawNihon(BaseRaw):
         annots = _read_nihon_annotations(fname)
 
         # Annotate acquisition skips
-        controlblock = self._header["controlblocks"][0]
+        controlblock = header["controlblocks"][0]
         cur_sample = 0
         if controlblock["n_datablocks"] > 1:
             for i_block in range(controlblock["n_datablocks"] - 1):
