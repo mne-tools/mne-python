@@ -7,8 +7,8 @@ const refreshScrollSpy = () =>{
   })
 }
 
-const propagateScrollSpyURL = () =>{
-  $(window).on('activate.bs.scrollspy', function (event) {
+const propagateScrollSpyURL = () => {
+  $(window).on('activate.bs.scrollspy', (event) => {
     history.replaceState({}, "", event.relatedTarget);
   });
 }
