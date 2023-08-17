@@ -30,6 +30,7 @@ Enhancements
 Bugs
 ~~~~
 - Fix bugs with saving splits for :class:`~mne.Epochs` (:gh:`11876` by `Dmitrii Altukhov`_) 
+- Fix bug with multi-plot 3D rendering where only one plot was updated (:gh:`11896` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
