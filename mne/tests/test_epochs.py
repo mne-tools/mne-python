@@ -1635,7 +1635,7 @@ def test_saved_fname_no_splitting(
         ("3MB", 18, False, False, 3),
         pytest.param(
             ("2GB", 18, False, False, 1),
-            marks=pytest.mark.xfail(reason="No check when not spliting"),
+            marks=pytest.mark.xfail(reason="No check when not splitting"),
         ),
     ],
     indirect=True,
