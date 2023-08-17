@@ -7,6 +7,12 @@ const refreshScrollSpy = () =>{
   })
 }
 
+const propagateScrollSpyURL = () =>{
+  $(window).on('activate.bs.scrollspy', function (event) {
+    history.replaceState({}, "", event.relatedTarget);
+  });
+}
+
 /* Show or hide elements based on their tag */
 const toggleTagVisibility = (tagName) => {
   const tag = tags.find((element) => {
@@ -239,6 +245,7 @@ $(document).ready(() => {
   hljs.highlightAll();   // enable highlight.js
   disableGlobalKeysInSearchBox();
   enableGlobalKeyHandler();
+  propagateScrollSpyURL();
 });
 
 window.onresize = () => {
