@@ -113,7 +113,7 @@ const addFilterByTagsCheckboxEventHandlers = () => {
 
   filterByTagsDropdownMenuLabels.forEach((label) => {
     // Prevent dropdown menu from closing when clicking on a tag checkbox label
-    label.addEventListener("click", (e) => { 
+    label.addEventListener("click", (e) => {
       e.stopPropagation();
     })
 
@@ -154,11 +154,15 @@ const _handleTocLinkClick = (e) => {
 
     const topBarHeight = document.querySelector('#top-bar').scrollHeight
     const margin = 30 + topBarHeight;
-  
+
     const tocLinkElement = e.target;
     const targetDomId = tocLinkElement.getAttribute('href');
     const targetElement = document.querySelector(targetDomId);
     const top = $(targetElement).offset().top;
+    /* Update URL to reflect the current scroll position */
+    var url = document.URL.replace(/#.*$/, "");
+    url = url + targetDomId;
+    window.location.href = url;
     window.scrollTo(0, top - margin);
 }
 
