@@ -125,7 +125,6 @@ def _save_split(epochs, split_fnames, part_idx, n_parts, fmt, overwrite):
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
     """
-    # insert index in filename
     this_fname = split_fnames[part_idx]
     _check_fname(this_fname, overwrite=overwrite)
 
