@@ -2135,6 +2135,7 @@ class BaseEpochs(
 
         epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
+        _check_option("split_naming", split_naming, ("neuromag", "bids"))
         split_fnames = _make_split_fnames(fname, n_parts, split_naming)
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self

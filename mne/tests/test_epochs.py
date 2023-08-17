@@ -1633,13 +1633,22 @@ def test_saved_fname_no_splitting(
     "epochs_to_split",
     [
         ("3MB", 18, False, False, 3),
-        pytest.param(("2GB", 18, False, False, 1), marks=pytest.mark.xfail),
+        pytest.param(
+            ("2GB", 18, False, False, 1),
+            marks=pytest.mark.xfail(reason="No check when not spliting"),
+        ),
     ],
     indirect=True,
 )
 @pytest.mark.parametrize(
     "dst_fname",
-    ["test-epo.fif", pytest.param("a_b_c-epo.fif", marks=pytest.mark.xfail)],
+    [
+        "test-epo.fif",
+        pytest.param(
+            "a_b_c-epo.fif",
+            marks=pytest.mark.xfail(reason="No check for several bids clauses"),
+        )
+    ],
 )
 def test_bids_splits_fail_for_bad_fname_ending(epochs_to_split, dst_fname, tmp_path):
     """Make sure split_naming=bids is only used with bids endings.
@@ -1652,7 +1661,7 @@ def test_bids_splits_fail_for_bad_fname_ending(epochs_to_split, dst_fname, tmp_p
     dst_fpath = tmp_path / dst_fname
     save_kwargs = {"split_naming": "bids", "split_size": split_size}
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=".* must end with an underscore"):
         epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
 

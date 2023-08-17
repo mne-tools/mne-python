@@ -353,8 +353,7 @@ def _make_split_fnames(fname, n_splits, split_naming):
     for i in range(n_splits):
         if split_naming == "neuromag":
             res.append(f"{base}-{i:d}{ext}" if i else fname)
-        elif split_naming == "bids":
-            res.append(_construct_bids_filename(base, ext, i + 1))
         else:
-            raise NotImplementedError(f"{split_naming=} is not supported")
+            assert split_naming == "bids"
+            res.append(_construct_bids_filename(base, ext, i + 1))
     return res
