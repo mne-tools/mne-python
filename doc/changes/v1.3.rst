@@ -1,12 +1,3 @@
-.. _changes_1_3_1:
-
-Version 1.3.1 (2023-02-23)
---------------------------
-
-Bugs
-~~~~
-- Fix visualization dialog compatibility with matplotlib 3.7 (:gh:`11409` by `Daniel McCloy`_ and `Eric Larson`_)
-
 .. _changes_1_3_0:
 
 Version 1.3.0 (2022-12-21)
