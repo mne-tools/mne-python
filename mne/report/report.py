@@ -9,6 +9,7 @@
 import io
 import dataclasses
 from dataclasses import dataclass
+from functools import partial
 from typing import Tuple, Optional
 from collections.abc import Sequence
 import base64
@@ -154,15 +155,29 @@ def _get_ch_types(inst):
     return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
 
 
+def _id_sanitize(title):
+    """Sanitize title for use as DOM id."""
+    _validate_type(title, str, "title")
+    # replace any whitespace runs with underscores
+    title = re.sub(r"\s+", "_", title)
+    # replace any non-alphanumeric (plus dash and underscore) with underscores
+    # (this is very greedy but should be safe enough)
+    title = re.sub("[^a-zA-Z0-9_-]", "_", title)
+    return title
+
+
+def _renderer(kind):
+    from ..html_templates import report_templates_env
+
+    return report_templates_env.get_template(kind).render
+
+
 ###############################################################################
 # HTML generation
 
 
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("header.html.jinja")
-    t_rendered = t.render(
+    return _renderer("header.html.jinja")(
         lang=lang,
         include=include,
         js=js,
@@ -171,50 +186,35 @@ def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
         tags=tags,
         mne_logo_img=mne_logo_img,
     )
-    return t_rendered
 
 
 def _html_footer_element(*, mne_version, date):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("footer.html.jinja")
-    t_rendered = t.render(mne_version=mne_version, date=date)
-    return t_rendered
+    return _renderer("footer.html.jinja")(mne_version=mne_version, date=date)
 
 
 def _html_toc_element(*, titles, dom_ids, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("toc.html.jinja")
-    t_rendered = t.render(titles=titles, dom_ids=dom_ids, tags=tags)
-    return t_rendered
+    return _renderer("toc.html.jinja")(titles=titles, dom_ids=dom_ids, tags=tags)
 
 
-def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("forward.html.jinja")
-    t_rendered = t.render(
-        id=id, repr=repr, sensitivity_maps=sensitivity_maps, tags=tags, title=title
+def _html_forward_sol_element(*, id_, repr_, sensitivity_maps, title, tags):
+    return _renderer("forward.html.jinja")(
+        id=id_,
+        repr=repr_,
+        sensitivity_maps=sensitivity_maps,
+        tags=tags,
+        title=title,
     )
-    return t_rendered
 
 
-def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("inverse.html.jinja")
-    t_rendered = t.render(
-        id=id, repr=repr, source_space=source_space, tags=tags, title=title
+def _html_inverse_operator_element(*, id_, repr_, source_space, title, tags):
+    return _renderer("inverse.html.jinja")(
+        id=id_, repr=repr_, source_space=source_space, tags=tags, title=title
     )
-    return t_rendered
 
 
 def _html_slider_element(
-    *, id, images, captions, start_idx, image_format, title, tags, klass=""
+    *, id_, images, captions, start_idx, image_format, title, tags, klass=""
 ):
-    from ..html_templates import report_templates_env
-
     captions_ = []
     for caption in captions:
         if caption is None:
@@ -222,9 +222,8 @@ def _html_slider_element(
         captions_.append(caption)
     del captions
 
-    t = report_templates_env.get_template("slider.html.jinja")
-    t_rendered = t.render(
-        id=id,
+    return _renderer("slider.html.jinja")(
+        id=id_,
         images=images,
         captions=captions_,
         tags=tags,
@@ -233,17 +232,13 @@ def _html_slider_element(
         image_format=image_format,
         klass=klass,
     )
-    return t_rendered
 
 
 def _html_image_element(
-    *, id, img, image_format, caption, show, div_klass, img_klass, title, tags
+    *, id_, img, image_format, caption, show, div_klass, img_klass, title, tags
 ):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("image.html.jinja")
-    t_rendered = t.render(
-        id=id,
+    return _renderer("image.html.jinja")(
+        id=id_,
         img=img,
         caption=caption,
         tags=tags,
@@ -253,30 +248,31 @@ def _html_image_element(
         img_klass=img_klass,
         show=show,
     )
-    return t_rendered
 
 
-def _html_code_element(*, id, code, language, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("code.html.jinja")
-    t_rendered = t.render(id=id, code=code, language=language, title=title, tags=tags)
-    return t_rendered
-
-
-def _html_section_element(*, id, div_klass, htmls, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("section.html.jinja")
-    t_rendered = t.render(
-        id=id, div_klass=div_klass, htmls=htmls, title=title, tags=tags
+def _html_code_element(*, id_, code, language, title, tags):
+    return _renderer("code.html.jinja")(
+        id=id_,
+        code=code,
+        language=language,
+        title=title,
+        tags=tags,
     )
-    return t_rendered
+
+
+def _html_section_element(*, id_, div_klass, htmls, title, tags):
+    return _renderer("section.html.jinja")(
+        id=id_,
+        div_klass=div_klass,
+        htmls=htmls,
+        title=title,
+        tags=tags,
+    )
 
 
 def _html_bem_element(
     *,
-    id,
+    id_,
     div_klass,
     html_slider_axial,
     html_slider_sagittal,
@@ -284,11 +280,8 @@ def _html_bem_element(
     title,
     tags,
 ):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("bem.html.jinja")
-    t_rendered = t.render(
-        id=id,
+    return _renderer("bem.html.jinja")(
+        id=id_,
         div_klass=div_klass,
         html_slider_axial=html_slider_axial,
         html_slider_sagittal=html_slider_sagittal,
@@ -296,15 +289,16 @@ def _html_bem_element(
         title=title,
         tags=tags,
     )
-    return t_rendered
 
 
-def _html_element(*, id, div_klass, html, title, tags):
-    from ..html_templates import report_templates_env
-
-    t = report_templates_env.get_template("html.html.jinja")
-    t_rendered = t.render(id=id, div_klass=div_klass, html=html, title=title, tags=tags)
-    return t_rendered
+def _html_element(*, id_, div_klass, html, title, tags):
+    return _renderer("html.html.jinja")(
+        id=id_,
+        div_klass=div_klass,
+        html=html,
+        title=title,
+        tags=tags,
+    )
 
 
 @dataclass
@@ -860,8 +854,9 @@ class Report:
         self.title = title
         self.image_format = _check_image_format(None, image_format)
         self.projs = projs
-
+        # dom_id is mostly for backward compat and testing nowadays
         self._dom_id = 0
+        self._dup_limit = 10000  # should be enough duplicates
         self._content = []
         self.include = []
         self.lang = "en-us"  # language setting for the HTML file
@@ -925,6 +920,7 @@ class Report:
             "image_format",
             "info_fname",
             "_dom_id",
+            # dup_limit omitted because we never change it from default
             "raw_psd",
             "projs",
             "subjects_dir",
@@ -935,18 +931,27 @@ class Report:
             "fname",
         )
 
-    def _get_dom_id(self, increment=True):
-        """Get unique ID for content to append to the DOM.
-
-        This method is just a counter.
-
-        increment : bool
-            Whether to increment the counter. If ``False``, simply returns the
-            latest DOM ID used.
-        """
-        if increment:
-            self._dom_id += 1
-
+    def _get_dom_id(self, *, section, title, extra_exclude=None):
+        """Get unique ID for content to append to the DOM."""
+        _validate_type(title, str, "title")
+        _validate_type(section, (str, None), "section")
+        if section is not None:
+            title = f"{section}-{title}"
+        dom_id = _id_sanitize(title)
+        del title, section
+        # find a new unique ID
+        dom_ids = set(c.dom_id for c in self._content)
+        if extra_exclude:
+            assert isinstance(extra_exclude, set), type(extra_exclude)
+            dom_ids.update(extra_exclude)
+        if dom_id not in dom_ids:
+            return dom_id
+        for ii in range(1, self._dup_limit):  # should be enough duplicates...
+            dom_id_inc = f"{dom_id}-{ii}"
+            if dom_id_inc not in dom_ids:
+                return dom_id_inc
+        # But let's not fail if the limit is low
+        self._dom_id += 1
         return f"global-{self._dom_id}"
 
     def _validate_topomap_kwargs(self, topomap_kwargs):
@@ -989,7 +994,7 @@ class Report:
         tags : list of tuple of str
             The tags corresponding to the HTML representations.
         """
-        section_dom_ids = []
+        section_dom_ids = set()
         htmls = []
         dom_ids = []
         titles = []
@@ -1017,19 +1022,16 @@ class Report:
                 section_tags = tuple(
                     sorted((set([t for el in section_elements for t in el.tags])))
                 )
-                # Generate a unique DOM ID, but don't alter the global counter
-                if section_dom_ids:
-                    section_dom_id = section_dom_ids[-1]
-                else:
-                    section_dom_id = self._get_dom_id(increment=False)
-
-                label, counter = section_dom_id.split("-")
-                section_dom_id = f"{label}-{int(counter) + 1}"
-                section_dom_ids.append(section_dom_id)
+                section_dom_id = self._get_dom_id(
+                    section=None,  # root level of document
+                    title=content_element.section,
+                    extra_exclude=section_dom_ids,
+                )
+                section_dom_ids.add(section_dom_id)
 
                 # Finally, create the section HTML element.
                 section_html = _html_section_element(
-                    id=section_dom_id,
+                    id_=section_dom_id,
                     htmls=section_htmls,
                     tags=section_tags,
                     title=content_element.section,
@@ -2071,7 +2073,7 @@ class Report:
         return remove_idx
 
     @fill_doc
-    def _add_or_replace(self, *, title, section, dom_id, tags, html, replace=False):
+    def _add_or_replace(self, *, title, section, tags, html_partial, replace=False):
         """Append HTML content report, or replace it if it already exists.
 
         Parameters
@@ -2079,19 +2081,21 @@ class Report:
         title : str
             The title entry.
         %(section_report)s
-        dom_id : str
-            A unique element ``id`` in the DOM.
         tags : tuple of str
             The tags associated with the added element.
-        html : str
-            The HTML.
+        html_partial : callable
+            Callable that renders a HTML string, called as::
+
+                html_partial(id_=...)
         replace : bool
             Whether to replace existing content if the title and section match.
+            If an object is replaced, its dom_id is preserved.
         """
-        assert isinstance(html, str)  # otherwise later will break
+        assert callable(html_partial), type(html_partial)
 
+        # Temporarily set HTML and dom_id to dummy values
         new_content = _ContentElement(
-            name=title, section=section, dom_id=dom_id, tags=tags, html=html
+            name=title, section=section, dom_id="", tags=tags, html=""
         )
 
         append = True
@@ -2102,25 +2106,31 @@ class Report:
                 if (element.name, element.section) == (title, section)
             ]
             if matches:
+                dom_id = self._content[matches[-1]].dom_id
                 self._content[matches[-1]] = new_content
                 append = False
         if append:
+            dom_id = self._get_dom_id(section=section, title=title)
             self._content.append(new_content)
+        new_content.dom_id = dom_id
+        new_content.html = html_partial(id_=dom_id)
+        assert isinstance(new_content.html, str), type(new_content.html)
 
     def _add_code(self, *, code, title, language, section, tags, replace):
         if isinstance(code, Path):
             code = Path(code).read_text()
-
-        dom_id = self._get_dom_id()
-        html = _html_code_element(
-            tags=tags, title=title, id=dom_id, code=code, language=language
+        html_partial = partial(
+            _html_code_element,
+            tags=tags,
+            title=title,
+            code=code,
+            language=language,
         )
         self._add_or_replace(
-            dom_id=dom_id,
             title=title,
             section=section,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -2198,8 +2208,8 @@ class Report:
         section,
         replace,
     ):
-        dom_id = self._get_dom_id()
-        html = _html_image_element(
+        html_partial = partial(
+            _html_image_element,
             img=img,
             div_klass="custom-image",
             img_klass="custom-image",
@@ -2207,15 +2217,13 @@ class Report:
             caption=caption,
             show=True,
             image_format=image_format,
-            id=dom_id,
             tags=tags,
         )
         self._add_or_replace(
-            dom_id=dom_id,
             title=title,
             section=section,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -2395,16 +2403,18 @@ class Report:
         .. versionadded:: 0.24.0
         """
         tags = _check_tags(tags)
-        dom_id = self._get_dom_id()
-        html_element = _html_element(
-            id=dom_id, html=html, title=title, tags=tags, div_klass="custom-html"
+        html_partial = partial(
+            _html_element,
+            html=html,
+            title=title,
+            tags=tags,
+            div_klass="custom-html",
         )
         self._add_or_replace(
-            dom_id=dom_id,
             title=title,
             section=None,
             tags=tags,
-            html=html_element,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -2493,9 +2503,8 @@ class Report:
                 for fig in figs
             ]
 
-        dom_id = self._get_dom_id()
-        html = _html_slider_element(
-            id=dom_id,
+        html_partial = partial(
+            _html_slider_element,
             title=title,
             captions=captions,
             tags=tags,
@@ -2504,7 +2513,7 @@ class Report:
             start_idx=start_idx,
             klass=klass,
         )
-        return html, dom_id
+        return html_partial
 
     def _add_slider(
         self,
@@ -2521,7 +2530,7 @@ class Report:
         klass="",
         own_figure=True,
     ):
-        html, dom_id = self._render_slider(
+        html_partial = self._render_slider(
             figs=figs,
             imgs=imgs,
             title=title,
@@ -2535,9 +2544,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -3085,7 +3093,7 @@ class Report:
         # Render the slider
         captions = [f"Slice index: {i * decim}" for i in range(len(figs))]
         start_idx = int(round(len(figs) / 2))
-        html, _ = self._render_slider(
+        html_partial = self._render_slider(
             figs=figs,
             imgs=None,
             captions=captions,
@@ -3096,7 +3104,9 @@ class Report:
             klass="bem col-md",
             own_figure=True,
         )
-
+        # If we replace a BEM section this could end up like `axial-1`, but
+        # we never refer to it in the TOC so it's probably okay
+        html = html_partial(id_=self._get_dom_id(section="bem", title=orientation))
         return html
 
     def _add_html_repr(self, *, inst, title, tags, section, replace, div_klass):
@@ -3359,10 +3369,9 @@ class Report:
         else:
             sensitivity_maps_html = ""
 
-        dom_id = self._get_dom_id()
-        html = _html_forward_sol_element(
-            id=dom_id,
-            repr=forward._repr_html_(),
+        html_partial = partial(
+            _html_forward_sol_element,
+            repr_=forward._repr_html_(),
             sensitivity_maps=sensitivity_maps_html,
             title=title,
             tags=tags,
@@ -3370,9 +3379,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -3413,22 +3421,21 @@ class Report:
         #     set_3d_view(fig, focalpoint=(0., 0., 0.06))
         #     img = _fig_to_img(fig=fig, image_format=image_format)
 
-        #     dom_id = self._get_dom_id()
-        #     src_img_html = _html_image_element(
+        #     src_img_html = partial(
+        #         _html_image_element,
         #         img=img,
         #         div_klass='inverse-operator source-space',
         #         img_klass='inverse-operator source-space',
         #         title='Source space', caption=None, show=True,
-        #         image_format=image_format, id=dom_id,
+        #         image_format=image_format,
         #         tags=tags
         #     )
         # else:
         src_img_html = ""
 
-        dom_id = self._get_dom_id()
-        html = _html_inverse_operator_element(
-            id=dom_id,
-            repr=inverse_operator._repr_html_(),
+        html_partial = partial(
+            _html_inverse_operator_element,
+            repr_=inverse_operator._repr_html_(),
             source_space=src_img_html,
             title=title,
             tags=tags,
@@ -3436,9 +3443,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -3831,16 +3837,18 @@ class Report:
         )
 
     def _add_html_element(self, *, html, title, tags, section, replace, div_klass):
-        dom_id = self._get_dom_id()
-        html = _html_element(
-            div_klass=div_klass, id=dom_id, tags=tags, title=title, html=html
+        html_partial = partial(
+            _html_element,
+            div_klass=div_klass,
+            tags=tags,
+            title=title,
+            html=html,
         )
         self._add_or_replace(
             title=title,
             section=section,
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
@@ -4294,9 +4302,8 @@ class Report:
         html_slider_sagittal = htmls["sagittal"] if "sagittal" in htmls else ""
         html_slider_coronal = htmls["coronal"] if "coronal" in htmls else ""
 
-        dom_id = self._get_dom_id()
-        html = _html_bem_element(
-            id=dom_id,
+        html_partial = partial(
+            _html_bem_element,
             div_klass="bem",
             html_slider_axial=html_slider_axial,
             html_slider_sagittal=html_slider_sagittal,
@@ -4307,9 +4314,8 @@ class Report:
         self._add_or_replace(
             title=title,
             section=None,  # no nesting
-            dom_id=dom_id,
             tags=tags,
-            html=html,
+            html_partial=html_partial,
             replace=replace,
         )
 
