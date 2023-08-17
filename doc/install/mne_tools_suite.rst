@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 Overview of the MNE tools suite
 ===============================
 

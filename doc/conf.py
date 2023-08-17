@@ -1396,6 +1396,11 @@ for icon, classes in icon_class.items():
 
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
+
+.. include:: /links.inc
+.. include:: /changes/names.inc
+
+.. currentmodule:: mne
 """
 
 # -- Dependency info ----------------------------------------------------------
