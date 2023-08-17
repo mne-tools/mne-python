@@ -885,7 +885,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             bad_system |= _is_mesa(self.plotter)
             if not bad_system:
                 for renderer in self._all_renderers:
-                    renderer.enable_anti_aliasing()
+                    # ssaa broken on Linux at least (NVIDIA and Mesa)
+                    renderer.enable_anti_aliasing(aa_type="fxaa")
             for plotter in self._all_plotters:
                 plotter.ren_win.LineSmoothingOn()
 

@@ -29,7 +29,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bug with multi-plot 3D rendering where only one plot was updated (:gh:`11896` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
