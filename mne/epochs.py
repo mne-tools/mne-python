@@ -130,7 +130,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite):
     if part_idx > 0 and split_naming == "neuromag":
         fname = f"{base}-{part_idx:d}{ext}"
     elif split_naming == "bids" and n_parts > 1:
-        fname = _construct_bids_filename(base, ext, part_idx + 1, validate=False)
+        fname = _construct_bids_filename(base, ext, part_idx + 1)
     _check_fname(fname, overwrite=overwrite)
 
     next_fname, next_idx = None, None
@@ -140,9 +140,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite):
             next_fname = f"{base}-{next_idx:d}{ext}"
         else:
             assert split_naming == "bids"
-            next_fname = _construct_bids_filename(
-                base, ext, next_idx + 1, validate=False
-            )
+            next_fname = _construct_bids_filename(base, ext, next_idx + 1)
 
     with start_and_end_file(fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)

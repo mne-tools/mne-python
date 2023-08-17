@@ -1578,9 +1578,9 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
         ),
         (
             "bids",
-            "test-epo.fif",
+            "a_b-epo.fif",
             # Merely stating the fact:
-            lambda i: f"_split-{i + 1:02d}_test-epo.fif",
+            lambda i: f"a_split-{i + 1:02d}_b-epo.fif",
         ),
     ],
     ids=["neuromag", "bids", "mix"],
@@ -1627,6 +1627,30 @@ def test_saved_fname_no_splitting(
 
     assert dst_fpath.is_file()
     assert not split_1_fpath.is_file()
+
+
+@pytest.mark.parametrize(
+    "epochs_to_split",
+    [
+        ("3MB", 18, False, False, 3),
+        pytest.param(("2GB", 18, False, False, 1), marks=pytest.mark.xfail),
+    ],
+    indirect=True,
+)
+@pytest.mark.parametrize("dst_fname", ["test-epo.fif", "a_b_c-epo.fif"])
+def test_bids_splits_fail_for_bad_fname_ending(epochs_to_split, dst_fname, tmp_path):
+    """Make sure split_naming=bids is only used with bids endings
+
+    Non-bids endings can cause surprising split names, e.g. test-epo.fif
+    producing splits _split-01_test-epo.fif.
+
+    """
+    epochs, split_size, _ = epochs_to_split
+    dst_fpath = tmp_path / dst_fname
+    save_kwargs = {"split_naming": "bids", "split_size": split_size}
+
+    with pytest.raises(ValueError):
+        epochs.save(dst_fpath, verbose=True, **save_kwargs)
 
 
 @pytest.mark.parametrize(
