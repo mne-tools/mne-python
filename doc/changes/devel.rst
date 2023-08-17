@@ -29,7 +29,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bugs with saving splits for :class:`~mne.Epochs` (:gh:`11876` by `Dmitrii Altukhov`_) 
 
 API changes
 ~~~~~~~~~~~
