@@ -18,7 +18,7 @@
 
 .. _current:
 
-Development version (1.6.dev0)
+Version 1.6.dev0 (development)
 ------------------------------
 
 Enhancements
