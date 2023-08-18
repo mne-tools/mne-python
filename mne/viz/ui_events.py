@@ -11,6 +11,7 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
 from dataclasses import dataclass
+from typing import Optional
 from weakref import WeakKeyDictionary, WeakSet
 import re
 
@@ -121,10 +122,10 @@ class ColormapRange(UIEvent):
     %(alpha)s
     """
 
-    fmin: float = None
-    fmax: float = None
-    fmid: float = None
-    alpha: bool = None
+    fmin: Optional[float] = None
+    fmax: Optional[float] = None
+    fmid: Optional[float] = None
+    alpha: Optional[bool] = None
 
 
 @dataclass
