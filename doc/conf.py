@@ -16,11 +16,11 @@ import warnings
 import numpy as np
 import matplotlib
 import sphinx
+from sphinx.domains.changeset import versionlabels
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
-from mne.fixes import _compare_version
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (
     linkcode_resolve,  # noqa, analysis:ignore
@@ -577,6 +577,7 @@ sphinx_gallery_conf = {
             "../tutorials/clinical/",
             "../tutorials/simulation/",
             "../tutorials/sample-datasets/",
+            "../tutorials/visualization/",
             "../tutorials/misc/",
         ]
     ),
@@ -690,6 +691,9 @@ linkcheck_ignore = [  # will be compiled to regex
     "https://doi.org/10.1167/",  # jov.arvojournals.org
     "https://doi.org/10.1177/",  # journals.sagepub.com
     "https://doi.org/10.1063/",  # pubs.aip.org/aip/jap
+    "https://doi.org/10.1080/",  # www.tandfonline.com
+    "https://doi.org/10.1088/",  # www.tandfonline.com
+    "https://doi.org/10.3109/",  # www.tandfonline.com
     "https://www.researchgate.net/profile/",
     # 503 Server error
     "https://hal.archives-ouvertes.fr/hal-01848442",
@@ -748,6 +752,10 @@ nitpick_ignore_regex = [
 ]
 suppress_warnings = ["image.nonlocal_uri"]  # we intentionally link outside
 
+
+# -- Sphinx hacks / overrides ------------------------------------------------
+
+versionlabels["versionadded"] = sphinx.locale._("New in v%s")
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -1290,7 +1298,17 @@ def reset_warnings(gallery_conf, fname):
         )
     warnings.filterwarnings(
         "ignore",
-        message=("Matplotlib is currently using agg, which is a non-GUI backend.*"),
+        message="Matplotlib is currently using agg, which is a non-GUI backend.*",
+    )
+    warnings.filterwarnings(
+        "ignore",
+        message=".*is non-interactive, and thus cannot.*",
+    )
+    # seaborn
+    warnings.filterwarnings(
+        "ignore",
+        message="The figure layout has changed to tight",
+        category=UserWarning,
     )
     # matplotlib 3.6 in nilearn and pyvista
     warnings.filterwarnings("ignore", message=".*cmap function will be deprecated.*")
@@ -1378,6 +1396,11 @@ for icon, classes in icon_class.items():
 
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
+
+.. include:: /links.inc
+.. include:: /changes/names.inc
+
+.. currentmodule:: mne
 """
 
 # -- Dependency info ----------------------------------------------------------
@@ -1555,6 +1578,7 @@ sd = "sample-datasets"
 ml = "machine-learning"
 tf = "time-freq"
 si = "simulation"
+vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
@@ -1611,6 +1635,7 @@ custom_redirects = {
     f"{ex}/{co}/mne_inverse_envelope_correlation.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation.html",  # noqa E501
     f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
     f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",  # noqa E501
+    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",  # noqa E501
 }
 
 

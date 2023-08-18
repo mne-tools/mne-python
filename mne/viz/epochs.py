@@ -767,7 +767,7 @@ def plot_epochs(
     n_epochs=20,
     n_channels=20,
     title=None,
-    events=None,
+    events=False,
     event_color=None,
     order=None,
     show=True,
@@ -816,6 +816,10 @@ def plot_epochs(
             align with the data.
 
         .. versionadded:: 0.14.0
+
+        .. versionchanged:: 1.6
+            Passing ``events=None`` was disallowed.
+            The new equivalent is ``events=False``.
     %(event_color)s
         Defaults to ``None``.
     order : array of str | None
@@ -964,13 +968,7 @@ def plot_epochs(
     boundary_times = np.arange(len(epochs) + 1) * len(epochs.times) / sfreq
 
     # events
-    if events is None:
-        warn(
-            "The current default events=None is deprecated and will change to "
-            "events=True in MNE 1.6. Set events=False to suppress this warning.",
-            category=FutureWarning,
-        )
-        events = False
+    _validate_type(events, (bool, np.ndarray), "events")
     if events is False:
         event_nums = None
         event_times = None

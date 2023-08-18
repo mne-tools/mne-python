@@ -498,6 +498,6 @@ def compute_rank(
                     "setting it explicitly as an integer." % (this_rank, this_info_rank)
                 )
         if ch_type not in rank:
-            rank[ch_type] = this_rank
+            rank[ch_type] = int(this_rank)
 
     return rank

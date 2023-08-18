@@ -2120,7 +2120,7 @@ def detrend(x, order=1, axis=-1):
         >>> npoints = int(1e3)
         >>> noise = randgen.randn(npoints)
         >>> x = 3 + 2*np.linspace(0, 1, npoints) + noise
-        >>> (detrend(x) - noise).max() < 0.01
+        >>> bool((detrend(x) - noise).max() < 0.01)
         True
     """
     from scipy.signal import detrend

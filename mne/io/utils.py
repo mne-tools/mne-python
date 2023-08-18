@@ -84,7 +84,7 @@ def _mult_cal_one(data_view, one, idx, cals, mult):
         one.shape[1],
     )  # noqa: E501
     if mult is not None:
-        mult.ndim == one.ndim == 2
+        assert mult.ndim == one.ndim == 2
         data_view[:] = mult @ one[idx]
     else:
         assert cals is not None
@@ -342,3 +342,18 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname
+
+
+def _make_split_fnames(fname, n_splits, split_naming):
+    """Make a list of split filenames."""
+    if n_splits == 1:
+        return [fname]
+    res = []
+    base, ext = op.splitext(fname)
+    for i in range(n_splits):
+        if split_naming == "neuromag":
+            res.append(f"{base}-{i:d}{ext}" if i else fname)
+        else:
+            assert split_naming == "bids"
+            res.append(_construct_bids_filename(base, ext, i + 1))
+    return res

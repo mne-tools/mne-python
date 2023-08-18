@@ -250,9 +250,9 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
             def _fun(x):
                 return np.nanmean(np.abs(x))
 
+            agg_df = gb.agg(_fun)
         else:
-            _fun = np.nanmean
-        agg_df = gb.aggregate(_fun)
+            agg_df = gb.mean()  # excludes missing values itself
     else:
         gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
         agg_df = gb.apply(_agg_helper, spectrum._mt_weights, grouping_cols)
@@ -373,3 +373,16 @@ def test_spectrum_complex(method, average):
         coef = coef.mean(-1)  # over segments
     coef = coef.item()
     assert_allclose(np.angle(coef), phase, rtol=1e-4)
+
+
+def test_spectrum_kwarg_triaging(raw):
+    """Test kwarg triaging in legacy plot_psd() method."""
+    import matplotlib.pyplot as plt
+
+    regex = r"legacy plot_psd\(\) method.*unexpected keyword.*'axes'.*Try rewriting"
+    fig, axes = plt.subplots(1, 2)
+    # `axes` is the new param name: technically only valid for Spectrum.plot()
+    with pytest.warns(RuntimeWarning, match=regex):
+        raw.plot_psd(axes=axes)
+    # `ax` is the correct legacy param name
+    raw.plot_psd(ax=axes)

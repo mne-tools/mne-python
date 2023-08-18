@@ -42,6 +42,7 @@ from . import persyst
 from . import eeglab
 from . import pick
 from . import nihon
+from . import nsx
 
 from .array import RawArray
 from .besa import read_evoked_besa
@@ -67,6 +68,7 @@ from .snirf import read_raw_snirf
 from .persyst import read_raw_persyst
 from .fieldtrip import read_raw_fieldtrip, read_epochs_fieldtrip, read_evoked_fieldtrip
 from .nihon import read_raw_nihon
+from .nsx import read_raw_nsx
 from ._read_raw import read_raw
 from .eyelink import read_raw_eyelink
 

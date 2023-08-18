@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _documentation_overview:
 
 Documentation overview

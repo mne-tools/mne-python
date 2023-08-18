@@ -54,18 +54,7 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_version(library, min_version="0.0"):
-    """Check for a library version."""
-    import pytest
-
-    reason = f"Requires {library}"
-    if min_version != "0.0":
-        reason += f" version >= {min_version}"
-    return pytest.mark.skipif(not check_version(library, min_version), reason=reason)
-
-
-def requires_module(function, name, call=None):
-    """Skip a test if package is not available (decorator)."""
+def _requires_module(function, name, *, call):
     import pytest
 
     call = ("import %s" % name) if call is None else call
@@ -91,16 +80,7 @@ if not has_freesurfer():
     raise ImportError
 """
 
-_n2ft_call = """
-if 'NEUROMAG2FT_ROOT' not in os.environ:
-    raise ImportError
-"""
-
-requires_pandas = partial(requires_module, name="pandas")
-requires_pylsl = partial(requires_module, name="pylsl")
-requires_sklearn = partial(requires_module, name="sklearn")
-requires_mne = partial(requires_module, name="MNE-C", call=_mne_call)
-requires_mne_qt_browser = partial(requires_module, name="mne_qt_browser")
+requires_mne = partial(_requires_module, name="MNE-C", call=_mne_call)
 
 
 def requires_mne_mark():
@@ -130,29 +110,19 @@ run_subprocess([%r, '--version'])
 """ % (
             arg,
         )
-        return partial(requires_module, name="Freesurfer (%s)" % (arg,), call=call)
+        return partial(_requires_module, name="Freesurfer (%s)" % (arg,), call=call)
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return requires_module(arg, name="Freesurfer", call=_fs_call)
+        return _requires_module(arg, name="Freesurfer", call=_fs_call)
 
-
-requires_neuromag2ft = partial(requires_module, name="neuromag2ft", call=_n2ft_call)
 
 requires_good_network = partial(
-    requires_module,
+    _requires_module,
     name="good network connection",
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
     "    raise ImportError",
 )
-requires_nitime = partial(requires_module, name="nitime")
-# just keep this in case downstream packages need it (no coverage hit here)
-requires_h5py = partial(requires_module, name="h5py")
-
-
-def requires_numpydoc(func):
-    """Decorate tests that need numpydoc."""
-    return requires_version("numpydoc", "1.0")(func)  # validate needs 1.0
 
 
 def run_command_if_main():

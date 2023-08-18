@@ -145,9 +145,19 @@ def plt_show(show=True, fig=None, **kwargs):
 
     if hasattr(fig, "mne") and hasattr(fig.mne, "backend"):
         backend = fig.mne.backend
+        # TODO: This is a hack to deal with the fact that the
+        # with plt.ion():
+        #     BACKEND = get_backend()
+        # an the top of _mpl_figure detects QtAgg during testing even though
+        # we've set the backend to Agg.
+        if backend != "agg":
+            gotten_backend = get_backend()
+            if gotten_backend == "agg":
+                backend = "agg"
     else:
         backend = get_backend()
     if show and backend != "agg":
+        logger.debug(f"Showing plot for backend {repr(backend)}")
         (fig or plt).show(**kwargs)
 
 
@@ -175,9 +185,12 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     if backend == "matplotlib":
         plt_show(show, block=block, **kwargs)
     else:
+        from qtpy.QtCore import Qt
         from qtpy.QtWidgets import QApplication
         from .backends._utils import _qt_app_exec
 
+        if fig is not None and os.getenv("_MNE_BROWSER_BACK", "").lower() == "true":
+            fig.setWindowFlags(fig.windowFlags() | Qt.WindowStaysOnBottomHint)
         if show:
             fig.show()
         # If block=False, a Qt-Event-Loop has to be started
@@ -1293,6 +1306,7 @@ def _plot_sensors(
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 analysis:ignore
     from .topomap import _get_pos_outlines, _draw_outlines
 
+    ch_names = [str(ch_name) for ch_name in ch_names]
     sphere = _check_sphere(sphere, info)
 
     edgecolors = np.repeat(rcParams["axes.edgecolor"], len(colors))

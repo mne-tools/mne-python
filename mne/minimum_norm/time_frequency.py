@@ -7,6 +7,7 @@ import numpy as np
 
 from ..epochs import Epochs, make_fixed_length_events
 from ..evoked import EvokedArray
+from ..fixes import _safe_svd
 from ..io.constants import FIFF
 from ..io.pick import pick_info
 from ..source_estimate import _make_stc
@@ -47,8 +48,6 @@ def _prepare_source_params(
     verbose=None,
 ):
     """Prepare inverse operator and params for spectral / TFR analysis."""
-    from scipy import linalg
-
     inv = _check_or_prepare(
         inverse_operator, nave, lambda2, method, method_params, prepared
     )
@@ -71,7 +70,7 @@ def _prepare_source_params(
     )
 
     if pca:
-        U, s, Vh = linalg.svd(K, full_matrices=False)
+        U, s, Vh = _safe_svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
@@ -103,6 +102,7 @@ def source_band_induced_power(
     prepared=False,
     method_params=None,
     use_cps=True,
+    *,
     verbose=None,
 ):
     """Compute source space induced power in given frequency bands.
@@ -578,7 +578,7 @@ def compute_source_psd(
     return_sensor=False,
     dB=False,
     *,
-    verbose=None
+    verbose=None,
 ):
     """Compute source power spectral density (PSD).
 

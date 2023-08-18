@@ -18,7 +18,7 @@ import os.path as op
 
 import numpy as np
 
-from .io.utils import _construct_bids_filename
+from .io.utils import _make_split_fnames
 from .io.write import (
     start_and_end_file,
     start_block,
@@ -56,11 +56,12 @@ from .io.pick import (
     _picks_to_idx,
 )
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, TimeMixin, _get_ch_factors
+from .io.base import BaseRaw, _get_ch_factors
+from .io.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import UpdateChannelsMixin, SetChannelsMixin, InterpolationMixin
+from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
@@ -99,6 +100,7 @@ from .utils import (
     _validate_type,
     _ensure_events,
     _path_like,
+    ExtendedTimeMixin,
 )
 from .utils.docs import fill_doc
 from .annotations import (
@@ -117,36 +119,22 @@ def _pack_reject_params(epochs):
     return reject_params
 
 
-def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite):
+def _save_split(epochs, split_fnames, part_idx, n_parts, fmt, overwrite):
     """Split epochs.
 
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
     """
     # insert index in filename
-    base, ext = op.splitext(fname)
-    if part_idx > 0:
-        if split_naming == "neuromag":
-            fname = "%s-%d%s" % (base, part_idx, ext)
-        else:
-            assert split_naming == "bids"
-            fname = _construct_bids_filename(base, ext, part_idx, validate=False)
-            _check_fname(fname, overwrite=overwrite)
+    this_fname = split_fnames[part_idx]
+    _check_fname(this_fname, overwrite=overwrite)
 
-    next_fname = None
+    next_fname, next_idx = None, None
     if part_idx < n_parts - 1:
-        if split_naming == "neuromag":
-            next_fname = "%s-%d%s" % (base, part_idx + 1, ext)
-        else:
-            assert split_naming == "bids"
-            next_fname = _construct_bids_filename(
-                base, ext, part_idx + 1, validate=False
-            )
         next_idx = part_idx + 1
-    else:
-        next_idx = None
+        next_fname = split_fnames[next_idx]
 
-    with start_and_end_file(fname) as fid:
+    with start_and_end_file(this_fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
 
@@ -381,10 +369,11 @@ class BaseEpochs(
     ProjMixin,
     ContainsMixin,
     UpdateChannelsMixin,
+    ReferenceMixin,
     SetChannelsMixin,
     InterpolationMixin,
     FilterMixin,
-    TimeMixin,
+    ExtendedTimeMixin,
     SizeMixin,
     GetEpochsMixin,
     EpochAnnotationsMixin,
@@ -1284,7 +1273,7 @@ class BaseEpochs(
         n_epochs=20,
         n_channels=20,
         title=None,
-        events=None,
+        events=False,
         event_color=None,
         order=None,
         show=True,
@@ -2146,13 +2135,14 @@ class BaseEpochs(
 
         epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
+        _check_option("split_naming", split_naming, ("neuromag", "bids"))
+        split_fnames = _make_split_fnames(fname, n_parts, split_naming)
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
-            _save_split(
-                this_epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite
-            )
+
+            _save_split(this_epochs, split_fnames, part_idx, n_parts, fmt, overwrite)
 
     @verbose
     def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):

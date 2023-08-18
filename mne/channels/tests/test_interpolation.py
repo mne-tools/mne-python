@@ -15,7 +15,7 @@ from mne.preprocessing.nirs import (
 )
 from mne.io import read_raw_nirx
 from mne.io.proj import _has_eeg_average_ref_proj
-from mne.utils import _record_warnings, requires_version
+from mne.utils import _record_warnings
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
@@ -162,7 +162,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    with pytest.raises(RuntimeError, match="requires epochs data to be loade"):
+    with pytest.raises(RuntimeError, match="requires epochs data to be load"):
         epochs_eeg.interpolate_bads(**kw)
     epochs_eeg.preload = True
 
@@ -302,10 +302,10 @@ def test_interpolation_ctf_comp():
     assert raw.info["bads"] == []
 
 
-@requires_version("pymatreader")
 @testing.requires_testing_data
 def test_interpolation_nirs():
     """Test interpolating bad nirs channels."""
+    pytest.importorskip("pymatreader")
     fname = testing_path / "NIRx" / "nirscout" / "nirx_15_2_recording_w_overlap"
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
