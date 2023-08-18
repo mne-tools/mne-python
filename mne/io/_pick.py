@@ -4,9 +4,20 @@
 
 
 from .._fiff import _io_dep_getattr
-from .._fiff.pick import _picks_to_idx
+from .._fiff.pick import (
+    _picks_to_idx,
+    _DATA_CH_TYPES_ORDER_DEFAULT,
+    _DATA_CH_TYPES_SPLIT,
+    channel_indices_by_type,
+)
 
-__all__ = ["_picks_to_idx"]
+__all__ = [
+    "_picks_to_idx",
+    # mne-qt-browser
+    "_DATA_CH_TYPES_ORDER_DEFAULT",
+    "_DATA_CH_TYPES_SPLIT",
+    "channel_indices_by_type",
+]
 
 
 def __getattr__(name):
