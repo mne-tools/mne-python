@@ -16,6 +16,7 @@ from .defaults import (
     _BORDER_DEFAULT,
     DEFAULTS,
 )
+from .fixes import _safe_svd
 from .io.write import start_and_end_file
 from .io.proj import (
     make_projector,
@@ -1963,8 +1964,6 @@ def regularize(
     --------
     mne.compute_covariance
     """  # noqa: E501
-    from scipy import linalg
-
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default("scalings_cov_rank", scalings)
@@ -2060,7 +2059,7 @@ def regularize(
                 P, ncomp, _ = make_projector(projs, this_ch_names)
                 if ncomp > 0:
                     # This adjustment ends up being redundant if rank is None:
-                    U = linalg.svd(P)[0][:, :-ncomp]
+                    U = _safe_svd(P)[0][:, :-ncomp]
                     logger.info(
                         "    Created an SSP operator for %s "
                         "(dimension = %d)" % (desc, ncomp)

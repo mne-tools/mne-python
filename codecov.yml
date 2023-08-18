@@ -4,7 +4,7 @@ github_checks:  # too noisy, even though "a" interactively disables them
 
 codecov:
   notify:
-    require_ci_to_pass: no
+    require_ci_to_pass: false
 
 coverage:
   status:

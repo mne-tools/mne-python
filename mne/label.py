@@ -13,6 +13,7 @@ import re
 
 import numpy as np
 
+from .fixes import _safe_svd
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -1462,8 +1463,6 @@ def label_sign_flip(label, src):
     flip : array
         Sign flip vector (contains 1 or -1).
     """
-    from scipy import linalg
-
     if len(src) != 2:
         raise ValueError("Only source spaces with 2 hemisphers are accepted")
 
@@ -1486,7 +1485,7 @@ def label_sign_flip(label, src):
     if len(ori) == 0:
         return np.array([], int)
 
-    _, _, Vh = linalg.svd(ori, full_matrices=False)
+    _, _, Vh = _safe_svd(ori, full_matrices=False)
 
     # The sign of Vh is ambiguous, so we should align to the max-positive
     # (outward) direction
@@ -1645,7 +1644,7 @@ def stc_to_label(
 
 
 def _verts_within_dist(graph, sources, max_dist):
-    """Find all vertices wihin a maximum geodesic distance from source.
+    """Find all vertices within a maximum geodesic distance from source.
 
     Parameters
     ----------

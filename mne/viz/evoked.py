@@ -226,8 +226,8 @@ def _line_plot_onselect(
 def _topo_closed(events, ax, lines, fill):
     """Remove lines from evoked plot as topomap is closed."""
     for line in lines:
-        ax.lines.remove(line)
-    ax.patches.remove(fill)
+        line.remove()
+    fill.remove()
     ax.get_figure().canvas.draw()
 
 

@@ -595,3 +595,42 @@ def test_linalg_warning():
             (RuntimeWarning, UserWarning), match="[Singular|scipy.linalg.solve]"
         ):
             rf.fit(y, X)
+
+
+def test_tdr_sklearn_compliance():
+    """Test sklearn estimator compliance."""
+    pytest.importorskip("sklearn")
+    from sklearn.utils.estimator_checks import check_estimator
+
+    tdr = TimeDelayingRidge(0, 10, 1.0, 0.1, "laplacian", n_jobs=1)
+    # We don't actually comply with a bunch of the regressor specs :(
+    ignores = (
+        "check_supervised_y_no_nan",
+        "check_regressor",
+        "check_parameters_default_constructible",
+        "check_estimators_unfitted",
+        "_invariance",
+        "check_fit2d_1sample",
+    )
+    for est, check in check_estimator(tdr, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)
+
+
+def test_rf_sklearn_compliance():
+    """Test sklearn RF compliance."""
+    pytest.importorskip("sklearn")
+    from sklearn.linear_model import Ridge
+    from sklearn.utils.estimator_checks import check_estimator
+
+    rf = ReceptiveField(-1, 2, 1.0, estimator=Ridge(), patterns=True)
+    ignores = (
+        "check_parameters_default_constructible",
+        "_invariance",
+        "check_fit2d_1sample",
+    )
+    for est, check in check_estimator(rf, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)

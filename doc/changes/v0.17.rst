@@ -24,7 +24,7 @@ Changelog
 
 - Add optically pumped magnetometer dataset and example by `Rasmus Zetter`_ and `Eric Larson`_
 
-- Add ``orgin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
+- Add ``origin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
 
 - Add ``title`` argument to :meth:`mne.SourceEstimate.plot` by `Eric Larson`_
 

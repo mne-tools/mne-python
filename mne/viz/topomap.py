@@ -18,6 +18,7 @@ import warnings
 
 import numpy as np
 
+from . import ui_events
 from ..baseline import rescale
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
@@ -2057,6 +2058,11 @@ def plot_evoked_topomap(
     :meth:`axes.set_position() <matplotlib.axes.Axes.set_position>` method or
     :doc:`gridspec <matplotlib:tutorials/intermediate/arranging_axes>`
     interface to adjust the colorbar size yourself.
+
+    When ``time=="interactive"``, the figure will publish and subscribe to the
+    following events:
+
+    * :class:`~mne.viz.ui_events.TimeChange` whenever a new time is selected.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
@@ -2295,6 +2301,8 @@ def plot_evoked_topomap(
             axes[ax_idx].set_title(axes_title)
 
     if interactive:
+        # Add a slider to the figure and start publishing and subscribing to time_change
+        # events.
         kwargs.update(vlim=_vlim)
         axes.append(plt.subplot(gs[1, :-1]))
         slider = Slider(
@@ -2307,22 +2315,32 @@ def plot_evoked_topomap(
         )
         slider.vline.remove()  # remove initial point indicator
         func = _merge_ch_data if merge_channels else lambda x: x
-        changed_callback = partial(
-            _slider_changed,
-            ax=axes[0],
-            data=evoked.data,
-            times=evoked.times,
-            pos=pos,
-            scaling=scaling,
-            func=func,
-            time_format=time_format,
-            scaling_time=scaling_time,
-            kwargs=kwargs,
-        )
-        slider.on_changed(changed_callback)
+
+        def _slider_changed(val):
+            ui_events.publish(fig, ui_events.TimeChange(time=val))
+
+        slider.on_changed(_slider_changed)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color="k")
         axes[-1].slider = slider
+
+        ui_events.subscribe(
+            fig,
+            "time_change",
+            partial(
+                _on_time_change,
+                fig=fig,
+                data=evoked.data,
+                times=evoked.times,
+                pos=pos,
+                scaling=scaling,
+                func=func,
+                time_format=time_format,
+                scaling_time=scaling_time,
+                slider=slider,
+                kwargs=kwargs,
+            ),
+        )
 
     if colorbar:
         if interactive:
@@ -2389,19 +2407,35 @@ def _resize_cbar(cax, n_fig_axes, size=1):
     cax.set_position(cpos)
 
 
-def _slider_changed(
-    val, ax, data, times, pos, scaling, func, time_format, scaling_time, kwargs
+def _on_time_change(
+    event,
+    fig,
+    data,
+    times,
+    pos,
+    scaling,
+    func,
+    time_format,
+    scaling_time,
+    slider,
+    kwargs,
 ):
-    """Handle selection in interactive topomap."""
-    idx = np.argmin(np.abs(times - val))
+    """Handle updating topomap to show a new time."""
+    idx = np.argmin(np.abs(times - event.time))
     data = func(data[:, idx]).ravel() * scaling
+    ax = fig.axes[0]
     ax.clear()
     im, _ = plot_topomap(data, pos, axes=ax, **kwargs)
     if hasattr(ax, "CB"):
         ax.CB.mappable = im
         _resize_cbar(ax.CB.cbar.ax, 2)
     if time_format is not None:
-        ax.set_title(time_format % (val * scaling_time))
+        ax.set_title(time_format % (event.time * scaling_time))
+    # Updating the slider will generate a new time_change event. To prevent an
+    # infinite loop, only update the slider if the time has actually changed.
+    if event.time != slider.val:
+        slider.set_val(event.time)
+    ax.figure.canvas.draw_idle()
 
 
 def _plot_topomap_multi_cbar(
@@ -2730,7 +2764,8 @@ def plot_psds_topomap(
     if dB and not normalize:
         band_data = [10 * np.log10(_d) for _d in band_data]
     # handle vmin/vmax
-    if vlim == "joint":
+    joint_vlim = vlim == "joint"
+    if joint_vlim:
         vlim = (np.array(band_data).min(), np.array(band_data).max())
     # unit label
     if unit is None:
@@ -2754,7 +2789,7 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
         axes, freq_masks, band_data, bands.items()
     ):
-        colorbar = vlim != "joint" or ax == axes[-1]
+        colorbar = (not joint_vlim) or ax == axes[-1]
         _plot_topomap_multi_cbar(
             _data,
             pos,
