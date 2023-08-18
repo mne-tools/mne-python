@@ -1037,7 +1037,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
     pytest.importorskip("sphinx_gallery")
     stc = read_source_estimate(fname_stc, subject="sample")
-    size = (600, 300)
+    size = (600, 400)
     brain = stc.plot(
         subjects_dir=subjects_dir,
         time_viewer=True,
