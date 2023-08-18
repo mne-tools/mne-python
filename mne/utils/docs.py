@@ -2503,9 +2503,9 @@ docdict[
 ] = """\
 **method_kw
     Additional keyword arguments passed to the spectral estimation
-    function (e.g., ``n_fft, n_overlap, n_per_seg, average, window, remove_dc``
+    function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
     for Welch method, or
-    ``bandwidth, adaptive, low_bias, normalization, remove_dc`` for multitaper
+    ``bandwidth, adaptive, low_bias, normalization`` for multitaper
     method). See :func:`~mne.time_frequency.psd_array_welch` and
     :func:`~mne.time_frequency.psd_array_multitaper` for details.
 """
