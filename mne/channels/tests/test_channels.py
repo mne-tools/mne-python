@@ -38,7 +38,7 @@ from mne.io import (
     read_raw_kit,
     RawArray,
 )
-from mne.io.constants import FIFF, _ch_unit_mul_named
+from mne._fiff.constants import FIFF, _ch_unit_mul_named
 from mne import (
     pick_types,
     pick_channels,

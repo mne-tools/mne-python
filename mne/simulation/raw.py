@@ -12,17 +12,18 @@ import numpy as np
 
 from ..event import _get_stim_channel
 from .._ola import _Interp2
-from ..io.pick import pick_types, pick_info, pick_channels, pick_channels_forward
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import Info
+from .._fiff.pick import pick_types, pick_info, pick_channels, pick_channels_forward
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
-from ..io import RawArray, BaseRaw, Info
+from ..io import RawArray, BaseRaw
 from ..chpi import (
     read_head_pos,
     head_pos_to_trans_rot_t,
     get_chpi_info,
     _get_hpi_initial_fit,
 )
-from ..io.constants import FIFF
 from ..forward import (
     _magnetic_dipole_field_vec,
     _merge_fwds,

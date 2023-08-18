@@ -12,7 +12,7 @@ import numpy as np
 
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
-from ..io.pick import pick_types, pick_channels
+from .._fiff.pick import pick_types, pick_channels
 from ..time_frequency import Spectrum
 from ..utils import legacy, verbose, _validate_type, _check_option
 from ..utils.spectrum import _split_psd_kwargs
@@ -232,7 +232,7 @@ def plot_raw(
 
     %(notes_2d_backend)s
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ._figure import _get_browser
 
     info = raw.info.copy()

@@ -48,12 +48,12 @@ from .viz import (
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
 from .viz.topomap import _topomap_animation
 
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import read_tag
-from .io.tree import dir_tree_find
-from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from .io.meas_info import (
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import read_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
+from ._fiff.meas_info import (
     ContainsMixin,
     SetChannelsMixin,
     read_meas_info,
@@ -62,8 +62,8 @@ from .io.meas_info import (
     _rename_list,
     _ensure_infos_match,
 )
-from .io.proj import ProjMixin
-from .io.write import (
+from ._fiff.proj import ProjMixin
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     end_block,

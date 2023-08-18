@@ -18,7 +18,7 @@ from numbers import Integral
 import numpy as np
 
 from ..fixes import _is_last_row
-from ..io.pick import (
+from .._fiff.pick import (
     channel_type,
     _VALID_CHANNEL_TYPES,
     channel_indices_by_type,

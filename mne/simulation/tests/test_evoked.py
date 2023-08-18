@@ -23,11 +23,11 @@ from mne import (
     EpochsArray,
     compute_covariance,
     compute_raw_covariance,
+    pick_channels_cov,
 )
 from mne.datasets import testing
 from mne.simulation import simulate_sparse_stc, simulate_evoked, add_noise
 from mne.io import read_raw_fif
-from mne.io.pick import pick_channels_cov
 from mne.cov import regularize, whiten_evoked
 from mne.utils import catch_logging
 

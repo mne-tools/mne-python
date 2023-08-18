@@ -9,7 +9,7 @@ import pytest
 from numpy.testing import assert_array_equal
 
 from mne.io.kit import read_mrk
-from mne.io._digitization import _write_dig_points
+from mne._fiff._digitization import _write_dig_points
 
 mrk_fname = Path(__file__).parent / "data" / "test_mrk.sqd"
 

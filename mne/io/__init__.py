@@ -5,23 +5,7 @@
 #
 # License: BSD-3-Clause
 
-from .open import fiff_open, show_fiff, _fiff_get_fid
-from .meas_info import (
-    read_fiducials,
-    write_fiducials,
-    read_info,
-    write_info,
-    _empty_info,
-    _merge_info,
-    _force_update_info,
-    Info,
-    anonymize_info,
-    _writing_info_hdf5,
-)
-
-from .proj import make_eeg_average_ref_proj, Projection
-from .tag import _loc_to_coil_trans, _coil_trans_to_loc, _loc_to_eeg_loc
-from .base import BaseRaw
+from .base import BaseRaw, concatenate_raws, match_channel_orders
 
 from . import array
 from . import base
@@ -29,7 +13,6 @@ from . import brainvision
 from . import bti
 from . import cnt
 from . import ctf
-from . import constants
 from . import edf
 from . import egi
 from . import fiff
@@ -40,7 +23,6 @@ from . import nirx
 from . import boxy
 from . import persyst
 from . import eeglab
-from . import pick
 from . import nihon
 from . import nsx
 
@@ -54,7 +36,7 @@ from .curry import read_raw_curry
 from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf
 from .egi import read_raw_egi, read_evokeds_mff
 from .kit import read_raw_kit, read_epochs_kit
-from .fiff import read_raw_fif
+from .fiff import read_raw_fif, Raw
 from .fil import read_raw_fil
 from .nedf import read_raw_nedf
 from .nicolet import read_raw_nicolet
@@ -72,9 +54,53 @@ from .nsx import read_raw_nsx
 from ._read_raw import read_raw
 from .eyelink import read_raw_eyelink
 
+# Backward compat since these were in the public API before switching to _fiff
+# (and _empty_info is convenient to keep here for tests and is private)
+from .._fiff.meas_info import read_info, read_fiducials, write_fiducials, _empty_info
+from .._fiff.open import show_fiff
+from . import constants
+from . import pick
 
-# for backward compatibility
-from .fiff import Raw
-from .fiff import Raw as RawFIF
-from .base import concatenate_raws, match_channel_orders
-from .reference import set_eeg_reference, set_bipolar_reference, add_reference_channels
+# These we will remove in 1.6
+from .._fiff import (
+    _dep_msg,
+    reference as _fiff_reference,
+    meas_info as _fiff_meas_info,
+)
+
+
+def __getattr__(name):
+    """Try getting attribute from fiff submodule."""
+    from ..utils import warn
+
+    if name in ("meas_info", "proj", "reference"):
+        warn(f"mne.io.{name} {_dep_msg}", FutureWarning)
+        return importlib.import_module(f"mne.io.{name}")
+    elif name in (
+        "set_eeg_reference",
+        "set_bipolar_reference",
+        "add_reference_channels",
+    ):
+        warn(
+            f"mne.io.{name} is deprecated and will be removed in 1.6, "
+            "use mne.{name} instead",
+            FutureWarning,
+        )
+        return getattr(_fiff_reference, name)
+    elif name == "RawFIF":
+        warn(
+            "RawFIF is deprecated and will be removed in 1.6, use Raw instead",
+            FutureWarning,
+        )
+        return Raw
+    elif name == "Info":
+        warn(
+            "mne.io.Info is deprecated and will be removed in 1.6, "
+            "use mne.Info instead",
+            FutureWarning,
+        )
+        return _fiff_meas_info.Info
+    try:
+        return globals()[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__} has no attribute {name}") from None

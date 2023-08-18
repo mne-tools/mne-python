@@ -41,7 +41,7 @@ from .utils import (
     open_docs,
     use_log_level,
 )
-from .io.pick import (
+from ._fiff.pick import (
     pick_types,
     pick_channels,
     pick_channels_regexp,
@@ -53,16 +53,16 @@ from .io.pick import (
     channel_indices_by_type,
 )
 from .io.base import concatenate_raws, match_channel_orders
-from .io.meas_info import create_info, Info
-from .io.proj import Projection
+from ._fiff.meas_info import create_info, Info
+from ._fiff.proj import Projection
 from .io.kit import read_epochs_kit
 from .io.eeglab import read_epochs_eeglab
-from .io.reference import (
+from ._fiff.reference import (
     set_eeg_reference,
     set_bipolar_reference,
     add_reference_channels,
 )
-from .io.what import what
+from ._fiff.what import what
 from .bem import (
     make_sphere_model,
     make_bem_model,

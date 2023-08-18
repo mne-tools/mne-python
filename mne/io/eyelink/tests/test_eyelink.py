@@ -9,7 +9,7 @@ from mne.io import read_raw_eyelink
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.constants import FIFF
 from mne.io.eyelink.eyelink import _adjust_times, _find_overlaps
-from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 
 pd = pytest.importorskip("pandas")
 

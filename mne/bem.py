@@ -21,9 +21,9 @@ import shutil
 import numpy as np
 
 from .fixes import _compare_version, _safe_svd
-from .io.constants import FIFF, FWD
-from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
-from .io.write import (
+from ._fiff.constants import FIFF, FWD
+from ._fiff._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     write_float,
@@ -33,9 +33,9 @@ from .io.write import (
     end_block,
     write_string,
 )
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.open import fiff_open
 from .surface import (
     read_surface,
     write_surface,

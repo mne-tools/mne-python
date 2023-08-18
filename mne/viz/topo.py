@@ -12,7 +12,7 @@ from functools import partial
 
 import numpy as np
 
-from ..io.pick import channel_type, pick_types
+from .._fiff.pick import channel_type, pick_types
 from ..utils import _clean_names, _check_option, Bunch, fill_doc, _to_rgb
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default

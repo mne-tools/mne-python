@@ -27,16 +27,17 @@ from mne import (
     pick_channels_forward,
     read_evokeds,
     find_events,
+    Projection,
 )
 from mne.epochs import BaseEpochs, make_fixed_length_epochs
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
-from mne.io.proj import _has_eeg_average_ref_proj, Projection
-from mne.io.reference import _apply_reference
+from mne._fiff.proj import _has_eeg_average_ref_proj
+from mne._fiff.reference import _apply_reference
 from mne.datasets import testing
 from mne.utils import catch_logging, _record_warnings
 
-base_dir = Path(__file__).parent / "data"
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 data_dir = testing.data_path(download=False) / "MEG" / "sample"
 fif_fname = data_dir / "sample_audvis_trunc_raw.fif"

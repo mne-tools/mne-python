@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal
 from mne.io import read_info
 from mne.io.constants import FIFF
 
-base_dir = Path(__file__).parent / "data"
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 raw_fname = base_dir / "test_chpi_raw_sss.fif"
 
 

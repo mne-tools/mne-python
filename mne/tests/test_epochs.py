@@ -46,9 +46,9 @@ from mne.datasets import testing
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
 from mne.io import RawArray, read_raw_fif
-from mne.io.constants import FIFF
-from mne.io.proj import _has_eeg_average_ref_proj
-from mne.io.write import write_int, INT32_MAX, _get_split_size, write_float
+from mne._fiff.constants import FIFF
+from mne._fiff.proj import _has_eeg_average_ref_proj
+from mne._fiff.write import write_int, INT32_MAX, _get_split_size, write_float
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap,

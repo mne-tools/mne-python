@@ -21,18 +21,6 @@ from .tree import dir_tree_find
 from .tag import read_tag
 from .write import start_and_end_file, write_dig_points
 
-from ..transforms import (
-    apply_trans,
-    Transform,
-    get_ras_to_neuromag_trans,
-    combine_transforms,
-    invert_transform,
-    _to_const,
-    _str_to_frame,
-    _coord_frame_name,
-)
-from .. import __version__
-
 _dig_kind_dict = {
     "cardinal": FIFF.FIFFV_POINT_CARDINAL,
     "hpi": FIFF.FIFFV_POINT_HPI,
@@ -141,6 +129,8 @@ class DigPoint(dict):
     """
 
     def __repr__(self):  # noqa: D105
+        from ..transforms import _coord_frame_name
+
         if self["kind"] == FIFF.FIFFV_POINT_CARDINAL:
             id_ = _cardinal_kind_rev.get(self["ident"], "Unknown cardinal")
         else:
@@ -227,6 +217,8 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
 
         .. versionadded:: 1.0
     """
+    from ..transforms import _to_const
+
     fname = _check_fname(fname, overwrite=overwrite)
     if coord_frame is not None:
         coord_frame = _to_const(coord_frame)
@@ -376,6 +368,8 @@ def _write_dig_points(fname, dig_points):
     dig_points : numpy.ndarray, shape (n_points, 3)
         Points.
     """
+    from .. import __version__
+
     _, ext = op.splitext(fname)
     dig_points = np.asarray(dig_points)
     if (dig_points.ndim != 2) or (dig_points.shape[1] != 3):
@@ -398,6 +392,8 @@ def _write_dig_points(fname, dig_points):
 
 
 def _coord_frame_const(coord_frame):
+    from ..transforms import _str_to_frame
+
     if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
         raise ValueError(
             "coord_frame must be one of %s, got %s"
@@ -564,6 +560,12 @@ def _make_dig_points(
 
 
 def _call_make_dig_points(nasion, lpa, rpa, hpi, extra, convert=True):
+    from ..transforms import (
+        apply_trans,
+        Transform,
+        get_ras_to_neuromag_trans,
+    )
+
     if convert:
         neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         nasion = apply_trans(neuromag_trans, nasion)
@@ -607,6 +609,12 @@ def _make_bti_dig_points(
     bti_dev_t=False,
     dev_ctf_t=False,
 ):
+    from ..transforms import (
+        Transform,
+        combine_transforms,
+        invert_transform,
+    )
+
     _hpi = hpi if use_hpi else None
     info_dig, ctf_head_t = _call_make_dig_points(nasion, lpa, rpa, _hpi, extra, convert)
 

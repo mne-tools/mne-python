@@ -11,7 +11,7 @@ from ..annotations import (
     _adjust_onset_meas_date,
     _annotations_starts_stops,
 )
-from ..io.pick import _picks_to_idx, _picks_by_type, _get_channel_types
+from .._fiff.pick import _picks_to_idx, _picks_by_type, _get_channel_types
 from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 
 

@@ -17,8 +17,9 @@ from .defaults import (
     DEFAULTS,
 )
 from .fixes import _safe_svd
-from .io.write import start_and_end_file
-from .io.proj import (
+from .io import RawArray
+from ._fiff.write import start_and_end_file
+from ._fiff.proj import (
     make_projector,
     _proj_equal,
     activate_proj,
@@ -28,9 +29,8 @@ from .io.proj import (
     _read_proj,
     _write_proj,
 )
-from .io import fiff_open, RawArray
-
-from .io.pick import (
+from ._fiff.open import fiff_open
+from ._fiff.pick import (
     pick_types,
     pick_channels_cov,
     pick_channels,
@@ -41,11 +41,11 @@ from .io.pick import (
     _DATA_CH_TYPES_SPLIT,
 )
 
-from .io.constants import FIFF
-from .io.meas_info import _read_bad_channels, create_info, _write_bad_channels
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.write import (
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import _read_bad_channels, create_info, _write_bad_channels
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
     start_block,
     end_block,
     write_int,

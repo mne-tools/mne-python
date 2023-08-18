@@ -37,8 +37,8 @@ from mne.beamformer import (
 )
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
-from mne.io.compensator import set_current_comp
-from mne.io.constants import FIFF
+from mne._fiff.compensator import set_current_comp
+from mne._fiff.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked

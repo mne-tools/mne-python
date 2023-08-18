@@ -18,8 +18,8 @@ from .evoked import _get_peak
 from .filter import resample
 from .fixes import _safe_svd
 from ._freesurfer import _get_mri_info_data, _get_atlas_values, read_freesurfer_lut
-from .io.constants import FIFF
-from .io.pick import pick_types
+from ._fiff.constants import FIFF
+from ._fiff.pick import pick_types
 from .surface import read_surface, _get_ico_surface, mesh_edges, _project_onto_surface
 from .source_space import (
     _ensure_src,
@@ -56,14 +56,14 @@ from .utils import (
     object_size,
     _check_fname,
     _import_h5io_funcs,
+    TimeMixin,
 )
 from .viz import (
     plot_source_estimates,
     plot_vector_source_estimates,
     plot_volume_source_estimates,
 )
-from .io.base import TimeMixin
-from .io.meas_info import Info
+from ._fiff.meas_info import Info
 
 
 def _read_stc(filename):

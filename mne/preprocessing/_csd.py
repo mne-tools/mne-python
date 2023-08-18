@@ -17,7 +17,7 @@ import numpy as np
 from .. import pick_types
 from ..utils import _validate_type, _ensure_int, _check_preload, verbose, logger
 from ..io import BaseRaw
-from ..io.constants import FIFF
+from .._fiff.constants import FIFF
 from ..epochs import BaseEpochs, make_fixed_length_epochs
 from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape

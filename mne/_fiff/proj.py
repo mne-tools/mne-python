@@ -308,9 +308,9 @@ class ProjMixin:
             evoked.copy().del_proj(0).apply_proj().plot()
             evoked.apply_proj()  # finally keep both
         """
+        from ..io import BaseRaw
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
-        from .base import BaseRaw
 
         if self.info["projs"] is None or len(self.info["projs"]) == 0:
             logger.info(

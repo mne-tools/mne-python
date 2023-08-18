@@ -23,7 +23,7 @@ from mne import (
 from mne.cov import regularize, compute_whitener
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
-from mne.io.proj import (
+from mne._fiff.proj import (
     make_projector,
     activate_proj,
     setup_proj,

@@ -11,20 +11,24 @@ import numpy as np
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
-from ..io.base import BaseRaw
-from ..io.constants import FIFF
-from ..io.open import fiff_open
-from ..io.tag import find_tag
-from ..io.matrix import _read_named_matrix, _transpose_named_matrix, write_named_matrix
-from ..io.proj import (
+from ..io import BaseRaw
+from .._fiff.constants import FIFF
+from .._fiff.open import fiff_open
+from .._fiff.tag import find_tag
+from .._fiff.matrix import (
+    _read_named_matrix,
+    _transpose_named_matrix,
+    write_named_matrix,
+)
+from .._fiff.proj import (
     _read_proj,
     make_projector,
     _write_proj,
     _needs_eeg_average_ref_proj,
     _electrode_types,
 )
-from ..io.tree import dir_tree_find
-from ..io.write import (
+from .._fiff.tree import dir_tree_find
+from .._fiff.write import (
     write_int,
     write_float_matrix,
     start_and_end_file,
@@ -35,7 +39,7 @@ from ..io.write import (
     write_string,
 )
 
-from ..io.pick import channel_type, pick_info, pick_types, pick_channels
+from .._fiff.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import compute_whitener, _read_cov, _write_cov, Covariance, prepare_noise_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import EvokedArray, Evoked

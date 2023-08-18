@@ -639,7 +639,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        from . import BaseRaw
+        from ..io import BaseRaw
         from ..channels.channels import rename_channels
 
         info = self if isinstance(self, Info) else self.info
@@ -745,7 +745,6 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.12.0
         """
-        from ..io import Info
         from ..viz.utils import plot_sensors
 
         return plot_sensors(

@@ -38,25 +38,18 @@ from mne.channels import (
 )
 from mne.event import make_fixed_length_events
 from mne.datasets import testing
-from mne.io import (
-    read_fiducials,
-    write_fiducials,
-    _coil_trans_to_loc,
-    _loc_to_coil_trans,
-    read_raw_fif,
-    read_info,
-    write_info,
-    meas_info,
-    Projection,
-    BaseRaw,
-    read_raw_ctf,
-    RawArray,
-)
-from mne.io.constants import FIFF
-from mne.io.write import _generate_meas_id, DATE_NONE
-from mne.io.meas_info import (
+from mne.io import read_raw_fif, BaseRaw, read_raw_ctf, RawArray
+from mne._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from mne._fiff.proj import Projection
+from mne._fiff.constants import FIFF
+from mne._fiff.write import _generate_meas_id, DATE_NONE
+from mne._fiff.meas_info import (
     Info,
     create_info,
+    read_fiducials,
+    write_fiducials,
+    read_info,
+    write_info,
     _merge_info,
     _force_update_info,
     RAW_INFO_FIELDS,
@@ -74,22 +67,19 @@ from mne.minimum_norm import (
     read_inverse_operator,
     apply_inverse,
 )
-from mne.io._digitization import _write_dig_points, _make_dig_points, DigPoint
+from mne._fiff import meas_info
+from mne._fiff._digitization import _write_dig_points, _make_dig_points, DigPoint
 from mne.transforms import Transform
 from mne.utils import catch_logging, assert_object_equal, _record_warnings
 
-fiducials_fname = (
-    Path(__file__).parent.parent.parent
-    / "data"
-    / "fsaverage"
-    / "fsaverage-fiducials.fif"
-)
-base_dir = Path(__file__).parent / "data"
+root_dir = Path(__file__).parent.parent.parent
+fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
+base_dir = root_dir / "io" / "tests" / "data"
 raw_fname = base_dir / "test_raw.fif"
 chpi_fname = base_dir / "test_chpi_raw_sss.fif"
 event_name = base_dir / "test-eve.fif"
 
-kit_data_dir = Path(__file__).parent.parent / "kit" / "tests" / "data"
+kit_data_dir = root_dir / "io" / "kit" / "tests" / "data"
 hsp_fname = kit_data_dir / "test_hsp.txt"
 elp_fname = kit_data_dir / "test_elp.txt"
 

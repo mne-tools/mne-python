@@ -5,8 +5,8 @@
 #
 # License: BSD-3-Clause
 
-from ..constants import FIFF
-from ...utils import BunchConst
+from .constants import FIFF
+from ..utils import BunchConst
 
 
 KIT = BunchConst()

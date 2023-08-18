@@ -30,16 +30,16 @@ from .._freesurfer import (
     _get_head_surface,
     _get_skull_surface,
 )
-from ..io import _loc_to_coil_trans
-from ..io.pick import (
+from .._fiff.tag import _loc_to_coil_trans
+from .._fiff.pick import (
     pick_types,
     channel_type,
     pick_info,
     _FNIRS_CH_TYPES_SPLIT,
     _MEG_CH_TYPES_SPLIT,
 )
-from ..io.constants import FIFF
-from ..io.meas_info import read_fiducials, create_info
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import read_fiducials, create_info
 from ..source_space import (
     _ensure_src,
     _create_surf_spacing,

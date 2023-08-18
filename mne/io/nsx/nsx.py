@@ -6,10 +6,10 @@ from datetime import datetime, timezone
 
 import numpy as np
 
-from ..constants import FIFF
-from ..meas_info import _empty_info
 from ..base import BaseRaw, _get_scaling
-from ..utils import _read_segments_file, _file_size
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.utils import _read_segments_file, _file_size
 
 from ...annotations import Annotations
 from ...utils import logger, fill_doc, warn

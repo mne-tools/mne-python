@@ -50,8 +50,8 @@ from mne.channels.montage import (
 from mne.preprocessing import compute_current_source_density
 from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
-from mne.io.constants import FIFF
-from mne.io._digitization import (
+from mne._fiff.constants import FIFF
+from mne._fiff._digitization import (
     _format_dig_points,
     _get_fid_coords,
     _get_dig_eeg,

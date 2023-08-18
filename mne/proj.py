@@ -7,10 +7,10 @@ import numpy as np
 from .epochs import Epochs
 from .fixes import _safe_svd
 from .utils import check_fname, logger, verbose, _check_option, _check_fname
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.pick import pick_types, pick_types_forward
-from .io.proj import (
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.pick import pick_types, pick_types_forward
+from ._fiff.proj import (
     Projection,
     _has_eeg_average_ref_proj,
     _read_proj,
@@ -18,7 +18,7 @@ from .io.proj import (
     make_eeg_average_ref_proj,
     _write_proj,
 )
-from .io.write import start_and_end_file
+from ._fiff.write import start_and_end_file
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples

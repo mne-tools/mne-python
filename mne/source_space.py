@@ -13,12 +13,12 @@ import os.path as op
 
 import numpy as np
 
-from .io.constants import FIFF
-from .io.meas_info import create_info, Info
-from .io.tree import dir_tree_find
-from .io.tag import find_tag, read_tag
-from .io.open import fiff_open
-from .io.write import (
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import create_info, Info
+from ._fiff.tree import dir_tree_find
+from ._fiff.tag import find_tag, read_tag
+from ._fiff.open import fiff_open
+from ._fiff.write import (
     start_block,
     end_block,
     write_int,
@@ -30,7 +30,7 @@ from .io.write import (
     start_and_end_file,
     write_id,
 )
-from .io.pick import channel_type, _picks_to_idx
+from ._fiff.pick import channel_type, _picks_to_idx
 from .bem import read_bem_surfaces, ConductorModel
 from .fixes import _get_img_fdata
 from .surface import (
@@ -54,6 +54,7 @@ from ._freesurfer import (
     _get_atlas_values,
     read_freesurfer_lut,
     get_mni_fiducials,  # noqa: F401
+    get_volume_labels_from_aseg,
     _check_mri,
 )
 from .utils import (
@@ -2830,8 +2831,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     labels_aseg : list of Label
         List of Label of segmented volumes included in src space.
     """
-    from . import Label
-    from ._freesurfer import get_volume_labels_from_aseg
+    from .label import Label
 
     # Read the aseg file
     aseg_fname = op.join(subjects_dir, subject, "mri", "aseg.mgz")

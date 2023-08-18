@@ -41,13 +41,14 @@ from mne import (
     make_ad_hoc_cov,
     make_fixed_length_events,
     create_info,
+    pick_info,
     compute_rank,
 )
 from mne.channels import equalize_channels
 from mne.datasets import testing
 from mne.fixes import _safe_svd
 from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
-from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
 from mne.utils import catch_logging, assert_snr, _record_warnings

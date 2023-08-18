@@ -25,7 +25,7 @@ def what(fname):
     -----
     .. versionadded:: 0.19
     """
-    from .fiff import read_raw_fif
+    from ..io import read_raw_fif
     from ..epochs import read_epochs
     from ..evoked import read_evokeds
     from ..preprocessing import read_ica

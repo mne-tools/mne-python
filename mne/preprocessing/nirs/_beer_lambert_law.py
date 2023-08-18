@@ -9,7 +9,7 @@ import os.path as op
 import numpy as np
 
 from ...io import BaseRaw
-from ...io.constants import FIFF
+from ..._fiff.constants import FIFF
 from ...utils import _validate_type, warn
 from ..nirs import source_detector_distances, _validate_nirs_info
 

@@ -7,7 +7,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from ..io.pick import _pick_data_channels, pick_info
+from .._fiff.pick import _pick_data_channels, pick_info
 from ..utils import verbose, logger, fill_doc, _validate_type
 from ..parallel import parallel_func
 from .tfr import AverageTFR, _get_data

@@ -7,12 +7,12 @@ import json
 
 import numpy as np
 
-from ..constants import FIFF
-from ..meas_info import _empty_info
-from ..write import get_new_file_id
 from ..base import BaseRaw
-from ..utils import _read_segments_file
-from .._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.write import get_new_file_id
+from ..._fiff.utils import _read_segments_file
+from ..._fiff._digitization import _make_dig_points
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 from ...utils import warn, fill_doc, verbose, _check_fname
 
