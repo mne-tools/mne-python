@@ -19,7 +19,6 @@ import numpy as np
 from ..transforms import _pol_to_cart, _cart_to_sph
 from .._fiff.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
 from .._fiff.constants import FIFF
-from .._fiff.kit_constants import KIT_LAYOUT
 from .._fiff.meas_info import Info
 from ..utils import (
     _clean_names,
@@ -553,6 +552,8 @@ def _find_kit_layout(info, n_grads):
     kit_layout : str | None
         String naming the detected KIT layout or ``None`` if layout is missing.
     """
+    from ..io.kit.constants import KIT_LAYOUT
+
     if info["kit_system_id"] is not None:
         # avoid circular import
         return KIT_LAYOUT.get(info["kit_system_id"])

@@ -409,7 +409,7 @@ def _bias_params(evoked, noise_cov, fwd):
     # by regularizing a tiny bit
     data.flat[:: data.shape[0] + 1] += mne.make_ad_hoc_cov(evoked.info)["data"]
     # Do our projection
-    proj, _, _ = mne.io.proj.make_projector(data_cov["projs"], data_cov["names"])
+    proj, _, _ = mne._fiff.proj.make_projector(data_cov["projs"], data_cov["names"])
     data = proj @ data @ proj.T
     data_cov["data"][:] = data
     assert data_cov["data"].shape[0] == len(noise_cov["names"])

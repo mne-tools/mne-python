@@ -32,7 +32,7 @@ from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import _empty_info
-from ..._fiff.kit_constants import KIT, LEGACY_AMP_PARAMS
+from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk, _set_dig_kit
 from ...event import read_events
 

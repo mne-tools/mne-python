@@ -37,7 +37,6 @@ from ..utils import (
     legacy,
 )
 from .._fiff.constants import FIFF
-from .._fiff.kit_constants import KIT_NEIGHBORS
 from .._fiff.meas_info import (  # noqa F401
     Info,
     MontageMixin,
@@ -1415,6 +1414,8 @@ def find_ch_adjacency(info, ch_type):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
+    from ..io.kit.constants import KIT_NEIGHBORS
+
     if ch_type is None:
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
