@@ -40,7 +40,7 @@ from mne.utils import requires_mne, run_subprocess, _record_warnings
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import read_raw_fif, read_raw_ctf
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 
 from mne.surface import _compute_nearest
 from mne.bem import _bem_find_surface, read_bem_solution

@@ -29,13 +29,13 @@ from mne.io import (
 )
 from mne.channels import make_standard_montage
 from mne.preprocessing import compute_current_source_density
-from mne.io.pick import get_channel_type_constants
 from mne._fiff.pick import (
     _picks_by_type,
     _picks_to_idx,
     _contains_ch_type,
     _get_channel_types,
     _DATA_CH_TYPES_SPLIT,
+    get_channel_type_constants,
 )
 from mne._fiff.constants import FIFF
 from mne.datasets import testing

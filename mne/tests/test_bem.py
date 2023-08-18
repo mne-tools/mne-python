@@ -27,7 +27,7 @@ from mne import (
     write_head_bem,
 )
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
 from mne.utils import catch_logging, check_version

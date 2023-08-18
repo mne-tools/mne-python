@@ -34,7 +34,7 @@ from mne.io.bti.bti import (
     _rename_channels,
 )
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne import pick_types, pick_info
 from mne.utils import assert_dig_allclose
 from mne.transforms import Transform, combine_transforms, invert_transform

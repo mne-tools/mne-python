@@ -31,7 +31,7 @@ from mne import (
 )
 from mne.epochs import BaseEpochs, make_fixed_length_epochs
 from mne.io import RawArray, read_raw_fif
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne._fiff.reference import _apply_reference
 from mne.datasets import testing
