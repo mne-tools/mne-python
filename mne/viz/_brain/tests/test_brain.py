@@ -743,11 +743,9 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.setup_time_viewer()  # for coverage
     brain.set_time(1)
     brain.set_time_point(0)
-    assert "renderer" not in brain.callbacks
-    brain.callbacks["orientation"](value="lat", update_widget=True)
-    brain.callbacks["orientation"](value="medial", update_widget=True)
-    # Need to process events for old Qt
-    brain.callbacks["smoothing"](value=1)
+    brain.show_view("lat")
+    brain.show_view("medial")
+    brain.set_data_smoothing(1)
     _assert_brain_range(brain, [0.1, 0.3])
     from mne.utils import use_log_level
 

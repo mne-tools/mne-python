@@ -123,39 +123,9 @@ class ColormapRange(UIEvent):
     """
 
     fmin: Optional[float] = None
-    fmax: Optional[float] = None
     fmid: Optional[float] = None
+    fmax: Optional[float] = None
     alpha: Optional[bool] = None
-
-
-@dataclass
-@fill_doc
-class CameraMove(UIEvent):
-    """Indicates that the user has moved the 3D camera.
-
-    Parameters
-    ----------
-    %(roll)s
-    %(distance)s
-    %(azimuth)s
-    %(elevation)s
-    %(focalpoint)s
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    %(roll)s
-    %(distance)s
-    %(azimuth)s
-    %(elevation)s
-    %(focalpoint)s
-    """
-
-    roll: float = None
-    distance: float = None
-    azimuth: float = None
-    elevation: float = None
-    focalpoint: tuple = None
 
 
 @dataclass
@@ -168,7 +138,7 @@ class VertexSelect(UIEvent):
     hemi : str
         The hemisphere the vertex was selected on.
         Can be ``"lh"``, ``"rh"``, or ``"vol"``.
-    vertex : int
+    vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
 
     Attributes
