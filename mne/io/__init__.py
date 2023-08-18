@@ -60,6 +60,7 @@ from .eyelink import read_raw_eyelink
 # (and _empty_info is convenient to keep here for tests and is private)
 from .._fiff.meas_info import (
     read_info,
+    anonymize_info,
     read_fiducials,
     write_fiducials,
     _empty_info,
