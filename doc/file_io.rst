@@ -54,7 +54,7 @@ File I/O
    what
    io.read_info
    io.show_fiff
-   io.pick.get_channel_type_constants
+   io.get_channel_type_constants
 
 Base class:
 

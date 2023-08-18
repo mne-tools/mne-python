@@ -5,6 +5,8 @@
 #
 # License: BSD-3-Clause
 
+import sys as _sys
+
 from .base import BaseRaw, concatenate_raws, match_channel_orders
 
 from . import array
@@ -56,20 +58,36 @@ from .eyelink import read_raw_eyelink
 
 # Backward compat since these were in the public API before switching to _fiff
 # (and _empty_info is convenient to keep here for tests and is private)
-from .._fiff.meas_info import read_info, read_fiducials, write_fiducials, _empty_info
+from .._fiff.meas_info import (
+    read_info,
+    read_fiducials,
+    write_fiducials,
+    _empty_info,
+    Info as _info,
+)
 from .._fiff.open import show_fiff
-
-# After merge, we should move these files (the diff is horrible if we do it in
-# one PR)
-from . import _constants as constants
-from . import _pick as pick
+from .._fiff.pick import get_channel_type_constants  # moved up a level
 
 # These we will remove in 1.6
 from .._fiff import (
     _dep_msg,
-    reference as _fiff_reference,
-    meas_info as _fiff_meas_info,
 )
+
+# After merge, we should move these files, as the diff is horrible if we do it
+# in one PR. So for now we hack `sys.modules` to make everything happy
+from . import _constants as constants
+from . import _pick as pick
+
+# These three we will remove in 1.6
+from . import _proj as proj
+from . import _meas_info as meas_info
+from . import _reference as reference
+
+_sys.modules.setdefault("mne.io.meas_info", meas_info)
+_sys.modules.setdefault("mne.io.proj", proj)
+_sys.modules.setdefault("mne.io.reference", reference)
+_sys.modules.setdefault("mne.io.constants", constants)
+_sys.modules.setdefault("mne.io.pick", pick)
 
 
 def __getattr__(name):
@@ -89,7 +107,7 @@ def __getattr__(name):
             "use mne.{name} instead",
             FutureWarning,
         )
-        return getattr(_fiff_reference, name)
+        return getattr(reference, name)
     elif name == "RawFIF":
         warn(
             "RawFIF is deprecated and will be removed in 1.6, use Raw instead",
@@ -97,12 +115,14 @@ def __getattr__(name):
         )
         return Raw
     elif name == "Info":
+        from .._fiff.meas_info import Info
+
         warn(
             "mne.io.Info is deprecated and will be removed in 1.6, "
             "use mne.Info instead",
             FutureWarning,
         )
-        return _fiff_meas_info.Info
+        return Info
     try:
         return globals()[name]
     except KeyError:

@@ -17,8 +17,7 @@ from ..io import read_raw
 from ..io._read_raw import supported as raw_supported_types
 from ..defaults import DEFAULTS
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import read_info, _empty_info
-from .._fiff._digitization import read_fiducials, write_fiducials
+from .._fiff.meas_info import read_info, _empty_info, read_fiducials, write_fiducials
 from .._fiff.pick import pick_types
 from .._fiff.open import fiff_open, dir_tree_find
 from ..bem import make_bem_solution, write_bem_solution

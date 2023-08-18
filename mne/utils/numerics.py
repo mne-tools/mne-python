@@ -209,7 +209,7 @@ def _gen_events(n_epochs):
 def _reject_data_segments(data, reject, flat, decim, info, tstep):
     """Reject data segments using peak-to-peak amplitude."""
     from ..epochs import _is_good
-    from ..io.pick import channel_indices_by_type
+    from .._fiff.pick import channel_indices_by_type
 
     data_clean = np.empty_like(data)
     idx_by_type = channel_indices_by_type(info)

@@ -25,7 +25,7 @@ import matplotlib.patheffects as path_effects
 
 import mne
 from mne.transforms import apply_trans
-from mne._fiff.constants import FIFF
+from mne.io.constants import FIFF
 
 # %%
 # MRI coordinate frames

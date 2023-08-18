@@ -4,9 +4,9 @@
 
 
 from .._fiff import _io_dep_getattr
-from .._fiff.pick import _picks_to_idx, get_channel_type_constants
+from .._fiff.pick import _picks_to_idx
 
-__all__ = ["get_channel_type_constants", "_picks_to_idx"]
+__all__ = ["_picks_to_idx"]
 
 
 def __getattr__(name):

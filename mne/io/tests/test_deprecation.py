@@ -15,21 +15,19 @@ def test_deprecation():
     # Shouldn't warn (backcompat)
     mne.io.constants.FIFF
     mne.io.pick._picks_to_idx
-    mne.io.pick.get_channel_type_constants()
+    mne.io.get_channel_type_constants()
     # Should warn
-    # TODO: Commented out tests should be restored in follow-up PR where
-    # mne/io/_*.py get moved to non-underscore
 
-    # with pytest.warns(FutureWarning, match=r"mne\.io\.pick\.pick_channels is dep"):
-    #     from mne.io.pick import pick_channels
+    with pytest.warns(FutureWarning, match=r"mne\.io\.pick\.pick_channels is dep"):
+        from mne.io.pick import pick_channels  # noqa: F401
     with pytest.warns(FutureWarning, match=r"mne\.io\.pick\.pick_channels is dep"):
         mne.io.pick.pick_channels
-    # with pytest.warns(FutureWarning, match=r"mne\.io\.meas_info\.read_info is dep"):
-    #     from mne.io.meas_info import read_info  # noqa: F401
-    # from mne.io import meas_info
-    #
-    # with pytest.warns(FutureWarning, match=r"mne\.io\.meas_info\.read_info is dep"):
-    #     meas_info.read_info
+    with pytest.warns(FutureWarning, match=r"mne\.io\.meas_info\.read_info is dep"):
+        from mne.io.meas_info import read_info  # noqa: F401
+    from mne.io import meas_info
+
+    with pytest.warns(FutureWarning, match=r"mne\.io\.meas_info\.read_info is dep"):
+        meas_info.read_info
     with pytest.warns(FutureWarning, match="RawFIF is deprecated"):
         mne.io.RawFIF
     with pytest.warns(FutureWarning, match="RawFIF is deprecated"):

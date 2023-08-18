@@ -20,7 +20,7 @@ import nibabel as nib
 from scipy import linalg
 
 import mne
-from mne._fiff.constants import FIFF
+from mne.io.constants import FIFF
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path / "subjects"
