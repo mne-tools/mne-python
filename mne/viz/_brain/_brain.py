@@ -190,6 +190,13 @@ class Brain:
 
     Notes
     -----
+    The figure will publish and subscribe to the following UI events:
+
+    * :class:`~mne.viz.ui_events.TimeChange`
+    * :class:`~mne.viz.ui_events.PlaybackSpeed`
+    * :class:`~mne.viz.ui_events.ColormapRange`
+    * :class:`~mne.viz.ui_events.VertexSelect`
+
     This table shows the capabilities of each Brain backend ("✓" for full
     support, and "-" for partial support):
 
@@ -1439,19 +1446,20 @@ class Brain:
             return
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
-        with ui_events.disable_ui_events(self):
-            if hasattr(self, "widgets") and "time" in self.widgets:
-                self.widgets["time"].set_value(time_idx)
-            if "current_time" in self.widgets:
-                self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-        self.plot_time_line(update=True)
+        if self.time_viewer:
+            with ui_events.disable_ui_events(self):
+                if "time" in self.widgets:
+                    self.widgets["time"].set_value(time_idx)
+                if "current_time" in self.widgets:
+                    self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
+            self.plot_time_line(update=True)
 
     def _on_playback_speed(self, event):
         """Respond to the playback_speed UI event."""
         if event.speed == self.playback_speed:
             return
         self.playback_speed = event.speed
-        if hasattr(self, "widgets") and "playback_speed" in self.widgets:
+        if "playback_speed" in self.widgets:
             with ui_events.disable_ui_events(self):
                 self.widgets["playback_speed"].set_value(event.speed)
 
