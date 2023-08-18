@@ -1041,6 +1041,7 @@ class Evoked(
         tmax=None,
         picks=None,
         proj=False,
+        remove_dc=False,
         *,
         n_jobs=1,
         verbose=None,
@@ -1056,6 +1057,7 @@ class Evoked(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(remove_dc)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
@@ -1085,6 +1087,7 @@ class Evoked(
             tmax=tmax,
             picks=picks,
             proj=proj,
+            remove_dc=remove_dc,
             reject_by_annotation=False,
             n_jobs=n_jobs,
             verbose=verbose,

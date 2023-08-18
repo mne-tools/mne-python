@@ -2156,6 +2156,7 @@ class BaseRaw(
         tmax=None,
         picks=None,
         proj=False,
+        remove_dc=False,
         reject_by_annotation=True,
         *,
         n_jobs=1,
@@ -2172,6 +2173,7 @@ class BaseRaw(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(remove_dc)s
         %(reject_by_annotation_psd)s
         %(n_jobs)s
         %(verbose)s
@@ -2202,6 +2204,7 @@ class BaseRaw(
             tmax=tmax,
             picks=picks,
             proj=proj,
+            remove_dc=remove_dc,
             reject_by_annotation=reject_by_annotation,
             n_jobs=n_jobs,
             verbose=verbose,
