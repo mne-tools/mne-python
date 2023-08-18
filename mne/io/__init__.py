@@ -58,8 +58,11 @@ from .eyelink import read_raw_eyelink
 # (and _empty_info is convenient to keep here for tests and is private)
 from .._fiff.meas_info import read_info, read_fiducials, write_fiducials, _empty_info
 from .._fiff.open import show_fiff
-from . import constants
-from . import pick
+
+# After merge, we should move these files (the diff is horrible if we do it in
+# one PR)
+from . import _constants as constants
+from . import _pick as pick
 
 # These we will remove in 1.6
 from .._fiff import (
