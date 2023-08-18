@@ -111,5 +111,5 @@ UI Events
    FigureClosing
    TimeChange
    PlaybackSpeed
-   ColorbarRange
+   ColormapRange
    VertexSelect

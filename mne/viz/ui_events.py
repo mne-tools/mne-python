@@ -167,7 +167,7 @@ class VertexSelect(UIEvent):
     ----------
     hemi : str
         The hemisphere the vertex was selected on.
-        Can be ``"lh"``, ``"rh"``, or ``"vol"``
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex : int
         The vertex number (in the high resolution mesh) that was selected.
 
@@ -176,7 +176,7 @@ class VertexSelect(UIEvent):
     %(ui_event_name_source)s
     hemi : str
         The hemisphere the vertex was selected on.
-        Can be ``"lh"``, ``"rh"``, or ``"vol"``
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
     """
