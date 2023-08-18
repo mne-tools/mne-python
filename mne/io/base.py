@@ -2156,7 +2156,7 @@ class BaseRaw(
         tmax=None,
         picks=None,
         proj=False,
-        remove_dc=False,
+        remove_dc=True,
         reject_by_annotation=True,
         *,
         n_jobs=1,

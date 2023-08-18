@@ -2334,7 +2334,7 @@ class BaseEpochs(
         tmax=None,
         picks=None,
         proj=False,
-        remove_dc=False,
+        remove_dc=True,
         *,
         n_jobs=1,
         verbose=None,

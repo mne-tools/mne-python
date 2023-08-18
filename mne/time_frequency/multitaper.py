@@ -230,7 +230,7 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
     return csd
 
 
-def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=False):
+def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     """Compute tapered spectra.
 
     Parameters
@@ -332,7 +332,7 @@ def psd_array_multitaper(
     adaptive=False,
     low_bias=True,
     normalization="length",
-    remove_dc=False,
+    remove_dc=True,
     output="power",
     n_jobs=None,
     *,

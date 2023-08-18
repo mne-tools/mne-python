@@ -109,7 +109,7 @@ def psd_array_welch(
     n_jobs=None,
     average="mean",
     window="hamming",
-    remove_dc=False,
+    remove_dc=True,
     *,
     output="power",
     verbose=None,

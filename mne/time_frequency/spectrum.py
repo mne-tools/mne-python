@@ -1368,6 +1368,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmax=None,
             picks=None,
             proj=None,
+            remove_dc=None,
             reject_by_annotation=None,
             n_jobs=None,
             verbose=None,
