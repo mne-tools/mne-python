@@ -25,10 +25,7 @@ from .view import views_dicts, _lh_views_dict
 
 from .callback import (
     ShowView,
-    # TimeCallBack,
     SmartCallBack,
-    # UpdateLUT,
-    # UpdateColorbarScale,
 )
 
 from ..utils import (
@@ -1483,7 +1480,6 @@ class Brain:
 
     def _on_vertex_select(self, event):
         """Respond to vertex_select UI event."""
-        print(event)
         if event.hemi == "vol":
             try:
                 mesh = self._data[event.hemi]["grid"]
