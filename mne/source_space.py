@@ -14,22 +14,6 @@ import os.path as op
 import numpy as np
 
 from ._fiff.constants import FIFF
-from ._fiff.meas_info import create_info, Info
-from ._fiff.tree import dir_tree_find
-from ._fiff.tag import find_tag, read_tag
-from ._fiff.open import fiff_open
-from ._fiff.write import (
-    start_block,
-    end_block,
-    write_int,
-    write_float_sparse_rcs,
-    write_string,
-    write_float_matrix,
-    write_int_matrix,
-    write_coord_trans,
-    start_and_end_file,
-    write_id,
-)
 from ._fiff.pick import channel_type, _picks_to_idx
 from .bem import read_bem_surfaces, ConductorModel
 from .fixes import _get_img_fdata
@@ -368,6 +352,7 @@ class SourceSpaces(list):
             The figure.
         """
         from .viz import plot_alignment
+        from ._fiff.meas_info import create_info
 
         surfaces = list()
         bem = None
@@ -842,6 +827,8 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
         The source spaces.
     """
     #   Find all source spaces
+    from ._fiff.tree import dir_tree_find
+
     spaces = dir_tree_find(tree, FIFF.FIFFB_MNE_SOURCE_SPACE)
     if len(spaces) == 0:
         raise ValueError("No source spaces found")
@@ -883,6 +870,10 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
+    from ._fiff.tag import read_tag
+    from ._fiff.open import fiff_open
+    from ._fiff.tree import dir_tree_find
+
     fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     check_fname(
         fname,
@@ -925,6 +916,9 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
 def _read_one_source_space(fid, this):
     """Read one source space."""
+    from ._fiff.tag import find_tag, read_tag
+    from ._fiff.tree import dir_tree_find
+
     res = dict()
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_ID)
@@ -1259,6 +1253,8 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         The list of source spaces.
     %(verbose)s
     """
+    from ._fiff.write import start_block, end_block
+
     for s in src:
         logger.info("    Write a source space...")
         start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
@@ -1286,6 +1282,8 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
     --------
     read_source_spaces
     """
+    from ._fiff.write import start_and_end_file
+
     _validate_type(src, SourceSpaces, "src")
     check_fname(
         fname, "source space", ("-src.fif", "-src.fif.gz", "_src.fif", "_src.fif.gz")
@@ -1297,6 +1295,8 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
 
 
 def _write_source_spaces(fid, src):
+    from ._fiff.write import start_block, end_block, write_string, write_id
+
     start_block(fid, FIFF.FIFFB_MNE)
 
     if src.info:
@@ -1321,6 +1321,16 @@ def _write_source_spaces(fid, src):
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space."""
     from scipy import sparse
+    from ._fiff.write import (
+        start_block,
+        end_block,
+        write_int,
+        write_float_sparse_rcs,
+        write_string,
+        write_float_matrix,
+        write_int_matrix,
+        write_coord_trans,
+    )
 
     if this["type"] == "surf":
         src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
@@ -3265,6 +3275,7 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
         sensors.
     """
     from scipy.spatial.distance import cdist
+    from ._fiff.meas_info import Info
 
     assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), "info")

@@ -17,19 +17,16 @@ from .defaults import (
     DEFAULTS,
 )
 from .fixes import _safe_svd
-from .io import RawArray
-from ._fiff.write import start_and_end_file
 from ._fiff.proj import (
-    make_projector,
+    make_projector as _make_projector,
     _proj_equal,
-    activate_proj,
+    activate_proj as _activate_proj,
     _check_projs,
     _needs_eeg_average_ref_proj,
     _has_eeg_average_ref_proj,
     _read_proj,
     _write_proj,
 )
-from ._fiff.open import fiff_open
 from ._fiff.pick import (
     pick_types,
     pick_channels_cov,
@@ -45,16 +42,6 @@ from ._fiff.constants import FIFF
 from ._fiff.meas_info import _read_bad_channels, create_info, _write_bad_channels
 from ._fiff.tag import find_tag
 from ._fiff.tree import dir_tree_find
-from ._fiff.write import (
-    start_block,
-    end_block,
-    write_int,
-    write_double,
-    write_float_matrix,
-    write_string,
-    _safe_name_list,
-    write_name_list_sanitized,
-)
 from .defaults import _handle_default
 from .epochs import Epochs
 from .event import make_fixed_length_events
@@ -224,6 +211,8 @@ class Covariance(dict):
             .. versionadded:: 1.0
         %(verbose)s
         """
+        from ._fiff.write import start_and_end_file
+
         check_fname(
             fname, "covariance", ("-cov.fif", "-cov.fif.gz", "_cov.fif", "_cov.fif.gz")
         )
@@ -512,6 +501,8 @@ def read_cov(fname, verbose=None):
     --------
     write_cov, compute_covariance, compute_raw_covariance
     """
+    from ._fiff.open import fiff_open
+
     check_fname(
         fname, "covariance", ("-cov.fif", "-cov.fif.gz", "_cov.fif", "_cov.fif.gz")
     )
@@ -1253,6 +1244,8 @@ def _compute_covariance_auto(
     rank,
 ):
     """Compute covariance auto mode."""
+    from .io import RawArray
+
     # rescale to improve numerical stability
     orig_rank = rank
     rank = compute_rank(
@@ -1814,7 +1807,7 @@ def _smart_eigh(
     n_chan = len(ch_names)
 
     # Create the projection operator
-    proj, ncomp, _ = make_projector(projs, ch_names)
+    proj, ncomp, _ = _make_projector(projs, ch_names)
 
     if isinstance(C, Covariance):
         C = C["data"]
@@ -2038,7 +2031,7 @@ def regularize(
 
     if proj:
         projs = info["projs"] + cov_good["projs"]
-        projs = activate_proj(projs)
+        projs = _activate_proj(projs)
 
     for ch_type in idx_cov:
         desc = ch_type.upper()
@@ -2056,7 +2049,7 @@ def regularize(
         this_ch_names = [ch_names[k] for k in idx]
         if rank == "full":
             if proj:
-                P, ncomp, _ = make_projector(projs, this_ch_names)
+                P, ncomp, _ = _make_projector(projs, this_ch_names)
                 if ncomp > 0:
                     # This adjustment ends up being redundant if rank is None:
                     U = _safe_svd(P)[0][:, :-ncomp]
@@ -2307,6 +2300,7 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
     """Read a noise covariance matrix."""
     #   Find all covariance matrices
     from scipy import sparse
+    from ._fiff.write import _safe_name_list
 
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
@@ -2435,6 +2429,16 @@ def _read_cov(fid, node, cov_kind, limited=False, verbose=None):
 
 def _write_cov(fid, cov):
     """Write a noise covariance matrix."""
+    from ._fiff.write import (
+        start_block,
+        end_block,
+        write_int,
+        write_double,
+        write_float_matrix,
+        write_string,
+        write_name_list_sanitized,
+    )
+
     start_block(fid, FIFF.FIFFB_MNE_COV)
 
     #   Dimensions etc.

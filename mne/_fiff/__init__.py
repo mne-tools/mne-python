@@ -15,12 +15,11 @@ _dep_msg = (
 
 
 # Helper for keeping some attributes en mne/io/*.py
-def _io_dep_getattr(name, mod, public_names=()):
+def _io_dep_getattr(name, mod):
     import importlib
     from ..utils import warn
 
     fiff_mod = importlib.import_module(f"mne._fiff.{mod}")
     obj = getattr(fiff_mod, name)
-    if name not in public_names:
-        warn(f"mne.io.{mod}.{name} {_dep_msg}", FutureWarning)
+    warn(f"mne.io.{mod}.{name} {_dep_msg}", FutureWarning)
     return obj
