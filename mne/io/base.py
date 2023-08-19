@@ -2596,10 +2596,10 @@ def _write_raw(
         else:
             assert split_naming == "bids"
             use_fname = _construct_bids_filename(base, ext, part_idx)
-            # check for file existence
-            _check_fname(use_fname, overwrite)
     else:
         use_fname = fname
+    # check for file existence
+    _check_fname(use_fname, overwrite)
     # reserve our BIDS split fname in case we need to split
     if split_naming == "bids" and part_idx == 0:
         # reserve our possible split name
