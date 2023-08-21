@@ -158,7 +158,7 @@ def test_rank_deficiency():
         evoked.info["lowpass"] = 20  # fake for decim
     picks = pick_types(evoked.info, meg=True, eeg=False)
     picks = picks[::16]
-    evoked.pick_channels([evoked.ch_names[pick] for pick in picks])
+    evoked.pick([evoked.ch_names[pick] for pick in picks])
     evoked.info.normalize_proj()
     cov = read_cov(cov_fname)
     cov["projs"] = []

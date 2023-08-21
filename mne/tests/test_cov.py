@@ -123,7 +123,7 @@ def test_cov_mismatch():
     """Test estimation with MEG<->Head mismatch."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     events = find_events(raw, stim_channel="STI 014")
-    raw.pick_channels(raw.ch_names[:5])
+    raw.pick(raw.ch_names[:5])
     raw.add_proj([], remove_existing=True)
     epochs = Epochs(raw, events, None, tmin=-0.2, tmax=0.0, preload=True)
     for kind in ("shift", "None"):
@@ -309,7 +309,7 @@ def test_cov_estimation_on_raw(method, tmp_path):
     assert_snr(cov.data, cov_mne.data, 1e6)
 
     # test equivalence with np.cov
-    cov_np = np.cov(raw.copy().pick_channels(cov["names"]).get_data(), ddof=1)
+    cov_np = np.cov(raw.copy().pick(cov["names"]).get_data(), ddof=1)
     if method != "shrunk":  # can check all
         off_diag = np.triu_indices(cov_np.shape[0])
     else:
@@ -337,7 +337,7 @@ def test_cov_estimation_on_raw(method, tmp_path):
     assert_array_almost_equal(cov.data, cov_read.data)
 
     # test with a subset of channels
-    raw_pick = raw.copy().pick_channels(raw.ch_names[:5])
+    raw_pick = raw.copy().pick(raw.ch_names[:5])
     raw_pick.info.normalize_proj()
     cov = compute_raw_covariance(
         raw_pick, tstep=None, method=method, rank="full", method_params=method_params
@@ -641,7 +641,7 @@ def test_compute_covariance_auto_reg(rank):
     events_merged = merge_events(events, event_ids, 1234)
     # we need a few channels for numerical reasons in PCA/FA
     picks = pick_types(raw.info, meg="mag", eeg=False)[:10]
-    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.pick([raw.ch_names[pick] for pick in picks])
     raw.info.normalize_proj()
     epochs = Epochs(
         raw,
@@ -866,7 +866,7 @@ def test_low_rank_cov(raw_epochs_events):
     )
     assert _cov_rank(dia_cov, epochs.info) == rank
     assert_allclose(dia_cov["data"], reg_cov["data"])
-    epochs.pick_channels(epochs.ch_names[:103])
+    epochs.pick(epochs.ch_names[:103])
     # degenerate
     with pytest.raises(ValueError, match='can.*only be used with rank="full"'):
         compute_covariance(epochs, rank=None, method="pca")

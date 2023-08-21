@@ -40,7 +40,7 @@ raw = mne.io.read_raw_ctf(fname)
 raw.crop(50.0, 200.0)  # crop for memory purposes
 
 # Filter muscular activity to only keep high frequencies
-emg = raw.copy().pick_channels(["EMGlft"]).load_data()
+emg = raw.copy().pick(["EMGlft"]).load_data()
 emg.filter(20.0, None)
 
 # Filter MEG data to focus on beta band

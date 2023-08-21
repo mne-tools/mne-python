@@ -505,8 +505,8 @@ def test_priors():
 def test_equalize_channels():
     """Test equalization of channels for instances of Forward."""
     fwd1 = read_forward_solution(fname_meeg)
-    fwd1.pick_channels(["EEG 001", "EEG 002", "EEG 003"])
-    fwd2 = fwd1.copy().pick_channels(["EEG 002", "EEG 001"], ordered=True)
+    fwd1.pick(["EEG 001", "EEG 002", "EEG 003"])
+    fwd2 = fwd1.copy().pick(["EEG 002", "EEG 001"], ordered=True)
     fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ["EEG 001", "EEG 002"]
     assert fwd2.ch_names == ["EEG 001", "EEG 002"]

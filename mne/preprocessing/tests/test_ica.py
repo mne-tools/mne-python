@@ -589,7 +589,7 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
 def short_raw_epochs():
     """Get small data."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
-    raw.pick_channels(
+    raw.pick(
         set(raw.ch_names[::10]) | set(["EOG 061", "MEG 1531", "MEG 1441", "MEG 0121"]),
         ordered=False,
     )
@@ -1428,7 +1428,7 @@ def test_ica_labels():
     # The CTF data are uniquely well suited to testing the ICA.find_bads_
     # methods
     raw = read_raw_ctf(ctf_fname, preload=True)
-    raw.pick_channels(raw.ch_names[:300:10] + raw.ch_names[300:])
+    raw.pick(raw.ch_names[:300:10] + raw.ch_names[300:])
 
     # set the appropriate EEG channels to EOG and ECG
     rename = {"EEG057": "eog", "EEG058": "eog", "EEG059": "ecg"}

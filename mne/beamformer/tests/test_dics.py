@@ -665,7 +665,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = cp.deepcopy(evoked)
-    evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
+    evoked_ch.pick(evoked_ch.ch_names[:-1])
     with pytest.raises(ValueError, match="MEG 2633 which is not present"):
         apply_dics(evoked_ch, filters)
 

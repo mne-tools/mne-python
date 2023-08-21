@@ -540,7 +540,7 @@ def test_localization_bias_free(
 @pytest.mark.slowtest
 def test_apply_inverse_sphere(evoked, tmp_path):
     """Test applying an inverse with a sphere model (rank-deficient)."""
-    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.pick(evoked.ch_names[:306:8])
     with evoked.info._unlock():
         evoked.info["projs"] = []
     cov = make_ad_hoc_cov(evoked.info)
@@ -747,8 +747,8 @@ def assert_stc_res(evoked, stc, forward, res, atol=1e-20):
     res = res.copy().pick_types(meg=meg, eeg=eeg, exclude=())
     estimated.info["bads"] = evoked.info["bads"]  # proj the same channels
     estimated.add_proj(evoked.info["projs"]).apply_proj()
-    estimated.pick_channels(res.ch_names, ordered=True)
-    evoked.pick_channels(res.ch_names, ordered=True)
+    estimated.pick(res.ch_names, ordered=True)
+    evoked.pick(res.ch_names, ordered=True)
     recon = estimated.data + res.data
     assert_allclose(evoked.data, recon.data, atol=atol, rtol=1e-6)
 

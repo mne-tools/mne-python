@@ -108,7 +108,7 @@ def test_acq_skip(tmp_path):
     assert_allclose(raw.times, raw_read.times)
     assert_allclose(raw_read[:][0], raw[:][0], atol=1e-17)
     # Saving with a bad buffer length emits warning
-    raw.pick_channels(raw.ch_names[:2])
+    raw.pick(raw.ch_names[:2])
     with _record_warnings() as w:
         raw.save(fname, buffer_size_sec=0.5, overwrite=True)
     assert len(w) == 0
@@ -1571,7 +1571,7 @@ def test_add_channels():
             raw_new.add_channels([raw_stim])
         for other in (raw_meg, raw_stim, raw_eeg):
             assert_allclose(
-                raw_new.copy().pick_channels(other.ch_names).get_data(),
+                raw_new.copy().pick(other.ch_names).get_data(),
                 other.get_data(),
             )
 
@@ -1849,17 +1849,17 @@ def test_pick_channels_mixin(preload):
     ch_names = raw.ch_names[:3]
 
     ch_names_orig = raw.ch_names
-    dummy = raw.copy().pick_channels(ch_names)
+    dummy = raw.copy().pick(ch_names)
     assert ch_names == dummy.ch_names
     assert ch_names_orig == raw.ch_names
     assert len(ch_names_orig) == raw.get_data().shape[0]
 
-    raw.pick_channels(ch_names)  # copy is False
+    raw.pick(ch_names)  # copy is False
     assert ch_names == raw.ch_names
     assert len(ch_names) == len(raw._cals)
     assert len(ch_names) == raw.get_data().shape[0]
     with pytest.raises(ValueError, match="must be"):
-        raw.pick_channels(ch_names[0])
+        raw.pick(ch_names[0])
 
     assert_allclose(raw[:][0], raw_orig[:3][0])
 

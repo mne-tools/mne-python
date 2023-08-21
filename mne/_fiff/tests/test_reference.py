@@ -394,9 +394,9 @@ def test_set_bipolar_reference(inst_type):
     assert reref.info["custom_ref_applied"]
 
     # Compare result to a manual calculation
-    a = inst.copy().pick_channels(["EEG 001", "EEG 002"])
+    a = inst.copy().pick(["EEG 001", "EEG 002"])
     a = a._data[..., 0, :] - a._data[..., 1, :]
-    b = reref.copy().pick_channels(["bipolar"])._data[..., 0, :]
+    b = reref.copy().pick(["bipolar"])._data[..., 0, :]
     assert_allclose(a, b)
 
     # Original channels should be replaced by a virtual one
@@ -434,7 +434,7 @@ def test_set_bipolar_reference(inst_type):
         ["bipolar1", "bipolar2"],
         [{"kind": FIFF.FIFFV_EOG_CH}, {"kind": FIFF.FIFFV_EOG_CH}],
     )
-    a = inst.copy().pick_channels(["EEG 001", "EEG 002", "EEG 003", "EEG 004"])
+    a = inst.copy().pick(["EEG 001", "EEG 002", "EEG 003", "EEG 004"])
     a = np.concatenate(
         [
             a._data[..., :1, :] - a._data[..., 1:2, :],
@@ -442,7 +442,7 @@ def test_set_bipolar_reference(inst_type):
         ],
         axis=-2,
     )
-    b = reref.copy().pick_channels(["bipolar1", "bipolar2"])._data
+    b = reref.copy().pick(["bipolar1", "bipolar2"])._data
     assert_allclose(a, b)
 
     # Test creating a bipolar reference that doesn't involve EEG channels:

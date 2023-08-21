@@ -629,12 +629,12 @@ def test_pick_channels_mixin():
     ch_names = evoked.ch_names[:3]
 
     ch_names_orig = evoked.ch_names
-    dummy = evoked.copy().pick_channels(ch_names)
+    dummy = evoked.copy().pick(ch_names)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, evoked.ch_names)
     assert_equal(len(ch_names_orig), len(evoked.data))
 
-    evoked.pick_channels(ch_names)
+    evoked.pick(ch_names)
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
 
@@ -895,7 +895,7 @@ def test_hilbert():
     """Test hilbert on raw, epochs, and evoked."""
     raw = read_raw_fif(raw_fname).load_data()
     raw.del_proj()
-    raw.pick_channels(raw.ch_names[:2])
+    raw.pick(raw.ch_names[:2])
     events = read_events(event_name)
     epochs = Epochs(raw, events)
     with pytest.raises(RuntimeError, match="requires epochs data to be load"):

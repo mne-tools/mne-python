@@ -266,9 +266,9 @@ fig, ax = plt.subplots(figsize=(4.5, 3))
 ax.plot(times, mean)
 axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
 
-# pick_channels() edits the raw object in place, so we'll make a copy here
+# pick() edits the raw object in place, so we'll make a copy here
 # so that our raw object stays intact for potential later analysis
-raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
+raw.copy().pick(to_plot).plot_sensors(title="", axes=axins)
 
 # %%
 # That looks nice. But the sensor dots are way too big for our taste. Luckily,
@@ -297,7 +297,7 @@ sensor_dots = axins.collections[0]
 fig, ax = plt.subplots(figsize=(4.5, 3))
 ax.plot(times, mean)
 axins = inset_locator.inset_axes(ax, width="30%", height="30%", loc=2)
-raw.copy().pick_channels(to_plot).plot_sensors(title="", axes=axins)
+raw.copy().pick(to_plot).plot_sensors(title="", axes=axins)
 sensor_dots = axins.collections[0]
 sensor_dots.set_sizes([1])
 # add axis labels, and adjust bottom figure margin to make room for them

@@ -325,7 +325,7 @@ def test_plot_topomap_basic():
     fast_test = dict(res=res, contours=0, sensors=False, time_unit="s")
     fast_test_noscale = dict(res=res, contours=0, sensors=False)
     ev_bad = evoked.copy().pick_types(meg=False, eeg=True)
-    ev_bad.pick_channels(ev_bad.ch_names[:2])
+    ev_bad.pick(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
     evoked.plot_topomap(
@@ -653,7 +653,7 @@ def test_plot_topomap_neuromag122():
     fast_test = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick_types(meg="grad")
-    evoked.pick_channels(evoked.ch_names[:122])
+    evoked.pick(evoked.ch_names[:122])
     ch_names = ["MEG %03d" % k for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122

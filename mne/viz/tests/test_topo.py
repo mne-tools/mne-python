@@ -163,9 +163,9 @@ def test_plot_topo():
             [evoked, evoked], merge_grads=True, color=np.array(["blue", "red"])
         )
 
-    picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
+    picked_evoked = evoked.copy().pick(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
-    picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])
+    picked_evoked_eeg.pick(picked_evoked_eeg.ch_names[:3])
 
     # test scaling
     for ylim in [dict(mag=[-600, 600]), None]:

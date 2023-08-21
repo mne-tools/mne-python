@@ -922,7 +922,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     #
     if fname.suffix == ".fif":
         raw = read_raw_fif(fname)
-        raw.pick_channels(raw.ch_names[:3])
+        raw.pick(raw.ch_names[:3])
         ref_names = []
         data_names = raw.ch_names
     else:
@@ -941,7 +941,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     proj = Projection(data=proj, active=False, desc="test", kind=0, explained_var=0.0)
     raw.add_proj(proj, remove_existing=True)
     raw.info.normalize_proj()
-    raw.pick_channels(data_names + ref_names, ordered=False).crop(0, 2)
+    raw.pick(data_names + ref_names, ordered=False).crop(0, 2)
     long_names = ["123456789abcdefg" + name for name in raw.ch_names]
     fname = tmp_path / "test-raw.fif"
     with catch_logging() as log:

@@ -304,7 +304,7 @@ def test_time_frequency():
     assert_allclose(np.mean(single_power3, axis=0), power.data[:, :, 1:3])
     assert_allclose(np.mean(single_power4, axis=0), power.data[:, :, 2:4])
 
-    power_pick = power.pick_channels(power.ch_names[:10:2])
+    power_pick = power.pick(power.ch_names[:10:2])
     assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
     assert_equal(power_pick.data.shape[0], len(power.ch_names[:10:2]))
     power_drop = power.drop_channels(power.ch_names[1:10:2])
@@ -931,7 +931,7 @@ def test_plot_joint():
     assert set(tfr.times) == set(tfr_orig.times)
 
     # test tfr with picked channels
-    tfr.pick_channels(tfr.ch_names[:-1])
+    tfr.pick(tfr.ch_names[:-1])
     tfr.plot_joint(title="auto", colorbar=True, topomap_args=topomap_args)
 
 

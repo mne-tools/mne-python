@@ -152,7 +152,7 @@ def test_dipole_fitting(tmp_path):
             ]
         )
     )
-    evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    evoked.pick([evoked.ch_names[p] for p in picks])
     evoked.add_proj(make_eeg_average_ref_proj(evoked.info))
     write_evokeds(fname_sim, evoked)
 
@@ -389,7 +389,7 @@ def test_accuracy():
         0.0,
     )
     evoked.pick_types(meg=True, eeg=False)
-    evoked.pick_channels([c for c in evoked.ch_names[::4]])
+    evoked.pick([c for c in evoked.ch_names[::4]])
     for rad, perc_90 in zip((0.09, None), (0.002, 0.004)):
         bem = make_sphere_model(
             "auto", rad, evoked.info, relative_radii=(0.999, 0.998, 0.997, 0.995)

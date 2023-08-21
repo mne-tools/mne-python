@@ -101,7 +101,7 @@ def _get_data(
     bads = [raw.ch_names[pick] for pick in bad_picks]
     assert not any(pick in picks for pick in bad_picks)
     picks = np.concatenate([picks, bad_picks])
-    raw.pick_channels([raw.ch_names[ii] for ii in picks], ordered=True)
+    raw.pick([raw.ch_names[ii] for ii in picks], ordered=True)
     del picks
 
     raw.info["bads"] = bads  # add more bads
@@ -460,7 +460,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
 
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = deepcopy(evoked)
-    evoked_ch.pick_channels(evoked_ch.ch_names[1:])
+    evoked_ch.pick(evoked_ch.ch_names[1:])
     filters = make_lcmv(
         evoked.info, forward_vol, data_cov, reg=0.01, noise_cov=noise_cov
     )
@@ -661,7 +661,7 @@ def test_lcmv_cov(weight_norm, pick_ori):
     )
     for cov in (data_cov, noise_cov):
         this_cov = pick_channels_cov(cov, evoked.ch_names, ordered=False)
-        this_evoked = evoked.copy().pick_channels(this_cov["names"], ordered=True)
+        this_evoked = evoked.copy().pick(this_cov["names"], ordered=True)
         this_cov["projs"] = this_evoked.info["projs"]
         assert this_evoked.ch_names == this_cov["names"]
         stc = apply_lcmv_cov(this_cov, filters)

@@ -90,7 +90,7 @@ def _assert_iter_sim(raw_sim, raw_new, new_event_id):
 def test_iterable():
     """Test iterable support for simulate_raw."""
     raw = read_raw_fif(raw_fname_short).load_data()
-    raw.pick_channels(raw.ch_names[:10] + ["STI 014"])
+    raw.pick(raw.ch_names[:10] + ["STI 014"])
     src = setup_volume_source_space(
         pos=dict(rr=[[-0.05, 0, 0], [0.1, 0, 0]], nn=[[0, 1.0, 0], [0, 1.0, 0]])
     )
@@ -211,7 +211,7 @@ def raw_data():
     data_picks = pick_types(raw.info, meg=True, eeg=True)
     other_picks = pick_types(raw.info, meg=False, stim=True, eog=True)
     picks = np.sort(np.concatenate((data_picks[::16], other_picks)))
-    raw = raw.pick_channels([raw.ch_names[p] for p in picks])
+    raw = raw.pick([raw.ch_names[p] for p in picks])
     raw.info.normalize_proj()
     ecg = RawArray(
         np.zeros((1, len(raw.times))),

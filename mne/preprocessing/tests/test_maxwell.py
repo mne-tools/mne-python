@@ -705,7 +705,7 @@ def test_spatiotemporal_only():
     tmax = 0.5
     raw = read_crop(raw_fname, (0, tmax)).load_data()
     picks = pick_types(raw.info, meg=True, exclude="bads")[::2]
-    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.pick([raw.ch_names[pick] for pick in picks])
     mag_picks = pick_types(raw.info, meg="mag", exclude=())
     power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
     # basics
@@ -792,7 +792,7 @@ def test_fine_calibration():
         bad_condition="ignore",
     )
     raw_missing.pick_types(meg=True)  # actually remove bads
-    raw_sss_bad.pick_channels(raw_missing.ch_names)  # remove them here, too
+    raw_sss_bad.pick(raw_missing.ch_names)  # remove them here, too
     with pytest.warns(RuntimeWarning, match="cal channels not in data"):
         raw_sss_missing = maxwell_filter(
             raw_missing,
@@ -909,7 +909,7 @@ def test_cross_talk(tmp_path):
         raw.copy()
         .crop(0, 0.1)
         .load_data()
-        .pick_channels(
+        .pick(
             [raw.ch_names[pi] for pi in pick_types(raw.info, meg=True, exclude=())[3:]]
         )
     )
@@ -1485,7 +1485,7 @@ def test_mf_skips():
     """Test processing of data with skips."""
     raw = read_raw_fif(skip_fname, preload=True)
     raw.fix_mag_coil_types()
-    raw.pick_channels(raw.ch_names[:50])  # fast and inaccurate
+    raw.pick(raw.ch_names[:50])  # fast and inaccurate
     kwargs = dict(st_only=True, coord_frame="meg", int_order=4, ext_order=3)
     # smoke test that this runs
     maxwell_filter(raw, st_duration=17.0, skip_by_annotation=(), **kwargs)
@@ -1789,9 +1789,9 @@ def test_prepare_emptyroom_bads(bads):
     """Test prepare_emptyroom."""
     raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
     names = [name for name in raw.ch_names if "EEG" not in name]
-    raw.pick_channels(names)
+    raw.pick(names)
     raw_er = read_raw_fif(erm_fname, allow_maxshield="yes", verbose=False)
-    raw_er.pick_channels(names)
+    raw_er.pick(names)
     assert raw.ch_names == raw_er.ch_names
     assert raw_er.info["dev_head_t"] is None
     assert raw.info["dev_head_t"] is not None
@@ -1838,8 +1838,8 @@ def test_prepare_emptyroom_annot_first_samp(
     raw = read_raw_fif(raw_fname, allow_maxshield="yes", verbose=False)
     raw_er = read_raw_fif(erm_fname, allow_maxshield="yes", verbose=False)
     names = raw.ch_names[:3]  # make it faster
-    raw.pick_channels(names)
-    raw_er.pick_channels(names)
+    raw.pick(names)
+    raw_er.pick(names)
     assert raw.ch_names == raw_er.ch_names
     assert raw.info["meas_date"] != raw_er.info["meas_date"]
     if raw_meas_date is None:

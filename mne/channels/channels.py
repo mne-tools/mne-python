@@ -192,7 +192,7 @@ def equalize_channels(instances, copy=True, verbose=None):
             else:
                 if copy:
                     inst = inst.copy()
-                inst.pick_channels(common_channels, ordered=True)
+                inst.pick(common_channels, ordered=True)
             if len(inst.ch_names) == len(common_channels):
                 reordered = True
         equalized_instances.append(inst)

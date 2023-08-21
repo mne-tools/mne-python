@@ -198,7 +198,7 @@ def test_fnirs_channel_naming_and_order_readers(fname):
     # The ordering must be increasing for the pairs, if provided
     raw_names_reversed = raw.copy().ch_names
     raw_names_reversed.reverse()
-    raw_reversed = raw.copy().pick_channels(raw_names_reversed, ordered=True)
+    raw_reversed = raw.copy().pick(raw_names_reversed, ordered=True)
     with pytest.raises(ValueError, match="The frequencies.*sorted.*"):
         _check_channels_ordered(raw_reversed.info, [850, 760])
     # So if we flip the second argument it should pass again

@@ -285,7 +285,7 @@ def raw():
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match="unit"):
         raw.set_channel_types({raw.ch_names[0]: "ias"})
-    raw.pick_channels(raw.ch_names[:9])
+    raw.pick(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
 
@@ -655,7 +655,7 @@ def subjects_dir_tmp_few(tmp_path):
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
     evoked = _evoked.copy().pick_types(meg=True)
-    evoked.pick_channels(evoked.ch_names[::4])
+    evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
     sphere = mne.make_sphere_model("auto", "auto", evoked.info)

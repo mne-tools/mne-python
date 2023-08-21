@@ -63,7 +63,7 @@ def test_bad_proj():
     picks = picks[2:18:3]
     _check_warnings(raw, events, picks)
     # still bad
-    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    raw.pick([raw.ch_names[ii] for ii in picks])
     _check_warnings(raw, events)
     # "fixed"
     raw.info.normalize_proj()  # avoid projection warnings
@@ -503,7 +503,7 @@ def test_sss_proj():
     """Test `meg` proj option."""
     raw = read_raw_fif(raw_fname)
     raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
-    raw.pick_channels(raw.ch_names[:51]).del_proj()
+    raw.pick(raw.ch_names[:51]).del_proj()
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking
     assert len(raw_sss.info["projs"]) == 0

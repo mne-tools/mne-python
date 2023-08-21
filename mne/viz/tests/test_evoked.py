@@ -201,7 +201,7 @@ def test_plot_evoked():
     evoked.plot_sensors()  # Test plot_sensors
     plt.close("all")
 
-    evoked.pick_channels(evoked.ch_names[:4])
+    evoked.pick(evoked.ch_names[:4])
     with catch_logging() as log_file:
         evoked.plot(verbose=True, time_unit="s")
     assert "Need more than one" in log_file.getvalue()
@@ -570,7 +570,7 @@ def test_plot_compare_evokeds_neuromag122():
     """Test topomap plotting."""
     evoked = mne.read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
     evoked.pick_types(meg="grad")
-    evoked.pick_channels(evoked.ch_names[:122])
+    evoked.pick(evoked.ch_names[:122])
     ch_names = ["MEG %03d" % k for k in range(1, 123)]
     for c in evoked.info["chs"]:
         c["coil_type"] = FIFF.FIFFV_COIL_NM_122

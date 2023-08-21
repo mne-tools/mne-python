@@ -183,7 +183,7 @@ def test_xdawn_regularization():
     picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )[::8]
-    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.pick([raw.ch_names[pick] for pick in picks])
     del picks
     raw.info.normalize_proj()
     epochs = Epochs(

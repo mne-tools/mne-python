@@ -438,7 +438,7 @@ def test_plot_psdtopo_nirs(fnirs_epochs):
 @testing.requires_testing_data
 def test_plot_epochs_ctf(raw_ctf, browser_backend):
     """Test of basic CTF plotting."""
-    raw_ctf.pick_channels(
+    raw_ctf.pick(
         [
             "UDIO001",
             "UPPT001",

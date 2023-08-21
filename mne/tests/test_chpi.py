@@ -364,7 +364,7 @@ def test_calculate_chpi_positions_vv():
             pick_types(raw_bad.info, meg=True)[::16],
         ]
     )
-    raw_bad.pick_channels([raw_bad.ch_names[pick] for pick in picks], ordered=False)
+    raw_bad.pick([raw_bad.ch_names[pick] for pick in picks], ordered=False)
     with pytest.warns(RuntimeWarning, match="Discrepancy"):
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, t_step_min=1.0, verbose=True)

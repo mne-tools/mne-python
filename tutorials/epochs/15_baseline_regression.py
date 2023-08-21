@@ -141,7 +141,7 @@ vis_predictor = epochs.events[:, 2] == epochs.event_id["visual"]
 baseline_predictor = (
     epochs.copy()
     .crop(*baseline)
-    .pick_channels([ch])
+    .pick([ch])
     .get_data()  # convert to NumPy array
     .mean(axis=-1)  # average across timepoints
     .squeeze()  # only 1 channel, so remove singleton dimension

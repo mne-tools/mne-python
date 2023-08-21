@@ -33,7 +33,7 @@ def _get_data(ch_decim=1):
     evoked.crop(0.0, 0.3)
     picks = mne.pick_types(evoked.info, meg=True, eeg=False)
     picks = picks[::ch_decim]
-    evoked.pick_channels([evoked.ch_names[pick] for pick in picks])
+    evoked.pick([evoked.ch_names[pick] for pick in picks])
     evoked.info.normalize_proj()
 
     noise_cov = mne.read_cov(fname_cov)

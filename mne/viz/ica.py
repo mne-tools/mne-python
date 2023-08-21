@@ -1116,7 +1116,7 @@ def plot_ica_overlay(
         if picks is not None:
             with inst.info._unlock():
                 inst.info["comps"] = []  # can be safely disabled
-            inst.pick_channels([inst.ch_names[p] for p in picks])
+            inst.pick([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(
             inst.copy(),
             exclude=exclude,

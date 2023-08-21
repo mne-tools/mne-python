@@ -754,7 +754,7 @@ def test_own_data():
     assert 5 < n_now < n_epochs
     assert len(epochs) == epochs._data.shape[0] == len(epochs.events)
 
-    good_chan = epochs.copy().pick_channels([epochs.ch_names[0]])
+    good_chan = epochs.copy().pick([epochs.ch_names[0]])
     good_chan.rename_channels({good_chan.ch_names[0]: "good"})
     epochs.add_channels([good_chan])
     # "ValueError: resize only works on single-segment arrays"
@@ -786,7 +786,7 @@ def test_decim():
     # Now let's do it with some real data
     raw, events, picks = _get_data()
     events = events[events[:, 2] == 1][:2]
-    raw.load_data().pick_channels([raw.ch_names[pick] for pick in picks[::30]])
+    raw.load_data().pick([raw.ch_names[pick] for pick in picks[::30]])
     raw.info.normalize_proj()
     del picks
     sfreq_new = raw.info["sfreq"] / decim
@@ -1815,7 +1815,7 @@ def test_epochs_proj(tmp_path):
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, proj=True, picks=picks, preload=True
     )
-    epochs.pick_channels(["EEG 001", "EEG 002"])
+    epochs.pick(["EEG 001", "EEG 002"])
     assert_equal(len(epochs), 7)  # sufficient for testing
     temp_fname = tmp_path / "test-epo.fif"
     epochs.save(temp_fname, overwrite=True)
@@ -3051,7 +3051,7 @@ def test_delayed_epochs():
         ]
     )
     picks = np.sort(picks)
-    raw.load_data().pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.load_data().pick([raw.ch_names[pick] for pick in picks])
     raw.info.normalize_proj()
     del picks
     n_epochs = 2  # number we expect after rejection
@@ -3289,12 +3289,12 @@ def test_pick_channels_mixin():
     pytest.raises(RuntimeError, epochs.drop_channels, [ch_names[0]])
     epochs.preload = True
     ch_names_orig = epochs.ch_names
-    dummy = epochs.copy().pick_channels(ch_names)
+    dummy = epochs.copy().pick(ch_names)
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, epochs.ch_names)
     assert_equal(len(ch_names_orig), epochs.get_data().shape[1])
 
-    epochs.pick_channels(ch_names)
+    epochs.pick(ch_names)
     assert_equal(ch_names, epochs.ch_names)
     assert_equal(len(ch_names), epochs.get_data().shape[1])
 
