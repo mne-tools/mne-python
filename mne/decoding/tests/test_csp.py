@@ -164,7 +164,7 @@ def test_csp():
     pytest.raises(ValueError, csp.transform, epochs)
 
     # Test plots
-    epochs.pick(meg="mag")
+    epochs.pick("mag")
     cmap = ("RdBu", True)
     components = np.arange(n_components)
     for plot in (csp.plot_patterns, csp.plot_filters):

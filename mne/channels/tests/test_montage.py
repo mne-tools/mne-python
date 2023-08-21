@@ -1387,7 +1387,7 @@ def test_set_montage_mgh(rename):
 def test_montage_positions_similar(fname, montage, n_eeg, n_good, bads):
     """Test that montages give spatially similar positions."""
     # 1. Prepare data: load, set bads (if missing), and filter
-    raw = read_raw_fif(fname).pick(eeg=True, exclude=())
+    raw = read_raw_fif(fname).pick("eeg")
     if bads is not None:
         assert raw.info["bads"] == []
         raw.info["bads"] = bads

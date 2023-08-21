@@ -1158,7 +1158,13 @@ def test_filter_picks():
         picks = {ch: ch == ch_type for ch in ch_types}
         picks["meg"] = ch_type if ch_type in ("mag", "grad") else False
         picks["fnirs"] = ch_type if ch_type in ("hbo", "hbr") else False
-        raw_ = raw.copy().pick(**picks)
+        tmp = []
+        for k, v in picks.items():
+            if v is True:
+                tmp.append(k)
+            elif isinstance(v, str):
+                tmp.append(v)
+        raw_ = raw.copy().pick(tmp)
         raw_.filter(10, 30, fir_design="firwin")
 
     # -- Error if no data channel

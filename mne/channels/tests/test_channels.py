@@ -662,7 +662,7 @@ def test_combine_channels():
 
     # Test warnings
     raw_no_stim = read_raw_fif(raw_fname, preload=True)
-    raw_no_stim.pick(meg=True, stim=False)
+    raw_no_stim.pick("meg")
     warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
     warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)
     warn3 = dict(foo=[0, 4], bar=[5, 2])  # one good channel left
