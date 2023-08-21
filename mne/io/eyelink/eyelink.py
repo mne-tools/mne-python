@@ -210,8 +210,8 @@ class RawEyelink(BaseRaw):
         self.fname = Path(fname)
         self._sample_lines = None  # sample lines from file
         self._event_lines = None  # event messages from file
+        self._raw_extras = list([dict()])  # extra info from file
         self._tracking_mode = None  # assigned in self._infer_col_names
-        self._meas_date = None
         self._rec_info = None
         self._ascii_sfreq = None
         if gap_desc is None:
@@ -227,7 +227,7 @@ class RawEyelink(BaseRaw):
         self.dataframes = {}
 
         # ======================== Parse ASCII File =========================
-        self._get_recording_datetime()  # sets self._meas_date
+        self._get_recording_datetime()
         self._parse_recording_blocks()  # sets sample, event, & system lines
 
         # ======================== Create DataFrames ========================
@@ -267,9 +267,13 @@ class RawEyelink(BaseRaw):
         eye_ch_data = self.dataframes["samples"][ch_names]
         eye_ch_data = eye_ch_data.to_numpy().T
         super(RawEyelink, self).__init__(
-            info, preload=eye_ch_data, filenames=[self.fname], verbose=verbose
+            info,
+            preload=eye_ch_data,
+            filenames=[self.fname],
+            verbose=verbose,
+            raw_extras=self._raw_extras,
         )
-        self.set_meas_date(self._meas_date)
+        self.set_meas_date(self._raw_extras[0]["dt"])
 
         # ======================== Make Annotations =========================
         gap_annots = None
@@ -398,7 +402,7 @@ class RawEyelink(BaseRaw):
                         # Even though dt is probably in local time zone.
                         dt_naive = datetime.strptime(dt_str, fmt)
                         dt_aware = dt_naive.replace(tzinfo=tz)
-                        self._meas_date = dt_aware
+                        self._raw_extras[0]["dt"] = dt_aware
                         break
 
     def _convert_href_samples(self):
