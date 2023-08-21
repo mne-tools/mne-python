@@ -105,7 +105,7 @@ mpl_fig = stc.plot(
 # Let us load the sensor-level evoked data. We select the MEG channels
 # to keep things simple.
 evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
-evoked.pick_types(meg=True, eeg=False).crop(0.05, 0.15)
+evoked.pick(meg=True, eeg=False).crop(0.05, 0.15)
 # this risks aliasing, but these data are very smooth
 evoked.decimate(10, verbose="error")
 

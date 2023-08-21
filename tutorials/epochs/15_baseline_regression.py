@@ -56,7 +56,7 @@ raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 events = mne.find_events(raw)
 
-raw.pick_types(meg=False, stim=False, eog=False, eeg=True)
+raw.pick(meg=False, stim=False, eog=False, eeg=True)
 
 # %%
 # Here we merge visual and auditory events from both hemispheres, and make our

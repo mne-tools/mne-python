@@ -47,7 +47,7 @@ fwd_fname = (
 
 # Read evoked
 raw = mne.io.read_raw_fif(raw_fname)
-raw.pick_types(meg=True, eog=True, stim=True)
+raw.pick(meg=True, eog=True, stim=True)
 events = mne.find_events(raw, stim_channel="STI 014")
 
 reject = dict(grad=4000e-13, eog=350e-6)
@@ -108,10 +108,10 @@ plot_sparse_source_estimates(
 # %%
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-300, 300])
-evoked.copy().pick_types(meg="grad").plot(
+evoked.copy().pick(meg="grad").plot(
     titles=dict(grad="Evoked Response: Gradiometers"), ylim=ylim
 )
-residual.copy().pick_types(meg="grad").plot(
+residual.copy().pick(meg="grad").plot(
     titles=dict(grad="Residuals: Gradiometers"), ylim=ylim
 )
 

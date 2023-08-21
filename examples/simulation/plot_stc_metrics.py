@@ -123,7 +123,7 @@ source_simulator_dipole.add_data(label_dipole, source_time_series, events)
 
 # Region
 raw_region = mne.simulation.simulate_raw(info, source_simulator_region, forward=fwd)
-raw_region = raw_region.pick_types(meg=False, eeg=True, stim=True)
+raw_region = raw_region.pick(meg=False, eeg=True, stim=True)
 cov = mne.make_ad_hoc_cov(raw_region.info)
 mne.simulation.add_noise(
     raw_region, cov, iir_filter=[0.2, -0.2, 0.04], random_state=random_state
@@ -131,7 +131,7 @@ mne.simulation.add_noise(
 
 # Dipole
 raw_dipole = mne.simulation.simulate_raw(info, source_simulator_dipole, forward=fwd)
-raw_dipole = raw_dipole.pick_types(meg=False, eeg=True, stim=True)
+raw_dipole = raw_dipole.pick(meg=False, eeg=True, stim=True)
 cov = mne.make_ad_hoc_cov(raw_dipole.info)
 mne.simulation.add_noise(
     raw_dipole, cov, iir_filter=[0.2, -0.2, 0.04], random_state=random_state

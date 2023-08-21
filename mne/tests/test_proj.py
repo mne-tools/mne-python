@@ -69,7 +69,7 @@ def test_bad_proj():
     raw.info.normalize_proj()  # avoid projection warnings
     _check_warnings(raw, events, count=0)
     # eeg avg ref is okay
-    raw = read_raw_fif(raw_fname, preload=True).pick_types(meg=False, eeg=True)
+    raw = read_raw_fif(raw_fname, preload=True).pick(meg=False, eeg=True)
     raw.set_eeg_reference(projection=True)
     _check_warnings(raw, events, count=0)
     raw.info["bads"] = raw.ch_names[:10]
@@ -502,7 +502,7 @@ def test_needs_eeg_average_ref_proj():
 def test_sss_proj():
     """Test `meg` proj option."""
     raw = read_raw_fif(raw_fname)
-    raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
+    raw.crop(0, 1.0).load_data().pick(meg=True, exclude=())
     raw.pick(raw.ch_names[:51]).del_proj()
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking

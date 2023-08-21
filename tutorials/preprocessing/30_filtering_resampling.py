@@ -26,7 +26,7 @@ sample_data_raw_file = os.path.join(
 )
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 # use just 60 seconds of data and mag channels, to save memory
-raw.crop(0, 60).pick_types(meg="mag", stim=True).load_data()
+raw.crop(0, 60).pick(meg="mag", stim=True).load_data()
 
 # %%
 # Background on filtering

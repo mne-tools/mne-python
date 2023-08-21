@@ -86,7 +86,7 @@ from mne.datasets import misc
 fpath = misc.data_path() / "eyetracking" / "eyelink"
 raw = read_raw_eyelink(fpath / "px_textpage_ws.asc", create_annotations=["blinks"])
 custom_scalings = dict(eyegaze=1e3)
-raw.pick_types(eyetrack=True).plot(scalings=custom_scalings)
+raw.pick(eyetrack=True).plot(scalings=custom_scalings)
 
 
 # %%
@@ -124,7 +124,7 @@ raw.pick_types(eyetrack=True).plot(scalings=custom_scalings)
 # %%
 fpath = misc.data_path() / "eyetracking" / "eyelink"
 raw = read_raw_eyelink(fpath / "HREF_textpage_ws.asc", create_annotations=["blinks"])
-raw.pick_types(eyetrack=True).plot()
+raw.pick(eyetrack=True).plot()
 
 # %%
 # Pupil Position

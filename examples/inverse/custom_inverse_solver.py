@@ -42,7 +42,7 @@ noise_cov = mne.read_cov(cov_fname)
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.crop(tmin=0.04, tmax=0.18)
 
-evoked = evoked.pick_types(eeg=False, meg=True)
+evoked = evoked.pick(eeg=False, meg=True)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname)
 

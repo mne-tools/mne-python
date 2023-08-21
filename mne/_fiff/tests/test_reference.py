@@ -215,7 +215,7 @@ def test_set_eeg_reference():
     reref = raw.copy()
     with reref.info._unlock():
         reref.info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
-    reref.pick_types(meg=True, eeg=False)  # Cause making average ref fail
+    reref.pick(meg=True, eeg=False)  # Cause making average ref fail
     # should have turned it off
     assert reref.info["custom_ref_applied"] == FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     with pytest.raises(ValueError, match="found to rereference"):
@@ -312,7 +312,7 @@ def test_set_eeg_reference_rest():
     raw = (
         read_raw_fif(fif_fname)
         .crop(0, 1)
-        .pick_types(meg=False, eeg=True, exclude=())
+        .pick(meg=False, eeg=True, exclude=())
         .load_data()
     )
     raw.info["bads"] = ["EEG 057"]  # should be excluded
@@ -345,7 +345,7 @@ def test_set_eeg_reference_rest():
     # compare to FieldTrip
     evoked = read_evokeds(ave_fname, baseline=(None, 0))[0]
     evoked.info["bads"] = []
-    evoked.pick_types(meg=False, eeg=True, exclude=())
+    evoked.pick(meg=False, eeg=True, exclude=())
     assert len(evoked.ch_names) == 60
     # Data obtained from FieldTrip with something like (after evoked.save'ing
     # then scipy.io.savemat'ing fwd['sol']['data']):
@@ -726,14 +726,14 @@ def test_add_reference():
 
     # gh-10878
     raw = read_raw_fif(raw_fname).crop(0, 1, include_tmax=False).load_data()
-    data = raw.copy().add_reference_channels(["REF"]).pick_types(eeg=True)
+    data = raw.copy().add_reference_channels(["REF"]).pick(eeg=True)
     data = data.get_data()
     epochs = make_fixed_length_epochs(raw).load_data()
-    data_2 = epochs.copy().add_reference_channels(["REF"]).pick_types(eeg=True)
+    data_2 = epochs.copy().add_reference_channels(["REF"]).pick(eeg=True)
     data_2 = data_2.get_data()[0]
     assert_allclose(data, data_2)
     evoked = epochs.average()
-    data_3 = evoked.copy().add_reference_channels(["REF"]).pick_types(eeg=True)
+    data_3 = evoked.copy().add_reference_channels(["REF"]).pick(eeg=True)
     data_3 = data_3.get_data()
     assert_allclose(data, data_3)
 

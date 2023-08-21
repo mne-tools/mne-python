@@ -128,7 +128,7 @@ def test_make_field_map_eeg():
     # we must have trans if surface is in MRI coords
     pytest.raises(ValueError, _make_surface_mapping, evoked.info, surf, "eeg")
 
-    evoked.pick_types(meg=False, eeg=True)
+    evoked.pick(meg=False, eeg=True)
     fmd = make_field_map(
         evoked, trans_fname, subject="sample", subjects_dir=subjects_dir
     )
@@ -165,7 +165,7 @@ def test_make_field_map_meg():
     # bad mode
     pytest.raises(ValueError, _make_surface_mapping, info, surf, "meg", mode="foo")
     # no picks
-    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg = evoked.copy().pick(meg=False, eeg=True)
     pytest.raises(RuntimeError, _make_surface_mapping, evoked_eeg.info, surf, "meg")
     # bad surface def
     nn = surf["nn"]
@@ -178,7 +178,7 @@ def test_make_field_map_meg():
     surf["coord_frame"] = cf
 
     # now do it with make_field_map
-    evoked.pick_types(meg=True, eeg=False)
+    evoked.pick(meg=True, eeg=False)
     evoked.info.normalize_proj()  # avoid projection warnings
     fmd = make_field_map(evoked, None, subject="sample", subjects_dir=subjects_dir)
     assert len(fmd) == 1
@@ -188,7 +188,7 @@ def test_make_field_map_meg():
     pytest.raises(ValueError, make_field_map, evoked, ch_type="foobar")
 
     # now test the make_field_map on head surf for MEG
-    evoked.pick_types(meg=True, eeg=False)
+    evoked.pick(meg=True, eeg=False)
     evoked.info.normalize_proj()
     fmd = make_field_map(
         evoked,
@@ -283,7 +283,7 @@ def test_as_meg_type_evoked():
     with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
         evoked.as_type("meg")
     with pytest.raises(ValueError, match="Invalid value for the 'ch_type'"):
-        evoked.copy().pick_types(meg="grad").as_type("meg")
+        evoked.copy().pick(meg="grad").as_type("meg")
 
     # channel names
     ch_names = evoked.info["ch_names"]
@@ -311,7 +311,7 @@ def test_as_meg_type_evoked():
 
     # correlation test
     evoked = evoked.pick(ch_names=ch_names[:10:]).copy()
-    data1 = evoked.pick_types(meg="grad").data.ravel()
+    data1 = evoked.pick(meg="grad").data.ravel()
     data2 = evoked.as_type("grad").data.ravel()
     assert np.corrcoef(data1, data2)[0, 1] > 0.95
 

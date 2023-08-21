@@ -354,7 +354,7 @@ def test_ica_projs(n_pca_components, proj, cov, meg, eeg):
         return
     if not meg and not eeg:  # no channels
         return
-    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick_types(meg=meg, eeg=eeg)
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick(meg=meg, eeg=eeg)
     raw.pick(np.arange(0, len(raw.ch_names), 5))  # just for speed
     raw.info.normalize_proj()
     assert 10 < len(raw.ch_names) < 75
@@ -1003,7 +1003,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
 
     # test passing picks including the marked bad channels
     raw_ = raw.copy()
-    raw_.pick_types(eeg=True)
+    raw_.pick(eeg=True)
     raw_.info["bads"] = [raw_.ch_names[0]]
     picks = pick_types(raw_.info, eeg=True, exclude=[])
     ica = ICA(n_components=0.99, max_iter="auto")
@@ -1236,7 +1236,7 @@ def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     n_components = 3
     max_iter = 1
 
-    raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True)
+    raw = read_raw_fif(raw_fname).pick(meg=False, eeg=True)
     events = read_events(event_name)
     reject = param_val if param_name == "reject" else None
     epochs = Epochs(raw, events=events, reject=reject)
@@ -1462,7 +1462,7 @@ def test_ica_labels():
     # derive reference ICA components and append them to raw
     ica_rf = ICA(n_components=2, max_iter=2, allow_ref_meg=True)
     with pytest.warns(UserWarning, match="did not converge"):
-        ica_rf.fit(raw.copy().pick_types(meg=False, ref_meg=True))
+        ica_rf.fit(raw.copy().pick(meg=False, ref_meg=True))
     icacomps = ica_rf.get_sources(raw)
     # rename components so they are auto-detected by find_bads_ref
     icacomps.rename_channels({c: "REF_" + c for c in icacomps.ch_names})

@@ -39,7 +39,7 @@ def test_project_sensors_onto_brain(tmp_path):
             brain_surf_fname,
         )
     # now make realistic ECoG grid
-    raw.pick_types(meg=False, eeg=True)
+    raw.pick(meg=False, eeg=True)
     raw.load_data()
     raw.set_eeg_reference([])
     raw.set_channel_types({ch: "ecog" for ch in raw.ch_names})
@@ -107,7 +107,7 @@ def test_project_sensors_onto_inflated(tmp_path):
                     tmp_path / subject / "surf" / f"{hemi}.sphere",
                 )
     # now make realistic sEEG locations, picked from T1
-    raw.pick_types(meg=False, eeg=True)
+    raw.pick(meg=False, eeg=True)
     raw.load_data()
     raw.set_eeg_reference([])
     raw.set_channel_types({ch: "seeg" for ch in raw.ch_names})

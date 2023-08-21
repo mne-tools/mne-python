@@ -60,7 +60,7 @@ del raw
 labels = epochs.events[:, -1]
 
 # get MEG and EEG data
-meg_epochs = epochs.copy().pick_types(meg=True, eeg=False)
+meg_epochs = epochs.copy().pick(meg=True, eeg=False)
 meg_data = meg_epochs.get_data().reshape(len(labels), -1)
 
 # %%
@@ -95,7 +95,7 @@ for name, coef in (("patterns", model.patterns_), ("filters", model.filters_)):
 # %%
 # Let's do the same on EEG data using a scikit-learn pipeline
 
-X = epochs.pick_types(meg=False, eeg=True)
+X = epochs.pick(meg=False, eeg=True)
 y = epochs.events[:, 2]
 
 # Define a unique pipeline to sequentially:

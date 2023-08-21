@@ -69,7 +69,7 @@ ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 def test_compute_whitener(proj, pca):
     """Test properties of compute_whitener."""
     raw = read_raw_fif(raw_fname).crop(0, 3).load_data()
-    raw.pick_types(meg=True, eeg=True, exclude=())
+    raw.pick(meg=True, eeg=True, exclude=())
     if proj:
         raw.apply_proj()
     else:
@@ -828,7 +828,7 @@ def test_low_rank_cov(raw_epochs_events):
     del reg_r_only_cov, reg_r_cov
 
     # test that rank=306 is same as rank='full'
-    epochs_meg = epochs.copy().pick_types(meg=True)
+    epochs_meg = epochs.copy().pick(meg=True)
     assert len(epochs_meg.ch_names) == 306
     with epochs_meg.info._unlock():
         epochs_meg.info.update(bads=[], projs=[])
@@ -847,7 +847,7 @@ def test_low_rank_cov(raw_epochs_events):
     assert_allclose(cov_full["data"], cov_dict["data"])
 
     # Work with just EEG data to simplify projection / rank reduction
-    raw = raw.copy().pick_types(meg=False, eeg=True)
+    raw = raw.copy().pick(meg=False, eeg=True)
     n_proj = 2
     raw.add_proj(compute_proj_raw(raw, n_eeg=n_proj))
     n_ch = len(raw.ch_names)

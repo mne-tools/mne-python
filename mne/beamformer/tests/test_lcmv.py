@@ -723,7 +723,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
-    raw.pick_types(meg=True)
+    raw.pick(meg=True)
     assert len(raw.ch_names) == 305
     epochs = mne.Epochs(raw, events, None, preload=True, proj=proj)
     with pytest.warns(RuntimeWarning, match="Too few samples"):
@@ -746,7 +746,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
     # And also with and without noise_cov
     with pytest.raises(ValueError, match="several sensor types"):
         make_lcmv(epochs.info, forward, data_cov, reg=0.05, noise_cov=None)
-    epochs.pick_types(meg="grad")
+    epochs.pick(meg="grad")
     kwargs = dict(reg=0.05, pick_ori=None, weight_norm=weight_norm)
     filters_cov = make_lcmv(
         epochs.info, forward, data_cov, noise_cov=noise_cov, **kwargs
@@ -825,7 +825,7 @@ def test_localization_bias_fixed(
     """Test localization bias for fixed-orientation LCMV."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_fixed
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(meg="grad")
         noise_cov = None
     assert data_cov["data"].shape[0] == len(data_cov["names"])
     loc = apply_lcmv(
@@ -939,7 +939,7 @@ def test_localization_bias_free(
     """Test localization bias for free-orientation LCMV."""
     evoked, fwd, noise_cov, data_cov, want = bias_params_free
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(meg="grad")
         noise_cov = None
     with _record_warnings():  # rank deficiency of data_cov
         filters = make_lcmv(
@@ -1001,7 +1001,7 @@ def test_orientation_max_power(
     evoked, _, noise_cov, data_cov, want = bias_params_fixed
     fwd = bias_params_free[1]
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(meg="grad")
         noise_cov = None
     filters = make_lcmv(
         evoked.info,
@@ -1089,7 +1089,7 @@ def mf_data():
     raw_sss = mne.preprocessing.maxwell_filter(raw)
     events = mne.find_events(raw_sss)
     del raw
-    raw_sss.pick_types(meg="mag")
+    raw_sss.pick(meg="mag")
     assert len(raw_sss.ch_names) == 102
     epochs = mne.Epochs(raw_sss, events)
     data_cov = mne.compute_covariance(epochs, tmin=0)
@@ -1141,7 +1141,7 @@ def test_unit_noise_gain_formula(pick_ori, weight_norm, reg, inversion):
     """Test unit-noise-gain filter against formula."""
     raw = mne.io.read_raw_fif(fname_raw, preload=True)
     events = mne.find_events(raw)
-    raw.pick_types(meg="mag")
+    raw.pick(meg="mag")
     assert len(raw.ch_names) == 102
     epochs = mne.Epochs(raw, events, None, preload=True)
     data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)

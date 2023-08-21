@@ -258,7 +258,7 @@ def test_dipole_fitting_fixed(tmp_path):
     tpeak = 0.073
     sphere = make_sphere_model(head_radius=0.1)
     evoked = read_evokeds(fname_evo, baseline=(None, 0))[0]
-    evoked.pick_types(meg=True)
+    evoked.pick(meg=True)
     t_idx = np.argmin(np.abs(tpeak - evoked.times))
     evoked_crop = evoked.copy().crop(tpeak, tpeak)
     assert len(evoked_crop.times) == 1
@@ -388,7 +388,7 @@ def test_accuracy():
         0.0,
         0.0,
     )
-    evoked.pick_types(meg=True, eeg=False)
+    evoked.pick(meg=True, eeg=False)
     evoked.pick([c for c in evoked.ch_names[::4]])
     for rad, perc_90 in zip((0.09, None), (0.002, 0.004)):
         bem = make_sphere_model(
@@ -485,7 +485,7 @@ def test_get_phantom_dipoles():
 def test_confidence(tmp_path):
     """Test confidence limits."""
     evoked = read_evokeds(fname_evo_full, "Left Auditory", baseline=(None, 0))
-    evoked.crop(0.08, 0.08).pick_types(meg=True)  # MEG-only
+    evoked.crop(0.08, 0.08).pick(meg=True)  # MEG-only
     cov = make_ad_hoc_cov(evoked.info)
     sphere = make_sphere_model((0.0, 0.0, 0.04), 0.08)
     dip_py = fit_dipole(evoked, cov, sphere)[0]

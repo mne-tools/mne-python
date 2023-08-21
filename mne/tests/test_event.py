@@ -402,7 +402,7 @@ def test_find_events():
 
     # test error message for raw without stim channels
     raw = read_raw_fif(raw_fname, preload=True)
-    raw.pick_types(meg=True, stim=False)
+    raw.pick(meg=True, stim=False)
     # raw does not have annotations
     with pytest.raises(ValueError, match="'stim_channel'"):
         find_events(raw)

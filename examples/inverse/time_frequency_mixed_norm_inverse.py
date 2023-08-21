@@ -129,7 +129,7 @@ plot_dipole_locations(
 # %%
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
-evoked.pick_types(meg="grad", exclude="bads")
+evoked.pick(meg="grad", exclude="bads")
 evoked.plot(
     titles=dict(grad="Evoked Response: Gradiometers"),
     ylim=ylim,
@@ -137,7 +137,7 @@ evoked.plot(
     time_unit="s",
 )
 
-residual.pick_types(meg="grad", exclude="bads")
+residual.pick(meg="grad", exclude="bads")
 residual.plot(
     titles=dict(grad="Residuals: Gradiometers"), ylim=ylim, proj=True, time_unit="s"
 )

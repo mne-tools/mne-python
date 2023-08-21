@@ -37,7 +37,7 @@ def test_persyst_lay_load():
     assert raw.preload is True
 
     # defaults channels to EEG
-    raw = raw.pick_types(eeg=True)
+    raw = raw.pick(eeg=True)
     assert len(raw.ch_names) == 83
 
     # no "-Ref" in channel names
@@ -53,7 +53,7 @@ def test_persyst_raw():
     raw = read_raw_persyst(fname_lay, preload=False)
 
     # defaults channels to EEG
-    raw = raw.pick_types(eeg=True)
+    raw = raw.pick(eeg=True)
 
     # get data
     data, times = raw.get_data(start=200, return_times=True)

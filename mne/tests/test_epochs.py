@@ -908,7 +908,7 @@ def test_savgol_filter():
     epochs = Epochs(raw, events, event_id, tmin, tmax)
     pytest.raises(RuntimeError, epochs.savgol_filter, 10.0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
-    epochs.pick_types(meg="grad")
+    epochs.pick(meg="grad")
     freqs = rfftfreq(len(epochs.times), 1.0 / epochs.info["sfreq"])
     data = np.abs(rfft(epochs.get_data()))
     pass_mask = freqs <= h_freq / 2.0 - 5.0
@@ -934,7 +934,7 @@ def test_filter(tmp_path):
     assert round(epochs.info["lowpass"]) == 172
     pytest.raises(RuntimeError, epochs.savgol_filter, 10.0)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
-    epochs.pick_types(meg="grad")
+    epochs.pick(meg="grad")
     freqs = rfftfreq(len(epochs.times), 1.0 / epochs.info["sfreq"])
     data_fft = np.abs(rfft(epochs.get_data()))
     pass_mask = freqs <= h_freq / 2.0 - 5.0
@@ -3619,10 +3619,10 @@ def test_add_channels():
         picks=picks,
         preload=True,
     )
-    epoch_eeg = epoch.copy().pick_types(meg=False, eeg=True)
-    epoch_meg = epoch.copy().pick_types(meg=True)
-    epoch_stim = epoch.copy().pick_types(meg=False, stim=True)
-    epoch_eeg_meg = epoch.copy().pick_types(meg=True, eeg=True)
+    epoch_eeg = epoch.copy().pick(meg=False, eeg=True)
+    epoch_meg = epoch.copy().pick(meg=True)
+    epoch_stim = epoch.copy().pick(meg=False, stim=True)
+    epoch_eeg_meg = epoch.copy().pick(meg=True, eeg=True)
     epoch_new = epoch_meg.copy().add_channels([epoch_eeg, epoch_stim])
     assert all(
         ch in epoch_new.ch_names for ch in epoch_stim.ch_names + epoch_meg.ch_names
@@ -4301,7 +4301,7 @@ def test_pick_types_reject_flat_keys():
 
     assert sorted(epochs.reject.keys()) == ["eeg", "eog", "grad", "mag"]
     assert sorted(epochs.flat.keys()) == ["eeg", "eog", "grad", "mag"]
-    epochs.pick_types(meg=True, eeg=False, ecg=False, eog=False)
+    epochs.pick(meg=True, eeg=False, ecg=False, eog=False)
     assert sorted(epochs.reject.keys()) == ["grad", "mag"]
     assert sorted(epochs.flat.keys()) == ["grad", "mag"]
 

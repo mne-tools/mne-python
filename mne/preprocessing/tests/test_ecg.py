@@ -15,7 +15,7 @@ proj_fname = data_path / "test-proj.fif"
 def test_find_ecg():
     """Test find ECG peaks."""
     # Test if ECG analysis will work on data that is not preloaded
-    raw = read_raw_fif(raw_fname, preload=False).pick_types(meg=True)
+    raw = read_raw_fif(raw_fname, preload=False).pick(meg=True)
     raw.pick(raw.ch_names[::10] + ["MEG 2641"])
     raw.info.normalize_proj()
 
@@ -92,7 +92,7 @@ def test_find_ecg():
     raw.set_channel_types({"MEG 2641": "ecg"}, on_unit_change="ignore")
     create_ecg_epochs(raw)
 
-    raw.pick_types(meg=True)  # remove ECG
+    raw.pick(meg=True)  # remove ECG
     assert "MEG 2641" not in raw.ch_names
     ecg_epochs = create_ecg_epochs(raw, keep_ecg=False)
     assert len(ecg_epochs.events) == n_events

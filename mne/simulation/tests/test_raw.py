@@ -260,7 +260,7 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
     cov["projs"] = raw.info["projs"]
     raw.info["bads"] = raw.ch_names[:1]
     sphere_norad = make_sphere_model("auto", None, raw.info)
-    raw_meg = raw.copy().pick_types(meg=True)
+    raw_meg = raw.copy().pick(meg=True)
     raw_sim = simulate_raw(
         raw_meg.info, stc, trans, src, sphere_norad, head_pos=head_pos_sim
     )
@@ -274,13 +274,13 @@ def test_simulate_raw_sphere(raw_data, tmp_path):
 
     # make sure it works with EEG-only and MEG-only
     raw_sim_meg = simulate_raw(
-        raw.copy().pick_types(meg=True, eeg=False).info, stc, trans, src, sphere
+        raw.copy().pick(meg=True, eeg=False).info, stc, trans, src, sphere
     )
     raw_sim_eeg = simulate_raw(
-        raw.copy().pick_types(meg=False, eeg=True).info, stc, trans, src, sphere
+        raw.copy().pick(meg=False, eeg=True).info, stc, trans, src, sphere
     )
     raw_sim_meeg = simulate_raw(
-        raw.copy().pick_types(meg=True, eeg=True).info, stc, trans, src, sphere
+        raw.copy().pick(meg=True, eeg=True).info, stc, trans, src, sphere
     )
     for this_raw in (raw_sim_meg, raw_sim_eeg, raw_sim_meeg):
         add_eog(this_raw, random_state=seed)
@@ -436,7 +436,7 @@ def test_simulate_round_trip(raw_data):
     """Test simulate_raw round trip calculations."""
     # Check a diagonal round-trip
     raw, src, stc, trans, sphere = raw_data
-    raw.pick_types(meg=True, stim=True)
+    raw.pick(meg=True, stim=True)
     bem = read_bem_solution(bem_1_fname)
     old_bem = bem.copy()
     old_src = src.copy()
@@ -465,7 +465,7 @@ def test_simulate_round_trip(raw_data):
         this_raw = simulate_raw(
             raw.info, stc, use_trans, use_src, use_bem, forward=use_fwd
         )
-        this_raw.pick_types(meg=True, eeg=True)
+        this_raw.pick(meg=True, eeg=True)
         assert old_bem["surfs"][0]["coord_frame"] == bem["surfs"][0]["coord_frame"]
         assert trans == old_trans
         _compare_source_spaces(src, old_src)
@@ -555,7 +555,7 @@ def test_simulation_cascade():
     """Test that cascading operations do not overwrite data."""
     # Create 10 second raw dataset with zeros in the data matrix
     raw_null = read_raw_fif(raw_chpi_fname, allow_maxshield="yes")
-    raw_null.crop(0, 1).pick_types(meg=True).load_data()
+    raw_null.crop(0, 1).pick(meg=True).load_data()
     raw_null.apply_function(lambda x: np.zeros_like(x))
     assert_array_equal(raw_null.get_data(), 0.0)
 

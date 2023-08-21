@@ -590,7 +590,7 @@ def test_basic():
         maxwell_filter(raw, mag_scale="foo")
     raw_missing = raw.copy().load_data()
     raw_missing.info["bads"] = ["MEG0111"]
-    raw_missing.pick_types(meg=True)  # will be missing the bad
+    raw_missing.pick(meg=True)  # will be missing the bad
     maxwell_filter(raw_missing)
     with pytest.warns(RuntimeWarning, match="not in data"):
         maxwell_filter(raw_missing, calibration=fine_cal_fname)
@@ -610,7 +610,7 @@ def test_maxwell_filter_additional(tmp_path):
 
     # Get MEG channels, compute Maxwell filtered data
     raw.load_data()
-    raw.pick_types(meg=True, eeg=False)
+    raw.pick(meg=True, eeg=False)
     int_order = 8
     raw_sss = maxwell_filter(
         raw, origin=mf_head_origin, regularize=None, bad_condition="ignore"
@@ -791,7 +791,7 @@ def test_fine_calibration():
         regularize=None,
         bad_condition="ignore",
     )
-    raw_missing.pick_types(meg=True)  # actually remove bads
+    raw_missing.pick(meg=True)  # actually remove bads
     raw_sss_bad.pick(raw_missing.ch_names)  # remove them here, too
     with pytest.warns(RuntimeWarning, match="cal channels not in data"):
         raw_sss_missing = maxwell_filter(
@@ -1004,7 +1004,7 @@ def _assert_shielding(raw_sss, erm_power, min_factor, max_factor=np.inf, meg="ma
 def test_esss(regularize, bads):
     """Test extended-basis SSS."""
     # Make some fake "projectors" that actually contain external SSS bases
-    raw_erm = read_crop(erm_fname).load_data().pick_types(meg=True)
+    raw_erm = read_crop(erm_fname).load_data().pick(meg=True)
     raw_erm.info["bads"] = bads
     proj_sss = mne.compute_proj_raw(
         raw_erm, meg="combined", verbose="error", n_mag=15, n_grad=15
@@ -1076,7 +1076,7 @@ def get_n_projected():
 @testing.requires_testing_data
 def test_shielding_factor(tmp_path):
     """Test Maxwell filter shielding factor using empty room."""
-    raw_erm = read_crop(erm_fname).load_data().pick_types(meg=True)
+    raw_erm = read_crop(erm_fname).load_data().pick(meg=True)
     erm_power = raw_erm[pick_types(raw_erm.info, meg="mag")][0]
     erm_power = np.sqrt(np.sum(erm_power * erm_power))
     erm_power_grad = raw_erm[pick_types(raw_erm.info, meg="grad")][0]
@@ -1596,7 +1596,7 @@ def test_find_bad_channels_maxwell(
         flat_idx = 33
     else:
         raw = read_raw_fif(fname)
-        raw.fix_mag_coil_types().load_data().pick_types(meg=True, exclude=())
+        raw.fix_mag_coil_types().load_data().pick(meg=True, exclude=())
         flat_idx = 1
     if meas_date is None:
         raw.set_meas_date(None)
@@ -1612,7 +1612,7 @@ def test_find_bad_channels_maxwell(
 
     if add_ch:
         raw_eeg = read_raw_fif(fname)
-        raw_eeg.pick_types(meg=False, eeg=True, exclude=()).load_data()
+        raw_eeg.pick(meg=False, eeg=True, exclude=()).load_data()
         with raw_eeg.info._unlock():
             raw_eeg.info["lowpass"] = 40.0
         raw = raw_eeg.add_channels([raw])  # prepend the EEG channels
@@ -1663,7 +1663,7 @@ def test_find_bad_channels_maxwell(
         assert "data has already been low-pass filtered" in log
 
     if return_scores:
-        meg_chs = raw.copy().pick_types(meg=True, exclude=[]).ch_names
+        meg_chs = raw.copy().pick(meg=True, exclude=[]).ch_names
         ch_types = raw.get_channel_types(meg_chs)
 
         assert list(got_scores["ch_names"]) == meg_chs
@@ -1779,7 +1779,7 @@ def test_compute_maxwell_basis(regularize, n, int_order):
     assert n_use_in == n
     assert n_use_in == len(reg_moments) - 15  # no externals removed
     xform = S[:, :n_use_in] @ pS[:n_use_in]
-    got = xform @ raw.pick_types(meg=True, exclude="bads").get_data()
+    got = xform @ raw.pick(meg=True, exclude="bads").get_data()
     assert_allclose(got, want)
 
 
@@ -1816,7 +1816,7 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er_prepared.info["bads"] == ["MEG0113", "MEG2313"]
     assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
 
-    montage_expected = raw.copy().pick_types(meg=True).get_montage()
+    montage_expected = raw.copy().pick(meg=True).get_montage()
     assert raw_er_prepared.get_montage() == montage_expected
 
     # Ensure the originals were not modified

@@ -693,7 +693,7 @@ def test_chpi_subtraction_filter_chpi():
     raw.crop(0, 16)
     # remove cHPI status chans
     raw_c = read_raw_fif(sss_hpisubt_fname).crop(0, 16).load_data()
-    raw_c.pick_types(meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
+    raw_c.pick(meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
     assert_meg_snr(raw, raw_c, 143, 624)
     # cHPI suppressed but not line freqs (or others)
     assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])

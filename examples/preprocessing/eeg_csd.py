@@ -34,7 +34,7 @@ data_path = sample.data_path()
 # Load sample subject data
 meg_path = data_path / "MEG" / "sample"
 raw = mne.io.read_raw_fif(meg_path / "sample_audvis_raw.fif")
-raw = raw.pick_types(
+raw = raw.pick(
     meg=False, eeg=True, eog=True, ecg=True, stim=True, exclude=raw.info["bads"]
 ).load_data()
 events = mne.find_events(raw)

@@ -76,7 +76,7 @@ cov_fname = base_dir / "test-cov.fif"
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
-    evoked.pick_types(meg="mag")
+    evoked.pick(meg="mag")
     with evoked.info._unlock():
         evoked.info["projs"] = []
     assert not evoked.proj
@@ -324,7 +324,7 @@ def test_plot_topomap_basic():
     res = 8
     fast_test = dict(res=res, contours=0, sensors=False, time_unit="s")
     fast_test_noscale = dict(res=res, contours=0, sensors=False)
-    ev_bad = evoked.copy().pick_types(meg=False, eeg=True)
+    ev_bad = evoked.copy().pick(meg=False, eeg=True)
     ev_bad.pick(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
@@ -358,7 +358,7 @@ def test_plot_topomap_basic():
     plt.close("all")
     plt_topomap(times=[-0.1, 0.2])
     plt.close("all")
-    evoked_grad = evoked.copy().crop(0, 0).pick_types(meg="grad")
+    evoked_grad = evoked.copy().crop(0, 0).pick(meg="grad")
     mask = np.zeros((204, 1), bool)
     mask[[0, 3, 5, 6]] = True
     names = []
@@ -410,7 +410,7 @@ def test_plot_topomap_basic():
 
     # Plot array
     for ch_type in ("mag", "grad"):
-        evoked_ = evoked.copy().pick_types(eeg=False, meg=ch_type)
+        evoked_ = evoked.copy().pick(eeg=False, meg=ch_type)
         plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test_noscale)
     # fail with multiple channel types
     pytest.raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)
@@ -625,7 +625,7 @@ def test_ctf_plotting():
     # smoke test that compensation does not matter
     evoked.plot_topomap(time_unit="s")
     # better test that topomaps can still be used without plotting ref
-    evoked.pick_types(meg=True, ref_meg=False)
+    evoked.pick(meg=True, ref_meg=False)
     evoked.plot_topomap()
 
 
@@ -652,7 +652,7 @@ def test_plot_topomap_neuromag122():
     res = 8
     fast_test = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-    evoked.pick_types(meg="grad")
+    evoked.pick(meg="grad")
     evoked.pick(evoked.ch_names[:122])
     ch_names = ["MEG %03d" % k for k in range(1, 123)]
     for c in evoked.info["chs"]:

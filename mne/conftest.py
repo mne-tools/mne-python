@@ -416,7 +416,7 @@ def bias_params_fixed(evoked, noise_cov):
 
 
 def _bias_params(evoked, noise_cov, fwd):
-    evoked.pick_types(meg=True, eeg=True, exclude=())
+    evoked.pick(meg=True, eeg=True, exclude=())
     # restrict to limited set of verts (small src here) and one hemi for speed
     vertices = [fwd["src"][0]["vertno"].copy(), []]
     stc = mne.SourceEstimate(
@@ -654,7 +654,7 @@ def subjects_dir_tmp_few(tmp_path):
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types(meg=True)
+    evoked = _evoked.copy().pick(meg=True)
     evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)

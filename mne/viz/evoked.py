@@ -1587,7 +1587,7 @@ def plot_evoked_white(
     for idx in passive_idx[::-1]:  # reverse order so idx does not change
         evoked.del_proj(idx)
 
-    evoked.pick_types(ref_meg=False, exclude="bads", **_PICK_TYPES_DATA_DICT)
+    evoked.pick(ref_meg=False, exclude="bads", **_PICK_TYPES_DATA_DICT)
     n_ch_used, rank_list, picks_list, has_sss = _triage_rank_sss(
         evoked.info, noise_cov, rank, scalings=None
     )

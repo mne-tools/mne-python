@@ -77,7 +77,7 @@ brain = snr_stc.plot(**kwargs)
 # ---
 # Next we do the same for EEG and plot the result on the cortex:
 
-evoked_eeg = evoked.copy().pick_types(eeg=True, meg=False)
+evoked_eeg = evoked.copy().pick(eeg=True, meg=False)
 inv_op_eeg = make_inverse_operator(evoked_eeg.info, fwd, cov, fixed=True, verbose=True)
 stc_eeg = apply_inverse(evoked_eeg, inv_op_eeg, lambda2, "MNE", verbose=True)
 snr_stc_eeg = stc_eeg.estimate_snr(evoked_eeg.info, fwd, cov)

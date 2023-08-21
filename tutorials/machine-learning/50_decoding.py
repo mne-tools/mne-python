@@ -53,7 +53,7 @@ raw_fname = meg_path / "sample_audvis_filt-0-40_raw.fif"
 tmin, tmax = -0.200, 0.500
 event_id = {"Auditory/Left": 1, "Visual/Left": 3}  # just use two
 raw = mne.io.read_raw_fif(raw_fname)
-raw.pick_types(meg="grad", stim=True, eog=True, exclude=())
+raw.pick(meg="grad", stim=True, eog=True, exclude=())
 
 # The subsequent decoding analyses only capture evoked responses, so we can
 # low-pass the MEG data. Usually a value more like 40 Hz would be used,
@@ -80,7 +80,7 @@ epochs = mne.Epochs(
     decim=3,
     verbose="error",
 )
-epochs.pick_types(meg=True, exclude="bads")  # remove stim and EOG
+epochs.pick(meg=True, exclude="bads")  # remove stim and EOG
 del raw
 
 X = epochs.get_data()  # MEG signals: n_epochs, n_meg_channels, n_times

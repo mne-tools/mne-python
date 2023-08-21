@@ -133,7 +133,7 @@ fig = evks["aud/left"].plot_topomap(
 # the estimated magnitude and direction of the magnetic field, using the
 # function :func:`mne.viz.plot_arrowmap`:
 
-mags = evks["aud/left"].copy().pick_types(meg="mag")
+mags = evks["aud/left"].copy().pick(meg="mag")
 mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate="local")
 
 # %%

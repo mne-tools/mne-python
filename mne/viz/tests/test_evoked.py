@@ -569,7 +569,7 @@ def test_plot_compare_evokeds():
 def test_plot_compare_evokeds_neuromag122():
     """Test topomap plotting."""
     evoked = mne.read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-    evoked.pick_types(meg="grad")
+    evoked.pick(meg="grad")
     evoked.pick(evoked.ch_names[:122])
     ch_names = ["MEG %03d" % k for k in range(1, 123)]
     for c in evoked.info["chs"]:

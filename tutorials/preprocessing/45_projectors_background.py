@@ -363,7 +363,7 @@ print(first_projector["active"])
 # look at just the magnetometers, and a 2-second sample from the beginning of
 # the file.
 
-mags = raw.copy().crop(tmax=2).pick_types(meg="mag")
+mags = raw.copy().crop(tmax=2).pick(meg="mag")
 for proj in (False, True):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = mags.plot(butterfly=True, proj=proj)
@@ -434,7 +434,7 @@ raw.add_proj(ecg_projs)
 # empty room SSP projectors, to the data with both empty room and ECG
 # projectors:
 
-mags_ecg = raw.copy().crop(tmax=2).pick_types(meg="mag")
+mags_ecg = raw.copy().crop(tmax=2).pick(meg="mag")
 for data, title in zip([mags, mags_ecg], ["Without", "With"]):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = data.plot(butterfly=True, proj=True)

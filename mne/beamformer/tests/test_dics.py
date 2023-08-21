@@ -179,7 +179,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         assert rank == len(epochs.info["ch_names"]) == 62
     else:
         noise_csd = None
-        epochs.pick_types(meg="grad")
+        epochs.pick(meg="grad")
 
     with pytest.raises(ValueError, match="Invalid value for the 'pick_ori'"):
         make_dics(
@@ -452,7 +452,7 @@ def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
 
     with pytest.raises(ValueError, match="several sensor types"):
         make_dics(epochs.info, fwd_free, csd)
-    epochs.pick_types(meg="grad")
+    epochs.pick(meg="grad")
 
     # Try different types of forward models
     assert label.hemi == "lh"
@@ -486,7 +486,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     epochs, _, csd, source_vertno, label, vertices, source_ind = _simulate_data(
         fwd_fixed, idx
     )
-    epochs.pick_types(meg="grad")
+    epochs.pick(meg="grad")
 
     reg_ = 5 if inversion == "matrix" else 1
     filters = make_dics(
@@ -550,7 +550,7 @@ def test_real(_load_forward, idx):
     epochs, _, csd, source_vertno, label, vertices, source_ind = _simulate_data(
         fwd_fixed, idx
     )
-    epochs.pick_types(meg="grad")
+    epochs.pick(meg="grad")
     reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(
         epochs.info,
@@ -619,7 +619,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
     with pytest.raises(ValueError, match="several sensor types"):
         make_dics(evoked.info, fwd_surf, csd)
-    evoked.pick_types(meg="grad")
+    evoked.pick(meg="grad")
 
     multiple_filters = make_dics(evoked.info, fwd_surf, csd, label=label, reg=reg)
 
@@ -832,7 +832,7 @@ def test_localization_bias_free(
     data_csd = _cov_as_csd(data_cov, evoked.info)
     del noise_cov, data_cov
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(meg="grad")
         noise_csd = None
     filters = make_dics(
         evoked.info,
@@ -926,7 +926,7 @@ def test_make_dics_rank(_load_forward, idx, whiten):
         kind = "mag + grad"
     else:
         noise_csd = None
-        epochs.pick_types(meg="grad")
+        epochs.pick(meg="grad")
         want_rank = len(epochs.ch_names)
         assert want_rank == 41
         kind = "grad"
