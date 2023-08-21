@@ -20,7 +20,7 @@ ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 @pytest.fixture()
 def short_raw():
     """Create a short, picked raw instance."""
-    raw = read_raw_fif(raw_fname).crop(0, 7).pick(meg=True, eeg=True, eog=True)
+    raw = read_raw_fif(raw_fname).crop(0, 7).pick(["meg", "eeg", "eog"])
     raw.pick(raw.ch_names[:306:10] + raw.ch_names[306:]).load_data()
     raw.info.normalize_proj()
     return raw
