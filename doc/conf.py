@@ -577,6 +577,7 @@ sphinx_gallery_conf = {
             "../tutorials/clinical/",
             "../tutorials/simulation/",
             "../tutorials/sample-datasets/",
+            "../tutorials/visualization/",
             "../tutorials/misc/",
         ]
     ),
@@ -1395,6 +1396,11 @@ for icon, classes in icon_class.items():
 
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
+
+.. include:: /links.inc
+.. include:: /changes/names.inc
+
+.. currentmodule:: mne
 """
 
 # -- Dependency info ----------------------------------------------------------
@@ -1572,6 +1578,7 @@ sd = "sample-datasets"
 ml = "machine-learning"
 tf = "time-freq"
 si = "simulation"
+vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
@@ -1628,6 +1635,7 @@ custom_redirects = {
     f"{ex}/{co}/mne_inverse_envelope_correlation.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation.html",  # noqa E501
     f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
     f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",  # noqa E501
+    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",  # noqa E501
 }
 
 
