@@ -1700,6 +1700,7 @@ class BaseRaw(
         # write the raw file
         _validate_type(split_naming, str, "split_naming")
         _check_option("split_naming", split_naming, ("neuromag", "bids"))
+
         _write_raw(
             fname,
             self,
@@ -2594,15 +2595,15 @@ def _write_raw(
             use_fname = "%s-%d%s" % (base, part_idx, ext)
         else:
             assert split_naming == "bids"
-            use_fname = _construct_bids_filename(base, ext, part_idx + 1)
-            # check for file existence
-            _check_fname(use_fname, overwrite)
+            use_fname = _construct_bids_filename(base, ext, part_idx)
     else:
         use_fname = fname
+    # check for file existence
+    _check_fname(use_fname, overwrite)
     # reserve our BIDS split fname in case we need to split
     if split_naming == "bids" and part_idx == 0:
         # reserve our possible split name
-        reserved_fname = _construct_bids_filename(base, ext, part_idx + 1)
+        reserved_fname = _construct_bids_filename(base, ext, part_idx)
         logger.info(f"Reserving possible split file {op.basename(reserved_fname)}")
         _check_fname(reserved_fname, overwrite)
         ctx = _ReservedFilename(reserved_fname)
