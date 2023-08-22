@@ -22,6 +22,7 @@ from os import path as op
 import tempfile
 
 from ..io import RawArray, BaseRaw
+from ..html_templates import _get_html_template
 from .._fiff.constants import FIFF
 from .._fiff.open import fiff_open
 from .._fiff.tree import dir_tree_find
@@ -211,8 +212,6 @@ class Forward(dict):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         (
             good_chs,
             bad_chs,
@@ -220,7 +219,7 @@ class Forward(dict):
             _,
         ) = self["info"]._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
-        t = repr_templates_env.get_template("forward.html.jinja")
+        t = _get_html_template("repr", "forward.html.jinja")
         html = t.render(
             good_channels=good_chs,
             bad_channels=bad_chs,

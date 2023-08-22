@@ -57,7 +57,6 @@ from .._fiff.write import (
     _get_split_size,
     _NEXT_FILE_BUFFER,
 )
-
 from ..annotations import (
     Annotations,
     _annotations_starts_stops,
@@ -74,6 +73,7 @@ from ..filter import (
     _resample_stim_channels,
     _check_fun,
 )
+from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..utils import (
     _check_fname,
@@ -2084,8 +2084,6 @@ class BaseRaw(
 
     @repr_html
     def _repr_html_(self, caption=None):
-        from ..html_templates import repr_templates_env
-
         basenames = [os.path.basename(f) for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
@@ -2096,7 +2094,7 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-        raw_template = repr_templates_env.get_template("raw.html.jinja")
+        raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
             info_repr=self.info._repr_html_(caption=caption),
             filenames=basenames,

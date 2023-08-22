@@ -60,6 +60,7 @@ from ._fiff.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
+from .html_templates import _get_html_template
 from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
@@ -1901,8 +1902,6 @@ class BaseEpochs(
 
     @repr_html
     def _repr_html_(self):
-        from .html_templates import repr_templates_env
-
         if self.baseline is None:
             baseline = "off"
         else:
@@ -1925,7 +1924,7 @@ class BaseEpochs(
         else:
             event_strings = None
 
-        t = repr_templates_env.get_template("epochs.html.jinja")
+        t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
 

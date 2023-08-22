@@ -25,6 +25,7 @@ from scipy.special import expit
 
 from .ecg import qrs_detector, _get_ecg_channel_index, _make_ecg, create_ecg_epochs
 from .eog import _find_eog_events, _get_eog_channel_index
+from ..html_templates import _get_html_template
 from .infomax_ import infomax
 
 from ..cov import compute_whitener, Covariance
@@ -575,10 +576,8 @@ class ICA(ContainsMixin):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         infos = self._get_infos_for_repr()
-        t = repr_templates_env.get_template("ica.html.jinja")
+        t = _get_html_template("repr", "ica.html.jinja")
         html = t.render(
             fit_on=infos.fit_on,
             method=infos.fit_method,

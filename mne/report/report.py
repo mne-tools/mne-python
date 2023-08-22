@@ -30,6 +30,7 @@ from .. import __version__ as MNE_VERSION
 from ..evoked import read_evokeds, Evoked
 from ..event import read_events
 from ..cov import read_cov, Covariance
+from ..html_templates import _get_html_template
 from ..source_estimate import read_source_estimate, SourceEstimate
 from ..transforms import read_trans, Transform
 from ..utils import sys_info
@@ -162,9 +163,7 @@ def _id_sanitize(title):
 
 
 def _renderer(kind):
-    from ..html_templates import report_templates_env
-
-    return report_templates_env.get_template(kind).render
+    return _get_html_template("report", kind).render
 
 
 ###############################################################################

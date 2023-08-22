@@ -2,18 +2,14 @@
 #
 # License: BSD-3-Clause
 
+import os
 import sys
+import pytest
 from mne.utils import run_subprocess
 
-# To keep `import mne` time down, we nest most imports, including those of
-# required dependencies (e.g., pooch, tqdm, matplotlib). SciPy submodules
-# (esp. linalg) can take a while to load, so these imports must be nested, too.
-# NumPy is the exception -- it can be imported directly at the top of files.
-# N.B. that jinja2 is imported directly in mne/html_templates, so all imports
-# of mne.html_templates must be nested to achieve the jinja2 import being
-# nested during import of mne.
-#
-# This test ensures that we don't accidentally un-nest any of these imports.
+eager_import = os.getenv("EAGER_IMPORT", "")
+
+# This test ensures that modules are lazily loaded.
 
 run_script = """
 import sys
@@ -45,6 +41,7 @@ exit(len(out))
 """
 
 
+@pytest.mark.skipif(eager_import, reason=f"EAGER_IMPORT={eager_import}")
 def test_module_nesting():
     """Test that module imports are properly nested."""
     stdout, stderr, code = run_subprocess(
