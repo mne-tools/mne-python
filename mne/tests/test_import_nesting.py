@@ -41,7 +41,7 @@ exit(len(out))
 """
 
 
-@pytest.mark.skipif(eager_import, reason=f"EAGER_IMPORT={eager_import}")
+@pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
 def test_module_nesting():
     """Test that module imports are properly nested."""
     stdout, stderr, code = run_subprocess(
