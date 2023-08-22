@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _faq:
 
 ================================
@@ -174,7 +172,7 @@ have an ``n_jobs`` flag but may still use multiple cores. This is because
 support multithreading:
 
 - `OpenBLAS <http://www.openblas.net/>`_
-- `Intel Math Kernel Library (MKL) <https://software.intel.com/en-us/mkl>`_,
+- `Intel Math Kernel Library (MKL) <https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html>`_,
   which uses `OpenMP <https://www.openmp.org/>`_
 
 To control how many cores are used for linear-algebra-heavy functions like

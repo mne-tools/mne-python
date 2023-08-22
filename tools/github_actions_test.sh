@@ -2,9 +2,9 @@
 
 set -eo pipefail
 
-if [[ "${CI_OS_NAME}" != "macos"* ]]; then
+if [[ "${CI_OS_NAME}" == "ubuntu"* ]]; then
   CONDITION="not (ultraslowtest or pgtest)"
-else
+else  # macOS or Windows
   CONDITION="not (slowtest or pgtest)"
 fi
 if [ "${MNE_CI_KIND}" == "notebook" ]; then

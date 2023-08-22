@@ -129,7 +129,7 @@ def _otp(data, picks_good, picks_bad):
     for mi, pick in enumerate(picks_good):
         # operate on original data
         idx = list(range(mi)) + list(range(mi + 1, len(data_good)))
-        # Equivalent: linalg.svd(data[idx], full_matrices=False)[2]
+        # Equivalent: svd(data[idx], full_matrices=False)[2]
         t_basis = _svd_cov(cov[np.ix_(idx, idx)], data_good[idx])[2]
         x = np.dot(np.dot(data_good[mi], t_basis.T), t_basis)
         x *= norms[mi]

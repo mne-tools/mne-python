@@ -11,9 +11,7 @@
 
 .. mne
 
-.. _`MNE-Python`: http://mne.tools/mne-python-intro
 .. _`MNE-Python GitHub`: https://github.com/mne-tools/mne-python
-.. _`mne-scripts`: https://github.com/mne-tools/mne-scripts/
 .. _`MNE-C manual`: https://mne.tools/mne-c-manual/MNE-manual-2.7.3.pdf
 .. _`GitHub issues page`: https://github.com/mne-tools/mne-python/issues/
 .. _`MNE Forum`: https://mne.discourse.group
@@ -23,6 +21,9 @@
 .. _`MNE-Realtime`: https://mne.tools/mne-realtime
 .. _`MNE-MATLAB git repository`: https://github.com/mne-tools/mne-matlab
 .. _`MNE-Docker`: https://github.com/mne-tools/mne-docker
+.. _`MNE-ICAlabel`: https://github.com/mne-tools/mne-icalabel
+.. _`MNE-Connectivity`: https://github.com/mne-tools/mne-connectivity
+.. _`MNE-NIRS`: https://github.com/mne-tools/mne-nirs
 .. _OpenMEEG: http://openmeeg.github.io
 .. _EOSS2: https://chanzuckerberg.com/eoss/proposals/improving-usability-of-core-neuroscience-analysis-tools-with-mne-python
 .. _EOSS4: https://chanzuckerberg.com/eoss/proposals/building-pediatric-and-clinical-data-pipelines-for-mne-python/
@@ -38,95 +39,6 @@
 .. _ft_cluster_effect_size: https://mailman.science.ru.nl/pipermail/fieldtrip/2017-September/024644.html
 .. _ft_exch: https://mailman.science.ru.nl/pipermail/fieldtrip/2008-October/001794.html
 
-
-
-.. TEMPLATE FOR LINKS TO OTHER PROJECTS
-.. _PROJECTNAME: http://neuroimaging.scipy.org
-.. _`PROJECTNAME github`: http://github.com/nipy
-.. _`PROJECTNAME mailing list`: http://projects.scipy.org/mailman/listinfo/nipy-devel
-
-.. numpy
-
-.. _numpy: http://www.numpy.org
-.. _`numpy github`: http://github.com/numpy/numpy
-.. _`numpy mailing list`: http://mail.scipy.org/mailman/listinfo/numpy-discussion
-
-
-.. scipy
-
-.. _scipy: http://www.scipy.org
-.. _`scipy github`: http://github.com/scipy/scipy
-.. _`scipy mailing list`: http://mail.scipy.org/mailman/listinfo/scipy-dev
-
-.. freesurfer
-
-.. _freesurfer: https://surfer.nmr.mgh.harvard.edu/
-.. _`freesufer github`: https://github.com/freesurfer/freesurfer
-.. _`freesurfer mailing list`: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
-
-
-.. nipy
-
-.. _nipy: http://nipy.org/nipy
-.. _`nipy github`: http://github.com/nipy/nipy
-.. _`nipy mailing list`: http://mail.scipy.org/mailman/listinfo/nipy-devel
-
-
-.. ipython
-
-.. _ipython: https://ipython.org
-.. _`ipython github`: https://github.com/ipython/ipython
-.. _`ipython mailing list`: https://mail.python.org/mailman/listinfo/ipython-dev
-
-
-.. dipy
-
-.. _dipy: http://nipy.org/dipy
-.. _`dipy github`: http://github.com/Garyfallidis/dipy
-.. _`dipy mailing list`: http://mail.scipy.org/mailman/listinfo/nipy-devel
-
-
-.. nibabel
-
-.. _nibabel: http://nipy.org/nibabel
-.. _`nibabel github`: http://github.com/nipy/nibabel
-.. _`nibabel mailing list`: http://mail.scipy.org/mailman/listinfo/nipy-devel
-
-
-.. h5py
-
-.. _h5py: http://www.h5py.org
-.. _`h5py github`: http://github.com/h5py/h5py
-.. _`h5py mailing list`: https://groups.google.com/forum/#!forum/h5py
-
-
-.. Pytest
-
-.. _pytest: https://docs.pytest.org/
-
-
-.. Flake8
-
-.. _Flake8: http://flake8.pycqa.org/
-
-
-.. pymatreader
-
-.. _pymatreader: https://gitlab.com/obob/pymatreader
-
-
-.. h5io
-
-.. _h5io: https://github.com/h5io/h5io
-
-
-.. CuPy
-
-.. _CuPy: https://cupy.chainer.org/
-
-.. Dask
-
-.. _Dask: https://dask.org/
 
 .. git stuff
 
@@ -158,6 +70,15 @@
 
 .. python packages
 
+.. _numpy: http://www.numpy.org
+.. _scipy: http://www.scipy.org
+.. _freesurfer: https://surfer.nmr.mgh.harvard.edu/
+.. _nipy: http://nipy.org/nipy
+.. _h5py: http://www.h5py.org
+.. _pymatreader: https://gitlab.com/obob/pymatreader
+.. _h5io: https://github.com/h5io/h5io
+.. _CuPy: https://cupy.chainer.org/
+.. _Dask: https://dask.org/
 .. _pep8: https://pypi.org/project/pep8/
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _coverage: https://pypi.python.org/pypi/coverage
@@ -165,7 +86,6 @@
 .. _nitime: http://nipy.org/nitime/
 .. _joblib: https://pypi.python.org/pypi/joblib
 .. _scikit-learn: https://scikit-learn.org/stable/
-.. _pyDICOM: https://pypi.python.org/pypi/pydicom/
 .. _matplotlib: https://matplotlib.org/
 .. _sphinx: https://www.sphinx-doc.org/
 .. _pandas: https://pandas.pydata.org/
@@ -198,5 +118,3 @@
 .. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _NumPy docstring style guidelines: https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
 .. _Stack Overflow: https://stackoverflow.com/
-
-.. vim: ft=rst

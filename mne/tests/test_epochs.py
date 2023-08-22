@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os
 import pickle
 from copy import deepcopy
 from datetime import timedelta
@@ -63,7 +62,6 @@ from mne.epochs import (
     make_metadata,
 )
 from mne.utils import (
-    requires_pandas,
     object_diff,
     use_log_level,
     catch_logging,
@@ -1477,85 +1475,193 @@ def test_epochs_io_preload(tmp_path, preload):
     assert_equal(epochs.get_data().shape[-1], 1)
 
 
-@pytest.mark.parametrize(
-    "split_size, n_epochs, n_files, size",
-    [
-        ("1.5MB", 9, 6, 1572864),
-        ("3MB", 18, 3, 3 * 1024 * 1024),
-    ],
-)
-@pytest.mark.parametrize("metadata", [False, True])
-@pytest.mark.parametrize("concat", (False, True))
-def test_split_saving(tmp_path, split_size, n_epochs, n_files, size, metadata, concat):
-    """Test saving split epochs."""
-    if metadata:
-        pytest.importorskip("pandas")
-    # See gh-5102
-    fs = 1000.0
-    n_times = int(round(fs * (n_epochs + 1)))
-    raw = mne.io.RawArray(
-        np.random.RandomState(0).randn(100, n_times), mne.create_info(100, 1000.0)
-    )
-    events = mne.make_fixed_length_events(raw, 1)
-    epochs = mne.Epochs(raw, events)
-    if split_size == "2MB" and (metadata or concat):
-        n_files += 1
-    if metadata:
-        from pandas import DataFrame
+@pytest.fixture(scope="session")
+def epochs_factory():
+    """Create fake Epochs object.
 
-        junk = ["*" * 10000 for _ in range(len(events))]
-        metadata = DataFrame(
-            {
-                "event_time": events[:, 0] / raw.info["sfreq"],
-                "trial_number": range(len(events)),
-                "junk": junk,
-            }
-        )
-        epochs.metadata = metadata
-    if concat:
+    Metadata and concat address gh-5102, gh-7897.
+    """
+
+    def factory(n_epochs, metadata=False, concat=False):
+        if metadata:
+            pytest.importorskip("pandas")
+        # See gh-5102
+        n_ch, fs = 100, 1000.0
+        n_times = int(round(fs * (n_epochs + 1)))
+        raw_data = np.random.RandomState(0).randn(n_ch, n_times)
+        raw = mne.io.RawArray(raw_data, mne.create_info(n_ch, fs))
+        events = mne.make_fixed_length_events(raw, 1)
+        epochs = mne.Epochs(raw, events)
+        if metadata:
+            from pandas import DataFrame
+
+            junk = ["*" * 10000 for _ in range(len(events))]
+            metadata = DataFrame(
+                {
+                    "event_time": events[:, 0] / raw.info["sfreq"],
+                    "trial_number": range(len(events)),
+                    "junk": junk,
+                }
+            )
+            epochs.metadata = metadata
         epochs.drop_bad()
-        epochs = concatenate_epochs([epochs[ii] for ii in range(len(epochs))])
+        if concat:
+            epochs = concatenate_epochs([epochs[ii] for ii in range(len(epochs))])
+        assert len(epochs) == n_epochs
+        return epochs
+
+    return factory
+
+
+@pytest.fixture(
+    params=[
+        ("1.5MB", 8, True, True, 6),
+        ("1.5MB", 8, True, False, 6),
+        ("1.5MB", 8, False, True, 6),
+        ("1.5MB", 8, False, False, 6),
+        ("3MB", 14, True, True, 3),
+        ("3MB", 14, True, False, 3),
+        ("3MB", 14, False, True, 2),
+        ("3MB", 14, False, False, 2),
+        ("3MB", 15, False, False, 3),
+        ("3MB", 18, True, True, 3),
+        ("3MB", 18, True, False, 3),
+        ("3MB", 18, False, True, 3),
+        ("3MB", 18, False, False, 3),
+    ]
+)
+def epochs_to_split(request, epochs_factory):
+    """Epochs tailored to produce specific number of splits when saving.
+
+    We're specifically interested in boundary cases, when a small size
+    excess triggers creation of a new split: gh-7897
+
+    """
+    split_size, n_epochs, metadata, concat, n_files = request.param
+    epochs = epochs_factory(n_epochs, metadata, concat)
+    return epochs, split_size, n_files
+
+
+@pytest.mark.parametrize("preload", [True, False], ids=["preload", "no_preload"])
+def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
+    """Test saving split epochs and loading them back.
+
+    In particular, check events after loading splits to test against gh-5102.
+
+    """
+    epochs, split_size, n_files = epochs_to_split
     epochs_data = epochs.get_data()
-    assert len(epochs) == n_epochs
     fname = tmp_path / "test-epo.fif"
-    epochs.save(fname, split_size=split_size, overwrite=True)
     got_size = _get_split_size(split_size)
-    assert got_size == size
-    _assert_splits(fname, n_files, size)
+
+    epochs.save(fname, split_size=split_size, overwrite=True)
+    epochs2 = mne.read_epochs(fname, preload=preload)
+
+    _assert_splits(fname, n_files, got_size)
     assert not fname.with_name(f"{fname.stem}-{n_files + 1}{fname.suffix}").is_file()
-    for preload in (True, False):
-        epochs2 = mne.read_epochs(fname, preload=preload)
-        assert_allclose(epochs2.get_data(), epochs_data)
-        assert_array_equal(epochs.events, epochs2.events)
+    assert_allclose(epochs2.get_data(), epochs_data)
+    assert_array_equal(epochs.events, epochs2.events)
 
-    # Check that if BIDS is used and no split is needed it defaults to
-    # simple writing without _split- entity.
-    split_fname = tmp_path / "test_epo.fif"
-    split_fname_neuromag_part1 = tmp_path / f"test_epo-{n_files + 1}.fif"
-    split_fname_bids_part1 = tmp_path / f"test_split-{n_files + 1:02d}_epo.fif"
 
-    epochs.save(split_fname, split_naming="bids", verbose=True)
-    assert split_fname.is_file()
-    assert not split_fname_bids_part1.is_file()
-    for split_naming in ("neuromag", "bids"):
-        with pytest.raises(FileExistsError, match="Destination file"):
-            epochs.save(split_fname, split_naming=split_naming, verbose=True)
-    os.remove(split_fname)
+@pytest.mark.parametrize(
+    "split_naming, dst_fname, split_fname_fn",
+    [
+        (
+            "neuromag",
+            "test_epo.fif",
+            lambda i: f"test_epo-{i}.fif" if i else "test_epo.fif",
+        ),
+        (
+            "bids",
+            "test_epo.fif",
+            lambda i: f"test_split-{i:02d}_epo.fif" if i else "test_epo.fif",
+        ),
+        (
+            "bids",
+            "test-epo.fif",
+            # Merely stating the fact:
+            lambda i: f"_split-{i:02d}_test-epo.fif" if i else "test-epo.fif",
+        ),
+    ],
+    ids=["neuromag", "bids", "mix"],
+)
+def test_split_naming(
+    tmp_path, epochs_to_split, split_naming, dst_fname, split_fname_fn
+):
+    """Test naming of the split files."""
+    epochs, split_size, n_files = epochs_to_split
+    dst_fpath = tmp_path / dst_fname
+    save_kwargs = {"split_size": split_size, "split_naming": split_naming}
     # we don't test for reserved files as it's not implemented here
 
-    epochs.save(split_fname, split_size="1.4MB", verbose=True)
+    epochs.save(dst_fpath, verbose=True, **save_kwargs)
+
     # check that the filenames match the intended pattern
-    assert split_fname.is_file()
-    assert split_fname_neuromag_part1.is_file()
-    # check that filenames are being formatted correctly for BIDS
-    epochs.save(
-        split_fname,
-        split_size="1.4MB",
-        split_naming="bids",
-        overwrite=True,
-        verbose=True,
-    )
-    assert split_fname_bids_part1.is_file()
+    assert len(list(tmp_path.iterdir())) == n_files
+    for i in range(n_files):
+        assert (tmp_path / split_fname_fn(i)).is_file()
+    assert not (tmp_path / split_fname_fn(n_files)).is_file()
+
+
+@pytest.mark.parametrize(
+    "dst_fname, split_naming, split_1_fname",
+    [
+        ("test_epo.fif", "neuromag", "test_epo-1.fif"),
+        ("test_epo.fif", "bids", "test_split-01_epo.fif"),
+    ],
+)
+def test_saved_fname_no_splitting(
+    tmp_path, epochs_factory, dst_fname, split_naming, split_1_fname
+):
+    """Test saved fname when splitting not needed.
+
+    - Check "zero-th split" doesn't get the split suffix
+    - Check "first split" isn't produced
+
+    """
+    epochs = epochs_factory(n_epochs=9)
+    dst_fpath = tmp_path / dst_fname
+    split_1_fpath = tmp_path / split_1_fname
+
+    epochs.save(dst_fpath, split_naming=split_naming, verbose=True)
+
+    assert dst_fpath.is_file()
+    assert not split_1_fpath.is_file()
+
+
+@pytest.mark.parametrize(
+    "epochs_to_split", [("3MB", 18, False, False, 3)], indirect=True
+)
+@pytest.mark.parametrize(
+    "split_naming, dst_fname, existing_fname",
+    [
+        ("neuromag", "test-epo.fif", "test-epo.fif"),
+        pytest.param(
+            "neuromag",
+            "test-epo.fif",
+            "test-epo-1.fif",
+            marks=pytest.mark.xfail(reason="bug"),
+        ),
+        ("bids", "test_epo.fif", "test_epo.fif"),
+        ("bids", "test_epo.fif", "test_split-01_epo.fif"),
+        ("bids", "test_epo.fif", "test_split-02_epo.fif"),
+    ],
+)
+def test_splits_overwrite(
+    tmp_path, epochs_to_split, split_naming, dst_fname, existing_fname
+):
+    """Check exception is raised when overwriting without explicit flag.
+
+    Check a case when overwrite occurs because of a split.
+    """
+    dst_fpath = tmp_path / dst_fname
+    epochs, split_size, _ = epochs_to_split
+    save_kwargs = {"split_naming": split_naming, "split_size": split_size}
+
+    (tmp_path / existing_fname).touch()
+
+    with pytest.raises(FileExistsError, match="Destination file"):
+        epochs.save(dst_fpath, verbose=True, overwrite=False, **save_kwargs)
 
 
 @pytest.mark.slowtest
@@ -2707,9 +2813,9 @@ def test_access_by_name(tmp_path):
 
 
 @pytest.mark.slowtest
-@requires_pandas
 def test_to_data_frame():
     """Test epochs Pandas exporter."""
+    pytest.importorskip("pandas")
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {"a": 1, "b": 2}, tmin, tmax, picks=picks)
     # test index checking
@@ -2739,7 +2845,6 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
 
 
-@requires_pandas
 @pytest.mark.parametrize(
     "index",
     (
@@ -2752,6 +2857,7 @@ def test_to_data_frame():
 )
 def test_to_data_frame_index(index):
     """Test index creation in epochs Pandas exporter."""
+    pytest.importorskip("pandas")
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {"a": 1, "b": 2}, tmin, tmax, picks=picks)
     df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
@@ -2765,17 +2871,15 @@ def test_to_data_frame_index(index):
         assert all(np.in1d(non_index, df.columns))
 
 
-@requires_pandas
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
-    from pandas import Timedelta
-
+    pd = pytest.importorskip("pandas")
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {"a": 1, "b": 2}, tmin, tmax, picks=picks)
     # test time_format
     df = epochs.to_data_frame(time_format=time_format)
-    dtypes = {None: np.float64, "ms": np.int64, "timedelta": Timedelta}
+    dtypes = {None: np.float64, "ms": np.int64, "timedelta": pd.Timedelta}
     assert isinstance(df["time"].iloc[0], dtypes[time_format])
 
 
@@ -3309,7 +3413,7 @@ def test_array_epochs(tmp_path, browser_backend):
     assert_array_equal(epochs.events, epochs2.events)
 
     # plotting
-    epochs[0].plot()
+    epochs[0].plot(events=False)
 
     # indexing
     assert_array_equal(np.unique(epochs["1"].events[:, 2]), np.array([1]))
@@ -3530,11 +3634,9 @@ def test_default_values():
     assert_equal(hash(epoch_1), hash(epoch_2))
 
 
-@requires_pandas
 def test_metadata(tmp_path):
     """Test metadata support with pandas."""
-    from pandas import DataFrame, Series, NA
-
+    pd = pytest.importorskip("pandas")
     data = np.random.randn(10, 2, 2000)
     chs = ["a", "b"]
     info = create_info(chs, 1000)
@@ -3542,7 +3644,7 @@ def test_metadata(tmp_path):
         [[1.0] * 5 + [3.0] * 5, ["a"] * 2 + ["b"] * 3 + ["c"] * 3 + ["µ"] * 2],
         dtype="object",
     ).T
-    meta = DataFrame(meta, columns=["num", "letter"])
+    meta = pd.DataFrame(meta, columns=["num", "letter"])
     meta["num"] = np.array(meta["num"], float)
     events = np.arange(meta.shape[0])
     events = np.column_stack([events, np.zeros([len(events), 2])]).astype(int)
@@ -3684,7 +3786,7 @@ def test_metadata(tmp_path):
     info = mne.create_info(10, 1000.0)
     raw = mne.io.RawArray(raw_data, info)
     events = [[0, 0, 1], [100, 0, 1], [200, 0, 1], [300, 0, 1]]
-    metadata = DataFrame([dict(idx=idx) for idx in range(len(events))])
+    metadata = pd.DataFrame([dict(idx=idx) for idx in range(len(events))])
     epochs = mne.Epochs(raw, events=events, tmin=-0.050, tmax=0.100, metadata=metadata)
     epochs.drop_bad()
     assert len(epochs) == len(epochs.metadata)
@@ -3706,7 +3808,7 @@ def test_metadata(tmp_path):
     raw = mne.io.RawArray(raw_data, info)
     opts = dict(raw=raw, tmin=0, tmax=0.001, baseline=None)
     events = [[0, 0, 1], [1, 0, 2]]
-    metadata = DataFrame(events, columns=["onset", "duration", "value"])
+    metadata = pd.DataFrame(events, columns=["onset", "duration", "value"])
     epochs = Epochs(events=events, event_id=1, metadata=metadata, **opts)
     epochs.drop_bad()
     assert len(epochs) == 1
@@ -3727,8 +3829,8 @@ def test_metadata(tmp_path):
         assert len(epochs.metadata) == 1
 
     # gh-10705: support boolean columns
-    metadata = DataFrame(
-        {"A": Series([True, True, True, False, False, NA], dtype="boolean")}
+    metadata = pd.DataFrame(
+        {"A": pd.Series([True, True, True, False, False, pd.NA], dtype="boolean")}
     )
     rng = np.random.default_rng()
     epochs = mne.EpochsArray(
@@ -3784,9 +3886,9 @@ def assert_metadata_equal(got, exp):
         ),
     ],
 )
-@requires_pandas
 def test_make_metadata(all_event_id, row_events, keep_first, keep_last):
     """Test that make_metadata works."""
+    pytest.importorskip("pandas")
     raw, all_events, _ = _get_data()
     tmin, tmax = -0.5, 1.5
     sfreq = raw.info["sfreq"]
@@ -4357,7 +4459,6 @@ def test_add_channels_picks():
     epochs_final.drop_channels(epochs.ch_names)
 
 
-@requires_pandas
 @pytest.mark.parametrize("first_samp", [0, 10])
 @pytest.mark.parametrize(
     "meas_date, orig_date", [[None, None], [np.pi, None], [np.pi, timedelta(seconds=1)]]
@@ -4370,6 +4471,7 @@ def test_epoch_annotations(first_samp, meas_date, orig_date, tmp_path):
     - with and without meas_date
     - with and without an orig_time set in Annotations
     """
+    pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
 
     data = np.random.randn(2, 400) * 10e-12
@@ -4617,11 +4719,11 @@ def test_epochs_annotations_backwards_compat(
     assert lens == want_lens
 
 
-@requires_pandas
 def test_epochs_saving_with_annotations(tmp_path):
     """Test Epochs save correctly with Annotations."""
     # start testing with a new Epochs created and
     # then test roundtrip IO
+    pytest.importorskip("pandas")
     epochs, _, _ = _create_epochs_with_annotations()
     info = epochs.info
 

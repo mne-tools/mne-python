@@ -38,7 +38,7 @@ from mne.io import (
     read_raw_kit,
     RawArray,
 )
-from mne.io.constants import FIFF
+from mne.io.constants import FIFF, _ch_unit_mul_named
 from mne import (
     pick_types,
     pick_channels,
@@ -50,7 +50,6 @@ from mne import (
     Epochs,
 )
 from mne.datasets import testing
-from mne.utils import requires_pandas, requires_version
 from mne.parallel import parallel_func
 
 io_dir = Path(__file__).parent.parent.parent / "io"
@@ -222,6 +221,13 @@ def test_set_channel_types():
     raw.info["chs"][0]["unit"] = 0.0
     ch_types = {raw.ch_names[0]: "misc"}
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
+
+    # test reset of channel units on unit change
+    idx = raw.ch_names.index("EEG 003")
+    raw.info["chs"][idx]["unit_mul"] = _ch_unit_mul_named[-6]
+    assert raw.info["chs"][idx]["unit_mul"] == -6
+    raw.set_channel_types({"EEG 003": "misc"}, on_unit_change="ignore")
+    assert raw.info["chs"][idx]["unit_mul"] == 0
 
 
 def test_get_builtin_ch_adjacencies():
@@ -403,10 +409,10 @@ def test_get_set_sensor_positions():
     assert_array_equal(raw1.info["chs"][13]["loc"], raw2.info["chs"][13]["loc"])
 
 
-@requires_version("pymatreader")
 @testing.requires_testing_data
 def test_1020_selection():
     """Test making a 10/20 selection dict."""
+    pytest.importorskip("pymatreader")
     raw_fname = testing_path / "EEGLAB" / "test_raw.set"
     loc_fname = testing_path / "EEGLAB" / "test_chans.locs"
     raw = read_raw_eeglab(raw_fname, preload=True)
@@ -669,11 +675,9 @@ def test_combine_channels():
     assert len(record) == 3
 
 
-@requires_pandas
 def test_combine_channels_metadata():
     """Test if metadata is correctly retained in combined object."""
-    import pandas as pd
-
+    pd = pytest.importorskip("pandas")
     raw = read_raw_fif(raw_fname, preload=True)
     epochs = Epochs(raw, read_events(eve_fname), preload=True)
 

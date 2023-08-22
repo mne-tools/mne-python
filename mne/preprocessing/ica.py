@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from numbers import Integral
 from time import time
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass
 from typing import Optional, List, Literal
 import warnings
 
@@ -112,15 +112,14 @@ __all__ = (
 
 def _make_xy_sfunc(func, ndim_output=False):
     """Aux function."""
-    if ndim_output:
 
-        def sfunc(x, y):
-            return np.array([func(a, y.ravel()) for a in x])[:, 0]
-
-    else:
-
-        def sfunc(x, y):
-            return np.array([func(a, y.ravel()) for a in x])
+    def sfunc(x, y, ndim_output=ndim_output):
+        out = [func(a, y.ravel()) for a in x]
+        if len(out) and is_dataclass(out[0]):  # PermutationTestResult
+            out = [(o.statistic, o.pvalue) for o in out]
+        if ndim_output:
+            out = np.array(out)[:, 0]
+        return out
 
     sfunc.__name__ = ".".join(["score_func", func.__module__, func.__name__])
     sfunc.__doc__ = func.__doc__
@@ -2770,6 +2769,7 @@ def ica_find_eog_events(
     """
     eog_events = _find_eog_events(
         eog_source[np.newaxis],
+        ch_names=None,
         event_id=event_id,
         l_freq=l_freq,
         h_freq=h_freq,
@@ -3153,38 +3153,57 @@ def _band_pass_filter(inst, sources, target, l_freq, h_freq, verbose=None):
 
 def _find_max_corrs(all_maps, target, threshold):
     """Compute correlations between template and target components."""
-    all_corrs = [compute_corr(target, subj.T) for subj in all_maps]
+    # Following Fig.2 from:
+    # https://www.sciencedirect.com/science/article/abs/pii/S1388245709002338
+
+    # > ... inverse weights (i.e., IC maps) from a selected template IC are
+    # > correlated with all ICs from all datasets ...
+    all_corrs = [compute_corr(target, subj_maps.T) for subj_maps in all_maps]
     abs_corrs = [np.abs(a) for a in all_corrs]
     corr_polarities = [np.sign(a) for a in all_corrs]
+    del all_corrs
 
+    # > selection of X ICs from each dataset with highest absolute
+    # > correlation >= TH
+    #
+    # subj_idxs is a list of indices for each subject that exceeded the threshold:
     if threshold <= 1:
-        max_corrs = [list(np.nonzero(s_corr > threshold)[0]) for s_corr in abs_corrs]
+        subj_idxs = [list(np.nonzero(s_corr > threshold)[0]) for s_corr in abs_corrs]
     else:
-        max_corrs = [
+        subj_idxs = [
             list(_find_outliers(s_corr, threshold=threshold)) for s_corr in abs_corrs
         ]
 
-    am = [l_[i] for l_, i_s in zip(abs_corrs, max_corrs) for i in i_s]
-    median_corr_with_target = np.median(am) if len(am) > 0 else 0
-
-    polarities = [l_[i] for l_, i_s in zip(corr_polarities, max_corrs) for i in i_s]
-
-    maxmaps = [l_[i] for l_, i_s in zip(all_maps, max_corrs) for i in i_s]
-
-    if len(maxmaps) == 0:
+    # > The mean correlation of a resulting cluster is then computed via
+    # > Fisher’s z transform, to account for the non-normal distribution of
+    # > correlation values.
+    #
+    # Here we just use the median rather than the (transformed-back) mean of
+    # the (Fisher z-transformed) correlations:
+    am = np.concatenate(
+        [abs_corr[subj_idx] for abs_corr, subj_idx in zip(abs_corrs, subj_idxs)]
+    )
+    if len(am) == 0:
         return [], 0, 0, []
-    newtarget = np.zeros(maxmaps[0].size)
-    std_of_maps = np.std(np.asarray(maxmaps))
-    mean_of_maps = np.std(np.asarray(maxmaps))
-    for maxmap, polarity in zip(maxmaps, polarities):
-        newtarget += (maxmap / std_of_maps - mean_of_maps) * polarity
+    median_corr_with_target = np.median(am)
 
-    newtarget /= len(maxmaps)
-    newtarget *= std_of_maps
+    # > Next, an average cluster map is calculated, after inversion of those
+    # > ICs showing a negative correlation (sign ambiguity problem) and root
+    # > mean square (RMS) normalization of each individual IC.
+    #
+    # Which is this (rms=Frobenius norm=np.linalg.norm):
+    newtarget = sum(
+        subj_maps[idx] * (pols[idx] / np.linalg.norm(subj_maps[idx]))
+        for subj_maps, pols, subj_idx in zip(all_maps, corr_polarities, subj_idxs)
+        for idx in subj_idx
+    )
+    newtarget /= len(am)
 
+    # And we also compute the similarity between this new map and our original
+    # target map
     sim_i_o = np.abs(np.corrcoef(target, newtarget)[1, 0])
 
-    return newtarget, median_corr_with_target, sim_i_o, max_corrs
+    return newtarget, median_corr_with_target, sim_i_o, subj_idxs
 
 
 @verbose

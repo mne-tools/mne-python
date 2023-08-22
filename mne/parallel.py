@@ -105,8 +105,12 @@ def parallel_func(
             max_nbytes = None  # disable memmaping
         kwargs["temp_folder"] = cache_dir
         kwargs["max_nbytes"] = max_nbytes
-        parallel = Parallel(n_jobs, **kwargs)
+        n_jobs_orig = n_jobs
+        if n_jobs is not None:  # https://github.com/joblib/joblib/issues/1473
+            kwargs["n_jobs"] = n_jobs
+        parallel = Parallel(**kwargs)
         n_jobs = _check_n_jobs(parallel.n_jobs)
+        logger.debug(f"Got {n_jobs} parallel jobs after requesting {n_jobs_orig}")
         if max_jobs is not None:
             n_jobs = min(n_jobs, max(_ensure_int(max_jobs, "max_jobs"), 1))
         my_func = delayed(func)

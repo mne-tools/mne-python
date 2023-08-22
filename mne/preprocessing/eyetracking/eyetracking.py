@@ -1,4 +1,5 @@
 # Authors: Dominik Welke <dominik.welke@mailbox.org>
+#          Scott Huberty <seh33@uw.edu>
 #
 # License: BSD-3-Clause
 

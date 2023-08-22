@@ -23,7 +23,7 @@ help:
 	@echo "  html-noplot      to make standalone HTML files without plotting"
 	@echo "  clean            to clean HTML files"
 	@echo "  linkcheck        to check all external links for integrity"
-	@echo "  linkcheck-grep   to grep the linkcheck resut"
+	@echo "  linkcheck-grep   to grep the linkcheck result"
 	@echo "  doctest          to run all doctests embedded in the documentation (if enabled)"
 	@echo "  view             to view the built HTML"
 

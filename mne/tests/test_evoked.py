@@ -33,7 +33,7 @@ from mne import (
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import requires_pandas, grand_average
+from mne.utils import grand_average
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
 fname = base_dir / "test-ave.fif"
@@ -410,6 +410,14 @@ def test_evoked_resample(tmp_path):
     assert ave_new.info["lowpass"] == 25.0
 
 
+def test_evoked_resamp_noop():
+    """Tests resampling doesn't affect data if sfreq is identical."""
+    ave = read_evokeds(fname, 0)
+    data_before = ave.data
+    data_after = ave.resample(sfreq=ave.info["sfreq"]).data
+    assert_array_equal(data_before, data_after)
+
+
 def test_evoked_filter():
     """Test filtering evoked data."""
     # this is mostly a smoke test as the Epochs and raw tests are more complete
@@ -431,9 +439,9 @@ def test_evoked_detrend():
     assert_allclose(ave.data[picks], ave_normal.data[picks], rtol=1e-8, atol=1e-16)
 
 
-@requires_pandas
 def test_to_data_frame():
     """Test evoked Pandas exporter."""
+    pytest.importorskip("pandas")
     ave = read_evokeds(fname, 0)
     # test index checking
     with pytest.raises(ValueError, match="options. Valid index options are"):
@@ -462,16 +470,14 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 2], ave.data[2] * 1e15)
 
 
-@requires_pandas
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in evoked Pandas exporter."""
-    from pandas import Timedelta
-
+    pd = pytest.importorskip("pandas")
     ave = read_evokeds(fname, 0)
     # test time_format
     df = ave.to_data_frame(time_format=time_format)
-    dtypes = {None: np.float64, "ms": np.int64, "timedelta": Timedelta}
+    dtypes = {None: np.float64, "ms": np.int64, "timedelta": pd.Timedelta}
     assert isinstance(df["time"].iloc[0], dtypes[time_format])
 
 

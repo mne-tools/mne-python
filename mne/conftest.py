@@ -123,8 +123,6 @@ def pytest_configure(config):
     ignore:unclosed event loop <:ResourceWarning
     # ignore if joblib is missing
     ignore:joblib not installed.*:RuntimeWarning
-    # TODO: This is indicative of a problem
-    ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
     # scikit-learn using this arg
@@ -156,6 +154,14 @@ def pytest_configure(config):
     ignore:`product` is deprecated as of NumPy.*:DeprecationWarning
     # pandas
     ignore:.*np\.find_common_type is deprecated.*:DeprecationWarning
+    # https://github.com/joblib/joblib/issues/1454
+    ignore:.*`byte_bounds` is dep.*:DeprecationWarning
+    # numpy distutils used by SciPy
+    ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
+    ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
+    ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
+    # tqdm (Fedora)
+    ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -207,6 +213,8 @@ def verbose_debug():
 def qt_config():
     """Configure the Qt backend for viz tests."""
     os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
+    if "_MNE_BROWSER_BACK" not in os.environ:
+        os.environ["_MNE_BROWSER_BACK"] = "true"
 
 
 @pytest.fixture(scope="session")

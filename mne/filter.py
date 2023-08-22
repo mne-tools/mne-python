@@ -2120,7 +2120,7 @@ def detrend(x, order=1, axis=-1):
         >>> npoints = int(1e3)
         >>> noise = randgen.randn(npoints)
         >>> x = 3 + 2*np.linspace(0, 1, npoints) + noise
-        >>> (detrend(x) - noise).max() < 0.01
+        >>> bool((detrend(x) - noise).max() < 0.01)
         True
     """
     from scipy.signal import detrend
@@ -2435,6 +2435,18 @@ def _triage_filter_params(
     )
 
 
+def _check_resamp_noop(sfreq, o_sfreq, rtol=1e-6):
+    if np.isclose(sfreq, o_sfreq, atol=0, rtol=rtol):
+        logger.info(
+            (
+                f"Sampling frequency of the instance is already {sfreq}, "
+                "returning unmodified."
+            )
+        )
+        return True
+    return False
+
+
 class FilterMixin:
     """Object for Epoch/Evoked filtering."""
 
@@ -2684,10 +2696,12 @@ class FilterMixin:
         # mne.io.base.BaseRaw overrides this method
         assert isinstance(self, (BaseEpochs, Evoked))
 
-        _check_preload(self, "inst.resample")
-
         sfreq = float(sfreq)
         o_sfreq = self.info["sfreq"]
+        if _check_resamp_noop(sfreq, o_sfreq):
+            return self
+
+        _check_preload(self, "inst.resample")
         self._data = resample(
             self._data, sfreq, o_sfreq, npad, window=window, n_jobs=n_jobs, pad=pad
         )

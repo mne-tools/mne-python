@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing="0.146", misc="0.26")
+RELEASES = dict(testing="0.147", misc="0.26")
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -111,7 +111,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS["testing"] = dict(
     archive_name=f"{TESTING_VERSIONED}.tar.gz",
-    hash="md5:a2e86fe404f4321408b22f38711d11b7",
+    hash="md5:63fa41e3067f330a6d029dcc1673a919",
     url=(
         "https://codeload.github.com/mne-tools/mne-testing-data/"
         f'tar.gz/{RELEASES["testing"]}'
@@ -345,9 +345,9 @@ MNE_DATASETS["fake"] = dict(
 
 # eyelink dataset
 MNE_DATASETS["eyelink"] = dict(
-    archive_name="eyelink_example_data.zip",
-    hash="md5:081950c05f35267458d9c751e178f161",
-    url=("https://osf.io/r5ndq/download?version=1"),
+    archive_name="eeg-eyetrack_data.zip",
+    hash="md5:c4fc788fe01737e08e9086c90cab642d",
+    url=("https://osf.io/63fjm/download?version=1"),
     folder_name="eyelink-example-data",
     config_key="MNE_DATASETS_EYELINK_PATH",
 )

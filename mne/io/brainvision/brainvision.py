@@ -61,6 +61,8 @@ class RawBrainVision(BaseRaw):
     mne.io.Raw : Documentation of attributes and methods.
     """
 
+    _extra_attributes = ("impedances",)
+
     @verbose
     def __init__(
         self,

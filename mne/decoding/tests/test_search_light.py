@@ -8,9 +8,11 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn, _record_warnings, use_log_level
+from mne.utils import _record_warnings, use_log_level
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
+
+pytest.importorskip("sklearn")
 
 
 def make_data():
@@ -25,7 +27,6 @@ def make_data():
     return X, y
 
 
-@requires_sklearn
 def test_search_light():
     """Test SlidingEstimator."""
     from sklearn.linear_model import Ridge, LogisticRegression
@@ -56,6 +57,8 @@ def test_search_light():
 
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
+    y_trans = sl.transform(X)
+    assert X.dtype == y_trans.dtype == float
     y_pred = sl.predict(X)
     assert y_pred.dtype == int
     assert_array_equal(y_pred.shape, [n_epochs, n_time])
@@ -167,7 +170,6 @@ def test_search_light():
         assert isinstance(pipe.estimators_[0], BaggingClassifier)
 
 
-@requires_sklearn
 def test_generalization_light():
     """Test GeneralizingEstimator."""
     from sklearn.pipeline import make_pipeline
@@ -254,7 +256,6 @@ def test_generalization_light():
     assert_array_equal(y_preds[0], y_preds[1])
 
 
-@requires_sklearn
 @pytest.mark.parametrize(
     "n_jobs, verbose", [(1, False), (2, False), (1, True), (2, "info")]
 )
@@ -280,7 +281,6 @@ def test_verbose_arg(capsys, n_jobs, verbose):
                 assert any(len(channel) > 0 for channel in (stdout, stderr))
 
 
-@requires_sklearn
 def test_cross_val_predict():
     """Test cross_val_predict with predict_proba."""
     from sklearn.linear_model import LinearRegression
@@ -314,3 +314,26 @@ def test_cross_val_predict():
 
     estimator = SlidingEstimator(LinearDiscriminantAnalysis())
     cross_val_predict(estimator, X, y, method="predict_proba", cv=2)
+
+
+@pytest.mark.slowtest
+def test_sklearn_compliance():
+    """Test LinearModel compliance with sklearn."""
+    pytest.importorskip("sklearn")
+    from sklearn.utils.estimator_checks import check_estimator
+    from sklearn.linear_model import LogisticRegression
+
+    est = SlidingEstimator(LogisticRegression(), allow_2d=True)
+
+    ignores = (
+        "check_estimator_sparse_data",  # we densify
+        "check_classifiers_one_label_sample_weights",  # don't handle singleton
+        "check_classifiers_classes",  # dim mismatch
+        "check_classifiers_train",
+        "check_decision_proba_consistency",
+        "check_parameters_default_constructible",
+    )
+    for est, check in check_estimator(est, generate_only=True):
+        if any(ignore in str(check) for ignore in ignores):
+            continue
+        check(est)

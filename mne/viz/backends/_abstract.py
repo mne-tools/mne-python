@@ -10,8 +10,8 @@ from abc import ABC, abstractmethod, abstractclassmethod
 from contextlib import nullcontext
 import warnings
 
-from .. import ui_events
 from ..utils import tight_layout
+from .. import ui_events
 
 
 class Figure3D(ABC):
@@ -1416,7 +1416,6 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         """Initialize the MplCanvas."""
         super().__init__(width, height, dpi)
         self.brain = brain
-        self.time_func = brain.callbacks["time"]
 
     def update_plot(self):
         """Update the plot."""
