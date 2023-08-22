@@ -74,7 +74,6 @@ from ._fiff.write import (
     write_float,
     write_complex_float_matrix,
 )
-from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
@@ -240,6 +239,8 @@ class Evoked(
         -----
         .. versionadded:: 0.24
         """
+        from .io.base import _get_ch_factors
+
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
@@ -1377,6 +1378,8 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
 
 def _get_aspect(evoked, allow_maxshield):
     """Get Evoked data aspect."""
+    from .io.base import _check_maxshield
+
     is_maxshield = False
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:

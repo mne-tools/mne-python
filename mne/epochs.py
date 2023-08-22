@@ -46,8 +46,6 @@ from ._fiff.open import fiff_open, _get_next_fname
 from ._fiff.tree import dir_tree_find
 from ._fiff.tag import read_tag, read_tag_info
 from ._fiff.constants import FIFF
-from .io import BaseRaw
-from .io.base import _get_ch_factors, _get_fname_rep
 from ._fiff.pick import (
     channel_indices_by_type,
     channel_type,
@@ -1590,6 +1588,8 @@ class BaseEpochs(
             End time of data to get in seconds.
         %(verbose)s
         """
+        from .io.base import _get_ch_factors
+
         # if called with 'out=False', the call came from 'drop_bad()'
         # if no reasons to drop, just declare epochs as good and return
         if not out:
@@ -3057,6 +3057,8 @@ class Epochs(BaseEpochs):
         event_repeated="error",
         verbose=None,
     ):  # noqa: D102
+        from .io import BaseRaw
+
         if not isinstance(raw, BaseRaw):
             raise ValueError(
                 "The first argument to `Epochs` must be an "
@@ -3751,6 +3753,8 @@ class EpochsFIF(BaseEpochs):
 
     @verbose
     def __init__(self, fname, proj=True, preload=True, verbose=None):  # noqa: D102
+        from .io.base import _get_fname_rep
+
         if _path_like(fname):
             check_fname(
                 fname=fname,
