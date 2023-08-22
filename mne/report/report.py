@@ -33,7 +33,7 @@ from ..cov import read_cov, Covariance
 from ..source_estimate import read_source_estimate, SourceEstimate
 from ..transforms import read_trans, Transform
 from ..utils import sys_info
-from ..io.meas_info import Info
+from .._fiff.meas_info import Info
 from ..channels import _get_ch_type
 from ..defaults import _handle_default
 from ..io import read_raw, BaseRaw
