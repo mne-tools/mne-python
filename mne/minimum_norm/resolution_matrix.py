@@ -217,7 +217,7 @@ def _vertices_for_get_psf_ctf(idx, src):
 
         for v in verts_labs:
             # if two hemispheres present
-            if type(v) is list:
+            if isinstance(v, list):
                 # indices for both hemispheres in one list
                 this_verts = np.concatenate((v[0], v[1]))
             else:
