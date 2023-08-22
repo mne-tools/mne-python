@@ -15,7 +15,7 @@ from traitlets import observe, HasTraits, Unicode, Bool, Float
 
 from ..defaults import DEFAULTS
 from .._fiff.constants import FIFF
-from .._fiff.info import read_info, read_fiducials, write_fiducials, read_raw
+from .._fiff.meas_info import read_info, read_fiducials, write_fiducials, read_raw
 from .._fiff.pick import pick_types
 from .._fiff.open import fiff_open, dir_tree_find
 from .._fiff.meas_info import _empty_info
