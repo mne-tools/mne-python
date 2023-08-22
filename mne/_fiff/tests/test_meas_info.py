@@ -68,7 +68,7 @@ from mne.minimum_norm import (
     apply_inverse,
 )
 from mne._fiff import meas_info
-from mne._fiff._digitization import _write_dig_points, _make_dig_points, DigPoint
+from mne._fiff._digitization import _make_dig_points, DigPoint
 from mne.transforms import Transform
 from mne.utils import catch_logging, assert_object_equal, _record_warnings
 
@@ -348,19 +348,7 @@ def test_read_write_info(tmp_path):
 
 def test_io_dig_points(tmp_path):
     """Test Writing for dig files."""
-    points = read_polhemus_fastscan(hsp_fname, on_header_missing="ignore")
-
     dest = tmp_path / "test.txt"
-    dest_bad = tmp_path / "test.mne"
-    with pytest.raises(ValueError, match="must be of shape"):
-        _write_dig_points(dest, points[:, :2])
-    with pytest.raises(ValueError, match="extension"):
-        _write_dig_points(dest_bad, points)
-    _write_dig_points(dest, points)
-    points1 = read_polhemus_fastscan(dest, unit="m", on_header_missing="ignore")
-    err = "Dig points diverged after writing and reading."
-    assert_array_equal(points, points1, err)
-
     points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
     np.savetxt(dest, points2, delimiter="\t", newline="\n")
     with pytest.raises(ValueError, match="must be of shape"):
