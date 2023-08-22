@@ -231,7 +231,7 @@ def _check_fname(
     *,
     verbose=None,
 ):
-    """Check for file existence, and return string of its absolute path."""
+    """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     fname = Path(fname).expanduser().absolute()
 
