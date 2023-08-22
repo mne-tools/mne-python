@@ -112,16 +112,25 @@ class ColormapRange(UIEvent):
 
     Parameters
     ----------
+    kind : str
+        Kind of colormap being updated. The Notes section of the drawing
+        routine publishing this event should mention the possible kinds.
     %(fmin_fmid_fmax)s
     %(alpha)s
 
     Attributes
     ----------
+    kind : str
+        Kind of colormap being updated. The Notes section of the drawing
+        routine publishing this event should mention the possible kinds.
+    unit : str
+        The unit of the values.
     %(ui_event_name_source)s
     %(fmin_fmid_fmax)s
     %(alpha)s
     """
 
+    kind: str
     fmin: Optional[float] = None
     fmid: Optional[float] = None
     fmax: Optional[float] = None
