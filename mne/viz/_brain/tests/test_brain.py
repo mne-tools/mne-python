@@ -1210,7 +1210,7 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
-def test_brain_ui_events():
+def test_brain_ui_events(renderer_interactive_pyvistaqt, brain_gc):
     """Test responding to Brain related UI events."""
     brain = _create_testing_brain(hemi="lh", show_traces="vertex")
 
