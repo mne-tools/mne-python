@@ -1,7 +1,5 @@
 :orphan:
 
-.. include:: ../changes/names.inc
-
 .. _governance-people:
 
 Current steering council and institutional partners

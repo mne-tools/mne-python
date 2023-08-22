@@ -179,16 +179,15 @@ class BrowserBase(ABC):
         """Update the array of annotation start/end times."""
         from ..annotations import _sync_onset
 
-        segments = list()
-        raw = self.mne.inst
-        if len(raw.annotations):
-            for idx, annot in enumerate(raw.annotations):
-                annot_start = _sync_onset(raw, annot["onset"])
-                annot_end = annot_start + max(
-                    annot["duration"], 1 / self.mne.info["sfreq"]
-                )
-                segments.append((annot_start, annot_end))
-        self.mne.annotation_segments = np.array(segments)
+        self.mne.annotation_segments = np.array([])
+        if len(self.mne.inst.annotations):
+            annot_start = _sync_onset(self.mne.inst, self.mne.inst.annotations.onset)
+            durations = self.mne.inst.annotations.duration.copy()
+            durations[durations < 1 / self.mne.info["sfreq"]] = (
+                1 / self.mne.info["sfreq"]
+            )
+            annot_end = annot_start + durations
+            self.mne.annotation_segments = np.vstack((annot_start, annot_end)).T
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # PROJECTOR & BADS

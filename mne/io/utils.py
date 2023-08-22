@@ -338,7 +338,22 @@ def _construct_bids_filename(base, ext, part_idx, validate=True):
         )
     suffix = deconstructed_base[-1]
     base = "_".join(deconstructed_base[:-1])
-    use_fname = "{}_split-{:02}_{}{}".format(base, part_idx, suffix, ext)
+    use_fname = "{}_split-{:02}_{}{}".format(base, part_idx + 1, suffix, ext)
     if dirname:
         use_fname = op.join(dirname, use_fname)
     return use_fname
+
+
+def _make_split_fnames(fname, n_splits, split_naming):
+    """Make a list of split filenames."""
+    if n_splits == 1:
+        return [fname]
+    res = []
+    base, ext = op.splitext(fname)
+    for i in range(n_splits):
+        if split_naming == "neuromag":
+            res.append(f"{base}-{i:d}{ext}" if i else fname)
+        else:
+            assert split_naming == "bids"
+            res.append(_construct_bids_filename(base, ext, i))
+    return res

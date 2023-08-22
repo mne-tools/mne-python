@@ -804,7 +804,7 @@ def _cart_to_sph(cart):
 
 
 def _sph_to_cart(sph_pts):
-    """Convert spherical coordinates to Cartesion coordinates.
+    """Convert spherical coordinates to Cartesian coordinates.
 
     Parameters
     ----------
@@ -1203,7 +1203,7 @@ class _SphericalSurfaceWarp:
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
         dest_rad_az_pol = match_rad_az_pol.copy()
         dest_rad_az_pol[0] = np.abs(np.dot(match_sph, dest_coeffs))
-        # 5. Convert matched points to Cartesion coordinates and put back
+        # 5. Convert matched points to Cartesian coordinates and put back
         source = _sph_to_cart(src_rad_az_pol.T)
         source += src_center
         destination = _sph_to_cart(dest_rad_az_pol.T)

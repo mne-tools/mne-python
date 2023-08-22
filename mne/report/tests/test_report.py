@@ -35,6 +35,7 @@ from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import Bunch
+from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -664,9 +665,31 @@ def test_add_or_replace(tags):
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figure(fig=fig1, title="duplicate", tags=("foo",) if tags else ())
+    r_state = r.__getstate__()
+    html = r.html
+    r_state_after = r.__getstate__()
+    assert_object_equal(r_state, r_state_after)
+    html_2 = r.html
+    assert html == html_2  # stays the same
+    r_state_after = r.__getstate__()
+    assert_object_equal(r_state, r_state_after)
+    assert ' id="global' not in "\n".join(html)
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-' not in "\n".join(html)
     r.add_figure(fig=fig2, title="duplicate", tags=("foo",) if tags else ())
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' not in "\n".join(html)
     r.add_figure(fig=fig1, title="duplicate", tags=("bar",) if tags else ())
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' in html[2]
+    assert ' id="duplicate-3" ' not in "\n".join(html)
     r.add_figure(fig=fig2, title="nonduplicate", tags=("foo",) if tags else ())
+    html = r.html
+    assert ' id="nonduplicate" ' in html[3]
     # By default, replace=False, so all figures should be there
     assert len(r.html) == 4
     assert len(r._content) == 4
@@ -687,6 +710,50 @@ def test_add_or_replace(tags):
     assert r.html[0] == old_r.html[0]
     assert r.html[1] == old_r.html[1]
     assert r.html[3] == old_r.html[3]
+    # same DOM IDs
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' in html[2]
+    assert ' id="duplicate-3" ' not in "\n".join(html)
+    assert ' id="global' not in "\n".join(html)
+
+    # Now we change our max dup limit and should end up with a `global-`
+    r._dup_limit = 2
+    r.add_figure(
+        fig=fig2,
+        title="duplicate",
+        replace=True,
+    )
+    html = r.html
+    assert ' id="duplicate" ' in html[0]
+    assert ' id="duplicate-1" ' in html[1]
+    assert ' id="duplicate-2" ' in html[2]  # dom_id preserved
+    assert ' id="global' not in "\n".join(html)
+    r.add_figure(
+        fig=fig2,
+        title="duplicate",
+    )  # append, should end up with global-1 ID
+    html = r.html
+    assert len(html) == 5
+    assert ' id="global-1" ' in html[4]
+
+    # And if we add a duplicate in a different section, it gets a different
+    # DOM ID
+    old_html = html
+    section = "<div whatever 😀   etc."
+    sec_san = "_div_whatever___etc_"
+    r.add_figure(
+        fig=fig2,
+        title="duplicate",
+        section=section,
+        replace=True,  # should have no effect
+    )
+    html = r.html
+    assert len(html) == 6
+    assert html[:5] == old_html
+    assert f' id="{sec_san}" ' in html[5]  # section anchor
+    assert f' id="{sec_san}-duplicate" ' in html[5]  # and section-title anchor
 
 
 def test_add_or_replace_section():
@@ -707,22 +774,19 @@ def test_add_or_replace_section():
 
     # Replace our one occurrence of title 'a' in section 'B'
     r.add_figure(fig=fig2, title="a", section="B", replace=True)
-    r._dom_id = 3  # help out the .html property
     assert len(r._content) == 3
     assert len(r.html) == 3
     assert r.html[0] == old_r.html[0]
     assert r.html[1] != old_r.html[1]
     assert r.html[2] == old_r.html[2]
     r.add_figure(fig=fig1, title="a", section="B", replace=True)
-    r._dom_id = 3
     assert r.html[0] == old_r.html[0]
-    assert r.html[1].replace("global-4", "global-2") == old_r.html[1]
+    assert r.html[1] == old_r.html[1]
     assert r.html[2] == old_r.html[2]
     r.add_figure(fig=fig1, title="a", section="C", replace=True)
-    r._dom_id = 3
     assert r.html[0] == old_r.html[0]
-    assert r.html[1].replace("global-4", "global-2") == old_r.html[1]
-    assert r.html[2] != old_r.html[2]
+    assert r.html[1] == old_r.html[1]
+    assert r.html[2] == old_r.html[2]
 
 
 def test_scraper(tmp_path):

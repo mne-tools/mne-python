@@ -140,7 +140,7 @@ def _get_psf_ctf(
 
     for verts in verts_all:
         # get relevant PSFs or CTFs for specified vertices
-        if type(verts) is int:
+        if isinstance(verts, int):
             verts = [verts]  # to keep array dimensions
         funcs = resmat[:, verts]
 
@@ -218,7 +218,7 @@ def _vertices_for_get_psf_ctf(idx, src):
 
         for v in verts_labs:
             # if two hemispheres present
-            if type(v) is list:
+            if isinstance(v, list):
                 # indices for both hemispheres in one list
                 this_verts = np.concatenate((v[0], v[1]))
             else:

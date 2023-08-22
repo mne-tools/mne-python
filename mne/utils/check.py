@@ -16,7 +16,6 @@ import numbers
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from .docs import deprecated
 from ._logging import warn, logger, verbose, _record_warnings, _verbose_safe_false
 
 
@@ -232,7 +231,7 @@ def _check_fname(
     *,
     verbose=None,
 ):
-    """Check for file existence, and return string of its absolute path."""
+    """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     fname = Path(fname).expanduser().absolute()
 
@@ -1201,12 +1200,6 @@ def _to_rgb(*args, name="color", alpha=False):
             f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
             f"{repr(args)}"
         ) from None
-
-
-@deprecated("has_nibabel is deprecated and will be removed in 1.5")
-def has_nibabel():
-    """Check if nibabel is installed."""
-    return check_version("nibabel")  # pragma: no cover
 
 
 def _import_nibabel(why="use MRI files"):

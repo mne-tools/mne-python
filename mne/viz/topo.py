@@ -497,7 +497,7 @@ def _imshow_tfr_unified(
         ax.imshow(
             tfr[ch_idx],
             clip_on=True,
-            clip_box=bn.pos,
+            clip_box=tuple(bn.pos),
             extent=extent,
             aspect="auto",
             origin="lower",
@@ -673,7 +673,7 @@ def _plot_timeseries_unified(
                 linewidth=0.5,
                 color=color_,
                 clip_on=True,
-                clip_box=pos,
+                clip_box=tuple(pos),
             )[0]
         )
     if vline:
