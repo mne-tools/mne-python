@@ -467,3 +467,39 @@ def test_annotation_duration_from_stim_groups():
     # a = Snirf(snirf_nirsport2_20219, "r+"); print(a.nirs[0].stim[0].data)
     expected_durations = np.full((10,), 10.0)
     assert_equal(expected_durations, raw.annotations.duration)
+
+
+def test_birthday(tmp_path, monkeypatch):
+    """Test birthday parsing."""
+    snirf = pytest.importorskip("snirf")
+    fname = tmp_path / "test.snirf"
+    with snirf.Snirf(str(fname), "w") as a:
+        a.nirs.appendGroup()
+        a.nirs[0].data.appendGroup()
+        a.nirs[0].data[0].dataTimeSeries = np.zeros((2, 2))
+        a.nirs[0].data[0].time = [0, 1]
+        for i in range(2):
+            a.nirs[0].data[0].measurementList.appendGroup()
+            a.nirs[0].data[0].measurementList[i].sourceIndex = 1
+            a.nirs[0].data[0].measurementList[i].detectorIndex = 1
+            a.nirs[0].data[0].measurementList[i].wavelengthIndex = 1
+            a.nirs[0].data[0].measurementList[i].dataType = 99999
+            a.nirs[0].data[0].measurementList[i].dataTypeIndex = 0
+        a.nirs[0].data[0].measurementList[0].dataTypeLabel = "HbO"
+        a.nirs[0].data[0].measurementList[1].dataTypeLabel = "HbR"
+        a.nirs[0].metaDataTags.SubjectID = "0"
+        a.nirs[0].metaDataTags.MeasurementDate = "2000-01-01"
+        a.nirs[0].metaDataTags.MeasurementTime = "00:00:00"
+        a.nirs[0].metaDataTags.LengthUnit = "m"
+        a.nirs[0].metaDataTags.TimeUnit = "s"
+        a.nirs[0].metaDataTags.FrequencyUnit = "Hz"
+        a.nirs[0].metaDataTags.add("DateOfBirth", "1950-01-01")
+        a.nirs[0].probe.wavelengths = [0, 0]
+        a.nirs[0].probe.sourcePos3D = np.zeros((1, 3))
+        a.nirs[0].probe.detectorPos3D = np.zeros((1, 3))
+        # Until https://github.com/BUNPC/pysnirf2/pull/39 is released
+        monkeypatch.setattr(a._cfg.logger, "info", lambda *args, **kwargs: None)
+        a.save()
+
+    raw = read_raw_snirf(fname)
+    assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
