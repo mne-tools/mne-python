@@ -8,15 +8,14 @@ from .._fiff.pick import (
     _picks_to_idx,
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
-    channel_indices_by_type,
 )
 
 __all__ = [
+    # mne-bids, autoreject, mne-connectivity, mne-realtime, mne-nirs, mne-realtime
     "_picks_to_idx",
     # mne-qt-browser
     "_DATA_CH_TYPES_ORDER_DEFAULT",
     "_DATA_CH_TYPES_SPLIT",
-    "channel_indices_by_type",
 ]
 
 
