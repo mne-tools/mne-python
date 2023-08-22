@@ -171,8 +171,6 @@ def _estimate_rank_meeg_signals(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    from .io.pick import _picks_by_type
-
     picks_list = _picks_by_type(info)
     if data.shape[1] < data.shape[0]:
         ValueError(
@@ -226,8 +224,6 @@ def _estimate_rank_meeg_cov(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    from .io.pick import _picks_by_type
-
     picks_list = _picks_by_type(info, exclude=[])
     scalings = _handle_default("scalings_cov_rank", scalings)
     _apply_scaling_cov(data, picks_list, scalings)
