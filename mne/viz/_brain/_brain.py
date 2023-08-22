@@ -186,7 +186,7 @@ class Brain:
 
     * :class:`~mne.viz.ui_events.TimeChange`
     * :class:`~mne.viz.ui_events.PlaybackSpeed`
-    * :class:`~mne.viz.ui_events.ColormapRange`
+    * :class:`~mne.viz.ui_events.ColormapRange`, ``kind="distributed_source_power"``
     * :class:`~mne.viz.ui_events.VertexSelect`
 
     This table shows the capabilities of each Brain backend ("✓" for full
@@ -1459,6 +1459,8 @@ class Brain:
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""
+        if event.kind != "distributed_source_power":
+            return
         lims = {key: getattr(event, key) for key in ("fmin", "fmid", "fmax", "alpha")}
         # Check if limits have changed at all.
         if all(val is None or val == self._data[key] for key, val in lims.items()):
@@ -3432,7 +3434,13 @@ class Brain:
         """
         ui_events.publish(
             self,
-            ui_events.ColormapRange(fmin=fmin, fmid=fmid, fmax=fmax, alpha=alpha),
+            ui_events.ColormapRange(
+                kind="distributed_source_power",
+                fmin=fmin,
+                fmid=fmid,
+                fmax=fmax,
+                alpha=alpha,
+            ),
         )
 
     @fill_doc

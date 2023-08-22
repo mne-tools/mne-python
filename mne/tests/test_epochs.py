@@ -1574,13 +1574,13 @@ def test_split_saving_and_loading_back(tmp_path, epochs_to_split, preload):
         (
             "bids",
             "test_epo.fif",
-            lambda i: f"test_split-{i:02d}_epo.fif" if i else "test_epo.fif",
+            lambda i: f"test_split-{i + 1:02d}_epo.fif",
         ),
         (
             "bids",
-            "test-epo.fif",
+            "a_b-epo.fif",
             # Merely stating the fact:
-            lambda i: f"_split-{i:02d}_test-epo.fif" if i else "test-epo.fif",
+            lambda i: f"a_split-{i + 1:02d}_b-epo.fif",
         ),
     ],
     ids=["neuromag", "bids", "mix"],
@@ -1630,18 +1630,49 @@ def test_saved_fname_no_splitting(
 
 
 @pytest.mark.parametrize(
+    "epochs_to_split",
+    [
+        ("3MB", 18, False, False, 3),
+        pytest.param(
+            ("2GB", 18, False, False, 1),
+            marks=pytest.mark.xfail(reason="No check when not splitting"),
+        ),
+    ],
+    indirect=True,
+)
+@pytest.mark.parametrize(
+    "dst_fname",
+    [
+        "test-epo.fif",
+        pytest.param(
+            "a_b_c-epo.fif",
+            marks=pytest.mark.xfail(reason="No check for several bids clauses"),
+        ),
+    ],
+)
+def test_bids_splits_fail_for_bad_fname_ending(epochs_to_split, dst_fname, tmp_path):
+    """Make sure split_naming=bids is only used with bids endings.
+
+    Non-bids endings can cause surprising split names, e.g. test-epo.fif
+    producing splits _split-01_test-epo.fif.
+
+    """
+    epochs, split_size, _ = epochs_to_split
+    dst_fpath = tmp_path / dst_fname
+    save_kwargs = {"split_naming": "bids", "split_size": split_size}
+
+    with pytest.raises(ValueError, match=".* must end with an underscore"):
+        epochs.save(dst_fpath, verbose=True, **save_kwargs)
+
+
+@pytest.mark.parametrize(
     "epochs_to_split", [("3MB", 18, False, False, 3)], indirect=True
 )
 @pytest.mark.parametrize(
     "split_naming, dst_fname, existing_fname",
     [
         ("neuromag", "test-epo.fif", "test-epo.fif"),
-        pytest.param(
-            "neuromag",
-            "test-epo.fif",
-            "test-epo-1.fif",
-            marks=pytest.mark.xfail(reason="bug"),
-        ),
+        ("neuromag", "test-epo.fif", "test-epo-1.fif"),
         ("bids", "test_epo.fif", "test_epo.fif"),
         ("bids", "test_epo.fif", "test_split-01_epo.fif"),
         ("bids", "test_epo.fif", "test_split-02_epo.fif"),
