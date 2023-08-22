@@ -74,21 +74,13 @@ from .._fiff import (
     _dep_msg,
 )
 
-# After merge, we should move these files, as the diff is horrible if we do it
-# in one PR. So for now we hack `sys.modules` to make everything happy
-from . import _constants as constants
-from . import _pick as pick
+from . import constants
+from . import pick
 
 # These three we will remove in 1.6
-from . import _proj as proj
-from . import _meas_info as meas_info
-from . import _reference as reference
-
-_sys.modules.setdefault("mne.io.meas_info", meas_info)
-_sys.modules.setdefault("mne.io.proj", proj)
-_sys.modules.setdefault("mne.io.reference", reference)
-_sys.modules.setdefault("mne.io.constants", constants)
-_sys.modules.setdefault("mne.io.pick", pick)
+from . import proj
+from . import meas_info
+from . import reference
 
 
 def __getattr__(name):

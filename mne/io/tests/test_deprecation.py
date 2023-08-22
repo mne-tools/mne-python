@@ -16,8 +16,8 @@ def test_deprecation():
     mne.io.constants.FIFF
     mne.io.pick._picks_to_idx
     mne.io.get_channel_type_constants()
-    # Should warn
 
+    # Should warn
     with pytest.warns(FutureWarning, match=r"mne\.io\.pick\.pick_channels is dep"):
         from mne.io.pick import pick_channels  # noqa: F401
     with pytest.warns(FutureWarning, match=r"mne\.io\.pick\.pick_channels is dep"):
