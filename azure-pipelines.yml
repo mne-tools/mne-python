@@ -169,7 +169,6 @@ stages:
               python -m pip install --progress-bar off --upgrade pip setuptools wheel
               python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
               python -c "import vtk"
-              python -m pip install --progress-bar off --upgrade "mne-qt-browser[opengl] @ git+https://github.com/mne-tools/mne-qt-browser.git@main"
               python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
               python -m pip install -e .
             displayName: 'Install dependencies with pip'
