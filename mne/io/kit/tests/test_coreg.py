@@ -6,10 +6,10 @@ import pickle
 from pathlib import Path
 
 import pytest
+import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne.io.kit import read_mrk
-from mne._fiff._digitization import _write_dig_points
 
 mrk_fname = Path(__file__).parent / "data" / "test_mrk.sqd"
 
@@ -20,7 +20,10 @@ def test_io_mrk(tmp_path):
 
     # txt
     path = tmp_path / "mrk.txt"
-    _write_dig_points(path, pts)
+    with open(path, "wb") as fid:
+        fid.write(b"%% %d 3D points, x y z per line\n" % len(pts))
+        np.savetxt(fid, pts, delimiter="\t", newline="\n")
+
     pts_2 = read_mrk(path)
     assert_array_equal(pts, pts_2, "read/write mrk to text")
 

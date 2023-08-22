@@ -9,9 +9,6 @@
 import heapq
 from collections import Counter
 
-import datetime
-import os.path as op
-
 import numpy as np
 
 from ..utils import logger, warn, Bunch, _validate_type, _check_fname, verbose
@@ -355,40 +352,6 @@ def _get_fid_coords(dig, raise_error=True):
     coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
 
     return fid_coords, coord_frame
-
-
-def _write_dig_points(fname, dig_points):
-    """Write points to text file.
-
-    Parameters
-    ----------
-    fname : path-like
-        Path to the file to write. The kind of file to write is determined
-        based on the extension: '.txt' for tab separated text file.
-    dig_points : numpy.ndarray, shape (n_points, 3)
-        Points.
-    """
-    from .. import __version__
-
-    _, ext = op.splitext(fname)
-    dig_points = np.asarray(dig_points)
-    if (dig_points.ndim != 2) or (dig_points.shape[1] != 3):
-        err = "Points must be of shape (n_points, 3), " "not %s" % (dig_points.shape,)
-        raise ValueError(err)
-
-    if ext == ".txt":
-        with open(fname, "wb") as fid:
-            version = __version__
-            now = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
-            fid.write(
-                b"%% Ascii 3D points file created by mne-python version"
-                b" %s at %s\n" % (version.encode(), now.encode())
-            )
-            fid.write(b"%% %d 3D points, x y z per line\n" % len(dig_points))
-            np.savetxt(fid, dig_points, delimiter="\t", newline="\n")
-    else:
-        msg = "Unrecognized extension: %r. Need '.txt'." % ext
-        raise ValueError(msg)
 
 
 def _coord_frame_const(coord_frame):
