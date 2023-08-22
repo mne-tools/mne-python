@@ -1210,6 +1210,37 @@ def test_calculate_lut():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
+def test_brain_ui_events():
+    """Test responding to Brain related UI events."""
+    brain = _create_testing_brain(hemi="lh", show_traces="vertex")
+
+    ui_events.publish(brain, ui_events.TimeChange(time=1))
+    assert brain._current_time == 1
+
+    ui_events.publish(brain, ui_events.VertexSelect(hemi="lh", vertex_id=1))
+    assert 1 in brain.picked_points["lh"]
+
+    ui_events.publish(
+        brain,
+        ui_events.ColormapRange(
+            kind="distributed_source_power", fmin=1, fmid=2, fmax=3, alpha=True
+        ),
+    )
+    assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+
+    # This event should be ignored.
+    ui_events.publish(
+        brain,
+        ui_events.ColormapRange(
+            kind="unknown_kind", fmin=10, fmid=11, fmax=12, alpha=True
+        ),
+    )
+    # Should remain unchanged.
+    assert_array_equal(brain._data["ctable"][:3, 3], [0, 2, 4])
+
+    brain.close()
+
+
 def _create_testing_brain(
     hemi, surf="inflated", src="surface", size=300, n_time=5, diverging=False, **kwargs
 ):
