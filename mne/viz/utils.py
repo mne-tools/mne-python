@@ -29,6 +29,8 @@ import numpy as np
 from scipy.signal import argrelmax
 
 from ..defaults import _handle_default
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import Info
 from .._fiff.open import show_fiff
 from .._fiff.pick import (
     channel_type,
@@ -1113,8 +1115,6 @@ def plot_sensors(
     .. versionadded:: 0.12.0
     """
     from .evoked import _rgb
-    from ..io import Info
-    from ..io.constants import FIFF
 
     _check_option("kind", kind, ["topomap", "3d", "select"])
     if axes is not None:
