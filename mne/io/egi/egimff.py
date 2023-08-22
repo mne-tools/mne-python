@@ -20,10 +20,10 @@ from .general import (
     _block_r,
 )
 from ..base import BaseRaw
-from ..constants import FIFF
-from ..meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
-from ..proj import setup_proj
-from ..utils import _create_chs, _mult_cal_one
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
+from ..._fiff.proj import setup_proj
+from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray

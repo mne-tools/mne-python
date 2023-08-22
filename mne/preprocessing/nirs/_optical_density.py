@@ -6,10 +6,10 @@
 
 import numpy as np
 
-from ...io import BaseRaw
-from ...io.constants import FIFF
-from ...utils import _validate_type, warn, verbose
 from ..nirs import _validate_nirs_info
+from ...io import BaseRaw
+from ..._fiff.constants import FIFF
+from ...utils import _validate_type, warn, verbose
 
 
 @verbose

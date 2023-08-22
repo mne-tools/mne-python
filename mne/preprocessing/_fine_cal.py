@@ -8,8 +8,9 @@ from functools import partial
 import numpy as np
 
 from ..bem import _check_origin
-from ..io.pick import pick_info, pick_types
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
+from ..io import BaseRaw
+from .._fiff.pick import pick_info, pick_types
+from .._fiff.tag import _loc_to_coil_trans, _coil_trans_to_loc
 from ..transforms import _find_vector_rotation
 from ..utils import (
     logger,

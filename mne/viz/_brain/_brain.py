@@ -57,8 +57,8 @@ from ..._freesurfer import (
     _get_skull_surface,
     _estimate_talxfm_rigid,
 )
-from ...io.pick import pick_types
-from ...io.meas_info import Info
+from ..._fiff.pick import pick_types
+from ..._fiff.meas_info import Info
 from ...surface import mesh_edges, _mesh_borders, _marching_cubes, get_meg_helmet_surf
 from ...source_space import SourceSpaces
 from ...transforms import (

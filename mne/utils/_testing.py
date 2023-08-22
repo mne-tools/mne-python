@@ -201,7 +201,7 @@ def buggy_mkl_svd(function):
 
 def assert_and_remove_boundary_annot(annotations, n=1):
     """Assert that there are boundary annotations and remove them."""
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
 
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
@@ -277,7 +277,7 @@ def assert_meg_snr(
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
     """
-    from ..io.pick import pick_types
+    from .._fiff.pick import pick_types
 
     picks = pick_types(desired.info, meg=True, exclude=[])
     picks_desired = pick_types(desired.info, meg=True, exclude=[])
@@ -333,8 +333,8 @@ def _dig_sort_key(dig):
 def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
     from ..bem import fit_sphere_to_headshape
-    from ..io.constants import FIFF
-    from ..io.meas_info import Info
+    from .._fiff.constants import FIFF
+    from .._fiff.meas_info import Info
     from ..channels.montage import DigMontage
 
     # test dig positions

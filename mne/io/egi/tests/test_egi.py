@@ -15,7 +15,7 @@ from scipy import io as sio
 
 from mne import find_events, pick_types
 from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import object_diff

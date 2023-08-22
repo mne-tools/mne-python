@@ -639,7 +639,7 @@ class SetChannelsMixin(MontageMixin):
         -----
         .. versionadded:: 0.9.0
         """
-        from . import BaseRaw
+        from ..io import BaseRaw
         from ..channels.channels import rename_channels
 
         info = self if isinstance(self, Info) else self.info
@@ -745,7 +745,6 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.12.0
         """
-        from ..io import Info
         from ..viz.utils import plot_sensors
 
         return plot_sensors(
@@ -1572,6 +1571,8 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
 
     def __repr__(self):
         """Summarize info instead of printing all."""
+        from ..io.kit.constants import KIT_SYSNAMES
+
         MAX_WIDTH = 68
         strs = ["<Info | %s non-empty values"]
         non_empty = 0
@@ -1606,8 +1607,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
                 else:
                     entr = v.strftime("%Y-%m-%d %H:%M:%S %Z")
             elif k == "kit_system_id" and v is not None:
-                from .kit.constants import KIT_SYSNAMES
-
                 entr = "%i (%s)" % (v, KIT_SYSNAMES.get(v, "unknown"))
             elif k == "dig" and v is not None:
                 counts = Counter(d["kind"] for d in v)

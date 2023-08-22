@@ -24,10 +24,10 @@ from .ecg import qrs_detector, _get_ecg_channel_index, _make_ecg, create_ecg_epo
 from .eog import _find_eog_events, _get_eog_channel_index
 from .infomax_ import infomax
 
-from ..cov import compute_whitener
-from .. import Covariance, Evoked
+from ..cov import compute_whitener, Covariance
+from ..evoked import Evoked
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..io.pick import (
+from .._fiff.pick import (
     pick_types,
     pick_channels,
     pick_info,
@@ -35,8 +35,8 @@ from ..io.pick import (
     _get_channel_types,
     _DATA_CH_TYPES_SPLIT,
 )
-from ..io.proj import make_projector
-from ..io.write import (
+from .._fiff.proj import make_projector
+from .._fiff.write import (
     write_double_matrix,
     write_string,
     write_name_list,
@@ -44,12 +44,14 @@ from ..io.write import (
     start_block,
     end_block,
 )
-from ..io.tree import dir_tree_find
-from ..io.open import fiff_open
-from ..io.tag import read_tag
-from ..io.meas_info import write_meas_info, read_meas_info, ContainsMixin
-from ..io.constants import FIFF
-from ..io.base import BaseRaw
+from .._fiff.tree import dir_tree_find
+from .._fiff.open import fiff_open
+from .._fiff.tag import read_tag
+from .._fiff.meas_info import write_meas_info, read_meas_info, ContainsMixin
+from .._fiff.constants import FIFF
+from .._fiff.write import start_and_end_file, write_id
+from .._fiff.pick import pick_channels_regexp, _picks_by_type
+from ..io import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
 
 from ..epochs import BaseEpochs
@@ -64,7 +66,6 @@ from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
-from ..io.write import start_and_end_file, write_id
 from ..utils import (
     logger,
     check_fname,
@@ -97,7 +98,6 @@ from ..fixes import _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
-from ..io.pick import pick_channels_regexp, _picks_by_type
 
 
 __all__ = (

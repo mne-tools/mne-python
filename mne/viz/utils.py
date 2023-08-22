@@ -28,9 +28,10 @@ from decorator import decorator
 import numpy as np
 
 from ..defaults import _handle_default
-from ..io import show_fiff, Info
-from ..io.constants import FIFF
-from ..io.pick import (
+from .._fiff.open import show_fiff
+from .._fiff.meas_info import Info
+from .._fiff.constants import FIFF
+from .._fiff.pick import (
     channel_type,
     channel_indices_by_type,
     pick_channels,
@@ -43,7 +44,7 @@ from ..io.pick import (
     pick_channels_cov,
     _contains_ch_type,
 )
-from ..io.proj import setup_proj, Projection
+from .._fiff.proj import setup_proj, Projection
 from ..rank import compute_rank
 from ..utils import (
     verbose,
@@ -1445,7 +1446,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
     scalings = _handle_default("scalings_plot_raw", scalings)

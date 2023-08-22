@@ -17,10 +17,10 @@ from functools import reduce
 
 import numpy as np
 
-from .io import read_fiducials, write_fiducials, read_info
-from .io.constants import FIFF
-from .io.meas_info import Info
-from .io._digitization import _get_data_as_dict_from_dig
+from ._fiff.meas_info import read_fiducials, write_fiducials, read_info
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info
+from ._fiff._digitization import _get_data_as_dict_from_dig
 
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)

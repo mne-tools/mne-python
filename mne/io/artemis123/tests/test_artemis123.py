@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne.io.artemis123.utils import _generate_mne_locs_file, _load_mne_locs
 from mne import pick_types
 from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 
 artemis123_dir = testing.data_path(download=False) / "ARTEMIS123"
 short_HPI_dip_fname = (

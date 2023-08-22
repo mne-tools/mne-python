@@ -20,8 +20,8 @@ import numpy as np
 
 from .channels.channels import _get_meg_system
 from .fixes import jit, prange, bincount
-from .io.constants import FIFF
-from .io.pick import pick_types
+from ._fiff.constants import FIFF
+from ._fiff.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (
     transform_surface_to,

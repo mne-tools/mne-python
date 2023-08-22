@@ -10,7 +10,7 @@ import numbers
 import numpy as np
 
 from .tfr import _cwt_array, morlet, _get_nfft, EpochsTFR
-from ..io.pick import pick_channels, _picks_to_idx
+from .._fiff.pick import pick_channels, _picks_to_idx
 from ..utils import (
     logger,
     verbose,

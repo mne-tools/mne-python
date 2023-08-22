@@ -24,9 +24,9 @@ from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io import read_info
-from mne.io.pick import pick_info
+from mne._fiff.pick import pick_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
 from mne.time_frequency import CrossSpectralDensity, csd_morlet, EpochsTFR, csd_tfr

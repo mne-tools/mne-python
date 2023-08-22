@@ -17,7 +17,7 @@ from mne.preprocessing.nirs import (
     _reorder_nirx,
 )
 from mne.transforms import apply_trans, _get_trans
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 
 
 testing_path = data_path(download=False)

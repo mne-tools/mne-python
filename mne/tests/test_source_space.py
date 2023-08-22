@@ -42,8 +42,8 @@ from mne.source_space import (
     get_decimated_surfaces,
     compute_distance_to_sensors,
 )
-from mne.io.pick import _picks_to_idx
-from mne.io.constants import FIFF
+from mne._fiff.pick import _picks_to_idx
+from mne._fiff.constants import FIFF
 
 data_path = testing.data_path(download=False)
 subjects_dir = data_path / "subjects"

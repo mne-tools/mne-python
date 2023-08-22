@@ -27,9 +27,9 @@ from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..channels.channels import _get_ch_type
 from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default, DEFAULTS
-from ..io.meas_info import create_info
-from ..io.pick import pick_types, _picks_to_idx
-from ..io.proj import _has_eeg_average_ref_proj
+from .._fiff.meas_info import create_info
+from .._fiff.pick import pick_types, _picks_to_idx
+from .._fiff.proj import _has_eeg_average_ref_proj
 from ..utils import _reject_data_segments, verbose
 
 
@@ -110,7 +110,7 @@ def plot_ica_sources(
 
     .. versionadded:: 0.10.0
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
@@ -687,8 +687,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True, reject="a
     data : array of shape (n_epochs, n_ica_sources, n_times)
         A view on epochs ICA sources data.
     """
-    from ..io.base import BaseRaw
-    from ..io import RawArray
+    from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs
 
     _validate_type(inst, (BaseRaw, BaseEpochs), "inst", "Raw or Epochs")
@@ -1067,7 +1066,7 @@ def plot_ica_overlay(
         The figure.
     """
     # avoid circular imports
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
 
@@ -1270,7 +1269,7 @@ def _plot_sources(
 ):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
-    from .. import EpochsArray, BaseEpochs
+    from ..epochs import EpochsArray, BaseEpochs
     from ..io import RawArray, BaseRaw
 
     # handle defaults / check arg validity

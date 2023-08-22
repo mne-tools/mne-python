@@ -19,24 +19,30 @@ from collections import defaultdict
 
 import numpy as np
 
-from .constants import FIFF
-from .utils import _construct_bids_filename, _check_orig_units
-from .pick import pick_types, pick_channels, pick_info, _picks_to_idx, channel_type
-from .meas_info import (
+from .._fiff.constants import FIFF
+from .._fiff.utils import _construct_bids_filename, _check_orig_units
+from .._fiff.pick import (
+    pick_types,
+    pick_channels,
+    pick_info,
+    _picks_to_idx,
+    channel_type,
+)
+from .._fiff.meas_info import (
     write_meas_info,
     _ensure_infos_match,
     ContainsMixin,
     SetChannelsMixin,
+    _unit2human,
 )
-from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
+from .._fiff.proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (
     UpdateChannelsMixin,
     InterpolationMixin,
     ReferenceMixin,
 )
-from .meas_info import _unit2human
-from .compensator import set_current_comp, make_compensator
-from .write import (
+from .._fiff.compensator import set_current_comp, make_compensator
+from .._fiff.write import (
     start_and_end_file,
     start_block,
     end_block,
@@ -97,6 +103,7 @@ from ..utils import (
     TimeMixin,
     repr_html,
     _pl,
+    _file_like,
 )
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
@@ -2047,7 +2054,7 @@ class BaseRaw(
         """Clean up the object.
 
         Does nothing for objects that close their file descriptors.
-        Things like RawFIF will override this method.
+        Things like Raw will override this method.
         """
         pass  # noqa
 
@@ -3072,3 +3079,10 @@ def _check_maxshield(allow_maxshield):
             " want to load the data despite this warning."
         )
         raise ValueError(msg)
+
+
+def _get_fname_rep(fname):
+    if not _file_like(fname):
+        return fname
+    else:
+        return "File-like"

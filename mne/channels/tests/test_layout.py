@@ -27,8 +27,8 @@ from mne.channels import (
 )
 from mne.channels.layout import _box_size, _find_topomap_coords, generate_2d_layout
 from mne import pick_types, pick_info
-from mne.io import read_raw_kit, _empty_info, read_info
-from mne.io.constants import FIFF
+from mne.io import read_raw_kit, read_info, _empty_info
+from mne._fiff.constants import FIFF
 
 io_dir = Path(__file__).parent.parent.parent / "io"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"

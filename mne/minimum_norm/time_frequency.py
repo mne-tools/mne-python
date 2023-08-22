@@ -8,8 +8,8 @@ import numpy as np
 from ..epochs import Epochs, make_fixed_length_events
 from ..evoked import EvokedArray
 from ..fixes import _safe_svd
-from ..io.constants import FIFF
-from ..io.pick import pick_info
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_info
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import (

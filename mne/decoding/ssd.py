@@ -9,7 +9,7 @@ from . import TransformerMixin, BaseEstimator
 from ..cov import _regularized_covariance, Covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
-from ..io.pick import _get_channel_types, _picks_to_idx
+from .._fiff.pick import _get_channel_types, _picks_to_idx
 from ..rank import compute_rank
 from ..time_frequency import psd_array_welch
 from ..utils import (

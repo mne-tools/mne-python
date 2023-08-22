@@ -7,11 +7,11 @@ from os import path
 import datetime
 import calendar
 
-from ...utils import logger, fill_doc
-from ..utils import _read_segments_file, _find_channels, _create_chs
 from ..base import BaseRaw
-from ..meas_info import _empty_info
-from ..constants import FIFF
+from ...utils import logger, fill_doc
+from ..._fiff.utils import _read_segments_file, _find_channels, _create_chs
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.constants import FIFF
 
 
 @fill_doc

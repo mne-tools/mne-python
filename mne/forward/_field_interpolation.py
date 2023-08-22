@@ -12,10 +12,10 @@ import numpy as np
 from ..bem import _check_origin
 from ..cov import make_ad_hoc_cov
 from ..fixes import _safe_svd
-from ..io.constants import FIFF
-from ..io.pick import pick_types, pick_info
-from ..io.meas_info import _simplify_info
-from ..io.proj import _has_eeg_average_ref_proj, make_projector
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_types, pick_info
+from .._fiff.meas_info import _simplify_info
+from .._fiff.proj import _has_eeg_average_ref_proj, make_projector
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import transform_surface_to, _find_trans, _get_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs

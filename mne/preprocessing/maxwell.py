@@ -35,13 +35,15 @@ from ..transforms import (
 )
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
-from ..io.compensator import make_compensator
-from ..io.constants import FIFF, FWD
-from ..io.meas_info import _simplify_info, Info
-from ..io.proc_history import _read_ctc
-from ..io.write import _generate_meas_id, DATE_NONE
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray, Projection
-from ..io.pick import pick_types, pick_info
+from .._fiff.compensator import make_compensator
+from .._fiff.constants import FIFF, FWD
+from .._fiff.meas_info import _simplify_info, Info
+from .._fiff.pick import pick_types, pick_info
+from .._fiff.proj import Projection
+from .._fiff.proc_history import _read_ctc
+from .._fiff.write import _generate_meas_id, DATE_NONE
+from .._fiff.tag import _loc_to_coil_trans, _coil_trans_to_loc
+from ..io import BaseRaw, RawArray
 from ..utils import (
     verbose,
     logger,

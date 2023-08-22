@@ -12,11 +12,11 @@ import os
 
 import numpy as np
 
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.write import (
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
     start_block,
     end_block,
     write_string,

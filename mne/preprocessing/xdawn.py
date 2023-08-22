@@ -11,7 +11,7 @@ from ..cov import Covariance, _regularized_covariance
 from ..decoding import TransformerMixin, BaseEstimator
 from ..epochs import BaseEpochs
 from ..io import BaseRaw
-from ..io.pick import _pick_data_channels, pick_info
+from .._fiff.pick import _pick_data_channels, pick_info
 from ..utils import logger, _check_option
 
 

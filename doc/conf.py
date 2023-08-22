@@ -1338,6 +1338,15 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         "ignore", message=r"falling back to find_module", category=ImportWarning
     )
+    # Sphinx deps
+    warnings.filterwarnings(
+        "ignore", message="The str interface for _CascadingStyleSheet.*"
+    )
+    # mne-qt-browser until > 0.5.2 released
+    warnings.filterwarnings(
+        "ignore",
+        r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
+    )
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:

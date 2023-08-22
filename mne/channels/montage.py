@@ -34,7 +34,7 @@ from ..transforms import (
     _quat_to_affine,
     _ensure_trans,
 )
-from ..io._digitization import (
+from .._fiff._digitization import (
     _count_points_by_type,
     _ensure_fiducials_head,
     _get_dig_eeg,
@@ -46,10 +46,10 @@ from ..io._digitization import (
     _coord_frame_const,
     _get_data_as_dict_from_dig,
 )
-from ..io.meas_info import create_info
-from ..io.open import fiff_open
-from ..io.pick import pick_types, _picks_to_idx, channel_type
-from ..io.constants import FIFF, CHANNEL_LOC_ALIASES
+from .._fiff.meas_info import create_info
+from .._fiff.open import fiff_open
+from .._fiff.pick import pick_types, _picks_to_idx, channel_type
+from .._fiff.constants import FIFF, CHANNEL_LOC_ALIASES
 from ..utils import (
     warn,
     copy_function_doc_to_method_doc,

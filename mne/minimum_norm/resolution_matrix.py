@@ -9,7 +9,7 @@ import numpy as np
 from mne.minimum_norm.inverse import InverseOperator
 
 from .. import pick_channels_forward, EvokedArray
-from ..io.constants import FIFF
+from .._fiff.constants import FIFF
 from ..utils import logger, verbose, _validate_type
 from ..forward.forward import convert_forward_solution, Forward
 from ..minimum_norm import apply_inverse
