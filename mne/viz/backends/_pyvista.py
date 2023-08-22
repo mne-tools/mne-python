@@ -885,7 +885,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             bad_system |= _is_mesa(self.plotter)
             if not bad_system:
                 for renderer in self._all_renderers:
-                    renderer.enable_anti_aliasing()
+                    # ssaa broken on Linux at least (NVIDIA and Mesa)
+                    renderer.enable_anti_aliasing(aa_type="fxaa")
             for plotter in self._all_plotters:
                 plotter.ren_win.LineSmoothingOn()
 
@@ -1395,12 +1396,15 @@ def _is_mesa(plotter):
     # > 700 ms to make a new window + report capabilities!)
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
     gpu_info_full = plotter.ren_win.ReportCapabilities()
-    gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info_full)
+    gpu_info = re.findall(
+        "OpenGL (?:version|renderer) string:(.+)\n",
+        gpu_info_full,
+    )
     gpu_info = " ".join(gpu_info).lower()
     is_mesa = "mesa" in gpu_info.split()
     if is_mesa:
         # Try to warn if it's ancient
-        version = re.findall("mesa ([0-9.]+) .*", gpu_info) or re.findall(
+        version = re.findall("mesa ([0-9.]+)[ -].*", gpu_info) or re.findall(
             "OpenGL version string: .* Mesa ([0-9.]+)\n", gpu_info_full
         )
         if version:
@@ -1411,8 +1415,6 @@ def _is_mesa(plotter):
                     "surface rendering, consider upgrading to 18.3.6 or "
                     "later."
                 )
-        else:
-            raise RuntimeError
     return is_mesa
 
 

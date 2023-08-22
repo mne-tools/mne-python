@@ -13,12 +13,12 @@ things like plots of data before and after each preprocessing step, epoch
 rejection statistics, MRI slices with overlaid BEM shells, all the way up to
 plots of estimated cortical activity.
 
-Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy (the
+Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy, as the
 HTML pages it generates are self-contained and do not require a running Python
-environment) but less flexible (you can't change code and re-run something
-directly within the browser). This tutorial covers the basics of building a
-:class:`~mne.Report`. As usual, we'll start by importing the modules and data
-we need:
+environment. However, it is less flexible as you can't change code and re-run
+something directly within the browser. This tutorial covers the basics of
+building a report. As usual, we'll start by importing the modules and data we
+need:
 """
 
 # %%
@@ -471,7 +471,8 @@ for angle in rotation_angles:
     captions.append(f"Rotation angle: {round(angle, 1)}°")
 
 # can also be a MNEQtBrowser instance
-figs.append(raw.plot())
+with mne.viz.use_browser_backend("qt"):
+    figs.append(raw.plot())
 captions.append("... plus a raw data plot")
 
 report = mne.Report(title="Multiple figures example")

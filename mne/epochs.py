@@ -18,7 +18,7 @@ import os.path as op
 
 import numpy as np
 
-from .io.utils import _construct_bids_filename
+from .io.utils import _make_split_fnames
 from .io.write import (
     start_and_end_file,
     start_block,
@@ -119,36 +119,22 @@ def _pack_reject_params(epochs):
     return reject_params
 
 
-def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite):
+def _save_split(epochs, split_fnames, part_idx, n_parts, fmt, overwrite):
     """Split epochs.
 
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
     """
     # insert index in filename
-    base, ext = op.splitext(fname)
-    if part_idx > 0:
-        if split_naming == "neuromag":
-            fname = "%s-%d%s" % (base, part_idx, ext)
-        else:
-            assert split_naming == "bids"
-            fname = _construct_bids_filename(base, ext, part_idx, validate=False)
-            _check_fname(fname, overwrite=overwrite)
+    this_fname = split_fnames[part_idx]
+    _check_fname(this_fname, overwrite=overwrite)
 
-    next_fname = None
+    next_fname, next_idx = None, None
     if part_idx < n_parts - 1:
-        if split_naming == "neuromag":
-            next_fname = "%s-%d%s" % (base, part_idx + 1, ext)
-        else:
-            assert split_naming == "bids"
-            next_fname = _construct_bids_filename(
-                base, ext, part_idx + 1, validate=False
-            )
         next_idx = part_idx + 1
-    else:
-        next_idx = None
+        next_fname = split_fnames[next_idx]
 
-    with start_and_end_file(fname) as fid:
+    with start_and_end_file(this_fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
 
@@ -2149,13 +2135,14 @@ class BaseEpochs(
 
         epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
+        _check_option("split_naming", split_naming, ("neuromag", "bids"))
+        split_fnames = _make_split_fnames(fname, n_parts, split_naming)
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
-            _save_split(
-                this_epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite
-            )
+
+            _save_split(this_epochs, split_fnames, part_idx, n_parts, fmt, overwrite)
 
     @verbose
     def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
