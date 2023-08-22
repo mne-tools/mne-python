@@ -36,7 +36,7 @@ from ..channels.layout import (
     _merge_ch_data,
 )
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from ..io.pick import (
+from .._fiff.pick import (
     pick_types,
     _picks_by_type,
     pick_info,
@@ -81,7 +81,7 @@ from .utils import (
 )
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
-from ..io.meas_info import Info, _simplify_info
+from .._fiff.meas_info import Info, _simplify_info
 
 
 _fnirs_types = ("hbo", "hbr", "fnirs_cw_amplitude", "fnirs_od")
@@ -1174,8 +1174,7 @@ def _plot_topomap(
         # check if there is only 1 channel type, and n_chans matches the data
         ch_type = _get_channel_types(pos, unique=True)
         info_help = (
-            "Pick Info with e.g. mne.pick_info and "
-            "mne.io.pick.channel_indices_by_type."
+            "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
         )
         if len(ch_type) > 1:
             raise ValueError("Multiple channel types in Info structure. " + info_help)

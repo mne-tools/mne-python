@@ -16,7 +16,7 @@ from mne import Annotations, create_info, pick_types
 from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
-from mne.io.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
+from mne._fiff.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
 from mne.utils import (
     _dt_to_stamp,
     _record_warnings,

@@ -19,7 +19,7 @@ import numpy as np
 from copy import deepcopy
 
 from ..fixes import jit, bincount
-from ..io.constants import FIFF
+from .._fiff.constants import FIFF
 from ..parallel import parallel_func
 from ..surface import _project_onto_surface, _jit_cross
 from ..transforms import apply_trans, invert_transform

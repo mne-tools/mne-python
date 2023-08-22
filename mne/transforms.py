@@ -16,10 +16,10 @@ from scipy.spatial.distance import cdist
 from scipy.special import sph_harm
 
 from .fixes import jit, mean, _get_img_fdata
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import read_tag
-from .io.write import start_and_end_file, write_coord_trans
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import read_tag
+from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (
     check_fname,

@@ -167,11 +167,11 @@ __getattr__, __dir__, __all__ = lazy.attach(
         "io.kit": [
             "read_epochs_kit",
         ],
-        "io.meas_info": [
+        "_fiff.meas_info": [
             "Info",
             "create_info",
         ],
-        "io.pick": [
+        "_fiff.pick": [
             "channel_indices_by_type",
             "channel_type",
             "pick_channels_cov",
@@ -182,15 +182,15 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "pick_types_forward",
             "pick_types",
         ],
-        "io.proj": [
+        "_fiff.proj": [
             "Projection",
         ],
-        "io.reference": [
+        "_fiff.reference": [
             "add_reference_channels",
             "set_bipolar_reference",
             "set_eeg_reference",
         ],
-        "io.what": [
+        "_fiff.what": [
             "what",
         ],
         "label": [

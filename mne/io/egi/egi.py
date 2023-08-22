@@ -11,9 +11,9 @@ import numpy as np
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _create_chs
-from ..meas_info import _empty_info
-from ..constants import FIFF
+from ..._fiff.utils import _create_chs, _read_segments_file
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.constants import FIFF
 from ...utils import verbose, logger, warn, _validate_type, _check_fname
 
 

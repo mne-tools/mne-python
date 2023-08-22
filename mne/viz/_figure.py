@@ -18,7 +18,7 @@ from .utils import _get_color_list, _setup_plot_projector, _show_browser
 
 from ..defaults import _handle_default
 from ..utils import logger, _validate_type, _check_option
-from ..io.pick import _DATA_CH_TYPES_SPLIT
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
 from ..utils import verbose, get_config, set_config
 
 MNE_BROWSER_BACKEND = None

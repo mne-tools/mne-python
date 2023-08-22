@@ -7,7 +7,7 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
 from ...channels import make_dig_montage
-from ...io.pick import _picks_to_idx
+from ..._fiff.pick import _picks_to_idx
 from ...surface import (
     _read_mri_surface,
     fast_cross_3d,

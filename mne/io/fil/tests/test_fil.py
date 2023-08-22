@@ -10,10 +10,10 @@ import pytest
 import shutil
 
 
+from mne import pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fil
 from mne.io.fil.sensors import _get_pos_units
-from mne.io.pick import pick_types
 
 import scipy.io
 

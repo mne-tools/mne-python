@@ -10,8 +10,8 @@ from mne import read_evokeds, read_cov, compute_raw_covariance, pick_types, pick
 from mne.cov import prepare_noise_cov
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne.io.pick import _picks_by_type, _get_channel_types
-from mne.io.proj import _has_eeg_average_ref_proj
+from mne._fiff.pick import _picks_by_type, _get_channel_types
+from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.proj import compute_proj_raw
 from mne.rank import (
     estimate_rank,

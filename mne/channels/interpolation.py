@@ -8,8 +8,8 @@ from scipy.linalg import pinv
 from scipy.spatial.distance import pdist, squareform
 
 from ..utils import logger, warn, verbose
-from ..io.meas_info import _simplify_info
-from ..io.pick import pick_types, pick_channels, pick_info
+from .._fiff.meas_info import _simplify_info
+from .._fiff.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
 from ..forward import _map_meg_or_eeg_channels
 from ..utils import _check_option, _validate_type
@@ -121,7 +121,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 
 def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     """Dot product of channel mapping matrix to channel data."""
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
 

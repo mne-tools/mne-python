@@ -27,21 +27,20 @@ from scipy.optimize import fmin_cobyla
 from scipy.spatial.distance import cdist
 
 from .event import find_events
-from .io.base import BaseRaw
-from .channels.channels import _get_meg_system
-from .io.kit.constants import KIT
+from .io import BaseRaw
+from .io.ctf.trans import _make_ctf_coord_trans_set
 from .io.kit.kit import RawKIT as _RawKIT
-from .io.meas_info import _simplify_info, Info
-from .io.pick import (
+from .channels.channels import _get_meg_system
+from ._fiff.meas_info import _simplify_info, Info
+from ._fiff.pick import (
     pick_types,
     pick_channels,
     pick_channels_regexp,
     pick_info,
     _picks_to_idx,
 )
-from .io.proj import Projection, setup_proj
-from .io.constants import FIFF
-from .io.ctf.trans import _make_ctf_coord_trans_set
+from ._fiff.proj import Projection, setup_proj
+from ._fiff.constants import FIFF
 from .forward import _magnetic_dipole_field_vec, _create_meg_coils, _concatenate_coils
 from .cov import make_ad_hoc_cov, compute_whitener
 from .dipole import _make_guesses
@@ -263,6 +262,8 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     -----
     .. versionadded:: 0.23
     """
+    from .io.kit.constants import KIT
+
     _validate_type(raw, (_RawKIT,), "raw")
     stim_chs = [
         raw.info["ch_names"][pick]

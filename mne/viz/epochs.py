@@ -23,9 +23,9 @@ from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
 from ..utils.spectrum import _split_psd_kwargs
-from ..io.meas_info import create_info, _validate_type
+from .._fiff.meas_info import create_info
 
-from ..io.pick import (
+from .._fiff.pick import (
     _get_channel_types,
     _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
@@ -47,6 +47,7 @@ from .utils import (
     _set_window_title,
     _make_event_color_dict,
     _get_channel_plotting_order,
+    _validate_type,
 )
 
 

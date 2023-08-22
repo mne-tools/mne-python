@@ -4,7 +4,7 @@
 # License: BSD-3-Clause
 import numpy as np
 
-from ..io.pick import pick_channels, pick_info, pick_channels_forward
+from .._fiff.pick import pick_channels, pick_info, pick_channels_forward
 from ..evoked import EvokedArray
 from ..utils import logger, fill_doc
 from ._lcmv import apply_lcmv

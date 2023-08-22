@@ -11,9 +11,6 @@ from .meas_info import _check_ch_keys
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .proj import setup_proj
 from .pick import pick_types, pick_channels, pick_channels_forward, _ELECTRODE_CH_TYPES
-from .base import BaseRaw
-from ..evoked import Evoked
-from ..epochs import BaseEpochs
 from ..fixes import pinv
 from ..utils import (
     logger,
@@ -180,6 +177,10 @@ def add_reference_channels(inst, ref_channels, copy=True):
     inst : instance of Raw | Epochs | Evoked
         Data with added EEG reference channels.
     """
+    from ..io import BaseRaw
+    from ..evoked import Evoked
+    from ..epochs import BaseEpochs
+
     # Check to see that data is preloaded
     _check_preload(inst, "add_reference_channels")
     _validate_type(ref_channels, (list, tuple, str), "ref_channels")
@@ -279,6 +280,10 @@ _ref_dict = {
 
 
 def _check_can_reref(inst):
+    from ..io import BaseRaw
+    from ..evoked import Evoked
+    from ..epochs import BaseEpochs
+
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
     current_custom = inst.info["custom_ref_applied"]
     if current_custom not in (
@@ -526,8 +531,8 @@ def set_bipolar_reference(
     .. versionadded:: 0.9.0
     """
     from .meas_info import create_info
-    from ..io import RawArray
-    from ..epochs import EpochsArray
+    from ..io import BaseRaw, RawArray
+    from ..epochs import BaseEpochs, EpochsArray
     from ..evoked import EvokedArray
 
     _check_can_reref(inst)

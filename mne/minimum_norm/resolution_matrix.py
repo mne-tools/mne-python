@@ -10,8 +10,8 @@ from mne.minimum_norm.inverse import InverseOperator
 
 from .inverse import apply_inverse
 from ..evoked import EvokedArray
-from ..io.constants import FIFF
-from ..io.pick import pick_channels_forward
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_channels_forward
 from ..utils import logger, verbose, _validate_type
 from ..forward.forward import convert_forward_solution, Forward
 from ..source_estimate import _prepare_label_extraction, _make_stc, _get_src_type

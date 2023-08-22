@@ -9,8 +9,8 @@ import numpy as np
 from gzip import GzipFile
 from pathlib import Path
 
-from .io.constants import FIFF
-from .io.meas_info import read_fiducials
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import read_fiducials
 from .transforms import (
     apply_trans,
     invert_transform,

@@ -16,7 +16,7 @@ from ..source_estimate import SourceEstimate
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, warn, fill_doc
-from ..io.pick import pick_types, pick_info, _picks_to_idx
+from .._fiff.pick import pick_types, pick_info, _picks_to_idx
 
 
 def linear_regression(inst, design_matrix, names=None):

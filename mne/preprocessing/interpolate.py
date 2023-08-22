@@ -9,7 +9,7 @@ from scipy.sparse.csgraph import connected_components
 
 from ..utils import _validate_type, _ensure_int
 from ..io import BaseRaw, RawArray
-from ..io.meas_info import create_info
+from .._fiff.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import Evoked, EvokedArray
 from ..transforms import _sph_to_cart, _cart_to_sph

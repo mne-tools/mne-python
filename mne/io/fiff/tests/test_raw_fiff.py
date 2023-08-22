@@ -19,10 +19,10 @@ import pytest
 
 from mne.datasets import testing
 from mne.filter import filter_data
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif, match_channel_orders, base
-from mne.io.open import read_tag, read_tag_info
-from mne.io.tag import _read_tag_header
+from mne._fiff.open import read_tag, read_tag_info
+from mne._fiff.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (
     concatenate_events,

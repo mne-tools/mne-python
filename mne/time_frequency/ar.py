@@ -7,7 +7,7 @@ import numpy as np
 from scipy import linalg
 
 from ..defaults import _handle_default
-from ..io.pick import _picks_to_idx, _picks_by_type, pick_info
+from .._fiff.pick import _picks_to_idx, _picks_by_type, pick_info
 from ..utils import verbose, _apply_scaling_array
 
 

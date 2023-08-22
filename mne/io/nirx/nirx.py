@@ -14,9 +14,9 @@ from scipy.io import loadmat
 
 from ._localized_abbr import _localized_abbr
 from ..base import BaseRaw
-from ..utils import _mult_cal_one
-from ..constants import FIFF
-from ..meas_info import create_info, _format_dig_points
+from ..._fiff.utils import _mult_cal_one
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
 from ..._freesurfer import get_mni_fiducials
 from ...transforms import apply_trans, _get_trans

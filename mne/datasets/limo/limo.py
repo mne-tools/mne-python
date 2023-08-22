@@ -11,7 +11,7 @@ from scipy.io import loadmat
 
 from ...channels import make_standard_montage
 from ...epochs import EpochsArray
-from ...io.meas_info import create_info
+from ..._fiff.meas_info import create_info
 from ...utils import _check_pandas_installed, verbose, logger
 from ..utils import _get_path, _do_path_update, _log_time_size, _downloader_params
 

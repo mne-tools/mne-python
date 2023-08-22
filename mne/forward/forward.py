@@ -21,22 +21,27 @@ import os
 from os import path as op
 import tempfile
 
-from ..io import RawArray, Info
-from ..io.constants import FIFF
-from ..io.open import fiff_open
-from ..io.tree import dir_tree_find
-from ..io.tag import find_tag, read_tag
-from ..io.matrix import _read_named_matrix, _transpose_named_matrix, write_named_matrix
-from ..io.meas_info import (
+from ..io import RawArray, BaseRaw
+from .._fiff.constants import FIFF
+from .._fiff.open import fiff_open
+from .._fiff.tree import dir_tree_find
+from .._fiff.tag import find_tag, read_tag
+from .._fiff.matrix import (
+    _read_named_matrix,
+    _transpose_named_matrix,
+    write_named_matrix,
+)
+from .._fiff.meas_info import (
     _read_bad_channels,
     write_info,
     _write_ch_infos,
     _read_extended_ch_info,
     _make_ch_names_mapping,
     _write_bad_channels,
+    Info,
 )
-from ..io.pick import pick_channels_forward, pick_info, pick_channels, pick_types
-from ..io.write import (
+from .._fiff.pick import pick_channels_forward, pick_info, pick_channels, pick_types
+from .._fiff.write import (
     write_int,
     start_block,
     end_block,
@@ -45,7 +50,6 @@ from ..io.write import (
     start_and_end_file,
     write_id,
 )
-from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
 from ..source_space import (

@@ -7,14 +7,14 @@ import numpy as np
 import datetime
 
 from ..base import BaseRaw
-from ..meas_info import create_info, _format_dig_points
-from ..utils import _mult_cal_one
+from ..nirx.nirx import _convert_fnirs_to_head
+from ..._fiff.meas_info import create_info, _format_dig_points
+from ..._fiff.utils import _mult_cal_one
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn, _check_fname, _import_h5py
-from ..constants import FIFF
-from .._digitization import _make_dig_points
+from ..._fiff.constants import FIFF
+from ..._fiff._digitization import _make_dig_points
 from ...transforms import _frame_to_str, apply_trans
-from ..nirx.nirx import _convert_fnirs_to_head
 from ..._freesurfer import get_mni_fiducials
 
 

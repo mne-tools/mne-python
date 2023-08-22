@@ -29,7 +29,8 @@ import numpy as np
 from scipy.signal import argrelmax
 
 from ..defaults import _handle_default
-from ..io.pick import (
+from .._fiff.open import show_fiff
+from .._fiff.pick import (
     channel_type,
     channel_indices_by_type,
     pick_channels,
@@ -42,7 +43,7 @@ from ..io.pick import (
     pick_channels_cov,
     _contains_ch_type,
 )
-from ..io.proj import setup_proj, Projection
+from .._fiff.proj import setup_proj, Projection
 from ..rank import compute_rank
 from ..utils import (
     verbose,
@@ -663,8 +664,6 @@ def compare_fiff(
         The filename used for storing the diff. Could be useful for
         when a temporary file is used.
     """
-    from ..io import show_fiff
-
     file_1 = show_fiff(
         fname_1, output=list, indent=indent, read_limit=read_limit, max_str=max_str
     )
@@ -1446,7 +1445,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
     scalings = _handle_default("scalings_plot_raw", scalings)

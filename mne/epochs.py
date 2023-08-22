@@ -19,8 +19,8 @@ import os.path as op
 import numpy as np
 from scipy.interpolate import interp1d
 
-from .io.utils import _make_split_fnames
-from .io.write import (
+from ._fiff.utils import _make_split_fnames
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     end_block,
@@ -36,18 +36,19 @@ from .io.write import (
     _NEXT_FILE_BUFFER,
     INT32_MAX,
 )
-from .io.meas_info import (
+from ._fiff.meas_info import (
     read_meas_info,
     write_meas_info,
     _ensure_infos_match,
     ContainsMixin,
 )
-from .io.open import fiff_open, _get_next_fname
-from .io.tree import dir_tree_find
-from .io.tag import read_tag, read_tag_info
-from .io.constants import FIFF
-from .io.fiff.raw import _get_fname_rep
-from .io.pick import (
+from ._fiff.open import fiff_open, _get_next_fname
+from ._fiff.tree import dir_tree_find
+from ._fiff.tag import read_tag, read_tag_info
+from ._fiff.constants import FIFF
+from .io import BaseRaw
+from .io.base import _get_ch_factors, _get_fname_rep
+from ._fiff.pick import (
     channel_indices_by_type,
     channel_type,
     pick_channels,
@@ -56,9 +57,8 @@ from .io.pick import (
     _DATA_CH_TYPES_SPLIT,
     _picks_to_idx,
 )
-from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, _get_ch_factors
-from .io.meas_info import SetChannelsMixin
+from ._fiff.proj import setup_proj, ProjMixin
+from ._fiff.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline

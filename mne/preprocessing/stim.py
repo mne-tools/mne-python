@@ -11,7 +11,7 @@ from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..event import find_events
 
-from ..io.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx
 from ..utils import _check_preload, _check_option, fill_doc
 
 

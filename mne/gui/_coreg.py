@@ -13,12 +13,12 @@ import re
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
 
-from ..io.constants import FIFF
 from ..defaults import DEFAULTS
-from ..io import read_info, read_fiducials, write_fiducials, read_raw
-from ..io.pick import pick_types
-from ..io.open import fiff_open, dir_tree_find
-from ..io.meas_info import _empty_info
+from .._fiff.constants import FIFF
+from .._fiff.info import read_info, read_fiducials, write_fiducials, read_raw
+from .._fiff.pick import pick_types
+from .._fiff.open import fiff_open, dir_tree_find
+from .._fiff.meas_info import _empty_info
 from ..io._read_raw import _get_supported
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (

@@ -10,12 +10,12 @@ import calendar
 from scipy.spatial.distance import cdist
 
 from .utils import _load_mne_locs, _read_pos
-from ...utils import logger, warn, verbose, _check_fname
-from ..utils import _read_segments_file
 from ..base import BaseRaw
-from ..meas_info import _empty_info
-from .._digitization import _make_dig_points, DigPoint
-from ..constants import FIFF
+from ...utils import logger, warn, verbose, _check_fname
+from ..._fiff.utils import _read_segments_file
+from ..._fiff.meas_info import _empty_info
+from ..._fiff._digitization import _make_dig_points, DigPoint
+from ..._fiff.constants import FIFF
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 

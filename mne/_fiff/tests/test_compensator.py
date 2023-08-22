@@ -9,11 +9,11 @@ from numpy.testing import assert_allclose
 import pytest
 
 from mne import Epochs, read_evokeds, pick_types
-from mne.io.compensator import make_compensator, get_current_comp
+from mne._fiff.compensator import make_compensator, get_current_comp
 from mne.io import read_raw_fif
 from mne.utils import requires_mne, run_subprocess
 
-base_dir = Path(__file__).parent / "data"
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 ctf_comp_fname = base_dir / "test_ctf_comp_raw.fif"
 
 

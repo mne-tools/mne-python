@@ -490,6 +490,8 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     stim_channel : str | list of str
         The name of the stim channel(s) to use
     """
+    from .._fiff.pick import pick_types
+
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             _validate_type(stim_channel, "str", "Stim channel")
@@ -512,8 +514,6 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
         return ["STI101"]
     if "STI 014" in info["ch_names"]:  # for older systems
         return ["STI 014"]
-
-    from ..io.pick import pick_types
 
     stim_channel = pick_types(info, meg=False, ref_meg=False, stim=True)
     if len(stim_channel) > 0:

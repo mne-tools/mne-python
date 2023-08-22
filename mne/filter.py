@@ -9,7 +9,7 @@ from scipy import fft, signal
 from scipy.stats import f as fstat
 
 from .annotations import _annotations_starts_stops
-from .io.pick import _picks_to_idx
+from ._fiff.pick import _picks_to_idx
 from .cuda import (
     _setup_cuda_fft_multiply_repeated,
     _fft_multiply_repeated,
@@ -30,6 +30,7 @@ from .utils import (
     _ensure_int,
 )
 from ._ola import _COLA
+
 
 # These values from Ifeachor and Jervis.
 _length_factors = dict(hann=3.1, hamming=3.3, blackman=5.0)
@@ -1856,7 +1857,7 @@ def _check_filterable(x, kind="filtered", alternative="filter"):
     # using these low-level functions. At the same time, let's
     # help people who might accidentally use low-level functions that they
     # shouldn't use by pushing them in the right direction
-    from .io.base import BaseRaw
+    from .io import BaseRaw
     from .epochs import BaseEpochs
     from .evoked import Evoked
 
@@ -2581,7 +2582,7 @@ class FilterMixin:
 
         .. versionadded:: 0.15
         """
-        from .io.base import BaseRaw
+        from .io import BaseRaw
 
         _check_preload(self, "inst.filter")
         if pad is None and method != "iir":
@@ -2677,7 +2678,7 @@ class FilterMixin:
         from .evoked import Evoked
 
         # Should be guaranteed by our inheritance, and the fact that
-        # mne.io.base.BaseRaw overrides this method
+        # mne.io.BaseRaw overrides this method
         assert isinstance(self, (BaseEpochs, Evoked))
 
         sfreq = float(sfreq)
@@ -2931,8 +2932,6 @@ def design_mne_c_filter(
 
 
 def _filt_check_picks(info, picks, h_freq, l_freq):
-    from .io.pick import _picks_to_idx
-
     update_info = False
     # This will pick *all* data channels
     picks = _picks_to_idx(info, picks, "data_or_ica", exclude=())

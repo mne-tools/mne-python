@@ -24,8 +24,8 @@ from scipy.spatial.distance import cdist
 
 from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .fixes import jit, prange, bincount
-from .io.constants import FIFF
-from .io.pick import pick_types
+from ._fiff.constants import FIFF
+from ._fiff.pick import pick_types
 from .parallel import parallel_func
 from .transforms import (
     transform_surface_to,

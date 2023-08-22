@@ -7,6 +7,9 @@ import numpy as np
 from scipy import linalg
 
 from .defaults import _handle_default
+from ._fiff.meas_info import _simplify_info, Info
+from ._fiff.pick import _picks_by_type, pick_info, pick_channels_cov, _picks_to_idx
+from ._fiff.proj import make_projector
 from .utils import (
     logger,
     _compute_row_norms,
@@ -125,8 +128,6 @@ def _estimate_rank_raw(
     raw, picks=None, tol=1e-4, scalings="norm", with_ref_meg=False, tol_kind="absolute"
 ):
     """Aid the transition away from raw.estimate_rank."""
-    from .io.pick import _picks_to_idx, pick_info
-
     if picks is None:
         picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
@@ -265,8 +266,6 @@ def _get_rank_sss(
     """
     # XXX this is too basic for movement compensated data
     # https://github.com/mne-tools/mne-python/issues/4676
-    from .io.meas_info import Info
-
     info = inst if isinstance(inst, Info) else inst.info
     del inst
 
@@ -356,12 +355,9 @@ def compute_rank(
     -----
     .. versionadded:: 0.18
     """
-    from . import Covariance
+    from .io import BaseRaw
     from .epochs import BaseEpochs
-    from .io.base import BaseRaw
-    from .io.meas_info import _simplify_info
-    from .io.pick import _picks_by_type, pick_info, pick_channels_cov
-    from .io.proj import make_projector
+    from .cov import Covariance
 
     rank = _check_rank(rank)
     scalings = _handle_default("scalings_cov_rank", scalings)

@@ -18,7 +18,7 @@ from scipy import linalg
 from mne.channels import make_dig_montage
 from mne import create_info, EvokedArray, pick_types, Epochs, find_events, read_epochs
 from mne.io import read_raw_fif, RawArray
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.utils import object_diff
 from mne.datasets import testing
 

@@ -18,8 +18,8 @@ from ..defaults import (
     _INTERPOLATION_DEFAULT,
     _handle_default,
 )
-from ..io.meas_info import ContainsMixin
-from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
+from .._fiff.meas_info import ContainsMixin
+from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (
     GetEpochsMixin,
     _build_data_frame,

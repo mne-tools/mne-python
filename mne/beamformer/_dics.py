@@ -9,7 +9,7 @@
 import numpy as np
 
 from ..channels import equalize_channels
-from ..io.pick import pick_info, pick_channels
+from .._fiff.pick import pick_info, pick_channels
 from ..utils import (
     logger,
     verbose,

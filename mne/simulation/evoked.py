@@ -9,7 +9,7 @@ import numpy as np
 from scipy.signal import lfilter
 
 from ..cov import compute_whitener
-from ..io.pick import pick_info
+from .._fiff.pick import pick_info
 from ..forward import apply_forward
 from ..utils import logger, verbose, check_random_state, _check_preload, _validate_type
 
