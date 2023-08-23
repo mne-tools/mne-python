@@ -39,8 +39,8 @@ def _get_bf_data(save_fieldtrip=False):
         )
 
     # pick gradiometers only:
-    epochs.pick(meg="grad")
-    evoked.pick(meg="grad")
+    epochs.pick(picks="grad")
+    evoked.pick(picks="grad")
 
     # compute covariance matrix (ignore false alarm about no baseline)
     data_cov = mne.compute_covariance(

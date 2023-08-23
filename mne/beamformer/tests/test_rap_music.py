@@ -207,7 +207,7 @@ def test_rap_music_picks():
     """Test RAP-MUSIC with picking."""
     evoked = mne.read_evokeds(fname_ave, condition="Right Auditory", baseline=(None, 0))
     evoked.crop(tmin=0.05, tmax=0.15)  # select N100
-    evoked.pick(meg=True, eeg=False)
+    evoked.pick(picks="meg")
     forward = mne.read_forward_solution(fname_fwd)
     noise_cov = mne.read_cov(fname_cov)
     dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2)
@@ -219,7 +219,7 @@ def test_trap_music():
     """Test TRAP-MUSIC."""
     evoked = mne.read_evokeds(fname_ave, condition="Right Auditory", baseline=(None, 0))
     evoked.crop(tmin=0.05, tmax=0.15)  # select N100
-    evoked.pick(meg=True, eeg=False)
+    evoked.pick(picks="meg")
     forward = mne.read_forward_solution(fname_fwd)
     noise_cov = mne.read_cov(fname_cov)
     dipoles = trap_music(evoked, forward, noise_cov, n_dipoles=2)
