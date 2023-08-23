@@ -13,7 +13,6 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
 from .._fiff.pick import pick_types, pick_channels
-from ..time_frequency import Spectrum
 from ..utils import legacy, verbose, _validate_type, _check_option
 from ..utils.spectrum import _split_psd_kwargs
 from ..defaults import _handle_default
@@ -482,6 +481,8 @@ def plot_raw_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return raw.compute_psd(**init_kw).plot(**plot_kw)
 
@@ -549,6 +550,8 @@ def plot_raw_psd_topo(
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
     return raw.compute_psd(**init_kw).plot_topo(**plot_kw)
 
