@@ -954,10 +954,10 @@ def test_add_channels():
         comment="test",
         method="crazy-tfr",
     )
-    tfr_eeg = tfr.copy().pick(meg=False, eeg=True)
-    tfr_meg = tfr.copy().pick(meg=True)
-    tfr_stim = tfr.copy().pick(meg=False, stim=True)
-    tfr_eeg_meg = tfr.copy().pick(meg=True, eeg=True)
+    tfr_eeg = tfr.copy().pick(picks="eeg")
+    tfr_meg = tfr.copy().pick(picks="meg")
+    tfr_stim = tfr.copy().pick(picks="stim")
+    tfr_eeg_meg = tfr.copy().pick(picks=["meg", "eeg"])
     tfr_new = tfr_meg.copy().add_channels([tfr_eeg, tfr_stim])
     assert all(ch in tfr_new.ch_names for ch in tfr_stim.ch_names + tfr_meg.ch_names)
     tfr_new = tfr_meg.copy().add_channels([tfr_eeg])

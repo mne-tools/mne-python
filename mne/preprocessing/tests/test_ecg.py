@@ -15,7 +15,7 @@ proj_fname = data_path / "test-proj.fif"
 def test_find_ecg():
     """Test find ECG peaks."""
     # Test if ECG analysis will work on data that is not preloaded
-    raw = read_raw_fif(raw_fname, preload=False).pick(meg=True)
+    raw = read_raw_fif(raw_fname, preload=False).pick(picks="meg")
     raw.pick(raw.ch_names[::10] + ["MEG 2641"])
     raw.info.normalize_proj()
 

@@ -193,7 +193,7 @@ def test_csd_fif():
 def test_csd_epochs(tmp_path):
     """Test making epochs, saving to disk and loading."""
     raw = read_raw_fif(raw_fname)
-    raw.pick(eeg=True, stim=True).load_data()
+    raw.pick(picks=["eeg", "stim"]).load_data()
     events = find_events(raw)
     epochs = Epochs(raw, events, reject=dict(eeg=1e-4), preload=True)
     epochs = compute_current_source_density(epochs)
@@ -207,7 +207,7 @@ def test_compute_bridged_electrodes():
     """Test computing bridged electrodes."""
     # test I/O
     raw = read_raw_fif(raw_fname).load_data()
-    raw.pick(meg=True)
+    raw.pick(picks="meg")
     with pytest.raises(RuntimeError, match="No EEG channels found"):
         bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
 

@@ -76,7 +76,7 @@ cov_fname = base_dir / "test-cov.fif"
 def test_plot_topomap_interactive(constrained_layout):
     """Test interactive topomap projection plotting."""
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
-    evoked.pick(meg="mag")
+    evoked.pick(picks="mag")
     with evoked.info._unlock():
         evoked.info["projs"] = []
     assert not evoked.proj
@@ -324,7 +324,7 @@ def test_plot_topomap_basic():
     res = 8
     fast_test = dict(res=res, contours=0, sensors=False, time_unit="s")
     fast_test_noscale = dict(res=res, contours=0, sensors=False)
-    ev_bad = evoked.copy().pick(meg=False, eeg=True)
+    ev_bad = evoked.copy().pick(picks="eeg")
     ev_bad.pick(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
@@ -625,7 +625,7 @@ def test_ctf_plotting():
     # smoke test that compensation does not matter
     evoked.plot_topomap(time_unit="s")
     # better test that topomaps can still be used without plotting ref
-    evoked.pick(meg=True, ref_meg=False)
+    evoked.pick(picks="meg")
     evoked.plot_topomap()
 
 

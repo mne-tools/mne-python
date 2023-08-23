@@ -1779,7 +1779,7 @@ def test_compute_maxwell_basis(regularize, n, int_order):
     assert n_use_in == n
     assert n_use_in == len(reg_moments) - 15  # no externals removed
     xform = S[:, :n_use_in] @ pS[:n_use_in]
-    got = xform @ raw.pick(meg=True, exclude="bads").get_data()
+    got = xform @ raw.pick(picks="meg", exclude="bads").get_data()
     assert_allclose(got, want)
 
 
@@ -1816,7 +1816,7 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er_prepared.info["bads"] == ["MEG0113", "MEG2313"]
     assert raw_er_prepared.info["dev_head_t"] == raw.info["dev_head_t"]
 
-    montage_expected = raw.copy().pick(meg=True).get_montage()
+    montage_expected = raw.copy().pick(picks="meg").get_montage()
     assert raw_er_prepared.get_montage() == montage_expected
 
     # Ensure the originals were not modified

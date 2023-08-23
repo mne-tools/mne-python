@@ -421,7 +421,7 @@ def test_evoked_resamp_noop():
 def test_evoked_filter():
     """Test filtering evoked data."""
     # this is mostly a smoke test as the Epochs and raw tests are more complete
-    ave = read_evokeds(fname, 0).pick(meg="grad")
+    ave = read_evokeds(fname, 0).pick(picks="grad")
     ave.data[:] = 1.0
     assert round(ave.info["lowpass"]) == 172
     ave_filt = ave.copy().filter(None, 40.0, fir_design="firwin")
@@ -641,7 +641,7 @@ def test_pick_channels_mixin():
     evoked = read_evokeds(fname, condition=0, proj=True)
     assert "meg" in evoked
     assert "eeg" in evoked
-    evoked.pick(meg=False, eeg=True)
+    evoked.pick(picks="eeg")
     assert "meg" not in evoked
     assert "eeg" in evoked
     assert len(evoked.ch_names) == 60
@@ -808,10 +808,10 @@ def test_add_channels():
     ]
     with evoked.info._unlock():
         evoked.info["hpi_subsystem"] = dict(hpi_coils=hpi_coils, ncoil=2)
-    evoked_eeg = evoked.copy().pick(meg=False, eeg=True)
-    evoked_meg = evoked.copy().pick(meg=True)
-    evoked_stim = evoked.copy().pick(meg=False, stim=True)
-    evoked_eeg_meg = evoked.copy().pick(meg=True, eeg=True)
+    evoked_eeg = evoked.copy().pick(picks="eeg")
+    evoked_meg = evoked.copy().pick(picks="meg")
+    evoked_stim = evoked.copy().pick(picks="stim")
+    evoked_eeg_meg = evoked.copy().pick(picks=["meg", "eeg"])
     evoked_new = evoked_meg.copy().add_channels([evoked_eeg, evoked_stim])
     assert all(
         ch in evoked_new.ch_names for ch in evoked_stim.ch_names + evoked_meg.ch_names

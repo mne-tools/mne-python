@@ -132,7 +132,7 @@ def test_xdawn_apply_transform():
     """Test Xdawn apply and transform."""
     # Get data
     raw, events, picks = _get_data()
-    raw.pick(eeg=True, meg=False)
+    raw.pick(picks="eeg")
     epochs = Epochs(
         raw,
         events,

@@ -114,7 +114,7 @@ def test_plot_joint():
 
     # test proj options
     assert len(evoked.info["projs"]) == 0
-    evoked.pick(meg=True)
+    evoked.pick(picks="meg")
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1, n_grad=1, meg="combined"))
     assert len(evoked.info["projs"]) == 1
     with pytest.raises(ValueError, match="must match ts_args"):
@@ -164,7 +164,7 @@ def test_plot_topo():
         )
 
     picked_evoked = evoked.copy().pick(evoked.ch_names[:3])
-    picked_evoked_eeg = evoked.copy().pick(meg=False, eeg=True)
+    picked_evoked_eeg = evoked.copy().pick(picks="eeg")
     picked_evoked_eeg.pick(picked_evoked_eeg.ch_names[:3])
 
     # test scaling
@@ -285,7 +285,7 @@ def test_plot_topo_image_epochs():
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
     assert num_figures_before + 1 == len(plt.get_fignums())
     # test for auto-showing a colorbar when only 1 sensor type
-    ep = epochs.copy().pick(meg=False, eeg=True)
+    ep = epochs.copy().pick(picks="eeg")
     fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None, cmap=cmap)
     ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
     # include inset axes (newer MPL)

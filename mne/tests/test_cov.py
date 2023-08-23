@@ -69,7 +69,7 @@ ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 def test_compute_whitener(proj, pca):
     """Test properties of compute_whitener."""
     raw = read_raw_fif(raw_fname).crop(0, 3).load_data()
-    raw.pick(meg=True, eeg=True, exclude=())
+    raw.pick(picks=["meg", "eeg"])
     if proj:
         raw.apply_proj()
     else:

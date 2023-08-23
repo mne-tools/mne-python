@@ -956,13 +956,13 @@ def test_proj(tmp_path):
     # Test that picking removes projectors ...
     raw = read_raw_fif(fif_fname)
     n_projs = len(raw.info["projs"])
-    raw.pick(meg=False, eeg=True)
+    raw.pick(picks="eeg")
     assert len(raw.info["projs"]) == n_projs - 3
 
     # ... but only if it doesn't apply to any channels in the dataset anymore.
     raw = read_raw_fif(fif_fname)
     n_projs = len(raw.info["projs"])
-    raw.pick(meg="mag", eeg=True)
+    raw.pick(picks=["mag", "eeg"])
     assert len(raw.info["projs"]) == n_projs
 
     # I/O roundtrip of an MEG projector with a Raw that only contains EEG
@@ -970,7 +970,7 @@ def test_proj(tmp_path):
     out_fname = tmp_path / "test_raw.fif"
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
     proj = raw.info["projs"][-1]
-    raw.pick(meg=False, eeg=True)
+    raw.pick(picks="eeg")
     raw.add_proj(proj)  # Restore, because picking removed it!
     raw._data.fill(0)
     raw._data[-1] = 1.0
@@ -1539,10 +1539,10 @@ def test_add_channels():
     raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
     assert raw._orig_units == {}
     raw_nopre = read_raw_fif(test_fif_fname, preload=False)
-    raw_eeg_meg = raw.copy().pick(meg=True, eeg=True)
-    raw_eeg = raw.copy().pick(eeg=True)
-    raw_meg = raw.copy().pick(meg=True)
-    raw_stim = raw.copy().pick(stim=True)
+    raw_eeg_meg = raw.copy().pick(picks=["meg", "eeg"])
+    raw_eeg = raw.copy().pick(picks="eeg")
+    raw_meg = raw.copy().pick(picks="meg")
+    raw_stim = raw.copy().pick(picks="stim")
     raw_new = raw_meg.copy().add_channels([raw_eeg, raw_stim])
     assert all(
         ch in raw_new.ch_names
