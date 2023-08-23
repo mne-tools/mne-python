@@ -309,12 +309,7 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
 @testing.requires_testing_data
 def test_set_eeg_reference_rest():
     """Test setting a REST reference."""
-    raw = (
-        read_raw_fif(fif_fname)
-        .crop(0, 1)
-        .pick(picks="eeg")
-        .load_data()
-    )
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick(picks="eeg").load_data()
     raw.info["bads"] = ["EEG 057"]  # should be excluded
     same = [raw.ch_names.index(raw.info["bads"][0])]
     picks = np.setdiff1d(np.arange(len(raw.ch_names)), same)
