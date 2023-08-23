@@ -95,7 +95,7 @@ def _compare_bem_solutions(sol_a, sol_b):
         )
 
 
-h5py_mark = pytest.mark.skipif(not check_version("h5py"), reason="Needs h5py")
+h5io_mark = pytest.mark.skipif(not check_version("h5io"), reason="Needs h5io")
 
 
 @testing.requires_testing_data
@@ -103,7 +103,7 @@ h5py_mark = pytest.mark.skipif(not check_version("h5py"), reason="Needs h5py")
     "ext",
     [
         "fif",
-        pytest.param("h5", marks=h5py_mark),
+        pytest.param("h5", marks=h5io_mark),
     ],
 )
 def test_io_bem(tmp_path, ext):
