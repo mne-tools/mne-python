@@ -340,7 +340,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw = read_raw_fif(fname)
 
     # only test with EEG channels
-    raw.pick(["eeg", "ecog", "seeg"]).load_data()
+    raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
     orig_ch_names = raw.ch_names
     temp_fname = tmp_path / f"test.{format}"
 

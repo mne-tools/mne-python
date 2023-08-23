@@ -219,7 +219,7 @@ def test_apply_forward():
 
     # Evoked
     evoked = read_evokeds(fname_evoked, condition=0)
-    evoked.pick(meg=True)
+    evoked.pick(picks="meg")
     with pytest.warns(RuntimeWarning, match="only .* positive values"):
         evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
     data = evoked.data

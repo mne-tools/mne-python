@@ -463,7 +463,7 @@ def test_find_ch_adjacency():
     assert_equal(conn.getnnz(), 2680)
 
     # Test ch_type=None.
-    raw.pick(meg="mag")
+    raw.pick(picks="mag")
     find_ch_adjacency(raw.info, None)
 
     bti_fname = testing_path / "BTi" / "erm_HFH" / "c,rfDC"
@@ -662,7 +662,7 @@ def test_combine_channels():
 
     # Test warnings
     raw_no_stim = read_raw_fif(raw_fname, preload=True)
-    raw_no_stim.pick("meg")
+    raw_no_stim.pick(picks="meg")
     warn1 = dict(foo=[375, 375], bar=[5, 2])  # same channel in same group
     warn2 = dict(foo=[375], bar=[5, 2])  # one channel (last channel)
     warn3 = dict(foo=[0, 4], bar=[5, 2])  # one good channel left
