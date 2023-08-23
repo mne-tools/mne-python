@@ -743,27 +743,23 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain.setup_time_viewer()  # for coverage
     brain.set_time(1)
     brain.set_time_point(0)
-    assert "renderer" not in brain.callbacks
-    brain.callbacks["orientation"](value="lat", update_widget=True)
-    brain.callbacks["orientation"](value="medial", update_widget=True)
-    # Need to process events for old Qt
-    brain.callbacks["smoothing"](value=1)
+    brain.show_view("lat")
+    brain.show_view("medial")
+    brain.set_data_smoothing(1)
     _assert_brain_range(brain, [0.1, 0.3])
     from mne.utils import use_log_level
 
-    print("\nCallback fmin\n")
     with use_log_level("debug"):
-        brain.callbacks["fmin"](value=12.0)
+        brain.update_lut(fmin=12.0)
     assert brain._data["fmin"] == 12.0
-    brain.callbacks["fmax"](value=4.0)
+    brain.update_lut(fmax=4.0)
     _assert_brain_range(brain, [4.0, 4.0])
-    brain.callbacks["fmid"](value=6.0)
+    brain.update_lut(fmid=6.0)
     _assert_brain_range(brain, [4.0, 6.0])
-    brain.callbacks["fmid"](value=4.0)
-    brain.callbacks["fplus"]()
-    brain.callbacks["fminus"]()
-    brain.callbacks["fmin"](value=12.0)
-    brain.callbacks["fmid"](value=4.0)
+    brain.update_lut(fmid=4.0)
+    brain._update_fscale(1.2**0.25)
+    brain._update_fscale(1.2**-0.25)
+    brain.update_lut(fmin=12.0, fmid=4.0)
     _assert_brain_range(brain, [4.0, 12.0])
     brain._shift_time(shift_func=lambda x, y: x + y)
     brain._shift_time(shift_func=lambda x, y: x - y)
@@ -1039,7 +1035,7 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
     pytest.importorskip("sphinx_gallery")
     stc = read_source_estimate(fname_stc, subject="sample")
-    size = (600, 300)
+    size = (600, 400)
     brain = stc.plot(
         subjects_dir=subjects_dir,
         time_viewer=True,
@@ -1104,9 +1100,7 @@ def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
     )
     link_viewer.leader.set_time(1)
     link_viewer.leader.set_time_point(0)
-    link_viewer.leader.callbacks["fmin"](0)
-    link_viewer.leader.callbacks["fmid"](0.5)
-    link_viewer.leader.callbacks["fmax"](1)
+    link_viewer.leader.update_lut(fmin=0, fmid=0.5, fmax=1)
     link_viewer.leader.set_playback_speed(0.1)
     link_viewer.leader.toggle_playback()
     ui_events.publish(link_viewer.leader, ui_events.TimeChange(time=0))

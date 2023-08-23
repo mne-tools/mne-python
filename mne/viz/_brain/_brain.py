@@ -23,14 +23,6 @@ from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
 
-from .callback import (
-    ShowView,
-    # TimeCallBack,
-    SmartCallBack,
-    # UpdateLUT,
-    # UpdateColorbarScale,
-)
-
 from ..utils import (
     _show_help_fig,
     _get_color_list,
@@ -190,6 +182,13 @@ class Brain:
 
     Notes
     -----
+    The figure will publish and subscribe to the following UI events:
+
+    * :class:`~mne.viz.ui_events.TimeChange`
+    * :class:`~mne.viz.ui_events.PlaybackSpeed`
+    * :class:`~mne.viz.ui_events.ColormapRange`
+    * :class:`~mne.viz.ui_events.VertexSelect`
+
     This table shows the capabilities of each Brain backend ("✓" for full
     support, and "-" for partial support):
 
@@ -554,7 +553,6 @@ class Brain:
         self.pick_table = dict()
         self._spheres = list()
         self._mouse_no_mvt = -1
-        self.callbacks = dict()
         self.widgets = dict()
 
         # Derived parameters:
@@ -872,17 +870,13 @@ class Brain:
                 loc = self._renderer._index_to_loc(idx)
                 self.plotter.subplot(*loc)
 
-            self.callbacks["renderer"] = SmartCallBack(
-                callback=select_renderer,
-            )
             self.widgets["renderer"] = self._renderer._dock_add_combo_box(
                 name="Renderer",
                 value="0",
                 rng=rends,
-                callback=self.callbacks["renderer"],
+                callback=select_renderer,
                 layout=layout,
             )
-            self.callbacks["renderer"].widget = self.widgets["renderer"]
 
         # Use 'lh' as a reference for orientation for 'both'
         if self._hemi == "both":
@@ -898,15 +892,25 @@ class Brain:
                 else:
                     _data = dict(default=v, hemi=hemi, row=ri, col=ci)
                 orientation_data[idx] = _data
-        self.callbacks["orientation"] = ShowView(
-            brain=self,
-            data=orientation_data,
-        )
+
+        def set_orientation(value):
+            if "renderer" in self.widgets:
+                idx = int(self.widgets["renderer"].get_value())
+            else:
+                idx = 0
+            if orientation_data[idx] is not None:
+                self.show_view(
+                    value,
+                    row=orientation_data[idx]["row"],
+                    col=orientation_data[idx]["col"],
+                    hemi=orientation_data[idx]["hemi"],
+                )
+
         self.widgets["orientation"] = self._renderer._dock_add_combo_box(
             name=None,
             value=self.orientation[0],
             rng=self.orientation,
-            callback=self.callbacks["orientation"],
+            callback=set_orientation,
             layout=layout,
         )
 
@@ -1067,17 +1071,13 @@ class Brain:
         self._configure_dock_trace_widget(name="Trace")
 
         # Smoothing widget
-        self.callbacks["smoothing"] = SmartCallBack(
-            callback=self.set_data_smoothing,
-        )
         self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
             name="Smoothing",
             value=self._data["smoothing_steps"],
             rng=self.default_smoothing_range,
-            callback=self.callbacks["smoothing"],
+            callback=self.set_data_smoothing,
             double=False,
         )
-        self.callbacks["smoothing"].widget = self.widgets["smoothing"]
 
         self._renderer._dock_finalize()
 
@@ -1279,8 +1279,9 @@ class Brain:
         self._renderer.set_camera(elevation=elevation, reset_camera=False)
 
     def _configure_shortcuts(self):
-        # First, we remove the default bindings:
-        self._clear_callbacks()
+        # Remove the default key binding
+        if getattr(self, "iren", None) is not None:
+            self.plotter.iren.clear_key_event_callbacks()
         # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
@@ -1439,19 +1440,20 @@ class Brain:
             return
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
-        with ui_events.disable_ui_events(self):
-            if hasattr(self, "widgets") and "time" in self.widgets:
-                self.widgets["time"].set_value(time_idx)
-            if "current_time" in self.widgets:
-                self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-        self.plot_time_line(update=True)
+        if self.time_viewer:
+            with ui_events.disable_ui_events(self):
+                if "time" in self.widgets:
+                    self.widgets["time"].set_value(time_idx)
+                if "current_time" in self.widgets:
+                    self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
+            self.plot_time_line(update=True)
 
     def _on_playback_speed(self, event):
         """Respond to the playback_speed UI event."""
         if event.speed == self.playback_speed:
             return
         self.playback_speed = event.speed
-        if hasattr(self, "widgets") and "playback_speed" in self.widgets:
+        if "playback_speed" in self.widgets:
             with ui_events.disable_ui_events(self):
                 self.widgets["playback_speed"].set_value(event.speed)
 
@@ -1475,7 +1477,6 @@ class Brain:
 
     def _on_vertex_select(self, event):
         """Respond to vertex_select UI event."""
-        print(event)
         if event.hemi == "vol":
             try:
                 mesh = self._data[event.hemi]["grid"]
@@ -1737,18 +1738,6 @@ class Brain:
     def help(self):
         """Display the help window."""
         self.help_canvas.show()
-
-    def _clear_callbacks(self):
-        if not hasattr(self, "callbacks"):
-            return
-        for callback in self.callbacks.values():
-            if callback is not None:
-                for key in ("plotter", "brain", "callback", "widget", "widgets"):
-                    setattr(callback, key, None)
-        self.callbacks.clear()
-        # Remove the default key binding
-        if getattr(self, "iren", None) is not None:
-            self.plotter.iren.clear_key_event_callbacks()
 
     def _clear_widgets(self):
         if not hasattr(self, "widgets"):

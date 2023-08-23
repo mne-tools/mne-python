@@ -11,12 +11,12 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
 from dataclasses import dataclass
+from typing import Optional
 from weakref import WeakKeyDictionary, WeakSet
 import re
 
+from ..utils import fill_doc, warn
 from .backends._abstract import Figure3D
-from ..utils import warn, fill_doc
-
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = WeakKeyDictionary()
@@ -122,40 +122,10 @@ class ColormapRange(UIEvent):
     %(alpha)s
     """
 
-    fmin: float = None
-    fmax: float = None
-    fmid: float = None
-    alpha: bool = None
-
-
-@dataclass
-@fill_doc
-class CameraMove(UIEvent):
-    """Indicates that the user has moved the 3D camera.
-
-    Parameters
-    ----------
-    %(roll)s
-    %(distance)s
-    %(azimuth)s
-    %(elevation)s
-    %(focalpoint)s
-
-    Attributes
-    ----------
-    %(ui_event_name_source)s
-    %(roll)s
-    %(distance)s
-    %(azimuth)s
-    %(elevation)s
-    %(focalpoint)s
-    """
-
-    roll: float = None
-    distance: float = None
-    azimuth: float = None
-    elevation: float = None
-    focalpoint: tuple = None
+    fmin: Optional[float] = None
+    fmid: Optional[float] = None
+    fmax: Optional[float] = None
+    alpha: Optional[bool] = None
 
 
 @dataclass
@@ -167,8 +137,8 @@ class VertexSelect(UIEvent):
     ----------
     hemi : str
         The hemisphere the vertex was selected on.
-        Can be ``"lh"``, ``"rh"``, or ``"vol"``
-    vertex : int
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
+    vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
 
     Attributes
@@ -176,7 +146,7 @@ class VertexSelect(UIEvent):
     %(ui_event_name_source)s
     hemi : str
         The hemisphere the vertex was selected on.
-        Can be ``"lh"``, ``"rh"``, or ``"vol"``
+        Can be ``"lh"``, ``"rh"``, or ``"vol"``.
     vertex_id : int
         The vertex number (in the high resolution mesh) that was selected.
     """
