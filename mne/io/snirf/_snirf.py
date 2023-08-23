@@ -102,7 +102,7 @@ class RawSNIRF(BaseRaw):
                 optode_frame = "head"
 
             snirf_data_type = np.array(
-                dat.get("nirs/data1/measurementList1" "/dataType")
+                dat.get("nirs/data1/measurementList1/dataType")
             ).item()
             if snirf_data_type not in [1, 99999]:
                 # 1 = Continuous Wave
@@ -443,9 +443,9 @@ class RawSNIRF(BaseRaw):
                 info["meas_date"] = meas_date
 
             if "DateOfBirth" in dat.get("nirs/metaDataTags/"):
-                str_birth = np.array((dat.get("/nirs/metaDataTags/" "DateOfBirth")))[
-                    0
-                ].decode()
+                str_birth = (
+                    np.array(dat.get("/nirs/metaDataTags/DateOfBirth")).item().decode()
+                )
                 birth_matched = re.fullmatch(r"(\d+)-(\d+)-(\d+)", str_birth)
                 if birth_matched is not None:
                     birthday = (
