@@ -56,8 +56,6 @@ EYELINK_COLS = {
     ),
 }
 
-raw_extras = dict()  # extra info from file
-
 
 @fill_doc
 def read_raw_eyelink(
@@ -212,6 +210,7 @@ class RawEyelink(BaseRaw):
         self.fname = Path(fname)
         self._sample_lines = None  # sample lines from file
         self._event_lines = None  # event messages from file
+        self._raw_extras = list([dict()])  # extra info from file
         self._tracking_mode = None  # assigned in self._infer_col_names
         self._rec_info = None
         self._ascii_sfreq = None
@@ -272,7 +271,7 @@ class RawEyelink(BaseRaw):
             preload=eye_ch_data,
             filenames=[self.fname],
             verbose=verbose,
-            raw_extras=[raw_extras],
+            raw_extras=self._raw_extras,
         )
         self.set_meas_date(self._raw_extras[0]["dt"])
 
@@ -403,7 +402,7 @@ class RawEyelink(BaseRaw):
                         # Even though dt is probably in local time zone.
                         dt_naive = datetime.strptime(dt_str, fmt)
                         dt_aware = dt_naive.replace(tzinfo=tz)
-                        raw_extras["dt"] = dt_aware
+                        self._raw_extras[0]["dt"] = dt_aware
                         break
 
     def _convert_href_samples(self):
