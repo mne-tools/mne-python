@@ -48,7 +48,7 @@ bem_fname = bem_dir / "sample-5120-5120-5120-bem-sol.fif"
 # Read the MEG data from the audvis experiment. Make epochs and evokeds for the
 # left and right auditory conditions.
 raw = mne.io.read_raw_fif(raw_fname)
-raw = raw.pick(meg=True, eog=True, stim=True)
+raw = raw.pick(picks=["meg", "eog", "stim"])
 info = raw.info
 
 # Create epochs for auditory events

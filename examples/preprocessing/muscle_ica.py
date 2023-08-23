@@ -29,7 +29,7 @@ raw.crop(tmin=100, tmax=130)  # take 30 seconds for speed
 # pick only EEG channels, muscle artifact is basically not picked up by MEG
 # if you have a simultaneous recording, you may want to do ICA on MEG and EEG
 # separately
-raw.pick(eeg=True)
+raw.pick(picks="eeg")
 
 # ICA works best with a highpass filter applied
 raw.load_data()

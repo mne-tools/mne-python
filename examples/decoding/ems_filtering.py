@@ -65,7 +65,7 @@ epochs = mne.Epochs(
     preload=True,
 )
 epochs.drop_bad()
-epochs.pick(meg="grad")
+epochs.pick(picks="grad")
 
 # Setup the data to use it a scikit-learn way:
 X = epochs.get_data()  # The MEG data

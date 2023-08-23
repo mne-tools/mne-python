@@ -36,7 +36,7 @@ evoked = mne.read_evokeds(evoked_fname, condition=condition, baseline=(None, 0))
 # select N100
 evoked.crop(tmin=0.05, tmax=0.15)
 
-evoked.pick(meg=True, eeg=False)
+evoked.pick(picks="meg")
 
 # Read the forward solution
 forward = mne.read_forward_solution(fwd_fname)

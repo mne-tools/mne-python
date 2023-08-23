@@ -120,9 +120,9 @@ for dip in dipoles:
 # %%
 # Plot residual
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
-evoked.pick(meg=True, eeg=True, exclude="bads")
+evoked.pick(picks=["meg", "eeg"], exclude="bads")
 evoked.plot(ylim=ylim, proj=True, time_unit="s")
-residual.pick(meg=True, eeg=True, exclude="bads")
+residual.pick(picks=["meg", "eeg"], exclude="bads")
 residual.plot(ylim=ylim, proj=True, time_unit="s")
 
 # %%

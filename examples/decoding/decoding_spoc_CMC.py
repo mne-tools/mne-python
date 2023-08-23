@@ -44,7 +44,7 @@ emg = raw.copy().pick(["EMGlft"]).load_data()
 emg.filter(20.0, None)
 
 # Filter MEG data to focus on beta band
-raw.pick(meg=True, ref_meg=True, eeg=False, eog=False).load_data()
+raw.pick(picks=["meg", "ref_meg"]).load_data()
 raw.filter(15.0, 30.0)
 
 # Build epochs as sliding windows over the continuous raw file
