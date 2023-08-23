@@ -310,7 +310,7 @@ def test_pick_seeg_ecog():
         baseline=(0, 0),
     )  # only one sample
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
-    e_seeg = evoked.copy().pick(meg=False, seeg=True)
+    e_seeg = evoked.copy().pick(picks="seeg")
     for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
         assert lt == rt
     # Deal with constant debacle
@@ -340,7 +340,7 @@ def test_pick_dbs():
         baseline=(0, 0),
     )  # only one sample
     evoked = epochs.average(pick_types(epochs.info, meg=True, dbs=True))
-    e_dbs = evoked.copy().pick(meg=False, dbs=True)
+    e_dbs = evoked.copy().pick(picks="dbs")
     for lt, rt in zip(e_dbs.ch_names, [names[4], names[5], names[6]]):
         assert lt == rt
     raw = read_raw_fif(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
@@ -515,7 +515,7 @@ def test_picks_by_channels():
 
     # pick_types type check
     with pytest.raises(ValueError, match="must be of type"):
-        raw.pick(eeg="string")
+        raw.pick_types(eeg="string")
 
     # duplicate check
     names = ["MEG 002", "MEG 002"]
@@ -722,7 +722,7 @@ def test_pick_types_csd():
     assert_array_equal(pick_types(info1, csd=True), [7])
 
     # pick from the raw object
-    assert raw_csd.copy().pick(csd=True).ch_names == [
+    assert raw_csd.copy().pick(picks="csd").ch_names == [
         "F1",
         "F2",
         "C1",
