@@ -609,6 +609,7 @@ class DigMontage:
         and then use ``mne.channels.compute_native_head_t(montage)``
         to get the head <-> MRI transform.
         """
+        # Avoid circular import
         from .._freesurfer import get_mni_fiducials
 
         # get coordframe and fiducial coordinates

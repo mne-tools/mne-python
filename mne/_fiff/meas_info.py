@@ -1831,7 +1831,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     @repr_html
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
-        # Keep this one lazy to make _fiff fast
         if isinstance(caption, str):
             html = f"<h4>{caption}</h4>"
         else:

@@ -8,7 +8,7 @@
 # anything here or use lazy_loader.
 
 
-# Helpers for keeping some attributes en mne/io/*.py, remove in 1.6
+# Helpers for keeping some attributes in mne/io/*.py, remove in 1.6
 _dep_msg = (
     "is deprecated will be removed in 1.6, use documented public API instead. "
     "If no appropriate public API exists, please open an issue on GitHub."

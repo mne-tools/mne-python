@@ -240,6 +240,7 @@ class Evoked(
         -----
         .. versionadded:: 0.24
         """
+        # Avoid circular import
         from .io.base import _get_ch_factors
 
         picks = _picks_to_idx(self.info, picks, "all", exclude=())

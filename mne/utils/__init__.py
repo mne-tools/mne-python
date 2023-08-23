@@ -1,8 +1,3 @@
-# # # WARNING # # #
-# This list must also be updated in doc/_templates/autosummary/class.rst if it
-# is changed here!
-import lazy_loader as lazy
-
 import lazy_loader as lazy
 
 __getattr__, __dir__, __all__ = lazy.attach(

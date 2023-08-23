@@ -5,11 +5,12 @@
 import os
 import sys
 import pytest
+
 from mne.utils import run_subprocess
 
 eager_import = os.getenv("EAGER_IMPORT", "")
 
-# This test ensures that modules are lazily loaded.
+# This test ensures that modules are lazily loaded by lazy_loader.
 
 run_script = """
 import sys
@@ -38,11 +39,15 @@ for x in sys.modules.keys():
 if len(out) > 0:
     print('\\nFound un-nested import(s) for %s' % (sorted(out),), end='')
 exit(len(out))
+
+# but this should still work
+mne.io.read_raw_fif
+assert "scipy.signal" in sys.modules, "scipy.signal not in sys.modules"
 """
 
 
 @pytest.mark.skipif(bool(eager_import), reason=f"EAGER_IMPORT={eager_import}")
-def test_module_nesting():
+def test_lazy_loading():
     """Test that module imports are properly nested."""
     stdout, stderr, code = run_subprocess(
         [sys.executable, "-c", run_script], return_code=True
