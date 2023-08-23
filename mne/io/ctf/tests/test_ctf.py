@@ -366,11 +366,10 @@ def test_saving_picked(tmp_path, comp_grade):
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info["comps"]) == 5
-    pick_kwargs = dict(meg=True, ref_meg=False, verbose=True)
 
     raw.apply_gradient_compensation(comp_grade)
     with catch_logging() as log:
-        raw_pick = raw.copy().pick_types(**pick_kwargs)
+        raw_pick = raw.copy().pick(picks="meg", verbose=True)
     assert len(raw.info["comps"]) == 5
     assert len(raw_pick.info["comps"]) == 0
     log = log.getvalue()
