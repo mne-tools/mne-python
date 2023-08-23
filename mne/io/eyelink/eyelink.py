@@ -6,13 +6,13 @@
 #
 # License: BSD-3-Clause
 
-from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import numpy as np
 from ._utils import (
     _convert_times,
     _adjust_times,
+    _get_recording_datetime,
     _find_overlaps,
     _get_sfreq_from_ascii,
     _is_sys_msg,
@@ -207,10 +207,10 @@ class RawEyelink(BaseRaw):
     ):
         logger.info("Loading {}".format(fname))
 
+        raw_extras = dict()  # extra info from file
         self.fname = Path(fname)
         self._sample_lines = None  # sample lines from file
         self._event_lines = None  # event messages from file
-        self._raw_extras = list([dict()])  # extra info from file
         self._tracking_mode = None  # assigned in self._infer_col_names
         self._rec_info = None
         self._ascii_sfreq = None
@@ -227,7 +227,7 @@ class RawEyelink(BaseRaw):
         self.dataframes = {}
 
         # ======================== Parse ASCII File =========================
-        self._get_recording_datetime()
+        raw_extras["dt"] = _get_recording_datetime(self.fname)
         self._parse_recording_blocks()  # sets sample, event, & system lines
 
         # ======================== Create DataFrames ========================
@@ -271,7 +271,7 @@ class RawEyelink(BaseRaw):
             preload=eye_ch_data,
             filenames=[self.fname],
             verbose=verbose,
-            raw_extras=self._raw_extras,
+            raw_extras=[raw_extras],
         )
         self.set_meas_date(self._raw_extras[0]["dt"])
 
@@ -382,28 +382,6 @@ class RawEyelink(BaseRaw):
                         " the eye that was tracked at the start of"
                         " the recording."
                     )
-
-    def _get_recording_datetime(self):
-        """Create a datetime object from the datetime in ASCII file."""
-        # create a timezone object for UTC
-        tz = timezone(timedelta(hours=0))
-        in_header = False
-        with self.fname.open() as file:
-            for line in file:
-                # header lines are at top of file and start with **
-                if line.startswith("**"):
-                    in_header = True
-                if in_header:
-                    if line.startswith("** DATE:"):
-                        dt_str = line.replace("** DATE:", "").strip()
-                        fmt = "%a %b %d %H:%M:%S %Y"
-                        # Eyelink measdate timestamps are timezone naive.
-                        # Force datetime to be in UTC.
-                        # Even though dt is probably in local time zone.
-                        dt_naive = datetime.strptime(dt_str, fmt)
-                        dt_aware = dt_naive.replace(tzinfo=tz)
-                        self._raw_extras[0]["dt"] = dt_aware
-                        break
 
     def _convert_href_samples(self):
         """Convert HREF eyegaze samples to radians."""

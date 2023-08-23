@@ -2,10 +2,34 @@
 # Authors: Scott Huberty <seh33@uw.edu>
 # License: BSD-3-Clause
 
+
+from datetime import datetime, timezone, timedelta
 import re
+
 import numpy as np
 
 from ...utils import _check_pandas_installed
+
+
+def _get_recording_datetime(fname):
+    """Create a datetime object from the datetime in ASCII file."""
+    # create a timezone object for UTC
+    tz = timezone(timedelta(hours=0))
+    in_header = False
+    with fname.open() as file:
+        for line in file:
+            # header lines are at top of file and start with **
+            if line.startswith("**"):
+                in_header = True
+            if in_header:
+                if line.startswith("** DATE:"):
+                    dt_str = line.replace("** DATE:", "").strip()
+                    fmt = "%a %b %d %H:%M:%S %Y"
+                    # Eyelink measdate timestamps are timezone naive.
+                    # Force datetime to be in UTC.
+                    # Even though dt is probably in local time zone.
+                    dt_naive = datetime.strptime(dt_str, fmt)
+                    return dt_naive.replace(tzinfo=tz)  # make it dt aware
 
 
 def _is_sys_msg(line):
