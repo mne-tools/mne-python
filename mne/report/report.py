@@ -388,7 +388,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # check instead
         if fig.__class__.__name__ in ("MNEQtBrowser", "PyQtGraphBrowser"):
             img = _mne_qt_browser_screenshot(fig, return_type="ndarray")
-            print(img.shape, img.max(), img.min(), img.mean())
         elif isinstance(fig, Figure3D):
             from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
 

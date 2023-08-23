@@ -67,8 +67,6 @@ def __getattr__(name):
     """Try getting attribute from fiff submodule."""
     from ..utils import warn
 
-    print(name)
-
     if name in (
         "set_eeg_reference",
         "set_bipolar_reference",
