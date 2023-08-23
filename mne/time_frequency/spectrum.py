@@ -294,6 +294,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         tmax,
         picks,
         proj,
+        remove_dc,
         *,
         n_jobs,
         verbose=None,
@@ -323,7 +324,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                 f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} '
                 f'for PSD method "{method}".'
             )
-        self._psd_func = partial(psd_funcs[method], **method_kw)
+        self._psd_func = partial(psd_funcs[method], remove_dc=remove_dc, **method_kw)
 
         # apply proj if desired
         if proj:
@@ -1060,6 +1061,7 @@ class Spectrum(BaseSpectrum):
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
     %(proj_psd)s
+    %(remove_dc)s
     %(reject_by_annotation_psd)s
     %(n_jobs)s
     %(verbose)s
@@ -1099,6 +1101,7 @@ class Spectrum(BaseSpectrum):
         tmax,
         picks,
         proj,
+        remove_dc,
         reject_by_annotation,
         *,
         n_jobs,
@@ -1121,6 +1124,7 @@ class Spectrum(BaseSpectrum):
             tmax,
             picks,
             proj,
+            remove_dc,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -1196,6 +1200,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
     %(proj_psd)s
+    %(remove_dc)s
     %(n_jobs)s
     %(verbose)s
     %(method_kw_psd)s
@@ -1233,6 +1238,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         tmax,
         picks,
         proj,
+        remove_dc,
         *,
         n_jobs,
         verbose=None,
@@ -1252,6 +1258,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmax,
             picks,
             proj,
+            remove_dc,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -1361,6 +1368,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmax=None,
             picks=None,
             proj=None,
+            remove_dc=None,
             reject_by_annotation=None,
             n_jobs=None,
             verbose=None,
@@ -1398,6 +1406,7 @@ def read_spectrum(fname):
         tmax=None,
         picks=None,
         proj=None,
+        remove_dc=None,
         reject_by_annotation=None,
         n_jobs=None,
         verbose=None,

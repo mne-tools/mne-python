@@ -109,6 +109,7 @@ def psd_array_welch(
     n_jobs=None,
     average="mean",
     window="hamming",
+    remove_dc=True,
     *,
     output="power",
     verbose=None,
@@ -143,6 +144,8 @@ def psd_array_welch(
     %(window_psd)s
 
         .. versionadded:: 0.22.0
+    %(remove_dc)s
+
     output : str
         The format of the returned ``psds`` array, ``'complex'`` or
         ``'power'``:
@@ -176,6 +179,7 @@ def psd_array_welch(
     """
     _check_option("average", average, (None, False, "mean", "median"))
     _check_option("output", output, ("power", "complex"))
+    detrend = "constant" if remove_dc else False
     mode = "complex" if output == "complex" else "psd"
     n_fft = _ensure_int(n_fft, "n_fft")
     n_overlap = _ensure_int(n_overlap, "n_overlap")
@@ -211,6 +215,7 @@ def psd_array_welch(
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
     func = partial(
         spectrogram,
+        detrend=detrend,
         noverlap=n_overlap,
         nperseg=n_per_seg,
         nfft=n_fft,

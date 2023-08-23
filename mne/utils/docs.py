@@ -3684,6 +3684,14 @@ reject : dict | None
 """
 
 docdict[
+    "remove_dc"
+] = """
+remove_dc : bool
+    If ``True``, the mean is subtracted from each segment before computing
+    its spectrum.
+"""
+
+docdict[
     "replace_report"
 ] = """
 replace : bool
