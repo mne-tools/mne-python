@@ -36,7 +36,6 @@ from .._fiff.pick import (
     pick_channels,
     pick_info,
     _picks_to_idx,
-    _get_channel_types,
     _DATA_CH_TYPES_SPLIT,
 )
 from .._fiff.proj import make_projector
@@ -189,7 +188,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """
     types = _DATA_CH_TYPES_SPLIT + ("eog",)
     types += ("ref_meg",) if allow_ref_meg else ()
-    chs = _get_channel_types(info, picks, unique=True, only_data_chs=False)
+    chs = info.get_channel_types(picks, unique=True, only_data_chs=False)
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError(

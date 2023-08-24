@@ -36,7 +36,6 @@ from .._fiff.pick import (
     pick_channels,
     _pick_data_channels,
     _picks_to_idx,
-    _get_channel_types,
     _MEG_CH_TYPES_SPLIT,
 )
 from ..utils import (
@@ -481,7 +480,7 @@ def _plot_projs_topomap(
         ch_names = _clean_names(proj["data"]["col_names"], remove_whitespace=True)
         if vlim == "joint":
             ch_idxs = np.where(np.in1d(info["ch_names"], proj["data"]["col_names"]))[0]
-            these_ch_types = _get_channel_types(info, ch_idxs, unique=True)
+            these_ch_types = info.get_channel_types(ch_idxs, unique=True)
             # each projector should have only one channel type
             assert len(these_ch_types) == 1
             types.append(list(these_ch_types)[0])
@@ -1181,7 +1180,7 @@ def _plot_topomap(
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = _get_channel_types(pos, unique=True)
+        ch_type = pos.get_channel_types(pos, unique=True)
         info_help = (
             "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
         )
@@ -4003,7 +4002,7 @@ def plot_regression_weights(
 
     sphere = _check_sphere(sphere)
     if ch_type is None:
-        ch_types = _get_channel_types(model.info_, unique=True, only_data_chs=True)
+        ch_types = model.info_.get_channel_types(unique=True, only_data_chs=True)
     else:
         ch_types = [ch_type]
     del ch_type
