@@ -1753,7 +1753,7 @@ class BaseEpochs(
             logger.info(f"{n_bads_dropped} bad epochs dropped")
 
             if n_bads_dropped == n_events:
-                warn(
+                logger.warning(
                     "All epochs were dropped!\n"
                     "You might need to alter reject/flat-criteria "
                     "or drop bad channels to avoid this.\n"

@@ -2291,7 +2291,7 @@ def test_crop(tmp_path):
         1,
         picks=picks,
         preload=True,
-        reject=reject,
+        reject=None,
         flat=flat,
     )
     # We include nearest sample, so actually a bit beyond our bounds here
