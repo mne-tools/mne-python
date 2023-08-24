@@ -19,11 +19,11 @@ import numpy as np
 
 from .pick import (
     channel_type,
-    _get_channel_types,
     get_channel_type_constants,
     pick_types,
     _picks_to_idx,
     _contains_ch_type,
+    _DATA_CH_TYPES_SPLIT,
 )
 from .constants import FIFF, _coord_frame_named, _ch_unit_mul_named
 from .open import fiff_open
@@ -906,9 +906,17 @@ class ContainsMixin:
             The channel types.
         """
         info = self if isinstance(self, Info) else self.info
-        return _get_channel_types(
-            info, picks=picks, unique=unique, only_data_chs=only_data_chs
-        )
+        none = "data" if only_data_chs else "all"
+        picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
+        ch_types = [channel_type(info, pick) for pick in picks]
+        if only_data_chs:
+            ch_types = [
+                ch_type for ch_type in ch_types if ch_type in _DATA_CH_TYPES_SPLIT
+            ]
+        if unique:
+            # set does not preserve order but dict does, so let's just use it
+            ch_types = list({k: k for k in ch_types}.keys())
+        return ch_types
 
 
 def _format_trans(obj, key):

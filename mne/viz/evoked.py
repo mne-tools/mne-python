@@ -23,8 +23,6 @@ from .._fiff.pick import (
     _VALID_CHANNEL_TYPES,
     channel_indices_by_type,
     _DATA_CH_TYPES_SPLIT,
-    _pick_inst,
-    _get_channel_types,
     _PICK_TYPES_DATA_DICT,
     _picks_to_idx,
     pick_info,
@@ -452,7 +450,7 @@ def _plot_evoked(
 
         picks = np.array([pick for pick in picks if pick not in exclude])
 
-    types = np.array(_get_channel_types(info, picks), str)
+    types = np.array(info.get_channel_types(picks), str)
     ch_types_used = list()
     for this_type in _VALID_CHANNEL_TYPES:
         if this_type in types:
@@ -1912,9 +1910,9 @@ def plot_evoked_joint(
         if proj == "reconstruct":
             evoked._reconstruct_proj()
     topomap_args["proj"] = ts_args["proj"] = False  # don't reapply
-    evoked = _pick_inst(evoked, picks, exclude, copy=False)
+    evoked.pick(picks, exclude=exclude)
     info = evoked.info
-    ch_types = _get_channel_types(info, unique=True, only_data_chs=True)
+    ch_types = info.get_channel_types(unique=True, only_data_chs=True)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1932,7 +1930,7 @@ def plot_evoked_joint(
                     if channel_type(info, idx) == this_type
                 ]
             )
-            if len(_get_channel_types(ev_.info, unique=True)) > 1:
+            if len(ev_.info.get_channel_types(unique=True)) > 1:
                 raise RuntimeError(
                     "Possibly infinite loop due to channel "
                     "selection problem. This should never "
@@ -2903,7 +2901,7 @@ def plot_compare_evokeds(
         "ref_meg",
     )
     ch_types = [
-        t for t in _get_channel_types(info, picks=picks, unique=True) if t in all_types
+        t for t in info.get_channel_types(picks=picks, unique=True) if t in all_types
     ]
     picks_by_type = channel_indices_by_type(info, picks)
     # discard picks from non-data channels (e.g., ref_meg)

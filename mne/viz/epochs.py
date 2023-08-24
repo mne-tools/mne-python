@@ -26,7 +26,6 @@ from ..utils.spectrum import _split_psd_kwargs
 from .._fiff.meas_info import create_info
 
 from .._fiff.pick import (
-    _get_channel_types,
     _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
@@ -237,7 +236,7 @@ def plot_epochs_image(
 
     # is picks a channel type (or None)?
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
-    ch_types = _get_channel_types(epochs.info, picks)
+    ch_types = epochs.info.get_channel_types(picks)
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed

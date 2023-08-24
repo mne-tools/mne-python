@@ -55,8 +55,6 @@ from .._fiff.pick import (
     pick_info,
     _picks_to_idx,
     channel_type,
-    _pick_inst,
-    _get_channel_types,
 )
 from .._fiff.meas_info import Info, ContainsMixin
 from ..viz.utils import (
@@ -1929,9 +1927,13 @@ class AverageTFR(_BaseTFR):
         # channel type.
         # Nonetheless, it should be refactored for code reuse.
         copy = any(var is not None for var in (exclude, picks, baseline))
-        tfr = _pick_inst(self, picks, exclude, copy=copy)
+        tfr = self
+        if copy:
+            tfr = tfr.copy()
+        picks = "data" if picks is None else picks
+        tfr.pick(picks, exclude=() if exclude is None else exclude)
         del picks
-        ch_types = _get_channel_types(tfr.info, unique=True)
+        ch_types = tfr.info.get_channel_types(unique=True)
 
         # if multiple sensor types: one plot per channel type, recursive call
         if len(ch_types) > 1:
@@ -1945,8 +1947,8 @@ class AverageTFR(_BaseTFR):
                     for idx in range(tfr.info["nchan"])
                     if channel_type(tfr.info, idx) == this_type
                 ]
-                tf_ = _pick_inst(tfr, type_picks, None, copy=True)
-                if len(_get_channel_types(tf_.info, unique=True)) > 1:
+                tf_ = tfr.copy().pick(type_picks)
+                if len(tf_.info.get_channel_types(unique=True)) > 1:
                     raise RuntimeError(
                         "Possibly infinite loop due to channel selection "
                         "problem. This should never happen! Please check "
