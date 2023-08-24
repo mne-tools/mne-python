@@ -10,11 +10,10 @@ from ..annotations import _annotations_starts_stops
 from ..utils import logger, verbose, sum_squared, warn, int_like
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
-from ..io.base import BaseRaw
+from ..io import BaseRaw, RawArray
 from ..evoked import Evoked
-from ..io import RawArray
-from ..io.meas_info import create_info
-from ..io.pick import _picks_to_idx, pick_types, pick_channels
+from .._fiff.meas_info import create_info
+from .._fiff.pick import _picks_to_idx, pick_types, pick_channels
 
 
 @verbose

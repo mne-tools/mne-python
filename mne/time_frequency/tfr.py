@@ -13,6 +13,8 @@ from copy import deepcopy
 from functools import partial
 
 import numpy as np
+from scipy.fft import fft, ifft
+from scipy.signal import argrelmax
 
 from .multitaper import dpss_windows
 
@@ -47,16 +49,16 @@ from ..utils import (
     _import_h5io_funcs,
 )
 from ..channels.channels import UpdateChannelsMixin
-from ..channels.layout import _merge_ch_data, _pair_grad_sensors
+from ..channels.layout import _merge_ch_data, _pair_grad_sensors, _find_topomap_coords
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
-from ..io.pick import (
+from .._fiff.pick import (
     pick_info,
     _picks_to_idx,
     channel_type,
     _pick_inst,
     _get_channel_types,
 )
-from ..io.meas_info import Info, ContainsMixin
+from .._fiff.meas_info import Info, ContainsMixin
 from ..viz.utils import (
     figure_nobar,
     plt_show,
@@ -349,8 +351,6 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
     out : array, shape (n_signals, n_freqs, n_time_decim)
         The time-frequency transform of the signals.
     """
-    from scipy.fft import fft, ifft
-
     _check_option("mode", mode, ["same", "valid", "full"])
     decim = _check_decim(decim)
     X = np.asarray(X)
@@ -1916,7 +1916,6 @@ class AverageTFR(_BaseTFR):
             _set_contour_locator,
             plot_topomap,
             _get_pos_outlines,
-            _find_topomap_coords,
         )
         import matplotlib.pyplot as plt
 
@@ -3240,8 +3239,6 @@ def _get_timefreqs(tfr, timefreqs):
 
     # If None, automatic identification of max peak
     else:
-        from scipy.signal import argrelmax
-
         order = max((1, tfr.data.shape[2] // 30))
         peaks_idx = argrelmax(tfr.data, order=order, axis=2)
         if peaks_idx[0].size == 0:

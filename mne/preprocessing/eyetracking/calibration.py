@@ -114,13 +114,11 @@ class Calibration(dict):
         """
         return deepcopy(self)
 
-    def plot(self, title=None, show_offsets=True, axes=None, show=True):
+    def plot(self, show_offsets=True, axes=None, show=True):
         """Visualize calibration.
 
         Parameters
         ----------
-        title : str
-            The title to be displayed. Defaults to ``None``, which uses a generic title.
         show_offsets : bool
             Whether to display the offset (in visual degrees) of each calibration
             point or not. Defaults to ``True``.
@@ -152,10 +150,7 @@ class Calibration(dict):
         px, py = self["positions"].T
         gaze_x, gaze_y = self["gaze"].T
 
-        if title is None:
-            ax.set_title(f"Calibration ({self['eye']} eye)")
-        else:
-            ax.set_title(title)
+        ax.set_title(f"Calibration ({self['eye']} eye)")
         ax.set_xlabel("x (pixels)")
         ax.set_ylabel("y (pixels)")
 

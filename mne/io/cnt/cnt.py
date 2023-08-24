@@ -8,13 +8,13 @@ from os import path
 
 import numpy as np
 
+from ..base import BaseRaw
 from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
-from ..constants import FIFF
-from .._digitization import _make_dig_points
-from ..utils import _mult_cal_one, _find_channels, _create_chs, read_str
-from ..meas_info import _empty_info
-from ..base import BaseRaw
+from ..._fiff.constants import FIFF
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.utils import _mult_cal_one, _find_channels, _create_chs, read_str
+from ..._fiff.meas_info import _empty_info
 from ...annotations import Annotations
 
 

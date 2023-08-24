@@ -12,7 +12,7 @@ from .evoked import _plot_evoked
 from .topomap import _plot_projs_topomap
 from .utils import plt_show, _check_type_projs
 from ..defaults import DEFAULTS
-from ..io.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx
 from ..utils import _validate_type, warn, _pl, verbose
 
 

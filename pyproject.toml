@@ -5,7 +5,7 @@ skip = "doc/references.bib"
 
 [tool.ruff]
 select = ["E", "F", "W", "D"]
-exclude = ["__init__.py", "constants.py", "fixes.py", "resources.py"]
+exclude = ["__init__.py", "constants.py", "resources.py"]
 ignore = [
     "D100", # Missing docstring in public module
     "D104", # Missing docstring in public package

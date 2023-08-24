@@ -17,9 +17,9 @@ from ._utils import (
     _find_overlaps,
     _is_sys_msg,
 )  # helper functions
-from ..constants import FIFF
 from ..base import BaseRaw
-from ..meas_info import create_info
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import (
     _check_fname,
@@ -60,13 +60,13 @@ EYELINK_COLS = {
 @fill_doc
 def read_raw_eyelink(
     fname,
-    preload=False,
-    verbose=None,
+    *,
     create_annotations=True,
     apply_offsets=False,
     find_overlaps=False,
     overlap_threshold=0.05,
-    gap_description=None,
+    preload=False,
+    verbose=None,
 ):
     """Reader for an Eyelink .asc file.
 
@@ -74,8 +74,6 @@ def read_raw_eyelink(
     ----------
     fname : path-like
         Path to the eyelink file (.asc).
-    %(preload)s
-    %(verbose)s
     create_annotations : bool | list (default True)
         Whether to create mne.Annotations from occular events
         (blinks, fixations, saccades) and experiment messages. If a list, must
@@ -100,16 +98,8 @@ def read_raw_eyelink(
         the left and right eyes are separated by less than 50 ms, and the blink stop
         times of the left and right eyes are separated by less than 50 ms, then the
         blink will be merged into a single :class:`mne.Annotations`.
-    gap_description : str (default 'BAD_ACQ_SKIP')
-        Label for annotations that span across the gap period between the
-        blocks. Uses ``'BAD_ACQ_SKIP'`` by default so that these time periods will
-        be considered bad by MNE and excluded from operations like epoching.
-
-        .. deprecated:: 1.5
-
-           This parameter is deprecated and will be removed in version 1.6. Use
-           :meth:`mne.Annotations.rename` if you want something other than
-           ``BAD_ACQ_SKIP`` as the annotation label.
+    %(preload)s
+    %(verbose)s
 
     Returns
     -------
@@ -132,13 +122,12 @@ def read_raw_eyelink(
 
     raw_eyelink = RawEyelink(
         fname,
-        preload=preload,
-        verbose=verbose,
         create_annotations=create_annotations,
         apply_offsets=apply_offsets,
         find_overlaps=find_overlaps,
         overlap_threshold=overlap_threshold,
-        gap_desc=gap_description,
+        preload=preload,
+        verbose=verbose,
     )
     return raw_eyelink
 
@@ -171,14 +160,6 @@ class RawEyelink(BaseRaw):
         the :class:`mne.Annotations` will be kept separate (i.e. "blink_L",
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
-    gap_desc : str
-        If there are multiple recording blocks in the file, the description of
-        the annotation that will span across the gap period between the
-        blocks. Default is ``None``, which uses 'BAD_ACQ_SKIP' by default so that these
-        timeperiods will be considered bad by MNE and excluded from operations like
-        epoching. Note that this parameter is deprecated and will be removed in 1.6.
-        Use ``mne.annotations.rename`` instead.
-
 
     %(preload)s
     %(verbose)s
@@ -197,13 +178,13 @@ class RawEyelink(BaseRaw):
     def __init__(
         self,
         fname,
-        preload=False,
-        verbose=None,
+        *,
         create_annotations=True,
         apply_offsets=False,
         find_overlaps=False,
         overlap_threshold=0.05,
-        gap_desc=None,
+        preload=False,
+        verbose=None,
     ):
         logger.info("Loading {}".format(fname))
 
@@ -211,16 +192,6 @@ class RawEyelink(BaseRaw):
         self.fname = Path(fname)
         self._sample_lines = None  # sample lines from file
         self._event_lines = None  # event messages from file
-        if gap_desc is None:
-            gap_desc = "BAD_ACQ_SKIP"
-        else:
-            warn(
-                "gap_description is deprecated in 1.5 and will be removed in 1.6, "
-                "use raw.annotations.rename to use a description other than "
-                "'BAD_ACQ_SKIP'",
-                FutureWarning,
-            )
-        self._gap_desc = gap_desc
         self.dataframes = {}
 
         # ======================== Parse ASCII File =========================
@@ -242,7 +213,7 @@ class RawEyelink(BaseRaw):
         if raw_extras["n_blocks"] > 1:
             logger.info(
                 f"There are {raw_extras['n_blocks']} recording blocks in this file."
-                f" Times between blocks will be annotated with {self._gap_desc}."
+                f" Times between blocks will be annotated with BAD_ACQ_SKIP."
             )
             self.dataframes["samples"] = _adjust_times(
                 self.dataframes["samples"], raw_extras["sfreq"]
@@ -561,20 +532,20 @@ class RawEyelink(BaseRaw):
         for key, df in self.dataframes.items():
             if key in ["samples", "DINS"]:
                 # convert missing position values to NaN
-                self._set_missing_values(df)
+                self._set_missing_values(df, df.columns[1:])
                 _set_pandas_dtype(df, df.columns, float, verbose="warning")
             elif key in ["blinks", "fixations", "saccades"]:
+                self._set_missing_values(df, df.columns[1:])
                 _set_pandas_dtype(df, df.columns[1:], float, verbose="warning")
             elif key == "messages":
                 _set_pandas_dtype(df, ["time"], float, verbose="warning")  # timestamp
 
-    def _set_missing_values(self, df):
+    def _set_missing_values(self, df, columns):
         """Set missing values to NaN. operates in-place."""
         missing_vals = (".", "MISSING_DATA")
-        for col in df.columns:
-            if col.startswith(("xpos", "ypos")):
-                # we explicitly use numpy instead of pd.replace because it is faster
-                df[col] = np.where(df[col].isin(missing_vals), np.nan, df[col])
+        for col in columns:
+            # we explicitly use numpy instead of pd.replace because it is faster
+            df[col] = np.where(df[col].isin(missing_vals), np.nan, df[col])
 
     def _create_info(self, ch_names, raw_extras):
         """Create info object for RawEyelink."""
@@ -622,11 +593,10 @@ class RawEyelink(BaseRaw):
     def _make_gap_annots(self, key="recording_blocks"):
         """Create Annotations for gap periods between recording blocks."""
         df = self.dataframes[key]
-        gap_desc = self._gap_desc
         onsets = df["end_time"].iloc[:-1]
         diffs = df["time"].shift(-1) - df["end_time"]
         durations = diffs.iloc[:-1]
-        descriptions = [gap_desc] * len(onsets)
+        descriptions = ["BAD_ACQ_SKIP"] * len(onsets)
         return Annotations(onset=onsets, duration=durations, description=descriptions)
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):

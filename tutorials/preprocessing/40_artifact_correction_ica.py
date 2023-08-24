@@ -625,7 +625,6 @@ print(template_eog_component)
 #    https://en.wikipedia.org/wiki/Signal_separation
 # .. _`statistically independent`:
 #    https://en.wikipedia.org/wiki/Independence_(probability_theory)
-# .. _`scikit-learn`: https://scikit-learn.org
 # .. _`random seed`: https://en.wikipedia.org/wiki/Random_seed
 # .. _`regular expression`: https://www.regular-expressions.info/
 # .. _`qrs`: https://en.wikipedia.org/wiki/QRS_complex

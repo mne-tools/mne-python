@@ -21,7 +21,7 @@ from mne.datasets.testing import requires_testing_data
 from mne.transforms import apply_trans
 from mne.utils import assert_dig_allclose
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io.kit.kit import get_kit_info
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT

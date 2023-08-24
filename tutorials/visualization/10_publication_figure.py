@@ -1,5 +1,5 @@
 """
-.. _ex-publication-figure:
+.. _tut-publication-figure:
 
 ===================================
 Make figures more publication ready

@@ -9,7 +9,7 @@ import numpy as np
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 import pytest
-from scipy import linalg, stats
+from scipy import stats
 
 from mne import (
     Epochs,
@@ -20,6 +20,7 @@ from mne import (
     EpochsArray,
 )
 from mne.decoding import Vectorizer
+from mne.fixes import _safe_svd
 from mne.io import read_raw_fif
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
@@ -326,7 +327,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     epoch_data[y == 0, informative_ch_idx, :] += nontarget_template
     epoch_data[y == 1, informative_ch_idx, :] += target_template
 
-    mixing_mat = linalg.svd(rng.randn(n_channels, n_channels))[0]
+    mixing_mat = _safe_svd(rng.randn(n_channels, n_channels))[0]
     mixed_epoch_data = np.dot(mixing_mat.T, epoch_data).transpose((1, 0, 2))
 
     events = np.zeros((n_epochs, 3), dtype=int)

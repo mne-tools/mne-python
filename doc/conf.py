@@ -577,6 +577,7 @@ sphinx_gallery_conf = {
             "../tutorials/clinical/",
             "../tutorials/simulation/",
             "../tutorials/sample-datasets/",
+            "../tutorials/visualization/",
             "../tutorials/misc/",
         ]
     ),
@@ -1299,6 +1300,10 @@ def reset_warnings(gallery_conf, fname):
         "ignore",
         message="Matplotlib is currently using agg, which is a non-GUI backend.*",
     )
+    warnings.filterwarnings(
+        "ignore",
+        message=".*is non-interactive, and thus cannot.*",
+    )
     # seaborn
     warnings.filterwarnings(
         "ignore",
@@ -1332,6 +1337,15 @@ def reset_warnings(gallery_conf, fname):
     # xarray _SixMetaPathImporter (?)
     warnings.filterwarnings(
         "ignore", message=r"falling back to find_module", category=ImportWarning
+    )
+    # Sphinx deps
+    warnings.filterwarnings(
+        "ignore", message="The str interface for _CascadingStyleSheet.*"
+    )
+    # mne-qt-browser until > 0.5.2 released
+    warnings.filterwarnings(
+        "ignore",
+        r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
     )
 
     # In case we use np.set_printoptions in any tutorials, we only
@@ -1391,6 +1405,11 @@ for icon, classes in icon_class.items():
 
 rst_prolog += """
 .. |ensp| unicode:: U+2002 .. EN SPACE
+
+.. include:: /links.inc
+.. include:: /changes/names.inc
+
+.. currentmodule:: mne
 """
 
 # -- Dependency info ----------------------------------------------------------
@@ -1568,6 +1587,7 @@ sd = "sample-datasets"
 ml = "machine-learning"
 tf = "time-freq"
 si = "simulation"
+vi = "visualization"
 custom_redirects = {
     # Custom redirects (one HTML path to another, relative to outdir)
     # can be added here as fr->to key->value mappings
@@ -1624,6 +1644,7 @@ custom_redirects = {
     f"{ex}/{co}/mne_inverse_envelope_correlation.html": f"{mne_conn}/{ex}/mne_inverse_envelope_correlation.html",  # noqa E501
     f"{ex}/{co}/mne_inverse_psi_visual.html": f"{mne_conn}/{ex}/mne_inverse_psi_visual.html",  # noqa E501
     f"{ex}/{co}/sensor_connectivity.html": f"{mne_conn}/{ex}/sensor_connectivity.html",  # noqa E501
+    f"{ex}/{vi}/publication_figure.html": f"{tu}/{vi}/10_publication_figure.html",  # noqa E501
 }
 
 

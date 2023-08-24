@@ -10,7 +10,7 @@ from numpy.fft import rfft, rfftfreq
 from mne import create_info
 from mne.datasets import testing
 from mne.io import RawArray, read_raw_fif
-from mne.io.pick import _pick_data_channels
+from mne._fiff.pick import _pick_data_channels
 from mne.preprocessing import oversampled_temporal_projection
 from mne.utils import catch_logging
 
