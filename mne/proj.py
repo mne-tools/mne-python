@@ -182,18 +182,7 @@ def compute_proj_epochs(
     ----------
     epochs : instance of Epochs
         The epochs containing the artifact.
-    n_grad : int | float between ``0`` and ``1``
-        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
-        to select the number of vectors to explain the cumulative variance greater than
-        ``n_grad``.
-    n_mag : int | float between ``0`` and ``1``
-        Number of vectors for magnetometers. Either an integer or a float between 0 and
-        1 to select the number of vectors to explain the cumulative variance greater
-        than ``n_mag``.
-    n_eeg : int | float between ``0`` and ``1``
-        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
-        to select the number of vectors to explain the cumulative variance greater than
-        ``n_eeg``.
+    %(n_proj_vectors)s
     %(n_jobs)s
         Number of jobs to use to compute covariance.
     desc_prefix : str | None
@@ -257,18 +246,7 @@ def compute_proj_evoked(
     ----------
     evoked : instance of Evoked
         The Evoked obtained by averaging the artifact.
-    n_grad : int | float between ``0`` and ``1``
-        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
-        to select the number of vectors to explain the cumulative variance greater than
-        ``n_grad``.
-    n_mag : int | float between ``0`` and ``1``
-        Number of vectors for magnetometers. Either an integer or a float between 0 and
-        1 to select the number of vectors to explain the cumulative variance greater
-        than ``n_mag``.
-    n_eeg : int | float between ``0`` and ``1``
-        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
-        to select the number of vectors to explain the cumulative variance greater than
-        ``n_eeg``.
+    %(n_proj_vectors)s
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         tmin and tmax.
@@ -328,18 +306,7 @@ def compute_proj_raw(
     duration : float | None
         Duration (in seconds) to chunk data into for SSP
         If duration is ``None``, data will not be chunked.
-    n_grad : int | float between ``0`` and ``1``
-        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
-        to select the number of vectors to explain the cumulative variance greater than
-        ``n_grad``.
-    n_mag : int | float between ``0`` and ``1``
-        Number of vectors for magnetometers. Either an integer or a float between 0 and
-        1 to select the number of vectors to explain the cumulative variance greater
-        than ``n_mag``.
-    n_eeg : int | float between ``0`` and ``1``
-        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
-        to select the number of vectors to explain the cumulative variance greater than
-        ``n_eeg``.
+    %(n_proj_vectors)s
     reject : dict | None
         Epoch PTP rejection threshold used if ``duration != None``. See `~mne.Epochs`.
     flat : dict | None
@@ -500,7 +467,7 @@ def sensitivity_map(
     sensitivity_map = np.empty(n_locations)
 
     for k in range(n_locations):
-        gg = gain[:, 3 * k : 3 * (k + 1)]
+        gg = gain[:, 3 * k : 3 * (k + 1)]  # noqa: E203
         if mode != "fixed":
             s = _safe_svd(gg, full_matrices=False, compute_uv=False)
         if mode == "free":
