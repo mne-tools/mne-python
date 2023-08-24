@@ -403,6 +403,7 @@ class Brain:
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
+        self.widgets = dict()
 
         self._setup_canonical_rotation()
 
@@ -553,7 +554,6 @@ class Brain:
         self.pick_table = dict()
         self._spheres = list()
         self._mouse_no_mvt = -1
-        self.widgets = dict()
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
