@@ -124,7 +124,7 @@ raw.pick(picks="eyetrack").plot(scalings=custom_scalings)
 # %%
 fpath = misc.data_path() / "eyetracking" / "eyelink"
 raw = read_raw_eyelink(fpath / "HREF_textpage_ws.asc", create_annotations=["blinks"])
-raw.pick(eyetrack=True).plot()
+raw.pick(picks="eyetrack").plot()
 
 # %%
 # Pupil Position

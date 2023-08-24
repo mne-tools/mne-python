@@ -229,7 +229,7 @@ fname_raw = data_path / "MEG" / "sample" / "sample_audvis_raw.fif"
 raw = mne.io.read_raw_fif(fname_raw)
 
 # For the sake of the example, we focus on EEG data
-raw.pick(meg=False, eeg=True)
+raw.pick(picks="eeg")
 
 
 # %%

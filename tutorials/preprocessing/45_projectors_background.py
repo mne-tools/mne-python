@@ -434,7 +434,7 @@ raw.add_proj(ecg_projs)
 # empty room SSP projectors, to the data with both empty room and ECG
 # projectors:
 
-mags_ecg = raw.copy().crop(tmax=2).pick(meg="mag")
+mags_ecg = raw.copy().crop(tmax=2).pick(picks="mag")
 for data, title in zip([mags, mags_ecg], ["Without", "With"]):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = data.plot(butterfly=True, proj=True)

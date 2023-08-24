@@ -293,7 +293,7 @@ print(raw.ch_names[-3:])
 # EEG electrodes as makeshift EOG channels:
 
 raw.set_channel_types({"EEG_001": "eog"})
-print(raw.copy().pick(meg=False, eog=True).ch_names)
+print(raw.copy().pick(picks="eog").ch_names)
 
 # %%
 # Selection in the time domain

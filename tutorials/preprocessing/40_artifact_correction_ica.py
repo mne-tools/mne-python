@@ -31,7 +31,7 @@ sample_data_raw_file = os.path.join(
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # Here we'll crop to 60 seconds and drop gradiometer channels for speed
-raw.crop(tmax=60.0).pick(meg="mag", eeg=True, stim=True, eog=True)
+raw.crop(tmax=60.0).pick(picks=["mag", "eeg", "stim", "eog"])
 raw.load_data()
 
 # %%
