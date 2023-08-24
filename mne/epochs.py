@@ -484,12 +484,18 @@ class BaseEpochs(
     ):  # noqa: D102
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
-            events_max = events.max()
-            if events_max > INT32_MAX:
-                raise ValueError(
-                    f"events array values must not exceed {INT32_MAX}, "
-                    f"got {events_max}"
-                )
+            # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+            if events.shape == (0, 3):
+                self._allow_empty = True
+                selection = None
+            else:
+                self._allow_empty = False
+                events_max = events.max()
+                if events_max > INT32_MAX:
+                    raise ValueError(
+                        f"events array values must not exceed {INT32_MAX}, "
+                        f"got {events_max}"
+                    )
         event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
@@ -573,7 +579,9 @@ class BaseEpochs(
             if n_events > 0:
                 logger.info("%d matching events found" % n_events)
             else:
-                raise ValueError("No desired events found.")
+                # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+                if not self._allow_empty:
+                    raise ValueError("No desired events found.")
         else:
             self.drop_log = tuple()
             self.selection = np.array([], int)
@@ -3552,8 +3560,15 @@ def _read_one_epoch_file(f, tree, preload):
 
         # read in the Annotations if they exist
         annotations = _read_annotations_fif(fid, tree)
-        events, mappings = _read_events_fif(fid, tree)
-
+        try:
+            events, mappings = _read_events_fif(fid, tree)
+        except ValueError as e:
+            # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+            if str(e) == "Could not find any events":
+                events = np.empty((0, 3), dtype=np.int32)
+                mappings = dict()
+            else:
+                raise e
         #   Metadata
         metadata = None
         metadata_tree = dir_tree_find(tree, FIFF.FIFFB_MNE_METADATA)
@@ -4075,7 +4090,11 @@ def _concatenate_epochs(
     selection = out.selection
     # offset is the last epoch + tmax + 10 second
     shift = int((10 + tmax) * out.info["sfreq"])
-    events_offset = int(np.max(events[0][:, 0])) + shift
+    # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
+    if out._allow_empty:
+        events_offset = 0
+    else:
+        events_offset = int(np.max(events[0][:, 0])) + shift
     events_overflow = False
     warned = False
     for ii, epochs in enumerate(epochs_list[1:], 1):
