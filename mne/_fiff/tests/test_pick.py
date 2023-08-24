@@ -33,7 +33,6 @@ from mne._fiff.pick import (
     _picks_by_type,
     _picks_to_idx,
     _contains_ch_type,
-    _get_channel_types,
     _DATA_CH_TYPES_SPLIT,
     get_channel_type_constants,
 )
@@ -353,7 +352,7 @@ def test_pick_chpi():
     # Make sure we don't mis-classify cHPI channels
     info = read_info(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
     _assert_channel_types(info)
-    channel_types = _get_channel_types(info)
+    channel_types = info.get_channel_types()
     assert "chpi" in channel_types
     assert "seeg" not in channel_types
     assert "ecog" not in channel_types

@@ -52,6 +52,7 @@ __getattr_lz__, __dir__, __all__ = lazy.attach(
         "eyelink": ["read_raw_eyelink"],
         "_fiff_wrap": [
             "read_info",
+            "write_info",
             "anonymize_info",
             "read_fiducials",
             "write_fiducials",
