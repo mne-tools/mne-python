@@ -312,7 +312,7 @@ def plot_epochs_image(
 
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
-    data = epochs.get_data()
+    data = epochs._get_data(on_empty="raise")
     vmin_vmax = {ch_type: dict(images=list(), norm=list()) for ch_type in set(ch_types)}
     for this_group, this_group_dict in group_by.items():
         these_picks = this_group_dict["picks"]
@@ -904,6 +904,7 @@ def plot_epochs(
     """
     from ._figure import _get_browser
 
+    epochs._handle_empty("raise", "plot")
     epochs.drop_bad()
     info = epochs.info.copy()
     sfreq = info["sfreq"]

@@ -69,7 +69,6 @@ from .parallel import parallel_func
 from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .fixes import rng_uniform
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
-from .utils.check import _check_empty
 from .viz import plot_epochs, plot_epochs_image, plot_topo_image_epochs, plot_drop_log
 from .utils import (
     _check_fname,
@@ -1114,7 +1113,7 @@ class BaseEpochs(
 
         This would compute the trimmed mean.
         """
-        _check_empty(self, "average")
+        self._handle_empty("raise", "average")
         if by_event_type:
             evokeds = list()
             for event_type in self.event_id.keys():
@@ -1177,7 +1176,7 @@ class BaseEpochs(
                 )
             data = np.zeros((n_channels, n_times))
             n_events = 0
-            # __iter__ here??
+
             for e in self:
                 if np.iscomplexobj(e):
                     data = data.astype(np.complex128)
@@ -1318,7 +1317,6 @@ class BaseEpochs(
         theme=None,
         overview_mode=None,
     ):
-        _check_empty(self, "plot")
         return plot_epochs(
             self,
             picks=picks,
@@ -1364,7 +1362,6 @@ class BaseEpochs(
         font_color="w",
         show=True,
     ):
-        _check_empty(self, "plot_topo_image")
         return plot_topo_image_epochs(
             self,
             layout=layout,
@@ -1499,7 +1496,6 @@ class BaseEpochs(
         title=None,
         clear=False,
     ):
-        _check_empty(self, "plot_image")
         return plot_epochs_image(
             self,
             picks=picks,
@@ -1590,6 +1586,15 @@ class BaseEpochs(
             epoch = np.dot(self._projector, epoch)
         return epoch
 
+    def _handle_empty(self, on_empty, msg):
+        if len(self.events) == 0:
+            msg = (
+                f"epochs.{msg}() can't run because this Epochs-object is empty.\n"
+                f"You might want to check Epochs.drop_log or Epochs.plot_drop_log()"
+                f" to see why epochs were dropped."
+            )
+            _on_missing(on_empty, msg, error_klass=RuntimeError)
+
     @verbose
     def _get_data(
         self,
@@ -1600,6 +1605,7 @@ class BaseEpochs(
         units=None,
         tmin=None,
         tmax=None,
+        on_empty="warn",
         verbose=None,
     ):
         """Load all data, dropping bad epochs along the way.
@@ -1619,6 +1625,8 @@ class BaseEpochs(
             End time of data to get in seconds.
         %(verbose)s
         """
+        # Handle empty epochs
+        self._handle_empty(on_empty, "_get_data")
         # if called with 'out=False', the call came from 'drop_bad()'
         # if no reasons to drop, just declare epochs as good and return
         if not out:
@@ -1868,7 +1876,6 @@ class BaseEpochs(
             The epochs object with transformed data.
         """
         _check_preload(self, "epochs.apply_function")
-        _check_empty(self, "apply_function")
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -2408,8 +2415,6 @@ class BaseEpochs(
         method = _validate_method(method, type(self).__name__)
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
 
-        _check_empty(self, "compute_psd")
-
         return EpochsSpectrum(
             self,
             method=method,
@@ -2559,7 +2564,6 @@ class BaseEpochs(
         -------
         %(df_return)s
         """
-        _check_empty(self, "to_data_frame")
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking
@@ -2569,7 +2573,7 @@ class BaseEpochs(
         time_format = _check_time_format(time_format, valid_time_formats)
         # get data
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
-        data = self.get_data()[:, picks, :]
+        data = self._get_data(on_empty="raise")[:, picks, :]
         times = self.times
         n_epochs, n_picks, n_times = data.shape
         data = np.hstack(data).T  # (time*epochs) x signals
@@ -2629,7 +2633,7 @@ class BaseEpochs(
         """
         from .forward import _as_meg_type_inst
 
-        _check_empty(self, "as_type")
+        self._handle_empty("raise", "as_type")
         return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 

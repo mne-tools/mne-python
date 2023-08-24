@@ -4696,10 +4696,5 @@ def _get_empty_parametrize():
 def test_empty_error(method, epochs_empty):
     """Test that a helpful error is raised when certain methods are called."""
     # Test that a RuntimeError is raised when certain methods are called
-    # for method in test_methods:
-    #     metafunc.parametrize("method", [method])
-    #     kwargs = arg_dict.get(method, dict())
-    with pytest.raises(
-        RuntimeError, match="can't run because this Epochs-object is empty."
-    ):
+    with pytest.raises(RuntimeError, match="Epochs-object is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])

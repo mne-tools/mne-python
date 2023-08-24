@@ -10,7 +10,7 @@ import json
 
 import numpy as np
 
-from .check import _check_pandas_installed, _check_preload, _validate_type, _check_empty
+from .check import _check_pandas_installed, _check_preload, _validate_type
 from ._logging import warn, verbose
 from .numerics import object_size, object_hash, _time_mask
 
@@ -727,7 +727,6 @@ class ExtendedTimeMixin(TimeMixin):
         or change the *data* values in any way.
         """
         _check_preload(self, "shift_time")
-        _check_empty(self, "shift_time")
         start = tshift + (self.times[0] if relative else 0.0)
         new_times = start + np.arange(len(self.times)) / self.info["sfreq"]
         self._set_times(new_times)

@@ -58,7 +58,6 @@ from ..io.pick import (
 )
 from ..io.tag import _rename_list
 from ..io.proj import setup_proj
-from ..utils.check import _check_empty
 
 
 def _get_meg_system(info):
@@ -552,7 +551,6 @@ class UpdateChannelsMixin:
                 _check_preload(self, f"{msg} after calling .apply_proj()")
         else:
             _check_preload(self, msg)
-            _check_empty(self, "pick/drop")
 
         if getattr(self, "picks", None) is not None:
             self.picks = self.picks[idx]
@@ -811,7 +809,6 @@ class InterpolationMixin:
         )
 
         _check_preload(self, "interpolation")
-        _check_empty(self, "interpolate_bads")
         method = _handle_default("interpolation_method", method)
         for key in method:
             _check_option("method[key]", key, ("meg", "eeg", "fnirs"))
