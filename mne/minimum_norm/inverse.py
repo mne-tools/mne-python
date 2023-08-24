@@ -8,23 +8,29 @@ from copy import deepcopy
 from math import sqrt
 
 import numpy as np
+from scipy import linalg
+from scipy.stats import chi2
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
-from ..io.base import BaseRaw
-from ..io.constants import FIFF
-from ..io.open import fiff_open
-from ..io.tag import find_tag
-from ..io.matrix import _read_named_matrix, _transpose_named_matrix, write_named_matrix
-from ..io.proj import (
+from ..io import BaseRaw
+from .._fiff.constants import FIFF
+from .._fiff.open import fiff_open
+from .._fiff.tag import find_tag
+from .._fiff.matrix import (
+    _read_named_matrix,
+    _transpose_named_matrix,
+    write_named_matrix,
+)
+from .._fiff.proj import (
     _read_proj,
     make_projector,
     _write_proj,
     _needs_eeg_average_ref_proj,
     _electrode_types,
 )
-from ..io.tree import dir_tree_find
-from ..io.write import (
+from .._fiff.tree import dir_tree_find
+from .._fiff.write import (
     write_int,
     write_float_matrix,
     start_and_end_file,
@@ -35,7 +41,7 @@ from ..io.write import (
     write_string,
 )
 
-from ..io.pick import channel_type, pick_info, pick_types, pick_channels
+from .._fiff.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import compute_whitener, _read_cov, _write_cov, Covariance, prepare_noise_cov
 from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import EvokedArray, Evoked
@@ -48,6 +54,7 @@ from ..forward import (
     _select_orient_forward,
 )
 from ..forward.forward import write_forward_meas_info, _triage_loose
+from ..html_templates import _get_html_template
 from ..source_space import (
     _read_source_spaces_from_tree,
     _get_src_nn,
@@ -126,12 +133,10 @@ class InverseOperator(dict):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         repr_info = self._get_chs_and_src_info_for_repr()
         n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
 
-        t = repr_templates_env.get_template("inverse_operator.html.jinja")
+        t = _get_html_template("repr", "inverse_operator.html.jinja")
         html = t.render(
             channels=f"{n_chs_meg} MEG, {n_chs_eeg} EEG",
             source_space_descr=src_space_descr,
@@ -623,8 +628,6 @@ def prepare_inverse_operator(
     inv : instance of InverseOperator
         Prepared inverse operator.
     """
-    from scipy import linalg
-
     if nave <= 0:
         raise ValueError("The number of averages should be positive")
 
@@ -2197,8 +2200,6 @@ def estimate_snr(evoked, inv, verbose=None):
 
     .. versionadded:: 0.9.0
     """  # noqa: E501
-    from scipy.stats import chi2
-
     _check_reference(evoked, inv["info"]["ch_names"])
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")

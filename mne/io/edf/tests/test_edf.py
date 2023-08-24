@@ -35,7 +35,7 @@ from mne.io.edf.edf import (
     _read_edf_header,
     _read_header,
 )
-from mne.io.pick import channel_indices_by_type, get_channel_type_constants
+from mne._fiff.pick import channel_indices_by_type, get_channel_type_constants
 from mne.tests.test_annotations import _assert_annotations_equal
 
 td_mark = testing._pytest_mark()

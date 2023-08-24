@@ -5,7 +5,7 @@ import pytest
 from mne.datasets import testing
 from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.label import read_label
 from mne.minimum_norm import (
     read_inverse_operator,

@@ -8,7 +8,7 @@ Metrics can be computed for point-spread and cross-talk functions (PSFs/CTFs).
 """
 import numpy as np
 
-from .. import SourceEstimate
+from ..source_estimate import SourceEstimate
 from ..utils import logger, verbose, _check_option
 
 

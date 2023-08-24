@@ -26,12 +26,12 @@ from .utils import (
     _check_on_missing,
     _check_integer_or_list,
 )
-from .io.constants import FIFF
-from .io.tree import dir_tree_find
-from .io.tag import read_tag
-from .io.open import fiff_open
-from .io.write import write_int, start_block, start_and_end_file, end_block
-from .io.pick import pick_channels
+from ._fiff.constants import FIFF
+from ._fiff.tree import dir_tree_find
+from ._fiff.tag import read_tag
+from ._fiff.open import fiff_open
+from ._fiff.write import write_int, start_block, start_and_end_file, end_block
+from ._fiff.pick import pick_channels
 
 
 @fill_doc
@@ -955,7 +955,7 @@ def make_fixed_length_events(
     -------
     %(events)s
     """
-    from .io.base import BaseRaw
+    from .io import BaseRaw
 
     _validate_type(raw, BaseRaw, "raw")
     _validate_type(id, "int", "id")

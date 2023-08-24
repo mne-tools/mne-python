@@ -13,7 +13,7 @@ from scipy.io import loadmat
 from mne.datasets import testing
 from mne.io import read_raw_fil, read_info
 from mne.preprocessing.hfc import compute_proj_hfc
-from mne.io.pick import pick_types, pick_info, pick_channels
+from mne._fiff.pick import pick_types, pick_info, pick_channels
 
 fil_path = testing.data_path(download=False) / "FIL"
 fname_root = "sub-noise_ses-001_task-noise220622_run-001"

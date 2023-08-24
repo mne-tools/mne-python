@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 import numpy as np
 
 from mne.io import read_raw_fif, read_raw_ctf
-from mne.io.proj import make_projector, activate_proj
+from mne._fiff.proj import make_projector, activate_proj
 from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
 from mne.datasets import testing
 from mne import pick_types

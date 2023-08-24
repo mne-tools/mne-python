@@ -19,24 +19,27 @@ import math
 import json
 
 import numpy as np
+from scipy import linalg, stats
+from scipy.spatial import distance
+from scipy.special import expit
 
 from .ecg import qrs_detector, _get_ecg_channel_index, _make_ecg, create_ecg_epochs
 from .eog import _find_eog_events, _get_eog_channel_index
+from ..html_templates import _get_html_template
 from .infomax_ import infomax
 
-from ..cov import compute_whitener
-from .. import Covariance, Evoked
+from ..cov import compute_whitener, Covariance
+from ..evoked import Evoked
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
-from ..io.pick import (
+from .._fiff.pick import (
     pick_types,
     pick_channels,
     pick_info,
     _picks_to_idx,
-    _get_channel_types,
     _DATA_CH_TYPES_SPLIT,
 )
-from ..io.proj import make_projector
-from ..io.write import (
+from .._fiff.proj import make_projector
+from .._fiff.write import (
     write_double_matrix,
     write_string,
     write_name_list,
@@ -44,12 +47,14 @@ from ..io.write import (
     start_block,
     end_block,
 )
-from ..io.tree import dir_tree_find
-from ..io.open import fiff_open
-from ..io.tag import read_tag
-from ..io.meas_info import write_meas_info, read_meas_info, ContainsMixin
-from ..io.constants import FIFF
-from ..io.base import BaseRaw
+from .._fiff.tree import dir_tree_find
+from .._fiff.open import fiff_open
+from .._fiff.tag import read_tag
+from .._fiff.meas_info import write_meas_info, read_meas_info, ContainsMixin
+from .._fiff.constants import FIFF
+from .._fiff.write import start_and_end_file, write_id
+from .._fiff.pick import pick_channels_regexp, _picks_by_type
+from ..io import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
 
 from ..epochs import BaseEpochs
@@ -64,7 +69,6 @@ from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
-from ..io.write import start_and_end_file, write_id
 from ..utils import (
     logger,
     check_fname,
@@ -97,7 +101,6 @@ from ..fixes import _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
-from ..io.pick import pick_channels_regexp, _picks_by_type
 
 
 __all__ = (
@@ -141,9 +144,6 @@ def get_score_funcs():
     score_funcs : dict
         The score functions.
     """
-    from scipy import stats
-    from scipy.spatial import distance
-
     score_funcs = Bunch()
     xy_arg_dist_funcs = [
         (n, f)
@@ -188,7 +188,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """
     types = _DATA_CH_TYPES_SPLIT + ("eog",)
     types += ("ref_meg",) if allow_ref_meg else ()
-    chs = _get_channel_types(info, picks, unique=True, only_data_chs=False)
+    chs = info.get_channel_types(picks, unique=True, only_data_chs=False)
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError(
@@ -575,10 +575,8 @@ class ICA(ContainsMixin):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         infos = self._get_infos_for_repr()
-        t = repr_templates_env.get_template("ica.html.jinja")
+        t = _get_html_template("repr", "ica.html.jinja")
         html = t.render(
             fit_on=infos.fit_on,
             method=infos.fit_method,
@@ -1007,8 +1005,6 @@ class ICA(ContainsMixin):
         self.current_fit = fit_type
 
     def _update_mixing_matrix(self):
-        from scipy import linalg
-
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
 
     def _update_ica_names(self):
@@ -1994,9 +1990,6 @@ class ICA(ContainsMixin):
         -----
         .. versionadded:: 1.1
         """
-        from scipy.spatial.distance import pdist, squareform
-        from scipy.special import expit
-
         _validate_type(threshold, "numeric", "threshold")
 
         sources = self.get_sources(inst, start=start, stop=stop)
@@ -2025,10 +2018,10 @@ class ICA(ContainsMixin):
 
         # compute metric #3: smoothness
         smoothnesses = np.zeros((components.shape[1],))
-        dists = squareform(pdist(pos))
+        dists = distance.squareform(distance.pdist(pos))
         dists = 1 - (dists / dists.max())  # invert
         for idx, comp in enumerate(components.T):
-            comp_dists = squareform(pdist(comp[:, np.newaxis]))
+            comp_dists = distance.squareform(distance.pdist(comp[:, np.newaxis]))
             comp_dists /= comp_dists.max()
             smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
 
@@ -3468,8 +3461,6 @@ def read_ica_eeglab(fname, *, verbose=None):
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
-    from scipy import linalg
-
     eeg = _check_load_mat(fname, None)
     info, eeg_montage, _ = _get_info(eeg)
     info.set_montage(eeg_montage)

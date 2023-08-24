@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _manual-install:
 .. _standard-instructions:
 

@@ -11,7 +11,7 @@ from ..annotations import (
     _adjust_onset_meas_date,
     _annotations_starts_stops,
 )
-from ..io.pick import _picks_to_idx, _picks_by_type, _get_channel_types
+from .._fiff.pick import _picks_to_idx, _picks_by_type
 from ..utils import _validate_type, verbose, logger, _mask_to_onsets_offsets
 
 
@@ -204,7 +204,7 @@ def _check_ptp(ptp, name, info, picks):
                 f"Argument '{name}' should define a positive threshold. "
                 f"Provided: '{ptp}'."
             )
-        ch_types = set(_get_channel_types(info, picks))
+        ch_types = set(info.get_channel_types(picks))
         ptp = {ch_type: ptp for ch_type in ch_types}
     elif isinstance(ptp, dict):
         for key, value in ptp.items():

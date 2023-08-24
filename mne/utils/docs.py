@@ -17,6 +17,23 @@ from ..defaults import HEAD_SIZE_DEFAULT
 from ._bunch import BunchConst
 
 
+# # # WARNING # # #
+# This list must also be updated in doc/_templates/autosummary/class.rst if it
+# is changed here!
+
+_doc_special_members = (
+    "__contains__",
+    "__getitem__",
+    "__iter__",
+    "__len__",
+    "__add__",
+    "__sub__",
+    "__mul__",
+    "__div__",
+    "__neg__",
+)
+
+
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
     """Reflow text to a nice width for terminals.
 
@@ -2679,6 +2696,23 @@ n_permutations : int
 """
 
 docdict[
+    "n_proj_vectors"
+] = """
+n_grad : int | float between ``0`` and ``1``
+    Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+    to select the number of vectors to explain the cumulative variance greater than
+    ``n_grad``.
+n_mag : int | float between ``0`` and ``1``
+    Number of vectors for magnetometers. Either an integer or a float between 0 and
+    1 to select the number of vectors to explain the cumulative variance greater
+    than ``n_mag``.
+n_eeg : int | float between ``0`` and ``1``
+    Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+    to select the number of vectors to explain the cumulative variance greater than
+    ``n_eeg``.
+"""
+
+docdict[
     "names_topomap"
 ] = """\
 names : None | list
@@ -3681,6 +3715,14 @@ reject : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 
     If ``reject`` is ``None`` (default), no rejection is performed.
+"""
+
+docdict[
+    "remove_dc"
+] = """
+remove_dc : bool
+    If ``True``, the mean is subtracted from each segment before computing
+    its spectrum.
 """
 
 docdict[

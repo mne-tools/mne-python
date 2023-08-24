@@ -9,7 +9,6 @@ import os
 
 import numpy as np
 
-from .._digitization import _format_dig_points
 from ...utils import (
     verbose,
     logger,
@@ -20,7 +19,8 @@ from ...utils import (
 )
 
 from ..base import BaseRaw
-from ..utils import _mult_cal_one, _blk_read_lims
+from ..._fiff.utils import _mult_cal_one, _blk_read_lims
+from ..._fiff._digitization import _format_dig_points
 
 from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc

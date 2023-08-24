@@ -18,7 +18,7 @@ import traceback
 
 import numpy as np
 
-from ..utils import _check_option, _validate_type
+from .check import _check_option, _validate_type
 from ._logging import logger, verbose, warn
 
 # TODO: remove try/except when our min version is py 3.9

@@ -19,26 +19,28 @@
 # License: BSD-3-Clause
 
 from functools import partial
-
-import numpy as np
 import itertools
 
+import numpy as np
+from scipy.linalg import orth
+from scipy.optimize import fmin_cobyla
+from scipy.spatial.distance import cdist
+
 from .event import find_events
-from .io.base import BaseRaw
-from .channels.channels import _get_meg_system
-from .io.kit.constants import KIT
+from .io import BaseRaw
+from .io.ctf.trans import _make_ctf_coord_trans_set
 from .io.kit.kit import RawKIT as _RawKIT
-from .io.meas_info import _simplify_info, Info
-from .io.pick import (
+from .channels.channels import _get_meg_system
+from ._fiff.meas_info import _simplify_info, Info
+from ._fiff.pick import (
     pick_types,
     pick_channels,
     pick_channels_regexp,
     pick_info,
     _picks_to_idx,
 )
-from .io.proj import Projection, setup_proj
-from .io.constants import FIFF
-from .io.ctf.trans import _make_ctf_coord_trans_set
+from ._fiff.proj import Projection, setup_proj
+from ._fiff.constants import FIFF
 from .forward import _magnetic_dipole_field_vec, _create_meg_coils, _concatenate_coils
 from .cov import make_ad_hoc_cov, compute_whitener
 from .dipole import _make_guesses
@@ -260,6 +262,8 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     -----
     .. versionadded:: 0.23
     """
+    from .io.kit.constants import KIT
+
     _validate_type(raw, (_RawKIT,), "raw")
     stim_chs = [
         raw.info["ch_names"][pick]
@@ -532,8 +536,6 @@ def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
 
 def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
     """Fit a single bit of data (x0 = pos)."""
-    from scipy.optimize import fmin_cobyla
-
     B = np.dot(whitener, B_orig)
     B2 = np.dot(B, B)
     objective = partial(
@@ -710,8 +712,6 @@ def _reorder_inv_model(inv_model, n_freqs):
 
 
 def _setup_ext_proj(info, ext_order):
-    from scipy import linalg
-
     meg_picks = pick_types(info, meg=True, eeg=False, exclude="bads")
     info = pick_info(_simplify_info(info), meg_picks)  # makes a copy
     _, _, _, _, mag_or_fine = _get_mf_picks_fix_mags(
@@ -723,7 +723,7 @@ def _setup_ext_proj(info, ext_order):
     ).T
     out_removes = _regularize_out(0, 1, mag_or_fine, [])
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
-    ext = linalg.orth(ext.T).T
+    ext = orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)
     proj = Projection(
         kind=FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD,
@@ -1555,8 +1555,6 @@ def filter_chpi(
 
 def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     """Compute good coils based on distances."""
-    from scipy.spatial.distance import cdist
-
     these_dists = cdist(new_pos, new_pos)
     these_dists = np.abs(hpi_coil_dists - these_dists)
     # there is probably a better algorithm for finding the bad ones...

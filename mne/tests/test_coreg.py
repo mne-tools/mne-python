@@ -37,7 +37,7 @@ from mne.coreg import (
     Coregistration,
 )
 from mne.io import read_fiducials, read_info
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.utils import catch_logging
 from mne.source_space import write_source_spaces
 from mne.channels import DigMontage

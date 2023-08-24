@@ -18,9 +18,10 @@ import operator
 import os.path as op
 
 import numpy as np
+from scipy.interpolate import interp1d
 
-from .io.utils import _construct_bids_filename
-from .io.write import (
+from ._fiff.utils import _make_split_fnames
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     end_block,
@@ -36,18 +37,17 @@ from .io.write import (
     _NEXT_FILE_BUFFER,
     INT32_MAX,
 )
-from .io.meas_info import (
+from ._fiff.meas_info import (
     read_meas_info,
     write_meas_info,
     _ensure_infos_match,
     ContainsMixin,
 )
-from .io.open import fiff_open, _get_next_fname
-from .io.tree import dir_tree_find
-from .io.tag import read_tag, read_tag_info
-from .io.constants import FIFF
-from .io.fiff.raw import _get_fname_rep
-from .io.pick import (
+from ._fiff.open import fiff_open, _get_next_fname
+from ._fiff.tree import dir_tree_find
+from ._fiff.tag import read_tag, read_tag_info
+from ._fiff.constants import FIFF
+from ._fiff.pick import (
     channel_indices_by_type,
     channel_type,
     pick_channels,
@@ -56,17 +56,16 @@ from .io.pick import (
     _DATA_CH_TYPES_SPLIT,
     _picks_to_idx,
 )
-from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, _get_ch_factors
-from .io.meas_info import SetChannelsMixin
+from ._fiff.proj import setup_proj, ProjMixin
+from ._fiff.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
+from .html_templates import _get_html_template
 from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
-from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .fixes import rng_uniform
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
 from .viz import plot_epochs, plot_epochs_image, plot_topo_image_epochs, plot_drop_log
@@ -120,36 +119,22 @@ def _pack_reject_params(epochs):
     return reject_params
 
 
-def _save_split(epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite):
+def _save_split(epochs, split_fnames, part_idx, n_parts, fmt, overwrite):
     """Split epochs.
 
     Anything new added to this function also needs to be added to
     BaseEpochs.save to account for new file sizes.
     """
     # insert index in filename
-    base, ext = op.splitext(fname)
-    if part_idx > 0:
-        if split_naming == "neuromag":
-            fname = "%s-%d%s" % (base, part_idx, ext)
-        else:
-            assert split_naming == "bids"
-            fname = _construct_bids_filename(base, ext, part_idx, validate=False)
-            _check_fname(fname, overwrite=overwrite)
+    this_fname = split_fnames[part_idx]
+    _check_fname(this_fname, overwrite=overwrite)
 
-    next_fname = None
+    next_fname, next_idx = None, None
     if part_idx < n_parts - 1:
-        if split_naming == "neuromag":
-            next_fname = "%s-%d%s" % (base, part_idx + 1, ext)
-        else:
-            assert split_naming == "bids"
-            next_fname = _construct_bids_filename(
-                base, ext, part_idx + 1, validate=False
-            )
         next_idx = part_idx + 1
-    else:
-        next_idx = None
+        next_fname = split_fnames[next_idx]
 
-    with start_and_end_file(fname) as fid:
+    with start_and_end_file(this_fname) as fid:
         _save_part(fid, epochs, fmt, n_parts, next_fname, next_idx)
 
 
@@ -1298,7 +1283,7 @@ class BaseEpochs(
         n_epochs=20,
         n_channels=20,
         title=None,
-        events=None,
+        events=False,
         event_color=None,
         order=None,
         show=True,
@@ -1625,6 +1610,8 @@ class BaseEpochs(
             End time of data to get in seconds.
         %(verbose)s
         """
+        from .io.base import _get_ch_factors
+
         # Handle empty epochs
         self._handle_empty(on_empty, "_get_data")
         # if called with 'out=False', the call came from 'drop_bad()'
@@ -1948,8 +1935,6 @@ class BaseEpochs(
 
     @repr_html
     def _repr_html_(self):
-        from .html_templates import repr_templates_env
-
         if self.baseline is None:
             baseline = "off"
         else:
@@ -1972,7 +1957,7 @@ class BaseEpochs(
         else:
             event_strings = None
 
-        t = repr_templates_env.get_template("epochs.html.jinja")
+        t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
 
@@ -2182,13 +2167,14 @@ class BaseEpochs(
 
         epoch_idxs = np.array_split(np.arange(n_epochs), n_parts)
 
+        _check_option("split_naming", split_naming, ("neuromag", "bids"))
+        split_fnames = _make_split_fnames(fname, n_parts, split_naming)
         for part_idx, epoch_idx in enumerate(epoch_idxs):
             this_epochs = self[epoch_idx] if n_parts > 1 else self
             # avoid missing event_ids in splits
             this_epochs.event_id = self.event_id
-            _save_split(
-                this_epochs, fname, part_idx, n_parts, fmt, split_naming, overwrite
-            )
+
+            _save_split(this_epochs, split_fnames, part_idx, n_parts, fmt, overwrite)
 
     @verbose
     def export(self, fname, fmt="auto", *, overwrite=False, verbose=None):
@@ -2380,6 +2366,7 @@ class BaseEpochs(
         tmax=None,
         picks=None,
         proj=False,
+        remove_dc=True,
         *,
         n_jobs=1,
         verbose=None,
@@ -2395,6 +2382,7 @@ class BaseEpochs(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(remove_dc)s
         %(n_jobs)s
         %(verbose)s
         %(method_kw_psd)s
@@ -2424,6 +2412,7 @@ class BaseEpochs(
             tmax=tmax,
             picks=picks,
             proj=proj,
+            remove_dc=remove_dc,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -2799,6 +2788,8 @@ def make_metadata(
     ----------
     .. footbibliography::
     """
+    from .event import match_event_names
+
     pd = _check_pandas_installed()
 
     _validate_type(event_id, types=(dict,), item_name="event_id")
@@ -3102,6 +3093,8 @@ class Epochs(BaseEpochs):
         event_repeated="error",
         verbose=None,
     ):  # noqa: D102
+        from .io import BaseRaw
+
         if not isinstance(raw, BaseRaw):
             raise ValueError(
                 "The first argument to `Epochs` must be an "
@@ -3467,8 +3460,6 @@ def _get_drop_indices(event_times, method):
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
-    from scipy.interpolate import interp1d
-
     keep = np.ones((len(t_longer)), dtype=bool)
     # special case: length zero or one
     if len(t_shorter) < 2:  # interp1d won't work
@@ -3558,6 +3549,8 @@ def _is_good(
 
 def _read_one_epoch_file(f, tree, preload):
     """Read a single FIF file."""
+    from .event import _read_events_fif
+
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
@@ -3803,6 +3796,8 @@ class EpochsFIF(BaseEpochs):
 
     @verbose
     def __init__(self, fname, proj=True, preload=True, verbose=None):  # noqa: D102
+        from .io.base import _get_fname_rep
+
         if _path_like(fname):
             check_fname(
                 fname=fname,
@@ -4522,6 +4517,8 @@ def make_fixed_length_epochs(
     -----
     .. versionadded:: 0.20
     """
+    from .event import make_fixed_length_events
+
     events = make_fixed_length_events(raw, id=id, duration=duration, overlap=overlap)
     delta = 1.0 / raw.info["sfreq"]
     return Epochs(

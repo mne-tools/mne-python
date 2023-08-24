@@ -16,7 +16,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..pick import pick_types
+from ..._fiff.pick import pick_types
 from ...utils import (
     verbose,
     logger,
@@ -28,13 +28,12 @@ from ...utils import (
 )
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
-from ..utils import _mult_cal_one
+from ..._fiff.utils import _mult_cal_one
 from ...epochs import BaseEpochs
-from ..constants import FIFF
-from ..meas_info import _empty_info
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info
 from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk, _set_dig_kit
-from ...event import read_events
 
 
 FLOAT64 = "<f8"
@@ -382,6 +381,8 @@ class EpochsKIT(BaseEpochs):
         standardize_names=None,
         verbose=None,
     ):  # noqa: D102
+        from ...event import read_events
+
         if isinstance(events, (str, PathLike, Path)):
             events = read_events(events)
 

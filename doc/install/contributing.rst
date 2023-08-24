@@ -3,7 +3,6 @@
 Contributing guide
 ==================
 
-.. include:: ../links.inc
 .. highlight:: console
 
 Thanks for taking the time to contribute! MNE-Python is an open-source project

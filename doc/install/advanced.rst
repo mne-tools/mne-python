@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _advanced_setup:
 
 Advanced setup

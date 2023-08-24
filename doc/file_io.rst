@@ -53,7 +53,9 @@ File I/O
    write_trans
    what
    io.read_info
+   io.write_info
    io.show_fiff
+   io.get_channel_type_constants
 
 Base class:
 

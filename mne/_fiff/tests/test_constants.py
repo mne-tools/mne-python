@@ -11,7 +11,7 @@ import numpy as np
 import pooch
 import pytest
 
-from mne.io.constants import (
+from mne._fiff.constants import (
     FIFF,
     FWD,
     _coord_frame_named,

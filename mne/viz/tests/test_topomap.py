@@ -27,12 +27,13 @@ from mne import (
     create_info,
     read_cov,
     EvokedArray,
+    Projection,
 )
-from mne.io.proj import make_eeg_average_ref_proj, Projection
+from mne._fiff.proj import make_eeg_average_ref_proj
 from mne.io import read_raw_fif, read_info, RawArray
-from mne.io.constants import FIFF
-from mne.io.pick import pick_info, channel_indices_by_type, _picks_to_idx
-from mne.io.compensator import get_current_comp
+from mne._fiff.constants import FIFF
+from mne._fiff.pick import pick_info, channel_indices_by_type, _picks_to_idx
+from mne._fiff.compensator import get_current_comp
 from mne.channels import (
     read_layout,
     make_dig_montage,

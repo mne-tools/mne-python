@@ -12,9 +12,9 @@ import pytest
 from pathlib import Path
 
 import mne
-from mne import read_vectorview_selection
+from mne import read_vectorview_selection, pick_channels_cov
 from mne.datasets import testing
-from mne.io.pick import pick_channels_cov, _picks_to_idx
+from mne._fiff.pick import _picks_to_idx
 from mne.utils import (
     check_random_state,
     _check_fname,

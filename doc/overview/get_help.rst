@@ -1,5 +1,3 @@
-.. include:: ../links.inc
-
 .. _help:
 
 Getting help

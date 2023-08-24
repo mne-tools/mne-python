@@ -19,11 +19,12 @@ from pathlib import Path
 import shutil
 
 import numpy as np
+from scipy.optimize import fmin_cobyla
 
-from .fixes import _compare_version
-from .io.constants import FIFF, FWD
-from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
-from .io.write import (
+from .fixes import _compare_version, _safe_svd
+from ._fiff.constants import FIFF, FWD
+from ._fiff._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
+from ._fiff.write import (
     start_and_end_file,
     start_block,
     write_float,
@@ -33,9 +34,9 @@ from .io.write import (
     end_block,
     write_string,
 )
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.open import fiff_open
 from .surface import (
     read_surface,
     write_surface,
@@ -71,7 +72,6 @@ from .utils import (
     _verbose_safe_false,
     _check_head_radius,
 )
-
 
 # ############################################################################
 # Compute BEM solution
@@ -752,15 +752,13 @@ def _fwd_eeg_get_multi_sphere_model_coeffs(m, n_terms):
 
 def _compose_linear_fitting_data(mu, u):
     """Get the linear fitting data."""
-    from scipy import linalg
-
     k1 = np.arange(1, u["nterms"])
     mu1ns = mu[0] ** k1
     # data to be fitted
     y = u["w"][:-1] * (u["fn"][1:] - mu1ns * u["fn"][0])
     # model matrix
     M = u["w"][:-1, np.newaxis] * (mu[1:] ** k1[:, np.newaxis] - mu1ns[:, np.newaxis])
-    uu, sing, vv = linalg.svd(M, full_matrices=False)
+    uu, sing, vv = _safe_svd(M, full_matrices=False)
     ncomp = u["nfit"] - 1
     uu, sing, vv = uu[:, :ncomp], sing[:ncomp], vv[:ncomp]
     return y, uu, sing, vv
@@ -795,8 +793,6 @@ def _one_step(mu, u):
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
-    from scipy.optimize import fmin_cobyla
-
     assert nfit >= 2
     u = dict(nfit=nfit, nterms=nterms)
 
@@ -1120,8 +1116,6 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
 
 def _fit_sphere(points, disp="auto"):
     """Fit a sphere to an arbitrary set of points."""
-    from scipy.optimize import fmin_cobyla
-
     if isinstance(disp, str) and disp == "auto":
         disp = True if logger.level <= 20 else False
     # initial guess for center and radius
