@@ -308,7 +308,8 @@ def _check_preload(inst, msg):
                 "loaded. Use preload=True (or string) in the constructor or "
                 "%s.load_data()." % (name, name)
             )
-        inst._handle_empty("raise", msg)
+        if name == "epochs":
+            inst._handle_empty("raise", msg)
 
 
 def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
