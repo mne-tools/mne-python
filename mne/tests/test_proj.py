@@ -552,6 +552,7 @@ def test_setup_proj():
     setup_proj(raw.info)
 
 
+@testing.requires_testing_data
 def test_compute_proj_explained_variance():
     """Test computation based on the explained variance."""
     raw = read_raw_fif(sample_path / "sample_audvis_trunc_raw.fif", preload=False)
