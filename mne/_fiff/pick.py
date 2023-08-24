@@ -1430,6 +1430,7 @@ def _picks_str_to_idx(
     return picks
 
 
+# TODO: Remove this, shouldn't be needed
 def _pick_inst(inst, picks, exclude, copy=True):
     """Return an instance with picked and excluded channels."""
     if copy is True:
@@ -1445,6 +1446,7 @@ def _pick_inst(inst, picks, exclude, copy=True):
     return inst
 
 
+# TODO: Remove this and make it a method of info
 def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
     """Get the data channel types in an info instance."""
     none = "data" if only_data_chs else "all"

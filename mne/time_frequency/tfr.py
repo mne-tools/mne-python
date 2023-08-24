@@ -49,7 +49,7 @@ from ..utils import (
     _import_h5io_funcs,
 )
 from ..channels.channels import UpdateChannelsMixin
-from ..channels.layout import _merge_ch_data, _pair_grad_sensors
+from ..channels.layout import _merge_ch_data, _pair_grad_sensors, _find_topomap_coords
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .._fiff.pick import (
     pick_info,
@@ -1916,7 +1916,6 @@ class AverageTFR(_BaseTFR):
             _set_contour_locator,
             plot_topomap,
             _get_pos_outlines,
-            _find_topomap_coords,
         )
         import matplotlib.pyplot as plt
 
