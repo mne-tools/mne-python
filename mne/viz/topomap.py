@@ -28,13 +28,6 @@ from scipy.spatial.distance import pdist, squareform
 
 from . import ui_events
 from ..baseline import rescale
-from ..channels.channels import _get_ch_type
-from ..channels.layout import (
-    _find_topomap_coords,
-    find_layout,
-    _pair_grad_sensors,
-    _merge_ch_data,
-)
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .._fiff.pick import (
     pick_types,
@@ -118,6 +111,8 @@ def _adjust_meg_sphere(sphere, info, ch_type):
 
 def _prepare_topomap_plot(inst, ch_type, sphere=None):
     """Prepare topo plot."""
+    from ..channels.layout import find_layout, _pair_grad_sensors, _find_topomap_coords
+
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
 
@@ -194,6 +189,8 @@ def _prepare_topomap_plot(inst, ch_type, sphere=None):
 
 
 def _average_fnirs_overlaps(info, ch_type, sphere):
+    from ..channels.layout import _find_topomap_coords
+
     picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type, exclude="bads")
     chs = [info["chs"][i] for i in picks]
     locs3d = np.array([ch["loc"][:3] for ch in chs])
@@ -247,6 +244,8 @@ def _average_fnirs_overlaps(info, ch_type, sphere):
 
 def _plot_update_evoked_topomap(params, bools):
     """Update topomaps."""
+    from ..channels.layout import _merge_ch_data
+
     projs = [
         proj for ii, proj in enumerate(params["projs"]) if ii in np.where(bools)[0]
     ]
@@ -468,6 +467,7 @@ def _plot_projs_topomap(
     axes=None,
 ):
     import matplotlib.pyplot as plt
+    from ..channels.layout import _merge_ch_data
 
     sphere = _check_sphere(sphere, info)
     projs = _check_type_projs(projs)
@@ -496,7 +496,7 @@ def _plot_projs_topomap(
             ch_type,
             this_sphere,
             clip_origin,
-        ) = _prepare_topomap_plot(use_info, _get_ch_type(use_info, None), sphere=sphere)
+        ) = _prepare_topomap_plot(use_info, (use_info, None), sphere=sphere)
         these_outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
         data = data[data_picks]
         if merge_channels:
@@ -880,6 +880,9 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
+    from ..channels.channels import _get_ch_type
+    from ..channels.layout import _find_topomap_coords
+
     ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
     orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
@@ -1163,6 +1166,11 @@ def _plot_topomap(
 ):
     from matplotlib.colors import Normalize
     from matplotlib.widgets import RectangleSelector
+    from ..channels.layout import (
+        _find_topomap_coords,
+        _merge_ch_data,
+        _pair_grad_sensors,
+    )
 
     data = np.asarray(data)
     logger.debug(f"Plotting topomap for {ch_type} data shape {data.shape}")
@@ -1373,6 +1381,8 @@ def _plot_ica_topomap(
 ):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
+    from ..channels.channels import _get_ch_type
+    from ..channels.layout import _merge_ch_data
 
     if ica.info is None:
         raise RuntimeError(
@@ -1555,6 +1565,8 @@ def plot_ica_components(
     supplied).
     """  # noqa E501
     from matplotlib.pyplot import Axes
+    from ..channels.channels import _get_ch_type
+    from ..channels.layout import _merge_ch_data
 
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
@@ -1834,6 +1846,8 @@ def plot_tfr_topomap(
         The figure containing the topography.
     """  # noqa: E501
     import matplotlib.pyplot as plt
+    from ..channels.channels import _get_ch_type
+    from ..channels.layout import _merge_ch_data
 
     ch_type = _get_ch_type(tfr, ch_type)
 
@@ -2063,6 +2077,8 @@ def plot_evoked_topomap(
     from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
+    from ..channels.channels import _get_ch_type
+    from ..channels.layout import _merge_ch_data
 
     _validate_type(evoked, Evoked, "evoked")
     _validate_type(colorbar, bool, "colorbar")
@@ -2887,6 +2903,7 @@ def _onselect(
     """Handle drawing average tfr over channels called from topomap."""
     import matplotlib.pyplot as plt
     from matplotlib.collections import PathCollection
+    from ..channels.layout import _pair_grad_sensors
 
     ax = eclick.inaxes
     xmin = min(eclick.xdata, erelease.xdata)
@@ -3327,6 +3344,8 @@ def _plot_corrmap(
     show_names=False,
 ):
     """Customize ica.plot_components for corrmap."""
+    from ..channels.layout import _merge_ch_data
+
     if not template:
         title = "Detected components"
         if label is not None:
@@ -3639,6 +3658,7 @@ def plot_bridged_electrodes(
     mne.preprocessing.compute_bridged_electrodes
     """
     import matplotlib.pyplot as plt
+    from ..channels.layout import _find_topomap_coords
 
     if topomap_args is None:
         topomap_args = dict()
@@ -3978,6 +3998,7 @@ def plot_regression_weights(
     """
     import matplotlib
     import matplotlib.pyplot as plt
+    from ..channels.layout import _merge_ch_data
 
     sphere = _check_sphere(sphere)
     if ch_type is None:

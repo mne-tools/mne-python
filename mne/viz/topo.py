@@ -15,7 +15,6 @@ from scipy import ndimage
 
 from .._fiff.pick import channel_type, pick_types
 from ..utils import _clean_names, _check_option, Bunch, fill_doc, _to_rgb
-from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (
     _check_delayed_ssp,
@@ -143,6 +142,7 @@ def _iter_topography(
         useful for custom plotting, the latter for speed.
     """
     from matplotlib import pyplot as plt, collections
+    from ..channels.layout import find_layout
 
     if fig is None:
         fig = plt.figure()
@@ -930,6 +930,7 @@ def _plot_evoked_topo(
     """
     import matplotlib.pyplot as plt
     from ..cov import whiten_evoked
+    from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 
     if type(evoked) not in (tuple, list):
         evoked = [evoked]
@@ -1221,6 +1222,8 @@ def plot_topo_image_epochs(
     will always have a colorbar even when the topo plot does not (because it
     shows multiple sensor types).
     """
+    from ..channels.layout import find_layout
+
     scalings = _handle_default("scalings", scalings)
 
     # make a copy because we discard non-data channels and scale the data

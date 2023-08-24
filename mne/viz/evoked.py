@@ -82,7 +82,6 @@ from .topomap import (
     _check_sphere,
     _make_head_outlines,
 )
-from ..channels.layout import _pair_grad_sensors, find_layout
 
 
 def _butterfly_onpick(event, params):
@@ -139,6 +138,7 @@ def _line_plot_onselect(
 ):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
+    from ..channels.layout import _pair_grad_sensors
 
     ch_types = [type_ for type_ in ch_types if type_ in ("eeg", "grad", "mag")]
     if len(ch_types) == 0:
@@ -3016,6 +3016,7 @@ def plot_compare_evokeds(
             picks = [picks]  # enables zipping w/ axes
     else:
         from .topo import iter_topography
+        from ..channels.layout import find_layout
 
         fig = plt.figure(figsize=(18, 14))
 

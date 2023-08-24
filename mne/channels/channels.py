@@ -107,6 +107,7 @@ def _get_meg_system(info):
     return system, have_helmet
 
 
+# TODO: Deal with name dup with mne._fiff.reference._get_ch_type
 def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     """Choose a single channel type (usually for plotting).
 
