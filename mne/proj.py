@@ -135,7 +135,7 @@ def _compute_proj(
     ):
         if n == 0:
             continue
-        data_ind = data[ind][:, ind]
+        data_ind = data[ind, ind]
         # data is the covariance matrix: U * S**2 * Ut
         U, Sexp2, _ = _safe_svd(data_ind, full_matrices=False)
         U = U[:, :n]
@@ -263,9 +263,9 @@ def compute_proj_evoked(
 
         .. versionadded:: 0.17
     meg : str
-        Can be 'separate' (default) or 'combined' to compute projectors
+        Can be ``'separate'`` (default) or ``'combined'`` to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'combined', ``n_mag == n_grad`` is required and the number of
+        If ``'combined'``, ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
@@ -310,13 +310,12 @@ def compute_proj_raw(
     raw : instance of Raw
         A raw object to use the data from.
     start : float
-        Time (in s) to start computing SSP.
-    stop : float
-        Time (in s) to stop computing SSP.
-        None will go to the end of the file.
+        Time (in seconds) to start computing SSP.
+    stop : float | None
+        Time (in seconds) to stop computing SSP. None will go to the end of the file.
     duration : float
-        Duration (in s) to chunk data into for SSP
-        If duration is None, data will not be chunked.
+        Duration (in seconds) to chunk data into for SSP
+        If duration is ``None``, data will not be chunked.
     n_grad : int
         Number of vectors for gradiometers.
     n_mag : int
@@ -324,15 +323,15 @@ def compute_proj_raw(
     n_eeg : int
         Number of vectors for EEG channels.
     reject : dict | None
-        Epoch rejection configuration (see Epochs).
+        Epoch PTP rejection threshold used if ``duration != 0``. See `~mne.Epochs`.
     flat : dict | None
-        Epoch flat configuration (see Epochs).
+        Epoch flatness rejection threshold used if ``duration != 0``. See `~mne.Epochs`.
     %(n_jobs)s
         Number of jobs to use to compute covariance.
     meg : str
-        Can be 'separate' (default) or 'combined' to compute projectors
+        Can be ``'separate'`` (default) or ``'combined'`` to compute projectors
         for magnetometers and gradiometers separately or jointly.
-        If 'combined', ``n_mag == n_grad`` is required and the number of
+        If ``'combined'``, ``n_mag == n_grad`` is required and the number of
         projectors computed for MEG will be ``n_mag``.
 
         .. versionadded:: 0.18
