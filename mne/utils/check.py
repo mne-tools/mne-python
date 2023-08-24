@@ -739,8 +739,7 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     """Check number of sensor types and presence of noise covariance matrix."""
     from ..cov import make_ad_hoc_cov, Covariance
     from ..time_frequency.csd import CrossSpectralDensity
-    from .._fiff.pick import pick_info
-    from ..channels.channels import _contains_ch_type
+    from .._fiff.pick import pick_info, _contains_ch_type
 
     if isinstance(data_cov, CrossSpectralDensity):
         _validate_type(noise_cov, [None, CrossSpectralDensity], "noise_cov")
