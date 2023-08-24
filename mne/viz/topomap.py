@@ -1180,7 +1180,7 @@ def _plot_topomap(
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = pos.get_channel_types(pos, unique=True)
+        ch_type = pos.get_channel_types(picks=None, unique=True)
         info_help = (
             "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
         )
