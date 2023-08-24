@@ -10,7 +10,7 @@ from inspect import signature
 
 import numpy as np
 
-from ..channels.channels import UpdateChannelsMixin, _get_ch_type
+from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data
 from ..defaults import (
     _BORDER_DEFAULT,
@@ -48,7 +48,13 @@ from ..utils.misc import _pl
 from ..utils.spectrum import _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
-from ..viz.utils import _format_units_psd, _plot_psd, _prepare_sensor_names, plt_show
+from ..viz.utils import (
+    _format_units_psd,
+    _plot_psd,
+    _prepare_sensor_names,
+    plt_show,
+    _get_plot_ch_type,
+)
 from .multitaper import psd_array_multitaper
 from .psd import psd_array_welch, _check_nfft
 
@@ -850,7 +856,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        ch_type = _get_ch_type(self, ch_type)
+        ch_type = _get_plot_ch_type(self, ch_type)
         if units is None:
             units = _handle_default("units", None)
         unit = units[ch_type] if hasattr(units, "keys") else units

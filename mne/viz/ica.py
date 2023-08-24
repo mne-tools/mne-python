@@ -25,7 +25,7 @@ from .utils import (
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..utils import _validate_type, fill_doc
+from ..utils import _validate_type, fill_doc, _get_plot_ch_type
 from ..defaults import _handle_default, DEFAULTS
 from .._fiff.meas_info import create_info
 from .._fiff.pick import pick_types, _picks_to_idx
@@ -202,7 +202,6 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-    from ..channels.channels import _get_ch_type
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
@@ -210,7 +209,11 @@ def _plot_ica_properties(
     # --------
     # component topomap
     _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
-    topo_ax._ch_type = _get_ch_type(ica, ch_type=None, allow_ref_meg=ica.allow_ref_meg)
+    topo_ax._ch_type = _get_plot_ch_type(
+        ica,
+        ch_type=None,
+        allow_ref_meg=ica.allow_ref_meg,
+    )
 
     # image and erp
     # we create a new epoch with dropped rows
