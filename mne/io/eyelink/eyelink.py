@@ -82,8 +82,7 @@ def read_raw_eyelink(
         messages.
     apply_offsets : bool (default False)
         Adjusts the onset time of the mne.Annotations created from Eyelink
-        experiment messages, if offset values exist in
-        self.dataframes['messages'].
+        experiment messages, if offset values exist in the ASCII file.
     find_overlaps : bool (default False)
         Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
         saccades) if their start times and their stop times are both not
@@ -148,8 +147,7 @@ class RawEyelink(BaseRaw):
         messages.
     apply_offsets : bool (default False)
         Adjusts the onset time of the mne.Annotations created from Eyelink
-        experiment messages, if offset values exist in
-        raw.dataframes['messages'].
+        experiment messages, if offset values exist in the ASCII file.
      find_overlaps : boolean (default False)
         Combine left and right eye :class:`mne.Annotations` (blinks, fixations,
         saccades) if their start times and their stop times are both not
@@ -190,7 +188,6 @@ class RawEyelink(BaseRaw):
 
         raw_extras = dict()
         self.fname = Path(fname)
-        self.dataframes = {}
 
         # ======================== Parse ASCII File =========================
         raw_extras = self._parse_recording_blocks(raw_extras)
@@ -203,34 +200,34 @@ class RawEyelink(BaseRaw):
         del raw_extras["sample_lines"]  # free up memory
         # add column names to dataframes
         col_names, ch_names = self._infer_col_names(raw_extras)
-        self._assign_col_names(col_names)
-        self._set_df_dtypes()  # set dtypes for each dataframe
+        self._assign_col_names(col_names, raw_extras)
+        self._set_df_dtypes(raw_extras)  # set dtypes for each dataframe
         if "HREF" in raw_extras["rec_info"]:
-            self._convert_href_samples()
+            self._convert_href_samples(raw_extras)
         # fill in times between recording blocks with BAD_ACQ_SKIP
         if raw_extras["n_blocks"] > 1:
             logger.info(
                 f"There are {raw_extras['n_blocks']} recording blocks in this file."
                 f" Times between blocks will be annotated with BAD_ACQ_SKIP."
             )
-            self.dataframes["samples"] = _adjust_times(
-                self.dataframes["samples"], raw_extras["sfreq"]
+            raw_extras["dfs"]["samples"] = _adjust_times(
+                raw_extras["dfs"]["samples"], raw_extras["sfreq"]
             )
         # Convert timestamps to seconds
-        for df in self.dataframes.values():
+        for df in raw_extras["dfs"].values():
             _convert_times(df, raw_extras["first_samp"])
         # Find overlaps between left and right eye events
         if find_overlaps:
-            for key in self.dataframes:
+            for key in raw_extras["dfs"]:
                 if key not in ["blinks", "fixations", "saccades"]:
                     continue
-                self.dataframes[key] = _find_overlaps(
-                    self.dataframes[key], max_time=overlap_threshold
+                raw_extras["dfs"][key] = _find_overlaps(
+                    raw_extras["dfs"][key], max_time=overlap_threshold
                 )
 
         # ======================== Create Raw Object =========================
         info = self._create_info(ch_names, raw_extras)
-        eye_ch_data = self.dataframes["samples"][ch_names]
+        eye_ch_data = raw_extras["dfs"]["samples"][ch_names]
         eye_ch_data = eye_ch_data.to_numpy().T
         super(RawEyelink, self).__init__(
             info,
@@ -244,11 +241,11 @@ class RawEyelink(BaseRaw):
         # ======================== Make Annotations =========================
         gap_annots = None
         if raw_extras["n_blocks"] > 1:
-            gap_annots = self._make_gap_annots()
+            gap_annots = self._make_gap_annots(raw_extras)
         eye_annots = None
         if create_annotations:
             eye_annots = self._make_eyelink_annots(
-                self.dataframes, create_annotations, apply_offsets
+                raw_extras["dfs"], create_annotations, apply_offsets
             )
         if gap_annots and eye_annots:  # set both
             self.set_annotations(gap_annots + eye_annots)
@@ -260,7 +257,7 @@ class RawEyelink(BaseRaw):
             logger.info("Not creating any annotations")
 
         # Free up memory
-        del self.dataframes
+        del raw_extras["dfs"]
 
     def _parse_recording_blocks(self, raw_extras):
         """Parse Eyelink ASCII file.
@@ -340,15 +337,15 @@ class RawEyelink(BaseRaw):
                         " the recording."
                     )
 
-    def _convert_href_samples(self):
+    def _convert_href_samples(self, raw_extras):
         """Convert HREF eyegaze samples to radians."""
         # grab the xpos and ypos channel names
         pos_names = EYELINK_COLS["pos"]["left"][:-1] + EYELINK_COLS["pos"]["right"][:-1]
-        for col in self.dataframes["samples"].columns:
+        for col in raw_extras["dfs"]["samples"].columns:
             if col not in pos_names:  # 'xpos_left' ... 'ypos_right'
                 continue
-            series = self._href_to_radian(self.dataframes["samples"][col])
-            self.dataframes["samples"][col] = series
+            series = self._href_to_radian(raw_extras["dfs"]["samples"][col])
+            raw_extras["dfs"]["samples"][col] = series
 
     def _href_to_radian(self, opposite, f=15_000):
         """Convert HREF eyegaze samples to radians.
@@ -438,17 +435,20 @@ class RawEyelink(BaseRaw):
         non-empty key in event_lines.
         """
         pd = _check_pandas_installed()
+        raw_extras["dfs"] = dict()
 
         # dataframe for samples
-        self.dataframes["samples"] = pd.DataFrame(raw_extras["sample_lines"])
-        self._drop_status_col()  # Remove STATUS column
+        raw_extras["dfs"]["samples"] = pd.DataFrame(raw_extras["sample_lines"])
+        self._drop_status_col(raw_extras)  # Remove STATUS column
 
         # dataframe for each type of occular event
         for event, label in zip(
             ["EFIX", "ESACC", "EBLINK"], ["fixations", "saccades", "blinks"]
         ):
             if raw_extras["event_lines"][event]:  # an empty list returns False
-                self.dataframes[label] = pd.DataFrame(raw_extras["event_lines"][event])
+                raw_extras["dfs"][label] = pd.DataFrame(
+                    raw_extras["event_lines"][event]
+                )
             else:
                 logger.info(
                     f"No {label} were found in this file. "
@@ -469,7 +469,7 @@ class RawEyelink(BaseRaw):
                     offset = np.nan
                     msg = " ".join(str(x) for x in tokens[1:])
                 msgs.append([timestamp, offset, msg])
-            self.dataframes["messages"] = pd.DataFrame(msgs)
+            raw_extras["dfs"]["messages"] = pd.DataFrame(msgs)
 
         # make dataframe for recording block start, end times
         i = 1
@@ -480,16 +480,16 @@ class RawEyelink(BaseRaw):
             blocks.append((float(bgn[0]), float(end[0]), i))
             i += 1
         cols = ["time", "end_time", "block"]
-        self.dataframes["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
+        raw_extras["dfs"]["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
 
         # make dataframe for digital input port
         if raw_extras["event_lines"]["INPUT"]:
             cols = ["time", "DIN"]
-            self.dataframes["DINS"] = pd.DataFrame(raw_extras["event_lines"]["INPUT"])
+            raw_extras["dfs"]["DINS"] = pd.DataFrame(raw_extras["event_lines"]["INPUT"])
 
         # TODO: Make dataframes for other eyelink events (Buttons)
 
-    def _drop_status_col(self):
+    def _drop_status_col(self, raw_extras):
         """Drop STATUS column from samples dataframe.
 
         see https://github.com/mne-tools/mne-python/issues/11809, and section 4.9.2.1 of
@@ -498,15 +498,15 @@ class RawEyelink(BaseRaw):
         """
         status_cols = []
         # we know the first 3 columns will be the time, xpos, ypos
-        for col in self.dataframes["samples"].columns[3:]:
-            if self.dataframes["samples"][col][0][0].isnumeric():
+        for col in raw_extras["dfs"]["samples"].columns[3:]:
+            if raw_extras["dfs"]["samples"][col][0][0].isnumeric():
                 # if the value is numeric, it's not a status column
                 continue
-            if len(self.dataframes["samples"][col][0]) in [3, 5, 13, 17]:
+            if len(raw_extras["dfs"]["samples"][col][0]) in [3, 5, 13, 17]:
                 status_cols.append(col)
-        self.dataframes["samples"].drop(columns=status_cols, inplace=True)
+        raw_extras["dfs"]["samples"].drop(columns=status_cols, inplace=True)
 
-    def _assign_col_names(self, col_names):
+    def _assign_col_names(self, col_names, raw_extras):
         """Assign column names to dataframes.
 
         Parameters
@@ -514,7 +514,7 @@ class RawEyelink(BaseRaw):
         col_names : dict
             Dictionary of column names for each dataframe.
         """
-        for key, df in self.dataframes.items():
+        for key, df in raw_extras["dfs"].items():
             if key in ("samples", "blinks", "fixations", "saccades"):
                 df.columns = col_names[key]
             elif key == "messages":
@@ -524,10 +524,10 @@ class RawEyelink(BaseRaw):
                 cols = ["time", "DIN"]
                 df.columns = cols
 
-    def _set_df_dtypes(self):
+    def _set_df_dtypes(self, raw_extras):
         from ...utils import _set_pandas_dtype
 
-        for key, df in self.dataframes.items():
+        for key, df in raw_extras["dfs"].items():
             if key in ["samples", "DINS"]:
                 # convert missing position values to NaN
                 self._set_missing_values(df, df.columns[1:])
@@ -588,9 +588,9 @@ class RawEyelink(BaseRaw):
                     ch_dict["unit"] = FIFF.FIFF_UNIT_RAD
         return info
 
-    def _make_gap_annots(self, key="recording_blocks"):
+    def _make_gap_annots(self, raw_extras, key="recording_blocks"):
         """Create Annotations for gap periods between recording blocks."""
-        df = self.dataframes[key]
+        df = raw_extras["dfs"][key]
         onsets = df["end_time"].iloc[:-1]
         diffs = df["time"].shift(-1) - df["end_time"]
         durations = diffs.iloc[:-1]
@@ -598,7 +598,7 @@ class RawEyelink(BaseRaw):
         return Annotations(onset=onsets, duration=durations, description=descriptions)
 
     def _make_eyelink_annots(self, df_dict, create_annots, apply_offsets):
-        """Create Annotations for each df in self.dataframes."""
+        """Create Annotations for each df in raw_extras."""
         eye_ch_map = {
             "L": ("xpos_left", "ypos_left", "pupil_left"),
             "R": ("xpos_right", "ypos_right", "pupil_right"),
