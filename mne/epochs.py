@@ -12,7 +12,6 @@
 from functools import partial
 from collections import Counter
 from copy import deepcopy
-
 import json
 import operator
 import os.path as op
@@ -1161,7 +1160,6 @@ class BaseEpochs(
                 )
             data = np.zeros((n_channels, n_times))
             n_events = 0
-
             for e in self:
                 if np.iscomplexobj(e):
                     data = data.astype(np.complex128)

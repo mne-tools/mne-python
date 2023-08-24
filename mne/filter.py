@@ -2689,7 +2689,6 @@ class FilterMixin:
             return self
 
         _check_preload(self, "inst.resample")
-
         self._data = resample(
             self._data, sfreq, o_sfreq, npad, window=window, n_jobs=n_jobs, pad=pad
         )
@@ -2775,7 +2774,6 @@ class FilterMixin:
         inverse, and computing the envelope in source space.
         """
         _check_preload(self, "inst.apply_hilbert")
-
         if n_fft is None:
             n_fft = len(self.times)
         elif isinstance(n_fft, str):
