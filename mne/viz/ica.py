@@ -21,16 +21,21 @@ from .utils import (
     _convert_psds,
     _compute_scalings,
     _handle_precompute,
+    _get_plot_ch_type,
 )
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..utils import _validate_type, fill_doc, _get_plot_ch_type
+from ..utils import (
+    _validate_type,
+    fill_doc,
+    _reject_data_segments,
+    verbose,
+)
 from ..defaults import _handle_default, DEFAULTS
 from .._fiff.meas_info import create_info
 from .._fiff.pick import pick_types, _picks_to_idx
 from .._fiff.proj import _has_eeg_average_ref_proj
-from ..utils import _reject_data_segments, verbose
 
 
 @fill_doc
