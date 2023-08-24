@@ -1930,7 +1930,8 @@ class AverageTFR(_BaseTFR):
         tfr = self
         if copy:
             tfr = tfr.copy()
-        tfr.pick(picks, exclude=exclude)
+        picks = "data" if picks is None else picks
+        tfr.pick(picks, exclude=() if exclude is None else exclude)
         del picks
         ch_types = tfr.info.get_channel_types(unique=True)
 
