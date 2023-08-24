@@ -105,7 +105,7 @@ def _compute_proj(
         grad_ind = pick_types(info, meg=True, ref_meg=False, exclude="bads")
         if (n_grad > 0) and len(grad_ind) == 0:
             logger.info(
-                "No MEG channels found for joint estimation. " "Forcing n_grad=n_mag=0"
+                "No MEG channels found for joint estimation. Forcing n_grad=n_mag=0"
             )
             n_grad = 0
     else:
