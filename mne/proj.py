@@ -325,7 +325,7 @@ def compute_proj_raw(
         Time (in seconds) to start computing SSP.
     stop : float | None
         Time (in seconds) to stop computing SSP. None will go to the end of the file.
-    duration : float
+    duration : float | None
         Duration (in seconds) to chunk data into for SSP
         If duration is ``None``, data will not be chunked.
     n_grad : int | float between ``0`` and ``1``
@@ -341,9 +341,10 @@ def compute_proj_raw(
         to select the number of vectors to explain the cumulative variance greater than
         ``n_eeg``.
     reject : dict | None
-        Epoch PTP rejection threshold used if ``duration != 0``. See `~mne.Epochs`.
+        Epoch PTP rejection threshold used if ``duration != None``. See `~mne.Epochs`.
     flat : dict | None
-        Epoch flatness rejection threshold used if ``duration != 0``. See `~mne.Epochs`.
+        Epoch flatness rejection threshold used if ``duration != None``. See
+        `~mne.Epochs`.
     %(n_jobs)s
         Number of jobs to use to compute covariance.
     meg : str
