@@ -88,7 +88,7 @@ subjects_dir = data_path / "subjects"
 
 raw_path = sample_dir / "sample_audvis_filt-0-40_raw.fif"
 raw = mne.io.read_raw(raw_path)
-raw.pick(eeg=True, eog=True, stim=True).crop(tmax=60).load_data()
+raw.pick(picks=["eeg", "eog", "stim"]).crop(tmax=60).load_data()
 
 report = mne.Report(title="Raw example")
 # This method also accepts a path, e.g., raw=raw_path

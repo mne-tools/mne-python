@@ -80,7 +80,7 @@ epochs = mne.Epochs(
     decim=3,
     verbose="error",
 )
-epochs.pick(meg=True, exclude="bads")  # remove stim and EOG
+epochs.pick(picks="meg", exclude="bads")  # remove stim and EOG
 del raw
 
 X = epochs.get_data()  # MEG signals: n_epochs, n_meg_channels, n_times

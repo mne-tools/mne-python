@@ -74,7 +74,7 @@ bids_path = BIDSPath(
 raw = read_raw_bids(bids_path=bids_path, verbose="error")
 
 # Pick only the ECoG channels, removing the EKG channels
-raw.pick(ecog=True)
+raw.pick(picks="ecog")
 
 # Load the data
 raw.load_data()

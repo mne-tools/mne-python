@@ -363,7 +363,7 @@ print(first_projector["active"])
 # look at just the magnetometers, and a 2-second sample from the beginning of
 # the file.
 
-mags = raw.copy().crop(tmax=2).pick(meg="mag")
+mags = raw.copy().crop(tmax=2).pick(picks="mag")
 for proj in (False, True):
     with mne.viz.use_browser_backend("matplotlib"):
         fig = mags.plot(butterfly=True, proj=proj)

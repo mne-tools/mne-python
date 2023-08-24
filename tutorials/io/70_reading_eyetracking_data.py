@@ -86,7 +86,7 @@ from mne.datasets import misc
 fpath = misc.data_path() / "eyetracking" / "eyelink"
 raw = read_raw_eyelink(fpath / "px_textpage_ws.asc", create_annotations=["blinks"])
 custom_scalings = dict(eyegaze=1e3)
-raw.pick(eyetrack=True).plot(scalings=custom_scalings)
+raw.pick(picks="eyetrack").plot(scalings=custom_scalings)
 
 
 # %%

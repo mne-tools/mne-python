@@ -224,7 +224,7 @@ raw.crop(tmin=0, tmax=3).load_data()
 # we plot the data before and after interpolation, the affected channels will
 # still plot in red:
 
-eeg_data = raw.copy().pick(meg=False, eeg=True, exclude=[])
+eeg_data = raw.copy().pick(picks="eeg")
 eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
 
 for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):

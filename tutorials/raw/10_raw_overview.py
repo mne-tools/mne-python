@@ -225,7 +225,7 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 # ways. As a first example, we'll use the :meth:`~mne.io.Raw.pick` method
 # to restrict the :class:`~mne.io.Raw` object to just the EEG and EOG channels:
 
-eeg_and_eog = raw.copy().pick(meg=False, eeg=True, eog=True)
+eeg_and_eog = raw.copy().pick(picks=["eeg", "eog"])
 print(len(raw.ch_names), "→", len(eeg_and_eog.ch_names))
 
 # %%

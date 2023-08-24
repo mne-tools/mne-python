@@ -40,7 +40,7 @@ fname_stc = data_path / "MEG" / "sample" / "sample_audvis-meg-eeg-lh.stc"
 fname_evoked = data_path / "MEG" / "sample" / "sample_audvis-ave.fif"
 
 evoked = mne.read_evokeds(fname_evoked, "Left Auditory")
-evoked.pick(meg="grad").apply_baseline((None, 0.0))
+evoked.pick(picks="grad").apply_baseline((None, 0.0))
 max_t = evoked.get_peak()[1]
 
 stc = mne.read_source_estimate(fname_stc)

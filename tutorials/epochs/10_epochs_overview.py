@@ -270,7 +270,7 @@ print(epochs["buttonpress"][[0, 1, 2, 3]])  # same as previous line
 # so in interactive/exploratory sessions you may want to create a
 # :meth:`~mne.Epochs.copy` first.
 
-epochs_eeg = epochs.copy().pick(meg=False, eeg=True)
+epochs_eeg = epochs.copy().pick(picks="eeg")
 print(epochs_eeg.ch_names)
 
 new_order = ["EEG 002", "STI 014", "EOG 061", "MEG 2521"]

@@ -83,7 +83,7 @@ epochs = mne.Epochs(
 )
 
 # just use right temporal sensors for speed
-epochs.pick(mne.read_vectorview_selection("Right-temporal"), ordered=False)
+epochs.pick(mne.read_vectorview_selection("Right-temporal"))
 evoked = epochs.average()
 
 # Factor to down-sample the temporal dimension of the TFR computed by

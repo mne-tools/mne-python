@@ -655,7 +655,7 @@ print(template_eog_component)
 # recommended by the MNE-Python developers, as it doesn't guarantee optimal
 # results.
 
-filt_raw.pick(meg=True, eeg=False, exclude="bads", stim=True).load_data()
+filt_raw.pick(picks=["meg", "stim"], exclude="bads").load_data()
 filt_raw.filter(1, 30, fir_design="firwin")
 
 # peak-to-peak amplitude rejection parameters
