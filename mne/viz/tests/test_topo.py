@@ -217,7 +217,7 @@ def test_plot_topo():
     plt.close("all")
     cov = read_cov(cov_fname)
     cov["projs"] = []
-    evoked.pick(meg=True).plot_topo(noise_cov=cov)
+    evoked.pick(picks="meg").plot_topo(noise_cov=cov)
     plt.close("all")
 
     # Test exclude parameter

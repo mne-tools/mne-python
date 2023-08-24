@@ -92,7 +92,7 @@ def test_find_ecg():
     raw.set_channel_types({"MEG 2641": "ecg"}, on_unit_change="ignore")
     create_ecg_epochs(raw)
 
-    raw.pick(meg=True)  # remove ECG
+    raw.pick(picks="meg")  # remove ECG
     assert "MEG 2641" not in raw.ch_names
     ecg_epochs = create_ecg_epochs(raw, keep_ecg=False)
     assert len(ecg_epochs.events) == n_events

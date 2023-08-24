@@ -358,7 +358,7 @@ def test_plot_topomap_basic():
     plt.close("all")
     plt_topomap(times=[-0.1, 0.2])
     plt.close("all")
-    evoked_grad = evoked.copy().crop(0, 0).pick(meg="grad")
+    evoked_grad = evoked.copy().crop(0, 0).pick(picks="grad")
     mask = np.zeros((204, 1), bool)
     mask[[0, 3, 5, 6]] = True
     names = []
@@ -410,7 +410,7 @@ def test_plot_topomap_basic():
 
     # Plot array
     for ch_type in ("mag", "grad"):
-        evoked_ = evoked.copy().pick(eeg=False, meg=ch_type)
+        evoked_ = evoked.copy().pick(picks=ch_type)
         plot_topomap(evoked_.data[:, 0], evoked_.info, **fast_test_noscale)
     # fail with multiple channel types
     pytest.raises(ValueError, plot_topomap, evoked.data[0, :], evoked.info)

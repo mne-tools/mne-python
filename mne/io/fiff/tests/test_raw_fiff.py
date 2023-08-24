@@ -1158,19 +1158,13 @@ def test_filter_picks():
         picks = {ch: ch == ch_type for ch in ch_types}
         picks["meg"] = ch_type if ch_type in ("mag", "grad") else False
         picks["fnirs"] = ch_type if ch_type in ("hbo", "hbr") else False
-        tmp = []
-        for k, v in picks.items():
-            if v is True:
-                tmp.append(k)
-            elif isinstance(v, str):
-                tmp.append(v)
-        raw_ = raw.copy().pick(tmp)
+        raw_ = raw.copy().pick_types(**picks)
         raw_.filter(10, 30, fir_design="firwin")
 
     # -- Error if no data channel
     for ch_type in ("misc", "stim"):
         picks = {ch: ch == ch_type for ch in ch_types}
-        raw_ = raw.copy().pick(**picks)
+        raw_ = raw.copy().pick_types(**picks)
         pytest.raises(ValueError, raw_.filter, 10, 30)
 
 
