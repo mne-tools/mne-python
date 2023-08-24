@@ -12,7 +12,6 @@ from .utils import (
     verbose,
     _check_option,
     _check_fname,
-    _ensure_int,
     _validate_type,
 )
 from ._fiff.constants import FIFF
@@ -183,12 +182,18 @@ def compute_proj_epochs(
     ----------
     epochs : instance of Epochs
         The epochs containing the artifact.
-    n_grad : int
-        Number of vectors for gradiometers.
-    n_mag : int
-        Number of vectors for magnetometers.
-    n_eeg : int
-        Number of vectors for EEG channels.
+    n_grad : int | float between ``0`` and ``1``
+        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_grad``.
+    n_mag : int | float between ``0`` and ``1``
+        Number of vectors for magnetometers. Either an integer or a float between 0 and
+        1 to select the number of vectors to explain the cumulative variance greater
+        than ``n_mag``.
+    n_eeg : int | float between ``0`` and ``1``
+        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_eeg``.
     %(n_jobs)s
         Number of jobs to use to compute covariance.
     desc_prefix : str | None
@@ -252,12 +257,18 @@ def compute_proj_evoked(
     ----------
     evoked : instance of Evoked
         The Evoked obtained by averaging the artifact.
-    n_grad : int
-        Number of vectors for gradiometers.
-    n_mag : int
-        Number of vectors for magnetometers.
-    n_eeg : int
-        Number of vectors for EEG channels.
+    n_grad : int | float between ``0`` and ``1``
+        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_grad``.
+    n_mag : int | float between ``0`` and ``1``
+        Number of vectors for magnetometers. Either an integer or a float between 0 and
+        1 to select the number of vectors to explain the cumulative variance greater
+        than ``n_mag``.
+    n_eeg : int | float between ``0`` and ``1``
+        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_eeg``.
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         tmin and tmax.
@@ -317,12 +328,18 @@ def compute_proj_raw(
     duration : float
         Duration (in seconds) to chunk data into for SSP
         If duration is ``None``, data will not be chunked.
-    n_grad : int
-        Number of vectors for gradiometers.
-    n_mag : int
-        Number of vectors for magnetometers.
-    n_eeg : int
-        Number of vectors for EEG channels.
+    n_grad : int | float between ``0`` and ``1``
+        Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_grad``.
+    n_mag : int | float between ``0`` and ``1``
+        Number of vectors for magnetometers. Either an integer or a float between 0 and
+        1 to select the number of vectors to explain the cumulative variance greater
+        than ``n_mag``.
+    n_eeg : int | float between ``0`` and ``1``
+        Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+        to select the number of vectors to explain the cumulative variance greater than
+        ``n_eeg``.
     reject : dict | None
         Epoch PTP rejection threshold used if ``duration != 0``. See `~mne.Epochs`.
     flat : dict | None
