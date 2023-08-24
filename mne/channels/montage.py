@@ -20,7 +20,6 @@ import re
 import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT
-from .._freesurfer import get_mni_fiducials
 from ..viz import plot_montage
 from ..transforms import (
     apply_trans,
@@ -60,8 +59,8 @@ from ..utils import (
     _check_fname,
     _on_missing,
     fill_doc,
-    _docdict,
 )
+from ..utils.docs import docdict
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -610,6 +609,9 @@ class DigMontage:
         and then use ``mne.channels.compute_native_head_t(montage)``
         to get the head <-> MRI transform.
         """
+        # Avoid circular import
+        from .._freesurfer import get_mni_fiducials
+
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
@@ -652,6 +654,8 @@ class DigMontage:
         those coordinate to be transformed to "head" space (origin
         between LPA and RPA).
         """
+        from .._freesurfer import get_mni_fiducials
+
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
 
         # get the coordinate frame and check that it's MNI TAL
@@ -1275,7 +1279,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False, on_missing="
             f"Not setting position{_pl(extra)} of {len(extra)} {types} "
             f"channel{_pl(extra)} found in montage:\n{names}\n"
             "Consider setting the channel types to be of "
-            f'{_docdict["montage_types"]} '
+            f'{docdict["montage_types"]} '
             "using inst.set_channel_types before calling inst.set_montage, "
             "or omit these channels when creating your montage."
         )

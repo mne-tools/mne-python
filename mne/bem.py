@@ -19,6 +19,7 @@ from pathlib import Path
 import shutil
 
 import numpy as np
+from scipy.optimize import fmin_cobyla
 
 from .fixes import _compare_version, _safe_svd
 from ._fiff.constants import FIFF, FWD
@@ -71,7 +72,6 @@ from .utils import (
     _verbose_safe_false,
     _check_head_radius,
 )
-
 
 # ############################################################################
 # Compute BEM solution
@@ -793,8 +793,6 @@ def _one_step(mu, u):
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters."""
-    from scipy.optimize import fmin_cobyla
-
     assert nfit >= 2
     u = dict(nfit=nfit, nterms=nterms)
 
@@ -1118,8 +1116,6 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
 
 def _fit_sphere(points, disp="auto"):
     """Fit a sphere to an arbitrary set of points."""
-    from scipy.optimize import fmin_cobyla
-
     if isinstance(disp, str) and disp == "auto":
         disp = True if logger.level <= 20 else False
     # initial guess for center and radius

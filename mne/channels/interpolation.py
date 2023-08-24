@@ -4,6 +4,8 @@
 
 import numpy as np
 from numpy.polynomial.legendre import legval
+from scipy.linalg import pinv
+from scipy.spatial.distance import pdist, squareform
 
 from ..utils import logger, warn, verbose
 from .._fiff.meas_info import _simplify_info
@@ -84,8 +86,6 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
         Spherical splines for scalp potential and current density mapping.
         Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
     """
-    from scipy import linalg
-
     pos_from = pos_from.copy()
     pos_to = pos_to.copy()
     n_from = pos_from.shape[0]
@@ -112,7 +112,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
             np.hstack([np.ones((1, n_from)), [[0]]]),
         ]
     )
-    C_inv = linalg.pinv(C)
+    C_inv = pinv(C)
 
     interpolation = np.hstack([G_to_from, np.ones((n_to, 1))]) @ C_inv[:, :-1]
     assert interpolation.shape == (n_to, n_from)
@@ -224,7 +224,6 @@ def _interpolate_bads_meeg(
 
 @verbose
 def _interpolate_bads_nirs(inst, method="nearest", exclude=(), verbose=None):
-    from scipy.spatial.distance import pdist, squareform
     from mne.preprocessing.nirs import _validate_nirs_info
 
     if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:

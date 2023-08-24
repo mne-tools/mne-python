@@ -9,6 +9,7 @@ import os.path as op
 import warnings
 
 import numpy as np
+from scipy import sparse
 
 from .fixes import _get_img_fdata
 from .morph_map import read_morph_map
@@ -605,7 +606,6 @@ class SourceMorph:
         return self
 
     def _morph_vols(self, vols, mesg, subselect=True):
-        from scipy import sparse
         from dipy.align.reslice import reslice
 
         interp = self.src_data["interpolator"].tocsc()[
@@ -776,7 +776,6 @@ def _debug_img(data, affine, title, shape=None):
     # Uncomment these lines for debugging help with volume morph:
     #
     # import nibabel as nib
-    # from scipy import sparse
     # if sparse.issparse(data):
     #     data = data.toarray()
     # data = np.asarray(data)
@@ -1176,8 +1175,6 @@ def _compute_morph_matrix(
     xhemi=False,
 ):
     """Compute morph matrix."""
-    from scipy import sparse
-
     logger.info("Computing morph matrix...")
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -1220,8 +1217,6 @@ def _compute_morph_matrix(
 
 
 def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
-    from scipy import sparse
-
     _validate_type(smooth, (str, None, "int-like"), "smoothing steps")
     if len(vertices_from) == 0:
         return sparse.csr_matrix((len(vertices_to), 0))
@@ -1335,13 +1330,10 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None, verbose=No
 # Takes ~20 ms to hash, ~100 ms to compute (5x speedup)
 @_custom_lru_cache(20)
 def _surf_nearest(vertices, adj_mat):
-    from scipy import sparse
-    from scipy.sparse.csgraph import dijkstra
-
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
     vertices = vertices[order]
-    _, _, sources = dijkstra(
+    _, _, sources = sparse.csgraph.dijkstra(
         adj_mat, False, indices=vertices, min_only=True, return_predecessors=True
     )
     col = np.searchsorted(vertices, sources)
@@ -1367,8 +1359,6 @@ def _csr_row_norm(data, row_norm):
 def _surf_upsampling_mat(idx_from, e, smooth):
     """Upsample data on a subject's surface given mesh edges."""
     # we're in CSR format and it's to==from
-    from scipy import sparse
-
     assert isinstance(e, sparse.csr_matrix)
     n_tot = e.shape[0]
     assert e.shape == (n_tot, n_tot)

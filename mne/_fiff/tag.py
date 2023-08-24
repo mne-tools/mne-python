@@ -7,6 +7,7 @@ from functools import partial
 import struct
 
 import numpy as np
+from scipy.sparse import csc_matrix, csr_matrix
 
 from .constants import (
     FIFF,
@@ -19,7 +20,6 @@ from .constants import (
 )
 from ..utils.numerics import _julian_to_cal
 from ..utils import warn, _check_option
-
 
 ##############################################################################
 # HELPERS
@@ -168,8 +168,6 @@ def _read_tag_header(fid):
 
 def _read_matrix(fid, tag, shape, rlims):
     """Read a matrix (dense or sparse) tag."""
-    from scipy import sparse
-
     # This should be easy to implement (see _frombuffer_rows)
     # if we need it, but for now, it's not...
     if shape is not None or rlims is not None:
@@ -237,7 +235,7 @@ def _read_matrix(fid, tag, shape, rlims):
                     )
                 )
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = sparse.csc_matrix((data, indices, indptr), shape=shape)
+            data = csc_matrix((data, indices, indptr), shape=shape)
         else:
             assert matrix_coding == "sparse RCS", matrix_coding
             tmp_indices = fid.read(4 * nnz)
@@ -254,7 +252,7 @@ def _read_matrix(fid, tag, shape, rlims):
                     )
                 )
                 indptr = np.frombuffer(tmp_ptr, dtype="<i4")
-            data = sparse.csr_matrix((data, indices, indptr), shape=shape)
+            data = csr_matrix((data, indices, indptr), shape=shape)
     return data
 
 

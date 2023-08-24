@@ -7,6 +7,8 @@ import os.path as op
 import datetime
 import calendar
 
+from scipy.spatial.distance import cdist
+
 from .utils import _load_mne_locs, _read_pos
 from ..base import BaseRaw
 from ...utils import logger, warn, verbose, _check_fname
@@ -338,7 +340,6 @@ class RawArtemis123(BaseRaw):
         pos_fname=None,
         add_head_trans=True,
     ):  # noqa: D102
-        from scipy.spatial.distance import cdist
         from ...chpi import (
             compute_chpi_amplitudes,
             compute_chpi_locs,

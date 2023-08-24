@@ -6,6 +6,7 @@ from collections import defaultdict
 from functools import partial
 
 import numpy as np
+from scipy.optimize import fmin_cobyla
 
 from ..bem import _check_origin
 from ..io import BaseRaw
@@ -256,8 +257,6 @@ def _vector_angle(x, y):
 
 def _adjust_mag_normals(info, data, origin, ext_order):
     """Adjust coil normals using magnetometers and empty-room data."""
-    from scipy.optimize import fmin_cobyla
-
     # in principle we could allow using just mag or mag+grad, but MF uses
     # just mag so let's follow suit
     mag_scale = 100.0

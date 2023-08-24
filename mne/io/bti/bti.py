@@ -15,7 +15,7 @@ from itertools import count
 
 import numpy as np
 
-from .. import BaseRaw
+from ..base import BaseRaw
 from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
 from ..._fiff.meas_info import _empty_info
 from ..._fiff._digitization import _make_bti_dig_points

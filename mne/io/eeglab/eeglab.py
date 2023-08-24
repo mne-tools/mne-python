@@ -29,7 +29,6 @@ from ...utils import (
 )
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
-from ...event import read_events
 from ...annotations import Annotations, read_annotations
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info
@@ -580,6 +579,8 @@ class EpochsEEGLAB(BaseEpochs):
         montage_units="mm",
         verbose=None,
     ):  # noqa: D102
+        from ...event import read_events
+
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )

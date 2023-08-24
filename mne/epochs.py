@@ -17,6 +17,7 @@ import operator
 import os.path as op
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from ._fiff.utils import _make_split_fnames
 from ._fiff.write import (
@@ -45,8 +46,6 @@ from ._fiff.open import fiff_open, _get_next_fname
 from ._fiff.tree import dir_tree_find
 from ._fiff.tag import read_tag, read_tag_info
 from ._fiff.constants import FIFF
-from .io import BaseRaw
-from .io.base import _get_ch_factors, _get_fname_rep
 from ._fiff.pick import (
     channel_indices_by_type,
     channel_type,
@@ -61,11 +60,11 @@ from ._fiff.meas_info import SetChannelsMixin
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
+from .html_templates import _get_html_template
 from .channels.channels import UpdateChannelsMixin, InterpolationMixin, ReferenceMixin
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
-from .event import _read_events_fif, make_fixed_length_events, match_event_names
 from .fixes import rng_uniform
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin, _validate_method
 from .viz import plot_epochs, plot_epochs_image, plot_topo_image_epochs, plot_drop_log
@@ -1590,6 +1589,8 @@ class BaseEpochs(
             End time of data to get in seconds.
         %(verbose)s
         """
+        from .io.base import _get_ch_factors
+
         # if called with 'out=False', the call came from 'drop_bad()'
         # if no reasons to drop, just declare epochs as good and return
         if not out:
@@ -1901,8 +1902,6 @@ class BaseEpochs(
 
     @repr_html
     def _repr_html_(self):
-        from .html_templates import repr_templates_env
-
         if self.baseline is None:
             baseline = "off"
         else:
@@ -1925,7 +1924,7 @@ class BaseEpochs(
         else:
             event_strings = None
 
-        t = repr_templates_env.get_template("epochs.html.jinja")
+        t = _get_html_template("repr", "epochs.html.jinja")
         t = t.render(epochs=self, baseline=baseline, events=event_strings)
         return t
 
@@ -2755,6 +2754,8 @@ def make_metadata(
     ----------
     .. footbibliography::
     """
+    from .event import match_event_names
+
     pd = _check_pandas_installed()
 
     _validate_type(event_id, types=(dict,), item_name="event_id")
@@ -3058,6 +3059,8 @@ class Epochs(BaseEpochs):
         event_repeated="error",
         verbose=None,
     ):  # noqa: D102
+        from .io import BaseRaw
+
         if not isinstance(raw, BaseRaw):
             raise ValueError(
                 "The first argument to `Epochs` must be an "
@@ -3423,8 +3426,6 @@ def _get_drop_indices(event_times, method):
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences."""
-    from scipy.interpolate import interp1d
-
     keep = np.ones((len(t_longer)), dtype=bool)
     # special case: length zero or one
     if len(t_shorter) < 2:  # interp1d won't work
@@ -3514,6 +3515,8 @@ def _is_good(
 
 def _read_one_epoch_file(f, tree, preload):
     """Read a single FIF file."""
+    from .event import _read_events_fif
+
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
@@ -3752,6 +3755,8 @@ class EpochsFIF(BaseEpochs):
 
     @verbose
     def __init__(self, fname, proj=True, preload=True, verbose=None):  # noqa: D102
+        from .io.base import _get_fname_rep
+
         if _path_like(fname):
             check_fname(
                 fname=fname,
@@ -4467,6 +4472,8 @@ def make_fixed_length_epochs(
     -----
     .. versionadded:: 0.20
     """
+    from .event import make_fixed_length_events
+
     events = make_fixed_length_events(raw, id=id, duration=duration, overlap=overlap)
     delta = 1.0 / raw.info["sfreq"]
     return Epochs(

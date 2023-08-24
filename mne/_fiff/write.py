@@ -11,6 +11,7 @@ import time
 import uuid
 
 import numpy as np
+from scipy.sparse import csc_matrix, csr_matrix
 
 from .constants import FIFF
 from ..utils import logger, _file_like, _validate_type
@@ -417,15 +418,13 @@ def write_float_sparse_ccs(fid, kind, mat):
 
 def write_float_sparse(fid, kind, mat, fmt="auto"):
     """Write a single-precision floating-point sparse matrix tag."""
-    from scipy import sparse
-
     if fmt == "auto":
-        fmt = "csr" if isinstance(mat, sparse.csr_matrix) else "csc"
+        fmt = "csr" if isinstance(mat, csr_matrix) else "csc"
     if fmt == "csr":
-        need = sparse.csr_matrix
+        need = csr_matrix
         matrix_type = FIFF.FIFFT_SPARSE_RCS_MATRIX
     else:
-        need = sparse.csc_matrix
+        need = csc_matrix
         matrix_type = FIFF.FIFFT_SPARSE_CCS_MATRIX
     _validate_type(mat, need, "sparse")
     matrix_type = matrix_type | FIFF.FIFFT_MATRIX | FIFF.FIFFT_FLOAT
