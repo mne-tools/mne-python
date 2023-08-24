@@ -136,8 +136,8 @@ def _compute_proj(
         exp_var = Sexp2 / Sexp2.sum()
 
         # select vectors to use
-        if n_vector < 1:
-            n_vector = np.searchsorted(np.cumsum(exp_var), n_vector, "right")
+        if 0 < n_vector < 1:
+            n_vector = np.searchsorted(np.cumsum(exp_var), n_vector, "left") + 1
         U = U[:, :n_vector]
         exp_var = exp_var[:n_vector]
 
