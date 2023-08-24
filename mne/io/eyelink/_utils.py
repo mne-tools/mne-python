@@ -32,18 +32,22 @@ def _get_recording_datetime(fname):
                     return dt_naive.replace(tzinfo=tz)  # make it dt aware
 
 
-def _get_metadata(event_lines, raw_extras):
-    """Get tracking mode, sfreq, eye tracked, pupil metric, etc."""
-    raw_extras["rec_info"] = event_lines["SAMPLES"][0]
+def _get_metadata(raw_extras):
+    """Get tracking mode, sfreq, eye tracked, pupil metric, etc.
+
+    Don't call this until after _parse_recording_blocks.
+    """
+    raw_extras["rec_info"] = raw_extras["event_lines"]["SAMPLES"][0]
     if ("LEFT" in raw_extras["rec_info"]) and ("RIGHT" in raw_extras["rec_info"]):
         raw_extras["tracking_mode"] = "binocular"
         raw_extras["eye"] = "both"
     else:
         raw_extras["tracking_mode"] = "monocular"
         raw_extras["eye"] = raw_extras["rec_info"][1].lower()
+    raw_extras["first_samp"] = float(raw_extras["event_lines"]["START"][0][0])
     raw_extras["sfreq"] = _get_sfreq_from_ascii(raw_extras["rec_info"])
-    raw_extras["pupil_info"] = event_lines["PUPIL"][0]
-    raw_extras["n_blocks"] = len(event_lines["START"])
+    raw_extras["pupil_info"] = raw_extras["event_lines"]["PUPIL"][0]
+    raw_extras["n_blocks"] = len(raw_extras["event_lines"]["START"])
     return raw_extras
 
 

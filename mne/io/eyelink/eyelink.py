@@ -190,19 +190,17 @@ class RawEyelink(BaseRaw):
 
         raw_extras = dict()
         self.fname = Path(fname)
-        self._sample_lines = None  # sample lines from file
-        self._event_lines = None  # event messages from file
         self.dataframes = {}
 
         # ======================== Parse ASCII File =========================
-        self._parse_recording_blocks()  # sets sample, event, & system lines
-        raw_extras = _get_metadata(self._event_lines, raw_extras)
+        raw_extras = self._parse_recording_blocks(raw_extras)
+        raw_extras = _get_metadata(raw_extras)
         raw_extras["dt"] = _get_recording_datetime(self.fname)
         self._validate_data(raw_extras)
 
         # ======================== Create DataFrames ========================
-        self._create_dataframes()
-        del self._sample_lines  # free up memory
+        self._create_dataframes(raw_extras)
+        del raw_extras["sample_lines"]  # free up memory
         # add column names to dataframes
         col_names, ch_names = self._infer_col_names(raw_extras)
         self._assign_col_names(col_names)
@@ -220,8 +218,7 @@ class RawEyelink(BaseRaw):
             )
         # Convert timestamps to seconds
         for df in self.dataframes.values():
-            first_samp = float(self._event_lines["START"][0][0])
-            _convert_times(df, first_samp)
+            _convert_times(df, raw_extras["first_samp"])
         # Find overlaps between left and right eye events
         if find_overlaps:
             for key in self.dataframes:
@@ -246,7 +243,7 @@ class RawEyelink(BaseRaw):
 
         # ======================== Make Annotations =========================
         gap_annots = None
-        if len(self._event_lines["START"]) > 1:
+        if raw_extras["n_blocks"] > 1:
             gap_annots = self._make_gap_annots()
         eye_annots = None
         if create_annotations:
@@ -264,9 +261,8 @@ class RawEyelink(BaseRaw):
 
         # Free up memory
         del self.dataframes
-        del self._event_lines
 
-    def _parse_recording_blocks(self):
+    def _parse_recording_blocks(self, raw_extras):
         """Parse Eyelink ASCII file.
 
         Eyelink samples occur within START and END blocks.
@@ -277,8 +273,8 @@ class RawEyelink(BaseRaw):
         messages sent by the stimulus presentation software.
         """
         with self.fname.open() as file:
-            self._sample_lines = []
-            self._event_lines = {
+            raw_extras["sample_lines"] = []
+            raw_extras["event_lines"] = {
                 "START": [],
                 "END": [],
                 "SAMPLES": [],
@@ -291,7 +287,6 @@ class RawEyelink(BaseRaw):
                 "BUTTON": [],
                 "PUPIL": [],
             }
-            self._system_lines = []
 
             is_recording_block = False
             for line in file:
@@ -300,16 +295,17 @@ class RawEyelink(BaseRaw):
                 if is_recording_block:
                     tokens = line.split()
                     if tokens[0][0].isnumeric():  # Samples
-                        self._sample_lines.append(tokens)
-                    elif tokens[0] in self._event_lines.keys():
+                        raw_extras["sample_lines"].append(tokens)
+                    elif tokens[0] in raw_extras["event_lines"].keys():
                         if _is_sys_msg(line):
                             continue  # system messages don't need to be parsed.
                         event_key, event_info = tokens[0], tokens[1:]
-                        self._event_lines[event_key].append(event_info)
+                        raw_extras["event_lines"][event_key].append(event_info)
                         if tokens[0] == "END":  # end of recording block
                             is_recording_block = False
-            if not self._sample_lines:  # no samples parsed
+            if not raw_extras["sample_lines"]:  # no samples parsed
                 raise ValueError(f"Couldn't find any samples in {self.fname}")
+            return raw_extras
 
     def _validate_data(self, raw_extras):
         """Check the incoming data for some known problems that can occur."""
@@ -332,7 +328,7 @@ class RawEyelink(BaseRaw):
         # If more than 1 recording period, check whether eye being tracked changed.
         if raw_extras["n_blocks"] > 1:
             if raw_extras["tracking_mode"] == "monocular":
-                blocks_list = self._event_lines["SAMPLES"]
+                blocks_list = raw_extras["event_lines"]["SAMPLES"]
                 eye_per_block = [block_info[1] for block_info in blocks_list]
                 if not all(
                     [this_eye == raw_extras["eye"] for this_eye in eye_per_block]
@@ -435,24 +431,24 @@ class RawEyelink(BaseRaw):
 
         return col_names, ch_names
 
-    def _create_dataframes(self):
+    def _create_dataframes(self, raw_extras):
         """Create pandas.DataFrame for Eyelink samples and events.
 
-        Creates a pandas DataFrame for self._sample_lines and for each
-        non-empty key in self._event_lines.
+        Creates a pandas DataFrame for sample_lines and for each
+        non-empty key in event_lines.
         """
         pd = _check_pandas_installed()
 
         # dataframe for samples
-        self.dataframes["samples"] = pd.DataFrame(self._sample_lines)
+        self.dataframes["samples"] = pd.DataFrame(raw_extras["sample_lines"])
         self._drop_status_col()  # Remove STATUS column
 
         # dataframe for each type of occular event
         for event, label in zip(
             ["EFIX", "ESACC", "EBLINK"], ["fixations", "saccades", "blinks"]
         ):
-            if self._event_lines[event]:  # an empty list returns False
-                self.dataframes[label] = pd.DataFrame(self._event_lines[event])
+            if raw_extras["event_lines"][event]:  # an empty list returns False
+                self.dataframes[label] = pd.DataFrame(raw_extras["event_lines"][event])
             else:
                 logger.info(
                     f"No {label} were found in this file. "
@@ -460,9 +456,9 @@ class RawEyelink(BaseRaw):
                 )
 
         # make dataframe for experiment messages
-        if self._event_lines["MSG"]:
+        if raw_extras["event_lines"]["MSG"]:
             msgs = []
-            for tokens in self._event_lines["MSG"]:
+            for tokens in raw_extras["event_lines"]["MSG"]:
                 timestamp = tokens[0]
                 # if offset token exists, it will be the 1st index and is numeric
                 if tokens[1].lstrip("-").replace(".", "", 1).isnumeric():
@@ -478,16 +474,18 @@ class RawEyelink(BaseRaw):
         # make dataframe for recording block start, end times
         i = 1
         blocks = list()
-        for bgn, end in zip(self._event_lines["START"], self._event_lines["END"]):
+        for bgn, end in zip(
+            raw_extras["event_lines"]["START"], raw_extras["event_lines"]["END"]
+        ):
             blocks.append((float(bgn[0]), float(end[0]), i))
             i += 1
         cols = ["time", "end_time", "block"]
         self.dataframes["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
 
         # make dataframe for digital input port
-        if self._event_lines["INPUT"]:
+        if raw_extras["event_lines"]["INPUT"]:
             cols = ["time", "DIN"]
-            self.dataframes["DINS"] = pd.DataFrame(self._event_lines["INPUT"])
+            self.dataframes["DINS"] = pd.DataFrame(raw_extras["event_lines"]["INPUT"])
 
         # TODO: Make dataframes for other eyelink events (Buttons)
 
