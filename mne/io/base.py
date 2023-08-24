@@ -1177,7 +1177,7 @@ class BaseRaw(
             If None, ``freqs / 200`` is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
-            Only used for ``method='fir'``.
+            Only used for ``method='fir'`` and ``method='iir'``.
         %(n_jobs_fir)s
         %(method_fir)s
         %(iir_params)s

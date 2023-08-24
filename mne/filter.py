@@ -1470,7 +1470,8 @@ def create_filter(
             if method == "iir":
                 if len(f_p1) != 1:
                     raise ValueError(
-                        "Multiple stop-bands can only be used " "with FIR filtering"
+                        "Multiple stop-bands can only be used with method='fir' "
+                        "and method='spectrum_fit'"
                     )
                 out = construct_iir_filter(
                     iir_params,
@@ -1541,15 +1542,16 @@ def notch_filter(
         Sampling rate in Hz.
     freqs : float | array of float | None
         Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
-        None can only be used with the mode 'spectrum_fit', where an F
-        test is used to find sinusoidal components.
+        Multiple stop-bands can only be used with method='fir'
+        and method='spectrum_fit'. None can only be used with the mode
+        'spectrum_fit', where an F test is used to find sinusoidal components.
     %(filter_length_notch)s
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used.
     trans_bandwidth : float
         Width of the transition band in Hz.
-        Only used for ``method='fir'``.
+        Only used for ``method='fir'`` and ``method='iir'``.
     %(method_fir)s
         'spectrum_fit' will use multi-taper estimation of sinusoidal
         components. If freqs=None and method='spectrum_fit', significant
