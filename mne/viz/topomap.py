@@ -468,6 +468,7 @@ def _plot_projs_topomap(
 ):
     import matplotlib.pyplot as plt
     from ..channels.layout import _merge_ch_data
+    from ..channels.channels import _get_ch_type
 
     sphere = _check_sphere(sphere, info)
     projs = _check_type_projs(projs)
@@ -496,7 +497,7 @@ def _plot_projs_topomap(
             ch_type,
             this_sphere,
             clip_origin,
-        ) = _prepare_topomap_plot(use_info, (use_info, None), sphere=sphere)
+        ) = _prepare_topomap_plot(use_info, _get_ch_type(use_info, None), sphere=sphere)
         these_outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
         data = data[data_picks]
         if merge_channels:
