@@ -10,6 +10,7 @@ import datetime as dt
 import json
 
 import numpy as np
+from scipy.io import loadmat
 
 from ._localized_abbr import _localized_abbr
 from ..base import BaseRaw
@@ -87,8 +88,6 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, preload=False, verbose=None):
-        from scipy.io import loadmat
-
         logger.info("Loading %s" % fname)
         _validate_type(fname, "path-like", "fname")
         _validate_type(saturated, str, "saturated")

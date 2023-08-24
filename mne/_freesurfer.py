@@ -9,7 +9,6 @@ import numpy as np
 from gzip import GzipFile
 from pathlib import Path
 
-from .bem import _bem_find_surface, read_bem_surfaces
 from ._fiff.constants import FIFF
 from ._fiff.meas_info import read_fiducials
 from .transforms import (
@@ -757,6 +756,7 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     -----
     .. versionadded: 0.24
     """
+    from .bem import _bem_find_surface, read_bem_surfaces
     from .surface import _read_mri_surface
 
     _check_option("surf", surf, ("auto", "head", "outer_skin", "head-dense", "seghead"))
@@ -830,6 +830,7 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     -----
     .. versionadded: 0.24
     """
+    from .bem import _bem_find_surface
     from .surface import _read_mri_surface
 
     if bem is not None:

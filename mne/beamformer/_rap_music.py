@@ -6,6 +6,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import linalg
 
 from ..fixes import _safe_svd
 from ..forward import is_fixed_orient, convert_forward_solution
@@ -48,8 +49,6 @@ def _apply_rap_music(
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
     """
-    from scipy import linalg
-
     info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation

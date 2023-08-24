@@ -4,6 +4,10 @@
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import numpy as np
+from scipy.fft import rfft, rfftfreq
+from scipy.signal import get_window
+from scipy.signal.windows import dpss as sp_dpss
+
 
 from ..parallel import parallel_func
 from ..utils import warn, verbose, logger, _check_option
@@ -58,8 +62,6 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True):
     ----------
     .. footbibliography::
     """
-    from scipy.signal.windows import dpss as sp_dpss
-
     dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm, return_ratios=True)
     if low_bias:
         idx = eigvals > 0.9
@@ -253,8 +255,6 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
     freqs : array, shape=(n_freqs,)
         The frequency points in Hz of the spectra
     """
-    from scipy.fft import rfft, rfftfreq
-
     if n_fft is None:
         n_fft = x.shape[-1]
 
@@ -282,8 +282,6 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None, remove_dc=True):
 def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive, verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
-    from scipy.signal import get_window
-
     if isinstance(bandwidth, str):
         logger.info(
             '    Using standard spectrum estimation with "%s" window' % (bandwidth,)
@@ -401,8 +399,6 @@ def psd_array_multitaper(
     ----------
     .. footbibliography::
     """
-    from scipy.fft import rfftfreq
-
     _check_option("normalization", normalization, ["length", "full"])
 
     # Reshape data so its 2-D for parallelization

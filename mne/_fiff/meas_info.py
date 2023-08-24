@@ -71,6 +71,7 @@ from ..transforms import (
     _ensure_trans,
     _frame_to_str,
 )
+from ..html_templates import _get_html_template
 from ..utils import (
     logger,
     verbose,
@@ -1830,8 +1831,6 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     @repr_html
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
-        from ..html_templates import repr_templates_env
-
         if isinstance(caption, str):
             html = f"<h4>{caption}</h4>"
         else:
@@ -1861,7 +1860,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         else:
             projs = None
 
-        info_template = repr_templates_env.get_template("info.html.jinja")
+        info_template = _get_html_template("repr", "info.html.jinja")
         return html + info_template.render(
             caption=caption,
             meas_date=meas_date,

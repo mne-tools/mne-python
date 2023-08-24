@@ -8,6 +8,7 @@
 from copy import deepcopy
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from ..bem import _check_origin
 from ..cov import make_ad_hoc_cov
@@ -32,8 +33,6 @@ from ..evoked import Evoked, EvokedArray
 
 def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
-    from scipy.interpolate import interp1d
-
     int_rad = 0.06
     noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
     n_coeff, interp = (50, "nearest") if mode == "fast" else (100, "linear")

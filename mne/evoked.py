@@ -16,6 +16,7 @@ from .channels.channels import UpdateChannelsMixin, InterpolationMixin, Referenc
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .filter import detrend, FilterMixin, _check_fun
+from .html_templates import _get_html_template
 from .utils import (
     check_fname,
     logger,
@@ -74,7 +75,6 @@ from ._fiff.write import (
     write_float,
     write_complex_float_matrix,
 )
-from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
@@ -240,6 +240,9 @@ class Evoked(
         -----
         .. versionadded:: 0.24
         """
+        # Avoid circular import
+        from .io.base import _get_ch_factors
+
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
         start, stop = self._handle_tmin_tmax(tmin, tmax)
@@ -416,15 +419,13 @@ class Evoked(
 
     @repr_html
     def _repr_html_(self):
-        from .html_templates import repr_templates_env
-
         if self.baseline is None:
             baseline = "off"
         else:
             baseline = tuple([f"{b:.3f}" for b in self.baseline])
             baseline = f"{baseline[0]} – {baseline[1]} s"
 
-        t = repr_templates_env.get_template("evoked.html.jinja")
+        t = _get_html_template("repr", "evoked.html.jinja")
         t = t.render(evoked=self, baseline=baseline)
         return t
 
@@ -1380,6 +1381,8 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
 
 def _get_aspect(evoked, allow_maxshield):
     """Get Evoked data aspect."""
+    from .io.base import _check_maxshield
+
     is_maxshield = False
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:

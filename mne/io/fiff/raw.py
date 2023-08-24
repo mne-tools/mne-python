@@ -28,7 +28,6 @@ from ..._fiff.utils import _mult_cal_one
 
 from ...annotations import Annotations, _read_annotations_fif
 
-from ...event import AcqParserFIF
 from ...utils import (
     check_fname,
     logger,
@@ -490,6 +489,8 @@ class Raw(BaseRaw):
         --------
         mne.AcqParserFIF
         """
+        from ...event import AcqParserFIF
+
         if getattr(self, "_acqparser", None) is None:
             self._acqparser = AcqParserFIF(self.info)
         return self._acqparser

@@ -11,6 +11,8 @@ from functools import partial
 import re
 
 import numpy as np
+from scipy.linalg import eigh
+from scipy.optimize import fmin_cobyla
 
 from .cov import compute_whitener, _ensure_cov
 from ._fiff.constants import FIFF
@@ -998,8 +1000,6 @@ def _fit_dipoles(
     rhoend,
 ):
     """Fit a single dipole to the given whitened, projected data."""
-    from scipy.optimize import fmin_cobyla
-
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(
@@ -1138,8 +1138,6 @@ def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
     #
     # And then the confidence interval is the diagonal of C, scaled by 1.96
     # (for 95% confidence).
-    from scipy import linalg
-
     direction = np.empty((3, 3))
     # The coordinate system has the x axis aligned with the dipole orientation,
     direction[0] = ori
@@ -1195,7 +1193,7 @@ def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
         4
         * np.pi
         / 3.0
-        * np.sqrt(476.379541 * np.prod(linalg.eigh(C[:3, :3], eigvals_only=True)))
+        * np.sqrt(476.379541 * np.prod(eigh(C[:3, :3], eigvals_only=True)))
     )
     conf = np.concatenate([conf, [vol_conf]])
     # Now we reorder and subselect the proper columns:

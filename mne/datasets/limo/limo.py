@@ -7,13 +7,13 @@ from pathlib import Path
 import time
 
 import numpy as np
+from scipy.io import loadmat
 
 from ...channels import make_standard_montage
 from ...epochs import EpochsArray
 from ..._fiff.meas_info import create_info
 from ...utils import _check_pandas_installed, verbose, logger
 from ..utils import _get_path, _do_path_update, _log_time_size, _downloader_params
-
 
 # root url for LIMO files
 root_url = "https://files.de-1.osf.io/v1/resources/52rea/providers/osfstorage/"
@@ -290,8 +290,6 @@ def load_data(subject, path=None, force_update=False, update_path=None, verbose=
         The epochs.
     """  # noqa: E501
     pd = _check_pandas_installed()
-    from scipy.io import loadmat
-
     # subject in question
     if isinstance(subject, int) and 1 <= subject <= 18:
         subj = "S%i" % subject

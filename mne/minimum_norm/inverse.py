@@ -8,6 +8,8 @@ from copy import deepcopy
 from math import sqrt
 
 import numpy as np
+from scipy import linalg
+from scipy.stats import chi2
 
 from ._eloreta import _compute_eloreta
 from ..fixes import _safe_svd
@@ -52,6 +54,7 @@ from ..forward import (
     _select_orient_forward,
 )
 from ..forward.forward import write_forward_meas_info, _triage_loose
+from ..html_templates import _get_html_template
 from ..source_space import (
     _read_source_spaces_from_tree,
     _get_src_nn,
@@ -130,12 +133,10 @@ class InverseOperator(dict):
 
     @repr_html
     def _repr_html_(self):
-        from ..html_templates import repr_templates_env
-
         repr_info = self._get_chs_and_src_info_for_repr()
         n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
 
-        t = repr_templates_env.get_template("inverse_operator.html.jinja")
+        t = _get_html_template("repr", "inverse_operator.html.jinja")
         html = t.render(
             channels=f"{n_chs_meg} MEG, {n_chs_eeg} EEG",
             source_space_descr=src_space_descr,
@@ -627,8 +628,6 @@ def prepare_inverse_operator(
     inv : instance of InverseOperator
         Prepared inverse operator.
     """
-    from scipy import linalg
-
     if nave <= 0:
         raise ValueError("The number of averages should be positive")
 
@@ -2201,8 +2200,6 @@ def estimate_snr(evoked, inv, verbose=None):
 
     .. versionadded:: 0.9.0
     """  # noqa: E501
-    from scipy.stats import chi2
-
     _check_reference(evoked, inv["info"]["ch_names"])
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1.0 / 9.0, "MNE", copy="non-src")

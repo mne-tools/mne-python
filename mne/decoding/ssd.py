@@ -4,8 +4,10 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy.linalg import eigh
 
-from . import TransformerMixin, BaseEstimator
+from .mixin import TransformerMixin
+from ..fixes import BaseEstimator
 from ..cov import _regularized_covariance, Covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
@@ -183,8 +185,6 @@ class SSD(BaseEstimator, TransformerMixin):
         self : instance of SSD
             Returns the modified instance.
         """
-        from scipy import linalg
-
         self._check_X(X)
         X_aux = X[..., self.picks_, :]
 
@@ -216,7 +216,7 @@ class SSD(BaseEstimator, TransformerMixin):
             cov_signal, cov_noise, self.info, self.rank
         )
 
-        eigvals_, eigvects_ = linalg.eigh(cov_signal, cov_noise)
+        eigvals_, eigvects_ = eigh(cov_signal, cov_noise)
         # sort in descending order
         ix = np.argsort(eigvals_)[::-1]
         self.eigvals_ = eigvals_[ix]
@@ -336,8 +336,6 @@ class SSD(BaseEstimator, TransformerMixin):
 
 def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     """Perform dimensionality reduction on the covariance matrices."""
-    from scipy import linalg
-
     n_channels = cov_signal.shape[0]
 
     # find ranks of covariance matrices
@@ -374,7 +372,7 @@ def _dimensionality_reduction(cov_signal, cov_noise, info, rank):
     rank = np.min([rank_signal, rank_noise])  # should be identical
 
     if rank < n_channels:
-        eigvals, eigvects = linalg.eigh(cov_signal)
+        eigvals, eigvects = eigh(cov_signal)
         # sort in descending order
         ix = np.argsort(eigvals)[::-1]
         eigvals = eigvals[ix]

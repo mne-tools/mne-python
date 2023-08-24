@@ -13,13 +13,13 @@ import re
 import numpy as np
 from traitlets import observe, HasTraits, Unicode, Bool, Float
 
-from ..io import read_raw
-from ..io._read_raw import supported as raw_supported_types
 from ..defaults import DEFAULTS
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import read_info, _empty_info, read_fiducials, write_fiducials
+from .._fiff.meas_info import read_info, read_fiducials, write_fiducials
 from .._fiff.pick import pick_types
 from .._fiff.open import fiff_open, dir_tree_find
+from .._fiff.meas_info import _empty_info
+from ..io._read_raw import _get_supported, read_raw
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (
     Coregistration,
@@ -433,12 +433,13 @@ class CoregistrationUI(HasTraits):
             return
 
         # info file can be anything supported by read_raw
+        supported = _get_supported()
         try:
             check_fname(
                 fname,
                 "info",
-                tuple(raw_supported_types.keys()),
-                endings_err=tuple(raw_supported_types.keys()),
+                tuple(supported),
+                endings_err=tuple(supported),
             )
             fname = str(_check_fname(fname, overwrite="read"))  # cast to str
 

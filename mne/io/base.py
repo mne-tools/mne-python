@@ -57,7 +57,6 @@ from .._fiff.write import (
     _get_split_size,
     _NEXT_FILE_BUFFER,
 )
-
 from ..annotations import (
     Annotations,
     _annotations_starts_stops,
@@ -74,6 +73,7 @@ from ..filter import (
     _resample_stim_channels,
     _check_fun,
 )
+from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..utils import (
     _check_fname,
@@ -107,7 +107,6 @@ from ..utils import (
 )
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
-from ..event import find_events, concatenate_events
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 
@@ -1332,6 +1331,7 @@ class BaseRaw(
         resulting raw object will have the data loaded into memory.
         """
         from ..filter import _check_resamp_noop
+        from ..event import find_events
 
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
@@ -2084,8 +2084,6 @@ class BaseRaw(
 
     @repr_html
     def _repr_html_(self, caption=None):
-        from ..html_templates import repr_templates_env
-
         basenames = [os.path.basename(f) for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
@@ -2096,7 +2094,7 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-        raw_template = repr_templates_env.get_template("raw.html.jinja")
+        raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
             info_repr=self.info._repr_html_(caption=caption),
             filenames=basenames,
@@ -2308,8 +2306,6 @@ class BaseRaw(
             If data_frame=False, returns None. If data_frame=True, returns
             results in a pandas.DataFrame (requires pandas).
         """
-        from scipy.stats import scoreatpercentile as q
-
         nchan = self.info["nchan"]
 
         # describe each channel
@@ -2321,9 +2317,9 @@ class BaseRaw(
             cols["type"].append(channel_type(self.info, i))
             cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
-            cols["Q1"].append(q(data, 25))
+            cols["Q1"].append(np.percentile(data, 25))
             cols["median"].append(np.median(data))
-            cols["Q3"].append(q(data, 75))
+            cols["Q3"].append(np.percentile(data, 75))
             cols["max"].append(np.max(data))
 
         if data_frame:  # return data frame
@@ -3019,6 +3015,8 @@ def concatenate_raws(
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
+    from ..event import concatenate_events
+
     for idx, raw in enumerate(raws[1:], start=1):
         _ensure_infos_match(
             info1=raws[0].info,

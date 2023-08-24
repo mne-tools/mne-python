@@ -11,6 +11,7 @@ from functools import partial
 import warnings
 
 import numpy as np
+from scipy.stats import gaussian_kde
 
 from .utils import (
     tight_layout,
@@ -24,7 +25,6 @@ from .utils import (
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
-from ..channels.channels import _get_ch_type
 from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default, DEFAULTS
 from .._fiff.meas_info import create_info
@@ -202,7 +202,7 @@ def _plot_ica_properties(
 ):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-    from scipy.stats import gaussian_kde
+    from ..channels.channels import _get_ch_type
 
     topo_ax, image_ax, erp_ax, spec_ax, var_ax = axes
 
