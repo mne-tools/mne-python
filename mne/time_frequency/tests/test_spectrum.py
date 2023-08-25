@@ -461,7 +461,7 @@ def _check_psd_equivalent(psd, psd2, tmp_path):
 @pytest.mark.parametrize("kind", ("raw", "epochs"))
 def test_spectrum_array(kind, raw_psds, epochs_psds, tmp_path, request):
     """Test EppchsSpectrumArray and SpectrumArray methods."""
-    pytest.importorskip("h5py")
+    pytest.importorskip("h5io")
     psds_orig = request.getfixturevalue(f"{kind}_psds")
     if kind == "raw":
         psds = _get_psd_variants_raw(psds_orig)
