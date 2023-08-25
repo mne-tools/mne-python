@@ -52,6 +52,7 @@ from ..utils import (
     legacy,
     check_version,
 )
+from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -2628,7 +2629,6 @@ def plot_epochs_psd_topomap(
     """
     from ..channels import rename_channels
     from ..time_frequency import Spectrum
-    from ..utils.spectrum import _split_psd_kwargs
 
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
     spectrum = epochs.compute_psd(**init_kw)

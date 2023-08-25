@@ -11,7 +11,7 @@ from types import ModuleType
 import pytest
 
 import mne
-from mne.utils import run_subprocess
+from mne.utils import run_subprocess, logger, _pl
 
 
 # To avoid circular import issues, we have a defined order of submodule
@@ -25,12 +25,12 @@ IMPORT_NESTING_ORDER = (
     "defaults",
     "utils",
     "cuda",
-    "filter",
     "_fiff",
+    "filter",
     "transforms",
-    "viz",
     "surface",
     "_freesurfer",
+    "viz",
     "bem",
     "source_space",
     "channels",
@@ -92,7 +92,8 @@ def test_import_nesting_hierarchy():
 
     # AST-parse all .py files in a submod dir to check nesting
     class _ValidatingVisitor(ast.NodeVisitor):
-        def __init__(self, must_nest, must_not_nest):
+        def __init__(self, *, rel_path, must_nest, must_not_nest):
+            self.level = rel_path.count("/")  # e.g., mne/surface.py will be 1
             self.must_nest = set(must_nest)
             self.must_not_nest = set(must_not_nest)
             self.errors = list()
@@ -111,7 +112,7 @@ def test_import_nesting_hierarchy():
 
             # No "import mne.*"
             err = (node.lineno, stmt)
-            print(f"  {node.lineno:}".ljust(6) + ":" + stmt)
+            logger.debug(f"  {node.lineno:}".ljust(6) + ":" + stmt)
             if any(n.name == "mne" or n.name.startswith("mne.") for n in node.names):
                 self.errors.append(err + ("non-relative mne import",))
             if isinstance(node, ast.ImportFrom):  # from
@@ -119,16 +120,17 @@ def test_import_nesting_hierarchy():
                     # now we need to triage based on whether this is nested
                     if node.module is None:
                         self.errors.append(err + ("non-explicit relative import",))
-                    else:
+                    elif node.level == self.level:
+                        module_name = node.module.split(".")[0]
                         if node.col_offset:  # nested
-                            if node.module in self.must_not_nest:
+                            if module_name in self.must_not_nest:
                                 self.errors.append(
-                                    err + (f"hierarchy: must not nest {node.module}",)
+                                    err + (f"hierarchy: must not nest {module_name}",)
                                 )
                         else:  # non-nested
-                            if node.module in self.must_nest:
+                            if module_name in self.must_nest:
                                 self.errors.append(
-                                    err + (f"hierarchy: must nest {node.module}",)
+                                    err + (f"hierarchy: must nest {module_name}",)
                                 )
             super().generic_visit(node)
 
@@ -202,7 +204,7 @@ def test_import_nesting_hierarchy():
         ),
     )
     root_dir = Path(mne.__file__).parent.resolve()
-    all_errors = ""
+    all_errors = list()
     for si, submodule_name in enumerate(IMPORT_NESTING_ORDER):
         must_not_nest = IMPORT_NESTING_ORDER[:si]
         must_nest = IMPORT_NESTING_ORDER[si + 1 :]
@@ -222,24 +224,28 @@ def test_import_nesting_hierarchy():
             if rel_path.parent.stem == "tests":
                 continue  # never look at tests/*.py
             validator = _ValidatingVisitor(
+                rel_path=rel_path.as_posix(),
                 must_nest=must_nest,
                 must_not_nest=must_not_nest,
             )
             tree = ast.parse(file.read_text(), filename=file)
             assert isinstance(tree, ast.Module)
             rel_path = rel_path.as_posix()  # str
-            print(rel_path)
+            logger.debug(rel_path)
             validator.visit(tree)
             errors = [
                 err for err in validator.errors if (rel_path,) + err[1:] not in ignores
             ]
             # Format these for easy copy-paste
-            all_errors += "\n".join(
-                f'Line {line}: ("{rel_path}", "{stmt}", "{kind}"),  # noqa: E501'
+            all_errors.extend(
+                f"Line {line}:".ljust(11) + f'("{rel_path}", "{stmt}", "{kind}"),'
                 for line, stmt, kind in errors
             )
     if all_errors:
-        raise AssertionError(f"\n{all_errors}")
+        raise AssertionError(
+            f"{len(all_errors)} nesting error{_pl(all_errors)}:\n"
+            + "\n".join(all_errors)
+        )
 
     # scheme obeys the above order
 
