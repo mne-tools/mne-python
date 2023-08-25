@@ -30,7 +30,6 @@ from .._fiff.pick import (
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
 )
-from ..time_frequency import Spectrum
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -1171,5 +1170,7 @@ def plot_epochs_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return epochs.compute_psd(**init_kw).plot(**plot_kw)

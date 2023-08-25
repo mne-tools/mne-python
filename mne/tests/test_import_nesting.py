@@ -31,6 +31,7 @@ IMPORT_NESTING_ORDER = (
     "surface",
     "_freesurfer",
     "viz",
+    "annotations",
     "bem",
     "source_space",
     "channels",
@@ -61,6 +62,7 @@ IMPORT_NESTING_ORDER = (
 NON_ALL_SUBMODULES = (
     "_fiff",
     "_freesurfer",
+    "annotations",
     "bem",
     "cuda",
     "defaults",

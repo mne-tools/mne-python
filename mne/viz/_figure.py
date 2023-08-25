@@ -17,9 +17,10 @@ from .backends._utils import VALID_BROWSE_BACKENDS
 from .utils import _get_color_list, _setup_plot_projector, _show_browser
 
 from ..defaults import _handle_default
+from ..filter import _overlap_add_filter, _iir_filter
 from ..utils import logger, _validate_type, _check_option
 from .._fiff.pick import _DATA_CH_TYPES_SPLIT
-from ..utils import verbose, get_config, set_config
+from ..utils import verbose, get_config, set_config, _get_stim_channel
 from ..fixes import _compare_version
 
 MNE_BROWSER_BACKEND = None
@@ -271,8 +272,6 @@ class BrowserBase(ABC):
 
     def _make_butterfly_selections_dict(self):
         """Make an altered copy of the selections dict for butterfly mode."""
-        from ..utils import _get_stim_channel
-
         selections_dict = deepcopy(self.mne.ch_selections)
         # remove potential duplicates
         for selection_group in ("Vertex", "Custom"):
@@ -328,8 +327,6 @@ class BrowserBase(ABC):
 
     def _apply_filter(self, data, start, stop, picks):
         """Filter (with same defaults as raw.filter())."""
-        from ..filter import _overlap_add_filter, _iir_filter
-
         starts, stops = self.mne.filter_bounds
         mask = (starts < stop) & (stops > start)
         starts = np.maximum(starts[mask], start) - start

@@ -3086,6 +3086,7 @@ def _preproc_tfr(
     return data, times, freqs, vmin, vmax
 
 
+# TODO: Name duplication with mne/utils/mixin.py
 def _check_decim(decim):
     """Aux function checking the decim parameter."""
     _validate_type(decim, ("int-like", slice), "decim")
