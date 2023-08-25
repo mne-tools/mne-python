@@ -16,6 +16,7 @@ from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
 from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFAULT
 from ..fixes import pinv
+from ..evoked import EvokedArray
 from ..utils import fill_doc, _check_option, _validate_type, copy_doc
 
 
@@ -337,8 +338,6 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        from ..evoked import EvokedArray
-
         if units is None:
             units = "AU"
         if components is None:
@@ -470,8 +469,6 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        from ..evoked import EvokedArray
-
         if units is None:
             units = "AU"
         if components is None:

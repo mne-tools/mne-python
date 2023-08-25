@@ -11,7 +11,7 @@ from inspect import signature
 import numpy as np
 
 from ..channels.channels import UpdateChannelsMixin, _get_ch_type
-from ..channels.layout import _merge_ch_data
+from ..channels.layout import _merge_ch_data, find_layout
 from ..defaults import (
     _BORDER_DEFAULT,
     _EXTRAPOLATE_DEFAULT,
@@ -19,7 +19,7 @@ from ..defaults import (
     _handle_default,
 )
 from ..html_templates import _get_html_template
-from .._fiff.meas_info import ContainsMixin
+from .._fiff.meas_info import ContainsMixin, Info
 from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (
     GetEpochsMixin,
@@ -46,6 +46,7 @@ from ..utils.check import (
 )
 from ..utils.misc import _pl
 from ..utils.spectrum import _split_psd_kwargs
+from ..viz._mpl_figure import _line_figure, _split_picks_by_type
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import _format_units_psd, _plot_psd, _prepare_sensor_names, plt_show
@@ -380,7 +381,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """Unpack from serialized format."""
         from ..epochs import Epochs
         from ..evoked import Evoked
-        from .._fiff.meas_info import Info
         from ..io import Raw
 
         self._method = state["method"]
@@ -636,7 +636,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure with spectra plotted in separate subplots for each channel
             type.
         """
-        from ..viz._mpl_figure import _line_figure, _split_picks_by_type
         from .multitaper import _psd_from_mt
 
         # arg checking
@@ -756,8 +755,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure distributing one image per channel across sensor topography.
         """
         if layout is None:
-            from ..channels.layout import find_layout
-
             layout = find_layout(self.info)
 
         psds, freqs = self.get_data(return_freqs=True)

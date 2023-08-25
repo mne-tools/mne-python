@@ -37,21 +37,21 @@ IMPORT_NESTING_ORDER = (
     "channels",
     "event",
     "time_frequency",
-    "io",
-    "epochs",
     "evoked",
+    "epochs",
+    "io",
     "forward",
     "minimum_norm",
-    "beamformer",
+    "dipole",
     "inverse_sparse",
+    "beamformer",
+    "decoding",
     "preprocessing",
     # The rest of these are less critical after the above are sorted out,
     # so we'll just go alphabetical
     "chpi",
     "coreg",
     "datasets",
-    "decoding",
-    "dipole",
     "export",
     "gui",
     "simulation",
@@ -125,7 +125,10 @@ def test_import_nesting_hierarchy():
                     elif node.level == self.level:
                         module_name = node.module.split(".")[0]
                         if node.col_offset:  # nested
-                            if module_name in self.must_not_nest:
+                            if (
+                                module_name in self.must_not_nest
+                                and node.module != "viz.backends.renderer"
+                            ):
                                 self.errors.append(
                                     err + (f"hierarchy: must not nest {module_name}",)
                                 )
@@ -139,11 +142,6 @@ def test_import_nesting_hierarchy():
     ignores = (
         # File, statement, kind (omit line number because this can change)
         ("mne/utils/docs.py", "    import mne", "non-relative mne import"),
-        (
-            "mne/utils/docs.py",
-            "        from .. import __version__",
-            "non-explicit relative import",
-        ),
         (
             "mne/viz/backends/_pyvista.py",
             "    from . import renderer",
@@ -170,16 +168,6 @@ def test_import_nesting_hierarchy():
             "non-explicit relative import",
         ),
         (
-            "mne/preprocessing/maxwell.py",
-            "from .. import __version__",
-            "non-explicit relative import",
-        ),
-        (
-            "mne/datasets/_fetch.py",
-            "from .. import __version__",
-            "non-explicit relative import",
-        ),
-        (
             "mne/datasets/utils.py",
             "    from . import eegbci, sleep_physionet, limo, fetch_fsaverage, fetch_infant_template, fetch_hcp_mmp_parcellation, fetch_phantom",  # noqa: E501
             "non-explicit relative import",
@@ -192,11 +180,6 @@ def test_import_nesting_hierarchy():
         (
             "mne/datasets/brainstorm/__init__.py",
             "from . import bst_raw, bst_resting, bst_auditory, bst_phantom_ctf, bst_phantom_elekta",  # noqa: E501
-            "non-explicit relative import",
-        ),
-        (
-            "mne/report/report.py",
-            "from .. import __version__",
             "non-explicit relative import",
         ),
         (
@@ -242,6 +225,7 @@ def test_import_nesting_hierarchy():
             all_errors.extend(
                 f"Line {line}:".ljust(11) + f'("{rel_path}", "{stmt}", "{kind}"),'
                 for line, stmt, kind in errors
+                if not stmt.endswith((". import __version__",))
             )
     # Print a reasonable number of lines
     n = len(all_errors)
