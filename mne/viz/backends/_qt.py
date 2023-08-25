@@ -66,7 +66,6 @@ from ._pyvista import (
     _set_3d_view,  # noqa: F401
     _set_3d_title,  # noqa: F401
     _take_3d_screenshot,  # noqa: F401
-    _is_mesa,  # noqa: F401
 )
 from ._abstract import (
     _AbstractAppWindow,

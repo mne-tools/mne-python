@@ -267,7 +267,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure._build()
             self._hide_axes()
-            self._enable_antialias()
+            self._toggle_antialias()
             self._enable_depth_peeling()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
@@ -860,16 +860,15 @@ class _PyVistaRenderer(_AbstractRenderer):
         return _Projection(xy=xy, pts=pts, plotter=self.plotter)
 
     def _enable_depth_peeling(self):
-        if not self.depth_peeling:
-            return
         if not self.figure.store["off_screen"]:
-            for renderer in self._all_renderers:
-                renderer.enable_depth_peeling()
+            for plotter in self._all_plotters:
+                if self.depth_peeling:
+                    plotter.enable_depth_peeling()
+                else:
+                    plotter.disable_depth_peeling()
 
-    def _enable_antialias(self):
+    def _toggle_antialias(self):
         """Enable it everywhere except Azure."""
-        if not self.antialias:
-            return
         # XXX for some reason doing this on Azure causes access violations:
         #     ##[error]Cmd.exe exited with code '-1073741819'
         # So for now don't use it there. Maybe has to do with setting these
@@ -877,18 +876,15 @@ class _PyVistaRenderer(_AbstractRenderer):
         # For Mayavi we have an "on activated" event or so, we should look into
         # using this for Azure at some point, too.
         if self.figure._is_active():
-            # macOS, Azure
-            bad_system = (
-                sys.platform == "darwin"
-                or os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
-            )
-            bad_system |= _is_mesa(self.plotter)
-            if not bad_system:
-                for renderer in self._all_renderers:
-                    # ssaa broken on Linux at least (NVIDIA and Mesa)
-                    renderer.enable_anti_aliasing(aa_type="fxaa")
+            # Azure
+            bad_system = os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
             for plotter in self._all_plotters:
-                plotter.ren_win.LineSmoothingOn()
+                if bad_system or not self.antialias:
+                    plotter.disable_anti_aliasing()
+                else:
+                    plotter.ren_win.LineSmoothingOn()
+                    if not bad_system:
+                        plotter.enable_anti_aliasing(aa_type="msaa")
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
