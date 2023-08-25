@@ -2765,14 +2765,12 @@ class Report:
         # iterate through the possible patterns
         fnames = list()
         for p in pattern:
-            data_path = str(
-                _check_fname(
-                    fname=self.data_path,
-                    overwrite="read",
-                    must_exist=True,
-                    name="Directory or folder",
-                    need_dir=True,
-                )
+            data_path = _check_fname(
+                fname=self.data_path,
+                overwrite="read",
+                must_exist=True,
+                name="Directory or folder",
+                need_dir=True,
             )
             fnames.extend(sorted(_recursive_search(data_path, p)))
 
@@ -2789,7 +2787,7 @@ class Report:
                 inst = read_raw(**kwargs)
 
                 if len(inst.filenames) > 1:
-                    fnames_to_remove.extend(inst.filenames[1:])
+                    fnames_to_remove.extend([str(f) for f in inst.filenames[1:]])
             # For STCs, only keep one hemisphere
             elif fname.endswith("-lh.stc") or fname.endswith("-rh.stc"):
                 first_hemi_fname = fname
