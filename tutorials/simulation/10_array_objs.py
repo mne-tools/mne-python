@@ -228,4 +228,5 @@ spectrum = mne.time_frequency.SpectrumArray(
     freqs=freqs,
     info=info,
 )
+
 spectrum.plot(picks=[0, 1], spatial_colors=False, exclude="bads")

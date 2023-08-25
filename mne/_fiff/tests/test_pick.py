@@ -15,23 +15,28 @@ from mne import (
     pick_channels,
     create_info,
     make_ad_hoc_cov,
-)
-from mne.io import read_raw_fif, RawArray, read_raw_bti, read_raw_kit, read_info
-from mne.channels import make_standard_montage
-from mne.preprocessing import compute_current_source_density
-from mne.io.pick import (
     channel_indices_by_type,
     channel_type,
     pick_types_forward,
+    pick_channels_cov,
+)
+from mne.io import (
+    read_raw_fif,
+    RawArray,
+    read_raw_bti,
+    read_raw_kit,
+    read_info,
+)
+from mne.channels import make_standard_montage
+from mne.preprocessing import compute_current_source_density
+from mne._fiff.pick import (
     _picks_by_type,
     _picks_to_idx,
     _contains_ch_type,
-    pick_channels_cov,
-    _get_channel_types,
-    get_channel_type_constants,
     _DATA_CH_TYPES_SPLIT,
+    get_channel_type_constants,
 )
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.datasets import testing
 from mne.utils import catch_logging, assert_object_equal
 
@@ -39,7 +44,7 @@ data_path = testing.data_path(download=False)
 fname_meeg = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 fname_mc = data_path / "SSS" / "test_move_anon_movecomp_raw_sss.fif"
 
-io_dir = Path(__file__).parent.parent
+io_dir = Path(__file__).parent.parent.parent / "io"
 ctf_fname = io_dir / "tests" / "data" / "test_ctf_raw.fif"
 fif_fname = io_dir / "tests" / "data" / "test_raw.fif"
 
@@ -347,7 +352,7 @@ def test_pick_chpi():
     # Make sure we don't mis-classify cHPI channels
     info = read_info(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
     _assert_channel_types(info)
-    channel_types = _get_channel_types(info)
+    channel_types = info.get_channel_types()
     assert "chpi" in channel_types
     assert "seeg" not in channel_types
     assert "ecog" not in channel_types

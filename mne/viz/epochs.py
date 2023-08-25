@@ -16,16 +16,16 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 
 from .raw import _setup_channel_selections
 from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
 from ..utils.spectrum import _split_psd_kwargs
-from ..io.meas_info import create_info, _validate_type
+from .._fiff.meas_info import create_info
 
-from ..io.pick import (
-    _get_channel_types,
+from .._fiff.pick import (
     _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
@@ -46,6 +46,7 @@ from .utils import (
     _set_window_title,
     _make_event_color_dict,
     _get_channel_plotting_order,
+    _validate_type,
 )
 
 
@@ -224,7 +225,6 @@ def plot_epochs_image(
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
-    from scipy.ndimage import gaussian_filter1d
     from .. import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")
@@ -236,7 +236,7 @@ def plot_epochs_image(
 
     # is picks a channel type (or None)?
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
-    ch_types = _get_channel_types(epochs.info, picks)
+    ch_types = epochs.info.get_channel_types(picks)
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed

@@ -50,7 +50,7 @@ from matplotlib.figure import Figure
 from .. import channel_indices_by_type, pick_types
 from ..fixes import _close_event
 from ..annotations import _sync_onset
-from ..io.pick import (
+from .._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
     _FNIRS_CH_TYPES_SPLIT,

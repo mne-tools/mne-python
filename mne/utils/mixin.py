@@ -59,9 +59,9 @@ class SizeMixin:
         hash : int
             The hash
         """
-        from ..evoked import Evoked
+        from ..io import BaseRaw
         from ..epochs import BaseEpochs
-        from ..io.base import BaseRaw
+        from ..evoked import Evoked
 
         if isinstance(self, Evoked):
             return object_hash(dict(info=self.info, data=self.data))

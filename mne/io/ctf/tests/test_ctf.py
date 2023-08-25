@@ -24,14 +24,14 @@ from mne import (
 )
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.io.compensator import get_current_comp
+from mne._fiff.compensator import get_current_comp
 from mne.io.ctf.constants import CTF
 from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 from mne.utils import _clean_names, catch_logging, _stamp_to_dt, _record_warnings
 from mne.datasets import testing, spm_face, brainstorm
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 
 ctf_dir = testing.data_path(download=False) / "CTF"
 ctf_fname_continuous = "testdata_ctf.ds"

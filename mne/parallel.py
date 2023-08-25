@@ -8,8 +8,15 @@ import logging
 import multiprocessing
 import os
 
-from . import get_config
-from .utils import logger, verbose, warn, ProgressBar, _validate_type, _ensure_int
+from .utils import (
+    logger,
+    verbose,
+    warn,
+    ProgressBar,
+    _validate_type,
+    _ensure_int,
+    get_config,
+)
 
 
 @verbose

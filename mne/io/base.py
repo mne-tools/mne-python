@@ -19,24 +19,30 @@ from collections import defaultdict
 
 import numpy as np
 
-from .constants import FIFF
-from .utils import _construct_bids_filename, _check_orig_units
-from .pick import pick_types, pick_channels, pick_info, _picks_to_idx, channel_type
-from .meas_info import (
+from .._fiff.constants import FIFF
+from .._fiff.utils import _construct_bids_filename, _check_orig_units
+from .._fiff.pick import (
+    pick_types,
+    pick_channels,
+    pick_info,
+    _picks_to_idx,
+    channel_type,
+)
+from .._fiff.meas_info import (
     write_meas_info,
     _ensure_infos_match,
     ContainsMixin,
     SetChannelsMixin,
+    _unit2human,
 )
-from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
+from .._fiff.proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (
     UpdateChannelsMixin,
     InterpolationMixin,
     ReferenceMixin,
 )
-from .meas_info import _unit2human
-from .compensator import set_current_comp, make_compensator
-from .write import (
+from .._fiff.compensator import set_current_comp, make_compensator
+from .._fiff.write import (
     start_and_end_file,
     start_block,
     end_block,
@@ -51,7 +57,6 @@ from .write import (
     _get_split_size,
     _NEXT_FILE_BUFFER,
 )
-
 from ..annotations import (
     Annotations,
     _annotations_starts_stops,
@@ -68,6 +73,7 @@ from ..filter import (
     _resample_stim_channels,
     _check_fun,
 )
+from ..html_templates import _get_html_template
 from ..parallel import parallel_func
 from ..utils import (
     _check_fname,
@@ -97,10 +103,10 @@ from ..utils import (
     TimeMixin,
     repr_html,
     _pl,
+    _file_like,
 )
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
-from ..event import find_events, concatenate_events
 from ..time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
 
 
@@ -1170,7 +1176,7 @@ class BaseRaw(
             If None, ``freqs / 200`` is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
-            Only used for ``method='fir'``.
+            Only used for ``method='fir'`` and ``method='iir'``.
         %(n_jobs_fir)s
         %(method_fir)s
         %(iir_params)s
@@ -1325,6 +1331,7 @@ class BaseRaw(
         resulting raw object will have the data loaded into memory.
         """
         from ..filter import _check_resamp_noop
+        from ..event import find_events
 
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
@@ -1700,6 +1707,7 @@ class BaseRaw(
         # write the raw file
         _validate_type(split_naming, str, "split_naming")
         _check_option("split_naming", split_naming, ("neuromag", "bids"))
+
         _write_raw(
             fname,
             self,
@@ -2046,7 +2054,7 @@ class BaseRaw(
         """Clean up the object.
 
         Does nothing for objects that close their file descriptors.
-        Things like RawFIF will override this method.
+        Things like Raw will override this method.
         """
         pass  # noqa
 
@@ -2076,8 +2084,6 @@ class BaseRaw(
 
     @repr_html
     def _repr_html_(self, caption=None):
-        from ..html_templates import repr_templates_env
-
         basenames = [os.path.basename(f) for f in self._filenames if f is not None]
 
         # https://stackoverflow.com/a/10981895
@@ -2088,7 +2094,7 @@ class BaseRaw(
         seconds = np.ceil(seconds)  # always take full seconds
 
         duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-        raw_template = repr_templates_env.get_template("raw.html.jinja")
+        raw_template = _get_html_template("repr", "raw.html.jinja")
         return raw_template.render(
             info_repr=self.info._repr_html_(caption=caption),
             filenames=basenames,
@@ -2156,6 +2162,7 @@ class BaseRaw(
         tmax=None,
         picks=None,
         proj=False,
+        remove_dc=True,
         reject_by_annotation=True,
         *,
         n_jobs=1,
@@ -2172,6 +2179,7 @@ class BaseRaw(
         %(tmin_tmax_psd)s
         %(picks_good_data_noref)s
         %(proj_psd)s
+        %(remove_dc)s
         %(reject_by_annotation_psd)s
         %(n_jobs)s
         %(verbose)s
@@ -2202,6 +2210,7 @@ class BaseRaw(
             tmax=tmax,
             picks=picks,
             proj=proj,
+            remove_dc=remove_dc,
             reject_by_annotation=reject_by_annotation,
             n_jobs=n_jobs,
             verbose=verbose,
@@ -2297,8 +2306,6 @@ class BaseRaw(
             If data_frame=False, returns None. If data_frame=True, returns
             results in a pandas.DataFrame (requires pandas).
         """
-        from scipy.stats import scoreatpercentile as q
-
         nchan = self.info["nchan"]
 
         # describe each channel
@@ -2310,9 +2317,9 @@ class BaseRaw(
             cols["type"].append(channel_type(self.info, i))
             cols["unit"].append(_unit2human[ch["unit"]])
             cols["min"].append(np.min(data))
-            cols["Q1"].append(q(data, 25))
+            cols["Q1"].append(np.percentile(data, 25))
             cols["median"].append(np.median(data))
-            cols["Q3"].append(q(data, 75))
+            cols["Q3"].append(np.percentile(data, 75))
             cols["max"].append(np.max(data))
 
         if data_frame:  # return data frame
@@ -2594,15 +2601,15 @@ def _write_raw(
             use_fname = "%s-%d%s" % (base, part_idx, ext)
         else:
             assert split_naming == "bids"
-            use_fname = _construct_bids_filename(base, ext, part_idx + 1)
-            # check for file existence
-            _check_fname(use_fname, overwrite)
+            use_fname = _construct_bids_filename(base, ext, part_idx)
     else:
         use_fname = fname
+    # check for file existence
+    _check_fname(use_fname, overwrite)
     # reserve our BIDS split fname in case we need to split
     if split_naming == "bids" and part_idx == 0:
         # reserve our possible split name
-        reserved_fname = _construct_bids_filename(base, ext, part_idx + 1)
+        reserved_fname = _construct_bids_filename(base, ext, part_idx)
         logger.info(f"Reserving possible split file {op.basename(reserved_fname)}")
         _check_fname(reserved_fname, overwrite)
         ctx = _ReservedFilename(reserved_fname)
@@ -3008,6 +3015,8 @@ def concatenate_raws(
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
+    from ..event import concatenate_events
+
     for idx, raw in enumerate(raws[1:], start=1):
         _ensure_infos_match(
             info1=raws[0].info,
@@ -3071,3 +3080,10 @@ def _check_maxshield(allow_maxshield):
             " want to load the data despite this warning."
         )
         raise ValueError(msg)
+
+
+def _get_fname_rep(fname):
+    if not _file_like(fname):
+        return fname
+    else:
+        return "File-like"

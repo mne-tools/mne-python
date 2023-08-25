@@ -20,7 +20,7 @@ from mne.io import (
     RawArray,
     read_raw_kit,
 )
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.chpi import (
     compute_chpi_amplitudes,
     compute_chpi_locs,

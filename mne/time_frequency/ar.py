@@ -4,9 +4,10 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import linalg
 
 from ..defaults import _handle_default
-from ..io.pick import _picks_to_idx, _picks_by_type, pick_info
+from .._fiff.pick import _picks_to_idx, _picks_by_type, pick_info
 from ..utils import verbose, _apply_scaling_array
 
 
@@ -15,8 +16,6 @@ def _yule_walker(X, order=1):
 
     Operates in-place.
     """
-    from scipy import linalg
-
     assert X.ndim == 2
     denom = X.shape[-1] - np.arange(order + 1)
     r = np.zeros(order + 1, np.float64)

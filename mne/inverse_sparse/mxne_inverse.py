@@ -14,7 +14,7 @@ from ..minimum_norm.inverse import (
 )
 from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
-from ..io.proj import deactivate_proj
+from .._fiff.proj import deactivate_proj
 from ..utils import (
     logger,
     verbose,

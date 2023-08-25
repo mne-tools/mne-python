@@ -28,7 +28,7 @@ from mne.io import (
     BaseRaw,
     read_raw_ctf,
 )
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.preprocessing import (
     maxwell_filter,
     find_bad_channels_maxwell,
