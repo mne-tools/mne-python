@@ -143,26 +143,6 @@ def test_import_nesting_hierarchy():
         # File, statement, kind (omit line number because this can change)
         ("mne/utils/docs.py", "    import mne", "non-relative mne import"),
         (
-            "mne/viz/backends/_pyvista.py",
-            "    from . import renderer",
-            "non-explicit relative import",
-        ),
-        (
-            "mne/viz/backends/_qt.py",
-            "        from . import renderer",
-            "non-explicit relative import",
-        ),
-        (
-            "mne/viz/backends/_qt.py",
-            "    from . import renderer",
-            "non-explicit relative import",
-        ),
-        (
-            "mne/viz/backends/__init__.py",
-            "from . import renderer",
-            "non-explicit relative import",
-        ),
-        (
             "mne/io/_read_raw.py",
             "    from . import read_raw_edf, read_raw_bdf, read_raw_gdf, read_raw_brainvision, read_raw_fif, read_raw_eeglab, read_raw_cnt, read_raw_egi, read_raw_eximia, read_raw_nirx, read_raw_fieldtrip, read_raw_artemis123, read_raw_nicolet, read_raw_kit, read_raw_ctf, read_raw_boxy, read_raw_snirf, read_raw_fil, read_raw_nihon, read_raw_curry, read_raw_nedf",  # noqa: E501
             "non-explicit relative import",
@@ -225,7 +205,7 @@ def test_import_nesting_hierarchy():
             all_errors.extend(
                 f"Line {line}:".ljust(11) + f'("{rel_path}", "{stmt}", "{kind}"),'
                 for line, stmt, kind in errors
-                if not stmt.endswith((". import __version__",))
+                if not stmt.endswith((". import __version__", " import renderer"))
             )
     # Print a reasonable number of lines
     n = len(all_errors)
