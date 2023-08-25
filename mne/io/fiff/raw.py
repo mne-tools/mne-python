@@ -7,8 +7,7 @@
 # License: BSD-3-Clause
 
 import copy
-import os
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 
@@ -99,7 +98,7 @@ class Raw(BaseRaw):
     ):  # noqa: D102
         raws = []
         do_check_ext = not _file_like(fname)
-        next_fname = fname
+        next_fname = Path(fname) if isinstance(fname, str) else fname
         while next_fname is not None:
             raw, next_fname, buffer_size_sec = self._read_raw_file(
                 next_fname, allow_maxshield, preload, do_check_ext
@@ -107,7 +106,7 @@ class Raw(BaseRaw):
             do_check_ext = False
             raws.append(raw)
             if next_fname is not None:
-                if not op.exists(next_fname):
+                if not next_fname.exists():
                     msg = (
                         f"Split raw file detected but next file {next_fname} "
                         "does not exist. Ensure all files were transferred "
@@ -183,8 +182,8 @@ class Raw(BaseRaw):
                 endings += tuple([f"{e}.gz" for e in endings])
                 check_fname(fname, "raw", endings)
             # filename
-            fname = str(_check_fname(fname, "read", True, "fname"))
-            ext = os.path.splitext(fname)[1].lower()
+            fname = _check_fname(fname, "read", True, "fname")
+            ext = fname.suffix.lower()
             whole_file = preload if ".gz" in ext else False
             del ext
         else:

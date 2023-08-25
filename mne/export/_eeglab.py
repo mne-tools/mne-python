@@ -18,7 +18,7 @@ def _export_raw(fname, raw):
     # remove extra epoc and STI channels
     drop_chs = ["epoc"]
     # filenames attribute of RawArray is filled with None
-    if raw.filenames[0] and not (raw.filenames[0].endswith(".fif")):
+    if raw.filenames[0] and not (str(raw.filenames[0]).endswith(".fif")):
         drop_chs.append("STI 014")
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]

@@ -13,6 +13,9 @@ from difflib import get_close_matches
 from importlib import import_module
 from importlib.metadata import version
 from pathlib import Path
+import re
+import numbers
+import zipfile
 
 import numpy as np
 from packaging.version import parse
@@ -236,7 +239,8 @@ def _check_fname(
 ):
     """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
-    fname = Path(fname).expanduser().absolute()
+    if not isinstance(fname, zipfile.Path):
+        fname = Path(fname).expanduser().absolute()
 
     if fname.exists():
         if not overwrite:
@@ -257,7 +261,7 @@ def _check_fname(
                     raise OSError(
                         f"Need a file for {name} but found a directory " f"at {fname}"
                     )
-            if not os.access(fname, os.R_OK):
+            if not isinstance(fname, zipfile.Path) and not os.access(fname, os.R_OK):
                 raise PermissionError(f"{name} does not have read permissions: {fname}")
     elif must_exist:
         raise FileNotFoundError(f'{name} does not exist: "{fname}"')
@@ -527,7 +531,7 @@ class _IntLike:
 
 
 int_like = _IntLike()
-path_like = (str, Path, os.PathLike)
+path_like = (str, Path, os.PathLike, zipfile.Path)
 
 
 class _Callable:
