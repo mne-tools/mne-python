@@ -52,6 +52,7 @@ __getattr_lz__, __dir__, __all__ = lazy.attach(
         "eyelink": ["read_raw_eyelink"],
         "_fiff_wrap": [
             "read_info",
+            "write_info",
             "anonymize_info",
             "read_fiducials",
             "write_fiducials",
@@ -63,27 +64,28 @@ __getattr_lz__, __dir__, __all__ = lazy.attach(
 
 
 # Remove in 1.6 and change __getattr_lz__ to __getattr__
+from ..utils import warn as _warn
+from .._fiff.reference import (
+    set_eeg_reference as _set_eeg_reference,
+    set_bipolar_reference as _set_bipolar_reference,
+    add_reference_channels as _add_referenc_channels,
+)
+from .._fiff.meas_info import Info as _Info
+
+
 def __getattr__(name):
     """Try getting attribute from fiff submodule."""
-    from ..utils import warn
-
     if name in (
         "set_eeg_reference",
         "set_bipolar_reference",
         "add_reference_channels",
     ):
-        from .._fiff.reference import (
-            set_eeg_reference,
-            set_bipolar_reference,
-            add_reference_channels,
-        )
-
         warn(
             f"mne.io.{name} is deprecated and will be removed in 1.6, "
             "use mne.{name} instead",
             FutureWarning,
         )
-        return locals()[name]
+        return locals()[f"_{name}"]
     elif name == "RawFIF":
         warn(
             "RawFIF is deprecated and will be removed in 1.6, use Raw instead",
@@ -91,12 +93,10 @@ def __getattr__(name):
         )
         name = "Raw"
     elif name == "Info":
-        from .._fiff.meas_info import Info
-
         warn(
             "mne.io.Info is deprecated and will be removed in 1.6, "
             "use mne.Info instead",
             FutureWarning,
         )
-        return Info
+        return _Info
     return __getattr_lz__(name)

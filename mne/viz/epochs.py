@@ -26,12 +26,10 @@ from ..utils.spectrum import _split_psd_kwargs
 from .._fiff.meas_info import create_info
 
 from .._fiff.pick import (
-    _get_channel_types,
     _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
 )
-from ..time_frequency import Spectrum
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -226,7 +224,7 @@ def plot_epochs_image(
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
-    from .. import EpochsArray
+    from ..epochs import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")
 
@@ -237,7 +235,7 @@ def plot_epochs_image(
 
     # is picks a channel type (or None)?
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
-    ch_types = _get_channel_types(epochs.info, picks)
+    ch_types = epochs.info.get_channel_types(picks)
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed
@@ -636,7 +634,7 @@ def _plot_epochs_image(
         ax_im.set_xlim(tmin, tmax)
     # draw the evoked
     if evoked:
-        from . import plot_compare_evokeds
+        from .evoked import plot_compare_evokeds
 
         pass_combine = combine if combine_given else None
         _picks = [0] if len(picks) == 1 else None  # prevent applying GFP
@@ -1172,5 +1170,7 @@ def plot_epochs_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return epochs.compute_psd(**init_kw).plot(**plot_kw)

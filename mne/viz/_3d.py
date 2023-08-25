@@ -42,15 +42,7 @@ from .._fiff.pick import (
     _MEG_CH_TYPES_SPLIT,
 )
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import read_fiducials, create_info
-from ..source_space import (
-    _ensure_src,
-    _create_surf_spacing,
-    _check_spacing,
-    SourceSpaces,
-    read_freesurfer_lut,
-)
-
+from .._fiff.meas_info import read_fiducials, create_info, Info
 from ..surface import (
     get_meg_helmet_surf,
     _read_mri_surface,
@@ -710,6 +702,7 @@ def plot_alignment(
     # Update the backend
     from .backends.renderer import _get_renderer
     from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
+    from ..source_space import _ensure_src, read_freesurfer_lut
 
     meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
     _check_option("interaction", interaction, ["trackball", "terrain"])
@@ -2066,6 +2059,7 @@ def _plot_mpl_stc(
     from matplotlib.widgets import Slider
     import nibabel as nib
     from ..morph import _get_subject_sphere_tris
+    from ..source_space import _create_surf_spacing, _check_spacing
 
     if hemi not in ["lh", "rh"]:
         raise ValueError(
@@ -2254,6 +2248,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
 
 def _check_volume(stc, src, surface, backend_name):
     from ..source_estimate import _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate
+    from ..source_space import SourceSpaces
 
     if isinstance(stc, _BaseSurfaceSourceEstimate):
         return False
@@ -2790,6 +2785,7 @@ def plot_volume_source_estimates(
     import nibabel as nib
     from ..source_estimate import VolSourceEstimate
     from ..morph import SourceMorph
+    from ..source_space import _ensure_src
 
     if not check_version("nilearn", "0.4"):
         raise RuntimeError("This function requires nilearn >= 0.4")
@@ -3763,7 +3759,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         The screenshot of the current scene view.
     """
     from ..channels import DigMontage
-    from .. import Info
 
     # Update the backend
     from .backends.renderer import _get_renderer

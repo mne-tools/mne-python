@@ -56,7 +56,7 @@ from .utils import (
     TimeMixin,
     _verbose_safe_false,
 )
-from .viz import plot_dipole_locations
+from .viz import plot_dipole_locations, plot_dipole_amplitudes
 
 
 @fill_doc
@@ -375,8 +375,6 @@ class Dipole(TimeMixin):
         fig : matplotlib.figure.Figure
             The figure object containing the plot.
         """
-        from .viz import plot_dipole_amplitudes
-
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):

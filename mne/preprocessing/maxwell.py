@@ -2884,8 +2884,6 @@ def compute_maxwell_basis(
     ----------
     .. footbibliography::
     """
-    from ..io import RawArray
-
     _validate_type(info, Info, "info")
     raw = RawArray(np.zeros((len(info["ch_names"]), 1)), info.copy(), verbose=False)
     logger.info("Computing Maxwell basis")

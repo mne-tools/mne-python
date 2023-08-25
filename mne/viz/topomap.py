@@ -26,7 +26,7 @@ from scipy.sparse import csr_matrix
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
-from . import ui_events
+from .ui_events import publish, subscribe, TimeChange
 from ..baseline import rescale
 from ..channels.layout import (
     find_layout,
@@ -42,7 +42,6 @@ from .._fiff.pick import (
     pick_channels,
     _pick_data_channels,
     _picks_to_idx,
-    _get_channel_types,
     _MEG_CH_TYPES_SPLIT,
 )
 from ..utils import (
@@ -59,6 +58,7 @@ from ..utils import (
     legacy,
     check_version,
 )
+from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -78,6 +78,7 @@ from .utils import (
     _format_units_psd,
     _prepare_sensor_names,
     _get_plot_ch_type,
+    plot_sensors,
 )
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
@@ -480,7 +481,7 @@ def _plot_projs_topomap(
         ch_names = _clean_names(proj["data"]["col_names"], remove_whitespace=True)
         if vlim == "joint":
             ch_idxs = np.where(np.in1d(info["ch_names"], proj["data"]["col_names"]))[0]
-            these_ch_types = _get_channel_types(info, ch_idxs, unique=True)
+            these_ch_types = info.get_channel_types(ch_idxs, unique=True)
             # each projector should have only one channel type
             assert len(these_ch_types) == 1
             types.append(list(these_ch_types)[0])
@@ -1181,7 +1182,7 @@ def _plot_topomap(
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = _get_channel_types(pos, unique=True)
+        ch_type = pos.get_channel_types(picks=None, unique=True)
         info_help = (
             "Pick Info with e.g. mne.pick_info and " "mne.channel_indices_by_type."
         )
@@ -2320,14 +2321,14 @@ def plot_evoked_topomap(
         func = _merge_ch_data if merge_channels else lambda x: x
 
         def _slider_changed(val):
-            ui_events.publish(fig, ui_events.TimeChange(time=val))
+            publish(fig, TimeChange(time=val))
 
         slider.on_changed(_slider_changed)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color="k")
         axes[-1].slider = slider
 
-        ui_events.subscribe(
+        subscribe(
             fig,
             "time_change",
             partial(
@@ -2619,7 +2620,6 @@ def plot_epochs_psd_topomap(
     """
     from ..channels import rename_channels
     from ..time_frequency import Spectrum
-    from ..utils.spectrum import _split_psd_kwargs
 
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
     spectrum = epochs.compute_psd(**init_kw)
@@ -3739,8 +3739,6 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
 
-    from . import plot_sensors
-
     _validate_type(info, Info, "info")
     _validate_type(adjacency, (np.ndarray, csr_matrix), "adjacency")
     has_sparse = isinstance(adjacency, csr_matrix)
@@ -3994,7 +3992,7 @@ def plot_regression_weights(
 
     sphere = _check_sphere(sphere)
     if ch_type is None:
-        ch_types = _get_channel_types(model.info_, unique=True, only_data_chs=True)
+        ch_types = model.info_.get_channel_types(unique=True, only_data_chs=True)
     else:
         ch_types = [ch_type]
     del ch_type

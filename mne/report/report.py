@@ -74,7 +74,9 @@ from ..viz import (
     Figure3D,
     use_browser_backend,
     _get_plot_ch_type,
+    create_3d_figure,
 )
+from ..viz._brain.view import views_dicts
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..viz._scraper import _mne_qt_browser_screenshot
@@ -524,7 +526,6 @@ def _get_bem_contour_figs_as_arrays(
 
 def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    from ..viz import create_3d_figure
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
 
     # TODO: Eventually maybe we should expose the size option?
@@ -543,7 +544,6 @@ def _iterate_trans_views(function, alpha, **kwargs):
 
 def _itv(function, fig, **kwargs):
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
-    from ..viz._brain.view import views_dicts
 
     function(fig=fig, **kwargs)
 

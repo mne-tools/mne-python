@@ -61,6 +61,7 @@ from ..utils import (
     _to_rgb,
     warn,
     check_version,
+    _check_decim,
 )
 from ..transforms import apply_trans
 
@@ -2066,9 +2067,6 @@ def _setup_ax_spines(
 
 def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
-    from ..utils.mixin import _check_decim
-    from ..utils import _ensure_int
-
     if isinstance(decim, str) and decim == "auto":
         lp = info["sfreq"] if info["lowpass"] is None else info["lowpass"]
         lp = min(lp, info["sfreq"] if lowpass is None else lowpass)

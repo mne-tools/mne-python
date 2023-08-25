@@ -1428,33 +1428,3 @@ def _picks_str_to_idx(
     if return_kind:
         return picks, picked_ch_type_or_generic
     return picks
-
-
-# TODO: Remove this, shouldn't be needed
-def _pick_inst(inst, picks, exclude, copy=True):
-    """Return an instance with picked and excluded channels."""
-    if copy is True:
-        inst = inst.copy()
-    picks = _picks_to_idx(inst.info, picks, exclude=[])
-    pick_names = [inst.info["ch_names"][pick] for pick in picks]
-    inst.pick_channels(pick_names)
-
-    if exclude == "bads":
-        exclude = [ch for ch in inst.info["bads"] if ch in inst.info["ch_names"]]
-    if exclude is not None:
-        inst.drop_channels(exclude)
-    return inst
-
-
-# TODO: Remove this and make it a method of info
-def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
-    """Get the data channel types in an info instance."""
-    none = "data" if only_data_chs else "all"
-    picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
-    ch_types = [channel_type(info, pick) for pick in picks]
-    if only_data_chs:
-        ch_types = [ch_type for ch_type in ch_types if ch_type in _DATA_CH_TYPES_SPLIT]
-    if unique:
-        # set does not preserve order but dict does, so let's just use it
-        ch_types = list({k: k for k in ch_types}.keys())
-    return ch_types

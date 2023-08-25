@@ -19,6 +19,8 @@ from collections import defaultdict
 
 import numpy as np
 
+from ..filter import _check_resamp_noop
+from ..event import find_events, concatenate_events
 from .._fiff.constants import FIFF
 from .._fiff.utils import _construct_bids_filename, _check_orig_units
 from .._fiff.pick import (
@@ -1330,9 +1332,6 @@ class BaseRaw(
         ``self.load_data()``, but this increases memory requirements. The
         resulting raw object will have the data loaded into memory.
         """
-        from ..filter import _check_resamp_noop
-        from ..event import find_events
-
         sfreq = float(sfreq)
         o_sfreq = float(self.info["sfreq"])
         if _check_resamp_noop(sfreq, o_sfreq):
@@ -3015,8 +3014,6 @@ def concatenate_raws(
     events : ndarray of int, shape (n_events, 3)
         The events. Only returned if ``event_list`` is not None.
     """
-    from ..event import concatenate_events
-
     for idx, raw in enumerate(raws[1:], start=1):
         _ensure_infos_match(
             info1=raws[0].info,
