@@ -36,6 +36,7 @@ IMPORT_NESTING_ORDER = (
     "source_space",
     "channels",
     "event",
+    "time_frequency",
     "io",
     "epochs",
     "evoked",
@@ -44,7 +45,6 @@ IMPORT_NESTING_ORDER = (
     "beamformer",
     "inverse_sparse",
     "preprocessing",
-    "time_frequency",
     # The rest of these are less critical after the above are sorted out,
     # so we'll just go alphabetical
     "chpi",
@@ -243,11 +243,13 @@ def test_import_nesting_hierarchy():
                 f"Line {line}:".ljust(11) + f'("{rel_path}", "{stmt}", "{kind}"),'
                 for line, stmt, kind in errors
             )
+    # Print a reasonable number of lines
+    n = len(all_errors)
+    all_errors = all_errors[:30] + (
+        [] if n <= 30 else [f"... {len(all_errors) - 30} more"]
+    )
     if all_errors:
-        raise AssertionError(
-            f"{len(all_errors)} nesting error{_pl(all_errors)}:\n"
-            + "\n".join(all_errors)
-        )
+        raise AssertionError(f"{n} nesting error{_pl(n)}:\n" + "\n".join(all_errors))
 
     # scheme obeys the above order
 

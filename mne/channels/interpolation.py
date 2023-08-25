@@ -11,7 +11,6 @@ from ..utils import logger, warn, verbose
 from .._fiff.meas_info import _simplify_info
 from .._fiff.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
-from ..forward import _map_meg_or_eeg_channels
 from ..utils import _check_option, _validate_type
 
 
@@ -194,6 +193,8 @@ def _interpolate_bads_meeg(
     exclude=(),
     verbose=None,
 ):
+    from ..forward import _map_meg_or_eeg_channels
+
     bools = dict(meg=meg, eeg=eeg)
     info = _simplify_info(inst.info)
     for ch_type, do in bools.items():

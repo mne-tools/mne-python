@@ -47,6 +47,7 @@ from ..utils import (
     _build_data_frame,
     warn,
     _import_h5io_funcs,
+    copy_function_doc_to_method_doc,
 )
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, _find_topomap_coords
@@ -57,6 +58,14 @@ from .._fiff.pick import (
     channel_type,
 )
 from .._fiff.meas_info import Info, ContainsMixin
+from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
+from ..viz.topomap import (
+    _set_contour_locator,
+    plot_topomap,
+    _get_pos_outlines,
+    plot_tfr_topomap,
+    _add_colorbar,
+)
 from ..viz.utils import (
     figure_nobar,
     plt_show,
@@ -65,6 +74,7 @@ from ..viz.utils import (
     _prepare_joint_axes,
     _setup_vmin_vmax,
     _set_title_multiple_electrodes,
+    add_background_image,
 )
 
 
@@ -1653,7 +1663,6 @@ class AverageTFR(_BaseTFR):
         See self.plot() for parameters description.
         """
         import matplotlib.pyplot as plt
-        from ..viz.topo import _imshow_tfr
 
         # channel selection
         # simply create a new tfr object(s) with the desired channel selection
@@ -1910,11 +1919,6 @@ class AverageTFR(_BaseTFR):
 
         .. versionadded:: 0.16.0
         """  # noqa: E501
-        from ..viz.topomap import (
-            _set_contour_locator,
-            plot_topomap,
-            _get_pos_outlines,
-        )
         import matplotlib.pyplot as plt
 
         #####################################
@@ -2195,8 +2199,6 @@ class AverageTFR(_BaseTFR):
         verbose=None,
     ):
         """Handle rubber band selector in channel tfr."""
-        from ..viz.topomap import plot_tfr_topomap, plot_topomap, _add_colorbar
-
         if abs(eclick.x - erelease.x) < 0.1 or abs(eclick.y - erelease.y) < 0.1:
             return
         tmin = round(min(eclick.xdata, erelease.xdata), 5)  # s
@@ -2395,9 +2397,6 @@ class AverageTFR(_BaseTFR):
         fig : matplotlib.figure.Figure
             The figure containing the topography.
         """  # noqa: E501
-        from ..viz.topo import _imshow_tfr, _plot_topo, _imshow_tfr_unified
-        from ..viz import add_background_image
-
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -2469,7 +2468,7 @@ class AverageTFR(_BaseTFR):
         plt_show(show)
         return fig
 
-    @fill_doc
+    @copy_function_doc_to_method_doc(plot_tfr_topomap)
     def plot_topomap(
         self,
         tmin=None,
@@ -2501,79 +2500,6 @@ class AverageTFR(_BaseTFR):
         axes=None,
         show=True,
     ):
-        """Plot topographic maps of time-frequency intervals of TFR data.
-
-        Parameters
-        ----------
-        %(tmin_tmax_psd)s
-        %(fmin_fmax_psd)s
-        %(ch_type_topomap_psd)s
-        baseline : tuple or list of length 2
-            The time interval to apply rescaling / baseline correction.
-            If None do not apply it. If baseline is (a, b)
-            the interval is between "a (s)" and "b (s)".
-            If a is None the beginning of the data is used
-            and if b is None then b is set to the end of the interval.
-            If baseline is equal to (None, None) all the time
-            interval is used.
-        mode : 'mean' | 'ratio' | 'logratio' | 'percent' | 'zscore' | 'zlogratio'
-            Perform baseline correction by
-
-            - subtracting the mean of baseline values ('mean')
-            - dividing by the mean of baseline values ('ratio')
-            - dividing by the mean of baseline values and taking the log
-              ('logratio')
-            - subtracting the mean of baseline values followed by dividing by
-              the mean of baseline values ('percent')
-            - subtracting the mean of baseline values and dividing by the
-              standard deviation of baseline values ('zscore')
-            - dividing by the mean of baseline values, taking the log, and
-              dividing by the standard deviation of log baseline values
-              ('zlogratio')
-        %(sensors_topomap)s
-        %(show_names_topomap)s
-
-            .. versionadded:: 1.2
-        %(mask_evoked_topomap)s
-
-            .. versionadded:: 1.2
-        %(mask_params_topomap)s
-
-            .. versionadded:: 1.2
-        %(contours_topomap)s
-        %(outlines_topomap)s
-        %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-
-            .. versionadded:: 1.2
-        %(extrapolate_topomap)s
-
-            .. versionadded:: 1.2
-        %(border_topomap)s
-
-            .. versionadded:: 0.20
-        %(res_topomap)s
-        %(size_topomap)s
-        %(cmap_topomap)s
-        %(vlim_plot_topomap)s
-
-            .. versionadded:: 1.2
-        %(cnorm)s
-
-            .. versionadded:: 1.2
-        %(colorbar_topomap)s
-        %(cbar_fmt_topomap)s
-        %(units_topomap)s
-        %(axes_plot_topomap)s
-        %(show)s
-
-        Returns
-        -------
-        fig : matplotlib.figure.Figure
-            The figure containing the topography.
-        """  # noqa: E501
-        from ..viz import plot_tfr_topomap
-
         return plot_tfr_topomap(
             self,
             tmin=tmin,

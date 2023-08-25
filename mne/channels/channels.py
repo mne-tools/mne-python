@@ -25,6 +25,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
+from ..bem import _check_origin
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (
     verbose,
@@ -803,7 +804,6 @@ class InterpolationMixin:
         -----
         .. versionadded:: 0.9.0
         """
-        from ..bem import _check_origin
         from .interpolation import (
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
