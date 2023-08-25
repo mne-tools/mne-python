@@ -2696,6 +2696,23 @@ n_permutations : int
 """
 
 docdict[
+    "n_proj_vectors"
+] = """
+n_grad : int | float between ``0`` and ``1``
+    Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+    to select the number of vectors to explain the cumulative variance greater than
+    ``n_grad``.
+n_mag : int | float between ``0`` and ``1``
+    Number of vectors for magnetometers. Either an integer or a float between 0 and
+    1 to select the number of vectors to explain the cumulative variance greater
+    than ``n_mag``.
+n_eeg : int | float between ``0`` and ``1``
+    Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+    to select the number of vectors to explain the cumulative variance greater than
+    ``n_eeg``.
+"""
+
+docdict[
     "names_topomap"
 ] = """\
 names : None | list

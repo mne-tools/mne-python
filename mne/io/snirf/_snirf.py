@@ -471,7 +471,7 @@ class RawSNIRF(BaseRaw):
             for key in dat["nirs"]:
                 if "stim" in key:
                     data = np.atleast_2d(np.array(dat.get("/nirs/" + key + "/data")))
-                    if data.size > 0:
+                    if data.shape[1] >= 3:
                         desc = _correct_shape(
                             np.array(dat.get("/nirs/" + key + "/name"))
                         )[0]
