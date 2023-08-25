@@ -6,6 +6,7 @@
 
 import numpy as np
 
+from .constants import CTF
 from ...transforms import (
     combine_transforms,
     invert_transform,
@@ -16,8 +17,7 @@ from ...transforms import (
     get_ras_to_neuromag_trans,
 )
 from ...utils import logger
-from ..constants import FIFF
-from .constants import CTF
+from ..._fiff.constants import FIFF
 
 
 def _make_transform_card(fro, to, r_lpa, r_nasion, r_rpa):

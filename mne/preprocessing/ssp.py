@@ -11,8 +11,8 @@ import numpy as np
 from ..epochs import Epochs
 from ..proj import compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose, warn
-from ..io.pick import pick_types
-from ..io import make_eeg_average_ref_proj
+from .._fiff.pick import pick_types
+from .._fiff.reference import make_eeg_average_ref_proj
 from .ecg import find_ecg_events
 from .eog import find_eog_events
 

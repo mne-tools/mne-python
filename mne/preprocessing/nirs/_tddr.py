@@ -5,6 +5,7 @@
 
 
 import numpy as np
+from scipy.signal import butter, filtfilt
 
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
@@ -85,8 +86,6 @@ def _TDDR(signal, sample_rate):
     # Outputs:
     #   signals_corrected: A [sample x channel] matrix of corrected optical
     #   density data
-    from scipy.signal import butter, filtfilt
-
     signal = np.array(signal)
     if len(signal.shape) != 1:
         for ch in range(signal.shape[1]):

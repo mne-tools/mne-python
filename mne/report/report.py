@@ -27,24 +27,20 @@ import webbrowser
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from .. import (
-    read_evokeds,
-    read_events,
-    read_cov,
-    read_source_estimate,
-    read_trans,
-    sys_info,
-    Evoked,
-    SourceEstimate,
-    Covariance,
-    Info,
-    Transform,
-)
+from ..evoked import read_evokeds, Evoked
+from ..event import read_events
+from ..cov import read_cov, Covariance
+from ..html_templates import _get_html_template
+from ..source_estimate import read_source_estimate, SourceEstimate
+from ..transforms import read_trans, Transform
+from ..utils import sys_info
+from .._fiff.meas_info import Info
 from ..channels import _get_ch_type
 from ..defaults import _handle_default
-from ..io import read_raw, read_info, BaseRaw
-from ..io._read_raw import supported as extension_reader_map
-from ..io.pick import _DATA_CH_TYPES_SPLIT
+from ..io import read_raw, BaseRaw
+from ..io._read_raw import _get_supported as _get_extension_reader_map
+from .._fiff.meas_info import read_info
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
 from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (
@@ -85,7 +81,7 @@ from ..viz._scraper import _mne_qt_browser_screenshot
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
-from .. import dig_mri_distances
+from ..surface import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func
 
@@ -94,7 +90,7 @@ _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
-SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(_get_extension_reader_map())
 RAW_EXTENSIONS = []
 for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     RAW_EXTENSIONS.append(f"raw{ext}")
@@ -167,9 +163,7 @@ def _id_sanitize(title):
 
 
 def _renderer(kind):
-    from ..html_templates import report_templates_env
-
-    return report_templates_env.get_template(kind).render
+    return _get_html_template("report", kind).render
 
 
 ###############################################################################
@@ -394,7 +388,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # check instead
         if fig.__class__.__name__ in ("MNEQtBrowser", "PyQtGraphBrowser"):
             img = _mne_qt_browser_screenshot(fig, return_type="ndarray")
-            print(img.shape, img.max(), img.min(), img.mean())
         elif isinstance(fig, Figure3D):
             from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
 

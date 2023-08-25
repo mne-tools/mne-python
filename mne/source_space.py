@@ -12,26 +12,12 @@ import os
 import os.path as op
 
 import numpy as np
+from scipy.sparse import csr_matrix, triu
+from scipy.sparse.csgraph import dijkstra
+from scipy.spatial.distance import cdist
 
-from .io.constants import FIFF
-from .io.meas_info import create_info, Info
-from .io.tree import dir_tree_find
-from .io.tag import find_tag, read_tag
-from .io.open import fiff_open
-from .io.write import (
-    start_block,
-    end_block,
-    write_int,
-    write_float_sparse_rcs,
-    write_string,
-    write_float_matrix,
-    write_int_matrix,
-    write_coord_trans,
-    start_and_end_file,
-    write_id,
-)
-from .io.pick import channel_type, _picks_to_idx
-from .bem import read_bem_surfaces, ConductorModel
+from ._fiff.constants import FIFF
+from ._fiff.pick import channel_type, _picks_to_idx
 from .fixes import _get_img_fdata
 from .surface import (
     read_surface,
@@ -54,6 +40,7 @@ from ._freesurfer import (
     _get_atlas_values,
     read_freesurfer_lut,
     get_mni_fiducials,  # noqa: F401
+    get_volume_labels_from_aseg,
     _check_mri,
 )
 from .utils import (
@@ -367,6 +354,7 @@ class SourceSpaces(list):
             The figure.
         """
         from .viz import plot_alignment
+        from ._fiff.meas_info import create_info
 
         surfaces = list()
         bem = None
@@ -841,6 +829,8 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
         The source spaces.
     """
     #   Find all source spaces
+    from ._fiff.tree import dir_tree_find
+
     spaces = dir_tree_find(tree, FIFF.FIFFB_MNE_SOURCE_SPACE)
     if len(spaces) == 0:
         raise ValueError("No source spaces found")
@@ -882,6 +872,10 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
+    from ._fiff.tag import read_tag
+    from ._fiff.open import fiff_open
+    from ._fiff.tree import dir_tree_find
+
     fname = str(_check_fname(fname, overwrite="read", must_exist=True))
     check_fname(
         fname,
@@ -924,6 +918,9 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
 
 def _read_one_source_space(fid, this):
     """Read one source space."""
+    from ._fiff.tag import find_tag, read_tag
+    from ._fiff.tree import dir_tree_find
+
     res = dict()
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_ID)
@@ -1258,6 +1255,8 @@ def _write_source_spaces_to_fid(fid, src, verbose=None):
         The list of source spaces.
     %(verbose)s
     """
+    from ._fiff.write import start_block, end_block
+
     for s in src:
         logger.info("    Write a source space...")
         start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
@@ -1285,6 +1284,8 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
     --------
     read_source_spaces
     """
+    from ._fiff.write import start_and_end_file
+
     _validate_type(src, SourceSpaces, "src")
     check_fname(
         fname, "source space", ("-src.fif", "-src.fif.gz", "_src.fif", "_src.fif.gz")
@@ -1296,6 +1297,8 @@ def write_source_spaces(fname, src, *, overwrite=False, verbose=None):
 
 
 def _write_source_spaces(fid, src):
+    from ._fiff.write import start_block, end_block, write_string, write_id
+
     start_block(fid, FIFF.FIFFB_MNE)
 
     if src.info:
@@ -1319,7 +1322,16 @@ def _write_source_spaces(fid, src):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space."""
-    from scipy import sparse
+    from ._fiff.write import (
+        start_block,
+        end_block,
+        write_int,
+        write_float_sparse_rcs,
+        write_string,
+        write_float_matrix,
+        write_int_matrix,
+        write_coord_trans,
+    )
 
     if this["type"] == "surf":
         src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
@@ -1380,7 +1392,7 @@ def _write_one_source_space(fid, this, verbose=None):
         mri_width, mri_height, mri_depth, nvox = _src_vol_dims(this)
         interpolator = this.get("interpolator")
         if interpolator is None:
-            interpolator = sparse.csr_matrix((nvox, this["np"]))
+            interpolator = csr_matrix((nvox, this["np"]))
         write_float_sparse_rcs(
             fid, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR, interpolator
         )
@@ -1405,7 +1417,7 @@ def _write_one_source_space(fid, this, verbose=None):
     if this["dist"] is not None:
         # Save only upper triangular portion of the matrix
         dists = this["dist"].copy()
-        dists = sparse.triu(dists, format=dists.format)
+        dists = triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(
             fid,
@@ -1764,6 +1776,8 @@ def setup_volume_source_space(
     file with values corresponding to the freesurfer lookup-table (typically
     ``aseg.mgz``).
     """
+    from .bem import read_bem_surfaces, ConductorModel
+
     subjects_dir = get_subjects_dir(subjects_dir)
     _validate_type(volume_label, (str, list, tuple, dict, None), "volume_label")
     _validate_type(bem, ("path-like", ConductorModel, None), "bem")
@@ -2334,8 +2348,6 @@ def _src_vol_dims(s):
 def _add_interpolator(sp):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
-    from scipy import sparse
-
     mri_width, mri_height, mri_depth, nvox = _src_vol_dims(sp[0])
 
     #
@@ -2360,7 +2372,7 @@ def _add_interpolator(sp):
         order=1,
         inuse=inuse,
     )
-    assert isinstance(interp, sparse.csr_matrix)
+    assert isinstance(interp, csr_matrix)
 
     # Compose the sparse matrices
     for si, s in enumerate(sp):
@@ -2385,7 +2397,7 @@ def _add_interpolator(sp):
             indices = interp.indices[mask]
             data = interp.data[mask]
             assert data.shape == indices.shape == (indptr[-1],)
-            this_interp = sparse.csr_matrix((data, indices, indptr), shape=interp.shape)
+            this_interp = csr_matrix((data, indices, indptr), shape=interp.shape)
         s["interpolator"] = this_interp
         logger.info(
             "    %d/%d nonzero values for %s"
@@ -2396,8 +2408,6 @@ def _add_interpolator(sp):
 
 def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     """Compute a grid-to-grid linear or nearest interpolation given."""
-    from scipy import sparse
-
     from_shape = np.array(from_shape, int)
     to_shape = np.array(to_shape, int)
     trans = np.array(trans, np.float64)  # to -> from
@@ -2412,7 +2422,7 @@ def _grid_interp(from_shape, to_shape, trans, order=1, inuse=None):
     data = np.concatenate(data)
     indices = np.concatenate(indices)
     indptr = np.cumsum(indptr)
-    interp = sparse.csr_matrix((data, indices, indptr), shape=shape)
+    interp = csr_matrix((data, indices, indptr), shape=shape)
     return interp
 
 
@@ -2712,9 +2722,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
-    from scipy.sparse import csr_matrix
-    from scipy.sparse.csgraph import dijkstra
-
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2784,8 +2791,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *, verbose=N
 
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
-    from scipy.sparse.csgraph import dijkstra
-
     func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
@@ -2830,8 +2835,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     labels_aseg : list of Label
         List of Label of segmented volumes included in src space.
     """
-    from . import Label
-    from ._freesurfer import get_volume_labels_from_aseg
+    from .label import Label
 
     # Read the aseg file
     aseg_fname = op.join(subjects_dir, subject, "mri", "aseg.mgz")
@@ -3106,7 +3110,6 @@ def _compare_source_spaces(src0, src1, mode="exact", nearest=True, dist_tol=1.5e
         assert_,
         assert_array_less,
     )
-    from scipy.spatial.distance import cdist
 
     if mode != "exact" and "approx" not in mode:  # 'nointerp' can be appended
         raise RuntimeError("unknown mode %s" % mode)
@@ -3265,6 +3268,7 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None, verbose=None)
         sensors.
     """
     from scipy.spatial.distance import cdist
+    from ._fiff.meas_info import Info
 
     assert isinstance(src, SourceSpaces)
     _validate_type(info, (Info,), "info")

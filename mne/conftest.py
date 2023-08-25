@@ -162,6 +162,8 @@ def pytest_configure(config):
     ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
     # tqdm (Fedora)
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
+    # Until mne-qt-browser > 0.5.2 is released
+    ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -437,7 +439,7 @@ def _bias_params(evoked, noise_cov, fwd):
     # by regularizing a tiny bit
     data.flat[:: data.shape[0] + 1] += mne.make_ad_hoc_cov(evoked.info)["data"]
     # Do our projection
-    proj, _, _ = mne.io.proj.make_projector(data_cov["projs"], data_cov["names"])
+    proj, _, _ = mne._fiff.proj.make_projector(data_cov["projs"], data_cov["names"])
     data = proj @ data @ proj.T
     data_cov["data"][:] = data
     assert data_cov["data"].shape[0] == len(noise_cov["names"])

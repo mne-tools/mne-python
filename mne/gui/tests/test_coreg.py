@@ -14,7 +14,7 @@ import mne
 from mne.datasets import testing
 from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.utils import get_config, catch_logging
 from mne.channels import DigMontage
 from mne.coreg import Coregistration

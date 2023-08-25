@@ -10,12 +10,13 @@ from inspect import isgenerator
 from collections import namedtuple
 
 import numpy as np
+from scipy import linalg, sparse, stats
 
 from ..source_estimate import SourceEstimate
 from ..epochs import BaseEpochs
 from ..evoked import Evoked, EvokedArray
 from ..utils import logger, _reject_data_segments, warn, fill_doc
-from ..io.pick import pick_types, pick_info, _picks_to_idx
+from .._fiff.pick import pick_types, pick_info, _picks_to_idx
 
 
 def linear_regression(inst, design_matrix, names=None):
@@ -108,8 +109,6 @@ def linear_regression(inst, design_matrix, names=None):
 
 def _fit_lm(data, design_matrix, names):
     """Aux function."""
-    from scipy import stats, linalg
-
     n_samples = len(data)
     n_features = np.prod(data.shape[1:])
     if design_matrix.ndim != 2:
@@ -264,8 +263,6 @@ def linear_regression_raw(
     ----------
     .. footbibliography::
     """
-    from scipy import linalg
-
     if isinstance(solver, str):
         if solver not in {"cholesky"}:
             raise ValueError("No such solver: {}".format(solver))
@@ -352,8 +349,6 @@ def _prepare_rerp_preds(
     n_samples, sfreq, events, event_id=None, tmin=-0.1, tmax=1, covariates=None
 ):
     """Build predictor matrix and metadata (e.g. condition time windows)."""
-    from scipy import sparse
-
     conds = list(event_id)
     if covariates is not None:
         conds += list(covariates)

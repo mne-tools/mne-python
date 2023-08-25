@@ -18,8 +18,9 @@ from ..defaults import (
     _INTERPOLATION_DEFAULT,
     _handle_default,
 )
-from ..io.meas_info import ContainsMixin
-from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
+from ..html_templates import _get_html_template
+from .._fiff.meas_info import ContainsMixin
+from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (
     GetEpochsMixin,
     _build_data_frame,
@@ -48,8 +49,8 @@ from ..utils.spectrum import _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import _format_units_psd, _plot_psd, _prepare_sensor_names, plt_show
-from . import psd_array_multitaper, psd_array_welch
-from .psd import _check_nfft
+from .multitaper import psd_array_multitaper
+from .psd import psd_array_welch, _check_nfft
 
 
 def _identity_function(x):
@@ -294,6 +295,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         tmax,
         picks,
         proj,
+        remove_dc,
         *,
         n_jobs,
         verbose=None,
@@ -323,7 +325,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                 f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} '
                 f'for PSD method "{method}".'
             )
-        self._psd_func = partial(psd_funcs[method], **method_kw)
+        self._psd_func = partial(psd_funcs[method], remove_dc=remove_dc, **method_kw)
 
         # apply proj if desired
         if proj:
@@ -409,11 +411,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @repr_html
     def _repr_html_(self, caption=None):
         """Build HTML representation of the Spectrum object."""
-        from ..html_templates import repr_templates_env
-
         inst_type_str = self._get_instance_type_string()
         units = [f"{ch_type}: {unit}" for ch_type, unit in self.units().items()]
-        t = repr_templates_env.get_template("spectrum.html.jinja")
+        t = _get_html_template("repr", "spectrum.html.jinja")
         t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
         return t
 
@@ -1094,6 +1094,7 @@ class Spectrum(BaseSpectrum):
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
     %(proj_psd)s
+    %(remove_dc)s
     %(reject_by_annotation_psd)s
     %(n_jobs)s
     %(verbose)s
@@ -1134,6 +1135,7 @@ class Spectrum(BaseSpectrum):
         tmax,
         picks,
         proj,
+        remove_dc,
         reject_by_annotation,
         *,
         n_jobs,
@@ -1156,6 +1158,7 @@ class Spectrum(BaseSpectrum):
             tmax,
             picks,
             proj,
+            remove_dc,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -1316,6 +1319,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
     %(proj_psd)s
+    %(remove_dc)s
     %(n_jobs)s
     %(verbose)s
     %(method_kw_psd)s
@@ -1352,6 +1356,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         tmax,
         picks,
         proj,
+        remove_dc,
         *,
         n_jobs,
         verbose=None,
@@ -1371,6 +1376,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmax,
             picks,
             proj,
+            remove_dc,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,
@@ -1480,6 +1486,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             tmax=None,
             picks=None,
             proj=None,
+            remove_dc=None,
             reject_by_annotation=None,
             n_jobs=None,
             verbose=None,
@@ -1603,6 +1610,7 @@ def read_spectrum(fname):
         tmax=None,
         picks=None,
         proj=None,
+        remove_dc=None,
         reject_by_annotation=None,
         n_jobs=None,
         verbose=None,

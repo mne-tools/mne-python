@@ -132,7 +132,7 @@ def _get_inst(inst, request, evoked):
 @pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
-    pytest.importorskip("h5py")
+    pytest.importorskip("h5io")
     fname = tmp_path / f"{inst}-spectrum.h5"
     inst = _get_inst(inst, request, evoked)
     orig = inst.compute_psd()

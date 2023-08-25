@@ -24,10 +24,10 @@ from mne.preprocessing.nirs import (
     _optode_position,
     scalp_coupling_index,
 )
-from mne.io.pick import _picks_to_idx
+from mne._fiff.pick import _picks_to_idx
 
 from mne.datasets import testing
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 
 fname_nirx_15_0 = (
     data_path(download=False) / "NIRx" / "nirscout" / "nirx_15_0_recording"

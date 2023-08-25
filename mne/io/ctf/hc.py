@@ -9,7 +9,7 @@ import numpy as np
 from ...utils import logger
 from .res4 import _make_ctf_name
 from .constants import CTF
-from ..constants import FIFF
+from ..._fiff.constants import FIFF
 
 
 _kind_dict = {

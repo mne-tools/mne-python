@@ -269,6 +269,8 @@ numpydoc_xref_aliases = {
 }
 numpydoc_xref_ignore = {
     # words
+    "and",
+    "between",
     "instance",
     "instances",
     "of",
@@ -1337,6 +1339,15 @@ def reset_warnings(gallery_conf, fname):
     # xarray _SixMetaPathImporter (?)
     warnings.filterwarnings(
         "ignore", message=r"falling back to find_module", category=ImportWarning
+    )
+    # Sphinx deps
+    warnings.filterwarnings(
+        "ignore", message="The str interface for _CascadingStyleSheet.*"
+    )
+    # mne-qt-browser until > 0.5.2 released
+    warnings.filterwarnings(
+        "ignore",
+        r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
     )
 
     # In case we use np.set_printoptions in any tutorials, we only

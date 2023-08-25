@@ -17,10 +17,11 @@ import os.path as op
 import numpy as np
 
 from ._compute_forward import _compute_forwards
-from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
-from ..io.compensator import get_current_comp, make_compensator
-from ..io.pick import _has_kit_refs, pick_types, pick_info
-from ..io.constants import FIFF, FWD
+from .._fiff.meas_info import read_info, Info
+from .._fiff.tag import _loc_to_coil_trans, _loc_to_eeg_loc
+from .._fiff.compensator import get_current_comp, make_compensator
+from .._fiff.pick import _has_kit_refs, pick_types, pick_info
+from .._fiff.constants import FIFF, FWD
 from ..transforms import (
     _ensure_trans,
     transform_surface_to,

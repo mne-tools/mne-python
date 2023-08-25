@@ -32,7 +32,7 @@ from mne import (
 )
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.utils import grand_average
 
 base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"

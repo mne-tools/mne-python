@@ -10,7 +10,7 @@ from mne.bem import read_bem_surfaces, make_bem_solution
 from mne.channels import make_standard_montage
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne import (
     read_forward_solution,
     write_forward_solution,
