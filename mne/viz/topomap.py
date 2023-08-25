@@ -26,7 +26,7 @@ from scipy.sparse import csr_matrix
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
-from . import ui_events
+from .ui_events import publish, subscribe, TimeChange
 from ..baseline import rescale
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .._fiff.pick import (
@@ -70,6 +70,7 @@ from .utils import (
     _check_type_projs,
     _format_units_psd,
     _prepare_sensor_names,
+    plot_sensors,
 )
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
@@ -2328,14 +2329,14 @@ def plot_evoked_topomap(
         func = _merge_ch_data if merge_channels else lambda x: x
 
         def _slider_changed(val):
-            ui_events.publish(fig, ui_events.TimeChange(time=val))
+            publish(fig, TimeChange(time=val))
 
         slider.on_changed(_slider_changed)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color="k")
         axes[-1].slider = slider
 
-        ui_events.subscribe(
+        subscribe(
             fig,
             "time_change",
             partial(
@@ -3746,8 +3747,6 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     """
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-
-    from . import plot_sensors
 
     _validate_type(info, Info, "info")
     _validate_type(adjacency, (np.ndarray, csr_matrix), "adjacency")

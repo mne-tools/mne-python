@@ -378,7 +378,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def __setstate__(self, state):
         """Unpack from serialized format."""
-        from .. import Epochs, Evoked, Info
+        from ..epochs import Epochs
+        from ..evoked import Evoked
+        from .._fiff.meas_info import Info
         from ..io import Raw
 
         self._method = state["method"]
@@ -468,7 +470,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
-        from .. import BaseEpochs, Evoked, EvokedArray
+        from ..epochs import BaseEpochs
+        from ..evoked import Evoked, EvokedArray
         from ..io import BaseRaw
 
         parent_classes = self._inst_type.__bases__

@@ -47,7 +47,6 @@ import numpy as np
 from matplotlib import get_backend
 from matplotlib.figure import Figure
 
-from .. import channel_indices_by_type, pick_types
 from ..fixes import _close_event
 from ..annotations import _sync_onset
 from .._fiff.pick import (
@@ -56,9 +55,10 @@ from .._fiff.pick import (
     _FNIRS_CH_TYPES_SPLIT,
     _EYETRACK_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
+    channel_indices_by_type,
+    pick_types,
 )
-from ..utils import Bunch, _click_ch_name, logger
-from . import plot_sensors
+from ..utils import Bunch, _click_ch_name, logger, check_version
 from ._figure import BrowserBase
 from .utils import (
     DraggableLine,
@@ -71,7 +71,7 @@ from .utils import (
     _validate_if_list_of_axes,
     plt_show,
     _fake_scroll,
-    check_version,
+    plot_sensors,
 )
 
 name = "matplotlib"

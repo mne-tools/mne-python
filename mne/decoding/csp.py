@@ -337,7 +337,7 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        from .. import EvokedArray
+        from ..evoked import EvokedArray
 
         if units is None:
             units = "AU"
@@ -470,7 +470,7 @@ class CSP(TransformerMixin, BaseEstimator):
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        from .. import EvokedArray
+        from ..evoked import EvokedArray
 
         if units is None:
             units = "AU"

@@ -225,7 +225,7 @@ def plot_epochs_image(
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
-    from .. import EpochsArray
+    from ..epochs import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")
 
@@ -635,7 +635,7 @@ def _plot_epochs_image(
         ax_im.set_xlim(tmin, tmax)
     # draw the evoked
     if evoked:
-        from . import plot_compare_evokeds
+        from .evoked import plot_compare_evokeds
 
         pass_combine = combine if combine_given else None
         _picks = [0] if len(picks) == 1 else None  # prevent applying GFP

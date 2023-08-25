@@ -219,8 +219,8 @@ def assert_object_equal(a, b):
 
 
 def _raw_annot(meas_date, orig_time):
-    from .. import Annotations, create_info
-    from ..annotations import _handle_meas_date
+    from .._fiff.meas_info import create_info
+    from ..annotations import Annotations, _handle_meas_date
     from ..io import RawArray
 
     info = create_info(ch_names=10, sfreq=10.0)

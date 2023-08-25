@@ -20,6 +20,7 @@ from ..defaults import _handle_default
 from ..utils import logger, _validate_type, _check_option
 from .._fiff.pick import _DATA_CH_TYPES_SPLIT
 from ..utils import verbose, get_config, set_config
+from ..fixes import _compare_version
 
 MNE_BROWSER_BACKEND = None
 backend = None
@@ -41,7 +42,7 @@ class BrowserBase(ABC):
     """
 
     def __init__(self, **kwargs):
-        from .. import BaseEpochs
+        from ..epochs import BaseEpochs
         from ..io import BaseRaw
         from ..preprocessing import ICA
 
@@ -675,8 +676,7 @@ def _get_browser(show, block, **kwargs):
     # Check mne-qt-browser compatibility
     if backend_name == "qt":
         import mne_qt_browser
-        from .. import BaseEpochs
-        from ..fixes import _compare_version
+        from ..epochs import BaseEpochs
 
         is_ica = kwargs.get("ica", False)
         is_epochs = isinstance(kwargs.get("inst", False), BaseEpochs)

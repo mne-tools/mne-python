@@ -1497,7 +1497,7 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
-    from .. import spatial_tris_adjacency
+    from ..source_estimate import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
 
     combine_grads = ch_type == "grad" and any(
@@ -1795,7 +1795,8 @@ def combine_channels(
         is ``True``, also containing stimulus channels).
     """
     from ..io import BaseRaw, RawArray
-    from .. import BaseEpochs, EpochsArray, Evoked, EvokedArray
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..evoked import Evoked, EvokedArray
 
     ch_axis = 1 if isinstance(inst, BaseEpochs) else 0
     ch_idx = list(range(inst.info["nchan"]))

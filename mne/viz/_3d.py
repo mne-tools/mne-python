@@ -42,7 +42,7 @@ from .._fiff.pick import (
     _MEG_CH_TYPES_SPLIT,
 )
 from .._fiff.constants import FIFF
-from .._fiff.meas_info import read_fiducials, create_info
+from .._fiff.meas_info import read_fiducials, create_info, Info
 from ..source_space import (
     _ensure_src,
     _create_surf_spacing,
@@ -3763,7 +3763,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         The screenshot of the current scene view.
     """
     from ..channels import DigMontage
-    from .. import Info
 
     # Update the backend
     from .backends.renderer import _get_renderer

@@ -186,7 +186,6 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "ExtendedTimeMixin",
             "_prepare_read_metadata",
             "_prepare_write_metadata",
-            "_FakeNoPandas",
         ],
         "linalg": [
             "_svd_lwork",
