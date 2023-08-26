@@ -470,6 +470,7 @@ def _assert_drop_log_types(drop_log):
     ), "drop_log[ii][jj] should be str"
 
 
+@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_reject():
     """Test epochs rejection."""
     raw, events, _ = _get_data()
@@ -692,6 +693,7 @@ def test_reject():
         assert "is a noop" in log
 
 
+@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_reject_by_annotations_reject_tmin_reject_tmax():
     """Test reject_by_annotations with reject_tmin and reject_tmax defined."""
     # 10 seconds of data, event at 2s, bad segment from 1s to 1.5s
@@ -1143,6 +1145,7 @@ def test_epoch_multi_ids():
     assert_allclose(epochs_reverse.get_data(), epochs_regular.get_data())
 
 
+@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_read_epochs_bad_events():
     """Test epochs when events are at the beginning or the end of the file."""
     raw, events, picks = _get_data()
@@ -1955,6 +1958,7 @@ def test_evoked_standard_error(tmp_path):
             assert ave.first == ave2.first
 
 
+@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_reject_epochs(tmp_path):
     """Test of epochs rejection."""
     temp_fname = tmp_path / "test-epo.fif"
@@ -4831,6 +4835,7 @@ def _get_empty_parametrize():
 
 
 @pytest.mark.parametrize(**_get_empty_parametrize())
+@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_empty_error(method, epochs_empty):
     """Test that a RuntimeError is raised when certain methods are called."""
     if method[0] == "to_data_frame":
