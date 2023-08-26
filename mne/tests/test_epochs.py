@@ -346,6 +346,7 @@ def test_hierarchical():
 
 
 @pytest.mark.slowtest
+@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 @testing.requires_testing_data
 def test_average_movements():
     """Test movement averaging algorithm."""
