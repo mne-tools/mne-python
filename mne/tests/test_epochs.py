@@ -4832,7 +4832,8 @@ def _get_empty_parametrize():
 
 @pytest.mark.parametrize(**_get_empty_parametrize())
 def test_empty_error(method, epochs_empty):
-    """Test that a helpful error is raised when certain methods are called."""
-    # Test that a RuntimeError is raised when certain methods are called
+    """Test that a RuntimeError is raised when certain methods are called."""
+    if method[0] == "to_data_frame":
+        pytest.importorskip("pandas")
     with pytest.raises(RuntimeError, match="is empty."):
         getattr(epochs_empty.copy(), method[0])(**method[1])
