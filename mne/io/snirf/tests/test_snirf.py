@@ -85,7 +85,6 @@ def _get_loc(raw, ch_name):
             nirx_nirsport2_103_2,
             kernel_hb,
             lumo110,
-            oxysoft_20230828,
         ]
     ),
 )
