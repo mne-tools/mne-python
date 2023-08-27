@@ -546,7 +546,9 @@ def _extract_sampling_rate(dat):
         else:
             mean_sample_difference = np.mean(np.diff(time_data))
             max_sample_jitter = np.max(np.diff(np.diff(time_data)))
-            sample_jitter_percentage = 100 * (max_sample_jitter / mean_sample_difference)
+            sample_jitter_percentage = 100 * (
+                max_sample_jitter / mean_sample_difference
+            )
             if sample_jitter_percentage < MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
                 # Likely uniformly sampled data with some precision issues.
                 # This is a workaround to provide support for Artinis data.
