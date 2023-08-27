@@ -21,7 +21,6 @@ from mne._fiff.constants import FIFF
 
 
 testing_path = data_path(download=False)
-print(testing_path)
 # SfNIRS files
 sfnirs_homer_103_wShort = (
     testing_path
@@ -65,10 +64,6 @@ ft_od = testing_path / "SNIRF" / "FieldTrip" / "220307_opticaldensity.snirf"
 
 # GowerLabs
 lumo110 = testing_path / "SNIRF" / "GowerLabs" / "lumomat-1-1-0.snirf"
-
-# Artinis
-oxysoft_20230828 = testing_path / "SNIRF" / "Artinis" / "20230707_KD01.snirf"
-oxysoft_20230828 = testing_path / "SNIRF" / "Artinis" / "20230809_VI04.snirf"
 
 
 def _get_loc(raw, ch_name):
