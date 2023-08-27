@@ -526,6 +526,11 @@ def _get_lengthunit_scaling(length_unit):
 
 def _extract_sampling_rate(dat):
     """Extract the sample rate from the time field."""
+    # This is a workaround to provide support for Artinis data.
+    # It allows for a 1% variation in the sampling times relative
+    # to the average sampling rate of the file.
+    MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE = 1
+
     time_data = np.array(dat.get("nirs/data1/time"))
     sampling_rate = 0
     if len(time_data) == 2:
@@ -534,14 +539,23 @@ def _extract_sampling_rate(dat):
     else:
         # specified as time points
         fs_diff = np.around(np.diff(time_data), decimals=4)
+
         if len(np.unique(fs_diff)) == 1:
             # Uniformly sampled data
             sampling_rate = 1.0 / np.unique(fs_diff).item()
         else:
-            warn(
-                "MNE does not currently support reading "
-                "SNIRF files with non-uniform sampled data."
-            )
+            mean_sample_difference = np.mean(np.diff(time_data))
+            max_sample_jitter = np.max(np.diff(np.diff(time_data)))
+            sample_jitter_percentage = 100 * (max_sample_jitter / mean_sample_difference)
+            if sample_jitter_percentage < MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
+                # Likely uniformly sampled data with some precision issues.
+                # This is a workaround to provide support for Artinis data.
+                sampling_rate = 1.0 / mean_sample_difference
+            else:
+                warn(
+                    "MNE does not currently support reading "
+                    "SNIRF files with non-uniform sampled data."
+                )
 
     time_unit = _get_metadata_str(dat, "TimeUnit")
     time_unit_scaling = _get_timeunit_scaling(time_unit)
