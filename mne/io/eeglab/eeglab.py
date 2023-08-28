@@ -262,9 +262,14 @@ def _handle_montage_units(montage_units, eeg):
             and "X" in eeg.chanlocs
             and "Y" in eeg.chanlocs
             and "Z" in eeg.chanlocs
-            and len(eeg.chanlocs["X"]) > 0
+            and len(np.ravel(eeg.chanlocs["X"])) > 0
         ):
-            xyz = np.array([eeg.chanlocs["X"], eeg.chanlocs["Y"], eeg.chanlocs["Z"]]).T
+            xyz = np.array(
+                [
+                    np.ravel(a)
+                    for a in [eeg.chanlocs["X"], eeg.chanlocs["Y"], eeg.chanlocs["Z"]]
+                ]
+            ).T
             is_nan_locs = np.isnan(xyz).any(axis=1)
             mean_radius = np.mean(np.linalg.norm(xyz[~is_nan_locs], axis=1))
             # radius should be between 0.05 and 0.11 meters
