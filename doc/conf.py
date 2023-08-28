@@ -184,8 +184,9 @@ intersphinx_mapping = {
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
 numpydoc_show_inherited_class_members = {
-    "mne.SourceSpaces": False,
     "mne.Forward": False,
+    "mne.Projection": False,
+    "mne.SourceSpaces": False,
 }
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True

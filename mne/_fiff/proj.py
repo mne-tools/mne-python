@@ -39,9 +39,10 @@ from ..utils import (
 
 
 class Projection(dict):
-    """Projection vector.
+    """Dictionary-like object holding a projection vector.
 
-    A basic class to proj a meaningful print for projection vectors.
+    Projection vectors are stored in a list in ``inst.info["projs"]``. Each projection
+    vector has 5 keys: ``active``, ``data``, ``desc``, ``explaied_var``, ``kind``.
 
     .. warning:: This class is generally not meant to be instantiated
                  directly, use ``compute_proj_*`` functions instead.
@@ -57,7 +58,7 @@ class Projection(dict):
     active : bool
         Whether or not the projector has been applied.
     explained_var : float | None
-        The explained variance (proportion).
+        The proportion of explained variance.
     """
 
     def __init__(
