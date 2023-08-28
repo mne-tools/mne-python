@@ -38,6 +38,8 @@ epochs_fname_onefile_mat = base_dir / "test_epochs_onefile.set"
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = base_dir / "test_raw_chanloc.set"
+raw_fname_chanloc_meter = base_dir / "test_raw_chanloc_meter.set"
+raw_fname_chanloc_cm = base_dir / "test_raw_chanloc_cm.set"
 raw_fname_chanloc_fids = base_dir / "test_raw_chanloc_fids.set"
 raw_fname_2021 = base_dir / "test_raw_2021.set"
 raw_fname_h5 = base_dir / "test_raw_h5.set"
@@ -571,6 +573,26 @@ def test_position_information(three_chanpos_fname):
 
     _assert_array_allclose_nan(
         np.array([ch["loc"] for ch in raw.info["chs"]]), EXPECTED_LOCATIONS_FROM_MONTAGE
+    )
+
+
+@testing.requires_testing_data
+def test_estimate_montage_units():
+    """Test automatic estimation of montage units."""
+    with pytest.warns(RuntimeWarning, match="The data contains 'boundary' events"):
+        # read 3 versions of the same file, with different montage units
+        raw_mm = read_raw_eeglab(raw_fname_chanloc, montage_units="auto")
+        raw_m = read_raw_eeglab(raw_fname_chanloc_meter, montage_units="auto")
+        raw_cm = read_raw_eeglab(raw_fname_chanloc_cm, montage_units="auto")
+    # All locations should be the same if the units are correctly estimated
+    # raise tolerance to 1e-3 because of EEGLAB rounding errors
+    assert_allclose(
+        np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
+        np.array([ch["loc"] for ch in raw_m.info["chs"]]), rtol=1e-3,
+    )
+    assert_allclose(
+        np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
+        np.array([ch["loc"] for ch in raw_cm.info["chs"]]), rtol=1e-3,
     )
 
 
