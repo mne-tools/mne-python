@@ -6,7 +6,7 @@ from pathlib import Path
 
 from mne.io import show_fiff
 
-base_dir = Path(__file__).parent / "data"
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 fname_evoked = base_dir / "test-ave.fif"
 fname_raw = base_dir / "test_raw.fif"
 fname_c_annot = base_dir / "test_raw-annot.fif"

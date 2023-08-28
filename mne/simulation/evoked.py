@@ -6,9 +6,10 @@
 import math
 
 import numpy as np
+from scipy.signal import lfilter
 
 from ..cov import compute_whitener
-from ..io.pick import pick_info
+from .._fiff.pick import pick_info
 from ..forward import apply_forward
 from ..utils import logger, verbose, check_random_state, _check_preload, _validate_type
 
@@ -172,8 +173,6 @@ def _generate_noise(
     info, cov, iir_filter, random_state, n_samples, zi=None, picks=None
 ):
     """Create spatially colored and temporally IIR-filtered noise."""
-    from scipy.signal import lfilter
-
     rng = check_random_state(random_state)
     _, _, colorer = compute_whitener(
         cov, info, pca=True, return_colorer=True, picks=picks, verbose=False

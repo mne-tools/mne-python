@@ -55,7 +55,7 @@ from mne.simulation.source import SourceSimulator
 from mne.label import Label
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.utils import catch_logging
 
 raw_fname_short = (

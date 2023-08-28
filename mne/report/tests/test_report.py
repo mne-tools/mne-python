@@ -37,7 +37,7 @@ from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import Bunch
 from mne.utils._testing import assert_object_equal
 from mne.viz import plot_alignment
-from mne.io.write import DATE_NONE
+from mne._fiff.write import DATE_NONE
 from mne.preprocessing import ICA
 from mne.epochs import make_metadata
 

@@ -15,6 +15,7 @@ from collections.abc import Iterable
 import warnings
 from textwrap import shorten
 import numpy as np
+from scipy.io import loadmat
 
 from .utils import (
     _pl,
@@ -38,7 +39,7 @@ from .utils import (
     _check_dict_keys,
 )
 
-from .io.write import (
+from ._fiff.write import (
     start_block,
     end_block,
     write_float,
@@ -48,10 +49,10 @@ from .io.write import (
     start_and_end_file,
     write_string,
 )
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tree import dir_tree_find
-from .io.tag import read_tag
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tree import dir_tree_find
+from ._fiff.tag import read_tag
 
 # For testing windows_like_datetime, we monkeypatch "datetime" in this module.
 # Keep the true datetime object around for _validate_type use.
@@ -1308,12 +1309,11 @@ def _read_brainstorm_annotations(fname, orig_time=None):
     annot : instance of Annotations | None
         The annotations.
     """
-    from scipy import io
 
     def get_duration_from_times(t):
         return t[1] - t[0] if t.shape[0] == 2 else np.zeros(len(t[0]))
 
-    annot_data = io.loadmat(fname)
+    annot_data = loadmat(fname)
     onsets, durations, descriptions = (list(), list(), list())
     for label, _, _, _, times, _, _ in annot_data["events"][0]:
         onsets.append(times[0])
@@ -1463,14 +1463,14 @@ def _check_event_id(event_id, raw):
     from .io.brainvision.brainvision import _BVEventParser
     from .io.brainvision.brainvision import _check_bv_annot
     from .io.brainvision.brainvision import RawBrainVision
-    from .io import RawFIF, RawArray
+    from .io import Raw, RawArray
 
     if event_id is None:
         return _DefaultEventParser()
     elif event_id == "auto":
         if isinstance(raw, RawBrainVision):
             return _BVEventParser()
-        elif isinstance(raw, (RawFIF, RawArray)) and _check_bv_annot(
+        elif isinstance(raw, (Raw, RawArray)) and _check_bv_annot(
             raw.annotations.description
         ):
             logger.info("Non-RawBrainVision raw using branvision markers")

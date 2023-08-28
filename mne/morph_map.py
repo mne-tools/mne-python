@@ -11,12 +11,13 @@
 import os
 
 import numpy as np
+from scipy.sparse import csr_matrix, eye
 
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import find_tag
-from .io.tree import dir_tree_find
-from .io.write import (
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import find_tag
+from ._fiff.tree import dir_tree_find
+from ._fiff.write import (
     start_block,
     end_block,
     write_string,
@@ -207,13 +208,11 @@ def _make_morph_map(subject_from, subject_to, subjects_dir, xhemi):
 
 def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_to):
     """Construct morph map for one hemisphere."""
-    from scipy.sparse import csr_matrix, eye as speye
-
     # add speedy short-circuit for self-maps
     if subject_from == subject_to and reg_from == reg_to:
         fname = subjects_dir / subject_from / "surf" / reg_from
         n_pts = len(read_surface(fname, verbose=False)[0])
-        return speye(n_pts, n_pts, format="csr")
+        return eye(n_pts, n_pts, format="csr")
 
     # load surfaces and normalize points to be on unit sphere
     fname = subjects_dir / subject_from / "surf" / reg_from

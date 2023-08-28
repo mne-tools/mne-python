@@ -7,6 +7,8 @@
 import math
 
 import numpy as np
+from scipy.special import expit
+from scipy.stats import kurtosis
 
 from ..utils import logger, verbose, check_random_state, random_permutation
 
@@ -116,9 +118,6 @@ def infomax(
            analysis using an extended infomax algorithm for mixed subgaussian
            and supergaussian sources. Neural Computation, 11(2), 417-441, 1999.
     """
-    from scipy.stats import kurtosis
-    from scipy.special import expit
-
     rng = check_random_state(random_state)
 
     # define some default parameters

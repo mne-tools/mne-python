@@ -20,15 +20,21 @@ from itertools import cycle
 from pathlib import Path
 
 import numpy as np
+from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
 
 from ..defaults import DEFAULTS
 from ..fixes import _safe_svd
-from .._freesurfer import _reorient_image, _read_mri_info, _check_mri, _mri_orientation
 from ..rank import compute_rank
 from ..surface import read_surface
-from ..io.constants import FIFF
-from ..io.proj import make_projector
-from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types, pick_info, pick_channels
+from .._fiff.constants import FIFF
+from .._fiff.proj import make_projector
+from .._fiff.pick import (
+    _DATA_CH_TYPES_SPLIT,
+    pick_types,
+    pick_info,
+    pick_channels,
+    _picks_by_type,
+)
 from ..source_space import read_source_spaces, SourceSpaces, _ensure_src
 from ..transforms import apply_trans, _frame_to_str
 from ..utils import (
@@ -42,7 +48,6 @@ from ..utils import (
     _on_missing,
     fill_doc,
 )
-from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import (
     tight_layout,
@@ -384,6 +389,7 @@ def _plot_mri_contours(
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
+    from .._freesurfer import _reorient_image, _read_mri_info, _mri_orientation
 
     # For ease of plotting, we will do everything in voxel coordinates.
     _validate_type(show_orientation, (bool, str), "show_orientation")
@@ -672,6 +678,8 @@ def plot_bem(
     on top of the midpoint MRI slice with the BEM boundary drawn for that
     slice.
     """
+    from .._freesurfer import _check_mri
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     mri_fname = _check_mri(mri, subject, subjects_dir)
 
@@ -1108,7 +1116,6 @@ def plot_filter(
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt
     import matplotlib.pyplot as plt
 
     sfreq = float(sfreq)

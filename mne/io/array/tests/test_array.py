@@ -13,8 +13,8 @@ from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.meas_info import create_info
-from mne.io.pick import get_channel_type_constants
+from mne._fiff.meas_info import create_info
+from mne._fiff.pick import get_channel_type_constants
 from mne.channels import make_dig_montage
 
 base_dir = Path(__file__).parent.parent.parent / "tests" / "data"

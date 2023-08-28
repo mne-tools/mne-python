@@ -8,9 +8,10 @@ import copy as cp
 import numbers
 
 import numpy as np
+from scipy.fft import rfftfreq
 
 from .tfr import _cwt_array, morlet, _get_nfft, EpochsTFR
-from ..io.pick import pick_channels, _picks_to_idx
+from .._fiff.pick import pick_channels, _picks_to_idx
 from ..utils import (
     logger,
     verbose,
@@ -794,8 +795,6 @@ def csd_array_fourier(
     csd_morlet
     csd_multitaper
     """
-    from scipy.fft import rfftfreq
-
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax
     )
@@ -994,8 +993,6 @@ def csd_array_multitaper(
     csd_morlet
     csd_multitaper
     """
-    from scipy.fft import rfftfreq
-
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax
     )

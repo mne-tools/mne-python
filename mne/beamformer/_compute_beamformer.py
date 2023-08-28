@@ -12,7 +12,7 @@ import numpy as np
 
 from ..cov import Covariance, make_ad_hoc_cov
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
-from ..io.proj import make_projector, Projection
+from .._fiff.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (

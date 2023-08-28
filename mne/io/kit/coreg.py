@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from .constants import KIT, FIFF
-from .._digitization import _make_dig_points
+from ..._fiff._digitization import _make_dig_points
 from ...transforms import (
     Transform,
     apply_trans,

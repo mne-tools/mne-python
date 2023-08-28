@@ -7,7 +7,7 @@
 import re
 import numpy as np
 
-from ...io.pick import _picks_to_idx, pick_types
+from ..._fiff.pick import _picks_to_idx, pick_types
 from ...utils import fill_doc, _check_option, _validate_type
 
 

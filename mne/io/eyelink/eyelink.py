@@ -17,9 +17,9 @@ from ._utils import (
     _get_sfreq_from_ascii,
     _is_sys_msg,
 )  # helper functions
-from ..constants import FIFF
 from ..base import BaseRaw
-from ..meas_info import create_info
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
 from ...annotations import Annotations
 from ...utils import (
     _check_fname,

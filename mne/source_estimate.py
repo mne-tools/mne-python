@@ -11,6 +11,8 @@ import os.path as op
 from types import GeneratorType
 
 import numpy as np
+from scipy import sparse
+from scipy.spatial.distance import cdist, pdist
 
 from .baseline import rescale
 from .cov import Covariance
@@ -18,8 +20,8 @@ from .evoked import _get_peak
 from .filter import resample
 from .fixes import _safe_svd
 from ._freesurfer import _get_mri_info_data, _get_atlas_values, read_freesurfer_lut
-from .io.constants import FIFF
-from .io.pick import pick_types
+from ._fiff.constants import FIFF
+from ._fiff.pick import pick_types
 from .surface import read_surface, _get_ico_surface, mesh_edges, _project_onto_surface
 from .source_space import (
     _ensure_src,
@@ -56,14 +58,14 @@ from .utils import (
     object_size,
     _check_fname,
     _import_h5io_funcs,
+    TimeMixin,
 )
 from .viz import (
     plot_source_estimates,
     plot_vector_source_estimates,
     plot_volume_source_estimates,
 )
-from .io.base import TimeMixin
-from .io.meas_info import Info
+from ._fiff.meas_info import Info
 
 
 def _read_stc(filename):
@@ -3032,8 +3034,6 @@ def spatio_temporal_tris_adjacency(tris, n_times, remap_vertices=False, verbose=
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    from scipy import sparse
-
     if remap_vertices:
         logger.info("Reassigning vertex indices.")
         tris = np.searchsorted(np.unique(tris), tris)
@@ -3070,8 +3070,6 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    from scipy.sparse import block_diag as sparse_block_diag
-
     if src[0]["dist"] is None:
         raise RuntimeError(
             "src must have distances included, consider using "
@@ -3084,7 +3082,7 @@ def spatio_temporal_dist_adjacency(src, n_times, dist, verbose=None):
             block[block == 0] = -np.inf
         else:
             block.data[block.data == 0] == -1
-    edges = sparse_block_diag(blocks)
+    edges = sparse.block_diag(blocks)
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
     edges = edges.tocsr()
@@ -3182,9 +3180,6 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
         existing intra-hemispheric adjacency matrix, e.g. computed
         using geodesic distances.
     """
-    from scipy import sparse
-    from scipy.spatial.distance import cdist
-
     src = _ensure_src(src, kind="surface")
     adj = cdist(src[0]["rr"][src[0]["vertno"]], src[1]["rr"][src[1]["vertno"]])
     adj = sparse.csr_matrix(adj <= dist, dtype=int)
@@ -3198,8 +3193,6 @@ def spatial_inter_hemi_adjacency(src, dist, verbose=None):
 @verbose
 def _get_adjacency_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create adjacency matrix."""
-    from scipy.sparse import coo_matrix
-
     n_vertices = edges.shape[0]
     logger.info("-- number of adjacent vertices : %d" % n_vertices)
     nnz = edges.col.size
@@ -3219,7 +3212,7 @@ def _get_adjacency_from_edges(edges, n_times, verbose=None):
     data = np.ones(
         edges.data.size * n_times + 2 * n_vertices * (n_times - 1), dtype=np.int64
     )
-    adjacency = coo_matrix((data, (row, col)), shape=(n_times * n_vertices,) * 2)
+    adjacency = sparse.coo_matrix((data, (row, col)), shape=(n_times * n_vertices,) * 2)
     return adjacency
 
 
@@ -3289,7 +3282,6 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty, use_sparse):
     # of vol src space.
     # If stc=None (i.e. no activation time courses provided) and mode='mean',
     # only computes vertex indices and label_flip will be list of None.
-    from scipy import sparse
     from .label import label_sign_flip, Label, BiHemiLabel
 
     # if source estimate provided in stc, get vertices from source space and
@@ -3523,8 +3515,6 @@ def _gen_extract_label_time_course(
     verbose=None,
 ):
     # loop through source estimates and extract time series
-    from scipy import sparse
-
     if src is None and mode in ["mean", "max"]:
         kind = "surface"
     else:
@@ -3780,7 +3770,6 @@ def stc_near_sensors(
 
     .. versionadded:: 0.22
     """
-    from scipy.spatial.distance import cdist, pdist
     from .evoked import Evoked
 
     _validate_type(evoked, Evoked, "evoked")

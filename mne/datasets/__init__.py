@@ -2,74 +2,47 @@
 
 See :ref:`datasets` for more information.
 """
+import lazy_loader as lazy
 
-from . import fieldtrip_cmc
-from . import brainstorm
-from . import visual_92_categories
-from . import kiloword
-from . import eegbci
-from . import hf_sef
-from . import misc
-from . import mtrf
-from . import sample
-from . import somato
-from . import multimodal
-from . import fnirs_motor
-from . import opm
-from . import spm_face
-from . import testing
-from . import _fake
-from . import phantom_4dbti
-from . import sleep_physionet
-from . import limo
-from . import refmeg_noise
-from . import ssvep
-from . import erp_core
-from . import epilepsy_ecog
-from . import eyelink
-from . import ucl_opm_auditory
-from ._fetch import fetch_dataset
-from .utils import (
-    _download_all_example_data,
-    fetch_hcp_mmp_parcellation,
-    fetch_aparc_sub_parcellation,
-    has_dataset,
+__getattr__, __dir__, __all__ = lazy.attach(
+    __name__,
+    submodules=[
+        "fieldtrip_cmc",
+        "brainstorm",
+        "visual_92_categories",
+        "kiloword",
+        "eegbci",
+        "hf_sef",
+        "misc",
+        "mtrf",
+        "sample",
+        "somato",
+        "multimodal",
+        "fnirs_motor",
+        "opm",
+        "spm_face",
+        "testing",
+        "_fake",
+        "phantom_4dbti",
+        "sleep_physionet",
+        "limo",
+        "refmeg_noise",
+        "ssvep",
+        "erp_core",
+        "epilepsy_ecog",
+        "eyelink",
+        "ucl_opm_auditory",
+    ],
+    submod_attrs={
+        "_fetch": ["fetch_dataset"],
+        "_fsaverage.base": ["fetch_fsaverage"],
+        "_infant.base": ["fetch_infant_template"],
+        "_phantom.base": ["fetch_phantom"],
+        "utils": [
+            "_download_all_example_data",
+            "fetch_hcp_mmp_parcellation",
+            "fetch_aparc_sub_parcellation",
+            "has_dataset",
+        ],
+    },
 )
-from ._fsaverage.base import fetch_fsaverage
-from ._infant.base import fetch_infant_template
-from ._phantom.base import fetch_phantom
-
-__all__ = [
-    "_download_all_example_data",
-    "_fake",
-    "brainstorm",
-    "eegbci",
-    "fetch_aparc_sub_parcellation",
-    "fetch_fsaverage",
-    "fetch_infant_template",
-    "fetch_hcp_mmp_parcellation",
-    "fieldtrip_cmc",
-    "hf_sef",
-    "kiloword",
-    "misc",
-    "mtrf",
-    "multimodal",
-    "opm",
-    "phantom_4dbti",
-    "sample",
-    "sleep_physionet",
-    "somato",
-    "spm_face",
-    "ssvep",
-    "testing",
-    "visual_92_categories",
-    "limo",
-    "erp_core",
-    "epilepsy_ecog",
-    "fetch_dataset",
-    "fetch_phantom",
-    "has_dataset",
-    "refmeg_noise",
-    "fnirs_motor",
-    "eyelink",
-]

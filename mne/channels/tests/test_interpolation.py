@@ -14,7 +14,7 @@ from mne.preprocessing.nirs import (
     beer_lambert_law,
 )
 from mne.io import read_raw_nirx
-from mne.io.proj import _has_eeg_average_ref_proj
+from mne._fiff.proj import _has_eeg_average_ref_proj
 from mne.utils import _record_warnings
 
 base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
