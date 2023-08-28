@@ -7,10 +7,11 @@
 # All imports should be done directly to submodules, so we don't import
 # anything here or use lazy_loader.
 
+# This warn import (made private as _warn) is just for the temporary
+# _io_dep_getattr and can be removed in 1.6 along with _dep_msg and _io_dep_getattr.
 from ..utils import warn as _warn
 
 
-# Helpers for keeping some attributes in mne/io/*.py, remove in 1.6
 _dep_msg = (
     "is deprecated will be removed in 1.6, use documented public API instead. "
     "If no appropriate public API exists, please open an issue on GitHub."
