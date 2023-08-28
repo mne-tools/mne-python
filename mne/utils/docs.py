@@ -1983,7 +1983,7 @@ docdict[
 ] = """
 iir_params : dict | None
     Dictionary of parameters to use for IIR filtering.
-    If `i`ir_params=None`` and ``method="iir"``, 4th order Butterworth will be used.
+    If ``iir_params=None`` and ``method="iir"``, 4th order Butterworth will be used.
     For more information, see :func:`mne.filter.construct_iir_filter`.
 """
 
