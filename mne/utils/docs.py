@@ -2512,7 +2512,7 @@ docdict[
 ] = """
 method : str
     ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
-    forward-backward filtering (via `~scipy.signal.filtfilt`).
+    forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
 """
 
 docdict[
@@ -3130,9 +3130,10 @@ phase : str
     suppression.
     When ``method='iir'``, ``phase='zero'`` (default) or
     ``phase='zero-double'`` constructs and applies IIR filter twice, once
-    forward, and once backward (making it non-causal) using `~scipy.signal.filtfilt`.
+    forward, and once backward (making it non-causal) using
+    :func:`~scipy.signal.filtfilt`.
     If ``phase='forward'``, it constructs and applies forward IIR filter using
-    `~scipy.signal.lfilter`.
+    :func:`~scipy.signal.lfilter`.
 
     .. versionadded:: 0.13
 """
