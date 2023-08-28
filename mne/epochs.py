@@ -1569,10 +1569,10 @@ class BaseEpochs(
             epoch = np.dot(self._projector, epoch)
         return epoch
 
-    def _handle_empty(self, on_empty, msg):
+    def _handle_empty(self, on_empty, meth):
         if len(self.events) == 0:
             msg = (
-                f"epochs.{msg}() can't run because this Epochs-object is empty.\n"
+                f"epochs.{meth}() can't run because this Epochs-object is empty. "
                 f"You might want to check Epochs.drop_log or Epochs.plot_drop_log()"
                 f" to see why epochs were dropped."
             )
@@ -1756,8 +1756,8 @@ class BaseEpochs(
                 warn(
                     "All epochs were dropped!\n"
                     "You might need to alter reject/flat-criteria "
-                    "or drop bad channels to avoid this.\n"
-                    "Tip: With Epochs.plot_drop_log() you can see which "
+                    "or drop bad channels to avoid this. "
+                    "You can use Epochs.plot_drop_log() to see which "
                     "channels are responsible for the dropping of epochs."
                 )
 
@@ -3563,7 +3563,7 @@ def _read_one_epoch_file(f, tree, preload):
                 events = np.empty((0, 3), dtype=np.int32)
                 mappings = dict()
             else:
-                raise e
+                raise
         #   Metadata
         metadata = None
         metadata_tree = dir_tree_find(tree, FIFF.FIFFB_MNE_METADATA)
