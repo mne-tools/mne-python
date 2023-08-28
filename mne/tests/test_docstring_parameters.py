@@ -261,7 +261,6 @@ invert_transform
 is_power2
 is_fixed_orient
 kit2fiff
-label_src_vertno_sel
 make_eeg_average_ref_proj
 make_projector
 mesh_dist
@@ -274,7 +273,6 @@ plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
 read_fiducials
-read_tag
 rescale
 setup_proj
 source_estimate_quantification

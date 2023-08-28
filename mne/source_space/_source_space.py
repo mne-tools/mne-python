@@ -16,15 +16,14 @@ from scipy.sparse import csr_matrix, triu
 from scipy.sparse.csgraph import dijkstra
 from scipy.spatial.distance import cdist
 
-# TODO: Make mne/source_space/* so these don't end up in the namespace
-from .bem import read_bem_surfaces, ConductorModel
-from ._fiff.constants import FIFF
-from ._fiff.meas_info import create_info, Info
-from ._fiff.open import fiff_open
-from ._fiff.pick import channel_type, _picks_to_idx
-from ._fiff.tag import find_tag, read_tag
-from ._fiff.tree import dir_tree_find
-from ._fiff.write import (
+from ..bem import read_bem_surfaces, ConductorModel
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import create_info, Info
+from .._fiff.open import fiff_open
+from .._fiff.pick import channel_type, _picks_to_idx
+from .._fiff.tag import find_tag, read_tag
+from .._fiff.tree import dir_tree_find
+from .._fiff.write import (
     start_block,
     start_and_end_file,
     end_block,
@@ -36,8 +35,8 @@ from ._fiff.write import (
     write_int_matrix,
     write_coord_trans,
 )
-from .fixes import _get_img_fdata
-from .surface import (
+from ..fixes import _get_img_fdata
+from ..surface import (
     read_surface,
     _create_surf_spacing,
     _get_ico_surface,
@@ -51,10 +50,10 @@ from .surface import (
     fast_cross_3d,
     _CheckInside,
 )
-from .viz import plot_alignment
+from ..viz import plot_alignment
 
-# keep get_mni_fiducials here just for easy backward compat
-from ._freesurfer import (
+# Remove get_mni_fiducials in 1.6 (deprecated)
+from .._freesurfer import (
     _get_mri_info_data,
     _get_atlas_values,
     read_freesurfer_lut,
@@ -62,7 +61,7 @@ from ._freesurfer import (
     get_volume_labels_from_aseg,
     _check_mri,
 )
-from .utils import (
+from ..utils import (
     get_subjects_dir,
     check_fname,
     logger,
@@ -83,8 +82,8 @@ from .utils import (
     _pl,
     _suggest,
 )
-from .parallel import parallel_func
-from .transforms import (
+from ..parallel import parallel_func
+from ..transforms import (
     invert_transform,
     apply_trans,
     _print_coord_trans,
@@ -2523,12 +2522,6 @@ def _grid_interp_jit(from_shape, to_shape, trans, order, inuse):
     return data, indices, indptr
 
 
-def _pts_in_hull(pts, hull, tolerance=1e-12):
-    return np.all(
-        [np.dot(eq[:-1], pts.T) + eq[-1] <= tolerance for eq in hull.equations], axis=0
-    )
-
-
 @verbose
 def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=None):
     """Remove all source space points closer than a given limit (in mm)."""
@@ -2823,7 +2816,7 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     labels_aseg : list of Label
         List of Label of segmented volumes included in src space.
     """
-    from .label import Label
+    from ..label import Label
 
     # Read the aseg file
     aseg_fname = op.join(subjects_dir, subject, "mri", "aseg.mgz")

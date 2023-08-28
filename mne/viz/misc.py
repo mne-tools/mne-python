@@ -389,7 +389,7 @@ def _plot_mri_contours(
     """
     import matplotlib.pyplot as plt
     from matplotlib import patheffects
-    from ..source_space import _ensure_src
+    from ..source_space._source_space import _ensure_src
 
     # For ease of plotting, we will do everything in voxel coordinates.
     _validate_type(show_orientation, (bool, str), "show_orientation")

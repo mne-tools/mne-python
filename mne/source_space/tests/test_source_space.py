@@ -31,14 +31,14 @@ from mne import (
     read_bem_solution,
     read_freesurfer_lut,
     read_trans,
+    get_volume_labels_from_src,
 )
 from mne.fixes import _get_img_fdata
 from mne.utils import run_subprocess, _record_warnings, requires_mne
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
+from mne.source_space._source_space import _compare_source_spaces
 from mne.source_space import (
-    get_volume_labels_from_src,
-    _compare_source_spaces,
     get_decimated_surfaces,
     compute_distance_to_sensors,
 )
@@ -1018,6 +1018,12 @@ def test_get_decimated_surfaces(src, n, nv):
         assert set(s) == {"rr", "tris"}
         assert len(s["rr"]) == nv
         assert_array_equal(np.unique(s["tris"]), np.arange(nv))
+
+
+def test_deprecation():
+    """Test deprecation of mne.source_space functions."""
+    with pytest.warns(FutureWarning, match="use mne.get_volume_labels_from_src"):
+        mne.source_space.get_volume_labels_from_src
 
 
 # The following code was used to generate small-src.fif.gz.

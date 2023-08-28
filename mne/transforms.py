@@ -1148,7 +1148,7 @@ class _SphericalSurfaceWarp:
             The warping object (for chaining).
         """
         from .bem import _fit_sphere
-        from .source_space import _check_spacing
+        from .source_space._source_space import _check_spacing
 
         match_rr = _check_spacing(match, verbose=False)[2]["rr"]
         logger.info("Computing TPS warp")

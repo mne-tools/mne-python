@@ -33,7 +33,7 @@ from ..transforms import (
     invert_transform,
 )
 from ..utils import logger, verbose, warn, _pl, _validate_type, _check_fname
-from ..source_space import (
+from ..source_space._source_space import (
     _ensure_src,
     _filter_source_spaces,
     _make_discrete_source_space,

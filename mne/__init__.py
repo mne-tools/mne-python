@@ -255,7 +255,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "spatio_temporal_tris_adjacency",
             "stc_near_sensors",
         ],
-        "source_space": [
+        "source_space._source_space": [
             "SourceSpaces",
             "add_source_space_distances",
             "get_volume_labels_from_src",

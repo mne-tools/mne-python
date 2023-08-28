@@ -55,7 +55,7 @@ from ..forward import (
 )
 from ..forward.forward import write_forward_meas_info, _triage_loose
 from ..html_templates import _get_html_template
-from ..source_space import (
+from ..source_space._source_space import (
     _read_source_spaces_from_tree,
     _get_src_nn,
     find_source_space_hemi,

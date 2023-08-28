@@ -167,6 +167,11 @@ def test_import_nesting_hierarchy():
             "from . import __file__",
             "non-explicit relative import",
         ),
+        (
+            "mne/source_space/__init__.py",
+            "from . import _source_space",
+            "non-explicit relative import",
+        ),
     )
     root_dir = Path(mne.__file__).parent.resolve()
     all_errors = list()
