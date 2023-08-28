@@ -406,7 +406,7 @@ def test_degenerate(tmp_path):
     pytest.raises(NotImplementedError, read_epochs_eeglab, bad_epochs_fname)
 
     # error when montage units incorrect
-    with pytest.raises(ValueError, match=r'Invalid value'):
+    with pytest.raises(ValueError, match=r"Invalid value"):
         read_epochs_eeglab(epochs_fname_mat, montage_units="mV")
 
     # warning when head radius too large
@@ -588,11 +588,13 @@ def test_estimate_montage_units():
     # raise tolerance to 1e-3 because of EEGLAB rounding errors
     assert_allclose(
         np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
-        np.array([ch["loc"] for ch in raw_m.info["chs"]]), rtol=1e-3,
+        np.array([ch["loc"] for ch in raw_m.info["chs"]]),
+        rtol=1e-3,
     )
     assert_allclose(
         np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
-        np.array([ch["loc"] for ch in raw_cm.info["chs"]]), rtol=1e-3,
+        np.array([ch["loc"] for ch in raw_cm.info["chs"]]),
+        rtol=1e-3,
     )
 
 
