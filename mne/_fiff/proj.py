@@ -42,7 +42,7 @@ class Projection(dict):
     """Dictionary-like object holding a projection vector.
 
     Projection vectors are stored in a list in ``inst.info["projs"]``. Each projection
-    vector has 5 keys: ``active``, ``data``, ``desc``, ``explaied_var``, ``kind``.
+    vector has 5 keys: ``active``, ``data``, ``desc``, ``explained_var``, ``kind``.
 
     .. warning:: This class is generally not meant to be instantiated
                  directly, use ``compute_proj_*`` functions instead.
