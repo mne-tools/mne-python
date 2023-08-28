@@ -346,7 +346,6 @@ def test_hierarchical():
 
 
 @pytest.mark.slowtest
-@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 @testing.requires_testing_data
 def test_average_movements():
     """Test movement averaging algorithm."""
@@ -364,9 +363,10 @@ def test_average_movements():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, proj=False, preload=True
     )
-    epochs_proj = Epochs(
-        raw, events[:1], event_id, tmin, tmax, picks=picks, proj=True, preload=True
-    )
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs_proj = Epochs(
+            raw, events[:1], event_id, tmin, tmax, picks=picks, proj=True, preload=True
+        )
     raw_sss_stat = maxwell_filter(
         raw, origin=origin, regularize=None, bad_condition="ignore"
     )
@@ -471,7 +471,6 @@ def _assert_drop_log_types(drop_log):
     ), "drop_log[ii][jj] should be str"
 
 
-@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_reject():
     """Test epochs rejection."""
     raw, events, _ = _get_data()
@@ -626,7 +625,8 @@ def test_reject():
             pytest.raises(ValueError, epochs.drop_bad, reject_part)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
-            epochs.drop_bad(flat=dict(mag=1.0))
+            with pytest.warns(RuntimeWarning, match="were dropped"):
+                epochs.drop_bad(flat=dict(mag=1.0))
             assert_equal(len(epochs), 0)
             pytest.raises(ValueError, epochs.drop_bad, flat=dict(mag=0.0))
 
@@ -694,7 +694,6 @@ def test_reject():
         assert "is a noop" in log
 
 
-@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_reject_by_annotations_reject_tmin_reject_tmax():
     """Test reject_by_annotations with reject_tmin and reject_tmax defined."""
     # 10 seconds of data, event at 2s, bad segment from 1s to 1.5s
@@ -705,9 +704,10 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
 
     # Make the epoch based on the event at 2s, so from 1s to 3s ... assert it
     # is rejected due to bad segment overlap from 1s to 1.5s
-    epochs = mne.Epochs(
-        raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
-    )
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs = mne.Epochs(
+            raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
+        )
     assert len(epochs) == 0
 
     # Setting `reject_tmin` to prevent rejection of epoch.
@@ -1146,7 +1146,6 @@ def test_epoch_multi_ids():
     assert_allclose(epochs_reverse.get_data(), epochs_regular.get_data())
 
 
-@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_read_epochs_bad_events():
     """Test epochs when events are at the beginning or the end of the file."""
     raw, events, picks = _get_data()
@@ -1172,7 +1171,8 @@ def test_read_epochs_bad_events():
     )
     assert repr(epochs)  # test repr
     assert epochs._repr_html_()  # test _repr_html_
-    epochs.drop_bad()
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs.drop_bad()
     assert repr(epochs)
     assert epochs._repr_html_()
     with pytest.raises(RuntimeError, match="empty"):
@@ -1959,7 +1959,6 @@ def test_evoked_standard_error(tmp_path):
             assert ave.first == ave2.first
 
 
-@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_reject_epochs(tmp_path):
     """Test of epochs rejection."""
     temp_fname = tmp_path / "test-epo.fif"
@@ -1992,7 +1991,8 @@ def test_reject_epochs(tmp_path):
     epochs = Epochs(
         raw_2, events1, event_id, tmin, tmax, reject=reject_crazy, flat=flat
     )
-    epochs.drop_bad()
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs.drop_bad()
 
     assert all("MEG 2442" in e for e in epochs.drop_log)
     assert all("MEG 2443" not in e for e in epochs.drop_log)
@@ -2094,7 +2094,8 @@ def test_reject_epochs(tmp_path):
     new_flat["grad"] *= 2
     # Only the newly-provided thresholds should be updated, the existing ones
     # should be kept
-    epochs_cleaned = epochs.copy().drop_bad(reject=new_reject, flat=new_flat)
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs_cleaned = epochs.copy().drop_bad(reject=new_reject, flat=new_flat)
     assert epochs_cleaned.reject == dict(
         mag=new_reject["mag"], grad=reject["grad"], eeg=reject["eeg"], eog=reject["eog"]
     )
@@ -4836,10 +4837,10 @@ def _get_empty_parametrize():
 
 
 @pytest.mark.parametrize(**_get_empty_parametrize())
-@pytest.mark.filterwarnings("ignore:All epochs were dropped!.*:RuntimeWarning")
 def test_empty_error(method, epochs_empty):
     """Test that a RuntimeError is raised when certain methods are called."""
     if method[0] == "to_data_frame":
         pytest.importorskip("pandas")
-    with pytest.raises(RuntimeError, match="is empty."):
-        getattr(epochs_empty.copy(), method[0])(**method[1])
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        with pytest.raises(RuntimeError, match="is empty."):
+            getattr(epochs_empty.copy(), method[0])(**method[1])
