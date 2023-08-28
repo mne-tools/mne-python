@@ -468,7 +468,7 @@ class BaseEpochs(
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             # Allow reading empty epochs (ToDo: Maybe not anymore in the future)
-            if events.shape == (0, 3):
+            if len(events) == 0:
                 self._allow_empty = True
                 selection = None
             else:
