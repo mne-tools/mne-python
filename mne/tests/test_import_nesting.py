@@ -54,8 +54,8 @@ IMPORT_NESTING_ORDER = (
     "datasets",
     "export",
     "gui",
-    "simulation",
     "report",
+    "simulation",
     "stats",
 )
 # These are not listed in mne.__all__ but we want to consider them above
@@ -65,12 +65,9 @@ NON_ALL_SUBMODULES = (
     "annotations",
     "bem",
     "cuda",
-    "defaults",
     "evoked",
     "filter",
     "fixes",
-    "forward",
-    "source_space",
     "surface",
     "transforms",
     "utils",
