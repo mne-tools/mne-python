@@ -11,7 +11,7 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 from weakref import WeakKeyDictionary, WeakSet
 import re
 
@@ -162,6 +162,35 @@ class VertexSelect(UIEvent):
 
     hemi: str
     vertex_id: int
+
+
+@dataclass
+@fill_doc
+class Contours(UIEvent):
+    """Indicates that the user has changed the contour lines.
+
+    Parameters
+    ----------
+    kind : str
+        The kind of contours lines being changed. The Notes section of the
+        drawing routine publishing this event should mention the possible
+        kinds.
+    contours : list of float
+        The new values at which contour lines need to be drawn.
+
+    Attributes
+    ----------
+    %(ui_event_name_source)s
+    kind : str
+        The kind of contours lines being changed. The Notes section of the
+        drawing routine publishing this event should mention the possible
+        kinds.
+    contours : list of float
+        The new values at which contour lines need to be drawn.
+    """
+
+    kind: str
+    contours: List[str]
 
 
 def _get_event_channel(fig):
