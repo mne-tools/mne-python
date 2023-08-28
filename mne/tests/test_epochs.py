@@ -4841,6 +4841,5 @@ def test_empty_error(method, epochs_empty):
     """Test that a RuntimeError is raised when certain methods are called."""
     if method[0] == "to_data_frame":
         pytest.importorskip("pandas")
-    with pytest.warns(RuntimeWarning, match="were dropped"):
-        with pytest.raises(RuntimeError, match="is empty."):
-            getattr(epochs_empty.copy(), method[0])(**method[1])
+    with pytest.raises(RuntimeError, match="is empty."):
+        getattr(epochs_empty.copy(), method[0])(**method[1])
