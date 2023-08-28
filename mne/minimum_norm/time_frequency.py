@@ -39,13 +39,11 @@ def _prepare_source_params(
     lambda2=1.0 / 9.0,
     method="dSPM",
     nave=1,
-    decim=1,
     pca=True,
     pick_ori="normal",
     prepared=False,
     method_params=None,
     use_cps=True,
-    verbose=None,
 ):
     """Prepare inverse operator and params for spectral / TFR analysis."""
     inv = _check_or_prepare(
@@ -382,7 +380,6 @@ def _source_induced_power(
         prepared=prepared,
         method_params=method_params,
         use_cps=use_cps,
-        verbose=verbose,
     )
 
     inv = inverse_operator
@@ -777,11 +774,10 @@ def _compute_source_psd_epochs(
         prepared=prepared,
         method_params=method_params,
         use_cps=use_cps,
-        verbose=verbose,
     )
     # Simplify code with a tiny (rel. to other computations) penalty for eye
     # mult
-    Vh = np.eye(K.shape[0]) if Vh is None else Vh
+    Vh = np.eye(K.shape[1]) if Vh is None else Vh
 
     # split the inverse operator
     if inv_split is not None:
