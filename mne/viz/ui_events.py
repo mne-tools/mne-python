@@ -18,7 +18,6 @@ import re
 from ..utils import fill_doc, warn
 from .backends._abstract import Figure3D
 
-
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = WeakKeyDictionary()
 
