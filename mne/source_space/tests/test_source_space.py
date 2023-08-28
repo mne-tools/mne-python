@@ -64,7 +64,7 @@ fname_morph = subjects_dir / "sample" / "bem" / "sample-fsaverage-ico-5-src.fif"
 fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-4-src.fif"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 fname_small = base_dir / "small-src.fif.gz"
 fname_ave = base_dir / "test-ave.fif"
 rng = np.random.RandomState(0)
@@ -149,7 +149,7 @@ def test_add_patch_info(monkeypatch):
 
     # now let's use one that works (and test our warning-throwing)
     with monkeypatch.context() as m:
-        m.setattr(mne.source_space, "_DIST_WARN_LIMIT", 1)
+        m.setattr(mne.source_space._source_space, "_DIST_WARN_LIMIT", 1)
         with pytest.warns(RuntimeWarning, match="Computing distances for 258"):
             add_source_space_distances(src_new)
     _compare_source_spaces(src, src_new, "approx")

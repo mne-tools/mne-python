@@ -85,7 +85,7 @@ def __getattr__(name):
             "use mne.{name} instead",
             FutureWarning,
         )
-        return locals()[f"_{name}"]
+        return globals()[f"_{name}"]
     elif name == "RawFIF":
         _warn(
             "RawFIF is deprecated and will be removed in 1.6, use Raw instead",
