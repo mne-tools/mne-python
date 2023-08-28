@@ -1983,7 +1983,7 @@ docdict[
 ] = """
 iir_params : dict | None
     Dictionary of parameters to use for IIR filtering.
-    If iir_params is None and method="iir", 4th order Butterworth will be used.
+    If `i`ir_params=None`` and ``method="iir"``, 4th order Butterworth will be used.
     For more information, see :func:`mne.filter.construct_iir_filter`.
 """
 
@@ -2103,7 +2103,7 @@ docdict[
     "interp"
 ] = """
 interp : str
-    Either 'hann', 'cos2' (default), 'linear', or 'zero', the type of
+    Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type of
     forward-solution interpolation to use between forward solutions
     at different head positions.
 """
@@ -2113,8 +2113,8 @@ docdict[
 ] = """
 interpolation : str | None
     Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
-    Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
-    or 'cubic'.
+    Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+    ``'quadratic'`` or ``'cubic'``.
 """
 
 docdict[
@@ -2511,8 +2511,8 @@ docdict[
     "method_fir"
 ] = """
 method : str
-    'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-    forward-backward filtering (via filtfilt).
+    ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+    forward-backward filtering (via `~scipy.signal.filtfilt`).
 """
 
 docdict[
@@ -2658,7 +2658,7 @@ docdict[
     "n_jobs_cuda"
 ] = """
 n_jobs : int | str
-    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+    Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
     is installed properly.
 """
 
@@ -2666,8 +2666,8 @@ docdict[
     "n_jobs_fir"
 ] = """
 n_jobs : int | str
-    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
-    is installed properly and method='fir'.
+    Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+    is installed properly and ``method='fir'``.
 """
 
 docdict[
@@ -2830,7 +2830,7 @@ docdict[
 ] = """
 npad : int | str
     Amount to pad the start and end of the data.
-    Can also be "auto" to use a padding that will result in
+    Can also be ``"auto"`` to use a padding that will result in
     a power-of-two size (can be much faster).
 """
 
@@ -3105,7 +3105,7 @@ docdict[
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
     PSFs/CTFs for the specified vertices. Arrays for multiple labels are
-    returned as list. Only returned if mode='svd' and return_pca_vars=True.
+    returned as list. Only returned if ``mode='svd'`` and ``return_pca_vars=True``.
 """
 
 docdict[
@@ -3130,9 +3130,9 @@ phase : str
     suppression.
     When ``method='iir'``, ``phase='zero'`` (default) or
     ``phase='zero-double'`` constructs and applies IIR filter twice, once
-    forward, and once backward (making it non-causal) using filtfilt.
+    forward, and once backward (making it non-causal) using `~scipy.signal.filtfilt`.
     If ``phase='forward'``, it constructs and applies forward IIR filter using
-    lfilter.
+    `~scipy.signal.lfilter`.
 
     .. versionadded:: 0.13
 """
