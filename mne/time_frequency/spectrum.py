@@ -46,7 +46,6 @@ from ..utils.check import (
 )
 from ..utils.misc import _pl
 from ..utils.spectrum import _split_psd_kwargs
-from ..viz._mpl_figure import _line_figure, _split_picks_by_type
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
 from ..viz.utils import (
@@ -642,7 +641,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure with spectra plotted in separate subplots for each channel
             type.
         """
+        # Must nest this _mpl_figure import because of the BACKEND global
+        # stuff
         from .multitaper import _psd_from_mt
+        from ..viz._mpl_figure import _line_figure, _split_picks_by_type
 
         # arg checking
         ci = _check_ci(ci)

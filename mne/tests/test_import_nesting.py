@@ -169,6 +169,11 @@ def test_import_nesting_hierarchy():
             "from . import _source_space",
             "non-explicit relative import",
         ),
+        (
+            "mne/time_frequency/spectrum.py",
+            "        from ..viz._mpl_figure import _line_figure, _split_picks_by_type",
+            "hierarchy: must not nest viz",
+        ),
     )
     root_dir = Path(mne.__file__).parent.resolve()
     all_errors = list()
@@ -195,7 +200,7 @@ def test_import_nesting_hierarchy():
                 must_nest=must_nest,
                 must_not_nest=must_not_nest,
             )
-            tree = ast.parse(file.read_text(), filename=file)
+            tree = ast.parse(file.read_text(encoding="utf-8"), filename=file)
             assert isinstance(tree, ast.Module)
             rel_path = rel_path.as_posix()  # str
             logger.debug(rel_path)
