@@ -80,20 +80,20 @@ def __getattr__(name):
         "set_bipolar_reference",
         "add_reference_channels",
     ):
-        warn(
+        _warn(
             f"mne.io.{name} is deprecated and will be removed in 1.6, "
             "use mne.{name} instead",
             FutureWarning,
         )
         return locals()[f"_{name}"]
     elif name == "RawFIF":
-        warn(
+        _warn(
             "RawFIF is deprecated and will be removed in 1.6, use Raw instead",
             FutureWarning,
         )
         name = "Raw"
     elif name == "Info":
-        warn(
+        _warn(
             "mne.io.Info is deprecated and will be removed in 1.6, "
             "use mne.Info instead",
             FutureWarning,
