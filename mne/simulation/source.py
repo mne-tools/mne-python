@@ -11,7 +11,7 @@
 import numpy as np
 
 from ..source_estimate import SourceEstimate, VolSourceEstimate
-from ..source_space import _ensure_src
+from ..source_space._source_space import _ensure_src
 from ..fixes import rng_uniform
 from ..utils import (
     check_random_state,

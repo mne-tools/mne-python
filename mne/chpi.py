@@ -30,6 +30,7 @@ from .event import find_events
 from .io import BaseRaw
 from .io.ctf.trans import _make_ctf_coord_trans_set
 from .io.kit.kit import RawKIT as _RawKIT
+from .io.kit.constants import KIT
 from .channels.channels import _get_meg_system
 from ._fiff.meas_info import _simplify_info, Info
 from ._fiff.pick import (
@@ -262,8 +263,6 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     -----
     .. versionadded:: 0.23
     """
-    from .io.kit.constants import KIT
-
     _validate_type(raw, (_RawKIT,), "raw")
     stim_chs = [
         raw.info["ch_names"][pick]

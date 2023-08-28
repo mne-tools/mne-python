@@ -65,7 +65,6 @@ from mne.utils import (
     object_diff,
     use_log_level,
     catch_logging,
-    _FakeNoPandas,
     assert_meg_snr,
     _dt_to_stamp,
 )
@@ -3665,7 +3664,7 @@ def test_default_values():
     assert_equal(hash(epoch_1), hash(epoch_2))
 
 
-def test_metadata(tmp_path):
+def test_metadata(tmp_path, monkeypatch):
     """Test metadata support with pandas."""
     pd = pytest.importorskip("pandas")
     data = np.random.randn(10, 2, 2000)
@@ -3776,7 +3775,17 @@ def test_metadata(tmp_path):
     epochs_one_read = read_epochs(temp_one_fname)
     assert_metadata_equal(epochs_one.metadata, epochs_one_read.metadata)
 
-    with _FakeNoPandas():
+    with monkeypatch.context() as ctx:
+
+        def _check(strict=True):
+            if strict:
+                raise RuntimeError("Pandas not installed")
+            else:
+                return False
+
+        ctx.setattr(mne.epochs, "_check_pandas_installed", _check)
+        ctx.setattr(mne.utils.mixin, "_check_pandas_installed", _check)
+
         epochs_read = read_epochs(temp_fname)
         assert isinstance(epochs_read.metadata, list)
         assert isinstance(epochs_read.metadata[0], dict)
