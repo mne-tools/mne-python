@@ -625,7 +625,7 @@ def make_forward_solution(
             Support for ``'fsaverage'`` argument.
     src : path-like | instance of SourceSpaces
         Either a path to a source space file or a loaded or generated
-        `~mne.source_space.SourceSpaces`.
+        :class:`~mne.SourceSpaces`.
     bem : path-like | dict
         Filename of the BEM (e.g., ``"sample-5120-5120-5120-bem-sol.fif"``) to
         use, or a loaded sphere model (dict).
