@@ -9,6 +9,7 @@ from os import PathLike
 from pathlib import Path
 
 import numpy as np
+from mne.utils.check import _check_option
 
 from ._eeglab import _readmat
 from ..base import BaseRaw
@@ -273,24 +274,18 @@ def _handle_montage_units(montage_units, eeg):
             is_nan_locs = np.isnan(xyz).any(axis=1)
             mean_radius = np.mean(np.linalg.norm(xyz[~is_nan_locs], axis=1))
             # radius should be between 0.05 and 0.11 meters
-            if mean_radius < 1:  # m
+            if mean_radius < 0.25:  # m
                 prefix = ""
-            elif mean_radius > 20:  # mm
+            elif mean_radius < 2.5:  # dm
+                prefix = "d"
+            elif mean_radius > 25:  # mm
                 prefix = "m"
-            else:  # cm
+            else:  # 2.5 <= mean_radius <= 25, cm
                 prefix = "c"
         else:
-            raise ValueError(
-                "Could not determine the units of the channel positions "
-                "automatically. Please specify the ``montage_units`` parameter."
-            )
+            prefix = "m"  # assume mm if no channel positions are available
     else:
-        n_char_unit = len(montage_units)
-        if montage_units[-1:] != "m" or n_char_unit > 2:
-            raise ValueError(
-                '``montage_units`` has to be in prefix + "m" format'
-                f', got "{montage_units}"'
-            )
+        _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm"))
 
         prefix = montage_units[:-1]
     scale_units = 1 / DEFAULTS["prefixes"][prefix]

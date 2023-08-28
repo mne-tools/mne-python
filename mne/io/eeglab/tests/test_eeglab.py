@@ -406,16 +406,16 @@ def test_degenerate(tmp_path):
     pytest.raises(NotImplementedError, read_epochs_eeglab, bad_epochs_fname)
 
     # error when montage units incorrect
-    with pytest.raises(ValueError, match=r'prefix \+ "m" format'):
+    with pytest.raises(ValueError, match=r'Invalid value'):
         read_epochs_eeglab(epochs_fname_mat, montage_units="mV")
 
-    # warning when head radius too small
-    with pytest.warns(RuntimeWarning, match="is above"):
-        read_raw_eeglab(raw_fname_chanloc, montage_units="km")
-
     # warning when head radius too large
+    with pytest.warns(RuntimeWarning, match="is above"):
+        read_raw_eeglab(raw_fname_chanloc, montage_units="m")
+
+    # warning when head radius too small
     with pytest.warns(RuntimeWarning, match="is below"):
-        read_raw_eeglab(raw_fname_chanloc, montage_units="µm")
+        read_raw_eeglab(raw_fname_chanloc_meter, montage_units="mm")
 
 
 @pytest.mark.parametrize(
