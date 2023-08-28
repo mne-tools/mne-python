@@ -253,14 +253,12 @@ detrend
 dir_tree_find
 fast_cross_3d
 fiff_open
-find_source_space_hemi
 find_tag
 get_score_funcs
 get_version
 invert_transform
 is_power2
 is_fixed_orient
-kit2fiff
 make_eeg_average_ref_proj
 make_projector
 mesh_dist
