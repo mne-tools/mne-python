@@ -53,7 +53,7 @@ from .._fiff.write import (
 )
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
-from ..source_space import (
+from ..source_space._source_space import (
     _read_source_spaces_from_tree,
     find_source_space_hemi,
     _set_source_space_vertices,

@@ -22,8 +22,13 @@ from numpy.testing import (
 )
 import matplotlib.pyplot as plt
 
-from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
-from mne.source_space import get_mni_fiducials
+from mne import (
+    __file__ as _mne_file,
+    create_info,
+    read_evokeds,
+    pick_types,
+)
+from mne.coreg import get_mni_fiducials
 from mne.utils._testing import assert_object_equal
 from mne.channels import (
     get_builtin_montages,

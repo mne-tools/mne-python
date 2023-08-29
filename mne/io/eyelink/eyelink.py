@@ -28,6 +28,7 @@ from ...utils import (
     logger,
     verbose,
     warn,
+    _set_pandas_dtype,
 )
 
 EYELINK_COLS = {
@@ -556,8 +557,6 @@ class RawEyelink(BaseRaw):
                 df.columns = cols
 
     def _set_df_dtypes(self):
-        from ...utils import _set_pandas_dtype
-
         for key, df in self.dataframes.items():
             if key in ["samples", "DINS"]:
                 # convert missing position values to NaN

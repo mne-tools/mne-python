@@ -20,7 +20,7 @@ from .source_estimate import (
     _BaseSourceEstimate,
     _get_ico_tris,
 )
-from .source_space import SourceSpaces, _ensure_src, _grid_interp
+from .source_space._source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (
     logger,

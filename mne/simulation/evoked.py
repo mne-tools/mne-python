@@ -8,9 +8,12 @@ import math
 import numpy as np
 from scipy.signal import lfilter
 
-from ..cov import compute_whitener
+from ..cov import Covariance, compute_whitener
+from ..epochs import BaseEpochs
+from ..evoked import Evoked
 from .._fiff.pick import pick_info
 from ..forward import apply_forward
+from ..io import BaseRaw
 from ..utils import logger, verbose, check_random_state, _check_preload, _validate_type
 
 
@@ -133,11 +136,6 @@ def add_noise(inst, cov, iir_filter=None, random_state=None, verbose=None):
 
 def _add_noise(inst, cov, iir_filter, random_state, allow_subselection=True):
     """Add noise, possibly with channel subselection."""
-    from ..cov import Covariance
-    from ..io import BaseRaw
-    from ..epochs import BaseEpochs
-    from ..evoked import Evoked
-
     _validate_type(cov, Covariance, "cov")
     _validate_type(
         inst, (BaseRaw, BaseEpochs, Evoked), "inst", "Raw, Epochs, or Evoked"
