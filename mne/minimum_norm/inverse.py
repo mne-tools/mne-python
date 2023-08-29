@@ -55,7 +55,7 @@ from ..forward import (
 )
 from ..forward.forward import write_forward_meas_info, _triage_loose
 from ..html_templates import _get_html_template
-from ..source_space import (
+from ..source_space._source_space import (
     _read_source_spaces_from_tree,
     _get_src_nn,
     find_source_space_hemi,
@@ -65,6 +65,7 @@ from ..source_space import (
 )
 from ..surface import _normal_orth
 from ..transforms import _ensure_trans, transform_surface_to
+from ..time_frequency.tfr import _check_tfr_complex
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (
     check_fname,
@@ -1550,8 +1551,6 @@ def apply_inverse_tfr_epochs(
     apply_inverse_epochs : Apply inverse operator to epochs object.
     apply_inverse_cov : Apply inverse operator to a covariance object.
     """  # noqa E501
-    from ..time_frequency.tfr import _check_tfr_complex
-
     _check_tfr_complex(epochs_tfr)
     if (
         isinstance(inverse_operator, (list, tuple))

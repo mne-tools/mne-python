@@ -50,7 +50,7 @@ from mne.simulation import (
     add_chpi,
     add_noise,
 )
-from mne.source_space import _compare_source_spaces
+from mne.source_space._source_space import _compare_source_spaces
 from mne.simulation.source import SourceSimulator
 from mne.label import Label
 from mne.surface import _get_ico_surface

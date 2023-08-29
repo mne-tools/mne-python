@@ -51,6 +51,7 @@ from .surface import (
     transform_surface_to,
 )
 from .transforms import _ensure_trans, apply_trans, Transform
+from .viz.misc import plot_bem
 from .utils import (
     verbose,
     logger,
@@ -1250,8 +1251,6 @@ def make_watershed_bem(
 
     .. versionadded:: 0.10
     """
-    from .viz.misc import plot_bem
-
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)
@@ -2127,8 +2126,6 @@ def make_flash_bem(
     outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
     images acquired with spin angles of 5 and 30 degrees.
     """
-    from .viz.misc import plot_bem
-
     env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env, cwd=tempdir)

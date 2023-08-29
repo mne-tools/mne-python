@@ -37,7 +37,7 @@ from ..forward import (
     _prep_meg_channels,
 )
 from ..transforms import _get_trans, transform_surface_to
-from ..source_space import (
+from ..source_space._source_space import (
     _ensure_src,
     _set_source_space_vertices,
     setup_volume_source_space,

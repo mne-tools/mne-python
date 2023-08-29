@@ -35,7 +35,7 @@ from .forward._compute_forward import _compute_forwards_meeg, _prep_field_comput
 
 from .surface import transform_surface_to, _compute_nearest, _points_outside_surface
 from .bem import _bem_find_surface, _bem_surf_name
-from .source_space import _make_volume_source_space, SourceSpaces
+from .source_space._source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (
     logger,
@@ -56,7 +56,7 @@ from .utils import (
     TimeMixin,
     _verbose_safe_false,
 )
-from .viz import plot_dipole_locations
+from .viz import plot_dipole_locations, plot_dipole_amplitudes
 
 
 @fill_doc
@@ -375,8 +375,6 @@ class Dipole(TimeMixin):
         fig : matplotlib.figure.Figure
             The figure object containing the plot.
         """
-        from .viz import plot_dipole_amplitudes
-
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):
