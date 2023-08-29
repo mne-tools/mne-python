@@ -481,7 +481,18 @@ def repr_html(f):
 
 
 def _auto_weakref(function):
-    """Create weakrefs to self (or other free vars in __closure__) then evaluate."""
+    """Create weakrefs to self (or other free vars in __closure__) then evaluate.
+    
+    When a nested function is defined within an instance method, and the function makes
+    use of ``self``, it creates a reference cycle that the Python garbage collector is
+    not smart enough to resolve, so the parent object is never GC'd. (The reference to
+    ``self`` becomes part of the ``__closure__`` of the nested function).
+
+    This decorator allows the nested function to access ``self`` without increasing the
+    reference counter on ``self``, which will prevent the memory leak. If the referent
+    is not found (usually because already GC'd) it will short-circuit the decorated
+    function and return ``None``.
+    """
     names = function.__code__.co_freevars
     assert len(names) == len(function.__closure__)
     __weakref_values__ = dict()
