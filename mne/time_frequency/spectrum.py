@@ -10,8 +10,8 @@ from inspect import signature
 
 import numpy as np
 
-from ..channels.channels import UpdateChannelsMixin, _get_ch_type
-from ..channels.layout import _merge_ch_data
+from ..channels.channels import UpdateChannelsMixin
+from ..channels.layout import _merge_ch_data, find_layout
 from ..defaults import (
     _BORDER_DEFAULT,
     _EXTRAPOLATE_DEFAULT,
@@ -19,7 +19,7 @@ from ..defaults import (
     _handle_default,
 )
 from ..html_templates import _get_html_template
-from .._fiff.meas_info import ContainsMixin
+from .._fiff.meas_info import ContainsMixin, Info
 from .._fiff.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (
     GetEpochsMixin,
@@ -48,7 +48,13 @@ from ..utils.misc import _pl
 from ..utils.spectrum import _split_psd_kwargs
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_topomap
-from ..viz.utils import _format_units_psd, _plot_psd, _prepare_sensor_names, plt_show
+from ..viz.utils import (
+    _format_units_psd,
+    _plot_psd,
+    _prepare_sensor_names,
+    plt_show,
+    _get_plot_ch_type,
+)
 from .multitaper import psd_array_multitaper
 from .psd import psd_array_welch, _check_nfft
 
@@ -378,7 +384,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def __setstate__(self, state):
         """Unpack from serialized format."""
-        from .. import Epochs, Evoked, Info
+        from ..epochs import Epochs
+        from ..evoked import Evoked
         from ..io import Raw
 
         self._method = state["method"]
@@ -468,7 +475,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
-        from .. import BaseEpochs, Evoked, EvokedArray
+        from ..epochs import BaseEpochs
+        from ..evoked import Evoked, EvokedArray
         from ..io import BaseRaw
 
         parent_classes = self._inst_type.__bases__
@@ -633,8 +641,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure with spectra plotted in separate subplots for each channel
             type.
         """
-        from ..viz._mpl_figure import _line_figure, _split_picks_by_type
+        # Must nest this _mpl_figure import because of the BACKEND global
+        # stuff
         from .multitaper import _psd_from_mt
+        from ..viz._mpl_figure import _line_figure, _split_picks_by_type
 
         # arg checking
         ci = _check_ci(ci)
@@ -753,8 +763,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure distributing one image per channel across sensor topography.
         """
         if layout is None:
-            from ..channels.layout import find_layout
-
             layout = find_layout(self.info)
 
         psds, freqs = self.get_data(return_freqs=True)
@@ -850,7 +858,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        ch_type = _get_ch_type(self, ch_type)
+        ch_type = _get_plot_ch_type(self, ch_type)
         if units is None:
             units = _handle_default("units", None)
         unit = units[ch_type] if hasattr(units, "keys") else units

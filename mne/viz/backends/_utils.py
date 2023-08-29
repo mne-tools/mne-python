@@ -18,6 +18,10 @@ import sys
 from pathlib import Path
 import numpy as np
 
+from ...fixes import _compare_version
+from ...utils import logger, warn, _validate_type, _check_qt_version
+from ..utils import _get_cmap
+
 VALID_BROWSE_BACKENDS = (
     "qt",
     "matplotlib",
@@ -33,7 +37,6 @@ ALLOWED_QUIVER_MODES = ("2darrow", "arrow", "cone", "cylinder", "sphere", "oct")
 def _get_colormap_from_array(
     colormap=None, normalized_colormap=False, default_colormap="coolwarm"
 ):
-    from ..utils import _get_cmap
     from matplotlib.colors import ListedColormap
 
     if colormap is None:
@@ -130,8 +133,6 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     from qtpy.QtCore import Qt
     from qtpy.QtGui import QIcon, QPixmap, QGuiApplication
     from qtpy.QtWidgets import QApplication, QSplashScreen
-    from ...fixes import _compare_version
-    from ...utils import _check_qt_version
 
     app_name = "MNE-Python"
     organization_name = "MNE"
@@ -253,8 +254,6 @@ def _qt_app_exec(app):
 
 
 def _qt_detect_theme():
-    from ..utils import logger
-
     try:
         import darkdetect
 
@@ -272,9 +271,6 @@ def _qt_detect_theme():
 
 
 def _qt_get_stylesheet(theme):
-    from ...fixes import _compare_version
-    from ...utils import logger, warn, _validate_type, _check_qt_version
-
     _validate_type(theme, ("path-like",), "theme")
     theme = str(theme)
     orig_theme = theme

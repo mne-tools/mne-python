@@ -8,7 +8,6 @@ import numpy as np
 from scipy import fft, signal
 from scipy.stats import f as fstat
 
-from .annotations import _annotations_starts_stops
 from ._fiff.pick import _picks_to_idx
 from .cuda import (
     _setup_cuda_fft_multiply_repeated,
@@ -2585,6 +2584,7 @@ class FilterMixin:
         .. versionadded:: 0.15
         """
         from .io import BaseRaw
+        from .annotations import _annotations_starts_stops
 
         _check_preload(self, "inst.filter")
         if pad is None and method != "iir":
