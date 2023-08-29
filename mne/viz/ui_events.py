@@ -199,6 +199,8 @@ def _get_event_channel(fig):
             unlink(fig)  # Remove channel from the _event_channel_links dict
             if fig in _event_channels:
                 del _event_channels[fig]
+            if fig in _disabled_event_channels:
+                _disabled_event_channels.remove(fig)
 
         # Hook up the above callback function to the close event of the figure
         # window. How this is done exactly depends on the various figure types
@@ -244,7 +246,7 @@ def publish(fig, event):
     event.source = fig
     for channel in channels:
         if event.name not in channel:
-            channel[event.name] = set()
+            channel[event.name] = WeakSet()
         for callback in channel[event.name]:
             callback(event=event)
 
@@ -263,7 +265,7 @@ def subscribe(fig, event_name, callback):
     """
     channel = _get_event_channel(fig)
     if event_name not in channel:
-        channel[event_name] = set()
+        channel[event_name] = WeakSet()
     channel[event_name].add(callback)
 
 
@@ -339,6 +341,10 @@ def link(fig1, fig2, event_names="all"):
     """
     if event_names != "all":
         event_names = set(event_names)
+
+    # Make sure the event channels of the figures are setup properly.
+    _get_event_channel(fig1)
+    _get_event_channel(fig2)
 
     if fig1 not in _event_channel_links:
         _event_channel_links[fig1] = WeakKeyDictionary()

@@ -969,16 +969,19 @@ class Brain:
             layout=hlayout,
             style="toolbutton",
         )
-        for key, char, val in (
-            ("fminus", "➖", 1.2**-0.25),
-            ("fplus", "➕", 1.2**0.25),
-        ):
-            self.widgets[key] = self._renderer._dock_add_button(
-                name=char,
-                callback=partial(self._update_fscale, fscale=val),
-                layout=hlayout,
-                style="toolbutton",
-            )
+
+        self.widgets["fminus"] = self._renderer._dock_add_button(
+            name="➖",
+            callback=lambda _: self._update_fscale(1.2**-0.25),
+            layout=hlayout,
+            style="toolbutton",
+        )
+        self.widgets["fplus"] = self._renderer._dock_add_button(
+            name="➕",
+            callback=lambda _: self._update_fscale(1.2**0.25),
+            layout=hlayout,
+            style="toolbutton",
+        )
         self._renderer._layout_add_widget(layout, hlayout)
 
     def _configure_dock_trace_widget(self, name):
