@@ -23,7 +23,7 @@ from ._freesurfer import _get_mri_info_data, _get_atlas_values, read_freesurfer_
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
 from .surface import read_surface, _get_ico_surface, mesh_edges, _project_onto_surface
-from .source_space import (
+from .source_space._source_space import (
     _ensure_src,
     _get_morph_src_reordering,
     _ensure_src_subject,

@@ -22,7 +22,6 @@ from scipy.sparse import coo_matrix, csr_matrix
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
 
-from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .fixes import jit, prange, bincount
 from ._fiff.constants import FIFF
 from ._fiff.pick import pick_types
@@ -2042,6 +2041,7 @@ def get_montage_volume_labels(
         The Freesurfer lookup table colors for the labels.
     """
     from .channels import DigMontage
+    from ._freesurfer import read_freesurfer_lut, _get_aseg
 
     _validate_type(montage, DigMontage, "montage")
     _validate_type(dist, (int, float), "dist")

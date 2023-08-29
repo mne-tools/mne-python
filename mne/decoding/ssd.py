@@ -11,7 +11,7 @@ from ..fixes import BaseEstimator
 from ..cov import _regularized_covariance, Covariance
 from ..defaults import _handle_default
 from ..filter import filter_data
-from .._fiff.pick import _get_channel_types, _picks_to_idx
+from .._fiff.pick import _picks_to_idx
 from ..rank import compute_rank
 from ..time_frequency import psd_array_welch
 from ..utils import (
@@ -129,7 +129,7 @@ class SSD(BaseEstimator, TransformerMixin):
             )
         self.picks_ = _picks_to_idx(info, picks, none="data", exclude="bads")
         del picks
-        ch_types = _get_channel_types(info, picks=self.picks_, unique=True)
+        ch_types = info.get_channel_types(picks=self.picks_, unique=True)
         if len(ch_types) > 1:
             raise ValueError(
                 "At this point SSD only supports fitting "

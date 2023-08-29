@@ -36,7 +36,6 @@ from .._fiff.pick import (
     pick_channels,
     pick_info,
     _picks_to_idx,
-    _get_channel_types,
     _DATA_CH_TYPES_SPLIT,
 )
 from .._fiff.proj import make_projector
@@ -54,7 +53,7 @@ from .._fiff.tag import read_tag
 from .._fiff.meas_info import write_meas_info, read_meas_info, ContainsMixin
 from .._fiff.constants import FIFF
 from .._fiff.write import start_and_end_file, write_id
-from .._fiff.pick import pick_channels_regexp, _picks_by_type
+from .._fiff.pick import pick_channels_regexp, _picks_by_type, _contains_ch_type
 from ..io import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
 
@@ -68,7 +67,6 @@ from ..viz import (
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
 from ..utils import (
     logger,
@@ -189,7 +187,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """
     types = _DATA_CH_TYPES_SPLIT + ("eog",)
     types += ("ref_meg",) if allow_ref_meg else ()
-    chs = _get_channel_types(info, picks, unique=True, only_data_chs=False)
+    chs = info.get_channel_types(picks, unique=True, only_data_chs=False)
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError(

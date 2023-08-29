@@ -4,6 +4,7 @@
 # (and _empty_info is convenient to keep here for tests and is private)
 from .._fiff.meas_info import (
     read_info,
+    write_info,
     anonymize_info,
     read_fiducials,
     write_fiducials,

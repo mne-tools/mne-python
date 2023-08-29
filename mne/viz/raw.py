@@ -10,10 +10,9 @@ from collections import OrderedDict
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
 from .._fiff.pick import pick_types, pick_channels
-from ..utils import legacy, verbose, _validate_type, _check_option
+from ..utils import legacy, verbose, _validate_type, _check_option, _get_stim_channel
 from ..utils.spectrum import _split_psd_kwargs
 from ..defaults import _handle_default
 from .utils import (
@@ -233,6 +232,7 @@ def plot_raw(
     """
     from ..io import BaseRaw
     from ._figure import _get_browser
+    from ..annotations import _annotations_starts_stops
 
     info = raw.info.copy()
     sfreq = info["sfreq"]
@@ -564,7 +564,6 @@ def _setup_channel_selections(raw, kind, order):
         _EEG_SELECTIONS,
         _divide_to_regions,
     )
-    from ..utils import _get_stim_channel
 
     _check_option("group_by", kind, ("position", "selection"))
     if kind == "position":

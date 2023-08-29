@@ -19,11 +19,11 @@ import numpy as np
 
 from .pick import (
     channel_type,
-    _get_channel_types,
     get_channel_type_constants,
     pick_types,
     _picks_to_idx,
     _contains_ch_type,
+    _DATA_CH_TYPES_SPLIT,
 )
 from .constants import FIFF, _coord_frame_named, _ch_unit_mul_named
 from .open import fiff_open
@@ -64,13 +64,6 @@ from .write import (
     write_name_list_sanitized,
 )
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import (
-    invert_transform,
-    Transform,
-    _coord_frame_name,
-    _ensure_trans,
-    _frame_to_str,
-)
 from ..html_templates import _get_html_template
 from ..utils import (
     logger,
@@ -327,6 +320,7 @@ class MontageMixin:
         %(montage)s
         """
         from ..channels.montage import make_dig_montage
+        from ..transforms import _frame_to_str
 
         info = self if isinstance(self, Info) else self.info
         if info["dig"] is None:
@@ -906,12 +900,22 @@ class ContainsMixin:
             The channel types.
         """
         info = self if isinstance(self, Info) else self.info
-        return _get_channel_types(
-            info, picks=picks, unique=unique, only_data_chs=only_data_chs
-        )
+        none = "data" if only_data_chs else "all"
+        picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
+        ch_types = [channel_type(info, pick) for pick in picks]
+        if only_data_chs:
+            ch_types = [
+                ch_type for ch_type in ch_types if ch_type in _DATA_CH_TYPES_SPLIT
+            ]
+        if unique:
+            # set does not preserve order but dict does, so let's just use it
+            ch_types = list({k: k for k in ch_types}.keys())
+        return ch_types
 
 
 def _format_trans(obj, key):
+    from ..transforms import Transform
+
     try:
         t = obj[key]
     except KeyError:
@@ -946,6 +950,8 @@ def _check_description(description):
 
 
 def _check_dev_head_t(dev_head_t):
+    from ..transforms import Transform, _ensure_trans
+
     _validate_type(dev_head_t, (Transform, None), "info['dev_head_t']")
     if dev_head_t is not None:
         dev_head_t = _ensure_trans(dev_head_t, "meg", "head")
@@ -1573,6 +1579,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
     def __repr__(self):
         """Summarize info instead of printing all."""
         from ..io.kit.constants import KIT_SYSNAMES
+        from ..transforms import _coord_frame_name, Transform
 
         MAX_WIDTH = 68
         strs = ["<Info | %s non-empty values"]
@@ -2056,6 +2063,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     meas : dict
         Node in tree that contains the info.
     """
+    from ..transforms import invert_transform, Transform
+
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
@@ -2503,8 +2512,6 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     info["ctf_head_t"] = ctf_head_t
     info["dev_ctf_t"] = dev_ctf_t
     if dev_head_t is not None and ctf_head_t is not None and dev_ctf_t is None:
-        from ..transforms import Transform
-
         head_ctf_trans = np.linalg.inv(ctf_head_t["trans"])
         dev_ctf_trans = np.dot(head_ctf_trans, info["dev_head_t"]["trans"])
         info["dev_ctf_t"] = Transform("meg", "ctf_head", dev_ctf_trans)
@@ -3245,6 +3252,8 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
+    from ..transforms import Transform
+
     _none_keys = (
         "acq_pars",
         "acq_stim",

@@ -269,6 +269,8 @@ numpydoc_xref_aliases = {
 }
 numpydoc_xref_ignore = {
     # words
+    "and",
+    "between",
     "instance",
     "instances",
     "of",

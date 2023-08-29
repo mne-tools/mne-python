@@ -19,6 +19,7 @@ import os.path as op
 import numpy as np
 from scipy.interpolate import interp1d
 
+from .event import make_fixed_length_events, _read_events_fif, match_event_names
 from ._fiff.utils import _make_split_fnames
 from ._fiff.write import (
     start_and_end_file,
@@ -2754,8 +2755,6 @@ def make_metadata(
     ----------
     .. footbibliography::
     """
-    from .event import match_event_names
-
     pd = _check_pandas_installed()
 
     _validate_type(event_id, types=(dict,), item_name="event_id")
@@ -3515,8 +3514,6 @@ def _is_good(
 
 def _read_one_epoch_file(f, tree, preload):
     """Read a single FIF file."""
-    from .event import _read_events_fif
-
     with f as fid:
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree, clean_bads=True)
@@ -4472,8 +4469,6 @@ def make_fixed_length_epochs(
     -----
     .. versionadded:: 0.20
     """
-    from .event import make_fixed_length_events
-
     events = make_fixed_length_events(raw, id=id, duration=duration, overlap=overlap)
     delta = 1.0 / raw.info["sfreq"]
     return Epochs(

@@ -12,6 +12,7 @@ import numpy as np
 
 from ._eeglab import _readmat
 from ..base import BaseRaw
+from ...event import read_events
 from ..._fiff._digitization import _ensure_fiducials_head
 from ..._fiff.constants import FIFF
 from ..._fiff.meas_info import create_info
@@ -579,8 +580,6 @@ class EpochsEEGLAB(BaseEpochs):
         montage_units="mm",
         verbose=None,
     ):  # noqa: D102
-        from ...event import read_events
-
         input_fname = str(
             _check_fname(fname=input_fname, must_exist=True, overwrite="read")
         )
