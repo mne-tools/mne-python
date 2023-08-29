@@ -1368,7 +1368,9 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
             **method_kw,
         )
         # get just the data we want
-        data = self.inst.get_data(picks=self._picks)[:, :, self._time_mask]
+        data = self.inst._get_data(picks=self._picks, on_empty="raise")[
+            :, :, self._time_mask
+        ]
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         self._dims = ("epoch",) + self._dims

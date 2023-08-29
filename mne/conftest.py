@@ -364,6 +364,16 @@ def epochs_psds():
     ]
 
 
+@pytest.fixture()
+def epochs_empty():
+    """Get empty epochs from mne.io.tests.data."""
+    epochs = _get_epochs(meg=True, eeg=True).load_data()
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs.drop_bad(reject={"mag": 1e-20})
+
+    return epochs
+
+
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
 def _evoked():
     # This one is session scoped, so be sure not to modify it (use evoked
