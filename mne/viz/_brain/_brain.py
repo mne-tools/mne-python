@@ -78,7 +78,17 @@ from ...utils import (
     _ensure_int,
 )
 
-from .. import ui_events
+from ..ui_events import (
+    publish,
+    subscribe,
+    unsubscribe,
+    TimeChange,
+    PlaybackSpeed,
+    ColormapRange,
+    VertexSelect,
+    disable_ui_events,
+    _get_event_channel,
+)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -732,11 +742,9 @@ class Brain:
         self.reset_view()
         max_time = len(self._data["time"]) - 1
         if max_time > 0:
-            ui_events.publish(
+            publish(
                 self,
-                ui_events.TimeChange(
-                    time=self._time_interp_inv(self._data["initial_time_idx"])
-                ),
+                TimeChange(time=self._time_interp_inv(self._data["initial_time_idx"])),
             )
 
     def set_playback_speed(self, speed):
@@ -747,7 +755,7 @@ class Brain:
         speed : float
             The speed of the playback.
         """
-        ui_events.publish(self, ui_events.PlaybackSpeed(speed=speed))
+        publish(self, PlaybackSpeed(speed=speed))
 
     @safe_event
     def _play(self):
@@ -766,7 +774,7 @@ class Brain:
         time_shift = delta * self.playback_speed
         max_time = np.max(time_data)
         time_point = min(self._current_time + time_shift, max_time)
-        ui_events.publish(self, ui_events.TimeChange(time=time_point))
+        publish(self, TimeChange(time=time_point))
         if time_point == max_time:
             self.toggle_playback(value=False)
 
@@ -821,8 +829,8 @@ class Brain:
                 value=self._data["time_idx"],
                 rng=[0, len_time],
                 double=True,
-                callback=lambda time_idx: ui_events.publish(
-                    self, ui_events.TimeChange(time=self._time_interp_inv(time_idx))
+                callback=lambda time_idx: publish(
+                    self, TimeChange(time=self._time_interp_inv(time_idx))
                 ),
                 compact=False,
                 layout=layout,
@@ -847,7 +855,7 @@ class Brain:
                 callback=self.set_playback_speed,
                 layout=layout,
             )
-            ui_events.subscribe(self, "playback_speed", self._on_playback_speed)
+            subscribe(self, "playback_speed", self._on_playback_speed)
 
         # Time label
         current_time = self._current_time
@@ -1167,9 +1175,7 @@ class Brain:
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
             vertex_id = vertices[ind[0]]
-            ui_events.publish(
-                self, ui_events.VertexSelect(hemi=hemi, vertex_id=vertex_id)
-            )
+            publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _configure_picking(self):
         # get data for each hemi
@@ -1194,7 +1200,7 @@ class Brain:
             self._on_button_release,
             self._on_pick,
         )
-        ui_events.subscribe(self, "vertex_select", self._on_vertex_select)
+        subscribe(self, "vertex_select", self._on_vertex_select)
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
@@ -1262,11 +1268,9 @@ class Brain:
         )
 
     def _shift_time(self, shift_func):
-        ui_events.publish(
+        publish(
             self,
-            ui_events.TimeChange(
-                time=shift_func(self._current_time, self.playback_speed)
-            ),
+            TimeChange(time=shift_func(self._current_time, self.playback_speed)),
         )
 
     def _rotate_azimuth(self, value):
@@ -1435,7 +1439,7 @@ class Brain:
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-        ui_events.publish(self, ui_events.VertexSelect(hemi=hemi, vertex_id=vertex_id))
+        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
@@ -1444,7 +1448,7 @@ class Brain:
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
         if self.time_viewer:
-            with ui_events.disable_ui_events(self):
+            with disable_ui_events(self):
                 if "time" in self.widgets:
                     self.widgets["time"].set_value(time_idx)
                 if "current_time" in self.widgets:
@@ -1457,7 +1461,7 @@ class Brain:
             return
         self.playback_speed = event.speed
         if "playback_speed" in self.widgets:
-            with ui_events.disable_ui_events(self):
+            with disable_ui_events(self):
                 self.widgets["playback_speed"].set_value(event.speed)
 
     def _on_colormap_range(self, event):
@@ -1469,7 +1473,7 @@ class Brain:
         if all(val is None or val == self._data[key] for key, val in lims.items()):
             return
         # Update the GUI elements.
-        with ui_events.disable_ui_events(self):
+        with disable_ui_events(self):
             for key, val in lims.items():
                 if val is not None:
                     if key in self.widgets:
@@ -2097,17 +2101,17 @@ class Brain:
         self._update_colormap_range(alpha=alpha)
 
         # 5) enable UI events to interact with the data
-        ui_events.subscribe(self, "colormap_range", self._on_colormap_range)
+        subscribe(self, "colormap_range", self._on_colormap_range)
         if time is not None and len(time) > 1:
-            ui_events.subscribe(self, "time_change", self._on_time_change)
+            subscribe(self, "time_change", self._on_time_change)
 
     def remove_data(self):
         """Remove rendered data from the mesh."""
         self._remove("data", render=True)
 
         # Stop listening to events
-        if "time_change" in ui_events._get_event_channel(self):
-            ui_events.unsubscribe(self, "time_change")
+        if "time_change" in _get_event_channel(self):
+            unsubscribe(self, "time_change")
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
@@ -3434,9 +3438,9 @@ class Brain:
         %(fmin_fmid_fmax)s
         %(alpha)s
         """
-        ui_events.publish(
+        publish(
             self,
-            ui_events.ColormapRange(
+            ColormapRange(
                 kind="distributed_source_power",
                 fmin=fmin,
                 fmid=fmid,
@@ -3667,9 +3671,7 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif 0 <= time_idx <= len(self._times):
-            ui_events.publish(
-                self, ui_events.TimeChange(time=self._time_interp_inv(time_idx))
-            )
+            publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
         else:
             raise ValueError(
                 f"Requested time point ({time_idx}) is outside the range of "
@@ -3687,7 +3689,7 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif min(self._times) <= time <= max(self._times):
-            ui_events.publish(self, ui_events.TimeChange(time=time))
+            publish(self, TimeChange(time=time))
         else:
             raise ValueError(
                 f"Requested time ({time} s) is outside the range of "

@@ -11,7 +11,7 @@ from contextlib import nullcontext
 import warnings
 
 from ..utils import tight_layout
-from .. import ui_events
+from ..ui_events import publish, TimeChange
 
 
 class Figure3D(ABC):
@@ -1434,7 +1434,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
         # left click (and maybe drag) in progress in axes
         if event.inaxes != self.axes or event.button != 1:
             return
-        ui_events.publish(self.brain, ui_events.TimeChange(time=event.xdata))
+        publish(self.brain, TimeChange(time=event.xdata))
 
     on_motion_notify = on_button_press  # for now they can be the same
 

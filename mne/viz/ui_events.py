@@ -183,7 +183,7 @@ def _get_event_channel(fig):
         channel.
     """
     import matplotlib
-    from . import Brain
+    from ._brain import Brain
 
     # Create the event channel if it doesn't exist yet
     if fig not in _event_channels:
