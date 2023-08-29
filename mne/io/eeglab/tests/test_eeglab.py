@@ -9,7 +9,6 @@ import shutil
 from copy import deepcopy
 
 import numpy as np
-from numpy.core.records import fromarrays
 from numpy.testing import (
     assert_array_equal,
     assert_array_almost_equal,
@@ -589,7 +588,7 @@ def _create_eeg_with_scaled_montage_units(in_fname, out_fname, scale):
         xyz[ch_i] = [loc.X, loc.Y, loc.Z]
         labels.append(loc.labels)
     xyz *= scale
-    chanlocs = fromarrays(
+    chanlocs = np.rec.fromarrays(
         [labels, *xyz.T],
         names=["labels", "X", "Y", "Z"],
     )
