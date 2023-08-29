@@ -1201,7 +1201,6 @@ class Brain:
             self._on_pick,
         )
         subscribe(self, "vertex_select", self._on_vertex_select)
-        print("subscribed!")
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
@@ -1440,7 +1439,6 @@ class Brain:
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-        print(VertexSelect(hemi=hemi, vertex_id=vertex_id))
         publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _on_time_change(self, event):
@@ -1488,7 +1486,6 @@ class Brain:
 
     def _on_vertex_select(self, event):
         """Respond to vertex_select UI event."""
-        print("_on_vertex_select")
         if event.hemi == "vol":
             try:
                 mesh = self._data[event.hemi]["grid"]
@@ -1498,12 +1495,10 @@ class Brain:
             try:
                 mesh = self._layered_meshes[event.hemi]._polydata
             except KeyError:
-                print("no good")
                 return
         if self.traces_mode == "label":
             self._add_label_glyph(event.hemi, mesh, event.vertex_id)
         else:
-            print(event.hemi, mesh, event.vertex_id)
             self._add_vertex_glyph(event.hemi, mesh, event.vertex_id)
 
     def _add_label_glyph(self, hemi, mesh, vertex_id):
