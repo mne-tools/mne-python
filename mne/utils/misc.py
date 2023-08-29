@@ -506,10 +506,8 @@ def %(name)s(%(signature)s):
 """
     body = body + old_body
     funcdict = function.__dict__.copy()
-    funcdict["__closure__"] = None
     fm = FunctionMaker(function, None, None, None, None, function.__module__, funcdict)
-    attrs = dict(
-        __qualname__=function.__qualname__,
-        __globals__=function.__globals__,
-    )
-    return fm.make(body, evaldict, addsource=True, **attrs)
+    fun = fm.make(body, evaldict, addsource=True)
+    fun.__globals__.update(function.__globals__)
+    assert fun.__closure__ is None, fun.__closure__
+    return fun
