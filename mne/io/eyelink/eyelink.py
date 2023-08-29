@@ -123,11 +123,6 @@ class RawEyelink(BaseRaw):
     %(preload)s
     %(verbose)s
 
-    Attributes
-    ----------
-    fname : pathlib.Path
-        Eyelink filename
-
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
@@ -147,17 +142,17 @@ class RawEyelink(BaseRaw):
     ):
         logger.info("Loading {}".format(fname))
 
-        self.fname = Path(fname)
+        fname = Path(fname)
 
         # ======================== Parse ASCII file ==========================
         eye_ch_data, info, raw_extras = _parse_eyelink_ascii(
-            self.fname, find_overlaps, overlap_threshold
+            fname, find_overlaps, overlap_threshold
         )
         # ======================== Create Raw Object =========================
         super(RawEyelink, self).__init__(
             info,
             preload=eye_ch_data,
-            filenames=[self.fname],
+            filenames=[fname],
             verbose=verbose,
             raw_extras=[raw_extras],
         )
