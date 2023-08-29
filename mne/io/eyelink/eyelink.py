@@ -149,6 +149,7 @@ class RawEyelink(BaseRaw):
 
         self.fname = Path(fname)
 
+        # ======================== Parse ASCII file ==========================
         eye_ch_data, info, raw_extras = _parse_eyelink_ascii(
             self.fname, find_overlaps, overlap_threshold
         )
@@ -164,12 +165,12 @@ class RawEyelink(BaseRaw):
 
         # ======================== Make Annotations =========================
         gap_annots = None
-        if raw_extras["n_blocks"] > 1:
-            gap_annots = _make_gap_annots(raw_extras)
+        if self._raw_extras[0]["n_blocks"] > 1:
+            gap_annots = _make_gap_annots(self._raw_extras[0])
         eye_annots = None
         if create_annotations:
             eye_annots = _make_eyelink_annots(
-                raw_extras["dfs"], create_annotations, apply_offsets
+                self._raw_extras[0]["dfs"], create_annotations, apply_offsets
             )
         if gap_annots and eye_annots:  # set both
             self.set_annotations(gap_annots + eye_annots)

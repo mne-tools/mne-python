@@ -43,21 +43,23 @@ EYELINK_COLS = {
 def _parse_eyelink_ascii(fname, find_overlaps=True, overlap_threshold=0.05):
     # ======================== Parse ASCII File =========================
     raw_extras = dict()
-    raw_extras = _parse_recording_blocks(fname, raw_extras)
-    raw_extras = _get_metadata(raw_extras)
+    raw_extras.update(_parse_recording_blocks(fname))
+    raw_extras.update(_get_metadata(raw_extras))
     raw_extras["dt"] = _get_recording_datetime(fname)
     _validate_data(raw_extras)
 
     # ======================== Create DataFrames ========================
-    _create_dataframes(raw_extras)
-    assert raw_extras["dfs"] is not None
+    raw_extras["dfs"] = _create_dataframes(raw_extras)
     del raw_extras["sample_lines"]  # free up memory
-    # add column names to dataframes
+    # add column names to dataframes and set the dtype of each column
     col_names, ch_names = _infer_col_names(raw_extras)
-    _assign_col_names(col_names, raw_extras)
-    _set_df_dtypes(raw_extras)  # set dtypes for each dataframe
+    raw_extras["dfs"] = _assign_col_names(col_names, raw_extras["dfs"])
+    raw_extras["dfs"] = _set_df_dtypes(raw_extras["dfs"])  # set dtypes for dataframes
+    # if HREF data, convert to radians
     if "HREF" in raw_extras["rec_info"]:
-        _convert_href_samples(raw_extras)
+        raw_extras["dfs"]["samples"] = _convert_href_samples(
+            raw_extras["dfs"]["samples"]
+        )
     # fill in times between recording blocks with BAD_ACQ_SKIP
     if raw_extras["n_blocks"] > 1:
         logger.info(
@@ -69,7 +71,7 @@ def _parse_eyelink_ascii(fname, find_overlaps=True, overlap_threshold=0.05):
         )
     # Convert timestamps to seconds
     for df in raw_extras["dfs"].values():
-        _convert_times(df, raw_extras["first_samp"])
+        df = _convert_times(df, raw_extras["first_samp"])
     # Find overlaps between left and right eye events
     if find_overlaps:
         for key in raw_extras["dfs"]:
@@ -85,7 +87,7 @@ def _parse_eyelink_ascii(fname, find_overlaps=True, overlap_threshold=0.05):
     return eye_ch_data, info, raw_extras
 
 
-def _parse_recording_blocks(fname, raw_extras):
+def _parse_recording_blocks(fname):
     """Parse Eyelink ASCII file.
 
     Eyelink samples occur within START and END blocks.
@@ -96,8 +98,9 @@ def _parse_recording_blocks(fname, raw_extras):
     messages sent by the stimulus presentation software.
     """
     with fname.open() as file:
-        raw_extras["sample_lines"] = []
-        raw_extras["event_lines"] = {
+        data_dict = dict()
+        data_dict["sample_lines"] = []
+        data_dict["event_lines"] = {
             "START": [],
             "END": [],
             "SAMPLES": [],
@@ -118,17 +121,17 @@ def _parse_recording_blocks(fname, raw_extras):
             if is_recording_block:
                 tokens = line.split()
                 if tokens[0][0].isnumeric():  # Samples
-                    raw_extras["sample_lines"].append(tokens)
-                elif tokens[0] in raw_extras["event_lines"].keys():
+                    data_dict["sample_lines"].append(tokens)
+                elif tokens[0] in data_dict["event_lines"].keys():
                     if _is_sys_msg(line):
                         continue  # system messages don't need to be parsed.
                     event_key, event_info = tokens[0], tokens[1:]
-                    raw_extras["event_lines"][event_key].append(event_info)
+                    data_dict["event_lines"][event_key].append(event_info)
                     if tokens[0] == "END":  # end of recording block
                         is_recording_block = False
-        if not raw_extras["sample_lines"]:  # no samples parsed
+        if not data_dict["sample_lines"]:  # no samples parsed
             raise ValueError(f"Couldn't find any samples in {fname}")
-        return raw_extras
+        return data_dict
 
 
 def _validate_data(raw_extras):
@@ -189,18 +192,19 @@ def _get_metadata(raw_extras):
 
     Don't call this until after _parse_recording_blocks.
     """
-    raw_extras["rec_info"] = raw_extras["event_lines"]["SAMPLES"][0]
-    if ("LEFT" in raw_extras["rec_info"]) and ("RIGHT" in raw_extras["rec_info"]):
-        raw_extras["tracking_mode"] = "binocular"
-        raw_extras["eye"] = "both"
+    meta_data = dict()
+    meta_data["rec_info"] = raw_extras["event_lines"]["SAMPLES"][0]
+    if ("LEFT" in meta_data["rec_info"]) and ("RIGHT" in meta_data["rec_info"]):
+        meta_data["tracking_mode"] = "binocular"
+        meta_data["eye"] = "both"
     else:
-        raw_extras["tracking_mode"] = "monocular"
-        raw_extras["eye"] = raw_extras["rec_info"][1].lower()
-    raw_extras["first_samp"] = float(raw_extras["event_lines"]["START"][0][0])
-    raw_extras["sfreq"] = _get_sfreq_from_ascii(raw_extras["rec_info"])
-    raw_extras["pupil_info"] = raw_extras["event_lines"]["PUPIL"][0]
-    raw_extras["n_blocks"] = len(raw_extras["event_lines"]["START"])
-    return raw_extras
+        meta_data["tracking_mode"] = "monocular"
+        meta_data["eye"] = meta_data["rec_info"][1].lower()
+    meta_data["first_samp"] = float(raw_extras["event_lines"]["START"][0][0])
+    meta_data["sfreq"] = _get_sfreq_from_ascii(meta_data["rec_info"])
+    meta_data["pupil_info"] = raw_extras["event_lines"]["PUPIL"][0]
+    meta_data["n_blocks"] = len(raw_extras["event_lines"]["START"])
+    return meta_data
 
 
 def _is_sys_msg(line):
@@ -255,18 +259,18 @@ def _create_dataframes(raw_extras):
     non-empty key in event_lines.
     """
     pd = _check_pandas_installed()
-    raw_extras["dfs"] = dict()
+    df_dict = dict()
 
     # dataframe for samples
-    raw_extras["dfs"]["samples"] = pd.DataFrame(raw_extras["sample_lines"])
-    _drop_status_col(raw_extras)  # Remove STATUS column
+    df_dict["samples"] = pd.DataFrame(raw_extras["sample_lines"])
+    df_dict["samples"] = _drop_status_col(df_dict["samples"])  # drop STATUS col
 
     # dataframe for each type of occular event
     for event, label in zip(
         ["EFIX", "ESACC", "EBLINK"], ["fixations", "saccades", "blinks"]
     ):
         if raw_extras["event_lines"][event]:  # an empty list returns False
-            raw_extras["dfs"][label] = pd.DataFrame(raw_extras["event_lines"][event])
+            df_dict[label] = pd.DataFrame(raw_extras["event_lines"][event])
         else:
             logger.info(
                 f"No {label} were found in this file. "
@@ -287,7 +291,7 @@ def _create_dataframes(raw_extras):
                 offset = np.nan
                 msg = " ".join(str(x) for x in tokens[1:])
             msgs.append([timestamp, offset, msg])
-        raw_extras["dfs"]["messages"] = pd.DataFrame(msgs)
+        df_dict["messages"] = pd.DataFrame(msgs)
 
     # make dataframe for recording block start, end times
     i = 1
@@ -298,17 +302,18 @@ def _create_dataframes(raw_extras):
         blocks.append((float(bgn[0]), float(end[0]), i))
         i += 1
     cols = ["time", "end_time", "block"]
-    raw_extras["dfs"]["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
+    df_dict["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
 
     # make dataframe for digital input port
     if raw_extras["event_lines"]["INPUT"]:
         cols = ["time", "DIN"]
-        raw_extras["dfs"]["DINS"] = pd.DataFrame(raw_extras["event_lines"]["INPUT"])
+        df_dict["DINS"] = pd.DataFrame(raw_extras["event_lines"]["INPUT"])
 
     # TODO: Make dataframes for other eyelink events (Buttons)
+    return df_dict
 
 
-def _drop_status_col(raw_extras):
+def _drop_status_col(samples_df):
     """Drop STATUS column from samples dataframe.
 
     see https://github.com/mne-tools/mne-python/issues/11809, and section 4.9.2.1 of
@@ -317,13 +322,13 @@ def _drop_status_col(raw_extras):
     """
     status_cols = []
     # we know the first 3 columns will be the time, xpos, ypos
-    for col in raw_extras["dfs"]["samples"].columns[3:]:
-        if raw_extras["dfs"]["samples"][col][0][0].isnumeric():
+    for col in samples_df.columns[3:]:
+        if samples_df[col][0][0].isnumeric():
             # if the value is numeric, it's not a status column
             continue
-        if len(raw_extras["dfs"]["samples"][col][0]) in [3, 5, 13, 17]:
+        if len(samples_df[col][0]) in [3, 5, 13, 17]:
             status_cols.append(col)
-    raw_extras["dfs"]["samples"].drop(columns=status_cols, inplace=True)
+    return samples_df.drop(columns=status_cols)
 
 
 def _infer_col_names(raw_extras):
@@ -382,7 +387,7 @@ def _infer_col_names(raw_extras):
     return col_names, ch_names
 
 
-def _assign_col_names(col_names, raw_extras):
+def _assign_col_names(col_names, df_dict):
     """Assign column names to dataframes.
 
     Parameters
@@ -390,7 +395,7 @@ def _assign_col_names(col_names, raw_extras):
     col_names : dict
         Dictionary of column names for each dataframe.
     """
-    for key, df in raw_extras["dfs"].items():
+    for key, df in df_dict.items():
         if key in ("samples", "blinks", "fixations", "saccades"):
             df.columns = col_names[key]
         elif key == "messages":
@@ -399,12 +404,13 @@ def _assign_col_names(col_names, raw_extras):
         elif key == "DINS":
             cols = ["time", "DIN"]
             df.columns = cols
+    return df_dict
 
 
-def _set_df_dtypes(raw_extras):
+def _set_df_dtypes(df_dict):
     from ...utils import _set_pandas_dtype
 
-    for key, df in raw_extras["dfs"].items():
+    for key, df in df_dict.items():
         if key in ["samples", "DINS"]:
             # convert missing position values to NaN
             _set_missing_values(df, df.columns[1:])
@@ -414,6 +420,7 @@ def _set_df_dtypes(raw_extras):
             _set_pandas_dtype(df, df.columns[1:], float, verbose="warning")
         elif key == "messages":
             _set_pandas_dtype(df, ["time"], float, verbose="warning")  # timestamp
+    return df_dict
 
 
 def _set_missing_values(df, columns):
@@ -425,7 +432,6 @@ def _set_missing_values(df, columns):
 
 
 def _sort_by_time(df, col="time"):
-    assert col in df.columns
     df.sort_values(col, ascending=True, inplace=True)
     df.reset_index(drop=True, inplace=True)
 
@@ -458,6 +464,7 @@ def _convert_times(df, first_samp, col="time"):
             df[col] /= 1000
         if col in ["duration", "offset"]:
             df[col] /= 1000
+    return df
 
 
 def _adjust_times(
@@ -558,15 +565,16 @@ def _find_overlaps(df, max_time=0.05):
     return ovrlp.drop(columns=tmp_cols).reset_index(drop=True)
 
 
-def _convert_href_samples(raw_extras):
+def _convert_href_samples(samples_df):
     """Convert HREF eyegaze samples to radians."""
     # grab the xpos and ypos channel names
     pos_names = EYELINK_COLS["pos"]["left"][:-1] + EYELINK_COLS["pos"]["right"][:-1]
-    for col in raw_extras["dfs"]["samples"].columns:
+    for col in samples_df.columns:
         if col not in pos_names:  # 'xpos_left' ... 'ypos_right'
             continue
-        series = _href_to_radian(raw_extras["dfs"]["samples"][col])
-        raw_extras["dfs"]["samples"][col] = series
+        series = _href_to_radian(samples_df[col])
+        samples_df[col] = series
+    return samples_df
 
 
 def _href_to_radian(opposite, f=15_000):
@@ -659,9 +667,11 @@ def _make_eyelink_annots(df_dict, create_annots, apply_offsets):
     if create_annots is True:
         descs = valid_descs
     else:
-        assert isinstance(create_annots, list), wrong_type
+        if not isinstance(create_annots, list):
+            raise TypeError(wrong_type)
         for desc in create_annots:
-            assert desc in valid_descs, msg + f" Got '{desc}' instead"
+            if desc not in valid_descs:
+                raise ValueError(msg + f" Got '{desc}' instead")
         descs = create_annots
 
     annots = None
