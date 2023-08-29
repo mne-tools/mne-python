@@ -61,6 +61,7 @@ from ..utils import (
     _to_rgb,
     warn,
     check_version,
+    _check_decim,
 )
 from ..transforms import apply_trans
 
@@ -2066,9 +2067,6 @@ def _setup_ax_spines(
 
 def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
-    from ..utils.mixin import _check_decim
-    from ..utils import _ensure_int
-
     if isinstance(decim, str) and decim == "auto":
         lp = info["sfreq"] if info["lowpass"] is None else info["lowpass"]
         lp = min(lp, info["sfreq"] if lowpass is None else lowpass)
@@ -2937,3 +2935,22 @@ def _get_cmap(colormap, lut=None):
             resampled = colormap._resample
         colormap = resampled(lut)
     return colormap
+
+
+def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
+    """Choose a single channel type (usually for plotting).
+
+    Usually used in plotting to plot a single datatype, e.g. look for mags,
+    then grads, then ... to plot.
+    """
+    if ch_type is None:
+        allowed_types = list(_DATA_CH_TYPES_SPLIT)
+        allowed_types += ["ref_meg"] if allow_ref_meg else []
+        has_types = inst.get_channel_types(unique=True)
+        for type_ in allowed_types:
+            if type_ in has_types:
+                ch_type = type_
+                break
+        else:
+            raise RuntimeError("No plottable channel types found")
+    return ch_type

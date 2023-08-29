@@ -17,6 +17,7 @@ from pathlib import Path
 import numpy as np
 
 from ..._fiff.pick import pick_types
+from ...event import read_events
 from ...utils import (
     verbose,
     logger,
@@ -381,8 +382,6 @@ class EpochsKIT(BaseEpochs):
         standardize_names=None,
         verbose=None,
     ):  # noqa: D102
-        from ...event import read_events
-
         if isinstance(events, (str, PathLike, Path)):
             events = read_events(events)
 

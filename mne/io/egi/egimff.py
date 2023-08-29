@@ -25,6 +25,7 @@ from ..._fiff.meas_info import _empty_info, create_info, _ensure_meas_date_none_
 from ..._fiff.proj import setup_proj
 from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
+from ...channels.montage import make_dig_montage
 from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray
 
@@ -286,8 +287,6 @@ def _get_eeg_calibration_info(filepath, egi_info):
 
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
-    from ...channels.montage import make_dig_montage
-
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
         logger.warn("File coordinates.xml not found, not setting channel locations")

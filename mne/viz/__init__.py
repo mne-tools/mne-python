@@ -79,6 +79,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "plot_sensors",
             "centers_to_edges",
             "concatenate_images",
+            "_get_plot_ch_type",
         ],
         "_3d": [
             "plot_sparse_source_estimates",

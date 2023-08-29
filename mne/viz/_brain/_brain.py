@@ -63,7 +63,6 @@ from ..._freesurfer import (
 from ..._fiff.pick import pick_types
 from ..._fiff.meas_info import Info
 from ...surface import mesh_edges, _mesh_borders, _marching_cubes, get_meg_helmet_surf
-from ...source_space import SourceSpaces
 from ...transforms import (
     Transform,
     apply_trans,
@@ -2104,6 +2103,7 @@ class Brain:
 
     def _add_volume_data(self, hemi, src, volume_options):
         from ..backends._pyvista import _hide_testing_actor
+        from ...source_space import SourceSpaces
 
         _validate_type(src, SourceSpaces, "src")
         _check_option("src.kind", src.kind, ("volume",))

@@ -33,7 +33,7 @@ from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne._freesurfer import _get_mri_info_data, _get_atlas_values
 from mne.minimum_norm import apply_inverse, read_inverse_operator, make_inverse_operator
-from mne.source_space import _add_interpolator, _grid_interp
+from mne.source_space._source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import check_version, catch_logging, _record_warnings
 
