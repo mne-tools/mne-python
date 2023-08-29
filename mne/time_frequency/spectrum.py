@@ -1235,10 +1235,6 @@ class SpectrumArray(Spectrum):
         The power spectral density for each channel.
     %(info_not_none)s
     %(freqs_tfr)s
-    %(method_psd)s
-    weights : ndarray
-        The weights used for averaging across tapers. Only required
-        for :func:`mne.time_frequency.psd_array_multitaper` with ``output='complex'``.
     %(verbose)s
 
     See Also
@@ -1261,43 +1257,24 @@ class SpectrumArray(Spectrum):
         data,
         info,
         freqs,
-        method="unknown",
-        weights=None,
         *,
         verbose=None,
     ):
         _check_option("data.ndim", data.ndim, (2, 3))
         dims = ("channel", "freq")
         _check_data_shape("channel", 0, data, _pick_data_channels(info).size)
-        if data.ndim == 3:
-            _check_option("method", method, ("welch", "multitaper"))
-            dims = (
-                ("channel", "taper", "freq")
-                if method == "multitaper"
-                else ("channel", "freq", "segment")
-            )
-        if np.iscomplexobj(data) and method == "multitaper":
-            actual = None if weights is None else weights.size
-            expected = data.shape[list(dims).index("taper")]
-            if actual != expected:
-                raise ValueError(
-                    f"Expected weights to be {expected} size, got {actual}"
-                )
-        else:
-            _check_option("weights", weights, [None])
-        _check_data_shape("freq", list(dims).index("freq"), data, freqs.size)
+        _check_data_shape("freq", 1, data, freqs.size)
 
         self.__setstate__(
             dict(
-                method=method,
+                method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
                 dims=dims,
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type=f"{'Complex' if np.iscomplexobj(data) else 'Real'} Spectrum",
+                data_type="Power Spectrum",
                 info=info,
-                weights=weights,
             )
         )
 
@@ -1506,10 +1483,6 @@ class EpochsSpectrumArray(EpochsSpectrum):
     %(freqs_tfr)s
     %(events_epochs)s
     %(event_id)s
-    %(method_psd)s
-    weights : ndarray
-        The weights used for averaging across tapers. Only required
-        for :func:`mne.time_frequency.psd_array_multitaper` with ``output='complex'``.
     %(verbose)s
 
     See Also
@@ -1533,8 +1506,6 @@ class EpochsSpectrumArray(EpochsSpectrum):
         freqs,
         events=None,
         event_id=None,
-        method="unknown",
-        weights=None,
         *,
         verbose=None,
     ):
@@ -1543,39 +1514,22 @@ class EpochsSpectrumArray(EpochsSpectrum):
         if events is not None:
             _check_data_shape("epoch", 0, data, events.shape[0])
         _check_data_shape("channel", 1, data, _pick_data_channels(info).size)
-        if data.ndim == 4:
-            _check_option("method", method, ("welch", "multitaper"))
-            dims = (
-                ("epoch", "channel", "taper", "freq")
-                if method == "multitaper"
-                else ("epoch", "channel", "freq", "segment")
-            )
-        if np.iscomplexobj(data) and method == "multitaper":
-            actual = None if weights is None else weights.size
-            expected = data.shape[list(dims).index("taper")]
-            if actual != expected:
-                raise ValueError(
-                    f"Expected weights to be {expected} size, got {actual}"
-                )
-        else:
-            _check_option("weights", weights, [None])
-        _check_data_shape("freq", list(dims).index("freq"), data, freqs.size)
+        _check_data_shape("freq", 2, data, freqs.size)
         self.__setstate__(
             dict(
-                method=method,
+                method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
                 dims=dims,
                 freqs=freqs,
                 inst_type_str="Array",
-                data_type=f"{'Complex' if np.iscomplexobj(data) else 'Real'} Spectrum",
+                data_type="Power Spectrum",
                 info=info,
                 events=events,
                 event_id=event_id,
                 metadata=None,
                 selection=np.arange(data.shape[0]),
                 drop_log=tuple(tuple() for _ in range(data.shape[0])),
-                weights=weights,
             )
         )
 

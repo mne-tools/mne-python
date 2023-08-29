@@ -395,18 +395,6 @@ def _get_psd_variants_raw(raw_psds):
                 data=data,
                 freqs=raw_psd.freqs,
                 info=raw_psd.info,
-                method=raw_psd.method,
-                weights=raw_psd._mt_weights if raw_psd.method == "multitaper" else None,
-            )
-        )
-        psds.append(
-            SpectrumArray(
-                data=((data * data.conj()).real).mean(
-                    axis=1 if raw_psd.method == "multitaper" else 2
-                ),
-                freqs=raw_psd.freqs,
-                info=raw_psd.info,
-                method=raw_psd.method,
             )
         )
     return psds
@@ -423,21 +411,6 @@ def _get_psd_variants_epochs(epochs_psds):
                 info=epochs_psd.info,
                 events=epochs_psd.events,
                 event_id=epochs_psd.event_id,
-                method=epochs_psd.method,
-                weights=epochs_psd._mt_weights
-                if epochs_psd.method == "multitaper"
-                else None,
-            )
-        )
-        psds.append(
-            EpochsSpectrumArray(
-                data=((data * data.conj()).real).mean(
-                    axis=2 if epochs_psd.method == "multitaper" else 3
-                ),
-                freqs=epochs_psd.freqs,
-                info=epochs_psd.info,
-                events=epochs_psd.events,
-                event_id=epochs_psd.event_id,
             )
         )
     return psds
@@ -446,11 +419,7 @@ def _get_psd_variants_epochs(epochs_psds):
 def _check_psd_equivalent(psd, psd2, tmp_path):
     data = psd.get_data()
     data2 = psd2.get_data()
-    axis = -2 if psd.method == "multitaper" else -1
-    assert_array_equal(
-        data if np.iscomplexobj(data2) else ((data * data.conj()).real).mean(axis=axis),
-        data2,
-    )
+    assert_array_equal(data, data2)
     assert_array_equal(psd.freqs, psd2.freqs)
     psd2.save(tmp_path / "psd.h5", overwrite=True)
     assert_array_equal(data2, read_spectrum(tmp_path / "psd.h5").get_data())
@@ -469,25 +438,9 @@ def test_spectrum_array(kind, raw_psds, epochs_psds, tmp_path, request):
             SpectrumArray(
                 data=np.zeros((8, 11)), freqs=np.arange(10), info=raw_psds[0].info
             )
-        with pytest.raises(ValueError, match="Expected weights"):
-            SpectrumArray(
-                data=np.zeros((8, 10, 7), dtype=complex),
-                freqs=np.arange(10),
-                info=raw_psds[1].info,
-                method="multitaper",
-            )
     else:
         psds = _get_psd_variants_epochs(psds_orig)
-        with pytest.raises(ValueError, match="Expected weights"):
-            EpochsSpectrumArray(
-                data=np.zeros((5, 19, 10, 7), dtype=complex),
-                freqs=np.arange(10),
-                info=epochs_psds[1].info,
-                method="multitaper",
-            )
-    for psd, psd2 in zip(
-        [psd for tup in zip(psds_orig, psds_orig) for psd in tup], psds
-    ):
+    for psd, psd2 in zip(psds_orig, psds):
         _check_psd_equivalent(psd, psd2, tmp_path)
 
 
