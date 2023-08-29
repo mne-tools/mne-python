@@ -9,6 +9,7 @@ import shutil
 from copy import deepcopy
 
 import numpy as np
+from numpy.core.records import fromarrays
 from numpy.testing import (
     assert_array_equal,
     assert_array_almost_equal,
@@ -38,8 +39,6 @@ epochs_fname_onefile_mat = base_dir / "test_epochs_onefile.set"
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = base_dir / "test_raw_chanloc.set"
-raw_fname_chanloc_meter = base_dir / "test_raw_chanloc_meter.set"
-raw_fname_chanloc_cm = base_dir / "test_raw_chanloc_cm.set"
 raw_fname_chanloc_fids = base_dir / "test_raw_chanloc_fids.set"
 raw_fname_2021 = base_dir / "test_raw_2021.set"
 raw_fname_h5 = base_dir / "test_raw_h5.set"
@@ -406,7 +405,7 @@ def test_degenerate(tmp_path):
     pytest.raises(NotImplementedError, read_epochs_eeglab, bad_epochs_fname)
 
     # error when montage units incorrect
-    with pytest.raises(ValueError, match=r'Invalid value'):
+    with pytest.raises(ValueError, match=r"Invalid value"):
         read_epochs_eeglab(epochs_fname_mat, montage_units="mV")
 
     # warning when head radius too large
@@ -576,23 +575,65 @@ def test_position_information(three_chanpos_fname):
     )
 
 
+def _create_eeg_with_scaled_montage_units(in_fname, out_fname, scale):
+    eeg = io.loadmat(in_fname, struct_as_record=False, squeeze_me=True)["EEG"]
+
+    # test reading file with one event (read old version)
+    # chanlocs = deepcopy(eeg.chanlocs)
+    chanlocs = eeg.chanlocs
+    xyz = np.empty((len(chanlocs), 3))
+    labels = []
+    for ch_i, loc in enumerate(chanlocs):
+        xyz[ch_i] = [loc.X, loc.Y, loc.Z]
+        labels.append(loc.labels)
+    xyz *= scale
+    chanlocs = fromarrays(
+        [labels, *xyz.T],
+        names=["labels", "X", "Y", "Z"],
+    )
+
+    fdt = isinstance(eeg.data, str)
+    if fdt:
+        shutil.copyfile(in_fname.with_suffix(".fdt"), out_fname.with_suffix(".fdt"))
+    io.savemat(
+        out_fname,
+        {
+            "EEG": {
+                "trials": eeg.trials,
+                "srate": eeg.srate,
+                "nbchan": eeg.nbchan,
+                "data": out_fname.with_suffix(".fdt").name if fdt else eeg.data,
+                "epoch": eeg.epoch,
+                "event": eeg.event,
+                "chanlocs": chanlocs,
+                "pnts": eeg.pnts,
+            }
+        },
+        appendmat=False,
+        oned_as="row",
+    )
+
+
 @testing.requires_testing_data
-def test_estimate_montage_units():
+def test_estimate_montage_units(tmp_path):
     """Test automatic estimation of montage units."""
+    m_fname = tmp_path / "test_montage_m.set"
+    _create_eeg_with_scaled_montage_units(raw_fname_chanloc, m_fname, 1e-3)
+    cm_fname = tmp_path / "test_montage_cm.set"
+    _create_eeg_with_scaled_montage_units(raw_fname_chanloc, cm_fname, 1e-1)
     with pytest.warns(RuntimeWarning, match="The data contains 'boundary' events"):
         # read 3 versions of the same file, with different montage units
         raw_mm = read_raw_eeglab(raw_fname_chanloc, montage_units="auto")
-        raw_m = read_raw_eeglab(raw_fname_chanloc_meter, montage_units="auto")
-        raw_cm = read_raw_eeglab(raw_fname_chanloc_cm, montage_units="auto")
+        raw_m = read_raw_eeglab(m_fname, montage_units="auto")
+        raw_cm = read_raw_eeglab(cm_fname, montage_units="auto")
     # All locations should be the same if the units are correctly estimated
-    # raise tolerance to 1e-3 because of EEGLAB rounding errors
     assert_allclose(
         np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
-        np.array([ch["loc"] for ch in raw_m.info["chs"]]), rtol=1e-3,
+        np.array([ch["loc"] for ch in raw_m.info["chs"]]),
     )
     assert_allclose(
         np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
-        np.array([ch["loc"] for ch in raw_cm.info["chs"]]), rtol=1e-3,
+        np.array([ch["loc"] for ch in raw_cm.info["chs"]]),
     )
 
 
