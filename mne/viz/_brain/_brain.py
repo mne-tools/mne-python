@@ -16,7 +16,6 @@ import time
 import copy
 import traceback
 import warnings
-import weakref
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -84,6 +83,7 @@ from ...utils import (
     _check_fname,
     _to_rgb,
     _ensure_int,
+    _auto_weakref,
 )
 
 
@@ -1002,13 +1002,10 @@ class Brain:
             return
 
         layout = self._renderer._dock_add_group_box(name)
-        weakself = weakref.ref(self)
 
         # setup candidate annots
-        def _set_annot(annot, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def _set_annot(annot):
             self.clear_glyphs()
             self.remove_labels()
             self.remove_annotations()
@@ -1023,10 +1020,8 @@ class Brain:
             self._renderer._update()
 
         # setup label extraction parameters
-        def _set_label_mode(mode, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def _set_label_mode(mode):
             if self.traces_mode != "label":
                 return
             glyphs = copy.deepcopy(self.picked_patches)
@@ -1210,12 +1205,9 @@ class Brain:
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
-        weakself = weakref.ref(self)
 
-        def save_image(filename, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def save_image(filename):
             self.save_image(filename)
 
         self._renderer._tool_bar_add_file_button(
@@ -1224,10 +1216,8 @@ class Brain:
             func=save_image,
         )
 
-        def save_movie(filename, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def save_movie(filename):
             self.save_movie(
                 filename=filename, time_dilation=(1.0 / self.playback_speed)
             )

@@ -13,10 +13,13 @@ from queue import Queue, Empty
 from string import Formatter
 import subprocess
 import sys
+from textwrap import dedent
 from threading import Thread
 import traceback
+import weakref
 
 import numpy as np
+from decorator import FunctionMaker
 
 from .check import _check_option, _validate_type
 from ._logging import logger, verbose, warn
@@ -475,3 +478,38 @@ def repr_html(f):
             return f(*args, **kwargs)
 
     return wrapper
+
+
+def _auto_weakref(function):
+    """Create weakrefs to self (or other free vars in __closure__) then evaluate."""
+    names = function.__code__.co_freevars
+    assert len(names) == len(function.__closure__)
+    __weakref_values__ = dict()
+    evaldict = dict(__weakref_values__=__weakref_values__)
+    for name, value in zip(names, function.__closure__):
+        __weakref_values__[name] = weakref.ref(value.cell_contents)
+    body = dedent(inspect.getsource(function))
+    body = body.splitlines()
+    for li, line in enumerate(body):
+        if line.startswith(" "):
+            body = body[li:]
+            break
+    old_body = "\n".join(body)
+    body = """\
+def %(name)s(%(signature)s):
+"""
+    for name in names:
+        body += f"""
+    {name} = __weakref_values__[{repr(name)}]()
+    if {name} is None:
+        return
+"""
+    body = body + old_body
+    funcdict = function.__dict__.copy()
+    funcdict["__closure__"] = None
+    fm = FunctionMaker(function, None, None, None, None, function.__module__, funcdict)
+    attrs = dict(
+        __qualname__=function.__qualname__,
+        __globals__=function.__globals__,
+    )
+    return fm.make(body, evaldict, addsource=True, **attrs)
