@@ -482,7 +482,7 @@ def repr_html(f):
 
 def _auto_weakref(function):
     """Create weakrefs to self (or other free vars in __closure__) then evaluate.
-    
+
     When a nested function is defined within an instance method, and the function makes
     use of ``self``, it creates a reference cycle that the Python garbage collector is
     not smart enough to resolve, so the parent object is never GC'd. (The reference to
