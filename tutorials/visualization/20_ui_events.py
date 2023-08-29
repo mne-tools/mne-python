@@ -67,7 +67,10 @@ link(fig1, fig2)  # link the event channels
 # Below, we create a custom plot and then make it publish and subscribe to
 # :class:`~mne.viz.ui_events.TimeChange` events so it can work together with the topomap
 # plots we created earlier.
-fig3, ax = plt.subplots()
+
+fig3 = avg_evokeds.plot_topomap("interactive")
+fig4 = stc.plot("sample", subjects_dir=data_path / "subjects")
+fig5, ax = plt.subplots()
 ax.plot(avg_evokeds.times, avg_evokeds.pick("mag").data.max(axis=0))
 time_bar = ax.axvline(0, color="black")  # Our time slider
 ax.set_xlabel("Time (s)")
@@ -96,5 +99,5 @@ subscribe(fig3, "time_change", on_time_change)
 
 # Link the new figure with the topomap plots, so that the TimeChange events are sent to
 # all of them.
-link(fig3, fig1)
-link(fig3, fig2)
+link(fig5, fig3)
+link(fig5, fig4)

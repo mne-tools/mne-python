@@ -478,6 +478,14 @@ class Resetter(object):
         except Exception:
             pass
         gc.collect()
+
+        # Agg does not call close_event so let's clean up on our own :(
+        # https://github.com/matplotlib/matplotlib/issues/18609
+        mne.viz.ui_events._cleanup_agg()
+        assert len(mne.viz.ui_events._event_channels) == 0, list(
+            mne.viz.ui_events._event_channels
+        )
+
         when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
         # Support stuff like
         # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
