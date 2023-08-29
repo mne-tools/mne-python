@@ -413,8 +413,10 @@ def test_degenerate(tmp_path):
         read_raw_eeglab(raw_fname_chanloc, montage_units="m")
 
     # warning when head radius too small
+    m_fname = tmp_path / "test_montage_m.set"
+    _create_eeg_with_scaled_montage_units(raw_fname_chanloc, m_fname, 1e-3)
     with pytest.warns(RuntimeWarning, match="is below"):
-        read_raw_eeglab(raw_fname_chanloc_meter, montage_units="mm")
+        read_raw_eeglab(m_fname, montage_units="mm")
 
 
 @pytest.mark.parametrize(
