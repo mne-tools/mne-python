@@ -53,7 +53,7 @@ from .._fiff.tag import read_tag
 from .._fiff.meas_info import write_meas_info, read_meas_info, ContainsMixin
 from .._fiff.constants import FIFF
 from .._fiff.write import start_and_end_file, write_id
-from .._fiff.pick import pick_channels_regexp, _picks_by_type
+from .._fiff.pick import pick_channels_regexp, _picks_by_type, _contains_ch_type
 from ..io import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
 
@@ -67,7 +67,6 @@ from ..viz import (
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
 from ..utils import (
     logger,

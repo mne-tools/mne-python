@@ -14,7 +14,6 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "rename_channels",
             "fix_mag_coil_types",
             "read_ch_adjacency",
-            "_get_ch_type",
             "find_ch_adjacency",
             "make_1020_channel_selections",
             "combine_channels",

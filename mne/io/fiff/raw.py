@@ -12,6 +12,8 @@ import os.path as op
 
 import numpy as np
 
+from ...channels import fix_mag_coil_types
+from ...event import AcqParserFIF
 from ..._fiff.constants import FIFF
 from ..._fiff.open import fiff_open, _fiff_get_fid, _get_next_fname
 from ..._fiff.meas_info import read_meas_info
@@ -476,8 +478,6 @@ class Raw(BaseRaw):
                   current estimates computed by the MNE software is very small.
                   Therefore the use of mne_fix_mag_coil_types is not mandatory.
         """
-        from ...channels import fix_mag_coil_types
-
         fix_mag_coil_types(self.info)
         return self
 
@@ -489,8 +489,6 @@ class Raw(BaseRaw):
         --------
         mne.AcqParserFIF
         """
-        from ...event import AcqParserFIF
-
         if getattr(self, "_acqparser", None) is None:
             self._acqparser = AcqParserFIF(self.info)
         return self._acqparser

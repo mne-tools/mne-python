@@ -31,14 +31,14 @@ from mne import (
     read_bem_solution,
     read_freesurfer_lut,
     read_trans,
+    get_volume_labels_from_src,
 )
 from mne.fixes import _get_img_fdata
 from mne.utils import run_subprocess, _record_warnings, requires_mne
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
+from mne.source_space._source_space import _compare_source_spaces
 from mne.source_space import (
-    get_volume_labels_from_src,
-    _compare_source_spaces,
     get_decimated_surfaces,
     compute_distance_to_sensors,
 )
@@ -64,7 +64,7 @@ fname_morph = subjects_dir / "sample" / "bem" / "sample-fsaverage-ico-5-src.fif"
 fname_src = data_path / "subjects" / "sample" / "bem" / "sample-oct-4-src.fif"
 fname_fwd = data_path / "MEG" / "sample" / "sample_audvis_trunc-meg-eeg-oct-4-fwd.fif"
 trans_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc-trans.fif"
-base_dir = Path(__file__).parent.parent / "io" / "tests" / "data"
+base_dir = Path(__file__).parent.parent.parent / "io" / "tests" / "data"
 fname_small = base_dir / "small-src.fif.gz"
 fname_ave = base_dir / "test-ave.fif"
 rng = np.random.RandomState(0)
@@ -149,7 +149,7 @@ def test_add_patch_info(monkeypatch):
 
     # now let's use one that works (and test our warning-throwing)
     with monkeypatch.context() as m:
-        m.setattr(mne.source_space, "_DIST_WARN_LIMIT", 1)
+        m.setattr(mne.source_space._source_space, "_DIST_WARN_LIMIT", 1)
         with pytest.warns(RuntimeWarning, match="Computing distances for 258"):
             add_source_space_distances(src_new)
     _compare_source_spaces(src, src_new, "approx")
@@ -1018,6 +1018,12 @@ def test_get_decimated_surfaces(src, n, nv):
         assert set(s) == {"rr", "tris"}
         assert len(s["rr"]) == nv
         assert_array_equal(np.unique(s["tris"]), np.arange(nv))
+
+
+def test_deprecation():
+    """Test deprecation of mne.source_space functions."""
+    with pytest.warns(FutureWarning, match="use mne.get_volume_labels_from_src"):
+        mne.source_space.get_volume_labels_from_src
 
 
 # The following code was used to generate small-src.fif.gz.

@@ -19,6 +19,7 @@ from .transforms import (
     read_ras_mni_t,
     Transform,
 )
+from .surface import read_surface, _read_mri_surface
 from .utils import (
     verbose,
     _validate_type,
@@ -356,8 +357,6 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     coordinates : array, shape (n_vertices, 3)
         The MNI coordinates (in mm) of the vertices.
     """
-    from .surface import read_surface
-
     singleton = False
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
         singleton = True
@@ -757,7 +756,6 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     .. versionadded: 0.24
     """
     from .bem import _bem_find_surface, read_bem_surfaces
-    from .surface import _read_mri_surface
 
     _check_option("surf", surf, ("auto", "head", "outer_skin", "head-dense", "seghead"))
     if surf in ("auto", "head", "outer_skin"):
@@ -831,7 +829,6 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
     .. versionadded: 0.24
     """
     from .bem import _bem_find_surface
-    from .surface import _read_mri_surface
 
     if bem is not None:
         try:
