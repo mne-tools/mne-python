@@ -246,7 +246,7 @@ def publish(fig, event):
     event.source = fig
     for channel in channels:
         if event.name not in channel:
-            channel[event.name] = WeakSet()
+            channel[event.name] = set()
         for callback in channel[event.name]:
             callback(event=event)
 
@@ -265,7 +265,7 @@ def subscribe(fig, event_name, callback):
     """
     channel = _get_event_channel(fig)
     if event_name not in channel:
-        channel[event_name] = WeakSet()
+        channel[event_name] = set()
     channel[event_name].add(callback)
 
 
