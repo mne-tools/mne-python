@@ -47,18 +47,17 @@ import numpy as np
 from matplotlib import get_backend
 from matplotlib.figure import Figure
 
-from .. import channel_indices_by_type, pick_types
 from ..fixes import _close_event
-from ..annotations import _sync_onset
-from ..io.pick import (
+from .._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
     _FNIRS_CH_TYPES_SPLIT,
     _EYETRACK_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
+    channel_indices_by_type,
+    pick_types,
 )
-from ..utils import Bunch, _click_ch_name, logger
-from . import plot_sensors
+from ..utils import Bunch, _click_ch_name, logger, check_version
 from ._figure import BrowserBase
 from .utils import (
     DraggableLine,
@@ -71,7 +70,7 @@ from .utils import (
     _validate_if_list_of_axes,
     plt_show,
     _fake_scroll,
-    check_version,
+    plot_sensors,
 )
 
 name = "matplotlib"
@@ -81,6 +80,9 @@ with plt.ion():
 #   https://github.com/matplotlib/matplotlib/issues/23298
 #   but wrapping it in ion() context makes it go away.
 #   Moving this bit to a separate function in ../../fixes.py doesn't work.
+#
+#   TODO: Once we require matplotlib 3.6 we should be able to remove this.
+#   It also causes some problems... see mne/viz/utils.py:plt_show() for details.
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -789,6 +791,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _buttonpress(self, event):
         """Handle mouse clicks."""
         from matplotlib.collections import PolyCollection
+        from ..annotations import _sync_onset
 
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
@@ -1057,21 +1060,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         instructions_ax = div.append_axes(
             position="top", size=Fixed(1), pad=Fixed(5 * ANNOTATION_FIG_PAD)
         )
-        # XXX when we support a newer matplotlib (something >3.0) the
-        # instructions can have inline bold formatting:
-        # instructions = '\n'.join(
-        #     [r'$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation',  # noqa E501
-        #      r'$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation',
-        #      r'$\mathbf{Type~in~annotation~window:}$ modify new label name',
-        #      r'$\mathbf{Enter~(or~click~button):}$ add new label to list',
-        #      r'$\mathbf{Esc:}$ exit annotation mode & close this window'])
         instructions = "\n".join(
             [
-                "Left click & drag on plot: create/modify annotation",
-                "Right click on annotation highlight: delete annotation",
-                "Type in this window: modify new label name",
-                "Enter (or click button): add new label to list",
-                "Esc: exit annotation mode & close this dialog window",
+                r"$\mathbf{Left‐click~&~drag~on~plot:}$ create/modify annotation",
+                r"$\mathbf{Right‐click~on~plot~annotation:}$ delete annotation",
+                r"$\mathbf{Type~in~annotation~window:}$ modify new label name",
+                r"$\mathbf{Enter~(or~click~button):}$ add new label to list",
+                r"$\mathbf{Esc:}$ exit annotation mode & close this window",
             ]
         )
         instructions_ax.text(
@@ -1138,15 +1133,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         else:
             col = self.mne.annotation_segment_colors[self._get_annotation_labels()[0]]
 
-        # TODO: we would like useblit=True here, but it behaves oddly when the
-        # first span is dragged (subsequent spans seem to work OK)
         rect_kw = _prop_kw("rect", dict(alpha=0.5, facecolor=col))
         selector = SpanSelector(
             self.mne.ax_main,
             self._select_annotation_span,
             "horizontal",
             minspan=0.1,
-            useblit=False,
+            useblit=True,
             button=1,
             **rect_kw,
         )
@@ -1336,11 +1329,19 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
+        from ..annotations import _sync_onset
+
         onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
         duration = vmax - vmin
         buttons = self.mne.fig_annotation.mne.radio_ax.buttons
-        labels = [label.get_text() for label in buttons.labels]
-        if buttons.value_selected is not None:
+        if buttons is None or buttons.value_selected is None:
+            logger.warning(
+                "No annotation-label exists! "
+                "Add one by typing the name and clicking "
+                'on "Add new label" in the annotation-dialog.'
+            )
+        else:
+            labels = [label.get_text() for label in buttons.labels]
             active_idx = labels.index(buttons.value_selected)
             _merge_annotations(
                 onset, onset + duration, labels[active_idx], self.mne.inst.annotations
@@ -1349,12 +1350,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if not self.mne.visible_annotations[buttons.value_selected]:
                 self.mne.show_hide_annotation_checkboxes.set_active(active_idx)
             self._redraw(update_data=False, annotations=True)
-        else:
-            logger.warning(
-                "No annotation-label exists! "
-                "Add one by typing the name and clicking "
-                'on "Add new label" in the annotation-dialog.'
-            )
 
     def _remove_annotation_hover_line(self):
         """Remove annotation line from the plot and reactivate selector."""
@@ -1366,6 +1361,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _modify_annotation(self, old_x, new_x):
         """Modify annotation."""
+        from ..annotations import _sync_onset
+
         segment = np.array(np.where(self.mne.annotation_segments == old_x))
         if segment.shape[1] == 0:
             return

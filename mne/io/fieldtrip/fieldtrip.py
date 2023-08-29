@@ -13,8 +13,8 @@ from .utils import (
     _create_event_metadata,
     _validate_ft_struct,
 )
-from ...utils import _check_fname, _import_pymatreader_funcs
 from ..array.array import RawArray
+from ...utils import _check_fname, _import_pymatreader_funcs
 from ...epochs import EpochsArray
 from ...evoked import EvokedArray
 

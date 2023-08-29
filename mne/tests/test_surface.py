@@ -19,7 +19,7 @@ from mne import (
 from mne.channels import make_dig_montage
 from mne.datasets import testing
 from mne.io import read_info
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.surface import (
     _compute_nearest,
     _tessellate_sphere,

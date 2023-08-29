@@ -23,7 +23,7 @@ from mne import (
 from mne.cov import regularize, compute_whitener
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
-from mne.io.proj import (
+from mne._fiff.proj import (
     make_projector,
     activate_proj,
     setup_proj,
@@ -550,3 +550,20 @@ def test_setup_proj():
     assert _needs_eeg_average_ref_proj(raw.info)
     raw.del_proj()
     setup_proj(raw.info)
+
+
+@testing.requires_testing_data
+def test_compute_proj_explained_variance():
+    """Test computation based on the explained variance."""
+    raw = read_raw_fif(sample_path / "sample_audvis_trunc_raw.fif", preload=False)
+    raw.crop(0, 5).load_data()
+    raw.del_proj("all")
+    with pytest.warns(RuntimeWarning, match="Too few samples"):
+        projs = compute_proj_raw(raw, duration=None, n_grad=0.7, n_mag=0.9, n_eeg=0.8)
+    for type_, n_vector_ in (("planar", 0.7), ("axial", 0.9), ("eeg", 0.8)):
+        explained_var = [
+            proj["explained_var"]
+            for proj in projs
+            if proj["desc"].split("-")[0] == type_
+        ]
+        assert n_vector_ <= sum(explained_var)

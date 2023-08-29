@@ -15,12 +15,14 @@ from itertools import count
 
 import numpy as np
 
+from ..base import BaseRaw
+from ..._fiff.tag import _coil_trans_to_loc, _loc_to_coil_trans
+from ..._fiff.meas_info import _empty_info
+from ..._fiff._digitization import _make_bti_dig_points
 from ...utils import logger, verbose, _stamp_to_dt, path_like, _validate_type
 from ...transforms import combine_transforms, invert_transform, Transform
-from .._digitization import _make_bti_dig_points
-from ..constants import FIFF
-from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
-from ..utils import _mult_cal_one, read_str
+from ..._fiff.constants import FIFF
+from ..._fiff.utils import _mult_cal_one, read_str
 from .constants import BTI
 from .read import (
     read_int32,

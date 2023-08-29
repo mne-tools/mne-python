@@ -15,11 +15,12 @@ from itertools import combinations
 from pathlib import Path
 
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
 
 from ..transforms import _pol_to_cart, _cart_to_sph
-from ..io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from ..io.constants import FIFF
-from ..io.meas_info import Info
+from .._fiff.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import Info
 from ..utils import (
     _clean_names,
     warn,
@@ -31,6 +32,7 @@ from ..utils import (
     logger,
 )
 from .channels import _get_ch_info
+from ..viz.topomap import plot_layout
 
 
 class Layout:
@@ -130,8 +132,6 @@ class Layout:
         -----
         .. versionadded:: 0.12.0
         """
-        from ..viz.topomap import plot_layout
-
         return plot_layout(self, picks=picks, show_axes=show_axes, show=show)
 
 
@@ -552,10 +552,10 @@ def _find_kit_layout(info, n_grads):
     kit_layout : str | None
         String naming the detected KIT layout or ``None`` if layout is missing.
     """
+    from ..io.kit.constants import KIT_LAYOUT
+
     if info["kit_system_id"] is not None:
         # avoid circular import
-        from ..io.kit.constants import KIT_LAYOUT
-
         return KIT_LAYOUT.get(info["kit_system_id"])
     elif n_grads == 160:
         return "KIT-160"
@@ -644,7 +644,6 @@ def _box_size(points, width=None, height=None, padding=0.0):
     height : float
         Height of the box
     """
-    from scipy.spatial.distance import pdist
 
     def xdiff(a, b):
         return np.abs(a[0] - b[0])
@@ -773,8 +772,6 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
-    from scipy.spatial.distance import pdist, squareform
-
     sphere = _check_sphere(sphere, info)
     logger.debug(f"Generating coords using: {sphere}")
 

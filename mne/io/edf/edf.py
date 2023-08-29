@@ -15,16 +15,16 @@ import os
 import re
 
 import numpy as np
+from scipy.interpolate import interp1d
 
-from ...utils import verbose, logger, warn, _validate_type
-from ..utils import _blk_read_lims, _mult_cal_one
 from ..base import BaseRaw, _get_scaling
-from ..meas_info import _empty_info, _unique_channel_names
-from ..constants import FIFF
+from ...utils import verbose, logger, warn, _validate_type
+from ..._fiff.utils import _blk_read_lims, _mult_cal_one
+from ..._fiff.meas_info import _empty_info, _unique_channel_names
+from ..._fiff.constants import FIFF
 from ...filter import resample
 from ...utils import fill_doc
 from ...annotations import Annotations
-
 
 # common channel type names mapped to internal ch types
 CH_TYPE_MAPPING = {
@@ -352,8 +352,6 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
 
 def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, mult):
     """Read a chunk of raw data."""
-    from scipy.interpolate import interp1d
-
     n_samps = raw_extras["n_samps"]
     buf_len = int(raw_extras["max_samp"])
     dtype = raw_extras["dtype_np"]

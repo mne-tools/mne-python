@@ -20,7 +20,12 @@ import string
 from typing import Union
 
 import numpy as np
+from scipy.io import loadmat
+from scipy.sparse import csr_matrix, lil_matrix
+from scipy.spatial import Delaunay
+from scipy.stats import zscore
 
+from ..bem import _check_origin
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (
     verbose,
@@ -36,28 +41,29 @@ from ..utils import (
     _on_missing,
     legacy,
 )
-from ..io.constants import FIFF
-from ..io.meas_info import (  # noqa F401
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import (  # noqa F401
     Info,
     MontageMixin,
     create_info,
     _rename_comps,
+    _merge_info,
     _unit2human,  # TODO: pybv relies on this, should be made public
 )
-from ..io.pick import (
+from .._fiff.pick import (
     channel_type,
     pick_info,
     pick_types,
     _picks_by_type,
     _check_excludes_includes,
-    _contains_ch_type,
     channel_indices_by_type,
     pick_channels,
     _picks_to_idx,
     _pick_data_channels,
 )
-from ..io.tag import _rename_list
-from ..io.proj import setup_proj
+from .._fiff.reference import set_eeg_reference, add_reference_channels
+from .._fiff.tag import _rename_list
+from .._fiff.proj import setup_proj
 
 
 def _get_meg_system(info):
@@ -101,44 +107,6 @@ def _get_meg_system(info):
     return system, have_helmet
 
 
-def _get_ch_type(inst, ch_type, allow_ref_meg=False):
-    """Choose a single channel type (usually for plotting).
-
-    Usually used in plotting to plot a single datatype, e.g. look for mags,
-    then grads, then ... to plot.
-    """
-    if ch_type is None:
-        allowed_types = [
-            "mag",
-            "grad",
-            "planar1",
-            "planar2",
-            "eeg",
-            "csd",
-            "fnirs_cw_amplitude",
-            "fnirs_fd_ac_amplitude",
-            "fnirs_fd_phase",
-            "fnirs_od",
-            "hbo",
-            "hbr",
-            "ecog",
-            "seeg",
-            "dbs",
-        ]
-        allowed_types += ["ref_meg"] if allow_ref_meg else []
-        for type_ in allowed_types:
-            if isinstance(inst, Info):
-                if _contains_ch_type(inst, type_):
-                    ch_type = type_
-                    break
-            elif type_ in inst:
-                ch_type = type_
-                break
-        else:
-            raise RuntimeError("No plottable channel types found")
-    return ch_type
-
-
 @verbose
 def equalize_channels(instances, copy=True, verbose=None):
     """Equalize channel picks and ordering across multiple MNE-Python objects.
@@ -173,8 +141,7 @@ def equalize_channels(instances, copy=True, verbose=None):
     This function operates inplace.
     """
     from ..cov import Covariance
-    from ..io.base import BaseRaw
-    from ..io.meas_info import Info
+    from ..io import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..forward import Forward
@@ -276,8 +243,6 @@ class ReferenceMixin(MontageMixin):
             directly re-referencing the data.
         %(set_eeg_reference_see_also_notes)s
         """
-        from ..io.reference import set_eeg_reference
-
         return set_eeg_reference(
             self,
             ref_channels=ref_channels,
@@ -633,7 +598,7 @@ class UpdateChannelsMixin:
         :obj:`numpy.memmap` instance, the memmap will be resized.
         """
         # avoid circular imports
-        from ..io import BaseRaw, _merge_info
+        from ..io import BaseRaw
         from ..epochs import BaseEpochs
 
         _validate_type(add_list, (list, tuple), "Input")
@@ -734,8 +699,6 @@ class UpdateChannelsMixin:
         inst : instance of Raw | Epochs | Evoked
                The modified instance.
         """
-        from ..io.reference import add_reference_channels
-
         return add_reference_channels(self, ref_channels, copy=False)
 
 
@@ -801,7 +764,6 @@ class InterpolationMixin:
         -----
         .. versionadded:: 0.9.0
         """
-        from ..bem import _check_origin
         from .interpolation import (
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
@@ -1274,8 +1236,6 @@ def read_ch_adjacency(fname, picks=None):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
-    from scipy.io import loadmat
-
     if op.isabs(fname):
         fname = str(
             _check_fname(
@@ -1344,8 +1304,6 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency : scipy.sparse.spmatrix
         The adjacency matrix.
     """
-    from scipy import sparse
-
     if len(ch_names) != len(neighbors):
         raise ValueError("`ch_names` and `neighbors` must " "have the same length")
     set_neighbors = {c for d in neighbors for c in d}
@@ -1362,7 +1320,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     ch_adjacency = np.eye(len(ch_names), dtype=bool)
     for ii, neigbs in enumerate(neighbors):
         ch_adjacency[ii, [ch_names.index(i) for i in neigbs]] = True
-    ch_adjacency = sparse.csr_matrix(ch_adjacency)
+    ch_adjacency = csr_matrix(ch_adjacency)
     return ch_adjacency
 
 
@@ -1417,6 +1375,8 @@ def find_ch_adjacency(info, ch_type):
     :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
     to pass to the eventual function.
     """
+    from ..io.kit.constants import KIT_NEIGHBORS
+
     if ch_type is None:
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
@@ -1467,8 +1427,6 @@ def find_ch_adjacency(info, ch_type):
         else:
             conn_name = "ctf151"
     elif n_kit_grads > 0:
-        from ..io.kit.constants import KIT_NEIGHBORS
-
         conn_name = KIT_NEIGHBORS.get(info["kit_system_id"])
 
     if conn_name is not None:
@@ -1499,9 +1457,7 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
-    from scipy import sparse
-    from scipy.spatial import Delaunay
-    from .. import spatial_tris_adjacency
+    from ..source_estimate import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
 
     combine_grads = ch_type == "grad" and any(
@@ -1535,9 +1491,9 @@ def _compute_ch_adjacency(info, ch_type):
                 for jj in range(2):
                     ch_adjacency[idx * 2 + ii, neigbs * 2 + jj] = True
                     ch_adjacency[idx * 2 + ii, idx * 2 + jj] = True  # pair
-        ch_adjacency = sparse.csr_matrix(ch_adjacency)
+        ch_adjacency = csr_matrix(ch_adjacency)
     else:
-        ch_adjacency = sparse.lil_matrix(neighbors)
+        ch_adjacency = lil_matrix(neighbors)
         ch_adjacency.setdiag(np.repeat(1, ch_adjacency.shape[0]))
         ch_adjacency = ch_adjacency.tocsr()
 
@@ -1799,7 +1755,8 @@ def combine_channels(
         is ``True``, also containing stimulus channels).
     """
     from ..io import BaseRaw, RawArray
-    from .. import BaseEpochs, EpochsArray, Evoked, EvokedArray
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..evoked import Evoked, EvokedArray
 
     ch_axis = 1 if isinstance(inst, BaseEpochs) else 0
     ch_idx = list(range(inst.info["nchan"]))
@@ -1922,8 +1879,6 @@ _EEG_SELECTIONS = ["EEG 1-32", "EEG 33-64", "EEG 65-96", "EEG 97-128"]
 
 def _divide_to_regions(info, add_stim=True):
     """Divide channels to regions by positions."""
-    from scipy.stats import zscore
-
     picks = _pick_data_channels(info, exclude=[])
     chs_in_lobe = len(picks) // 4
     pos = np.array([ch["loc"][:3] for ch in info["chs"]])

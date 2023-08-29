@@ -62,10 +62,10 @@ from mne import (
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.morph_map import _make_morph_map_hemi
 from mne.source_estimate import grade_to_tris, _get_vol_mask
-from mne.source_space import _get_src_nn
+from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (
     read_inverse_operator,
@@ -405,13 +405,13 @@ def test_stc_attributes():
 
     # Changing .tmin or .tstep re-computes .times
     stc.tmin = 1
-    assert type(stc.tmin) == float
+    assert isinstance(stc.tmin, float)
     assert_array_almost_equal(
         stc.times, [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]
     )
 
     stc.tstep = 1
-    assert type(stc.tstep) == float
+    assert isinstance(stc.tstep, float)
     assert_array_almost_equal(
         stc.times, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     )

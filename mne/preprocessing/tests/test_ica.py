@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 
 from mne import (
     Epochs,
+    Info,
     read_events,
     pick_types,
     create_info,
@@ -45,8 +46,8 @@ from mne.preprocessing.ica import (
     _ica_explained_variance,
     read_ica_eeglab,
 )
-from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
-from mne.io.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
+from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_raw_eeglab
+from mne._fiff.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
 from mne.utils import catch_logging, _record_warnings, check_version

@@ -16,11 +16,13 @@ import shutil
 from functools import reduce
 
 import numpy as np
+from scipy.optimize import leastsq
+from scipy.spatial.distance import cdist
 
-from .io import read_fiducials, write_fiducials, read_info
-from .io.constants import FIFF
-from .io.meas_info import Info
-from .io._digitization import _get_data_as_dict_from_dig
+from ._fiff.meas_info import read_fiducials, write_fiducials, read_info
+from ._fiff.constants import FIFF
+from ._fiff.meas_info import Info
+from ._fiff._digitization import _get_data_as_dict_from_dig
 
 # keep get_mni_fiducials for backward compat (no burden to keep in this
 # namespace, too)
@@ -284,8 +286,6 @@ def _decimate_points(pts, res=10):
     pts : array, shape = (n_points, 3)
         The decimated points.
     """
-    from scipy.spatial.distance import cdist
-
     pts = np.asarray(pts)
 
     # find the bin edges for the voxel space
@@ -477,8 +477,6 @@ def fit_matched_points(
 
 
 def _generic_fit(src_pts, tgt_pts, param_info, weights, x0):
-    from scipy.optimize import leastsq
-
     if param_info[1]:  # translate
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 

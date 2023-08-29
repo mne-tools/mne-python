@@ -9,7 +9,7 @@ import pytest
 from scipy import sparse
 
 from mne import read_evokeds, read_cov, pick_types
-from mne.io.pick import _picks_by_type
+from mne._fiff.pick import _picks_by_type
 from mne.epochs import make_fixed_length_epochs
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet

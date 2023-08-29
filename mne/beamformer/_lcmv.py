@@ -8,8 +8,8 @@
 import numpy as np
 
 from ..rank import compute_rank
-from ..io.meas_info import _simplify_info
-from ..io.pick import pick_channels_cov, pick_info
+from .._fiff.meas_info import _simplify_info
+from .._fiff.pick import pick_channels_cov, pick_info
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..source_estimate import _make_stc, _get_src_type

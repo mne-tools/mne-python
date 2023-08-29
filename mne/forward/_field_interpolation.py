@@ -8,13 +8,15 @@
 from copy import deepcopy
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from ..bem import _check_origin
 from ..cov import make_ad_hoc_cov
-from ..io.constants import FIFF
-from ..io.pick import pick_types, pick_info
-from ..io.meas_info import _simplify_info
-from ..io.proj import _has_eeg_average_ref_proj, make_projector
+from ..fixes import _safe_svd
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_types, pick_info
+from .._fiff.meas_info import _simplify_info
+from .._fiff.proj import _has_eeg_average_ref_proj, make_projector
 from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import transform_surface_to, _find_trans, _get_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
@@ -31,8 +33,6 @@ from ..evoked import Evoked, EvokedArray
 
 def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
-    from scipy.interpolate import interp1d
-
     int_rad = 0.06
     noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
     n_coeff, interp = (50, "nearest") if mode == "fast" else (100, "linear")
@@ -88,9 +88,7 @@ def _compute_mapping_matrix(fmd, info):
 
 def _pinv_trunc(x, miss):
     """Compute pseudoinverse, truncating at most "miss" fraction of varexp."""
-    from scipy import linalg
-
-    u, s, v = linalg.svd(x, full_matrices=False)
+    u, s, v = _safe_svd(x, full_matrices=False)
 
     # Eigenvalue truncation
     varexp = np.cumsum(s)

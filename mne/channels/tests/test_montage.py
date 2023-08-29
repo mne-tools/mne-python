@@ -22,8 +22,13 @@ from numpy.testing import (
 )
 import matplotlib.pyplot as plt
 
-from mne import __file__ as _mne_file, create_info, read_evokeds, pick_types
-from mne.source_space import get_mni_fiducials
+from mne import (
+    __file__ as _mne_file,
+    create_info,
+    read_evokeds,
+    pick_types,
+)
+from mne.coreg import get_mni_fiducials
 from mne.utils._testing import assert_object_equal
 from mne.channels import (
     get_builtin_montages,
@@ -50,8 +55,8 @@ from mne.channels.montage import (
 from mne.preprocessing import compute_current_source_density
 from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
-from mne.io.constants import FIFF
-from mne.io._digitization import (
+from mne._fiff.constants import FIFF
+from mne._fiff._digitization import (
     _format_dig_points,
     _get_fid_coords,
     _get_dig_eeg,

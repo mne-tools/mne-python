@@ -10,7 +10,7 @@ import numpy as np
 import datetime as dt
 import numbers
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator, _get_check_scoring
+from ..fixes import BaseEstimator, _get_check_scoring, _check_fit_params
 from ..utils import warn, verbose
 
 
@@ -423,7 +423,6 @@ def _fit_and_score(
 ):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
-    from ..fixes import _check_fit_params
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 

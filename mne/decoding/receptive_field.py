@@ -6,8 +6,10 @@
 import numbers
 
 import numpy as np
+from scipy.stats import pearsonr
 
 from .base import get_coef, BaseEstimator, _check_estimator
+from ..fixes import pinv
 from .time_delaying_ridge import TimeDelayingRidge
 from ..utils import _validate_type, verbose, fill_doc
 
@@ -182,8 +184,6 @@ class ReceptiveField(BaseEstimator):
         self : instance
             The instance so you can chain operations.
         """
-        from scipy import linalg
-
         if self.scoring not in _SCORERS.keys():
             raise ValueError(
                 "scoring must be one of %s, got"
@@ -275,7 +275,7 @@ class ReceptiveField(BaseEstimator):
             # Inverse output covariance
             if y.ndim == 2 and y.shape[1] != 1:
                 y = y - y.mean(0, keepdims=True)
-                inv_Y = linalg.pinv(np.cov(y.T))
+                inv_Y = pinv(np.cov(y.T))
             else:
                 inv_Y = 1.0 / float(n_times * n_epochs - 1)
             del y
@@ -512,8 +512,6 @@ def _reshape_for_est(X_del):
 
 # Create a correlation scikit-learn-style scorer
 def _corr_score(y_true, y, multioutput=None):
-    from scipy.stats import pearsonr
-
     assert multioutput == "raw_values"
     for this_y in (y_true, y):
         if this_y.ndim != 2:

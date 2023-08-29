@@ -11,14 +11,16 @@ from functools import partial
 import re
 
 import numpy as np
+from scipy.linalg import eigh
+from scipy.optimize import fmin_cobyla
 
 from .cov import compute_whitener, _ensure_cov
-from .io.constants import FIFF
-from .io.pick import pick_types
-from .io.proj import make_projector, _needs_eeg_average_ref_proj
+from ._fiff.constants import FIFF
+from ._fiff.pick import pick_types
+from ._fiff.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
-from .fixes import pinvh
+from .fixes import pinvh, _safe_svd
 from ._freesurfer import read_freesurfer_lut, _get_aseg
 from .transforms import _print_coord_trans, _coord_frame_name, apply_trans
 from .viz.evoked import _plot_evoked
@@ -33,7 +35,7 @@ from .forward._compute_forward import _compute_forwards_meeg, _prep_field_comput
 
 from .surface import transform_surface_to, _compute_nearest, _points_outside_surface
 from .bem import _bem_find_surface, _bem_surf_name
-from .source_space import _make_volume_source_space, SourceSpaces
+from .source_space._source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (
     logger,
@@ -54,7 +56,7 @@ from .utils import (
     TimeMixin,
     _verbose_safe_false,
 )
-from .viz import plot_dipole_locations
+from .viz import plot_dipole_locations, plot_dipole_amplitudes
 
 
 @fill_doc
@@ -373,8 +375,6 @@ class Dipole(TimeMixin):
         fig : matplotlib.figure.Figure
             The figure object containing the plot.
         """
-        from .viz import plot_dipole_amplitudes
-
         return plot_dipole_amplitudes([self], [color], show)
 
     def __getitem__(self, item):
@@ -945,8 +945,6 @@ def _dipole_gof(uu, sing, vv, B, B2):
 
 def _fit_Q(*, sensors, fwd_data, whitener, B, B2, B_orig, rd, ori=None):
     """Fit the dipole moment once the location is known."""
-    from scipy import linalg
-
     if "fwd" in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
         assert rd is None
@@ -964,7 +962,7 @@ def _fit_Q(*, sensors, fwd_data, whitener, B, B2, B_orig, rd, ori=None):
         fwd_svd = None
     if ori is None:
         if fwd_svd is None:
-            fwd_svd = linalg.svd(fwd, full_matrices=False)
+            fwd_svd = _safe_svd(fwd, full_matrices=False)
         uu, sing, vv = fwd_svd
         gof, one = _dipole_gof(uu, sing, vv, B, B2)
         ncomp = len(one)
@@ -1000,8 +998,6 @@ def _fit_dipoles(
     rhoend,
 ):
     """Fit a single dipole to the given whitened, projected data."""
-    from scipy.optimize import fmin_cobyla
-
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(
@@ -1140,8 +1136,6 @@ def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
     #
     # And then the confidence interval is the diagonal of C, scaled by 1.96
     # (for 95% confidence).
-    from scipy import linalg
-
     direction = np.empty((3, 3))
     # The coordinate system has the x axis aligned with the dipole orientation,
     direction[0] = ori
@@ -1197,7 +1191,7 @@ def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
         4
         * np.pi
         / 3.0
-        * np.sqrt(476.379541 * np.prod(linalg.eigh(C[:3, :3], eigvals_only=True)))
+        * np.sqrt(476.379541 * np.prod(eigh(C[:3, :3], eigvals_only=True)))
     )
     conf = np.concatenate([conf, [vol_conf]])
     # Now we reorder and subselect the proper columns:
@@ -1470,8 +1464,6 @@ def fit_dipole(
     -----
     .. versionadded:: 0.9.0
     """
-    from scipy import linalg
-
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:
 
@@ -1616,7 +1608,7 @@ def fit_dipole(
     picks = pick_types(info, meg=True, eeg=True, ref_meg=False)
 
     # In case we want to more closely match MNE-C for debugging:
-    # from .io.pick import pick_info
+    # from ._fiff.pick import pick_info
     # from .cov import prepare_noise_cov
     # info_nb = pick_info(info, picks)
     # cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
@@ -1673,7 +1665,7 @@ def fit_dipole(
     )
     # decompose ahead of time
     guess_fwd_svd = [
-        linalg.svd(fwd, full_matrices=False)
+        _safe_svd(fwd, full_matrices=False)
         for fwd in np.array_split(guess_fwd, len(guess_src["rr"]))
     ]
     guess_data = dict(

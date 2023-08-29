@@ -12,7 +12,14 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_almost_equal, assert_array_equal
 
-from mne import read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff, Annotations
+from mne import (
+    read_epochs_eeglab,
+    Epochs,
+    read_evokeds,
+    read_evokeds_mff,
+    Annotations,
+    create_info,
+)
 from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
 from mne.fixes import _compare_version
@@ -23,7 +30,6 @@ from mne.io import (
     read_raw_edf,
     read_raw_brainvision,
 )
-from mne.io.meas_info import create_info
 from mne.utils import (
     object_diff,
     _check_edflib_installed,
