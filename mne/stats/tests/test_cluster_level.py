@@ -469,7 +469,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
                 X1d_3, adjacency=adjacency, threshold=dict(start=10, step=1)
             )
         if not did_warn:
-            assert len(w) == 1
+            assert any("is more extreme" in str(ww.message) for ww in w)
             did_warn = True
 
         with pytest.raises(ValueError, match="threshold.*<= 0 for tail == -1"):
