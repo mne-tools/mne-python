@@ -304,11 +304,6 @@ def _create_dataframes(raw_extras):
     cols = ["time", "end_time", "block"]
     df_dict["recording_blocks"] = pd.DataFrame(blocks, columns=cols)
 
-    # make dataframe for digital input port
-    if raw_extras["event_lines"]["INPUT"]:
-        cols = ["time", "DIN"]
-        df_dict["DINS"] = pd.DataFrame(raw_extras["event_lines"]["INPUT"])
-
     # TODO: Make dataframes for other eyelink events (Buttons)
     return df_dict
 
@@ -401,9 +396,6 @@ def _assign_col_names(col_names, df_dict):
         elif key == "messages":
             cols = ["time", "offset", "event_msg"]
             df.columns = cols
-        elif key == "DINS":
-            cols = ["time", "DIN"]
-            df.columns = cols
     return df_dict
 
 
@@ -411,7 +403,7 @@ def _set_df_dtypes(df_dict):
     from ...utils import _set_pandas_dtype
 
     for key, df in df_dict.items():
-        if key in ["samples", "DINS"]:
+        if key in ["samples"]:
             # convert missing position values to NaN
             _set_missing_values(df, df.columns[1:])
             _set_pandas_dtype(df, df.columns, float, verbose="warning")
