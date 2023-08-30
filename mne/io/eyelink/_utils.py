@@ -156,7 +156,7 @@ def _validate_data(raw_extras):
     if raw_extras["n_blocks"] > 1:
         if raw_extras["tracking_mode"] == "monocular":
             blocks_list = raw_extras["event_lines"]["SAMPLES"]
-            eye_per_block = [block_info[1] for block_info in blocks_list]
+            eye_per_block = [block_info[1].lower() for block_info in blocks_list]
             if not all([this_eye == raw_extras["eye"] for this_eye in eye_per_block]):
                 warn(
                     "The eye being tracked changed during the"
