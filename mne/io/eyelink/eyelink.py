@@ -26,7 +26,6 @@ def read_raw_eyelink(
     apply_offsets=False,
     find_overlaps=False,
     overlap_threshold=0.05,
-    preload=False,
     verbose=None,
 ):
     """Reader for an Eyelink .asc file.
@@ -58,7 +57,6 @@ def read_raw_eyelink(
         the left and right eyes are separated by less than 50 ms, and the blink stop
         times of the left and right eyes are separated by less than 50 ms, then the
         blink will be merged into a single :class:`mne.Annotations`.
-    %(preload)s
     %(verbose)s
 
     Returns
@@ -86,7 +84,6 @@ def read_raw_eyelink(
         apply_offsets=apply_offsets,
         find_overlaps=find_overlaps,
         overlap_threshold=overlap_threshold,
-        preload=preload,
         verbose=verbose,
     )
     return raw_eyelink
@@ -120,7 +117,6 @@ class RawEyelink(BaseRaw):
         "blink_R"). If the gap is smaller than the threshold, the
         :class:`mne.Annotations` will be merged (i.e. "blink_both").
 
-    %(preload)s
     %(verbose)s
 
     See Also
@@ -137,7 +133,6 @@ class RawEyelink(BaseRaw):
         apply_offsets=False,
         find_overlaps=False,
         overlap_threshold=0.05,
-        preload=False,
         verbose=None,
     ):
         logger.info("Loading {}".format(fname))
