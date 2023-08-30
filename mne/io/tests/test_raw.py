@@ -320,7 +320,7 @@ def _test_raw_reader(
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info["dig"], (type(None), list))
     data_max = np.nanmax(full_data)
-    data_min = np.nanmean(full_data)
+    data_min = np.nanmin(full_data)
     # these limits could be relaxed if we actually find data with
     # huge values (in SI units)
     assert data_max < 1e5
