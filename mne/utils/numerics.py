@@ -33,6 +33,14 @@ from ..fixes import (
 from .docs import fill_doc
 
 
+# TODO no longer needed when py3.9 is minimum supported version
+HASHLIB_KW = (
+    dict(usedforsecurity=False)
+    if "usedforsecurity" in inspect.signature(hashlib.md5).parameters
+    else dict()
+)
+
+
 def split_list(v, n, idx=False):
     """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
@@ -420,9 +428,9 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
         The hexadecimal digest of the hash.
     """
     if hash_type == "md5":
-        hasher = hashlib.md5(usedforsecurity=False)
+        hasher = hashlib.md5(**HASHLIB_KW)
     elif hash_type == "sha1":
-        hasher = hashlib.sha1(usedforsecurity=False)
+        hasher = hashlib.sha1(**HASHLIB_KW)
     with open(fname, "rb") as fid:
         while True:
             data = fid.read(block_size)
@@ -652,7 +660,7 @@ def object_hash(x, h=None):
         The digest resulting from the hash.
     """
     if h is None:
-        h = hashlib.md5(usedforsecurity=False)
+        h = hashlib.md5(**HASHLIB_KW)
     if hasattr(x, "keys"):
         # dict-like types
         keys = _sort_keys(x)
