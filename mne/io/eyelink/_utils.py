@@ -400,7 +400,7 @@ def _assign_col_names(col_names, df_dict):
 
 
 def _set_df_dtypes(df_dict):
-    from ...utils import _set_pandas_dtype
+    from mne.utils import _set_pandas_dtype
 
     for key, df in df_dict.items():
         if key in ["samples"]:
