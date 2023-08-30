@@ -31,7 +31,7 @@ class _LinkViewer:
             events_to_link.append("colormap_range")
 
         for brain in brains[1:]:
-            link(self.leader, brain, event_names=events_to_link)
+            link(self.leader, brain, include_events=events_to_link)
 
         if picking:
 
