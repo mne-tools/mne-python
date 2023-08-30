@@ -67,7 +67,8 @@ def _parse_nedf_header(header):
     headerend = header.find(b"\0")
     if headerend == -1:
         raise RuntimeError("End of header null not found")
-    headerxml = ElementTree.fromstring(header[:headerend])
+    # TODO: replace with `defusedxml`
+    headerxml = ElementTree.fromstring(header[:headerend])  # noqa B314
     nedfversion = headerxml.findtext("NEDFversion", "")
     if nedfversion not in ["1.3", "1.4"]:
         warn("NEDFversion unsupported, use with caution")

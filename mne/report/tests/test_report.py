@@ -865,7 +865,7 @@ def test_survive_pickle(tmp_path):
     # Pickle report object to simulate multiprocessing with joblib
     report = Report(info_fname=raw_fname_new)
     pickled_report = pickle.dumps(report)
-    report = pickle.loads(pickled_report)
+    report = pickle.loads(pickled_report)  # noqa B301
 
     # Just test if no errors occur
     report.parse_folder(tmp_path, render_bem=False)

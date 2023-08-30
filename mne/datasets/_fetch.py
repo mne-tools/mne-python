@@ -298,12 +298,10 @@ def fetch_dataset(
         _compare_version(data_version, "<", mne_version.strip(".git"))
     ):
         warn(
-            "The {name} dataset (version {current}) is older than "
-            "mne-python (version {newest}). If the examples fail, "
-            "you may need to update the {name} dataset by using "
-            "mne.datasets.{name}.data_path(force_update=True)".format(
-                name=name, current=data_version, newest=mne_version
-            )
+            f"The {name} dataset (version {data_version}) is older than "
+            f"mne-python (version {mne_version}). If the examples fail, "
+            f"you may need to update the {name} dataset by using "
+            f"mne.datasets.{name}.data_path(force_update=True)"
         )
     _log_time_size(t0, sz)
     return (final_path, data_version) if return_version else final_path

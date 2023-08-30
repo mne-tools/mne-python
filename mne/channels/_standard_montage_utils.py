@@ -344,7 +344,8 @@ def _read_brainvision(fname, head_size):
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    root = ElementTree.parse(fname).getroot()
+    # TODO: replace with `defusedxml`
+    root = ElementTree.parse(fname).getroot()  # noqa B314
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
     pol = np.deg2rad(np.array(theta))

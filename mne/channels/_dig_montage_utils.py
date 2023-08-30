@@ -30,7 +30,8 @@ def _read_dig_montage_egi(
         )
     _check_fname(fname, overwrite="read", must_exist=True)
 
-    root = ElementTree.parse(fname).getroot()
+    # TODO: replace with `defusedxml`
+    root = ElementTree.parse(fname).getroot()  # noqa B314
     ns = root.tag[root.tag.index("{") : root.tag.index("}") + 1]
     sensors = root.find("%ssensorLayout/%ssensors" % (ns, ns))
     fids = dict()
@@ -78,7 +79,8 @@ def _read_dig_montage_egi(
 def _parse_brainvision_dig_montage(fname, scale):
     FID_NAME_MAP = {"Nasion": "nasion", "RPA": "rpa", "LPA": "lpa"}
 
-    root = ElementTree.parse(fname).getroot()
+    # TODO: replace with `defusedxml`
+    root = ElementTree.parse(fname).getroot()  # noqa B314
     sensors = root.find("CapTrakElectrodeList")
 
     fids, dig_ch_pos = dict(), dict()

@@ -1073,7 +1073,7 @@ def test_pickle(fname_info, unlocked):
     assert not info._unlocked
     info._unlocked = unlocked
     data = pickle.dumps(info)
-    info_un = pickle.loads(data)
+    info_un = pickle.loads(data)  # noqa B301
     assert isinstance(info_un, Info)
     assert_object_equal(info, info_un)
     assert info_un._unlocked == unlocked

@@ -81,7 +81,8 @@ def _read_mff_events(filename, sfreq):
 
 def _parse_xml(xml_file):
     """Parse XML file."""
-    xml = parse(xml_file)
+    # TODO: replace with `defusedxml`
+    xml = parse(xml_file)  # noqa B314
     root = xml.getroot()
     return _xml2list(root)
 

@@ -70,8 +70,9 @@ def read_mrk(fname):
     elif fname.suffix == ".txt":
         mrk_points = _read_dig_kit(fname, unit="m")
     elif fname.suffix == ".pickled":
+        # TODO should we still be supporting pickled here?
         with open(fname, "rb") as fid:
-            food = pickle.load(fid)
+            food = pickle.load(fid)  # noqa B301
         try:
             mrk_points = food["mrk"]
         except Exception:
