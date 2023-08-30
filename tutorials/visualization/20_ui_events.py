@@ -68,6 +68,8 @@ link(fig1, fig2)  # link the event channels
 # :class:`~mne.viz.ui_events.TimeChange` events so it can work together with the topomap
 # plots we created earlier.
 
+# sphinx_gallery_thumbnail_number = 5
+
 fig3 = avg_evokeds.plot_topomap("interactive")
 fig4 = stc.plot("sample", subjects_dir=data_path / "subjects")
 fig5, ax = plt.subplots()
@@ -101,3 +103,4 @@ subscribe(fig3, "time_change", on_time_change)
 # all of them.
 link(fig5, fig3)
 link(fig5, fig4)
+fig4.set_time(0.1)
