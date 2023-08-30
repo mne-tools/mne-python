@@ -78,8 +78,7 @@ def _read_dig_montage_egi(
 def _parse_brainvision_dig_montage(fname, scale):
     FID_NAME_MAP = {"Nasion": "nasion", "RPA": "rpa", "LPA": "lpa"}
 
-    # TODO: replace with `defusedxml`
-    root = ElementTree.parse(fname).getroot()  # noqa B314
+    root = ElementTree.parse(fname).getroot()
     sensors = root.find("CapTrakElectrodeList")
 
     fids, dig_ch_pos = dict(), dict()
