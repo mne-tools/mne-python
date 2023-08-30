@@ -212,6 +212,7 @@ def apply_maxfilter(
 
     logger.info("Running MaxFilter: %s " % cmd)
     if os.getenv("_MNE_MAXFILTER_TEST", "") != "true":  # fake maxfilter
+        # TODO: sanitize `cmd`: https://cwe.mitre.org/data/definitions/78.html
         st = os.system(cmd)
     else:
         print(cmd)  # we can check the output
