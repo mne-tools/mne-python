@@ -8,7 +8,7 @@ import os
 
 from ..bem import fit_sphere_to_headshape
 from ..io import read_raw_fif
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, deprecated
 
 
 def _mxwarn(msg):
@@ -19,6 +19,11 @@ def _mxwarn(msg):
     )
 
 
+@deprecated(
+    "apply_maxfilter will be removed in 1.7, use mne.preprocessing.maxwell_filter or "
+    "the MEGIN command-line utility maxfilter and mne.bem.fit_sphere_to_headshape "
+    "instead."
+)
 @verbose
 def apply_maxfilter(
     in_fname,
