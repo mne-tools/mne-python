@@ -242,7 +242,6 @@ TransformerMixin
 UpdateChannelsMixin
 activate_proj
 adjust_axes
-apply_maxfilter
 apply_trans
 channel_type
 combine_kit_markers
