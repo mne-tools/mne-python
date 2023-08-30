@@ -204,13 +204,19 @@ def test_link(event_channels, event_channel_links):
     assert len(callback_calls) == 2
 
     # Test linking only specific events
-    ui_events.link(fig1, fig2, ["time_change"])
+    ui_events.link(fig1, fig2, include_events=["time_change"])
     callback_calls.clear()
     ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
     ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
     assert len(callback_calls) == 4  # Called for both figures two times
 
-    ui_events.link(fig1, fig2, ["some_other_event"])
+    ui_events.link(fig1, fig2, include_events=["some_other_event"])
+    callback_calls.clear()
+    ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
+    ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
+    assert len(callback_calls) == 2  # Only called for both figures once
+
+    ui_events.link(fig1, fig2, exclude_events=["time_change"])
     callback_calls.clear()
     ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
     ui_events.publish(fig2, ui_events.TimeChange(time=10.2))

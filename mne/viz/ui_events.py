@@ -248,8 +248,10 @@ def publish(fig, event, *, verbose=None):
     channels = [_get_event_channel(fig)]
     links = _event_channel_links.get(fig, None)
     if links is not None:
-        for linked_fig, event_names in links.items():
-            if event_names == "all" or event.name in event_names:
+        for linked_fig, (include_events, exclude_events) in links.items():
+            if (include_events is None or event.name in include_events) and (
+                exclude_events is None or event.name not in exclude_events
+            ):
                 channels.append(_get_event_channel(linked_fig))
 
     # Publish the event by calling the registered callback functions.
@@ -336,7 +338,7 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
 
 
 @verbose
-def link(fig1, fig2, event_names="all", *, verbose=None):
+def link(fig1, fig2, *, include_events=None, exclude_events=None, verbose=None):
     """Link the event channels of two figures together.
 
     When event channels are linked, any events that are published on one
@@ -349,15 +351,20 @@ def link(fig1, fig2, event_names="all", *, verbose=None):
         The first figure whose event channel will be linked to the second.
     fig2 : matplotlib.figure.Figure | Figure3D
         The second figure whose event channel will be linked to the first.
-    event_names : str | list of str
-        Select which events to publish across figures. By default (``"all"``),
+    include_events : list of str | None
+        Select which events to publish across figures. By default (``None``),
         both figures will receive all of each other's events. Passing a list of
         event names will restrict the events being shared across the figures to
         only the given ones.
+    exclude_events : list of str | None
+        Select which events not to publish across figures. By default (``None``),
+        no events are excluded.
     %(verbose)s
     """
-    if event_names != "all":
-        event_names = set(event_names)
+    if include_events is not None:
+        include_events = set(include_events)
+    if exclude_events is not None:
+        exclude_events = set(exclude_events)
 
     # Make sure the event channels of the figures are setup properly.
     _get_event_channel(fig1)
@@ -365,10 +372,10 @@ def link(fig1, fig2, event_names="all", *, verbose=None):
 
     if fig1 not in _event_channel_links:
         _event_channel_links[fig1] = weakref.WeakKeyDictionary()
-    _event_channel_links[fig1][fig2] = event_names
+    _event_channel_links[fig1][fig2] = (include_events, exclude_events)
     if fig2 not in _event_channel_links:
         _event_channel_links[fig2] = weakref.WeakKeyDictionary()
-    _event_channel_links[fig2][fig1] = event_names
+    _event_channel_links[fig2][fig1] = (include_events, exclude_events)
 
 
 @verbose
