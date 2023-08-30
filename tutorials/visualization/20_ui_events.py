@@ -65,13 +65,16 @@ link(fig1, fig2)  # link the event channels
 # the event to refer to it.
 #
 # Below, we create a custom plot and then make it publish and subscribe to
-# :class:`~mne.viz.ui_events.TimeChange` events so it can work together with the topomap
-# plots we created earlier.
+# :class:`~mne.viz.ui_events.TimeChange` events so it can work together with a topomap
+# plot we created earlier.
 
 # sphinx_gallery_thumbnail_number = 5
 
+# Recreate the earlier plots
 fig3 = avg_evokeds.plot_topomap("interactive")
 fig4 = stc.plot("sample", subjects_dir=data_path / "subjects")
+
+# Create a custom plot
 fig5, ax = plt.subplots()
 ax.plot(avg_evokeds.times, avg_evokeds.pick("mag").data.max(axis=0))
 time_bar = ax.axvline(0, color="black")  # Our time slider
@@ -87,20 +90,22 @@ def on_motion_notify(mpl_event):
     xdata will be None, which is a special case that needs to be handled.
     """
     if mpl_event.xdata is not None:
-        publish(fig3, TimeChange(time=mpl_event.xdata))
+        publish(fig5, TimeChange(time=mpl_event.xdata))
 
 
 def on_time_change(event):
     """Respond to MNE-Python's TimeChange event. Updates the plot."""
     time_bar.set_xdata([event.time])
-    fig3.canvas.draw()  # update the figure
+    fig5.canvas.draw()  # update the figure
 
 
+# Setup the events for the curstom plot. Moving the mouse will trigger a
+# matplotlib event, which we will respond to by publishing an MNE-Python UI
+# event. Upon receiving a UI event, we will move the vertical line.
 plt.connect("motion_notify_event", on_motion_notify)
-subscribe(fig3, "time_change", on_time_change)
+subscribe(fig5, "time_change", on_time_change)
 
-# Link the new figure with the topomap plots, so that the TimeChange events are sent to
-# all of them.
-link(fig5, fig3)
-link(fig5, fig4)
-fig4.set_time(0.1)
+# Link all the figures together.
+link(fig3, fig4)
+link(fig3, fig5)
+link(fig4, fig5)
