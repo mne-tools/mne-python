@@ -106,6 +106,7 @@ plt.connect("motion_notify_event", on_motion_notify)
 subscribe(fig5, "time_change", on_time_change)
 
 # Link all the figures together.
-link(fig3, fig4)
-link(fig3, fig5)
-link(fig4, fig5)
+link(fig3, fig4, fig5)
+
+# Method calls like this also emit the appropriate UI event.
+fig4.set_time(0.1)

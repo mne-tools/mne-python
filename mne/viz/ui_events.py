@@ -338,7 +338,7 @@ def unsubscribe(fig, event_names, callback=None, *, verbose=None):
 
 
 @verbose
-def link(fig1, fig2, *, include_events=None, exclude_events=None, verbose=None):
+def link(*figs, include_events=None, exclude_events=None, verbose=None):
     """Link the event channels of two figures together.
 
     When event channels are linked, any events that are published on one
@@ -347,10 +347,8 @@ def link(fig1, fig2, *, include_events=None, exclude_events=None, verbose=None):
 
     Parameters
     ----------
-    fig1 : matplotlib.figure.Figure | Figure3D
-        The first figure whose event channel will be linked to the second.
-    fig2 : matplotlib.figure.Figure | Figure3D
-        The second figure whose event channel will be linked to the first.
+    figs : matplotlib.figure.Figure | Figure3D
+        The figures whose event channel will be linked.
     include_events : list of str | None
         Select which events to publish across figures. By default (``None``),
         both figures will receive all of each other's events. Passing a list of
@@ -367,15 +365,16 @@ def link(fig1, fig2, *, include_events=None, exclude_events=None, verbose=None):
         exclude_events = set(exclude_events)
 
     # Make sure the event channels of the figures are setup properly.
-    _get_event_channel(fig1)
-    _get_event_channel(fig2)
+    for fig in figs:
+        _get_event_channel(fig)
+        if fig not in _event_channel_links:
+            _event_channel_links[fig] = weakref.WeakKeyDictionary()
 
-    if fig1 not in _event_channel_links:
-        _event_channel_links[fig1] = weakref.WeakKeyDictionary()
-    _event_channel_links[fig1][fig2] = (include_events, exclude_events)
-    if fig2 not in _event_channel_links:
-        _event_channel_links[fig2] = weakref.WeakKeyDictionary()
-    _event_channel_links[fig2][fig1] = (include_events, exclude_events)
+    # Link the event channels
+    for fig1 in figs:
+        for fig2 in figs:
+            if fig1 is not fig2:
+                _event_channel_links[fig1][fig2] = (include_events, exclude_events)
 
 
 @verbose
