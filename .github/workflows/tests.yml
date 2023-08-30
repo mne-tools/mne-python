@@ -31,10 +31,14 @@ jobs:
     needs: style
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
       - uses: jpetrucciani/bandit-check@1.7.4
         with:
           path: './mne/'
-          bandit_flags: '-c pyproject.toml -r'
+          bandit_flags: '-c ./pyproject.toml'
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
