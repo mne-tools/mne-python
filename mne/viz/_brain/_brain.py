@@ -820,12 +820,9 @@ class Brain:
     def _configure_dock_playback_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
         len_time = len(self._data["time"]) - 1
-        weakself = weakref.ref(self)
 
-        def publish_time_change(time_idx, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def publish_time_change(time_idx):
             publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
 
         # Time widget
@@ -880,12 +877,9 @@ class Brain:
         # Renderer widget
         rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
-            weakself = weakref.ref(self)
 
-            def select_renderer(idx, weakself=weakself):
-                self = weakself()
-                if self is None:
-                    return
+            @_auto_weakref
+            def select_renderer(idx):
                 idx = int(idx)
                 loc = self._renderer._index_to_loc(idx)
                 self.plotter.subplot(*loc)
@@ -913,12 +907,8 @@ class Brain:
                     _data = dict(default=v, hemi=hemi, row=ri, col=ci)
                 orientation_data[idx] = _data
 
-        weakself = weakref.ref(self)
-
-        def set_orientation(value, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def set_orientation(value, orientation_data=orientation_data):
             if "renderer" in self.widgets:
                 idx = int(self.widgets["renderer"].get_value())
             else:
@@ -954,12 +944,8 @@ class Brain:
             layout=layout,
         )
 
-        weakself = weakref.ref(self)
-
-        def update_single_lut_value(value, key, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def update_single_lut_value(value, key):
             # Called by the sliders and spin boxes.
             self.update_lut(**{key: value / self._data["fscale"]})
 
@@ -997,10 +983,8 @@ class Brain:
             style="toolbutton",
         )
 
-        def fminus(*, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def fminus():
             self._update_fscale(1.2**-0.25)
 
         self.widgets["fminus"] = self._renderer._dock_add_button(
@@ -1010,10 +994,8 @@ class Brain:
             style="toolbutton",
         )
 
-        def fplus(*, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def fplus():
             self._update_fscale(1.2**0.25)
 
         self.widgets["fplus"] = self._renderer._dock_add_button(
