@@ -65,8 +65,8 @@ link(fig1, fig2)  # link the event channels
 # the event to refer to it.
 #
 # Below, we create a custom plot and then make it publish and subscribe to
-# :class:`~mne.viz.ui_events.TimeChange` events so it can work together with a topomap
-# plot we created earlier.
+# :class:`~mne.viz.ui_events.TimeChange` events so it can work together with the
+# plots we created earlier.
 
 # sphinx_gallery_thumbnail_number = 5
 
