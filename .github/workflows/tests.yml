@@ -34,7 +34,7 @@ jobs:
       - uses: davidslusser/actions_python_bandit@v1.0.0
         with:
           src: "mne"
-          options: "-c pyproject.toml -r"
+          options: "-c pyproject.toml -ll -r"
           pip_install_command: "pip install bandit[toml]"
 
   pytest:
