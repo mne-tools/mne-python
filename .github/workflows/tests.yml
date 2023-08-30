@@ -31,17 +31,11 @@ jobs:
     needs: style
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: davidslusser/actions_python_bandit@v1.0.0
         with:
-          python-version: '3.11'
-      - run: |
-          # need the TOML parsing dependencies
-          pip install bandit[toml]
-      - uses: jpetrucciani/bandit-check@1.7.4
-        with:
-          path: './mne/'
-          bandit_flags: '-c ./pyproject.toml'
+          src: "mne"
+          options: "-c pyproject.toml -r"
+          pip_install_command: "pip install bandit[toml]"
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
