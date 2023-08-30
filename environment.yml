@@ -58,3 +58,4 @@ dependencies:
   - pybv
   - mamba
   - lazy_loader
+  - defusedxml

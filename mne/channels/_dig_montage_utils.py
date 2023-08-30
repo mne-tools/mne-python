@@ -11,7 +11,7 @@
 #
 # License: Simplified BSD
 
-import xml.etree.ElementTree as ElementTree
+from defusedxml import ElementTree
 
 import numpy as np
 
@@ -30,8 +30,7 @@ def _read_dig_montage_egi(
         )
     _check_fname(fname, overwrite="read", must_exist=True)
 
-    # TODO: replace with `defusedxml`
-    root = ElementTree.parse(fname).getroot()  # noqa B314
+    root = ElementTree.parse(fname).getroot()
     ns = root.tag[root.tag.index("{") : root.tag.index("}") + 1]
     sensors = root.find("%ssensorLayout/%ssensors" % (ns, ns))
     fids = dict()

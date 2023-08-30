@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 
 import os
-from xml.dom.minidom import parse
+from defusedxml.minidom import parse
 import re
 
 import numpy as np
@@ -15,8 +15,7 @@ def _extract(tags, filepath=None, obj=None):
     if obj is not None:
         fileobj = obj
     elif filepath is not None:
-        # TODO: replace with `defusedxml`
-        fileobj = parse(filepath)  # noqa B318
+        fileobj = parse(filepath)
     else:
         raise ValueError("There is not object or file to extract data")
     infoxml = dict()
@@ -30,8 +29,7 @@ def _extract(tags, filepath=None, obj=None):
 
 def _get_gains(filepath):
     """Parse gains."""
-    # TODO: replace with `defusedxml`
-    file_obj = parse(filepath)  # noqa B318
+    file_obj = parse(filepath)
     objects = file_obj.getElementsByTagName("calibration")
     gains = dict()
     for ob in objects:
@@ -48,8 +46,7 @@ def _get_gains(filepath):
 def _get_ep_info(filepath):
     """Get epoch info."""
     epochfile = filepath + "/epochs.xml"
-    # TODO: replace with `defusedxml`
-    epochlist = parse(epochfile)  # noqa B318
+    epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName("epoch")
     keys = ("first_samps", "last_samps", "first_blocks", "last_blocks")
     epoch_info = {key: list() for key in keys}
@@ -136,8 +133,7 @@ def _get_signalfname(filepath):
         infofile = "info" + bin_num_str + ".xml"
         infofiles.append(infofile)
         infobjfile = os.path.join(filepath, infofile)
-        # TODO: replace with `defusedxml`
-        infobj = parse(infobjfile)  # noqa B318
+        infobj = parse(infobjfile)
         if len(infobj.getElementsByTagName("EEG")):
             signal_type = "EEG"
         elif len(infobj.getElementsByTagName("PNSData")):

@@ -5,7 +5,7 @@ import datetime
 import math
 import os.path as op
 import re
-from xml.dom.minidom import parse
+from defusedxml.minidom import parse
 from pathlib import Path
 
 import numpy as np
@@ -115,8 +115,7 @@ def _read_mff_header(filepath):
 
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, "sensorLayout.xml")
-    # TODO: replace with `defusedxml`
-    sensor_layout_obj = parse(sensor_layout_file)  # noqa B318
+    sensor_layout_obj = parse(sensor_layout_file)
     summaryinfo["device"] = sensor_layout_obj.getElementsByTagName("name")[
         0
     ].firstChild.data
@@ -157,8 +156,7 @@ def _read_mff_header(filepath):
             )
 
         pns_file = op.join(filepath, "pnsSet.xml")
-        # TODO: replace with `defusedxml`
-        pns_obj = parse(pns_file)  # noqa B318
+        pns_obj = parse(pns_file)
         sensors = pns_obj.getElementsByTagName("sensor")
         pns_types = []
         pns_units = []
@@ -300,8 +298,7 @@ def _read_locs(filepath, egi_info, channel_naming):
         "Nasion": "nasion",
     }
     numbers = np.array(egi_info["numbers"])
-    # TODO: replace with `defusedxml`
-    coordinates = parse(fname)  # noqa B318
+    coordinates = parse(fname)
     sensors = coordinates.getElementsByTagName("sensor")
     ch_pos = OrderedDict()
     hsp = list()

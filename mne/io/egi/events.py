@@ -4,7 +4,7 @@
 from datetime import datetime
 from glob import glob
 from os.path import basename, join, splitext
-from xml.etree.ElementTree import parse
+from defusedxml.ElementTree import parse
 
 import numpy as np
 
@@ -81,8 +81,7 @@ def _read_mff_events(filename, sfreq):
 
 def _parse_xml(xml_file):
     """Parse XML file."""
-    # TODO: replace with `defusedxml`
-    xml = parse(xml_file)  # noqa B314
+    xml = parse(xml_file)
     root = xml.getroot()
     return _xml2list(root)
 

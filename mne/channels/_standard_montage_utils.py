@@ -9,7 +9,7 @@ import os.path as op
 import numpy as np
 
 from functools import partial
-import xml.etree.ElementTree as ElementTree
+from defusedxml import ElementTree
 
 from .montage import make_dig_montage
 from .._freesurfer import get_mni_fiducials
@@ -344,8 +344,7 @@ def _read_brainvision(fname, head_size):
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    # TODO: replace with `defusedxml`
-    root = ElementTree.parse(fname).getroot()  # noqa B314
+    root = ElementTree.parse(fname).getroot()
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
     pol = np.deg2rad(np.array(theta))
