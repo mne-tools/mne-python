@@ -26,6 +26,16 @@ jobs:
       - uses: psf/black@stable
       - uses: pre-commit/action@v3.0.0
 
+  bandit:
+    name: Bandit
+    needs: style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jpetrucciani/bandit-check@1.7.4
+        with:
+          path: './mne/'
+          bandit_flags: '-c pyproject.toml -r'
+
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style

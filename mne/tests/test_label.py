@@ -352,7 +352,7 @@ def test_label_io(tmp_path):
     with open(dest, "wb") as fid:
         pickle.dump(label, fid, pickle.HIGHEST_PROTOCOL)
     with open(dest, "rb") as fid:
-        label2 = pickle.load(fid)  # noqa B301
+        label2 = pickle.load(fid)
     assert_labels_equal(label, label2)
 
 

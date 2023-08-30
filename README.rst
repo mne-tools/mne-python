@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_ |OpenSSF|_
+|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_ |Bandit|_ |OpenSSF|_
 
 |MNE|_
 
@@ -18,6 +18,9 @@
 
 .. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
+
+.. |Bandit| image:: https://img.shields.io/badge/security-bandit-yellow.svg
+.. _Bandit: https://github.com/PyCQA/bandit
 
 .. |OpenSSF| image:: https://www.bestpractices.dev/projects/7783/badge
 .. _OpenSSF: https://www.bestpractices.dev/projects/7783

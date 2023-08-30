@@ -72,7 +72,7 @@ def read_mrk(fname):
     elif fname.suffix == ".pickled":
         # TODO should we still be supporting pickled here?
         with open(fname, "rb") as fid:
-            food = pickle.load(fid)  # noqa B301
+            food = pickle.load(fid)  # nosec B301
         try:
             mrk_points = food["mrk"]
         except Exception:
