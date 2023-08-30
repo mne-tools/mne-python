@@ -264,7 +264,7 @@ def test_csd_pickle(tmp_path):
     with open(fname, "wb") as f:
         pickle.dump(csd, f)
     with open(fname, "rb") as f:
-        csd2 = pickle.load(f)
+        csd2 = pickle.load(f)  # nosec B301
     assert_array_equal(csd._data, csd2._data)
     assert csd.tmin == csd2.tmin
     assert csd.tmax == csd2.tmax

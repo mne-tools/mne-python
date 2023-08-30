@@ -297,11 +297,12 @@ def fetch_dataset(
     if check_version and (
         _compare_version(data_version, "<", mne_version.strip(".git"))
     ):
+        # OK to `nosec` because it's false positive (misidentified as SQL)
         warn(
             f"The {name} dataset (version {data_version}) is older than "
             f"mne-python (version {mne_version}). If the examples fail, "
             f"you may need to update the {name} dataset by using "
-            f"mne.datasets.{name}.data_path(force_update=True)"
+            f"mne.datasets.{name}.data_path(force_update=True)"  # nosec B608
         )
     _log_time_size(t0, sz)
     return (final_path, data_version) if return_version else final_path

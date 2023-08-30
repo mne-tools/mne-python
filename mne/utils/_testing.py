@@ -61,8 +61,8 @@ def _requires_module(function, name, *, call):
     call = ("import %s" % name) if call is None else call
     reason = "Test %s skipped, requires %s." % (function.__name__, name)
     try:
-        # TODO ideally we could do this without `exec()`
-        exec(call) in globals(), locals()  # noqa B102
+        # TODO ideally we could do this without `exec()` and remove the nosec annotation
+        exec(call) in globals(), locals()  # nosec B102
     except Exception as exc:
         if len(str(exc)) > 0 and str(exc) != "No module named %s" % name:
             reason += " Got exception (%s)" % (exc,)
