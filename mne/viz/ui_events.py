@@ -347,7 +347,7 @@ def link(*figs, include_events=None, exclude_events=None, verbose=None):
 
     Parameters
     ----------
-    figs : matplotlib.figure.Figure | Figure3D
+    *figs : tuple of matplotlib.figure.Figure | tuple of Figure3D
         The figures whose event channel will be linked.
     include_events : list of str | None
         Select which events to publish across figures. By default (``None``),
