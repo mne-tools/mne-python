@@ -1332,6 +1332,11 @@ def reset_warnings(gallery_conf, fname):
         message=r"iteritems is deprecated.*Use \.items instead\.",
         category=FutureWarning,
     )
+    warnings.filterwarnings(
+        "ignore",
+        message=r"is_categorical_dtype is deprecated.*",
+        category=FutureWarning,
+    )
     # pandas in 50_epochs_to_data_frame.py
     warnings.filterwarnings(
         "ignore", message=r"invalid value encountered in cast", category=RuntimeWarning

@@ -48,7 +48,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import mne
 
-
 data_dir = Path(mne.datasets.erp_core.data_path())
 infile = data_dir / "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"
 
@@ -239,6 +238,8 @@ metadata[["first_stimulus", "first_response"]]
 # We first add a column encoding the side of stimulation, and then simply
 # check whether the response matches the stimulation side, and add this result
 # to another column.
+
+metadata.loc[:, "stimulus_side"] = ""  # initialize column
 
 # left-side stimulation
 metadata.loc[
