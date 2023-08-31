@@ -8,7 +8,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_eyelink
 from mne.io.tests.test_raw import _test_raw_reader
 from mne._fiff.constants import FIFF
-from mne.io.eyelink.eyelink import _adjust_times, _find_overlaps
+from mne.io.eyelink._utils import _adjust_times, _find_overlaps
 from mne._fiff.pick import _DATA_CH_TYPES_SPLIT
 
 pd = pytest.importorskip("pandas")
@@ -281,9 +281,8 @@ def test_multi_block_misc_channels(fname, tmp_path):
     assert np.isnan(data[0, np.logical_and(times > 1, times <= 1.1)]).all()
 
 
-@pytest.mark.xfail(reason="Attributes and test_preloading fail")
 @requires_testing_data
 @pytest.mark.parametrize("this_fname", (fname, fname_href))
 def test_basics(this_fname):
     """Test basics of reading."""
-    _test_raw_reader(read_raw_eyelink, fname=this_fname)
+    _test_raw_reader(read_raw_eyelink, fname=this_fname, test_preloading=False)
