@@ -2922,8 +2922,6 @@ def _get_cmap(colormap, lut=None):
     if colormap is None:
         colormap = rcParams["image.cmap"]
     if isinstance(colormap, str) and colormap in ("mne", "mne_analyze"):
-        from ._3d import mne_analyze_colormap
-
         colormap = mne_analyze_colormap([0, 1, 2], format="matplotlib")
     elif not isinstance(colormap, colors.Colormap):
         colormap = get_cmap(colormap)
