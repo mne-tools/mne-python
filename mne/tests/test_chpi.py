@@ -752,7 +752,7 @@ def test_chpi_subtraction_filter_chpi():
 
 
 @testing.requires_testing_data
-def test_calculate_head_pos_ctf():
+def test_calculate_head_pos_ctf(tmp_path):
     """Test extracting of cHPI positions from CTF data."""
     raw = read_raw_ctf(ctf_chpi_fname)
     chpi_locs = extract_chpi_locs_ctf(raw)
@@ -764,9 +764,28 @@ def test_calculate_head_pos_ctf():
     )  # 7 mm/s
     plot_head_positions(quats, info=raw.info)
 
-    raw = read_raw_fif(ctf_fname)
     with pytest.raises(RuntimeError, match="Could not find"):
-        extract_chpi_locs_ctf(raw)
+        extract_chpi_locs_ctf(read_raw_fif(ctf_fname))
+
+    # save-load should not affect result
+    fname_temp = tmp_path / "test_ctf_raw.fif"
+    raw.save(fname_temp)
+    raw_read = read_raw_fif(fname_temp)
+    # the two attributes used by compute_head_pos
+    assert_allclose(
+        raw.info["dev_head_t"]["trans"], raw_read.info["dev_head_t"]["trans"]
+    )
+    with pytest.warns(RuntimeWarning, match="is poor"):
+        head_rrs = _get_hpi_initial_fit(raw.info, verbose="debug")
+    with pytest.warns(RuntimeWarning, match="is poor"):
+        head_rrs_2 = _get_hpi_initial_fit(raw_read.info, verbose="debug")
+    assert_allclose(head_rrs, head_rrs_2, atol=1e-5)
+    quats_2 = compute_head_pos(raw_read.info, chpi_locs)
+    _assert_quats(quats, quats_2, dist_tol=1e-5, angle_tol=0.1)
+    chpi_locs_2 = extract_chpi_locs_ctf(raw_read)
+    assert_allclose(chpi_locs["rrs"], chpi_locs_2["rrs"], atol=1e-5)
+    quats_3 = compute_head_pos(raw_read.info, chpi_locs_2)
+    _assert_quats(quats, quats_3, dist_tol=1e-5, angle_tol=0.1)
 
 
 @testing.requires_testing_data

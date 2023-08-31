@@ -18,6 +18,7 @@
 #
 # License: BSD-3-Clause
 
+import copy
 from functools import partial
 
 import numpy as np
@@ -413,16 +414,21 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         key=lambda x: x["ident"],
     )  # ascending (dig) order
     if len(hpi_dig) == 0:  # CTF data, probably
+        msg = "HPIFIT: No HPI dig points, using hpifit result"
         hpi_dig = sorted(hpi_result["dig_points"], key=lambda x: x["ident"])
         if all(
             d["coord_frame"] in (FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_UNKNOWN)
             for d in hpi_dig
         ):
+            # Do not modify in place!
+            hpi_dig = copy.deepcopy(hpi_dig)
+            msg += " transformed to head coords"
             for dig in hpi_dig:
                 dig.update(
                     r=apply_trans(info["dev_head_t"], dig["r"]),
                     coord_frame=FIFF.FIFFV_COORD_HEAD,
                 )
+        logger.debug(msg)
 
     # zero-based indexing, dig->info
     # CTF does not populate some entries so we use .get here
