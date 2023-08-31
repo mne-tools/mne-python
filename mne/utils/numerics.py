@@ -21,7 +21,7 @@ from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from . import _empty_hash
+from .misc import _empty_hash
 from ..fixes import (
     _infer_dimension_,
     svd_flip,
