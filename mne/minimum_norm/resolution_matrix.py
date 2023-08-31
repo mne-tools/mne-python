@@ -8,13 +8,14 @@ import numpy as np
 
 from mne.minimum_norm.inverse import InverseOperator
 
-from .. import pick_channels_forward, EvokedArray
-from ..io.constants import FIFF
+from .inverse import apply_inverse
+from ..evoked import EvokedArray
+from .._fiff.constants import FIFF
+from .._fiff.pick import pick_channels_forward
 from ..utils import logger, verbose, _validate_type
 from ..forward.forward import convert_forward_solution, Forward
-from ..minimum_norm import apply_inverse
 from ..source_estimate import _prepare_label_extraction, _make_stc, _get_src_type
-from ..source_space import SourceSpaces, _get_vertno
+from ..source_space._source_space import SourceSpaces, _get_vertno
 from ..label import Label
 
 
@@ -217,7 +218,7 @@ def _vertices_for_get_psf_ctf(idx, src):
 
         for v in verts_labs:
             # if two hemispheres present
-            if type(v) is list:
+            if isinstance(v, list):
                 # indices for both hemispheres in one list
                 this_verts = np.concatenate((v[0], v[1]))
             else:

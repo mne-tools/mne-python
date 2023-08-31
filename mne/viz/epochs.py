@@ -16,21 +16,20 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 
 from .raw import _setup_channel_selections
 from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
 from ..utils.spectrum import _split_psd_kwargs
-from ..io.meas_info import create_info, _validate_type
+from .._fiff.meas_info import create_info
 
-from ..io.pick import (
-    _get_channel_types,
+from .._fiff.pick import (
     _picks_to_idx,
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
 )
-from ..time_frequency import Spectrum
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -46,6 +45,7 @@ from .utils import (
     _set_window_title,
     _make_event_color_dict,
     _get_channel_plotting_order,
+    _validate_type,
 )
 
 
@@ -224,8 +224,7 @@ def plot_epochs_image(
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
-    from scipy.ndimage import gaussian_filter1d
-    from .. import EpochsArray
+    from ..epochs import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")
 
@@ -236,7 +235,7 @@ def plot_epochs_image(
 
     # is picks a channel type (or None)?
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
-    ch_types = _get_channel_types(epochs.info, picks)
+    ch_types = epochs.info.get_channel_types(picks)
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed
@@ -312,7 +311,7 @@ def plot_epochs_image(
 
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
-    data = epochs.get_data()
+    data = epochs._get_data(on_empty="raise")
     vmin_vmax = {ch_type: dict(images=list(), norm=list()) for ch_type in set(ch_types)}
     for this_group, this_group_dict in group_by.items():
         these_picks = this_group_dict["picks"]
@@ -635,7 +634,7 @@ def _plot_epochs_image(
         ax_im.set_xlim(tmin, tmax)
     # draw the evoked
     if evoked:
-        from . import plot_compare_evokeds
+        from .evoked import plot_compare_evokeds
 
         pass_combine = combine if combine_given else None
         _picks = [0] if len(picks) == 1 else None  # prevent applying GFP
@@ -904,6 +903,7 @@ def plot_epochs(
     """
     from ._figure import _get_browser
 
+    epochs._handle_empty("raise", "plot")
     epochs.drop_bad()
     info = epochs.info.copy()
     sfreq = info["sfreq"]
@@ -1171,5 +1171,7 @@ def plot_epochs_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return epochs.compute_psd(**init_kw).plot(**plot_kw)

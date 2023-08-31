@@ -95,6 +95,7 @@ The minimum required dependencies to run MNE-Python are:
 - tqdm
 - Jinja2
 - decorator
+- lazy_loader
 
 For full functionality, some functions require:
 

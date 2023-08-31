@@ -13,7 +13,13 @@ from pathlib import Path
 import numpy as np
 
 from .constants import KIT, FIFF
-from .._digitization import _make_dig_points
+from ...channels.montage import (
+    read_polhemus_fastscan,
+    read_dig_polhemus_isotrak,
+    read_custom_montage,
+    _check_dig_shape,
+)
+from ..._fiff._digitization import _make_dig_points
 from ...transforms import (
     Transform,
     apply_trans,
@@ -203,13 +209,6 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
 
 def _read_dig_kit(fname, unit="auto"):
     # Read dig points from a file and return ndarray, using FastSCAN for .txt
-    from ...channels.montage import (
-        read_polhemus_fastscan,
-        read_dig_polhemus_isotrak,
-        read_custom_montage,
-        _check_dig_shape,
-    )
-
     fname = _check_fname(fname, "read", must_exist=True, name="hsp or elp file")
     assert unit in ("auto", "m", "mm")
     _check_option("file extension", fname.suffix, (".hsp", ".elp", ".mat", ".txt"))

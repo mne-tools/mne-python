@@ -156,6 +156,6 @@ def _ci(arr, ci=0.95, method="bootstrap", n_bootstraps=2000, random_state=None):
             arr, ci=ci, n_bootstraps=n_bootstraps, random_state=random_state
         )
     else:
-        from . import _parametric_ci
+        from .parametric import _parametric_ci
 
         return _parametric_ci(arr, ci=ci)

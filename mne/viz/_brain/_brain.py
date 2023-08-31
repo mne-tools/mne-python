@@ -15,9 +15,11 @@ import time
 import copy
 import traceback
 import warnings
-import weakref
 
 import numpy as np
+from scipy.interpolate import interp1d
+from scipy.sparse import csr_matrix
+from scipy.spatial.distance import cdist
 
 from .colormap import calculate_lut
 from .surface import _Surface
@@ -49,10 +51,9 @@ from ..._freesurfer import (
     _get_skull_surface,
     _estimate_talxfm_rigid,
 )
-from ...io.pick import pick_types
-from ...io.meas_info import Info
+from ..._fiff.pick import pick_types
+from ..._fiff.meas_info import Info
 from ...surface import mesh_edges, _mesh_borders, _marching_cubes, get_meg_helmet_surf
-from ...source_space import SourceSpaces
 from ...transforms import (
     Transform,
     apply_trans,
@@ -74,9 +75,20 @@ from ...utils import (
     _check_fname,
     _to_rgb,
     _ensure_int,
+    _auto_weakref,
 )
 
-from .. import ui_events
+from ..ui_events import (
+    publish,
+    subscribe,
+    unsubscribe,
+    TimeChange,
+    PlaybackSpeed,
+    ColormapRange,
+    VertexSelect,
+    disable_ui_events,
+    _get_event_channel,
+)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -403,6 +415,7 @@ class Brain:
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
+        self.widgets = dict()
 
         self._setup_canonical_rotation()
 
@@ -553,7 +566,6 @@ class Brain:
         self.pick_table = dict()
         self._spheres = list()
         self._mouse_no_mvt = -1
-        self.widgets = dict()
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -621,6 +633,7 @@ class Brain:
         # clear init actors
         for hemi in self._layered_meshes:
             self._layered_meshes[hemi]._clean()
+        self._clear_callbacks()
         self._clear_widgets()
         if getattr(self, "mpl_canvas", None) is not None:
             self.mpl_canvas.clear()
@@ -730,11 +743,9 @@ class Brain:
         self.reset_view()
         max_time = len(self._data["time"]) - 1
         if max_time > 0:
-            ui_events.publish(
+            publish(
                 self,
-                ui_events.TimeChange(
-                    time=self._time_interp_inv(self._data["initial_time_idx"])
-                ),
+                TimeChange(time=self._time_interp_inv(self._data["initial_time_idx"])),
             )
 
     def set_playback_speed(self, speed):
@@ -745,7 +756,7 @@ class Brain:
         speed : float
             The speed of the playback.
         """
-        ui_events.publish(self, ui_events.PlaybackSpeed(speed=speed))
+        publish(self, PlaybackSpeed(speed=speed))
 
     @safe_event
     def _play(self):
@@ -764,7 +775,7 @@ class Brain:
         time_shift = delta * self.playback_speed
         max_time = np.max(time_data)
         time_point = min(self._current_time + time_shift, max_time)
-        ui_events.publish(self, ui_events.TimeChange(time=time_point))
+        publish(self, TimeChange(time=time_point))
         if time_point == max_time:
             self.toggle_playback(value=False)
 
@@ -810,6 +821,10 @@ class Brain:
         layout = self._renderer._dock_add_group_box(name)
         len_time = len(self._data["time"]) - 1
 
+        @_auto_weakref
+        def publish_time_change(time_idx):
+            publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
+
         # Time widget
         if len_time < 1:
             self.widgets["time"] = None
@@ -819,9 +834,7 @@ class Brain:
                 value=self._data["time_idx"],
                 rng=[0, len_time],
                 double=True,
-                callback=lambda time_idx: ui_events.publish(
-                    self, ui_events.TimeChange(time=self._time_interp_inv(time_idx))
-                ),
+                callback=publish_time_change,
                 compact=False,
                 layout=layout,
             )
@@ -845,7 +858,7 @@ class Brain:
                 callback=self.set_playback_speed,
                 layout=layout,
             )
-            ui_events.subscribe(self, "playback_speed", self._on_playback_speed)
+            subscribe(self, "playback_speed", self._on_playback_speed)
 
         # Time label
         current_time = self._current_time
@@ -865,6 +878,7 @@ class Brain:
         rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
 
+            @_auto_weakref
             def select_renderer(idx):
                 idx = int(idx)
                 loc = self._renderer._index_to_loc(idx)
@@ -893,7 +907,8 @@ class Brain:
                     _data = dict(default=v, hemi=hemi, row=ri, col=ci)
                 orientation_data[idx] = _data
 
-        def set_orientation(value):
+        @_auto_weakref
+        def set_orientation(value, orientation_data=orientation_data):
             if "renderer" in self.widgets:
                 idx = int(self.widgets["renderer"].get_value())
             else:
@@ -929,6 +944,7 @@ class Brain:
             layout=layout,
         )
 
+        @_auto_weakref
         def update_single_lut_value(value, key):
             # Called by the sliders and spin boxes.
             self.update_lut(**{key: value / self._data["fscale"]})
@@ -966,16 +982,28 @@ class Brain:
             layout=hlayout,
             style="toolbutton",
         )
-        for key, char, val in (
-            ("fminus", "➖", 1.2**-0.25),
-            ("fplus", "➕", 1.2**0.25),
-        ):
-            self.widgets[key] = self._renderer._dock_add_button(
-                name=char,
-                callback=partial(self._update_fscale, fscale=val),
-                layout=hlayout,
-                style="toolbutton",
-            )
+
+        @_auto_weakref
+        def fminus():
+            self._update_fscale(1.2**-0.25)
+
+        self.widgets["fminus"] = self._renderer._dock_add_button(
+            name="➖",
+            callback=fminus,
+            layout=hlayout,
+            style="toolbutton",
+        )
+
+        @_auto_weakref
+        def fplus():
+            self._update_fscale(1.2**0.25)
+
+        self.widgets["fplus"] = self._renderer._dock_add_button(
+            name="➕",
+            callback=fplus,
+            layout=hlayout,
+            style="toolbutton",
+        )
         self._renderer._layout_add_widget(layout, hlayout)
 
     def _configure_dock_trace_widget(self, name):
@@ -990,13 +1018,10 @@ class Brain:
             return
 
         layout = self._renderer._dock_add_group_box(name)
-        weakself = weakref.ref(self)
 
         # setup candidate annots
-        def _set_annot(annot, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def _set_annot(annot):
             self.clear_glyphs()
             self.remove_labels()
             self.remove_annotations()
@@ -1011,10 +1036,8 @@ class Brain:
             self._renderer._update()
 
         # setup label extraction parameters
-        def _set_label_mode(mode, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def _set_label_mode(mode):
             if self.traces_mode != "label":
                 return
             glyphs = copy.deepcopy(self.picked_patches)
@@ -1162,14 +1185,10 @@ class Brain:
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
             vertex_id = vertices[ind[0]]
-            ui_events.publish(
-                self, ui_events.VertexSelect(hemi=hemi, vertex_id=vertex_id)
-            )
+            publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _configure_picking(self):
         # get data for each hemi
-        from scipy import sparse
-
         for idx, hemi in enumerate(["vol", "lh", "rh"]):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -1180,7 +1199,7 @@ class Brain:
                 vertices = hemi_data["vertices"]
                 if hemi == "vol":
                     assert smooth_mat is None
-                    smooth_mat = sparse.csr_matrix(
+                    smooth_mat = csr_matrix(
                         (np.ones(len(vertices)), (vertices, np.arange(len(vertices))))
                     )
                 self.act_data_smooth[hemi] = (act_data, smooth_mat)
@@ -1191,16 +1210,13 @@ class Brain:
             self._on_button_release,
             self._on_pick,
         )
-        ui_events.subscribe(self, "vertex_select", self._on_vertex_select)
+        subscribe(self, "vertex_select", self._on_vertex_select)
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
-        weakself = weakref.ref(self)
 
-        def save_image(filename, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def save_image(filename):
             self.save_image(filename)
 
         self._renderer._tool_bar_add_file_button(
@@ -1209,10 +1225,8 @@ class Brain:
             func=save_image,
         )
 
-        def save_movie(filename, weakself=weakself):
-            self = weakself()
-            if self is None:
-                return
+        @_auto_weakref
+        def save_movie(filename):
             self.save_movie(
                 filename=filename, time_dilation=(1.0 / self.playback_speed)
             )
@@ -1259,11 +1273,9 @@ class Brain:
         )
 
     def _shift_time(self, shift_func):
-        ui_events.publish(
+        publish(
             self,
-            ui_events.TimeChange(
-                time=shift_func(self._current_time, self.playback_speed)
-            ),
+            TimeChange(time=shift_func(self._current_time, self.playback_speed)),
         )
 
     def _rotate_azimuth(self, value):
@@ -1432,7 +1444,7 @@ class Brain:
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-        ui_events.publish(self, ui_events.VertexSelect(hemi=hemi, vertex_id=vertex_id))
+        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
@@ -1441,7 +1453,7 @@ class Brain:
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
         if self.time_viewer:
-            with ui_events.disable_ui_events(self):
+            with disable_ui_events(self):
                 if "time" in self.widgets:
                     self.widgets["time"].set_value(time_idx)
                 if "current_time" in self.widgets:
@@ -1454,7 +1466,7 @@ class Brain:
             return
         self.playback_speed = event.speed
         if "playback_speed" in self.widgets:
-            with ui_events.disable_ui_events(self):
+            with disable_ui_events(self):
                 self.widgets["playback_speed"].set_value(event.speed)
 
     def _on_colormap_range(self, event):
@@ -1466,7 +1478,7 @@ class Brain:
         if all(val is None or val == self._data[key] for key, val in lims.items()):
             return
         # Update the GUI elements.
-        with ui_events.disable_ui_events(self):
+        with disable_ui_events(self):
             for key, val in lims.items():
                 if val is not None:
                     if key in self.widgets:
@@ -1740,6 +1752,11 @@ class Brain:
     def help(self):
         """Display the help window."""
         self.help_canvas.show()
+
+    def _clear_callbacks(self):
+        # Remove the default key binding
+        if getattr(self, "iren", None) is not None:
+            self.plotter.iren.clear_key_event_callbacks()
 
     def _clear_widgets(self):
         if not hasattr(self, "widgets"):
@@ -2094,17 +2111,17 @@ class Brain:
         self._update_colormap_range(alpha=alpha)
 
         # 5) enable UI events to interact with the data
-        ui_events.subscribe(self, "colormap_range", self._on_colormap_range)
+        subscribe(self, "colormap_range", self._on_colormap_range)
         if time is not None and len(time) > 1:
-            ui_events.subscribe(self, "time_change", self._on_time_change)
+            subscribe(self, "time_change", self._on_time_change)
 
     def remove_data(self):
         """Remove rendered data from the mesh."""
         self._remove("data", render=True)
 
         # Stop listening to events
-        if "time_change" in ui_events._get_event_channel(self):
-            ui_events.unsubscribe(self, "time_change")
+        if "time_change" in _get_event_channel(self):
+            unsubscribe(self, "time_change")
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
@@ -2144,6 +2161,7 @@ class Brain:
 
     def _add_volume_data(self, hemi, src, volume_options):
         from ..backends._pyvista import _hide_testing_actor
+        from ...source_space import SourceSpaces
 
         _validate_type(src, SourceSpaces, "src")
         _check_option("src.kind", src.kind, ("volume",))
@@ -2669,8 +2687,8 @@ class Brain:
         import nibabel as nib
 
         # load anatomical segmentation image
-        if not aseg.endswith("aseg"):
-            raise RuntimeError(f'`aseg` file path must end with "aseg", got {aseg}')
+        if not aseg.endswith(("aseg", "parc")):
+            raise RuntimeError(f"Expected `aseg` file path, {aseg} suffix")
         aseg = str(
             _check_fname(
                 op.join(
@@ -2800,8 +2818,6 @@ class Brain:
 
         # Possibly map the foci coords through a surface
         if map_surface is not None:
-            from scipy.spatial.distance import cdist
-
             foci_surf = _Surface(
                 self._subject,
                 hemi,
@@ -3432,9 +3448,9 @@ class Brain:
         %(fmin_fmid_fmax)s
         %(alpha)s
         """
-        ui_events.publish(
+        publish(
             self,
-            ui_events.ColormapRange(
+            ColormapRange(
                 kind="distributed_source_power",
                 fmin=fmin,
                 fmid=fmid,
@@ -3665,9 +3681,7 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif 0 <= time_idx <= len(self._times):
-            ui_events.publish(
-                self, ui_events.TimeChange(time=self._time_interp_inv(time_idx))
-            )
+            publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
         else:
             raise ValueError(
                 f"Requested time point ({time_idx}) is outside the range of "
@@ -3685,7 +3699,7 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif min(self._times) <= time <= max(self._times):
-            ui_events.publish(self, ui_events.TimeChange(time=time))
+            publish(self, TimeChange(time=time))
         else:
             raise ValueError(
                 f"Requested time ({time} s) is outside the range of "
@@ -4163,8 +4177,6 @@ class Brain:
 
 def _safe_interp1d(x, y, kind="linear", axis=-1, assume_sorted=False):
     """Work around interp1d not liking singleton dimensions."""
-    from scipy.interpolate import interp1d
-
     if y.shape[axis] == 1:
 
         def func(x):

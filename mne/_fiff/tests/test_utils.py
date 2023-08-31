@@ -3,7 +3,7 @@
 #
 # License: BSD-3-Clause
 
-from mne.io.utils import _check_orig_units
+from mne._fiff.utils import _check_orig_units
 
 
 def test_check_orig_units():

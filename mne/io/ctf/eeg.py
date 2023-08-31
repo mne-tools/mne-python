@@ -8,9 +8,9 @@ import numpy as np
 from os.path import join
 from os import listdir
 
-from ...utils import logger, warn
-from ..constants import FIFF
 from .res4 import _make_ctf_name
+from ...utils import logger, warn
+from ..._fiff.constants import FIFF
 from ...transforms import apply_trans
 
 

@@ -62,10 +62,10 @@ from mne import (
 from mne.datasets import testing
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.morph_map import _make_morph_map_hemi
 from mne.source_estimate import grade_to_tris, _get_vol_mask
-from mne.source_space import _get_src_nn
+from mne.source_space._source_space import _get_src_nn
 from mne.transforms import apply_trans, invert_transform, transform_surface_to
 from mne.minimum_norm import (
     read_inverse_operator,

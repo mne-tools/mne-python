@@ -8,6 +8,7 @@ from io import BytesIO, SEEK_SET
 from gzip import GzipFile
 
 import numpy as np
+from scipy.sparse import issparse
 
 from .tag import read_tag_info, read_tag, Tag, _call_dict_names, _matrix_info
 from .tree import make_dir_tree, dir_tree_find
@@ -288,8 +289,6 @@ def _show_tree(
     show_bytes=False,
 ):
     """Show FIFF tree."""
-    from scipy import sparse
-
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
@@ -341,7 +340,7 @@ def _show_tree(
                         postpend += " ... str len=" + str(len(tag.data))
                     elif isinstance(tag.data, (list, tuple)):
                         postpend += " ... list len=" + str(len(tag.data))
-                    elif sparse.issparse(tag.data):
+                    elif issparse(tag.data):
                         postpend += " ... sparse (%s) shape=%s" % (
                             tag.data.getformat(),
                             tag.data.shape,

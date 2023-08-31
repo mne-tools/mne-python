@@ -15,6 +15,7 @@ from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
+from scipy import linalg
 
 from ._logging import warn, ClosingStringIO
 from .check import check_version
@@ -201,7 +202,7 @@ def buggy_mkl_svd(function):
 
 def assert_and_remove_boundary_annot(annotations, n=1):
     """Assert that there are boundary annotations and remove them."""
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
 
     if isinstance(annotations, BaseRaw):  # allow either input
         annotations = annotations.annotations
@@ -218,8 +219,8 @@ def assert_object_equal(a, b):
 
 
 def _raw_annot(meas_date, orig_time):
-    from .. import Annotations, create_info
-    from ..annotations import _handle_meas_date
+    from .._fiff.meas_info import create_info
+    from ..annotations import Annotations, _handle_meas_date
     from ..io import RawArray
 
     info = create_info(ch_names=10, sfreq=10.0)
@@ -277,7 +278,7 @@ def assert_meg_snr(
     Mostly useful for operations like Maxwell filtering that modify
     MEG channels while leaving EEG and others intact.
     """
-    from ..io.pick import pick_types
+    from .._fiff.pick import pick_types
 
     picks = pick_types(desired.info, meg=True, exclude=[])
     picks_desired = pick_types(desired.info, meg=True, exclude=[])
@@ -308,8 +309,6 @@ def assert_meg_snr(
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
-    from scipy import linalg
-
     with np.errstate(divide="ignore"):  # allow infinite
         snr = linalg.norm(desired, ord="fro") / linalg.norm(desired - actual, ord="fro")
     assert snr >= tol, "%f < %f" % (snr, tol)
@@ -333,8 +332,8 @@ def _dig_sort_key(dig):
 def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
     from ..bem import fit_sphere_to_headshape
-    from ..io.constants import FIFF
-    from ..io.meas_info import Info
+    from .._fiff.constants import FIFF
+    from .._fiff.meas_info import Info
     from ..channels.montage import DigMontage
 
     # test dig positions

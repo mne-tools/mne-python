@@ -26,11 +26,13 @@ import webbrowser
 
 from decorator import decorator
 import numpy as np
+from scipy.signal import argrelmax
 
 from ..defaults import _handle_default
-from ..io import show_fiff, Info
-from ..io.constants import FIFF
-from ..io.pick import (
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import Info
+from .._fiff.open import show_fiff
+from .._fiff.pick import (
     channel_type,
     channel_indices_by_type,
     pick_channels,
@@ -43,7 +45,7 @@ from ..io.pick import (
     pick_channels_cov,
     _contains_ch_type,
 )
-from ..io.proj import setup_proj, Projection
+from .._fiff.proj import setup_proj, Projection
 from ..rank import compute_rank
 from ..utils import (
     verbose,
@@ -59,6 +61,7 @@ from ..utils import (
     _to_rgb,
     warn,
     check_version,
+    _check_decim,
 )
 from ..transforms import apply_trans
 
@@ -966,8 +969,6 @@ def _find_peaks(evoked, npeaks):
 
     Returns ``npeaks`` biggest peaks as a list of time points.
     """
-    from scipy.signal import argrelmax
-
     gfp = evoked.data.std(axis=0)
     order = len(evoked.times) // 30
     if order < 1:
@@ -1445,7 +1446,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     scalings : dict
         A scalings dictionary with updated values
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ..epochs import BaseEpochs
 
     scalings = _handle_default("scalings_plot_raw", scalings)
@@ -2066,9 +2067,6 @@ def _setup_ax_spines(
 
 def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
-    from ..utils.mixin import _check_decim
-    from ..utils import _ensure_int
-
     if isinstance(decim, str) and decim == "auto":
         lp = info["sfreq"] if info["lowpass"] is None else info["lowpass"]
         lp = min(lp, info["sfreq"] if lowpass is None else lowpass)
@@ -2937,3 +2935,22 @@ def _get_cmap(colormap, lut=None):
             resampled = colormap._resample
         colormap = resampled(lut)
     return colormap
+
+
+def _get_plot_ch_type(inst, ch_type, allow_ref_meg=False):
+    """Choose a single channel type (usually for plotting).
+
+    Usually used in plotting to plot a single datatype, e.g. look for mags,
+    then grads, then ... to plot.
+    """
+    if ch_type is None:
+        allowed_types = list(_DATA_CH_TYPES_SPLIT)
+        allowed_types += ["ref_meg"] if allow_ref_meg else []
+        has_types = inst.get_channel_types(unique=True)
+        for type_ in allowed_types:
+            if type_ in has_types:
+                ch_type = type_
+                break
+        else:
+            raise RuntimeError("No plottable channel types found")
+    return ch_type

@@ -22,5 +22,7 @@ elif [[ "$MNE_CI_KIND" != "pip"* ]]; then  # conda, mamba (use warning level for
 else  # pip-like
     echo "Setting pip env vars for $MNE_CI_KIND"
     echo "MNE_QT_BACKEND=PyQt6" >> $GITHUB_ENV
+    # We should test an eager import somewhere, might as well be here
+    echo "EAGER_IMPORT=true" >> $GITHUB_ENV
 fi
 set +x

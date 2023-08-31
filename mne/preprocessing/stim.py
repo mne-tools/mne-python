@@ -3,27 +3,26 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy.interpolate import interp1d
+from scipy.signal.windows import hann
+
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..event import find_events
 
-from ..io.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx
 from ..utils import _check_preload, _check_option, fill_doc
 
 
 def _get_window(start, end):
     """Return window which has length as much as parameter start - end."""
-    from scipy.signal.windows import hann
-
     window = 1 - np.r_[hann(4)[:2], np.ones(np.abs(end - start) - 4), hann(4)[-2:]].T
     return window
 
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     """Modify original data by using parameter data."""
-    from scipy.interpolate import interp1d
-
     if mode == "linear":
         x = np.array([first_samp, last_samp])
         f = interp1d(x, data[:, (first_samp, last_samp)][picks])

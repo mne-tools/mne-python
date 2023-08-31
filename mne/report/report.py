@@ -27,24 +27,19 @@ import webbrowser
 import numpy as np
 
 from .. import __version__ as MNE_VERSION
-from .. import (
-    read_evokeds,
-    read_events,
-    read_cov,
-    read_source_estimate,
-    read_trans,
-    sys_info,
-    Evoked,
-    SourceEstimate,
-    Covariance,
-    Info,
-    Transform,
-)
-from ..channels import _get_ch_type
+from ..evoked import read_evokeds, Evoked
+from ..event import read_events
+from ..cov import read_cov, Covariance
+from ..html_templates import _get_html_template
+from ..source_estimate import read_source_estimate, SourceEstimate
+from ..transforms import read_trans, Transform
+from ..utils import sys_info
+from .._fiff.meas_info import Info
 from ..defaults import _handle_default
-from ..io import read_raw, read_info, BaseRaw
-from ..io._read_raw import supported as extension_reader_map
-from ..io.pick import _DATA_CH_TYPES_SPLIT
+from ..io import read_raw, BaseRaw
+from ..io._read_raw import _get_supported as _get_extension_reader_map
+from .._fiff.meas_info import read_info
+from .._fiff.pick import _DATA_CH_TYPES_SPLIT
 from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (
@@ -78,14 +73,17 @@ from ..viz import (
     get_3d_backend,
     Figure3D,
     use_browser_backend,
+    _get_plot_ch_type,
+    create_3d_figure,
 )
+from ..viz._brain.view import views_dicts
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..viz._scraper import _mne_qt_browser_screenshot
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
-from .. import dig_mri_distances
+from ..surface import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func
 
@@ -94,7 +92,7 @@ _BEM_VIEWS = ("axial", "sagittal", "coronal")
 
 # For raw files, we want to support different suffixes + extensions for all
 # supported file formats
-SUPPORTED_READ_RAW_EXTENSIONS = tuple(extension_reader_map.keys())
+SUPPORTED_READ_RAW_EXTENSIONS = tuple(_get_extension_reader_map())
 RAW_EXTENSIONS = []
 for ext in SUPPORTED_READ_RAW_EXTENSIONS:
     RAW_EXTENSIONS.append(f"raw{ext}")
@@ -151,7 +149,7 @@ MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
 
 
-def _get_ch_types(inst):
+def _get_data_ch_types(inst):
     return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
 
 
@@ -167,9 +165,7 @@ def _id_sanitize(title):
 
 
 def _renderer(kind):
-    from ..html_templates import report_templates_env
-
-    return report_templates_env.get_template(kind).render
+    return _get_html_template("report", kind).render
 
 
 ###############################################################################
@@ -394,7 +390,6 @@ def _fig_to_img(fig, *, image_format="png", own_figure=True):
         # check instead
         if fig.__class__.__name__ in ("MNEQtBrowser", "PyQtGraphBrowser"):
             img = _mne_qt_browser_screenshot(fig, return_type="ndarray")
-            print(img.shape, img.max(), img.min(), img.mean())
         elif isinstance(fig, Figure3D):
             from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
 
@@ -531,7 +526,6 @@ def _get_bem_contour_figs_as_arrays(
 
 def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    from ..viz import create_3d_figure
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
 
     # TODO: Eventually maybe we should expose the size option?
@@ -550,7 +544,6 @@ def _iterate_trans_views(function, alpha, **kwargs):
 
 def _itv(function, fig, **kwargs):
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
-    from ..viz._brain.view import views_dicts
 
     function(fig=fig, **kwargs)
 
@@ -1671,7 +1664,7 @@ class Report:
     def _add_ica_properties(
         self, *, ica, picks, inst, n_jobs, image_format, section, tags, replace
     ):
-        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
             warn(
@@ -1764,7 +1757,7 @@ class Report:
         )
 
     def _add_ica_components(self, *, ica, picks, image_format, section, tags, replace):
-        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
             warn(
@@ -3691,7 +3684,7 @@ class Report:
         n_jobs,
         replace,
     ):
-        ch_types = _get_ch_types(evoked)
+        ch_types = _get_data_ch_types(evoked)
         self._add_evoked_joint(
             evoked=evoked,
             ch_types=ch_types,
@@ -3963,7 +3956,7 @@ class Report:
             )
 
         # ERP/ERF image(s)
-        ch_types = _get_ch_types(epochs)
+        ch_types = _get_data_ch_types(epochs)
         epochs.load_data()
 
         for ch_type in ch_types:

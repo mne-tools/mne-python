@@ -46,9 +46,9 @@ from mne.datasets import testing
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 from mne.event import merge_events
 from mne.io import RawArray, read_raw_fif
-from mne.io.constants import FIFF
-from mne.io.proj import _has_eeg_average_ref_proj
-from mne.io.write import write_int, INT32_MAX, _get_split_size, write_float
+from mne._fiff.constants import FIFF
+from mne._fiff.proj import _has_eeg_average_ref_proj
+from mne._fiff.write import write_int, INT32_MAX, _get_split_size, write_float
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap,
@@ -65,7 +65,6 @@ from mne.utils import (
     object_diff,
     use_log_level,
     catch_logging,
-    _FakeNoPandas,
     assert_meg_snr,
     _dt_to_stamp,
 )
@@ -363,9 +362,10 @@ def test_average_movements():
     epochs = Epochs(
         raw, events, event_id, tmin, tmax, picks=picks, proj=False, preload=True
     )
-    epochs_proj = Epochs(
-        raw, events[:1], event_id, tmin, tmax, picks=picks, proj=True, preload=True
-    )
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs_proj = Epochs(
+            raw, events[:1], event_id, tmin, tmax, picks=picks, proj=True, preload=True
+        )
     raw_sss_stat = maxwell_filter(
         raw, origin=origin, regularize=None, bad_condition="ignore"
     )
@@ -624,7 +624,8 @@ def test_reject():
             pytest.raises(ValueError, epochs.drop_bad, reject_part)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
-            epochs.drop_bad(flat=dict(mag=1.0))
+            with pytest.warns(RuntimeWarning, match="were dropped"):
+                epochs.drop_bad(flat=dict(mag=1.0))
             assert_equal(len(epochs), 0)
             pytest.raises(ValueError, epochs.drop_bad, flat=dict(mag=0.0))
 
@@ -702,9 +703,10 @@ def test_reject_by_annotations_reject_tmin_reject_tmax():
 
     # Make the epoch based on the event at 2s, so from 1s to 3s ... assert it
     # is rejected due to bad segment overlap from 1s to 1.5s
-    epochs = mne.Epochs(
-        raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
-    )
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs = mne.Epochs(
+            raw, events, tmin=-1, tmax=1, preload=True, reject_by_annotation=True
+        )
     assert len(epochs) == 0
 
     # Setting `reject_tmin` to prevent rejection of epoch.
@@ -1168,10 +1170,11 @@ def test_read_epochs_bad_events():
     )
     assert repr(epochs)  # test repr
     assert epochs._repr_html_()  # test _repr_html_
-    epochs.drop_bad()
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs.drop_bad()
     assert repr(epochs)
     assert epochs._repr_html_()
-    with pytest.warns(RuntimeWarning, match="empty"):
+    with pytest.raises(RuntimeError, match="empty"):
         evoked = epochs.average()
 
     # Event at the end
@@ -1987,7 +1990,8 @@ def test_reject_epochs(tmp_path):
     epochs = Epochs(
         raw_2, events1, event_id, tmin, tmax, reject=reject_crazy, flat=flat
     )
-    epochs.drop_bad()
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs.drop_bad()
 
     assert all("MEG 2442" in e for e in epochs.drop_log)
     assert all("MEG 2443" not in e for e in epochs.drop_log)
@@ -2089,7 +2093,8 @@ def test_reject_epochs(tmp_path):
     new_flat["grad"] *= 2
     # Only the newly-provided thresholds should be updated, the existing ones
     # should be kept
-    epochs_cleaned = epochs.copy().drop_bad(reject=new_reject, flat=new_flat)
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs_cleaned = epochs.copy().drop_bad(reject=new_reject, flat=new_flat)
     assert epochs_cleaned.reject == dict(
         mag=new_reject["mag"], grad=reject["grad"], eeg=reject["eeg"], eog=reject["eog"]
     )
@@ -2291,7 +2296,7 @@ def test_crop(tmp_path):
         1,
         picks=picks,
         preload=True,
-        reject=reject,
+        reject=None,
         flat=flat,
     )
     # We include nearest sample, so actually a bit beyond our bounds here
@@ -3665,7 +3670,7 @@ def test_default_values():
     assert_equal(hash(epoch_1), hash(epoch_2))
 
 
-def test_metadata(tmp_path):
+def test_metadata(tmp_path, monkeypatch):
     """Test metadata support with pandas."""
     pd = pytest.importorskip("pandas")
     data = np.random.randn(10, 2, 2000)
@@ -3776,7 +3781,17 @@ def test_metadata(tmp_path):
     epochs_one_read = read_epochs(temp_one_fname)
     assert_metadata_equal(epochs_one.metadata, epochs_one_read.metadata)
 
-    with _FakeNoPandas():
+    with monkeypatch.context() as ctx:
+
+        def _check(strict=True):
+            if strict:
+                raise RuntimeError("Pandas not installed")
+            else:
+                return False
+
+        ctx.setattr(mne.epochs, "_check_pandas_installed", _check)
+        ctx.setattr(mne.utils.mixin, "_check_pandas_installed", _check)
+
         epochs_read = read_epochs(temp_fname)
         assert isinstance(epochs_read.metadata, list)
         assert isinstance(epochs_read.metadata[0], dict)
@@ -4280,7 +4295,7 @@ def test_pick_types_reject_flat_keys():
         event_id,
         preload=True,
         picks=picks,
-        reject=dict(grad=1e-10, mag=1e-10, eeg=1e-3, eog=1e-3),
+        reject=dict(grad=1e-9, mag=1e-10, eeg=1e-3, eog=1e-3),
         flat=dict(grad=1e-16, mag=1e-16, eeg=1e-16, eog=1e-16),
     )
 
@@ -4795,3 +4810,45 @@ def test_epochs_saving_with_annotations(tmp_path):
     loaded_epochs = read_epochs(fname)
     assert epochs._raw_sfreq == loaded_epochs._raw_sfreq
     assert loaded_epochs.annotations is None
+
+
+def _get_empty_parametrize():
+    test_methods = {
+        "add_reference_channels": {"ref_channels": "EEG 999"},
+        "apply_function": {"fun": lambda x: x},
+        "apply_hilbert": {},
+        "as_type": {},
+        "average": {},
+        "compute_psd": {},
+        "drop_channels": {"ch_names": ["EEG 014"]},
+        "filter": {"l_freq": 1, "h_freq": 40},
+        "interpolate_bads": {},
+        "pick": {"picks": [0]},
+        "pick_channels": {"ch_names": ["EEG 014"]},
+        "pick_types": {"eeg": True},
+        "plot": {},
+        "plot_image": {},
+        "plot_psd": {},
+        "plot_psd_topo": {"tmin": 0.1, "tmax": 0.2},
+        "plot_psd_topomap": {},
+        "plot_topo_image": {},
+        "resample": {"sfreq": 100},
+        "reorder_channels": {"ch_names": ["EEG 014"]},
+        "savgol_filter": {"h_freq": 40},
+        "set_eeg_reference": {},
+        "shift_time": {"tshift": 0.1},
+        "standard_error": {},
+        "to_data_frame": {},
+    }
+    arg_values = [(k, v) for k, v in test_methods.items()]
+    arg_ids = test_methods.keys()
+    return {"argnames": "method", "argvalues": arg_values, "ids": arg_ids}
+
+
+@pytest.mark.parametrize(**_get_empty_parametrize())
+def test_empty_error(method, epochs_empty):
+    """Test that a RuntimeError is raised when certain methods are called."""
+    if method[0] == "to_data_frame":
+        pytest.importorskip("pandas")
+    with pytest.raises(RuntimeError, match="is empty."):
+        getattr(epochs_empty.copy(), method[0])(**method[1])

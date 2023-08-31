@@ -269,6 +269,8 @@ numpydoc_xref_aliases = {
 }
 numpydoc_xref_ignore = {
     # words
+    "and",
+    "between",
     "instance",
     "instances",
     "of",
@@ -476,6 +478,14 @@ class Resetter(object):
         except Exception:
             pass
         gc.collect()
+
+        # Agg does not call close_event so let's clean up on our own :(
+        # https://github.com/matplotlib/matplotlib/issues/18609
+        mne.viz.ui_events._cleanup_agg()
+        assert len(mne.viz.ui_events._event_channels) == 0, list(
+            mne.viz.ui_events._event_channels
+        )
+
         when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
         # Support stuff like
         # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
@@ -1337,6 +1347,15 @@ def reset_warnings(gallery_conf, fname):
     # xarray _SixMetaPathImporter (?)
     warnings.filterwarnings(
         "ignore", message=r"falling back to find_module", category=ImportWarning
+    )
+    # Sphinx deps
+    warnings.filterwarnings(
+        "ignore", message="The str interface for _CascadingStyleSheet.*"
+    )
+    # mne-qt-browser until > 0.5.2 released
+    warnings.filterwarnings(
+        "ignore",
+        r"mne\.io\.pick.channel_indices_by_type is deprecated.*",
     )
 
     # In case we use np.set_printoptions in any tutorials, we only

@@ -5,8 +5,8 @@
 
 import pytest
 
-from mne.io.constants import FIFF
-from mne.io.write import start_file, write_int
+from mne._fiff.constants import FIFF
+from mne._fiff.write import start_file, write_int
 
 
 def test_write_int(tmp_path):

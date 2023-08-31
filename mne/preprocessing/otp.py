@@ -8,7 +8,7 @@ from functools import partial
 import numpy as np
 
 from .._ola import _COLA, _Storer
-from ..io.pick import _picks_to_idx
+from .._fiff.pick import _picks_to_idx
 from ..surface import _normalize_vectors
 from ..utils import logger, verbose
 

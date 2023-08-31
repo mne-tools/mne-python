@@ -15,6 +15,7 @@ import numbers
 
 import numpy as np
 
+from ..defaults import _handle_default, HEAD_SIZE_DEFAULT
 from ..fixes import _median_complex, _compare_version
 from ._logging import warn, logger, verbose, _record_warnings, _verbose_safe_false
 
@@ -231,7 +232,7 @@ def _check_fname(
     *,
     verbose=None,
 ):
-    """Check for file existence, and return string of its absolute path."""
+    """Check for file existence, and return its absolute path."""
     _validate_type(fname, "path-like", name)
     fname = Path(fname).expanduser().absolute()
 
@@ -307,13 +308,15 @@ def _check_preload(inst, msg):
                 "loaded. Use preload=True (or string) in the constructor or "
                 "%s.load_data()." % (name, name)
             )
+        if name == "epochs":
+            inst._handle_empty("raise", msg)
 
 
 def _check_compensation_grade(info1, info2, name1, name2="data", ch_names=None):
     """Ensure that objects have same compensation_grade."""
-    from ..io import Info
-    from ..io.pick import pick_channels, pick_info
-    from ..io.compensator import get_current_comp
+    from .._fiff.meas_info import Info
+    from .._fiff.pick import pick_channels, pick_info
+    from .._fiff.compensator import get_current_comp
 
     for t_info in (info1, info2):
         if t_info is None:
@@ -476,7 +479,7 @@ def _check_ch_locs(info, picks=None, ch_type=None):
         The channel type to restrict the check to. If ``None``, check all
         channel types. If provided, ``picks`` must be ``None``.
     """
-    from ..io.pick import _picks_to_idx, pick_info
+    from .._fiff.pick import _picks_to_idx, pick_info
 
     if picks is not None and ch_type is not None:
         raise ValueError("Either picks or ch_type may be provided, not both")
@@ -553,7 +556,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None, *, extra=""
         _ensure_int(item, name=item_name, extra=extra)
         return  # terminate prematurely
     elif types == "info":
-        from mne.io import Info as types
+        from .._fiff.meas_info import Info as types
 
     if not isinstance(types, (list, tuple)):
         types = [types]
@@ -652,7 +655,7 @@ def _check_if_nan(data, msg=" to be plotted"):
 
 def _check_info_inv(info, forward, data_cov=None, noise_cov=None):
     """Return good channels common to forward model and covariance matrices."""
-    from .. import pick_types
+    from .._fiff.pick import pick_types
 
     # get a list of all channel names:
     fwd_ch_names = forward["info"]["ch_names"]
@@ -739,8 +742,7 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     """Check number of sensor types and presence of noise covariance matrix."""
     from ..cov import make_ad_hoc_cov, Covariance
     from ..time_frequency.csd import CrossSpectralDensity
-    from ..io.pick import pick_info
-    from ..channels.channels import _contains_ch_type
+    from .._fiff.pick import pick_info, _contains_ch_type
 
     if isinstance(data_cov, CrossSpectralDensity):
         _validate_type(noise_cov, [None, CrossSpectralDensity], "noise_cov")
@@ -773,8 +775,6 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
 
 def _check_depth(depth, kind="depth_mne"):
     """Check depth options."""
-    from ..defaults import _handle_default
-
     if not isinstance(depth, dict):
         depth = dict(exp=None if depth is None else float(depth))
     return _handle_default(kind, depth)
@@ -955,7 +955,6 @@ def _check_qt_version(*, return_api=False, check_usable_display=True):
 
 
 def _check_sphere(sphere, info=None, sphere_units="m"):
-    from ..defaults import HEAD_SIZE_DEFAULT
     from ..bem import fit_sphere_to_headshape, ConductorModel, get_fitting_dig
 
     if sphere is None:

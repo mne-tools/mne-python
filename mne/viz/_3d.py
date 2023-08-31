@@ -20,6 +20,9 @@ from typing import Optional
 from pathlib import Path
 
 import numpy as np
+from scipy.stats import rankdata
+from scipy.spatial import ConvexHull, Delaunay
+from scipy.spatial.distance import cdist
 
 from ._dipole import _check_concat_dipoles, _plot_dipole_mri_outlines, _plot_dipole_3d
 from ..defaults import DEFAULTS
@@ -29,25 +32,18 @@ from .._freesurfer import (
     _check_mri,
     _get_head_surface,
     _get_skull_surface,
+    read_freesurfer_lut,
 )
-from ..io import _loc_to_coil_trans
-from ..io.pick import (
+from .._fiff.tag import _loc_to_coil_trans
+from .._fiff.pick import (
     pick_types,
     channel_type,
     pick_info,
     _FNIRS_CH_TYPES_SPLIT,
     _MEG_CH_TYPES_SPLIT,
 )
-from ..io.constants import FIFF
-from ..io.meas_info import read_fiducials, create_info
-from ..source_space import (
-    _ensure_src,
-    _create_surf_spacing,
-    _check_spacing,
-    SourceSpaces,
-    read_freesurfer_lut,
-)
-
+from .._fiff.constants import FIFF
+from .._fiff.meas_info import read_fiducials, create_info, Info
 from ..surface import (
     get_meg_helmet_surf,
     _read_mri_surface,
@@ -95,7 +91,6 @@ from .utils import (
     figure_nobar,
     _check_time_unit,
 )
-from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 from .evoked_field import EvokedField
 
 verbose_dec = verbose
@@ -265,8 +260,6 @@ def plot_head_positions(
                 # knowing it will generally be spherical, we can approximate
                 # how far away we are along the axis line by taking the
                 # point to the left and right with the smallest distance
-                from scipy.spatial.distance import cdist
-
                 dists = cdist(rrs[:, oidx], use_trans[:, oidx])
                 left = rrs[:, [ii]] < use_trans[:, ii]
                 left_dists_all = dists.copy()
@@ -628,6 +621,8 @@ def plot_alignment(
     """
     # Update the backend
     from .backends.renderer import _get_renderer
+    from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
+    from ..source_space._source_space import _ensure_src
 
     meg, eeg, fnirs, warn_meg = _handle_sensor_types(meg, eeg, fnirs)
     _check_option("interaction", interaction, ["trackball", "terrain"])
@@ -1590,8 +1585,6 @@ def _make_tris_fan(n_vert):
 
 def _sensor_shape(coil):
     """Get the sensor shape vertices."""
-    from scipy.spatial import ConvexHull, Delaunay
-
     try:
         from scipy.spatial import QhullError
     except ImportError:  # scipy < 1.8
@@ -1985,8 +1978,8 @@ def _plot_mpl_stc(
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.widgets import Slider
     import nibabel as nib
-    from scipy import stats
     from ..morph import _get_subject_sphere_tris
+    from ..source_space._source_space import _create_surf_spacing, _check_spacing
 
     if hemi not in ["lh", "rh"]:
         raise ValueError(
@@ -2041,7 +2034,7 @@ def _plot_mpl_stc(
         faces = surf["use_tris"]
         coords = surf["rr"][inuse]
         shape = faces.shape
-        faces = stats.rankdata(faces, "dense").reshape(shape) - 1
+        faces = rankdata(faces, "dense").reshape(shape) - 1
         faces = np.round(faces).astype(int)  # should really be int-like anyway
     del surf
     vertices = stc.vertices[hemi_idx]
@@ -2175,6 +2168,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True, picking=False):
 
 def _check_volume(stc, src, surface, backend_name):
     from ..source_estimate import _BaseSurfaceSourceEstimate, _BaseMixedSourceEstimate
+    from ..source_space import SourceSpaces
 
     if isinstance(stc, _BaseSurfaceSourceEstimate):
         return False
@@ -2711,6 +2705,7 @@ def plot_volume_source_estimates(
     import nibabel as nib
     from ..source_estimate import VolSourceEstimate
     from ..morph import SourceMorph
+    from ..source_space._source_space import _ensure_src
 
     if not check_version("nilearn", "0.4"):
         raise RuntimeError("This function requires nilearn >= 0.4")
@@ -3684,7 +3679,6 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
         The screenshot of the current scene view.
     """
     from ..channels import DigMontage
-    from .. import Info
 
     # Update the backend
     from .backends.renderer import _get_renderer

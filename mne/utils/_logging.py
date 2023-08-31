@@ -117,7 +117,7 @@ def %(name)s(%(signature)s):\n
     else:
         return _function_(%(shortsignature)s)"""
     evaldict = dict(_use_log_level_=use_log_level, _function_=function)
-    fm = FunctionMaker(function, None, None, None, None, function.__module__)
+    fm = FunctionMaker(function)
     attrs = dict(
         __wrapped__=function,
         __qualname__=function.__qualname__,

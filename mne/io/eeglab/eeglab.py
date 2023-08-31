@@ -11,12 +11,13 @@ from pathlib import Path
 import numpy as np
 
 from ._eeglab import _readmat
-from .._digitization import _ensure_fiducials_head
-from ..constants import FIFF
-from ..meas_info import create_info
-from ..pick import _PICK_TYPES_KEYS
-from ..utils import _read_segments_file, _find_channels
 from ..base import BaseRaw
+from ...event import read_events
+from ..._fiff._digitization import _ensure_fiducials_head
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import create_info
+from ..._fiff.pick import _PICK_TYPES_KEYS
+from ..._fiff.utils import _read_segments_file, _find_channels
 from ...defaults import DEFAULTS
 from ...utils import (
     logger,
@@ -29,7 +30,6 @@ from ...utils import (
 )
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
-from ...event import read_events
 from ...annotations import Annotations, read_annotations
 
 # just fix the scaling for now, EEGLAB doesn't seem to provide this info

@@ -5,7 +5,7 @@
 # License: Simplified BSD
 import numpy as np
 from ...utils import warn
-from .. import ui_events
+from ..ui_events import link
 
 
 class _LinkViewer:
@@ -31,7 +31,7 @@ class _LinkViewer:
             events_to_link.append("colormap_range")
 
         for brain in brains[1:]:
-            ui_events.link(self.leader, brain, event_names=events_to_link)
+            link(self.leader, brain, include_events=events_to_link)
 
         if picking:
 

@@ -47,18 +47,17 @@ import numpy as np
 from matplotlib import get_backend
 from matplotlib.figure import Figure
 
-from .. import channel_indices_by_type, pick_types
 from ..fixes import _close_event
-from ..annotations import _sync_onset
-from ..io.pick import (
+from .._fiff.pick import (
     _DATA_CH_TYPES_ORDER_DEFAULT,
     _DATA_CH_TYPES_SPLIT,
     _FNIRS_CH_TYPES_SPLIT,
     _EYETRACK_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
+    channel_indices_by_type,
+    pick_types,
 )
-from ..utils import Bunch, _click_ch_name, logger
-from . import plot_sensors
+from ..utils import Bunch, _click_ch_name, logger, check_version
 from ._figure import BrowserBase
 from .utils import (
     DraggableLine,
@@ -71,7 +70,7 @@ from .utils import (
     _validate_if_list_of_axes,
     plt_show,
     _fake_scroll,
-    check_version,
+    plot_sensors,
 )
 
 name = "matplotlib"
@@ -792,6 +791,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _buttonpress(self, event):
         """Handle mouse clicks."""
         from matplotlib.collections import PolyCollection
+        from ..annotations import _sync_onset
 
         butterfly = self.mne.butterfly
         annotating = self.mne.fig_annotation is not None
@@ -1329,6 +1329,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _select_annotation_span(self, vmin, vmax):
         """Handle annotation span selector."""
+        from ..annotations import _sync_onset
+
         onset = _sync_onset(self.mne.inst, vmin, True) - self.mne.first_time
         duration = vmax - vmin
         buttons = self.mne.fig_annotation.mne.radio_ax.buttons
@@ -1359,6 +1361,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _modify_annotation(self, old_x, new_x):
         """Modify annotation."""
+        from ..annotations import _sync_onset
+
         segment = np.array(np.where(self.mne.annotation_segments == old_x))
         if segment.shape[1] == 0:
             return
