@@ -357,6 +357,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
 # Exactly like in the previous example, we create new columns ``stimulus_side``
 # and ``response_correct``.
 
+metadata.loc[:, "stimulus_side"] = ""  # initialize column
+
 # left-side stimulation
 metadata.loc[
     metadata["last_stimulus"].isin(
