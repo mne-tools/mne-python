@@ -1327,16 +1327,16 @@ def reset_warnings(gallery_conf, fname):
         category=RuntimeWarning,
     )
     # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
-    warnings.filterwarnings(
-        "ignore",
-        message=r"iteritems is deprecated.*Use \.items instead\.",
-        category=FutureWarning,
-    )
-    warnings.filterwarnings(
-        "ignore",
-        message=r"is_categorical_dtype is deprecated.*",
-        category=FutureWarning,
-    )
+    for message in (
+        "use_inf_as_na option is deprecated.*",
+        r"iteritems is deprecated.*Use \.items instead\.",
+        "is_categorical_dtype is deprecated.*",
+    ):
+        warnings.filterwarnings(
+            "ignore",
+            message=message,
+            category=FutureWarning,
+        )
     # pandas in 50_epochs_to_data_frame.py
     warnings.filterwarnings(
         "ignore", message=r"invalid value encountered in cast", category=RuntimeWarning
