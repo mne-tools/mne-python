@@ -7,7 +7,16 @@ import numpy as np
 
 from ._3d_overlay import _LayeredMesh
 from .utils import mne_analyze_colormap
-from . import ui_events
+
+from .ui_events import (
+    publish,
+    subscribe,
+    TimeChange,
+    PlaybackSpeed,
+    ColormapRange,
+    Contours,
+    disable_ui_events,
+)
 
 from ..defaults import DEFAULTS
 from ..io.pick import pick_types
@@ -196,10 +205,10 @@ class EvokedField:
         self._configure_dock()
 
         # Configure UI events
-        ui_events.subscribe(self, "time_change", self._on_time_change)
-        ui_events.subscribe(self, "colormap_range", self._on_colormap_range)
-        ui_events.subscribe(self, "contours", self._on_contours)
-        ui_events.subscribe(self, "playback_speed", self._on_playback_speed)
+        subscribe(self, "time_change", self._on_time_change)
+        subscribe(self, "colormap_range", self._on_colormap_range)
+        subscribe(self, "contours", self._on_contours)
+        subscribe(self, "playback_speed", self._on_playback_speed)
 
         self._renderer.set_camera(azimuth=10, elevation=60)
         self._renderer.show()
@@ -354,9 +363,7 @@ class EvokedField:
                 value=self._current_time,
                 rng=[self._evoked.times[0], self._evoked.times[-1]],
                 double=True,
-                callback=lambda x: ui_events.publish(
-                    self, ui_events.TimeChange(time=x)
-                ),
+                callback=lambda x: publish(self, TimeChange(time=x)),
                 compact=False,
                 layout=layout,
             )
@@ -370,14 +377,14 @@ class EvokedField:
             r._dock_add_label(value=f"{self._evoked.times[-1]: .3f}", layout=hlayout)
             r._layout_add_widget(layout, hlayout)
 
-            self.widgets["playback_speed"] = r._dock_add_spin_box(
+            self._widgets["playback_speed"] = r._dock_add_spin_box(
                 name="Speed",
                 value=self._playback_speed,
                 rng=[0.01, 1.0],
                 callback=self.set_playback_speed,
                 layout=layout,
             )
-            ui_events.subscribe(self, "playback_speed", self._on_playback_speed)
+            subscribe(self, "playback_speed", self._on_playback_speed)
 
         # Fieldline configuration
         layout = r._dock_add_group_box("Fieldlines")
@@ -454,7 +461,7 @@ class EvokedField:
         self._current_time = new_time
         self._update()
 
-        with ui_events.disable_ui_events(self):
+        with disable_ui_events(self):
             if "time_slider" in self._widgets:
                 self._widgets["time_slider"].set_value(new_time)
             if "current_time_label" in self._widgets:
@@ -487,7 +494,7 @@ class EvokedField:
                 scaling = DEFAULTS["scalings"]["grad"]
             else:
                 scaling = DEFAULTS["scalings"]["eeg"]
-            with ui_events.disable_ui_events(self):
+            with disable_ui_events(self):
                 widget = self._widgets.get(f"vmax_slider_{type}", None)
                 if widget is not None:
                     widget.set_value(vmax * scaling)
@@ -504,7 +511,7 @@ class EvokedField:
         self._playback_speed = event.speed
         self._update()
 
-        with ui_events.disable_ui_events(self):
+        with disable_ui_events(self):
             if "playback_speed" in self._widgets:
                 self._widgets["playback_speed"].set_value(self._playback_speed)
 
@@ -522,7 +529,7 @@ class EvokedField:
                 break
         surf_map["contours"] = event.contours
         self._n_contours = len(event.contours)
-        with ui_events.disable_ui_events(self):
+        with disable_ui_events(self):
             if "contours" in self._widgets:
                 self._widgets["contours"].set_value(len(event.contours))
         self._update()
@@ -536,9 +543,9 @@ class EvokedField:
             The number of contour lines to use.
         """
         for surf_map in self._surf_maps:
-            ui_events.publish(
+            publish(
                 self,
-                ui_events.Contours(
+                Contours(
                     kind=f"field_strength_{surf_map['map_kind']}",
                     contours=np.linspace(
                         -surf_map["map_vmax"], surf_map["map_vmax"], n_contours
@@ -559,9 +566,9 @@ class EvokedField:
         _check_option("type", type, ["eeg", "meg"])
         for surf_map in self._surf_maps:
             if surf_map["map_kind"] == type:
-                ui_events.publish(
+                publish(
                     self,
-                    ui_events.ColormapRange(
+                    ColormapRange(
                         kind=f"field_strength_{surf_map['map_kind']}",
                         fmin=-vmax,
                         fmax=vmax,
@@ -569,6 +576,16 @@ class EvokedField:
                 )
         else:
             raise ValueError(f"No {type.upper()} field map currently shown.")
+
+    def set_playback_speed(self, speed):
+        """Set the playback speed.
+
+        Parameters
+        ----------
+        speed : float
+            The new playback speed in seconds per frame.
+        """
+        publish(self, PlaybackSpeed(speed))
 
     def rescale(self):
         """Rescale the fieldlines and density maps to the current time point."""
