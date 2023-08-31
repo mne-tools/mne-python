@@ -3,8 +3,6 @@
 #
 # License: BSD-3-Clause
 
-import hashlib
-import inspect
 import pickle
 from datetime import datetime, timedelta, timezone, date
 from pathlib import Path
@@ -71,7 +69,7 @@ from mne.minimum_norm import (
 from mne._fiff import meas_info
 from mne._fiff._digitization import _make_dig_points, DigPoint
 from mne.transforms import Transform
-from mne.utils import catch_logging, assert_object_equal, _record_warnings
+from mne.utils import catch_logging, assert_object_equal, _empty_hash, _record_warnings
 
 root_dir = Path(__file__).parent.parent.parent
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
@@ -89,14 +87,6 @@ sss_path = data_path / "SSS"
 sss_ctc_fname = sss_path / "test_move_anon_crossTalk_raw_sss.fif"
 ctf_fname = data_path / "CTF" / "testdata_ctf.ds"
 raw_invalid_bday_fname = data_path / "misc" / "sample_invalid_birthday_raw.fif"
-
-
-# TODO no longer needed when py3.9 is minimum supported version
-HASHLIB_KW = (
-    dict(usedforsecurity=False)
-    if "usedforsecurity" in inspect.signature(hashlib.md5).parameters
-    else dict()
-)
 
 
 @pytest.mark.parametrize(
@@ -323,14 +313,14 @@ def test_read_write_info(tmp_path):
     assert_array_equal(info["meas_id"]["machid"], meas_id["machid"])
 
     # Test that writing twice produces the same file
-    m1 = hashlib.md5(**HASHLIB_KW)
+    m1 = _empty_hash()
     with open(temp_file, "rb") as fid:
         m1.update(fid.read())
     m1 = m1.hexdigest()
     temp_file_2 = tmp_path / "info2.fif"
     assert temp_file_2 != temp_file
     write_info(temp_file_2, info)
-    m2 = hashlib.md5(**HASHLIB_KW)
+    m2 = _empty_hash()
     with open(str(temp_file_2), "rb") as fid:
         m2.update(fid.read())
     m2 = m2.hexdigest()

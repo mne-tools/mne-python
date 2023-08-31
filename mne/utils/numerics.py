@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import hashlib
 import inspect
 import numbers
 import operator
@@ -22,6 +21,7 @@ from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
+from . import _empty_hash
 from ..fixes import (
     _infer_dimension_,
     svd_flip,
@@ -31,14 +31,6 @@ from ..fixes import (
     has_numba,
 )
 from .docs import fill_doc
-
-
-# TODO no longer needed when py3.9 is minimum supported version
-HASHLIB_KW = (
-    dict(usedforsecurity=False)
-    if "usedforsecurity" in inspect.signature(hashlib.md5).parameters
-    else dict()
-)
 
 
 def split_list(v, n, idx=False):
@@ -427,10 +419,7 @@ def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
     hash_ : str
         The hexadecimal digest of the hash.
     """
-    if hash_type == "md5":
-        hasher = hashlib.md5(**HASHLIB_KW)
-    elif hash_type == "sha1":
-        hasher = hashlib.sha1(**HASHLIB_KW)
+    hasher = _empty_hash(kind=hash_type)
     with open(fname, "rb") as fid:
         while True:
             data = fid.read(block_size)
@@ -660,7 +649,7 @@ def object_hash(x, h=None):
         The digest resulting from the hash.
     """
     if h is None:
-        h = hashlib.md5(**HASHLIB_KW)
+        h = _empty_hash()
     if hasattr(x, "keys"):
         # dict-like types
         keys = _sort_keys(x)
