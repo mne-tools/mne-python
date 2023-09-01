@@ -25,9 +25,7 @@ pytest.importorskip("pandas")
 )
 def test_interpolate_blinks(buffer, match, cause_error, interpolate_gaze):
     """Test interpolating pupil data during blinks."""
-    raw = read_raw_eyelink(
-        fname, preload=True, create_annotations=["blinks"], find_overlaps=True
-    )
+    raw = read_raw_eyelink(fname, create_annotations=["blinks"], find_overlaps=True)
     # Create a dummy stim channel
     # this will hit a certain line in the interpolate_blinks function
     info = create_info(["STI"], raw.info["sfreq"], ["stim"])

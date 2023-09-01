@@ -1696,9 +1696,10 @@ fnirs : str | list | bool | None
 docdict[
     "focalpoint"
 ] = """
-focalpoint : tuple, shape (3,) | None
+focalpoint : tuple, shape (3,) | str | None
     The focal point of the camera rendering the view: (x, y, z) in
-    plot units (either m or mm).
+    plot units (either m or mm). When ``"auto"``, it is set to the center of
+    mass of the visible bounds.
 """
 
 docdict[
@@ -4688,6 +4689,15 @@ tstep : scalar
 
 # %%
 # U
+
+docdict[
+    "ui_event_name_source"
+] = """
+name : str
+    The name of the event (same as its class name but in snake_case).
+source : matplotlib.figure.Figure | Figure3D
+    The figure that published the event.
+"""
 
 docdict[
     "uint16_codec"
