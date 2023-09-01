@@ -12,7 +12,6 @@ from .ui_events import (
     publish,
     subscribe,
     TimeChange,
-    PlaybackSpeed,
     ColormapRange,
     Contours,
     disable_ui_events,
@@ -25,6 +24,7 @@ from ..utils import (
     _validate_type,
     _check_option,
     _to_rgb,
+    _auto_weakref,
     fill_doc,
 )
 
@@ -94,7 +94,6 @@ class EvokedField:
     The figure will publish and subscribe to the following UI events:
 
     * :class:`~mne.viz.ui_events.TimeChange`
-    * :class:`~mne.viz.ui_events.PlaybackSpeed`
     * :class:`~mne.viz.ui_events.Contours`, ``kind="field_strength_meg" | "field_strength_eeg"``
     * :class:`~mne.viz.ui_events.ColormapRange`, ``kind="field_strength_meg" | "field_strength_eeg"``
     """  # noqa
@@ -128,7 +127,6 @@ class EvokedField:
         if not evoked.times[0] <= time <= evoked.times[-1]:
             raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
         self._time_label = time_label
-        self._playback_speed = 0.01
 
         self._vmax = _validate_type(vmax, (None, "numeric", dict), "vmax")
         self._n_contours = _ensure_int(n_contours, "n_contours")
@@ -214,7 +212,16 @@ class EvokedField:
         subscribe(self, "time_change", self._on_time_change)
         subscribe(self, "colormap_range", self._on_colormap_range)
         subscribe(self, "contours", self._on_contours)
-        subscribe(self, "playback_speed", self._on_playback_speed)
+
+        # Configure keyboard shortcuts
+        if not self._in_brain_figure:
+
+            @_auto_weakref
+            def shift_time(amount):
+                publish(self, TimeChange(time=self._current_time + amount))
+
+            self._renderer.plotter.add_key_event("n", partial(shift_time, amount=0.01))
+            self._renderer.plotter.add_key_event("b", partial(shift_time, amount=-0.01))
 
         self._renderer.set_camera(azimuth=10, elevation=60)
         self._renderer.show()
@@ -383,15 +390,6 @@ class EvokedField:
             r._dock_add_label(value=f"{self._evoked.times[-1]: .3f}", layout=hlayout)
             r._layout_add_widget(layout, hlayout)
 
-            self._widgets["playback_speed"] = r._dock_add_spin_box(
-                name="Speed",
-                value=self._playback_speed,
-                rng=[0.01, 1.0],
-                callback=self.set_playback_speed,
-                layout=layout,
-            )
-            subscribe(self, "playback_speed", self._on_playback_speed)
-
         # Fieldline configuration
         layout = r._dock_add_group_box("Fieldlines")
 
@@ -510,17 +508,6 @@ class EvokedField:
 
         self._update()
 
-    def _on_playback_speed(self, event):
-        """Respond to the playback_speed UI event."""
-        if event.speed == self._playback_speed:
-            return
-        self._playback_speed = event.speed
-        self._update()
-
-        with disable_ui_events(self):
-            if "playback_speed" in self._widgets:
-                self._widgets["playback_speed"].set_value(self._playback_speed)
-
     def _on_contours(self, event):
         """Respond to the contours UI event."""
         if event.kind == "field_strength_meg":
@@ -583,16 +570,6 @@ class EvokedField:
             break
         else:
             raise ValueError(f"No {type.upper()} field map currently shown.")
-
-    def set_playback_speed(self, speed):
-        """Set the playback speed.
-
-        Parameters
-        ----------
-        speed : float
-            The new playback speed in seconds per frame.
-        """
-        publish(self, PlaybackSpeed(speed))
 
     def rescale(self):
         """Rescale the fieldlines and density maps to the current time point."""
