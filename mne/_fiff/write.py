@@ -316,7 +316,7 @@ def start_file(fname, id_=None):
     else:
         if isinstance(fname, str):
             fname = Path(fname)
-        if fname.suffix.lower() == ".gz":
+        if str(fname).lower().endswith(".gz"):
             logger.debug("Writing using gzip")
             # defaults to compression level 9, which is barely smaller but much
             # slower. 2 offers a good compromise.

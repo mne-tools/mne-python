@@ -2103,10 +2103,10 @@ def test_zip_io(tmp_path_factory):
     saved_raw = read_raw_fif(fif_fname).crop(0, 1)
 
     with zipfile.ZipFile(zip_fname, "w") as zip_:
-        saved_raw.save(zipfile.Path(zip_, zip_fname.stem))
+        saved_raw.save(zipfile.Path(zip_, fname))
 
     with zipfile.ZipFile(zip_fname) as zip_:
-        loaded_raw = read_raw_fif(zipfile.Path(zip_, zip_fname.stem))
+        loaded_raw = read_raw_fif(zipfile.Path(zip_, fname))
 
         assert_object_equal(saved_raw.get_data(), loaded_raw.get_data())
         assert saved_raw.info["ch_names"] == loaded_raw.info["ch_names"]
