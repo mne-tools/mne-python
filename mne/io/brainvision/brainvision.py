@@ -26,6 +26,7 @@ from ..._fiff.utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 from ...defaults import HEAD_SIZE_DEFAULT
+from ...transforms import _sph_to_cart
 
 
 @fill_doc
@@ -626,8 +627,6 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     # specified in mm
     montage = None
     if cfg.has_section("Coordinates"):
-        from ...transforms import _sph_to_cart
-
         montage_pos = list()
         montage_names = list()
         to_misc = list()

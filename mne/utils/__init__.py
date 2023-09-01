@@ -115,6 +115,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "_assert_no_instances",
             "_resource_path",
             "repr_html",
+            "_auto_weakref",
         ],
         "progressbar": ["ProgressBar"],
         "_testing": [
@@ -186,7 +187,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "ExtendedTimeMixin",
             "_prepare_read_metadata",
             "_prepare_write_metadata",
-            "_FakeNoPandas",
+            "_check_decim",
         ],
         "linalg": [
             "_svd_lwork",

@@ -21,7 +21,7 @@ from mne.event import read_events
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
-from mne.source_space import _get_src_nn
+from mne.source_space._source_space import _get_src_nn
 from mne.surface import _normal_orth
 from mne import (
     read_cov,

@@ -43,7 +43,7 @@ from mne.forward import Forward, _do_forward_solution, use_coil_def
 from mne.dipole import Dipole, fit_dipole
 from mne.simulation import simulate_evoked
 from mne.source_estimate import VolSourceEstimate
-from mne.source_space import (
+from mne.source_space._source_space import (
     write_source_spaces,
     _compare_source_spaces,
     setup_source_space,

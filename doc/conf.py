@@ -478,6 +478,14 @@ class Resetter(object):
         except Exception:
             pass
         gc.collect()
+
+        # Agg does not call close_event so let's clean up on our own :(
+        # https://github.com/matplotlib/matplotlib/issues/18609
+        mne.viz.ui_events._cleanup_agg()
+        assert len(mne.viz.ui_events._event_channels) == 0, list(
+            mne.viz.ui_events._event_channels
+        )
+
         when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
         # Support stuff like
         # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
@@ -1327,11 +1335,17 @@ def reset_warnings(gallery_conf, fname):
         category=RuntimeWarning,
     )
     # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
-    warnings.filterwarnings(
-        "ignore",
-        message=r"iteritems is deprecated.*Use \.items instead\.",
-        category=FutureWarning,
-    )
+    for message in (
+        "use_inf_as_na option is deprecated.*",
+        r"iteritems is deprecated.*Use \.items instead\.",
+        "is_categorical_dtype is deprecated.*",
+        "The default of observed=False.*",
+    ):
+        warnings.filterwarnings(
+            "ignore",
+            message=message,
+            category=FutureWarning,
+        )
     # pandas in 50_epochs_to_data_frame.py
     warnings.filterwarnings(
         "ignore", message=r"invalid value encountered in cast", category=RuntimeWarning

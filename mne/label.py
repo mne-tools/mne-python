@@ -24,7 +24,11 @@ from .source_estimate import (
     extract_label_time_course,
     spatial_src_adjacency,
 )
-from .source_space import add_source_space_distances, SourceSpaces, _ensure_src
+from .source_space._source_space import (
+    add_source_space_distances,
+    SourceSpaces,
+    _ensure_src,
+)
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (
     complete_surface_info,

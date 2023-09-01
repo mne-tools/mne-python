@@ -15,7 +15,7 @@ from .._fiff.pick import pick_channels_forward
 from ..utils import logger, verbose, _validate_type
 from ..forward.forward import convert_forward_solution, Forward
 from ..source_estimate import _prepare_label_extraction, _make_stc, _get_src_type
-from ..source_space import SourceSpaces, _get_vertno
+from ..source_space._source_space import SourceSpaces, _get_vertno
 from ..label import Label
 
 
