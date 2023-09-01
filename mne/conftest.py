@@ -298,9 +298,9 @@ def raw_ctf():
 
 
 @pytest.fixture(scope="function")
-def raw_psds(raw):
+def raw_spectrum(raw):
     """Get raw with power spectral density computed from mne.io.tests.data."""
-    return [raw.compute_psd(method=method) for method in ("welch", "multitaper")]
+    return raw.compute_psd()
 
 
 @pytest.fixture(scope="function")
@@ -356,12 +356,9 @@ def epochs_full():
 
 
 @pytest.fixture()
-def epochs_psds():
+def epochs_spectrum():
     """Get epochs with power spectral density computed from mne.io.tests.data."""
-    return [
-        _get_epochs().load_data().compute_psd(method=method)
-        for method in ("welch", "multitaper")
-    ]
+    return _get_epochs().load_data().compute_psd()
 
 
 @pytest.fixture()

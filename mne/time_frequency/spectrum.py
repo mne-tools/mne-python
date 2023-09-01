@@ -429,7 +429,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         assert len(self._dims) == self._data.ndim, (self._dims, self._data.ndim)
         assert self._data.shape == self._shape
         # negative values OK if the spectrum is really fourier coefficients
-        if np.iscomplexobj(self._data):
+        if "taper" in self._dims:
             return
         # TODO: should this be more fine-grained (report "chan X in epoch Y")?
         ch_dim = self._dims.index("channel")
@@ -682,8 +682,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             _f = _identity_function
         ch_axis = self._dims.index("channel")
         psd_list = [_f(self._data.take(_p, axis=ch_axis)) for _p in picks_list]
-        if np.iscomplexobj(psd_list[0]):  # convert to power for plotting
-            psd_list = [(psds * psds.conj()).real for psds in psd_list]
         # handle epochs
         if "epoch" in self._dims:
             # XXX TODO FIXME decide how to properly aggregate across repeated
@@ -768,23 +766,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        from .multitaper import _psd_from_mt
-
         if layout is None:
             layout = find_layout(self.info)
 
         psds, freqs = self.get_data(return_freqs=True)
-        # handle unaggregated multitaper
-        if hasattr(self, "_mt_weights"):
-            logger.info("Aggregating multitaper estimates before plotting...")
-            psds = _psd_from_mt(psds, weights=self._mt_weights)
-        # handle unaggregated Welch
-        elif "segment" in self._dims:
-            logger.info("Aggregating Welch estimates (median) before plotting...")
-            seg_axis = self._dims.index("segment")
-            psds = np.nanmedian(psds, axis=seg_axis)
-        if np.iscomplexobj(psds):  # convert to power for plotting
-            psds = (psds * psds.conj()).real
         if "epoch" in self._dims:
             psds = np.mean(psds, axis=self._dims.index("epoch"))
         if dB:
@@ -879,10 +864,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        from .multitaper import _psd_from_mt
-
         ch_type = _get_plot_ch_type(self, ch_type)
-
         if units is None:
             units = _handle_default("units", None)
         unit = units[ch_type] if hasattr(units, "keys") else units
@@ -901,17 +883,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
         psds, freqs = self.get_data(picks=picks, return_freqs=True)
-        # handle unaggregated multitaper
-        if hasattr(self, "_mt_weights"):
-            logger.info("Aggregating multitaper estimates before plotting...")
-            psds = _psd_from_mt(psds, weights=self._mt_weights)
-        # handle unaggregated Welch
-        elif "segment" in self._dims:
-            logger.info("Aggregating Welch estimates (median) before plotting...")
-            seg_axis = self._dims.index("segment")
-            psds = np.nanmedian(psds, axis=seg_axis)
-        if np.iscomplexobj(psds):  # convert to power for plotting
-            psds = (psds * psds.conj()).real
         if "epoch" in self._dims:
             psds = np.mean(psds, axis=self._dims.index("epoch"))
         psds *= scaling**2
@@ -1226,11 +1197,21 @@ class Spectrum(BaseSpectrum):
         return BaseRaw._getitem(self, item, return_times=False)
 
 
-def _check_data_shape(param, dim, data, expected):
-    if data.shape[dim] != expected:
+def _check_data_shape(data, freqs, info, ndim):
+    if data.ndim != ndim:
+        raise ValueError(f"Data must be a {ndim}D array.")
+    want_n_chan = _pick_data_channels(info).size
+    want_n_freq = freqs.size
+    got_n_chan, got_n_freq = data.shape[-2:]
+    if got_n_chan != want_n_chan:
         raise ValueError(
-            f"Expected {param} size to be {expected} in data, "
-            f"got {data.shape[dim]} (dimension {dim})"
+            f"The number of channels in `data` ({got_n_chan}) must match the "
+            f"number of good data channels in `info` ({want_n_chan})."
+        )
+    if got_n_freq != want_n_freq:
+        raise ValueError(
+            f"The last dimension of `data` ({got_n_freq}) must have the same "
+            f"number of elements as `freqs` ({want_n_freq})."
         )
 
 
@@ -1257,7 +1238,7 @@ class SpectrumArray(Spectrum):
     -----
     %(notes_spectrum_array)s
 
-        .. versionadded:: 1.5
+        .. versionadded:: 1.6
     """
 
     @verbose
@@ -1269,17 +1250,14 @@ class SpectrumArray(Spectrum):
         *,
         verbose=None,
     ):
-        _check_option("data.ndim", data.ndim, (2, 3))
-        dims = ("channel", "freq")
-        _check_data_shape("channel", 0, data, _pick_data_channels(info).size)
-        _check_data_shape("freq", 1, data, freqs.size)
+        _check_data_shape(data, freqs, info, ndim=2)
 
         self.__setstate__(
             dict(
                 method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
-                dims=dims,
+                dims=("channel", "freq"),
                 freqs=freqs,
                 inst_type_str="Array",
                 data_type="Power Spectrum",
@@ -1506,7 +1484,7 @@ class EpochsSpectrumArray(EpochsSpectrum):
     -----
     %(notes_spectrum_array)s
 
-        .. versionadded:: 1.5.0
+        .. versionadded:: 1.6
     """
 
     @verbose
@@ -1520,18 +1498,19 @@ class EpochsSpectrumArray(EpochsSpectrum):
         *,
         verbose=None,
     ):
-        _check_option("data.ndim", data.ndim, (3, 4))
-        dims = ("epoch", "channel", "freq")
-        if events is not None:
-            _check_data_shape("epoch", 0, data, events.shape[0])
-        _check_data_shape("channel", 1, data, _pick_data_channels(info).size)
-        _check_data_shape("freq", 2, data, freqs.size)
+        _check_data_shape(data, freqs, info, ndim=3)
+        if events is not None and data.shape[0] != events.shape[0]:
+            raise ValueError(
+                f"The first dimension of `data` ({data.shape[0]}) must match the "
+                f"first dimension of `events` ({events.shape[0]})."
+            )
+
         self.__setstate__(
             dict(
                 method="unknown",
                 data=data,
                 sfreq=info["sfreq"],
-                dims=dims,
+                dims=("epoch", "channel", "freq"),
                 freqs=freqs,
                 inst_type_str="Array",
                 data_type="Power Spectrum",

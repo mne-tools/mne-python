@@ -212,7 +212,8 @@ evoked_array.plot()
 # decomposition for estimation of power spectra. Or you may wish to
 # process pre-computed power spectra in MNE.
 # Following the same logic, it is possible to instantiate averaged power
-# spectrum using the :class:`~mne.time_frequency.SpectrumArray` class.
+# spectrum using the :class:`~mne.time_frequency.SpectrumArray` or
+# :class:`~mne.time_frequency.EpochsSpectrumArray` classes.
 
 # compute power spectrum
 
@@ -229,4 +230,4 @@ spectrum = mne.time_frequency.SpectrumArray(
     info=info,
 )
 
-spectrum.plot(picks=[0, 1], spatial_colors=False, exclude="bads")
+spectrum.plot()

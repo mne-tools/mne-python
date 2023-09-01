@@ -34,7 +34,13 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "tfr_array_multitaper",
         ],
         "psd": ["psd_array_welch"],
-        "spectrum": ["EpochsSpectrum", "Spectrum", "read_spectrum"],
+        "spectrum": [
+            "EpochsSpectrum",
+            "EpochsSpectrumArray",
+            "Spectrum",
+            "SpectrumArray",
+            "read_spectrum",
+        ],
         "tfr": [
             "_BaseTFR",
             "AverageTFR",
@@ -49,14 +55,3 @@ __getattr__, __dir__, __all__ = lazy.attach(
         ],
     },
 )
-from .ar import fit_iir_model_raw
-from .multitaper import dpss_windows, psd_array_multitaper, tfr_array_multitaper
-from .spectrum import (
-    EpochsSpectrum,
-    EpochsSpectrumArray,
-    Spectrum,
-    SpectrumArray,
-    read_spectrum,
-)
-from ._stft import stft, istft, stftfreq
-from ._stockwell import tfr_stockwell, tfr_array_stockwell
