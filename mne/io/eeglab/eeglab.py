@@ -255,6 +255,7 @@ def _set_dig_montage_in_init(self, montage):
 
 
 def _handle_montage_units(montage_units, eeg):
+    _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm", "auto"))
     if montage_units == "auto":
         # estimate units from the channel position value range
         # units could be mm, cm, or m
@@ -274,20 +275,17 @@ def _handle_montage_units(montage_units, eeg):
             is_nan_locs = np.isnan(xyz).any(axis=1)
             mean_radius = np.mean(np.linalg.norm(xyz[~is_nan_locs], axis=1))
             # radius should be between 0.05 and 0.11 meters
-            if mean_radius < 0.25:  # m
-                prefix = ""
-            elif mean_radius < 2.5:  # dm
-                prefix = "d"
-            elif mean_radius > 25:  # mm
-                prefix = "m"
-            else:  # 2.5 <= mean_radius <= 25, cm
-                prefix = "c"
+            if mean_radius < 0.25:
+                montage_units = "m"
+            elif mean_radius < 2.5:
+                montage_units = "dm"
+            elif mean_radius > 25:
+                montage_units = "mm"
+            else:  # 2.5 <= mean_radius <= 25
+                montage_units = "cm"
         else:
-            prefix = "m"  # assume mm if no channel positions are available
-    else:
-        _check_option("montage_units", montage_units, ("m", "dm", "cm", "mm"))
-
-        prefix = montage_units[:-1]
+            montage_units = "mm"  # assume mm if no channel positions are available
+    prefix = montage_units[:-1]
     scale_units = 1 / DEFAULTS["prefixes"][prefix]
     return scale_units
 
