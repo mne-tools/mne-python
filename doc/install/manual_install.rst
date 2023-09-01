@@ -16,16 +16,16 @@ Installing MNE-Python with all dependencies
 If you use Anaconda, we suggest installing MNE-Python into its own ``conda`` environment.
 
 The dependency stack is large and may take a long time (several tens of
-minutes) to resolve on some systems via the default ``conda`` command. We
-therefore highly recommend using `mamba <https://mamba.readthedocs.io/>`__
-instead, a ``conda`` replacement that is **much** faster.
+minutes) to resolve on some systems via the default ``conda`` solver. We
+therefore highly recommend using the new `libmamba <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`__
+solver instead, which is **much** faster.
 
 Run in your terminal:
 
 .. code-block:: console
 
-    $ conda install --channel=conda-forge --name=base mamba
-    $ mamba create --override-channels --channel=conda-forge --name=mne mne
+    $ conda install --channel=conda-forge --name=base conda-libmamba-solver
+    $ conda create --solver=libmamba --override-channels --channel=conda-forge --name=mne mne
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all
@@ -48,7 +48,7 @@ or via :code:`conda`:
 
 .. code-block:: console
 
-   $ conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base
+   $ conda create --override-channels --channel=conda-forge --name=mne mne-base
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
@@ -71,7 +71,7 @@ or via :code:`conda`:
 
 .. code-block:: console
 
-   $ conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
+   $ conda create --override-channels --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
@@ -134,7 +134,7 @@ Python development are:
   .. code-block:: console
 
       $ conda activate mne
-      $ conda install --strict-channel-priority --channel=conda-forge spyder-kernels=...
+      $ conda install --override-channels --channel=conda-forge spyder-kernels=...
 
   Refer to the `Spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
   for more information about ``spyder-kernels`` and the version matching.
