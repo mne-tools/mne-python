@@ -84,6 +84,7 @@ from ...utils import (
     _to_rgb,
     _ensure_int,
     _auto_weakref,
+    _path_like,
 )
 
 
@@ -3055,16 +3056,15 @@ class Brain:
         hemis = self._check_hemis(hemi)
 
         # Figure out where the data is coming from
-        if isinstance(annot, str):
+        if _path_like(annot):
             if os.path.isfile(annot):
-                filepath = annot
-                path = os.path.split(filepath)[0]
-                file_hemi, annot = os.path.basename(filepath).split(".", 1)
+                filepath = _check_fname(annot, overwrite="read")
+                file_hemi, annot = filepath.name.split(".", 1)
                 if len(hemis) > 1:
                     if file_hemi == "lh":
-                        filepaths = [filepath, op.join(path, "rh." + annot)]
+                        filepaths = [filepath, filepath.parent / ("rh." + annot)]
                     elif file_hemi == "rh":
-                        filepaths = [op.join(path, "lh." + annot, filepath)]
+                        filepaths = [filepath.parent / ("lh." + annot), filepath]
                     else:
                         raise RuntimeError(
                             "To add both hemispheres simultaneously, filename must "

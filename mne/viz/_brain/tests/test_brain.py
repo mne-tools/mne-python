@@ -526,7 +526,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     )
     with pytest.raises(ValueError, match="does not exist"):
         brain.add_annotation("foo")
-    brain.add_annotation(str(annots[1]))
+    brain.add_annotation(annots[1])
     brain.close()
     brain = Brain(
         subject="fsaverage",
