@@ -17,6 +17,7 @@ import re
 
 from ..utils import warn, fill_doc, _validate_type, logger, verbose
 
+
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
 

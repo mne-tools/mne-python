@@ -1339,6 +1339,7 @@ def reset_warnings(gallery_conf, fname):
         "use_inf_as_na option is deprecated.*",
         r"iteritems is deprecated.*Use \.items instead\.",
         "is_categorical_dtype is deprecated.*",
+        "The default of observed=False.*",
     ):
         warnings.filterwarnings(
             "ignore",
