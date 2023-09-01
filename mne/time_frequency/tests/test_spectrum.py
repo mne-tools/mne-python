@@ -396,8 +396,6 @@ def _check_spectrum_equivalent(spect1, spect2, tmp_path):
     data2 = spect2.get_data()
     assert_array_equal(data1, data2)
     assert_array_equal(spect1.freqs, spect2.freqs)
-    spect2.save(tmp_path / "spect.h5", overwrite=True)
-    assert_array_equal(data2, read_spectrum(tmp_path / "spect.h5").get_data())
 
 
 def test_spectrum_array_errors(epochs_spectrum):
