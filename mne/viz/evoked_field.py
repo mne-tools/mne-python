@@ -19,16 +19,19 @@ from .ui_events import (
 )
 
 from ..defaults import DEFAULTS
-from ..io.pick import pick_types
 
 from ..utils import (
     _ensure_int,
     _validate_type,
     _check_option,
     _to_rgb,
+    fill_doc,
 )
 
+from .._fiff.pick import pick_types
 
+
+@fill_doc
 class EvokedField:
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
@@ -62,13 +65,16 @@ class EvokedField:
         The number of contours.
 
         .. versionadded:: 0.21
+    show_density : bool
+        Whether to draw the field density as an overlay on top of the helmet/head
+        surface. Defaults to ``True``.
     alpha : float | dict | None
         Opacity of the meshes (between 0 and 1). Can be a dictionary with two
         entries ``"eeg"`` and ``"meg"`` to specify separate values for EEG and
         MEG fields respectively. Can be ``None`` to use 1.0 when a single field
         map is shown, or ``dict(eeg=1.0, meg=0.5)`` when both field maps are shown.
 
-        .. versionadded:: 1.6
+        .. versionadded:: 1.4
     %(interpolation_brain_time)s
 
         .. versionadded:: 1.6
@@ -100,15 +106,15 @@ class EvokedField:
         *,
         time=None,
         time_label="t = %0.0f ms",
-        interpolation="nearest",
-        vmax=None,
-        alpha=None,
-        show_density=True,
-        n_contours=21,
-        time_viewer="auto",
         n_jobs=None,
         fig=None,
+        vmax=None,
+        n_contours=21,
+        show_density=True,
+        alpha=None,
+        interpolation="nearest",
         interaction="terrain",
+        time_viewer="auto",
         verbose=None,
     ):
         from .backends.renderer import _get_renderer
@@ -569,11 +575,12 @@ class EvokedField:
                 publish(
                     self,
                     ColormapRange(
-                        kind=f"field_strength_{surf_map['map_kind']}",
+                        kind=f"field_strength_{type}",
                         fmin=-vmax,
                         fmax=vmax,
                     ),
                 )
+            break
         else:
             raise ValueError(f"No {type.upper()} field map currently shown.")
 

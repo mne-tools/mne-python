@@ -15,6 +15,7 @@ Visualization
 
    Brain
    ClickableImage
+   EvokedField
    Figure3D
    add_background_image
    centers_to_edges
@@ -113,3 +114,4 @@ UI Events
    PlaybackSpeed
    ColormapRange
    VertexSelect
+   Contours

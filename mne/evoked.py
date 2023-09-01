@@ -662,7 +662,11 @@ class Evoked(
         vmax=None,
         n_contours=21,
         *,
+        show_density=True,
+        alpha=None,
+        interpolation="nearest",
         interaction="terrain",
+        time_viewer="auto",
         verbose=None,
     ):
         return plot_evoked_field(
@@ -674,7 +678,11 @@ class Evoked(
             fig=fig,
             vmax=vmax,
             n_contours=n_contours,
+            show_density=show_density,
+            alpha=alpha,
+            interpolation=interpolation,
             interaction=interaction,
+            time_viewer=time_viewer,
             verbose=verbose,
         )
 

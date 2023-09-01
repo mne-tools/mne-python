@@ -439,6 +439,11 @@ def plot_evoked_field(
         The number of contours.
 
         .. versionadded:: 0.21
+    show_density : bool
+        Whether to draw the field density as an overlay on top of the helmet/head
+        surface. Defaults to ``True``.
+
+        .. versionadded:: 1.6
     alpha : float | dict | None
         Opacity of the meshes (between 0 and 1). Can be a dictionary with two
         entries ``"eeg"`` and ``"meg"`` to specify separate values for EEG and
@@ -448,7 +453,7 @@ def plot_evoked_field(
         .. versionadded:: 1.4
     %(interpolation_brain_time)s
 
-        .. versionadded:: 1.4
+        .. versionadded:: 1.6
     %(interaction_scene)s
         Defaults to ``'terrain'``.
 
@@ -456,6 +461,8 @@ def plot_evoked_field(
     time_viewer : bool | str
         Display time viewer GUI. Can also be ``"auto"``, which will mean
         ``True`` for the PyVista backend and ``False`` otherwise.
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
@@ -472,8 +479,8 @@ def plot_evoked_field(
         fig=fig,
         vmax=vmax,
         n_contours=n_contours,
-        show_density=show_density,
         alpha=alpha,
+        show_density=show_density,
         interpolation=interpolation,
         interaction=interaction,
         time_viewer=time_viewer,
