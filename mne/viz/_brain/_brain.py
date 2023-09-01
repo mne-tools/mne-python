@@ -3059,16 +3059,15 @@ class Brain:
             if os.path.isfile(annot):
                 filepath = annot
                 path = os.path.split(filepath)[0]
-                file_hemi, annot = os.path.basename(filepath).split(".")[:2]
+                file_hemi, annot = os.path.basename(filepath).split(".", 1)
                 if len(hemis) > 1:
-                    if annot[:2] == "lh.":
-                        filepaths = [filepath, op.join(path, "rh" + annot[2:])]
-                    elif annot[:2] == "rh.":
-                        filepaths = [op.join(path, "lh" + annot[2:], filepath)]
+                    if file_hemi == "lh":
+                        filepaths = [filepath, op.join(path, "rh." + annot)]
+                    elif file_hemi == "rh":
+                        filepaths = [op.join(path, "lh." + annot, filepath)]
                     else:
                         raise RuntimeError(
-                            "To add both hemispheres "
-                            "simultaneously, filename must "
+                            "To add both hemispheres simultaneously, filename must "
                             'begin with "lh." or "rh."'
                         )
                 else:
