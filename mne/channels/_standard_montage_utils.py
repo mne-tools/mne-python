@@ -9,7 +9,7 @@ import os.path as op
 import numpy as np
 
 from functools import partial
-import xml.etree.ElementTree as ElementTree
+from defusedxml import ElementTree
 
 from .montage import make_dig_montage
 from .._freesurfer import get_mni_fiducials

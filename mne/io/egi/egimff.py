@@ -5,7 +5,7 @@ import datetime
 import math
 import os.path as op
 import re
-from xml.dom.minidom import parse
+from defusedxml.minidom import parse
 from pathlib import Path
 
 import numpy as np
