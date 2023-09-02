@@ -2070,7 +2070,7 @@ def plot_evoked_topomap(
     interface to adjust the colorbar size yourself.
 
     When ``time=="interactive"``, the figure will publish and subscribe to the
-    following events:
+    following UI events:
 
     * :class:`~mne.viz.ui_events.TimeChange` whenever a new time is selected.
     """

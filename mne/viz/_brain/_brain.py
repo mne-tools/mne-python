@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-import contextlib
 from functools import partial
 from io import BytesIO
 import os
@@ -25,13 +24,6 @@ from scipy.spatial.distance import cdist
 from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
-from .callback import (
-    ShowView,
-    TimeCallBack,
-    SmartCallBack,
-    UpdateLUT,
-    UpdateColorbarScale,
-)
 
 from ..utils import (
     _show_help_fig,
@@ -84,6 +76,19 @@ from ...utils import (
     _to_rgb,
     _ensure_int,
     _auto_weakref,
+    _path_like,
+)
+
+from ..ui_events import (
+    publish,
+    subscribe,
+    unsubscribe,
+    TimeChange,
+    PlaybackSpeed,
+    ColormapRange,
+    VertexSelect,
+    disable_ui_events,
+    _get_event_channel,
 )
 
 
@@ -190,6 +195,13 @@ class Brain:
 
     Notes
     -----
+    The figure will publish and subscribe to the following UI events:
+
+    * :class:`~mne.viz.ui_events.TimeChange`
+    * :class:`~mne.viz.ui_events.PlaybackSpeed`
+    * :class:`~mne.viz.ui_events.ColormapRange`, ``kind="distributed_source_power"``
+    * :class:`~mne.viz.ui_events.VertexSelect`
+
     This table shows the capabilities of each Brain backend ("✓" for full
     support, and "-" for partial support):
 
@@ -362,7 +374,6 @@ class Brain:
         self._layered_meshes = dict()
         self._actors = dict()
         self._elevation_rng = [15, 165]  # range of motion of camera on theta
-        self._lut_locked = None
         self._cleaned = False
         # default values for silhouette
         self._silhouette = {
@@ -405,6 +416,7 @@ class Brain:
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
+        self.widgets = dict()
 
         self._setup_canonical_rotation()
 
@@ -555,9 +567,6 @@ class Brain:
         self.pick_table = dict()
         self._spheres = list()
         self._mouse_no_mvt = -1
-        self.callbacks = dict()
-        self.widgets = dict()
-        self.keys = ("fmin", "fmid", "fmax")
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -735,11 +744,10 @@ class Brain:
         self.reset_view()
         max_time = len(self._data["time"]) - 1
         if max_time > 0:
-            self.callbacks["time"](
-                self._data["initial_time_idx"],
-                update_widget=True,
+            publish(
+                self,
+                TimeChange(time=self._time_interp_inv(self._data["initial_time_idx"])),
             )
-        self._renderer._update()
 
     def set_playback_speed(self, speed):
         """Set the time playback speed.
@@ -749,7 +757,7 @@ class Brain:
         speed : float
             The speed of the playback.
         """
-        self.playback_speed = speed
+        publish(self, PlaybackSpeed(speed=speed))
 
     @safe_event
     def _play(self):
@@ -765,15 +773,10 @@ class Brain:
         delta = this_time - self._last_tick
         self._last_tick = time.time()
         time_data = self._data["time"]
-        times = np.arange(self._n_times)
         time_shift = delta * self.playback_speed
         max_time = np.max(time_data)
         time_point = min(self._current_time + time_shift, max_time)
-        # always use linear here -- this does not determine the data
-        # interpolation mode, it just finds where we are (in time) in
-        # terms of the time indices
-        idx = np.interp(time_point, time_data, times)
-        self.callbacks["time"](idx, update_widget=True)
+        publish(self, TimeChange(time=time_point))
         if time_point == max_time:
             self.toggle_playback(value=False)
 
@@ -819,25 +822,23 @@ class Brain:
         layout = self._renderer._dock_add_group_box(name)
         len_time = len(self._data["time"]) - 1
 
+        @_auto_weakref
+        def publish_time_change(time_idx):
+            publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
+
         # Time widget
         if len_time < 1:
-            self.callbacks["time"] = None
             self.widgets["time"] = None
         else:
-            self.callbacks["time"] = TimeCallBack(
-                brain=self,
-                callback=self.plot_time_line,
-            )
             self.widgets["time"] = self._renderer._dock_add_slider(
                 name="Time (s)",
                 value=self._data["time_idx"],
                 rng=[0, len_time],
                 double=True,
-                callback=self.callbacks["time"],
+                callback=publish_time_change,
                 compact=False,
                 layout=layout,
             )
-            self.callbacks["time"].widget = self.widgets["time"]
 
         # Time labels
         if len_time < 1:
@@ -846,24 +847,19 @@ class Brain:
             self.widgets["current_time"] = None
         else:
             self._configure_dock_time_widget(layout)
-            self.callbacks["time"].label = self.widgets["current_time"]
 
         # Playback speed widget
         if len_time < 1:
-            self.callbacks["playback_speed"] = None
             self.widgets["playback_speed"] = None
         else:
-            self.callbacks["playback_speed"] = SmartCallBack(
-                callback=self.set_playback_speed,
-            )
             self.widgets["playback_speed"] = self._renderer._dock_add_spin_box(
                 name="Speed",
                 value=self.default_playback_speed_value,
                 rng=self.default_playback_speed_range,
-                callback=self.callbacks["playback_speed"],
+                callback=self.set_playback_speed,
                 layout=layout,
             )
-            self.callbacks["playback_speed"].widget = self.widgets["playback_speed"]
+            subscribe(self, "playback_speed", self._on_playback_speed)
 
         # Time label
         current_time = self._current_time
@@ -883,22 +879,19 @@ class Brain:
         rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
 
+            @_auto_weakref
             def select_renderer(idx):
                 idx = int(idx)
                 loc = self._renderer._index_to_loc(idx)
                 self.plotter.subplot(*loc)
 
-            self.callbacks["renderer"] = SmartCallBack(
-                callback=select_renderer,
-            )
             self.widgets["renderer"] = self._renderer._dock_add_combo_box(
                 name="Renderer",
                 value="0",
                 rng=rends,
-                callback=self.callbacks["renderer"],
+                callback=select_renderer,
                 layout=layout,
             )
-            self.callbacks["renderer"].widget = self.widgets["renderer"]
 
         # Use 'lh' as a reference for orientation for 'both'
         if self._hemi == "both":
@@ -914,46 +907,67 @@ class Brain:
                 else:
                     _data = dict(default=v, hemi=hemi, row=ri, col=ci)
                 orientation_data[idx] = _data
-        self.callbacks["orientation"] = ShowView(
-            brain=self,
-            data=orientation_data,
-        )
+
+        @_auto_weakref
+        def set_orientation(value, orientation_data=orientation_data):
+            if "renderer" in self.widgets:
+                idx = int(self.widgets["renderer"].get_value())
+            else:
+                idx = 0
+            if orientation_data[idx] is not None:
+                self.show_view(
+                    value,
+                    row=orientation_data[idx]["row"],
+                    col=orientation_data[idx]["col"],
+                    hemi=orientation_data[idx]["hemi"],
+                )
+
         self.widgets["orientation"] = self._renderer._dock_add_combo_box(
             name=None,
             value=self.orientation[0],
             rng=self.orientation,
-            callback=self.callbacks["orientation"],
+            callback=set_orientation,
             layout=layout,
         )
 
     def _configure_dock_colormap_widget(self, name):
+        fmin, fmax, fscale, fscale_power = _get_range(self)
+        rng = [fmin * fscale, fmax * fscale]
+        self._data["fscale"] = fscale
+
         layout = self._renderer._dock_add_group_box(name)
+        text = "min / mid / max"
+        if fscale_power != 0:
+            text += f" (×1e{fscale_power:d})"
         self._renderer._dock_add_label(
-            value="min / mid / max",
+            value=text,
             align=True,
             layout=layout,
         )
-        up = UpdateLUT(brain=self)
-        for key in self.keys:
+
+        @_auto_weakref
+        def update_single_lut_value(value, key):
+            # Called by the sliders and spin boxes.
+            self.update_lut(**{key: value / self._data["fscale"]})
+
+        keys = ("fmin", "fmid", "fmax")
+        for key in keys:
             hlayout = self._renderer._dock_add_layout(vertical=False)
-            rng = _get_range(self)
-            self.callbacks[key] = lambda value, key=key: up(**{key: value})
             self.widgets[key] = self._renderer._dock_add_slider(
                 name=None,
-                value=self._data[key],
+                value=self._data[key] * self._data["fscale"],
                 rng=rng,
-                callback=self.callbacks[key],
+                callback=partial(update_single_lut_value, key=key),
                 double=True,
                 layout=hlayout,
             )
             self.widgets[f"entry_{key}"] = self._renderer._dock_add_spin_box(
                 name=None,
-                value=self._data[key],
-                callback=self.callbacks[key],
+                value=self._data[key] * self._data["fscale"],
+                callback=partial(update_single_lut_value, key=key),
                 rng=rng,
                 layout=hlayout,
             )
-            up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
             self._renderer._layout_add_widget(layout, hlayout)
 
         # reset / minus / plus
@@ -969,26 +983,29 @@ class Brain:
             layout=hlayout,
             style="toolbutton",
         )
-        for key, char, val in (
-            ("fminus", "➖", 1.2**-0.25),
-            ("fplus", "➕", 1.2**0.25),
-        ):
-            self.callbacks[key] = UpdateColorbarScale(
-                brain=self,
-                factor=val,
-            )
-            self.widgets[key] = self._renderer._dock_add_button(
-                name=char,
-                callback=self.callbacks[key],
-                layout=hlayout,
-                style="toolbutton",
-            )
-        self._renderer._layout_add_widget(layout, hlayout)
 
-        # register colorbar slider representations
-        widgets = {key: self.widgets[key] for key in self.keys}
-        for name in ("fmin", "fmid", "fmax", "fminus", "fplus"):
-            self.callbacks[name].widgets = widgets
+        @_auto_weakref
+        def fminus():
+            self._update_fscale(1.2**-0.25)
+
+        self.widgets["fminus"] = self._renderer._dock_add_button(
+            name="➖",
+            callback=fminus,
+            layout=hlayout,
+            style="toolbutton",
+        )
+
+        @_auto_weakref
+        def fplus():
+            self._update_fscale(1.2**0.25)
+
+        self.widgets["fplus"] = self._renderer._dock_add_button(
+            name="➕",
+            callback=fplus,
+            layout=hlayout,
+            style="toolbutton",
+        )
+        self._renderer._layout_add_widget(layout, hlayout)
 
     def _configure_dock_trace_widget(self, name):
         if not self.show_traces:
@@ -1078,17 +1095,13 @@ class Brain:
         self._configure_dock_trace_widget(name="Trace")
 
         # Smoothing widget
-        self.callbacks["smoothing"] = SmartCallBack(
-            callback=self.set_data_smoothing,
-        )
         self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
             name="Smoothing",
             value=self._data["smoothing_steps"],
             rng=self.default_smoothing_range,
-            callback=self.callbacks["smoothing"],
+            callback=self.set_data_smoothing,
             double=False,
         )
-        self.callbacks["smoothing"].widget = self.widgets["smoothing"]
 
         self._renderer._dock_finalize()
 
@@ -1172,12 +1185,8 @@ class Brain:
             ind = np.unravel_index(
                 np.argmax(np.abs(use_data), axis=None), use_data.shape
             )
-            if hemi == "vol":
-                mesh = hemi_data["grid"]
-            else:
-                mesh = self._layered_meshes[hemi]._polydata
             vertex_id = vertices[ind[0]]
-            self._add_vertex_glyph(hemi, mesh, vertex_id, update=False)
+            publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
 
     def _configure_picking(self):
         # get data for each hemi
@@ -1202,6 +1211,7 @@ class Brain:
             self._on_button_release,
             self._on_pick,
         )
+        subscribe(self, "vertex_select", self._on_vertex_select)
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
@@ -1263,11 +1273,10 @@ class Brain:
             shortcut="?",
         )
 
-    def _shift_time(self, op):
-        self.callbacks["time"](
-            value=(op(self._current_time, self.playback_speed)),
-            time_as_index=False,
-            update_widget=True,
+    def _shift_time(self, shift_func):
+        publish(
+            self,
+            TimeChange(time=shift_func(self._current_time, self.playback_speed)),
         )
 
     def _rotate_azimuth(self, value):
@@ -1283,18 +1292,19 @@ class Brain:
         self._renderer.set_camera(elevation=elevation, reset_camera=False)
 
     def _configure_shortcuts(self):
-        # First, we remove the default bindings:
-        self._clear_callbacks()
+        # Remove the default key binding
+        if getattr(self, "iren", None) is not None:
+            self.plotter.iren.clear_key_event_callbacks()
         # Then, we add our own:
         self.plotter.add_key_event("i", self.toggle_interface)
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
         self.plotter.add_key_event(
-            "n", partial(self._shift_time, op=lambda x, y: x + y)
+            "n", partial(self._shift_time, shift_func=lambda x, y: x + y)
         )
         self.plotter.add_key_event(
-            "b", partial(self._shift_time, op=lambda x, y: x - y)
+            "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
         )
         for key, func, sign in (
             ("Left", self._rotate_azimuth, 1),
@@ -1435,10 +1445,67 @@ class Brain:
             idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-        if self.traces_mode == "label":
-            self._add_label_glyph(hemi, mesh, vertex_id)
+        publish(self, VertexSelect(hemi=hemi, vertex_id=vertex_id))
+
+    def _on_time_change(self, event):
+        """Respond to a time change UI event."""
+        if event.time == self._current_time:
+            return
+        time_idx = self._to_time_index(event.time)
+        self._update_current_time_idx(time_idx)
+        if self.time_viewer:
+            with disable_ui_events(self):
+                if "time" in self.widgets:
+                    self.widgets["time"].set_value(time_idx)
+                if "current_time" in self.widgets:
+                    self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
+            self.plot_time_line(update=True)
+
+    def _on_playback_speed(self, event):
+        """Respond to the playback_speed UI event."""
+        if event.speed == self.playback_speed:
+            return
+        self.playback_speed = event.speed
+        if "playback_speed" in self.widgets:
+            with disable_ui_events(self):
+                self.widgets["playback_speed"].set_value(event.speed)
+
+    def _on_colormap_range(self, event):
+        """Respond to the colormap_range UI event."""
+        if event.kind != "distributed_source_power":
+            return
+        lims = {key: getattr(event, key) for key in ("fmin", "fmid", "fmax", "alpha")}
+        # Check if limits have changed at all.
+        if all(val is None or val == self._data[key] for key, val in lims.items()):
+            return
+        # Update the GUI elements.
+        with disable_ui_events(self):
+            for key, val in lims.items():
+                if val is not None:
+                    if key in self.widgets:
+                        self.widgets[key].set_value(val * self._data["fscale"])
+                    entry_key = "entry_" + key
+                    if entry_key in self.widgets:
+                        self.widgets[entry_key].set_value(val * self._data["fscale"])
+        # Update the render.
+        self._update_colormap_range(**lims)
+
+    def _on_vertex_select(self, event):
+        """Respond to vertex_select UI event."""
+        if event.hemi == "vol":
+            try:
+                mesh = self._data[event.hemi]["grid"]
+            except KeyError:
+                return
         else:
-            self._add_vertex_glyph(hemi, mesh, vertex_id)
+            try:
+                mesh = self._layered_meshes[event.hemi]._polydata
+            except KeyError:
+                return
+        if self.traces_mode == "label":
+            self._add_label_glyph(event.hemi, mesh, event.vertex_id)
+        else:
+            self._add_vertex_glyph(event.hemi, mesh, event.vertex_id)
 
     def _add_label_glyph(self, hemi, mesh, vertex_id):
         if hemi == "vol":
@@ -1688,13 +1755,6 @@ class Brain:
         self.help_canvas.show()
 
     def _clear_callbacks(self):
-        if not hasattr(self, "callbacks"):
-            return
-        for callback in self.callbacks.values():
-            if callback is not None:
-                for key in ("plotter", "brain", "callback", "widget", "widgets"):
-                    setattr(callback, key, None)
-        self.callbacks.clear()
         # Remove the default key binding
         if getattr(self, "iren", None) is not None:
             self.plotter.iren.clear_key_event_callbacks()
@@ -1998,7 +2058,7 @@ class Brain:
         self._data["fmin"] = fmin
         self._data["fmid"] = fmid
         self._data["fmax"] = fmax
-        self.update_lut()
+        self._update_colormap_range()
 
         # 1) add the surfaces first
         actor = None
@@ -2012,7 +2072,7 @@ class Brain:
         self._add_actor("data", actor)
 
         # 2) update time and smoothing properties
-        # set_data_smoothing calls "set_time_point" for us, which will set
+        # set_data_smoothing calls "_update_current_time_idx" for us, which will set
         # _current_time
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._data["smoothing_steps"])
@@ -2049,11 +2109,20 @@ class Brain:
             )
 
         # 4) update the scalar bar and opacity
-        self.update_lut(alpha=alpha)
+        self._update_colormap_range(alpha=alpha)
+
+        # 5) enable UI events to interact with the data
+        subscribe(self, "colormap_range", self._on_colormap_range)
+        if time is not None and len(time) > 1:
+            subscribe(self, "time_change", self._on_time_change)
 
     def remove_data(self):
         """Remove rendered data from the mesh."""
         self._remove("data", render=True)
+
+        # Stop listening to events
+        if "time_change" in _get_event_channel(self):
+            unsubscribe(self, "time_change")
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
@@ -3055,20 +3124,18 @@ class Brain:
         hemis = self._check_hemis(hemi)
 
         # Figure out where the data is coming from
-        if isinstance(annot, str):
+        if _path_like(annot):
             if os.path.isfile(annot):
-                filepath = annot
-                path = os.path.split(filepath)[0]
-                file_hemi, annot = os.path.basename(filepath).split(".")[:2]
+                filepath = _check_fname(annot, overwrite="read")
+                file_hemi, annot = filepath.name.split(".", 1)
                 if len(hemis) > 1:
-                    if annot[:2] == "lh.":
-                        filepaths = [filepath, op.join(path, "rh" + annot[2:])]
-                    elif annot[:2] == "rh.":
-                        filepaths = [op.join(path, "lh" + annot[2:], filepath)]
+                    if file_hemi == "lh":
+                        filepaths = [filepath, filepath.parent / ("rh." + annot)]
+                    elif file_hemi == "rh":
+                        filepaths = [filepath.parent / ("lh." + annot), filepath]
                     else:
                         raise RuntimeError(
-                            "To add both hemispheres "
-                            "simultaneously, filename must "
+                            "To add both hemispheres simultaneously, filename must "
                             'begin with "lh." or "rh."'
                         )
                 else:
@@ -3371,18 +3438,29 @@ class Brain:
             )
         return img
 
-    @contextlib.contextmanager
-    def _no_lut_update(self, why):
-        orig = self._lut_locked
-        self._lut_locked = why
-        try:
-            yield
-        finally:
-            self._lut_locked = orig
-
     @fill_doc
     def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
-        """Update color map.
+        """Update the range of the color map.
+
+        Parameters
+        ----------
+        %(fmin_fmid_fmax)s
+        %(alpha)s
+        """
+        publish(
+            self,
+            ColormapRange(
+                kind="distributed_source_power",
+                fmin=fmin,
+                fmid=fmid,
+                fmax=fmax,
+                alpha=alpha,
+            ),
+        )
+
+    @fill_doc
+    def _update_colormap_range(self, fmin=None, fmid=None, fmax=None, alpha=None):
+        """Update the range of the color map.
 
         Parameters
         ----------
@@ -3390,9 +3468,6 @@ class Brain:
         %(alpha)s
         """
         args = f"{fmin}, {fmid}, {fmax}, {alpha}"
-        if self._lut_locked is not None:
-            logger.debug(f"LUT update postponed with {args}")
-            return
         logger.debug(f"Updating LUT with {args}")
         center = self._data["center"]
         colormap = self._data["colormap"]
@@ -3444,10 +3519,6 @@ class Brain:
                         self._renderer._set_colormap_range(
                             glyph_actor_, ctable, self._scalar_bar, rng
                         )
-        if self.time_viewer:
-            with self._no_lut_update(f"update_lut {args}"):
-                for key in ("fmin", "fmid", "fmax"):
-                    self.callbacks[key](lims[key])
         self._renderer._update()
 
     def set_data_smoothing(self, n_steps):
@@ -3483,7 +3554,7 @@ class Brain:
                         warn=False,
                     )
                 self._data[hemi]["smooth_mat"] = smooth_mat
-        self.set_time_point(self._data["time_idx"])
+        self._update_current_time_idx(self._data["time_idx"])
         self._data["smoothing_steps"] = n_steps
 
     @property
@@ -3525,8 +3596,8 @@ class Brain:
                     )
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
-    def set_time_point(self, time_idx):
-        """Set the time point shown (can be a float to interpolate).
+    def _update_current_time_idx(self, time_idx):
+        """Update all widgets in the figure to reflect a new time point.
 
         Parameters
         ----------
@@ -3597,6 +3668,25 @@ class Brain:
         self._data["time_idx"] = time_idx
         self._renderer._update()
 
+    def set_time_point(self, time_idx):
+        """Set the time point to display (can be a float to interpolate).
+
+        Parameters
+        ----------
+        time_idx : int | float
+            The time index to use. Can be a float to use interpolation
+            between indices.
+        """
+        if self._times is None:
+            raise ValueError("Cannot set time when brain has no defined times.")
+        elif 0 <= time_idx <= len(self._times):
+            publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
+        else:
+            raise ValueError(
+                f"Requested time point ({time_idx}) is outside the range of "
+                f"available time points (0-{len(self._times)})."
+            )
+
     def set_time(self, time):
         """Set the time to display (in seconds).
 
@@ -3608,9 +3698,7 @@ class Brain:
         if self._times is None:
             raise ValueError("Cannot set time when brain has no defined times.")
         elif min(self._times) <= time <= max(self._times):
-            self.set_time_point(
-                np.interp(float(time), self._times, np.arange(self._n_times))
-            )
+            publish(self, TimeChange(time=time))
         else:
             raise ValueError(
                 f"Requested time ({time} s) is outside the range of "
@@ -3979,19 +4067,15 @@ class Brain:
         -----
         Used by movie and image sequence saving functions.
         """
-        if self.time_viewer:
-            func = partial(self.callbacks["time"], update_widget=True)
-        else:
-            func = self.set_time_point
         current_time_idx = self._data["time_idx"]
         for ii, idx in enumerate(time_idx):
-            func(idx)
+            self.set_time_point(idx)
             if callback is not None:
                 callback(frame=ii, n_frames=len(time_idx))
             yield idx
 
         # Restore original time index
-        func(current_time_idx)
+        self.set_time_point(current_time_idx)
 
     def _check_stc(self, hemi, array, vertices):
         from ...source_estimate import (
@@ -4155,8 +4239,24 @@ def _update_monotonic(lims, fmin, fmid, fmax):
 
 
 def _get_range(brain):
+    """Get the data limits.
+
+    Since they may be very small (1E-10 and such), we apply a scaling factor
+    such that the data range lies somewhere between 0.01 and 100. This makes
+    for more usable sliders. When setting a value on the slider, the value is
+    multiplied by the scaling factor and when getting a value, this value
+    should be divided by the scaling factor.
+    """
     val = np.abs(np.concatenate(list(brain._current_act_data.values())))
-    return [np.min(val), np.max(val)]
+    fmin, fmax = np.min(val), np.max(val)
+    if 1e-02 <= fmax <= 1e02:
+        fscale_power = 0
+    else:
+        fscale_power = int(np.log10(fmax))
+        if fscale_power < 0:
+            fscale_power -= 1
+    fscale = 10**-fscale_power
+    return fmin, fmax, fscale, fscale_power
 
 
 class _FakeIren:
