@@ -58,7 +58,7 @@ class _TempDir(str):
 
 def requires_mne(func):
     """Decorate a function as requiring MNE."""
-    return requires_mne_mark(func)
+    return requires_mne_mark()(func)
 
 
 def requires_mne_mark():
