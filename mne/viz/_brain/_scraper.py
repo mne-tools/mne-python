@@ -45,7 +45,13 @@ class _BrainScraper:
                             else:
                                 break
                         assert line.startswith("(") and line.endswith(")")
-                        kwargs.update(literal_eval(f"dict{line}"))
+                        # Parse a=1, b='whatever', c=...
+                        # using literal_eval because it's safer
+                        line = line[1:-1]
+                        for item in line.split(","):
+                            item = item.strip()
+                            key, val = item.split("=", maxsplit=1)
+                            kwargs[key] = literal_eval(val)
                 for key, default in [
                     ("time_dilation", 4),
                     ("framerate", 24),
