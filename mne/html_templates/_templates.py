@@ -7,12 +7,11 @@ def _get_html_templates_env(kind):
     assert kind in ("repr", "report"), kind
     import jinja2
 
-    autoescape = jinja2.select_autoescape(default=True, default_for_string=True)
     templates_env = jinja2.Environment(
         loader=jinja2.PackageLoader(
             package_name="mne.html_templates", package_path=kind
         ),
-        autoescape=autoescape,
+        autoescape=jinja2.select_autoescape(default=True, default_for_string=True),
     )
     if kind == "report":
         templates_env.filters["zip"] = zip

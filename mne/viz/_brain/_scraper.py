@@ -44,7 +44,7 @@ class _BrainScraper:
                             else:
                                 break
                         assert line.startswith("(") and line.endswith(")")
-                        kwargs.update(eval(f"dict{line}"))
+                        kwargs.update(eval(f"dict{line}"))  # nosec B307
                 for key, default in [
                     ("time_dilation", 4),
                     ("framerate", 24),
