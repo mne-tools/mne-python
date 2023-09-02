@@ -40,7 +40,7 @@ def read_mrk(fname):
     ----------
     fname : path-like
         Absolute path to Marker file.
-        File formats allowed: \*.sqd, \*.mrk, \*.txt, \*.pickled.
+        File formats allowed: \*.sqd, \*.mrk, \*.txt.
 
     Returns
     -------
@@ -49,9 +49,9 @@ def read_mrk(fname):
     """
     from .kit import _read_dirs
 
-    fname = Path(fname)
-    _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt", ".pickled"))
-    _check_fname(fname, "read", must_exist=True, name="mrk file")
+    fname = Path(_check_fname(fname, "read", must_exist=True, name="mrk file"))
+    if fname.suffix != ".pickled":
+        _check_option("file extension", fname.suffix, (".sqd", ".mrk", ".txt"))
     if fname.suffix in (".sqd", ".mrk"):
         with open(fname, "rb", buffering=0) as fid:
             dirs = _read_dirs(fid)
@@ -70,14 +70,18 @@ def read_mrk(fname):
     elif fname.suffix == ".txt":
         mrk_points = _read_dig_kit(fname, unit="m")
     elif fname.suffix == ".pickled":
-        # TODO should we still be supporting pickled here?
+        warn(
+            "Reading pickled files is unsafe and not future compatible, save "
+            "to a standard format (text or FIF) instea, e.g. with:\n"
+            r"np.savetxt(fid, pts, delimiter=\"\\t\", newline=\"\\n\")",
+            FutureWarning,
+        )
         with open(fname, "rb") as fid:
             food = pickle.load(fid)  # nosec B301
         try:
             mrk_points = food["mrk"]
         except Exception:
-            err = "%r does not contain marker points." % fname
-            raise ValueError(err)
+            raise ValueError(f"{fname} does not contain marker points.") from None
 
     # check output
     mrk_points = np.asarray(mrk_points)
