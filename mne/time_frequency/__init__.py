@@ -34,7 +34,13 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "tfr_array_multitaper",
         ],
         "psd": ["psd_array_welch"],
-        "spectrum": ["EpochsSpectrum", "Spectrum", "read_spectrum"],
+        "spectrum": [
+            "EpochsSpectrum",
+            "EpochsSpectrumArray",
+            "Spectrum",
+            "SpectrumArray",
+            "read_spectrum",
+        ],
         "tfr": [
             "_BaseTFR",
             "AverageTFR",
