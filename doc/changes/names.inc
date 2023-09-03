@@ -416,6 +416,8 @@
 
 .. _Proloy Das: https://github.com/proloyd
 
+.. _Qian Chu: https://github.com/qian-chu
+
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 
 .. _Quentin Barthélemy: https://github.com/qbarthelemy

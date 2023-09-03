@@ -44,6 +44,7 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     3. Resample ``other`` to match ``raw`` based on the clock drift.
     4. Crop the end of ``raw`` or ``other``, depending on which stopped
        recording first (and the clock drift rate).
+    5. Realign the onsets and durations in ``other.annotations``.
 
     This function is primarily designed to work on recordings made at the same
     sample rate, but it can also operate on recordings made at different
@@ -85,16 +86,15 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         f"{raw.times[-1] * dr_ms_s:0.1f} ms)"
     )
 
-    # 2. Crop start of recordings to match using the zero-order term
-    msg = f"Cropping {zero_ord:0.3f} s from the start of "
+    # 2. Crop start of recordings to match
     if zero_ord > 0:  # need to crop start of raw to match other
-        logger.info(msg + "raw")
+        logger.info(f"Cropping {zero_ord:0.3f} s from the start of raw")
         raw.crop(zero_ord, None)
         t_raw -= zero_ord
     else:  # need to crop start of other to match raw
-        logger.info(msg + "other")
-        other.crop(-zero_ord, None)
-        t_other += zero_ord
+        logger.info(f"Cropping {(zero_ord / first_ord):0.3f} s from the start of other")
+        other.crop(-(zero_ord / first_ord), None)
+        t_other += zero_ord / first_ord
 
     # 3. Resample data using the first-order term
     logger.info("Resampling other")
@@ -112,3 +112,8 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     elif delta < 0:
         logger.info(msg + "other")
         other.crop(0, raw.times[-1])
+
+    # 5. Realign the onsets and durations in other.annotationsusing the first-order term
+    logger.info("Correcting annotations in other")
+    other.annotations.onset *= first_ord
+    other.annotations.duration *= first_ord
