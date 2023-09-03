@@ -2096,6 +2096,7 @@ def test_expand_user(tmp_path, monkeypatch):
     raw.save(fname=path_home, overwrite=True)
 
 
+@testing.requires_testing_data
 def test_zip_io(tmp_path_factory):
     """Test writin to zip and reading back preserves data."""
     fname = fif_fname.name
