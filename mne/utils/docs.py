@@ -1696,9 +1696,10 @@ fnirs : str | list | bool | None
 docdict[
     "focalpoint"
 ] = """
-focalpoint : tuple, shape (3,) | None
+focalpoint : tuple, shape (3,) | str | None
     The focal point of the camera rendering the view: (x, y, z) in
-    plot units (either m or mm).
+    plot units (either m or mm). When ``"auto"``, it is set to the center of
+    mass of the visible bounds.
 """
 
 docdict[
@@ -2815,6 +2816,16 @@ of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
 
 docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
+
+docdict[
+    "notes_spectrum_array"
+] = """
+It is assumed that the data passed in represent spectral *power* (not amplitude,
+phase, model coefficients, etc) and downstream methods (such as
+:meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
+something other than power, at the very least axis labels will be inaccurate (and
+other things may also not work or be incorrect).
+"""
 
 docdict[
     "notes_tmax_included_by_default"
@@ -4569,6 +4580,13 @@ tmin : scalar
 """
 
 docdict[
+    "tmin_epochs"
+] = """
+tmin : float
+    Start time before event. If nothing provided, defaults to 0.
+"""
+
+docdict[
     "tmin_raw"
 ] = """
 tmin : float
@@ -4672,6 +4690,15 @@ tstep : scalar
 
 # %%
 # U
+
+docdict[
+    "ui_event_name_source"
+] = """
+name : str
+    The name of the event (same as its class name but in snake_case).
+source : matplotlib.figure.Figure | Figure3D
+    The figure that published the event.
+"""
 
 docdict[
     "uint16_codec"

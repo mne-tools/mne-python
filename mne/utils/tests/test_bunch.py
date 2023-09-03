@@ -20,5 +20,5 @@ def test_pickle():
     assert isinstance(b1.y, NamedFloat)
     assert repr(b1.y) == "2.12 (y)"
 
-    b2 = pickle.loads(pickle.dumps(b1))
+    b2 = pickle.loads(pickle.dumps(b1))  # nosec B301
     assert b1 == b2

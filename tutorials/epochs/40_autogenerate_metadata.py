@@ -48,7 +48,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import mne
 
-
 data_dir = Path(mne.datasets.erp_core.data_path())
 infile = data_dir / "ERP-CORE_Subject-001_Task-Flankers_eeg.fif"
 
@@ -240,6 +239,8 @@ metadata[["first_stimulus", "first_response"]]
 # check whether the response matches the stimulation side, and add this result
 # to another column.
 
+metadata.loc[:, "stimulus_side"] = ""  # initialize column
+
 # left-side stimulation
 metadata.loc[
     metadata["first_stimulus"].isin(
@@ -355,6 +356,8 @@ metadata, events, event_id = mne.epochs.make_metadata(
 # %%
 # Exactly like in the previous example, we create new columns ``stimulus_side``
 # and ``response_correct``.
+
+metadata.loc[:, "stimulus_side"] = ""  # initialize column
 
 # left-side stimulation
 metadata.loc[
