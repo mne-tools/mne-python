@@ -3,7 +3,7 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial, wraps
+from functools import wraps
 import os
 import inspect
 from io import StringIO
@@ -19,6 +19,7 @@ from scipy import linalg
 
 from ._logging import warn, ClosingStringIO
 from .check import check_version
+from .misc import run_subprocess
 from .numerics import object_diff
 
 
@@ -55,33 +56,9 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def _requires_module(function, name, *, call):
-    import pytest
-
-    call = ("import %s" % name) if call is None else call
-    reason = "Test %s skipped, requires %s." % (function.__name__, name)
-    try:
-        exec(call) in globals(), locals()
-    except Exception as exc:
-        if len(str(exc)) > 0 and str(exc) != "No module named %s" % name:
-            reason += " Got exception (%s)" % (exc,)
-        skip = True
-    else:
-        skip = False
-    return pytest.mark.skipif(skip, reason=reason)(function)
-
-
-_mne_call = """
-if not has_mne_c():
-    raise ImportError
-"""
-
-_fs_call = """
-if not has_freesurfer():
-    raise ImportError
-"""
-
-requires_mne = partial(_requires_module, name="MNE-C", call=_mne_call)
+def requires_mne(func):
+    """Decorate a function as requiring MNE."""
+    return requires_mne_mark()(func)
 
 
 def requires_mne_mark():
@@ -102,28 +79,35 @@ def requires_openmeeg_mark():
 
 def requires_freesurfer(arg):
     """Require Freesurfer."""
+    import pytest
+
+    reason = "Requires Freesurfer"
     if isinstance(arg, str):
         # Calling as  @requires_freesurfer('progname'): return decorator
         # after checking for progname existence
-        call = """
-from . import run_subprocess
-run_subprocess([%r, '--version'])
-""" % (
-            arg,
-        )
-        return partial(_requires_module, name="Freesurfer (%s)" % (arg,), call=call)
+        reason += f" command: {arg}"
+        try:
+            run_subprocess([arg, "--version"])
+        except Exception:
+            skip = True
+        else:
+            skip = False
+        return pytest.mark.skipif(skip, reason=reason)
     else:
         # Calling directly as @requires_freesurfer: return decorated function
         # and just check env var existence
-        return _requires_module(arg, name="Freesurfer", call=_fs_call)
+        return pytest.mark.skipif(not has_freesurfer(), reason="Requires Freesurfer")(
+            arg
+        )
 
 
-requires_good_network = partial(
-    _requires_module,
-    name="good network connection",
-    call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
-    "    raise ImportError",
-)
+def requires_good_network(func):
+    import pytest
+
+    return pytest.mark.skipif(
+        int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)),
+        reason="MNE_SKIP_NETWORK_TESTS is set",
+    )(func)
 
 
 def run_command_if_main():

@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from datetime import datetime, timezone
-from xml.etree import ElementTree
+from defusedxml import ElementTree
 
 import numpy as np
 

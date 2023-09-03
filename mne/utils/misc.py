@@ -6,6 +6,7 @@
 from contextlib import contextmanager, ExitStack
 import fnmatch
 import gc
+import hashlib
 import inspect
 from math import log
 import os
@@ -29,6 +30,15 @@ try:
     from importlib.resources import files
 except ImportError:
     from importlib_resources import files
+
+
+# TODO: no longer needed when py3.9 is minimum supported version
+def _empty_hash(kind="md5"):
+    func = getattr(hashlib, kind)
+    if "usedforsecurity" in inspect.signature(func).parameters:
+        return func(usedforsecurity=False)
+    else:
+        return func()
 
 
 def _pl(x, non_pl="", pl="s"):
