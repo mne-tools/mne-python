@@ -2570,11 +2570,7 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
             cals = raw_fid_writer._start_writing_raw(fid)
             with ctx:
                 is_next_split = raw_fid_writer._write_raw_fid(
-                    fid=fid,
-                    cals=cals,
-                    part_idx=part_idx,
-                    prev_fname=prev_fname,
-                    next_fname=next_fname,
+                    fid, cals, part_idx, prev_fname, next_fname
                 )
                 if part_idx == 1 and split_naming == "bids":
                     logger.info(f"Renaming BIDS split file {split_fnames[0]}")
