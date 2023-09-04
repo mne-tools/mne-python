@@ -2567,9 +2567,8 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
         logger.info(f"Writing {use_fname}")
 
         with start_and_end_file(use_fname) as fid, ctx:
-            cals = raw_fid_writer._start_writing_raw(fid)
-            is_next_split = raw_fid_writer._write_raw_fid(
-                fid, cals, part_idx, prev_fname, next_fname
+            is_next_split = raw_fid_writer.write(
+                fid, part_idx, prev_fname, next_fname
             )
             if part_idx == 1 and split_naming == "bids":
                 logger.info(f"Renaming BIDS split file {split_fnames[0]}")
@@ -2627,6 +2626,13 @@ class _RawFidWriter:
         self.projector = projector
         self.start, self.stop = start, stop
         self.cfg = cfg
+
+    def write(self, fid, part_idx, prev_fname, next_fname):
+        cals = self._start_writing_raw(fid)
+        is_next_split = self._write_raw_fid(
+            fid, cals, part_idx, prev_fname, next_fname
+        )
+        return is_next_split
 
     def _write_raw_fid(self, fid, cals, part_idx, prev_fname, next_fname):
         self._check_start_stop_within_bounds()
