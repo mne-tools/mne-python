@@ -642,7 +642,7 @@ def test_split_files(tmp_path, mod, monkeypatch):
 
     # reserved file is deleted
     fname = tmp_path / "test_raw.fif"
-    monkeypatch.setattr(base, "_write_raw_fid", _err)
+    monkeypatch.setattr(base._RawFidWriter, "_write_raw_fid", _err)
     with pytest.raises(RuntimeError, match="Killed mid-write"):
         raw_1.save(fname, split_size="10MB", split_naming="bids")
     assert fname.is_file()
