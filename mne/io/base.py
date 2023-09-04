@@ -1697,7 +1697,7 @@ class BaseRaw(
         _validate_type(split_naming, str, "split_naming")
         _check_option("split_naming", split_naming, ("neuromag", "bids"))
 
-        cfg = _WriteRawFidCfg(buffer_size, split_size, drop_small_buffer, fmt)
+        cfg = _RawFidWriterCfg(buffer_size, split_size, drop_small_buffer, fmt)
         raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
         _write_raw(raw_fid_writer, fname, split_naming, overwrite)
 
@@ -2603,7 +2603,7 @@ class _ReservedFilename:
 
 
 @dataclass(frozen=True)
-class _WriteRawFidCfg:
+class _RawFidWriterCfg:
     buffer_size: int
     split_size: int
     drop_small_buffer: bool
@@ -2698,7 +2698,11 @@ class _RawFidWriter:
             if self.projector is not None:
                 data = np.dot(self.projector, data)
 
-            if self.cfg.drop_small_buffer and (first > self.start) and (len(times) < self.cfg.buffer_size):
+            if (
+                self.cfg.drop_small_buffer
+                and (first > self.start)
+                and (len(times) < self.cfg.buffer_size)
+            ):
                 logger.info("Skipping data chunk due to small buffer ... " "[done]")
                 break
             logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
@@ -2750,7 +2754,6 @@ class _RawFidWriter:
         end_block(fid, FIFF.FIFFB_MEAS)
         return is_next_split
 
-
     @fill_doc
     def _start_writing_raw(self, fid):
         """Start write raw data in file.
@@ -2801,7 +2804,9 @@ class _RawFidWriter:
                 info["chs"][k]["range"] = 1.0
             cals.append(info["chs"][k]["cal"] * info["chs"][k]["range"])
 
-        write_meas_info(fid, info, data_type=self.cfg.data_type, reset_range=self.cfg.reset_range)
+        write_meas_info(
+            fid, info, data_type=self.cfg.data_type, reset_range=self.cfg.reset_range
+        )
 
         #
         # Annotations
