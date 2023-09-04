@@ -416,7 +416,7 @@ class UpdateChannelsMixin:
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude, allow_empty=False)
         self._pick_drop_channels(picks)
-        
+
         # remove dropped channel types from reject and flat
         if getattr(self, "reject", None) is not None:
             # use list(self.reject) to avoid RuntimeError for changing dictionary size
