@@ -189,20 +189,35 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         # set patient info
         subj_info = raw.info.get("subject_info")
         if subj_info is not None:
-            birthday = subj_info.get("birthday")
-
             # get the full name of subject if available
-            first_name = subj_info.get("first_name")
-            last_name = subj_info.get("last_name")
-            first_name = first_name or ""
-            last_name = last_name or ""
-            joiner = ""
-            if len(first_name) and len(last_name):
-                joiner = " "
-            name = joiner.join([first_name, last_name])
+            first_name = subj_info.get("first_name", "")
+            middle_name = subj_info.get("middle_name", "")
+            last_name = subj_info.get("last_name", "")
+            name = ""
+            for value in [first_name, middle_name, last_name]:
+                if value:
+                    if name:
+                        name += " "
+                    name += value
 
+            birthday = subj_info.get("birthday")
             hand = subj_info.get("hand")
+            weight = subj_info.get("weight")
+            height = subj_info.get("height")
             sex = subj_info.get("sex")
+
+            additional_patient_info = ""
+            for key, value in [
+                ("height", height),
+                ("weight", weight),
+                ("hand", hand),
+            ]:
+                if value:
+                    if additional_patient_info:
+                        additional_patient_info += " "
+                    additional_patient_info += f"{key}={value}"
+            if not additional_patient_info:
+                additional_patient_info = None
 
             if birthday is not None:
                 if hdl.setPatientBirthDate(birthday[0], birthday[1], birthday[2]) != 0:
@@ -211,9 +226,10 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                         f"returned an error"
                     )
             for key, val in [
+                ("PatientCode", subj_info.get("his_id", "")),
                 ("PatientName", name),
                 ("PatientGender", sex),
-                ("AdditionalPatientInfo", f"hand={hand}"),
+                ("AdditionalPatientInfo", additional_patient_info),
             ]:
                 # EDFwriter compares integer encodings of sex and will
                 # raise a TypeError if value is None as returned by
