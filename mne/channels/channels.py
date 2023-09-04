@@ -346,8 +346,8 @@ class UpdateChannelsMixin:
 
         # remove dropped channel types from reject and flat
         if getattr(self, "reject", None) is not None:
-            # use list(self.reject) to avoid RuntimeError for changing
-            # dictionary size during iteration
+            # use list(self.reject) to avoid RuntimeError for changing dictionary size
+            # during iteration
             for ch_type in list(self.reject):
                 if ch_type not in self:
                     del self.reject[ch_type]
@@ -415,7 +415,22 @@ class UpdateChannelsMixin:
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude, allow_empty=False)
-        return self._pick_drop_channels(picks)
+        self._pick_drop_channels(picks)
+        
+        # remove dropped channel types from reject and flat
+        if getattr(self, "reject", None) is not None:
+            # use list(self.reject) to avoid RuntimeError for changing dictionary size
+            # during iteration
+            for ch_type in list(self.reject):
+                if ch_type not in self:
+                    del self.reject[ch_type]
+
+        if getattr(self, "flat", None) is not None:
+            for ch_type in list(self.flat):
+                if ch_type not in self:
+                    del self.flat[ch_type]
+
+        return self
 
     def reorder_channels(self, ch_names):
         """Reorder channels.
