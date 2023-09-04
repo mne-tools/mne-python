@@ -652,7 +652,7 @@ def test_plot_topomap_neuromag122():
     res = 8
     fast_test = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, "Left Auditory", baseline=(None, 0))
-    evoked.pick(meg="grad")
+    evoked.pick(picks="grad")
     evoked.pick(evoked.ch_names[:122])
     ch_names = ["MEG %03d" % k for k in range(1, 123)]
     for c in evoked.info["chs"]:

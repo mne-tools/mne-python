@@ -227,7 +227,7 @@ def test_plot_ica_properties():
 
     # Test merging grads.
     pick_names = raw.ch_names[:15:2] + raw.ch_names[1:15:2]
-    raw = _get_raw(preload=True).pick(pick_names, ordered=False)
+    raw = _get_raw(preload=True).pick(pick_names)
     raw.crop(0, 5)
     raw.info.normalize_proj()
     ica = ICA(random_state=0, max_iter=1)
@@ -238,7 +238,7 @@ def test_plot_ica_properties():
 
     # Test handling of zeros
     ica = ICA(random_state=0, max_iter=1)
-    epochs.pick(pick_names, ordered=False)
+    epochs.pick(pick_names)
     with pytest.warns(UserWarning, match="did not converge"):
         ica.fit(epochs)
     epochs._data[0] = 0

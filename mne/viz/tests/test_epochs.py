@@ -449,7 +449,6 @@ def test_plot_epochs_ctf(raw_ctf, browser_backend):
             "EEG058",
             "UADC007-4302",
         ],
-        ordered=False,
     )
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
