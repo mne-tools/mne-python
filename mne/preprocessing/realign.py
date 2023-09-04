@@ -104,8 +104,8 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         warn(
             f"Channel(s) {', '.join(nan_ch_names)} in other contain NaN values\n"
             + "Resampling these channels will result in empty data\n"
-            + "(If realigning eye-tracking data, " +
-            "consider using interpolate_blinks and passing interpolate_gaze=True)"
+            + "(If realigning eye-tracking data, "
+            + "consider using interpolate_blinks and passing interpolate_gaze=True)"
         )
     logger.info("Resampling other")
     sfreq_new = raw.info["sfreq"] * first_ord
