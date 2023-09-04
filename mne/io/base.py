@@ -2566,16 +2566,15 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
         next_fname = dir_path / split_fnames[part_idx + 1]
         logger.info(f"Writing {use_fname}")
 
-        with start_and_end_file(use_fname) as fid:
+        with start_and_end_file(use_fname) as fid, ctx:
             cals = raw_fid_writer._start_writing_raw(fid)
-            with ctx:
-                is_next_split = raw_fid_writer._write_raw_fid(
-                    fid, cals, part_idx, prev_fname, next_fname
-                )
-                if part_idx == 1 and split_naming == "bids":
-                    logger.info(f"Renaming BIDS split file {split_fnames[0]}")
-                    ctx.remove = False
-                    shutil.move(fname, dir_path / split_fnames[0])
+            is_next_split = raw_fid_writer._write_raw_fid(
+                fid, cals, part_idx, prev_fname, next_fname
+            )
+            if part_idx == 1 and split_naming == "bids":
+                logger.info(f"Renaming BIDS split file {split_fnames[0]}")
+                ctx.remove = False
+                shutil.move(fname, dir_path / split_fnames[0])
             logger.info("Closing %s" % use_fname)
         part_idx += 1
 
