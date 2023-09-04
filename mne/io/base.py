@@ -1697,13 +1697,9 @@ class BaseRaw(
         _validate_type(split_naming, str, "split_naming")
         _check_option("split_naming", split_naming, ("neuromag", "bids"))
 
-        write_raw_fid_cfg = _WriteRawFidCfg(
-            buffer_size, split_size, drop_small_buffer, fmt
-        )
-        raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop)
-        _write_raw(
-            raw_fid_writer, fname, split_naming, overwrite, write_raw_fid_cfg
-        )
+        cfg = _WriteRawFidCfg(buffer_size, split_size, drop_small_buffer, fmt)
+        raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
+        _write_raw(raw_fid_writer, fname, split_naming, overwrite)
 
     @verbose
     def export(
@@ -2540,7 +2536,7 @@ class _RawShell:
 
 ###############################################################################
 # Writing
-def _write_raw(raw_fid_writer, fname, split_naming, overwrite, write_raw_fid_cfg):
+def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
     """Write raw file with splitting."""
     # Expand `~` if present
     fname = _check_fname(fname=fname, overwrite=overwrite)
@@ -2571,7 +2567,7 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite, write_raw_fid_cfg
         logger.info(f"Writing {use_fname}")
 
         with start_and_end_file(use_fname) as fid:
-            cals = raw_fid_writer._start_writing_raw(fid, write_raw_fid_cfg)
+            cals = raw_fid_writer._start_writing_raw(fid)
             with ctx:
                 is_next_split = raw_fid_writer._write_raw_fid(
                     fid=fid,
@@ -2579,7 +2575,6 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite, write_raw_fid_cfg
                     part_idx=part_idx,
                     prev_fname=prev_fname,
                     next_fname=next_fname,
-                    cfg=write_raw_fid_cfg,
                 )
                 if part_idx == 1 and split_naming == "bids":
                     logger.info(f"Renaming BIDS split file {split_fnames[0]}")
@@ -2630,14 +2625,15 @@ class _WriteRawFidCfg:
 
 
 class _RawFidWriter:
-    def __init__(self, raw, info, picks, projector, start, stop):
+    def __init__(self, raw, info, picks, projector, start, stop, cfg):
         self.raw = raw
         self.info = info
         self.picks = _picks_to_idx(info, picks, "all", ())
         self.projector = projector
         self.start, self.stop = start, stop
+        self.cfg = cfg
 
-    def _write_raw_fid(self, fid, cals, part_idx, prev_fname, next_fname, cfg):
+    def _write_raw_fid(self, fid, cals, part_idx, prev_fname, next_fname):
         self._check_start_stop_within_bounds()
         first_samp = self.raw.first_samp + self.start
         if first_samp != 0:
@@ -2654,7 +2650,7 @@ class _RawFidWriter:
             end_block(fid, FIFF.FIFFB_REF)
 
         pos_prev = fid.tell()
-        if pos_prev > cfg.split_size:
+        if pos_prev > self.cfg.split_size:
             raise ValueError(
                 'file is larger than "split_size" after writing '
                 "measurement information, you must use a larger "
@@ -2664,8 +2660,8 @@ class _RawFidWriter:
 
         # Check to see if this has acquisition skips and, if so, if we can
         # write out empty buffers instead of zeroes
-        firsts = list(range(self.start, self.stop, cfg.buffer_size))
-        lasts = np.array(firsts) + cfg.buffer_size
+        firsts = list(range(self.start, self.stop, self.cfg.buffer_size))
+        lasts = np.array(firsts) + self.cfg.buffer_size
         if lasts[-1] > self.stop:
             lasts[-1] = self.stop
         sk_onsets, sk_ends = _annotations_starts_stops(self.raw, "bad_acq_skip")
@@ -2702,15 +2698,15 @@ class _RawFidWriter:
             if self.projector is not None:
                 data = np.dot(self.projector, data)
 
-            if cfg.drop_small_buffer and (first > self.start) and (len(times) < cfg.buffer_size):
+            if self.cfg.drop_small_buffer and (first > self.start) and (len(times) < self.cfg.buffer_size):
                 logger.info("Skipping data chunk due to small buffer ... " "[done]")
                 break
             logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
-            _write_raw_buffer(fid, data, cals, cfg.fmt)
+            _write_raw_buffer(fid, data, cals, self.cfg.fmt)
 
             pos = fid.tell()
             this_buff_size_bytes = pos - pos_prev
-            overage = pos - cfg.split_size + _NEXT_FILE_BUFFER
+            overage = pos - self.cfg.split_size + _NEXT_FILE_BUFFER
             if overage > 0:
                 # This should occur on the first buffer write of the file, so
                 # we should mention the space required for the meas info
@@ -2721,7 +2717,7 @@ class _RawFidWriter:
                     '"split_size".'
                     % (
                         this_buff_size_bytes,
-                        cfg.split_size,
+                        self.cfg.split_size,
                         overage,
                         pos_prev,
                         _NEXT_FILE_BUFFER,
@@ -2732,8 +2728,8 @@ class _RawFidWriter:
             # make sure we check to make sure we actually *need* another buffer
             # with the "and" check
             if (
-                pos >= cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
-                and first + cfg.buffer_size < self.stop
+                pos >= self.cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
+                and first + self.cfg.buffer_size < self.stop
             ):
                 start_block(fid, FIFF.FIFFB_REF)
                 write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
@@ -2743,7 +2739,7 @@ class _RawFidWriter:
                 write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
                 end_block(fid, FIFF.FIFFB_REF)
                 is_next_split = True
-                self.start = first + cfg.buffer_size
+                self.start = first + self.cfg.buffer_size
                 break
             pos_prev = pos
 
@@ -2756,7 +2752,7 @@ class _RawFidWriter:
 
 
     @fill_doc
-    def _start_writing_raw(self, fid, cfg):
+    def _start_writing_raw(self, fid):
         """Start write raw data in file.
 
         Parameters
@@ -2801,11 +2797,11 @@ class _RawFidWriter:
             #   Scan numbers may have been messed up
             #
             info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
-            if cfg.reset_range is True:
+            if self.cfg.reset_range is True:
                 info["chs"][k]["range"] = 1.0
             cals.append(info["chs"][k]["cal"] * info["chs"][k]["range"])
 
-        write_meas_info(fid, info, data_type=cfg.data_type, reset_range=cfg.reset_range)
+        write_meas_info(fid, info, data_type=self.cfg.data_type, reset_range=self.cfg.reset_range)
 
         #
         # Annotations
