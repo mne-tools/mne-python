@@ -16,7 +16,7 @@ import os
 import os.path as op
 import shutil
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -1668,17 +1668,6 @@ class BaseRaw(
                     "command-line MNE tools will not work."
                 )
 
-        type_dict = dict(
-            short=FIFF.FIFFT_DAU_PACK16,
-            int=FIFF.FIFFT_INT,
-            single=FIFF.FIFFT_FLOAT,
-            double=FIFF.FIFFT_DOUBLE,
-        )
-        _check_option("fmt", fmt, type_dict.keys())
-        reset_dict = dict(short=False, int=False, single=True, double=True)
-        reset_range = reset_dict[fmt]
-        data_type = type_dict[fmt]
-
         data_test = self[0, 0][0]
         if fmt == "short" and np.iscomplexobj(data_test):
             raise ValueError(
@@ -1708,14 +1697,14 @@ class BaseRaw(
         _validate_type(split_naming, str, "split_naming")
         _check_option("split_naming", split_naming, ("neuromag", "bids"))
 
-        write_raw_fid_cfg = _WriteRawFidCfg(buffer_size, split_size, drop_small_buffer, fmt)
+        write_raw_fid_cfg = _WriteRawFidCfg(
+            buffer_size, split_size, drop_small_buffer, fmt
+        )
         _write_raw(
             fname,
             self,
             info,
             picks,
-            data_type,
-            reset_range,
             start,
             stop,
             projector,
@@ -2564,8 +2553,6 @@ def _write_raw(
     raw,
     info,
     picks,
-    data_type,
-    reset_range,
     start,
     stop,
     projector,
@@ -2614,7 +2601,7 @@ def _write_raw(
         picks = _picks_to_idx(info, picks, "all", ())
         with start_and_end_file(use_fname) as fid:
             cals = _start_writing_raw(
-                fid, info, picks, data_type, reset_range, raw.annotations
+                fid, info, picks, raw.annotations, write_raw_fid_cfg
             )
             with ctx:
                 is_next_split, new_start = _write_raw_fid(
@@ -2657,12 +2644,26 @@ class _ReservedFilename:
             os.remove(self.fname)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class _WriteRawFidCfg:
     buffer_size: int
     split_size: int
     drop_small_buffer: bool
     fmt: str
+    reset_range: bool = field(init=False)
+    data_type: int = field(init=False)
+
+    def __post_init__(self):
+        type_dict = dict(
+            short=FIFF.FIFFT_DAU_PACK16,
+            int=FIFF.FIFFT_INT,
+            single=FIFF.FIFFT_FLOAT,
+            double=FIFF.FIFFT_DOUBLE,
+        )
+        _check_option("fmt", self.fmt, type_dict.keys())
+        reset_dict = dict(short=False, int=False, single=True, double=True)
+        object.__setattr__(self, "reset_range", reset_dict[self.fmt])
+        object.__setattr__(self, "data_type", type_dict[self.fmt])
 
 
 def _write_raw_fid(
@@ -2796,7 +2797,7 @@ def _write_raw_fid(
 
 
 @fill_doc
-def _start_writing_raw(fid, info, sel, data_type, reset_range, annotations):
+def _start_writing_raw(fid, info, sel, annotations, cfg):
     """Start write raw data in file.
 
     Parameters
@@ -2841,11 +2842,11 @@ def _start_writing_raw(fid, info, sel, data_type, reset_range, annotations):
         #   Scan numbers may have been messed up
         #
         info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
-        if reset_range is True:
+        if cfg.reset_range is True:
             info["chs"][k]["range"] = 1.0
         cals.append(info["chs"][k]["cal"] * info["chs"][k]["range"])
 
-    write_meas_info(fid, info, data_type=data_type, reset_range=reset_range)
+    write_meas_info(fid, info, data_type=cfg.data_type, reset_range=cfg.reset_range)
 
     #
     # Annotations
