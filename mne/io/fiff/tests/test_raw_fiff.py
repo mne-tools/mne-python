@@ -2096,15 +2096,16 @@ def test_expand_user(tmp_path, monkeypatch):
     raw.save(fname=path_home, overwrite=True)
 
 
+@pytest.mark.parametrize("split_size", ["2GB", "5MB"])
 @testing.requires_testing_data
-def test_zip_io(tmp_path_factory):
+def test_zip_io(tmp_path_factory, split_size):
     """Test writin to zip and reading back preserves data."""
     fname = fif_fname.name
     zip_fname = tmp_path_factory.mktemp("zipfile_reading") / (fname + ".zip")
     saved_raw = read_raw_fif(fif_fname).crop(0, 1)
 
     with zipfile.ZipFile(zip_fname, "w") as zip_:
-        saved_raw.save(zipfile.Path(zip_, fname))
+        saved_raw.save(zipfile.Path(zip_, fname), split_size=split_size)
 
     with zipfile.ZipFile(zip_fname) as zip_:
         loaded_raw = read_raw_fif(zipfile.Path(zip_, fname))
