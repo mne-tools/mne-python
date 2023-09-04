@@ -2633,7 +2633,6 @@ def _write_raw(
                     buffer_size=buffer_size,
                     prev_fname=prev_fname,
                     split_size=split_size,
-                    use_fname=use_fname,
                     projector=projector,
                     drop_small_buffer=drop_small_buffer,
                     fmt=fmt,
@@ -2644,6 +2643,7 @@ def _write_raw(
                     logger.info(f"Renaming BIDS split file {split_fnames[0]}")
                     ctx.remove = False
                     shutil.move(fname, dir_path / split_fnames[0])
+            logger.info("Closing %s" % use_fname)
         part_idx += 1
         next_idx += 1
 
@@ -2678,7 +2678,6 @@ def _write_raw_fid(
     buffer_size,
     prev_fname,
     split_size,
-    use_fname,
     projector,
     drop_small_buffer,
     fmt,
@@ -2793,7 +2792,6 @@ def _write_raw_fid(
             break
         pos_prev = pos
 
-    logger.info("Closing %s" % use_fname)
     if info.get("maxshield", False):
         end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
     else:
