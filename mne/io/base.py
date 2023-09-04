@@ -2603,7 +2603,7 @@ def _write_raw(
         _check_fname(reserved_fname, overwrite)
         ctx = _ReservedFilename(reserved_fname)
 
-    is_next_split, part_idx, next_idx = True, 0, 1
+    is_next_split, part_idx = True, 0
     use_fname = fname
     prev_fname = None
     new_start = start
@@ -2612,7 +2612,7 @@ def _write_raw(
             prev_fname = use_fname
             use_fname = dir_path / split_fnames[part_idx]
             _check_fname(use_fname, overwrite)
-        next_fname = dir_path / split_fnames[next_idx]
+        next_fname = dir_path / split_fnames[part_idx + 1]
         logger.info(f"Writing {use_fname}")
 
         picks = _picks_to_idx(info, picks, "all", ())
@@ -2637,7 +2637,6 @@ def _write_raw(
                     drop_small_buffer=drop_small_buffer,
                     fmt=fmt,
                     next_fname=next_fname,
-                    next_idx=next_idx,
                 )
                 if part_idx == 1 and split_naming == "bids":
                     logger.info(f"Renaming BIDS split file {split_fnames[0]}")
@@ -2645,7 +2644,6 @@ def _write_raw(
                     shutil.move(fname, dir_path / split_fnames[0])
             logger.info("Closing %s" % use_fname)
         part_idx += 1
-        next_idx += 1
 
     logger.info("[done]")
 
@@ -2682,7 +2680,6 @@ def _write_raw_fid(
     drop_small_buffer,
     fmt,
     next_fname,
-    next_idx,
 ):
     first_samp = raw.first_samp + start
     if first_samp != 0:
@@ -2785,7 +2782,7 @@ def _write_raw_fid(
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
             if info["meas_id"] is not None:
                 write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
-            write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
             end_block(fid, FIFF.FIFFB_REF)
             is_next_split = True
             new_start = first + buffer_size
