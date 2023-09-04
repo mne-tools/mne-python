@@ -1700,17 +1700,9 @@ class BaseRaw(
         write_raw_fid_cfg = _WriteRawFidCfg(
             buffer_size, split_size, drop_small_buffer, fmt
         )
+        raw_fid_writer = _RawFidWriter(self, info, picks, projector)
         _write_raw(
-            fname,
-            self,
-            info,
-            picks,
-            start,
-            stop,
-            projector,
-            split_naming,
-            overwrite,
-            write_raw_fid_cfg,
+            raw_fid_writer, fname, start, stop, split_naming, overwrite, write_raw_fid_cfg
         )
 
     @verbose
@@ -2549,20 +2541,11 @@ class _RawShell:
 ###############################################################################
 # Writing
 def _write_raw(
-    fname,
-    raw,
-    info,
-    picks,
-    start,
-    stop,
-    projector,
-    split_naming,
-    overwrite,
-    write_raw_fid_cfg,
+    raw_fid_writer, fname, start, stop, split_naming, overwrite, write_raw_fid_cfg
 ):
     """Write raw file with splitting."""
     # we've done something wrong if we hit this
-    n_times_max = len(raw.times)
+    n_times_max = len(raw_fid_writer.raw.times)
     if start >= stop or stop > n_times_max:
         raise RuntimeError(
             "Cannot write raw file with no data: %s -> %s "
@@ -2598,23 +2581,17 @@ def _write_raw(
         next_fname = dir_path / split_fnames[part_idx + 1]
         logger.info(f"Writing {use_fname}")
 
-        picks = _picks_to_idx(info, picks, "all", ())
         with start_and_end_file(use_fname) as fid:
-            cals = _start_writing_raw(
-                fid, info, picks, raw.annotations, write_raw_fid_cfg
-            )
+            cals = _start_writing_raw(raw_fid_writer, fid, write_raw_fid_cfg)
             with ctx:
                 is_next_split, new_start = _write_raw_fid(
-                    raw=raw,
-                    info=info,
-                    picks=picks,
+                    raw_fid_writer,
                     fid=fid,
                     cals=cals,
                     part_idx=part_idx,
                     start=new_start,
                     stop=stop,
                     prev_fname=prev_fname,
-                    projector=projector,
                     next_fname=next_fname,
                     cfg=write_raw_fid_cfg,
                 )
@@ -2666,21 +2643,18 @@ class _WriteRawFidCfg:
         object.__setattr__(self, "data_type", type_dict[self.fmt])
 
 
+class _RawFidWriter:
+    def __init__(self, raw, info, picks, projector):
+        self.raw = raw
+        self.info = info
+        self.picks = _picks_to_idx(info, picks, "all", ())
+        self.projector = projector
+
+
 def _write_raw_fid(
-    raw,
-    info,
-    picks,
-    fid,
-    cals,
-    part_idx,
-    start,
-    stop,
-    prev_fname,
-    projector,
-    next_fname,
-    cfg,
+    self, fid, cals, part_idx, start, stop, prev_fname, next_fname, cfg
 ):
-    first_samp = raw.first_samp + start
+    first_samp = self.raw.first_samp + start
     if first_samp != 0:
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
@@ -2689,8 +2663,8 @@ def _write_raw_fid(
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
-        if info["meas_id"] is not None:
-            write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
+        if self.info["meas_id"] is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, self.info["meas_id"])
         write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
@@ -2709,7 +2683,7 @@ def _write_raw_fid(
     lasts = np.array(firsts) + cfg.buffer_size
     if lasts[-1] > stop:
         lasts[-1] = stop
-    sk_onsets, sk_ends = _annotations_starts_stops(raw, "bad_acq_skip")
+    sk_onsets, sk_ends = _annotations_starts_stops(self.raw, "bad_acq_skip")
     do_skips = False
     if len(sk_onsets) > 0:
         if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
@@ -2737,11 +2711,11 @@ def _write_raw_fid(
                 # write_nop(fid)
                 # write_nop(fid)
                 n_current_skip = 0
-        data, times = raw[picks, first:last]
+        data, times = self.raw[self.picks, first:last]
         assert len(times) == last - first
 
-        if projector is not None:
-            data = np.dot(projector, data)
+        if self.projector is not None:
+            data = np.dot(self.projector, data)
 
         if cfg.drop_small_buffer and (first > start) and (len(times) < cfg.buffer_size):
             logger.info("Skipping data chunk due to small buffer ... " "[done]")
@@ -2779,8 +2753,8 @@ def _write_raw_fid(
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
-            if info["meas_id"] is not None:
-                write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
+            if self.info["meas_id"] is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, self.info["meas_id"])
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
             end_block(fid, FIFF.FIFFB_REF)
             is_next_split = True
@@ -2788,7 +2762,7 @@ def _write_raw_fid(
             break
         pos_prev = pos
 
-    if info.get("maxshield", False):
+    if self.info.get("maxshield", False):
         end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
     else:
         end_block(fid, FIFF.FIFFB_RAW_DATA)
@@ -2797,7 +2771,7 @@ def _write_raw_fid(
 
 
 @fill_doc
-def _start_writing_raw(fid, info, sel, annotations, cfg):
+def _start_writing_raw(self, fid, cfg):
     """Start write raw data in file.
 
     Parameters
@@ -2826,7 +2800,7 @@ def _start_writing_raw(fid, info, sel, annotations, cfg):
     #
     # Measurement info
     #
-    info = pick_info(info, sel)
+    info = pick_info(self.info, self.picks)
 
     #
     # Create the file and save the essentials
@@ -2851,8 +2825,8 @@ def _start_writing_raw(fid, info, sel, annotations, cfg):
     #
     # Annotations
     #
-    if len(annotations) > 0:  # don't save empty annot
-        _write_annotations(fid, annotations)
+    if len(self.raw.annotations) > 0:  # don't save empty annot
+        _write_annotations(fid, self.raw.annotations)
 
     #
     # Start the raw data
