@@ -1700,9 +1700,9 @@ class BaseRaw(
         write_raw_fid_cfg = _WriteRawFidCfg(
             buffer_size, split_size, drop_small_buffer, fmt
         )
-        raw_fid_writer = _RawFidWriter(self, info, picks, projector)
+        raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop)
         _write_raw(
-            raw_fid_writer, fname, start, stop, split_naming, overwrite, write_raw_fid_cfg
+            raw_fid_writer, fname, split_naming, overwrite, write_raw_fid_cfg
         )
 
     @verbose
@@ -2540,18 +2540,8 @@ class _RawShell:
 
 ###############################################################################
 # Writing
-def _write_raw(
-    raw_fid_writer, fname, start, stop, split_naming, overwrite, write_raw_fid_cfg
-):
+def _write_raw(raw_fid_writer, fname, split_naming, overwrite, write_raw_fid_cfg):
     """Write raw file with splitting."""
-    # we've done something wrong if we hit this
-    n_times_max = len(raw_fid_writer.raw.times)
-    if start >= stop or stop > n_times_max:
-        raise RuntimeError(
-            "Cannot write raw file with no data: %s -> %s "
-            "(max: %s) requested" % (start, stop, n_times_max)
-        )
-
     # Expand `~` if present
     fname = _check_fname(fname=fname, overwrite=overwrite)
 
@@ -2572,7 +2562,6 @@ def _write_raw(
     is_next_split, part_idx = True, 0
     use_fname = fname
     prev_fname = None
-    new_start = start
     while is_next_split:
         if part_idx > 0:
             prev_fname = use_fname
@@ -2584,12 +2573,10 @@ def _write_raw(
         with start_and_end_file(use_fname) as fid:
             cals = raw_fid_writer._start_writing_raw(fid, write_raw_fid_cfg)
             with ctx:
-                is_next_split, new_start = raw_fid_writer._write_raw_fid(
+                is_next_split = raw_fid_writer._write_raw_fid(
                     fid=fid,
                     cals=cals,
                     part_idx=part_idx,
-                    start=new_start,
-                    stop=stop,
                     prev_fname=prev_fname,
                     next_fname=next_fname,
                     cfg=write_raw_fid_cfg,
@@ -2643,16 +2630,16 @@ class _WriteRawFidCfg:
 
 
 class _RawFidWriter:
-    def __init__(self, raw, info, picks, projector):
+    def __init__(self, raw, info, picks, projector, start, stop):
         self.raw = raw
         self.info = info
         self.picks = _picks_to_idx(info, picks, "all", ())
         self.projector = projector
+        self.start, self.stop = start, stop
 
-    def _write_raw_fid(
-        self, fid, cals, part_idx, start, stop, prev_fname, next_fname, cfg
-    ):
-        first_samp = self.raw.first_samp + start
+    def _write_raw_fid(self, fid, cals, part_idx, prev_fname, next_fname, cfg):
+        self._check_start_stop_within_bounds()
+        first_samp = self.raw.first_samp + self.start
         if first_samp != 0:
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
 
@@ -2677,10 +2664,10 @@ class _RawFidWriter:
 
         # Check to see if this has acquisition skips and, if so, if we can
         # write out empty buffers instead of zeroes
-        firsts = list(range(start, stop, cfg.buffer_size))
+        firsts = list(range(self.start, self.stop, cfg.buffer_size))
         lasts = np.array(firsts) + cfg.buffer_size
-        if lasts[-1] > stop:
-            lasts[-1] = stop
+        if lasts[-1] > self.stop:
+            lasts[-1] = self.stop
         sk_onsets, sk_ends = _annotations_starts_stops(self.raw, "bad_acq_skip")
         do_skips = False
         if len(sk_onsets) > 0:
@@ -2694,7 +2681,7 @@ class _RawFidWriter:
                     )
 
         n_current_skip = 0
-        is_next_split, new_start = False, None
+        is_next_split = False
         for first, last in zip(firsts, lasts):
             if do_skips:
                 if ((first >= sk_onsets) & (last <= sk_ends)).any():
@@ -2715,7 +2702,7 @@ class _RawFidWriter:
             if self.projector is not None:
                 data = np.dot(self.projector, data)
 
-            if cfg.drop_small_buffer and (first > start) and (len(times) < cfg.buffer_size):
+            if cfg.drop_small_buffer and (first > self.start) and (len(times) < cfg.buffer_size):
                 logger.info("Skipping data chunk due to small buffer ... " "[done]")
                 break
             logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
@@ -2746,7 +2733,7 @@ class _RawFidWriter:
             # with the "and" check
             if (
                 pos >= cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
-                and first + cfg.buffer_size < stop
+                and first + cfg.buffer_size < self.stop
             ):
                 start_block(fid, FIFF.FIFFB_REF)
                 write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
@@ -2756,7 +2743,7 @@ class _RawFidWriter:
                 write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
                 end_block(fid, FIFF.FIFFB_REF)
                 is_next_split = True
-                new_start = first + cfg.buffer_size
+                self.start = first + cfg.buffer_size
                 break
             pos_prev = pos
 
@@ -2765,7 +2752,7 @@ class _RawFidWriter:
         else:
             end_block(fid, FIFF.FIFFB_RAW_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
-        return is_next_split, new_start
+        return is_next_split
 
 
     @fill_doc
@@ -2835,6 +2822,15 @@ class _RawFidWriter:
             start_block(fid, FIFF.FIFFB_RAW_DATA)
 
         return cals
+
+    def _check_start_stop_within_bounds(self):
+        # we've done something wrong if we hit this
+        n_times_max = len(self.raw.times)
+        if self.start >= self.stop or self.stop > n_times_max:
+            raise RuntimeError(
+                "Cannot write raw file with no data: %s -> %s "
+                "(max: %s) requested" % (self.start, self.stop, n_times_max)
+            )
 
 
 def _write_raw_buffer(fid, buf, cals, fmt):
