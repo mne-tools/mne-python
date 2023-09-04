@@ -2621,8 +2621,8 @@ class _RawFidWriterCfg:
 class _RawFidWriter:
     def __init__(self, raw, info, picks, projector, start, stop, cfg):
         self.raw = raw
-        self.info = info
         self.picks = _picks_to_idx(info, picks, "all", ())
+        self.info = pick_info(info, self.picks)
         self.projector = projector
         self.start, self.stop = start, stop
         self.cfg = cfg
@@ -2783,29 +2783,24 @@ class _RawFidWriter:
             calibration factors.
         """
         #
-        # Measurement info
-        #
-        info = pick_info(self.info, self.picks)
-
-        #
         # Create the file and save the essentials
         #
         write_id(fid, FIFF.FIFF_BLOCK_ID)
-        if info["meas_id"] is not None:
-            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
+        if self.info["meas_id"] is not None:
+            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info["meas_id"])
 
         cals = []
-        for k in range(info["nchan"]):
+        for k in range(self.info["nchan"]):
             #
             #   Scan numbers may have been messed up
             #
-            info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
+            self.info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
             if self.cfg.reset_range is True:
-                info["chs"][k]["range"] = 1.0
-            cals.append(info["chs"][k]["cal"] * info["chs"][k]["range"])
+                self.info["chs"][k]["range"] = 1.0
+            cals.append(self.info["chs"][k]["cal"] * self.info["chs"][k]["range"])
 
         write_meas_info(
-            fid, info, data_type=self.cfg.data_type, reset_range=self.cfg.reset_range
+            fid, self.info, data_type=self.cfg.data_type, reset_range=self.cfg.reset_range
         )
 
         #
