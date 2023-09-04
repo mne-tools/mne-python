@@ -2635,6 +2635,8 @@ class _RawFidWriter:
         return is_next_split
 
     def _write_raw_fid(self, fid, cals, part_idx, prev_fname, next_fname):
+        self._start_raw_block(fid)
+
         self._check_start_stop_within_bounds()
         first_samp = self.raw.first_samp + self.start
         if first_samp != 0:
@@ -2748,10 +2750,7 @@ class _RawFidWriter:
                 break
             pos_prev = pos
 
-        if self.info.get("maxshield", False):
-            end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
-        else:
-            end_block(fid, FIFF.FIFFB_RAW_DATA)
+        self._end_raw_block(fid)
         end_block(fid, FIFF.FIFFB_MEAS)
         return is_next_split
 
@@ -2815,15 +2814,19 @@ class _RawFidWriter:
         if len(self.raw.annotations) > 0:  # don't save empty annot
             _write_annotations(fid, self.raw.annotations)
 
-        #
-        # Start the raw data
-        #
-        if info.get("maxshield", False):
+        return cals
+
+    def _start_raw_block(self, fid):
+        if self.info.get("maxshield", False):
             start_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
         else:
             start_block(fid, FIFF.FIFFB_RAW_DATA)
 
-        return cals
+    def _end_raw_block(self, fid):
+        if self.info.get("maxshield", False):
+            end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
+        else:
+            end_block(fid, FIFF.FIFFB_RAW_DATA)
 
     def _check_start_stop_within_bounds(self):
         # we've done something wrong if we hit this
