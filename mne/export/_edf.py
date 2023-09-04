@@ -193,12 +193,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             first_name = subj_info.get("first_name", "")
             middle_name = subj_info.get("middle_name", "")
             last_name = subj_info.get("last_name", "")
-            name = ""
-            for value in [first_name, middle_name, last_name]:
-                if value:
-                    if name:
-                        name += " "
-                    name += value
+            name = " ".join(filter(None, [first_name, middle_name, last_name]))
 
             birthday = subj_info.get("birthday")
             hand = subj_info.get("hand")
@@ -206,18 +201,14 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
             height = subj_info.get("height")
             sex = subj_info.get("sex")
 
-            additional_patient_info = ""
-            for key, value in [
-                ("height", height),
-                ("weight", weight),
-                ("hand", hand),
-            ]:
+            additional_patient_info = []
+            for key, value in [("height", height), ("weight", weight), ("hand", hand)]:
                 if value:
-                    if additional_patient_info:
-                        additional_patient_info += " "
-                    additional_patient_info += f"{key}={value}"
-            if not additional_patient_info:
+                    additional_patient_info.append(f"{key}={value}")
+            if len(additional_patient_info) == 0:
                 additional_patient_info = None
+            else:
+                additional_patient_info = " ".join(additional_patient_info)
 
             if birthday is not None:
                 if hdl.setPatientBirthDate(birthday[0], birthday[1], birthday[2]) != 0:
