@@ -646,7 +646,7 @@ def _get_info(
     info["subject_info"] = {}
 
     # String subject identifier
-    if edf_info["subject_info"]["id"] is not None:
+    if edf_info["subject_info"].get("id") is not None:
         info["subject_info"]["his_id"] = edf_info["subject_info"]["id"]
     # Subject sex (0=unknown, 1=male, 2=female)
     if edf_info["subject_info"].get("sex") is not None:
