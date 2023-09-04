@@ -2567,9 +2567,7 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
         logger.info(f"Writing {use_fname}")
 
         with start_and_end_file(use_fname) as fid, ctx:
-            is_next_split = raw_fid_writer.write(
-                fid, part_idx, prev_fname, next_fname
-            )
+            is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
             if part_idx == 1 and split_naming == "bids":
                 logger.info(f"Renaming BIDS split file {split_fnames[0]}")
                 ctx.remove = False
@@ -2631,9 +2629,7 @@ class _RawFidWriter:
         start_block(fid, FIFF.FIFFB_MEAS)
         self._start_writing_raw(fid)
         cals = self._get_calibrations()
-        is_next_split = self._write_raw_fid(
-            fid, cals, part_idx, prev_fname, next_fname
-        )
+        is_next_split = self._write_raw_fid(fid, cals, part_idx, prev_fname, next_fname)
         end_block(fid, FIFF.FIFFB_MEAS)
         return is_next_split
 
@@ -2709,30 +2705,15 @@ class _RawFidWriter:
             _write_raw_buffer(fid, data, cals, self.cfg.fmt)
 
             pos = fid.tell()
-            this_buff_size_bytes = pos - pos_prev
-            overage = pos - self.cfg.split_size + _NEXT_FILE_BUFFER
-            if overage > 0:
-                # This should occur on the first buffer write of the file, so
-                # we should mention the space required for the meas info
-                raise ValueError(
-                    "buffer size (%s) is too large for the given split size (%s) "
-                    "by %s bytes after writing info (%s) and leaving enough space "
-                    'for end tags (%s): decrease "buffer_size_sec" or increase '
-                    '"split_size".'
-                    % (
-                        this_buff_size_bytes,
-                        self.cfg.split_size,
-                        overage,
-                        pos_prev,
-                        _NEXT_FILE_BUFFER,
-                    )
-                )
+            self._check_too_large_buffer(pos, pos_prev)
 
             # Split files if necessary, leave some space for next file info
             # make sure we check to make sure we actually *need* another buffer
             # with the "and" check
             if self._should_split(first, pos, pos_prev):
-                self._write_neighbour_fname(fid, op.basename(next_fname), part_idx + 1, "next")
+                self._write_neighbour_fname(
+                    fid, op.basename(next_fname), part_idx + 1, "next"
+                )
                 is_next_split = True
                 self.start = first + self.cfg.buffer_size
                 break
@@ -2740,6 +2721,20 @@ class _RawFidWriter:
 
         self._end_raw_block(fid)
         return is_next_split
+
+    def _check_too_large_buffer(self, pos, pos_prev):
+        buff_size = pos - pos_prev
+        overage = pos - self.cfg.split_size + _NEXT_FILE_BUFFER
+        error_str = (
+            "buffer size ({0}) is too large for the given split size ({1}) "
+            "by {2} bytes after writing info ({3}) and leaving enough space "
+            'for end tags ({4}): decrease "buffer_size_sec" or increase '
+            '"split_size".'
+        ).format(buff_size, self.cfg.split_size, overage, pos_prev, _NEXT_FILE_BUFFER)
+        if overage > 0:
+            # This should occur on the first buffer write of the file, so
+            # we should mention the space required for the meas info
+            raise ValueError(error_str)
 
     def _should_split(self, first, pos, pos_prev):
         is_last_buffer = first + self.cfg.buffer_size >= self.stop
@@ -2782,7 +2777,10 @@ class _RawFidWriter:
             write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info["meas_id"])
 
         write_meas_info(
-            fid, self.info, data_type=self.cfg.data_type, reset_range=self.cfg.reset_range
+            fid,
+            self.info,
+            data_type=self.cfg.data_type,
+            reset_range=self.cfg.reset_range,
         )
 
         # Annotations
