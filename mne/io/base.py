@@ -2629,7 +2629,8 @@ class _RawFidWriter:
 
     def write(self, fid, part_idx, prev_fname, next_fname):
         start_block(fid, FIFF.FIFFB_MEAS)
-        cals = self._start_writing_raw(fid)
+        self._start_writing_raw(fid)
+        cals = self._get_calibrations()
         is_next_split = self._write_raw_fid(
             fid, cals, part_idx, prev_fname, next_fname
         )
@@ -2782,33 +2783,27 @@ class _RawFidWriter:
         cals : list
             calibration factors.
         """
-        #
         # Create the file and save the essentials
-        #
         write_id(fid, FIFF.FIFF_BLOCK_ID)
         if self.info["meas_id"] is not None:
             write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info["meas_id"])
-
-        cals = []
-        for k in range(self.info["nchan"]):
-            #
-            #   Scan numbers may have been messed up
-            #
-            self.info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
-            if self.cfg.reset_range is True:
-                self.info["chs"][k]["range"] = 1.0
-            cals.append(self.info["chs"][k]["cal"] * self.info["chs"][k]["range"])
 
         write_meas_info(
             fid, self.info, data_type=self.cfg.data_type, reset_range=self.cfg.reset_range
         )
 
-        #
         # Annotations
-        #
         if len(self.raw.annotations) > 0:  # don't save empty annot
             _write_annotations(fid, self.raw.annotations)
 
+    def _get_calibrations(self):
+        cals = []
+        for k in range(self.info["nchan"]):
+            #  Scan numbers may have been messed up
+            self.info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
+            if self.cfg.reset_range is True:
+                self.info["chs"][k]["range"] = 1.0
+            cals.append(self.info["chs"][k]["cal"] * self.info["chs"][k]["range"])
         return cals
 
     def _start_raw_block(self, fid):
