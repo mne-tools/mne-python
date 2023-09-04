@@ -2745,8 +2745,9 @@ class _RawFidWriter:
         is_last_buffer = first + self.cfg.buffer_size >= self.stop
         if is_last_buffer:
             return False
-        this_buff_size_bytes = pos - pos_prev
-        return pos >= self.cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
+        buff_size_bytes = pos - pos_prev
+        available_bytes = self.cfg.split_size - pos
+        return buff_size_bytes + _NEXT_FILE_BUFFER >= available_bytes
 
     @fill_doc
     def _start_writing_raw(self, fid):
