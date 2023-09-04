@@ -2731,10 +2731,7 @@ class _RawFidWriter:
             # Split files if necessary, leave some space for next file info
             # make sure we check to make sure we actually *need* another buffer
             # with the "and" check
-            if (
-                pos >= self.cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
-                and first + self.cfg.buffer_size < self.stop
-            ):
+            if self._should_split(first, pos, pos_prev):
                 self._write_neighbour_fname(fid, op.basename(next_fname), part_idx + 1, "next")
                 is_next_split = True
                 self.start = first + self.cfg.buffer_size
@@ -2743,6 +2740,13 @@ class _RawFidWriter:
 
         self._end_raw_block(fid)
         return is_next_split
+
+    def _should_split(self, first, pos, pos_prev):
+        is_last_buffer = first + self.cfg.buffer_size >= self.stop
+        if is_last_buffer:
+            return False
+        this_buff_size_bytes = pos - pos_prev
+        return pos >= self.cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
 
     @fill_doc
     def _start_writing_raw(self, fid):
