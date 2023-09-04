@@ -2647,13 +2647,7 @@ class _RawFidWriter:
 
         # previous file name and id
         if part_idx > 0 and prev_fname is not None:
-            start_block(fid, FIFF.FIFFB_REF)
-            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
-            write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
-            if self.info["meas_id"] is not None:
-                write_id(fid, FIFF.FIFF_REF_FILE_ID, self.info["meas_id"])
-            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
-            end_block(fid, FIFF.FIFFB_REF)
+            self._write_neighbour_fname(fid, prev_fname, part_idx - 1, "prev")
 
         pos_prev = fid.tell()
         if pos_prev > self.cfg.split_size:
@@ -2741,13 +2735,7 @@ class _RawFidWriter:
                 pos >= self.cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
                 and first + self.cfg.buffer_size < self.stop
             ):
-                start_block(fid, FIFF.FIFFB_REF)
-                write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
-                write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
-                if self.info["meas_id"] is not None:
-                    write_id(fid, FIFF.FIFF_REF_FILE_ID, self.info["meas_id"])
-                write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
-                end_block(fid, FIFF.FIFFB_REF)
+                self._write_neighbour_fname(fid, op.basename(next_fname), part_idx + 1, "next")
                 is_next_split = True
                 self.start = first + self.cfg.buffer_size
                 break
@@ -2817,6 +2805,19 @@ class _RawFidWriter:
             end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
         else:
             end_block(fid, FIFF.FIFFB_RAW_DATA)
+
+    def _write_neighbour_fname(self, fid, fname, idx, mode):
+        start_block(fid, FIFF.FIFFB_REF)
+        if mode == "prev":
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
+        else:
+            assert mode == "next"
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
+        write_string(fid, FIFF.FIFF_REF_FILE_NAME, fname)
+        if self.info["meas_id"] is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, self.info["meas_id"])
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, idx)
+        end_block(fid, FIFF.FIFFB_REF)
 
     def _check_start_stop_within_bounds(self):
         # we've done something wrong if we hit this
