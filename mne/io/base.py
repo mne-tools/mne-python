@@ -2628,10 +2628,12 @@ class _RawFidWriter:
         self.cfg = cfg
 
     def write(self, fid, part_idx, prev_fname, next_fname):
+        start_block(fid, FIFF.FIFFB_MEAS)
         cals = self._start_writing_raw(fid)
         is_next_split = self._write_raw_fid(
             fid, cals, part_idx, prev_fname, next_fname
         )
+        end_block(fid, FIFF.FIFFB_MEAS)
         return is_next_split
 
     def _write_raw_fid(self, fid, cals, part_idx, prev_fname, next_fname):
@@ -2751,7 +2753,6 @@ class _RawFidWriter:
             pos_prev = pos
 
         self._end_raw_block(fid)
-        end_block(fid, FIFF.FIFFB_MEAS)
         return is_next_split
 
     @fill_doc
@@ -2789,7 +2790,6 @@ class _RawFidWriter:
         #
         # Create the file and save the essentials
         #
-        start_block(fid, FIFF.FIFFB_MEAS)
         write_id(fid, FIFF.FIFF_BLOCK_ID)
         if info["meas_id"] is not None:
             write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
