@@ -22,7 +22,7 @@ import numpy as np
 from ..filter import _check_resamp_noop
 from ..event import find_events, concatenate_events
 from .._fiff.constants import FIFF
-from .._fiff.utils import _construct_bids_filename, _check_orig_units
+from .._fiff.utils import _make_split_fnames, _check_orig_units
 from .._fiff.pick import (
     pick_types,
     pick_channels,
@@ -1722,8 +1722,6 @@ class BaseRaw(
             drop_small_buffer,
             split_size,
             split_naming,
-            0,
-            None,
             overwrite,
         )
 
@@ -2577,8 +2575,6 @@ def _write_raw(
     drop_small_buffer,
     split_size,
     split_naming,
-    part_idx,
-    prev_fname,
     overwrite,
 ):
     """Write raw file with splitting."""
@@ -2591,69 +2587,67 @@ def _write_raw(
         )
 
     # Expand `~` if present
-    fname = str(_check_fname(fname=fname, overwrite=overwrite))
+    fname = _check_fname(fname=fname, overwrite=overwrite)
 
-    base, ext = op.splitext(fname)
-    if part_idx > 0:
-        if split_naming == "neuromag":
-            # insert index in filename
-            use_fname = "%s-%d%s" % (base, part_idx, ext)
-        else:
-            assert split_naming == "bids"
-            use_fname = _construct_bids_filename(base, ext, part_idx)
-    else:
-        use_fname = fname
-    # check for file existence
-    _check_fname(use_fname, overwrite)
+    dir_path = fname.parent
+    # Assume we never hit more than 100 splits, like for epochs
+    split_fnames = _make_split_fnames(
+        fname.name, n_splits=100, split_naming=split_naming
+    )
     # reserve our BIDS split fname in case we need to split
-    if split_naming == "bids" and part_idx == 0:
+    reserved_fname, ctx = fname, nullcontext()
+    if split_naming == "bids":
         # reserve our possible split name
-        reserved_fname = _construct_bids_filename(base, ext, part_idx)
-        logger.info(f"Reserving possible split file {op.basename(reserved_fname)}")
+        reserved_fname = dir_path / split_fnames[0]
+        logger.info(f"Reserving possible split file {reserved_fname.name}")
         _check_fname(reserved_fname, overwrite)
         ctx = _ReservedFilename(reserved_fname)
-    else:
-        reserved_fname = use_fname
-        ctx = nullcontext()
-    logger.info("Writing %s" % use_fname)
 
-    picks = _picks_to_idx(info, picks, "all", ())
-    with start_and_end_file(use_fname) as fid:
-        cals = _start_writing_raw(
-            fid, info, picks, data_type, reset_range, raw.annotations
-        )
-        with ctx:
-            final_fname = _write_raw_fid(
-                raw,
-                info,
-                picks,
-                fid,
-                cals,
-                part_idx,
-                start,
-                stop,
-                buffer_size,
-                prev_fname,
-                split_size,
-                use_fname,
-                projector,
-                drop_small_buffer,
-                fmt,
-                fname,
-                reserved_fname,
-                data_type,
-                reset_range,
-                split_naming,
-                overwrite=True,  # we've started writing already above
+    is_next_split, part_idx, next_idx = True, 0, 1
+    use_fname = fname
+    prev_fname = None
+    new_start = start
+    while is_next_split:
+        if part_idx > 0:
+            prev_fname = use_fname
+            use_fname = dir_path / split_fnames[part_idx]
+            _check_fname(use_fname, overwrite)
+        next_fname = dir_path / split_fnames[next_idx]
+        logger.info(f"Writing {use_fname}")
+
+        picks = _picks_to_idx(info, picks, "all", ())
+        with start_and_end_file(use_fname) as fid:
+            cals = _start_writing_raw(
+                fid, info, picks, data_type, reset_range, raw.annotations
             )
-    if final_fname != use_fname:
-        assert split_naming == "bids"
-        logger.info(f"Renaming BIDS split file {op.basename(final_fname)}")
-        ctx.remove = False
-        shutil.move(use_fname, final_fname)
-    if part_idx == 0:
-        logger.info("[done]")
-    return final_fname, part_idx
+            with ctx:
+                is_next_split, new_start = _write_raw_fid(
+                    raw=raw,
+                    info=info,
+                    picks=picks,
+                    fid=fid,
+                    cals=cals,
+                    part_idx=part_idx,
+                    start=new_start,
+                    stop=stop,
+                    buffer_size=buffer_size,
+                    prev_fname=prev_fname,
+                    split_size=split_size,
+                    use_fname=use_fname,
+                    projector=projector,
+                    drop_small_buffer=drop_small_buffer,
+                    fmt=fmt,
+                    next_fname=next_fname,
+                    next_idx=next_idx,
+                )
+                if part_idx == 1 and split_naming == "bids":
+                    logger.info(f"Renaming BIDS split file {split_fnames[0]}")
+                    ctx.remove = False
+                    shutil.move(fname, dir_path / split_fnames[0])
+        part_idx += 1
+        next_idx += 1
+
+    logger.info("[done]")
 
 
 class _ReservedFilename:
@@ -2688,12 +2682,8 @@ def _write_raw_fid(
     projector,
     drop_small_buffer,
     fmt,
-    fname,
-    reserved_fname,
-    data_type,
-    reset_range,
-    split_naming,
-    overwrite,
+    next_fname,
+    next_idx,
 ):
     first_samp = raw.first_samp + start
     if first_samp != 0:
@@ -2737,7 +2727,7 @@ def _write_raw_fid(
                 )
 
     n_current_skip = 0
-    final_fname = use_fname
+    is_next_split, new_start = False, None
     for first, last in zip(firsts, lasts):
         if do_skips:
             if ((first >= sk_onsets) & (last <= sk_ends)).any():
@@ -2791,27 +2781,6 @@ def _write_raw_fid(
             pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
             and first + buffer_size < stop
         ):
-            final_fname = reserved_fname
-            next_fname, next_idx = _write_raw(
-                fname,
-                raw,
-                info,
-                picks,
-                fmt,
-                data_type,
-                reset_range,
-                first + buffer_size,
-                stop,
-                buffer_size,
-                projector,
-                drop_small_buffer,
-                split_size,
-                split_naming,
-                part_idx + 1,
-                final_fname,
-                overwrite,
-            )
-
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
@@ -2819,6 +2788,8 @@ def _write_raw_fid(
                 write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
             end_block(fid, FIFF.FIFFB_REF)
+            is_next_split = True
+            new_start = first + buffer_size
             break
         pos_prev = pos
 
@@ -2828,7 +2799,7 @@ def _write_raw_fid(
     else:
         end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
-    return final_fname
+    return is_next_split, new_start
 
 
 @fill_doc
