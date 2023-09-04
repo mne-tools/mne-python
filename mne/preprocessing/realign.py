@@ -97,12 +97,15 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         t_other += zero_ord / first_ord
 
     # 3. Resample data using the first-order term
-    nan_ch_names = [ch for ch in other.info['ch_names']
-                    if np.isnan(other.get_data(picks=ch)).any()]
-    if len(nan_ch_names) > 0: # Issue warning if any channel in other has nan values
-        warn(f"Channel(s) {', '.join(nan_ch_names)} in other contain nan values\n" +
-             "Resampling these channels will result in empty data\n" +
-             "If realigning eye-tracking data, consider using interpolate_blinks and passing interpolate_gaze=True")
+    nan_ch_names = [
+        ch for ch in other.info["ch_names"] if np.isnan(other.get_data(picks=ch)).any()
+    ]
+    if len(nan_ch_names) > 0:  # Issue warning if any channel in other has nan values
+        warn(
+            f"Channel(s) {', '.join(nan_ch_names)} in other contain nan values\n"
+            + "Resampling these channels will result in empty data\n"
+            + "If realigning eye-tracking data, consider using interpolate_blinks and passing interpolate_gaze=True"
+        )
     logger.info("Resampling other")
     sfreq_new = raw.info["sfreq"] * first_ord
     other.load_data().resample(sfreq_new, verbose=True)
