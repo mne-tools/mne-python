@@ -2575,7 +2575,7 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
             logger.info(f"Closing {use_fpath}")
         part_idx += 1
         assert (
-            part_idx <= MAX_N_SPLITS
+            part_idx < MAX_N_SPLITS
         ), f"Exceeded maximum amount of splits: {MAX_N_SPLITS}."
 
     logger.info("[done]")
