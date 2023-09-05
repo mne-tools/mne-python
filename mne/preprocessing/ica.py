@@ -3446,13 +3446,16 @@ def corrmap(
 
 
 @verbose
-def read_ica_eeglab(fname, *, verbose=None):
+def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
     fname : path-like
         Complete path to a ``.set`` EEGLAB file that contains an ICA object.
+    %(montage_units)s
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
@@ -3461,7 +3464,7 @@ def read_ica_eeglab(fname, *, verbose=None):
         An ICA object based on the information contained in the input file.
     """
     eeg = _check_load_mat(fname, None)
-    info, eeg_montage, _ = _get_info(eeg)
+    info, eeg_montage, _ = _get_info(eeg, eog=(), montage_units=montage_units)
     info.set_montage(eeg_montage)
     pick_info(info, np.round(eeg["icachansind"]).astype(int) - 1, copy=False)
 
