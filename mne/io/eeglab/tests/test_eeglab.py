@@ -665,7 +665,11 @@ def test_get_montage_info_with_ch_type():
     mat["EEG"]["chanlocs"]["type"] = ["eeg"] * (n - 2) + ["eog"] + ["stim"]
     mat["EEG"]["chanlocs"] = _dol_to_lod(mat["EEG"]["chanlocs"])
     mat["EEG"] = Bunch(**mat["EEG"])
-    ch_names, ch_types, montage = _get_montage_information(mat["EEG"], False)
+    ch_names, ch_types, montage = _get_montage_information(
+        mat["EEG"],
+        get_pos=False,
+        montage_units="mm",
+    )
     assert len(ch_names) == len(ch_types) == n
     assert ch_types == ["eeg"] * (n - 2) + ["eog"] + ["stim"]
     assert montage is None
@@ -677,7 +681,11 @@ def test_get_montage_info_with_ch_type():
     mat["EEG"]["chanlocs"] = _dol_to_lod(mat["EEG"]["chanlocs"])
     mat["EEG"] = Bunch(**mat["EEG"])
     with pytest.warns(RuntimeWarning, match="Unknown types found"):
-        ch_names, ch_types, montage = _get_montage_information(mat["EEG"], False)
+        ch_names, ch_types, montage = _get_montage_information(
+            mat["EEG"],
+            get_pos=False,
+            montage_units="mm",
+        )
 
 
 @testing.requires_testing_data
@@ -686,9 +694,9 @@ def test_fidsposition_information(monkeypatch, has_type):
     """Test reading file with 3 fiducial locations."""
     if not has_type:
 
-        def get_bad_information(eeg, get_pos, scale_units=1.0):
+        def get_bad_information(eeg, get_pos, *, montage_units):
             del eeg.chaninfo["nodatchans"]["type"]
-            return _get_montage_information(eeg, get_pos, scale_units=scale_units)
+            return _get_montage_information(eeg, get_pos, montage_units=montage_units)
 
         monkeypatch.setattr(
             mne.io.eeglab.eeglab, "_get_montage_information", get_bad_information
