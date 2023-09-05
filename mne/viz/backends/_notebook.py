@@ -794,6 +794,7 @@ class _3DRenderer(_PyVistaRenderer):
 
     def show(self):
         viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+        viewer.layout.width = None  # unlock the fixed layout
         display(viewer)
 
 
