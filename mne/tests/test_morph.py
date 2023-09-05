@@ -244,10 +244,6 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     if dtype is complex:
         stc.data = 1j * stc.data
         assert_array_equal(stc.data.real, 0.0)
-    if smooth == "nearest":
-        with pytest.raises(ValueError, match="required to use nearest"):
-            morph = compute_source_morph(stc, "sample", "fsaverage", **kwargs)
-        return
     with _record_warnings() as w:
         morph = compute_source_morph(stc, "sample", "fsaverage", **kwargs)
     w = [ww for ww in w if "vertices not included" in str(ww.message)]
