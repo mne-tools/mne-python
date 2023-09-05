@@ -9,7 +9,6 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import nullcontext
 from copy import deepcopy
 from datetime import timedelta
 import os
@@ -1702,7 +1701,8 @@ class BaseRaw(
         if split_naming == "neuromag":
             _write_raw_neuromag(raw_fid_writer, fname, overwrite)
         else:
-            _write_raw(raw_fid_writer, fname, split_naming, overwrite)
+            assert split_naming == "bids"
+            _write_raw_bids(raw_fid_writer, fname, overwrite)
 
     @verbose
     def export(
@@ -2539,44 +2539,45 @@ class _RawShell:
 
 ###############################################################################
 # Writing
-def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
-    """Write raw file with splitting."""
-    # Expand `~` if present
-    fname = _check_fname(fname=fname, overwrite=overwrite)
-
+def _write_raw_bids(raw_fid_writer, fname, overwrite):
+    """Write raw file with bids split naming."""
+    MAX_N_SPLITS = 100
     dir_path = fname.parent
     # Assume we never hit more than 100 splits, like for epochs
     split_fnames = _make_split_fnames(
-        fname.name, n_splits=100, split_naming=split_naming
+        fname.name, n_splits=MAX_N_SPLITS, split_naming="bids"
     )
     # reserve our BIDS split fname in case we need to split
-    reserved_fname, ctx = fname, nullcontext()
-    if split_naming == "bids":
-        # reserve our possible split name
-        reserved_fname = dir_path / split_fnames[0]
-        logger.info(f"Reserving possible split file {reserved_fname.name}")
-        _check_fname(reserved_fname, overwrite)
-        ctx = _ReservedFilename(reserved_fname)
+    reserved_fname = dir_path / split_fnames[0]
+    logger.info(f"Reserving possible split file {reserved_fname.name}")
+    _check_fname(reserved_fname, overwrite)
+    reserved_ctx = _ReservedFilename(reserved_fname)
 
-    is_next_split, part_idx = True, 0
-    use_fname = fname
-    prev_fname = None
+    part_idx, prev_fname, next_fname = 0, None, split_fnames[1]
+    logger.info(f"Writing {fname}")
+    with start_and_end_file(fname) as fid, reserved_ctx:
+        is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
+        if is_next_split:
+            logger.info(f"Renaming BIDS split file {fname.name}")
+            reserved_ctx.remove = False
+            shutil.move(fname, dir_path / split_fnames[0])
+        logger.info("Closing %s" % fname)
+
+    part_idx = 1
     while is_next_split:
-        if part_idx > 0:
-            prev_fname = use_fname
-            use_fname = dir_path / split_fnames[part_idx]
-            _check_fname(use_fname, overwrite)
-        next_fname = dir_path / split_fnames[part_idx + 1]
-        logger.info(f"Writing {use_fname}")
+        prev_fname = split_fnames[part_idx - 1]
+        next_fname = split_fnames[part_idx + 1]
+        use_fname = dir_path / split_fnames[part_idx]
+        _check_fname(use_fname, overwrite)
 
-        with start_and_end_file(use_fname) as fid, ctx:
+        logger.info(f"Writing {use_fname}")
+        with start_and_end_file(use_fname) as fid:
             is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
-            if part_idx == 1 and split_naming == "bids":
-                logger.info(f"Renaming BIDS split file {split_fnames[0]}")
-                ctx.remove = False
-                shutil.move(fname, dir_path / split_fnames[0])
             logger.info("Closing %s" % use_fname)
         part_idx += 1
+        assert (
+            part_idx <= MAX_N_SPLITS
+        ), f"Exceeded maximum amount of splits: {MAX_N_SPLITS}."
 
     logger.info("[done]")
 
@@ -2602,7 +2603,9 @@ def _write_raw_neuromag(raw_fid_writer, fname, overwrite):
             logger.info(f"Closing {use_fname}")
 
         part_idx += 1
-        assert part_idx <= MAX_N_SPLITS, f"Exceeded maximum amount of splits: {MAX_N_SPLITS}."
+        assert (
+            part_idx <= MAX_N_SPLITS
+        ), f"Exceeded maximum amount of splits: {MAX_N_SPLITS}."
 
     logger.info("[done]")
 
