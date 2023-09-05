@@ -445,7 +445,6 @@ def test_plot_epochs_ctf(raw_ctf, browser_backend):
             "SCLK01-177",
             "BG1-4304",
             "MLC11-4304",
-            "MLC11-4304",
             "EEG058",
             "UADC007-4302",
         ],
