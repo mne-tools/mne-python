@@ -93,8 +93,7 @@ def run():
         "--add-dist",
         dest="add_dist",
         help='Add distances. Can be "True", "False", or "patch" '
-        "to only compute cortical patch statistics (like the "
-        "--cps option in MNE-C; requires SciPy >= 1.3)",
+        "to only compute cortical patch statistics (like the --cps option in MNE-C)",
         default="True",
     )
     parser.add_option(

@@ -304,8 +304,8 @@ def _decimate_points(pts, res=10):
     mids = np.c_[x, y, z] + res / 2.0
 
     # each point belongs to at most one voxel center, so figure those out
-    # (cKDTree faster than BallTree for these small problems)
-    tree = _DistanceQuery(mids, method="cKDTree")
+    # (KDTree faster than BallTree for these small problems)
+    tree = _DistanceQuery(mids, method="KDTree")
     _, mid_idx = tree.query(pts)
 
     # then figure out which to actually use based on proximity
