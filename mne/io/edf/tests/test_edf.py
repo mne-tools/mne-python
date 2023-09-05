@@ -7,6 +7,7 @@
 #
 # License: BSD-3-Clause
 
+import datetime
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
@@ -117,19 +118,53 @@ def test_edf_temperature(monkeypatch):
     assert raw.get_channel_types()[0] == "temperature"
 
 
+@testing.requires_testing_data
 def test_subject_info(tmp_path):
     """Test exposure of original channel units."""
-    raw = read_raw_edf(edf_path)
-    assert raw.info["subject_info"] is None  # XXX this is arguably a bug
+    raw = read_raw_edf(edf_stim_resamp_path, preload=True)
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": (1967, 10, 9),
+        "last_name": "X",
+    }
+    for key, val in want.items():
+        assert raw.info["subject_info"][key] == val, key
+
+    # check "subject_info" from `_raw_extras`
     edf_info = raw._raw_extras[0]
     assert edf_info["subject_info"] is not None
-    want = {"id": "X", "sex": "X", "birthday": "X", "name": "X"}
+    want = {
+        "id": "X",
+        "sex": "M",
+        "birthday": datetime.datetime(1967, 10, 9, 0, 0),
+        "name": "X",
+    }
     for key, val in want.items():
         assert edf_info["subject_info"][key] == val, key
+
+    # add information
+    raw.info["subject_info"]["hand"] = 0
+
+    # save raw to FIF and load it back
     fname = tmp_path / "test_raw.fif"
     raw.save(fname)
     raw = read_raw_fif(fname)
-    assert raw.info["subject_info"] is None  # XXX should eventually round-trip
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": (1967, 10, 9),
+        "last_name": "X",
+        "hand": 0,
+    }
+    for key, val in want.items():
+        assert raw.info["subject_info"][key] == val
 
 
 def test_bdf_data():

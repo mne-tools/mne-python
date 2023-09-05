@@ -644,6 +644,49 @@ def _get_info(
     info["chs"] = chs
     info["ch_names"] = ch_names
 
+    # Subject information
+    info["subject_info"] = {}
+
+    # String subject identifier
+    if edf_info["subject_info"].get("id") is not None:
+        info["subject_info"]["his_id"] = edf_info["subject_info"]["id"]
+    # Subject sex (0=unknown, 1=male, 2=female)
+    if edf_info["subject_info"].get("sex") is not None:
+        if edf_info["subject_info"]["sex"] == "M":
+            info["subject_info"]["sex"] = 1
+        elif edf_info["subject_info"]["sex"] == "F":
+            info["subject_info"]["sex"] = 2
+        else:
+            info["subject_info"]["sex"] = 0
+    # Subject names (first, middle, last).
+    if edf_info["subject_info"].get("name") is not None:
+        sub_names = edf_info["subject_info"]["name"].split("_")
+        if len(sub_names) < 2 or len(sub_names) > 3:
+            info["subject_info"]["last_name"] = edf_info["subject_info"]["name"]
+        elif len(sub_names) == 2:
+            info["subject_info"]["first_name"] = sub_names[0]
+            info["subject_info"]["last_name"] = sub_names[1]
+        else:
+            info["subject_info"]["first_name"] = sub_names[0]
+            info["subject_info"]["middle_name"] = sub_names[1]
+            info["subject_info"]["last_name"] = sub_names[2]
+    # Birthday in (year, month, day) format.
+    if isinstance(edf_info["subject_info"].get("birthday"), datetime):
+        info["subject_info"]["birthday"] = (
+            edf_info["subject_info"]["birthday"].year,
+            edf_info["subject_info"]["birthday"].month,
+            edf_info["subject_info"]["birthday"].day,
+        )
+    # Handedness (1=right, 2=left, 3=ambidextrous).
+    if edf_info["subject_info"].get("hand") is not None:
+        info["subject_info"]["hand"] = int(edf_info["subject_info"]["hand"])
+    # Height in meters.
+    if edf_info["subject_info"].get("height") is not None:
+        info["subject_info"]["height"] = float(edf_info["subject_info"]["height"])
+    # Weight in kilograms.
+    if edf_info["subject_info"].get("weight") is not None:
+        info["subject_info"]["weight"] = float(edf_info["subject_info"]["weight"])
+
     # Filter settings
     highpass = edf_info["highpass"]
     lowpass = edf_info["lowpass"]
@@ -766,7 +809,7 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         id_info = id_info.split(" ")
         if len(id_info):
             patient["id"] = id_info[0]
-            if len(id_info) == 4:
+            if len(id_info) >= 4:
                 try:
                     birthdate = datetime.strptime(id_info[2], "%d-%b-%Y")
                 except ValueError:
@@ -774,6 +817,16 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
                 patient["sex"] = id_info[1]
                 patient["birthday"] = birthdate
                 patient["name"] = id_info[3]
+                if len(id_info) > 4:
+                    for info in id_info[4:]:
+                        if "=" in info:
+                            key, value = info.split("=")
+                            if key in ["weight", "height"]:
+                                patient[key] = float(value)
+                            elif key in ["hand"]:
+                                patient[key] = int(value)
+                            else:
+                                warn(f"Invalid patient information {key}")
 
         # Recording ID
         meas_id = {}

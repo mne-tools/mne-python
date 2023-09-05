@@ -134,11 +134,19 @@ def test_double_export_edf(tmp_path):
         "bio",
     ]
     info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)
+    info = info.set_meas_date("2023-09-04 14:53:09.000")
     data = rng.random(size=(len(ch_types), 1000)) * 1e-5
 
     # include subject info and measurement date
     info["subject_info"] = dict(
-        first_name="mne", last_name="python", birthday=(1992, 1, 20), sex=1, hand=3
+        his_id="12345",
+        first_name="mne",
+        last_name="python",
+        birthday=(1992, 1, 20),
+        sex=1,
+        weight=78.3,
+        height=1.75,
+        hand=3,
     )
     raw = RawArray(data, info)
 
@@ -162,6 +170,10 @@ def test_double_export_edf(tmp_path):
         raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
     )
     assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+
+    # check info
+    for key in set(raw.info) - {"chs"}:
+        assert raw.info[key] == raw_read.info[key]
 
     # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
