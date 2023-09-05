@@ -1508,7 +1508,7 @@ def setup_source_space(
     add_dist : bool | str
         Add distance and patch information to the source space. This takes some
         time so precomputing it is recommended. Can also be 'patch' to only
-        compute patch information (requires SciPy 1.3+).
+        compute patch information.
 
         .. versionchanged:: 0.20
            Support for ``add_dist='patch'``.
@@ -2575,7 +2575,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None, verbose=Non
                 idx = idx[mask]
                 check_r1s = check_r1s[mask]
             dists = _compute_nearest(
-                surf["rr"], check_r1s, return_dists=True, method="cKDTree"
+                surf["rr"], check_r1s, return_dists=True, method="KDTree"
             )[1]
             close = dists < limit / 1000.0
             omit_limit = np.sum(close)

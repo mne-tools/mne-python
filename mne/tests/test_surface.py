@@ -105,7 +105,7 @@ def test_compute_nearest():
     y = x[nn_true]
 
     nn1 = _compute_nearest(x, y, method="BallTree")
-    nn2 = _compute_nearest(x, y, method="cKDTree")
+    nn2 = _compute_nearest(x, y, method="KDTree")
     nn3 = _compute_nearest(x, y, method="cdist")
     assert_array_equal(nn_true, nn1)
     assert_array_equal(nn_true, nn2)
@@ -113,7 +113,7 @@ def test_compute_nearest():
 
     # test distance support
     nnn1 = _compute_nearest(x, y, method="BallTree", return_dists=True)
-    nnn2 = _compute_nearest(x, y, method="cKDTree", return_dists=True)
+    nnn2 = _compute_nearest(x, y, method="KDTree", return_dists=True)
     nnn3 = _compute_nearest(x, y, method="cdist", return_dists=True)
     assert_array_equal(nnn1[0], nn_true)
     assert_array_equal(nnn1[1], np.zeros_like(nn1))  # all dists should be 0
