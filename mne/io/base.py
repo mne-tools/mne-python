@@ -2559,7 +2559,7 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
                 logger.info(f"Renaming BIDS split file {fname.name}")
                 reserved_ctx.remove = False
                 shutil.move(fname, dir_path / split_fnames[0])
-            logger.info("Closing %s" % fname)
+            logger.info(f"Closing {fname}")
 
         part_idx += 1
 
@@ -2572,7 +2572,7 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
         logger.info(f"Writing {use_fname}")
         with start_and_end_file(use_fname) as fid:
             is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
-            logger.info("Closing %s" % use_fname)
+            logger.info(f"Closing {fname}")
         part_idx += 1
         assert (
             part_idx <= MAX_N_SPLITS
@@ -2659,11 +2659,11 @@ class _RawFidWriter:
     def _check_start_stop_within_bounds(self):
         # we've done something wrong if we hit this
         n_times_max = len(self.raw.times)
+        error_msg = (
+            "Can't write raw file with no data: {0} -> {1} (max: {2}) requested"
+        ).format(self.start, self.stop, n_times_max)
         if self.start >= self.stop or self.stop > n_times_max:
-            raise RuntimeError(
-                "Cannot write raw file with no data: %s -> %s "
-                "(max: %s) requested" % (self.start, self.stop, n_times_max)
-            )
+            raise RuntimeError(error_msg)
 
 
 def _write_raw_fid(
