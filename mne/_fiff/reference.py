@@ -46,7 +46,7 @@ def _copy_channel(inst, ch_name, new_ch_name):
     inst : instance of Raw | Epochs | Evoked
         The data with a copy of a given channel.
     """
-    new_inst = inst.copy().pick_channels([ch_name])
+    new_inst = inst.copy().pick([ch_name])
     new_inst.rename_channels({ch_name: new_ch_name})
     inst.add_channels([new_inst], force_update_info=True)
     return inst

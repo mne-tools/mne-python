@@ -192,6 +192,7 @@ def equalize_channels(instances, copy=True, verbose=None):
             else:
                 if copy:
                     inst = inst.copy()
+                # TODO change to .pick() once CSD, Cov, and Fwd have `.pick()` methods
                 inst.pick_channels(common_channels, ordered=True)
             if len(inst.ch_names) == len(common_channels):
                 reordered = True

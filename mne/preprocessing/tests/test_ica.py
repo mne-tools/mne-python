@@ -599,8 +599,10 @@ def short_raw_epochs():
     """Get small data."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
     raw.pick(
-        set(raw.ch_names[::10]) | set(["EOG 061", "MEG 1531", "MEG 1441", "MEG 0121"]),
-        ordered=False,
+        list(
+            set(raw.ch_names[::10])
+            | set(["EOG 061", "MEG 1531", "MEG 1441", "MEG 0121"]),
+        )
     )
     assert "eog" in raw
     raw.del_proj()  # avoid warnings

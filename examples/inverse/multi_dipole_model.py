@@ -83,12 +83,12 @@ bem = mne.read_bem_solution(bem_fname)
 # sensors on the right side of the helmet.
 picks_left = read_vectorview_selection("Left", info=info)
 evoked_fit_left = evoked_left.copy().crop(0.08, 0.08)
-evoked_fit_left.pick_channels(picks_left)
+evoked_fit_left.pick(picks_left)
 cov_fit_left = cov.copy().pick_channels(picks_left)
 
 picks_right = read_vectorview_selection("Right", info=info)
 evoked_fit_right = evoked_right.copy().crop(0.08, 0.08)
-evoked_fit_right.pick_channels(picks_right)
+evoked_fit_right.pick(picks_right)
 cov_fit_right = cov.copy().pick_channels(picks_right)
 
 # Any SSS projections that are active on this data need to be re-normalized
