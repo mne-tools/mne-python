@@ -1552,6 +1552,8 @@ class _Renderer(
     def _update(self):
         if _JUPYTER_BACKEND == "ipyvtklink" and self.figure.display is not None:
             self.figure.display.update_canvas()
+        else:
+            super()._update()
 
     def _display_default_tool_bar(self):
         self._tool_bar_initialize()
