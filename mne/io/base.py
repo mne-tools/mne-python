@@ -2675,10 +2675,13 @@ class _RawFidWriter:
             part_idx,
             self.start,
             self.stop,
+            self.cfg.buffer_size,
             prev_fname,
+            self.cfg.split_size,
             next_fname,
             self.projector,
-            self.cfg,
+            self.cfg.drop_small_buffer,
+            self.cfg.fmt,
         )
         return is_next_split
 
@@ -2701,10 +2704,13 @@ def _write_raw_fid(
     part_idx,
     start,
     stop,
+    buffer_size,
     prev_fname,
+    split_size,
     next_fname,
     projector,
-    cfg,
+    drop_small_buffer,
+    fmt,
 ):
     first_samp = raw.first_samp + start
     if first_samp != 0:
@@ -2721,7 +2727,7 @@ def _write_raw_fid(
         end_block(fid, FIFF.FIFFB_REF)
 
     pos_prev = fid.tell()
-    if pos_prev > cfg.split_size:
+    if pos_prev > split_size:
         raise ValueError(
             'file is larger than "split_size" after writing '
             "measurement information, you must use a larger "
@@ -2731,8 +2737,8 @@ def _write_raw_fid(
 
     # Check to see if this has acquisition skips and, if so, if we can
     # write out empty buffers instead of zeroes
-    firsts = list(range(start, stop, cfg.buffer_size))
-    lasts = np.array(firsts) + cfg.buffer_size
+    firsts = list(range(start, stop, buffer_size))
+    lasts = np.array(firsts) + buffer_size
     if lasts[-1] > stop:
         lasts[-1] = stop
     sk_onsets, sk_ends = _annotations_starts_stops(raw, "bad_acq_skip")
@@ -2769,15 +2775,15 @@ def _write_raw_fid(
         if projector is not None:
             data = np.dot(projector, data)
 
-        if cfg.drop_small_buffer and (first > start) and len(times) < cfg.buffer_size:
+        if drop_small_buffer and (first > start) and (len(times) < buffer_size):
             logger.info("Skipping data chunk due to small buffer ... " "[done]")
             break
         logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
-        _write_raw_buffer(fid, data, cals, cfg.fmt)
+        _write_raw_buffer(fid, data, cals, fmt)
 
         pos = fid.tell()
         this_buff_size_bytes = pos - pos_prev
-        overage = pos - cfg.split_size + _NEXT_FILE_BUFFER
+        overage = pos - split_size + _NEXT_FILE_BUFFER
         if overage > 0:
             # This should occur on the first buffer write of the file, so
             # we should mention the space required for the meas info
@@ -2788,7 +2794,7 @@ def _write_raw_fid(
                 '"split_size".'
                 % (
                     this_buff_size_bytes,
-                    cfg.split_size,
+                    split_size,
                     overage,
                     pos_prev,
                     _NEXT_FILE_BUFFER,
@@ -2799,8 +2805,8 @@ def _write_raw_fid(
         # make sure we check to make sure we actually *need* another buffer
         # with the "and" check
         if (
-            pos >= cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
-            and first + cfg.buffer_size < stop
+            pos >= split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
+            and first + buffer_size < stop
         ):
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
@@ -2811,7 +2817,7 @@ def _write_raw_fid(
             end_block(fid, FIFF.FIFFB_REF)
 
             is_next_split = True
-            new_start = first + cfg.buffer_size
+            new_start = first + buffer_size
             break
         pos_prev = pos
 
