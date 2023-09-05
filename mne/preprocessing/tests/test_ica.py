@@ -1012,7 +1012,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
 
     # test passing picks including the marked bad channels
     raw_ = raw.copy()
-    raw_.pick(eeg=True)
+    raw_.pick("eeg")
     raw_.info["bads"] = [raw_.ch_names[0]]
     picks = pick_types(raw_.info, eeg=True, exclude=[])
     ica = ICA(n_components=0.99, max_iter="auto")

@@ -772,7 +772,7 @@ def test_inverse_residual(evoked, method, pick_ori):
     if method == "eLORETA" and pick_ori == "vector":  # works but slow
         return
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
-    evoked = evoked.pick("meg")
+    evoked = evoked.pick("meg", exclude="bads")
     if pick_ori is None:  # use fixed
         inv = read_inverse_operator(fname_inv_fixed_depth)
     else:

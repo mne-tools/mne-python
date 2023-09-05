@@ -588,7 +588,7 @@ def test_acqparser_averaging():
         ev_ref_mag = ev_ref.copy()
         ev_ref_mag.pick(["MEG0111"])
         ev_ref_grad = ev_ref.copy()
-        ev_ref_grad.pick(["MEG2643", "MEG1622"], ordered=False)
+        ev_ref_grad.pick(["MEG2643", "MEG1622"])
         assert_allclose(ev_mag.data, ev_ref_mag.data, rtol=0, atol=1e-15)  # tol = 1 fT
         # Elekta put these in a different order
         assert ev_grad.ch_names[::-1] == ev_ref_grad.ch_names

@@ -287,14 +287,14 @@ def test_as_meg_type_evoked():
 
     # channel names
     ch_names = evoked.info["ch_names"]
-    virt_evoked = evoked.copy().pick(ch_names=ch_names[:10:1])
+    virt_evoked = evoked.copy().pick(ch_names[:10:1])
     virt_evoked.info.normalize_proj()
     virt_evoked = virt_evoked.as_type("mag")
     assert all(ch.endswith("_v") for ch in virt_evoked.info["ch_names"])
 
     # pick from and to channels
-    evoked_from = evoked.copy().pick(ch_names=ch_names[2:10:3])
-    evoked_to = evoked.copy().pick(ch_names=ch_names[0:10:3])
+    evoked_from = evoked.copy().pick(ch_names[2:10:3])
+    evoked_to = evoked.copy().pick(ch_names[0:10:3])
 
     info_from, info_to = evoked_from.info, evoked_to.info
 
@@ -310,13 +310,13 @@ def test_as_meg_type_evoked():
     assert_array_almost_equal(cross_dots1, cross_dots2.T)
 
     # correlation test
-    evoked = evoked.pick(ch_names=ch_names[:10:]).copy()
-    data1 = evoked.pick(picks="grad").data.ravel()
+    evoked = evoked.pick(ch_names[:10:]).copy()
+    data1 = evoked.pick("grad").data.ravel()
     data2 = evoked.as_type("grad").data.ravel()
     assert np.corrcoef(data1, data2)[0, 1] > 0.95
 
     # Do it with epochs
-    virt_epochs = epochs.copy().load_data().pick(ch_names=ch_names[:10:1])
+    virt_epochs = epochs.copy().load_data().pick(ch_names[:10:1])
     virt_epochs.info.normalize_proj()
     virt_epochs = virt_epochs.as_type("mag")
     assert all(ch.endswith("_v") for ch in virt_epochs.info["ch_names"])

@@ -590,7 +590,7 @@ def test_basic():
         maxwell_filter(raw, mag_scale="foo")
     raw_missing = raw.copy().load_data()
     raw_missing.info["bads"] = ["MEG0111"]
-    raw_missing.pick("meg")  # will be missing the bad
+    raw_missing.pick("meg", exclude="bads")  # will be missing the bad
     maxwell_filter(raw_missing)
     with pytest.warns(RuntimeWarning, match="not in data"):
         maxwell_filter(raw_missing, calibration=fine_cal_fname)
@@ -791,7 +791,7 @@ def test_fine_calibration():
         regularize=None,
         bad_condition="ignore",
     )
-    raw_missing.pick("meg")  # actually remove bads
+    raw_missing.pick("meg", exclude="bads")  # actually remove bads
     raw_sss_bad.pick(raw_missing.ch_names)  # remove them here, too
     with pytest.warns(RuntimeWarning, match="cal channels not in data"):
         raw_sss_missing = maxwell_filter(

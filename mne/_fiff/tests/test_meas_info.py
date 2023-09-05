@@ -970,7 +970,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     assert "truncated to 15" in log
     for name in raw.ch_names:
         assert len(name) > 15
-    # first read the full waytmp_path
+    # first read the full way
     with catch_logging() as log:
         raw_read = read_raw_fif(fname, verbose=True)
     log = log.getvalue()
@@ -993,8 +993,8 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
         meas_info, "_read_extended_ch_info", _read_extended_ch_info
     )
     short_proj_names = [
-        f"{name[:13 - bool(len(ref_names))]}-{len(ref_names) + ni}"
-        for ni, name in enumerate(long_data_names[:2])
+        f"{name[:13 - bool(len(ref_names))]}-{ni}"
+        for ni, name in enumerate(long_proj_names)
     ]
     assert raw_read.info["projs"][0]["data"]["col_names"] == short_proj_names
     #

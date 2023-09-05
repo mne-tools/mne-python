@@ -10,6 +10,7 @@ from numpy.testing import (
     assert_allclose,
 )
 
+from mne._fiff.pick import pick_channels_forward
 from mne.datasets import testing
 from mne import (
     read_forward_solution,
@@ -505,8 +506,8 @@ def test_priors():
 def test_equalize_channels():
     """Test equalization of channels for instances of Forward."""
     fwd1 = read_forward_solution(fname_meeg)
-    fwd1.pick(["EEG 001", "EEG 002", "EEG 003"])
-    fwd2 = fwd1.copy().pick(["EEG 002", "EEG 001"], ordered=True)
+    pick_channels_forward(fwd1, include=["EEG 001", "EEG 002", "EEG 003"], copy=False)
+    fwd2 = pick_channels_forward(fwd1, include=["EEG 002", "EEG 001"], ordered=True)
     fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ["EEG 001", "EEG 002"]
     assert fwd2.ch_names == ["EEG 001", "EEG 002"]
