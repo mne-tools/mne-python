@@ -7,6 +7,7 @@
 from datetime import datetime, timezone
 import faulthandler
 import gc
+from importlib.metadata import metadata
 import os
 import subprocess
 import sys
@@ -1431,18 +1432,7 @@ rst_prolog += """
 
 # -- Dependency info ----------------------------------------------------------
 
-try:
-    from importlib.metadata import metadata  # new in Python 3.8
-
-    min_py = metadata("mne")["Requires-Python"]
-except ModuleNotFoundError:
-    from pkg_resources import get_distribution
-
-    info = get_distribution("mne").get_metadata_lines("PKG-INFO")
-    for line in info:
-        if line.strip().startswith("Requires-Python"):
-            min_py = line.split(":")[1]
-min_py = min_py.lstrip(" =<>")
+min_py = metadata("mne")["Requires-Python"].lstrip(" =<>")
 rst_prolog += f"\n.. |min_python_version| replace:: {min_py}\n"
 
 # -- website redirects --------------------------------------------------------
