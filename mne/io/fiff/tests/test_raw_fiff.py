@@ -1858,8 +1858,8 @@ def test_pick_channels_mixin(preload):
     assert ch_names == raw.ch_names
     assert len(ch_names) == len(raw._cals)
     assert len(ch_names) == raw.get_data().shape[0]
-    with pytest.raises(ValueError, match="must be"):
-        raw.pick(ch_names[0])
+    with pytest.raises(ValueError, match='must be list, tuple, ndarray, or "bads"'):
+        raw.pick_channels(ch_names[0])  # legacy method OK here; testing its warning
 
     assert_allclose(raw[:][0], raw_orig[:3][0])
 
