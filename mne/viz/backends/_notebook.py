@@ -112,8 +112,8 @@ _ICON_LUT = dict(
 _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
 
-# We can drop ipyvtklink once we support PyVista 0.41+
-if check_version("pyvista", "0.38"):
+# We can drop ipyvtklink once we support PyVista 0.38.1+
+if check_version("pyvista", "0.38.1"):
     _JUPYTER_BACKEND = "trame"
 else:
     _JUPYTER_BACKEND = "ipyvtklink"
