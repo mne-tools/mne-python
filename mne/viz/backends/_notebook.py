@@ -655,7 +655,7 @@ class _BoxLayout:
         # if pyvista plotter, needs to be shown
         if isinstance(widget, Plotter):
             widget = widget.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
-        if hasattr("widget", "layout"):
+        if hasattr(widget, "layout"):
             widget.layout.width = None  # unlock the fixed layout
             widget.layout.margin = "2px 0px 2px 0px"
             if not isinstance(widget, Play):
