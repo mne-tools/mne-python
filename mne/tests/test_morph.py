@@ -35,7 +35,7 @@ from mne._freesurfer import _get_mri_info_data, _get_atlas_values
 from mne.minimum_norm import apply_inverse, read_inverse_operator, make_inverse_operator
 from mne.source_space._source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
-from mne.utils import check_version, catch_logging, _record_warnings
+from mne.utils import catch_logging, _record_warnings
 
 # Setup paths
 
@@ -244,7 +244,7 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     if dtype is complex:
         stc.data = 1j * stc.data
         assert_array_equal(stc.data.real, 0.0)
-    if smooth == "nearest" and not check_version("scipy", "1.3"):
+    if smooth == "nearest":
         with pytest.raises(ValueError, match="required to use nearest"):
             morph = compute_source_morph(stc, "sample", "fsaverage", **kwargs)
         return
