@@ -13,6 +13,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
+from inspect import signature
 import difflib
 from functools import partial
 import math
@@ -1754,9 +1755,8 @@ class SelectFromCollection:
         self.ec[:, -1] = self.alpha_other
         self.lw = np.full(self.Npts, self.linewidth_other)
 
-        self.lasso = LassoSelector(
-            ax, onselect=self.on_select, props=dict(color="red", linewidth=0.5)
-        )
+        line_kw = _prop_kw("line", dict(color="red", linewidth=0.5))
+        self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
         self.callbacks = list()
 
@@ -2835,6 +2835,15 @@ def _generate_default_filename(ext=".png"):
     now = datetime.now()
     dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
     return "MNE" + dt_string + ext
+
+
+def _prop_kw(kind, val):
+    # Can be removed in when we depend on matplotlib 3.5+
+    # https://github.com/matplotlib/matplotlib/pull/20585
+    from matplotlib.widgets import SpanSelector
+
+    pre = "" if "props" in signature(SpanSelector).parameters else kind
+    return {pre + "props": val}
 
 
 def _handle_precompute(precompute):

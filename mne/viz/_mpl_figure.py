@@ -65,6 +65,7 @@ from .utils import (
     _fake_click,
     _fake_keypress,
     _merge_annotations,
+    _prop_kw,
     _set_window_title,
     _validate_if_list_of_axes,
     plt_show,
@@ -1132,6 +1133,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         else:
             col = self.mne.annotation_segment_colors[self._get_annotation_labels()[0]]
 
+        rect_kw = _prop_kw("rect", dict(alpha=0.5, facecolor=col))
         selector = SpanSelector(
             self.mne.ax_main,
             self._select_annotation_span,
@@ -1139,7 +1141,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             minspan=0.1,
             useblit=True,
             button=1,
-            props=dict(alpha=0.5, facecolor=col),
+            **rect_kw,
         )
         self.mne.ax_main.selector = selector
         self.mne._callback_ids["motion_notify_event"] = self.canvas.mpl_connect(

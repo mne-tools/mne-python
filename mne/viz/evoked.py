@@ -52,6 +52,7 @@ from .utils import (
     _plot_masked_image,
     _trim_ticks,
     _set_window_title,
+    _prop_kw,
     _get_cmap,
 )
 from ..utils import (
@@ -842,13 +843,14 @@ def _plot_lines(
             )
             blit = False if plt.get_backend() == "MacOSX" else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
+            rect_kw = _prop_kw("rect", dict(alpha=0.5, facecolor="red"))
             ax._span_selector = SpanSelector(
                 ax,
                 callback_onselect,
                 "horizontal",
                 minspan=minspan,
                 useblit=blit,
-                props=dict(alpha=0.5, facecolor="red"),
+                **rect_kw,
             )
 
 
