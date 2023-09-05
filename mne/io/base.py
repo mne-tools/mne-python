@@ -2535,44 +2535,44 @@ class _RawShell:
 
 ###############################################################################
 # Writing
-def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
+def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
     """Write raw file with splitting."""
     # Assume we never hit more than 100 splits, like for epochs
     MAX_N_SPLITS = 100
-    dir_path = fname.parent
+    dir_path = fpath.parent
     split_fnames = _make_split_fnames(
-        fname.name, n_splits=MAX_N_SPLITS, split_naming=split_naming
+        fpath.name, n_splits=MAX_N_SPLITS, split_naming=split_naming
     )
     part_idx, is_next_split = 0, True
     if split_naming == "bids":
-        # reserve our BIDS split fname in case we need to split
+        # reserve our BIDS split fpath in case we need to split
         reserved_fname = dir_path / split_fnames[0]
         logger.info(f"Reserving possible split file {reserved_fname.name}")
         _check_fname(reserved_fname, overwrite)
         reserved_ctx = _ReservedFilename(reserved_fname)
 
         prev_fname, next_fname = None, split_fnames[1]
-        logger.info(f"Writing {fname}")
-        with start_and_end_file(fname) as fid, reserved_ctx:
+        logger.info(f"Writing {fpath}")
+        with start_and_end_file(fpath) as fid, reserved_ctx:
             is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
             if is_next_split:
-                logger.info(f"Renaming BIDS split file {fname.name}")
+                logger.info(f"Renaming BIDS split file {fpath.name}")
                 reserved_ctx.remove = False
-                shutil.move(fname, dir_path / split_fnames[0])
-            logger.info(f"Closing {fname}")
+                shutil.move(fpath, dir_path / split_fnames[0])
+            logger.info(f"Closing {fpath}")
 
         part_idx += 1
 
     while is_next_split:
         prev_fname = split_fnames[part_idx - 1] if part_idx else None
         next_fname = split_fnames[part_idx + 1]
-        use_fname = dir_path / split_fnames[part_idx]
-        _check_fname(use_fname, overwrite)
+        use_fpath = dir_path / split_fnames[part_idx]
+        _check_fname(use_fpath, overwrite)
 
-        logger.info(f"Writing {use_fname}")
-        with start_and_end_file(use_fname) as fid:
+        logger.info(f"Writing {use_fpath}")
+        with start_and_end_file(use_fpath) as fid:
             is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
-            logger.info(f"Closing {fname}")
+            logger.info(f"Closing {use_fpath}")
         part_idx += 1
         assert (
             part_idx <= MAX_N_SPLITS
