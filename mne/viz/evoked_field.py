@@ -180,9 +180,11 @@ class EvokedField:
         from ._brain import Brain
 
         if isinstance(fig, Brain):
+            print("Inside brain")
             self._renderer = fig._renderer
             self._in_brain_figure = True
         else:
+            print("Not inside brain")
             self._renderer = _get_renderer(
                 fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600)
             )
@@ -196,6 +198,15 @@ class EvokedField:
             self._prepare_surf_map(surf_map, color, self._alpha[surf_map["kind"]])
             for surf_map, color in zip(surf_maps, self._colors)
         ]
+
+        # Do we want the time viewer?
+        if time_viewer == "auto":
+            time_viewer = len(evoked.times) > 1
+        # Are we drawing inside a Brain figure that already has a time viewer?
+        if self._in_brain_figure and fig.time_viewer:
+            time_viewer = False
+        self.time_viewer = time_viewer
+        print("Drawing time viewer?", time_viewer)
 
         # Draw the time label
         self._time_label = time_label
@@ -213,9 +224,8 @@ class EvokedField:
         subscribe(self, "colormap_range", self._on_colormap_range)
         subscribe(self, "contours", self._on_contours)
 
-        # Configure keyboard shortcuts
-        if not self._in_brain_figure:
-
+        if self.time_viewer:
+            # Configure keyboard shortcuts
             @_auto_weakref
             def shift_time(amount):
                 publish(self, TimeChange(time=self._current_time + amount))
@@ -223,7 +233,7 @@ class EvokedField:
             self._renderer.plotter.add_key_event("n", partial(shift_time, amount=0.01))
             self._renderer.plotter.add_key_event("b", partial(shift_time, amount=-0.01))
 
-        self._renderer.set_camera(azimuth=10, elevation=60)
+            self._renderer.set_camera(azimuth=10, elevation=60)
         self._renderer.show()
 
     def _prepare_surf_map(self, surf_map, color, alpha):
@@ -369,7 +379,7 @@ class EvokedField:
         self._widgets = dict()
 
         # Time selection
-        if len(self._evoked.times) > 0 and not self._in_brain_figure:
+        if self.time_viewer:
             layout = r._dock_add_group_box("")
             self._widgets["time_slider"] = r._dock_add_slider(
                 name="Time (s)",
