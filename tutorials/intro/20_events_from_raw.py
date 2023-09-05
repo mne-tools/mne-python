@@ -61,7 +61,6 @@ raw.crop(tmax=60).load_data()
 #    :class:`NumPy array <numpy.ndarray>`, whereas `~mne.Annotations` is
 #    a :class:`list`-like class defined in MNE-Python.
 #
-#
 # .. _stim-channel-defined:
 #
 # What is a STIM channel?
