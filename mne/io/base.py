@@ -2658,201 +2658,29 @@ class _RawFidWriter:
         self.cfg = cfg
 
     def write(self, fid, part_idx, prev_fname, next_fname):
-        start_block(fid, FIFF.FIFFB_MEAS)
-        self._start_writing_raw(fid)
-        cals = self._get_calibrations()
-        is_next_split = self._write_raw_fid(fid, cals, part_idx, prev_fname, next_fname)
-        end_block(fid, FIFF.FIFFB_MEAS)
-        return is_next_split
-
-    def _write_raw_fid(self, fid, cals, part_idx, prev_fname, next_fname):
-        self._start_raw_block(fid)
-
         self._check_start_stop_within_bounds()
-        first_samp = self.raw.first_samp + self.start
-        if first_samp != 0:
-            write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
-
-        # previous file name and id
-        if part_idx > 0 and prev_fname is not None:
-            self._write_neighbour_fname(fid, prev_fname, part_idx - 1, "prev")
-
-        pos_prev = fid.tell()
-        if pos_prev > self.cfg.split_size:
-            raise ValueError(
-                'file is larger than "split_size" after writing '
-                "measurement information, you must use a larger "
-                "value for split size: %s plus enough bytes for "
-                "the chosen buffer_size" % pos_prev
-            )
-
-        # Check to see if this has acquisition skips and, if so, if we can
-        # write out empty buffers instead of zeroes
-        firsts = list(range(self.start, self.stop, self.cfg.buffer_size))
-        lasts = np.array(firsts) + self.cfg.buffer_size
-        if lasts[-1] > self.stop:
-            lasts[-1] = self.stop
-        sk_onsets, sk_ends = _annotations_starts_stops(self.raw, "bad_acq_skip")
-        do_skips = False
-        if len(sk_onsets) > 0:
-            if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
-                do_skips = True
-            else:
-                if part_idx == 0:
-                    warn(
-                        "Acquisition skips detected but did not fit evenly into "
-                        "output buffer_size, will be written as zeroes."
-                    )
-
-        n_current_skip = 0
-        is_next_split = False
-        for first, last in zip(firsts, lasts):
-            if do_skips:
-                if ((first >= sk_onsets) & (last <= sk_ends)).any():
-                    # Track how many we have
-                    n_current_skip += 1
-                    continue
-                elif n_current_skip > 0:
-                    # Write out an empty buffer instead of data
-                    write_int(fid, FIFF.FIFF_DATA_SKIP, n_current_skip)
-                    # These two NOPs appear to be optional (MaxFilter does not do
-                    # it, but some acquisition machines do) so let's not bother.
-                    # write_nop(fid)
-                    # write_nop(fid)
-                    n_current_skip = 0
-            data, times = self.raw[self.picks, first:last]
-            assert len(times) == last - first
-
-            if self.projector is not None:
-                data = np.dot(self.projector, data)
-
-            if (
-                self.cfg.drop_small_buffer
-                and (first > self.start)
-                and (len(times) < self.cfg.buffer_size)
-            ):
-                logger.info("Skipping data chunk due to small buffer ... " "[done]")
-                break
-            logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
-            _write_raw_buffer(fid, data, cals, self.cfg.fmt)
-
-            pos = fid.tell()
-            self._check_too_large_buffer(pos, pos_prev)
-
-            # Split files if necessary, leave some space for next file info
-            # make sure we check to make sure we actually *need* another buffer
-            # with the "and" check
-            if self._should_split(first, pos, pos_prev):
-                self._write_neighbour_fname(
-                    fid, op.basename(next_fname), part_idx + 1, "next"
-                )
-                is_next_split = True
-                self.start = first + self.cfg.buffer_size
-                break
-            pos_prev = pos
-
-        self._end_raw_block(fid)
-        return is_next_split
-
-    def _check_too_large_buffer(self, pos, pos_prev):
-        buff_size = pos - pos_prev
-        overage = pos - self.cfg.split_size + _NEXT_FILE_BUFFER
-        error_str = (
-            "buffer size ({0}) is too large for the given split size ({1}) "
-            "by {2} bytes after writing info ({3}) and leaving enough space "
-            'for end tags ({4}): decrease "buffer_size_sec" or increase '
-            '"split_size".'
-        ).format(buff_size, self.cfg.split_size, overage, pos_prev, _NEXT_FILE_BUFFER)
-        if overage > 0:
-            # This should occur on the first buffer write of the file, so
-            # we should mention the space required for the meas info
-            raise ValueError(error_str)
-
-    def _should_split(self, first, pos, pos_prev):
-        is_last_buffer = first + self.cfg.buffer_size >= self.stop
-        if is_last_buffer:
-            return False
-        buff_size_bytes = pos - pos_prev
-        available_bytes = self.cfg.split_size - pos
-        return buff_size_bytes + _NEXT_FILE_BUFFER >= available_bytes
-
-    @fill_doc
-    def _start_writing_raw(self, fid):
-        """Start write raw data in file.
-
-        Parameters
-        ----------
-        fid : file
-            The created file.
-        %(info_not_none)s
-        sel : array of int | None
-            Indices of channels to include. If None, all channels
-            are included.
-        data_type : int
-            The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
-            5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
-        reset_range : bool
-            If True, the info['chs'][k]['range'] parameter will be set to unity.
-        annotations : instance of Annotations
-            The annotations to write.
-
-        Returns
-        -------
-        fid : file
-            The file descriptor.
-        cals : list
-            calibration factors.
-        """
-        # Create the file and save the essentials
-        write_id(fid, FIFF.FIFF_BLOCK_ID)
-        if self.info["meas_id"] is not None:
-            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info["meas_id"])
-
-        write_meas_info(
+        cals = _start_writing_raw(
             fid,
             self.info,
-            data_type=self.cfg.data_type,
-            reset_range=self.cfg.reset_range,
+            self.cfg.data_type,
+            self.cfg.reset_range,
+            self.raw.annotations,
         )
-
-        # Annotations
-        if len(self.raw.annotations) > 0:  # don't save empty annot
-            _write_annotations(fid, self.raw.annotations)
-
-    def _get_calibrations(self):
-        cals = []
-        for k in range(self.info["nchan"]):
-            #  Scan numbers may have been messed up
-            self.info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
-            if self.cfg.reset_range is True:
-                self.info["chs"][k]["range"] = 1.0
-            cals.append(self.info["chs"][k]["cal"] * self.info["chs"][k]["range"])
-        return cals
-
-    def _start_raw_block(self, fid):
-        if self.info.get("maxshield", False):
-            start_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
-        else:
-            start_block(fid, FIFF.FIFFB_RAW_DATA)
-
-    def _end_raw_block(self, fid):
-        if self.info.get("maxshield", False):
-            end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
-        else:
-            end_block(fid, FIFF.FIFFB_RAW_DATA)
-
-    def _write_neighbour_fname(self, fid, fname, idx, mode):
-        start_block(fid, FIFF.FIFFB_REF)
-        if mode == "prev":
-            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
-        else:
-            assert mode == "next"
-            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
-        write_string(fid, FIFF.FIFF_REF_FILE_NAME, fname)
-        if self.info["meas_id"] is not None:
-            write_id(fid, FIFF.FIFF_REF_FILE_ID, self.info["meas_id"])
-        write_int(fid, FIFF.FIFF_REF_FILE_NUM, idx)
-        end_block(fid, FIFF.FIFFB_REF)
+        is_next_split, self.start = _write_raw_fid(
+            self.raw,
+            self.info,
+            self.picks,
+            fid,
+            cals,
+            part_idx,
+            self.start,
+            self.stop,
+            prev_fname,
+            next_fname,
+            self.projector,
+            self.cfg,
+        )
+        return is_next_split
 
     def _check_start_stop_within_bounds(self):
         # we've done something wrong if we hit this
@@ -2862,6 +2690,201 @@ class _RawFidWriter:
                 "Cannot write raw file with no data: %s -> %s "
                 "(max: %s) requested" % (self.start, self.stop, n_times_max)
             )
+
+
+def _write_raw_fid(
+    raw,
+    info,
+    picks,
+    fid,
+    cals,
+    part_idx,
+    start,
+    stop,
+    prev_fname,
+    next_fname,
+    projector,
+    cfg,
+):
+    first_samp = raw.first_samp + start
+    if first_samp != 0:
+        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
+
+    # previous file name and id
+    if part_idx > 0 and prev_fname is not None:
+        start_block(fid, FIFF.FIFFB_REF)
+        write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
+        write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
+        if info["meas_id"] is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
+        end_block(fid, FIFF.FIFFB_REF)
+
+    pos_prev = fid.tell()
+    if pos_prev > cfg.split_size:
+        raise ValueError(
+            'file is larger than "split_size" after writing '
+            "measurement information, you must use a larger "
+            "value for split size: %s plus enough bytes for "
+            "the chosen buffer_size" % pos_prev
+        )
+
+    # Check to see if this has acquisition skips and, if so, if we can
+    # write out empty buffers instead of zeroes
+    firsts = list(range(start, stop, cfg.buffer_size))
+    lasts = np.array(firsts) + cfg.buffer_size
+    if lasts[-1] > stop:
+        lasts[-1] = stop
+    sk_onsets, sk_ends = _annotations_starts_stops(raw, "bad_acq_skip")
+    do_skips = False
+    if len(sk_onsets) > 0:
+        if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
+            do_skips = True
+        else:
+            if part_idx == 0:
+                warn(
+                    "Acquisition skips detected but did not fit evenly into "
+                    "output buffer_size, will be written as zeroes."
+                )
+
+    n_current_skip = 0
+    is_next_split, new_start = False, None
+    for first, last in zip(firsts, lasts):
+        if do_skips:
+            if ((first >= sk_onsets) & (last <= sk_ends)).any():
+                # Track how many we have
+                n_current_skip += 1
+                continue
+            elif n_current_skip > 0:
+                # Write out an empty buffer instead of data
+                write_int(fid, FIFF.FIFF_DATA_SKIP, n_current_skip)
+                # These two NOPs appear to be optional (MaxFilter does not do
+                # it, but some acquisition machines do) so let's not bother.
+                # write_nop(fid)
+                # write_nop(fid)
+                n_current_skip = 0
+        data, times = raw[picks, first:last]
+        assert len(times) == last - first
+
+        if projector is not None:
+            data = np.dot(projector, data)
+
+        if cfg.drop_small_buffer and (first > start) and len(times) < cfg.buffer_size:
+            logger.info("Skipping data chunk due to small buffer ... " "[done]")
+            break
+        logger.debug(f"Writing FIF {first:6d} ... {last:6d} ...")
+        _write_raw_buffer(fid, data, cals, cfg.fmt)
+
+        pos = fid.tell()
+        this_buff_size_bytes = pos - pos_prev
+        overage = pos - cfg.split_size + _NEXT_FILE_BUFFER
+        if overage > 0:
+            # This should occur on the first buffer write of the file, so
+            # we should mention the space required for the meas info
+            raise ValueError(
+                "buffer size (%s) is too large for the given split size (%s) "
+                "by %s bytes after writing info (%s) and leaving enough space "
+                'for end tags (%s): decrease "buffer_size_sec" or increase '
+                '"split_size".'
+                % (
+                    this_buff_size_bytes,
+                    cfg.split_size,
+                    overage,
+                    pos_prev,
+                    _NEXT_FILE_BUFFER,
+                )
+            )
+
+        # Split files if necessary, leave some space for next file info
+        # make sure we check to make sure we actually *need* another buffer
+        # with the "and" check
+        if (
+            pos >= cfg.split_size - this_buff_size_bytes - _NEXT_FILE_BUFFER
+            and first + cfg.buffer_size < stop
+        ):
+            start_block(fid, FIFF.FIFFB_REF)
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+            if info["meas_id"] is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, info["meas_id"])
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
+            end_block(fid, FIFF.FIFFB_REF)
+
+            is_next_split = True
+            new_start = first + cfg.buffer_size
+            break
+        pos_prev = pos
+
+    if info.get("maxshield", False):
+        end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
+    else:
+        end_block(fid, FIFF.FIFFB_RAW_DATA)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    return is_next_split, new_start
+
+
+@fill_doc
+def _start_writing_raw(fid, info, data_type, reset_range, annotations):
+    """Start write raw data in file.
+
+    Parameters
+    ----------
+    fid : file
+        The created file.
+    %(info_not_none)s
+    sel : array of int | None
+        Indices of channels to include. If None, all channels
+        are included.
+    data_type : int
+        The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
+        5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
+    reset_range : bool
+        If True, the info['chs'][k]['range'] parameter will be set to unity.
+    annotations : instance of Annotations
+        The annotations to write.
+
+    Returns
+    -------
+    fid : file
+        The file descriptor.
+    cals : list
+        calibration factors.
+    """
+    #
+    # Create the file and save the essentials
+    #
+    start_block(fid, FIFF.FIFFB_MEAS)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    if info["meas_id"] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
+
+    cals = []
+    for k in range(info["nchan"]):
+        #
+        #   Scan numbers may have been messed up
+        #
+        info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
+        if reset_range is True:
+            info["chs"][k]["range"] = 1.0
+        cals.append(info["chs"][k]["cal"] * info["chs"][k]["range"])
+
+    write_meas_info(fid, info, data_type=data_type, reset_range=reset_range)
+
+    #
+    # Annotations
+    #
+    if len(annotations) > 0:  # don't save empty annot
+        _write_annotations(fid, annotations)
+
+    #
+    # Start the raw data
+    #
+    if info.get("maxshield", False):
+        start_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
+    else:
+        start_block(fid, FIFF.FIFFB_RAW_DATA)
+
+    return cals
 
 
 def _write_raw_buffer(fid, buf, cals, fmt):
