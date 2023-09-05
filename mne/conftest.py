@@ -105,6 +105,8 @@ def pytest_configure(config):
         os.environ["PYTEST_QT_API"] = os.environ["QT_API"]
 
     # Warnings
+    # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
+    #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
     if os.getenv("MNE_IGNORE_WARNINGS_IN_TESTS", "") != "true":
@@ -125,6 +127,8 @@ def pytest_configure(config):
     ignore:.*Setting theme=.*:RuntimeWarning
     # scikit-learn using this arg
     ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
+    # Should be removable by 2022/07/08, SciPy savemat issue
+    ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
     # numba with NumPy dev
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     # matplotlib 3.6 and pyvista/nilearn
