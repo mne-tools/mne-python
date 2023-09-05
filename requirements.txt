@@ -38,7 +38,8 @@ mffpy>=0.5.7
 ipywidgets
 ipympl; platform_system!="Windows"  # XXX: Add support when ipympl CIs include Windows
 ipyevents
-ipyvtklink
+trame
+trame-vtk
 mne-qt-browser
 darkdetect
 qdarkstyle
