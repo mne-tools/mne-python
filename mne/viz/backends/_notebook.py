@@ -112,6 +112,7 @@ _ICON_LUT = dict(
 _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
 
+# We can drop ipyvtklink once we support PyVista 0.41+
 if check_version("pyvista", "0.38"):
     _JUPYTER_BACKEND = "trame"
 else:
@@ -1547,6 +1548,10 @@ class _Renderer(
         super().__init__(*args, **kwargs)
         self._window_initialize(fullscreen=fullscreen)
 
+    def _update(self):
+        if _JUPYTER_BACKEND == "ipyvtklink" and self.figure.display is not None:
+            self.figure.display.update_canvas()
+
     def _display_default_tool_bar(self):
         self._tool_bar_initialize()
         self._tool_bar_add_file_button(
@@ -1570,7 +1575,7 @@ class _Renderer(
         if _JUPYTER_BACKEND == "trame":
             # Remove scrollbars, see https://github.com/pyvista/pyvista/pull/4847
             # which should be okay to use with this. Can probably remove once we require
-            # pyvista 0.43
+            # PyVista 0.43
             viewer.value = re.sub(
                 r" style=[\"'](.+)[\"']></iframe>",
                 # value taken from matplotlib's widget

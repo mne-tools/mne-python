@@ -40,6 +40,7 @@ ipympl; platform_system!="Windows"  # XXX: Add support when ipympl CIs include W
 ipyevents
 trame
 trame-vtk
+trame-vuetify
 mne-qt-browser
 darkdetect
 qdarkstyle

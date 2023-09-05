@@ -3863,6 +3863,9 @@ class Brain:
             kwargs["codec"] = codec
         if bitrate is not None:
             kwargs["bitrate"] = bitrate
+        # when using GIF we need to convert FPS to duration in milliseconds for Pillow
+        if str(filename).endswith(".gif"):
+            kwargs["duration"] = 1000 * len(images) / kwargs.pop("fps")
         imageio.mimwrite(filename, images, **kwargs)
 
     def _save_movie_tv(

@@ -657,10 +657,11 @@ def sys_info(fid=None, show_paths=False, *, dependencies="user", unicode=True):
         "pyqtgraph",
         "mne-qt-browser",
         "ipywidgets",
-        "trame",
+        # "trame",  # no version, see https://github.com/Kitware/trame/issues/183
         "trame_client",
         "trame_server",
         "trame_vtk",
+        "trame_vuetify",
         "",
         "# Ecosystem (optional)",
         "mne-bids",

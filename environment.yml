@@ -49,6 +49,7 @@ dependencies:
   - ipympl
   - trame
   - trame-vtk
+  - trame-vuetify
   - jupyter_client
   - nbformat
   - nbclient

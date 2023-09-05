@@ -1,4 +1,3 @@
-#
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 
