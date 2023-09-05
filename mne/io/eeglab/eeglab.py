@@ -268,10 +268,10 @@ def _handle_montage_units(montage_units, mean_radius):
             montage_units = "m"
         elif mean_radius < 2.5:
             montage_units = "dm"
-        elif mean_radius > 25:
-            montage_units = "mm"
-        else:  # 2.5 <= mean_radius <= 25
+        elif mean_radius < 25:
             montage_units = "cm"
+        else:  # mean_radius >= 25
+            montage_units = "mm"
     prefix = montage_units[:-1]
     scale_units = 1 / DEFAULTS["prefixes"][prefix]
     return scale_units
