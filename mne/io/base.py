@@ -2555,11 +2555,10 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
         logger.info(f"Writing {fpath}")
         with start_and_end_file(fpath) as fid, reserved_ctx:
             is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
-            if is_next_split:
-                logger.info(f"Renaming BIDS split file {fpath.name}")
-                reserved_ctx.remove = False
-                shutil.move(fpath, dir_path / split_fnames[0])
             logger.info(f"Closing {fpath}")
+        if is_next_split:
+            logger.info(f"Renaming BIDS split file {fpath.name}")
+            shutil.move(fpath, dir_path / split_fnames[0])
 
         part_idx += 1
 
