@@ -346,19 +346,28 @@ def test_ica_rank_reduction(method):
 @pytest.mark.parametrize("n_pca_components", (None, 0.999999))
 @pytest.mark.parametrize("proj", (True, False))
 @pytest.mark.parametrize("cov", (False, True))
-@pytest.mark.parametrize("meg", ("mag", True, False))
-@pytest.mark.parametrize("eeg", (False, True))
-def test_ica_projs(n_pca_components, proj, cov, meg, eeg):
+@pytest.mark.parametrize(
+    "picks",
+    (
+        [],
+        ["mag"],
+        ["meg"],
+        ["eeg"],
+        ["eeg", "mag"],
+        ["eeg", "meg"],
+    ),
+)
+def test_ica_projs(n_pca_components, proj, cov, picks):
     """Test that ICA handles projections properly."""
     if cov and not proj:  # proj is always done with cov
         return
-    if not meg and not eeg:  # no channels
+    if not len(picks):  # no channels
         return
-    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick(meg=meg, eeg=eeg)
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).pick(picks)
     raw.pick(np.arange(0, len(raw.ch_names), 5))  # just for speed
     raw.info.normalize_proj()
     assert 10 < len(raw.ch_names) < 75
-    if eeg:
+    if "eeg" in picks:
         raw.set_eeg_reference(projection=True)
     raw.load_data()
     raw._data -= raw._data.mean(-1, keepdims=True)
@@ -366,7 +375,7 @@ def test_ica_projs(n_pca_components, proj, cov, meg, eeg):
     assert len(raw.info["projs"]) > 0
     assert not raw.proj
     raw_fit = raw.copy()
-    kwargs = dict(atol=1e-12 if eeg else 1e-20, rtol=1e-8)
+    kwargs = dict(atol=1e-12 if "eeg" in picks else 1e-20, rtol=1e-8)
     if proj:
         raw_fit.apply_proj()
     fit_data = raw_fit.get_data()
@@ -1236,7 +1245,7 @@ def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     n_components = 3
     max_iter = 1
 
-    raw = read_raw_fif(raw_fname).pick(meg=False, eeg=True)
+    raw = read_raw_fif(raw_fname).pick("eeg")
     events = read_events(event_name)
     reject = param_val if param_name == "reject" else None
     epochs = Epochs(raw, events=events, reject=reject)
@@ -1462,7 +1471,7 @@ def test_ica_labels():
     # derive reference ICA components and append them to raw
     ica_rf = ICA(n_components=2, max_iter=2, allow_ref_meg=True)
     with pytest.warns(UserWarning, match="did not converge"):
-        ica_rf.fit(raw.copy().pick(meg=False, ref_meg=True))
+        ica_rf.fit(raw.copy().pick("ref_meg"))
     icacomps = ica_rf.get_sources(raw)
     # rename components so they are auto-detected by find_bads_ref
     icacomps.rename_channels({c: "REF_" + c for c in icacomps.ch_names})
