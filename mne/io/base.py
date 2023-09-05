@@ -1651,11 +1651,11 @@ class BaseRaw(
         endings_err = (".fif", ".fif.gz")
 
         # convert to str, check for overwrite a few lines later
-        fname = str(_check_fname(fname, overwrite=True, verbose="error"))
+        fname = _check_fname(fname, overwrite=True, verbose="error")
         check_fname(fname, "raw", endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
-        if not self.preload and fname in self._filenames:
+        if not self.preload and str(fname) in self._filenames:
             raise ValueError(
                 "You cannot save data to the same file."
                 " Please use a different filename."
@@ -1675,7 +1675,7 @@ class BaseRaw(
             )
 
         # check for file existence and expand `~` if present
-        fname = str(_check_fname(fname=fname, overwrite=overwrite, verbose="error"))
+        fname = _check_fname(fname=fname, overwrite=overwrite, verbose="error")
 
         if proj:
             info = deepcopy(self.info)
@@ -1699,7 +1699,10 @@ class BaseRaw(
 
         cfg = _RawFidWriterCfg(buffer_size, split_size, drop_small_buffer, fmt)
         raw_fid_writer = _RawFidWriter(self, info, picks, projector, start, stop, cfg)
-        _write_raw(raw_fid_writer, fname, split_naming, overwrite)
+        if split_naming == "neuromag":
+            _write_raw_neuromag(raw_fid_writer, fname, overwrite)
+        else:
+            _write_raw(raw_fid_writer, fname, split_naming, overwrite)
 
     @verbose
     def export(
@@ -2574,6 +2577,32 @@ def _write_raw(raw_fid_writer, fname, split_naming, overwrite):
                 shutil.move(fname, dir_path / split_fnames[0])
             logger.info("Closing %s" % use_fname)
         part_idx += 1
+
+    logger.info("[done]")
+
+
+def _write_raw_neuromag(raw_fid_writer, fname, overwrite):
+    """Write raw file with neuromag split naming."""
+    MAX_N_SPLITS = 100
+    dir_path = fname.parent
+    # Assume we never hit more than 100 splits, like we do for epochs
+    split_fnames = _make_split_fnames(
+        fname.name, n_splits=MAX_N_SPLITS, split_naming="neuromag"
+    )
+    is_next_split, part_idx = True, 0
+    while is_next_split:
+        prev_fname = split_fnames[part_idx - 1] if part_idx else None
+        next_fname = split_fnames[part_idx + 1]
+        use_fname = dir_path / split_fnames[part_idx]
+        _check_fname(use_fname, overwrite)
+
+        logger.info(f"Writing {use_fname}")
+        with start_and_end_file(use_fname) as fid:
+            is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
+            logger.info(f"Closing {use_fname}")
+
+        part_idx += 1
+        assert part_idx <= MAX_N_SPLITS, f"Exceeded maximum amount of splits: {MAX_N_SPLITS}."
 
     logger.info("[done]")
 
