@@ -2535,13 +2535,17 @@ class _RawShell:
 
 ###############################################################################
 # Writing
+MAX_N_SPLITS = 100
+
+
 def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
     """Write raw file with splitting."""
     # Assume we never hit more than 100 splits, like for epochs
-    MAX_N_SPLITS = 100
     dir_path = fpath.parent
+    # We have to create one extra filename here to make the for loop below happy,
+    # but it will raise an error if it actually gets used
     split_fnames = _make_split_fnames(
-        fpath.name, n_splits=MAX_N_SPLITS, split_naming=split_naming
+        fpath.name, n_splits=MAX_N_SPLITS + 1, split_naming=split_naming
     )
     part_idx, is_next_split = 0, True
     if split_naming == "bids":
@@ -2562,7 +2566,9 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
 
         part_idx += 1
 
-    while is_next_split:
+    for part_idx in range(part_idx, MAX_N_SPLITS):
+        if not is_next_split:
+            break
         prev_fname = split_fnames[part_idx - 1] if part_idx else None
         next_fname = split_fnames[part_idx + 1]
         use_fpath = dir_path / split_fnames[part_idx]
@@ -2572,10 +2578,8 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
         with start_and_end_file(use_fpath) as fid:
             is_next_split = raw_fid_writer.write(fid, part_idx, prev_fname, next_fname)
             logger.info(f"Closing {use_fpath}")
-        part_idx += 1
-        assert (
-            part_idx < MAX_N_SPLITS
-        ), f"Exceeded maximum amount of splits: {MAX_N_SPLITS}."
+    else:
+        raise RuntimeError(f"Exceeded maximum number of splits ({MAX_N_SPLITS}).")
 
     logger.info("[done]")
 

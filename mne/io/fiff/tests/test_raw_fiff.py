@@ -642,11 +642,33 @@ def test_split_files(tmp_path, mod, monkeypatch):
 
     # reserved file is deleted
     fname = tmp_path / "test_raw.fif"
-    monkeypatch.setattr(base, "_write_raw_data", _err)
-    with pytest.raises(RuntimeError, match="Killed mid-write"):
-        raw_1.save(fname, split_size="10MB", split_naming="bids")
+    with monkeypatch.context() as m:
+        m.setattr(base, "_write_raw_data", _err)
+        with pytest.raises(RuntimeError, match="Killed mid-write"):
+            raw_1.save(fname, split_size="10MB", split_naming="bids")
     assert fname.is_file()
     assert not (tmp_path / "test_split-01_raw.fif").is_file()
+
+    # MAX_N_SPLITS exceeeded
+    raw = RawArray(np.zeros((100, 10000000)), create_info(100, 1000.0, "eeg"))
+    fname.unlink()
+    with monkeypatch.context() as m:
+        m.setattr(base, "MAX_N_SPLITS", 2)
+        with pytest.raises(RuntimeError, match="Exceeded maximum number of splits"):
+            raw.save(
+                fname,
+                split_size="2MB",
+                split_naming="bids",
+                overwrite=True,
+                verbose=True,
+            )
+    fname_1, fname_2, fname_3 = [
+        (tmp_path / f"test_split-{ii:02d}_raw.fif") for ii in range(1, 4)
+    ]
+    assert not fname.is_file()
+    assert fname_1.is_file()
+    assert fname_2.is_file()
+    assert not fname_3.is_file()
 
 
 def _err(*args, **kwargs):
