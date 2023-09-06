@@ -192,7 +192,7 @@ class RawEDF(BaseRaw):
         )
 
         # Read annotations from file and set it
-        onset, duration, desc = list(), list(), list()
+        onset, duration, desc, ch_names = list(), list(), list(), list()
         if len(edf_info["tal_idx"]) > 0:
             # Read TAL data exploiting the header info (no regexp)
             idx = np.empty(0, int)
@@ -205,14 +205,18 @@ class RawEDF(BaseRaw):
                 np.ones((len(idx), 1)),
                 None,
             )
-            onset, duration, desc = _read_annotations_edf(
+            onset, duration, desc, ch_names = _read_annotations_edf(
                 tal_data[0],
                 encoding=encoding,
             )
 
         self.set_annotations(
             Annotations(
-                onset=onset, duration=duration, description=desc, orig_time=None
+                onset=onset,
+                duration=duration,
+                description=desc,
+                orig_time=None,
+                ch_names=ch_names,
             )
         )
 
@@ -1950,14 +1954,31 @@ def _read_annotations_edf(annotations, encoding="utf8"):
                 " You might want to try setting \"encoding='latin1'\"."
             ) from e
 
-    events = []
+    events = {}
     offset = 0.0
     for k, ev in enumerate(triggers):
         onset = float(ev[0]) + offset
         duration = float(ev[2]) if ev[2] else 0
         for description in ev[3].split("\x14")[1:]:
             if description:
-                events.append([onset, duration, description])
+                if "@@" in description:
+                    description, ch_name = description.split("@@")
+                    key = f"{onset}_{duration}_{description}"
+                else:
+                    ch_name = None
+                    key = f"{onset}_{duration}_{description}"
+                    if key in events:
+                        key += f"_{k}"  # make key unique
+                if key in events and ch_name:
+                    events[key][3] += (ch_name,)
+                else:
+                    events[key] = [
+                        onset,
+                        duration,
+                        description,
+                        (ch_name,) if ch_name else (),
+                    ]
+
             elif k == 0:
                 # The startdate/time of a file is specified in the EDF+ header
                 # fields 'startdate of recording' and 'starttime of recording'.
@@ -1969,7 +1990,7 @@ def _read_annotations_edf(annotations, encoding="utf8"):
                 # header. If X=0, then the .X may be omitted.
                 offset = -onset
 
-    return zip(*events) if events else (list(), list(), list())
+    return zip(*events.values()) if events else (list(), list(), list(), list())
 
 
 def _get_annotations_gdf(edf_info, sfreq):

@@ -215,6 +215,7 @@ def test_export_edf_annotations(tmp_path):
         onset=[0.01, 0.05, 0.90, 1.05],
         duration=[0, 1, 0, 0],
         description=["test1", "test2", "test3", "test4"],
+        ch_names=[["0"], ["0", "1"], [], ["1"]],
     )
     raw.set_annotations(annotations)
 
@@ -227,6 +228,7 @@ def test_export_edf_annotations(tmp_path):
     assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
     assert_array_equal(raw.annotations.duration, raw_read.annotations.duration)
     assert_array_equal(raw.annotations.description, raw_read.annotations.description)
+    assert_array_equal(raw.annotations.ch_names, raw_read.annotations.ch_names)
 
 
 @pytest.mark.skipif(
