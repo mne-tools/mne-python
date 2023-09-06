@@ -18,7 +18,7 @@
 
 .. _changes_1_5_1:
 
-Version 1.5.1 (unreleased)
+Version 1.5.1 (2023-09-06)
 --------------------------
 
 Bugs
