@@ -134,7 +134,7 @@ Historically we have used Mayavi for 3D visualization, but have faced
 limitations and challenges with it. We should work to use some other backend
 (e.g., PyVista) to get major improvements, such as:
 
-1. *Proper notebook support (through ipyvtklink)* (complete)
+1. *Proper notebook support (through ``ipyvtklink``)* (complete; updated to use ``trame``)
 2. *Better interactivity with surface plots* (complete)
 3. Time-frequency plotting (complementary to volume-based
    :ref:`time-frequency-viz`)

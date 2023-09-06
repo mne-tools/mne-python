@@ -510,6 +510,13 @@ brain_kwargs : dict | None
 """
 
 docdict[
+    "brain_update"
+] = """
+update : bool
+    Force an update of the plot. Defaults to True.
+"""
+
+docdict[
     "browser"
 ] = """
 fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser

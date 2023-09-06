@@ -470,10 +470,12 @@ class Brain:
         # update the views once the geometry is all set
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
-                self.show_view(v, row=ri, col=ci, hemi=h)
+                self.show_view(v, row=ri, col=ci, hemi=h, update=False)
 
         if surf == "flat":
             self._renderer.set_interaction("rubber_band_2d")
+
+        self._renderer._update()
 
     def _setup_canonical_rotation(self):
         self._rigid = np.eye(4)
@@ -1576,6 +1578,7 @@ class Brain:
             self.rms = None
         self._renderer._update()
 
+    @fill_doc
     def plot_time_course(self, hemi, vertex_id, color, update=True):
         """Plot the vertex time course.
 
@@ -1587,8 +1590,7 @@ class Brain:
             The vertex identifier in the mesh.
         color : matplotlib color
             The color of the time course.
-        update : bool
-            Force an update of the plot. Defaults to True.
+        %(brain_update)s
 
         Returns
         -------
@@ -1639,13 +1641,13 @@ class Brain:
         )
         return line
 
+    @fill_doc
     def plot_time_line(self, update=True):
         """Add the time line to the MPL widget.
 
         Parameters
         ----------
-        update : bool
-            Force an update of the plot. Defaults to True.
+        %(brain_update)s
         """
         if self.mpl_canvas is None:
             return
@@ -3191,7 +3193,7 @@ class Brain:
                     return self._renderer.get_camera()
         return (None,) * 5
 
-    @fill_doc
+    @verbose
     def show_view(
         self,
         view=None,
@@ -3205,6 +3207,8 @@ class Brain:
         azimuth=None,
         elevation=None,
         focalpoint=None,
+        update=True,
+        verbose=None,
     ):
         """Orient camera to display view.
 
@@ -3223,6 +3227,10 @@ class Brain:
         %(azimuth)s
         %(elevation)s
         %(focalpoint)s
+        %(brain_update)s
+
+            .. versionadded:: 1.6
+        %(verbose)s
 
         Notes
         -----
@@ -3293,9 +3301,13 @@ class Brain:
             for ri, ci, _ in self._iter_views(h):
                 if (row is None or row == ri) and (col is None or col == ci):
                     self._renderer.set_camera(
-                        **view_params, reset_camera=False, rigid=xfm
+                        **view_params,
+                        reset_camera=False,
+                        rigid=xfm,
+                        update=False,
                     )
-        self._renderer._update()
+        if update:
+            self._renderer._update()
 
     def reset_view(self):
         """Reset the camera."""
@@ -3786,6 +3798,9 @@ class Brain:
             kwargs["codec"] = codec
         if bitrate is not None:
             kwargs["bitrate"] = bitrate
+        # when using GIF we need to convert FPS to duration in milliseconds for Pillow
+        if str(filename).endswith(".gif"):
+            kwargs["duration"] = 1000 * len(images) / kwargs.pop("fps")
         imageio.mimwrite(filename, images, **kwargs)
 
     def _save_movie_tv(

@@ -159,6 +159,7 @@ class PyVistaFigure(Figure3D):
             plotter = self._plotter_class(**self.store)
             plotter.background_color = self.background_color
             self._plotter = plotter
+        # TODO: This breaks trame "client" backend
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
         _process_events(self.plotter)

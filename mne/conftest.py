@@ -963,7 +963,7 @@ def _nbclient():
         from jupyter_client import AsyncKernelManager
         from nbclient import NotebookClient
         from ipywidgets import Button  # noqa
-        import ipyvtklink  # noqa
+        import trame  # noqa
     except Exception as exc:
         return pytest.skip(f"Skipping Notebook test: {exc}")
     km = AsyncKernelManager(config=None)
@@ -1009,14 +1009,26 @@ def _nbclient():
 def nbexec(_nbclient):
     """Execute Python code in a notebook."""
     # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
+    from nbclient.exceptions import CellExecutionError
+
     _nbclient._cleanup_kernel()
 
     def execute(code, reset=False):
         _nbclient.reset_execution_trackers()
         with _nbclient.setup_kernel():
             assert _nbclient.kc is not None
-            cell = Bunch(cell_type="code", metadata={}, source=dedent(code))
-            _nbclient.execute_cell(cell, 0, execution_count=0)
+            cell = Bunch(cell_type="code", metadata={}, source=dedent(code), outputs=[])
+            try:
+                _nbclient.execute_cell(cell, 0, execution_count=0)
+            except CellExecutionError:  # pragma: no cover
+                for kind in ("stdout", "stderr"):
+                    print(
+                        "\n".join(
+                            o["text"] for o in cell.outputs if o.get("name", "") == kind
+                        ),
+                        file=getattr(sys, kind),
+                    )
+                raise
             _nbclient.set_widgets_metadata()
 
     yield execute
