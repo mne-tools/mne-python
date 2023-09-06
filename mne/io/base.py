@@ -2624,19 +2624,21 @@ class _RawFidWriter:
         self.picks = _picks_to_idx(info, picks, "all", ())
         self.info = pick_info(info, self.picks)
         self.projector = projector
+        # self.start is the only mutable attribute in this design!
         self.start, self.stop = start, stop
         self.cfg = cfg
 
     def write(self, fid, part_idx, prev_fname, next_fname):
         self._check_start_stop_within_bounds()
-        cals = _start_writing_raw(
+        start_block(fid, FIFF.FIFFB_MEAS)
+        cals = _write_raw_metadata(
             fid,
             self.info,
             self.cfg.data_type,
             self.cfg.reset_range,
             self.raw.annotations,
         )
-        is_next_split, self.start = _write_raw_fid(
+        is_next_split, self.start = _write_raw_data(
             self.raw,
             self.info,
             self.picks,
@@ -2653,6 +2655,7 @@ class _RawFidWriter:
             self.cfg.drop_small_buffer,
             self.cfg.fmt,
         )
+        end_block(fid, FIFF.FIFFB_MEAS)
         return is_next_split
 
     def _check_start_stop_within_bounds(self):
@@ -2665,7 +2668,7 @@ class _RawFidWriter:
             raise RuntimeError(error_msg)
 
 
-def _write_raw_fid(
+def _write_raw_data(
     raw,
     info,
     picks,
@@ -2682,6 +2685,11 @@ def _write_raw_fid(
     drop_small_buffer,
     fmt,
 ):
+    # Start the raw data
+    data_kind = "IAS_" if info.get("maxshield", False) else ""
+    data_kind = getattr(FIFF, f"FIFFB_{data_kind}RAW_DATA")
+    start_block(fid, data_kind)
+
     first_samp = raw.first_samp + start
     if first_samp != 0:
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
@@ -2723,6 +2731,7 @@ def _write_raw_fid(
                     "output buffer_size, will be written as zeroes."
                 )
 
+    # Write the blocks
     n_current_skip = 0
     is_next_split, new_start = False, None
     for first, last in zip(firsts, lasts):
@@ -2791,16 +2800,12 @@ def _write_raw_fid(
             break
         pos_prev = pos
 
-    if info.get("maxshield", False):
-        end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
-    else:
-        end_block(fid, FIFF.FIFFB_RAW_DATA)
-    end_block(fid, FIFF.FIFFB_MEAS)
+    end_block(fid, data_kind)
     return is_next_split, new_start
 
 
 @fill_doc
-def _start_writing_raw(fid, info, data_type, reset_range, annotations):
+def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     """Start write raw data in file.
 
     Parameters
@@ -2829,7 +2834,6 @@ def _start_writing_raw(fid, info, data_type, reset_range, annotations):
     #
     # Create the file and save the essentials
     #
-    start_block(fid, FIFF.FIFFB_MEAS)
     write_id(fid, FIFF.FIFF_BLOCK_ID)
     if info["meas_id"] is not None:
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
@@ -2851,14 +2855,6 @@ def _start_writing_raw(fid, info, data_type, reset_range, annotations):
     #
     if len(annotations) > 0:  # don't save empty annot
         _write_annotations(fid, annotations)
-
-    #
-    # Start the raw data
-    #
-    if info.get("maxshield", False):
-        start_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
-    else:
-        start_block(fid, FIFF.FIFFB_RAW_DATA)
 
     return cals
 
