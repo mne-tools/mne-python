@@ -365,7 +365,7 @@ def test_parse_annotation(tmp_path):
         ]
     )
     for tal_channel in [tal_channel_A, tal_channel_B]:
-        onset, duration, description = _read_annotations_edf([tal_channel])
+        onset, duration, description, ch_names = _read_annotations_edf([tal_channel])
         assert_allclose(onset, want_onset)
         assert_allclose(duration, want_duration)
         assert description == want_description
@@ -478,18 +478,26 @@ def test_read_annot(tmp_path):
     with open(annot_file, "wb") as f:
         f.write(annot)
 
-    onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
+    onset, duration, desc, ch_names = _read_annotations_edf(annotations=str(annot_file))
     annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
+        onset=onset,
+        duration=duration,
+        description=desc,
+        orig_time=None,
+        ch_names=ch_names,
     )
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
     # Now test when reading from buffer of data
     with open(annot_file, "rb") as fid:
         ch_data = np.fromfile(fid, dtype="<i2", count=len(annot))
-    onset, duration, desc = _read_annotations_edf([ch_data])
+    onset, duration, desc, ch_names = _read_annotations_edf([ch_data])
     annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
+        onset=onset,
+        duration=duration,
+        description=desc,
+        orig_time=None,
+        ch_names=ch_names,
     )
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
@@ -549,7 +557,7 @@ def test_read_latin1_annotations(tmp_path):
             samp=-1,
             dtype_byte=None,
         )
-    onset, duration, description = _read_annotations_edf(
+    onset, duration, description, ch_names = _read_annotations_edf(
         tal_channel,
         encoding="latin1",
     )
