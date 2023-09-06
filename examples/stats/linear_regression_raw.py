@@ -14,11 +14,8 @@ If overlap exists and/or predictors are continuous, traditional averaging
 is inapplicable, but regression can estimate effects, including those of
 continuous predictors.
 
-rERPs are described in:
-Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
-waveforms: II. Non-linear effects, overlap correction, and practical
-considerations. Psychophysiology, 52(2), 169-189.
-"""
+rERPs are described in :footcite:t:`SmithKutas2015`.
+"""  # noqa D400
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.de>
 #
 # License: BSD-3-Clause
@@ -79,3 +76,6 @@ ax1.set_title("Traditional averaging")
 ax2.set_title("rERF")
 ax3.set_title("Difference")
 plt.show()
+
+# %%
+# .. footbibliography::
