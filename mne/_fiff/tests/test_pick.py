@@ -521,14 +521,14 @@ def test_picks_by_channels():
     names = ["MEG 002", "MEG 002"]
     assert len(pick_channels(raw.info["ch_names"], names, ordered=False)) == 1
     with pytest.warns(FutureWarning, match="ordered=False"):
-        assert len(raw.copy().pick_channels(names)[0][0]) == 1
+        assert len(raw.copy().pick_channels(names)[0][0]) == 1  # legacy method OK here
 
     # missing ch_name
     bad_names = names + ["BAD"]
     with pytest.raises(ValueError, match="Missing channels"):
         pick_channels(raw.info["ch_names"], bad_names, ordered=True)
     with pytest.raises(ValueError, match="Missing channels"):
-        raw.copy().pick_channels(bad_names, ordered=True)
+        raw.copy().pick_channels(bad_names, ordered=True)  # legacy method OK here
     with pytest.raises(ValueError, match="could not be picked"):
         raw.copy().pick(bad_names)
 
