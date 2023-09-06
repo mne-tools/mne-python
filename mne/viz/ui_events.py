@@ -11,7 +11,7 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 import weakref
 import re
 
@@ -189,7 +189,7 @@ class Contours(UIEvent):
     """
 
     kind: str
-    contours: list[str]
+    contours: List[str]
 
 
 def _get_event_channel(fig):
