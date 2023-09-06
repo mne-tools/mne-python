@@ -788,6 +788,13 @@ class _3DRenderer(_PyVistaRenderer):
         if "show" in kwargs and kwargs["show"]:
             self.show()
 
+    def _update(self):
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
+        else:
+            super()._update()
+
     @contextmanager
     def _ensure_minimum_sizes(self):
         yield
@@ -1550,8 +1557,9 @@ class _Renderer(
         self._window_initialize(fullscreen=fullscreen)
 
     def _update(self):
-        if _JUPYTER_BACKEND == "ipyvtklink" and self.figure.display is not None:
-            self.figure.display.update_canvas()
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
         else:
             super()._update()
 
