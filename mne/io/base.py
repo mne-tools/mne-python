@@ -2563,8 +2563,6 @@ def _write_raw(raw_fid_writer, fpath, split_naming, overwrite):
         else:
             reserved_ctx = nullcontext()
             use_fpath = dir_path / split_fnames[part_idx]
-            if split_naming == "neuromag" and part_idx == 0:
-                assert use_fpath == fpath  # neuromag naming
         next_fname = split_fnames[part_idx + 1]
         _check_fname(use_fpath, overwrite)
 
