@@ -26,6 +26,17 @@ jobs:
       - uses: psf/black@stable
       - uses: pre-commit/action@v3.0.0
 
+  bandit:
+    name: Bandit
+    needs: style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: davidslusser/actions_python_bandit@v1.0.0
+        with:
+          src: "mne"
+          options: "-c pyproject.toml -ll -r"
+          pip_install_command: "pip install bandit[toml]"
+
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
     needs: style

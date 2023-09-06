@@ -298,6 +298,12 @@ def raw_ctf():
 
 
 @pytest.fixture(scope="function")
+def raw_spectrum(raw):
+    """Get raw with power spectral density computed from mne.io.tests.data."""
+    return raw.compute_psd()
+
+
+@pytest.fixture(scope="function")
 def events():
     """Get events from mne.io.tests.data."""
     return read_events(fname_event_io)
@@ -347,6 +353,22 @@ def epochs_unloaded():
 def epochs_full():
     """Get full, preloaded epochs from mne.io.tests.data."""
     return _get_epochs(None).load_data()
+
+
+@pytest.fixture()
+def epochs_spectrum():
+    """Get epochs with power spectral density computed from mne.io.tests.data."""
+    return _get_epochs().load_data().compute_psd()
+
+
+@pytest.fixture()
+def epochs_empty():
+    """Get empty epochs from mne.io.tests.data."""
+    epochs = _get_epochs(meg=True, eeg=True).load_data()
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs.drop_bad(reject={"mag": 1e-20})
+
+    return epochs
 
 
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
@@ -965,7 +987,7 @@ def _nbclient():
         from jupyter_client import AsyncKernelManager
         from nbclient import NotebookClient
         from ipywidgets import Button  # noqa
-        import ipyvtklink  # noqa
+        import trame  # noqa
     except Exception as exc:
         return pytest.skip(f"Skipping Notebook test: {exc}")
     km = AsyncKernelManager(config=None)
@@ -1011,14 +1033,26 @@ def _nbclient():
 def nbexec(_nbclient):
     """Execute Python code in a notebook."""
     # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
+    from nbclient.exceptions import CellExecutionError
+
     _nbclient._cleanup_kernel()
 
     def execute(code, reset=False):
         _nbclient.reset_execution_trackers()
         with _nbclient.setup_kernel():
             assert _nbclient.kc is not None
-            cell = Bunch(cell_type="code", metadata={}, source=dedent(code))
-            _nbclient.execute_cell(cell, 0, execution_count=0)
+            cell = Bunch(cell_type="code", metadata={}, source=dedent(code), outputs=[])
+            try:
+                _nbclient.execute_cell(cell, 0, execution_count=0)
+            except CellExecutionError:  # pragma: no cover
+                for kind in ("stdout", "stderr"):
+                    print(
+                        "\n".join(
+                            o["text"] for o in cell.outputs if o.get("name", "") == kind
+                        ),
+                        file=getattr(sys, kind),
+                    )
+                raise
             _nbclient.set_widgets_metadata()
 
     yield execute

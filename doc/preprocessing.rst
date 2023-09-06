@@ -8,8 +8,13 @@ Projections:
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_no_inherited_members.rst
 
    Projection
+
+.. autosummary::
+   :toctree: generated/
+
    compute_proj_epochs
    compute_proj_evoked
    compute_proj_raw

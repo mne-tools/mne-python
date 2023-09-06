@@ -189,20 +189,26 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         # set patient info
         subj_info = raw.info.get("subject_info")
         if subj_info is not None:
-            birthday = subj_info.get("birthday")
-
             # get the full name of subject if available
-            first_name = subj_info.get("first_name")
-            last_name = subj_info.get("last_name")
-            first_name = first_name or ""
-            last_name = last_name or ""
-            joiner = ""
-            if len(first_name) and len(last_name):
-                joiner = " "
-            name = joiner.join([first_name, last_name])
+            first_name = subj_info.get("first_name", "")
+            middle_name = subj_info.get("middle_name", "")
+            last_name = subj_info.get("last_name", "")
+            name = " ".join(filter(None, [first_name, middle_name, last_name]))
 
+            birthday = subj_info.get("birthday")
             hand = subj_info.get("hand")
+            weight = subj_info.get("weight")
+            height = subj_info.get("height")
             sex = subj_info.get("sex")
+
+            additional_patient_info = []
+            for key, value in [("height", height), ("weight", weight), ("hand", hand)]:
+                if value:
+                    additional_patient_info.append(f"{key}={value}")
+            if len(additional_patient_info) == 0:
+                additional_patient_info = None
+            else:
+                additional_patient_info = " ".join(additional_patient_info)
 
             if birthday is not None:
                 if hdl.setPatientBirthDate(birthday[0], birthday[1], birthday[2]) != 0:
@@ -211,9 +217,10 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                         f"returned an error"
                     )
             for key, val in [
+                ("PatientCode", subj_info.get("his_id", "")),
                 ("PatientName", name),
                 ("PatientGender", sex),
-                ("AdditionalPatientInfo", f"hand={hand}"),
+                ("AdditionalPatientInfo", additional_patient_info),
             ]:
                 # EDFwriter compares integer encodings of sex and will
                 # raise a TypeError if value is None as returned by
@@ -257,9 +264,7 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
         annots = raw.annotations
         if annots is not None:
             n_annotations = len(raw.annotations)
-            n_annot_chans = int(n_annotations / n_blocks)
-            if np.mod(n_annotations, n_blocks):
-                n_annot_chans += 1
+            n_annot_chans = int(n_annotations / n_blocks) + 1
             if n_annot_chans > 1:
                 hdl.setNumberOfAnnotationSignals(n_annot_chans)
 
@@ -298,17 +303,30 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
 
         # write annotations
         if annots is not None:
-            for desc, onset, duration in zip(
+            for desc, onset, duration, ch_names in zip(
                 raw.annotations.description,
                 raw.annotations.onset,
                 raw.annotations.duration,
+                raw.annotations.ch_names,
             ):
                 # annotations are written in terms of 100 microseconds
                 onset = onset * 10000
                 duration = duration * 10000
-                if hdl.writeAnnotation(onset, duration, desc) != 0:
-                    raise RuntimeError(
-                        f"writeAnnotation() returned an error "
-                        f"trying to write {desc} at {onset} "
-                        f"for {duration} seconds."
-                    )
+                if ch_names:
+                    for ch_name in ch_names:
+                        if (
+                            hdl.writeAnnotation(onset, duration, desc + f"@@{ch_name}")
+                            != 0
+                        ):
+                            raise RuntimeError(
+                                f"writeAnnotation() returned an error "
+                                f"trying to write {desc}@@{ch_name} at {onset} "
+                                f"for {duration} seconds."
+                            )
+                else:
+                    if hdl.writeAnnotation(onset, duration, desc) != 0:
+                        raise RuntimeError(
+                            f"writeAnnotation() returned an error "
+                            f"trying to write {desc} at {onset} "
+                            f"for {duration} seconds."
+                        )

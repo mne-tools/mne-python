@@ -1,7 +1,7 @@
 # requirements for full MNE-Python functionality (other than raw/epochs export)
 numpy>=1.15.4
-scipy>=1.6.3
-matplotlib>=3.4.0
+scipy>=1.7.1
+matplotlib>=3.4.3
 tqdm
 pooch>=1.5
 decorator
@@ -32,13 +32,15 @@ xlrd
 imageio>=2.6.1
 imageio-ffmpeg>=0.4.1
 traitlets
-pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6
+pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0.38.6,!=0.42.0
 pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets
 ipympl; platform_system!="Windows"  # XXX: Add support when ipympl CIs include Windows
 ipyevents
-ipyvtklink
+trame
+trame-vtk
+trame-vuetify
 mne-qt-browser
 darkdetect
 qdarkstyle

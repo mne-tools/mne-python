@@ -9,3 +9,4 @@ packaging
 jinja2
 importlib_resources>=5.10.2; python_version<'3.9'
 lazy_loader>=0.3
+defusedxml

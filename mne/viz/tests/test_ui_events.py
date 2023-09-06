@@ -179,6 +179,7 @@ def test_link(event_channels, event_channel_links):
     """Test linking the event channels of two functions."""
     fig1 = plt.figure()
     fig2 = plt.figure()
+    fig3 = plt.figure()
 
     callback_calls = list()
 
@@ -189,28 +190,46 @@ def test_link(event_channels, event_channel_links):
     # Both figures are subscribed to the time change events.
     ui_events.subscribe(fig1, "time_change", callback)
     ui_events.subscribe(fig2, "time_change", callback)
+    ui_events.subscribe(fig3, "time_change", callback)
 
     # Linking the event channels causes events to be published on both channels.
-    ui_events.link(fig1, fig2)
-    assert len(event_channel_links) == 2
+    ui_events.link(fig1, fig2, fig3)
+    assert len(event_channel_links) == 3
     assert fig2 in event_channel_links[fig1]
+    assert fig3 in event_channel_links[fig1]
     assert fig1 in event_channel_links[fig2]
+    assert fig3 in event_channel_links[fig2]
+    assert fig1 in event_channel_links[fig3]
+    assert fig2 in event_channel_links[fig3]
 
     ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
-    assert len(callback_calls) == 2
+    assert len(callback_calls) == 3
 
     callback_calls.clear()
     ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
-    assert len(callback_calls) == 2
+    assert len(callback_calls) == 3
+
+    callback_calls.clear()
+    ui_events.publish(fig3, ui_events.TimeChange(time=10.2))
+    assert len(callback_calls) == 3
+
+    # Closing this should remove the links as well
+    fig3.canvas.callbacks.process("close_event", None)
 
     # Test linking only specific events
-    ui_events.link(fig1, fig2, ["time_change"])
+    ui_events.link(fig1, fig2, include_events=["time_change"])
     callback_calls.clear()
     ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
     ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
     assert len(callback_calls) == 4  # Called for both figures two times
 
-    ui_events.link(fig1, fig2, ["some_other_event"])
+    ui_events.link(fig1, fig2, include_events=["some_other_event"])
+    callback_calls.clear()
+    ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
+    ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
+    assert len(callback_calls) == 2  # Only called for both figures once
+
+    ui_events.link(fig1, fig2, exclude_events=["time_change"])
     callback_calls.clear()
     ui_events.publish(fig1, ui_events.TimeChange(time=10.2))
     ui_events.publish(fig2, ui_events.TimeChange(time=10.2))
