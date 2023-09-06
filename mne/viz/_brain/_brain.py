@@ -540,7 +540,6 @@ class Brain:
         # Default configuration
         self.playback = False
         self.visibility = False
-        self.refresh_rate_ms = max(int(round(1000.0 / 60.0)), 1)
         self.default_scaling_range = [0.2, 2.0]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.01
@@ -597,6 +596,13 @@ class Brain:
             self.separate_canvas = False
         del show_traces
 
+        self._renderer._enable_time_interaction(
+            self,
+            current_time_func=lambda: self._current_time,
+            times=self._data["time"],
+            init_playback_speed=self.default_playback_speed_value,
+            playback_speed_range=self.default_playback_speed_range,
+        )
         self._configure_time_label()
         self._configure_scalar_bar()
         self._configure_shortcuts()
@@ -605,7 +611,6 @@ class Brain:
         self._configure_dock()
         self._configure_menu()
         self._configure_status_bar()
-        self._configure_playback()
         self._configure_help()
         # show everything at the end
         self.toggle_interface()
@@ -720,33 +725,18 @@ class Brain:
             it's disabled. If None, the state of time playback is toggled.
             Defaults to None.
         """
-        if value is None:
-            self.playback = not self.playback
-        else:
-            self.playback = value
-
-        # update tool bar icon
-        if self.playback:
-            self._renderer._tool_bar_update_button_icon(name="play", icon_name="pause")
-        else:
-            self._renderer._tool_bar_update_button_icon(name="play", icon_name="play")
-
-        if self.playback:
-            time_data = self._data["time"]
-            max_time = np.max(time_data)
-            if self._current_time == max_time:  # start over
-                self.set_time_point(0)  # first index
-            self._last_tick = time.time()
+        self._renderer._toggle_playback(value)
 
     def reset(self):
         """Reset view and time step."""
         self.reset_view()
-        max_time = len(self._data["time"]) - 1
-        if max_time > 0:
-            publish(
-                self,
-                TimeChange(time=self._time_interp_inv(self._data["initial_time_idx"])),
-            )
+        if self._data["initial_time"] is not None:
+            init_time = self._data["initial_time"]
+        else:
+            init_time = self._data["time"][0]
+        self._renderer._reset_time(
+            init_time=init_time, init_playback_speed=self.default_playback_speed_value
+        )
 
     def set_playback_speed(self, speed):
         """Set the time playback speed.
@@ -757,27 +747,6 @@ class Brain:
             The speed of the playback.
         """
         publish(self, PlaybackSpeed(speed=speed))
-
-    @safe_event
-    def _play(self):
-        if self.playback:
-            try:
-                self._advance()
-            except Exception:
-                self.toggle_playback(value=False)
-                raise
-
-    def _advance(self):
-        this_time = time.time()
-        delta = this_time - self._last_tick
-        self._last_tick = time.time()
-        time_data = self._data["time"]
-        time_shift = delta * self.playback_speed
-        max_time = np.max(time_data)
-        time_point = min(self._current_time + time_shift, max_time)
-        publish(self, TimeChange(time=time_point))
-        if time_point == max_time:
-            self.toggle_playback(value=False)
 
     def _configure_time_label(self):
         self.time_actor = self._data.get("time_actor")
@@ -816,61 +785,6 @@ class Brain:
         self.widgets["min_time"].set_value(f"{min_time: .3f}")
         self.widgets["max_time"].set_value(f"{max_time: .3f}")
         self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-
-    def _configure_dock_playback_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name)
-        len_time = len(self._data["time"]) - 1
-
-        @_auto_weakref
-        def publish_time_change(time_idx):
-            publish(self, TimeChange(time=self._time_interp_inv(time_idx)))
-
-        # Time widget
-        if len_time < 1:
-            self.widgets["time"] = None
-        else:
-            self.widgets["time"] = self._renderer._dock_add_slider(
-                name="Time (s)",
-                value=self._data["time_idx"],
-                rng=[0, len_time],
-                double=True,
-                callback=publish_time_change,
-                compact=False,
-                layout=layout,
-            )
-
-        # Time labels
-        if len_time < 1:
-            self.widgets["min_time"] = None
-            self.widgets["max_time"] = None
-            self.widgets["current_time"] = None
-        else:
-            self._configure_dock_time_widget(layout)
-
-        # Playback speed widget
-        if len_time < 1:
-            self.widgets["playback_speed"] = None
-        else:
-            self.widgets["playback_speed"] = self._renderer._dock_add_spin_box(
-                name="Speed",
-                value=self.default_playback_speed_value,
-                rng=self.default_playback_speed_range,
-                callback=self.set_playback_speed,
-                layout=layout,
-            )
-            subscribe(self, "playback_speed", self._on_playback_speed)
-
-        # Time label
-        current_time = self._current_time
-        assert current_time is not None  # should never be the case, float
-        time_label = self._data["time_label"]
-        if callable(time_label):
-            current_time = time_label(current_time)
-        else:
-            current_time = time_label
-        if self.time_actor is not None:
-            self.time_actor.SetInput(current_time)
-        del current_time
 
     def _configure_dock_orientation_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
@@ -1087,8 +1001,8 @@ class Brain:
         )
 
     def _configure_dock(self):
-        self._renderer._dock_initialize()
-        self._configure_dock_playback_widget(name="Playback")
+        if not hasattr(self._renderer, "_dock"):
+            self._renderer._dock_initialize()
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_colormap_widget(name="Color Limits")
         self._configure_dock_trace_widget(name="Trace")
@@ -1103,16 +1017,6 @@ class Brain:
         )
 
         self._renderer._dock_finalize()
-
-    def _configure_playback(self):
-        self._renderer._playback_initialize(
-            func=self._play,
-            timeout=self.refresh_rate_ms,
-            value=self._data["time_idx"],
-            rng=[0, len(self._data["time"]) - 1],
-            time_widget=self.widgets["time"],
-            play_widget=self.widgets["play"],
-        )
 
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl
@@ -1213,7 +1117,8 @@ class Brain:
         subscribe(self, "vertex_select", self._on_vertex_select)
 
     def _configure_tool_bar(self):
-        self._renderer._tool_bar_initialize(name="Toolbar")
+        if not hasattr(self._renderer, "_tool_bar"):
+            self._renderer._tool_bar_initialize(name="Toolbar")
 
         @_auto_weakref
         def save_image(filename):
@@ -1242,17 +1147,6 @@ class Brain:
             desc="Toggle Controls",
             func=self.toggle_interface,
             icon_name="visibility_on",
-        )
-        self.widgets["play"] = self._renderer._tool_bar_add_play_button(
-            name="play",
-            desc="Play/Pause",
-            func=self.toggle_playback,
-            shortcut=" ",
-        )
-        self._renderer._tool_bar_add_button(
-            name="reset",
-            desc="Reset",
-            func=self.reset,
         )
         self._renderer._tool_bar_add_button(
             name="scale",
@@ -1299,12 +1193,6 @@ class Brain:
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
-        self.plotter.add_key_event(
-            "n", partial(self._shift_time, shift_func=lambda x, y: x + y)
-        )
-        self.plotter.add_key_event(
-            "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
-        )
         for key, func, sign in (
             ("Left", self._rotate_azimuth, 1),
             ("Right", self._rotate_azimuth, -1),
@@ -1459,15 +1347,6 @@ class Brain:
                 if "current_time" in self.widgets:
                     self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
             self.plot_time_line(update=True)
-
-    def _on_playback_speed(self, event):
-        """Respond to the playback_speed UI event."""
-        if event.speed == self.playback_speed:
-            return
-        self.playback_speed = event.speed
-        if "playback_speed" in self.widgets:
-            with disable_ui_events(self):
-                self.widgets["playback_speed"].set_value(event.speed)
 
     def _on_colormap_range(self, event):
         """Respond to the colormap_range UI event."""

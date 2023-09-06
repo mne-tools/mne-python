@@ -37,6 +37,7 @@ from ipywidgets import (
 )
 from ipyevents import Event
 
+from .renderer import _TimeInteraction
 from ._abstract import (
     _AbstractAppWindow,
     _AbstractHBoxLayout,
@@ -1522,6 +1523,7 @@ class _Renderer(
     _IpyPlayback,
     _IpyDialog,
     _IpyKeyPress,
+    _TimeInteraction,
 ):
     _kind = "notebook"
 
