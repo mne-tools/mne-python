@@ -2813,9 +2813,6 @@ def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     fid : file
         The created file.
     %(info_not_none)s
-    sel : array of int | None
-        Indices of channels to include. If None, all channels
-        are included.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
@@ -2826,8 +2823,6 @@ def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
 
     Returns
     -------
-    fid : file
-        The file descriptor.
     cals : list
         calibration factors.
     """
