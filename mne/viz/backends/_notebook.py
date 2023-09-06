@@ -112,7 +112,7 @@ _ICON_LUT = dict(
 _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
 
-# We can drop ipyvtklink once we support PyVista 0.38.1+
+# TODO: We can drop ipyvtklink once we support PyVista 0.38.1+
 if check_version("pyvista", "0.38.1"):
     _JUPYTER_BACKEND = "trame"
 else:
@@ -1585,8 +1585,11 @@ class _Renderer(
         viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
         if _JUPYTER_BACKEND == "trame":
             # Remove scrollbars, see https://github.com/pyvista/pyvista/pull/4847
-            # which should be okay to use with this. Can probably remove once we require
-            # PyVista 0.43
+            # which adds this to the iframe PyVista creates. Once that's merged, this
+            # workaround just becomes a redundant but is still safe. And in a worst
+            # (realistic) case, this regex will fail to do any substitution and we just
+            # live with the ugly 90's-style borders. We can probably remove once we
+            # require PyVista 0.43 (assuming the above PR is merged).
             viewer.value = re.sub(
                 r" style=[\"'](.+)[\"']></iframe>",
                 # value taken from matplotlib's widget
