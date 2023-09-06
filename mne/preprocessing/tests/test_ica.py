@@ -598,12 +598,9 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components, browser_bac
 def short_raw_epochs():
     """Get small data."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
-    raw.pick(
-        list(
-            set(raw.ch_names[::10])
-            | set(["EOG 061", "MEG 1531", "MEG 1441", "MEG 0121"]),
-        )
-    )
+    # some gymnastics here because tests fail if the channels get out of order...
+    picks = raw.ch_names[::10] + ["EOG 061", "MEG 1531", "MEG 1441", "MEG 0121"]
+    raw.pick(list(filter(lambda ch: ch in picks, raw.ch_names)))
     assert "eog" in raw
     raw.del_proj()  # avoid warnings
     raw.set_annotations(Annotations([0.5], [0.5], ["BAD"]))

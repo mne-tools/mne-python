@@ -38,8 +38,8 @@ fname = path / "MEG" / "sample" / "sample_audvis-ave.fif"
 # load evoked data
 condition = "Left Auditory"
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
-evoked_mag = evoked.copy().pick(picks="mag")
-evoked_grad = evoked.copy().pick(picks="grad")
+evoked_mag = evoked.copy().pick(picks="mag", exclude="bads")
+evoked_grad = evoked.copy().pick(picks="grad", exclude="bads")
 
 # %%
 # Plot magnetometer data as an arrowmap along with the topoplot at the time
