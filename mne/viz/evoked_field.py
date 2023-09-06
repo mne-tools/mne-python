@@ -119,10 +119,10 @@ class EvokedField:
 
         # Setup figure parameters
         self._evoked = evoked
-        self._current_time = time
         if time is None:
             types = [t for t in ["eeg", "grad", "mag"] if t in evoked]
-            self._current_time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
+            time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
+        self._current_time = time
         if not evoked.times[0] <= time <= evoked.times[-1]:
             raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
         self._time_label = time_label
