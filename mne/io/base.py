@@ -2622,7 +2622,12 @@ class _RawFidWriter:
     def __init__(self, raw, info, picks, projector, start, stop, cfg):
         self.raw = raw
         self.picks = _picks_to_idx(info, picks, "all", ())
-        self.info = pick_info(info, self.picks)
+        self.info = pick_info(info, sel=self.picks, copy=True)
+        for k in range(self.info["nchan"]):
+            #   Scan numbers may have been messed up
+            self.info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
+            if cfg.reset_range:
+                self.info["chs"][k]["range"] = 1.0
         self.projector = projector
         # self.start is the only mutable attribute in this design!
         self.start, self.stop = start, stop
@@ -2631,7 +2636,7 @@ class _RawFidWriter:
     def write(self, fid, part_idx, prev_fname, next_fname):
         self._check_start_stop_within_bounds()
         start_block(fid, FIFF.FIFFB_MEAS)
-        cals = _write_raw_metadata(
+        _write_raw_metadata(
             fid,
             self.info,
             self.cfg.data_type,
@@ -2643,7 +2648,6 @@ class _RawFidWriter:
             self.info,
             self.picks,
             fid,
-            cals,
             part_idx,
             self.start,
             self.stop,
@@ -2674,7 +2678,6 @@ def _write_raw_data(
     info,
     picks,
     fid,
-    cals,
     part_idx,
     start,
     stop,
@@ -2732,6 +2735,7 @@ def _write_raw_data(
                     "output buffer_size, will be written as zeroes."
                 )
 
+    cals = [ch["cal"] * ch["range"] for ch in info["chs"]]
     # Write the blocks
     n_current_skip = 0
     new_start = start
@@ -2821,10 +2825,6 @@ def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     annotations : instance of Annotations
         The annotations to write.
 
-    Returns
-    -------
-    cals : list
-        calibration factors.
     """
     #
     # Create the file and save the essentials
@@ -2833,16 +2833,6 @@ def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     if info["meas_id"] is not None:
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info["meas_id"])
 
-    cals = []
-    for k in range(info["nchan"]):
-        #
-        #   Scan numbers may have been messed up
-        #
-        info["chs"][k]["scanno"] = k + 1  # scanno starts at 1 in FIF format
-        if reset_range is True:
-            info["chs"][k]["range"] = 1.0
-        cals.append(info["chs"][k]["cal"] * info["chs"][k]["range"])
-
     write_meas_info(fid, info, data_type=data_type, reset_range=reset_range)
 
     #
@@ -2850,8 +2840,6 @@ def _write_raw_metadata(fid, info, data_type, reset_range, annotations):
     #
     if len(annotations) > 0:  # don't save empty annot
         _write_annotations(fid, annotations)
-
-    return cals
 
 
 def _write_raw_buffer(fid, buf, cals, fmt):
