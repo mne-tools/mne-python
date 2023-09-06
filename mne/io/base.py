@@ -2638,7 +2638,7 @@ class _RawFidWriter:
             self.cfg.reset_range,
             self.raw.annotations,
         )
-        is_next_split, self.start = _write_raw_data(
+        self.start = _write_raw_data(
             self.raw,
             self.info,
             self.picks,
@@ -2656,6 +2656,7 @@ class _RawFidWriter:
             self.cfg.fmt,
         )
         end_block(fid, FIFF.FIFFB_MEAS)
+        is_next_split = self.start < self.stop
         return is_next_split
 
     def _check_start_stop_within_bounds(self):
@@ -2733,7 +2734,7 @@ def _write_raw_data(
 
     # Write the blocks
     n_current_skip = 0
-    is_next_split, new_start = False, None
+    new_start = start
     for first, last in zip(firsts, lasts):
         if do_skips:
             if ((first >= sk_onsets) & (last <= sk_ends)).any():
@@ -2780,6 +2781,7 @@ def _write_raw_data(
                 )
             )
 
+        new_start = last
         # Split files if necessary, leave some space for next file info
         # make sure we check to make sure we actually *need* another buffer
         # with the "and" check
@@ -2795,13 +2797,11 @@ def _write_raw_data(
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx + 1)
             end_block(fid, FIFF.FIFFB_REF)
 
-            is_next_split = True
-            new_start = first + buffer_size
             break
         pos_prev = pos
 
     end_block(fid, data_kind)
-    return is_next_split, new_start
+    return new_start
 
 
 @fill_doc
