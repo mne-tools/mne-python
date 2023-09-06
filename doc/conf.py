@@ -7,6 +7,7 @@
 from datetime import datetime, timezone
 import faulthandler
 import gc
+from importlib.metadata import metadata
 import os
 import subprocess
 import sys
@@ -184,8 +185,9 @@ intersphinx_mapping = {
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
 numpydoc_show_inherited_class_members = {
-    "mne.SourceSpaces": False,
     "mne.Forward": False,
+    "mne.Projection": False,
+    "mne.SourceSpaces": False,
 }
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
@@ -1339,6 +1341,7 @@ def reset_warnings(gallery_conf, fname):
         "use_inf_as_na option is deprecated.*",
         r"iteritems is deprecated.*Use \.items instead\.",
         "is_categorical_dtype is deprecated.*",
+        "The default of observed=False.*",
     ):
         warnings.filterwarnings(
             "ignore",
@@ -1429,18 +1432,7 @@ rst_prolog += """
 
 # -- Dependency info ----------------------------------------------------------
 
-try:
-    from importlib.metadata import metadata  # new in Python 3.8
-
-    min_py = metadata("mne")["Requires-Python"]
-except ModuleNotFoundError:
-    from pkg_resources import get_distribution
-
-    info = get_distribution("mne").get_metadata_lines("PKG-INFO")
-    for line in info:
-        if line.strip().startswith("Requires-Python"):
-            min_py = line.split(":")[1]
-min_py = min_py.lstrip(" =<>")
+min_py = metadata("mne")["Requires-Python"].lstrip(" =<>")
 rst_prolog += f"\n.. |min_python_version| replace:: {min_py}\n"
 
 # -- website redirects --------------------------------------------------------

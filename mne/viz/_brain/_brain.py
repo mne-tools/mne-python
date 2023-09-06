@@ -76,6 +76,7 @@ from ...utils import (
     _to_rgb,
     _ensure_int,
     _auto_weakref,
+    _path_like,
 )
 
 from ..ui_events import (
@@ -89,7 +90,6 @@ from ..ui_events import (
     disable_ui_events,
     _get_event_channel,
 )
-
 
 _ARROW_MOVE = 10  # degrees per press
 
@@ -1164,12 +1164,6 @@ class Brain:
             desc="Help",
             func=self.help,
             shortcut="?",
-        )
-
-    def _shift_time(self, shift_func):
-        publish(
-            self,
-            TimeChange(time=shift_func(self._current_time, self.playback_speed)),
         )
 
     def _rotate_azimuth(self, value):
@@ -3002,20 +2996,18 @@ class Brain:
         hemis = self._check_hemis(hemi)
 
         # Figure out where the data is coming from
-        if isinstance(annot, str):
+        if _path_like(annot):
             if os.path.isfile(annot):
-                filepath = annot
-                path = os.path.split(filepath)[0]
-                file_hemi, annot = os.path.basename(filepath).split(".")[:2]
+                filepath = _check_fname(annot, overwrite="read")
+                file_hemi, annot = filepath.name.split(".", 1)
                 if len(hemis) > 1:
-                    if annot[:2] == "lh.":
-                        filepaths = [filepath, op.join(path, "rh" + annot[2:])]
-                    elif annot[:2] == "rh.":
-                        filepaths = [op.join(path, "lh" + annot[2:], filepath)]
+                    if file_hemi == "lh":
+                        filepaths = [filepath, filepath.parent / ("rh." + annot)]
+                    elif file_hemi == "rh":
+                        filepaths = [filepath.parent / ("lh." + annot), filepath]
                     else:
                         raise RuntimeError(
-                            "To add both hemispheres "
-                            "simultaneously, filename must "
+                            "To add both hemispheres simultaneously, filename must "
                             'begin with "lh." or "rh."'
                         )
                 else:

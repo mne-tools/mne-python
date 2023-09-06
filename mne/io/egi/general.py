@@ -2,7 +2,7 @@
 # License: BSD-3-Clause
 
 import os
-from xml.dom.minidom import parse
+from defusedxml.minidom import parse
 import re
 
 import numpy as np
