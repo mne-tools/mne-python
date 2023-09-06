@@ -323,7 +323,6 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                                 f"trying to write {desc}@@{ch_name} at {onset} "
                                 f"for {duration} seconds."
                             )
-                        # print("Write annotation", onset, duration, desc, ch_name)
                 else:
                     if hdl.writeAnnotation(onset, duration, desc) != 0:
                         raise RuntimeError(
@@ -331,4 +330,3 @@ def _export_raw(fname, raw, physical_range, add_ch_type):
                             f"trying to write {desc} at {onset} "
                             f"for {duration} seconds."
                         )
-                    # print("Write annotation", onset, duration, desc)

@@ -1959,7 +1959,6 @@ def _read_annotations_edf(annotations, encoding="utf8"):
         duration = float(ev[2]) if ev[2] else 0
         for description in ev[3].split("\x14")[1:]:
             if description:
-                # print("description", description)
                 if "@@" in description:
                     description, ch_name = description.split("@@")
                     key = f"{onset}_{duration}_{description}"
