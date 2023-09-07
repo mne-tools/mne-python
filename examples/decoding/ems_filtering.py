@@ -49,9 +49,7 @@ raw = io.read_raw_fif(raw_fname, preload=True)
 raw.filter(0.5, 45, fir_design="firwin")
 events = mne.read_events(event_fname)
 
-picks = mne.pick_types(
-    raw.info, meg="grad", eeg=False, stim=False, eog=True, exclude="bads"
-)
+raw.pick(["grad", "eog"], exclude="bads")
 
 epochs = mne.Epochs(
     raw,
@@ -59,13 +57,11 @@ epochs = mne.Epochs(
     event_ids,
     tmin=-0.2,
     tmax=0.5,
-    picks=picks,
     baseline=None,
     reject=dict(grad=4000e-13, eog=150e-6),
     preload=True,
 )
-epochs.drop_bad()
-epochs.pick(picks="grad")
+epochs.pick("grad")
 
 # Setup the data to use it a scikit-learn way:
 X = epochs.get_data()  # The MEG data
