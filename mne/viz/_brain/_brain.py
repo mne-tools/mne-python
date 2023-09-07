@@ -1117,7 +1117,7 @@ class Brain:
         subscribe(self, "vertex_select", self._on_vertex_select)
 
     def _configure_tool_bar(self):
-        if not hasattr(self._renderer, "_tool_bar"):
+        if not hasattr(self._renderer, "_tool_bar") or self._renderer._tool_bar is None:
             self._renderer._tool_bar_initialize(name="Toolbar")
 
         @_auto_weakref

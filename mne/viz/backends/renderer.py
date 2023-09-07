@@ -409,7 +409,7 @@ class _TimeInteraction:
         if not hasattr(self, "_dock"):
             self._dock_initialize()
 
-        if not hasattr(self, "_tool_bar"):
+        if not hasattr(self, "_tool_bar") or self._tool_bar is None:
             self._tool_bar_initialize(name="Toolbar")
 
         if not hasattr(self, "_widgets"):
