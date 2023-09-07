@@ -540,7 +540,7 @@ def test_read_latin1_annotations(tmp_path):
         f.write(annot)
 
     # Test reading directly from file
-    onset, duration, description = _read_annotations_edf(
+    onset, duration, description, ch_names = _read_annotations_edf(
         annotations=str(annot_file),  # _read_annotations_edf expects fpath as string
         encoding="latin1",
     )
