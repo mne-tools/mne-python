@@ -61,7 +61,7 @@ raw.info["bads"] += ["MEG 2443", "EEG 053"]  # bads + 2 more
 picks_eog = mne.pick_types(raw.info, eog=True)
 picks_grad = mne.pick_types(raw.info, meg="grad", exclude="bads")
 picks_rtemp = mne.pick_channels(
-    raw.info["ch_names"], mne.read_vectorview_selection("Right-temporal")
+    raw.info["ch_names"], mne.read_vectorview_selection("Right-temporal"), ordered=True
 )
 picks = list((set(picks_rtemp) & set(picks_grad)) | set(picks_eog))
 
