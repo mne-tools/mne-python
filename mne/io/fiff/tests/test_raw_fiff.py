@@ -551,7 +551,7 @@ def test_split_files(tmp_path, mod, monkeypatch):
 
     annot = Annotations(np.arange(20), np.ones((20,)), "test")
     raw_1.set_annotations(annot)
-    split_fname = tmp_path / "split_raw.fif"
+    split_fname = tmp_path / f"split_{mod}.fif"
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size="10MB")
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1.0, atol=1e-2)  # samp rate
@@ -641,12 +641,37 @@ def test_split_files(tmp_path, mod, monkeypatch):
         raw_crop.save(tmp_path / "test.fif", split_naming="bids", verbose="error")
 
     # reserved file is deleted
-    fname = tmp_path / "test_raw.fif"
-    monkeypatch.setattr(base, "_write_raw_fid", _err)
-    with pytest.raises(RuntimeError, match="Killed mid-write"):
-        raw_1.save(fname, split_size="10MB", split_naming="bids")
+    fname = tmp_path / f"test_{mod}.fif"
+    with monkeypatch.context() as m:
+        m.setattr(base, "_write_raw_data", _err)
+        with pytest.raises(RuntimeError, match="Killed mid-write"):
+            raw_1.save(fname, split_size="10MB", split_naming="bids")
     assert fname.is_file()
-    assert not (tmp_path / "test_split-01_raw.fif").is_file()
+    assert not (tmp_path / "test_split-01_{mod}.fif").is_file()
+
+    # MAX_N_SPLITS exceeeded
+    raw = RawArray(np.zeros((1, 2000000)), create_info(1, 1000.0, "eeg"))
+    fname.unlink()
+    kwargs = dict(split_size="2MB", overwrite=True, verbose=True)
+    with monkeypatch.context() as m:
+        m.setattr(base, "MAX_N_SPLITS", 2)
+        with pytest.raises(RuntimeError, match="Exceeded maximum number of splits"):
+            raw.save(fname, split_naming="bids", **kwargs)
+    fname_1, fname_2, fname_3 = [
+        (tmp_path / f"test_split-{ii:02d}_{mod}.fif") for ii in range(1, 4)
+    ]
+    assert not fname.is_file()
+    assert fname_1.is_file()
+    assert fname_2.is_file()
+    assert not fname_3.is_file()
+    with monkeypatch.context() as m:
+        m.setattr(base, "MAX_N_SPLITS", 2)
+        with pytest.raises(RuntimeError, match="Exceeded maximum number of splits"):
+            raw.save(fname, split_naming="neuromag", **kwargs)
+    fname_2, fname_3 = [(tmp_path / f"test_{mod}-{ii}.fif") for ii in range(1, 3)]
+    assert fname.is_file()
+    assert fname_2.is_file()
+    assert not fname_3.is_file()
 
 
 def _err(*args, **kwargs):

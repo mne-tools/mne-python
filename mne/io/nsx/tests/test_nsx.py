@@ -82,7 +82,7 @@ def test_nsx_ver_31():
     assert raw.annotations[0]["onset"] * raw.info["sfreq"] == 101
     assert raw.annotations[0]["duration"] * raw.info["sfreq"] == 49
 
-    # Ignore following RuntimeWarning in mne/io/base.py in _write_raw_fid
+    # Ignore following RuntimeWarning in mne/io/base.py in _write_raw_data
     # "Acquisition skips detected but did not fit evenly into output"
     # "buffer_size, will be written as zeroes."
     with pytest.warns(RuntimeWarning, match="skips detected"):
