@@ -1140,7 +1140,7 @@ def _write_annotations_txt(fname, annot):
         np.savetxt(fid, data, delimiter=",", fmt="%s")
 
 
-def read_annotations(fname, sfreq="auto", uint16_codec=None):
+def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding_edf="utf8"):
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
@@ -1168,6 +1168,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         too small". ``uint16_codec`` allows to specify what codec (for example:
         ``'latin1'`` or ``'utf-8'``) should be used when reading character
         arrays and can therefore help you solve this problem.
+    %(encoding_edf)s
 
     Returns
     -------
@@ -1232,7 +1233,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         annotations = _read_annotations_eeglab(fname, uint16_codec=uint16_codec)
 
     elif name.endswith(("edf", "bdf", "gdf")):
-        annotations = _read_annotations_edf(fname)
+        annotations = _read_annotations_edf(fname, encoding=encoding_edf)
 
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)

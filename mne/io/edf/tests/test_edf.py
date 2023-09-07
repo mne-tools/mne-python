@@ -521,18 +521,17 @@ def test_read_latin1_annotations(tmp_path):
         b"+1.8\x14\xf4\x14\x00\x00"  # +1.8 ô
         b"+1.9\x14\xfb\x14\x00\x00"  # +1.9 û
     )
-    annot_file = tmp_path / "annotations.txt"
+    annot_file = tmp_path / "annotations.edf"
     with open(annot_file, "wb") as f:
         f.write(annot)
 
     # Test reading directly from file
-    onset, duration, description, ch_names = _read_annotations_edf(
-        annotations=str(annot_file),  # _read_annotations_edf expects fpath as string
-        encoding="latin1",
+    annotations = read_annotations(fname=annot_file, encoding_edf="latin1")
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
+    assert not any(annotations.duration)  # all durations are 0
+    assert_array_equal(
+        annotations.description, ["é", "à", "è", "ù", "â", "ê", "î", "ô", "û"]
     )
-    assert onset == (1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9)
-    assert not any(duration)  # all durations are 0
-    assert description == ("é", "à", "è", "ù", "â", "ê", "î", "ô", "û")
 
     # Test reading annotations from channel data
     with open(annot_file, "rb") as f:
@@ -544,7 +543,7 @@ def test_read_latin1_annotations(tmp_path):
             dtype_byte=None,
         )
     annotations = _read_annotations_edf(tal_channel, encoding="latin1")
-    assert_allclose(annotations.onset, (1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9))
+    assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
     assert not any(annotations.duration)  # all durations are 0
     assert_array_equal(
         annotations.description, ["é", "à", "è", "ù", "â", "ê", "î", "ô", "û"]
