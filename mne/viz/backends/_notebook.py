@@ -7,6 +7,7 @@
 
 import os
 import os.path as op
+import re
 from contextlib import contextmanager, nullcontext
 
 from IPython.display import display, clear_output
@@ -86,6 +87,7 @@ from ._pyvista import (
     _take_3d_screenshot,  # noqa: F401
 )
 from ._utils import _notebook_vtk_works
+from ...utils import check_version
 
 
 # dict values are icon names from: https://fontawesome.com/icons
@@ -110,6 +112,12 @@ _ICON_LUT = dict(
 
 _BASE_MIN_SIZE = "20px"
 _BASE_KWARGS = dict(layout=Layout(min_width=_BASE_MIN_SIZE, min_height=_BASE_MIN_SIZE))
+
+# TODO: We can drop ipyvtklink once we support PyVista 0.38.1+
+if check_version("pyvista", "0.38.1"):
+    _JUPYTER_BACKEND = "trame"
+else:
+    _JUPYTER_BACKEND = "ipyvtklink"
 
 # %%
 # Widgets
@@ -647,7 +655,7 @@ class _BoxLayout:
     def _add_widget(self, widget):
         # if pyvista plotter, needs to be shown
         if isinstance(widget, Plotter):
-            widget = widget.show(jupyter_backend="ipyvtklink", return_viewer=True)
+            widget = widget.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
         if hasattr(widget, "layout"):
             widget.layout.width = None  # unlock the fixed layout
             widget.layout.margin = "2px 0px 2px 0px"
@@ -782,15 +790,18 @@ class _3DRenderer(_PyVistaRenderer):
             self.show()
 
     def _update(self):
-        if self.figure.display is not None:
-            self.figure.display.update_canvas()
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
+        else:
+            super()._update()
 
     @contextmanager
     def _ensure_minimum_sizes(self):
         yield
 
     def show(self):
-        viewer = self.plotter.show(jupyter_backend="ipyvtklink", return_viewer=True)
+        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         display(viewer)
 
@@ -1248,8 +1259,8 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         pass
 
     def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
-        def callback():
-            fname = self.actions[f"{name}_field"].value
+        def callback(name=name):
+            fname = self.actions[f"{name}_field"]._action.value
             func(None if len(fname) == 0 else fname)
 
         self._tool_bar_add_text(
@@ -1362,18 +1373,21 @@ class _IpyWindow(_AbstractWindow):
 
     def _window_load_icons(self):
         # from: https://fontawesome.com/icons
-        self._icons["help"] = "question"
+        for key in (
+            "help",
+            "reset",
+            "scale",
+            "clear",
+            "movie",
+            "restore",
+            "screenshot",
+            "visibility_on",
+            "visibility_off",
+            "folder",
+        ):  # noqa: E501
+            self._icons[key] = _ICON_LUT[key]
         self._icons["play"] = None
         self._icons["pause"] = None
-        self._icons["reset"] = "history"
-        self._icons["scale"] = "magic"
-        self._icons["clear"] = "trash"
-        self._icons["movie"] = "video-camera"
-        self._icons["restore"] = "replay"
-        self._icons["screenshot"] = "camera"
-        self._icons["visibility_on"] = "eye"
-        self._icons["visibility_off"] = "eye"
-        self._icons["folder"] = "folder"
 
     def _window_close_connect(self, func, *, after=True):
         pass
@@ -1545,8 +1559,11 @@ class _Renderer(
         self._window_initialize(fullscreen=fullscreen)
 
     def _update(self):
-        if self.figure.display is not None:
-            self.figure.display.update_canvas()
+        if _JUPYTER_BACKEND == "ipyvtklink":
+            if self.figure.display is not None:
+                self.figure.display.update_canvas()
+        else:
+            super()._update()
 
     def _display_default_tool_bar(self):
         self._tool_bar_initialize()
@@ -1567,8 +1584,20 @@ class _Renderer(
         else:
             self._display_default_tool_bar()
         # viewer
-        viewer = self.plotter.show(jupyter_backend="ipyvtklink", return_viewer=True)
-        viewer.layout.width = None  # unlock the fixed layout
+        viewer = self.plotter.show(jupyter_backend=_JUPYTER_BACKEND, return_viewer=True)
+        if _JUPYTER_BACKEND == "trame":
+            # Remove scrollbars, see https://github.com/pyvista/pyvista/pull/4847
+            # which adds this to the iframe PyVista creates. Once that's merged, this
+            # workaround just becomes a redundant but is still safe. And in a worst
+            # (realistic) case, this regex will fail to do any substitution and we just
+            # live with the ugly 90's-style borders. We can probably remove once we
+            # require PyVista 0.43 (assuming the above PR is merged).
+            viewer.value = re.sub(
+                r" style=[\"'](.+)[\"']></iframe>",
+                # value taken from matplotlib's widget
+                r" style='\1; border: 1px solid rgb(221,221,221);' scrolling='no'></iframe>",  # noqa: E501
+                viewer.value,
+            )
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])
