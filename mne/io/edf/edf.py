@@ -421,7 +421,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                         ch_data = np.append(ch_data, np.zeros((len(ch_data), 1)), -1)
                         ch_data = interp1d(old, ch_data, kind="zero", axis=-1)(new)
                 elif orig_idx in stim_channel_idxs:
-                    ch_data = np.bitwise_and(ch_data.astype(int), 2 ** 17 - 1)
+                    ch_data = np.bitwise_and(ch_data.astype(int), 2**17 - 1)
 
                 one_i = ch_data.ravel()[r_sidx:r_eidx]
 
