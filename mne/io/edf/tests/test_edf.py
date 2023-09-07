@@ -567,6 +567,7 @@ def test_read_latin1_annotations(tmp_path):
 
     with pytest.raises(Exception, match="Encountered invalid byte in"):
         _read_annotations_edf(tal_channel)  # default encoding="utf8" fails
+    with pytest.raises(Exception, match="Encountered invalid byte in"):
         _read_annotations_edf(str(annot_file))  # default encoding="utf8" fails
 
 
