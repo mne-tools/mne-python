@@ -143,6 +143,7 @@ def pytest_configure(config):
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
+    ignore:Proactor event loop does not implement:RuntimeWarning
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning

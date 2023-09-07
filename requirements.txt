@@ -36,7 +36,7 @@ pyvista>=0.32,!=0.35.2,!=0.38.0,!=0.38.1,!=0.38.2,!=0.38.3,!=0.38.4,!=0.38.5,!=0
 pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets
-ipympl; platform_system!="Windows"  # XXX: Add support when ipympl CIs include Windows
+ipympl
 ipyevents
 trame
 trame-vtk
