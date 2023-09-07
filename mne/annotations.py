@@ -1232,16 +1232,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         annotations = _read_annotations_eeglab(fname, uint16_codec=uint16_codec)
 
     elif name.endswith(("edf", "bdf", "gdf")):
-        onset, duration, description, ch_names = _read_annotations_edf(fname)
-        onset = np.array(onset, dtype=float)
-        duration = np.array(duration, dtype=float)
-        annotations = Annotations(
-            onset=onset,
-            duration=duration,
-            description=description,
-            orig_time=None,
-            ch_names=ch_names,
-        )
+        annotations = _read_annotations_edf(fname)
 
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)

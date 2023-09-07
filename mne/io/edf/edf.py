@@ -192,7 +192,6 @@ class RawEDF(BaseRaw):
         )
 
         # Read annotations from file and set it
-        onset, duration, desc, ch_names = list(), list(), list(), list()
         if len(edf_info["tal_idx"]) > 0:
             # Read TAL data exploiting the header info (no regexp)
             idx = np.empty(0, int)
@@ -205,20 +204,11 @@ class RawEDF(BaseRaw):
                 np.ones((len(idx), 1)),
                 None,
             )
-            onset, duration, desc, ch_names = _read_annotations_edf(
+            annotations = _read_annotations_edf(
                 tal_data[0],
                 encoding=encoding,
             )
-
-        self.set_annotations(
-            Annotations(
-                onset=onset,
-                duration=duration,
-                description=desc,
-                orig_time=None,
-                ch_names=ch_names,
-            )
-        )
+            self.set_annotations(annotations)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -431,7 +421,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames, cals, 
                         ch_data = np.append(ch_data, np.zeros((len(ch_data), 1)), -1)
                         ch_data = interp1d(old, ch_data, kind="zero", axis=-1)(new)
                 elif orig_idx in stim_channel_idxs:
-                    ch_data = np.bitwise_and(ch_data.astype(int), 2**17 - 1)
+                    ch_data = np.bitwise_and(ch_data.astype(int), 2 ** 17 - 1)
 
                 one_i = ch_data.ravel()[r_sidx:r_eidx]
 
@@ -1958,6 +1948,7 @@ def _read_annotations_edf(annotations, encoding="utf8"):
         onset = float(ev[0]) + offset
         duration = float(ev[2]) if ev[2] else 0
         for description in ev[3].split("\x14")[1:]:
+            print(onset, duration, description)
             if description:
                 if "@@" in description:
                     description, ch_name = description.split("@@")
@@ -1988,7 +1979,22 @@ def _read_annotations_edf(annotations, encoding="utf8"):
                 # header. If X=0, then the .X may be omitted.
                 offset = -onset
 
-    return zip(*events.values()) if events else (list(), list(), list(), list())
+    if events:
+        onset, duration, description, ch_names = zip(*events.values())
+    else:
+        onset, duration, description, ch_names = list(), list(), list(), list()
+
+    assert len(onset) == len(duration) == len(description) == len(ch_names)
+
+    annotations = Annotations(
+        onset=onset,
+        duration=duration,
+        description=description,
+        orig_time=None,
+        ch_names=ch_names,
+    )
+
+    return annotations
 
 
 def _get_annotations_gdf(edf_info, sfreq):
