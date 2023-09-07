@@ -87,7 +87,7 @@ from ._pyvista import (
     _take_3d_screenshot,  # noqa: F401
 )
 from ._utils import _notebook_vtk_works
-from ...utils import check_version
+from ...utils import check_version, _soft_import
 
 
 # dict values are icon names from: https://fontawesome.com/icons
@@ -1347,10 +1347,9 @@ class _IpyPlayback(_AbstractPlayback):
 
 class _IpyMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from matplotlib.backends.backend_nbagg import FigureCanvasNbAgg, FigureManager
-
-        self.canvas = FigureCanvasNbAgg(self.fig)
-        self.manager = FigureManager(self.canvas, 0)
+        ipympl = _soft_import("ipympl", "Drawing figures into a notebook.", strict=True)
+        self.canvas = ipympl.backend_nbagg.Canvas(self.fig)
+        self.manager = ipympl.backend_nbagg.FigureManager(self.canvas, 0)
 
 
 class _IpyMplCanvas(_AbstractMplCanvas, _IpyMplInterface):
