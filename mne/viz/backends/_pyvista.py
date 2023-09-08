@@ -869,13 +869,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 plotter.disable_depth_peeling()
 
     def _toggle_antialias(self):
-        """Enable it everywhere except Azure."""
-        # XXX for some reason doing this on Azure causes access violations:
-        #     ##[error]Cmd.exe exited with code '-1073741819'
-        # So for now don't use it there. Maybe has to do with setting these
-        # before the window has actually been made "active"...?
-        # For Mayavi we have an "on activated" event or so, we should look into
-        # using this for Azure at some point, too.
+        """Enable it everywhere except on systems with problematic OpenGL."""
         if self.figure._is_active():
             # MESA can't seem to handle MSAA and depth peeling simultaneously, see
             # https://github.com/pyvista/pyvista/issues/4867
