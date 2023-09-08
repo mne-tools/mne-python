@@ -52,3 +52,15 @@
 # Non-tutorial documentation text and infrastructure
 /doc @larsoner @drammock
 /logo @drammock
+
+# Current-source density
+/mne/preprocessing/_csd.py  @alexrockhill
+
+# Intracranial
+/mne/preprocessing/ieeg @alexrockhill
+*seeg*.py @alexrockhill
+*ecog*.py @alexrockhill
+
+# surface + transforms
+/mne/surface.py @alexrockhill
+/mne/transforms.py @alexrockhill
