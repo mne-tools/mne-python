@@ -1332,16 +1332,12 @@ class Brain:
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
+        print("Brain:", event)
         if event.time == self._current_time:
             return
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
         if self.time_viewer:
-            with disable_ui_events(self):
-                if "time" in self.widgets:
-                    self.widgets["time"].set_value(time_idx)
-                if "current_time" in self.widgets:
-                    self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
             self.plot_time_line(update=True)
 
     def _on_colormap_range(self, event):
@@ -3911,7 +3907,7 @@ class Brain:
         times = np.arange(n_frames, dtype=float)
         times /= framerate * time_dilation
         times += tmin
-        time_idx = np.interp(times, self._times, np.arange(self._n_times))
+        time_idx = self._to_time_idx(times)
 
         n_times = len(time_idx)
         if n_times == 0:

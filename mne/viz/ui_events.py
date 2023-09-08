@@ -285,6 +285,7 @@ def publish(fig, event, *, verbose=None):
 
     # Publish the event by calling the registered callback functions.
     event.source = fig
+    logger.debug(f"Publishing {event} on channel {fig}")
     for channel in channels:
         if event.name not in channel:
             channel[event.name] = set()
