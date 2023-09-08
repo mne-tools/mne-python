@@ -1140,6 +1140,7 @@ def _write_annotations_txt(fname, annot):
         np.savetxt(fid, data, delimiter=",", fmt="%s")
 
 
+@fill_doc
 def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
     r"""Read annotations from a file.
 
