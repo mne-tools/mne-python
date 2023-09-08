@@ -878,6 +878,9 @@ class _PyVistaRenderer(_AbstractRenderer):
         if self.figure._is_active():
             # Azure
             bad_system = os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
+            # MESA can't seem to handle MSAA and depth peeling simultaneously, see
+            # https://github.com/pyvista/pyvista/issues/4867
+            bad_system |= _is_mesa(self.plotter)
             for plotter in self._all_plotters:
                 if bad_system or not self.antialias:
                     plotter.disable_anti_aliasing()
