@@ -419,7 +419,7 @@ class _TimeInteraction:
         layout = self._dock_add_group_box("")
         self._widgets["time_slider"] = self._dock_add_slider(
             name="Time (s)",
-            value=current_time_func(),
+            value=np.interp(current_time_func(), times, np.arange(len(times))),
             rng=[0, len(times)],
             double=True,
             callback=lambda val: publish(
@@ -437,8 +437,8 @@ class _TimeInteraction:
         self._layout_add_widget(layout, hlayout)
 
         self._widgets["min_time"].set_value(f"{times[0]: .3f}")
-        self._widgets["max_time"].set_value(f"{current_time_func(): .3f}")
-        self._widgets["current_time"].set_value(f"{times[-1]: .3f}")
+        self._widgets["current_time"].set_value(f"{current_time_func(): .3f}")
+        self._widgets["max_time"].set_value(f"{times[-1]: .3f}")
 
         self._widgets["playback_speed"] = self._dock_add_spin_box(
             name="Speed",
@@ -470,8 +470,8 @@ class _TimeInteraction:
         self._playback_initialize(
             func=self._play,
             timeout=17,
-            value=current_time_func(),
-            rng=[times[0], times[-1]],
+            value=np.interp(current_time_func(), times, np.arange(len(times))),
+            rng=[0, len(times)],
             time_widget=self._widgets["time_slider"],
             play_widget=self._widgets["play"],
         )
@@ -489,13 +489,8 @@ class _TimeInteraction:
         """Respond to time_change UI event."""
         from ..ui_events import disable_ui_events
 
-        print("Renderer:", event)
-
         new_time = np.clip(event.time, self._times[0], self._times[-1])
         new_time_idx = np.interp(new_time, self._times, np.arange(len(self._times)))
-
-        if new_time_idx == self._widgets["time_slider"].get_value():
-            return
 
         with disable_ui_events(self._fig):
             self._widgets["time_slider"].set_value(new_time_idx)
@@ -527,6 +522,7 @@ class _TimeInteraction:
             self._playback = value
 
         if self._playback:
+            print(self.actions)
             self._tool_bar_update_button_icon(name="play", icon_name="pause")
             if self._current_time_func() == self._times[-1]:  # start over
                 publish(self._fig, TimeChange(time=self._times[0]))
@@ -543,7 +539,6 @@ class _TimeInteraction:
 
     @safe_event
     def _play(self):
-        print("play")
         if self._playback:
             try:
                 self._advance()

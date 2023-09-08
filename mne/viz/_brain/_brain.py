@@ -91,6 +91,7 @@ from ..ui_events import (
     _get_event_channel,
 )
 
+
 _ARROW_MOVE = 10  # degrees per press
 
 
@@ -542,6 +543,7 @@ class Brain:
         # Default configuration
         self.playback = False
         self.visibility = False
+        self.refresh_rate_ms = max(int(round(1000.0 / 60.0)), 1)
         self.default_scaling_range = [0.2, 2.0]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.01
@@ -598,19 +600,12 @@ class Brain:
             self.separate_canvas = False
         del show_traces
 
-        self._renderer._enable_time_interaction(
-            self,
-            current_time_func=lambda: self._current_time,
-            times=self._data["time"],
-            init_playback_speed=self.default_playback_speed_value,
-            playback_speed_range=self.default_playback_speed_range,
-        )
         self._configure_time_label()
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
-        self._configure_tool_bar()
         self._configure_dock()
+        self._configure_tool_bar()
         self._configure_menu()
         self._configure_status_bar()
         self._configure_help()
@@ -732,12 +727,8 @@ class Brain:
     def reset(self):
         """Reset view and time step."""
         self.reset_view()
-        if self._data["initial_time"] is not None:
-            init_time = self._data["initial_time"]
-        else:
-            init_time = self._data["time"][0]
         self._renderer._reset_time(
-            init_time=init_time, init_playback_speed=self.default_playback_speed_value
+            self._data["initial_time"], self.default_playback_speed_value
         )
 
     def set_playback_speed(self, speed):
@@ -787,6 +778,36 @@ class Brain:
         self.widgets["min_time"].set_value(f"{min_time: .3f}")
         self.widgets["max_time"].set_value(f"{max_time: .3f}")
         self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
+
+    def _configure_dock_playback_widget(self, name):
+        len_time = len(self._data["time"]) - 1
+
+        # Time widget
+        if len_time < 1:
+            self.widgets["time"] = None
+            self.widgets["min_time"] = None
+            self.widgets["max_time"] = None
+            self.widgets["current_time"] = None
+        else:
+            self._renderer._enable_time_interaction(
+                self,
+                lambda: self._current_time,
+                self._data["time"],
+                self.default_playback_speed_value,
+                self.default_playback_speed_range,
+            )
+
+        # Time label
+        current_time = self._current_time
+        assert current_time is not None  # should never be the case, float
+        time_label = self._data["time_label"]
+        if callable(time_label):
+            current_time = time_label(current_time)
+        else:
+            current_time = time_label
+        if self.time_actor is not None:
+            self.time_actor.SetInput(current_time)
+        del current_time
 
     def _configure_dock_orientation_widget(self, name):
         layout = self._renderer._dock_add_group_box(name)
@@ -1003,8 +1024,8 @@ class Brain:
         )
 
     def _configure_dock(self):
-        if not hasattr(self._renderer, "_dock"):
-            self._renderer._dock_initialize()
+        self._renderer._dock_initialize()
+        self._configure_dock_playback_widget(name="Playback")
         self._configure_dock_orientation_widget(name="Orientation")
         self._configure_dock_colormap_widget(name="Color Limits")
         self._configure_dock_trace_widget(name="Trace")
@@ -1168,6 +1189,12 @@ class Brain:
             shortcut="?",
         )
 
+    def _shift_time(self, shift_func):
+        publish(
+            self,
+            TimeChange(time=shift_func(self._current_time, self.playback_speed)),
+        )
+
     def _rotate_azimuth(self, value):
         azimuth = (self._renderer.figure._azimuth + value) % 360
         self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
@@ -1189,6 +1216,12 @@ class Brain:
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event(
+            "n", partial(self._shift_time, shift_func=lambda x, y: x + y)
+        )
+        self.plotter.add_key_event(
+            "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
+        )
         for key, func, sign in (
             ("Left", self._rotate_azimuth, 1),
             ("Right", self._rotate_azimuth, -1),
@@ -1332,12 +1365,16 @@ class Brain:
 
     def _on_time_change(self, event):
         """Respond to a time change UI event."""
-        print("Brain:", event)
         if event.time == self._current_time:
             return
         time_idx = self._to_time_index(event.time)
         self._update_current_time_idx(time_idx)
         if self.time_viewer:
+            with disable_ui_events(self):
+                if "time" in self.widgets:
+                    self.widgets["time"].set_value(time_idx)
+                if "current_time" in self.widgets:
+                    self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
             self.plot_time_line(update=True)
 
     def _on_colormap_range(self, event):
@@ -3907,7 +3944,7 @@ class Brain:
         times = np.arange(n_frames, dtype=float)
         times /= framerate * time_dilation
         times += tmin
-        time_idx = self._to_time_idx(times)
+        time_idx = np.interp(times, self._times, np.arange(self._n_times))
 
         n_times = len(time_idx)
         if n_times == 0:

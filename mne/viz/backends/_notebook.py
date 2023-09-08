@@ -1049,6 +1049,8 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
         layout = self._dock_layout if layout is None else layout
         widget = HTML(value=value, disabled=True)
+        print(widget.layout)
+        widget.layout.width = "100px"
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
