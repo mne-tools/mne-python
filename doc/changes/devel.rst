@@ -32,7 +32,7 @@ Enhancements
 - Add helpful error messages when using methods on empty :class:`mne.Epochs`-objects (:gh:`11306` by `Martin Schulz`_)
 - Add inferring EEGLAB files' montage unit automatically based on estimated head radius using :func:`read_raw_eeglab(..., montage_units="auto") <mne.io.read_raw_eeglab>` (:gh:`11925` by `Jack Zhang`_, :gh:`11951` by `Eric Larson`_)
 - Add :class:`~mne.time_frequency.EpochsSpectrumArray` and :class:`~mne.time_frequency.SpectrumArray` to support creating power spectra from :class:`NumPy array <numpy.ndarray>` data (:gh:`11803` by `Alex Rockhill`_)
-- Refactoring ``mne.io.edf.edf._read_annotations_edf`` in order for it to return an :class:`mne.Annotations` instance (:gh:`11964` by `Paul Roujansky`_)
+- Refactored internals of :func:`mne.read_annotations` (:gh:`11964` by `Paul Roujansky`_)
 
 Bugs
 ~~~~

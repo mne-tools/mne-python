@@ -1140,7 +1140,7 @@ def _write_annotations_txt(fname, annot):
         np.savetxt(fid, data, delimiter=",", fmt="%s")
 
 
-def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding_edf="utf8"):
+def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
@@ -1169,6 +1169,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding_edf="utf8"
         ``'latin1'`` or ``'utf-8'``) should be used when reading character
         arrays and can therefore help you solve this problem.
     %(encoding_edf)s
+        Only used when reading EDF annotations.
 
     Returns
     -------
