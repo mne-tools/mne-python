@@ -43,6 +43,7 @@
 /*.* @larsoner @drammock  # files in the root directory
 /.circleci @larsoner
 /.github @larsoner
+/tools @larsoner @drammock
 
 # Examples and Tutorials
 /examples @drammock
@@ -50,7 +51,4 @@
 
 # Non-tutorial documentation text and infrastructure
 /doc @larsoner @drammock
-
-# misc
 /logo @drammock
-/tools @drammock
