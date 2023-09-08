@@ -1234,7 +1234,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
         annotations = _read_annotations_eeglab(fname, uint16_codec=uint16_codec)
 
     elif name.endswith(("edf", "bdf", "gdf")):
-        annotations = _read_annotations_edf(fname, encoding=encoding_edf)
+        annotations = _read_annotations_edf(fname, encoding=encoding)
 
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)
