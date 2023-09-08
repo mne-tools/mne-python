@@ -21,6 +21,11 @@
 *dics*.py @britta-wstnr  # related tutorials and examples
 *lcmv*.py @britta-wstnr
 
+# Intracranial
+/mne/preprocessing/ieeg @alexrockhill
+*seeg*.py @alexrockhill
+*ecog*.py @alexrockhill
+
 # IO
 /mne/io/brainvision @sappelhoff
 /mne/export @sappelhoff
@@ -35,6 +40,11 @@
 /mne/epochs.py @drammock
 /mne/evoked.py @drammock
 /mne/io/*.* @drammock
+
+# Surface + transforms
+/mne/surface.py @alexrockhill @larsoner
+/mne/transforms.py @alexrockhill @larsoner
+/mne/_freesurfer.py @alexrockhill @larsoner
 
 # TFR
 /mne/time_frequency @drammock
@@ -55,12 +65,3 @@
 
 # Current-source density
 /mne/preprocessing/_csd.py  @alexrockhill
-
-# Intracranial
-/mne/preprocessing/ieeg @alexrockhill
-*seeg*.py @alexrockhill
-*ecog*.py @alexrockhill
-
-# surface + transforms
-/mne/surface.py @alexrockhill
-/mne/transforms.py @alexrockhill
