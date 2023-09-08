@@ -152,7 +152,7 @@ def plot_projs_joint(
             ax_.set_xlabel(f"projs[{idx}]", fontsize="small")
         unit = DEFAULTS["units"][ch_type]
         # traces
-        this_evoked = evoked.copy().pick_channels(ch_names)
+        this_evoked = evoked.copy().pick(ch_names)
         p = np.concatenate([p["data"]["data"] for p in these_projs])
         assert p.shape == (len(these_projs), len(this_evoked.data))
         traces = np.dot(p, this_evoked.data)

@@ -438,18 +438,16 @@ def test_plot_psdtopo_nirs(fnirs_epochs):
 @testing.requires_testing_data
 def test_plot_epochs_ctf(raw_ctf, browser_backend):
     """Test of basic CTF plotting."""
-    raw_ctf.pick_channels(
+    raw_ctf.pick(
         [
             "UDIO001",
             "UPPT001",
             "SCLK01-177",
             "BG1-4304",
             "MLC11-4304",
-            "MLC11-4304",
             "EEG058",
             "UADC007-4302",
         ],
-        ordered=False,
     )
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)

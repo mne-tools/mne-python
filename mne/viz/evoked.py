@@ -1923,7 +1923,7 @@ def plot_evoked_joint(
             )
         figs = list()
         for this_type in ch_types:  # pick only the corresponding channel type
-            ev_ = evoked.copy().pick_channels(
+            ev_ = evoked.copy().pick(
                 [
                     info["ch_names"][idx]
                     for idx in range(info["nchan"])

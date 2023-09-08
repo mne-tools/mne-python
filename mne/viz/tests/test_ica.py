@@ -148,7 +148,7 @@ def test_plot_ica_properties():
     events = make_fixed_length_events(raw)
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
-    raw.pick_channels(pick_names)
+    raw.pick(pick_names)
     reject = dict(grad=4000e-13, mag=4e-12)
 
     epochs = Epochs(
@@ -227,7 +227,7 @@ def test_plot_ica_properties():
 
     # Test merging grads.
     pick_names = raw.ch_names[:15:2] + raw.ch_names[1:15:2]
-    raw = _get_raw(preload=True).pick_channels(pick_names, ordered=False)
+    raw = _get_raw(preload=True).pick(pick_names)
     raw.crop(0, 5)
     raw.info.normalize_proj()
     ica = ICA(random_state=0, max_iter=1)
@@ -238,7 +238,7 @@ def test_plot_ica_properties():
 
     # Test handling of zeros
     ica = ICA(random_state=0, max_iter=1)
-    epochs.pick_channels(pick_names, ordered=False)
+    epochs.pick(pick_names)
     with pytest.warns(UserWarning, match="did not converge"):
         ica.fit(epochs)
     epochs._data[0] = 0
@@ -267,7 +267,7 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     raw = raw_orig.copy().crop(0, 1)
     picks = _get_picks(raw)
     epochs = _get_epochs()
-    raw.pick_channels([raw.ch_names[k] for k in picks])
+    raw.pick([raw.ch_names[k] for k in picks])
     ica_picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )

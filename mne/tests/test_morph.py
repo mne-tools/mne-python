@@ -904,7 +904,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     n_use = (sl.stop - sl.start) // (sl.step or 1)
     # see gh-5224
     evoked = mne.read_evokeds(fname_evoked)[0].crop(0, 0)
-    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.pick(evoked.ch_names[:306:8])
     evoked.info.normalize_proj()
     n_ch = len(evoked.ch_names)
     lut, _ = read_freesurfer_lut()

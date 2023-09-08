@@ -181,6 +181,7 @@ raw_et.add_channels([raw_eeg], force_update_info=True)
 frontal = ["E19", "E11", "E4", "E12", "E5"]
 occipital = ["E61", "E62", "E78", "E67", "E72", "E77"]
 pupil = ["pupil_right"]
+# picks must be numeric (not string) when passed to `raw.plot(..., order=)`
 picks_idx = mne.pick_channels(
     raw_et.ch_names, frontal + occipital + pupil, ordered=True
 )

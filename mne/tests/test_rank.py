@@ -208,7 +208,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 )
 def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
     """Test maxfilter rank lookup."""
-    raw = read_raw_fif(fname).crop(0, 5).load_data().pick_types(meg=True)
+    raw = read_raw_fif(fname).crop(0, 5).load_data().pick("meg")
     assert raw.info["projs"] == []
     mf = raw.info["proc_history"][0]["max_info"]
     assert mf["sss_info"]["nfree"] == rank_orig
@@ -272,7 +272,7 @@ def test_maxfilter_get_rank(n_proj, fname, rank_orig, meg, tol_kind, tol):
 def test_explicit_bads_pick():
     """Test when bads channels are explicitly passed + default picks=None."""
     raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
-    raw.pick_types(eeg=True, meg=True, ref_meg=True)
+    raw.pick(picks=["eeg", "meg", "ref_meg"])
 
     # Covariance
     # Default picks=None

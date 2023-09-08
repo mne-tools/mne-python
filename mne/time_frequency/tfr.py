@@ -3212,7 +3212,7 @@ def _preproc_tfr_instance(
     exclude = None if picks is None else exclude
     picks = _picks_to_idx(tfr.info, picks, exclude="bads")
     pick_names = [tfr.info["ch_names"][pick] for pick in picks]
-    tfr.pick_channels(pick_names)
+    tfr.pick(pick_names)
 
     if exclude == "bads":
         exclude = [ch for ch in tfr.info["bads"] if ch in tfr.info["ch_names"]]

@@ -922,7 +922,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     #
     if fname.suffix == ".fif":
         raw = read_raw_fif(fname)
-        raw.pick_channels(raw.ch_names[:3])
+        raw.pick(raw.ch_names[:3])
         ref_names = []
         data_names = raw.ch_names
     else:
@@ -941,7 +941,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     proj = Projection(data=proj, active=False, desc="test", kind=0, explained_var=0.0)
     raw.add_proj(proj, remove_existing=True)
     raw.info.normalize_proj()
-    raw.pick_channels(data_names + ref_names, ordered=False).crop(0, 2)
+    raw.pick(data_names + ref_names).crop(0, 2)
     long_names = ["123456789abcdefg" + name for name in raw.ch_names]
     fname = tmp_path / "test-raw.fif"
     with catch_logging() as log:
@@ -970,7 +970,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     assert "truncated to 15" in log
     for name in raw.ch_names:
         assert len(name) > 15
-    # first read the full waytmp_path
+    # first read the full way
     with catch_logging() as log:
         raw_read = read_raw_fif(fname, verbose=True)
     log = log.getvalue()
@@ -993,8 +993,8 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
         meas_info, "_read_extended_ch_info", _read_extended_ch_info
     )
     short_proj_names = [
-        f"{name[:13 - bool(len(ref_names))]}-{len(ref_names) + ni}"
-        for ni, name in enumerate(long_data_names[:2])
+        f"{name[:13 - bool(len(ref_names))]}-{ni}"
+        for ni, name in enumerate(long_proj_names)
     ]
     assert raw_read.info["projs"][0]["data"]["col_names"] == short_proj_names
     #

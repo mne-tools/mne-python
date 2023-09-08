@@ -23,7 +23,7 @@ raw_fname = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
 @testing.requires_testing_data
 def test_regress_artifact():
     """Test regressing artifact data."""
-    raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True, eog=True)
+    raw = read_raw_fif(raw_fname).pick(["eeg", "eog"])
     raw.load_data()
     epochs = create_eog_epochs(raw)
     epochs.apply_baseline((None, None))
