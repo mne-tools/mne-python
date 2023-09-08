@@ -526,7 +526,7 @@ def test_read_latin1_annotations(tmp_path):
         f.write(annot)
 
     # Test reading directly from file
-    annotations = read_annotations(fname=annot_file, encoding_edf="latin1")
+    annotations = read_annotations(fname=annot_file, encoding="latin1")
     assert_allclose(annotations.onset, [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9])
     assert not any(annotations.duration)  # all durations are 0
     assert_array_equal(
