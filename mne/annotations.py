@@ -1206,15 +1206,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
         with ff as fid:
             annotations = _read_annotations_fif(fid, tree)
     elif name.endswith("txt"):
-        orig_time = _read_annotations_txt_parse_header(fname)
-        onset, duration, description, ch_names = _read_annotations_txt(fname)
-        annotations = Annotations(
-            onset=onset,
-            duration=duration,
-            description=description,
-            orig_time=orig_time,
-            ch_names=ch_names,
-        )
+        annotations = _read_annotations_txt(fname)
 
     elif name.endswith(("vmrk", "amrk")):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
@@ -1367,7 +1359,18 @@ def _read_annotations_txt(fname):
             _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
             for ci, ch in enumerate(ch_names)
         ]
-    return onset, duration, desc, ch_names
+
+    orig_time = _read_annotations_txt_parse_header(fname)
+
+    annotations = Annotations(
+        onset=onset,
+        duration=duration,
+        description=desc,
+        orig_time=orig_time,
+        ch_names=ch_names,
+    )
+
+    return annotations
 
 
 def _read_annotations_fif(fid, tree):
