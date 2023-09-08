@@ -1140,7 +1140,8 @@ def _write_annotations_txt(fname, annot):
         np.savetxt(fid, data, delimiter=",", fmt="%s")
 
 
-def read_annotations(fname, sfreq="auto", uint16_codec=None):
+@fill_doc
+def read_annotations(fname, sfreq="auto", uint16_codec=None, encoding="utf8"):
     r"""Read annotations from a file.
 
     This function reads a ``.fif``, ``.fif.gz``, ``.vmrk``, ``.amrk``,
@@ -1168,6 +1169,8 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         too small". ``uint16_codec`` allows to specify what codec (for example:
         ``'latin1'`` or ``'utf-8'``) should be used when reading character
         arrays and can therefore help you solve this problem.
+    %(encoding_edf)s
+        Only used when reading EDF annotations.
 
     Returns
     -------
@@ -1203,15 +1206,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         with ff as fid:
             annotations = _read_annotations_fif(fid, tree)
     elif name.endswith("txt"):
-        orig_time = _read_annotations_txt_parse_header(fname)
-        onset, duration, description, ch_names = _read_annotations_txt(fname)
-        annotations = Annotations(
-            onset=onset,
-            duration=duration,
-            description=description,
-            orig_time=orig_time,
-            ch_names=ch_names,
-        )
+        annotations = _read_annotations_txt(fname)
 
     elif name.endswith(("vmrk", "amrk")):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
@@ -1232,16 +1227,7 @@ def read_annotations(fname, sfreq="auto", uint16_codec=None):
         annotations = _read_annotations_eeglab(fname, uint16_codec=uint16_codec)
 
     elif name.endswith(("edf", "bdf", "gdf")):
-        onset, duration, description, ch_names = _read_annotations_edf(fname)
-        onset = np.array(onset, dtype=float)
-        duration = np.array(duration, dtype=float)
-        annotations = Annotations(
-            onset=onset,
-            duration=duration,
-            description=description,
-            orig_time=None,
-            ch_names=ch_names,
-        )
+        annotations = _read_annotations_edf(fname, encoding=encoding)
 
     elif name.startswith("events_") and fname.endswith("mat"):
         annotations = _read_brainstorm_annotations(fname)
@@ -1373,7 +1359,18 @@ def _read_annotations_txt(fname):
             _safe_name_list(ch.decode().strip(), "read", f"ch_names[{ci}]")
             for ci, ch in enumerate(ch_names)
         ]
-    return onset, duration, desc, ch_names
+
+    orig_time = _read_annotations_txt_parse_header(fname)
+
+    annotations = Annotations(
+        onset=onset,
+        duration=duration,
+        description=desc,
+        orig_time=orig_time,
+        ch_names=ch_names,
+    )
+
+    return annotations
 
 
 def _read_annotations_fif(fid, tree):
