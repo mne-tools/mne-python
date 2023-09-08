@@ -13,10 +13,27 @@
 # This file was adapted from SciPy.
 
 # Each line is a file pattern followed by one or more owners.
+# Syntax follows .gitignore, see https://git-scm.com/docs/gitignore#_pattern_format
+# Headings ideally should correspend to domains of knowledge/expertise.
+
+# Beamforming
+/mne/beamformer @britta-wstnr
+*dics*.py @britta-wstnr  # related tutorials and examples
+*lcmv*.py @britta-wstnr
 
 # IO
 /mne/io/brainvision @sappelhoff
 /mne/export @sappelhoff
 
-# Beamforming
-/mne/beamformer/ @britta-wstnr
+# Viz
+/mne/viz/_brain @larsoner
+/tutorials/visualization @larsoner
+/examples/visualization @larsoner
+
+# Project infrastructure and CIs
+/*.* @larsoner  # files in the root directory
+/.circleci @larsoner
+/.github @larsoner
+
+# Documentation text and infrastructure
+/doc @larsoner
