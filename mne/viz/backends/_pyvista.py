@@ -862,12 +862,11 @@ class _PyVistaRenderer(_AbstractRenderer):
         return _Projection(xy=xy, pts=pts, plotter=self.plotter)
 
     def _enable_depth_peeling(self):
-        if not self.figure.store["off_screen"]:
-            for plotter in self._all_plotters:
-                if self.depth_peeling:
-                    plotter.enable_depth_peeling()
-                else:
-                    plotter.disable_depth_peeling()
+        for plotter in self._all_plotters:
+            if self.depth_peeling:
+                plotter.enable_depth_peeling()
+            else:
+                plotter.disable_depth_peeling()
 
     def _toggle_antialias(self):
         """Enable it everywhere except Azure."""
