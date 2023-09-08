@@ -126,6 +126,9 @@ class PyVistaFigure(Figure3D):
         self.store["off_screen"] = off_screen
         self.store["border"] = False
         self.store["multi_samples"] = multi_samples
+        self.store["line_smoothing"] = True
+        self.store["polygon_smoothing"] = True
+        self.store["point_smoothing"] = True
 
         if not self.notebook:
             self.store["show"] = show
@@ -885,7 +888,6 @@ class _PyVistaRenderer(_AbstractRenderer):
                 if bad_system or not self.antialias:
                     plotter.disable_anti_aliasing()
                 else:
-                    plotter.ren_win.LineSmoothingOn()
                     if not bad_system:
                         plotter.enable_anti_aliasing(aa_type="msaa")
 
