@@ -21,8 +21,14 @@
 *dics*.py @britta-wstnr  # related tutorials and examples
 *lcmv*.py @britta-wstnr
 
+# fNIRS
+/mne/preprocessing/nirs @rob-luke
+*fnirs*.py @rob-luke
+
 # IO
 /mne/io/brainvision @sappelhoff
+/mne/io/nirx @rob-luke
+/mne/io/snirf @rob-luke
 /mne/export @sappelhoff
 
 # Viz
