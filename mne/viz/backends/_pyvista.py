@@ -168,8 +168,6 @@ class PyVistaFigure(Figure3D):
         return self.plotter
 
     def _is_active(self):
-        if self.plotter is None:
-            return False
         return hasattr(self.plotter, "ren_win")
 
 
@@ -870,16 +868,15 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def _toggle_antialias(self):
         """Enable it everywhere except on systems with problematic OpenGL."""
-        if self.figure._is_active():
-            # MESA can't seem to handle MSAA and depth peeling simultaneously, see
-            # https://github.com/pyvista/pyvista/issues/4867
-            bad_system = _is_mesa(self.plotter)
-            for plotter in self._all_plotters:
-                if bad_system or not self.antialias:
-                    plotter.disable_anti_aliasing()
-                else:
-                    if not bad_system:
-                        plotter.enable_anti_aliasing(aa_type="msaa")
+        # MESA can't seem to handle MSAA and depth peeling simultaneously, see
+        # https://github.com/pyvista/pyvista/issues/4867
+        bad_system = _is_mesa(self.plotter)
+        for plotter in self._all_plotters:
+            if bad_system or not self.antialias:
+                plotter.disable_anti_aliasing()
+            else:
+                if not bad_system:
+                    plotter.enable_anti_aliasing(aa_type="msaa")
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
