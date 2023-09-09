@@ -41,6 +41,7 @@
 /mne/epochs.py @drammock
 /mne/evoked.py @drammock
 /mne/io/*.* @drammock
+
 # Surface + transforms
 /mne/surface.py @alexrockhill @larsoner
 /mne/transforms.py @alexrockhill @larsoner
