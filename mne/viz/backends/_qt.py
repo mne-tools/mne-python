@@ -14,6 +14,7 @@ import weakref
 
 import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
+from .renderer import _TimeInteraction
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 
@@ -1766,6 +1767,7 @@ class _Renderer(
     _QtPlayback,
     _QtDialog,
     _QtKeyPress,
+    _TimeInteraction,
 ):
     _kind = "qt"
 

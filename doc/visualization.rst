@@ -109,9 +109,9 @@ UI Events
    unlink
    disable_ui_events
    UIEvent
-   FigureClosing
-   TimeChange
-   PlaybackSpeed
    ColormapRange
-   VertexSelect
    Contours
+   FigureClosing
+   PlaybackSpeed
+   TimeChange
+   VertexSelect

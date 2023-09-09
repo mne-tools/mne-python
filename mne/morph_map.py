@@ -223,7 +223,7 @@ def _make_morph_map_hemi(subject_from, subject_to, subjects_dir, reg_from, reg_t
     _normalize_vectors(to_rr)
 
     # from surface: get nearest neighbors, find triangles for each vertex
-    nn_pts_idx = _compute_nearest(from_rr, to_rr, method="cKDTree")
+    nn_pts_idx = _compute_nearest(from_rr, to_rr, method="KDTree")
     from_pt_tris = _triangle_neighbors(from_tri, len(from_rr))
     from_pt_tris = [from_pt_tris[pt_idx].astype(int) for pt_idx in nn_pts_idx]
     from_pt_lens = np.cumsum([0] + [len(x) for x in from_pt_tris])

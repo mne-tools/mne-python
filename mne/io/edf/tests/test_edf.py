@@ -7,6 +7,7 @@
 #
 # License: BSD-3-Clause
 
+import datetime
 from contextlib import nullcontext
 from functools import partial
 from pathlib import Path
@@ -117,19 +118,53 @@ def test_edf_temperature(monkeypatch):
     assert raw.get_channel_types()[0] == "temperature"
 
 
+@testing.requires_testing_data
 def test_subject_info(tmp_path):
     """Test exposure of original channel units."""
-    raw = read_raw_edf(edf_path)
-    assert raw.info["subject_info"] is None  # XXX this is arguably a bug
+    raw = read_raw_edf(edf_stim_resamp_path, preload=True)
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": (1967, 10, 9),
+        "last_name": "X",
+    }
+    for key, val in want.items():
+        assert raw.info["subject_info"][key] == val, key
+
+    # check "subject_info" from `_raw_extras`
     edf_info = raw._raw_extras[0]
     assert edf_info["subject_info"] is not None
-    want = {"id": "X", "sex": "X", "birthday": "X", "name": "X"}
+    want = {
+        "id": "X",
+        "sex": "M",
+        "birthday": datetime.datetime(1967, 10, 9, 0, 0),
+        "name": "X",
+    }
     for key, val in want.items():
         assert edf_info["subject_info"][key] == val, key
+
+    # add information
+    raw.info["subject_info"]["hand"] = 0
+
+    # save raw to FIF and load it back
     fname = tmp_path / "test_raw.fif"
     raw.save(fname)
     raw = read_raw_fif(fname)
-    assert raw.info["subject_info"] is None  # XXX should eventually round-trip
+
+    # check subject_info from `info`
+    assert raw.info["subject_info"] is not None
+    want = {
+        "his_id": "X",
+        "sex": 1,
+        "birthday": (1967, 10, 9),
+        "last_name": "X",
+        "hand": 0,
+    }
+    for key, val in want.items():
+        assert raw.info["subject_info"][key] == val
 
 
 def test_bdf_data():
@@ -330,7 +365,7 @@ def test_parse_annotation(tmp_path):
         ]
     )
     for tal_channel in [tal_channel_A, tal_channel_B]:
-        onset, duration, description = _read_annotations_edf([tal_channel])
+        onset, duration, description, ch_names = _read_annotations_edf([tal_channel])
         assert_allclose(onset, want_onset)
         assert_allclose(duration, want_duration)
         assert description == want_description
@@ -443,18 +478,26 @@ def test_read_annot(tmp_path):
     with open(annot_file, "wb") as f:
         f.write(annot)
 
-    onset, duration, desc = _read_annotations_edf(annotations=str(annot_file))
+    onset, duration, desc, ch_names = _read_annotations_edf(annotations=str(annot_file))
     annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
+        onset=onset,
+        duration=duration,
+        description=desc,
+        orig_time=None,
+        ch_names=ch_names,
     )
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
     # Now test when reading from buffer of data
     with open(annot_file, "rb") as fid:
         ch_data = np.fromfile(fid, dtype="<i2", count=len(annot))
-    onset, duration, desc = _read_annotations_edf([ch_data])
+    onset, duration, desc, ch_names = _read_annotations_edf([ch_data])
     annotation = Annotations(
-        onset=onset, duration=duration, description=desc, orig_time=None
+        onset=onset,
+        duration=duration,
+        description=desc,
+        orig_time=None,
+        ch_names=ch_names,
     )
     _assert_annotations_equal(annotation, EXPECTED_ANNOTATIONS)
 
@@ -503,7 +546,7 @@ def test_read_latin1_annotations(tmp_path):
             samp=-1,
             dtype_byte=None,
         )
-    onset, duration, description = _read_annotations_edf(
+    onset, duration, description, ch_names = _read_annotations_edf(
         tal_channel,
         encoding="latin1",
     )

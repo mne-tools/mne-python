@@ -107,6 +107,7 @@ __getattr__, __dir__, __all__ = lazy.attach(
             "_clean_names",
             "pformat",
             "_file_like",
+            "_empty_hash",
             "_explain_exception",
             "_get_argvalues",
             "sizeof_fmt",

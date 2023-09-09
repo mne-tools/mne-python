@@ -217,7 +217,8 @@ def apply_maxfilter(
 
     logger.info("Running MaxFilter: %s " % cmd)
     if os.getenv("_MNE_MAXFILTER_TEST", "") != "true":  # fake maxfilter
-        st = os.system(cmd)
+        # OK to `nosec` because it's deprecated / will be removed
+        st = os.system(cmd)  # nosec B605
     else:
         print(cmd)  # we can check the output
         st = 0

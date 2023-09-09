@@ -9,9 +9,14 @@
 
 from contextlib import contextmanager
 import importlib
+from functools import partial
+import time
+
+import numpy as np
 
 from ._utils import VALID_3D_BACKENDS
 from .._3d import _get_3d_option
+from ..utils import safe_event
 from ...utils import (
     logger,
     verbose,
@@ -377,3 +382,178 @@ def get_brain_class():
     from ...viz._brain import Brain
 
     return Brain
+
+
+class _TimeInteraction:
+    """Mixin enabling time interaction controls."""
+
+    def _enable_time_interaction(
+        self,
+        fig,
+        current_time_func,
+        times,
+        init_playback_speed=0.01,
+        playback_speed_range=[0.01, 0.1],
+    ):
+        from ..ui_events import (
+            publish,
+            subscribe,
+            TimeChange,
+            PlaybackSpeed,
+        )
+
+        self._fig = fig
+        self._current_time_func = current_time_func
+        self._times = times
+
+        if not hasattr(self, "_dock"):
+            self._dock_initialize()
+
+        if not hasattr(self, "_tool_bar") or self._tool_bar is None:
+            self._tool_bar_initialize(name="Toolbar")
+
+        if not hasattr(self, "_widgets"):
+            self._widgets = dict()
+
+        # Dock widgets
+        layout = self._dock_add_group_box("")
+        self._widgets["time_slider"] = self._dock_add_slider(
+            name="Time (s)",
+            value=np.interp(current_time_func(), times, np.arange(len(times))),
+            rng=[0, len(times)],
+            double=True,
+            callback=lambda val: publish(
+                fig, TimeChange(time=np.interp(val, np.arange(len(times)), times))
+            ),
+            compact=False,
+            layout=layout,
+        )
+        hlayout = self._dock_add_layout(vertical=False)
+        self._widgets["min_time"] = self._dock_add_label("-", layout=hlayout)
+        self._dock_add_stretch(hlayout)
+        self._widgets["current_time"] = self._dock_add_label(value="x", layout=hlayout)
+        self._dock_add_stretch(hlayout)
+        self._widgets["max_time"] = self._dock_add_label(value="+", layout=hlayout)
+        self._layout_add_widget(layout, hlayout)
+
+        self._widgets["min_time"].set_value(f"{times[0]: .3f}")
+        self._widgets["current_time"].set_value(f"{current_time_func(): .3f}")
+        self._widgets["max_time"].set_value(f"{times[-1]: .3f}")
+
+        self._widgets["playback_speed"] = self._dock_add_spin_box(
+            name="Speed",
+            value=init_playback_speed,
+            rng=playback_speed_range,
+            callback=lambda x: publish(fig, PlaybackSpeed(speed=x)),
+            layout=layout,
+        )
+
+        # Tool bar buttons
+        self._widgets["reset"] = self._tool_bar_add_button(
+            name="reset",
+            desc="Reset",
+            func=partial(
+                self._reset_time,
+                init_time=current_time_func(),
+                init_playback_speed=init_playback_speed,
+            ),
+        )
+        self._widgets["play"] = self._tool_bar_add_play_button(
+            name="play",
+            desc="Play/Pause",
+            func=self._toggle_playback,
+            shortcut=" ",
+        )
+
+        # Configure playback
+        self._playback = False
+        self._playback_initialize(
+            func=self._play,
+            timeout=17,
+            value=np.interp(current_time_func(), times, np.arange(len(times))),
+            rng=[0, len(times)],
+            time_widget=self._widgets["time_slider"],
+            play_widget=self._widgets["play"],
+        )
+
+        # Keyboard shortcuts
+        if self.plotter.iren is not None:
+            self.plotter.add_key_event("n", lambda: self._shift_time(direction=1))
+            self.plotter.add_key_event("b", lambda: self._shift_time(direction=-1))
+
+        # Subscribe to relevant UI events
+        subscribe(fig, "time_change", self._on_time_change)
+        subscribe(fig, "playback_speed", self._on_playback_speed)
+
+    def _on_time_change(self, event):
+        """Respond to time_change UI event."""
+        from ..ui_events import disable_ui_events
+
+        new_time = np.clip(event.time, self._times[0], self._times[-1])
+        new_time_idx = np.interp(new_time, self._times, np.arange(len(self._times)))
+
+        with disable_ui_events(self._fig):
+            self._widgets["time_slider"].set_value(new_time_idx)
+            self._widgets["current_time"].set_value(f"{new_time:.3f}")
+
+    def _on_playback_speed(self, event):
+        """Respond to playback_speed UI event."""
+        from ..ui_events import disable_ui_events
+
+        with disable_ui_events(self._fig):
+            self._widgets["playback_speed"].set_value(event.speed)
+
+    def _shift_time(self, direction):
+        """Shift time with stepsize determined by playback_speed."""
+        from ..ui_events import publish, TimeChange
+
+        amount = self._widgets["playback_speed"].get_value()
+        publish(
+            self._fig, TimeChange(time=self._current_time_func() + direction * amount)
+        )
+
+    def _toggle_playback(self, value=None):
+        """Toggle time playback."""
+        from ..ui_events import publish, TimeChange
+
+        if value is None:
+            self._playback = not self._playback
+        else:
+            self._playback = value
+
+        if self._playback:
+            print(self.actions)
+            self._tool_bar_update_button_icon(name="play", icon_name="pause")
+            if self._current_time_func() == self._times[-1]:  # start over
+                publish(self._fig, TimeChange(time=self._times[0]))
+            self._last_tick = time.time()
+        else:
+            self._tool_bar_update_button_icon(name="play", icon_name="play")
+
+    def _reset_time(self, init_time, init_playback_speed):
+        """Reset time to given initial time."""
+        from ..ui_events import publish, TimeChange, PlaybackSpeed
+
+        publish(self._fig, TimeChange(time=init_time))
+        publish(self._fig, PlaybackSpeed(speed=init_playback_speed))
+
+    @safe_event
+    def _play(self):
+        if self._playback:
+            try:
+                self._advance()
+            except Exception:
+                self._toggle_playback(value=False)
+                raise
+
+    def _advance(self):
+        from ..ui_events import publish, TimeChange
+
+        this_time = time.time()
+        delta = this_time - self._last_tick
+        self._last_tick = time.time()
+        time_shift = delta * self._widgets["playback_speed"].get_value()
+        new_time = min(self._current_time_func() + time_shift, self._times[-1])
+        publish(self._fig, TimeChange(time=new_time))
+        if new_time == self._times[-1]:
+            self._toggle_playback(value=False)

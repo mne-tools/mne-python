@@ -16,26 +16,41 @@ a terminal::
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::
 
-    Platform:      Linux-5.0.0-1031-gcp-x86_64-with-glibc2.2.5
-    Python:        3.8.1 (default, Dec 20 2019, 10:06:11)  [GCC 7.4.0]
-    Executable:    /home/travis/virtualenv/python3.8.1/bin/python
-    CPU:           x86_64: 2 cores
-    Memory:        7.8 GB
+    Platform                Windows-10-10.0.20348-SP0
+    Python                  3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:34:57) [MSC v.1936 64 bit (AMD64)]
+    Executable              C:\Miniconda3\envs\mne\python.exe
+    CPU                     Intel64 Family 6 Model 85 Stepping 7, GenuineIntel (2 cores)
+    Memory                  7.0 GB
 
-    mne:           0.21.dev0
-    numpy:         1.19.0.dev0+8dfaa4a {blas=openblas, lapack=openblas}
-    scipy:         1.5.0.dev0+f614064
-    matplotlib:    3.2.1 {backend=QtAgg}
+    Core
+    ├☑ mne                  1.6.0.dev67+gb12384562
+    ├☑ numpy                1.25.2 (OpenBLAS 0.3.23.dev with 1 thread)
+    ├☑ scipy                1.11.2
+    ├☑ matplotlib           3.7.2 (backend=QtAgg)
+    ├☑ pooch                1.7.0
+    └☑ jinja2               3.1.2
 
-    sklearn:       0.22.2.post1
-    numba:         0.49.0
-    nibabel:       3.1.0
-    cupy:          Not found
-    pandas:        1.0.3
-    dipy:          1.1.1
-    pyvista:       0.25.2 {pyvistaqt=0.1.0}
-    vtk:           9.0.0
-    qtpy:          2.0.1 {PySide6=6.2.4}
+    Numerical (optional)
+    ├☑ sklearn              1.3.0
+    ├☑ nibabel              5.1.0
+    ├☑ nilearn              0.10.1
+    ├☑ dipy                 1.7.0
+    ├☑ openmeeg             2.5.6
+    ├☑ pandas               2.1.0
+    └☐ unavailable          numba, cupy
+
+    Visualization (optional)
+    ├☑ pyvista              0.41.1 (OpenGL 3.3 (Core Profile) Mesa 10.2.4 (git-d92815a) via Gallium 0.4 on llvmpipe (LLVM 3.4, 256 bits))
+    ├☑ pyvistaqt            0.0.0
+    ├☑ ipyvtklink           0.2.2
+    ├☑ vtk                  9.2.6
+    ├☑ qtpy                 2.4.0 (PyQt5=5.15.8)
+    ├☑ ipympl               0.9.3
+    ├☑ pyqtgraph            0.13.3
+    └☑ mne-qt-browser       0.5.2
+
+    Ecosystem (optional)
+    └☐ unavailable          mne-bids, mne-nirs, mne-features, mne-connectivity, mne-icalabel, mne-bids-pipeline
 
 
 .. dropdown:: If you get an error...

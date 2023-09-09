@@ -11,12 +11,11 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 import contextlib
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 import weakref
 import re
 
 from ..utils import warn, fill_doc, _validate_type, logger, verbose
-
 
 # Global dict {fig: channel} containing all currently active event channels.
 _event_channels = weakref.WeakKeyDictionary()
@@ -190,7 +189,7 @@ class Contours(UIEvent):
     """
 
     kind: str
-    contours: list[str]
+    contours: List[str]
 
 
 def _get_event_channel(fig):
@@ -249,8 +248,6 @@ def _get_event_channel(fig):
         )
         if isinstance(fig, matplotlib.figure.Figure):
             fig.canvas.mpl_connect("close_event", delete_event_channel)
-        elif isinstance(fig, Figure3D):
-            fig.plotter.window().signal_close.connect(delete_event_channel)
         else:
             assert hasattr(fig, "_renderer")  # figures like Brain, EvokedField, etc.
             fig._renderer._window_close_connect(delete_event_channel, after=False)
@@ -291,6 +288,7 @@ def publish(fig, event, *, verbose=None):
 
     # Publish the event by calling the registered callback functions.
     event.source = fig
+    logger.debug(f"Publishing {event} on channel {fig}")
     for channel in channels:
         if event.name not in channel:
             channel[event.name] = set()

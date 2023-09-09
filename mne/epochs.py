@@ -3197,40 +3197,17 @@ class EpochsArray(BaseEpochs):
         measure.
     %(info_not_none)s Consider using :func:`mne.create_info` to populate this
         structure.
-    events : None | array of int, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be marked as 'IGNORED' in the drop log.
-        If None (default), all event values are set to 1 and event time-samples
-        are set to range(n_epochs).
-    tmin : float
-        Start time before event. If nothing provided, defaults to 0.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
+    %(events_epochs)s
+    %(tmin_epochs)s
+    %(event_id)s
     %(reject_epochs)s
     %(flat)s
-    reject_tmin : scalar | None
-        Start of the time window used to reject epochs (with the default None,
-        the window will start with tmin).
-    reject_tmax : scalar | None
-        End of the time window used to reject epochs (with the default None,
-        the window will end with tmax).
+    %(epochs_reject_tmin_tmax)s
     %(baseline_epochs)s
         Defaults to ``None``, i.e. no baseline correction.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. See :class:`mne.Epochs` for details.
-    on_missing : str
-        See :class:`mne.Epochs` docstring for details.
-    metadata : instance of pandas.DataFrame | None
-        See :class:`mne.Epochs` docstring for details.
-
-        .. versionadded:: 0.16
+    %(proj_epochs)s
+    %(on_missing_epochs)s
+    %(metadata_epochs)s
     %(selection)s
     %(drop_log)s
 

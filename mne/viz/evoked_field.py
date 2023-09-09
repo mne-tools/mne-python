@@ -11,7 +11,6 @@ from .utils import mne_analyze_colormap
 from .ui_events import (
     publish,
     subscribe,
-    TimeChange,
     ColormapRange,
     Contours,
     disable_ui_events,
@@ -120,10 +119,10 @@ class EvokedField:
 
         # Setup figure parameters
         self._evoked = evoked
-        self._current_time = time
         if time is None:
             types = [t for t in ["eeg", "grad", "mag"] if t in evoked]
-            self._current_time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
+            time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
+        self._current_time = time
         if not evoked.times[0] <= time <= evoked.times[-1]:
             raise ValueError("`time` (%0.3f) must be inside `evoked.times`" % time)
         self._time_label = time_label
@@ -180,11 +179,9 @@ class EvokedField:
         from ._brain import Brain
 
         if isinstance(fig, Brain):
-            print("Inside brain")
             self._renderer = fig._renderer
             self._in_brain_figure = True
         else:
-            print("Not inside brain")
             self._renderer = _get_renderer(
                 fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600)
             )
@@ -206,34 +203,32 @@ class EvokedField:
         if self._in_brain_figure and fig.time_viewer:
             time_viewer = False
         self.time_viewer = time_viewer
-        print("Drawing time viewer?", time_viewer)
-
-        # Draw the time label
-        self._time_label = time_label
-        if time_label is not None:
-            if "%" in time_label:
-                time_label = time_label % np.round(1e3 * time)
-            self._time_label_actor = self._renderer.text2d(
-                x_window=0.01, y_window=0.01, text=time_label
-            )
-
-        self._configure_dock()
 
         # Configure UI events
+        self._widgets = dict()
+        if self.time_viewer:
+            self._renderer._enable_time_interaction(
+                self,
+                current_time_func=lambda: self._current_time,
+                times=evoked.times,
+            )
+            # Draw the time label
+            self._time_label = time_label
+            if time_label is not None:
+                if "%" in time_label:
+                    time_label = time_label % np.round(1e3 * time)
+                self._time_label_actor = self._renderer.text2d(
+                    x_window=0.01, y_window=0.01, text=time_label
+                )
+        self._configure_dock()
+
         subscribe(self, "time_change", self._on_time_change)
         subscribe(self, "colormap_range", self._on_colormap_range)
         subscribe(self, "contours", self._on_contours)
 
-        if self.time_viewer:
-            # Configure keyboard shortcuts
-            @_auto_weakref
-            def shift_time(amount):
-                publish(self, TimeChange(time=self._current_time + amount))
-
-            self._renderer.plotter.add_key_event("n", partial(shift_time, amount=0.01))
-            self._renderer.plotter.add_key_event("b", partial(shift_time, amount=-0.01))
-
+        if not self._in_brain_figure:
             self._renderer.set_camera(azimuth=10, elevation=60)
+
         self._renderer.show()
 
     def _prepare_surf_map(self, surf_map, color, alpha):
@@ -376,29 +371,6 @@ class EvokedField:
 
         if not hasattr(r, "_dock"):
             r._dock_initialize()
-        self._widgets = dict()
-
-        # Time selection
-        if self.time_viewer:
-            layout = r._dock_add_group_box("")
-            self._widgets["time_slider"] = r._dock_add_slider(
-                name="Time (s)",
-                value=self._current_time,
-                rng=[self._evoked.times[0], self._evoked.times[-1]],
-                double=True,
-                callback=lambda x: publish(self, TimeChange(time=x)),
-                compact=False,
-                layout=layout,
-            )
-            hlayout = self._renderer._dock_add_layout(vertical=False)
-            r._dock_add_label(value=f"{self._evoked.times[0]: .3f}", layout=hlayout)
-            r._dock_add_stretch(hlayout)
-            self._widgets["current_time_label"] = r._dock_add_label(
-                value=f"{self._current_time: .3f}", layout=hlayout
-            )
-            r._dock_add_stretch(hlayout)
-            r._dock_add_label(value=f"{self._evoked.times[-1]: .3f}", layout=hlayout)
-            r._layout_add_widget(layout, hlayout)
 
         # Fieldline configuration
         layout = r._dock_add_group_box("Fieldlines")
@@ -414,6 +386,7 @@ class EvokedField:
                 rng = [0, np.max(np.abs(surf_map["data"])) * scaling]
                 hlayout = r._dock_add_layout(vertical=False)
 
+                @_auto_weakref
                 def _callback(vmax, type, scaling):
                     self.set_vmax(vmax / scaling, type=type)
 
@@ -474,12 +447,6 @@ class EvokedField:
             return
         self._current_time = new_time
         self._update()
-
-        with disable_ui_events(self):
-            if "time_slider" in self._widgets:
-                self._widgets["time_slider"].set_value(new_time)
-            if "current_time_label" in self._widgets:
-                self._widgets["current_time_label"].set_value(f"{new_time:.3f}")
 
     def _on_colormap_range(self, event):
         """Response to the colormap_range UI event."""
