@@ -14,12 +14,31 @@
 
 # Each line is a file pattern followed by one or more owners.
 # Syntax follows .gitignore, see https://git-scm.com/docs/gitignore#_pattern_format
-# Headings ideally should correspond to domains of knowledge/expertise.
+
+# Headings ideally should correspond to domains of knowledge/expertise, starting with
+# algorithms implementations (generally main codebase mne/ and related docs) followed by
+# project-level and miscellaneous items (CI, general documentation, etc.).
+
+#################################################
+# Algorithms, implementations, and related docs #
+#################################################
+
+# Artifact regression
+/mne/preprocessing/_regress.py @wmvanvliet
+/mne/preprocessing/tests/test_regress.py @wmvanvliet
 
 # Beamforming
 /mne/beamformer @britta-wstnr
 *dics*.py @britta-wstnr @wmvanvliet # related tutorials and examples
 *lcmv*.py @britta-wstnr
+
+# Core sensor-space classes
+/mne/epochs.py @drammock
+/mne/evoked.py @drammock
+/mne/io/*.* @drammock
+
+# Current-source density
+/mne/preprocessing/_csd.py  @alexrockhill
 
 # Intracranial
 /mne/preprocessing/ieeg @alexrockhill
@@ -30,18 +49,6 @@
 /mne/io/brainvision @sappelhoff
 /mne/export @sappelhoff
 
-# Viz
-/mne/viz @drammock
-/mne/viz/_brain @larsoner @wmvanvliet
-/mne/viz/ui_events.py @wmvanvliet
-/tutorials/visualization @larsoner @wmvanvliet
-/examples/visualization @larsoner
-
-# Core sensor-space classes
-/mne/epochs.py @drammock
-/mne/evoked.py @drammock
-/mne/io/*.* @drammock
-
 # Surface + transforms
 /mne/surface.py @alexrockhill @larsoner
 /mne/transforms.py @alexrockhill @larsoner
@@ -50,13 +57,18 @@
 # TFR
 /mne/time_frequency @drammock
 
-# Project infrastructure and CIs
-/*.* @larsoner @drammock  # files in the root directory
-/.circleci @larsoner
-/.github @larsoner
-/tools @larsoner @drammock
+# Viz
+/mne/viz @drammock
+/mne/viz/_brain @larsoner @wmvanvliet
+/mne/viz/ui_events.py @wmvanvliet
+/tutorials/visualization @larsoner @wmvanvliet
+/examples/visualization @larsoner
 
-# Examples and Tutorials
+#########################
+# Project-level / other #
+#########################
+
+# Examples and tutorials
 /examples @drammock
 /tutorials @drammock
 
@@ -64,9 +76,8 @@
 /doc @larsoner @drammock
 /logo @drammock
 
-# Current-source density
-/mne/preprocessing/_csd.py  @alexrockhill
-
-# Artifact regression
-/mne/preprocessing/_regress.py @wmvanvliet
-/mne/preprocessing/tests/test_regress.py @wmvanvliet
+# Project infrastructure and CIs
+/*.* @larsoner @drammock  # files in the root directory
+/.circleci @larsoner
+/.github @larsoner
+/tools @larsoner @drammock
