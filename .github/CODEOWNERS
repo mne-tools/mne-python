@@ -18,7 +18,7 @@
 
 # Beamforming
 /mne/beamformer @britta-wstnr
-*dics*.py @britta-wstnr  # related tutorials and examples
+*dics*.py @britta-wstnr @wmvanvliet # related tutorials and examples
 *lcmv*.py @britta-wstnr
 
 # Intracranial
@@ -32,15 +32,15 @@
 
 # Viz
 /mne/viz @drammock
-/mne/viz/_brain @larsoner
-/tutorials/visualization @larsoner
+/mne/viz/_brain @larsoner @wmvanvliet
+/mne/viz/ui_events.py @wmvanvliet
+/tutorials/visualization @larsoner @wmvanvliet
 /examples/visualization @larsoner
 
 # Core sensor-space classes
 /mne/epochs.py @drammock
 /mne/evoked.py @drammock
 /mne/io/*.* @drammock
-
 # Surface + transforms
 /mne/surface.py @alexrockhill @larsoner
 /mne/transforms.py @alexrockhill @larsoner
@@ -65,3 +65,7 @@
 
 # Current-source density
 /mne/preprocessing/_csd.py  @alexrockhill
+
+# Artifact regression
+/mne/preprocessing/_regress.py @wmvanvliet
+/mne/preprocessing/tests/test_regress.py @wmvanvliet
