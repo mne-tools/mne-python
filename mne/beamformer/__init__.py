@@ -31,5 +31,8 @@ __getattr__, __dir__, __all__ = lazy.attach(
         "resolution_matrix": [
             "make_lcmv_resolution_matrix",
         ],
+        "_ap": [
+            "alternating_projections"
+        ]
     },
 )

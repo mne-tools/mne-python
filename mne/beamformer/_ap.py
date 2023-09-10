@@ -664,7 +664,7 @@ def alternating_projections(evoked, forward, n_sources, noise_cov=None,
     ----------
     .. footbibliography::
 
-    .. versionadded:: 1.4
+    .. versionadded:: 1.5
     """
     info = evoked.info
     data = evoked.data
