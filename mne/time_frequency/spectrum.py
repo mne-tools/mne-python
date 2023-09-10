@@ -317,10 +317,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # method
         self._inst_type = type(inst)
         method = _validate_method(method, self._get_instance_type_string())
-
+        # don't allow complex output
+        psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
+        if method_kw.get("output", "") == "complex":
+            warn(
+                f"Complex output support in {type(self).__name__} objects is "
+                "deprecated and will be removed in version 1.7. If you need complex "
+                f"output please use mne.time_frequency.{psd_funcs[method].__name__}() "
+                "instead."
+            )
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
-        psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
         invalid_ix = np.in1d(
             list(method_kw), list(signature(psd_funcs[method]).parameters), invert=True
         )
