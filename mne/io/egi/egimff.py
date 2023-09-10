@@ -5,7 +5,7 @@ import datetime
 import math
 import os.path as op
 import re
-from xml.dom.minidom import parse
+from defusedxml.minidom import parse
 from pathlib import Path
 
 import numpy as np
@@ -20,11 +20,12 @@ from .general import (
     _block_r,
 )
 from ..base import BaseRaw
-from ..constants import FIFF
-from ..meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
-from ..proj import setup_proj
-from ..utils import _create_chs, _mult_cal_one
+from ..._fiff.constants import FIFF
+from ..._fiff.meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
+from ..._fiff.proj import setup_proj
+from ..._fiff.utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
+from ...channels.montage import make_dig_montage
 from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray
 
@@ -286,8 +287,6 @@ def _get_eeg_calibration_info(filepath, egi_info):
 
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
-    from ...channels.montage import make_dig_montage
-
     fname = op.join(filepath, "coordinates.xml")
     if not op.exists(fname):
         logger.warn("File coordinates.xml not found, not setting channel locations")
@@ -432,6 +431,8 @@ def _read_raw_egi_mff(
 class RawMff(BaseRaw):
     """RawMff class."""
 
+    _extra_attributes = ("event_id",)
+
     @verbose
     def __init__(
         self,
@@ -575,14 +576,9 @@ class RawMff(BaseRaw):
             ref_idx = ref_idx.item()
             ref_coords = info["chs"][int(ref_idx)]["loc"][:3]
             for chan in info["chs"]:
-                is_eeg = chan["kind"] == FIFF.FIFFV_EEG_CH
-                is_not_ref = chan["ch_name"] not in REFERENCE_NAMES
-                if is_eeg and is_not_ref:
+                if chan["kind"] == FIFF.FIFFV_EEG_CH:
                     chan["loc"][3:6] = ref_coords
 
-            # Cz ref was applied during acquisition, so mark as already set.
-            with info._unlock():
-                info["custom_ref_applied"] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         file_bin = op.join(input_fname, egi_info["eeg_fname"])
         egi_info["egi_events"] = egi_events
 
@@ -1013,9 +1009,6 @@ def _read_evoked_mff(fname, condition, channel_naming="E%d", verbose=None):
     info["bads"] = bads
 
     # Add EEG reference to info
-    # Initialize 'custom_ref_applied' to False
-    with info._unlock():
-        info["custom_ref_applied"] = False
     try:
         fp = mff.directory.filepointer("history")
     except (ValueError, FileNotFoundError):  # old (<=0.6.3) vs new mffpy
@@ -1027,10 +1020,7 @@ def _read_evoked_mff(fname, condition, channel_naming="E%d", verbose=None):
             if entry["method"] == "Montage Operations Tool":
                 if "Average Reference" in entry["settings"]:
                     # Average reference has been applied
-                    projector, info = setup_proj(info)
-                else:
-                    # Custom reference has been applied that is not an average
-                    info["custom_ref_applied"] = True
+                    _, info = setup_proj(info)
 
     # Get nave from categories.xml
     try:

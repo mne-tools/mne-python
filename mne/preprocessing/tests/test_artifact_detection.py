@@ -113,7 +113,7 @@ def test_muscle_annotation_without_meeg_data(meas_date):
     if meas_date is None:
         raw.set_meas_date(None)
     raw.crop(0, 0.1).load_data()
-    raw.pick_types(meg=False, stim=True)
+    raw.pick("stim")
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annotate_muscle_zscore(raw, threshold=10)
 

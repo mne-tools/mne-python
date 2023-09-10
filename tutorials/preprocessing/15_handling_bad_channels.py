@@ -224,7 +224,7 @@ raw.crop(tmin=0, tmax=3).load_data()
 # we plot the data before and after interpolation, the affected channels will
 # still plot in red:
 
-eeg_data = raw.copy().pick_types(meg=False, eeg=True, exclude=[])
+eeg_data = raw.copy().pick(picks="eeg")
 eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
 
 for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
@@ -240,7 +240,7 @@ for title, data in zip(["orig.", "interp."], [eeg_data, eeg_data_interp]):
 # with the interpolated gradiometer channel; since there are more channels
 # we'll use a more transparent gray color this time:
 
-grad_data = raw.copy().pick_types(meg="grad", exclude=[])
+grad_data = raw.copy().pick(picks="grad")
 grad_data_interp = grad_data.copy().interpolate_bads(reset_bads=False)
 
 for data in (grad_data, grad_data_interp):

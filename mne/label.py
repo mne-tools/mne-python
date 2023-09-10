@@ -12,7 +12,9 @@ import os.path as op
 import re
 
 import numpy as np
+from scipy import linalg, sparse
 
+from .fixes import _safe_svd
 from .morph_map import read_morph_map
 from .parallel import parallel_func
 from .source_estimate import (
@@ -22,7 +24,11 @@ from .source_estimate import (
     extract_label_time_course,
     spatial_src_adjacency,
 )
-from .source_space import add_source_space_distances, SourceSpaces, _ensure_src
+from .source_space._source_space import (
+    add_source_space_distances,
+    SourceSpaces,
+    _ensure_src,
+)
 from .stats.cluster_level import _find_clusters, _get_components
 from .surface import (
     complete_surface_info,
@@ -912,8 +918,6 @@ class Label:
 
         .. versionadded:: 0.24
         """
-        from scipy.sparse.csgraph import dijkstra
-
         rr, tris = self._load_surface(subject, subjects_dir, surface)
         adjacency = mesh_dist(tris, rr)
         mask = np.zeros(len(rr))
@@ -921,7 +925,7 @@ class Label:
         border_vert = _mesh_borders(tris, mask)
         # vertices on the edge
         outside_vert = np.setdiff1d(border_vert, self.vertices)
-        dist, _, outside = dijkstra(
+        dist, _, outside = sparse.csgraph.dijkstra(
             adjacency, indices=outside_vert, min_only=True, return_predecessors=True
         )
         dist = dist[self.vertices] * 1e-3  # mm to m
@@ -1352,8 +1356,6 @@ def split_label(label, parts=2, subject=None, subjects_dir=None, freesurfer=Fals
     projecting all label vertex coordinates onto this axis and dividing them at
     regular spatial intervals.
     """
-    from scipy import linalg
-
     label, subject, subjects_dir = _prep_label_split(label, subject, subjects_dir)
 
     # find the parts
@@ -1462,8 +1464,6 @@ def label_sign_flip(label, src):
     flip : array
         Sign flip vector (contains 1 or -1).
     """
-    from scipy import linalg
-
     if len(src) != 2:
         raise ValueError("Only source spaces with 2 hemisphers are accepted")
 
@@ -1486,7 +1486,7 @@ def label_sign_flip(label, src):
     if len(ori) == 0:
         return np.array([], int)
 
-    _, _, Vh = linalg.svd(ori, full_matrices=False)
+    _, _, Vh = _safe_svd(ori, full_matrices=False)
 
     # The sign of Vh is ambiguous, so we should align to the max-positive
     # (outward) direction
@@ -1645,7 +1645,7 @@ def stc_to_label(
 
 
 def _verts_within_dist(graph, sources, max_dist):
-    """Find all vertices wihin a maximum geodesic distance from source.
+    """Find all vertices within a maximum geodesic distance from source.
 
     Parameters
     ----------
@@ -2559,8 +2559,6 @@ def _check_values_labels(values, n_labels):
 
 
 def _labels_to_stc_surf(labels, values, tmin, tstep, subject):
-    from scipy import sparse
-
     subject = _check_labels_subject(labels, subject, "subject")
     _check_values_labels(values, len(labels))
     vertices = dict(lh=[], rh=[])

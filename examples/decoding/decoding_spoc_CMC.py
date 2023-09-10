@@ -40,11 +40,11 @@ raw = mne.io.read_raw_ctf(fname)
 raw.crop(50.0, 200.0)  # crop for memory purposes
 
 # Filter muscular activity to only keep high frequencies
-emg = raw.copy().pick_channels(["EMGlft"]).load_data()
+emg = raw.copy().pick(["EMGlft"]).load_data()
 emg.filter(20.0, None)
 
 # Filter MEG data to focus on beta band
-raw.pick_types(meg=True, ref_meg=True, eeg=False, eog=False).load_data()
+raw.pick(picks=["meg", "ref_meg"]).load_data()
 raw.filter(15.0, 30.0)
 
 # Build epochs as sliding windows over the continuous raw file

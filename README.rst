@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_
+|PyPI|_ |conda-forge|_ |Zenodo|_ |Discourse|_ |Codecov|_ |Bandit|_ |OpenSSF|_
 
 |MNE|_
 
@@ -18,6 +18,12 @@
 
 .. |Codecov| image:: https://img.shields.io/codecov/c/github/mne-tools/mne-python?label=Coverage
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
+
+.. |Bandit| image:: https://img.shields.io/badge/security-bandit-yellow.svg
+.. _Bandit: https://github.com/PyCQA/bandit
+
+.. |OpenSSF| image:: https://www.bestpractices.dev/projects/7783/badge
+.. _OpenSSF: https://www.bestpractices.dev/projects/7783
 
 .. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
 .. _MNE: https://mne.tools/dev/
@@ -88,17 +94,18 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - Python >= 3.8
-- NumPy >= 1.20.2
-- SciPy >= 1.6.3
-- Matplotlib >= 3.4.0
+- NumPy >= 1.21.2
+- SciPy >= 1.7.1
+- Matplotlib >= 3.4.3
 - pooch >= 1.5
 - tqdm
 - Jinja2
 - decorator
+- lazy_loader
 
 For full functionality, some functions require:
 
-- Scikit-learn >= 0.24.2
+- Scikit-learn >= 1.0
 - joblib >= 0.15 (for parallelization control)
 - mne-qt-browser >= 0.1 (for fast raw data visualization)
 - Qt5 >= 5.12 via one of the following bindings (for fast raw data visualization and interactive 3D visualization):
@@ -108,10 +115,10 @@ For full functionality, some functions require:
   - PyQt5 >= 5.12
   - PySide2 >= 5.12
 
-- Numba >= 0.53.1
+- Numba >= 0.54.0
 - NiBabel >= 3.2.1
 - OpenMEEG >= 2.5.6
-- Pandas >= 1.2.4
+- Pandas >= 1.3.2
 - Picard >= 0.3
 - CuPy >= 9.0.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 1.4.0

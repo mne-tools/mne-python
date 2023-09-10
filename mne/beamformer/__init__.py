@@ -1,21 +1,35 @@
 """Beamformers for source localization."""
 
-from ._lcmv import (
-    make_lcmv,
-    apply_lcmv,
-    apply_lcmv_epochs,
-    apply_lcmv_raw,
-    apply_lcmv_cov,
+import lazy_loader as lazy
+
+__getattr__, __dir__, __all__ = lazy.attach(
+    __name__,
+    submodules=[],
+    submod_attrs={
+        "_lcmv": [
+            "make_lcmv",
+            "apply_lcmv",
+            "apply_lcmv_epochs",
+            "apply_lcmv_raw",
+            "apply_lcmv_cov",
+        ],
+        "_dics": [
+            "make_dics",
+            "apply_dics",
+            "apply_dics_epochs",
+            "apply_dics_tfr_epochs",
+            "apply_dics_csd",
+        ],
+        "_rap_music": [
+            "rap_music",
+            "trap_music",
+        ],
+        "_compute_beamformer": [
+            "Beamformer",
+            "read_beamformer",
+        ],
+        "resolution_matrix": [
+            "make_lcmv_resolution_matrix",
+        ],
+    },
 )
-from ._dics import (
-    make_dics,
-    apply_dics,
-    apply_dics_epochs,
-    apply_dics_tfr_epochs,
-    apply_dics_csd,
-)
-from ._rap_music import rap_music
-from ._rap_music import trap_music
-from ._ap import alternating_projections
-from ._compute_beamformer import Beamformer, read_beamformer
-from .resolution_matrix import make_lcmv_resolution_matrix

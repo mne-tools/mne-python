@@ -123,8 +123,6 @@ def pytest_configure(config):
     ignore:unclosed event loop <:ResourceWarning
     # ignore if joblib is missing
     ignore:joblib not installed.*:RuntimeWarning
-    # TODO: This is indicative of a problem
-    ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
     # scikit-learn using this arg
@@ -145,6 +143,7 @@ def pytest_configure(config):
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
+    ignore:Proactor event loop does not implement:RuntimeWarning
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
@@ -158,6 +157,14 @@ def pytest_configure(config):
     ignore:.*np\.find_common_type is deprecated.*:DeprecationWarning
     # https://github.com/joblib/joblib/issues/1454
     ignore:.*`byte_bounds` is dep.*:DeprecationWarning
+    # numpy distutils used by SciPy
+    ignore:(\n|.)*numpy\.distutils` is deprecated since NumPy(\n|.)*:DeprecationWarning
+    ignore:datetime\.utcfromtimestamp.*is deprecated:DeprecationWarning
+    ignore:The numpy\.array_api submodule is still experimental.*:UserWarning
+    # tqdm (Fedora)
+    ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
+    # Until mne-qt-browser > 0.5.2 is released
+    ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
@@ -209,6 +216,8 @@ def verbose_debug():
 def qt_config():
     """Configure the Qt backend for viz tests."""
     os.environ["_MNE_BROWSER_NO_BLOCK"] = "true"
+    if "_MNE_BROWSER_BACK" not in os.environ:
+        os.environ["_MNE_BROWSER_BACK"] = "true"
 
 
 @pytest.fixture(scope="session")
@@ -277,7 +286,7 @@ def raw():
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match="unit"):
         raw.set_channel_types({raw.ch_names[0]: "ias"})
-    raw.pick_channels(raw.ch_names[:9])
+    raw.pick(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
 
@@ -287,6 +296,12 @@ def raw_ctf():
     """Get ctf raw data from mne.io.tests.data."""
     raw_ctf = read_raw_ctf(fname_ctf_continuous, preload=True)
     return raw_ctf
+
+
+@pytest.fixture(scope="function")
+def raw_spectrum(raw):
+    """Get raw with power spectral density computed from mne.io.tests.data."""
+    return raw.compute_psd()
 
 
 @pytest.fixture(scope="function")
@@ -341,6 +356,22 @@ def epochs_full():
     return _get_epochs(None).load_data()
 
 
+@pytest.fixture()
+def epochs_spectrum():
+    """Get epochs with power spectral density computed from mne.io.tests.data."""
+    return _get_epochs().load_data().compute_psd()
+
+
+@pytest.fixture()
+def epochs_empty():
+    """Get empty epochs from mne.io.tests.data."""
+    epochs = _get_epochs(meg=True, eeg=True).load_data()
+    with pytest.warns(RuntimeWarning, match="were dropped"):
+        epochs.drop_bad(reject={"mag": 1e-20})
+
+    return epochs
+
+
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
 def _evoked():
     # This one is session scoped, so be sure not to modify it (use evoked
@@ -386,7 +417,7 @@ def bias_params_fixed(evoked, noise_cov):
 
 
 def _bias_params(evoked, noise_cov, fwd):
-    evoked.pick_types(meg=True, eeg=True, exclude=())
+    evoked.pick(picks=["meg", "eeg"])
     # restrict to limited set of verts (small src here) and one hemi for speed
     vertices = [fwd["src"][0]["vertno"].copy(), []]
     stc = mne.SourceEstimate(
@@ -403,7 +434,7 @@ def _bias_params(evoked, noise_cov, fwd):
     # by regularizing a tiny bit
     data.flat[:: data.shape[0] + 1] += mne.make_ad_hoc_cov(evoked.info)["data"]
     # Do our projection
-    proj, _, _ = mne.io.proj.make_projector(data_cov["projs"], data_cov["names"])
+    proj, _, _ = mne._fiff.proj.make_projector(data_cov["projs"], data_cov["names"])
     data = proj @ data @ proj.T
     data_cov["data"][:] = data
     assert data_cov["data"].shape[0] == len(noise_cov["names"])
@@ -624,8 +655,8 @@ def subjects_dir_tmp_few(tmp_path):
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types(meg=True)
-    evoked.pick_channels(evoked.ch_names[::4])
+    evoked = _evoked.copy().pick(picks="meg")
+    evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
     sphere = mne.make_sphere_model("auto", "auto", evoked.info)
@@ -957,7 +988,7 @@ def _nbclient():
         from jupyter_client import AsyncKernelManager
         from nbclient import NotebookClient
         from ipywidgets import Button  # noqa
-        import ipyvtklink  # noqa
+        import trame  # noqa
     except Exception as exc:
         return pytest.skip(f"Skipping Notebook test: {exc}")
     km = AsyncKernelManager(config=None)
@@ -1003,14 +1034,26 @@ def _nbclient():
 def nbexec(_nbclient):
     """Execute Python code in a notebook."""
     # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
+    from nbclient.exceptions import CellExecutionError
+
     _nbclient._cleanup_kernel()
 
     def execute(code, reset=False):
         _nbclient.reset_execution_trackers()
         with _nbclient.setup_kernel():
             assert _nbclient.kc is not None
-            cell = Bunch(cell_type="code", metadata={}, source=dedent(code))
-            _nbclient.execute_cell(cell, 0, execution_count=0)
+            cell = Bunch(cell_type="code", metadata={}, source=dedent(code), outputs=[])
+            try:
+                _nbclient.execute_cell(cell, 0, execution_count=0)
+            except CellExecutionError:  # pragma: no cover
+                for kind in ("stdout", "stderr"):
+                    print(
+                        "\n".join(
+                            o["text"] for o in cell.outputs if o.get("name", "") == kind
+                        ),
+                        file=getattr(sys, kind),
+                    )
+                raise
             _nbclient.set_widgets_metadata()
 
     yield execute

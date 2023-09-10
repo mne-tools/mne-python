@@ -24,15 +24,15 @@ from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.beamformer._dics import _prepare_noise_csd
 from mne.beamformer.tests.test_lcmv import _assert_weight_norm
 from mne.datasets import testing
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.io import read_info
-from mne.io.pick import pick_info
+from mne._fiff.pick import pick_info
 from mne.proj import compute_proj_evoked, make_projector
 from mne.surface import _compute_nearest
 from mne.time_frequency import CrossSpectralDensity, csd_morlet, EpochsTFR, csd_tfr
 from mne.time_frequency.csd import _sym_mat_to_vector
 from mne.transforms import invert_transform, apply_trans
-from mne.utils import object_diff, requires_version, catch_logging
+from mne.utils import object_diff, catch_logging
 
 data_path = testing.data_path(download=False)
 fname_raw = data_path / "MEG" / "sample" / "sample_audvis_trunc_raw.fif"
@@ -156,7 +156,6 @@ def _make_rand_csd(info, csd):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_version("h5io")
 @idx_param
 @pytest.mark.parametrize(
     "whiten",
@@ -167,6 +166,7 @@ def _make_rand_csd(info, csd):
 )
 def test_make_dics(tmp_path, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
+    pytest.importorskip("h5io")
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
 
@@ -179,7 +179,7 @@ def test_make_dics(tmp_path, _load_forward, idx, whiten):
         assert rank == len(epochs.info["ch_names"]) == 62
     else:
         noise_csd = None
-        epochs.pick_types(meg="grad")
+        epochs.pick(picks="grad")
 
     with pytest.raises(ValueError, match="Invalid value for the 'pick_ori'"):
         make_dics(
@@ -452,7 +452,7 @@ def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
 
     with pytest.raises(ValueError, match="several sensor types"):
         make_dics(epochs.info, fwd_free, csd)
-    epochs.pick_types(meg="grad")
+    epochs.pick(picks="grad")
 
     # Try different types of forward models
     assert label.hemi == "lh"
@@ -486,7 +486,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     epochs, _, csd, source_vertno, label, vertices, source_ind = _simulate_data(
         fwd_fixed, idx
     )
-    epochs.pick_types(meg="grad")
+    epochs.pick(picks="grad")
 
     reg_ = 5 if inversion == "matrix" else 1
     filters = make_dics(
@@ -550,7 +550,7 @@ def test_real(_load_forward, idx):
     epochs, _, csd, source_vertno, label, vertices, source_ind = _simulate_data(
         fwd_fixed, idx
     )
-    epochs.pick_types(meg="grad")
+    epochs.pick(picks="grad")
     reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(
         epochs.info,
@@ -619,7 +619,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
     with pytest.raises(ValueError, match="several sensor types"):
         make_dics(evoked.info, fwd_surf, csd)
-    evoked.pick_types(meg="grad")
+    evoked.pick(picks="grad")
 
     multiple_filters = make_dics(evoked.info, fwd_surf, csd, label=label, reg=reg)
 
@@ -665,7 +665,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
 
     # Test if wrong channel selection is detected in application of filter
     evoked_ch = cp.deepcopy(evoked)
-    evoked_ch.pick_channels(evoked_ch.ch_names[:-1])
+    evoked_ch.pick(evoked_ch.ch_names[:-1])
     with pytest.raises(ValueError, match="MEG 2633 which is not present"):
         apply_dics(evoked_ch, filters)
 
@@ -832,7 +832,7 @@ def test_localization_bias_free(
     data_csd = _cov_as_csd(data_cov, evoked.info)
     del noise_cov, data_cov
     if not use_cov:
-        evoked.pick_types(meg="grad")
+        evoked.pick(picks="grad")
         noise_csd = None
     filters = make_dics(
         evoked.info,
@@ -926,7 +926,7 @@ def test_make_dics_rank(_load_forward, idx, whiten):
         kind = "mag + grad"
     else:
         noise_csd = None
-        epochs.pick_types(meg="grad")
+        epochs.pick(picks="grad")
         want_rank = len(epochs.ch_names)
         assert want_rank == 41
         kind = "grad"

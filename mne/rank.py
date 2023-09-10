@@ -4,11 +4,12 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import linalg
 
 from .defaults import _handle_default
-from .io.meas_info import _simplify_info
-from .io.pick import _picks_by_type, pick_info, pick_channels_cov, _picks_to_idx
-from .io.proj import make_projector
+from ._fiff.meas_info import _simplify_info, Info
+from ._fiff.pick import _picks_by_type, pick_info, pick_channels_cov, _picks_to_idx
+from ._fiff.proj import make_projector
 from .utils import (
     logger,
     _compute_row_norms,
@@ -62,8 +63,6 @@ def estimate_rank(
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    from scipy import linalg
-
     if norm:
         data = data.copy()  # operate on a copy
         norms = _compute_row_norms(data)
@@ -263,8 +262,6 @@ def _get_rank_sss(
     """
     # XXX this is too basic for movement compensated data
     # https://github.com/mne-tools/mne-python/issues/4676
-    from .io.meas_info import Info
-
     info = inst if isinstance(inst, Info) else inst.info
     del inst
 
@@ -354,9 +351,9 @@ def compute_rank(
     -----
     .. versionadded:: 0.18
     """
-    from .io.base import BaseRaw
+    from .io import BaseRaw
     from .epochs import BaseEpochs
-    from . import Covariance
+    from .cov import Covariance
 
     rank = _check_rank(rank)
     scalings = _handle_default("scalings_cov_rank", scalings)
@@ -498,6 +495,6 @@ def compute_rank(
                     "setting it explicitly as an integer." % (this_rank, this_info_rank)
                 )
         if ch_type not in rank:
-            rank[ch_type] = this_rank
+            rank[ch_type] = int(this_rank)
 
     return rank

@@ -18,7 +18,7 @@ from scipy import linalg
 from mne.channels import make_dig_montage
 from mne import create_info, EvokedArray, pick_types, Epochs, find_events, read_epochs
 from mne.io import read_raw_fif, RawArray
-from mne.io.constants import FIFF
+from mne._fiff.constants import FIFF
 from mne.utils import object_diff
 from mne.datasets import testing
 
@@ -193,7 +193,7 @@ def test_csd_fif():
 def test_csd_epochs(tmp_path):
     """Test making epochs, saving to disk and loading."""
     raw = read_raw_fif(raw_fname)
-    raw.pick_types(eeg=True, stim=True).load_data()
+    raw.pick(picks=["eeg", "stim"]).load_data()
     events = find_events(raw)
     epochs = Epochs(raw, events, reject=dict(eeg=1e-4), preload=True)
     epochs = compute_current_source_density(epochs)
@@ -207,7 +207,7 @@ def test_compute_bridged_electrodes():
     """Test computing bridged electrodes."""
     # test I/O
     raw = read_raw_fif(raw_fname).load_data()
-    raw.pick_types(meg=True)
+    raw.pick(picks="meg")
     with pytest.raises(RuntimeError, match="No EEG channels found"):
         bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
 

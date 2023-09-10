@@ -4,13 +4,12 @@ from numpy.testing import assert_array_almost_equal
 
 from mne.time_frequency import psd_array_multitaper
 from mne.time_frequency.multitaper import dpss_windows
-from mne.utils import requires_nitime, _record_warnings
+from mne.utils import _record_warnings
 
 
-@requires_nitime
 def test_dpss_windows():
     """Test computation of DPSS windows."""
-    import nitime as ni
+    ni = pytest.importorskip("nitime")
 
     N = 1000
     half_nbw = 4
@@ -31,12 +30,11 @@ def test_dpss_windows():
     assert_array_almost_equal(eigs, eigs_ni)
 
 
-@requires_nitime
 @pytest.mark.parametrize("n_times", (100, 101))
 @pytest.mark.parametrize("adaptive, n_jobs", [(False, 1), (True, 1), (True, 2)])
 def test_multitaper_psd(n_times, adaptive, n_jobs):
     """Test multi-taper PSD computation."""
-    import nitime as ni
+    ni = pytest.importorskip("nitime")
 
     n_channels = 5
     data = np.random.default_rng(0).random((n_channels, n_times))

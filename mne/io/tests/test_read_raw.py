@@ -11,7 +11,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw
-from mne.io._read_raw import split_name_ext, readers
+from mne.io._read_raw import split_name_ext, _get_readers
 
 
 base = Path(__file__).parent.parent
@@ -80,7 +80,7 @@ def test_read_raw_supported(fname):
 def test_split_name_ext():
     """Test file name extension splitting."""
     # test known extensions
-    for ext in readers:
+    for ext in _get_readers():
         assert split_name_ext(f"test{ext}")[1] == ext
 
     # test unsupported extensions

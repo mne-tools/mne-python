@@ -18,11 +18,10 @@ from ...transforms import (
     combine_transforms,
 )
 from ...annotations import Annotations
-
-from ..meas_info import _empty_info
-from ..write import get_new_file_id
-from ..ctf_comp import _add_kind, _calibrate_comp
-from ..constants import FIFF
+from ..._fiff.meas_info import _empty_info
+from ..._fiff.write import get_new_file_id
+from ..._fiff.ctf_comp import _add_kind, _calibrate_comp
+from ..._fiff.constants import FIFF
 
 from .constants import CTF
 

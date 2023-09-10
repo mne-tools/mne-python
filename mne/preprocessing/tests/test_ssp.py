@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 import numpy as np
 
 from mne.io import read_raw_fif, read_raw_ctf
-from mne.io.proj import make_projector, activate_proj
+from mne._fiff.proj import make_projector, activate_proj
 from mne.preprocessing.ssp import compute_proj_ecg, compute_proj_eog
 from mne.datasets import testing
 from mne import pick_types
@@ -20,7 +20,7 @@ ctf_fname = testing.data_path(download=False) / "CTF" / "testdata_ctf.ds"
 @pytest.fixture()
 def short_raw():
     """Create a short, picked raw instance."""
-    raw = read_raw_fif(raw_fname).crop(0, 7).pick_types(meg=True, eeg=True, eog=True)
+    raw = read_raw_fif(raw_fname).crop(0, 7).pick(["meg", "eeg", "eog"])
     raw.pick(raw.ch_names[:306:10] + raw.ch_names[306:]).load_data()
     raw.info.normalize_proj()
     return raw

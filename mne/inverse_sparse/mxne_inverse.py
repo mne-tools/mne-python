@@ -12,8 +12,9 @@ from ..minimum_norm.inverse import (
     _check_reference,
     _log_exp_var,
 )
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient
-from ..io.proj import deactivate_proj
+from .._fiff.proj import deactivate_proj
 from ..utils import (
     logger,
     verbose,
@@ -456,8 +457,6 @@ def mixed_norm(
     ----------
     .. footbibliography::
     """
-    from scipy import linalg
-
     _validate_type(alpha, ("numeric", str), "alpha")
     if isinstance(alpha, str):
         _check_option("alpha", alpha, ("sure",))
@@ -520,7 +519,7 @@ def mixed_norm(
     M = np.dot(whitener, M)
 
     if time_pca:
-        U, s, Vh = linalg.svd(M, full_matrices=False)
+        U, s, Vh = _safe_svd(M, full_matrices=False)
         if not isinstance(time_pca, bool) and isinstance(time_pca, int):
             U = U[:, :time_pca]
             s = s[:time_pca]

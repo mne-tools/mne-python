@@ -6,9 +6,11 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from scipy import linalg
 
+from ..fixes import _safe_svd
 from ..forward import is_fixed_orient, convert_forward_solution
-from ..io.pick import pick_info, pick_channels_forward
+from .._fiff.pick import pick_info, pick_channels_forward
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
 from ..utils import logger, verbose, _check_info_inv, fill_doc
@@ -47,8 +49,6 @@ def _apply_rap_music(
         Data explained by the dipoles using a least square fitting with the
         selected active dipoles and their estimated orientation.
     """
-    from scipy import linalg
-
     info = pick_info(info, picks)
     del picks
     # things are much simpler if we avoid surface orientation
@@ -157,9 +157,7 @@ def _apply_rap_music(
 
 def _compute_subcorr(G, phi_sig):
     """Compute the subspace correlation."""
-    from scipy import linalg
-
-    Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
+    Ug, Sg, Vg = _safe_svd(G, full_matrices=False)
     # Now we look at the actual rank of the forward fields
     # in G and handle the fact that it might be rank defficient
     # eg. when using MEG and a sphere model for which the
@@ -170,16 +168,14 @@ def _compute_subcorr(G, phi_sig):
     rank = max(rank, 2)  # rank cannot be 1
     Ug, Sg, Vg = Ug[:, :rank], Sg[:rank], Vg[:rank]
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
-    Uc, Sc, _ = linalg.svd(tmp, full_matrices=False)
+    Uc, Sc, _ = _safe_svd(tmp, full_matrices=False)
     X = np.dot(Vg.T / Sg[None, :], Uc[:, 0])  # subcorr
     return Sc[0], X / np.linalg.norm(X)
 
 
 def _compute_proj(A):
     """Compute the orthogonal projection operation for a manifold vector A."""
-    from scipy import linalg
-
-    U, _, _ = linalg.svd(A, full_matrices=False)
+    U, _, _ = _safe_svd(A, full_matrices=False)
     return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
 

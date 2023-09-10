@@ -17,6 +17,23 @@ from ..defaults import HEAD_SIZE_DEFAULT
 from ._bunch import BunchConst
 
 
+# # # WARNING # # #
+# This list must also be updated in doc/_templates/autosummary/class.rst if it
+# is changed here!
+
+_doc_special_members = (
+    "__contains__",
+    "__getitem__",
+    "__iter__",
+    "__len__",
+    "__add__",
+    "__sub__",
+    "__mul__",
+    "__div__",
+    "__neg__",
+)
+
+
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
     """Reflow text to a nice width for terminals.
 
@@ -159,6 +176,13 @@ align : bool
     directions (closest to MNI for the subject) rather than native MRI
     space. This helps when MRIs are not in standard orientation (e.g.,
     have large rotations).
+"""
+
+docdict[
+    "allow_2d"
+] = """
+allow_2d : bool
+    If True, allow 2D data as input (i.e. n_samples, n_features).
 """
 
 docdict[
@@ -492,8 +516,6 @@ docdict[
 border : float | 'mean'
     Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
     then each extrapolated point has the average value of its neighbours.
-
-    .. versionadded:: 0.20
 """
 
 docdict[
@@ -502,6 +524,13 @@ docdict[
 brain_kwargs : dict | None
     Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
     ``dict(silhouette=True)``).
+"""
+
+docdict[
+    "brain_update"
+] = """
+update : bool
+    Force an update of the plot. Defaults to True.
 """
 
 docdict[
@@ -1107,6 +1136,16 @@ ecog : bool
 """
 
 docdict[
+    "edf_resamp_note"
+] = """
+:class:`mne.io.Raw` only stores signals with matching sampling frequencies.
+Therefore, if mixed sampling frequency signals are requested, all signals
+are upsampled to the highest loaded sampling frequency. In this case, using
+preload=True is recommended, as otherwise, edge artifacts appear when
+slices of the signal are requested.
+"""
+
+docdict[
     "eeg"
 ] = """
 eeg : bool | str | list
@@ -1473,12 +1512,6 @@ extrapolate : str
         the head circle when the sensors are contained within the head circle,
         but it can extend beyond the head when sensors are plotted outside
         the head circle.
-
-    .. versionchanged:: 0.21
-
-       - The default was changed to ``'local'`` for MEG sensors.
-       - ``'local'`` was changed to use a convex hull mask
-       - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
 
 # %%
@@ -1670,9 +1703,10 @@ fnirs : str | list | bool | None
 docdict[
     "focalpoint"
 ] = """
-focalpoint : tuple, shape (3,) | None
+focalpoint : tuple, shape (3,) | str | None
     The focal point of the camera rendering the view: (x, y, z) in
-    plot units (either m or mm).
+    plot units (either m or mm). When ``"auto"``, it is set to the center of
+    mass of the visible bounds.
 """
 
 docdict[
@@ -1957,7 +1991,7 @@ docdict[
 ] = """
 iir_params : dict | None
     Dictionary of parameters to use for IIR filtering.
-    If iir_params is None and method="iir", 4th order Butterworth will be used.
+    If ``iir_params=None`` and ``method="iir"``, 4th order Butterworth will be used.
     For more information, see :func:`mne.filter.construct_iir_filter`.
 """
 
@@ -2077,7 +2111,7 @@ docdict[
     "interp"
 ] = """
 interp : str
-    Either 'hann', 'cos2' (default), 'linear', or 'zero', the type of
+    Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type of
     forward-solution interpolation to use between forward solutions
     at different head positions.
 """
@@ -2087,8 +2121,8 @@ docdict[
 ] = """
 interpolation : str | None
     Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
-    Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
-    or 'cubic'.
+    Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+    ``'quadratic'`` or ``'cubic'``.
 """
 
 docdict[
@@ -2485,8 +2519,8 @@ docdict[
     "method_fir"
 ] = """
 method : str
-    'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-    forward-backward filtering (via filtfilt).
+    ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+    forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
 """
 
 docdict[
@@ -2632,7 +2666,7 @@ docdict[
     "n_jobs_cuda"
 ] = """
 n_jobs : int | str
-    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+    Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
     is installed properly.
 """
 
@@ -2640,8 +2674,8 @@ docdict[
     "n_jobs_fir"
 ] = """
 n_jobs : int | str
-    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
-    is installed properly and method='fir'.
+    Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+    is installed properly and ``method='fir'``.
 """
 
 docdict[
@@ -2667,6 +2701,23 @@ docdict[
 ] = """
 n_permutations : int
     The number of permutations to compute.
+"""
+
+docdict[
+    "n_proj_vectors"
+] = """
+n_grad : int | float between ``0`` and ``1``
+    Number of vectors for gradiometers. Either an integer or a float between 0 and 1
+    to select the number of vectors to explain the cumulative variance greater than
+    ``n_grad``.
+n_mag : int | float between ``0`` and ``1``
+    Number of vectors for magnetometers. Either an integer or a float between 0 and
+    1 to select the number of vectors to explain the cumulative variance greater
+    than ``n_mag``.
+n_eeg : int | float between ``0`` and ``1``
+    Number of vectors for EEG channels. Either an integer or a float between 0 and 1
+    to select the number of vectors to explain the cumulative variance greater than
+    ``n_eeg``.
 """
 
 docdict[
@@ -2774,6 +2825,16 @@ docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
 
 docdict[
+    "notes_spectrum_array"
+] = """
+It is assumed that the data passed in represent spectral *power* (not amplitude,
+phase, model coefficients, etc) and downstream methods (such as
+:meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
+something other than power, at the very least axis labels will be inaccurate (and
+other things may also not work or be incorrect).
+"""
+
+docdict[
     "notes_tmax_included_by_default"
 ] = """
 Unlike Python slices, MNE time intervals by default include **both**
@@ -2787,7 +2848,7 @@ docdict[
 ] = """
 npad : int | str
     Amount to pad the start and end of the data.
-    Can also be "auto" to use a padding that will result in
+    Can also be ``"auto"`` to use a padding that will result in
     a power-of-two size (can be much faster).
 """
 
@@ -3062,7 +3123,7 @@ docdict[
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
     PSFs/CTFs for the specified vertices. Arrays for multiple labels are
-    returned as list. Only returned if mode='svd' and return_pca_vars=True.
+    returned as list. Only returned if ``mode='svd'`` and ``return_pca_vars=True``.
 """
 
 docdict[
@@ -3087,9 +3148,10 @@ phase : str
     suppression.
     When ``method='iir'``, ``phase='zero'`` (default) or
     ``phase='zero-double'`` constructs and applies IIR filter twice, once
-    forward, and once backward (making it non-causal) using filtfilt.
+    forward, and once backward (making it non-causal) using
+    :func:`~scipy.signal.filtfilt`.
     If ``phase='forward'``, it constructs and applies forward IIR filter using
-    lfilter.
+    :func:`~scipy.signal.lfilter`.
 
     .. versionadded:: 0.13
 """
@@ -3672,6 +3734,14 @@ reject : dict | None
               quality, pass the ``reject_tmin`` and ``reject_tmax`` parameters.
 
     If ``reject`` is ``None`` (default), no rejection is performed.
+"""
+
+docdict[
+    "remove_dc"
+] = """
+remove_dc : bool
+    If ``True``, the mean is subtracted from each segment before computing
+    its spectrum.
 """
 
 docdict[
@@ -4517,6 +4587,13 @@ tmin : scalar
 """
 
 docdict[
+    "tmin_epochs"
+] = """
+tmin : float
+    Start time before event. If nothing provided, defaults to 0.
+"""
+
+docdict[
     "tmin_raw"
 ] = """
 tmin : float
@@ -4620,6 +4697,15 @@ tstep : scalar
 
 # %%
 # U
+
+docdict[
+    "ui_event_name_source"
+] = """
+name : str
+    The name of the event (same as its class name but in snake_case).
+source : matplotlib.figure.Figure | Figure3D
+    The figure that published the event.
+"""
 
 docdict[
     "uint16_codec"
@@ -5046,7 +5132,7 @@ def copy_function_doc_to_method_doc(source):
             -----
             .. versionadded:: 0.13.0
     <BLANKLINE>
-    """
+    """  # noqa: D410, D411, D214, D215
 
     def wrapper(func):
         doc = source.__doc__.split("\n")

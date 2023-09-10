@@ -1,35 +1,42 @@
 repos:
-- repo: https://github.com/psf/black
-  rev: 23.3.0
-  hooks:
-    - id: black
-      args: [--quiet]
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        args: [--quiet]
 
-# Ruff mne
-- repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.262
-  hooks:
-    - id: ruff
-      name: ruff mne
-      files: ^mne/
+  # Ruff mne
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.287
+    hooks:
+      - id: ruff
+        name: ruff mne
+        files: ^mne/
 
-# Ruff tutorials and examples
-- repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.0.262
-  hooks:
-    - id: ruff
-      name: ruff tutorials and examples
-      # D103: missing docstring in public function
-      # D400: docstring first line must end with period
-      args: ["--ignore=D103,D400"]
-      files: ^tutorials/|^examples/
+  # Ruff tutorials and examples
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.287
+    hooks:
+      - id: ruff
+        name: ruff tutorials and examples
+        # D103: missing docstring in public function
+        # D400: docstring first line must end with period
+        args: ["--ignore=D103,D400"]
+        files: ^tutorials/|^examples/
 
-# Codespell
-- repo: https://github.com/codespell-project/codespell
-  rev: v2.2.3
-  hooks:
-    - id: codespell
-      additional_dependencies:
-        - tomli
-      files: ^mne/|^doc/|^examples/|^tutorials/
-      types_or: [python, bib, rst, inc]
+  # Codespell
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.5
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
+        files: ^mne/|^doc/|^examples/|^tutorials/
+        types_or: [python, bib, rst, inc]
+
+  # yamllint
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: [--strict, -c, .yamllint.yml]

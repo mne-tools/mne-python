@@ -45,8 +45,7 @@ event_ids = {"AudL": 1, "AudR": 2, "VisL": 3, "VisR": 4}
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks)
 
 # Get the stim channel data
-pick_ch = mne.pick_channels(epochs.ch_names, ["STI 014"])[0]
-data = epochs.get_data()[:, pick_ch, :]
+data = epochs.get_data(picks="STI 014").squeeze()
 data = np.sum((data.astype(int) & eog_event_id) == eog_event_id, axis=0)
 
 # %%

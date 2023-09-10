@@ -7,16 +7,19 @@
 
 import os
 import glob
+from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from copy import deepcopy
+from scipy import linalg
+from scipy.spatial.distance import cdist
+from scipy.special import sph_harm
 
 from .fixes import jit, mean, _get_img_fdata
-from .io.constants import FIFF
-from .io.open import fiff_open
-from .io.tag import read_tag
-from .io.write import start_and_end_file, write_coord_trans
+from ._fiff.constants import FIFF
+from ._fiff.open import fiff_open
+from ._fiff.tag import read_tag
+from ._fiff.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (
     check_fname,
@@ -801,7 +804,7 @@ def _cart_to_sph(cart):
 
 
 def _sph_to_cart(sph_pts):
-    """Convert spherical coordinates to Cartesion coordinates.
+    """Convert spherical coordinates to Cartesian coordinates.
 
     Parameters
     ----------
@@ -945,8 +948,6 @@ def _sh_real_to_complex(shs, order):
 
 def _compute_sph_harm(order, az, pol):
     """Compute complex spherical harmonics of spherical coordinates."""
-    from scipy.special import sph_harm
-
     out = np.empty((len(az), _get_n_moments(order) + 1))
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
@@ -1010,9 +1011,6 @@ class _TPSWarp:
     """
 
     def fit(self, source, destination, reg=1e-3):
-        from scipy import linalg
-        from scipy.spatial.distance import cdist
-
         assert source.shape[1] == destination.shape[1] == 3
         assert source.shape[0] == destination.shape[0]
         # Forward warping, different from image warping, use |dist|**2
@@ -1044,8 +1042,6 @@ class _TPSWarp:
             The transformed points.
         """
         logger.info("Transforming %s points" % (len(pts),))
-        from scipy.spatial.distance import cdist
-
         assert pts.shape[1] == 3
         # for memory reasons, we should do this in ~100 MB chunks
         out = np.zeros_like(pts)
@@ -1151,9 +1147,8 @@ class _SphericalSurfaceWarp:
         inst : instance of SphericalSurfaceWarp
             The warping object (for chaining).
         """
-        from scipy import linalg
         from .bem import _fit_sphere
-        from .source_space import _check_spacing
+        from .source_space._source_space import _check_spacing
 
         match_rr = _check_spacing(match, verbose=False)[2]["rr"]
         logger.info("Computing TPS warp")
@@ -1208,7 +1203,7 @@ class _SphericalSurfaceWarp:
         src_rad_az_pol[0] = np.abs(np.dot(match_sph, src_coeffs))
         dest_rad_az_pol = match_rad_az_pol.copy()
         dest_rad_az_pol[0] = np.abs(np.dot(match_sph, dest_coeffs))
-        # 5. Convert matched points to Cartesion coordinates and put back
+        # 5. Convert matched points to Cartesian coordinates and put back
         source = _sph_to_cart(src_rad_az_pol.T)
         source += src_center
         destination = _sph_to_cart(dest_rad_az_pol.T)
@@ -1513,8 +1508,6 @@ def _fit_matched_points(p, x, weights=None, scale=False):
 
 def _average_quats(quats, weights=None):
     """Average unit quaternions properly."""
-    from scipy import linalg
-
     assert quats.ndim == 2 and quats.shape[1] in (3, 4)
     if weights is None:
         weights = np.ones(quats.shape[0])
@@ -1540,7 +1533,7 @@ def _average_quats(quats, weights=None):
     A = np.einsum("ij,ik->jk", quats, quats)  # sum of outer product of each q
     avg_quat = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the avg
     # Same as the largest eigenvector from the concatenation of all as
-    # linalg.svd(quats, full_matrices=False)[-1][0], but faster.
+    # svd(quats, full_matrices=False)[-1][0], but faster.
     #
     # By local convention we take the real term (which we remove from our
     # representation) as positive. Since it can be zero, let's just ensure

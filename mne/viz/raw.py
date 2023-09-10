@@ -10,11 +10,9 @@ from collections import OrderedDict
 
 import numpy as np
 
-from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
-from ..io.pick import pick_types, pick_channels
-from ..time_frequency import Spectrum
-from ..utils import legacy, verbose, _validate_type, _check_option
+from .._fiff.pick import pick_types, pick_channels
+from ..utils import legacy, verbose, _validate_type, _check_option, _get_stim_channel
 from ..utils.spectrum import _split_psd_kwargs
 from ..defaults import _handle_default
 from .utils import (
@@ -232,8 +230,9 @@ def plot_raw(
 
     %(notes_2d_backend)s
     """
-    from ..io.base import BaseRaw
+    from ..io import BaseRaw
     from ._figure import _get_browser
+    from ..annotations import _annotations_starts_stops
 
     info = raw.info.copy()
     sfreq = info["sfreq"]
@@ -482,6 +481,8 @@ def plot_raw_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return raw.compute_psd(**init_kw).plot(**plot_kw)
 
@@ -549,6 +550,8 @@ def plot_raw_psd_topo(
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topo)
     return raw.compute_psd(**init_kw).plot_topo(**plot_kw)
 
@@ -561,7 +564,6 @@ def _setup_channel_selections(raw, kind, order):
         _EEG_SELECTIONS,
         _divide_to_regions,
     )
-    from ..utils import _get_stim_channel
 
     _check_option("group_by", kind, ("position", "selection"))
     if kind == "position":

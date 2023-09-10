@@ -77,7 +77,7 @@ epochs_condition_1 = mne.Epochs(
     reject=reject,
     preload=True,
 )
-epochs_condition_1.pick_channels([ch_name])
+epochs_condition_1.pick([ch_name])
 
 # Load condition 2
 event_id = 2
@@ -92,7 +92,7 @@ epochs_condition_2 = mne.Epochs(
     reject=reject,
     preload=True,
 )
-epochs_condition_2.pick_channels([ch_name])
+epochs_condition_2.pick([ch_name])
 
 # %%
 # Factor to downsample the temporal dimension of the TFR computed by
@@ -138,6 +138,7 @@ F_obs, clusters, cluster_p_values, H0 = permutation_cluster_test(
     n_permutations=100,
     threshold=threshold,
     tail=0,
+    seed=np.random.default_rng(seed=8675309),
 )
 
 # %%

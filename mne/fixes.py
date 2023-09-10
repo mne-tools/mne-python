@@ -1,4 +1,4 @@
-"""Compatibility fixes for older versions of libraries
+"""Compatibility fixes for older versions of libraries.
 
 If you add content to this file, please give the version of the package
 at which the fix is no longer needed.
@@ -12,8 +12,13 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
+# NOTE:
+# Imports for SciPy submodules need to stay nested in this module
+# because this module is imported many places (but not always used)!
+
 from contextlib import contextmanager
 import inspect
+import operator as operator_module
 from math import log
 from pprint import pprint
 from io import StringIO
@@ -21,7 +26,6 @@ import os
 import warnings
 
 import numpy as np
-
 
 ###############################################################################
 # distutils
@@ -51,9 +55,12 @@ def _compare_version(version_a, operator, version_b):
     """
     from packaging.version import parse
 
+    mapping = {"<": "lt", "<=": "le", "==": "eq", "!=": "ne", ">=": "ge", ">": "gt"}
     with warnings.catch_warnings(record=True):
         warnings.simplefilter("ignore")
-        return eval(f'parse("{version_a}") {operator} parse("{version_b}")')
+        ver_a = parse(version_a)
+        ver_b = parse(version_b)
+        return getattr(operator_module, mapping[operator])(ver_a, ver_b)
 
 
 ###############################################################################
@@ -77,7 +84,7 @@ def _median_complex(data, axis):
 
 
 def _safe_svd(A, **kwargs):
-    """Wrapper to get around the SVD did not converge error of death"""
+    """Get around the SVD did not converge error of death."""
     # Intel has a bug with their GESVD driver:
     #     https://software.intel.com/en-us/forums/intel-distribution-for-python/topic/628049  # noqa: E501
     # For SciPy 0.18 and up, we can work around it by using
@@ -111,19 +118,6 @@ def rng_uniform(rng):
     return getattr(rng, "integers", getattr(rng, "randint", None))
 
 
-def _validate_sos(sos):
-    """Helper to validate a SOS input"""
-    sos = np.atleast_2d(sos)
-    if sos.ndim != 2:
-        raise ValueError("sos array must be 2D")
-    n_sections, m = sos.shape
-    if m != 6:
-        raise ValueError("sos array must be shape (n_sections, 6)")
-    if not (sos[:, 3] == 1).all():
-        raise ValueError("sos[:, 3] should be all ones")
-    return sos, n_sections
-
-
 ###############################################################################
 # Misc utilities
 
@@ -136,79 +130,12 @@ def _get_img_fdata(img):
     return data.astype(dtype)
 
 
-def _read_volume_info(fobj):
-    """An implementation of nibabel.freesurfer.io._read_volume_info, since old
-    versions of nibabel (<=2.1.0) don't have it.
-    """
-    volume_info = dict()
-    head = np.fromfile(fobj, ">i4", 1)
-    if not np.array_equal(head, [20]):  # Read two bytes more
-        head = np.concatenate([head, np.fromfile(fobj, ">i4", 2)])
-        if not np.array_equal(head, [2, 0, 20]):
-            warnings.warn("Unknown extension code.")
-            return volume_info
-
-    volume_info["head"] = head
-    for key in [
-        "valid",
-        "filename",
-        "volume",
-        "voxelsize",
-        "xras",
-        "yras",
-        "zras",
-        "cras",
-    ]:
-        pair = fobj.readline().decode("utf-8").split("=")
-        if pair[0].strip() != key or len(pair) != 2:
-            raise OSError("Error parsing volume info.")
-        if key in ("valid", "filename"):
-            volume_info[key] = pair[1].strip()
-        elif key == "volume":
-            volume_info[key] = np.array(pair[1].split()).astype(int)
-        else:
-            volume_info[key] = np.array(pair[1].split()).astype(float)
-    # Ignore the rest
-    return volume_info
-
-
 ##############################################################################
 # adapted from scikit-learn
 
 
-def is_classifier(estimator):
-    """Returns True if the given estimator is (probably) a classifier.
-
-    Parameters
-    ----------
-    estimator : object
-        Estimator object to test.
-
-    Returns
-    -------
-    out : bool
-        True if estimator is a classifier and False otherwise.
-    """
-    return getattr(estimator, "_estimator_type", None) == "classifier"
-
-
-def is_regressor(estimator):
-    """Returns True if the given estimator is (probably) a regressor.
-
-    Parameters
-    ----------
-    estimator : object
-        Estimator object to test.
-
-    Returns
-    -------
-    out : bool
-        True if estimator is a regressor and False otherwise.
-    """
-    return getattr(estimator, "_estimator_type", None) == "regressor"
-
-
 _DEFAULT_TAGS = {
+    "array_api_support": False,
     "non_deterministic": False,
     "requires_positive_X": False,
     "requires_positive_y": False,
@@ -242,7 +169,7 @@ class BaseEstimator:
 
     @classmethod
     def _get_param_names(cls):
-        """Get parameter names for the estimator"""
+        """Get parameter names for the estimator."""
         # fetch the constructor or the original constructor before
         # deprecation wrapping if any
         init = getattr(cls.__init__, "deprecated_original", cls.__init__)
@@ -355,7 +282,7 @@ class BaseEstimator:
                 setattr(self, key, value)
         return self
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D105
         params = StringIO()
         pprint(self.get_params(deep=False), params)
         params.seek(0)
@@ -433,8 +360,7 @@ def _check_fit_params(X, fit_params, indices=None):
 
 
 def empirical_covariance(X, assume_centered=False):
-    """Computes the Maximum likelihood covariance estimator
-
+    """Compute the Maximum likelihood covariance estimator.
 
     Parameters
     ----------
@@ -451,7 +377,6 @@ def empirical_covariance(X, assume_centered=False):
     -------
     covariance : 2D ndarray, shape (n_features, n_features)
         Empirical covariance (Maximum Likelihood Estimator).
-
     """
     X = np.asarray(X)
     if X.ndim == 1:
@@ -473,7 +398,7 @@ def empirical_covariance(X, assume_centered=False):
 
 
 class EmpiricalCovariance(BaseEstimator):
-    """Maximum likelihood covariance estimator
+    """Maximum likelihood covariance estimator.
 
     Read more in the :ref:`User Guide <covariance>`.
 
@@ -496,7 +421,6 @@ class EmpiricalCovariance(BaseEstimator):
     precision_ : 2D ndarray, shape (n_features, n_features)
         Estimated pseudo-inverse matrix.
         (stored only if store_precision is True)
-
     """
 
     def __init__(self, store_precision=True, assume_centered=False):
@@ -504,7 +428,7 @@ class EmpiricalCovariance(BaseEstimator):
         self.assume_centered = assume_centered
 
     def _set_covariance(self, covariance):
-        """Saves the covariance and precision estimates
+        """Save the covariance and precision estimates.
 
         Storage is done accordingly to `self.store_precision`.
         Precision stored only if invertible.
@@ -514,7 +438,6 @@ class EmpiricalCovariance(BaseEstimator):
         covariance : 2D ndarray, shape (n_features, n_features)
             Estimated covariance matrix to be stored, and from which precision
             is computed.
-
         """
         from scipy import linalg
 
@@ -599,7 +522,7 @@ class EmpiricalCovariance(BaseEstimator):
         return res
 
     def error_norm(self, comp_cov, norm="frobenius", scaling=True, squared=True):
-        """Computes the Mean Squared Error between two covariance estimators.
+        """Compute the Mean Squared Error between two covariance estimators.
 
         Parameters
         ----------
@@ -648,7 +571,7 @@ class EmpiricalCovariance(BaseEstimator):
         return result
 
     def mahalanobis(self, observations):
-        """Computes the squared Mahalanobis distances of given observations.
+        """Compute the squared Mahalanobis distances of given observations.
 
         Parameters
         ----------
@@ -661,7 +584,6 @@ class EmpiricalCovariance(BaseEstimator):
         -------
         mahalanobis_distance : array, shape = [n_observations,]
             Squared Mahalanobis distances of the observations.
-
         """
         precision = self.get_precision()
         # compute mahalanobis distances
@@ -672,7 +594,7 @@ class EmpiricalCovariance(BaseEstimator):
 
 
 def log_likelihood(emp_cov, precision):
-    """Computes the sample mean of the log_likelihood under a covariance model
+    """Compute the sample mean of the log_likelihood under a covariance model.
 
     computes the empirical expected log-likelihood (accounting for the
     normalization terms and scaling), allowing for universal comparison (beyond
@@ -712,7 +634,8 @@ def _logdet(A):
 
 
 def _infer_dimension_(spectrum, n_samples, n_features):
-    """Infers the dimension of a dataset of shape (n_samples, n_features)
+    """Infer the dimension of a dataset of shape (n_samples, n_features).
+
     The dataset is described by its spectrum `spectrum`.
     """
     n_spectrum = len(spectrum)
@@ -759,7 +682,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
     return ll
 
 
-def svd_flip(u, v, u_based_decision=True):
+def svd_flip(u, v, u_based_decision=True):  # noqa: D103
     if u_based_decision:
         # columns of u, rows of v
         max_abs_cols = np.argmax(np.abs(u), axis=0)
@@ -776,7 +699,7 @@ def svd_flip(u, v, u_based_decision=True):
 
 
 def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
-    """Use high precision for cumsum and check that final value matches sum
+    """Use high precision for cumsum and check that final value matches sum.
 
     Parameters
     ----------
@@ -810,12 +733,10 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
 
 
 def _crop_colorbar(cbar, cbar_vmin, cbar_vmax):
-    """
-    crop a colorbar to show from cbar_vmin to cbar_vmax
+    """Crop a colorbar to show from cbar_vmin to cbar_vmax.
+
     Used when symmetric_cbar=False is used.
     """
-    import matplotlib
-
     if (cbar_vmin is None) and (cbar_vmax is None):
         return
     cbar_tick_locs = cbar.locator.locs
@@ -903,7 +824,7 @@ else:
         return result
 
     @jit()
-    def mean(array, axis):
+    def mean(array, axis):  # noqa: D103
         return _np_apply_along_axis(np.mean, axis, array)
 
 

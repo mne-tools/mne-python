@@ -9,10 +9,10 @@ from numpy.testing import assert_allclose
 
 from mne.io import read_raw_nsx
 from mne.io.nsx.nsx import _decode_online_filters, _read_header
-from mne.io.meas_info import _empty_info
+from mne._fiff.meas_info import _empty_info
+from mne._fiff.constants import FIFF
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.constants import FIFF
 from mne import make_fixed_length_epochs
 
 
@@ -82,7 +82,7 @@ def test_nsx_ver_31():
     assert raw.annotations[0]["onset"] * raw.info["sfreq"] == 101
     assert raw.annotations[0]["duration"] * raw.info["sfreq"] == 49
 
-    # Ignore following RuntimeWarning in mne/io/base.py in _write_raw_fid
+    # Ignore following RuntimeWarning in mne/io/base.py in _write_raw_data
     # "Acquisition skips detected but did not fit evenly into output"
     # "buffer_size, will be written as zeroes."
     with pytest.warns(RuntimeWarning, match="skips detected"):

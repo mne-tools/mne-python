@@ -9,6 +9,7 @@ from copy import deepcopy
 
 import numpy as np
 
+from ...io.eyelink._utils import _parse_calibration
 from ...utils import _check_fname, _validate_type, fill_doc, logger
 from ...viz.utils import plt_show
 
@@ -114,13 +115,11 @@ class Calibration(dict):
         """
         return deepcopy(self)
 
-    def plot(self, title=None, show_offsets=True, axes=None, show=True):
+    def plot(self, show_offsets=True, axes=None, show=True):
         """Visualize calibration.
 
         Parameters
         ----------
-        title : str
-            The title to be displayed. Defaults to ``None``, which uses a generic title.
         show_offsets : bool
             Whether to display the offset (in visual degrees) of each calibration
             point or not. Defaults to ``True``.
@@ -152,10 +151,7 @@ class Calibration(dict):
         px, py = self["positions"].T
         gaze_x, gaze_y = self["gaze"].T
 
-        if title is None:
-            ax.set_title(f"Calibration ({self['eye']} eye)")
-        else:
-            ax.set_title(title)
+        ax.set_title(f"Calibration ({self['eye']} eye)")
         ax.set_xlabel("x (pixels)")
         ax.set_ylabel("y (pixels)")
 
@@ -221,8 +217,6 @@ def read_eyelink_calibration(
         A list of :class:`~mne.preprocessing.eyetracking.Calibration` instances, one for
         each eye of every calibration that was performed during the recording session.
     """
-    from ...io.eyelink._utils import _parse_calibration
-
     fname = _check_fname(fname, overwrite="read", must_exist=True, name="fname")
     logger.info("Reading calibration data from {}".format(fname))
     lines = fname.read_text(encoding="ASCII").splitlines()

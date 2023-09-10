@@ -34,6 +34,8 @@
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
+.. _Andrew Gilbert: https://github.com/adgilbert
+
 .. _Andrew Quinn: https://github.com/ajquinn
 
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
@@ -187,6 +189,8 @@
 .. _Hakimeh Aslsardroud: https://www.researchgate.net/profile/Hakimeh-Pourakbari
 
 .. _Hamid Maymandi: https://github.com/HamidMandi
+
+.. _Hamza Abdelhedi: https://github.com/BabaSanfour
 
 .. _Hakimeh Pourakbari: https://github.com/Hpakbari
 
@@ -490,7 +494,7 @@
 
 .. _Simeon Wong: https://github.com/dtxe
 
-.. _Simon Kern: https://github.com/skjerns
+.. _Simon Kern: https://skjerns.de
 
 .. _Simon Kornblith: https://simonster.com
 

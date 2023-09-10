@@ -13,13 +13,13 @@ import re
 
 import numpy as np
 
-from .._digitization import _make_dig_points
 from ..base import BaseRaw
-from ..meas_info import create_info
-from ..tag import _coil_trans_to_loc
-from ..utils import _read_segments_file, _mult_cal_one
-from ..constants import FIFF
 from ..ctf.trans import _quaternion_align
+from ..._fiff._digitization import _make_dig_points
+from ..._fiff.meas_info import create_info
+from ..._fiff.tag import _coil_trans_to_loc
+from ..._fiff.utils import _read_segments_file, _mult_cal_one
+from ..._fiff.constants import FIFF
 from ...surface import _normal_orth
 from ...transforms import (
     apply_trans,

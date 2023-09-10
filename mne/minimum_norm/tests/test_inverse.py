@@ -21,7 +21,7 @@ from mne.event import read_events
 from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
-from mne.source_space import _get_src_nn
+from mne.source_space._source_space import _get_src_nn
 from mne.surface import _normal_orth
 from mne import (
     read_cov,
@@ -540,7 +540,7 @@ def test_localization_bias_free(
 @pytest.mark.slowtest
 def test_apply_inverse_sphere(evoked, tmp_path):
     """Test applying an inverse with a sphere model (rank-deficient)."""
-    evoked.pick_channels(evoked.ch_names[:306:8])
+    evoked.pick(evoked.ch_names[:306:8])
     with evoked.info._unlock():
         evoked.info["projs"] = []
     cov = make_ad_hoc_cov(evoked.info)
@@ -741,14 +741,14 @@ def assert_stc_res(evoked, stc, forward, res, atol=1e-20):
     __tracebackhide__ = True
     with _record_warnings():  # all positive or large values
         estimated = apply_forward(forward, stc, evoked.info)
-    meg, eeg = "meg" in estimated, "eeg" in estimated
-    evoked = evoked.copy().pick_types(meg=meg, eeg=eeg, exclude=())
+    picks = list(filter(lambda x: x in estimated, ["meg", "eeg"]))
+    evoked = evoked.copy().pick(picks, exclude=())
     evoked.apply_proj()
-    res = res.copy().pick_types(meg=meg, eeg=eeg, exclude=())
+    res = res.copy().pick(picks, exclude=())
     estimated.info["bads"] = evoked.info["bads"]  # proj the same channels
     estimated.add_proj(evoked.info["projs"]).apply_proj()
-    estimated.pick_channels(res.ch_names, ordered=True)
-    evoked.pick_channels(res.ch_names, ordered=True)
+    estimated.pick(res.ch_names)
+    evoked.pick(res.ch_names)
     recon = estimated.data + res.data
     assert_allclose(evoked.data, recon.data, atol=atol, rtol=1e-6)
 
@@ -772,7 +772,7 @@ def test_inverse_residual(evoked, method, pick_ori):
     if method == "eLORETA" and pick_ori == "vector":  # works but slow
         return
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
-    evoked = evoked.pick_types(meg=True)
+    evoked = evoked.pick("meg", exclude="bads")
     if pick_ori is None:  # use fixed
         inv = read_inverse_operator(fname_inv_fixed_depth)
     else:
@@ -1616,7 +1616,7 @@ def test_inverse_mixed_loose(mixed_fwd_cov_evoked):
 def test_sss_rank():
     """Test passing rank explicitly during inverse computation."""
     # make raw match the fwd and cov, doesn't matter that they are mismatched
-    raw = mne.io.read_raw_fif(fname_sss).pick_types(meg=True)
+    raw = mne.io.read_raw_fif(fname_sss).pick("meg")
     raw.rename_channels(
         {ch_name: f"{ch_name[:3]} {ch_name[3:]}" for ch_name in raw.ch_names}
     )
