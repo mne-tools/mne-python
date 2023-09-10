@@ -33,11 +33,11 @@ print(__doc__)
 # %% Setup paths
 
 data_path = sample.data_path()
-subjects_dir = data_path / 'subjects'
-meg_path = data_path / 'MEG' / 'sample'
-fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
-evoked_fname = meg_path / 'sample_audvis-ave.fif'
-cov_fname = meg_path / 'sample_audvis-cov.fif'
+subjects_dir = data_path / "subjects"
+meg_path = data_path / "MEG" / "sample"
+fwd_fname = meg_path / "sample_audvis-meg-eeg-oct-6-fwd.fif"
+evoked_fname = meg_path / "sample_audvis-ave.fif"
+cov_fname = meg_path / "sample_audvis-cov.fif"
 
 # %% Load data
 
@@ -53,9 +53,8 @@ cov_fname = meg_path / 'sample_audvis-cov.fif'
 
 # %%
 # Read the evoked response and crop it
-condition = 'Right Auditory'
-evoked = mne.read_evokeds(evoked_fname, condition=condition,
-                          baseline=(None, 0))
+condition = "Right Auditory"
+evoked = mne.read_evokeds(evoked_fname, condition=condition, baseline=(None, 0))
 # select N100
 evoked.crop(tmin=0.05, tmax=0.15)
 
@@ -70,11 +69,16 @@ noise_cov = mne.read_cov(cov_fname)
 # %% Applied on free-oriented dipoles
 
 dipoles, residual, _, var_exp = alternating_projections(
-    evoked, forward, n_sources=2, noise_cov=noise_cov, return_residual=True,
-    verbose=True)
+    evoked,
+    forward,
+    n_sources=2,
+    noise_cov=noise_cov,
+    return_residual=True,
+    verbose=True,
+)
 
-trans = forward['mri_head_t']
-plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
+trans = forward["mri_head_t"]
+plot_dipole_locations(dipoles, trans, "sample", subjects_dir=subjects_dir)
 plot_dipole_amplitudes(dipoles)
 
 # Plot the evoked data and the residual.
@@ -87,18 +91,21 @@ residual.plot(ylim=ylim)
 
 forward = mne.convert_forward_solution(forward, force_fixed=True)
 dipoles, residual, _, var_exp = alternating_projections(
-    evoked, forward, n_sources=2, noise_cov=noise_cov, return_residual=True,
-    verbose=True)
+    evoked,
+    forward,
+    n_sources=2,
+    noise_cov=noise_cov,
+    return_residual=True,
+    verbose=True,
+)
 
-trans = forward['mri_head_t']
-plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
+trans = forward["mri_head_t"]
+plot_dipole_locations(dipoles, trans, "sample", subjects_dir=subjects_dir)
 plot_dipole_amplitudes(dipoles)
 
 # Plot the evoked data and the residual.
-evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
-            time_unit='s')
-residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]),
-              time_unit='s')
+evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]), time_unit="s")
+residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]), time_unit="s")
 
 # %%
 # References
