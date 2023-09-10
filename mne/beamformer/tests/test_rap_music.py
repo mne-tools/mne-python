@@ -102,8 +102,7 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
     # Check the orientation of the dipoles
     assert np.max(np.abs(np.dot(dipoles[0].ori[0], np.array([ori1, ori2]).T))) > 0.99
 
-    assert (np.max(np.abs(np.dot(dipoles[1].ori[0],
-                                 np.array([ori1, ori2]).T))) > 0.99)
+    assert np.max(np.abs(np.dot(dipoles[1].ori[0], np.array([ori1, ori2]).T))) > 0.99
 
     if residual is not None:
         picks_grad = mne.pick_types(residual.info, meg="grad")
