@@ -642,8 +642,6 @@ def alternating_projections(evoked, forward, n_sources, noise_cov=None,
 
     Returns
     -------
-
-
     dipoles : list of instance of Dipole
         The dipole fits.
     residual : instance of Evoked

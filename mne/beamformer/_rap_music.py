@@ -86,8 +86,6 @@ def _apply_rap_music(
         subcorr_max = -1.0
         source_idx, source_ori, source_pos = 0, [0, 0, 0], [0, 0, 0]
         for i_source in range(G.shape[1]):
-            if force_no_rep and (i_source in idxs):
-                continue
             Gk = G_proj[:, i_source]
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
             if subcorr > subcorr_max:
