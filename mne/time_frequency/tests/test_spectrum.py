@@ -21,8 +21,7 @@ def test_compute_psd_errors(raw):
         raw.compute_psd(foo=None)
     with pytest.raises(TypeError, match="keyword arguments foo, bar for"):
         raw.compute_psd(foo=None, bar=None)
-    # TODO: More code to remove here?
-    with pytest.raises(RuntimeError, match="Complex output support in.*not supported"):
+    with pytest.raises(ValueError, match="Complex output is not supported in "):
         raw.compute_psd(output="complex")
 
 
@@ -218,13 +217,8 @@ def _agg_helper(df, weights, group_cols):
 
 
 @pytest.mark.parametrize("long_format", (False, True))
-@pytest.mark.parametrize(
-    "method, output",
-    [
-        ("welch", "power"),
-    ],
-)
-def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
+@pytest.mark.parametrize("method", ("welch", "multitaper"))
+def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
     """Test converting complex multitaper spectra to data frame."""
     pytest.importorskip("pandas")
     from pandas.testing import assert_frame_equal
@@ -238,10 +232,10 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     kwargs = dict()
     if method == "welch":
         kwargs.update(average=False, verbose="error")
-    spectrum = raw.compute_psd(method=method, output=output, **kwargs)
+    spectrum = raw.compute_psd(method=method, **kwargs)
     df = spectrum.to_data_frame(long_format=long_format)
     grouping_cols = ["freq"]
-    drop_cols = ["segment"] if method == "welch" else ["taper"]
+    drop_cols = ["segment"] if method == "welch" else []
     if long_format:
         grouping_cols.append("channel")
         drop_cols.append("ch_type")
@@ -256,18 +250,7 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method, output):
     # aggregate
     df = df.drop(columns=drop_cols)
     gb = df.groupby(grouping_cols, as_index=False, observed=False)
-    if method == "welch":
-        if output == "complex":
-
-            def _fun(x):
-                return np.nanmean(np.abs(x))
-
-            agg_df = gb.agg(_fun)
-        else:
-            agg_df = gb.mean()  # excludes missing values itself
-    else:
-        gb = gb[df.columns]  # https://github.com/pandas-dev/pandas/pull/52477
-        agg_df = gb.apply(_agg_helper, spectrum._mt_weights, grouping_cols)
+    agg_df = gb.mean()  # excludes NA automatically
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
