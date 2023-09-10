@@ -11,7 +11,7 @@ from numpy.linalg import pinv, multi_dot, lstsq
 
 from ..utils import _check_info_inv, verbose, fill_doc, logger
 from ._compute_beamformer import _prepare_beamformer_input
-from ..io.pick import pick_channels_forward, pick_info
+from .._fiff.pick import pick_channels_forward, pick_info
 from ..forward.forward import convert_forward_solution, is_fixed_orient
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
