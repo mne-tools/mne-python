@@ -33,27 +33,36 @@
 *lcmv*.py @britta-wstnr
 
 # Channels
-/mne/channels @cbrnr
+/mne/channels @cbrnr @agramfort
 
 # Core sensor-space classes
-/mne/epochs.py @drammock
-/mne/evoked.py @drammock
-/mne/io/*.* @drammock @cbrnr
+/mne/epochs.py @drammock @agramfort
+/mne/evoked.py @drammock @agramfort
+/mne/io/*.* @drammock @cbrnr @agramfort
 
 # Current-source density
 /mne/preprocessing/_csd.py  @alexrockhill
 
 # Decoding
-/mne/decoding/csp.py @cbrnr
+/mne/decoding/csp.py @cbrnr @agramfort
 
 # fNIRS
 /mne/preprocessing/nirs @rob-luke
 *fnirs*.py @rob-luke
 
+# forward
+/mne/forward/ @agramfort
+*forward*.py @agramfort
+
 # Intracranial
 /mne/preprocessing/ieeg @alexrockhill @adam2392
 *seeg*.py @alexrockhill @adam2392
 *ecog*.py @alexrockhill @adam2392
+
+# Inverse Sparse
+/mne/inverse_sparse @agramfort
+*mxne*.py @agramfort # related tutorials and examples
+*gamma*.py @agramfort # related tutorials and examples
 
 # IO
 /mne/io/brainvision @sappelhoff @cbrnr @adam2392
@@ -61,12 +70,19 @@
 /mne/io/snirf @rob-luke
 /mne/export @sappelhoff @cbrnr
 
+# Minimum Norm
+/mne/minimum_norm @agramfort
+
 # Preprocessing
-/mne/preprocessing/ica.py @cbrnr @adam2392
+/mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort
 /mne/preprocessing/infomax_.py @cbrnr @adam2392
 
 # Report
 /mne/report @hoechenberger
+
+# Simulation
+/mne/simulation/ @agramfort
+*simulate*.py @agramfort
 
 # Surface + transforms
 /mne/surface.py @alexrockhill @larsoner
@@ -88,11 +104,11 @@
 #########################
 
 # Examples and tutorials
-/examples @drammock
-/tutorials @drammock
+/examples @drammock @agramfort
+/tutorials @drammock @agramfort
 
 # Non-tutorial documentation text and infrastructure
-/doc @larsoner @drammock
+/doc @larsoner @drammock @agramfort
 /logo @drammock
 
 # Installation documentation
