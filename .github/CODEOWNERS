@@ -49,6 +49,9 @@
 /mne/io/brainvision @sappelhoff
 /mne/export @sappelhoff
 
+# Report
+/mne/report @hoechenberger
+
 # Surface + transforms
 /mne/surface.py @alexrockhill @larsoner
 /mne/transforms.py @alexrockhill @larsoner
@@ -75,6 +78,9 @@
 # Non-tutorial documentation text and infrastructure
 /doc @larsoner @drammock
 /logo @drammock
+
+# Installation documentation
+/doc/install @hoechenberger
 
 # Project infrastructure and CIs
 /*.* @larsoner @drammock  # files in the root directory
