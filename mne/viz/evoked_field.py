@@ -199,9 +199,6 @@ class EvokedField:
         # Do we want the time viewer?
         if time_viewer == "auto":
             time_viewer = len(evoked.times) > 1
-        # Are we drawing inside a Brain figure that already has a time viewer?
-        if self._in_brain_figure and fig.time_viewer:
-            time_viewer = False
         self.time_viewer = time_viewer
 
         # Configure UI events
@@ -211,20 +208,21 @@ class EvokedField:
 
         self._widgets = dict()
         if self.time_viewer:
-            self._renderer._enable_time_interaction(
-                self,
-                current_time_func=current_time_func,
-                times=evoked.times,
-            )
-            # Draw the time label
-            self._time_label = time_label
-            if time_label is not None:
-                if "%" in time_label:
-                    time_label = time_label % np.round(1e3 * time)
-                self._time_label_actor = self._renderer.text2d(
-                    x_window=0.01, y_window=0.01, text=time_label
+            if not self._in_brain_figure:
+                self._renderer._enable_time_interaction(
+                    self,
+                    current_time_func=current_time_func,
+                    times=evoked.times,
                 )
-        self._configure_dock()
+                # Draw the time label
+                self._time_label = time_label
+                if time_label is not None:
+                    if "%" in time_label:
+                        time_label = time_label % np.round(1e3 * time)
+                    self._time_label_actor = self._renderer.text2d(
+                        x_window=0.01, y_window=0.01, text=time_label
+                    )
+            self._configure_dock()
 
         subscribe(self, "time_change", self._on_time_change)
         subscribe(self, "colormap_range", self._on_colormap_range)
