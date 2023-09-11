@@ -51,19 +51,19 @@
 *fnirs*.py @rob-luke
 
 # Intracranial
-/mne/preprocessing/ieeg @alexrockhill
-*seeg*.py @alexrockhill
-*ecog*.py @alexrockhill
+/mne/preprocessing/ieeg @alexrockhill @adam2392
+*seeg*.py @alexrockhill @adam2392
+*ecog*.py @alexrockhill @adam2392
 
 # IO
-/mne/io/brainvision @sappelhoff @cbrnr
+/mne/io/brainvision @sappelhoff @cbrnr @adam2392
 /mne/io/nirx @rob-luke
 /mne/io/snirf @rob-luke
 /mne/export @sappelhoff @cbrnr
 
 # Preprocessing
-/mne/preprocessing/ica.py @cbrnr
-/mne/preprocessing/infomax_.py @cbrnr
+/mne/preprocessing/ica.py @cbrnr @adam2392
+/mne/preprocessing/infomax_.py @cbrnr @adam2392
 
 # Report
 /mne/report @hoechenberger
@@ -74,7 +74,7 @@
 /mne/_freesurfer.py @alexrockhill @larsoner
 
 # TFR
-/mne/time_frequency @drammock @cbrnr
+/mne/time_frequency @drammock @cbrnr @adam2392
 
 # Viz
 /mne/viz @drammock @cbrnr
