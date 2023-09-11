@@ -789,9 +789,14 @@ class Brain:
             self.widgets["max_time"] = None
             self.widgets["current_time"] = None
         else:
+
+            @_auto_weakref
+            def current_time_func():
+                return self._current_time
+
             self._renderer._enable_time_interaction(
                 self,
-                lambda: self._current_time,
+                current_time_func,
                 self._data["time"],
                 self.default_playback_speed_value,
                 self.default_playback_speed_range,
@@ -1189,12 +1194,6 @@ class Brain:
             shortcut="?",
         )
 
-    def _shift_time(self, shift_func):
-        publish(
-            self,
-            TimeChange(time=shift_func(self._current_time, self.playback_speed)),
-        )
-
     def _rotate_azimuth(self, value):
         azimuth = (self._renderer.figure._azimuth + value) % 360
         self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
@@ -1216,12 +1215,6 @@ class Brain:
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
-        self.plotter.add_key_event(
-            "n", partial(self._shift_time, shift_func=lambda x, y: x + y)
-        )
-        self.plotter.add_key_event(
-            "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
-        )
         for key, func, sign in (
             ("Left", self._rotate_azimuth, 1),
             ("Right", self._rotate_azimuth, -1),

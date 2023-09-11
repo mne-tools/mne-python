@@ -205,11 +205,15 @@ class EvokedField:
         self.time_viewer = time_viewer
 
         # Configure UI events
+        @_auto_weakref
+        def current_time_func():
+            return self._current_time
+
         self._widgets = dict()
         if self.time_viewer:
             self._renderer._enable_time_interaction(
                 self,
-                current_time_func=lambda: self._current_time,
+                current_time_func=current_time_func,
                 times=evoked.times,
             )
             # Draw the time label
