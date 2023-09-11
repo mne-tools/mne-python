@@ -24,6 +24,7 @@ from ...utils import (
     _check_option,
     fill_doc,
     _validate_type,
+    _auto_weakref,
 )
 
 MNE_3D_BACKEND = None
@@ -416,15 +417,20 @@ class _TimeInteraction:
             self._widgets = dict()
 
         # Dock widgets
+        @_auto_weakref
+        def publish_time_change(time_index):
+            publish(
+                fig,
+                TimeChange(time=np.interp(time_index, np.arange(len(times)), times)),
+            )
+
         layout = self._dock_add_group_box("")
         self._widgets["time_slider"] = self._dock_add_slider(
             name="Time (s)",
             value=np.interp(current_time_func(), times, np.arange(len(times))),
             rng=[0, len(times)],
             double=True,
-            callback=lambda val: publish(
-                fig, TimeChange(time=np.interp(val, np.arange(len(times)), times))
-            ),
+            callback=publish_time_change,
             compact=False,
             layout=layout,
         )
@@ -440,11 +446,15 @@ class _TimeInteraction:
         self._widgets["current_time"].set_value(f"{current_time_func(): .3f}")
         self._widgets["max_time"].set_value(f"{times[-1]: .3f}")
 
+        @_auto_weakref
+        def publish_playback_speed(speed):
+            publish(fig, PlaybackSpeed(speed=speed))
+
         self._widgets["playback_speed"] = self._dock_add_spin_box(
             name="Speed",
             value=init_playback_speed,
             rng=playback_speed_range,
-            callback=lambda x: publish(fig, PlaybackSpeed(speed=x)),
+            callback=publish_playback_speed,
             layout=layout,
         )
 
@@ -477,9 +487,17 @@ class _TimeInteraction:
         )
 
         # Keyboard shortcuts
+        @_auto_weakref
+        def shift_time(direction):
+            amount = self._widgets["playback_speed"].get_value()
+            publish(
+                self._fig,
+                TimeChange(time=self._current_time_func() + direction * amount),
+            )
+
         if self.plotter.iren is not None:
-            self.plotter.add_key_event("n", lambda: self._shift_time(direction=1))
-            self.plotter.add_key_event("b", lambda: self._shift_time(direction=-1))
+            self.plotter.add_key_event("n", partial(shift_time, direction=1))
+            self.plotter.add_key_event("b", partial(shift_time, direction=-1))
 
         # Subscribe to relevant UI events
         subscribe(fig, "time_change", self._on_time_change)
@@ -503,15 +521,6 @@ class _TimeInteraction:
         with disable_ui_events(self._fig):
             self._widgets["playback_speed"].set_value(event.speed)
 
-    def _shift_time(self, direction):
-        """Shift time with stepsize determined by playback_speed."""
-        from ..ui_events import publish, TimeChange
-
-        amount = self._widgets["playback_speed"].get_value()
-        publish(
-            self._fig, TimeChange(time=self._current_time_func() + direction * amount)
-        )
-
     def _toggle_playback(self, value=None):
         """Toggle time playback."""
         from ..ui_events import publish, TimeChange
@@ -522,7 +531,6 @@ class _TimeInteraction:
             self._playback = value
 
         if self._playback:
-            print(self.actions)
             self._tool_bar_update_button_icon(name="play", icon_name="pause")
             if self._current_time_func() == self._times[-1]:  # start over
                 publish(self._fig, TimeChange(time=self._times[0]))
