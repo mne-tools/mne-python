@@ -30,7 +30,6 @@ from .._fiff.pick import (
     _DATA_CH_TYPES_SPLIT,
     _VALID_CHANNEL_TYPES,
 )
-from ..time_frequency import Spectrum
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -225,7 +224,7 @@ def plot_epochs_image(
     |          | list of ch_names           | callable   |                   |
     +----------+----------------------------+------------+-------------------+
     """
-    from .. import EpochsArray
+    from ..epochs import EpochsArray
 
     _validate_type(group_by, (dict, None), "group_by")
 
@@ -312,7 +311,7 @@ def plot_epochs_image(
 
     # prepare images in advance to get consistent vmin/vmax.
     # At the same time, create a subsetted epochs object for each group
-    data = epochs.get_data()
+    data = epochs._get_data(on_empty="raise")
     vmin_vmax = {ch_type: dict(images=list(), norm=list()) for ch_type in set(ch_types)}
     for this_group, this_group_dict in group_by.items():
         these_picks = this_group_dict["picks"]
@@ -635,7 +634,7 @@ def _plot_epochs_image(
         ax_im.set_xlim(tmin, tmax)
     # draw the evoked
     if evoked:
-        from . import plot_compare_evokeds
+        from .evoked import plot_compare_evokeds
 
         pass_combine = combine if combine_given else None
         _picks = [0] if len(picks) == 1 else None  # prevent applying GFP
@@ -904,6 +903,7 @@ def plot_epochs(
     """
     from ._figure import _get_browser
 
+    epochs._handle_empty("raise", "plot")
     epochs.drop_bad()
     info = epochs.info.copy()
     sfreq = info["sfreq"]
@@ -1171,5 +1171,7 @@ def plot_epochs_psd(
     -----
     %(notes_plot_*_psd_func)s
     """
+    from ..time_frequency import Spectrum
+
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot)
     return epochs.compute_psd(**init_kw).plot(**plot_kw)

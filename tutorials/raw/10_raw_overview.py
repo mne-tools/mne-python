@@ -208,7 +208,7 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 # :class:`~mne.io.Raw` objects have a number of methods that modify the
 # :class:`~mne.io.Raw` instance in-place and return a reference to the modified
 # instance. This can be useful for `method chaining`_
-# (e.g., ``raw.crop(...).pick_channels(...).filter(...).plot()``)
+# (e.g., ``raw.crop(...).pick(...).filter(...).plot()``)
 # but it also poses a problem during interactive analysis: if you modify your
 # :class:`~mne.io.Raw` object for an exploratory plot or analysis (say, by
 # dropping some channels), you will then need to re-load the data (and repeat
@@ -222,15 +222,14 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 # Selecting, dropping, and reordering channels
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Altering the channels of a :class:`~mne.io.Raw` object can be done in several
-# ways. As a first example, we'll use the :meth:`~mne.io.Raw.pick_types` method
+# ways. As a first example, we'll use the :meth:`~mne.io.Raw.pick` method
 # to restrict the :class:`~mne.io.Raw` object to just the EEG and EOG channels:
 
-eeg_and_eog = raw.copy().pick_types(meg=False, eeg=True, eog=True)
+eeg_and_eog = raw.copy().pick(picks=["eeg", "eog"])
 print(len(raw.ch_names), "→", len(eeg_and_eog.ch_names))
 
 # %%
-# Similar to the :meth:`~mne.io.Raw.pick_types` method, there is also the
-# :meth:`~mne.io.Raw.pick_channels` method to pick channels by name, and a
+# In addition, :meth:`~mne.io.Raw.pick` can also be used to pick channels by name, and a
 # corresponding :meth:`~mne.io.Raw.drop_channels` method to remove channels by
 # name:
 
@@ -239,13 +238,13 @@ print("Number of channels in raw_temp:")
 print(len(raw_temp.ch_names), end=" → drop two → ")
 raw_temp.drop_channels(["EEG 037", "EEG 059"])
 print(len(raw_temp.ch_names), end=" → pick three → ")
-raw_temp.pick_channels(["MEG 1811", "EEG 017", "EOG 061"])
+raw_temp.pick(["MEG 1811", "EEG 017", "EOG 061"])
 print(len(raw_temp.ch_names))
 
 # %%
 # If you want the channels in a specific order (e.g., for plotting),
 # :meth:`~mne.io.Raw.reorder_channels` works just like
-# :meth:`~mne.io.Raw.pick_channels` but also reorders the channels; for
+# :meth:`~mne.io.Raw.pick` but also reorders the channels; for
 # example, here we pick the EOG and frontal EEG channels, putting the EOG
 # first and the EEG in reverse order:
 
@@ -294,7 +293,7 @@ print(raw.ch_names[-3:])
 # EEG electrodes as makeshift EOG channels:
 
 raw.set_channel_types({"EEG_001": "eog"})
-print(raw.copy().pick_types(meg=False, eog=True).ch_names)
+print(raw.copy().pick(picks="eog").ch_names)
 
 # %%
 # Selection in the time domain

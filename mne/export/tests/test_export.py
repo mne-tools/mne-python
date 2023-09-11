@@ -140,11 +140,19 @@ def test_double_export_edf(tmp_path):
         "bio",
     ]
     info = create_info(len(ch_types), sfreq=1000, ch_types=ch_types)
+    info = info.set_meas_date("2023-09-04 14:53:09.000")
     data = rng.random(size=(len(ch_types), 1000)) * 1e-5
 
     # include subject info and measurement date
     info["subject_info"] = dict(
-        first_name="mne", last_name="python", birthday=(1992, 1, 20), sex=1, hand=3
+        his_id="12345",
+        first_name="mne",
+        last_name="python",
+        birthday=(1992, 1, 20),
+        sex=1,
+        weight=78.3,
+        height=1.75,
+        hand=3,
     )
     raw = RawArray(data, info)
 
@@ -168,6 +176,10 @@ def test_double_export_edf(tmp_path):
         raw.get_data(), raw_read.get_data()[:, :orig_raw_len], decimal=4
     )
     assert_allclose(raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
+
+    # check info
+    for key in set(raw.info) - {"chs"}:
+        assert raw.info[key] == raw_read.info[key]
 
     # check channel types except for 'bio', which loses its type
     orig_ch_types = raw.get_channel_types()
@@ -209,6 +221,7 @@ def test_export_edf_annotations(tmp_path):
         onset=[0.01, 0.05, 0.90, 1.05],
         duration=[0, 1, 0, 0],
         description=["test1", "test2", "test3", "test4"],
+        ch_names=[["0"], ["0", "1"], [], ["1"]],
     )
     raw.set_annotations(annotations)
 
@@ -221,6 +234,7 @@ def test_export_edf_annotations(tmp_path):
     assert_array_equal(raw.annotations.onset, raw_read.annotations.onset)
     assert_array_equal(raw.annotations.duration, raw_read.annotations.duration)
     assert_array_equal(raw.annotations.description, raw_read.annotations.description)
+    assert_array_equal(raw.annotations.ch_names, raw_read.annotations.ch_names)
 
 
 @pytest.mark.skipif(
@@ -340,8 +354,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw = read_raw_fif(fname)
 
     # only test with EEG channels
-    raw.pick_types(eeg=True, ecog=True, seeg=True)
-    raw.load_data()
+    raw.pick(picks=["eeg", "ecog", "seeg"]).load_data()
     orig_ch_names = raw.ch_names
     temp_fname = tmp_path / f"test.{format}"
 

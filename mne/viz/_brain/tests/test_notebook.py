@@ -1,19 +1,11 @@
-#
 # Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 
 # NOTE: Tests in this directory must be self-contained because they are
 # executed in a separate IPython kernel.
 
-import sys
 import pytest
 from mne.datasets import testing
-
-
-# This will skip all tests in this scope
-pytestmark = pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="nbexec does not work on Windows"
-)
 
 
 @testing.requires_testing_data
@@ -48,7 +40,6 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
 def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     """Test interactive modes."""
     from contextlib import contextmanager
-    import os
     from pathlib import Path
     import tempfile
     import time
@@ -97,9 +88,12 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         tmp_path = Path(tempfile.mkdtemp())
         movie_path = tmp_path / "test.gif"
         screenshot_path = tmp_path / "test.png"
-        brain._renderer.actions["movie_field"].value = str(movie_path)
+        actions = brain._renderer.actions
+        assert actions["movie_field"]._action.value == ""
+        actions["movie_field"]._action.value = str(movie_path)
         assert not movie_path.is_file()
-        brain._renderer.actions["screenshot_field"].value = str(screenshot_path)
+        assert actions["screenshot_field"]._action.value == ""
+        brain._renderer.actions["screenshot_field"]._action.value = str(screenshot_path)
         assert not screenshot_path.is_file()
         total_number_of_buttons = sum(
             "_field" not in k for k in brain._renderer.actions.keys()
@@ -117,11 +111,9 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         assert number_of_buttons == total_number_of_buttons
         time.sleep(0.5)
         assert "movie" in button_names, button_names
-        # TODO: this fails on GHA for some reason, need to figure it out
-        if os.getenv("GITHUB_ACTIONS", "") != "true":
-            assert movie_path.is_file()
+        assert movie_path.is_file(), movie_path
         assert "screenshot" in button_names, button_names
-        assert screenshot_path.is_file()
+        assert screenshot_path.is_file(), screenshot_path
         img_nv = brain.screenshot()
         assert img_nv.shape == (300, 300, 3), img_nv.shape
         img_v = brain.screenshot(time_viewer=True)

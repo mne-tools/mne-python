@@ -26,7 +26,7 @@ from scipy.sparse import csr_matrix
 from scipy.spatial import Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform
 
-from . import ui_events
+from .ui_events import publish, subscribe, TimeChange
 from ..baseline import rescale
 from ..defaults import _INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from .._fiff.pick import (
@@ -52,6 +52,7 @@ from ..utils import (
     legacy,
     check_version,
 )
+from ..utils.spectrum import _split_psd_kwargs
 from .utils import (
     tight_layout,
     _setup_vmin_vmax,
@@ -70,6 +71,8 @@ from .utils import (
     _check_type_projs,
     _format_units_psd,
     _prepare_sensor_names,
+    _get_plot_ch_type,
+    plot_sensors,
 )
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
@@ -467,7 +470,6 @@ def _plot_projs_topomap(
 ):
     import matplotlib.pyplot as plt
     from ..channels.layout import _merge_ch_data
-    from ..channels.channels import _get_ch_type
 
     sphere = _check_sphere(sphere, info)
     projs = _check_type_projs(projs)
@@ -496,7 +498,11 @@ def _plot_projs_topomap(
             ch_type,
             this_sphere,
             clip_origin,
-        ) = _prepare_topomap_plot(use_info, _get_ch_type(use_info, None), sphere=sphere)
+        ) = _prepare_topomap_plot(
+            use_info,
+            _get_plot_ch_type(use_info, None),
+            sphere=sphere,
+        )
         these_outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
         data = data[data_picks]
         if merge_channels:
@@ -880,10 +886,9 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
-    from ..channels.channels import _get_ch_type
     from ..channels.layout import _find_topomap_coords
 
-    ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
+    ch_type = _get_plot_ch_type(pick_info(_simplify_info(info), picks), None)
     orig_sphere = sphere
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
     logger.debug(
@@ -1381,7 +1386,6 @@ def _plot_ica_topomap(
 ):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
-    from ..channels.channels import _get_ch_type
     from ..channels.layout import _merge_ch_data
 
     if ica.info is None:
@@ -1395,7 +1399,7 @@ def _plot_ica_topomap(
             "axis has to be an instance of matplotlib Axes, "
             "got %s instead." % type(axes)
         )
-    ch_type = _get_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
+    ch_type = _get_plot_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
     if ch_type == "ref_meg":
         logger.info("Cannot produce topographies for MEG reference channels.")
         return
@@ -1565,11 +1569,9 @@ def plot_ica_components(
     supplied).
     """  # noqa E501
     from matplotlib.pyplot import Axes
-    from ..channels.channels import _get_ch_type
-    from ..channels.layout import _merge_ch_data
-
     from ..io import BaseRaw
     from ..epochs import BaseEpochs
+    from ..channels.layout import _merge_ch_data
 
     if ica.info is None:
         raise RuntimeError(
@@ -1589,7 +1591,7 @@ def plot_ica_components(
         max_subplots = nrows * ncols
 
     # handle ch_type=None
-    ch_type = _get_ch_type(ica, ch_type)
+    ch_type = _get_plot_ch_type(ica, ch_type)
 
     figs = []
     if picks is None:
@@ -1846,10 +1848,9 @@ def plot_tfr_topomap(
         The figure containing the topography.
     """  # noqa: E501
     import matplotlib.pyplot as plt
-    from ..channels.channels import _get_ch_type
     from ..channels.layout import _merge_ch_data
 
-    ch_type = _get_ch_type(tfr, ch_type)
+    ch_type = _get_plot_ch_type(tfr, ch_type)
 
     picks, pos, merge_channels, names, _, sphere, clip_origin = _prepare_topomap_plot(
         tfr, ch_type, sphere=sphere
@@ -2069,7 +2070,7 @@ def plot_evoked_topomap(
     interface to adjust the colorbar size yourself.
 
     When ``time=="interactive"``, the figure will publish and subscribe to the
-    following events:
+    following UI events:
 
     * :class:`~mne.viz.ui_events.TimeChange` whenever a new time is selected.
     """
@@ -2077,13 +2078,12 @@ def plot_evoked_topomap(
     from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
-    from ..channels.channels import _get_ch_type
     from ..channels.layout import _merge_ch_data
 
     _validate_type(evoked, Evoked, "evoked")
     _validate_type(colorbar, bool, "colorbar")
     evoked = evoked.copy()  # make a copy, since we'll be picking
-    ch_type = _get_ch_type(evoked, ch_type)
+    ch_type = _get_plot_ch_type(evoked, ch_type)
     # time units / formatting
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     scaling_time = 1.0 if time_unit == "s" else 1e3
@@ -2328,14 +2328,14 @@ def plot_evoked_topomap(
         func = _merge_ch_data if merge_channels else lambda x: x
 
         def _slider_changed(val):
-            ui_events.publish(fig, ui_events.TimeChange(time=val))
+            publish(fig, TimeChange(time=val))
 
         slider.on_changed(_slider_changed)
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color="k")
         axes[-1].slider = slider
 
-        ui_events.subscribe(
+        subscribe(
             fig,
             "time_change",
             partial(
@@ -2627,7 +2627,6 @@ def plot_epochs_psd_topomap(
     """
     from ..channels import rename_channels
     from ..time_frequency import Spectrum
-    from ..utils.spectrum import _split_psd_kwargs
 
     init_kw, plot_kw = _split_psd_kwargs(plot_fun=Spectrum.plot_topomap)
     spectrum = epochs.compute_psd(**init_kw)
@@ -3746,8 +3745,6 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind="2d", edit=False):
     """
     import matplotlib as mpl
     import matplotlib.pyplot as plt
-
-    from . import plot_sensors
 
     _validate_type(info, Info, "info")
     _validate_type(adjacency, (np.ndarray, csr_matrix), "adjacency")

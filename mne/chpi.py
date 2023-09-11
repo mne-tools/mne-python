@@ -18,6 +18,7 @@
 #
 # License: BSD-3-Clause
 
+import copy
 from functools import partial
 import itertools
 
@@ -30,6 +31,7 @@ from .event import find_events
 from .io import BaseRaw
 from .io.ctf.trans import _make_ctf_coord_trans_set
 from .io.kit.kit import RawKIT as _RawKIT
+from .io.kit.constants import KIT
 from .channels.channels import _get_meg_system
 from ._fiff.meas_info import _simplify_info, Info
 from ._fiff.pick import (
@@ -262,8 +264,6 @@ def extract_chpi_locs_kit(raw, stim_channel="MISC 064", *, verbose=None):
     -----
     .. versionadded:: 0.23
     """
-    from .io.kit.constants import KIT
-
     _validate_type(raw, (_RawKIT,), "raw")
     stim_chs = [
         raw.info["ch_names"][pick]
@@ -417,16 +417,21 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         key=lambda x: x["ident"],
     )  # ascending (dig) order
     if len(hpi_dig) == 0:  # CTF data, probably
+        msg = "HPIFIT: No HPI dig points, using hpifit result"
         hpi_dig = sorted(hpi_result["dig_points"], key=lambda x: x["ident"])
         if all(
             d["coord_frame"] in (FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_UNKNOWN)
             for d in hpi_dig
         ):
+            # Do not modify in place!
+            hpi_dig = copy.deepcopy(hpi_dig)
+            msg += " transformed to head coords"
             for dig in hpi_dig:
                 dig.update(
                     r=apply_trans(info["dev_head_t"], dig["r"]),
                     coord_frame=FIFF.FIFFV_COORD_HEAD,
                 )
+        logger.debug(msg)
 
     # zero-based indexing, dig->info
     # CTF does not populate some entries so we use .get here

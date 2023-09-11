@@ -46,7 +46,7 @@ def read_proj(fname, verbose=None):
 
     Returns
     -------
-    projs : list
+    projs : list of Projection
         The list of projection vectors.
 
     See Also
@@ -72,7 +72,7 @@ def write_proj(fname, projs, *, overwrite=False, verbose=None):
     fname : path-like
         The name of file containing the projections vectors. It should end with
         ``-proj.fif`` or ``-proj.fif.gz``.
-    projs : list
+    projs : list of Projection
         The list of projection vectors.
     %(overwrite)s
 
@@ -199,7 +199,7 @@ def compute_proj_epochs(
 
     Returns
     -------
-    projs: list
+    projs: list of Projection
         List of projection vectors.
 
     See Also
@@ -263,7 +263,7 @@ def compute_proj_evoked(
 
     Returns
     -------
-    projs : list
+    projs : list of Projection
         List of projection vectors.
 
     See Also
@@ -325,7 +325,7 @@ def compute_proj_raw(
 
     Returns
     -------
-    projs: list
+    projs: list of Projection
         List of projection vectors.
 
     See Also

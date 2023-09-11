@@ -2,15 +2,11 @@
 #
 # License: Simplified BSD
 
-import sys
 import pytest
 
 from mne.utils import _check_qt_version
 
 # These will skip all tests in this scope
-pytestmark = pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="nbexec does not work on Windows"
-)
 pytest.importorskip("nibabel")
 
 

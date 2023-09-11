@@ -19,12 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       - uses: psf/black@stable
       - uses: pre-commit/action@v3.0.0
+
+  bandit:
+    name: Bandit
+    needs: style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: davidslusser/actions_python_bandit@v1.0.0
+        with:
+          src: "mne"
+          options: "-c pyproject.toml -ll -r"
+          pip_install_command: "pip install bandit[toml]"
 
   pytest:
     name: '${{ matrix.os }} / ${{ matrix.kind }} / ${{ matrix.python }}'
@@ -67,7 +78,7 @@ jobs:
             python: '3.8'
             kind: old
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: ./tools/github_actions_env_vars.sh
@@ -95,7 +106,7 @@ jobs:
       - name: 'Install OSMesa VTK variant'
         run: |
           # TODO: As of 2023/02/28, notebook tests need a pinned mesalib
-          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
+          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "vtk-base>=9.2=*osmesa*" "mesalib=23.1.4"
           mamba list
         if: matrix.kind == 'notebook'
       - run: ./tools/github_actions_dependencies.sh

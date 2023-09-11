@@ -527,6 +527,13 @@ brain_kwargs : dict | None
 """
 
 docdict[
+    "brain_update"
+] = """
+update : bool
+    Force an update of the plot. Defaults to True.
+"""
+
+docdict[
     "browser"
 ] = """
 fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
@@ -1696,9 +1703,10 @@ fnirs : str | list | bool | None
 docdict[
     "focalpoint"
 ] = """
-focalpoint : tuple, shape (3,) | None
+focalpoint : tuple, shape (3,) | str | None
     The focal point of the camera rendering the view: (x, y, z) in
-    plot units (either m or mm).
+    plot units (either m or mm). When ``"auto"``, it is set to the center of
+    mass of the visible bounds.
 """
 
 docdict[
@@ -1983,7 +1991,7 @@ docdict[
 ] = """
 iir_params : dict | None
     Dictionary of parameters to use for IIR filtering.
-    If iir_params is None and method="iir", 4th order Butterworth will be used.
+    If ``iir_params=None`` and ``method="iir"``, 4th order Butterworth will be used.
     For more information, see :func:`mne.filter.construct_iir_filter`.
 """
 
@@ -2103,7 +2111,7 @@ docdict[
     "interp"
 ] = """
 interp : str
-    Either 'hann', 'cos2' (default), 'linear', or 'zero', the type of
+    Either ``'hann'``, ``'cos2'`` (default), ``'linear'``, or ``'zero'``, the type of
     forward-solution interpolation to use between forward solutions
     at different head positions.
 """
@@ -2113,8 +2121,8 @@ docdict[
 ] = """
 interpolation : str | None
     Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
-    Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
-    or 'cubic'.
+    Must be one of ``'linear'``, ``'nearest'``, ``'zero'``, ``'slinear'``,
+    ``'quadratic'`` or ``'cubic'``.
 """
 
 docdict[
@@ -2511,8 +2519,8 @@ docdict[
     "method_fir"
 ] = """
 method : str
-    'fir' will use overlap-add FIR filtering, 'iir' will use IIR
-    forward-backward filtering (via filtfilt).
+    ``'fir'`` will use overlap-add FIR filtering, ``'iir'`` will use IIR
+    forward-backward filtering (via :func:`~scipy.signal.filtfilt`).
 """
 
 docdict[
@@ -2658,7 +2666,7 @@ docdict[
     "n_jobs_cuda"
 ] = """
 n_jobs : int | str
-    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
+    Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
     is installed properly.
 """
 
@@ -2666,8 +2674,8 @@ docdict[
     "n_jobs_fir"
 ] = """
 n_jobs : int | str
-    Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
-    is installed properly and method='fir'.
+    Number of jobs to run in parallel. Can be ``'cuda'`` if ``cupy``
+    is installed properly and ``method='fir'``.
 """
 
 docdict[
@@ -2817,6 +2825,16 @@ docdict["notes_plot_*_psd_func"] = _notes_plot_psd.format("function")
 docdict["notes_plot_psd_meth"] = _notes_plot_psd.format("method")
 
 docdict[
+    "notes_spectrum_array"
+] = """
+It is assumed that the data passed in represent spectral *power* (not amplitude,
+phase, model coefficients, etc) and downstream methods (such as
+:meth:`~mne.time_frequency.SpectrumArray.plot`) assume power data. If you pass in
+something other than power, at the very least axis labels will be inaccurate (and
+other things may also not work or be incorrect).
+"""
+
+docdict[
     "notes_tmax_included_by_default"
 ] = """
 Unlike Python slices, MNE time intervals by default include **both**
@@ -2830,7 +2848,7 @@ docdict[
 ] = """
 npad : int | str
     Amount to pad the start and end of the data.
-    Can also be "auto" to use a padding that will result in
+    Can also be ``"auto"`` to use a padding that will result in
     a power-of-two size (can be much faster).
 """
 
@@ -3105,7 +3123,7 @@ docdict[
 pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
     PSFs/CTFs for the specified vertices. Arrays for multiple labels are
-    returned as list. Only returned if mode='svd' and return_pca_vars=True.
+    returned as list. Only returned if ``mode='svd'`` and ``return_pca_vars=True``.
 """
 
 docdict[
@@ -3130,9 +3148,10 @@ phase : str
     suppression.
     When ``method='iir'``, ``phase='zero'`` (default) or
     ``phase='zero-double'`` constructs and applies IIR filter twice, once
-    forward, and once backward (making it non-causal) using filtfilt.
+    forward, and once backward (making it non-causal) using
+    :func:`~scipy.signal.filtfilt`.
     If ``phase='forward'``, it constructs and applies forward IIR filter using
-    lfilter.
+    :func:`~scipy.signal.lfilter`.
 
     .. versionadded:: 0.13
 """
@@ -4568,6 +4587,13 @@ tmin : scalar
 """
 
 docdict[
+    "tmin_epochs"
+] = """
+tmin : float
+    Start time before event. If nothing provided, defaults to 0.
+"""
+
+docdict[
     "tmin_raw"
 ] = """
 tmin : float
@@ -4671,6 +4697,15 @@ tstep : scalar
 
 # %%
 # U
+
+docdict[
+    "ui_event_name_source"
+] = """
+name : str
+    The name of the event (same as its class name but in snake_case).
+source : matplotlib.figure.Figure | Figure3D
+    The figure that published the event.
+"""
 
 docdict[
     "uint16_codec"

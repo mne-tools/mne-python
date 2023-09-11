@@ -46,7 +46,7 @@ raw = concatenate_raws([read_raw_edf(f) for f in raw_fnames])
 # Extract information from the raw file
 sfreq = raw.info["sfreq"]
 events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
-raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude="bads")
+raw.pick(picks="eeg", exclude="bads")
 raw.load_data()
 
 # Assemble the classifier using scikit-learn pipeline

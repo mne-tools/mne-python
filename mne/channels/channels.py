@@ -25,6 +25,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 from scipy.spatial import Delaunay
 from scipy.stats import zscore
 
+from ..bem import _check_origin
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (
     verbose,
@@ -55,7 +56,6 @@ from .._fiff.pick import (
     pick_types,
     _picks_by_type,
     _check_excludes_includes,
-    _contains_ch_type,
     channel_indices_by_type,
     pick_channels,
     _picks_to_idx,
@@ -105,45 +105,6 @@ def _get_meg_system(info):
         system = "unknown"
         have_helmet = False
     return system, have_helmet
-
-
-# TODO: Deal with name dup with mne._fiff.reference._get_ch_type
-def _get_ch_type(inst, ch_type, allow_ref_meg=False):
-    """Choose a single channel type (usually for plotting).
-
-    Usually used in plotting to plot a single datatype, e.g. look for mags,
-    then grads, then ... to plot.
-    """
-    if ch_type is None:
-        allowed_types = [
-            "mag",
-            "grad",
-            "planar1",
-            "planar2",
-            "eeg",
-            "csd",
-            "fnirs_cw_amplitude",
-            "fnirs_fd_ac_amplitude",
-            "fnirs_fd_phase",
-            "fnirs_od",
-            "hbo",
-            "hbr",
-            "ecog",
-            "seeg",
-            "dbs",
-        ]
-        allowed_types += ["ref_meg"] if allow_ref_meg else []
-        for type_ in allowed_types:
-            if isinstance(inst, Info):
-                if _contains_ch_type(inst, type_):
-                    ch_type = type_
-                    break
-            elif type_ in inst:
-                ch_type = type_
-                break
-        else:
-            raise RuntimeError("No plottable channel types found")
-    return ch_type
 
 
 @verbose
@@ -231,6 +192,7 @@ def equalize_channels(instances, copy=True, verbose=None):
             else:
                 if copy:
                     inst = inst.copy()
+                # TODO change to .pick() once CSD, Cov, and Fwd have `.pick()` methods
                 inst.pick_channels(common_channels, ordered=True)
             if len(inst.ch_names) == len(common_channels):
                 reordered = True
@@ -385,8 +347,8 @@ class UpdateChannelsMixin:
 
         # remove dropped channel types from reject and flat
         if getattr(self, "reject", None) is not None:
-            # use list(self.reject) to avoid RuntimeError for changing
-            # dictionary size during iteration
+            # use list(self.reject) to avoid RuntimeError for changing dictionary size
+            # during iteration
             for ch_type in list(self.reject):
                 if ch_type not in self:
                     del self.reject[ch_type]
@@ -454,7 +416,22 @@ class UpdateChannelsMixin:
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude, allow_empty=False)
-        return self._pick_drop_channels(picks)
+        self._pick_drop_channels(picks)
+
+        # remove dropped channel types from reject and flat
+        if getattr(self, "reject", None) is not None:
+            # use list(self.reject) to avoid RuntimeError for changing dictionary size
+            # during iteration
+            for ch_type in list(self.reject):
+                if ch_type not in self:
+                    del self.reject[ch_type]
+
+        if getattr(self, "flat", None) is not None:
+            for ch_type in list(self.flat):
+                if ch_type not in self:
+                    del self.flat[ch_type]
+
+        return self
 
     def reorder_channels(self, ch_names):
         """Reorder channels.
@@ -803,7 +780,6 @@ class InterpolationMixin:
         -----
         .. versionadded:: 0.9.0
         """
-        from ..bem import _check_origin
         from .interpolation import (
             _interpolate_bads_eeg,
             _interpolate_bads_meeg,
@@ -1497,7 +1473,7 @@ def _compute_ch_adjacency(info, ch_type):
     ch_names : list
         The list of channel names present in adjacency matrix.
     """
-    from .. import spatial_tris_adjacency
+    from ..source_estimate import spatial_tris_adjacency
     from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
 
     combine_grads = ch_type == "grad" and any(
@@ -1795,7 +1771,8 @@ def combine_channels(
         is ``True``, also containing stimulus channels).
     """
     from ..io import BaseRaw, RawArray
-    from .. import BaseEpochs, EpochsArray, Evoked, EvokedArray
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..evoked import Evoked, EvokedArray
 
     ch_axis = 1 if isinstance(inst, BaseEpochs) else 0
     ch_idx = list(range(inst.info["nchan"]))

@@ -20,7 +20,7 @@ from .source_estimate import (
     _BaseSourceEstimate,
     _get_ico_tris,
 )
-from .source_space import SourceSpaces, _ensure_src, _grid_interp
+from .source_space._source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (
     logger,
@@ -116,7 +116,7 @@ def compute_source_morph(
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values. Can also be ``'nearest'`` to use the nearest
-        vertices on the surface (requires SciPy >= 1.3).
+        vertices on the surface.
 
         .. versionchanged:: 0.20
            Added support for 'nearest'.

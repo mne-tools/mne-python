@@ -169,7 +169,6 @@ peak_latency = (
         id_vars=["condition", "epoch"], var_name="channel", value_name="latency of peak"
     )
 )
-
 ax = sns.violinplot(
     x="channel",
     y="latency of peak",

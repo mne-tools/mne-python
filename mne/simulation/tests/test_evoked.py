@@ -54,7 +54,7 @@ def test_simulate_evoked():
     cov = read_cov(cov_fname)
 
     evoked_template = read_evokeds(ave_fname, condition=0, baseline=None)
-    evoked_template.pick_types(meg=True, eeg=True, exclude=raw.info["bads"])
+    evoked_template.pick(["meg", "eeg"], exclude=raw.info["bads"])
 
     cov = regularize(cov, evoked_template.info)
     nave = evoked_template.nave
@@ -158,7 +158,7 @@ def test_rank_deficiency():
         evoked.info["lowpass"] = 20  # fake for decim
     picks = pick_types(evoked.info, meg=True, eeg=False)
     picks = picks[::16]
-    evoked.pick_channels([evoked.ch_names[pick] for pick in picks])
+    evoked.pick([evoked.ch_names[pick] for pick in picks])
     evoked.info.normalize_proj()
     cov = read_cov(cov_fname)
     cov["projs"] = []
@@ -179,7 +179,7 @@ def test_order():
     """Test that order does not matter."""
     fwd = read_forward_solution(fwd_fname)
     fwd = convert_forward_solution(fwd, force_fixed=True, use_cps=False)
-    evoked = read_evokeds(ave_fname)[0].pick_types(meg=True, eeg=True)
+    evoked = read_evokeds(ave_fname)[0].pick(["meg", "eeg"])
     assert "meg" in evoked
     assert "eeg" in evoked
     meg_picks = pick_types(evoked.info, meg=True)

@@ -53,7 +53,7 @@ from .._fiff.tag import read_tag
 from .._fiff.meas_info import write_meas_info, read_meas_info, ContainsMixin
 from .._fiff.constants import FIFF
 from .._fiff.write import start_and_end_file, write_id
-from .._fiff.pick import pick_channels_regexp, _picks_by_type
+from .._fiff.pick import pick_channels_regexp, _picks_by_type, _contains_ch_type
 from ..io import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
 
@@ -67,7 +67,6 @@ from ..viz import (
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
 from ..utils import (
     logger,
@@ -3447,13 +3446,16 @@ def corrmap(
 
 
 @verbose
-def read_ica_eeglab(fname, *, verbose=None):
+def read_ica_eeglab(fname, *, montage_units="auto", verbose=None):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
     fname : path-like
         Complete path to a ``.set`` EEGLAB file that contains an ICA object.
+    %(montage_units)s
+
+        .. versionadded:: 1.6
     %(verbose)s
 
     Returns
@@ -3462,7 +3464,7 @@ def read_ica_eeglab(fname, *, verbose=None):
         An ICA object based on the information contained in the input file.
     """
     eeg = _check_load_mat(fname, None)
-    info, eeg_montage, _ = _get_info(eeg)
+    info, eeg_montage, _ = _get_info(eeg, eog=(), montage_units=montage_units)
     info.set_montage(eeg_montage)
     pick_info(info, np.round(eeg["icachansind"]).astype(int) - 1, copy=False)
 

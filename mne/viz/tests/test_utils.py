@@ -135,7 +135,7 @@ def test_auto_scale():
     with pytest.raises(ValueError, match="Must supply either Raw or Epochs"):
         _compute_scalings(scalings_def, rand_data)
     epochs = epochs[0].load_data()
-    epochs.pick_types(eeg=True, meg=False)
+    epochs.pick(picks="eeg")
 
 
 def test_validate_if_list_of_axes():
