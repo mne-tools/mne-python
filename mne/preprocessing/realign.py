@@ -119,7 +119,7 @@ def realign_raw(raw, other, t_raw, t_other, realign_annot=False, verbose=None):
         other.info["sfreq"] = raw.info["sfreq"]
 
     # 4. Realign the onsets and durations in other.annotations
-    # Must be ahead of end cropping to avoid losing annotations
+    # Must happen before end cropping to avoid losing annotations
     if realign_annot:
         logger.info("Correcting annotations in other")
         other.annotations.onset *= first_ord
