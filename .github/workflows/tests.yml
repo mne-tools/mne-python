@@ -106,7 +106,7 @@ jobs:
       - name: 'Install OSMesa VTK variant'
         run: |
           # TODO: As of 2023/02/28, notebook tests need a pinned mesalib
-          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "mesalib=21.2.5"
+          mamba install -c conda-forge "vtk>=9.2=*osmesa*" "vtk-base>=9.2=*osmesa*" "mesalib=23.1.4"
           mamba list
         if: matrix.kind == 'notebook'
       - run: ./tools/github_actions_dependencies.sh
