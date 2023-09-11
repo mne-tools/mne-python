@@ -123,14 +123,10 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other, test
             events_other[:, 0] / other.info["sfreq"],
             atol=1 / sfreq,
         )
-        onsets_raw, dur_raw = (
-            raw.annotations.onset - raw.first_samp / sfreq,
-            raw.annotations.duration,
-        )
-        onsets_other, dur_other = (
-            other.annotations.onset - other.first_samp / sfreq,
-            raw.annotations.duration,
-        )
+        onsets_raw = raw.annotations.onset - raw.first_samp / sfreq
+        dur_raw = raw.annotations.duration
+        onsets_other = other.annotations.onset - other.first_samp / sfreq
+        dur_other = other.annotations.duration
         assert_allclose(onsets_raw, onsets_other, atol=1 / sfreq)
         assert_allclose(dur_raw, dur_other, atol=1 / sfreq)
 
