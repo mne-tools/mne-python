@@ -657,7 +657,7 @@ def test_make_forward_dipole(tmp_path):
 
     # Only use magnetometers for speed!
     picks = pick_types(evoked.info, meg="mag", eeg=False)[::8]
-    evoked.pick_channels([evoked.ch_names[p] for p in picks])
+    evoked.pick([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     info = evoked.info
 

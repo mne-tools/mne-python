@@ -1403,12 +1403,12 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "bads": _check_bads,
         "ch_names": "ch_names cannot be set directly. "
         "Please use methods inst.add_channels(), "
-        "inst.drop_channels(), inst.pick_channels(), "
+        "inst.drop_channels(), inst.pick(), "
         "inst.rename_channels(), inst.reorder_channels() "
         "and inst.set_channel_types() instead.",
         "chs": "chs cannot be set directly. "
         "Please use methods inst.add_channels(), "
-        "inst.drop_channels(), inst.pick_channels(), "
+        "inst.drop_channels(), inst.pick(), "
         "inst.rename_channels(), inst.reorder_channels() "
         "and inst.set_channel_types() instead.",
         "command_line": "command_line cannot be set directly.",
@@ -1449,7 +1449,7 @@ class Info(dict, SetChannelsMixin, MontageMixin, ContainsMixin):
         "mri_id": "mri_id cannot be set directly.",
         "nchan": "nchan cannot be set directly. "
         "Please use methods inst.add_channels(), "
-        "inst.drop_channels(), and inst.pick_channels() instead.",
+        "inst.drop_channels(), and inst.pick() instead.",
         "proc_history": "proc_history cannot be set directly.",
         "proj_id": "proj_id cannot be set directly.",
         "proj_name": "proj_name cannot be set directly.",

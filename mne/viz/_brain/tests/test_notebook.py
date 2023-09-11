@@ -4,15 +4,8 @@
 # NOTE: Tests in this directory must be self-contained because they are
 # executed in a separate IPython kernel.
 
-import sys
 import pytest
 from mne.datasets import testing
-
-
-# This will skip all tests in this scope
-pytestmark = pytest.mark.skipif(
-    sys.platform.startswith("win"), reason="nbexec does not work on Windows"
-)
 
 
 @testing.requires_testing_data

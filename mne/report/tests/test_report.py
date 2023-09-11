@@ -130,7 +130,7 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     evoked_fname = tmp_path / "temp-ave.fif"
     # Speed it up by picking channels
     raw = read_raw_fif(raw_fname_new)
-    raw.pick_channels(["MEG 0111", "MEG 0121", "EEG 001", "EEG 002"])
+    raw.pick(["MEG 0111", "MEG 0121", "EEG 001", "EEG 002"])
     raw.del_proj()
     raw.set_eeg_reference(projection=True).load_data()
     epochs = Epochs(raw, read_events(events_fname), 1, -0.2, 0.2)
@@ -882,7 +882,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
 
     r = Report(title="My Report")
     raw = read_raw_fif(raw_fname)
-    raw.pick_channels(raw.ch_names[:6]).crop(10, None)
+    raw.pick(raw.ch_names[:6]).crop(10, None)
     raw.info.normalize_proj()
     cov = read_cov(cov_fname)
     cov = pick_channels_cov(cov, raw.ch_names)

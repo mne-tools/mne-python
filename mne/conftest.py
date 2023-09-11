@@ -143,6 +143,7 @@ def pytest_configure(config):
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
+    ignore:Proactor event loop does not implement:RuntimeWarning
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
@@ -285,7 +286,7 @@ def raw():
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match="unit"):
         raw.set_channel_types({raw.ch_names[0]: "ias"})
-    raw.pick_channels(raw.ch_names[:9])
+    raw.pick(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
 
@@ -416,7 +417,7 @@ def bias_params_fixed(evoked, noise_cov):
 
 
 def _bias_params(evoked, noise_cov, fwd):
-    evoked.pick_types(meg=True, eeg=True, exclude=())
+    evoked.pick(picks=["meg", "eeg"])
     # restrict to limited set of verts (small src here) and one hemi for speed
     vertices = [fwd["src"][0]["vertno"].copy(), []]
     stc = mne.SourceEstimate(
@@ -654,8 +655,8 @@ def subjects_dir_tmp_few(tmp_path):
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types(meg=True)
-    evoked.pick_channels(evoked.ch_names[::4])
+    evoked = _evoked.copy().pick(picks="meg")
+    evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
     sphere = mne.make_sphere_model("auto", "auto", evoked.info)

@@ -55,7 +55,7 @@ def test_get_inst_data():
     raw = read_raw_fif(fname_raw)
     raw.crop(tmax=1.0)
     assert_array_equal(_get_inst_data(raw), raw._data)
-    raw.pick_channels(raw.ch_names[:2])
+    raw.pick(raw.ch_names[:2])
 
     epochs = make_fixed_length_epochs(raw, 0.5)
     assert_array_equal(_get_inst_data(epochs), epochs._data)
@@ -229,7 +229,7 @@ def test_cov_scaling():
     cov2 = read_cov(cov_fname)["data"]
 
     assert_array_equal(cov, cov2)
-    evoked.pick_channels(
+    evoked.pick(
         [evoked.ch_names[k] for k in pick_types(evoked.info, meg=True, eeg=True)]
     )
     picks_list = _picks_by_type(evoked.info)
