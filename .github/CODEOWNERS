@@ -14,47 +14,92 @@
 
 # Each line is a file pattern followed by one or more owners.
 # Syntax follows .gitignore, see https://git-scm.com/docs/gitignore#_pattern_format
-# Headings ideally should correspond to domains of knowledge/expertise.
+
+# Headings ideally should correspond to domains of knowledge/expertise, starting with
+# algorithms implementations (generally main codebase mne/ and related docs) followed by
+# project-level and miscellaneous items (CI, general documentation, etc.).
+
+#################################################
+# Algorithms, implementations, and related docs #
+#################################################
+
+# Artifact regression
+/mne/preprocessing/_regress.py @wmvanvliet @cbrnr
+/mne/preprocessing/tests/test_regress.py @wmvanvliet
 
 # Beamforming
 /mne/beamformer @britta-wstnr
-*dics*.py @britta-wstnr  # related tutorials and examples
+*dics*.py @britta-wstnr @wmvanvliet # related tutorials and examples
 *lcmv*.py @britta-wstnr
+
+# Channels
+/mne/channels @cbrnr
+
+# Core sensor-space classes
+/mne/epochs.py @drammock
+/mne/evoked.py @drammock
+/mne/io/*.* @drammock @cbrnr
+
+# Current-source density
+/mne/preprocessing/_csd.py  @alexrockhill
+
+# Decoding
+/mne/decoding/csp.py @cbrnr
 
 # fNIRS
 /mne/preprocessing/nirs @rob-luke
 *fnirs*.py @rob-luke
 
+# Intracranial
+/mne/preprocessing/ieeg @alexrockhill
+*seeg*.py @alexrockhill
+*ecog*.py @alexrockhill
+
 # IO
-/mne/io/brainvision @sappelhoff
+/mne/io/brainvision @sappelhoff @cbrnr
 /mne/io/nirx @rob-luke
 /mne/io/snirf @rob-luke
-/mne/export @sappelhoff
+/mne/export @sappelhoff @cbrnr
 
-# Viz
-/mne/viz @drammock
-/mne/viz/_brain @larsoner
-/tutorials/visualization @larsoner
-/examples/visualization @larsoner
+# Preprocessing
+/mne/preprocessing/ica.py @cbrnr
+/mne/preprocessing/infomax_.py @cbrnr
 
-# Core sensor-space classes
-/mne/epochs.py @drammock
-/mne/evoked.py @drammock
-/mne/io/*.* @drammock
+# Report
+/mne/report @hoechenberger
+
+# Surface + transforms
+/mne/surface.py @alexrockhill @larsoner
+/mne/transforms.py @alexrockhill @larsoner
+/mne/_freesurfer.py @alexrockhill @larsoner
 
 # TFR
-/mne/time_frequency @drammock
+/mne/time_frequency @drammock @cbrnr
 
-# Project infrastructure and CIs
-/*.* @larsoner @drammock  # files in the root directory
-/.circleci @larsoner
-/.github @larsoner
-/tools @larsoner @drammock
+# Viz
+/mne/viz @drammock @cbrnr
+/mne/viz/_brain @larsoner @wmvanvliet
+/mne/viz/ui_events.py @wmvanvliet
+/tutorials/visualization @larsoner @wmvanvliet
+/examples/visualization @larsoner
 
-# Examples and Tutorials
+#########################
+# Project-level / other #
+#########################
+
+# Examples and tutorials
 /examples @drammock
 /tutorials @drammock
 
 # Non-tutorial documentation text and infrastructure
 /doc @larsoner @drammock
 /logo @drammock
+
+# Installation documentation
+/doc/install @hoechenberger
+
+# Project infrastructure and CIs
+/*.* @larsoner @drammock  # files in the root directory
+/.circleci @larsoner
+/.github @larsoner @cbrnr
+/tools @larsoner @drammock
