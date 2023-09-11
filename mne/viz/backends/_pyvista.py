@@ -13,6 +13,7 @@ Actual implementation of _Renderer and _Projection classes.
 
 from contextlib import contextmanager
 from inspect import signature
+import platform
 import re
 import sys
 import warnings
@@ -1383,6 +1384,8 @@ def _is_mesa(plotter):
     # MESA (could use GPUInfo / _get_gpu_info here, but it takes
     # > 700 ms to make a new window + report capabilities!)
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+    if platform.system() != "Linux":
+        return False
     gpu_info_full = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",
