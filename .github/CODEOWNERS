@@ -46,6 +46,10 @@
 # Decoding
 /mne/decoding/csp.py @cbrnr
 
+# fNIRS
+/mne/preprocessing/nirs @rob-luke
+*fnirs*.py @rob-luke
+
 # Intracranial
 /mne/preprocessing/ieeg @alexrockhill
 *seeg*.py @alexrockhill
@@ -53,6 +57,8 @@
 
 # IO
 /mne/io/brainvision @sappelhoff @cbrnr
+/mne/io/nirx @rob-luke
+/mne/io/snirf @rob-luke
 /mne/export @sappelhoff @cbrnr
 
 # Preprocessing
