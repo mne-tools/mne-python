@@ -24,7 +24,7 @@
 #################################################
 
 # Artifact regression
-/mne/preprocessing/_regress.py @wmvanvliet
+/mne/preprocessing/_regress.py @wmvanvliet @cbrnr
 /mne/preprocessing/tests/test_regress.py @wmvanvliet
 
 # Beamforming
@@ -32,13 +32,23 @@
 *dics*.py @britta-wstnr @wmvanvliet # related tutorials and examples
 *lcmv*.py @britta-wstnr
 
+# Channels
+/mne/channels @cbrnr
+
 # Core sensor-space classes
 /mne/epochs.py @drammock
 /mne/evoked.py @drammock
-/mne/io/*.* @drammock
+/mne/io/*.* @drammock @cbrnr
 
 # Current-source density
 /mne/preprocessing/_csd.py  @alexrockhill
+
+# Decoding
+/mne/decoding/csp.py @cbrnr
+
+# fNIRS
+/mne/preprocessing/nirs @rob-luke
+*fnirs*.py @rob-luke
 
 # Intracranial
 /mne/preprocessing/ieeg @alexrockhill
@@ -46,8 +56,17 @@
 *ecog*.py @alexrockhill
 
 # IO
-/mne/io/brainvision @sappelhoff
-/mne/export @sappelhoff
+/mne/io/brainvision @sappelhoff @cbrnr
+/mne/io/nirx @rob-luke
+/mne/io/snirf @rob-luke
+/mne/export @sappelhoff @cbrnr
+
+# Preprocessing
+/mne/preprocessing/ica.py @cbrnr
+/mne/preprocessing/infomax_.py @cbrnr
+
+# Report
+/mne/report @hoechenberger
 
 # Surface + transforms
 /mne/surface.py @alexrockhill @larsoner
@@ -55,10 +74,10 @@
 /mne/_freesurfer.py @alexrockhill @larsoner
 
 # TFR
-/mne/time_frequency @drammock
+/mne/time_frequency @drammock @cbrnr
 
 # Viz
-/mne/viz @drammock
+/mne/viz @drammock @cbrnr
 /mne/viz/_brain @larsoner @wmvanvliet
 /mne/viz/ui_events.py @wmvanvliet
 /tutorials/visualization @larsoner @wmvanvliet
@@ -76,8 +95,11 @@
 /doc @larsoner @drammock
 /logo @drammock
 
+# Installation documentation
+/doc/install @hoechenberger
+
 # Project infrastructure and CIs
 /*.* @larsoner @drammock  # files in the root directory
 /.circleci @larsoner
-/.github @larsoner
+/.github @larsoner @cbrnr
 /tools @larsoner @drammock
