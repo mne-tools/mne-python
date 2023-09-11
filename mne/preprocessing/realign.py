@@ -107,10 +107,10 @@ def realign_raw(raw, other, t_raw, t_other, *, realign_annot=False, verbose=None
     ]
     if len(nan_ch_names) > 0:  # Issue warning if any channel in other has nan values
         warn(
-            f"Channel(s) {', '.join(nan_ch_names)} in other contain NaN values\n"
-            + "Resampling these channels will result in empty data\n"
-            + "(If realigning eye-tracking data, "
-            + "consider using interpolate_blinks and passing interpolate_gaze=True)"
+            f"Channel(s) {', '.join(nan_ch_names)} in `other` contain NaN values. "
+            "Resampling these channels will result in the whole channel being NaN. "
+            "(If realigning eye-tracking data, consider using interpolate_blinks and "
+            "passing interpolate_gaze=True)"
         )
     logger.info("Resampling other")
     sfreq_new = raw.info["sfreq"] * first_ord
