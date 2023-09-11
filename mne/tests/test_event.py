@@ -402,7 +402,7 @@ def test_find_events():
 
     # test error message for raw without stim channels
     raw = read_raw_fif(raw_fname, preload=True)
-    raw.pick_types(meg=True, stim=False)
+    raw.pick(picks="meg")
     # raw does not have annotations
     with pytest.raises(ValueError, match="'stim_channel'"):
         find_events(raw)
@@ -582,18 +582,17 @@ def test_acqparser_averaging():
             fname_ave_elekta, cat["comment"], baseline=(-0.05, 0), proj=False
         )
         ev_mag = ev.copy()
-        ev_mag.pick_channels(["MEG0111"])
+        ev_mag.pick(["MEG0111"])
         ev_grad = ev.copy()
-        ev_grad.pick_channels(["MEG2643", "MEG1622"])
+        ev_grad.pick(["MEG2643", "MEG1622"])
         ev_ref_mag = ev_ref.copy()
-        ev_ref_mag.pick_channels(["MEG0111"])
+        ev_ref_mag.pick(["MEG0111"])
         ev_ref_grad = ev_ref.copy()
-        ev_ref_grad.pick_channels(["MEG2643", "MEG1622"], ordered=False)
+        ev_ref_grad.pick(["MEG2643", "MEG1622"])
         assert_allclose(ev_mag.data, ev_ref_mag.data, rtol=0, atol=1e-15)  # tol = 1 fT
-        # Elekta put these in a different order
-        assert ev_grad.ch_names[::-1] == ev_ref_grad.ch_names
+        assert ev_grad.ch_names == ev_ref_grad.ch_names
         assert_allclose(
-            ev_grad.data[::-1], ev_ref_grad.data, rtol=0, atol=1e-13
+            ev_grad.data, ev_ref_grad.data, rtol=0, atol=1e-13
         )  # tol = 1 fT/cm
 
 

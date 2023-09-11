@@ -114,7 +114,7 @@ def test_plot_joint():
 
     # test proj options
     assert len(evoked.info["projs"]) == 0
-    evoked.pick_types(meg=True)
+    evoked.pick(picks="meg")
     evoked.add_proj(compute_proj_evoked(evoked, n_mag=1, n_grad=1, meg="combined"))
     assert len(evoked.info["projs"]) == 1
     with pytest.raises(ValueError, match="must match ts_args"):
@@ -125,13 +125,13 @@ def test_plot_joint():
     plt.close("all")
 
     # test sEEG (gh:8733)
-    evoked.del_proj().pick_types("mag")  # avoid overlapping positions error
+    evoked.del_proj().pick("mag")  # avoid overlapping positions error
     mapping = {ch_name: "seeg" for ch_name in evoked.ch_names}
     evoked.set_channel_types(mapping, on_unit_change="ignore")
     evoked.plot_joint()
 
     # test DBS (gh:8739)
-    evoked = _get_epochs().average().pick_types("mag")
+    evoked = _get_epochs().average().pick("mag")
     mapping = {ch_name: "dbs" for ch_name in evoked.ch_names}
     evoked.set_channel_types(mapping, on_unit_change="ignore")
     evoked.plot_joint()
@@ -163,9 +163,9 @@ def test_plot_topo():
             [evoked, evoked], merge_grads=True, color=np.array(["blue", "red"])
         )
 
-    picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
-    picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
-    picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])
+    picked_evoked = evoked.copy().pick(evoked.ch_names[:3])
+    picked_evoked_eeg = evoked.copy().pick(picks="eeg")
+    picked_evoked_eeg.pick(picked_evoked_eeg.ch_names[:3])
 
     # test scaling
     for ylim in [dict(mag=[-600, 600]), None]:
@@ -217,7 +217,7 @@ def test_plot_topo():
     plt.close("all")
     cov = read_cov(cov_fname)
     cov["projs"] = []
-    evoked.pick_types(meg=True).plot_topo(noise_cov=cov)
+    evoked.pick(picks="meg").plot_topo(noise_cov=cov)
     plt.close("all")
 
     # Test exclude parameter
@@ -285,7 +285,7 @@ def test_plot_topo_image_epochs():
     _fake_click(fig, fig.axes[0], (0.08, 0.64))
     assert num_figures_before + 1 == len(plt.get_fignums())
     # test for auto-showing a colorbar when only 1 sensor type
-    ep = epochs.copy().pick_types(meg=False, eeg=True)
+    ep = epochs.copy().pick(picks="eeg")
     fig = plot_topo_image_epochs(ep, vmin=None, vmax=None, colorbar=None, cmap=cmap)
     ax = [x for x in fig.get_children() if isinstance(x, matplotlib.axes.Axes)]
     # include inset axes (newer MPL)

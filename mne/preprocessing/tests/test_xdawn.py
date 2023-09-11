@@ -132,7 +132,7 @@ def test_xdawn_apply_transform():
     """Test Xdawn apply and transform."""
     # Get data
     raw, events, picks = _get_data()
-    raw.pick_types(eeg=True, meg=False)
+    raw.pick(picks="eeg")
     epochs = Epochs(
         raw,
         events,
@@ -183,7 +183,7 @@ def test_xdawn_regularization():
     picks = pick_types(
         raw.info, meg=True, eeg=False, stim=False, ecg=False, eog=False, exclude="bads"
     )[::8]
-    raw.pick_channels([raw.ch_names[pick] for pick in picks])
+    raw.pick([raw.ch_names[pick] for pick in picks])
     del picks
     raw.info.normalize_proj()
     epochs = Epochs(

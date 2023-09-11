@@ -570,7 +570,7 @@ class _DistanceQuery:
     """Wrapper for fast distance queries."""
 
     def __init__(self, xhs, method="BallTree", allow_kdtree=False):
-        assert method in ("BallTree", "cKDTree", "cdist")
+        assert method in ("BallTree", "KDTree", "cdist")
 
         # Fastest for our problems: balltree
         if method == "BallTree":
@@ -581,7 +581,7 @@ class _DistanceQuery:
                     "Nearest-neighbor searches will be significantly "
                     "faster if scikit-learn is installed."
                 )
-                method = "cKDTree"
+                method = "KDTree"
             else:
                 self.query = partial(
                     _safe_query,
@@ -590,18 +590,11 @@ class _DistanceQuery:
                     return_distance=True,
                 )
 
-        # Then cKDTree
-        if method == "cKDTree":
-            try:
-                from scipy.spatial import cKDTree
-            except ImportError:
-                method = "cdist"
-            else:
-                self.query = cKDTree(xhs).query
+        # Then KDTree
+        if method == "KDTree":
+            from scipy.spatial import KDTree
 
-        # KDTree is really only faster for huge (~100k) sets,
-        # (e.g., with leafsize=2048), and it's slower for small (~5k)
-        # sets. We can add it later if we think it will help.
+            self.query = KDTree(xhs).query
 
         # Then the worst: cdist
         if method == "cdist":
@@ -1408,7 +1401,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
     sphere_rr, _ = read_surface(qsphere)
     norms = np.linalg.norm(sphere_rr, axis=1, keepdims=True)
     sphere_rr /= norms
-    idx = _compute_nearest(sphere_rr, ico_surf["rr"], method="cKDTree")
+    idx = _compute_nearest(sphere_rr, ico_surf["rr"], method="KDTree")
     n_dup = len(idx) - len(np.unique(idx))
     if n_dup:
         raise RuntimeError(

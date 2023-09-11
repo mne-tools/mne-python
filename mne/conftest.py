@@ -143,6 +143,7 @@ def pytest_configure(config):
     ignore:Widget\..* is deprecated\.:DeprecationWarning
     ignore:.*is deprecated in pyzmq.*:DeprecationWarning
     ignore:The `ipykernel.comm.Comm` class has been deprecated.*:DeprecationWarning
+    ignore:Proactor event loop does not implement:RuntimeWarning
     # PySide6
     ignore:Enum value .* is marked as deprecated:DeprecationWarning
     ignore:Function.*is marked as deprecated, please check the documentation.*:DeprecationWarning
@@ -285,7 +286,7 @@ def raw():
     # Throws a warning about a changed unit.
     with pytest.warns(RuntimeWarning, match="unit"):
         raw.set_channel_types({raw.ch_names[0]: "ias"})
-    raw.pick_channels(raw.ch_names[:9])
+    raw.pick(raw.ch_names[:9])
     raw.info.normalize_proj()  # Fix projectors after subselection
     return raw
 
@@ -416,7 +417,7 @@ def bias_params_fixed(evoked, noise_cov):
 
 
 def _bias_params(evoked, noise_cov, fwd):
-    evoked.pick_types(meg=True, eeg=True, exclude=())
+    evoked.pick(picks=["meg", "eeg"])
     # restrict to limited set of verts (small src here) and one hemi for speed
     vertices = [fwd["src"][0]["vertno"].copy(), []]
     stc = mne.SourceEstimate(
@@ -654,8 +655,8 @@ def subjects_dir_tmp_few(tmp_path):
 @pytest.fixture(scope="session", params=[testing._pytest_param()])
 def _evoked_cov_sphere(_evoked):
     """Compute a small evoked/cov/sphere combo for use with forwards."""
-    evoked = _evoked.copy().pick_types(meg=True)
-    evoked.pick_channels(evoked.ch_names[::4])
+    evoked = _evoked.copy().pick(picks="meg")
+    evoked.pick(evoked.ch_names[::4])
     assert len(evoked.ch_names) == 77
     cov = mne.read_cov(fname_cov)
     sphere = mne.make_sphere_model("auto", "auto", evoked.info)
@@ -987,7 +988,7 @@ def _nbclient():
         from jupyter_client import AsyncKernelManager
         from nbclient import NotebookClient
         from ipywidgets import Button  # noqa
-        import ipyvtklink  # noqa
+        import trame  # noqa
     except Exception as exc:
         return pytest.skip(f"Skipping Notebook test: {exc}")
     km = AsyncKernelManager(config=None)
@@ -1033,14 +1034,26 @@ def _nbclient():
 def nbexec(_nbclient):
     """Execute Python code in a notebook."""
     # Adapted/simplified from nbclient/client.py (BSD-3-Clause)
+    from nbclient.exceptions import CellExecutionError
+
     _nbclient._cleanup_kernel()
 
     def execute(code, reset=False):
         _nbclient.reset_execution_trackers()
         with _nbclient.setup_kernel():
             assert _nbclient.kc is not None
-            cell = Bunch(cell_type="code", metadata={}, source=dedent(code))
-            _nbclient.execute_cell(cell, 0, execution_count=0)
+            cell = Bunch(cell_type="code", metadata={}, source=dedent(code), outputs=[])
+            try:
+                _nbclient.execute_cell(cell, 0, execution_count=0)
+            except CellExecutionError:  # pragma: no cover
+                for kind in ("stdout", "stderr"):
+                    print(
+                        "\n".join(
+                            o["text"] for o in cell.outputs if o.get("name", "") == kind
+                        ),
+                        file=getattr(sys, kind),
+                    )
+                raise
             _nbclient.set_widgets_metadata()
 
     yield execute

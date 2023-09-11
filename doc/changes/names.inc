@@ -34,6 +34,8 @@
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
+.. _Andrew Gilbert: https://github.com/adgilbert
+
 .. _Andrew Quinn: https://github.com/ajquinn
 
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan

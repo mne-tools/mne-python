@@ -47,7 +47,9 @@ dependencies:
   - ipyevents
   - ipywidgets
   - ipympl
-  - ipyvtklink
+  - trame
+  - trame-vtk
+  - trame-vuetify
   - jupyter_client
   - nbformat
   - nbclient

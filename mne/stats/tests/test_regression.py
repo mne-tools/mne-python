@@ -90,7 +90,7 @@ def test_continuous_regression_no_overlap():
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)
 
-    raw = raw.pick_channels(raw.ch_names[:2])
+    raw = raw.pick(raw.ch_names[:2])
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, baseline=None, reject=None)
 

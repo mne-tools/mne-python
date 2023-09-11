@@ -310,7 +310,7 @@ def test_pick_seeg_ecog():
         baseline=(0, 0),
     )  # only one sample
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
-    e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
+    e_seeg = evoked.copy().pick(picks="seeg")
     for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
         assert lt == rt
     # Deal with constant debacle
@@ -340,7 +340,7 @@ def test_pick_dbs():
         baseline=(0, 0),
     )  # only one sample
     evoked = epochs.average(pick_types(epochs.info, meg=True, dbs=True))
-    e_dbs = evoked.copy().pick_types(meg=False, dbs=True)
+    e_dbs = evoked.copy().pick(picks="dbs")
     for lt, rt in zip(e_dbs.ch_names, [names[4], names[5], names[6]]):
         assert lt == rt
     raw = read_raw_fif(io_dir / "tests" / "data" / "test_chpi_raw_sss.fif")
@@ -521,14 +521,14 @@ def test_picks_by_channels():
     names = ["MEG 002", "MEG 002"]
     assert len(pick_channels(raw.info["ch_names"], names, ordered=False)) == 1
     with pytest.warns(FutureWarning, match="ordered=False"):
-        assert len(raw.copy().pick_channels(names)[0][0]) == 1
+        assert len(raw.copy().pick_channels(names)[0][0]) == 1  # legacy method OK here
 
     # missing ch_name
     bad_names = names + ["BAD"]
     with pytest.raises(ValueError, match="Missing channels"):
         pick_channels(raw.info["ch_names"], bad_names, ordered=True)
     with pytest.raises(ValueError, match="Missing channels"):
-        raw.copy().pick_channels(bad_names, ordered=True)
+        raw.copy().pick_channels(bad_names, ordered=True)  # legacy method OK here
     with pytest.raises(ValueError, match="could not be picked"):
         raw.copy().pick(bad_names)
 
@@ -722,7 +722,7 @@ def test_pick_types_csd():
     assert_array_equal(pick_types(info1, csd=True), [7])
 
     # pick from the raw object
-    assert raw_csd.copy().pick_types(csd=True).ch_names == [
+    assert raw_csd.copy().pick("csd").ch_names == [
         "F1",
         "F2",
         "C1",

@@ -99,7 +99,7 @@ def _get_data():
     left_temporal_channels = read_vectorview_selection("Left-temporal")
     picks = mne.pick_types(raw.info, meg=True, selection=left_temporal_channels)
     picks = picks[::2]
-    raw.pick_channels([raw.ch_names[ii] for ii in picks])
+    raw.pick([raw.ch_names[ii] for ii in picks])
     del picks
 
     raw.info.normalize_proj()  # avoid projection warnings
@@ -156,7 +156,7 @@ def test_check_info_inv():
     assert 0 not in picks
 
     # pick channels in all inputs and make sure common set is returned
-    epochs.pick_channels([epochs.ch_names[ii] for ii in range(10)])
+    epochs.pick([epochs.ch_names[ii] for ii in range(10)])
     data_cov = pick_channels_cov(
         data_cov, include=[data_cov.ch_names[ii] for ii in range(5, 20)]
     )

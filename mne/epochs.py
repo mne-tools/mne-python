@@ -1259,7 +1259,7 @@ class BaseEpochs(
         # pick channels
         picks = _picks_to_idx(self.info, picks, "data_or_ica", ())
         ch_names = [evoked.ch_names[p] for p in picks]
-        evoked.pick_channels(ch_names)
+        evoked.pick(ch_names)
 
         if len(evoked.info["ch_names"]) == 0:
             raise ValueError("No data channel found when averaging.")
