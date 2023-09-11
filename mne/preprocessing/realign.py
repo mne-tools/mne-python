@@ -12,7 +12,7 @@ from ..utils import _validate_type, warn, logger, verbose
 
 
 @verbose
-def realign_raw(raw, other, t_raw, t_other, realign_annot=False, verbose=None):
+def realign_raw(raw, other, t_raw, t_other, *, realign_annot=False, verbose=None):
     """Realign two simultaneous recordings.
 
     Due to clock drift, recordings at a given same sample rate made by two
