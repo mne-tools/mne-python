@@ -406,6 +406,9 @@ class _TimeInteraction:
         self._fig = fig
         self._current_time_func = current_time_func
         self._times = times
+        self._init_time = current_time_func()
+        self._init_playback_speed = init_playback_speed
+        self._playback_speed_range = playback_speed_range
 
         if not hasattr(self, "_dock"):
             self._dock_initialize()
@@ -460,13 +463,7 @@ class _TimeInteraction:
 
         # Tool bar buttons
         self._widgets["reset"] = self._tool_bar_add_button(
-            name="reset",
-            desc="Reset",
-            func=partial(
-                self._reset_time,
-                init_time=current_time_func(),
-                init_playback_speed=init_playback_speed,
-            ),
+            name="reset", desc="Reset", func=partial(self._reset_time)
         )
         self._widgets["play"] = self._tool_bar_add_play_button(
             name="play",
@@ -538,12 +535,12 @@ class _TimeInteraction:
         else:
             self._tool_bar_update_button_icon(name="play", icon_name="play")
 
-    def _reset_time(self, init_time, init_playback_speed):
-        """Reset time to given initial time."""
+    def _reset_time(self):
+        """Reset time and playback speed to initial values."""
         from ..ui_events import publish, TimeChange, PlaybackSpeed
 
-        publish(self._fig, TimeChange(time=init_time))
-        publish(self._fig, PlaybackSpeed(speed=init_playback_speed))
+        publish(self._fig, TimeChange(time=self._init_time))
+        publish(self._fig, PlaybackSpeed(speed=self.init_playback_speed))
 
     @safe_event
     def _play(self):
