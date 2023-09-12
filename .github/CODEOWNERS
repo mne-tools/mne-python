@@ -78,7 +78,7 @@
 /mne/preprocessing/infomax_.py @cbrnr @adam2392 @mscheltienne
 /mne/preprocessing/.*annotate.*py @mscheltienne
 /mne/preprocessing/bads.py @mscheltienne
-/mne/preprocessing/e.g.py @mscheltienne
+/mne/preprocessing/e*g.py @mscheltienne
 
 # Report
 /mne/report @hoechenberger
