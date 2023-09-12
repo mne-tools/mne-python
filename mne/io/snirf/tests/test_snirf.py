@@ -509,6 +509,7 @@ def test_birthday(tmp_path, monkeypatch):
 def test_sample_rate_jitter(tmp_path):
     """Test birthday parsing."""
     from shutil import copy2
+
     # Create a clean copy and ensure it loads without error
     new_file = tmp_path / "snirf_nirsport2_2019.snirf"
     copy2(snirf_nirsport2_20219, new_file)
