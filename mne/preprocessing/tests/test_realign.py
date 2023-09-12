@@ -201,7 +201,6 @@ def _assert_similarity(raw, other, n_events, ratio_other, events_raw=None):
     evoked_other = Epochs(other, events_other, **kwargs).average()
     assert evoked_raw.nave == evoked_other.nave == len(events_raw)
     assert len(evoked_raw.data) == len(evoked_other.data) == 2  # just EEG
-    print(evoked_raw.data)
     if 0.99 <= ratio_other <= 1.01:  #  when drift is not too large
         corr = np.corrcoef(evoked_raw.data[0], evoked_other.data[0])[0, 1]
         assert 0.9 <= corr <= 1.0
