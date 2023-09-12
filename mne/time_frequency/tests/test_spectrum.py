@@ -14,7 +14,7 @@ from mne.time_frequency.multitaper import _psd_from_mt
 from mne.time_frequency.spectrum import SpectrumArray, EpochsSpectrumArray
 
 
-def test_spectrum_errors(raw):
+def test_compute_psd_errors(raw):
     """Test for expected errors in the .compute_psd() method."""
     with pytest.raises(ValueError, match="must not exceed ½ the sampling"):
         raw.compute_psd(fmax=raw.info["sfreq"] * 0.51)
@@ -22,6 +22,8 @@ def test_spectrum_errors(raw):
         raw.compute_psd(foo=None)
     with pytest.raises(TypeError, match="keyword arguments foo, bar for"):
         raw.compute_psd(foo=None, bar=None)
+    with pytest.warns(FutureWarning, match="Complex output support in.*deprecated"):
+        raw.compute_psd(output="complex")
 
 
 @pytest.mark.parametrize("method", ("welch", "multitaper"))
@@ -205,6 +207,7 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
+@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
 @pytest.mark.parametrize("long_format", (False, True))
 @pytest.mark.parametrize(
     "method, output",
@@ -326,6 +329,7 @@ def test_spectrum_proj(inst, request):
     assert has_proj == no_proj
 
 
+@pytest.mark.filterwarnings("ignore:Complex output support.*:FutureWarning")
 @pytest.mark.parametrize(
     "method, average",
     [

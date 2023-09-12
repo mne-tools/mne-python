@@ -13,7 +13,6 @@ echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
 echo "export MNE_FULL_DATE=true" >> $BASH_ENV
 source tools/get_minimal_commands.sh
 echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
-echo "export MNE_3D_OPTION_MULTI_SAMPLES=1" >> $BASH_ENV
 echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
 echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
 echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
