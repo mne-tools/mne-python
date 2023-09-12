@@ -54,7 +54,6 @@ fwd["info"]["bads"] = []
 inv_op = read_inverse_operator(fname_inv)
 
 raw = mne.io.read_raw_fif(data_path / "MEG" / "sample" / "sample_audvis_raw.fif")
-
 raw.info["bads"] = []
 raw.set_eeg_reference(projection=True)
 events = mne.find_events(raw)

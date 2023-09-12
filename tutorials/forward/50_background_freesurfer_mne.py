@@ -329,6 +329,7 @@ renderer.show()
 
 rr_vox = apply_trans(np.linalg.inv(Torig), rr_mm)
 fig = imshow_mri(data, t1, vox, {"Scanner RAS": xyz_ras}, "MRI slice")
+
 # Based on how imshow_mri works, the "X" here is the last dim of the MRI vol,
 # the "Y" is the middle dim, and the "Z" is the first dim, so now that our
 # points are in the correct coordinate frame, we need to ask matplotlib to

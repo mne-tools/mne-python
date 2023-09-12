@@ -165,6 +165,8 @@ def pytest_configure(config):
     ignore:.*'tqdm_asyncio' object has no attribute 'last_print_t':pytest.PytestUnraisableExceptionWarning
     # Until mne-qt-browser > 0.5.2 is released
     ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
+    # Windows CIs using MESA get this
+    ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
