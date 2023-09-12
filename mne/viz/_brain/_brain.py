@@ -725,11 +725,9 @@ class Brain:
         self._renderer._toggle_playback(value)
 
     def reset(self):
-        """Reset view and time step."""
+        """Reset view, current time and time step."""
         self.reset_view()
-        self._renderer._reset_time(
-            self._data["initial_time"], self.default_playback_speed_value
-        )
+        self._renderer._reset_time()
 
     def set_playback_speed(self, speed):
         """Set the time playback speed.
