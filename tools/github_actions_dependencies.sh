@@ -40,7 +40,7 @@ else
 	echo "mne-qt-browser"
 	pip install --progress-bar off git+https://github.com/mne-tools/mne-qt-browser
 	echo "nibabel with workaround"
-	pip install --progress-bar off --pre git+https://github.com/mscheltienne/nibabel.git@np.sctypes
+	pip install --progress-bar off --pre git+https://github.com/larsoner/nibabel.git@np.sctypes
 	EXTRA_ARGS="--pre"
 fi
 echo ""
