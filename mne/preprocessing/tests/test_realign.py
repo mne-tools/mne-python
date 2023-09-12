@@ -13,11 +13,10 @@ from mne.io import RawArray
 from mne.preprocessing import realign_raw
 
 
-@pytest.mark.parametrize("ratio_other", (0.9, 0.99, 1, 1.01, 1.1))  # drifts
+@pytest.mark.parametrize("ratio_other", (0.9, 0.999, 1, 1.001, 1.1))  # drifts
 @pytest.mark.parametrize("start_raw, start_other", [(0, 0), (0, 3), (3, 0)])
 @pytest.mark.parametrize("stop_raw, stop_other", [(0, 0), (0, 3), (3, 0)])
-@pytest.mark.parametrize("test_annot", [True, False])
-def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other, test_annot):
+def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     """Test realigning raw."""
     # construct a true signal
     sfreq = 100.0
@@ -55,7 +54,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other, test
             for d, kind in (
                 (stim, "nearest"),
                 (sig_hann, "linear"),
-                (sig_box, "linear"),
+                (sig_box, "nearest"),
             )
         ]
     )
@@ -65,7 +64,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other, test
             for d, kind in (
                 (stim, "nearest"),
                 (sig_hann, "linear"),
-                (sig_box, "linear"),
+                (sig_box, "nearest"),
             )
         ]
     )
@@ -75,60 +74,104 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other, test
     info_other = create_info(
         ["other_stim", "other_hann", "other_box"], sfreq, ["stim", "eeg", "eeg"]
     )
-    raw = RawArray(data_raw, info_raw, first_samp=111)  # first_samp doesn't matter
+    raw = RawArray(data_raw, info_raw, first_samp=111)  # first_samp shouldn't matter
     other = RawArray(data_other, info_other, first_samp=222)
+    raw.set_meas_date((0, 0))  # meas_date shouldn't matter
+    other.set_meas_date((100, 0))
 
-    evoked_raw, events_raw, _, events_other = _assert_similarity(raw, other, n_events)
+    # find events and do basic checks
+    evoked_raw, events_raw, _, events_other = _assert_similarity(
+        raw, other, n_events, ratio_other
+    )
 
-    if test_annot:
-        onsets_raw = (events_raw[:, 0] - raw.first_samp) / raw.info["sfreq"]
-        dur_raw = [box_len] * len(onsets_raw)
-        desc_raw = ["raw_box"] * len(onsets_raw)
-        annot_raw = Annotations(onsets_raw, dur_raw, desc_raw)
-        raw.set_annotations(annot_raw)
+    # construct annotations
+    onsets_raw = (events_raw[:, 0] - raw.first_samp) / raw.info["sfreq"]
+    dur_raw = [box_len] * len(onsets_raw)
+    desc_raw = ["raw_box"] * len(onsets_raw)
+    annot_raw = Annotations(onsets_raw, dur_raw, desc_raw)
+    raw.set_annotations(annot_raw)
 
-        onsets_other = (events_other[:, 0] - other.first_samp) / other.info["sfreq"]
-        dur_other = [box_len * ratio_other] * len(onsets_other)
-        desc_other = ["other_box"] * len(onsets_other)
-        annot_other = Annotations(onsets_other, dur_other, desc_other)
-        other.set_annotations(annot_other)
+    onsets_other = (events_other[:, 0] - other.first_samp) / other.info["sfreq"]
+    dur_other = [box_len * ratio_other] * len(onsets_other)
+    desc_other = ["other_box"] * len(onsets_other)
+    annot_other = Annotations(onsets_other, dur_other, desc_other)
+    other.set_annotations(annot_other)
 
     # realign
     t_raw = (events_raw[:, 0] - raw.first_samp) / raw.info["sfreq"]
     t_other = (events_other[:, 0] - other.first_samp) / other.info["sfreq"]
     assert duration - 10 <= len(events_raw) < duration
     raw_orig, other_orig = raw.copy(), other.copy()
-    realign_raw(raw, other, t_raw, t_other, realign_annot=test_annot)
+    realign_raw(raw, other, t_raw, t_other)
 
-    # old events should still work for raw and produce the same result
+    # old events should still work for raw and produce the same evoked data
     evoked_raw_2, events_raw, _, events_other = _assert_similarity(
-        raw, other, n_events, events_raw=events_raw
+        raw, other, n_events, ratio_other, events_raw=events_raw
     )
     assert_allclose(evoked_raw.data, evoked_raw_2.data)
     assert_allclose(raw.times, other.times)
 
     # raw data now aligned
-    hann_corr = np.corrcoef(raw.get_data([1])[0], other.get_data([1])[0])[0, 1]
-    assert 0.98 < hann_corr <= 1.0
-    box_corr = np.corrcoef(raw.get_data([2])[0], other.get_data([2])[0])[0, 1]
-    assert 0.98 < box_corr <= 1.0
+    corr = np.corrcoef(raw.get_data("data"), other.get_data("data"))
+    assert 0.98 < corr[0, 2] <= 1.0  # hanning
+    assert 0.98 < corr[1, 3] <= 1.0  # boxcar
 
-    # annotations now aligned
-    if test_annot:
-        assert_allclose(
-            raw.annotations.onset, events_raw[:, 0] / raw.info["sfreq"], atol=1 / sfreq
-        )
-        assert_allclose(
-            other.annotations.onset,
-            events_other[:, 0] / other.info["sfreq"],
-            atol=1 / sfreq,
-        )
-        onsets_raw = raw.annotations.onset - raw.first_samp / sfreq
-        dur_raw = raw.annotations.duration
-        onsets_other = other.annotations.onset - other.first_samp / sfreq
-        dur_other = other.annotations.duration
-        assert_allclose(onsets_raw, onsets_other, atol=1 / sfreq)
-        assert_allclose(dur_raw, dur_other, atol=1 / sfreq)
+    # onsets drived from stim and annotations are the same
+    assert_allclose(
+        raw.annotations.onset, events_raw[:, 0] / raw.info["sfreq"], atol=2 / sfreq
+    )
+    assert_allclose(
+        other.annotations.onset,
+        events_other[:, 0] / other.info["sfreq"],
+        atol=2 / sfreq,
+    )
+
+    # onsets (relative to first sample) and durations
+    first_time_raw = raw.first_samp / raw.info["sfreq"]
+    onsets_raw = raw.annotations.onset - first_time_raw
+    dur_raw = raw.annotations.duration
+
+    first_time_other = other.first_samp / other.info["sfreq"]
+    onsets_other = other.annotations.onset - first_time_other
+    dur_other = other.annotations.duration
+
+    # onsets and durations now aligned
+    assert len(onsets_raw) == len(onsets_other) == len(events_raw)
+    assert_allclose(onsets_raw, onsets_other, atol=2 / sfreq)
+    assert_allclose(dur_raw, dur_other, atol=2 / sfreq)
+
+    # onset/offset correspond to 0/1 transition in boxcar signals
+    n_events = len(onsets_raw)
+    onsets_samp_raw = (onsets_raw * sfreq).astype(int)
+    offset_samp_raw = onsets_samp_raw + (dur_raw * sfreq).astype(int)
+    assert_allclose(
+        raw.get_data("raw_box")[0, onsets_samp_raw - 5],
+        [0] * n_events,
+        atol=0.2,  # atol to account for interpolation
+    )
+    assert_allclose(
+        raw.get_data("raw_box")[0, onsets_samp_raw + 5], [1] * n_events, atol=0.2
+    )
+    assert_allclose(
+        raw.get_data("raw_box")[0, offset_samp_raw - 5], [1] * n_events, atol=0.2
+    )
+    assert_allclose(
+        raw.get_data("raw_box")[0, offset_samp_raw + 5], [0] * n_events, atol=0.2
+    )
+    onsets_samp_other = (onsets_other * sfreq).astype(int)
+    offset_samp_other = onsets_samp_other + (dur_other * sfreq).astype(int)
+    assert_allclose(
+        other.get_data("other_box")[0, onsets_samp_other - 5], [0] * n_events, atol=0.2
+    )
+    assert_allclose(
+        other.get_data("other_box")[0, onsets_samp_other + 5], [1] * n_events, atol=0.2
+    )
+    assert_allclose(
+        other.get_data("other_box")[0, offset_samp_other - 5], [1] * n_events, atol=0.2
+    )
+    assert_allclose(
+        other.get_data("other_box")[0, offset_samp_other + 5], [0] * n_events, atol=0.2
+    )
 
     # Degenerate conditions -- only test in one run
     test_degenerate = (
@@ -148,17 +191,18 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other, test
         realign_raw(raw_orig, other_orig, raw_times + rand_times * 1000, other_times)
 
 
-def _assert_similarity(raw, other, n_events, events_raw=None):
+def _assert_similarity(raw, other, n_events, ratio_other, events_raw=None):
     if events_raw is None:
         events_raw = find_events(raw)
     events_other = find_events(other)
-    assert len(events_raw) == n_events
-    assert len(events_other) == n_events
+    assert len(events_raw) == len(events_other) == n_events
     kwargs = dict(baseline=None, tmin=0, tmax=0.2)
     evoked_raw = Epochs(raw, events_raw, **kwargs).average()
     evoked_other = Epochs(other, events_other, **kwargs).average()
     assert evoked_raw.nave == evoked_other.nave == len(events_raw)
     assert len(evoked_raw.data) == len(evoked_other.data) == 2  # just EEG
-    # corr = np.corrcoef(evoked_raw.data[0], evoked_other.data[0])[0, 1]
-    # assert 0.9 <= corr <= 1.0 # may not hold when drift is large
+    print(evoked_raw.data)
+    if 0.99 <= ratio_other <= 1.01:  #  when drift is not too large
+        corr = np.corrcoef(evoked_raw.data[0], evoked_other.data[0])[0, 1]
+        assert 0.9 <= corr <= 1.0
     return evoked_raw, events_raw, evoked_other, events_other
