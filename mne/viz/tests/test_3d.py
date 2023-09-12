@@ -46,6 +46,7 @@ from mne.viz import (
     plot_brain_colorbar,
     link_brains,
     mne_analyze_colormap,
+    Brain,
 )
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
@@ -184,6 +185,17 @@ def test_plot_evoked_field(renderer):
                 ch_type=t,
             )
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
+
+    # Test plotting inside an existing Brain figure
+    brain = Brain("fsaverage", "lh", "inflated", subjects_dir=subjects_dir)
+    fig = evoked.plot_field(maps, time=0.1, fig=brain)
+
+    # Test some methods
+    fig = evoked.plot_field(maps, time_viewer=False)
+    fig.rescale()
+    fig.set_time(0.05)
+    fig.set_contours(10)
+    fig.set_vmax(2)
 
 
 def _assert_n_actors(fig, renderer, n_actors):

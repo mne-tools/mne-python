@@ -13,6 +13,7 @@ from .ui_events import (
     subscribe,
     ColormapRange,
     Contours,
+    TimeChange,
     disable_ui_events,
 )
 
@@ -208,12 +209,17 @@ class EvokedField:
 
         self._widgets = dict()
         if self.time_viewer:
-            if not self._in_brain_figure:
+            # Draw widgets only if not inside a figure that already has them.
+            if (
+                not hasattr(self._renderer, "_widgets")
+                or "time_slider" not in self._renderer._widgets
+            ):
                 self._renderer._enable_time_interaction(
                     self,
                     current_time_func=current_time_func,
                     times=evoked.times,
                 )
+            if not self._in_brain_figure or "time_slider" not in fig.widgets:
                 # Draw the time label
                 self._time_label = time_label
                 if time_label is not None:
@@ -345,22 +351,13 @@ class EvokedField:
                         colormap=self._colormap_lines,
                     )
         if self._time_label is not None:
-            self._renderer.plotter.remove_actor(self._time_label_actor, render=False)
+            if hasattr(self, "_time_label_actor"):
+                self._renderer.plotter.remove_actor(
+                    self._time_label_actor, render=False
+                )
             time_label = self._time_label
             if "%" in self._time_label:
                 time_label = self._time_label % np.round(1e3 * self._current_time)
-            self._time_label_actor = self._renderer.text2d(
-                x_window=0.01, y_window=0.01, text=time_label
-            )
-
-        if self._time_label is not None:
-            self._renderer.plotter.remove_actor(
-                self._time_label_actor,
-                render=False,
-            )
-            time_label = str(self._time_label)
-            if "%" in time_label:
-                time_label = time_label % np.round(1e3 * self._current_time)
             self._time_label_actor = self._renderer.text2d(
                 x_window=0.01, y_window=0.01, text=time_label
             )
@@ -505,6 +502,22 @@ class EvokedField:
             if "contours" in self._widgets:
                 self._widgets["contours"].set_value(len(event.contours))
         self._update()
+
+    def set_time(self, time):
+        """Set the time to display (in seconds).
+
+        Parameters
+        ----------
+        time : float
+            The time to show, in seconds.
+        """
+        if self._evoked.times[0] <= time <= self._evoked.times[-1]:
+            publish(self, TimeChange(time=time))
+        else:
+            raise ValueError(
+                f"Requested time ({time} s) is outside the range of "
+                f"available times ({self._evoked.times[0]}-{self._evoked.times[-1]} s)."
+            )
 
     def set_contours(self, n_contours):
         """Adjust the number of contour lines to use when drawing the fieldlines.
