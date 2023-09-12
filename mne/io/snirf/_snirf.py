@@ -549,11 +549,10 @@ def _extract_sampling_rate(dat):
             sample_jitter_percentage = 100 * (
                 max_sample_jitter / mean_sample_difference
             )
-            if sample_jitter_percentage < MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
-                # Likely uniformly sampled data with some precision issues.
-                # This is a workaround to provide support for Artinis data.
-                sampling_rate = 1.0 / mean_sample_difference
-            else:
+            # Hopefully uniformly sampled data with some precision issues.
+            # This is a workaround to provide support for Artinis data.
+            sampling_rate = 1.0 / mean_sample_difference
+            if sample_jitter_percentage > MAXIMUM_ALLOWED_SAMPLING_JITTER_PERCENTAGE:
                 warn(
                     "MNE does not currently support reading "
                     "SNIRF files with non-uniform sampled data."
