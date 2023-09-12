@@ -421,7 +421,9 @@ def _check_edflib_installed(strict=True):
     except Exception:
         pass
     else:
-        out &= not check_version("numpy", "2.0") or _compare_version(ver, ">", "1.0.7")
+        out &= not check_version("numpy", "1.9.9") or _compare_version(
+            ver, ">", "1.0.7"
+        )
     return out
 
 
