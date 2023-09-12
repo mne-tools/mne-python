@@ -1548,7 +1548,7 @@ def _find_exclude_idx(ch_names, exclude, include=None):
 def _find_tal_idx(ch_names):
     # Annotations / TAL Channels
     accepted_tal_ch_names = ["EDF Annotations", "BDF Annotations"]
-    tal_channel_idx = np.where(np.in1d(ch_names, accepted_tal_ch_names))[0]
+    tal_channel_idx = np.where(np.isin(ch_names, accepted_tal_ch_names))[0]
     return tal_channel_idx
 
 

@@ -2863,8 +2863,8 @@ def test_to_data_frame():
         epochs.to_data_frame(index=np.arange(400))
     # test wide format
     df_wide = epochs.to_data_frame()
-    assert all(np.in1d(epochs.ch_names, df_wide.columns))
-    assert all(np.in1d(["time", "epoch", "condition"], df_wide.columns))
+    assert all(np.isin(epochs.ch_names, df_wide.columns))
+    assert all(np.isin(["time", "epoch", "condition"], df_wide.columns))
     # test long format
     df_long = epochs.to_data_frame(long_format=True)
     expected = ("condition", "epoch", "time", "channel", "ch_type", "value")
@@ -2904,7 +2904,7 @@ def test_to_data_frame_index(index):
     # test that non-indexed data were present as columns
     non_index = list(set(["condition", "time", "epoch"]) - set(index))
     if len(non_index):
-        assert all(np.in1d(non_index, df.columns))
+        assert all(np.isin(non_index, df.columns))
 
 
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))
@@ -4116,7 +4116,7 @@ def test_channel_types_mixin():
     epochs = Epochs(raw, events[:1], preload=True)
     ch_types = epochs.get_channel_types()
     assert len(ch_types) == len(epochs.ch_names)
-    assert all(np.in1d(ch_types, ["mag", "grad", "eeg", "eog", "stim"]))
+    assert all(np.isin(ch_types, ["mag", "grad", "eeg", "eog", "stim"]))
 
 
 def test_average_methods():

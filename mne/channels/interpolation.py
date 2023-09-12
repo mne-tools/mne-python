@@ -212,7 +212,7 @@ def _interpolate_bads_meeg(
         picks_bad = pick_channels(inst.info["ch_names"], bads_type, exclude=[])
         if ch_type == "eeg":
             picks_to = picks_type
-            bad_sel = np.in1d(picks_type, picks_bad)
+            bad_sel = np.isin(picks_type, picks_bad)
         else:
             picks_to = picks_bad
             bad_sel = slice(None)

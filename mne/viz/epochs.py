@@ -284,7 +284,7 @@ def plot_epochs_image(
         group_by = deepcopy(group_by)
     # check for heterogeneous sensor type combinations / "combining" 1 channel
     for this_group, these_picks in group_by.items():
-        this_ch_type = np.array(ch_types)[np.in1d(picks, these_picks)]
+        this_ch_type = np.array(ch_types)[np.isin(picks, these_picks)]
         if len(set(this_ch_type)) > 1:
             types = ", ".join(set(this_ch_type))
             raise ValueError(
@@ -422,7 +422,7 @@ def plot_epochs_image(
     plt_show(show)
     # impose deterministic order of returned objects
     return_order = np.array(sorted(group_by))
-    are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
+    are_ch_types = np.isin(return_order, _VALID_CHANNEL_TYPES)
     if any(are_ch_types):
         return_order = np.concatenate(
             (return_order[are_ch_types], return_order[~are_ch_types])

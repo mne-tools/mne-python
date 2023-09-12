@@ -353,7 +353,7 @@ def _conv_comp(comp, first, last, chs):
     n_col = comp[first]["ncoeff"]
     col_names = comp[first]["sensors"][:n_col]
     row_names = [comp[p]["sensor_name"] for p in range(first, last + 1)]
-    mask = np.in1d(col_names, ch_names)  # missing channels excluded
+    mask = np.isin(col_names, ch_names)  # missing channels excluded
     col_names = np.array(col_names)[mask].tolist()
     n_col = len(col_names)
     n_row = len(row_names)

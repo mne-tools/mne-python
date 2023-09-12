@@ -249,7 +249,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False, atlas_ids=None):
     elif return_colors:
         raise ValueError("return_colors must be False if atlas_ids are " "provided")
     # restrict to the ones in the MRI, sorted by label name
-    keep = np.in1d(list(atlas_ids.values()), want)
+    keep = np.isin(list(atlas_ids.values()), want)
     keys = sorted(
         (key for ki, key in enumerate(atlas_ids.keys()) if keep[ki]),
         key=lambda x: atlas_ids[x],

@@ -503,7 +503,7 @@ class BaseEpochs(
             del events
 
             values = list(self.event_id.values())
-            selected = np.where(np.in1d(self.events[:, 2], values))[0]
+            selected = np.where(np.isin(self.events[:, 2], values))[0]
             if selection is None:
                 selection = selected
             else:
@@ -538,7 +538,7 @@ class BaseEpochs(
             )
 
             # then subselect
-            sub = np.where(np.in1d(selection, self.selection))[0]
+            sub = np.where(np.isin(selection, self.selection))[0]
             if isinstance(metadata, list):
                 metadata = [metadata[s] for s in sub]
             elif metadata is not None:
@@ -2849,7 +2849,7 @@ def make_metadata(
     id_to_name_map = {v: k for k, v in event_id.items()}
 
     # Only keep events that are of interest
-    events = events[np.in1d(events[:, 2], list(event_id.values()))]
+    events = events[np.isin(events[:, 2], list(event_id.values()))]
     events_df = events_df.loc[events_df["id"].isin(event_id.values()), :]
 
     # Prepare & condition the metadata DataFrame
@@ -2954,7 +2954,7 @@ def make_metadata(
         event_id_timelocked = {
             name: val for name, val in event_id.items() if name in row_events
         }
-        events = events[np.in1d(events[:, 2], list(event_id_timelocked.values()))]
+        events = events[np.isin(events[:, 2], list(event_id_timelocked.values()))]
         metadata = metadata.loc[metadata["event_name"].isin(event_id_timelocked)]
         assert len(events) == len(metadata)
         event_id = event_id_timelocked
@@ -3302,7 +3302,7 @@ class EpochsArray(BaseEpochs):
             self._do_baseline = True
         if (
             len(events)
-            != np.in1d(self.events[:, 2], list(self.event_id.values())).sum()
+            != np.isin(self.events[:, 2], list(self.event_id.values())).sum()
         ):
             raise ValueError(
                 "The events must only contain event numbers from " "event_id"

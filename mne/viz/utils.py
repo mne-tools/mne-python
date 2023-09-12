@@ -1786,7 +1786,7 @@ class SelectFromCollection:
             self.selection.pop(sel_ind)
         else:
             self.selection.append(ch_name)
-        inds = np.in1d(self.ch_names, self.selection).nonzero()[0]
+        inds = np.isin(self.ch_names, self.selection).nonzero()[0]
         self.style_sensors(inds)
         self.notify()
 
