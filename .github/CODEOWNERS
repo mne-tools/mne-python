@@ -33,12 +33,12 @@
 *lcmv*.py @britta-wstnr
 
 # Channels
-/mne/channels @cbrnr @agramfort
+/mne/channels @cbrnr @agramfort @mscheltienne
 
 # Core sensor-space classes
-/mne/epochs.py @drammock @agramfort
-/mne/evoked.py @drammock @agramfort
-/mne/io/*.* @drammock @cbrnr @agramfort
+/mne/epochs.py @drammock @agramfort @mscheltienne
+/mne/evoked.py @drammock @agramfort @mscheltienne
+/mne/io/*.* @drammock @cbrnr @agramfort @mscheltienne
 
 # Current-source density
 /mne/preprocessing/_csd.py  @alexrockhill
@@ -74,8 +74,11 @@
 /mne/minimum_norm @agramfort
 
 # Preprocessing
-/mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort
-/mne/preprocessing/infomax_.py @cbrnr @adam2392
+/mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort @mscheltienne
+/mne/preprocessing/infomax_.py @cbrnr @adam2392 @mscheltienne
+/mne/preprocessing/.*annotate.*\.py @mscheltienne
+/mne/preprocessing/bads.py @mscheltienne
+/mne/preprocessing/e.g.py @mscheltienne
 
 # Report
 /mne/report @hoechenberger
@@ -90,7 +93,7 @@
 /mne/_freesurfer.py @alexrockhill @larsoner
 
 # TFR
-/mne/time_frequency @drammock @cbrnr @adam2392
+/mne/time_frequency @drammock @cbrnr @adam2392 @mscheltienne
 
 # Viz
 /mne/viz @drammock @cbrnr
