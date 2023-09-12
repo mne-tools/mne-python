@@ -508,14 +508,11 @@ def test_birthday(tmp_path, monkeypatch):
 @requires_testing_data
 def test_sample_rate_jitter(tmp_path):
     """Test birthday parsing."""
-    snirf = pytest.importorskip("snirf")
     from shutil import copy2
-
-    new_file = tmp_path / "snirf_nirsport2_2019.snirf"
-
     # Create a clean copy and ensure it loads without error
+    new_file = tmp_path / "snirf_nirsport2_2019.snirf"
     copy2(snirf_nirsport2_20219, new_file)
-    raw = read_raw_snirf(new_file)
+    read_raw_snirf(new_file)
 
     # Edit the file and add jitter within tolerance (0.5%)
     with h5py.File(new_file, "r+") as f:
@@ -528,7 +525,7 @@ def test_sample_rate_jitter(tmp_path):
         del f["nirs/data1/time"]
         f.flush()
         f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
-    raw = read_raw_snirf(new_file)
+    read_raw_snirf(new_file)
 
     # Add jitter of 2%, which is greater than allowed tolerance
     with h5py.File(new_file, "r+") as f:
