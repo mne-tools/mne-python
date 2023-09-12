@@ -727,7 +727,7 @@ def _setup_ext_proj(info, ext_order):
         dict(origin=(0.0, 0.0, 0.0), int_order=0, ext_order=ext_order), mf_coils
     ).T
     out_removes = _regularize_out(0, 1, mag_or_fine, [])
-    ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
+    ext = ext[~np.isin(np.arange(len(ext)), out_removes)]
     ext = orth(ext.T).T
     assert ext.shape[1] == len(meg_picks)
     proj = Projection(

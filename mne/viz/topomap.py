@@ -481,7 +481,7 @@ def _plot_projs_topomap(
         proj = _eliminate_zeros(proj)  # gh 5641
         ch_names = _clean_names(proj["data"]["col_names"], remove_whitespace=True)
         if vlim == "joint":
-            ch_idxs = np.where(np.in1d(info["ch_names"], proj["data"]["col_names"]))[0]
+            ch_idxs = np.where(np.isin(info["ch_names"], proj["data"]["col_names"]))[0]
             these_ch_types = info.get_channel_types(ch_idxs, unique=True)
             # each projector should have only one channel type
             assert len(these_ch_types) == 1
@@ -532,7 +532,7 @@ def _plot_projs_topomap(
     vlims = [None for _ in range(len(datas))]
     if vlim == "joint":
         for _ch_type in set(types):
-            idx = np.where(np.in1d(types, _ch_type))[0]
+            idx = np.where(np.isin(types, _ch_type))[0]
             these_data = np.concatenate(np.array(datas, dtype=object)[idx])
             norm = all(these_data >= 0)
             _vl = _setup_vmin_vmax(these_data, vmin=None, vmax=None, norm=norm)

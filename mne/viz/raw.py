@@ -623,6 +623,6 @@ def _setup_channel_selections(raw, kind, order):
         gsr=True,
         exclude=(),
     )
-    if len(misc) and np.in1d(misc, order).any():
+    if len(misc) and np.isin(misc, order).any():
         selections_dict["Misc"] = misc
     return selections_dict

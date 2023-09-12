@@ -557,13 +557,13 @@ class SourceSimulator:
             wf_stop = self._last_samples[ind[i]]
 
             # Recover the indices of the event that should be in the chunk
-            waveform_ind = np.in1d(
+            waveform_ind = np.isin(
                 np.arange(wf_start, wf_stop + 1),
                 np.arange(start_sample, stop_sample + 1),
             )
 
             # Recover the indices that correspond to the overlap
-            stc_ind = np.in1d(
+            stc_ind = np.isin(
                 np.arange(start_sample, stop_sample + 1),
                 np.arange(wf_start, wf_stop + 1),
             )
