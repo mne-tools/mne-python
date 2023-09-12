@@ -3,7 +3,6 @@
 #
 # License: BSD-3-Clause
 
-import hashlib
 import pickle
 from datetime import datetime, timedelta, timezone, date
 from pathlib import Path
@@ -70,7 +69,7 @@ from mne.minimum_norm import (
 from mne._fiff import meas_info
 from mne._fiff._digitization import _make_dig_points, DigPoint
 from mne.transforms import Transform
-from mne.utils import catch_logging, assert_object_equal, _record_warnings
+from mne.utils import catch_logging, assert_object_equal, _empty_hash, _record_warnings
 
 root_dir = Path(__file__).parent.parent.parent
 fiducials_fname = root_dir / "data" / "fsaverage" / "fsaverage-fiducials.fif"
@@ -314,14 +313,14 @@ def test_read_write_info(tmp_path):
     assert_array_equal(info["meas_id"]["machid"], meas_id["machid"])
 
     # Test that writing twice produces the same file
-    m1 = hashlib.md5()
+    m1 = _empty_hash()
     with open(temp_file, "rb") as fid:
         m1.update(fid.read())
     m1 = m1.hexdigest()
     temp_file_2 = tmp_path / "info2.fif"
     assert temp_file_2 != temp_file
     write_info(temp_file_2, info)
-    m2 = hashlib.md5()
+    m2 = _empty_hash()
     with open(str(temp_file_2), "rb") as fid:
         m2.update(fid.read())
     m2 = m2.hexdigest()
@@ -923,7 +922,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     #
     if fname.suffix == ".fif":
         raw = read_raw_fif(fname)
-        raw.pick_channels(raw.ch_names[:3])
+        raw.pick(raw.ch_names[:3])
         ref_names = []
         data_names = raw.ch_names
     else:
@@ -942,7 +941,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     proj = Projection(data=proj, active=False, desc="test", kind=0, explained_var=0.0)
     raw.add_proj(proj, remove_existing=True)
     raw.info.normalize_proj()
-    raw.pick_channels(data_names + ref_names, ordered=False).crop(0, 2)
+    raw.pick(data_names + ref_names).crop(0, 2)
     long_names = ["123456789abcdefg" + name for name in raw.ch_names]
     fname = tmp_path / "test-raw.fif"
     with catch_logging() as log:
@@ -971,7 +970,7 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
     assert "truncated to 15" in log
     for name in raw.ch_names:
         assert len(name) > 15
-    # first read the full waytmp_path
+    # first read the full way
     with catch_logging() as log:
         raw_read = read_raw_fif(fname, verbose=True)
     log = log.getvalue()
@@ -994,8 +993,8 @@ def test_channel_name_limit(tmp_path, monkeypatch, fname):
         meas_info, "_read_extended_ch_info", _read_extended_ch_info
     )
     short_proj_names = [
-        f"{name[:13 - bool(len(ref_names))]}-{len(ref_names) + ni}"
-        for ni, name in enumerate(long_data_names[:2])
+        f"{name[:13 - bool(len(ref_names))]}-{ni}"
+        for ni, name in enumerate(long_proj_names)
     ]
     assert raw_read.info["projs"][0]["data"]["col_names"] == short_proj_names
     #
@@ -1073,7 +1072,7 @@ def test_pickle(fname_info, unlocked):
     assert not info._unlocked
     info._unlocked = unlocked
     data = pickle.dumps(info)
-    info_un = pickle.loads(data)
+    info_un = pickle.loads(data)  # nosec B301
     assert isinstance(info_un, Info)
     assert_object_equal(info, info_un)
     assert info_un._unlocked == unlocked

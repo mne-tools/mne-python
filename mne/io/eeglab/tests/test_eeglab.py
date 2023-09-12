@@ -404,16 +404,18 @@ def test_degenerate(tmp_path):
     pytest.raises(NotImplementedError, read_epochs_eeglab, bad_epochs_fname)
 
     # error when montage units incorrect
-    with pytest.raises(ValueError, match=r'prefix \+ "m" format'):
+    with pytest.raises(ValueError, match=r"Invalid value"):
         read_epochs_eeglab(epochs_fname_mat, montage_units="mV")
 
-    # warning when head radius too small
-    with pytest.warns(RuntimeWarning, match="is above"):
-        read_raw_eeglab(raw_fname_chanloc, montage_units="km")
-
     # warning when head radius too large
+    with pytest.warns(RuntimeWarning, match="is above"):
+        read_raw_eeglab(raw_fname_chanloc, montage_units="m")
+
+    # warning when head radius too small
+    m_fname = tmp_path / "test_montage_m.set"
+    _create_eeg_with_scaled_montage_units(raw_fname_chanloc, m_fname, 1e-3)
     with pytest.warns(RuntimeWarning, match="is below"):
-        read_raw_eeglab(raw_fname_chanloc, montage_units="µm")
+        read_raw_eeglab(m_fname, montage_units="mm")
 
 
 @pytest.mark.parametrize(
@@ -574,6 +576,68 @@ def test_position_information(three_chanpos_fname):
     )
 
 
+def _create_eeg_with_scaled_montage_units(in_fname, out_fname, scale):
+    eeg = io.loadmat(in_fname, struct_as_record=False, squeeze_me=True)["EEG"]
+
+    # test reading file with one event (read old version)
+    # chanlocs = deepcopy(eeg.chanlocs)
+    chanlocs = eeg.chanlocs
+    xyz = np.empty((len(chanlocs), 3))
+    labels = []
+    for ch_i, loc in enumerate(chanlocs):
+        xyz[ch_i] = [loc.X, loc.Y, loc.Z]
+        labels.append(loc.labels)
+    xyz *= scale
+    chanlocs = np.rec.fromarrays(
+        [labels, *xyz.T],
+        names=["labels", "X", "Y", "Z"],
+    )
+
+    fdt = isinstance(eeg.data, str)
+    if fdt:
+        shutil.copyfile(in_fname.with_suffix(".fdt"), out_fname.with_suffix(".fdt"))
+    io.savemat(
+        out_fname,
+        {
+            "EEG": {
+                "trials": eeg.trials,
+                "srate": eeg.srate,
+                "nbchan": eeg.nbchan,
+                "data": out_fname.with_suffix(".fdt").name if fdt else eeg.data,
+                "epoch": eeg.epoch,
+                "event": eeg.event,
+                "chanlocs": chanlocs,
+                "pnts": eeg.pnts,
+            }
+        },
+        appendmat=False,
+        oned_as="row",
+    )
+
+
+@testing.requires_testing_data
+def test_estimate_montage_units(tmp_path):
+    """Test automatic estimation of montage units."""
+    m_fname = tmp_path / "test_montage_m.set"
+    _create_eeg_with_scaled_montage_units(raw_fname_chanloc, m_fname, 1e-3)
+    cm_fname = tmp_path / "test_montage_cm.set"
+    _create_eeg_with_scaled_montage_units(raw_fname_chanloc, cm_fname, 1e-1)
+    with pytest.warns(RuntimeWarning, match="The data contains 'boundary' events"):
+        # read 3 versions of the same file, with different montage units
+        raw_mm = read_raw_eeglab(raw_fname_chanloc, montage_units="auto")
+        raw_m = read_raw_eeglab(m_fname, montage_units="auto")
+        raw_cm = read_raw_eeglab(cm_fname, montage_units="auto")
+    # All locations should be the same if the units are correctly estimated
+    assert_allclose(
+        np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
+        np.array([ch["loc"] for ch in raw_m.info["chs"]]),
+    )
+    assert_allclose(
+        np.array([ch["loc"] for ch in raw_mm.info["chs"]]),
+        np.array([ch["loc"] for ch in raw_cm.info["chs"]]),
+    )
+
+
 @testing.requires_testing_data
 def test_io_set_raw_2021():
     """Test reading new default file format (no EEG struct)."""
@@ -601,7 +665,11 @@ def test_get_montage_info_with_ch_type():
     mat["EEG"]["chanlocs"]["type"] = ["eeg"] * (n - 2) + ["eog"] + ["stim"]
     mat["EEG"]["chanlocs"] = _dol_to_lod(mat["EEG"]["chanlocs"])
     mat["EEG"] = Bunch(**mat["EEG"])
-    ch_names, ch_types, montage = _get_montage_information(mat["EEG"], False)
+    ch_names, ch_types, montage = _get_montage_information(
+        mat["EEG"],
+        get_pos=False,
+        montage_units="mm",
+    )
     assert len(ch_names) == len(ch_types) == n
     assert ch_types == ["eeg"] * (n - 2) + ["eog"] + ["stim"]
     assert montage is None
@@ -613,7 +681,11 @@ def test_get_montage_info_with_ch_type():
     mat["EEG"]["chanlocs"] = _dol_to_lod(mat["EEG"]["chanlocs"])
     mat["EEG"] = Bunch(**mat["EEG"])
     with pytest.warns(RuntimeWarning, match="Unknown types found"):
-        ch_names, ch_types, montage = _get_montage_information(mat["EEG"], False)
+        ch_names, ch_types, montage = _get_montage_information(
+            mat["EEG"],
+            get_pos=False,
+            montage_units="mm",
+        )
 
 
 @testing.requires_testing_data
@@ -622,9 +694,9 @@ def test_fidsposition_information(monkeypatch, has_type):
     """Test reading file with 3 fiducial locations."""
     if not has_type:
 
-        def get_bad_information(eeg, get_pos, scale_units=1.0):
+        def get_bad_information(eeg, get_pos, *, montage_units):
             del eeg.chaninfo["nodatchans"]["type"]
-            return _get_montage_information(eeg, get_pos, scale_units=scale_units)
+            return _get_montage_information(eeg, get_pos, montage_units=montage_units)
 
         monkeypatch.setattr(
             mne.io.eeglab.eeglab, "_get_montage_information", get_bad_information

@@ -61,7 +61,6 @@ raw.crop(tmax=60).load_data()
 #    :class:`NumPy array <numpy.ndarray>`, whereas `~mne.Annotations` is
 #    a :class:`list`-like class defined in MNE-Python.
 #
-#
 # .. _stim-channel-defined:
 #
 # What is a STIM channel?
@@ -90,7 +89,7 @@ raw.crop(tmax=60).load_data()
 # on newer systems it is more commonly ``STI101``. You can see the STIM
 # channels in the raw data file here:
 
-raw.copy().pick_types(meg=False, stim=True).plot(start=3, duration=6)
+raw.copy().pick(picks="stim").plot(start=3, duration=6)
 
 # %%
 # You can see that ``STI 014`` (the summation channel) contains pulses of

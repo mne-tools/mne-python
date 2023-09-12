@@ -175,7 +175,7 @@ info = mne.io.read_raw(raw_fname).crop(0, 1).resample(50).info
 
 # Only use gradiometers
 picks = mne.pick_types(info, meg="grad", stim=True, exclude=())
-mne.pick_info(info, picks, copy=False)
+mne.pick_info(info, picks, copy=False)  # modifies info in-place
 
 # Define a covariance matrix for the simulated noise. In this tutorial, we use
 # a simple diagonal matrix.
@@ -211,11 +211,8 @@ assert len(epochs) == 2  # ensure that we got the two expected events
 
 # Plot some of the channels of the simulated data that are situated above one
 # of our simulated sources.
-picks = mne.pick_channels(
-    epochs.ch_names,
-    mne.read_vectorview_selection("Left-frontal"),
-    ordered=False,
-)
+picks = mne.read_vectorview_selection("Left-frontal")  # contains both mag and grad
+picks = [p for p in picks if p in epochs.ch_names]  # now only grads
 epochs.plot(picks=picks, events=True)
 
 # %%

@@ -49,7 +49,7 @@ layout_name = "custom_layout.lout"
 # a 2D snapshot.
 
 raw = read_raw_fif(ecog_data_fname)
-raw.pick_channels([f"G{i}" for i in range(1, 257)])  # pick just one grid
+raw.pick([f"G{i}" for i in range(1, 257)])  # pick just one grid
 
 # Since we loaded in the ecog data from FIF, the coordinates
 # are in 'head' space, but we actually want them in 'mri' space.

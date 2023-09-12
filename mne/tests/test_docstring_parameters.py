@@ -242,7 +242,6 @@ TransformerMixin
 UpdateChannelsMixin
 activate_proj
 adjust_axes
-apply_maxfilter
 apply_trans
 channel_type
 combine_kit_markers
@@ -253,15 +252,12 @@ detrend
 dir_tree_find
 fast_cross_3d
 fiff_open
-find_source_space_hemi
 find_tag
 get_score_funcs
 get_version
 invert_transform
 is_power2
 is_fixed_orient
-kit2fiff
-label_src_vertno_sel
 make_eeg_average_ref_proj
 make_projector
 mesh_dist
@@ -274,7 +270,6 @@ plot_raw_psd_topo
 plot_source_spectrogram
 prepare_inverse_operator
 read_fiducials
-read_tag
 rescale
 setup_proj
 source_estimate_quantification

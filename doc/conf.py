@@ -7,6 +7,7 @@
 from datetime import datetime, timezone
 import faulthandler
 import gc
+from importlib.metadata import metadata
 import os
 import subprocess
 import sys
@@ -184,8 +185,9 @@ intersphinx_mapping = {
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
 numpydoc_show_inherited_class_members = {
-    "mne.SourceSpaces": False,
     "mne.Forward": False,
+    "mne.Projection": False,
+    "mne.SourceSpaces": False,
 }
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
@@ -478,6 +480,14 @@ class Resetter(object):
         except Exception:
             pass
         gc.collect()
+
+        # Agg does not call close_event so let's clean up on our own :(
+        # https://github.com/matplotlib/matplotlib/issues/18609
+        mne.viz.ui_events._cleanup_agg()
+        assert len(mne.viz.ui_events._event_channels) == 0, list(
+            mne.viz.ui_events._event_channels
+        )
+
         when = f"mne/conf.py:Resetter.__call__:{when}:{fname}"
         # Support stuff like
         # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html-memory  # noqa: E501
@@ -1327,11 +1337,17 @@ def reset_warnings(gallery_conf, fname):
         category=RuntimeWarning,
     )
     # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
-    warnings.filterwarnings(
-        "ignore",
-        message=r"iteritems is deprecated.*Use \.items instead\.",
-        category=FutureWarning,
-    )
+    for message in (
+        "use_inf_as_na option is deprecated.*",
+        r"iteritems is deprecated.*Use \.items instead\.",
+        "is_categorical_dtype is deprecated.*",
+        "The default of observed=False.*",
+    ):
+        warnings.filterwarnings(
+            "ignore",
+            message=message,
+            category=FutureWarning,
+        )
     # pandas in 50_epochs_to_data_frame.py
     warnings.filterwarnings(
         "ignore", message=r"invalid value encountered in cast", category=RuntimeWarning
@@ -1416,18 +1432,7 @@ rst_prolog += """
 
 # -- Dependency info ----------------------------------------------------------
 
-try:
-    from importlib.metadata import metadata  # new in Python 3.8
-
-    min_py = metadata("mne")["Requires-Python"]
-except ModuleNotFoundError:
-    from pkg_resources import get_distribution
-
-    info = get_distribution("mne").get_metadata_lines("PKG-INFO")
-    for line in info:
-        if line.strip().startswith("Requires-Python"):
-            min_py = line.split(":")[1]
-min_py = min_py.lstrip(" =<>")
+min_py = metadata("mne")["Requires-Python"].lstrip(" =<>")
 rst_prolog += f"\n.. |min_python_version| replace:: {min_py}\n"
 
 # -- website redirects --------------------------------------------------------

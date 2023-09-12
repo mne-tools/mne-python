@@ -13,9 +13,8 @@ Actual implementation of _Renderer and _Projection classes.
 
 from contextlib import contextmanager
 from inspect import signature
-import os
+import platform
 import re
-import sys
 import warnings
 
 import numpy as np
@@ -126,6 +125,9 @@ class PyVistaFigure(Figure3D):
         self.store["off_screen"] = off_screen
         self.store["border"] = False
         self.store["multi_samples"] = multi_samples
+        self.store["line_smoothing"] = True
+        self.store["polygon_smoothing"] = True
+        self.store["point_smoothing"] = True
 
         if not self.notebook:
             self.store["show"] = show
@@ -159,6 +161,7 @@ class PyVistaFigure(Figure3D):
             plotter = self._plotter_class(**self.store)
             plotter.background_color = self.background_color
             self._plotter = plotter
+        # TODO: This breaks trame "client" backend
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
         _process_events(self.plotter)
@@ -166,8 +169,6 @@ class PyVistaFigure(Figure3D):
         return self.plotter
 
     def _is_active(self):
-        if self.plotter is None:
-            return False
         return hasattr(self.plotter, "ren_win")
 
 
@@ -224,7 +225,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         _require_version("pyvista", "use 3D rendering", "0.32")
         multi_samples = _get_3d_option("multi_samples")
         # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
-        if sys.platform == "darwin":
+        if platform.system() == "Darwin":
             multi_samples = 1
         figure = PyVistaFigure()
         figure._init(
@@ -267,7 +268,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure._build()
             self._hide_axes()
-            self._enable_antialias()
+            self._toggle_antialias()
             self._enable_depth_peeling()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
@@ -860,35 +861,23 @@ class _PyVistaRenderer(_AbstractRenderer):
         return _Projection(xy=xy, pts=pts, plotter=self.plotter)
 
     def _enable_depth_peeling(self):
-        if not self.depth_peeling:
-            return
-        if not self.figure.store["off_screen"]:
-            for renderer in self._all_renderers:
-                renderer.enable_depth_peeling()
+        for plotter in self._all_plotters:
+            if self.depth_peeling:
+                plotter.enable_depth_peeling()
+            else:
+                plotter.disable_depth_peeling()
 
-    def _enable_antialias(self):
-        """Enable it everywhere except Azure."""
-        if not self.antialias:
-            return
-        # XXX for some reason doing this on Azure causes access violations:
-        #     ##[error]Cmd.exe exited with code '-1073741819'
-        # So for now don't use it there. Maybe has to do with setting these
-        # before the window has actually been made "active"...?
-        # For Mayavi we have an "on activated" event or so, we should look into
-        # using this for Azure at some point, too.
-        if self.figure._is_active():
-            # macOS, Azure
-            bad_system = (
-                sys.platform == "darwin"
-                or os.getenv("AZURE_CI_WINDOWS", "false").lower() == "true"
-            )
-            bad_system |= _is_mesa(self.plotter)
-            if not bad_system:
-                for renderer in self._all_renderers:
-                    # ssaa broken on Linux at least (NVIDIA and Mesa)
-                    renderer.enable_anti_aliasing(aa_type="fxaa")
-            for plotter in self._all_plotters:
-                plotter.ren_win.LineSmoothingOn()
+    def _toggle_antialias(self):
+        """Enable it everywhere except on systems with problematic OpenGL."""
+        # MESA can't seem to handle MSAA and depth peeling simultaneously, see
+        # https://github.com/pyvista/pyvista/issues/4867
+        bad_system = _is_mesa(self.plotter)
+        for plotter in self._all_plotters:
+            if bad_system or not self.antialias:
+                plotter.disable_anti_aliasing()
+            else:
+                if not bad_system:
+                    plotter.enable_anti_aliasing(aa_type="msaa")
 
     def remove_mesh(self, mesh_data):
         actor, _ = mesh_data
@@ -1395,6 +1384,8 @@ def _is_mesa(plotter):
     # MESA (could use GPUInfo / _get_gpu_info here, but it takes
     # > 700 ms to make a new window + report capabilities!)
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+    if platform.system() == "Darwin":  # segfaults on macOS sometimes
+        return False
     gpu_info_full = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall(
         "OpenGL (?:version|renderer) string:(.+)\n",

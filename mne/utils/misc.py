@@ -6,6 +6,7 @@
 from contextlib import contextmanager, ExitStack
 import fnmatch
 import gc
+import hashlib
 import inspect
 from math import log
 import os
@@ -13,10 +14,13 @@ from queue import Queue, Empty
 from string import Formatter
 import subprocess
 import sys
+from textwrap import dedent
 from threading import Thread
 import traceback
+import weakref
 
 import numpy as np
+from decorator import FunctionMaker
 
 from .check import _check_option, _validate_type
 from ._logging import logger, verbose, warn
@@ -26,6 +30,15 @@ try:
     from importlib.resources import files
 except ImportError:
     from importlib_resources import files
+
+
+# TODO: no longer needed when py3.9 is minimum supported version
+def _empty_hash(kind="md5"):
+    func = getattr(hashlib, kind)
+    if "usedforsecurity" in inspect.signature(func).parameters:
+        return func(usedforsecurity=False)
+    else:
+        return func()
 
 
 def _pl(x, non_pl="", pl="s"):
@@ -475,3 +488,46 @@ def repr_html(f):
             return f(*args, **kwargs)
 
     return wrapper
+
+
+def _auto_weakref(function):
+    """Create weakrefs to self (or other free vars in __closure__) then evaluate.
+
+    When a nested function is defined within an instance method, and the function makes
+    use of ``self``, it creates a reference cycle that the Python garbage collector is
+    not smart enough to resolve, so the parent object is never GC'd. (The reference to
+    ``self`` becomes part of the ``__closure__`` of the nested function).
+
+    This decorator allows the nested function to access ``self`` without increasing the
+    reference counter on ``self``, which will prevent the memory leak. If the referent
+    is not found (usually because already GC'd) it will short-circuit the decorated
+    function and return ``None``.
+    """
+    names = function.__code__.co_freevars
+    assert len(names) == len(function.__closure__)
+    __weakref_values__ = dict()
+    evaldict = dict(__weakref_values__=__weakref_values__)
+    for name, value in zip(names, function.__closure__):
+        __weakref_values__[name] = weakref.ref(value.cell_contents)
+    body = dedent(inspect.getsource(function))
+    body = body.splitlines()
+    for li, line in enumerate(body):
+        if line.startswith(" "):
+            body = body[li:]
+            break
+    old_body = "\n".join(body)
+    body = """\
+def %(name)s(%(signature)s):
+"""
+    for name in names:
+        body += f"""
+    {name} = __weakref_values__[{repr(name)}]()
+    if {name} is None:
+        return
+"""
+    body = body + old_body
+    fm = FunctionMaker(function)
+    fun = fm.make(body, evaldict, addsource=True)
+    fun.__globals__.update(function.__globals__)
+    assert fun.__closure__ is None, fun.__closure__
+    return fun

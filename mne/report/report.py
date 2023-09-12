@@ -35,7 +35,6 @@ from ..source_estimate import read_source_estimate, SourceEstimate
 from ..transforms import read_trans, Transform
 from ..utils import sys_info
 from .._fiff.meas_info import Info
-from ..channels import _get_ch_type
 from ..defaults import _handle_default
 from ..io import read_raw, BaseRaw
 from ..io._read_raw import _get_supported as _get_extension_reader_map
@@ -74,7 +73,10 @@ from ..viz import (
     get_3d_backend,
     Figure3D,
     use_browser_backend,
+    _get_plot_ch_type,
+    create_3d_figure,
 )
+from ..viz._brain.view import views_dicts
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..viz._scraper import _mne_qt_browser_screenshot
@@ -147,7 +149,7 @@ MAX_IMG_RES = 100  # in dots per inch
 MAX_IMG_WIDTH = 850  # in pixels
 
 
-def _get_ch_types(inst):
+def _get_data_ch_types(inst):
     return [ch_type for ch_type in _DATA_CH_TYPES_SPLIT if ch_type in inst]
 
 
@@ -524,7 +526,6 @@ def _get_bem_contour_figs_as_arrays(
 
 def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
-    from ..viz import create_3d_figure
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
 
     # TODO: Eventually maybe we should expose the size option?
@@ -543,7 +544,6 @@ def _iterate_trans_views(function, alpha, **kwargs):
 
 def _itv(function, fig, **kwargs):
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING, backend
-    from ..viz._brain.view import views_dicts
 
     function(fig=fig, **kwargs)
 
@@ -1664,7 +1664,7 @@ class Report:
     def _add_ica_properties(
         self, *, ica, picks, inst, n_jobs, image_format, section, tags, replace
     ):
-        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
             warn(
@@ -1757,7 +1757,7 @@ class Report:
         )
 
     def _add_ica_components(self, *, ica, picks, image_format, section, tags, replace):
-        ch_type = _get_ch_type(inst=ica.info, ch_type=None)
+        ch_type = _get_plot_ch_type(inst=ica.info, ch_type=None)
         if not _check_ch_locs(info=ica.info, ch_type=ch_type):
             ch_type_name = _handle_default("titles")[ch_type]
             warn(
@@ -3684,7 +3684,7 @@ class Report:
         n_jobs,
         replace,
     ):
-        ch_types = _get_ch_types(evoked)
+        ch_types = _get_data_ch_types(evoked)
         self._add_evoked_joint(
             evoked=evoked,
             ch_types=ch_types,
@@ -3956,7 +3956,7 @@ class Report:
             )
 
         # ERP/ERF image(s)
-        ch_types = _get_ch_types(epochs)
+        ch_types = _get_data_ch_types(epochs)
         epochs.load_data()
 
         for ch_type in ch_types:
