@@ -503,3 +503,41 @@ def test_birthday(tmp_path, monkeypatch):
 
     raw = read_raw_snirf(fname)
     assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
+
+
+@requires_testing_data
+def test_sample_rate_jitter(tmp_path):
+    """Test birthday parsing."""
+    snirf = pytest.importorskip("snirf")
+    from shutil import copy2
+
+    new_file = tmp_path / "snirf_nirsport2_2019.snirf"
+
+    # Create a clean copy and ensure it loads without error
+    copy2(snirf_nirsport2_20219, new_file)
+    raw = read_raw_snirf(new_file)
+
+    # Edit the file and add jitter within tollerance (0.5%)
+    with h5py.File(new_file, "r+") as f:
+        orig_time = np.array(f.get("nirs/data1/time"))
+        acceptable_time_jitter = orig_time
+        average_time_diff = np.mean(np.diff(orig_time))
+        acceptable_time_jitter[-1] = acceptable_time_jitter[-1] + (
+            0.005 * average_time_diff
+        )
+        del f["nirs/data1/time"]
+        f.flush()
+        f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
+    raw = read_raw_snirf(new_file)
+
+    # Add jitter of 2%, which is greater than allowed tollerance
+    with h5py.File(new_file, "r+") as f:
+        unacceptable_time_jitter = orig_time
+        unacceptable_time_jitter[-1] = unacceptable_time_jitter[-1] + (
+            0.02 * average_time_diff
+        )
+        del f["nirs/data1/time"]
+        f.flush()
+        f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
+    with pytest.raises(RuntimeWarning, match="non-uniform sampled data"):
+        read_raw_snirf(new_file)
