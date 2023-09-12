@@ -419,7 +419,7 @@ def plot_evoked_field(
     time_label : str | None
         How to print info about the time instant visualized.
     %(n_jobs)s
-    fig : Figure3D | Brain | None
+    fig : Figure3D | mne.viz.Brain | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
 
@@ -467,7 +467,7 @@ def plot_evoked_field(
 
     Returns
     -------
-    fig : EvokedField
+    fig : mne.viz.EvokedField
         The artist that is drawing the evoked field.
     """
     return EvokedField(
