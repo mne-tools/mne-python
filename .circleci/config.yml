@@ -539,8 +539,6 @@ jobs:
 workflows:
   default:
     jobs:
-      - pytest-macos-arm64:
-          name: pytest-macos-arm64
       - build_docs:
           name: build_docs
       - linkcheck:
@@ -575,12 +573,26 @@ workflows:
 
   weekly:
     jobs:
-      - linkcheck:
-          name: linkcheck_weekly
+      - pytest-macos-arm64:
+          name: pytest_macos_arm64_weekly
           scheduled: "true"
     triggers:
       - schedule:
-          # "At 6:00 AM GMT on the first day of each month" is often enough
+          # "At 6:00 AM GMT every Monday"
+          cron: "0 6 * * 1"
+          filters:
+            branches:
+              only:
+                - main
+
+  monthly:
+    jobs:
+      - linkcheck:
+          name: linkcheck_monthly
+          scheduled: "true"
+    triggers:
+      - schedule:
+          # "At 6:00 AM GMT on the first day of each month"
           cron: "0 6 1 * *"
           filters:
             branches:
