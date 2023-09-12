@@ -76,7 +76,7 @@
 # Preprocessing
 /mne/preprocessing/ica.py @cbrnr @adam2392 @agramfort @mscheltienne
 /mne/preprocessing/infomax_.py @cbrnr @adam2392 @mscheltienne
-/mne/preprocessing/.*annotate.*py @mscheltienne
+/mne/preprocessing/*annotate*.py @mscheltienne
 /mne/preprocessing/bads.py @mscheltienne
 /mne/preprocessing/e*g.py @mscheltienne
 
