@@ -23,7 +23,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	echo "misc"
 	python -m pip install --progress-bar off --upgrade --pre imageio-ffmpeg xlrd mffpy python-picard pillow
 	echo "nibabel with workaround"
-	python -m pip install --progress-bar off --upgrade --pre git+https://github.com/larsoner/nibabel.git@np.sctypes
+	python -m pip install --progress-bar off --upgrade --pre git+https://github.com/mscheltienne/nibabel.git@np.sctypes
 	EXTRA_ARGS="--pre"
 	./tools/check_qt_import.sh PyQt6
 else
