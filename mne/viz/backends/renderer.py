@@ -431,7 +431,7 @@ class _TimeInteraction:
         self._widgets["time_slider"] = self._dock_add_slider(
             name="Time (s)",
             value=np.interp(current_time_func(), times, np.arange(len(times))),
-            rng=[0, len(times)],
+            rng=[0, len(times) - 1],
             double=True,
             callback=publish_time_change,
             compact=False,
@@ -478,7 +478,7 @@ class _TimeInteraction:
             func=self._play,
             timeout=17,
             value=np.interp(current_time_func(), times, np.arange(len(times))),
-            rng=[0, len(times)],
+            rng=[0, len(times) - 1],
             time_widget=self._widgets["time_slider"],
             play_widget=self._widgets["play"],
         )

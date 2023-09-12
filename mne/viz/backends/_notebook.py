@@ -1345,10 +1345,9 @@ class _IpyPlayback(_AbstractPlayback):
         play = play_widget._widget
         play.min = rng[0]
         play.max = rng[1]
-        play.value = value
+        play.value = round(value)
         slider = time_widget._widget
         jsdlink((play, "value"), (slider, "value"))
-        jsdlink((slider, "value"), (play, "value"))
 
 
 class _IpyMplInterface(_AbstractMplInterface):
