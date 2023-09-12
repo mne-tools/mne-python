@@ -47,6 +47,7 @@ from mne.viz import (
     link_brains,
     mne_analyze_colormap,
     Brain,
+    get_3d_backend,
 )
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
@@ -186,9 +187,13 @@ def test_plot_evoked_field(renderer):
             )
         evoked.plot_field(maps, time=0.1, n_contours=n_contours)
 
-    # Test plotting inside an existing Brain figure
+    # Test plotting inside an existing Brain figure. This should not work in a notebook.
     brain = Brain("fsaverage", "lh", "inflated", subjects_dir=subjects_dir)
-    fig = evoked.plot_field(maps, time=0.1, fig=brain)
+    if get_3d_backend() == "notebook":
+        with pytest.raises(NotImplementedError):
+            fig = evoked.plot_field(maps, time=0.1, fig=brain)
+    else:
+        fig = evoked.plot_field(maps, time=0.1, fig=brain)
 
     # Test some methods
     fig = evoked.plot_field(maps, time_viewer=False)

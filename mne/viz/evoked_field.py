@@ -116,7 +116,7 @@ class EvokedField:
         time_viewer="auto",
         verbose=None,
     ):
-        from .backends.renderer import _get_renderer
+        from .backends.renderer import _get_renderer, _get_3d_backend
 
         # Setup figure parameters
         self._evoked = evoked
@@ -182,6 +182,11 @@ class EvokedField:
         if isinstance(fig, Brain):
             self._renderer = fig._renderer
             self._in_brain_figure = True
+            if _get_3d_backend() == "notebook":
+                raise NotImplementedError(
+                    "Plotting on top of an existing Brain figure "
+                    "is currently not supported inside a notebook."
+                )
         else:
             self._renderer = _get_renderer(
                 fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600)
