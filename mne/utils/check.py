@@ -7,8 +7,10 @@ from builtins import input  # no-op here but facilitates testing
 from collections.abc import Sequence
 from difflib import get_close_matches
 from importlib import import_module
+from importlib.metadata import version
 import operator
 import os
+from packaging.version import parse
 from pathlib import Path
 import re
 import numbers
@@ -411,19 +413,18 @@ def _check_eeglabio_installed(strict=True):
 
 def _check_edflib_installed(strict=True):
     """Aux function."""
-    out = _soft_import("EDFlib", "exporting to EDF", strict=strict) is not None
-    # EDFlib-Python 1.0.7 not NumPy 2.0 compatible
-    # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
-    try:
-        from importlib.metadata import version
-
+    out = _soft_import("EDFlib", "exporting to EDF", strict=strict)
+    if out:
+        # EDFlib-Python 1.0.7 is not compatible with NumPy 2.0
+        # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
         ver = version("EDFlib-Python")
-    except Exception:
-        pass
-    else:
-        out &= not check_version("numpy", "1.9.9") or _compare_version(
-            ver, ">", "1.0.7"
-        )
+        if parse(ver) <= parse("1.0.7") and parse(np.__version__).major >= 2:
+            if strict:  # pragma: no cover
+                raise RuntimeError(
+                    f"EDFlib version={ver} is not compatible with NumPy 2.0, consider "
+                    "upgrading EDFlib-Python"
+                )
+            out = False
     return out
 
 
