@@ -244,7 +244,7 @@ def test_plot_overlapping_epochs_with_events(browser_backend, event_id, expected
         assert set(texts) == expected_texts
     # plot one epoch with its defining event plus events at its first & last sample
     # (regression test for https://mne.discourse.group/t/6334)
-    events = np.row_stack(([[0, 0, 4]], events[[0]], [[99, 0, 4]]))
+    events = np.vstack(([[0, 0, 4]], events[[0]], [[99, 0, 4]]))
     fig = epochs[0].plot(events=events, picks="misc", event_id=event_id)
     expected_texts.add("4")
     for text in ("2", "3", "b", "c"):

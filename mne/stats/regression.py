@@ -380,7 +380,7 @@ def _prepare_rerp_preds(
             ids = (
                 [event_id[cond]] if isinstance(event_id[cond], int) else event_id[cond]
             )
-            onsets = -(events[np.in1d(events[:, 2], ids), 0] + tmin_)
+            onsets = -(events[np.isin(events[:, 2], ids), 0] + tmin_)
             values = np.ones((len(onsets), n_lags))
 
         else:  # for predictors from covariates, e.g. continuous ones

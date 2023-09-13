@@ -2947,7 +2947,7 @@ def _filt_check_picks(info, picks, h_freq, l_freq):
                 "lowpass values in the measurement info will not "
                 "be updated."
             )
-        elif np.in1d(data_picks, picks).all():
+        elif np.isin(data_picks, picks).all():
             update_info = True
         else:
             logger.info(

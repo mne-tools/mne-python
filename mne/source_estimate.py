@@ -1496,7 +1496,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
             stc_vertices = self.vertices[1]
 
         # find index of the Label's vertices
-        idx = np.nonzero(np.in1d(stc_vertices, label.vertices))[0]
+        idx = np.nonzero(np.isin(stc_vertices, label.vertices))[0]
 
         # find output vertices
         vertices = stc_vertices[idx]
@@ -2368,7 +2368,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         assert len(label) == 1
         label = label[0]
         vertices = label.vertices
-        keep = np.in1d(self.vertices[0], label.vertices)
+        keep = np.isin(self.vertices[0], label.vertices)
         values, vertices = self.data[keep], [self.vertices[0][keep]]
         label_stc = self.__class__(
             values,
@@ -2922,7 +2922,7 @@ def _spatio_temporal_src_adjacency_surf(src, n_times):
     adjacency = spatio_temporal_tris_adjacency(tris, n_times)
 
     # deal with source space only using a subset of vertices
-    masks = [np.in1d(u, s["vertno"]) for s, u in zip(src, used_verts)]
+    masks = [np.isin(u, s["vertno"]) for s, u in zip(src, used_verts)]
     if sum(u.size for u in used_verts) != adjacency.shape[0] / n_times:
         raise ValueError("Used vertices do not match adjacency shape")
     if [np.sum(m) for m in masks] != [len(s["vertno"]) for s in src]:
@@ -3265,7 +3265,7 @@ def _check_stc_src(stc, src):
             second_kind="stc.subject",
         )
         for s, v, hemi in zip(src, stc.vertices, ("left", "right")):
-            n_missing = (~np.in1d(v, s["vertno"])).sum()
+            n_missing = (~np.isin(v, s["vertno"])).sum()
             if n_missing:
                 raise ValueError(
                     "%d/%d %s hemisphere stc vertices "

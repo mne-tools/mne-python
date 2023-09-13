@@ -855,7 +855,7 @@ def plot_events(
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
     max_x = (
-        events[np.in1d(events[:, 2], unique_events_id), 0].max() - first_samp
+        events[np.isin(events[:, 2], unique_events_id), 0].max() - first_samp
     ) / sfreq
 
     handles, labels = list(), list()

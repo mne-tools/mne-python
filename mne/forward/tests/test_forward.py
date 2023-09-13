@@ -495,7 +495,7 @@ def test_priors():
         compute_orient_prior(fwd, 0.5)
     fwd_surf_ori = convert_forward_solution(fwd, surf_ori=True)
     orient_prior = compute_orient_prior(fwd_surf_ori, 0.5)
-    assert all(np.in1d(orient_prior, (0.5, 1.0)))
+    assert all(np.isin(orient_prior, (0.5, 1.0)))
     with pytest.raises(ValueError, match="between 0 and 1"):
         compute_orient_prior(fwd_surf_ori, -0.5)
     with pytest.raises(ValueError, match="with fixed orientation"):

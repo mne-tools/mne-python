@@ -709,7 +709,7 @@ def compute_raw_covariance(
     if picks is None:
         # Need to include all channels e.g. if eog rejection is to be used
         picks = np.arange(raw.info["nchan"])
-        pick_mask = np.in1d(picks, _pick_data_channels(raw.info, with_ref_meg=False))
+        pick_mask = np.isin(picks, _pick_data_channels(raw.info, with_ref_meg=False))
     else:
         pick_mask = slice(None)
         picks = _picks_to_idx(raw.info, picks)

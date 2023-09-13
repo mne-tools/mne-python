@@ -848,7 +848,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *, verbose=N
     data = np.zeros((len(amplitude), len(timepoints)))  # (n_d, n_t)
     row = 0
     for tpind, tp in enumerate(timepoints):
-        amp = amplitude[np.in1d(times, tp)]
+        amp = amplitude[np.isin(times, tp)]
         data[row : row + len(amp), tpind] = amp
         row += len(amp)
 
