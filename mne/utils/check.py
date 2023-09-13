@@ -414,19 +414,18 @@ def _check_eeglabio_installed(strict=True):
 def _check_edflib_installed(strict=True):
     """Aux function."""
     out = _soft_import("EDFlib", "exporting to EDF", strict=strict)
-    if not out:  # strict=False and library missing
-        return False
-    # EDFlib-Python 1.0.7 is not compatible with NumPy 2.0
-    # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
-    ver = version("EDFlib-Python")
-    if ver > parse("1.0.7") or parse(np.__version__).major < 2:
-        return out
-    if strict:  # pragma: no cover
-        raise RuntimeError(
-            f"EDFlib version={ver} is not compatible with NumPy 2.0, consider "
-            "upgrading EDFlib-Python"
-        )
-    return False
+    if out:
+        # EDFlib-Python 1.0.7 is not compatible with NumPy 2.0
+        # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
+        ver = version("EDFlib-Python")
+        if ver <= parse("1.0.7") or parse(np.__version__).major >= 2:
+            if strict:  # pragma: no cover
+                raise RuntimeError(
+                    f"EDFlib version={ver} is not compatible with NumPy 2.0, consider "
+                    "upgrading EDFlib-Python"
+                )
+            out = False
+    return out
 
 
 def _check_pybv_installed(strict=True):
