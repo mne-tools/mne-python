@@ -23,7 +23,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     duration = 50
     stop_raw = duration - stop_raw
     stop_other = duration - stop_other
-    hann_len = 0.2
+    signal_len = 0.2
     box_len = 0.5
     signal = np.zeros(int(round((duration + 1) * sfreq)))
     orig_events = np.round(
@@ -33,11 +33,10 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     signal[orig_events] = 1.0
     n_events = len(orig_events)
     times = np.arange(len(signal)) / sfreq
-    stim = np.convolve(signal, np.ones(int(round(0.02 * sfreq))))[: len(times)]
-    sig_hann = np.convolve(signal, np.hanning(int(round(hann_len * sfreq))))[
+    stim = np.convolve(signal, np.ones(int(round(box_len * sfreq))))[: len(times)]
+    signal = np.convolve(signal, np.hanning(int(round(signal_len * sfreq))))[
         : len(times)
     ]
-    sig_box = np.convolve(signal, np.ones(int(round(box_len * sfreq))))[: len(times)]
 
     # construct our sampled versions of these signals (linear interp is fine)
     sfreq_raw = sfreq
@@ -53,8 +52,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
             interp1d(times, d, kind)(raw_times)
             for d, kind in (
                 (stim, "nearest"),
-                (sig_hann, "linear"),
-                (sig_box, "nearest"),
+                (signal, "linear"),
             )
         ]
     )
@@ -63,17 +61,12 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
             interp1d(times, d, kind)(other_times)
             for d, kind in (
                 (stim, "nearest"),
-                (sig_hann, "linear"),
-                (sig_box, "nearest"),
+                (signal, "linear"),
             )
         ]
     )
-    info_raw = create_info(
-        ["raw_stim", "raw_hann", "raw_box"], sfreq, ["stim", "eeg", "eeg"]
-    )
-    info_other = create_info(
-        ["other_stim", "other_hann", "other_box"], sfreq, ["stim", "eeg", "eeg"]
-    )
+    info_raw = create_info(["raw_stim", "raw_signal"], sfreq, ["stim", "eeg"])
+    info_other = create_info(["other_stim", "other_signal"], sfreq, ["stim", "eeg"])
     raw = RawArray(data_raw, info_raw, first_samp=111)  # first_samp shouldn't matter
     other = RawArray(data_other, info_other, first_samp=222)
     raw.set_meas_date((0, 0))  # meas_date shouldn't matter
@@ -113,8 +106,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
 
     # raw data now aligned
     corr = np.corrcoef(raw.get_data("data"), other.get_data("data"))
-    assert 0.98 < corr[0, 2] <= 1.0  # hanning
-    assert 0.98 < corr[1, 3] <= 1.0  # boxcar
+    assert 0.99 < corr[0, 1] <= 1.0
 
     # onsets derived from stim and annotations are the same
     assert_allclose(
@@ -142,33 +134,23 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     n_events = len(onsets_raw)
     onsets_samp_raw = raw.time_as_index(onsets_raw)
     offset_samp_raw = raw.time_as_index(onsets_raw + dur_raw)
-    assert_allclose(
-        raw.get_data("raw_box")[0, onsets_samp_raw - 2],
-        [0] * n_events,
-        atol=0.2,  # atol to account for interpolation
-    )
-    assert_allclose(
-        raw.get_data("raw_box")[0, onsets_samp_raw + 2], [1] * n_events, atol=0.2
-    )
-    assert_allclose(
-        raw.get_data("raw_box")[0, offset_samp_raw - 2], [1] * n_events, atol=0.2
-    )
-    assert_allclose(
-        raw.get_data("raw_box")[0, offset_samp_raw + 2], [0] * n_events, atol=0.2
-    )
+    assert_allclose(raw.get_data("raw_stim")[0, onsets_samp_raw - 2], [0] * n_events)
+    assert_allclose(raw.get_data("raw_stim")[0, onsets_samp_raw + 2], [1] * n_events)
+    assert_allclose(raw.get_data("raw_stim")[0, offset_samp_raw - 2], [1] * n_events)
+    assert_allclose(raw.get_data("raw_stim")[0, offset_samp_raw + 2], [0] * n_events)
     onsets_samp_other = other.time_as_index(onsets_other)
     offset_samp_other = other.time_as_index(onsets_other + dur_other)
     assert_allclose(
-        other.get_data("other_box")[0, onsets_samp_other - 2], [0] * n_events, atol=0.2
+        other.get_data("other_stim")[0, onsets_samp_other - 2], [0] * n_events
     )
     assert_allclose(
-        other.get_data("other_box")[0, onsets_samp_other + 2], [1] * n_events, atol=0.2
+        other.get_data("other_stim")[0, onsets_samp_other + 2], [1] * n_events
     )
     assert_allclose(
-        other.get_data("other_box")[0, offset_samp_other - 2], [1] * n_events, atol=0.2
+        other.get_data("other_stim")[0, offset_samp_other - 2], [1] * n_events
     )
     assert_allclose(
-        other.get_data("other_box")[0, offset_samp_other + 2], [0] * n_events, atol=0.2
+        other.get_data("other_stim")[0, offset_samp_other + 2], [0] * n_events
     )
 
     # Degenerate conditions -- only test in one run
@@ -191,14 +173,14 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
 
 def _assert_similarity(raw, other, n_events, ratio_other, events_raw=None):
     if events_raw is None:
-        events_raw = find_events(raw)
-    events_other = find_events(other)
+        events_raw = find_events(raw, output="onset")
+    events_other = find_events(other, output="onset")
     assert len(events_raw) == len(events_other) == n_events
     kwargs = dict(baseline=None, tmin=0, tmax=0.2)
     evoked_raw = Epochs(raw, events_raw, **kwargs).average()
     evoked_other = Epochs(other, events_other, **kwargs).average()
     assert evoked_raw.nave == evoked_other.nave == len(events_raw)
-    assert len(evoked_raw.data) == len(evoked_other.data) == 2  # just EEG
+    assert len(evoked_raw.data) == len(evoked_other.data) == 1  # just EEG
     if 0.99 <= ratio_other <= 1.01:  #  when drift is not too large
         corr = np.corrcoef(evoked_raw.data[0], evoked_other.data[0])[0, 1]
         assert 0.9 <= corr <= 1.0
