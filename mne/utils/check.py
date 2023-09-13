@@ -7,8 +7,10 @@ from builtins import input  # no-op here but facilitates testing
 from collections.abc import Sequence
 from difflib import get_close_matches
 from importlib import import_module
+from importlib.metadata import version
 import operator
 import os
+from packaging.version import parse
 from pathlib import Path
 import re
 import numbers
@@ -416,24 +418,17 @@ def _check_edflib_installed(strict=True):
         return False
     # EDFlib-Python 1.0.7 is not compatible with NumPy 2.0
     # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
-    try:
-        from importlib.metadata import version
-        from packaging.version import parse
-
-        ver = version("EDFlib-Python")
-        ver_np_major = parse(version("numpy")).major
-    except Exception:
-        return False
-    else:
-        if _compare_version(ver, ">", "1.0.7") or ver_np_major < 2:
-            return out
-        else:
-            if strict:  # pragma: no cover
-                raise RuntimeError(
-                    f"EDFlib {ver} is not compatible with NumPy 2.0, consider "
-                    "upgrading EDFlib-Python"
-                )
-            return False
+    ver = "unknown"
+    ver = version("EDFlib-Python")
+    ver_np_major = parse(version("numpy")).major
+    if _compare_version(ver, ">", "1.0.7") or ver_np_major < 2:
+        return out
+    if strict:  # pragma: no cover
+        raise RuntimeError(
+            f"EDFlib version={ver} is not compatible with NumPy 2.0, consider "
+            "upgrading EDFlib-Python"
+        )
+    return False
 
 
 def _check_pybv_installed(strict=True):
