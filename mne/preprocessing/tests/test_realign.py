@@ -127,12 +127,10 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     )
 
     # onsets (relative to first sample) and durations
-    first_time_raw = raw.first_samp / raw.info["sfreq"]
-    onsets_raw = raw.annotations.onset - first_time_raw
+    onsets_raw = raw.annotations.onset - raw.first_time
     dur_raw = raw.annotations.duration
 
-    first_time_other = other.first_samp / other.info["sfreq"]
-    onsets_other = other.annotations.onset - first_time_other
+    onsets_other = other.annotations.onset - other.first_time
     dur_other = other.annotations.duration
 
     # onsets and durations now aligned
@@ -142,35 +140,35 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
 
     # onset/offset correspond to 0/1 transition in boxcar signals
     n_events = len(onsets_raw)
-    onsets_samp_raw = (onsets_raw * sfreq).astype(int)
-    offset_samp_raw = onsets_samp_raw + (dur_raw * sfreq).astype(int)
+    onsets_samp_raw = raw.time_as_index(onsets_raw)
+    offset_samp_raw = raw.time_as_index(onsets_raw + dur_raw)
     assert_allclose(
-        raw.get_data("raw_box")[0, onsets_samp_raw - 5],
+        raw.get_data("raw_box")[0, onsets_samp_raw - 2],
         [0] * n_events,
         atol=0.2,  # atol to account for interpolation
     )
     assert_allclose(
-        raw.get_data("raw_box")[0, onsets_samp_raw + 5], [1] * n_events, atol=0.2
+        raw.get_data("raw_box")[0, onsets_samp_raw + 2], [1] * n_events, atol=0.2
     )
     assert_allclose(
-        raw.get_data("raw_box")[0, offset_samp_raw - 5], [1] * n_events, atol=0.2
+        raw.get_data("raw_box")[0, offset_samp_raw - 2], [1] * n_events, atol=0.2
     )
     assert_allclose(
-        raw.get_data("raw_box")[0, offset_samp_raw + 5], [0] * n_events, atol=0.2
+        raw.get_data("raw_box")[0, offset_samp_raw + 2], [0] * n_events, atol=0.2
     )
-    onsets_samp_other = (onsets_other * sfreq).astype(int)
-    offset_samp_other = onsets_samp_other + (dur_other * sfreq).astype(int)
+    onsets_samp_other = other.time_as_index(onsets_other)
+    offset_samp_other = other.time_as_index(onsets_other + dur_other)
     assert_allclose(
-        other.get_data("other_box")[0, onsets_samp_other - 5], [0] * n_events, atol=0.2
-    )
-    assert_allclose(
-        other.get_data("other_box")[0, onsets_samp_other + 5], [1] * n_events, atol=0.2
+        other.get_data("other_box")[0, onsets_samp_other - 2], [0] * n_events, atol=0.2
     )
     assert_allclose(
-        other.get_data("other_box")[0, offset_samp_other - 5], [1] * n_events, atol=0.2
+        other.get_data("other_box")[0, onsets_samp_other + 2], [1] * n_events, atol=0.2
     )
     assert_allclose(
-        other.get_data("other_box")[0, offset_samp_other + 5], [0] * n_events, atol=0.2
+        other.get_data("other_box")[0, offset_samp_other - 2], [1] * n_events, atol=0.2
+    )
+    assert_allclose(
+        other.get_data("other_box")[0, offset_samp_other + 2], [0] * n_events, atol=0.2
     )
 
     # Degenerate conditions -- only test in one run
