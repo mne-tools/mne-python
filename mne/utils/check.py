@@ -418,15 +418,17 @@ def _check_edflib_installed(strict=True):
     # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
     try:
         from importlib.metadata import version
+        from packaging.version import parse
 
         ver = version("EDFlib-Python")
-        ver_np = version("numpy")
+        ver_np_major = parse(version("numpy")).major
     except Exception:
         return False
     else:
-        return _compare_version(ver, ">", "1.0.7") or _compare_version(
-            ver_np, "<", "2.0"
-        )
+        if _compare_version(ver, ">", "1.0.7") or ver_np_major < 2:
+            return out
+        else:
+            return False
 
 
 def _check_pybv_installed(strict=True):
