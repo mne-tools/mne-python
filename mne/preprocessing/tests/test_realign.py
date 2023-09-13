@@ -116,7 +116,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     assert 0.98 < corr[0, 2] <= 1.0  # hanning
     assert 0.98 < corr[1, 3] <= 1.0  # boxcar
 
-    # onsets drived from stim and annotations are the same
+    # onsets derived from stim and annotations are the same
     assert_allclose(
         raw.annotations.onset, events_raw[:, 0] / raw.info["sfreq"], atol=2 / sfreq
     )
