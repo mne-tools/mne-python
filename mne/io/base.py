@@ -2727,7 +2727,7 @@ def _write_raw_data(
     sk_onsets, sk_ends = _annotations_starts_stops(raw, "bad_acq_skip")
     do_skips = False
     if len(sk_onsets) > 0:
-        if np.in1d(sk_onsets, firsts).all() and np.in1d(sk_ends, lasts).all():
+        if np.isin(sk_onsets, firsts).all() and np.isin(sk_ends, lasts).all():
             do_skips = True
         else:
             if part_idx == 0:

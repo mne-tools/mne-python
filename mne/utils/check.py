@@ -411,7 +411,20 @@ def _check_eeglabio_installed(strict=True):
 
 def _check_edflib_installed(strict=True):
     """Aux function."""
-    return _soft_import("EDFlib", "exporting to EDF", strict=strict)
+    out = _soft_import("EDFlib", "exporting to EDF", strict=strict) is not None
+    # EDFlib-Python 1.0.7 not NumPy 2.0 compatible
+    # https://gitlab.com/Teuniz/EDFlib-Python/-/issues/10
+    try:
+        from importlib.metadata import version
+
+        ver = version("EDFlib-Python")
+    except Exception:
+        pass
+    else:
+        out &= not check_version("numpy", "1.9.9") or _compare_version(
+            ver, ">", "1.0.7"
+        )
+    return out
 
 
 def _check_pybv_installed(strict=True):

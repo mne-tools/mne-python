@@ -38,7 +38,7 @@ def _get_buddies_fallback(r, s, neighbors, indices=None):
         buddies = np.where(r)[0]
     else:
         buddies = indices[r[indices]]
-    buddies = buddies[np.in1d(s[buddies], neighbors, assume_unique=True)]
+    buddies = buddies[np.isin(s[buddies], neighbors, assume_unique=True)]
     r[buddies] = False
     return buddies.tolist()
 

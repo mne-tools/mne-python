@@ -240,7 +240,7 @@ def _get_hitachi_info(fname, S_offset, D_offset, ignore_names):
     assert len(fnirs_wavelengths) == 2
     ch_names = lines[li + 1].rstrip(",\r\n").split(",")
     # cull to correct ones
-    raw_extra["keep_mask"] = ~np.in1d(ch_names, list(ignore_names))
+    raw_extra["keep_mask"] = ~np.isin(ch_names, list(ignore_names))
     for ci, ch_name in enumerate(ch_names):
         if re.match("Probe[0-9]+", ch_name):
             raw_extra["keep_mask"][ci] = False

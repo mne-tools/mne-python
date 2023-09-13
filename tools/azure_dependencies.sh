@@ -7,15 +7,23 @@ if [ "${TEST_MODE}" == "pip" ]; then
 elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off --upgrade pip setuptools wheel packaging setuptools_scm
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" PyQt6 PyQt6-sip PyQt6-Qt6
-	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" numpy
-	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" scipy statsmodels pandas scikit-learn matplotlib
+	echo "Numpy etc."
+	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" scipy statsmodels pandas scikit-learn matplotlib
+	echo "dipy"
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
+	echo "h5py"
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
+	echo "vtk"
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://wheels.vtk.org" vtk
+	echo "openmeeg"
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
+	echo "pyvista/pyvistaqt"
 	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvista
 	python -m pip install --progress-bar off git+https://github.com/pyvista/pyvistaqt
+	echo "misc"
 	python -m pip install --progress-bar off --upgrade --pre imageio-ffmpeg xlrd mffpy python-picard pillow
+	echo "nibabel with workaround"
+	python -m pip install --progress-bar off --upgrade --pre git+https://github.com/mscheltienne/nibabel.git@np.sctypes
 	EXTRA_ARGS="--pre"
 	./tools/check_qt_import.sh PyQt6
 else

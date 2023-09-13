@@ -18,10 +18,12 @@ else
 	echo "PyQt6"
 	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 numpy
-	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" scipy scikit-learn pandas matplotlib pillow statsmodels
+	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" scipy scikit-learn pandas matplotlib pillow statsmodels
+	echo "dipy"
 	pip install $STD_ARGS --pre --only-binary ":all:" --default-timeout=60 --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
+	echo "H5py"
 	pip install $STD_ARGS --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
+	echo "OpenMEEG"
 	pip install $STD_ARGS --pre --only-binary ":all:" --extra-index-url "https://test.pypi.org/simple" openmeeg
 	# No Numba because it forces an old NumPy version
 	echo "nilearn and openmeeg"
@@ -37,6 +39,8 @@ else
 	pip install --progress-bar off --pre imageio-ffmpeg xlrd mffpy python-picard patsy
 	echo "mne-qt-browser"
 	pip install --progress-bar off git+https://github.com/mne-tools/mne-qt-browser
+	echo "nibabel with workaround"
+	pip install --progress-bar off --pre git+https://github.com/mscheltienne/nibabel.git@np.sctypes
 	EXTRA_ARGS="--pre"
 fi
 echo ""

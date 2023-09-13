@@ -1372,8 +1372,8 @@ def test_to_data_frame():
         tfr.to_data_frame(index=np.arange(400))
     # test wide format
     df_wide = tfr.to_data_frame()
-    assert all(np.in1d(tfr.ch_names, df_wide.columns))
-    assert all(np.in1d(["time", "condition", "freq", "epoch"], df_wide.columns))
+    assert all(np.isin(tfr.ch_names, df_wide.columns))
+    assert all(np.isin(["time", "condition", "freq", "epoch"], df_wide.columns))
     # test long format
     df_long = tfr.to_data_frame(long_format=True)
     expected = ("condition", "epoch", "freq", "time", "channel", "ch_type", "value")
@@ -1403,8 +1403,8 @@ def test_to_data_frame():
         tfr.to_data_frame(index=np.arange(400))
     # test wide format
     df_wide = tfr.to_data_frame()
-    assert all(np.in1d(tfr.ch_names, df_wide.columns))
-    assert all(np.in1d(["time", "freq"], df_wide.columns))
+    assert all(np.isin(tfr.ch_names, df_wide.columns))
+    assert all(np.isin(["time", "freq"], df_wide.columns))
     # test long format
     df_long = tfr.to_data_frame(long_format=True)
     expected = ("freq", "time", "channel", "ch_type", "value")
@@ -1455,7 +1455,7 @@ def test_to_data_frame_index(index):
     # test that non-indexed data were present as columns
     non_index = list(set(["condition", "time", "freq", "epoch"]) - set(index))
     if len(non_index):
-        assert all(np.in1d(non_index, df.columns))
+        assert all(np.isin(non_index, df.columns))
 
 
 @pytest.mark.parametrize("time_format", (None, "ms", "timedelta"))
