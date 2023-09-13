@@ -428,6 +428,11 @@ def _check_edflib_installed(strict=True):
         if _compare_version(ver, ">", "1.0.7") or ver_np_major < 2:
             return out
         else:
+            if strict:  # pragma: no cover
+                raise RuntimeError(
+                    f"EDFlib {ver} is not compatible with NumPy 2.0, consider "
+                    "upgrading EDFlib-Python"
+                )
             return False
 
 
