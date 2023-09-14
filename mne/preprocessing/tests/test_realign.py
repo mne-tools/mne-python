@@ -117,9 +117,7 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
         raw.annotations.onset, events_raw[:, 0] / raw.info["sfreq"], atol=atol
     )
     assert_allclose(
-        other.annotations.onset,
-        events_other[:, 0] / other.info["sfreq"],
-        atol=2 / sfreq,
+        other.annotations.onset, events_other[:, 0] / other.info["sfreq"], atol=atol
     )
 
     # onsets/offsets still correspond to 0/1 transition in boxcar signals
@@ -128,8 +126,8 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     # onsets and durations now aligned
     onsets_raw, dur_raw, onsets_other, dur_other = _annot_to_onset_dur(raw, other)
     assert len(onsets_raw) == len(onsets_other) == len(events_raw)
-    assert_allclose(onsets_raw, onsets_other, atol=2 / sfreq)
-    assert_allclose(dur_raw, dur_other, atol=2 / sfreq)
+    assert_allclose(onsets_raw, onsets_other, atol=atol)
+    assert_allclose(dur_raw, dur_other, atol=atol)
 
     # Degenerate conditions -- only test in one run
     test_degenerate = (
