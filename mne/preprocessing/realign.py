@@ -93,9 +93,10 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         raw.crop(zero_ord, None)
         t_raw -= zero_ord
     else:  # need to crop start of other to match raw
-        logger.info(f"Cropping {(zero_ord / first_ord):0.3f} s from the start of other")
-        other.crop(-(zero_ord / first_ord), None)
-        t_other += zero_ord / first_ord
+        t_crop = zero_ord / first_ord
+        logger.info(f"Cropping {t_crop:0.3f} s from the start of other")
+        other.crop(-t_crop, None)
+        t_other += t_crop
 
     # 3. Resample data using the first-order term
     nan_ch_names = [
