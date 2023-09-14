@@ -112,8 +112,9 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     assert 0.99 < corr[0, 1] <= 1.0
 
     # onsets derived from stim and annotations are the same
+    atol = 2 / sfreq
     assert_allclose(
-        raw.annotations.onset, events_raw[:, 0] / raw.info["sfreq"], atol=2 / sfreq
+        raw.annotations.onset, events_raw[:, 0] / raw.info["sfreq"], atol=atol
     )
     assert_allclose(
         other.annotations.onset,
