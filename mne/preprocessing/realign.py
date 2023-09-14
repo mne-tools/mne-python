@@ -1,5 +1,6 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
-
+#          Qian Chu <qianchu99@gmail.com>
+#
 # License: BSD-3-Clause
 
 import numpy as np
@@ -42,7 +43,8 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
     2. Crop the start of ``raw`` or ``other``, depending on which started
        recording first.
     3. Resample ``other`` to match ``raw`` based on the clock drift.
-    4. Crop the end of ``raw`` or ``other``, depending on which stopped
+    4. Realign the onsets and durations in ``other.annotations``.
+    5. Crop the end of ``raw`` or ``other``, depending on which stopped
        recording first (and the clock drift rate).
 
     This function is primarily designed to work on recordings made at the same
@@ -85,25 +87,41 @@ def realign_raw(raw, other, t_raw, t_other, verbose=None):
         f"{raw.times[-1] * dr_ms_s:0.1f} ms)"
     )
 
-    # 2. Crop start of recordings to match using the zero-order term
-    msg = f"Cropping {zero_ord:0.3f} s from the start of "
+    # 2. Crop start of recordings to match
     if zero_ord > 0:  # need to crop start of raw to match other
-        logger.info(msg + "raw")
+        logger.info(f"Cropping {zero_ord:0.3f} s from the start of raw")
         raw.crop(zero_ord, None)
         t_raw -= zero_ord
     else:  # need to crop start of other to match raw
-        logger.info(msg + "other")
-        other.crop(-zero_ord, None)
-        t_other += zero_ord
+        t_crop = zero_ord / first_ord
+        logger.info(f"Cropping {t_crop:0.3f} s from the start of other")
+        other.crop(-t_crop, None)
+        t_other += t_crop
 
     # 3. Resample data using the first-order term
+    nan_ch_names = [
+        ch for ch in other.info["ch_names"] if np.isnan(other.get_data(picks=ch)).any()
+    ]
+    if len(nan_ch_names) > 0:  # Issue warning if any channel in other has nan values
+        warn(
+            f"Channel(s) {', '.join(nan_ch_names)} in `other` contain NaN values. "
+            "Resampling these channels will result in the whole channel being NaN. "
+            "(If realigning eye-tracking data, consider using interpolate_blinks and "
+            "passing interpolate_gaze=True)"
+        )
     logger.info("Resampling other")
     sfreq_new = raw.info["sfreq"] * first_ord
     other.load_data().resample(sfreq_new, verbose=True)
     with other.info._unlock():
         other.info["sfreq"] = raw.info["sfreq"]
 
-    # 4. Crop the end of one of the recordings if necessary
+    # 4. Realign the onsets and durations in other.annotations
+    # Must happen before end cropping to avoid losing annotations
+    logger.info("Correcting annotations in other")
+    other.annotations.onset *= first_ord
+    other.annotations.duration *= first_ord
+
+    # 5. Crop the end of one of the recordings if necessary
     delta = raw.times[-1] - other.times[-1]
     msg = f"Cropping {abs(delta):0.3f} s from the end of "
     if delta > 0:
