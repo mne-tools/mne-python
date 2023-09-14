@@ -90,6 +90,9 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
     annot_other = Annotations(onsets_other, dur_other, desc_other)
     other.set_annotations(annot_other)
 
+    # onsets/offsets correspond to 0/1 transition in boxcar signals
+    _assert_boxcar_annot_similarity(raw, other)
+
     # realign
     t_raw = (events_raw[:, 0] - raw.first_samp) / raw.info["sfreq"]
     t_other = (events_other[:, 0] - other.first_samp) / other.info["sfreq"]
@@ -118,40 +121,14 @@ def test_realign(ratio_other, start_raw, start_other, stop_raw, stop_other):
         atol=2 / sfreq,
     )
 
-    # onsets (relative to first sample) and durations
-    onsets_raw = raw.annotations.onset - raw.first_time
-    dur_raw = raw.annotations.duration
-
-    onsets_other = other.annotations.onset - other.first_time
-    dur_other = other.annotations.duration
+    # onsets/offsets still correspond to 0/1 transition in boxcar signals
+    _assert_boxcar_annot_similarity(raw, other)
 
     # onsets and durations now aligned
+    onsets_raw, dur_raw, onsets_other, dur_other = _annot_to_onset_dur(raw, other)
     assert len(onsets_raw) == len(onsets_other) == len(events_raw)
     assert_allclose(onsets_raw, onsets_other, atol=2 / sfreq)
     assert_allclose(dur_raw, dur_other, atol=2 / sfreq)
-
-    # onset/offset correspond to 0/1 transition in boxcar signals
-    n_events = len(onsets_raw)
-    onsets_samp_raw = raw.time_as_index(onsets_raw)
-    offset_samp_raw = raw.time_as_index(onsets_raw + dur_raw)
-    assert_allclose(raw.get_data("raw_stim")[0, onsets_samp_raw - 2], [0] * n_events)
-    assert_allclose(raw.get_data("raw_stim")[0, onsets_samp_raw + 2], [1] * n_events)
-    assert_allclose(raw.get_data("raw_stim")[0, offset_samp_raw - 2], [1] * n_events)
-    assert_allclose(raw.get_data("raw_stim")[0, offset_samp_raw + 2], [0] * n_events)
-    onsets_samp_other = other.time_as_index(onsets_other)
-    offset_samp_other = other.time_as_index(onsets_other + dur_other)
-    assert_allclose(
-        other.get_data("other_stim")[0, onsets_samp_other - 2], [0] * n_events
-    )
-    assert_allclose(
-        other.get_data("other_stim")[0, onsets_samp_other + 2], [1] * n_events
-    )
-    assert_allclose(
-        other.get_data("other_stim")[0, offset_samp_other - 2], [1] * n_events
-    )
-    assert_allclose(
-        other.get_data("other_stim")[0, offset_samp_other + 2], [0] * n_events
-    )
 
     # Degenerate conditions -- only test in one run
     test_degenerate = (
@@ -185,3 +162,30 @@ def _assert_similarity(raw, other, n_events, ratio_other, events_raw=None):
         corr = np.corrcoef(evoked_raw.data[0], evoked_other.data[0])[0, 1]
         assert 0.9 <= corr <= 1.0
     return evoked_raw, events_raw, evoked_other, events_other
+
+
+def _assert_boxcar_annot_similarity(raw, other):
+    onsets_raw, dur_raw, onsets_other, dur_other = _annot_to_onset_dur(raw, other)
+
+    n_events = len(onsets_raw)
+    onsets_samp_raw = raw.time_as_index(onsets_raw)
+    offsets_samp_raw = raw.time_as_index(onsets_raw + dur_raw)
+    assert_allclose(raw.get_data("stim")[0, onsets_samp_raw - 2], [0] * n_events)
+    assert_allclose(raw.get_data("stim")[0, onsets_samp_raw + 2], [1] * n_events)
+    assert_allclose(raw.get_data("stim")[0, offsets_samp_raw - 2], [1] * n_events)
+    assert_allclose(raw.get_data("stim")[0, offsets_samp_raw + 2], [0] * n_events)
+    onsets_samp_other = other.time_as_index(onsets_other)
+    offsets_samp_other = other.time_as_index(onsets_other + dur_other)
+    assert_allclose(other.get_data("stim")[0, onsets_samp_other - 2], [0] * n_events)
+    assert_allclose(other.get_data("stim")[0, onsets_samp_other + 2], [1] * n_events)
+    assert_allclose(other.get_data("stim")[0, offsets_samp_other - 2], [1] * n_events)
+    assert_allclose(other.get_data("stim")[0, offsets_samp_other + 2], [0] * n_events)
+
+
+def _annot_to_onset_dur(raw, other):
+    onsets_raw = raw.annotations.onset - raw.first_time
+    dur_raw = raw.annotations.duration
+
+    onsets_other = other.annotations.onset - other.first_time
+    dur_other = other.annotations.duration
+    return onsets_raw, dur_raw, onsets_other, dur_other
