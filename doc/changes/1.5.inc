@@ -16,6 +16,16 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. _changes_1_5_2:
+
+Version 1.5.2 (unreleased)
+--------------------------
+
+Bugs
+~~~~
+- Fix bug with axis clip box boundaries in :func:`mne.viz.plot_evoked_topo` and related functions (:gh:`11999` by `Eric Larson`_)
+
+
 .. _changes_1_5_1:
 
 Version 1.5.1 (2023-09-06)

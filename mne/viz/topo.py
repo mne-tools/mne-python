@@ -495,8 +495,6 @@ def _imshow_tfr_unified(
     data_lines.append(
         ax.imshow(
             tfr[ch_idx],
-            clip_on=True,
-            clip_box=tuple(bn.pos),
             extent=extent,
             aspect="auto",
             origin="lower",
@@ -505,6 +503,7 @@ def _imshow_tfr_unified(
             cmap=cmap,
         )
     )
+    data_lines[-1].set_clip_box(_pos_to_bbox(bn.pos, ax))
 
 
 def _plot_timeseries(
@@ -663,7 +662,6 @@ def _plot_timeseries_unified(
     pos = bn.pos
     data_lines = bn.data_lines
     ax = bn.ax
-    # XXX These calls could probably be made faster by using collections
     for data_, color_, times_ in zip(data, color, times):
         data_lines.append(
             ax.plot(
@@ -671,10 +669,10 @@ def _plot_timeseries_unified(
                 bn.y_t + bn.y_s * data_[ch_idx],
                 linewidth=0.5,
                 color=color_,
-                clip_on=True,
-                clip_box=tuple(pos),
             )[0]
         )
+        # Needs to be done afterward for some reason (probable matlotlib bug)
+        data_lines[-1].set_clip_box(_pos_to_bbox(pos, ax))
     if vline:
         vline = np.array(vline) * bn.x_s + bn.x_t
         ax.vlines(
@@ -1299,3 +1297,13 @@ def plot_topo_image_epochs(
     add_background_image(fig, fig_background)
     plt_show(show)
     return fig
+
+
+def _pos_to_bbox(pos, ax):
+    """Convert layout position to bbox."""
+    import matplotlib.transforms as mtransforms
+
+    return mtransforms.TransformedBbox(
+        mtransforms.Bbox.from_bounds(*pos),
+        ax.transAxes,
+    )
