@@ -783,7 +783,7 @@ def plot_events(
         Dictionary of event_id integers as keys and colors as values. If None,
         colors are automatically drawn from a default list (cycled through if
         number of events longer than list of default colors). Color can be any
-        valid :doc:`matplotlib color <matplotlib:tutorials/colors/colors>`.
+        valid :ref:`matplotlib color <matplotlib:colors_def>`.
     event_id : dict | None
         Dictionary of event labels (e.g. 'aud_l') as keys and their associated
         event_id values. Labels are used to plot a legend. If None, no legend
