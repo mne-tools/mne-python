@@ -793,7 +793,7 @@ def _cart_to_sph(cart):
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
     cart = np.atleast_2d(cart)
-    assert cart.ndim == 2 and cart.shape[1] == 3
+    assert cart.ndim == 2 and cart.shape[1] == 3, cart.shape
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0

@@ -27,7 +27,7 @@ from ._utils import (
     _init_mne_qtapp,
 )
 from ...fixes import _compare_version
-from ...transforms import apply_trans
+from ...transforms import apply_trans, _cart_to_sph, _sph_to_cart
 from ...utils import (
     copy_base_doc_to_subclass_doc,
     _check_option,
@@ -820,8 +820,8 @@ class _PyVistaRenderer(_AbstractRenderer):
     def close(self):
         _close_3d_figure(figure=self.figure)
 
-    def get_camera(self):
-        return _get_3d_view(self.figure)
+    def get_camera(self, *, rigid=None):
+        return _get_3d_view(self.figure, rigid=rigid)
 
     def set_camera(
         self,
@@ -1110,14 +1110,6 @@ def _hide_testing_actor(actor):
         actor.SetVisibility(False)
 
 
-def _deg2rad(deg):
-    return deg * np.pi / 180.0
-
-
-def _rad2deg(rad):
-    return rad * 180.0 / np.pi
-
-
 def _to_pos(azimuth, elevation):
     theta = azimuth * np.pi / 180.0
     phi = (90.0 - elevation) * np.pi / 180.0
@@ -1154,18 +1146,17 @@ def _close_all():
 
 
 def _get_camera_direction(focalpoint, position):
-    x, y, z = position - focalpoint
-    r = np.sqrt(x * x + y * y + z * z)
-    theta = np.arccos(z / r)
-    phi = np.arctan2(y, x)
-    return r, theta, phi
+    return tuple(_cart_to_sph(position - focalpoint)[0])
 
 
-def _get_3d_view(figure):
-    position = np.array(figure.plotter.camera_position[0])
-    focalpoint = np.array(figure.plotter.camera_position[1])
-    _, theta, phi = _get_camera_direction(focalpoint, position)
-    azimuth, elevation = _rad2deg(phi), _rad2deg(theta)
+def _get_3d_view(figure, *, rigid=None):
+    position = np.array(figure.plotter.camera.position, float)
+    focalpoint = np.array(figure.plotter.camera.focal_point, float)
+    rigid = np.eye(4) if rigid is None else np.linalg.inv(rigid)
+    position = apply_trans(rigid, position)
+    focalpoint = apply_trans(rigid, focalpoint)
+    _, phi, theta = _get_camera_direction(focalpoint, position)
+    azimuth, elevation = np.rad2deg(phi), np.rad2deg(theta)
     return (
         figure.plotter.camera.GetRoll(),
         figure.plotter.camera.GetDistance(),
@@ -1186,8 +1177,9 @@ def _set_3d_view(
     rigid=None,
     update=True,
 ):
+    camera = figure.plotter.camera
     rigid = np.eye(4) if rigid is None else rigid
-    position = np.array(figure.plotter.camera_position[0])
+    position = np.array(camera.position)
     bounds = np.array(figure.plotter.renderer.ComputeVisiblePropBounds())
     if reset_camera:
         figure.plotter.reset_camera(render=False)
@@ -1199,19 +1191,18 @@ def _set_3d_view(
         _check_option("focalpoint", focalpoint, ("auto",), extra="when a string")
         focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
     elif focalpoint is None:
-        focalpoint = np.array(figure.plotter.camera_position[1])
-    else:
-        focalpoint = np.asarray(focalpoint)
+        focalpoint = camera.focal_point
+    focalpoint = np.array(focalpoint, float)
 
     # work in the transformed space
     position = apply_trans(rigid, position)
     focalpoint = apply_trans(rigid, focalpoint)
-    _, theta, phi = _get_camera_direction(focalpoint, position)
+    _, phi, theta = _get_camera_direction(focalpoint, position)
 
     if azimuth is not None:
-        phi = _deg2rad(azimuth)
+        phi = np.deg2rad(azimuth)
     if elevation is not None:
-        theta = _deg2rad(elevation)
+        theta = np.deg2rad(elevation)
 
     # set the distance
     if distance is None:
@@ -1225,25 +1216,22 @@ def _set_3d_view(
     else:
         view_up = [0, 1, 0]
 
-    position = [
-        distance * np.cos(phi) * np.sin(theta),
-        distance * np.sin(phi) * np.sin(theta),
-        distance * np.cos(theta),
-    ]
+    position = _sph_to_cart([distance, phi, theta])[0]
 
-    figure._azimuth = _rad2deg(phi)
-    figure._elevation = _rad2deg(theta)
+    # TODO: We should remove this hack and compute from the camera
+    figure._azimuth = np.rad2deg(phi)
+    figure._elevation = np.rad2deg(theta)
 
     # restore to the original frame
     rigid = np.linalg.inv(rigid)
     position = apply_trans(rigid, position)
     focalpoint = apply_trans(rigid, focalpoint)
     view_up = apply_trans(rigid, view_up, move=False)
-    figure.plotter.camera_position = [position, focalpoint, view_up]
-    # We need to add the requested roll to the roll dictated by the
-    # transformed view_up
+    camera.position = position
+    camera.focal_point = focalpoint
+    camera.view_up = view_up
     if roll is not None:
-        figure.plotter.camera.SetRoll(figure.plotter.camera.GetRoll() + roll)
+        camera.SetRoll(roll)
 
     if update:
         figure.plotter.update()

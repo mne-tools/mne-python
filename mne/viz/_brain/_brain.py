@@ -497,7 +497,7 @@ class Brain:
             xfm = _estimate_talxfm_rigid(self._subject, self._subjects_dir)
         except Exception:
             logger.info(
-                "Could not estimate rigid Talairach alignment, " "using identity matrix"
+                "Could not estimate rigid Talairach alignment, using identity matrix"
             )
         else:
             self._rigid[:] = xfm
@@ -3223,7 +3223,7 @@ class Brain:
             _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
-    def get_view(self, row=0, col=0):
+    def get_view(self, row=0, col=0, *, align=True):
         """Get the camera orientation for a given subplot display.
 
         Parameters
@@ -3232,6 +3232,7 @@ class Brain:
             The row to use, default is the first one.
         col : int
             The column to check, the default is the first one.
+        %(align_view)s
 
         Returns
         -------
@@ -3243,10 +3244,11 @@ class Brain:
         """
         row = _ensure_int(row, "row")
         col = _ensure_int(col, "col")
+        rigid = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row == ri) and (col == ci):
-                    return self._renderer.get_camera()
+                    return self._renderer.get_camera(rigid=rigid)
         return (None,) * 5
 
     @verbose
@@ -3352,14 +3354,14 @@ class Brain:
                 param: val for param, val in view_params.items() if val is not None
             }  # no overwriting with None
             view_params = dict(views_dicts[hemi].get(view), **view_params)
-        xfm = self._rigid if align else None
+        rigid = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row is None or row == ri) and (col is None or col == ci):
                     self._renderer.set_camera(
                         **view_params,
                         reset_camera=False,
-                        rigid=xfm,
+                        rigid=rigid,
                         update=False,
                     )
         if update:

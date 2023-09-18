@@ -32,6 +32,7 @@ from mne import (
 )
 from mne.channels import make_dig_montage
 from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.source_estimate import _BaseSourceEstimate
 from mne.source_space import read_source_spaces, setup_volume_source_space
 from mne.datasets import testing
 from mne.io import read_info
@@ -193,7 +194,6 @@ def test_brain_routines(renderer, brain_gc):
 @testing.requires_testing_data
 def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     """Test initialization of the Brain instance."""
-    from mne.source_estimate import _BaseSourceEstimate
 
     class FakeSTC(_BaseSourceEstimate):
         def __init__(self):
@@ -546,28 +546,67 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     )
     for a, b, p, color in zip(annots, borders, alphas, colors):
         brain.add_annotation(str(a), b, p, color=color)
+    brain.close()
 
-    view_args = dict(roll=1, distance=500, focalpoint=(1e-5, 1e-5, 1e-5))
+
+def _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align):
+    __tracebackhide__ = True
+    r_, d_, a_, e_, f_ = brain.get_view(align=align)
+    azimuth, a_ = azimuth % 360, a_ % 360
+    assert_allclose(r_, roll, err_msg="Roll")
+    assert_allclose(d_, distance, rtol=0.01, err_msg="Distance")
+    assert_allclose(a_, azimuth, rtol=0.01, atol=1e-6, err_msg="Azimuth")
+    assert_allclose(e_, elevation, rtol=1e-5, atol=1e-6, err_msg="Elevation")
+    assert_allclose(f_, focalpoint, err_msg="Focal point")
     cam = brain._renderer.figure.plotter.camera
-    previous_roll = cam.GetRoll()
+    assert_allclose(cam.GetFocalPoint(), focalpoint, err_msg="Camera focal point")
+    assert_allclose(cam.GetDistance(), distance, rtol=1e-4, err_msg="Camera distance")
+    assert_allclose(cam.GetRoll(), roll, atol=1e-5, err_msg="Camera roll")
+
+
+@pytest.mark.parametrize("align", (True, False))
+def test_view_round_trip(renderer_interactive_pyvistaqt, tmp_path, brain_gc, align):
+    """Test get_view / set_view round-trip."""
+    brain = _create_testing_brain(hemi="lh")
+    img = brain.screenshot()
+    roll, distance, azimuth, elevation, focalpoint = brain.get_view(align=align)
+    brain.show_view(
+        azimuth=azimuth,
+        elevation=elevation,
+        focalpoint=focalpoint,
+        roll=roll,
+        distance=distance,
+        align=align,
+    )
+    img_1 = brain.screenshot()
+    assert_allclose(img, img_1)
+    _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align)
+
+    # Now with custom values
+    roll, distance, focalpoint = 1, 500, (1e-5, 1e-5, 1e-5)
+    view_args = dict(roll=roll, distance=distance, focalpoint=focalpoint, align=align)
     brain.show_view(**view_args)
-    assert_allclose(cam.GetFocalPoint(), view_args["focalpoint"])
-    assert_allclose(cam.GetDistance(), view_args["distance"])
-    assert_allclose(cam.GetRoll(), previous_roll + view_args["roll"])
+    _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align)
 
     # test get_view
     azimuth, elevation = 180.0, 90.0
     view_args.update(azimuth=azimuth, elevation=elevation)
     brain.show_view(**view_args)
-    roll, distance, azimuth, elevation, focalpoint = brain.get_view()
-    assert_allclose(cam.GetRoll(), roll)
-    assert_allclose(cam.GetDistance(), distance)
-    assert_allclose(view_args["azimuth"] % 360, azimuth % 360)
-    assert_allclose(view_args["elevation"] % 180, elevation % 180)
-    assert_allclose(view_args["focalpoint"], focalpoint)
-    del view_args
+    _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align)
+    brain.close()
 
-    # image and screenshot
+
+def test_image_screenshot(
+    renderer_interactive_pyvistaqt,
+    tmp_path,
+    pixel_ratio,
+    brain_gc,
+):
+    """Test screenshot and image saving."""
+    size = (300, 300)
+    brain = _create_testing_brain(hemi="lh", size=size)
+    cam = brain._renderer.figure.plotter.camera
+    azimuth, elevation = 180.0, 90.0
     fname = tmp_path / "test.png"
     assert not fname.is_file()
     brain.save_image(fname)
@@ -581,8 +620,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
         brain.show_view(**view_args)
         assert_allclose(brain._renderer.figure._azimuth % 360, azimuth % 360)
         assert_allclose(brain._renderer.figure._elevation % 180, elevation % 180)
-        assert_allclose(cam.GetFocalPoint(), fp)
-    del view_args
+        assert_allclose(cam.GetFocalPoint(), fp, atol=1e-6)
     img = brain.screenshot(mode="rgba")
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
     # on macOS sometimes matplotlib is HiDPI and VTK is not...
