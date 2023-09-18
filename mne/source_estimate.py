@@ -3240,6 +3240,7 @@ _label_funcs = {
     "mean_flip": lambda flip, data: np.mean(flip * data, axis=0),
     "max": lambda flip, data: np.max(np.abs(data), axis=0),
     "pca_flip": _pca_flip,
+    "raw": lambda flip, data: data,  # Return Identity: Preserves all vertices without applying anything
 }
 
 
@@ -3572,7 +3573,11 @@ def _gen_extract_label_time_course(
         )
 
         # do the extraction
-        label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
+        if mode == "raw":
+            label_tc = []  # Initialize an empty list for raw mode, not all regions/labels have same size so we cant save them in an array.
+        else:
+            # For other modes, initialize the label_tc array
+            label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
                 if isinstance(vertidx, sparse.csr_matrix):
@@ -3583,7 +3588,10 @@ def _gen_extract_label_time_course(
                     this_data.shape = (this_data.shape[0],) + stc.data.shape[1:]
                 else:
                     this_data = stc.data[vertidx]
-                label_tc[i] = func(flip, this_data)
+                if mode == "raw":
+                    label_tc.append(func(flip, this_data))  
+                else:
+                    label_tc[i] = func(flip, this_data)
 
         # extract label time series for the vol src space (only mean supported)
         offset = nvert[:-n_mean].sum()  # effectively :2 or :0
