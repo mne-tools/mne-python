@@ -3574,7 +3574,9 @@ def _gen_extract_label_time_course(
 
         # do the extraction
         if mode == "raw":
-            label_tc = []  # Initialize an empty list for raw mode, not all regions/labels have same size so we cant save them in an array.
+            label_tc = (
+                []
+            )  # Initialize an empty list for raw mode, not all regions/labels have same size so we cant save them in an array.
         else:
             # For other modes, initialize the label_tc array
             label_tc = np.zeros((n_labels,) + stc.data.shape[1:], dtype=stc.data.dtype)
@@ -3589,7 +3591,7 @@ def _gen_extract_label_time_course(
                 else:
                     this_data = stc.data[vertidx]
                 if mode == "raw":
-                    label_tc.append(func(flip, this_data))  
+                    label_tc.append(func(flip, this_data))
                 else:
                     label_tc[i] = func(flip, this_data)
 
