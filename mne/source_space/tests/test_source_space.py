@@ -409,7 +409,7 @@ def test_other_volume_source_spaces(tmp_path):
     assert len(src_new[0]["vertno"]) == 7497
     assert len(src) == 1
     assert len(src_new) == 1
-    good_mask = np.in1d(src[0]["vertno"], src_new[0]["vertno"])
+    good_mask = np.isin(src[0]["vertno"], src_new[0]["vertno"])
     src[0]["inuse"][src[0]["vertno"][~good_mask]] = 0
     assert src[0]["inuse"].sum() == 7497
     src[0]["vertno"] = src[0]["vertno"][good_mask]

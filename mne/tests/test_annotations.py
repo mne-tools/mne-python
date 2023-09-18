@@ -613,8 +613,8 @@ def test_annotation_epoching():
     raw = concatenate_raws([RawArray(data, info) for ii in range(3)])
     assert raw.annotations is not None
     assert len(raw.annotations) == 4
-    assert np.in1d(raw.annotations.description, ["BAD boundary"]).sum() == 2
-    assert np.in1d(raw.annotations.description, ["EDGE boundary"]).sum() == 2
+    assert np.isin(raw.annotations.description, ["BAD boundary"]).sum() == 2
+    assert np.isin(raw.annotations.description, ["EDGE boundary"]).sum() == 2
     assert_array_equal(raw.annotations.duration, 0.0)
     events = np.array([[a, 0, 1] for a in [0, 500, 1000, 1500, 2000]])
     epochs = Epochs(

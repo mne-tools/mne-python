@@ -2295,7 +2295,7 @@ def _make_volume_source_space(
         old_shape = neigh.shape
         neigh = neigh.ravel()
         checks = np.where(neigh >= 0)[0]
-        removes = np.logical_not(np.in1d(checks, sp["vertno"]))
+        removes = np.logical_not(np.isin(checks, sp["vertno"]))
         neigh[checks[removes]] = -1
         neigh.shape = old_shape
         neigh = neigh.T
@@ -3053,12 +3053,12 @@ def _get_morph_src_reordering(
         # some are omitted during fwd calc), so we must do some indexing magic:
 
         # From all vertices, a subset could be chosen by fwd calc:
-        used_vertices = np.in1d(full_mapping, vertices[ii])
+        used_vertices = np.isin(full_mapping, vertices[ii])
         from_vertices.append(src_from[ii]["vertno"][used_vertices])
         remaining_mapping = full_mapping[used_vertices]
         if (
             not np.array_equal(np.sort(remaining_mapping), vertices[ii])
-            or not np.in1d(vertices[ii], full_mapping).all()
+            or not np.isin(vertices[ii], full_mapping).all()
         ):
             raise RuntimeError(
                 "Could not map vertices, perhaps the wrong "

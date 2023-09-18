@@ -1376,7 +1376,7 @@ def _get_mf_picks_fix_mags(info, int_order, ext_order, ignore_ref=False, verbose
         FIFF.FIFFV_COIL_CTF_REF_GRAD,
         FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD,
     ]
-    mag_or_fine[np.in1d(coil_types, ctf_grads)] = False
+    mag_or_fine[np.isin(coil_types, ctf_grads)] = False
     msg = "    Processing %s gradiometers and %s magnetometers" % (
         len(grad_picks),
         len(mag_picks),

@@ -193,7 +193,7 @@ def test_lcmv_vector():
 
     # Figure out our indices
     mask = np.concatenate(
-        [np.in1d(s["vertno"], v) for s, v in zip(forward["src"], vertices)]
+        [np.isin(s["vertno"], v) for s, v in zip(forward["src"], vertices)]
     )
     mapping = np.where(mask)[0]
     assert_array_equal(source_rr, forward["source_rr"][mapping])

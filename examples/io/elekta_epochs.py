@@ -5,9 +5,8 @@
 Getting averaging info from .fif files
 ======================================
 
-Parse averaging information defined in Elekta Vectorview/TRIUX DACQ (data
-acquisition). Extract and average epochs accordingly. Modify some
-averaging parameters and get epochs.
+Parse averaging information defined in Elekta Vectorview/TRIUX DACQ (data acquisition).
+Extract and average epochs accordingly. Modify some averaging parameters and get epochs.
 """
 # Author: Jussi Nurminen (jnu@iki.fi)
 #

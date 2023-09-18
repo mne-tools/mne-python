@@ -282,7 +282,7 @@ class BrowserBase(ABC):
             stim_pick = self.mne.ch_names.tolist().index(stim_ch[0])
             for _sel, _picks in selections_dict.items():
                 if _sel != "Misc":
-                    stim_mask = np.in1d(_picks, [stim_pick], invert=True)
+                    stim_mask = np.isin(_picks, [stim_pick], invert=True)
                     selections_dict[_sel] = np.array(_picks)[stim_mask]
         return selections_dict
 
@@ -332,7 +332,7 @@ class BrowserBase(ABC):
         starts = np.maximum(starts[mask], start) - start
         stops = np.minimum(stops[mask], stop) - start
         for _start, _stop in zip(starts, stops):
-            _picks = np.where(np.in1d(picks, self.mne.picks_data))[0]
+            _picks = np.where(np.isin(picks, self.mne.picks_data))[0]
             if len(_picks) == 0:
                 break
             this_data = data[_picks, _start:_stop]
@@ -373,8 +373,8 @@ class BrowserBase(ABC):
         this_types = self.mne.ch_types[picks]
         stims = this_types == "stim"
         white = np.logical_and(
-            np.in1d(this_names, self.mne.whitened_ch_names),
-            np.in1d(this_names, self.mne.info["bads"], invert=True),
+            np.isin(this_names, self.mne.whitened_ch_names),
+            np.isin(this_names, self.mne.info["bads"], invert=True),
         )
         norms = np.vectorize(self.mne.scalings.__getitem__)(this_types)
         norms[stims] = data[stims].max(axis=-1)
@@ -415,7 +415,7 @@ class BrowserBase(ABC):
         logger.debug(f"Closing {self.mne.instance_type} browser...")
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == "epochs":
-            bad_ixs = np.in1d(self.mne.inst.selection, self.mne.bad_epochs).nonzero()[0]
+            bad_ixs = np.isin(self.mne.inst.selection, self.mne.bad_epochs).nonzero()[0]
             self.mne.inst.drop(bad_ixs)
             logger.info(
                 "The following epochs were marked as bad "
@@ -486,7 +486,7 @@ class BrowserBase(ABC):
             show=False,
         )
         # highlight desired channel & disable interactivity
-        inds = np.in1d(fig.lasso.ch_names, [ch_name])
+        inds = np.isin(fig.lasso.ch_names, [ch_name])
         fig.lasso.disconnect()
         fig.lasso.alpha_other = 0.3
         fig.lasso.linewidth_selected = 3

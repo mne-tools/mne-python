@@ -1440,7 +1440,7 @@ def _get_zooms_orig(morph):
 def _check_vertices_match(v1, v2, name):
     if not np.array_equal(v1, v2):
         ext = ""
-        if np.in1d(v2, v1).all():
+        if np.isin(v2, v1).all():
             ext = " Vertices were likely excluded during forward computation."
         raise ValueError(
             "vertices do not match between morph (%s) and stc (%s) for %s:\n%s"

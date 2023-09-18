@@ -1846,7 +1846,7 @@ def restrict_forward_to_label(fwd, labels):
     # Remove duplicates and sort
     vertices = [np.unique(vert_hemi) for vert_hemi in vertices]
     vertices = [
-        vert_hemi[np.in1d(vert_hemi, s["vertno"])]
+        vert_hemi[np.isin(vert_hemi, s["vertno"])]
         for vert_hemi, s in zip(vertices, fwd["src"])
     ]
     src_sel, _, _ = _stc_src_sel(fwd["src"], vertices, on_missing="raise")

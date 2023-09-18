@@ -456,7 +456,7 @@ def test_to_data_frame():
     assert "time" in df.index.names
     # test wide and long formats
     df_wide = ave.to_data_frame()
-    assert all(np.in1d(ave.ch_names, df_wide.columns))
+    assert all(np.isin(ave.ch_names, df_wide.columns))
     df_long = ave.to_data_frame(long_format=True)
     expected = ("time", "channel", "ch_type", "value")
     assert set(expected) == set(df_long.columns)

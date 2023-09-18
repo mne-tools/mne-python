@@ -108,7 +108,7 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
     csd = csd_morlet(epochs, frequencies=[10, 20], n_cycles=[5, 10], decim=5)
 
     labels = mne.read_labels_from_annot("sample", hemi="lh", subjects_dir=subjects_dir)
-    label = [label for label in labels if np.in1d(source_vertno, label.vertices)[0]]
+    label = [label for label in labels if np.isin(source_vertno, label.vertices)]
     assert len(label) == 1
     label = label[0]
     vertices = np.intersect1d(label.vertices, fwd["src"][0]["vertno"])

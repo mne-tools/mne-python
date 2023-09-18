@@ -192,7 +192,7 @@ def test_xhemi_morph():
     assert vertices_use[0].shape == (n_grade_verts,)
     assert vertices_use[1].shape == (n_src_verts,)
     # ensure it's sufficiently diffirent to manifest round-trip errors
-    assert np.in1d(vertices_use[1], stc.vertices[1]).mean() < 0.3
+    assert np.isin(vertices_use[1], stc.vertices[1]).mean() < 0.3
     morph = compute_source_morph(
         stc,
         "fsaverage_sym",
@@ -931,7 +931,7 @@ def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     assert img.shape == (86, 86, 86, 1)
     n_on = np.array(img.dataobj).astype(bool).sum()
     aseg_img = _get_img_fdata(nib.load(fname_aseg))
-    n_got_real = np.in1d(
+    n_got_real = np.isin(
         aseg_img.ravel(), [lut[name] for name in use_label_names]
     ).sum()
     assert n_got_real == n_real
@@ -1034,11 +1034,11 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
     stc = klass(data, vertices, 0, 1, "sample")
     vol_info = _get_mri_info_data(fname_aseg, data=True)
     rrs = np.concatenate([src[2]["rr"][sp["vertno"]] for sp in src[2:]])
-    n_want = np.in1d(_get_atlas_values(vol_info, rrs), ids).sum()
+    n_want = np.isin(_get_atlas_values(vol_info, rrs), ids).sum()
     img = _get_img_fdata(stc.volume().as_volume(src, mri_resolution=False))
     assert img.astype(bool).sum() == n_want
     img_res = nib.load(fname_aseg)
-    n_want = np.in1d(_get_img_fdata(img_res), ids).sum()
+    n_want = np.isin(_get_img_fdata(img_res), ids).sum()
     img = _get_img_fdata(stc.volume().as_volume(src, mri_resolution=True))
     assert img.astype(bool).sum() > n_want  # way more get interpolated into
 
@@ -1049,7 +1049,7 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
     stc_fs = morph.apply(stc)
     vol_info = _get_mri_info_data(fname_aseg_fs, data=True)
     rrs = np.concatenate([src_fs[2]["rr"][sp["vertno"]] for sp in src_fs[2:]])
-    n_want = np.in1d(_get_atlas_values(vol_info, rrs), ids).sum()
+    n_want = np.isin(_get_atlas_values(vol_info, rrs), ids).sum()
     with pytest.raises(ValueError, match=r"stc\.subject does not match src s"):
         stc_fs.volume().as_volume(src, mri_resolution=False)
     img = _get_img_fdata(stc_fs.volume().as_volume(src_fs, mri_resolution=False))

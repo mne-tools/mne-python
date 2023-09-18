@@ -127,7 +127,7 @@ def plot_projs_joint(
         these_idxs, these_projs = zip(*these_projs)
         ch_names = ch_names_by_type[ch_type]
         idx = np.where(
-            [np.in1d(ch_names, proj["data"]["col_names"]).all() for proj in these_projs]
+            [np.isin(ch_names, proj["data"]["col_names"]).all() for proj in these_projs]
         )[0]
         used[idx] += 1
         count = len(these_projs)

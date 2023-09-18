@@ -329,7 +329,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             )
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
-        invalid_ix = np.in1d(
+        invalid_ix = np.isin(
             list(method_kw), list(signature(psd_funcs[method]).parameters), invert=True
         )
         if invalid_ix.any():

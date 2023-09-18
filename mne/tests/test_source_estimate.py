@@ -173,7 +173,7 @@ def test_spatial_inter_hemi_adjacency():
         use_labels = [
             label.name[:-3]
             for label in labels
-            if np.in1d(label.vertices, has_neighbors).any()
+            if np.isin(label.vertices, has_neighbors).any()
         ]
         assert set(use_labels) - set(good_labels) == set()
 
@@ -837,7 +837,7 @@ def test_extract_label_time_course_volume(
     assert sum(s["nuse"] for s in src_labels) == 4157
     assert_array_equal(src_labels[-1]["vertno"], [8011, 8032, 8557])
     assert_array_equal(
-        np.where(np.in1d(src[0]["vertno"], [8011, 8032, 8557]))[0], [2672, 2688, 2995]
+        np.where(np.isin(src[0]["vertno"], [8011, 8032, 8557]))[0], [2672, 2688, 2995]
     )
     # triage "labels" argument
     if mri_res:
@@ -908,7 +908,7 @@ def test_extract_label_time_course_volume(
             rtol = 0.0
         for si, s in enumerate(src_labels):
             func = dict(mean=np.mean, max=np.max)[mode]
-            these = vertex_values[np.in1d(src[0]["vertno"], s["vertno"])]
+            these = vertex_values[np.isin(src[0]["vertno"], s["vertno"])]
             assert len(these) == s["nuse"]
             if si == 0 and s["seg_name"] == "Unknown":
                 continue  # unknown is crappy
@@ -1174,7 +1174,7 @@ def test_to_data_frame_index(index):
     # test that non-indexed data were present as columns
     non_index = list(set(["time", "subject"]) - set(index))
     if len(non_index):
-        assert all(np.in1d(non_index, df.columns))
+        assert all(np.isin(non_index, df.columns))
 
 
 @pytest.mark.parametrize("kind", ("surface", "mixed", "volume"))

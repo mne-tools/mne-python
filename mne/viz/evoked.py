@@ -2654,8 +2654,8 @@ def plot_compare_evokeds(
         :class:`dict` of :class:`ints <int>` or :class:`floats <float>`
         indicating steps or percentiles (respectively) along the colormap. If
         ``cmap`` is ``None``, list elements or dict values of ``colors`` must
-        be :class:`ints <int>` or valid :doc:`matplotlib colors
-        <matplotlib:tutorials/colors/colors>`; lists are cycled through
+        be :class:`ints <int>` or valid :ref:`matplotlib colors
+        <matplotlib:colors_def>`; lists are cycled through
         sequentially,
         while dicts must have keys matching the keys or conditions of an
         ``evokeds`` dict (see Notes for details). If ``None``, the current

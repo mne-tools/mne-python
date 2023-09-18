@@ -167,6 +167,8 @@ def pytest_configure(config):
     ignore:mne\.io\.pick.channel_indices_by_type is deprecated.*:
     # Windows CIs using MESA get this
     ignore:Mesa version 10\.2\.4 is too old for translucent.*:RuntimeWarning
+    # Matplotlib <-> NumPy 2.0
+    ignore:`row_stack` alias is deprecated.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split("\n"):
         warning_line = warning_line.strip()
