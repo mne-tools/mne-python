@@ -3240,7 +3240,7 @@ _label_funcs = {
     "mean_flip": lambda flip, data: np.mean(flip * data, axis=0),
     "max": lambda flip, data: np.max(np.abs(data), axis=0),
     "pca_flip": _pca_flip,
-    "raw": lambda flip, data: data,  # Return Identity: Preserves all vertices without applying anything
+    "raw": lambda flip, data: data,  # Return Identity: Preserves all vertices.
 }
 
 
