@@ -3589,7 +3589,7 @@ def _gen_extract_label_time_course(
                 else:
                     this_data = stc.data[vertidx]
                 if mode == "raw":
-                    label_tc.append(func(flip, this_data))  
+                    label_tc.append(func(flip, this_data))
                 else:
                     label_tc[i] = func(flip, this_data)
 
