@@ -2323,7 +2323,7 @@ class Brain:
             show = np.zeros(scalars.size, dtype=np.int64)
             if isinstance(borders, int):
                 for _ in range(borders):
-                    keep_idx = np.in1d(self.geo[hemi].faces.ravel(), keep_idx)
+                    keep_idx = np.isin(self.geo[hemi].faces.ravel(), keep_idx)
                     keep_idx.shape = self.geo[hemi].faces.shape
                     keep_idx = self.geo[hemi].faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
@@ -4060,12 +4060,12 @@ class Brain:
             keep_idx = np.unique(edges.row[border_edges])
             if isinstance(borders, int):
                 for _ in range(borders):
-                    keep_idx = np.in1d(self.geo[hemi].orig_faces.ravel(), keep_idx)
+                    keep_idx = np.isin(self.geo[hemi].orig_faces.ravel(), keep_idx)
                     keep_idx.shape = self.geo[hemi].orig_faces.shape
                     keep_idx = self.geo[hemi].orig_faces[np.any(keep_idx, axis=1)]
                     keep_idx = np.unique(keep_idx)
                 if restrict_idx is not None:
-                    keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
+                    keep_idx = keep_idx[np.isin(keep_idx, restrict_idx)]
             show[keep_idx] = 1
             label *= show
 

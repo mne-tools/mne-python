@@ -200,7 +200,7 @@ numpydoc_xref_aliases = {
     "Path": ":class:`python:pathlib.Path`",
     "bool": ":class:`python:bool`",
     # Matplotlib
-    "colormap": ":doc:`colormap <matplotlib:tutorials/colors/colormaps>`",
+    "colormap": ":ref:`colormap <matplotlib:colormaps>`",
     "color": ":doc:`color <matplotlib:api/colors_api>`",
     "Axes": "matplotlib.axes.Axes",
     "Figure": "matplotlib.figure.Figure",

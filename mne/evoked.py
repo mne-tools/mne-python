@@ -1651,7 +1651,7 @@ def _read_evoked(fname, condition=None, kind="average", allow_maxshield=False):
                 raise ValueError('kind must be "average" or ' '"standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node, allow_maxshield)
-            goods = np.in1d(comments, [condition]) & np.in1d(
+            goods = np.isin(comments, [condition]) & np.isin(
                 aspect_kinds, [_aspect_dict[kind]]
             )
             found_cond = np.where(goods)[0]

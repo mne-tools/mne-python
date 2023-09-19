@@ -414,7 +414,7 @@ class Label:
                 )
 
         if self.hemi == other.hemi:
-            keep = np.in1d(self.vertices, other.vertices, True, invert=True)
+            keep = np.isin(self.vertices, other.vertices, True, invert=True)
         else:
             keep = np.arange(len(self.vertices))
 
@@ -487,7 +487,7 @@ class Label:
             return self.copy()
         hemi_src = _get_label_src(self, src)
 
-        if not np.all(np.in1d(self.vertices, hemi_src["vertno"])):
+        if not np.all(np.isin(self.vertices, hemi_src["vertno"])):
             msg = "Source space does not contain all of the label's vertices"
             raise ValueError(msg)
 
@@ -503,7 +503,7 @@ class Label:
         nearest = hemi_src["nearest"]
 
         # find new vertices
-        include = np.in1d(nearest, self.vertices, False)
+        include = np.isin(nearest, self.vertices, False)
         vertices = np.nonzero(include)[0]
 
         # values
@@ -552,7 +552,7 @@ class Label:
         if len(self.vertices) == 0:
             return self.copy()
         hemi_src = _get_label_src(self, src)
-        mask = np.in1d(self.vertices, hemi_src["vertno"])
+        mask = np.isin(self.vertices, hemi_src["vertno"])
         name = self.name if name is None else name
         label = Label(
             self.vertices[mask],
@@ -784,7 +784,7 @@ class Label:
         if vertices is None:
             vertices = np.arange(10242)
 
-        label_verts = vertices[np.in1d(vertices, self.vertices)]
+        label_verts = vertices[np.isin(vertices, self.vertices)]
         return label_verts
 
     def get_tris(self, tris, vertices=None):
@@ -805,7 +805,7 @@ class Label:
             The subset of tris used by the label.
         """
         vertices_ = self.get_vertices_used(vertices)
-        selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape), axis=1)
+        selection = np.all(np.isin(tris, vertices_).reshape(tris.shape), axis=1)
         label_tris = tris[selection]
         if len(np.unique(label_tris)) < len(vertices_):
             logger.info("Surprising label structure. Trying to repair " "triangles.")
@@ -960,7 +960,7 @@ class Label:
         complete_surface_info(
             surf, do_neighbor_vert=False, do_neighbor_tri=False, copy=False
         )
-        in_ = np.in1d(surf["tris"], self.vertices).reshape(surf["tris"].shape)
+        in_ = np.isin(surf["tris"], self.vertices).reshape(surf["tris"].shape)
         tidx = np.where(in_.all(-1))[0]
         if len(tidx) == 0:
             warn("No complete triangles found, perhaps label is not filled?")
@@ -1310,7 +1310,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     for div, name, color in zip(label_divs, names, colors):
         # Get indices of dipoles within this division of the label
         verts = np.array(sorted(list(div)), int)
-        vert_indices = np.in1d(verts_arr, verts, assume_unique=True)
+        vert_indices = np.isin(verts_arr, verts, assume_unique=True)
 
         # Set label attributes
         pos = label_to_split.pos[vert_indices]
@@ -2456,7 +2456,7 @@ def morph_labels(
     values = filename = None
     for label in labels:
         li = dict(lh=0, rh=1)[label.hemi]
-        vertices = np.where(np.in1d(idxs[li], label.vertices))[0]
+        vertices = np.where(np.isin(idxs[li], label.vertices))[0]
         pos = vert_poss[li][vertices]
         out_labels.append(
             Label(

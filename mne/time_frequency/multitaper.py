@@ -5,6 +5,7 @@
 
 import numpy as np
 from scipy.fft import rfft, rfftfreq
+from scipy.integrate import trapezoid
 from scipy.signal import get_window
 from scipy.signal.windows import dpss as sp_dpss
 
@@ -116,7 +117,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250, return_weights
 
     # estimate the variance from an estimate with fixed weights
     psd_est = _psd_from_mt(x_mt, rt_eig[np.newaxis, :, np.newaxis])
-    x_var = np.trapz(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
+    x_var = trapezoid(psd_est, dx=np.pi / n_freqs) / (2 * np.pi)
     del psd_est
 
     # allocate space for output

@@ -571,7 +571,7 @@ class RawMff(BaseRaw):
         if mon is not None:
             info.set_montage(mon, on_missing="ignore")
 
-        ref_idx = np.flatnonzero(np.in1d(mon.ch_names, REFERENCE_NAMES))
+        ref_idx = np.flatnonzero(np.isin(mon.ch_names, REFERENCE_NAMES))
         if len(ref_idx):
             ref_idx = ref_idx.item()
             ref_coords = info["chs"][int(ref_idx)]["loc"][:3]
