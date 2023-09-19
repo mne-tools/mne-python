@@ -18,6 +18,7 @@ from mne.preprocessing.nirs import (
 )
 from mne.transforms import apply_trans, _get_trans
 from mne._fiff.constants import FIFF
+from mne.utils import catch_logging
 
 
 testing_path = data_path(download=False)
@@ -471,7 +472,11 @@ def test_annotation_duration_from_stim_groups():
 
 def test_birthday(tmp_path, monkeypatch):
     """Test birthday parsing."""
-    snirf = pytest.importorskip("snirf")
+    try:
+        snirf = pytest.importorskip("snirf")
+    except AttributeError as exc:
+        # Until https://github.com/BUNPC/pysnirf2/pull/43 is released
+        pytest.skip(f"snirf import error: {exc}")
     fname = tmp_path / "test.snirf"
     with snirf.Snirf(str(fname), "w") as a:
         a.nirs.appendGroup()
@@ -503,3 +508,40 @@ def test_birthday(tmp_path, monkeypatch):
 
     raw = read_raw_snirf(fname)
     assert raw.info["subject_info"]["birthday"] == (1950, 1, 1)
+
+
+@requires_testing_data
+def test_sample_rate_jitter(tmp_path):
+    """Test handling of jittered sample times."""
+    from shutil import copy2
+
+    # Create a clean copy and ensure it loads without error
+    new_file = tmp_path / "snirf_nirsport2_2019.snirf"
+    copy2(snirf_nirsport2_20219, new_file)
+    read_raw_snirf(new_file)
+
+    # Edit the file and add jitter within tolerance (0.99%)
+    with h5py.File(new_file, "r+") as f:
+        orig_time = np.array(f.get("nirs/data1/time"))
+        acceptable_time_jitter = orig_time.copy()
+        average_time_diff = np.mean(np.diff(orig_time))
+        acceptable_time_jitter[-1] += 0.0099 * average_time_diff
+        del f["nirs/data1/time"]
+        f.flush()
+        f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
+    with catch_logging("info") as log:
+        read_raw_snirf(new_file)
+    lines = "\n".join(line for line in log.getvalue().splitlines() if "jitter" in line)
+    assert "Found jitter of 0.9" in lines
+
+    # Add jitter of 1.01%, which is greater than allowed tolerance
+    with h5py.File(new_file, "r+") as f:
+        unacceptable_time_jitter = orig_time
+        unacceptable_time_jitter[-1] = unacceptable_time_jitter[-1] + (
+            0.0101 * average_time_diff
+        )
+        del f["nirs/data1/time"]
+        f.flush()
+        f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
+    with pytest.warns(RuntimeWarning, match="non-uniformly-sampled data"):
+        read_raw_snirf(new_file, verbose=True)
