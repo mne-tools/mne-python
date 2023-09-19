@@ -3460,7 +3460,6 @@ def plot_sparse_source_estimates(
         color=brain_color,
         opacity=opacity,
         backface_culling=True,
-        shading=True,
         normals=normals,
         **kwargs,
     )

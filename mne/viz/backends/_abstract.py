@@ -129,7 +129,6 @@ class _AbstractRenderer(ABC):
         triangles,
         color,
         opacity=1.0,
-        shading=False,
         backface_culling=False,
         scalars=None,
         colormap=None,
