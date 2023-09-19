@@ -518,7 +518,7 @@ def test_sample_rate_jitter(tmp_path):
     # Edit the file and add jitter within tolerance (0.99%)
     with h5py.File(new_file, "r+") as f:
         orig_time = np.array(f.get("nirs/data1/time"))
-        acceptable_time_jitter = orig_time
+        acceptable_time_jitter = orig_time.copy()
         average_time_diff = np.mean(np.diff(orig_time))
         acceptable_time_jitter[-1] += 0.0099 * average_time_diff
         del f["nirs/data1/time"]
@@ -526,11 +526,11 @@ def test_sample_rate_jitter(tmp_path):
         f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
     read_raw_snirf(new_file)
 
-    # Add jitter of 1.02%, which is greater than allowed tolerance
+    # Add jitter of 1.01%, which is greater than allowed tolerance
     with h5py.File(new_file, "r+") as f:
         unacceptable_time_jitter = orig_time
         unacceptable_time_jitter[-1] = unacceptable_time_jitter[-1] + (
-            0.0102 * average_time_diff
+            0.0101 * average_time_diff
         )
         del f["nirs/data1/time"]
         f.flush()
