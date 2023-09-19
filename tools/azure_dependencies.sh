@@ -9,7 +9,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install $STD_ARGS pip setuptools wheel packaging setuptools_scm
 	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://www.riverbankcomputing.com/pypi/simple" PyQt6 PyQt6-sip PyQt6-Qt6
 	echo "Numpy etc."
-	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12" statsmodels pandas scikit-learn matplotlib
+	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" "numpy>=2.0.0.dev0" "scipy>=1.12.0.dev0" statsmodels pandas scikit-learn matplotlib
 	echo "dipy"
 	python -m pip install $STD_ARGS --only-binary ":all:" --extra-index-url "https://pypi.anaconda.org/scipy-wheels-nightly/simple" dipy
 	echo "h5py"
