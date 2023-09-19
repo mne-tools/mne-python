@@ -460,17 +460,19 @@ def plot_evoked_field(
         .. versionadded:: 1.1
     time_viewer : bool | str
         Display time viewer GUI. Can also be ``"auto"``, which will mean
-        ``True`` for the PyVista backend and ``False`` otherwise.
+        ``True`` if there is more than one time point and ``False`` otherwise.
 
         .. versionadded:: 1.6
     %(verbose)s
 
     Returns
     -------
-    fig : mne.viz.EvokedField
-        The artist that is drawing the evoked field.
+    fig : Figure3D | mne.viz.EvokedField
+        Without the time viewer active, the figure is returned. With the time
+        viewer active, an object is returned that can be used to control
+        different aspects of the figure.
     """
-    return EvokedField(
+    ef = EvokedField(
         evoked,
         surf_maps,
         time=time,
@@ -486,6 +488,10 @@ def plot_evoked_field(
         time_viewer=time_viewer,
         verbose=verbose,
     )
+    if ef.time_viewer:
+        return ef
+    else:
+        return ef._renderer.scene()
 
 
 @verbose

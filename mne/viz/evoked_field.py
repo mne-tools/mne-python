@@ -4,6 +4,8 @@ author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 """
 from functools import partial
 import numpy as np
+from scipy.interpolate import interp1d
+
 
 from ._3d_overlay import _LayeredMesh
 from .utils import mne_analyze_colormap
@@ -84,7 +86,7 @@ class EvokedField:
         .. versionadded:: 1.1
     time_viewer : bool | str
         Display time viewer GUI. Can also be ``"auto"``, which will mean
-        ``True`` for the PyVista backend and ``False`` otherwise.
+        ``True`` if there is more than one time point and ``False`` otherwise.
 
         .. versionadded:: 1.6
     %(verbose)s
@@ -241,13 +243,10 @@ class EvokedField:
 
         if not self._in_brain_figure:
             self._renderer.set_camera(azimuth=10, elevation=60)
-
-        self._renderer.show()
+            self._renderer.show()
 
     def _prepare_surf_map(self, surf_map, color, alpha):
         """Compute all the data required to render a fieldlines map."""
-        from scipy.interpolate import interp1d
-
         if surf_map["kind"] == "eeg":
             pick = pick_types(self._evoked.info, meg=False, eeg=True)
         else:
@@ -427,7 +426,7 @@ class EvokedField:
         )
         r._dock_add_button(
             name="↺",
-            callback=self.rescale,
+            callback=self._rescale,
             layout=hlayout,
             style="toolbutton",
         )
@@ -568,7 +567,7 @@ class EvokedField:
         else:
             raise ValueError(f"No {type.upper()} field map currently shown.")
 
-    def rescale(self):
+    def _rescale(self):
         """Rescale the fieldlines and density maps to the current time point."""
         for surf_map in self._surf_maps:
             current_data = surf_map["data_interp"](self._current_time)

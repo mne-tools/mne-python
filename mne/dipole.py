@@ -818,7 +818,7 @@ def _read_dipole_bdip(fname):
                 has_errors = this_has_errors
                 for key in _BDIP_ERROR_KEYS:
                     conf[key] = list()
-            # assert has_errors == this_has_errors
+            assert has_errors == this_has_errors
             fid.read(4)  # Noise level used for error computations
             limits = np.frombuffer(fid.read(20), ">f4")  # error limits
             for key, lim in zip(_BDIP_ERROR_KEYS, limits):
