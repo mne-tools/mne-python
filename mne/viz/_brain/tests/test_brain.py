@@ -604,8 +604,7 @@ def test_image_screenshot(
 ):
     """Test screenshot and image saving."""
     size = (300, 300)
-    brain = _create_testing_brain(hemi="lh", size=size)
-    cam = brain._renderer.figure.plotter.camera
+    brain = _create_testing_brain(hemi="rh", size=size)
     azimuth, elevation = 180.0, 90.0
     fname = tmp_path / "test.png"
     assert not fname.is_file()
@@ -615,12 +614,13 @@ def test_image_screenshot(
     fp = (fp[1::2] + fp[::2]) * 0.5
     for view_args in (
         dict(azimuth=azimuth, elevation=elevation, focalpoint="auto"),
-        dict(view="lateral", hemi="lh"),
+        dict(view="lateral", hemi="rh"),
     ):
         brain.show_view(**view_args)
-        assert_allclose(brain._renderer.figure._azimuth % 360, azimuth % 360)
-        assert_allclose(brain._renderer.figure._elevation % 180, elevation % 180)
-        assert_allclose(cam.GetFocalPoint(), fp, atol=1e-6)
+        _, _, a_, e_, f_ = brain.get_view()
+        assert_allclose(a_ % 360, azimuth % 360, atol=1e-6)
+        assert_allclose(e_ % 180, elevation % 180)
+        assert_allclose(f_, fp, atol=1e-6)
     img = brain.screenshot(mode="rgba")
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
     # on macOS sometimes matplotlib is HiDPI and VTK is not...
@@ -800,8 +800,8 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     _assert_brain_range(brain, [4.0, 12.0])
     brain._shift_time(shift_func=lambda x, y: x + y)
     brain._shift_time(shift_func=lambda x, y: x - y)
-    brain._rotate_azimuth(15)
-    brain._rotate_elevation(15)
+    brain._rotate_camera("azimuth", 15)
+    brain._rotate_camera("elevation", 15)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
     brain.set_playback_speed(0.1)

@@ -145,7 +145,6 @@ class PyVistaFigure(Figure3D):
             self._plotter_class = Plotter
 
         self._nrows, self._ncols = self.store["shape"]
-        self._azimuth = self._elevation = None
 
     def _build(self):
         if self.plotter is None:
@@ -827,7 +826,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self,
         azimuth=None,
         elevation=None,
-        distance=None,
+        distance="auto",
         focalpoint="auto",
         roll=None,
         reset_camera=True,
@@ -1145,21 +1144,22 @@ def _close_all():
     _FIGURES.clear()
 
 
-def _get_camera_direction(focalpoint, position):
+def _get_user_camera_direction(plotter, rigid):
+    position = np.array(plotter.camera.position, float)
+    focalpoint = np.array(plotter.camera.focal_point, float)
+    if rigid is not None:
+        position = apply_trans(rigid, position, move=False)
+        focalpoint = apply_trans(rigid, focalpoint, move=False)
     return tuple(_cart_to_sph(position - focalpoint)[0])
 
 
 def _get_3d_view(figure, *, rigid=None):
-    position = np.array(figure.plotter.camera.position, float)
     focalpoint = np.array(figure.plotter.camera.focal_point, float)
-    rigid = np.eye(4) if rigid is None else np.linalg.inv(rigid)
-    position = apply_trans(rigid, position)
-    focalpoint = apply_trans(rigid, focalpoint)
-    _, phi, theta = _get_camera_direction(focalpoint, position)
+    _, phi, theta = _get_user_camera_direction(figure.plotter, rigid)
     azimuth, elevation = np.rad2deg(phi), np.rad2deg(theta)
     return (
-        figure.plotter.camera.GetRoll(),
-        figure.plotter.camera.GetDistance(),
+        figure.plotter.camera.roll,
+        figure.plotter.camera.distance,
         azimuth,
         elevation,
         focalpoint,
@@ -1171,18 +1171,24 @@ def _set_3d_view(
     azimuth=None,
     elevation=None,
     focalpoint="auto",
-    distance=None,
+    distance="auto",
     roll=None,
     reset_camera=True,
     rigid=None,
     update=True,
 ):
-    camera = figure.plotter.camera
-    rigid = np.eye(4) if rigid is None else rigid
-    position = np.array(camera.position)
-    bounds = np.array(figure.plotter.renderer.ComputeVisiblePropBounds())
+    # Only compute bounds if we need to
+    bounds = None
+    if isinstance(focalpoint, str) or isinstance(distance, str):
+        bounds = np.array(figure.plotter.renderer.ComputeVisiblePropBounds(), float)
+
+    # camera slides along the vector defined from camera position to focal point until
+    # all of the actors can be seen (quoting PyVista's docs)
     if reset_camera:
         figure.plotter.reset_camera(render=False)
+
+    # Figure out our current parameters in the transformed space
+    _, phi, theta = _get_user_camera_direction(figure.plotter, rigid)
 
     # focalpoint: if 'auto', we use the center of mass of the visible
     # bounds, if None, we use the existing camera focal point otherwise
@@ -1191,22 +1197,19 @@ def _set_3d_view(
         _check_option("focalpoint", focalpoint, ("auto",), extra="when a string")
         focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
     elif focalpoint is None:
-        focalpoint = camera.focal_point
-    focalpoint = np.array(focalpoint, float)
-
-    # work in the transformed space
-    position = apply_trans(rigid, position)
-    focalpoint = apply_trans(rigid, focalpoint)
-    _, phi, theta = _get_camera_direction(focalpoint, position)
+        focalpoint = figure.plotter.camera.focal_point
+    focalpoint = np.array(focalpoint, float)  # in real-world coords
+    if distance is None:
+        distance = figure.plotter.camera.distance
+    elif isinstance(distance, str):
+        _check_option("distance", distance, ("auto",), extra="when a string")
+        distance = max(bounds[1::2] - bounds[::2]) * 2.0
+    distance = float(distance)
 
     if azimuth is not None:
         phi = np.deg2rad(azimuth)
     if elevation is not None:
         theta = np.deg2rad(elevation)
-
-    # set the distance
-    if distance is None:
-        distance = max(bounds[1::2] - bounds[::2]) * 2.0
 
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the
@@ -1218,20 +1221,14 @@ def _set_3d_view(
 
     position = _sph_to_cart([distance, phi, theta])[0]
 
-    # TODO: We should remove this hack and compute from the camera
-    figure._azimuth = np.rad2deg(phi)
-    figure._elevation = np.rad2deg(theta)
-
     # restore to the original frame
-    rigid = np.linalg.inv(rigid)
-    position = apply_trans(rigid, position)
-    focalpoint = apply_trans(rigid, focalpoint)
-    view_up = apply_trans(rigid, view_up, move=False)
-    camera.position = position
-    camera.focal_point = focalpoint
-    camera.view_up = view_up
+    if rigid is not None:
+        rigid_inv = np.linalg.inv(rigid)
+        position = apply_trans(rigid_inv, position, move=False)
+        view_up = apply_trans(rigid_inv, view_up, move=False)
+    figure.plotter.camera_position = [position, focalpoint, view_up]
     if roll is not None:
-        camera.SetRoll(roll)
+        figure.plotter.camera.roll = roll
 
     if update:
         figure.plotter.update()

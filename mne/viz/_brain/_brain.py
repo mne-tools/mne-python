@@ -373,7 +373,6 @@ class Brain:
         self._annots = {"lh": list(), "rh": list()}
         self._layered_meshes = dict()
         self._actors = dict()
-        self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._cleaned = False
         # default values for silhouette
         self._silhouette = {
@@ -1281,17 +1280,15 @@ class Brain:
             TimeChange(time=shift_func(self._current_time, self.playback_speed)),
         )
 
-    def _rotate_azimuth(self, value):
-        azimuth = (self._renderer.figure._azimuth + value) % 360
-        self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
-
-    def _rotate_elevation(self, value):
-        elevation = np.clip(
-            self._renderer.figure._elevation + value,
-            self._elevation_rng[0],
-            self._elevation_rng[1],
-        )
-        self._renderer.set_camera(elevation=elevation, reset_camera=False)
+    def _rotate_camera(self, which, value):
+        roll, distance, azimuth, elevation, focalpoint = self._renderer.get_camera()
+        if which == "azimuth":
+            kwargs = dict(azimuth=azimuth + value % 360)
+        else:
+            assert which == "elevation", which
+            elevation = np.clip(elevation + value, 15, 165)
+            kwargs = dict(elevation=elevation)
+        self._renderer.set_camera(reset_camera=False, **kwargs)
 
     def _configure_shortcuts(self):
         # Remove the default key binding
@@ -1308,13 +1305,14 @@ class Brain:
         self.plotter.add_key_event(
             "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
         )
-        for key, func, sign in (
-            ("Left", self._rotate_azimuth, 1),
-            ("Right", self._rotate_azimuth, -1),
-            ("Up", self._rotate_elevation, 1),
-            ("Down", self._rotate_elevation, -1),
+        for key, func, which, sign in (
+            ("Left", self._rotate_camera, "azimuth", 1),
+            ("Right", self._rotate_camera, "azimuth", -1),
+            ("Up", self._rotate_camera, "elevation", 1),
+            ("Down", self._rotate_camera, "elevation", -1),
         ):
-            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
+            self.plotter.clear_events_for_key(key)
+            self.plotter.add_key_event(key, partial(func, which, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
         self._renderer._menu_initialize()
