@@ -18,6 +18,7 @@ from mne.preprocessing.nirs import (
 )
 from mne.transforms import apply_trans, _get_trans
 from mne._fiff.constants import FIFF
+from mne.utils import catch_logging
 
 
 testing_path = data_path(download=False)
@@ -524,7 +525,10 @@ def test_sample_rate_jitter(tmp_path):
         del f["nirs/data1/time"]
         f.flush()
         f.create_dataset("nirs/data1/time", data=acceptable_time_jitter)
-    read_raw_snirf(new_file)
+    with catch_logging("info") as log:
+        read_raw_snirf(new_file)
+    lines = "\n".join(line for line in log.getvalue().splitlines() if "jitter" in line)
+    assert "Found jitter of 0.9" in lines
 
     # Add jitter of 1.01%, which is greater than allowed tolerance
     with h5py.File(new_file, "r+") as f:
@@ -535,5 +539,5 @@ def test_sample_rate_jitter(tmp_path):
         del f["nirs/data1/time"]
         f.flush()
         f.create_dataset("nirs/data1/time", data=unacceptable_time_jitter)
-    with pytest.raises(RuntimeWarning, match="non-uniformly-sampled data"):
-        read_raw_snirf(new_file)
+    with pytest.warns(RuntimeWarning, match="non-uniformly-sampled data"):
+        read_raw_snirf(new_file, verbose=True)
