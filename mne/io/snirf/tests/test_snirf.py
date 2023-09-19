@@ -472,7 +472,11 @@ def test_annotation_duration_from_stim_groups():
 
 def test_birthday(tmp_path, monkeypatch):
     """Test birthday parsing."""
-    snirf = pytest.importorskip("snirf")
+    try:
+        snirf = pytest.importorskip("snirf")
+    except AttributeError as exc:
+        # Until https://github.com/BUNPC/pysnirf2/pull/43 is released
+        pytest.skip(f"snirf import error: {exc}")
     fname = tmp_path / "test.snirf"
     with snirf.Snirf(str(fname), "w") as a:
         a.nirs.appendGroup()
