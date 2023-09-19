@@ -92,9 +92,6 @@ from ..ui_events import (
 )
 
 
-_ARROW_MOVE = 10  # degrees per press
-
-
 @fill_doc
 class Brain:
     """Class for visualizing a brain.
@@ -1306,14 +1303,14 @@ class Brain:
         self.plotter.add_key_event(
             "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
         )
-        for key, func, which, sign in (
-            ("Left", self._rotate_camera, "azimuth", 1),
-            ("Right", self._rotate_camera, "azimuth", -1),
-            ("Up", self._rotate_camera, "elevation", 1),
-            ("Down", self._rotate_camera, "elevation", -1),
+        for key, func, which, amt in (
+            ("Left", self._rotate_camera, "azimuth", 10),
+            ("Right", self._rotate_camera, "azimuth", -10),
+            ("Up", self._rotate_camera, "elevation", 10),
+            ("Down", self._rotate_camera, "elevation", -10),
         ):
             self.plotter.clear_events_for_key(key)
-            self.plotter.add_key_event(key, partial(func, which, sign * _ARROW_MOVE))
+            self.plotter.add_key_event(key, partial(func, which, amt))
 
     def _configure_menu(self):
         self._renderer._menu_initialize()
