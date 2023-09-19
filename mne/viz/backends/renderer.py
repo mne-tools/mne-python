@@ -257,7 +257,8 @@ def set_3d_view(
     focalpoint=None,
     distance=None,
     roll=None,
-    reset_camera=True,
+    *,
+    reset_camera=None,
 ):
     """Configure the view of the given scene.
 
@@ -271,7 +272,7 @@ def set_3d_view(
     %(distance)s
     %(roll)s
     reset_camera : bool
-       If True, reset the camera properties beforehand.
+       Deprecated, use ``distance="auto"`` instead.
     """
     backend._set_3d_view(
         figure=figure,

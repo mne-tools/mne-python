@@ -140,7 +140,7 @@ class _AbstractRenderer(ABC):
         line_width=1.0,
         normals=None,
         polygon_offset=None,
-        **kwargs
+        **kwargs,
     ):
         """Add a mesh in the scene.
 
@@ -551,7 +551,8 @@ class _AbstractRenderer(ABC):
         distance=None,
         focalpoint=None,
         roll=None,
-        reset_camera=True,
+        *,
+        reset_camera=None,
     ):
         """Configure the camera of the scene.
 
@@ -568,7 +569,7 @@ class _AbstractRenderer(ABC):
         roll : float
             The rotation of the camera along its axis.
         reset_camera : bool
-           If True, reset the camera properties beforehand.
+           Deprecated, used ``distance="auto"`` instead.
         """
         pass
 
@@ -1076,7 +1077,7 @@ class _AbstractDock(ABC):
         style="pushbutton",
         icon=None,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1095,7 +1096,7 @@ class _AbstractDock(ABC):
         compact=True,
         double=False,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1115,7 +1116,7 @@ class _AbstractDock(ABC):
         double=True,
         step=None,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1152,7 +1153,7 @@ class _AbstractDock(ABC):
         is_directory=False,
         icon=False,
         tooltip=None,
-        layout=None
+        layout=None,
     ):
         pass
 
@@ -1221,7 +1222,7 @@ class _AbstractDialog(ABC):
         icon="Warning",
         buttons=[],
         modal=True,
-        window=None
+        window=None,
     ):
         pass
 

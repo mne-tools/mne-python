@@ -472,9 +472,7 @@ class Brain:
                         alpha=self._silhouette["alpha"],
                         decimate=self._silhouette["decimate"],
                     )
-                self._renderer.set_camera(
-                    update=False, reset_camera=False, **views_dicts[h][v]
-                )
+                self._set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
         self._closed = False
@@ -1281,14 +1279,17 @@ class Brain:
         )
 
     def _rotate_camera(self, which, value):
-        roll, distance, azimuth, elevation, focalpoint = self._renderer.get_camera()
+        _, _, azimuth, elevation, _ = self._renderer.get_camera(rigid=self._rigid)
+        kwargs = dict(update=True)
         if which == "azimuth":
-            kwargs = dict(azimuth=azimuth + value % 360)
+            value = azimuth + value
+            # Our view_up threshold is 5/175, so let's be safe here
+            if elevation < 7.5 or elevation > 172.5:
+                kwargs["elevation"] = np.clip(elevation, 10, 170)
         else:
-            assert which == "elevation", which
-            elevation = np.clip(elevation + value, 15, 165)
-            kwargs = dict(elevation=elevation)
-        self._renderer.set_camera(reset_camera=False, **kwargs)
+            value = np.clip(elevation + value, 10, 170)
+        kwargs[which] = value
+        self._set_camera(**kwargs)
 
     def _configure_shortcuts(self):
         # Remove the default key binding
@@ -1519,7 +1520,7 @@ class Brain:
             return
 
         if hemi == label.hemi:
-            self.add_label(label, borders=True, reset_camera=False)
+            self.add_label(label, borders=True)
             self.picked_patches[hemi].append(label_id)
 
     def _remove_label_glyph(self, hemi, label_id):
@@ -2104,11 +2105,9 @@ class Brain:
                 )
                 kwargs.update(colorbar_kwargs or {})
                 self._scalar_bar = self._renderer.scalarbar(**kwargs)
-            self._renderer.set_camera(
-                update=False, reset_camera=False, **views_dicts[hemi][v]
-            )
+            self._set_camera(**views_dicts[hemi][v])
 
-        # 4) update the scalar bar and opacity
+        # 4) update the scalar bar and opacity (and render)
         self._update_colormap_range(alpha=alpha)
 
         # 5) enable UI events to interact with the data
@@ -2248,21 +2247,21 @@ class Brain:
             self._data[hemi]["grid_volume_pos"] = volume_pos
             self._data[hemi]["grid_volume_neg"] = volume_neg
         actor_pos, _ = self._renderer.plotter.add_actor(
-            volume_pos, reset_camera=False, name=None, culling=False, render=False
+            volume_pos, name=None, culling=False, reset_camera=False, render=False
         )
         actor_neg = actor_mesh = None
         if volume_neg is not None:
             actor_neg, _ = self._renderer.plotter.add_actor(
-                volume_neg, reset_camera=False, name=None, culling=False, render=False
+                volume_neg, name=None, culling=False, reset_camera=False, render=False
             )
         grid_mesh = self._data[hemi]["grid_mesh"]
         if grid_mesh is not None:
             actor_mesh, prop = self._renderer.plotter.add_actor(
                 grid_mesh,
-                reset_camera=False,
                 name=None,
                 culling=False,
                 pickable=False,
+                reset_camera=False,
                 render=False,
             )
             prop.SetColor(*self._brain_color[:3])
@@ -2290,7 +2289,8 @@ class Brain:
         borders=False,
         hemi=None,
         subdir=None,
-        reset_camera=True,
+        *,
+        reset_camera=None,
     ):
         """Add an ROI label to the image.
 
@@ -2323,8 +2323,7 @@ class Brain:
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
         reset_camera : bool
-            If True, reset the camera view after adding the label. Defaults
-            to True.
+            Deprecated. Use :meth:`show_view` instead.
 
         Notes
         -----
@@ -2431,6 +2430,12 @@ class Brain:
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
             scalars *= show
+        if reset_camera is not None:
+            warn(
+                "reset_camera is deprecated and will be removed in 1.7, "
+                "use show_view instead",
+                FutureWarning,
+            )
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
@@ -2440,8 +2445,6 @@ class Brain:
                 opacity=alpha,
                 name=label_name,
             )
-            if reset_camera:
-                self._renderer.set_camera(update=False, **views_dicts[hemi][v])
             if self.time_viewer and self.show_traces and self.traces_mode == "label":
                 label._color = orig_color
                 label._line = line
@@ -2594,7 +2597,6 @@ class Brain:
                 triangles=triangles,
                 color=color,
                 opacity=alpha,
-                reset_camera=False,
                 render=False,
             )
             self._add_actor("head", actor)
@@ -2846,7 +2848,8 @@ class Brain:
                 opacity=alpha,
                 resolution=resolution,
             )
-            self._renderer.set_camera(**views_dicts[hemi][v])
+            self._set_camera(**views_dicts[hemi][v])
+        self._renderer._update()
 
         # Store the foci in the Brain._data dictionary
         data_foci = coords
@@ -3352,24 +3355,39 @@ class Brain:
                 param: val for param, val in view_params.items() if val is not None
             }  # no overwriting with None
             view_params = dict(views_dicts[hemi].get(view), **view_params)
-        rigid = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row is None or row == ri) and (col is None or col == ci):
-                    self._renderer.set_camera(
-                        **view_params,
-                        reset_camera=False,
-                        rigid=rigid,
-                        update=False,
-                    )
+                    self._set_camera(**view_params, align=align)
         if update:
             self._renderer._update()
+
+    def _set_camera(
+        self,
+        *,
+        distance=None,
+        focalpoint=None,
+        update=False,
+        align=True,
+        verbose=None,
+        **kwargs,
+    ):
+        # Wrap to self._renderer.set_camera safely, always passing self._rigid
+        # and using better no-op-like defaults
+        return self._renderer.set_camera(
+            distance=distance,
+            focalpoint=focalpoint,
+            update=update,
+            rigid=self._rigid if align else None,
+            **kwargs,
+        )
 
     def reset_view(self):
         """Reset the camera."""
         for h in self._hemis:
             for _, _, v in self._iter_views(h):
-                self._renderer.set_camera(**views_dicts[h][v], reset_camera=False)
+                self._set_camera(**views_dicts[h][v])
+        self._renderer._update()
 
     def save_image(self, filename=None, mode="rgb"):
         """Save view from all panels to disk.

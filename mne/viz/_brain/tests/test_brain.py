@@ -549,18 +549,26 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.close()
 
 
-def _assert_view_allclose(brain, roll, distance, azimuth, elevation, focalpoint, align):
+def _assert_view_allclose(
+    brain,
+    roll,
+    distance,
+    azimuth,
+    elevation,
+    focalpoint,
+    align=True,
+):
     __tracebackhide__ = True
     r_, d_, a_, e_, f_ = brain.get_view(align=align)
     azimuth, a_ = azimuth % 360, a_ % 360
     assert_allclose(r_, roll, err_msg="Roll")
-    assert_allclose(d_, distance, rtol=0.01, err_msg="Distance")
-    assert_allclose(a_, azimuth, rtol=0.01, atol=1e-6, err_msg="Azimuth")
+    assert_allclose(d_, distance, rtol=1e-5, err_msg="Distance")
+    assert_allclose(a_, azimuth, rtol=1e-5, atol=1e-6, err_msg="Azimuth")
     assert_allclose(e_, elevation, rtol=1e-5, atol=1e-6, err_msg="Elevation")
     assert_allclose(f_, focalpoint, err_msg="Focal point")
     cam = brain._renderer.figure.plotter.camera
     assert_allclose(cam.GetFocalPoint(), focalpoint, err_msg="Camera focal point")
-    assert_allclose(cam.GetDistance(), distance, rtol=1e-4, err_msg="Camera distance")
+    assert_allclose(cam.GetDistance(), distance, rtol=1e-5, err_msg="Camera distance")
     assert_allclose(cam.GetRoll(), roll, atol=1e-5, err_msg="Camera roll")
 
 
@@ -800,8 +808,28 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     _assert_brain_range(brain, [4.0, 12.0])
     brain._shift_time(shift_func=lambda x, y: x + y)
     brain._shift_time(shift_func=lambda x, y: x - y)
+    # one at a time no-op
+    r_, d_, a_, e_, f_ = brain.get_view()
+    _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    brain.show_view(verbose="debug")  # should be a no-op
+    _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    brain._set_camera(verbose="debug")  # also no-op
+    _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    want_view = np.array([r_, d_, a_, e_], float)  # ignore focalpoint
+    for k, v in (("roll", r_), ("distance", d_), ("azimuth", a_), ("elevation", e_)):
+        brain.show_view(**{k: v})
+        _assert_view_allclose(brain, r_, d_, a_, e_, f_)
+    got_view = np.array(brain.get_view()[:4], float)
+    assert_allclose(got_view, want_view, rtol=1e-5, atol=1e-6)
     brain._rotate_camera("azimuth", 15)
+    want_view[2] += 15
+    got_view = np.array(brain.get_view()[:4], float)
+    # roll changes when you adjust these because of the affine
+    assert_allclose(got_view[1:], want_view[1:], rtol=1e-5, atol=1e-6)
     brain._rotate_camera("elevation", 15)
+    want_view[3] += 15
+    got_view = np.array(brain.get_view()[:4], float)
+    assert_allclose(got_view[1:], want_view[1:], rtol=1e-5, atol=1e-6)
     brain.toggle_interface()
     brain.toggle_interface(value=False)
     brain.set_playback_speed(0.1)

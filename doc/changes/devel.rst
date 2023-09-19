@@ -46,6 +46,8 @@ Bugs
 - Fix bug with ``pca=False`` in :func:`mne.minimum_norm.compute_source_psd` (:gh:`11927` by `Alex Gramfort`_)
 - Fix bug with notebooks when using PyVista 0.42 by implementing ``trame`` backend support (:gh:`11956` by `Eric Larson`_)
 - Removed preload parameter from :func:`mne.io.read_raw_eyelink`, because data are always preloaded no matter what preload is set to (:gh:`11910` by `Scott Huberty`_)
+- Fix bug with :meth:`mne.viz.Brain.get_view` where calling :meth:`~mne.viz.Brain.show_view` with returned parameters would change the view (:gh:`12000` by `Eric Larson`_)
+- Fix bug with :meth:`mne.viz.Brain.show_view` where ``distance=None`` would change the view distance (:gh:`12000` by `Eric Larson`_)
 - Fix bug with :meth:`~mne.viz.Brain.add_annotation` when reading an annotation from a file with both hemispheres shown (:gh:`11946` by `Marijn van Vliet`_)
 - Fix bug with axis clip box boundaries in :func:`mne.viz.plot_evoked_topo` and related functions (:gh:`11999` by `Eric Larson`_)
 - Fix bug with ``subject_info`` when loading data from and exporting to EDF file (:gh:`11952` by `Paul Roujansky`_)
@@ -56,3 +58,4 @@ API changes
 - ``mne.preprocessing.apply_maxfilter`` and ``mne maxfilter`` have been deprecated and will be removed in 1.7. Use :func:`mne.preprocessing.maxwell_filter` (see :ref:`this tutorial <tut-artifact-sss>`) in Python or the command-line utility from MEGIN ``maxfilter`` and :func:`mne.bem.fit_sphere_to_headshape` instead (:gh:`11938` by `Eric Larson`_)
 - :func:`mne.io.kit.read_mrk` reading pickled files is deprecated using something like ``np.savetxt(fid, pts, delimiter="\t", newline="\n")`` to save your points instead (:gh:`11937` by `Eric Larson`_)
 - Replace legacy ``inst.pick_channels`` and ``inst.pick_types`` with ``inst.pick`` (where ``inst`` is an instance of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`) wherever possible (:gh:`11907` by `Clemens Brunner`_)
+- The ``reset_camera`` parameter has been removed in favor of ``distance="auto"`` in :func:`mne.viz.set_3d_view`, :meth:`mne.viz.Brain.show_view`, and related functions (:gh:`12000` by `Eric Larson`_)

@@ -34,6 +34,7 @@ from ...utils import (
     _require_version,
     _validate_type,
     warn,
+    deprecated,
 )
 
 
@@ -436,7 +437,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         triangles,
         color,
         opacity=1.0,
-        shading=False,
+        *,
         backface_culling=False,
         scalars=None,
         colormap=None,
@@ -826,12 +827,13 @@ class _PyVistaRenderer(_AbstractRenderer):
         self,
         azimuth=None,
         elevation=None,
-        distance="auto",
-        focalpoint="auto",
+        distance=None,
+        focalpoint=None,
         roll=None,
-        reset_camera=True,
+        *,
         rigid=None,
         update=True,
+        reset_camera=None,
     ):
         _set_3d_view(
             self.figure,
@@ -845,6 +847,10 @@ class _PyVistaRenderer(_AbstractRenderer):
             update=update,
         )
 
+    @deprecated(
+        "reset_camera is deprecated and will be removed in 1.7, use "
+        "set_camera(distance='auto') instead"
+    )
     def reset_camera(self):
         self.plotter.reset_camera()
 
@@ -1056,10 +1062,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         silhouette_mapper.SetInputConnection(silhouette_filter.GetOutputPort())
         actor, prop = self.plotter.add_actor(
             silhouette_mapper,
-            reset_camera=False,
             name=None,
             culling=False,
             pickable=False,
+            reset_camera=False,
             render=False,
         )
         if color is not None:
@@ -1094,6 +1100,8 @@ def _add_mesh(plotter, *args, **kwargs):
     # is called in show()
     if "render" not in kwargs:
         kwargs["render"] = False
+    if "reset_camera" not in kwargs:
+        kwargs["reset_camera"] = False
     actor = plotter.add_mesh(*args, **kwargs)
     if smooth_shading and "Normals" in mesh.point_data:
         prop = actor.GetProperty()
@@ -1145,8 +1153,7 @@ def _close_all():
 
 
 def _get_user_camera_direction(plotter, rigid):
-    position = np.array(plotter.camera.position, float)
-    focalpoint = np.array(plotter.camera.focal_point, float)
+    position, focalpoint = np.array(plotter.camera_position[:2], float)
     if rigid is not None:
         position = apply_trans(rigid, position, move=False)
         focalpoint = apply_trans(rigid, focalpoint, move=False)
@@ -1154,7 +1161,7 @@ def _get_user_camera_direction(plotter, rigid):
 
 
 def _get_3d_view(figure, *, rigid=None):
-    focalpoint = np.array(figure.plotter.camera.focal_point, float)
+    focalpoint = np.array(figure.plotter.camera_position[1], float)
     _, phi, theta = _get_user_camera_direction(figure.plotter, rigid)
     azimuth, elevation = np.rad2deg(phi), np.rad2deg(theta)
     return (
@@ -1170,10 +1177,10 @@ def _set_3d_view(
     figure,
     azimuth=None,
     elevation=None,
-    focalpoint="auto",
-    distance="auto",
+    focalpoint=None,
+    distance=None,
     roll=None,
-    reset_camera=True,
+    reset_camera=None,
     rigid=None,
     update=True,
 ):
@@ -1184,8 +1191,13 @@ def _set_3d_view(
 
     # camera slides along the vector defined from camera position to focal point until
     # all of the actors can be seen (quoting PyVista's docs)
-    if reset_camera:
-        figure.plotter.reset_camera(render=False)
+    if reset_camera is not None:
+        reset_camera = False
+        warn(
+            "reset_camera is deprecated and will be removed in 1.7, use "
+            "distance='auto' instead",
+            FutureWarning,
+        )
 
     # Figure out our current parameters in the transformed space
     _, phi, theta = _get_user_camera_direction(figure.plotter, rigid)
@@ -1197,7 +1209,7 @@ def _set_3d_view(
         _check_option("focalpoint", focalpoint, ("auto",), extra="when a string")
         focalpoint = (bounds[1::2] + bounds[::2]) * 0.5
     elif focalpoint is None:
-        focalpoint = figure.plotter.camera.focal_point
+        focalpoint = figure.plotter.camera_position[1]
     focalpoint = np.array(focalpoint, float)  # in real-world coords
     if distance is None:
         distance = figure.plotter.camera.distance
