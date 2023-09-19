@@ -612,7 +612,7 @@ def test_image_screenshot(
 ):
     """Test screenshot and image saving."""
     size = (300, 300)
-    brain = _create_testing_brain(hemi="rh", size=size)
+    brain = _create_testing_brain(hemi="rh", show_traces=False, size=size)
     azimuth, elevation = 180.0, 90.0
     fname = tmp_path / "test.png"
     assert not fname.is_file()
