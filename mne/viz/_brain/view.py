@@ -37,7 +37,7 @@ _rh_views_dict = {
     "coronal": dict(azimuth=90.0, elevation=90.0, focalpoint=ORIGIN, distance=DIST),
     "axial": dict(
         azimuth=180.0, elevation=0.0, focalpoint=ORIGIN, roll=0, distance=DIST
-    ),  # noqa: E501
+    ),
 }
 # add short-size version entries into the dict
 lh_views_dict = _lh_views_dict.copy()
@@ -45,14 +45,14 @@ for k, v in _lh_views_dict.items():
     lh_views_dict[k[:3]] = v
     lh_views_dict["flat"] = dict(
         azimuth=0, elevation=0, focalpoint=ORIGIN, roll=0, distance=DIST
-    )  # noqa: E501
+    )
 
 rh_views_dict = _rh_views_dict.copy()
 for k, v in _rh_views_dict.items():
     rh_views_dict[k[:3]] = v
     rh_views_dict["flat"] = dict(
         azimuth=0, elevation=0, focalpoint=ORIGIN, roll=0, distance=DIST
-    )  # noqa: E501
+    )
 views_dicts = dict(
     lh=lh_views_dict, vol=lh_views_dict, both=lh_views_dict, rh=rh_views_dict
 )

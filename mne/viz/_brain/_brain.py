@@ -1303,14 +1303,14 @@ class Brain:
         self.plotter.add_key_event(
             "b", partial(self._shift_time, shift_func=lambda x, y: x - y)
         )
-        for key, func, which, amt in (
-            ("Left", self._rotate_camera, "azimuth", 10),
-            ("Right", self._rotate_camera, "azimuth", -10),
-            ("Up", self._rotate_camera, "elevation", 10),
-            ("Down", self._rotate_camera, "elevation", -10),
+        for key, which, amt in (
+            ("Left", "azimuth", 10),
+            ("Right", "azimuth", -10),
+            ("Up", "elevation", 10),
+            ("Down", "elevation", -10),
         ):
             self.plotter.clear_events_for_key(key)
-            self.plotter.add_key_event(key, partial(func, which, amt))
+            self.plotter.add_key_event(key, partial(self._rotate_camera, which, amt))
 
     def _configure_menu(self):
         self._renderer._menu_initialize()
