@@ -15,6 +15,7 @@ Visualization
 
    Brain
    ClickableImage
+   EvokedField
    Figure3D
    add_background_image
    centers_to_edges
@@ -108,8 +109,9 @@ UI Events
    unlink
    disable_ui_events
    UIEvent
-   FigureClosing
-   TimeChange
-   PlaybackSpeed
    ColormapRange
+   Contours
+   FigureClosing
+   PlaybackSpeed
+   TimeChange
    VertexSelect

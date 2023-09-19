@@ -760,8 +760,6 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain._update_fscale(1.2**-0.25)
     brain.update_lut(fmin=12.0, fmid=4.0)
     _assert_brain_range(brain, [4.0, 12.0])
-    brain._shift_time(shift_func=lambda x, y: x + y)
-    brain._shift_time(shift_func=lambda x, y: x - y)
     brain._rotate_azimuth(15)
     brain._rotate_elevation(15)
     brain.toggle_interface()
