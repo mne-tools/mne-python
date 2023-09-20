@@ -52,7 +52,7 @@ Bugs
 - Fix bug with axis clip box boundaries in :func:`mne.viz.plot_evoked_topo` and related functions (:gh:`11999` by `Eric Larson`_)
 - Fix bug with ``subject_info`` when loading data from and exporting to EDF file (:gh:`11952` by `Paul Roujansky`_)
 - Fix handling of channel information in annotations when loading data from and exporting to EDF file (:gh:`11960` by `Paul Roujansky`_)
-- Add missing ``overwrite`` and ``verbose`` parameters to :meth:`~mne.transforms.Transforms.save` (:gh:`12004` by `Marijn van Vliet`_)
+- Add missing ``overwrite`` and ``verbose`` parameters to :meth:`Transform.save() <mne.transforms.Transform.save>` (:gh:`12004` by `Marijn van Vliet`_)
 
 API changes
 ~~~~~~~~~~~
