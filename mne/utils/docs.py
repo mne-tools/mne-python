@@ -1104,9 +1104,13 @@ dipole : instance of Dipole | list of Dipole
 docdict[
     "distance"
 ] = """
-distance : float | None
+distance : float | "auto" | None
     The distance from the camera rendering the view to the focalpoint
-    in plot units (either m or mm).
+    in plot units (either m or mm). If "auto", the bounds of visible objects will be
+    used to set a reasonable distance.
+
+    .. versionchanged:: 1.6
+       ``None`` will no longer change the distance, use ``"auto"`` instead.
 """
 
 docdict[
