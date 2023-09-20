@@ -142,7 +142,7 @@ class RawEyelink(BaseRaw):
 
         # ======================== Parse ASCII file ==========================
         eye_ch_data, info, raw_extras = _parse_eyelink_ascii(
-            fname, find_overlaps, overlap_threshold
+            fname, find_overlaps, overlap_threshold, apply_offsets
         )
         # ======================== Create Raw Object =========================
         super(RawEyelink, self).__init__(
