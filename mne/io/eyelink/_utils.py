@@ -283,7 +283,10 @@ def _create_dataframes(raw_extras):
         for tokens in raw_extras["event_lines"]["MSG"]:
             timestamp = tokens[0]
             # if offset token exists, it will be the 1st index and is numeric
-            if tokens[1].lstrip("-").replace(".", "", 1).isnumeric():
+            if (
+                3 <= len(tokens)
+                and tokens[1].lstrip("-").replace(".", "", 1).isnumeric()
+            ):
                 offset = float(tokens[1])
                 msg = " ".join(str(x) for x in tokens[2:])
             else:
