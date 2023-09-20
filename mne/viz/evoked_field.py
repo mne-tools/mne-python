@@ -196,6 +196,7 @@ class EvokedField:
             self._in_brain_figure = False
 
         self._renderer.set_interaction(interaction)
+        self.plotter = self._renderer.plotter
         self.interaction = interaction
 
         # Prepare the surface maps
