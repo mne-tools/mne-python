@@ -805,8 +805,6 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio, brain_gc
     brain._update_fscale(1.2**-0.25)
     brain.update_lut(fmin=12.0, fmid=4.0)
     _assert_brain_range(brain, [4.0, 12.0])
-    brain._shift_time(shift_func=lambda x, y: x + y)
-    brain._shift_time(shift_func=lambda x, y: x - y)
     # one at a time no-op
     r_, d_, a_, e_, f_ = brain.get_view()
     _assert_view_allclose(brain, r_, d_, a_, e_, f_)

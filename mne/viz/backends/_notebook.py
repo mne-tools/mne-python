@@ -38,6 +38,7 @@ from ipywidgets import (
 )
 from ipyevents import Event
 
+from .renderer import _TimeInteraction
 from ._abstract import (
     _AbstractAppWindow,
     _AbstractHBoxLayout,
@@ -1040,7 +1041,11 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._dock_layout.layout.visibility = "hidden"
 
     def _dock_add_stretch(self, layout=None):
-        pass
+        layout = self._dock_layout if layout is None else layout
+        widget = HTML(value="", disabled=True)
+        widget.layout.width = "100%"
+        self._layout_add_widget(layout, widget)
+        return _IpyWidget(widget)
 
     def _dock_add_layout(self, vertical=True):
         return VBox() if vertical else HBox()
@@ -1048,6 +1053,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_add_label(self, value, *, align=False, layout=None, selectable=False):
         layout = self._dock_layout if layout is None else layout
         widget = HTML(value=value, disabled=True)
+        widget.layout.width = "100px"
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
@@ -1242,6 +1248,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         if icon is None:
             return
         widget = Button(tooltip=desc, icon=icon)
+        widget.layout.width = "50px"
         widget.on_click(lambda x: func())
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = _IpyAction(widget)
@@ -1338,10 +1345,9 @@ class _IpyPlayback(_AbstractPlayback):
         play = play_widget._widget
         play.min = rng[0]
         play.max = rng[1]
-        play.value = value
+        play.value = round(value)
         slider = time_widget._widget
         jsdlink((play, "value"), (slider, "value"))
-        jsdlink((slider, "value"), (play, "value"))
 
 
 class _IpyMplInterface(_AbstractMplInterface):
@@ -1535,6 +1541,7 @@ class _Renderer(
     _IpyPlayback,
     _IpyDialog,
     _IpyKeyPress,
+    _TimeInteraction,
 ):
     _kind = "notebook"
 
