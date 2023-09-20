@@ -92,9 +92,6 @@ from ..ui_events import (
 )
 
 
-_ARROW_MOVE = 10  # degrees per press
-
-
 @fill_doc
 class Brain:
     """Class for visualizing a brain.
@@ -373,7 +370,6 @@ class Brain:
         self._annots = {"lh": list(), "rh": list()}
         self._layered_meshes = dict()
         self._actors = dict()
-        self._elevation_rng = [15, 165]  # range of motion of camera on theta
         self._cleaned = False
         # default values for silhouette
         self._silhouette = {
@@ -473,9 +469,7 @@ class Brain:
                         alpha=self._silhouette["alpha"],
                         decimate=self._silhouette["decimate"],
                     )
-                self._renderer.set_camera(
-                    update=False, reset_camera=False, **views_dicts[h][v]
-                )
+                self._set_camera(**views_dicts[h][v])
 
         self.interaction = interaction
         self._closed = False
@@ -497,7 +491,7 @@ class Brain:
             xfm = _estimate_talxfm_rigid(self._subject, self._subjects_dir)
         except Exception:
             logger.info(
-                "Could not estimate rigid Talairach alignment, " "using identity matrix"
+                "Could not estimate rigid Talairach alignment, using identity matrix"
             )
         else:
             self._rigid[:] = xfm
@@ -1192,17 +1186,18 @@ class Brain:
             shortcut="?",
         )
 
-    def _rotate_azimuth(self, value):
-        azimuth = (self._renderer.figure._azimuth + value) % 360
-        self._renderer.set_camera(azimuth=azimuth, reset_camera=False)
-
-    def _rotate_elevation(self, value):
-        elevation = np.clip(
-            self._renderer.figure._elevation + value,
-            self._elevation_rng[0],
-            self._elevation_rng[1],
-        )
-        self._renderer.set_camera(elevation=elevation, reset_camera=False)
+    def _rotate_camera(self, which, value):
+        _, _, azimuth, elevation, _ = self._renderer.get_camera(rigid=self._rigid)
+        kwargs = dict(update=True)
+        if which == "azimuth":
+            value = azimuth + value
+            # Our view_up threshold is 5/175, so let's be safe here
+            if elevation < 7.5 or elevation > 172.5:
+                kwargs["elevation"] = np.clip(elevation, 10, 170)
+        else:
+            value = np.clip(elevation + value, 10, 170)
+        kwargs[which] = value
+        self._set_camera(**kwargs)
 
     def _configure_shortcuts(self):
         # Remove the default key binding
@@ -1213,13 +1208,14 @@ class Brain:
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
-        for key, func, sign in (
-            ("Left", self._rotate_azimuth, 1),
-            ("Right", self._rotate_azimuth, -1),
-            ("Up", self._rotate_elevation, 1),
-            ("Down", self._rotate_elevation, -1),
+        for key, which, amt in (
+            ("Left", "azimuth", 10),
+            ("Right", "azimuth", -10),
+            ("Up", "elevation", 10),
+            ("Down", "elevation", -10),
         ):
-            self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
+            self.plotter.clear_events_for_key(key)
+            self.plotter.add_key_event(key, partial(self._rotate_camera, which, amt))
 
     def _configure_menu(self):
         self._renderer._menu_initialize()
@@ -1417,7 +1413,7 @@ class Brain:
             return
 
         if hemi == label.hemi:
-            self.add_label(label, borders=True, reset_camera=False)
+            self.add_label(label, borders=True)
             self.picked_patches[hemi].append(label_id)
 
     def _remove_label_glyph(self, hemi, label_id):
@@ -2002,11 +1998,9 @@ class Brain:
                 )
                 kwargs.update(colorbar_kwargs or {})
                 self._scalar_bar = self._renderer.scalarbar(**kwargs)
-            self._renderer.set_camera(
-                update=False, reset_camera=False, **views_dicts[hemi][v]
-            )
+            self._set_camera(**views_dicts[hemi][v])
 
-        # 4) update the scalar bar and opacity
+        # 4) update the scalar bar and opacity (and render)
         self._update_colormap_range(alpha=alpha)
 
         # 5) enable UI events to interact with the data
@@ -2146,21 +2140,21 @@ class Brain:
             self._data[hemi]["grid_volume_pos"] = volume_pos
             self._data[hemi]["grid_volume_neg"] = volume_neg
         actor_pos, _ = self._renderer.plotter.add_actor(
-            volume_pos, reset_camera=False, name=None, culling=False, render=False
+            volume_pos, name=None, culling=False, reset_camera=False, render=False
         )
         actor_neg = actor_mesh = None
         if volume_neg is not None:
             actor_neg, _ = self._renderer.plotter.add_actor(
-                volume_neg, reset_camera=False, name=None, culling=False, render=False
+                volume_neg, name=None, culling=False, reset_camera=False, render=False
             )
         grid_mesh = self._data[hemi]["grid_mesh"]
         if grid_mesh is not None:
             actor_mesh, prop = self._renderer.plotter.add_actor(
                 grid_mesh,
-                reset_camera=False,
                 name=None,
                 culling=False,
                 pickable=False,
+                reset_camera=False,
                 render=False,
             )
             prop.SetColor(*self._brain_color[:3])
@@ -2188,7 +2182,8 @@ class Brain:
         borders=False,
         hemi=None,
         subdir=None,
-        reset_camera=True,
+        *,
+        reset_camera=None,
     ):
         """Add an ROI label to the image.
 
@@ -2221,8 +2216,7 @@ class Brain:
             for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
             ``brain.add_label('cuneus', subdir='aparc')``).
         reset_camera : bool
-            If True, reset the camera view after adding the label. Defaults
-            to True.
+            Deprecated. Use :meth:`show_view` instead.
 
         Notes
         -----
@@ -2329,6 +2323,12 @@ class Brain:
                     keep_idx = np.unique(keep_idx)
             show[keep_idx] = 1
             scalars *= show
+        if reset_camera is not None:
+            warn(
+                "reset_camera is deprecated and will be removed in 1.7, "
+                "use show_view instead",
+                FutureWarning,
+            )
         for _, _, v in self._iter_views(hemi):
             mesh = self._layered_meshes[hemi]
             mesh.add_overlay(
@@ -2338,8 +2338,6 @@ class Brain:
                 opacity=alpha,
                 name=label_name,
             )
-            if reset_camera:
-                self._renderer.set_camera(update=False, **views_dicts[hemi][v])
             if self.time_viewer and self.show_traces and self.traces_mode == "label":
                 label._color = orig_color
                 label._line = line
@@ -2492,7 +2490,6 @@ class Brain:
                 triangles=triangles,
                 color=color,
                 opacity=alpha,
-                reset_camera=False,
                 render=False,
             )
             self._add_actor("head", actor)
@@ -2744,7 +2741,8 @@ class Brain:
                 opacity=alpha,
                 resolution=resolution,
             )
-            self._renderer.set_camera(**views_dicts[hemi][v])
+            self._set_camera(**views_dicts[hemi][v])
+        self._renderer._update()
 
         # Store the foci in the Brain._data dictionary
         data_foci = coords
@@ -3119,7 +3117,7 @@ class Brain:
             _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
-    def get_view(self, row=0, col=0):
+    def get_view(self, row=0, col=0, *, align=True):
         """Get the camera orientation for a given subplot display.
 
         Parameters
@@ -3128,6 +3126,7 @@ class Brain:
             The row to use, default is the first one.
         col : int
             The column to check, the default is the first one.
+        %(align_view)s
 
         Returns
         -------
@@ -3139,10 +3138,11 @@ class Brain:
         """
         row = _ensure_int(row, "row")
         col = _ensure_int(col, "col")
+        rigid = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row == ri) and (col == ci):
-                    return self._renderer.get_camera()
+                    return self._renderer.get_camera(rigid=rigid)
         return (None,) * 5
 
     @verbose
@@ -3248,24 +3248,39 @@ class Brain:
                 param: val for param, val in view_params.items() if val is not None
             }  # no overwriting with None
             view_params = dict(views_dicts[hemi].get(view), **view_params)
-        xfm = self._rigid if align else None
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row is None or row == ri) and (col is None or col == ci):
-                    self._renderer.set_camera(
-                        **view_params,
-                        reset_camera=False,
-                        rigid=xfm,
-                        update=False,
-                    )
+                    self._set_camera(**view_params, align=align)
         if update:
             self._renderer._update()
+
+    def _set_camera(
+        self,
+        *,
+        distance=None,
+        focalpoint=None,
+        update=False,
+        align=True,
+        verbose=None,
+        **kwargs,
+    ):
+        # Wrap to self._renderer.set_camera safely, always passing self._rigid
+        # and using better no-op-like defaults
+        return self._renderer.set_camera(
+            distance=distance,
+            focalpoint=focalpoint,
+            update=update,
+            rigid=self._rigid if align else None,
+            **kwargs,
+        )
 
     def reset_view(self):
         """Reset the camera."""
         for h in self._hemis:
             for _, _, v in self._iter_views(h):
-                self._renderer.set_camera(**views_dicts[h][v], reset_camera=False)
+                self._set_camera(**views_dicts[h][v])
+        self._renderer._update()
 
     def save_image(self, filename=None, mode="rgb"):
         """Save view from all panels to disk.
