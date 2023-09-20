@@ -184,15 +184,19 @@ class Transform(dict):
         """The "to" frame as a string."""
         return _coord_frame_name(self["to"])
 
-    def save(self, fname):
+    @fill_doc
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save the transform as -trans.fif file.
 
         Parameters
         ----------
         fname : path-like
             The name of the file, which should end in ``-trans.fif``.
+        %(overwrite)s
+        %(verbose)s
         """
-        write_trans(fname, self)
+        write_trans(fname, self, overwrite=overwrite, verbose=verbose)
 
     def copy(self):
         """Make a copy of the transform."""
